@@ -30,6 +30,11 @@ export type SteamImportedGame = {
   artwork: SteamArtworkAsset[]
 }
 
+type DownloadedArtwork = {
+  content_type: string
+  bytes: number[]
+}
+
 type SteamStoreSearchResponse = {
   items?: Array<{
     id: number
@@ -83,6 +88,18 @@ function formatPrice(price?: { final?: number; currency?: string }) {
   }
 
   return `${price.currency ?? 'USD'} ${(price.final / 100).toFixed(2)}`
+}
+
+function bytesToBase64(bytes: number[]) {
+  let binary = ''
+  const chunkSize = 0x8000
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.slice(index, index + chunkSize)
+    binary += String.fromCharCode(...chunk)
+  }
+
+  return btoa(binary)
 }
 
 function dedupeArtwork(artwork: SteamArtworkAsset[]) {
@@ -203,4 +220,13 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
     storeUrl: `https://store.steampowered.com/app/${appId}`,
     artwork,
   }
+}
+
+export async function downloadSteamArtworkAsDataUrl(url: string) {
+  const downloadedArtwork = await invoke<DownloadedArtwork>('download_steam_artwork', {
+    url,
+  })
+  const base64 = bytesToBase64(downloadedArtwork.bytes)
+
+  return `data:${downloadedArtwork.content_type};base64,${base64}`
 }
