@@ -20,6 +20,11 @@ type BackgroundOffset = {
   y: number
 }
 
+type BackgroundImageSize = {
+  width: number
+  height: number
+}
+
 type DragState = {
   pointerId: number
   startClientX: number
@@ -48,6 +53,7 @@ type SavedProject = {
     scale: number
     offset: BackgroundOffset
     imageDataUrl: string | null
+    imageSize?: BackgroundImageSize | null
     note: string
   }
 }
@@ -84,10 +90,17 @@ function loadImage(source: string) {
     const image = new Image()
 
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('Could not load background image for export.'))
+    image.onerror = () => reject(new Error('Could not load background image.'))
 
     image.src = source
   })
+}
+
+function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
+  return {
+    width: image.naturalWidth || image.width,
+    height: image.naturalHeight || image.height,
+  }
 }
 
 function App() {
@@ -96,6 +109,8 @@ function App() {
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
+  const [backgroundImageSize, setBackgroundImageSize] =
+    useState<BackgroundImageSize | null>(null)
   const [backgroundScale, setBackgroundScale] = useState(1)
   const [backgroundOffset, setBackgroundOffset] = useState<BackgroundOffset>({
     x: 0,
@@ -133,6 +148,29 @@ function App() {
     )
   }, [gameSearchQuery])
 
+  const backgroundPreviewSize = useMemo(() => {
+    if (!backgroundImageSize || backgroundImageSize.width <= 0 || backgroundImageSize.height <= 0) {
+      return {
+        width: '100%',
+        height: '100%',
+      }
+    }
+
+    const aspectRatio = backgroundImageSize.width / backgroundImageSize.height
+
+    if (aspectRatio >= 1) {
+      return {
+        width: `${aspectRatio * 100}%`,
+        height: '100%',
+      }
+    }
+
+    return {
+      width: '100%',
+      height: `${(1 / aspectRatio) * 100}%`,
+    }
+  }, [backgroundImageSize])
+
   const printableInsetPercent = getGuideInsetPercent(
     selectedDiscTemplate.outerDiameterMm,
     selectedDiscTemplate.printableDiameterMm,
@@ -165,10 +203,30 @@ function App() {
         scale: backgroundScale,
         offset: backgroundOffset,
         imageDataUrl: backgroundImageUrl,
+        imageSize: backgroundImageSize,
         note:
           'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
       },
     }
+  }
+
+  async function setBackgroundFromDataUrl(
+    imageDataUrl: string,
+    statusMessage: string,
+    options: { clearSelectedArtwork?: boolean } = {},
+  ) {
+    const image = await loadImage(imageDataUrl)
+
+    setBackgroundImageUrl(imageDataUrl)
+    setBackgroundImageSize(getNaturalImageSize(image))
+    setBackgroundScale(1)
+    setBackgroundOffset({ x: 0, y: 0 })
+
+    if (options.clearSelectedArtwork ?? true) {
+      setSelectedArtworkId(null)
+    }
+
+    setProjectStatus(statusMessage)
   }
 
   function handleSelectMockGame(game: MockSteamGame) {
@@ -230,10 +288,11 @@ function App() {
 
     try {
       const imageDataUrl = await downloadSteamArtworkAsDataUrl(asset.url)
-      setBackgroundImageUrl(imageDataUrl)
-      setBackgroundScale(1)
-      setBackgroundOffset({ x: 0, y: 0 })
-      setProjectStatus(`Using ${asset.label} as the disc background.`)
+      await setBackgroundFromDataUrl(
+        imageDataUrl,
+        `Using ${asset.label} as the disc background.`,
+        { clearSelectedArtwork: false },
+      )
     } catch (error) {
       setSelectedArtworkId(null)
       setProjectStatus(`Steam artwork download failed: ${String(error)}`)
@@ -293,6 +352,7 @@ function App() {
       })
       const project = JSON.parse(contents) as SavedProject
       const savedTemplateId = project.template.variant
+      const savedImageDataUrl = project.background.imageDataUrl
 
       setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
       setSelectedMockGame(project.game?.selectedMockGame ?? null)
@@ -304,10 +364,20 @@ function App() {
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
-      setBackgroundImageUrl(project.background.imageDataUrl)
+      setBackgroundImageUrl(savedImageDataUrl)
+      setBackgroundImageSize(project.background.imageSize ?? null)
+
+      if (savedImageDataUrl && !project.background.imageSize) {
+        try {
+          const image = await loadImage(savedImageDataUrl)
+          setBackgroundImageSize(getNaturalImageSize(image))
+        } catch {
+          setBackgroundImageSize(null)
+        }
+      }
 
       setProjectStatus(
-        project.background.imageDataUrl
+        savedImageDataUrl
           ? 'Loaded project layout, game metadata, and embedded background image.'
           : 'Loaded project layout and game metadata. No embedded background image was found.',
       )
@@ -448,11 +518,10 @@ function App() {
         return
       }
 
-      setBackgroundImageUrl(imageDataUrl)
-      setBackgroundScale(1)
-      setBackgroundOffset({ x: 0, y: 0 })
-      setSelectedArtworkId(null)
-      setProjectStatus('Background image loaded and will be embedded when saved.')
+      void setBackgroundFromDataUrl(
+        imageDataUrl,
+        'Background image loaded and will be embedded when saved.',
+      )
     }
 
     reader.onerror = () => {
@@ -819,6 +888,8 @@ function App() {
                 alt=""
                 draggable={false}
                 style={{
+                  width: backgroundPreviewSize.width,
+                  height: backgroundPreviewSize.height,
                   transform: `translate(-50%, -50%) translate(${backgroundOffset.x}px, ${backgroundOffset.y}px) scale(${backgroundScale})`,
                 }}
               />
