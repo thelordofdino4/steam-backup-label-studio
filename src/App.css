@@ -103,6 +103,10 @@ select {
   padding: 10px 12px;
   cursor: pointer;
 }
+.button-row {
+  display: grid;
+  gap: 10px;
+}
 
 .secondary-button:disabled,
 input:disabled {
