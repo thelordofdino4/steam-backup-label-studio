@@ -30,10 +30,10 @@ type SavedProject = {
     placement: SteamLogoPlacement
   }
   background: {
-  scale: number
-  offset: BackgroundOffset
-  imageDataUrl: string | null
-  note: string
+    scale: number
+    offset: BackgroundOffset
+    imageDataUrl: string | null
+    note: string
   }
 }
 
@@ -47,7 +47,7 @@ function App() {
     y: 0,
   })
   const [projectStatus, setProjectStatus] = useState(
-    'No project file saved yet.'
+    'No project file saved yet.',
   )
 
   const dragStateRef = useRef<DragState | null>(null)
@@ -65,12 +65,12 @@ function App() {
         placement: steamLogoPlacement,
       },
       background: {
-  	scale: backgroundScale,
-  	offset: backgroundOffset,
-  	hasUnsavedImage: Boolean(backgroundImageUrl),
-  	note:
-    	'MVP save state stores layout values only. Embedded image assets will be added in a later .sbls package format.',
-	},
+        scale: backgroundScale,
+        offset: backgroundOffset,
+        imageDataUrl: backgroundImageUrl,
+        note:
+          'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
+      },
     }
   }
 
@@ -128,13 +128,13 @@ function App() {
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
-     setBackgroundImageUrl(project.background.imageDataUrl)
+      setBackgroundImageUrl(project.background.imageDataUrl)
 
-	setProjectStatus(
-  	project.background.imageDataUrl
-    	? 'Loaded project layout and embedded background image.'
-    	: 'Loaded project layout. No embedded background image was found.'
-	)
+      setProjectStatus(
+        project.background.imageDataUrl
+          ? 'Loaded project layout and embedded background image.'
+          : 'Loaded project layout. No embedded background image was found.',
+      )
     } catch (error) {
       setProjectStatus(`Load failed: ${String(error)}`)
     }
@@ -149,25 +149,25 @@ function App() {
 
     const reader = new FileReader()
 
-reader.onload = () => {
-  const imageDataUrl = reader.result
+    reader.onload = () => {
+      const imageDataUrl = reader.result
 
-  if (typeof imageDataUrl !== 'string') {
-    setProjectStatus('Background image could not be loaded.')
-    return
-  }
+      if (typeof imageDataUrl !== 'string') {
+        setProjectStatus('Background image could not be loaded.')
+        return
+      }
 
-  setBackgroundImageUrl(imageDataUrl)
-  setBackgroundScale(1)
-  setBackgroundOffset({ x: 0, y: 0 })
-  setProjectStatus('Background image loaded and will be embedded when saved.')
-}
+      setBackgroundImageUrl(imageDataUrl)
+      setBackgroundScale(1)
+      setBackgroundOffset({ x: 0, y: 0 })
+      setProjectStatus('Background image loaded and will be embedded when saved.')
+    }
 
-reader.onerror = () => {
-  setProjectStatus('Background image could not be read.')
-}
+    reader.onerror = () => {
+      setProjectStatus('Background image could not be read.')
+    }
 
-reader.readAsDataURL(file)
+    reader.readAsDataURL(file)
   }
 
   function handleBackgroundPointerDown(event: PointerEvent<HTMLDivElement>) {
