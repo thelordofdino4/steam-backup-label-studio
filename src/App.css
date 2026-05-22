@@ -86,6 +86,7 @@ input[type="range"] {
 
 input[type="text"],
 input[type="search"],
+input[type="number"],
 select {
   width: 100%;
   border: 1px solid #374151;
@@ -107,6 +108,30 @@ select {
 .checkbox-row input {
   width: 16px;
   height: 16px;
+}
+
+.custom-dimension-grid {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.custom-dimension-row {
+  display: grid;
+  grid-template-columns: 1fr 84px auto;
+  align-items: center;
+  gap: 8px;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.custom-dimension-row input {
+  padding: 8px 10px;
+  text-align: right;
+}
+
+.custom-dimension-row span:last-child {
+  color: #9ca3af;
 }
 
 .secondary-button {
