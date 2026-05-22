@@ -1208,9 +1208,9 @@ function App() {
           <input
             id="background-scale"
             type="range"
-            min="0.6"
+            min="0.1"
             max="2"
-            step="0.05"
+            step="0.01"
             value={backgroundScale}
             disabled={!backgroundImageUrl}
             onChange={(event) => setBackgroundScale(Number(event.target.value))}
