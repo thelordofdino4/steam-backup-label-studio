@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
+import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import './App.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
@@ -24,7 +25,7 @@ type SavedProject = {
   savedAt: string
   template: {
     type: 'disc'
-    variant: 'standardPrintableDisc'
+    variant: DiscTemplateId
   }
   steamBackupLogo: {
     placement: SteamLogoPlacement
@@ -37,7 +38,13 @@ type SavedProject = {
   }
 }
 
+function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
+  return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
+}
+
 function App() {
+  const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
+    useState<DiscTemplateId>('standardPrintableDisc')
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
@@ -51,6 +58,18 @@ function App() {
   )
 
   const dragStateRef = useRef<DragState | null>(null)
+  const selectedDiscTemplate = discTemplates[selectedDiscTemplateId]
+
+  const printableInsetPercent = getGuideInsetPercent(
+    selectedDiscTemplate.outerDiameterMm,
+    selectedDiscTemplate.printableDiameterMm,
+  )
+  const safeInsetPercent = getGuideInsetPercent(
+    selectedDiscTemplate.outerDiameterMm,
+    selectedDiscTemplate.safeDiameterMm,
+  )
+  const centerHolePercent =
+    (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
   function createProjectSnapshot(): SavedProject {
     return {
@@ -59,7 +78,7 @@ function App() {
       savedAt: new Date().toISOString(),
       template: {
         type: 'disc',
-        variant: 'standardPrintableDisc',
+        variant: selectedDiscTemplateId,
       },
       steamBackupLogo: {
         placement: steamLogoPlacement,
@@ -124,7 +143,11 @@ function App() {
         path: selected,
       })
       const project = JSON.parse(contents) as SavedProject
+      const savedTemplateId = project.template.variant
 
+      setSelectedDiscTemplateId(
+        savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
+      )
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
@@ -217,7 +240,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #6: Save and load project state</p>
+        <p className="muted">Issue #11: Disc variant guide geometry</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -234,7 +257,44 @@ function App() {
 
         <section className="panel">
           <h2>Template</h2>
-          <p>Standard printable disc</p>
+          <label className="field-label" htmlFor="disc-template">
+            Disc type
+          </label>
+          <select
+            id="disc-template"
+            value={selectedDiscTemplateId}
+            onChange={(event) =>
+              setSelectedDiscTemplateId(event.target.value as DiscTemplateId)
+            }
+          >
+            {discTemplateOptions.map((template) => (
+              <option key={template.id} value={template.id}>
+                {template.name}
+              </option>
+            ))}
+          </select>
+
+          <dl className="template-metrics">
+            <div>
+              <dt>Outer diameter</dt>
+              <dd>{selectedDiscTemplate.outerDiameterMm} mm</dd>
+            </div>
+            <div>
+              <dt>Center hole</dt>
+              <dd>{selectedDiscTemplate.innerHoleDiameterMm} mm</dd>
+            </div>
+            <div>
+              <dt>Printable area</dt>
+              <dd>{selectedDiscTemplate.printableDiameterMm} mm</dd>
+            </div>
+            <div>
+              <dt>Safe zone</dt>
+              <dd>{selectedDiscTemplate.safeDiameterMm} mm</dd>
+            </div>
+          </dl>
+          <p className="hint">
+            Preset dimensions are used for guide geometry and should be verified before final print/export.
+          </p>
         </section>
 
         <section className="panel">
@@ -303,6 +363,7 @@ function App() {
           <h2>Guides</h2>
           <ul>
             <li>Outer disc edge</li>
+            <li>Printable area</li>
             <li>Center hole</li>
             <li>Safe zone</li>
             <li>Steam Backup logo zone</li>
@@ -344,8 +405,15 @@ function App() {
             </div>
           )}
 
-          <div className="safe-zone" />
-          <div className="center-hole" />
+          <div
+            className="printable-zone"
+            style={{ inset: `${printableInsetPercent}%` }}
+          />
+          <div className="safe-zone" style={{ inset: `${safeInsetPercent}%` }} />
+          <div
+            className="center-hole"
+            style={{ width: `${centerHolePercent}%` }}
+          />
         </div>
       </section>
     </main>
