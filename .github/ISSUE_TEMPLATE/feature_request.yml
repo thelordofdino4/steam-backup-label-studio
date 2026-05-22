@@ -1,0 +1,26 @@
+name: Feature request
+description: Suggest a new feature or improvement.
+title: "Feature: "
+labels: [feature]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Explain the user need or workflow this feature supports.
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe what the app should do.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional notes about other approaches.
+    validations:
+      required: false
