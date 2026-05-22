@@ -202,12 +202,13 @@ input:disabled {
 
 .preview-area {
   height: 100vh;
+  min-width: 0;
   min-height: 0;
   position: sticky;
   top: 0;
   display: grid;
   place-items: center;
-  padding: 40px;
+  padding: clamp(16px, 4vw, 40px);
   overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 45%),
@@ -215,7 +216,8 @@ input:disabled {
 }
 
 .disc-preview {
-  width: min(70vmin, 640px);
+  width: min(70vmin, 100%, 640px);
+  max-width: 100%;
   aspect-ratio: 1;
   position: relative;
   overflow: hidden;
