@@ -858,8 +858,9 @@ function App() {
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">Issue #11: Physical print geometry</p>
 
-        <section className="panel">
-          <h2>Project File</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Project File</summary>
+          <div className="panel-content">
           <div className="button-row">
             <button className="secondary-button" type="button" onClick={handleSaveProject}>
               Save Project
@@ -872,10 +873,12 @@ function App() {
             </button>
           </div>
           <p className="hint">{projectStatus}</p>
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Export Options</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Export Options</summary>
+          <div className="panel-content">
           <p className="hint">
             Clean export is the default. Check only the guide marks you want included.
           </p>
@@ -911,10 +914,12 @@ function App() {
             />
             <span>Safe zone guide</span>
           </label>
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Game</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Game</summary>
+          <div className="panel-content">
           <label className="field-label" htmlFor="game-title">
             Label title
           </label>
@@ -1065,10 +1070,12 @@ function App() {
               </p>
             </div>
           )}
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Template</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Template</summary>
+          <div className="panel-content">
           <label className="field-label" htmlFor="disc-template">
             Disc type
           </label>
@@ -1188,10 +1195,12 @@ function App() {
           {selectedDiscTemplate.geometryNote && (
             <p className="hint">{selectedDiscTemplate.geometryNote}</p>
           )}
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Background Image</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Artwork</summary>
+          <div className="panel-content">
 
           <label className="field-label" htmlFor="background-upload">
             Local image
@@ -1232,10 +1241,12 @@ function App() {
           <p className="hint">
             Upload an image, then drag it directly on the disc preview.
           </p>
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Steam Backup Logo</h2>
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Branding</summary>
+          <div className="panel-content">
           <label className="field-label" htmlFor="steam-logo-placement">
             Placement
           </label>
@@ -1250,10 +1261,12 @@ function App() {
             <option value="bottom">Bottom center</option>
             <option value="none">None</option>
           </select>
-        </section>
+          </div>
+        </details>
 
-        <section className="panel">
-          <h2>Guides</h2>
+        <details className="panel collapsible-panel">
+          <summary className="panel-summary">Guide Legend</summary>
+          <div className="panel-content">
           <ul>
             <li>Outer disc edge</li>
             <li>Outer print boundary</li>
@@ -1264,7 +1277,8 @@ function App() {
             <li>Steam Backup logo zone</li>
             <li>Background image layer</li>
           </ul>
-        </section>
+          </div>
+        </details>
       </aside>
 
       <section className="preview-area">

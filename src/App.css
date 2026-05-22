@@ -381,3 +381,48 @@ input:disabled {
     width: min(calc(100vw - 32px), calc(60vh - 32px), 640px);
   }
 }
+
+.collapsible-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-summary::after {
+  content: "?";
+  color: #9ca3af;
+  transition: transform 120ms ease;
+}
+
+.collapsible-panel[open] > .panel-summary::after {
+  transform: rotate(90deg);
+}
+
+.panel-content {
+  padding: 0 16px 16px;
+}
+
+.collapsible-panel:not([open]) {
+  background: #141720;
+}
+
+.collapsible-panel:not([open]) .panel-summary {
+  color: #d1d5db;
+}
