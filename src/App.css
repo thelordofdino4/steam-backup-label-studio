@@ -11,6 +11,12 @@ body {
   color: #f3f4f6;
 }
 
+button,
+input,
+select {
+  font: inherit;
+}
+
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -21,6 +27,7 @@ body {
   border-right: 1px solid #2a2e38;
   background: #101218;
   padding: 24px;
+  overflow-y: auto;
 }
 
 .sidebar h1 {
@@ -57,6 +64,59 @@ body {
   padding-left: 20px;
 }
 
+.field-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #d1d5db;
+  font-size: 14px;
+}
+
+.spacing-top {
+  margin-top: 16px;
+}
+
+input[type="file"] {
+  width: 100%;
+  color: #d1d5db;
+}
+
+input[type="range"] {
+  width: 100%;
+}
+
+select {
+  width: 100%;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  background: #0f1117;
+  color: #f9fafb;
+  padding: 10px 12px;
+}
+
+.secondary-button {
+  width: 100%;
+  margin-top: 12px;
+  border: 1px solid #374151;
+  border-radius: 10px;
+  background: #111827;
+  color: #f9fafb;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.secondary-button:disabled,
+input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.hint {
+  margin-top: 12px !important;
+  color: #9ca3af !important;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .preview-area {
   min-height: 100vh;
   display: grid;
@@ -71,6 +131,7 @@ body {
   width: min(70vmin, 640px);
   aspect-ratio: 1;
   position: relative;
+  overflow: hidden;
   border-radius: 50%;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
@@ -79,11 +140,47 @@ body {
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
+.background-image-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  cursor: grab;
+  touch-action: none;
+}
+
+.background-image-layer:active {
+  cursor: grabbing;
+}
+
+.background-image-layer img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+
+.empty-background-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #4b5563;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
 .safe-zone {
   position: absolute;
   inset: 8%;
+  z-index: 3;
   border: 2px dashed rgba(37, 99, 235, 0.75);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 .center-hole {
@@ -93,26 +190,12 @@ body {
   top: 50%;
   left: 50%;
   translate: -50% -50%;
+  z-index: 4;
   border-radius: 50%;
   background: #20242d;
   border: 3px solid rgba(17, 24, 39, 0.8);
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.5);
-}
-.field-label {
-  display: block;
-  margin-bottom: 8px;
-  color: #d1d5db;
-  font-size: 14px;
-}
-
-select {
-  width: 100%;
-  border: 1px solid #374151;
-  border-radius: 10px;
-  background: #0f1117;
-  color: #f9fafb;
-  padding: 10px 12px;
-  font: inherit;
+  pointer-events: none;
 }
 
 .steam-backup-logo {
@@ -131,6 +214,7 @@ select {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 
 .steam-backup-logo.top {
