@@ -38,8 +38,42 @@ type SavedProject = {
   }
 }
 
+const EXPORT_DPI = 300
+const MM_PER_INCH = 25.4
+
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
+}
+
+function mmToPixels(mm: number) {
+  return Math.round((mm / MM_PER_INCH) * EXPORT_DPI)
+}
+
+function canvasToPngBytes(canvas: HTMLCanvasElement) {
+  return new Promise<number[]>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        reject(new Error('Could not create PNG blob.'))
+        return
+      }
+
+      blob
+        .arrayBuffer()
+        .then((buffer) => resolve(Array.from(new Uint8Array(buffer))))
+        .catch(reject)
+    }, 'image/png')
+  })
+}
+
+function loadImage(source: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image()
+
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Could not load background image for export.'))
+
+    image.src = source
+  })
 }
 
 function App() {
@@ -58,6 +92,7 @@ function App() {
   )
 
   const dragStateRef = useRef<DragState | null>(null)
+  const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate = discTemplates[selectedDiscTemplateId]
 
   const printableInsetPercent = getGuideInsetPercent(
@@ -163,6 +198,121 @@ function App() {
     }
   }
 
+  async function handleExportPng() {
+    try {
+      const path = await save({
+        defaultPath: 'steam-backup-label.png',
+        filters: [
+          {
+            name: 'PNG Image',
+            extensions: ['png'],
+          },
+        ],
+      })
+
+      if (!path) {
+        setProjectStatus('Export cancelled.')
+        return
+      }
+
+      const exportSize = mmToPixels(selectedDiscTemplate.outerDiameterMm)
+      const canvas = document.createElement('canvas')
+      canvas.width = exportSize
+      canvas.height = exportSize
+
+      const context = canvas.getContext('2d')
+
+      if (!context) {
+        throw new Error('Could not create PNG export canvas.')
+      }
+
+      const center = exportSize / 2
+      const outerRadius = exportSize / 2
+      const centerHoleRadius =
+        (selectedDiscTemplate.innerHoleDiameterMm /
+          selectedDiscTemplate.outerDiameterMm) *
+        outerRadius
+
+      context.clearRect(0, 0, exportSize, exportSize)
+
+      context.save()
+      context.beginPath()
+      context.arc(center, center, outerRadius, 0, Math.PI * 2)
+      context.clip()
+
+      context.fillStyle = '#e5e7eb'
+      context.fillRect(0, 0, exportSize, exportSize)
+
+      if (backgroundImageUrl) {
+        const image = await loadImage(backgroundImageUrl)
+        const previewSize =
+          discPreviewRef.current?.getBoundingClientRect().width ?? exportSize
+        const offsetScale = exportSize / previewSize
+        const coverScale = Math.max(
+          exportSize / image.width,
+          exportSize / image.height,
+        )
+        const drawScale = coverScale * backgroundScale
+        const drawWidth = image.width * drawScale
+        const drawHeight = image.height * drawScale
+        const drawX =
+          center - drawWidth / 2 + backgroundOffset.x * offsetScale
+        const drawY =
+          center - drawHeight / 2 + backgroundOffset.y * offsetScale
+
+        context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+      }
+
+      if (steamLogoPlacement !== 'none') {
+        const logoWidth = exportSize * 0.34
+        const logoHeight = exportSize * 0.065
+        const logoX = center - logoWidth / 2
+        const logoY =
+          steamLogoPlacement === 'top'
+            ? exportSize * 0.12
+            : exportSize * 0.815
+        const logoRadius = logoHeight / 2
+
+        context.fillStyle = 'rgba(15, 23, 42, 0.92)'
+        context.strokeStyle = 'rgba(17, 24, 39, 0.85)'
+        context.lineWidth = Math.max(4, exportSize * 0.004)
+
+        context.beginPath()
+        context.roundRect(logoX, logoY, logoWidth, logoHeight, logoRadius)
+        context.fill()
+        context.stroke()
+
+        context.fillStyle = '#f9fafb'
+        context.font = `bold ${Math.round(exportSize * 0.028)}px Arial`
+        context.textAlign = 'center'
+        context.textBaseline = 'middle'
+        context.fillText('Steam Backup', center, logoY + logoHeight / 2)
+      }
+
+      context.restore()
+
+      context.save()
+      context.globalCompositeOperation = 'destination-out'
+      context.beginPath()
+      context.arc(center, center, centerHoleRadius, 0, Math.PI * 2)
+      context.fill()
+      context.restore()
+
+      const pngBytes = await canvasToPngBytes(canvas)
+
+      await invoke('write_binary_file', {
+        path,
+        bytes: pngBytes,
+      })
+
+      setProjectStatus(
+        `Exported ${exportSize} × ${exportSize}px PNG at ${EXPORT_DPI} DPI.`,
+      )
+    } catch (error) {
+      setProjectStatus(`Export failed: ${String(error)}`)
+    }
+  }
+
   function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
 
@@ -240,7 +390,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #11: Disc variant guide geometry</p>
+        <p className="muted">Issue #7: 300 DPI PNG export</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -250,6 +400,9 @@ function App() {
             </button>
             <button className="secondary-button" type="button" onClick={handleLoadProject}>
               Load Project
+            </button>
+            <button className="secondary-button" type="button" onClick={handleExportPng}>
+              Export PNG
             </button>
           </div>
           <p className="hint">{projectStatus}</p>
@@ -373,7 +526,11 @@ function App() {
       </aside>
 
       <section className="preview-area">
-        <div className="disc-preview" aria-label="Blank standard printable disc preview">
+        <div
+          ref={discPreviewRef}
+          className="disc-preview"
+          aria-label="Blank standard printable disc preview"
+        >
           {backgroundImageUrl ? (
             <div
               className="background-image-layer"
