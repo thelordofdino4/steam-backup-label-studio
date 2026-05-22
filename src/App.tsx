@@ -159,6 +159,37 @@ function drawExportGuideCircle(
   context.restore()
 }
 
+function drawStripedHubGuide(
+  context: CanvasRenderingContext2D,
+  exportSize: number,
+  center: number,
+  physicalCenterHoleRadius: number,
+  innerPrintableBoundaryRadius: number,
+  lineWidth: number,
+) {
+  context.save()
+  context.beginPath()
+  context.arc(center, center, innerPrintableBoundaryRadius, 0, Math.PI * 2)
+  context.arc(center, center, physicalCenterHoleRadius, 0, Math.PI * 2, true)
+  context.clip('evenodd')
+
+  context.fillStyle = 'rgba(107, 114, 128, 0.48)'
+  context.fillRect(0, 0, exportSize, exportSize)
+
+  const stripeWidth = Math.max(6, lineWidth * 1.6)
+  context.strokeStyle = 'rgba(17, 24, 39, 0.62)'
+  context.lineWidth = stripeWidth
+
+  for (let offset = -exportSize; offset <= exportSize * 2; offset += stripeWidth * 2) {
+    context.beginPath()
+    context.moveTo(offset, 0)
+    context.lineTo(offset + exportSize, exportSize)
+    context.stroke()
+  }
+
+  context.restore()
+}
+
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<DiscTemplateId>('standardPrintableDisc')
@@ -475,14 +506,15 @@ function App() {
     const safeRadius =
       (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * outerRadius
 
-    if (exportGuides.outerEdge) {
-      drawExportGuideCircle(context, center, outerGuideRadius, {
-        color: 'rgba(255, 255, 255, 0.95)',
-        lineWidth: baseLineWidth,
-      })
-    }
-
     if (exportGuides.printableArea) {
+      drawStripedHubGuide(
+        context,
+        exportSize,
+        center,
+        physicalCenterHoleRadius,
+        innerPrintableBoundaryRadius,
+        baseLineWidth,
+      )
       drawExportGuideCircle(context, center, printableRadius, {
         color: 'rgba(34, 197, 94, 0.95)',
         lineWidth: baseLineWidth,
@@ -490,6 +522,19 @@ function App() {
       })
       drawExportGuideCircle(context, center, innerPrintableBoundaryRadius, {
         color: 'rgba(34, 197, 94, 0.95)',
+        lineWidth: baseLineWidth,
+        dashed: true,
+      })
+    }
+
+    if (exportGuides.outerEdge) {
+      drawExportGuideCircle(context, center, outerGuideRadius, {
+        color: 'rgba(239, 68, 68, 0.95)',
+        lineWidth: baseLineWidth,
+        dashed: true,
+      })
+      drawExportGuideCircle(context, center, physicalCenterHoleRadius + baseLineWidth / 2, {
+        color: 'rgba(239, 68, 68, 0.95)',
         lineWidth: baseLineWidth,
         dashed: true,
       })
@@ -507,6 +552,7 @@ function App() {
       drawExportGuideCircle(context, center, physicalCenterHoleRadius + baseLineWidth / 2, {
         color: 'rgba(239, 68, 68, 0.95)',
         lineWidth: baseLineWidth,
+        dashed: true,
       })
     }
   }
@@ -611,7 +657,7 @@ function App() {
       context.save()
       context.globalCompositeOperation = 'destination-out'
       context.beginPath()
-      context.arc(center, center, innerPrintableBoundaryRadius, 0, Math.PI * 2)
+      context.arc(center, center, physicalCenterHoleRadius, 0, Math.PI * 2)
       context.fill()
       context.restore()
 
