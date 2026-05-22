@@ -6,6 +6,16 @@ Steam Backup Label Studio is a cross-platform desktop application for creating s
 
 The app allows users to choose a physical template, import game metadata and artwork from Steam where available, customize all imported fields, arrange artwork and logos visually, and export print-accurate files for discs, jewel cases, Amaray/DVD cases, and Blu-ray cases.
 
+## Product Philosophy
+
+Steam Backup Label Studio is a workflow accelerator, not a replacement for GIMP, Photoshop, or a general-purpose image editor.
+
+The app exists to remove the tedious manual work from creating personal Steam backup labels: searching for game assets, finding templates, aligning disc geometry, resizing images by hand, adding repeated branding, and preparing print-ready output.
+
+The ideal basic workflow should take five minutes or less: choose a template, search for a game, select imported artwork, make small placement adjustments, save the project, and export a printable label.
+
+The app should support manual overrides for users who want control, but its default behavior should favor speed, consistency, and reduced setup time.
+
 ## Target Platforms
 
 Initial supported platforms:
@@ -114,6 +124,8 @@ The editor should eventually support:
 - Toggle non-printable masks
 - Zoom and pan
 
+The editor should avoid becoming a full raster image editor. Features such as painting tools, advanced filters, complex masking, and heavy photo manipulation are out of scope unless they directly support the backup-label workflow.
+
 ## Optional Elements
 
 The user can add:
@@ -167,6 +179,9 @@ The MVP should focus on one complete path:
 - Multi-disc wizard
 - Direct printer integration
 - Template marketplace
+- General-purpose image editing tools
+- Brush/paint tools
+- Advanced photo filters
 
 ## Legal / Usage Positioning
 
