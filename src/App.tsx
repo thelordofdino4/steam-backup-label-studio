@@ -76,6 +76,7 @@ type SavedProject = {
 
 const EXPORT_DPI = 300
 const MM_PER_INCH = 25.4
+const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
 const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   centerHole: false,
   outerEdge: false,
@@ -83,15 +84,40 @@ const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   safeZone: false,
 }
 
-function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function normalizeCustomDiscTemplate(template: DiscTemplate): DiscTemplate {
+  const outerDiameterMm = clampNumber(
+    template.outerDiameterMm,
+    1,
+    CUSTOM_OUTER_DIAMETER_MAX_MM,
+  )
+
   return {
+    ...template,
+    outerDiameterMm,
+    physicalCenterHoleDiameterMm: clampNumber(
+      template.physicalCenterHoleDiameterMm,
+      1,
+      outerDiameterMm,
+    ),
+    innerHoleDiameterMm: clampNumber(template.innerHoleDiameterMm, 1, outerDiameterMm),
+    printableDiameterMm: clampNumber(template.printableDiameterMm, 1, outerDiameterMm),
+    safeDiameterMm: clampNumber(template.safeDiameterMm, 1, outerDiameterMm),
+  }
+}
+
+function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
+  return normalizeCustomDiscTemplate({
     ...source,
     id: 'custom',
     name: 'Custom dimensions',
     geometryNote:
       'Custom dimensions are saved with the project. Safe zone is advisory only and does not crop exported artwork.',
     defaultZones: [],
-  }
+  })
 }
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
@@ -377,10 +403,14 @@ function App() {
       return
     }
 
-    setCustomDiscTemplate((currentTemplate) => ({
-      ...currentTemplate,
-      [field]: numericValue,
-    }))
+    setCustomDiscTemplate((currentTemplate) => {
+      const nextTemplate = {
+        ...currentTemplate,
+        [field]: numericValue,
+      }
+
+      return normalizeCustomDiscTemplate(nextTemplate)
+    })
   }
 
   function handleSelectMockGame(game: MockSteamGame) {
@@ -1063,6 +1093,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
+                  max={CUSTOM_OUTER_DIAMETER_MAX_MM}
                   step="0.1"
                   value={customDiscTemplate.outerDiameterMm}
                   onChange={(event) =>
@@ -1076,6 +1107,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
+                  max={customDiscTemplate.outerDiameterMm}
                   step="0.1"
                   value={customDiscTemplate.physicalCenterHoleDiameterMm}
                   onChange={(event) =>
@@ -1089,6 +1121,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
+                  max={customDiscTemplate.outerDiameterMm}
                   step="0.1"
                   value={customDiscTemplate.innerHoleDiameterMm}
                   onChange={(event) =>
@@ -1102,6 +1135,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
+                  max={customDiscTemplate.outerDiameterMm}
                   step="0.1"
                   value={customDiscTemplate.printableDiameterMm}
                   onChange={(event) =>
@@ -1115,6 +1149,7 @@ function App() {
                 <input
                   type="number"
                   min="1"
+                  max={customDiscTemplate.outerDiameterMm}
                   step="0.1"
                   value={customDiscTemplate.safeDiameterMm}
                   onChange={(event) =>
