@@ -2,6 +2,12 @@ import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import { mockSteamGames, type MockSteamGame } from './steam/mockSteamGames'
+import {
+  importSteamApp,
+  searchSteamStore,
+  type SteamImportedGame,
+  type SteamSearchResult,
+} from './steam/steamApi'
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import './App.css'
 
@@ -27,6 +33,7 @@ type SavedProject = {
   game: {
     manualTitle: string
     selectedMockGame: MockSteamGame | null
+    selectedSteamGame: SteamImportedGame | null
   }
   template: {
     type: 'disc'
@@ -98,6 +105,10 @@ function App() {
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [selectedMockGame, setSelectedMockGame] = useState<MockSteamGame | null>(null)
+  const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
+  const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
+  const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
+  const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
 
   const dragStateRef = useRef<DragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
@@ -137,6 +148,7 @@ function App() {
       game: {
         manualTitle: manualGameTitle,
         selectedMockGame,
+        selectedSteamGame,
       },
       template: {
         type: 'disc',
@@ -157,8 +169,52 @@ function App() {
 
   function handleSelectMockGame(game: MockSteamGame) {
     setSelectedMockGame(game)
+    setSelectedSteamGame(null)
     setManualGameTitle(game.title)
     setProjectStatus(`Selected mock Steam game: ${game.title}.`)
+  }
+
+  async function handleSteamSearch() {
+    const trimmedQuery = gameSearchQuery.trim()
+
+    if (!trimmedQuery) {
+      setProjectStatus('Enter a Steam game title or App ID to search.')
+      return
+    }
+
+    setIsSteamSearchLoading(true)
+    setProjectStatus(`Searching Steam for "${trimmedQuery}"...`)
+
+    try {
+      const results = await searchSteamStore(trimmedQuery)
+      setSteamSearchResults(results)
+      setProjectStatus(
+        results.length > 0
+          ? `Found ${results.length} Steam result${results.length === 1 ? '' : 's'}.`
+          : 'Steam returned no results. Manual title entry is still available.',
+      )
+    } catch (error) {
+      setProjectStatus(`Steam search failed: ${String(error)}`)
+    } finally {
+      setIsSteamSearchLoading(false)
+    }
+  }
+
+  async function handleSteamImport(appId: number) {
+    setIsSteamImportLoading(true)
+    setProjectStatus(`Importing Steam App ID ${appId}...`)
+
+    try {
+      const importedGame = await importSteamApp(appId)
+      setSelectedSteamGame(importedGame)
+      setSelectedMockGame(null)
+      setManualGameTitle(importedGame.title)
+      setProjectStatus(`Imported Steam metadata for ${importedGame.title}.`)
+    } catch (error) {
+      setProjectStatus(`Steam import failed: ${String(error)}`)
+    } finally {
+      setIsSteamImportLoading(false)
+    }
   }
 
   async function handleSaveProject() {
@@ -215,6 +271,7 @@ function App() {
 
       setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
       setSelectedMockGame(project.game?.selectedMockGame ?? null)
+      setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedDiscTemplateId(
         savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
       )
@@ -425,7 +482,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #8: Mock Steam game search</p>
+        <p className="muted">Issue #9: Real Steam import</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -456,37 +513,101 @@ function App() {
           />
 
           <label className="field-label spacing-top" htmlFor="game-search">
-            Mock Steam search
+            Steam search
           </label>
           <input
             id="game-search"
             type="search"
-            placeholder="Search by title, developer, publisher, or App ID"
+            placeholder="Search by title or App ID"
             value={gameSearchQuery}
             onChange={(event) => setGameSearchQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                void handleSteamSearch()
+              }
+            }}
           />
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={isSteamSearchLoading}
+            onClick={handleSteamSearch}
+          >
+            {isSteamSearchLoading ? 'Searching...' : 'Search Steam'}
+          </button>
 
           <div className="search-results">
-            {filteredMockGames.length > 0 ? (
-              filteredMockGames.map((game) => (
-                <button
-                  className="search-result-button"
-                  key={game.appId}
-                  type="button"
-                  onClick={() => handleSelectMockGame(game)}
-                >
-                  <strong>{game.title}</strong>
-                  <span>
-                    App ID {game.appId} · {game.developer} · {game.releaseDate}
-                  </span>
-                </button>
-              ))
-            ) : (
-              <p className="hint">No mock results. Manual title entry is still available.</p>
-            )}
+            {steamSearchResults.map((game) => (
+              <button
+                className="search-result-button"
+                key={game.appId}
+                type="button"
+                disabled={isSteamImportLoading}
+                onClick={() => handleSteamImport(game.appId)}
+              >
+                <strong>{game.title}</strong>
+                <span>
+                  App ID {game.appId}
+                  {game.price ? ` · ${game.price}` : ''}
+                </span>
+              </button>
+            ))}
           </div>
 
-          {selectedMockGame && (
+          <details className="mock-search-details">
+            <summary>Mock search fallback</summary>
+            <div className="search-results">
+              {filteredMockGames.length > 0 ? (
+                filteredMockGames.map((game) => (
+                  <button
+                    className="search-result-button"
+                    key={game.appId}
+                    type="button"
+                    onClick={() => handleSelectMockGame(game)}
+                  >
+                    <strong>{game.title}</strong>
+                    <span>
+                      App ID {game.appId} · {game.developer} · {game.releaseDate}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="hint">No mock results. Manual title entry is still available.</p>
+              )}
+            </div>
+          </details>
+
+          {selectedSteamGame && (
+            <div className="selected-game-card">
+              <h3>{selectedSteamGame.title}</h3>
+              {selectedSteamGame.shortDescription && (
+                <p>{selectedSteamGame.shortDescription}</p>
+              )}
+              <dl className="template-metrics">
+                <div>
+                  <dt>App ID</dt>
+                  <dd>{selectedSteamGame.appId}</dd>
+                </div>
+                <div>
+                  <dt>Developer</dt>
+                  <dd>{selectedSteamGame.developer.join(', ') || 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Publisher</dt>
+                  <dd>{selectedSteamGame.publisher.join(', ') || 'Unknown'}</dd>
+                </div>
+                <div>
+                  <dt>Release</dt>
+                  <dd>{selectedSteamGame.releaseDate ?? 'Unknown'}</dd>
+                </div>
+              </dl>
+              <p className="hint">
+                Artwork found: {selectedSteamGame.artwork.length}. Download/insert controls will come next.
+              </p>
+            </div>
+          )}
+
+          {selectedMockGame && !selectedSteamGame && (
             <div className="selected-game-card">
               <h3>{selectedMockGame.title}</h3>
               <p>{selectedMockGame.shortDescription}</p>
