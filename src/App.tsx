@@ -15,6 +15,8 @@ import './App.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'
+type ExportGuideKey = 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone'
+type ExportGuideSelection = Record<ExportGuideKey, boolean>
 
 type BackgroundOffset = {
   x: number
@@ -52,6 +54,7 @@ type SavedProject = {
   }
   export?: {
     guideMode?: ExportGuideMode
+    guides?: ExportGuideSelection
   }
   background: {
     scale: number
@@ -64,6 +67,12 @@ type SavedProject = {
 
 const EXPORT_DPI = 300
 const MM_PER_INCH = 25.4
+const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
+  centerHole: false,
+  outerEdge: false,
+  printableArea: false,
+  safeZone: false,
+}
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
@@ -107,8 +116,22 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   }
 }
 
-function shouldDrawExportGuide(mode: ExportGuideMode, guide: Exclude<ExportGuideMode, 'none' | 'all'>) {
-  return mode === 'all' || mode === guide
+function exportGuideModeToSelection(mode: ExportGuideMode = 'none'): ExportGuideSelection {
+  if (mode === 'all') {
+    return {
+      centerHole: true,
+      outerEdge: true,
+      printableArea: true,
+      safeZone: true,
+    }
+  }
+
+  return {
+    centerHole: mode === 'centerHole',
+    outerEdge: mode === 'outerEdge',
+    printableArea: mode === 'printableArea',
+    safeZone: mode === 'safeZone',
+  }
 }
 
 function drawExportGuideCircle(
@@ -140,7 +163,9 @@ function App() {
     useState<DiscTemplateId>('standardPrintableDisc')
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
-  const [exportGuideMode, setExportGuideMode] = useState<ExportGuideMode>('none')
+  const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
+    DEFAULT_EXPORT_GUIDES,
+  )
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
   const [backgroundImageSize, setBackgroundImageSize] =
     useState<BackgroundImageSize | null>(null)
@@ -233,7 +258,7 @@ function App() {
         placement: steamLogoPlacement,
       },
       export: {
-        guideMode: exportGuideMode,
+        guides: exportGuides,
       },
       background: {
         scale: backgroundScale,
@@ -263,6 +288,13 @@ function App() {
     }
 
     setProjectStatus(statusMessage)
+  }
+
+  function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
+    setExportGuides((currentGuides) => ({
+      ...currentGuides,
+      [guide]: checked,
+    }))
   }
 
   function handleSelectMockGame(game: MockSteamGame) {
@@ -398,7 +430,9 @@ function App() {
         savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
       )
       setSteamLogoPlacement(project.steamBackupLogo.placement)
-      setExportGuideMode(project.export?.guideMode ?? 'none')
+      setExportGuides(
+        project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
+      )
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
       setBackgroundImageUrl(savedImageDataUrl)
@@ -430,10 +464,6 @@ function App() {
     outerRadius: number,
     centerHoleRadius: number,
   ) {
-    if (exportGuideMode === 'none') {
-      return
-    }
-
     const baseLineWidth = Math.max(4, exportSize * 0.003)
     const outerGuideRadius = outerRadius - baseLineWidth / 2
     const printableRadius =
@@ -441,21 +471,21 @@ function App() {
     const safeRadius =
       (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * outerRadius
 
-    if (shouldDrawExportGuide(exportGuideMode, 'outerEdge')) {
+    if (exportGuides.outerEdge) {
       drawExportGuideCircle(context, center, outerGuideRadius, {
         color: 'rgba(255, 255, 255, 0.95)',
         lineWidth: baseLineWidth,
       })
     }
 
-    if (shouldDrawExportGuide(exportGuideMode, 'printableArea')) {
+    if (exportGuides.printableArea) {
       drawExportGuideCircle(context, center, printableRadius, {
         color: 'rgba(34, 197, 94, 0.95)',
         lineWidth: baseLineWidth,
       })
     }
 
-    if (shouldDrawExportGuide(exportGuideMode, 'safeZone')) {
+    if (exportGuides.safeZone) {
       drawExportGuideCircle(context, center, safeRadius, {
         color: 'rgba(37, 99, 235, 0.95)',
         lineWidth: baseLineWidth,
@@ -463,7 +493,7 @@ function App() {
       })
     }
 
-    if (shouldDrawExportGuide(exportGuideMode, 'centerHole')) {
+    if (exportGuides.centerHole) {
       drawExportGuideCircle(context, center, centerHoleRadius + baseLineWidth / 2, {
         color: 'rgba(239, 68, 68, 0.95)',
         lineWidth: baseLineWidth,
@@ -665,7 +695,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #12: Export guide options</p>
+        <p className="muted">Issue #13: Export guide checkboxes</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -685,24 +715,41 @@ function App() {
 
         <section className="panel">
           <h2>Export Options</h2>
-          <label className="field-label" htmlFor="export-guide-mode">
-            Export guides
-          </label>
-          <select
-            id="export-guide-mode"
-            value={exportGuideMode}
-            onChange={(event) => setExportGuideMode(event.target.value as ExportGuideMode)}
-          >
-            <option value="none">Hide all guides</option>
-            <option value="centerHole">Show center hole guide</option>
-            <option value="outerEdge">Show outer cut/edge guide</option>
-            <option value="printableArea">Show printable area guide</option>
-            <option value="safeZone">Show safe zone guide</option>
-            <option value="all">Show all print guides</option>
-          </select>
           <p className="hint">
-            Clean export is the default. Optional guide marks are included only when selected.
+            Clean export is the default. Check only the guide marks you want included.
           </p>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={exportGuides.centerHole}
+              onChange={(event) => handleExportGuideToggle('centerHole', event.target.checked)}
+            />
+            <span>Center hole guide</span>
+          </label>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={exportGuides.outerEdge}
+              onChange={(event) => handleExportGuideToggle('outerEdge', event.target.checked)}
+            />
+            <span>Outer cut/edge guide</span>
+          </label>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={exportGuides.printableArea}
+              onChange={(event) => handleExportGuideToggle('printableArea', event.target.checked)}
+            />
+            <span>Printable area guide</span>
+          </label>
+          <label className="checkbox-row">
+            <input
+              type="checkbox"
+              checked={exportGuides.safeZone}
+              onChange={(event) => handleExportGuideToggle('safeZone', event.target.checked)}
+            />
+            <span>Safe zone guide</span>
+          </label>
         </section>
 
         <section className="panel">
