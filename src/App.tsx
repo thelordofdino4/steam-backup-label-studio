@@ -65,8 +65,7 @@ type SavedProject = {
   }
 }
 
-const EXPORT_DPI = 300
-const MM_PER_INCH = 25.4
+const EXPORT_SIZE_PX = 1800
 const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   centerHole: false,
   outerEdge: false,
@@ -76,10 +75,6 @@ const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
-}
-
-function mmToPixels(mm: number) {
-  return Math.round((mm / MM_PER_INCH) * EXPORT_DPI)
 }
 
 function canvasToPngBytes(canvas: HTMLCanvasElement) {
@@ -518,7 +513,7 @@ function App() {
         return
       }
 
-      const exportSize = mmToPixels(selectedDiscTemplate.outerDiameterMm)
+      const exportSize = EXPORT_SIZE_PX
       const canvas = document.createElement('canvas')
       canvas.width = exportSize
       canvas.height = exportSize
@@ -610,9 +605,7 @@ function App() {
         bytes: pngBytes,
       })
 
-      setProjectStatus(
-        `Exported ${exportSize} × ${exportSize}px PNG at ${EXPORT_DPI} DPI.`,
-      )
+      setProjectStatus(`Exported ${exportSize} × ${exportSize}px PNG.`)
     } catch (error) {
       setProjectStatus(`Export failed: ${String(error)}`)
     }
