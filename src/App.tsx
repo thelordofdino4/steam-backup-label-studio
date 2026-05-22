@@ -3,8 +3,10 @@ import { open, save } from '@tauri-apps/plugin-dialog'
 import { useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import { mockSteamGames, type MockSteamGame } from './steam/mockSteamGames'
 import {
+  downloadSteamArtworkAsDataUrl,
   importSteamApp,
   searchSteamStore,
+  type SteamArtworkAsset,
   type SteamImportedGame,
   type SteamSearchResult,
 } from './steam/steamApi'
@@ -109,6 +111,8 @@ function App() {
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
   const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
+  const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
+  const [isArtworkLoading, setIsArtworkLoading] = useState(false)
 
   const dragStateRef = useRef<DragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
@@ -170,6 +174,7 @@ function App() {
   function handleSelectMockGame(game: MockSteamGame) {
     setSelectedMockGame(game)
     setSelectedSteamGame(null)
+    setSelectedArtworkId(null)
     setManualGameTitle(game.title)
     setProjectStatus(`Selected mock Steam game: ${game.title}.`)
   }
@@ -202,6 +207,7 @@ function App() {
 
   async function handleSteamImport(appId: number) {
     setIsSteamImportLoading(true)
+    setSelectedArtworkId(null)
     setProjectStatus(`Importing Steam App ID ${appId}...`)
 
     try {
@@ -214,6 +220,25 @@ function App() {
       setProjectStatus(`Steam import failed: ${String(error)}`)
     } finally {
       setIsSteamImportLoading(false)
+    }
+  }
+
+  async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
+    setIsArtworkLoading(true)
+    setSelectedArtworkId(asset.id)
+    setProjectStatus(`Downloading ${asset.label}...`)
+
+    try {
+      const imageDataUrl = await downloadSteamArtworkAsDataUrl(asset.url)
+      setBackgroundImageUrl(imageDataUrl)
+      setBackgroundScale(1)
+      setBackgroundOffset({ x: 0, y: 0 })
+      setProjectStatus(`Using ${asset.label} as the disc background.`)
+    } catch (error) {
+      setSelectedArtworkId(null)
+      setProjectStatus(`Steam artwork download failed: ${String(error)}`)
+    } finally {
+      setIsArtworkLoading(false)
     }
   }
 
@@ -272,6 +297,7 @@ function App() {
       setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
       setSelectedMockGame(project.game?.selectedMockGame ?? null)
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
+      setSelectedArtworkId(null)
       setSelectedDiscTemplateId(
         savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
       )
@@ -425,6 +451,7 @@ function App() {
       setBackgroundImageUrl(imageDataUrl)
       setBackgroundScale(1)
       setBackgroundOffset({ x: 0, y: 0 })
+      setSelectedArtworkId(null)
       setProjectStatus('Background image loaded and will be embedded when saved.')
     }
 
@@ -601,9 +628,27 @@ function App() {
                   <dd>{selectedSteamGame.releaseDate ?? 'Unknown'}</dd>
                 </div>
               </dl>
+
               <p className="hint">
-                Artwork found: {selectedSteamGame.artwork.length}. Download/insert controls will come next.
+                Choose imported Steam artwork as the background, or use local upload below to override it.
               </p>
+
+              <div className="search-results">
+                {selectedSteamGame.artwork.map((asset) => (
+                  <button
+                    className="search-result-button"
+                    key={asset.id}
+                    type="button"
+                    disabled={isArtworkLoading}
+                    onClick={() => handleUseSteamArtwork(asset)}
+                  >
+                    <strong>{asset.label}</strong>
+                    <span>
+                      {asset.kind}{selectedArtworkId === asset.id ? ' · selected' : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
