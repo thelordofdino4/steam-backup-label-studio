@@ -1,0 +1,50 @@
+/* Temporary layout override for Issue #15.
+   Keep the editor in a two-pane layout at the default Tauri desktop window size.
+   The older App.css breakpoint stacks the preview below the controls too early. */
+
+@media (min-width: 621px) {
+  body {
+    overflow: hidden;
+  }
+
+  .app-shell {
+    height: 100vh;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 320px minmax(240px, 1fr);
+    overflow: hidden;
+  }
+
+  .sidebar {
+    position: relative;
+    z-index: 2;
+    height: 100vh;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid #2a2e38;
+    border-bottom: 0;
+  }
+
+  .preview-area {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    min-width: 0;
+    min-height: 0;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+  }
+
+  .disc-preview {
+    width: min(calc(100vw - 320px - 64px), calc(100vh - 64px), 640px);
+    min-width: 160px;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 620px) {
+  .disc-preview {
+    width: min(calc(100vw - 32px), calc(60vh - 32px), 640px);
+  }
+}
