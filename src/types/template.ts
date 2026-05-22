@@ -4,10 +4,12 @@ export interface DiscTemplate {
   type: 'disc'
   units: 'mm'
   outerDiameterMm: number
+  physicalCenterHoleDiameterMm: number
   innerHoleDiameterMm: number
   printableDiameterMm: number
   safeDiameterMm: number
   bleedDiameterMm?: number
+  geometryNote?: string
   defaultZones: TemplateZone[]
 }
 
