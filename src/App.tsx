@@ -14,6 +14,7 @@ import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templ
 import './App.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
+type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'
 
 type BackgroundOffset = {
   x: number
@@ -48,6 +49,9 @@ type SavedProject = {
   }
   steamBackupLogo: {
     placement: SteamLogoPlacement
+  }
+  export?: {
+    guideMode?: ExportGuideMode
   }
   background: {
     scale: number
@@ -103,11 +107,40 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   }
 }
 
+function shouldDrawExportGuide(mode: ExportGuideMode, guide: Exclude<ExportGuideMode, 'none' | 'all'>) {
+  return mode === 'all' || mode === guide
+}
+
+function drawExportGuideCircle(
+  context: CanvasRenderingContext2D,
+  center: number,
+  radius: number,
+  options: {
+    color: string
+    lineWidth: number
+    dashed?: boolean
+  },
+) {
+  context.save()
+  context.strokeStyle = options.color
+  context.lineWidth = options.lineWidth
+
+  if (options.dashed) {
+    context.setLineDash([options.lineWidth * 3, options.lineWidth * 2])
+  }
+
+  context.beginPath()
+  context.arc(center, center, radius, 0, Math.PI * 2)
+  context.stroke()
+  context.restore()
+}
+
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<DiscTemplateId>('standardPrintableDisc')
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
+  const [exportGuideMode, setExportGuideMode] = useState<ExportGuideMode>('none')
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
   const [backgroundImageSize, setBackgroundImageSize] =
     useState<BackgroundImageSize | null>(null)
@@ -198,6 +231,9 @@ function App() {
       },
       steamBackupLogo: {
         placement: steamLogoPlacement,
+      },
+      export: {
+        guideMode: exportGuideMode,
       },
       background: {
         scale: backgroundScale,
@@ -362,6 +398,7 @@ function App() {
         savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
       )
       setSteamLogoPlacement(project.steamBackupLogo.placement)
+      setExportGuideMode(project.export?.guideMode ?? 'none')
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
       setBackgroundImageUrl(savedImageDataUrl)
@@ -383,6 +420,54 @@ function App() {
       )
     } catch (error) {
       setProjectStatus(`Load failed: ${String(error)}`)
+    }
+  }
+
+  function drawExportGuides(
+    context: CanvasRenderingContext2D,
+    exportSize: number,
+    center: number,
+    outerRadius: number,
+    centerHoleRadius: number,
+  ) {
+    if (exportGuideMode === 'none') {
+      return
+    }
+
+    const baseLineWidth = Math.max(4, exportSize * 0.003)
+    const outerGuideRadius = outerRadius - baseLineWidth / 2
+    const printableRadius =
+      (selectedDiscTemplate.printableDiameterMm / selectedDiscTemplate.outerDiameterMm) * outerRadius
+    const safeRadius =
+      (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * outerRadius
+
+    if (shouldDrawExportGuide(exportGuideMode, 'outerEdge')) {
+      drawExportGuideCircle(context, center, outerGuideRadius, {
+        color: 'rgba(255, 255, 255, 0.95)',
+        lineWidth: baseLineWidth,
+      })
+    }
+
+    if (shouldDrawExportGuide(exportGuideMode, 'printableArea')) {
+      drawExportGuideCircle(context, center, printableRadius, {
+        color: 'rgba(34, 197, 94, 0.95)',
+        lineWidth: baseLineWidth,
+      })
+    }
+
+    if (shouldDrawExportGuide(exportGuideMode, 'safeZone')) {
+      drawExportGuideCircle(context, center, safeRadius, {
+        color: 'rgba(37, 99, 235, 0.95)',
+        lineWidth: baseLineWidth,
+        dashed: true,
+      })
+    }
+
+    if (shouldDrawExportGuide(exportGuideMode, 'centerHole')) {
+      drawExportGuideCircle(context, center, centerHoleRadius + baseLineWidth / 2, {
+        color: 'rgba(239, 68, 68, 0.95)',
+        lineWidth: baseLineWidth,
+      })
     }
   }
 
@@ -486,6 +571,8 @@ function App() {
       context.fill()
       context.restore()
 
+      drawExportGuides(context, exportSize, center, outerRadius, centerHoleRadius)
+
       const pngBytes = await canvasToPngBytes(canvas)
 
       await invoke('write_binary_file', {
@@ -578,7 +665,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #9: Real Steam import</p>
+        <p className="muted">Issue #12: Export guide options</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -594,6 +681,28 @@ function App() {
             </button>
           </div>
           <p className="hint">{projectStatus}</p>
+        </section>
+
+        <section className="panel">
+          <h2>Export Options</h2>
+          <label className="field-label" htmlFor="export-guide-mode">
+            Export guides
+          </label>
+          <select
+            id="export-guide-mode"
+            value={exportGuideMode}
+            onChange={(event) => setExportGuideMode(event.target.value as ExportGuideMode)}
+          >
+            <option value="none">Hide all guides</option>
+            <option value="centerHole">Show center hole guide</option>
+            <option value="outerEdge">Show outer cut/edge guide</option>
+            <option value="printableArea">Show printable area guide</option>
+            <option value="safeZone">Show safe zone guide</option>
+            <option value="all">Show all print guides</option>
+          </select>
+          <p className="hint">
+            Clean export is the default. Optional guide marks are included only when selected.
+          </p>
         </section>
 
         <section className="panel">
