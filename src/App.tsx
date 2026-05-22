@@ -13,6 +13,7 @@ import {
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import './App.css'
+import './layoutFix.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'

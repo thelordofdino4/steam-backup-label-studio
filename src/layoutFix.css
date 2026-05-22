@@ -1,50 +1,112 @@
-/* Temporary layout override for Issue #15.
-   Keep the editor in a two-pane layout at the default Tauri desktop window size.
-   The older App.css breakpoint stacks the preview below the controls too early. */
+#root {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  text-align: left !important;
+  border-inline: 0 !important;
+  min-height: 100vh !important;
+  display: block !important;
+}
+
+.disc-preview {
+  container-type: inline-size;
+}
+
+.steam-backup-logo {
+  width: 34% !important;
+  height: 6.5% !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  font-size: clamp(8px, 2.8cqw, 18px) !important;
+  line-height: 1 !important;
+}
+
+.empty-background-message {
+  z-index: 9 !important;
+  padding: 0 18% !important;
+  text-align: center !important;
+  font-size: clamp(9px, 3.2cqw, 20px) !important;
+  line-height: 1.15 !important;
+  pointer-events: none !important;
+}
 
 @media (min-width: 621px) {
+  html,
+  body,
+  #root {
+    height: 100% !important;
+  }
+
   body {
-    overflow: hidden;
+    overflow: hidden !important;
   }
 
   .app-shell {
-    height: 100vh;
-    min-height: 0;
-    display: grid;
-    grid-template-columns: 320px minmax(240px, 1fr);
-    overflow: hidden;
+    height: 100vh !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: 320px minmax(240px, 1fr) !important;
+    overflow: hidden !important;
   }
 
   .sidebar {
-    position: relative;
-    z-index: 2;
-    height: 100vh;
-    min-height: 0;
-    overflow-y: auto;
-    border-right: 1px solid #2a2e38;
-    border-bottom: 0;
+    height: 100vh !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    border-right: 1px solid #2a2e38 !important;
+    border-bottom: 0 !important;
+    position: relative !important;
+    z-index: 2 !important;
   }
 
   .preview-area {
-    position: relative;
-    z-index: 1;
-    height: 100vh;
-    min-width: 0;
-    min-height: 0;
-    display: grid;
-    place-items: center;
-    overflow: hidden;
+    height: 100vh !important;
+    min-height: 0 !important;
+    min-width: 0 !important;
+    position: relative !important;
+    display: grid !important;
+    place-items: center !important;
+    overflow: hidden !important;
   }
 
   .disc-preview {
-    width: min(calc(100vw - 320px - 64px), calc(100vh - 64px), 640px);
-    min-width: 160px;
-    max-width: 100%;
+    width: min(calc(100vw - 320px - 64px), calc(100vh - 64px), 640px) !important;
+    min-width: 160px !important;
+    max-width: 100% !important;
   }
 }
 
 @media (max-width: 620px) {
+  body {
+    overflow: auto !important;
+  }
+
+  .app-shell {
+    height: auto !important;
+    min-height: 100vh !important;
+    grid-template-columns: 1fr !important;
+    overflow: visible !important;
+  }
+
+  .preview-area {
+    order: -1 !important;
+    height: auto !important;
+    min-height: 42vh !important;
+    position: static !important;
+    padding: 16px !important;
+  }
+
+  .sidebar {
+    height: auto !important;
+    overflow: visible !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid #2a2e38 !important;
+  }
+
   .disc-preview {
-    width: min(calc(100vw - 32px), calc(60vh - 32px), 640px);
+    width: min(calc(100vw - 32px), calc(42vh - 32px), 640px) !important;
+    min-width: 160px !important;
   }
 }
