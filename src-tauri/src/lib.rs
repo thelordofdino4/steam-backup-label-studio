@@ -1,3 +1,13 @@
+#[derive(serde::Serialize)]
+struct DownloadedArtwork {
+  content_type: String,
+  bytes: Vec<u8>,
+}
+
+fn is_allowed_steam_artwork_host(host: &str) -> bool {
+  host.ends_with("steamstatic.com") || host.ends_with("steampowered.com")
+}
+
 async fn fetch_url_text(url: reqwest::Url) -> Result<String, String> {
   let client = reqwest::Client::new();
   let response = client
@@ -71,6 +81,62 @@ async fn fetch_steam_app_details(appid: u32) -> Result<String, String> {
   fetch_url_text(url).await
 }
 
+#[tauri::command]
+async fn download_steam_artwork(url: String) -> Result<DownloadedArtwork, String> {
+  let parsed_url = reqwest::Url::parse(url.trim()).map_err(|error| error.to_string())?;
+
+  if parsed_url.scheme() != "https" {
+    return Err("Only HTTPS artwork URLs are allowed.".to_string());
+  }
+
+  let host = parsed_url
+    .host_str()
+    .ok_or_else(|| "Artwork URL is missing a host.".to_string())?;
+
+  if !is_allowed_steam_artwork_host(host) {
+    return Err("Only Steam-hosted artwork URLs are allowed.".to_string());
+  }
+
+  let client = reqwest::Client::new();
+  let response = client
+    .get(parsed_url)
+    .header(
+      reqwest::header::USER_AGENT,
+      "Steam Backup Label Studio pre-alpha",
+    )
+    .send()
+    .await
+    .map_err(|error| error.to_string())?;
+
+  let status = response.status();
+
+  if !status.is_success() {
+    return Err(format!("Steam artwork request failed with status {status}"));
+  }
+
+  let content_type = response
+    .headers()
+    .get(reqwest::header::CONTENT_TYPE)
+    .and_then(|value| value.to_str().ok())
+    .unwrap_or("image/jpeg")
+    .to_string();
+
+  if !content_type.starts_with("image/") {
+    return Err("Steam artwork response was not an image.".to_string());
+  }
+
+  let bytes = response
+    .bytes()
+    .await
+    .map_err(|error| error.to_string())?
+    .to_vec();
+
+  Ok(DownloadedArtwork {
+    content_type,
+    bytes,
+  })
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -80,7 +146,8 @@ pub fn run() {
       read_project_file,
       write_binary_file,
       search_steam_store,
-      fetch_steam_app_details
+      fetch_steam_app_details,
+      download_steam_artwork
     ])
     .setup(|app| {
       if cfg!(debug_assertions) {
