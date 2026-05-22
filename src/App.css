@@ -103,6 +103,7 @@ select {
   padding: 10px 12px;
   cursor: pointer;
 }
+
 .button-row {
   display: grid;
   gap: 10px;
@@ -119,6 +120,31 @@ input:disabled {
   color: #9ca3af !important;
   font-size: 13px;
   line-height: 1.4;
+}
+
+.template-metrics {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.template-metrics div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.template-metrics dt {
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.template-metrics dd {
+  margin: 0;
+  color: #f9fafb;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .preview-area {
@@ -178,23 +204,30 @@ input:disabled {
   letter-spacing: 0.08em;
 }
 
+.printable-zone,
 .safe-zone {
   position: absolute;
-  inset: 8%;
-  z-index: 3;
-  border: 2px dashed rgba(37, 99, 235, 0.75);
   border-radius: 50%;
   pointer-events: none;
 }
 
+.printable-zone {
+  z-index: 3;
+  border: 2px solid rgba(34, 197, 94, 0.7);
+}
+
+.safe-zone {
+  z-index: 4;
+  border: 2px dashed rgba(37, 99, 235, 0.75);
+}
+
 .center-hole {
   position: absolute;
-  width: 22%;
   aspect-ratio: 1;
   top: 50%;
   left: 50%;
   translate: -50% -50%;
-  z-index: 4;
+  z-index: 5;
   border-radius: 50%;
   background: #20242d;
   border: 3px solid rgba(17, 24, 39, 0.8);
