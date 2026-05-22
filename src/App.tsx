@@ -11,12 +11,20 @@ import {
   type SteamSearchResult,
 } from './steam/steamApi'
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
+import type { DiscTemplate } from './types/template'
 import './App.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'
 type ExportGuideKey = 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone'
 type ExportGuideSelection = Record<ExportGuideKey, boolean>
+type SelectedDiscTemplateId = DiscTemplateId | 'custom'
+type CustomDimensionKey =
+  | 'outerDiameterMm'
+  | 'physicalCenterHoleDiameterMm'
+  | 'innerHoleDiameterMm'
+  | 'printableDiameterMm'
+  | 'safeDiameterMm'
 
 type BackgroundOffset = {
   x: number
@@ -47,7 +55,8 @@ type SavedProject = {
   }
   template: {
     type: 'disc'
-    variant: DiscTemplateId
+    variant: SelectedDiscTemplateId
+    customDimensions?: DiscTemplate | null
   }
   steamBackupLogo: {
     placement: SteamLogoPlacement
@@ -72,6 +81,17 @@ const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   outerEdge: false,
   printableArea: false,
   safeZone: false,
+}
+
+function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
+  return {
+    ...source,
+    id: 'custom',
+    name: 'Custom dimensions',
+    geometryNote:
+      'Custom dimensions are saved with the project. Safe zone is advisory only and does not crop exported artwork.',
+    defaultZones: [],
+  }
 }
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
@@ -192,7 +212,10 @@ function drawStripedHubGuide(
 
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
-    useState<DiscTemplateId>('standardPrintableDisc')
+    useState<SelectedDiscTemplateId>('standardPrintableDisc')
+  const [customDiscTemplate, setCustomDiscTemplate] = useState<DiscTemplate>(() =>
+    createCustomDiscTemplate(),
+  )
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
@@ -221,7 +244,11 @@ function App() {
 
   const dragStateRef = useRef<DragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
-  const selectedDiscTemplate = discTemplates[selectedDiscTemplateId]
+  const selectedDiscTemplate =
+    selectedDiscTemplateId === 'custom'
+      ? customDiscTemplate
+      : discTemplates[selectedDiscTemplateId]
+  const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
 
   const filteredMockGames = useMemo(() => {
     const normalizedQuery = gameSearchQuery.trim().toLowerCase()
@@ -287,6 +314,7 @@ function App() {
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
+        customDimensions: selectedDiscTemplateId === 'custom' ? customDiscTemplate : null,
       },
       steamBackupLogo: {
         placement: steamLogoPlacement,
@@ -328,6 +356,30 @@ function App() {
     setExportGuides((currentGuides) => ({
       ...currentGuides,
       [guide]: checked,
+    }))
+  }
+
+  function handleTemplateChange(templateId: SelectedDiscTemplateId) {
+    setSelectedDiscTemplateId(templateId)
+
+    if (templateId === 'custom') {
+      setProjectStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
+      return
+    }
+
+    setProjectStatus(`Selected ${discTemplates[templateId].name}.`)
+  }
+
+  function handleCustomDimensionChange(field: CustomDimensionKey, value: string) {
+    const numericValue = Number(value)
+
+    if (!Number.isFinite(numericValue) || numericValue <= 0) {
+      return
+    }
+
+    setCustomDiscTemplate((currentTemplate) => ({
+      ...currentTemplate,
+      [field]: numericValue,
     }))
   }
 
@@ -460,9 +512,20 @@ function App() {
       setSelectedMockGame(project.game?.selectedMockGame ?? null)
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
-      setSelectedDiscTemplateId(
-        savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
-      )
+
+      if (savedTemplateId === 'custom') {
+        setCustomDiscTemplate(
+          project.template.customDimensions
+            ? createCustomDiscTemplate(project.template.customDimensions)
+            : createCustomDiscTemplate(),
+        )
+        setSelectedDiscTemplateId('custom')
+      } else if (savedTemplateId in discTemplates) {
+        setSelectedDiscTemplateId(savedTemplateId)
+      } else {
+        setSelectedDiscTemplateId('standardPrintableDisc')
+      }
+
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
@@ -483,8 +546,8 @@ function App() {
 
       setProjectStatus(
         savedImageDataUrl
-          ? 'Loaded project layout, game metadata, and embedded background image.'
-          : 'Loaded project layout and game metadata. No embedded background image was found.',
+          ? 'Loaded project layout, game metadata, embedded background image, and template geometry.'
+          : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.',
       )
     } catch (error) {
       setProjectStatus(`Load failed: ${String(error)}`)
@@ -982,7 +1045,7 @@ function App() {
             id="disc-template"
             value={selectedDiscTemplateId}
             onChange={(event) =>
-              setSelectedDiscTemplateId(event.target.value as DiscTemplateId)
+              handleTemplateChange(event.target.value as SelectedDiscTemplateId)
             }
           >
             {discTemplateOptions.map((template) => (
@@ -990,30 +1053,102 @@ function App() {
                 {template.name}
               </option>
             ))}
+            <option value="custom">Custom dimensions</option>
           </select>
 
-          <dl className="template-metrics">
-            <div>
-              <dt>Outer diameter</dt>
-              <dd>{selectedDiscTemplate.outerDiameterMm} mm</dd>
+          {isCustomDiscTemplate ? (
+            <div className="custom-dimension-grid">
+              <label className="custom-dimension-row">
+                <span>Outer diameter</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={customDiscTemplate.outerDiameterMm}
+                  onChange={(event) =>
+                    handleCustomDimensionChange('outerDiameterMm', event.target.value)
+                  }
+                />
+                <span>mm</span>
+              </label>
+              <label className="custom-dimension-row">
+                <span>Physical center hole</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={customDiscTemplate.physicalCenterHoleDiameterMm}
+                  onChange={(event) =>
+                    handleCustomDimensionChange('physicalCenterHoleDiameterMm', event.target.value)
+                  }
+                />
+                <span>mm</span>
+              </label>
+              <label className="custom-dimension-row">
+                <span>Inner print boundary</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={customDiscTemplate.innerHoleDiameterMm}
+                  onChange={(event) =>
+                    handleCustomDimensionChange('innerHoleDiameterMm', event.target.value)
+                  }
+                />
+                <span>mm</span>
+              </label>
+              <label className="custom-dimension-row">
+                <span>Outer print boundary</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={customDiscTemplate.printableDiameterMm}
+                  onChange={(event) =>
+                    handleCustomDimensionChange('printableDiameterMm', event.target.value)
+                  }
+                />
+                <span>mm</span>
+              </label>
+              <label className="custom-dimension-row">
+                <span>Safe zone</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  value={customDiscTemplate.safeDiameterMm}
+                  onChange={(event) =>
+                    handleCustomDimensionChange('safeDiameterMm', event.target.value)
+                  }
+                />
+                <span>mm</span>
+              </label>
             </div>
-            <div>
-              <dt>Physical center hole</dt>
-              <dd>{selectedDiscTemplate.physicalCenterHoleDiameterMm} mm</dd>
-            </div>
-            <div>
-              <dt>Inner print boundary</dt>
-              <dd>{selectedDiscTemplate.innerHoleDiameterMm} mm</dd>
-            </div>
-            <div>
-              <dt>Outer print boundary</dt>
-              <dd>{selectedDiscTemplate.printableDiameterMm} mm</dd>
-            </div>
-            <div>
-              <dt>Safe zone</dt>
-              <dd>{selectedDiscTemplate.safeDiameterMm} mm</dd>
-            </div>
-          </dl>
+          ) : (
+            <dl className="template-metrics">
+              <div>
+                <dt>Outer diameter</dt>
+                <dd>{selectedDiscTemplate.outerDiameterMm} mm</dd>
+              </div>
+              <div>
+                <dt>Physical center hole</dt>
+                <dd>{selectedDiscTemplate.physicalCenterHoleDiameterMm} mm</dd>
+              </div>
+              <div>
+                <dt>Inner print boundary</dt>
+                <dd>{selectedDiscTemplate.innerHoleDiameterMm} mm</dd>
+              </div>
+              <div>
+                <dt>Outer print boundary</dt>
+                <dd>{selectedDiscTemplate.printableDiameterMm} mm</dd>
+              </div>
+              <div>
+                <dt>Safe zone</dt>
+                <dd>{selectedDiscTemplate.safeDiameterMm} mm</dd>
+              </div>
+            </dl>
+          )}
+
           {selectedDiscTemplate.geometryNote && (
             <p className="hint">{selectedDiscTemplate.geometryNote}</p>
           )}
