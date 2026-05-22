@@ -149,7 +149,8 @@ function drawExportGuideCircle(
   context.lineWidth = options.lineWidth
 
   if (options.dashed) {
-    context.setLineDash([options.lineWidth * 3, options.lineWidth * 2])
+    context.setLineDash([options.lineWidth * 1.2, options.lineWidth * 1.6])
+    context.lineCap = 'round'
   }
 
   context.beginPath()
@@ -237,7 +238,9 @@ function App() {
     selectedDiscTemplate.outerDiameterMm,
     selectedDiscTemplate.safeDiameterMm,
   )
-  const centerHolePercent =
+  const physicalCenterHolePercent =
+    (selectedDiscTemplate.physicalCenterHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
+  const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
   function createProjectSnapshot(): SavedProject {
@@ -462,7 +465,8 @@ function App() {
     exportSize: number,
     center: number,
     outerRadius: number,
-    centerHoleRadius: number,
+    physicalCenterHoleRadius: number,
+    innerPrintableBoundaryRadius: number,
   ) {
     const baseLineWidth = Math.max(4, exportSize * 0.003)
     const outerGuideRadius = outerRadius - baseLineWidth / 2
@@ -482,6 +486,12 @@ function App() {
       drawExportGuideCircle(context, center, printableRadius, {
         color: 'rgba(34, 197, 94, 0.95)',
         lineWidth: baseLineWidth,
+        dashed: true,
+      })
+      drawExportGuideCircle(context, center, innerPrintableBoundaryRadius, {
+        color: 'rgba(34, 197, 94, 0.95)',
+        lineWidth: baseLineWidth,
+        dashed: true,
       })
     }
 
@@ -494,7 +504,7 @@ function App() {
     }
 
     if (exportGuides.centerHole) {
-      drawExportGuideCircle(context, center, centerHoleRadius + baseLineWidth / 2, {
+      drawExportGuideCircle(context, center, physicalCenterHoleRadius + baseLineWidth / 2, {
         color: 'rgba(239, 68, 68, 0.95)',
         lineWidth: baseLineWidth,
       })
@@ -531,7 +541,11 @@ function App() {
 
       const center = exportSize / 2
       const outerRadius = exportSize / 2
-      const centerHoleRadius =
+      const physicalCenterHoleRadius =
+        (selectedDiscTemplate.physicalCenterHoleDiameterMm /
+          selectedDiscTemplate.outerDiameterMm) *
+        outerRadius
+      const innerPrintableBoundaryRadius =
         (selectedDiscTemplate.innerHoleDiameterMm /
           selectedDiscTemplate.outerDiameterMm) *
         outerRadius
@@ -597,11 +611,18 @@ function App() {
       context.save()
       context.globalCompositeOperation = 'destination-out'
       context.beginPath()
-      context.arc(center, center, centerHoleRadius, 0, Math.PI * 2)
+      context.arc(center, center, innerPrintableBoundaryRadius, 0, Math.PI * 2)
       context.fill()
       context.restore()
 
-      drawExportGuides(context, exportSize, center, outerRadius, centerHoleRadius)
+      drawExportGuides(
+        context,
+        exportSize,
+        center,
+        outerRadius,
+        physicalCenterHoleRadius,
+        innerPrintableBoundaryRadius,
+      )
 
       const pngBytes = await canvasToPngBytes(canvas)
 
@@ -695,7 +716,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #13: Export guide checkboxes</p>
+        <p className="muted">Issue #11: Physical print geometry</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -724,7 +745,7 @@ function App() {
               checked={exportGuides.centerHole}
               onChange={(event) => handleExportGuideToggle('centerHole', event.target.checked)}
             />
-            <span>Center hole guide</span>
+            <span>Physical center hole guide</span>
           </label>
           <label className="checkbox-row">
             <input
@@ -740,7 +761,7 @@ function App() {
               checked={exportGuides.printableArea}
               onChange={(event) => handleExportGuideToggle('printableArea', event.target.checked)}
             />
-            <span>Printable area guide</span>
+            <span>Printable area guides</span>
           </label>
           <label className="checkbox-row">
             <input
@@ -931,11 +952,15 @@ function App() {
               <dd>{selectedDiscTemplate.outerDiameterMm} mm</dd>
             </div>
             <div>
-              <dt>Center hole</dt>
+              <dt>Physical center hole</dt>
+              <dd>{selectedDiscTemplate.physicalCenterHoleDiameterMm} mm</dd>
+            </div>
+            <div>
+              <dt>Inner print boundary</dt>
               <dd>{selectedDiscTemplate.innerHoleDiameterMm} mm</dd>
             </div>
             <div>
-              <dt>Printable area</dt>
+              <dt>Outer print boundary</dt>
               <dd>{selectedDiscTemplate.printableDiameterMm} mm</dd>
             </div>
             <div>
@@ -943,9 +968,9 @@ function App() {
               <dd>{selectedDiscTemplate.safeDiameterMm} mm</dd>
             </div>
           </dl>
-          <p className="hint">
-            Preset dimensions are used for guide geometry and should be verified before final print/export.
-          </p>
+          {selectedDiscTemplate.geometryNote && (
+            <p className="hint">{selectedDiscTemplate.geometryNote}</p>
+          )}
         </section>
 
         <section className="panel">
@@ -1014,8 +1039,10 @@ function App() {
           <h2>Guides</h2>
           <ul>
             <li>Outer disc edge</li>
-            <li>Printable area</li>
-            <li>Center hole</li>
+            <li>Outer print boundary</li>
+            <li>Inner print boundary</li>
+            <li>Physical center hole</li>
+            <li>No-print hub ring</li>
             <li>Safe zone</li>
             <li>Steam Backup logo zone</li>
             <li>Background image layer</li>
@@ -1063,13 +1090,21 @@ function App() {
           )}
 
           <div
+            className="hub-no-print-zone"
+            style={{ width: `${innerPrintableBoundaryPercent}%` }}
+          />
+          <div
             className="printable-zone"
             style={{ inset: `${printableInsetPercent}%` }}
           />
           <div className="safe-zone" style={{ inset: `${safeInsetPercent}%` }} />
           <div
+            className="inner-print-boundary"
+            style={{ width: `${innerPrintableBoundaryPercent}%` }}
+          />
+          <div
             className="center-hole"
-            style={{ width: `${centerHolePercent}%` }}
+            style={{ width: `${physicalCenterHolePercent}%` }}
           />
         </div>
       </section>
