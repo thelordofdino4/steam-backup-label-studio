@@ -1,6 +1,7 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import { useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
+import { mockSteamGames, type MockSteamGame } from './steam/mockSteamGames'
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import './App.css'
 
@@ -23,6 +24,10 @@ type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
   savedAt: string
+  game: {
+    manualTitle: string
+    selectedMockGame: MockSteamGame | null
+  }
   template: {
     type: 'disc'
     variant: DiscTemplateId
@@ -90,10 +95,28 @@ function App() {
   const [projectStatus, setProjectStatus] = useState(
     'No project file saved yet.',
   )
+  const [gameSearchQuery, setGameSearchQuery] = useState('')
+  const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
+  const [selectedMockGame, setSelectedMockGame] = useState<MockSteamGame | null>(null)
 
   const dragStateRef = useRef<DragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate = discTemplates[selectedDiscTemplateId]
+
+  const filteredMockGames = useMemo(() => {
+    const normalizedQuery = gameSearchQuery.trim().toLowerCase()
+
+    if (!normalizedQuery) {
+      return mockSteamGames.slice(0, 3)
+    }
+
+    return mockSteamGames.filter((game) =>
+      [game.title, game.developer, game.publisher, String(game.appId)]
+        .join(' ')
+        .toLowerCase()
+        .includes(normalizedQuery),
+    )
+  }, [gameSearchQuery])
 
   const printableInsetPercent = getGuideInsetPercent(
     selectedDiscTemplate.outerDiameterMm,
@@ -109,8 +132,12 @@ function App() {
   function createProjectSnapshot(): SavedProject {
     return {
       schemaVersion: '0.1.0',
-      title: 'Untitled Steam Backup Label',
+      title: manualGameTitle,
       savedAt: new Date().toISOString(),
+      game: {
+        manualTitle: manualGameTitle,
+        selectedMockGame,
+      },
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -126,6 +153,12 @@ function App() {
           'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
       },
     }
+  }
+
+  function handleSelectMockGame(game: MockSteamGame) {
+    setSelectedMockGame(game)
+    setManualGameTitle(game.title)
+    setProjectStatus(`Selected mock Steam game: ${game.title}.`)
   }
 
   async function handleSaveProject() {
@@ -180,6 +213,8 @@ function App() {
       const project = JSON.parse(contents) as SavedProject
       const savedTemplateId = project.template.variant
 
+      setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
+      setSelectedMockGame(project.game?.selectedMockGame ?? null)
       setSelectedDiscTemplateId(
         savedTemplateId in discTemplates ? savedTemplateId : 'standardPrintableDisc',
       )
@@ -190,8 +225,8 @@ function App() {
 
       setProjectStatus(
         project.background.imageDataUrl
-          ? 'Loaded project layout and embedded background image.'
-          : 'Loaded project layout. No embedded background image was found.',
+          ? 'Loaded project layout, game metadata, and embedded background image.'
+          : 'Loaded project layout and game metadata. No embedded background image was found.',
       )
     } catch (error) {
       setProjectStatus(`Load failed: ${String(error)}`)
@@ -390,7 +425,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #7: 300 DPI PNG export</p>
+        <p className="muted">Issue #8: Mock Steam game search</p>
 
         <section className="panel">
           <h2>Project File</h2>
@@ -406,6 +441,78 @@ function App() {
             </button>
           </div>
           <p className="hint">{projectStatus}</p>
+        </section>
+
+        <section className="panel">
+          <h2>Game</h2>
+          <label className="field-label" htmlFor="game-title">
+            Label title
+          </label>
+          <input
+            id="game-title"
+            type="text"
+            value={manualGameTitle}
+            onChange={(event) => setManualGameTitle(event.target.value)}
+          />
+
+          <label className="field-label spacing-top" htmlFor="game-search">
+            Mock Steam search
+          </label>
+          <input
+            id="game-search"
+            type="search"
+            placeholder="Search by title, developer, publisher, or App ID"
+            value={gameSearchQuery}
+            onChange={(event) => setGameSearchQuery(event.target.value)}
+          />
+
+          <div className="search-results">
+            {filteredMockGames.length > 0 ? (
+              filteredMockGames.map((game) => (
+                <button
+                  className="search-result-button"
+                  key={game.appId}
+                  type="button"
+                  onClick={() => handleSelectMockGame(game)}
+                >
+                  <strong>{game.title}</strong>
+                  <span>
+                    App ID {game.appId} · {game.developer} · {game.releaseDate}
+                  </span>
+                </button>
+              ))
+            ) : (
+              <p className="hint">No mock results. Manual title entry is still available.</p>
+            )}
+          </div>
+
+          {selectedMockGame && (
+            <div className="selected-game-card">
+              <h3>{selectedMockGame.title}</h3>
+              <p>{selectedMockGame.shortDescription}</p>
+              <dl className="template-metrics">
+                <div>
+                  <dt>App ID</dt>
+                  <dd>{selectedMockGame.appId}</dd>
+                </div>
+                <div>
+                  <dt>Developer</dt>
+                  <dd>{selectedMockGame.developer}</dd>
+                </div>
+                <div>
+                  <dt>Publisher</dt>
+                  <dd>{selectedMockGame.publisher}</dd>
+                </div>
+                <div>
+                  <dt>Release</dt>
+                  <dd>{selectedMockGame.releaseDate}</dd>
+                </div>
+              </dl>
+              <p className="hint">
+                Artwork choices are mocked for now. Real Steam import will connect this flow to live data later.
+              </p>
+            </div>
+          )}
         </section>
 
         <section className="panel">
