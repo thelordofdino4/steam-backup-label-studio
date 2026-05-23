@@ -4,11 +4,19 @@
 
 Steam Backup Label Studio is a cross-platform desktop application for creating standardized, print-ready labels and case artwork for personal Steam game backup discs and physical archive media.
 
-The app allows users to choose a physical template, import game metadata and artwork from Steam where available, customize all imported fields, arrange artwork and logos visually, and export print-accurate files for discs, jewel cases, Amaray/DVD cases, and Blu-ray cases.
+The app allows users to choose a physical template, import game metadata and artwork from Steam where available, customize imported fields, arrange artwork and logos visually, and export print-accurate files for discs, jewel cases, Amaray/DVD cases, and Blu-ray cases.
+
+## Current Product Status
+
+Steam Backup Label Studio is currently in **pre-alpha**.
+
+The current implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported or local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
+
+The current app is usable for early testing, but it is still missing several intended product features such as real logo layers, full layer management, richer metadata overrides, case templates, and alpha packaging.
 
 ## Product Philosophy
 
-Steam Backup Label Studio is a workflow accelerator, not a replacement for GIMP, Photoshop, or a general-purpose image editor.
+Steam Backup Label Studio is a workflow accelerator, not a replacement for GIMP, Photoshop, Krita, or a general-purpose image editor.
 
 The app exists to remove the tedious manual work from creating personal Steam backup labels: searching for game assets, finding templates, aligning disc geometry, resizing images by hand, adding repeated branding, and preparing print-ready output.
 
@@ -38,7 +46,7 @@ Possible future platforms:
 4. Search for a Steam game or enter details manually.
 5. Review imported metadata and artwork.
 6. Choose background art, logos, screenshots, and optional badges.
-7. Edit the layout in a live canvas editor.
+7. Edit the layout in a live canvas/editor area.
 8. Save the project.
 9. Export a print-ready file.
 
@@ -59,17 +67,21 @@ Future templates:
 Disc templates should support:
 
 - Outer disc boundary
-- Center hole mask
+- Physical center hole mask
+- Inner print boundary
+- Outer print boundary
 - Printable region
 - Safe zone
-- Bleed zone
+- Optional guide export
 - Optional Steam Backup logo placement
+- Custom user dimensions with validation
 
 Disc variants to support over time:
 
 - Standard printable disc
 - Sticky label disc
 - LightScribe disc
+- Custom dimensions
 
 ## Steam Backup Branding
 
@@ -79,7 +91,7 @@ The user can choose:
 - Steam Backup logo at bottom
 - No Steam Backup logo
 
-The logo should be inserted as an editable layer so the user can move, resize, hide, lock, or replace it.
+The current implementation uses a temporary generated text badge. The intended implementation is a real editable logo layer that the user can move, resize, hide, lock, or replace.
 
 ## Steam Import
 
@@ -103,7 +115,24 @@ Potential imported fields:
 - Screenshots
 - System requirements when available
 
-All imported fields must be overrideable.
+Current implementation supports real Steam search, basic metadata import, artwork import, and save/load persistence for imported metadata.
+
+All imported fields should eventually be overrideable.
+
+## Artwork and Asset Management
+
+The Game panel should focus on game search, game import, and game metadata.
+
+The Artwork panel should become the home for visual asset management, including:
+
+- Imported Steam artwork assets
+- Local uploaded artwork
+- Background selection
+- Developer logo assets
+- Publisher logo assets
+- CD/DVD/logo marks
+- ESRB/PEGI/rating assets
+- Other future visual elements
 
 ## Visual Editor Requirements
 
@@ -120,11 +149,19 @@ The editor should eventually support:
 - Delete layers
 - Snap to center
 - Snap to guides
-- Toggle safe zone and bleed guides
+- Toggle safe zone and print guides
 - Toggle non-printable masks
 - Zoom and pan
 
 The editor should avoid becoming a full raster image editor. Features such as painting tools, advanced filters, complex masking, and heavy photo manipulation are out of scope unless they directly support the backup-label workflow.
+
+## UI Requirements
+
+The editor should be organized into independently collapsible panels. Users should be able to open any number of panels at once instead of being forced into a single active tab.
+
+The preview pane should remain visible while editing on supported desktop window sizes.
+
+The preview pane should have a clear label and should eventually include a top-right stacked toast notification feed for state changes such as save, load, import, artwork updates, template changes, export completion, and errors.
 
 ## Optional Elements
 
@@ -159,14 +196,14 @@ For case templates, the app should eventually support:
 
 ## MVP Scope
 
-The MVP should focus on one complete path:
+The MVP focuses on one complete path:
 
 1. Open the app on Windows or Linux.
 2. Create a new disc label project.
-3. Choose a standard printable disc template.
+3. Choose a standard printable disc template or custom disc dimensions.
 4. Choose Steam Backup logo placement.
-5. Add a game title and artwork manually or through a basic Steam import.
-6. Adjust the background and logo in a live editor.
+5. Add a game title and artwork manually or through Steam import.
+6. Adjust the background in a live editor.
 7. Save and reopen the project.
 8. Export a 300 DPI PNG.
 
