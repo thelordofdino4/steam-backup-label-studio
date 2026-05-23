@@ -523,7 +523,12 @@ function App() {
       const importedGame = await importSteamApp(appId)
       setSelectedSteamGame(importedGame)
       setManualGameTitle(importedGame.title)
-      announceStatus(`Imported Steam metadata for ${importedGame.title}.`)
+      const artworkCount = importedGame.artwork.length
+      announceStatus(
+        artworkCount > 0
+          ? `Imported Steam metadata and ${artworkCount} artwork asset${artworkCount === 1 ? '' : 's'} for ${importedGame.title}.`
+          : `Imported Steam metadata for ${importedGame.title}.`,
+      )
     } catch (error) {
       announceStatus(`Steam import failed: ${String(error)}`)
     } finally {
@@ -1217,7 +1222,37 @@ function App() {
           <summary className="panel-summary">Artwork</summary>
           <div className="panel-content">
 
-          <label className="field-label" htmlFor="background-upload">
+                    {selectedSteamGame?.artwork.length ? (
+            <div className="artwork-import-section">
+              <h3 className="artwork-import-heading">Imported Steam artwork</h3>
+              <p className="hint">
+                Choose one of the imported Steam assets as the disc background.
+              </p>
+
+              <div className="search-results">
+                {selectedSteamGame.artwork.map((asset) => (
+                  <button
+                    className="search-result-button"
+                    key={asset.id}
+                    type="button"
+                    disabled={isArtworkLoading}
+                    onClick={() => handleUseSteamArtwork(asset)}
+                  >
+                    <strong>{asset.label}</strong>
+                    <span>
+                      {asset.kind}{selectedArtworkId === asset.id ? ' · selected' : ''}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="hint">
+              Import a Steam game to see Steam artwork here, or upload a local image below.
+            </p>
+          )}
+
+<label className="field-label" htmlFor="background-upload">
             Local image
           </label>
           <input

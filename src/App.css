@@ -673,3 +673,25 @@ input:disabled {
     font-size: 12px;
   }
 }
+
+/* Issue #18: imported Steam artwork is managed from the Artwork panel. */
+.selected-game-card > .search-results {
+  display: none;
+}
+
+.artwork-import-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2e38;
+}
+
+.artwork-import-heading {
+  margin: 0 0 8px;
+  color: #f9fafb;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.artwork-import-section .hint {
+  margin-bottom: 10px !important;
+}
