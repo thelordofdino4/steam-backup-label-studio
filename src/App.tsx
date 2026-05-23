@@ -81,6 +81,8 @@ type SavedProject = {
   steamBackupLogo: {
     placement: SteamLogoPlacement
     bannerColors?: SteamBannerColors
+    lockupImageDataUrl?: string | null
+    lockupImageSize?: BackgroundImageSize | null
   }
   export?: {
     guideMode?: ExportGuideMode
@@ -256,6 +258,24 @@ function loadImage(source: string) {
   })
 }
 
+function readImageFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error(`Could not read ${file.name} as an image.`))
+    }
+
+    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`))
+    reader.readAsDataURL(file)
+  })
+}
+
 function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   return {
     width: image.naturalWidth || image.width,
@@ -327,11 +347,12 @@ function drawOuterDiscExportOutline(
   context.restore()
 }
 
-function drawSteamBrandBanner(
+async function drawSteamBrandBanner(
   context: CanvasRenderingContext2D,
   exportSize: number,
   placement: SteamLogoPlacement,
   colors: SteamBannerColors,
+  lockupImageDataUrl: string | null,
 ) {
   if (placement === 'none') {
     return
@@ -363,8 +384,33 @@ function drawSteamBrandBanner(
   context.fillStyle = colors.accent
   context.fillRect(0, accentBandY, exportSize, accentBandHeight)
 
-  // Temporary text lockup for testing the coded banner system.
-  // This can later be replaced with a transparent PNG Steam logo/wordmark asset.
+  if (lockupImageDataUrl) {
+    const lockupImage = await loadImage(lockupImageDataUrl)
+    const naturalWidth = lockupImage.naturalWidth || lockupImage.width || 600
+    const naturalHeight = lockupImage.naturalHeight || lockupImage.height || 160
+    const lockupAspectRatio = naturalWidth / naturalHeight
+    const lockupMaxWidth = exportSize * 0.32
+    const lockupMaxHeight = mainBandHeight * 0.55
+
+    let lockupWidth = lockupMaxWidth
+    let lockupHeight = lockupWidth / lockupAspectRatio
+
+    if (lockupHeight > lockupMaxHeight) {
+      lockupHeight = lockupMaxHeight
+      lockupWidth = lockupHeight * lockupAspectRatio
+    }
+
+    context.drawImage(
+      lockupImage,
+      exportSize / 2 - lockupWidth / 2,
+      mainBandY + mainBandHeight / 2 - lockupHeight / 2,
+      lockupWidth,
+      lockupHeight,
+    )
+    return
+  }
+
+  // Fallback text remains only for projects without a supplied lockup image.
   context.save()
   context.fillStyle = '#f9fafb'
   context.font = `bold ${Math.round(exportSize * 0.04)}px Arial`
@@ -417,6 +463,11 @@ function App() {
   const [steamBannerColors, setSteamBannerColors] = useState<SteamBannerColors>(
     DEFAULT_STEAM_BANNER_COLORS,
   )
+  const [steamBannerLockupImageUrl, setSteamBannerLockupImageUrl] = useState<
+    string | null
+  >(null)
+  const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
+    useState<BackgroundImageSize | null>(null)
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
@@ -532,6 +583,8 @@ function App() {
       steamBackupLogo: {
         placement: steamLogoPlacement,
         bannerColors: steamBannerColors,
+        lockupImageDataUrl: steamBannerLockupImageUrl,
+        lockupImageSize: steamBannerLockupImageSize,
       },
       export: {
         guides: exportGuides,
@@ -564,6 +617,37 @@ function App() {
     }
 
     announceStatus(statusMessage)
+  }
+
+  async function handleSteamBannerLockupUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the banner lockup.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+
+      setSteamBannerLockupImageUrl(imageDataUrl)
+      setSteamBannerLockupImageSize(getNaturalImageSize(image))
+      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
+    } catch (error) {
+      announceStatus(`Banner lockup import failed: ${String(error)}`)
+    }
+  }
+
+  function handleClearSteamBannerLockup() {
+    setSteamBannerLockupImageUrl(null)
+    setSteamBannerLockupImageSize(null)
+    announceStatus('Cleared Steam banner lockup image. Using fallback text.')
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -805,6 +889,8 @@ function App() {
 
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setSteamBannerColors(project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS)
+      setSteamBannerLockupImageUrl(project.steamBackupLogo.lockupImageDataUrl ?? null)
+      setSteamBannerLockupImageSize(project.steamBackupLogo.lockupImageSize ?? null)
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
       )
@@ -969,7 +1055,13 @@ function App() {
         context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
       }
 
-      drawSteamBrandBanner(context, exportSize, steamLogoPlacement, steamBannerColors)
+      await drawSteamBrandBanner(
+        context,
+        exportSize,
+        steamLogoPlacement,
+        steamBannerColors,
+        steamBannerLockupImageUrl,
+      )
 
       context.restore()
 
@@ -1514,6 +1606,38 @@ function App() {
             <option value="bottom">Bottom center</option>
             <option value="none">None</option>
           </select>
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-lockup-upload">
+            Banner lockup image
+          </label>
+          <input
+            id="steam-banner-lockup-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleSteamBannerLockupUpload}
+          />
+
+          {steamBannerLockupImageUrl ? (
+            <div className="selected-lockup-card">
+              <span>
+                Custom lockup loaded
+                {steamBannerLockupImageSize
+                  ? ` · ${steamBannerLockupImageSize.width}×${steamBannerLockupImageSize.height}`
+                  : ''}
+              </span>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={handleClearSteamBannerLockup}
+              >
+                Clear lockup image
+              </button>
+            </div>
+          ) : (
+            <p className="hint">
+              No lockup image selected. The banner will use temporary fallback text.
+            </p>
+          )}
           </div>
         </details>
 
@@ -1619,7 +1743,15 @@ function App() {
               {steamLogoPlacement === 'bottom' && <div className="steam-brand-banner-accent" />}
               <div className="steam-brand-banner-main">
                 <div className="steam-brand-lockup" aria-label="Steam">
-                  <span>STEAM</span>
+                  {steamBannerLockupImageUrl ? (
+                    <img
+                      src={steamBannerLockupImageUrl}
+                      alt="Steam banner lockup"
+                      draggable={false}
+                    />
+                  ) : (
+                    <span>STEAM</span>
+                  )}
                 </div>
               </div>
               {steamLogoPlacement === 'top' && <div className="steam-brand-banner-accent" />}

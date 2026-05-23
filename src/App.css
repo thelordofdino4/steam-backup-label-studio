@@ -386,6 +386,9 @@ input:disabled {
 .steam-brand-lockup {
   display: grid;
   place-items: center;
+  width: 32%;
+  max-width: 220px;
+  height: 58%;
   color: #f9fafb;
   font-size: clamp(16px, 4.1cqw, 42px);
   font-weight: 900;
@@ -393,6 +396,29 @@ input:disabled {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.steam-brand-lockup img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.selected-lockup-card {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #2a2e38;
+  border-radius: 12px;
+  background: #111827;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.selected-lockup-card .secondary-button {
+  margin-top: 10px;
 }
 
 @media (max-width: 860px) {
