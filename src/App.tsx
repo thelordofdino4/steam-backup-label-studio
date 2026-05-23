@@ -9,6 +9,12 @@ import {
   type SteamImportedGame,
   type SteamSearchResult,
 } from './steam/steamApi'
+import {
+  findSteamScreenshots,
+  openLocalFolder,
+  readLocalImageAsDataUrl,
+  type LocalSteamScreenshotAsset,
+} from './local/localArtwork'
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import './App.css'
@@ -433,6 +439,13 @@ function App() {
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
   const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
+  const [localSteamScreenshots, setLocalSteamScreenshots] = useState<
+    LocalSteamScreenshotAsset[]
+  >([])
+  const [hasCheckedLocalSteamScreenshots, setHasCheckedLocalSteamScreenshots] =
+    useState(false)
+  const [isLocalSteamScreenshotsLoading, setIsLocalSteamScreenshotsLoading] =
+    useState(false)
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
 
   const dragStateRef = useRef<DragState | null>(null)
@@ -618,6 +631,8 @@ function App() {
   async function handleSteamImport(appId: number) {
     setIsSteamImportLoading(true)
     setSelectedArtworkId(null)
+    setLocalSteamScreenshots([])
+    setHasCheckedLocalSteamScreenshots(false)
     announceStatus(`Importing Steam App ID ${appId}...`)
 
     try {
@@ -654,6 +669,66 @@ function App() {
       announceStatus(`Steam artwork download failed: ${String(error)}`)
     } finally {
       setIsArtworkLoading(false)
+    }
+  }
+
+  async function handleFindLocalSteamScreenshots() {
+    if (!selectedSteamGame) {
+      announceStatus('Select or import a Steam game before checking local screenshots.')
+      return
+    }
+
+    setIsLocalSteamScreenshotsLoading(true)
+    setHasCheckedLocalSteamScreenshots(true)
+    announceStatus(`Checking local Steam screenshots for ${selectedSteamGame.title}...`)
+
+    try {
+      const screenshots = await findSteamScreenshots(selectedSteamGame.appId)
+      setLocalSteamScreenshots(screenshots)
+
+      announceStatus(
+        screenshots.length > 0
+          ? `Found ${screenshots.length} local Steam screenshot${screenshots.length === 1 ? '' : 's'} for ${selectedSteamGame.title}.`
+          : `No local Steam screenshots found for ${selectedSteamGame.title}.`,
+      )
+    } catch (error) {
+      setLocalSteamScreenshots([])
+      announceStatus(`Local Steam screenshot check failed: ${String(error)}`)
+    } finally {
+      setIsLocalSteamScreenshotsLoading(false)
+    }
+  }
+
+  async function handleUseLocalSteamScreenshot(asset: LocalSteamScreenshotAsset) {
+    setSelectedArtworkId(asset.id)
+    announceStatus(`Loading ${asset.label}...`)
+
+    try {
+      const imageDataUrl = await readLocalImageAsDataUrl(asset.path)
+      await setBackgroundFromDataUrl(
+        imageDataUrl,
+        `Using ${asset.label} as the disc background.`,
+        { clearSelectedArtwork: false },
+      )
+    } catch (error) {
+      setSelectedArtworkId(null)
+      announceStatus(`Local screenshot could not be applied: ${String(error)}`)
+    }
+  }
+
+  async function handleOpenLocalSteamScreenshotFolder() {
+    const folderPath = localSteamScreenshots[0]?.folderPath
+
+    if (!folderPath) {
+      announceStatus('No local Steam screenshot folder is available yet.')
+      return
+    }
+
+    try {
+      await openLocalFolder(folderPath)
+      announceStatus('Opened local Steam screenshot folder.')
+    } catch (error) {
+      announceStatus(`Could not open screenshot folder: ${String(error)}`)
     }
   }
 
@@ -713,6 +788,8 @@ function App() {
       setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
+      setLocalSteamScreenshots([])
+      setHasCheckedLocalSteamScreenshots(false)
 
       if (savedTemplateId === 'custom') {
         setCustomDiscTemplate(
@@ -1333,6 +1410,67 @@ function App() {
               Import a Steam game to see Steam artwork here, or upload a local image below.
             </p>
           )}
+
+          <div className="local-steam-screenshot-section">
+            <h3 className="artwork-import-heading">Local Steam screenshots</h3>
+
+            {!selectedSteamGame ? (
+              <p className="hint">
+                Select or import a Steam game first. If Steam screenshots are found for that game, they will appear here.
+              </p>
+            ) : (
+              <>
+                <p className="hint">
+                  Check your local Steam screenshot folder for {selectedSteamGame.title}.
+                </p>
+
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={isLocalSteamScreenshotsLoading}
+                  onClick={() => void handleFindLocalSteamScreenshots()}
+                >
+                  {isLocalSteamScreenshotsLoading ? 'Checking screenshots...' : 'Find local Steam screenshots'}
+                </button>
+
+                {hasCheckedLocalSteamScreenshots &&
+                  !isLocalSteamScreenshotsLoading &&
+                  localSteamScreenshots.length === 0 && (
+                    <p className="hint">
+                      No local Steam screenshots were found for this game.
+                    </p>
+                  )}
+
+                {localSteamScreenshots.length > 0 && (
+                  <>
+                    <button
+                      className="secondary-button"
+                      type="button"
+                      onClick={() => void handleOpenLocalSteamScreenshotFolder()}
+                    >
+                      Open screenshot folder
+                    </button>
+
+                    <div className="search-results local-steam-screenshot-results">
+                      {localSteamScreenshots.map((asset) => (
+                        <button
+                          className="search-result-button"
+                          key={asset.id}
+                          type="button"
+                          onClick={() => void handleUseLocalSteamScreenshot(asset)}
+                        >
+                          <strong>{asset.label}</strong>
+                          <span>
+                            local screenshot{selectedArtworkId === asset.id ? ' · selected' : ''}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+          </div>
 
 <label className="field-label" htmlFor="background-upload">
             Local image

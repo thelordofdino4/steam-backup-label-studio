@@ -738,3 +738,14 @@ input:disabled {
 .artwork-import-section .hint {
   margin-bottom: 10px !important;
 }
+
+
+.local-steam-screenshot-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #2a2e38;
+}
+
+.local-steam-screenshot-results {
+  margin-top: 10px;
+}

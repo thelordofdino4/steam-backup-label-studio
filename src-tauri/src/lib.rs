@@ -1,7 +1,79 @@
+use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::UNIX_EPOCH;
+
 #[derive(serde::Serialize)]
 struct DownloadedArtwork {
   content_type: String,
   bytes: Vec<u8>,
+}
+
+#[derive(serde::Serialize)]
+struct LocalSteamScreenshotAsset {
+  id: String,
+  label: String,
+  path: String,
+  folder_path: String,
+  modified_unix_seconds: Option<u64>,
+}
+
+fn image_content_type_for_path(path: &Path) -> Option<&'static str> {
+  let extension = path.extension()?.to_str()?.to_lowercase();
+
+  match extension.as_str() {
+    "jpg" | "jpeg" => Some("image/jpeg"),
+    "png" => Some("image/png"),
+    "webp" => Some("image/webp"),
+    "gif" => Some("image/gif"),
+    "bmp" => Some("image/bmp"),
+    _ => None,
+  }
+}
+
+fn add_existing_path(paths: &mut Vec<PathBuf>, path: PathBuf) {
+  if path.exists() && !paths.contains(&path) {
+    paths.push(path);
+  }
+}
+
+fn steam_userdata_roots() -> Vec<PathBuf> {
+  let mut roots = Vec::new();
+
+  #[cfg(target_os = "windows")]
+  {
+    if let Ok(program_files_x86) = std::env::var("ProgramFiles(x86)") {
+      add_existing_path(&mut roots, PathBuf::from(program_files_x86).join("Steam").join("userdata"));
+    }
+
+    if let Ok(program_files) = std::env::var("ProgramFiles") {
+      add_existing_path(&mut roots, PathBuf::from(program_files).join("Steam").join("userdata"));
+    }
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    if let Ok(home) = std::env::var("HOME") {
+      let home = PathBuf::from(home);
+      add_existing_path(&mut roots, home.join(".local/share/Steam/userdata"));
+      add_existing_path(&mut roots, home.join(".steam/steam/userdata"));
+      add_existing_path(
+        &mut roots,
+        home.join(".var/app/com.valvesoftware.Steam/.local/share/Steam/userdata"),
+      );
+    }
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    if let Ok(home) = std::env::var("HOME") {
+      add_existing_path(
+        &mut roots,
+        PathBuf::from(home).join("Library/Application Support/Steam/userdata"),
+      );
+    }
+  }
+
+  roots
 }
 
 fn is_allowed_steam_artwork_host(host: &str) -> bool {
@@ -82,6 +154,130 @@ async fn fetch_steam_app_details(appid: u32) -> Result<String, String> {
 }
 
 #[tauri::command]
+fn find_steam_screenshots(appid: u32) -> Result<Vec<LocalSteamScreenshotAsset>, String> {
+  let appid_string = appid.to_string();
+  let mut screenshots = Vec::new();
+
+  for userdata_root in steam_userdata_roots() {
+    let user_dirs = match std::fs::read_dir(userdata_root) {
+      Ok(entries) => entries,
+      Err(_) => continue,
+    };
+
+    for user_dir in user_dirs.flatten() {
+      let screenshot_dir = user_dir
+        .path()
+        .join("760")
+        .join("remote")
+        .join(&appid_string)
+        .join("screenshots");
+
+      if !screenshot_dir.is_dir() {
+        continue;
+      }
+
+      let entries = match std::fs::read_dir(&screenshot_dir) {
+        Ok(entries) => entries,
+        Err(_) => continue,
+      };
+
+      for entry in entries.flatten() {
+        let path = entry.path();
+
+        if !path.is_file() || image_content_type_for_path(&path).is_none() {
+          continue;
+        }
+
+        let label = path
+          .file_name()
+          .and_then(|name| name.to_str())
+          .unwrap_or("Steam screenshot")
+          .to_string();
+
+        let modified_unix_seconds = entry
+          .metadata()
+          .ok()
+          .and_then(|metadata| metadata.modified().ok())
+          .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+          .map(|duration| duration.as_secs());
+
+        screenshots.push(LocalSteamScreenshotAsset {
+          id: format!("local-steam-screenshot-{}-{}", appid, screenshots.len()),
+          label,
+          path: path.to_string_lossy().to_string(),
+          folder_path: screenshot_dir.to_string_lossy().to_string(),
+          modified_unix_seconds,
+        });
+      }
+    }
+  }
+
+  screenshots.sort_by(|left, right| {
+    right
+      .modified_unix_seconds
+      .cmp(&left.modified_unix_seconds)
+      .then_with(|| left.label.cmp(&right.label))
+  });
+
+  Ok(screenshots)
+}
+
+#[tauri::command]
+fn read_local_image_file(path: String) -> Result<DownloadedArtwork, String> {
+  let path = PathBuf::from(path);
+
+  if !path.is_file() {
+    return Err("Local image path does not point to a file.".to_string());
+  }
+
+  let content_type = image_content_type_for_path(&path)
+    .ok_or_else(|| "Local file is not a supported image type.".to_string())?
+    .to_string();
+
+  let bytes = std::fs::read(path).map_err(|error| error.to_string())?;
+
+  Ok(DownloadedArtwork {
+    content_type,
+    bytes,
+  })
+}
+
+#[tauri::command]
+fn open_local_folder(path: String) -> Result<(), String> {
+  let path = PathBuf::from(path);
+
+  if !path.is_dir() {
+    return Err("Local path does not point to a folder.".to_string());
+  }
+
+  #[cfg(target_os = "windows")]
+  {
+    Command::new("explorer")
+      .arg(path)
+      .spawn()
+      .map_err(|error| error.to_string())?;
+  }
+
+  #[cfg(target_os = "linux")]
+  {
+    Command::new("xdg-open")
+      .arg(path)
+      .spawn()
+      .map_err(|error| error.to_string())?;
+  }
+
+  #[cfg(target_os = "macos")]
+  {
+    Command::new("open")
+      .arg(path)
+      .spawn()
+      .map_err(|error| error.to_string())?;
+  }
+
+  Ok(())
+}
+
+#[tauri::command]
 async fn download_steam_artwork(url: String) -> Result<DownloadedArtwork, String> {
   let parsed_url = reqwest::Url::parse(url.trim()).map_err(|error| error.to_string())?;
 
@@ -147,6 +343,9 @@ pub fn run() {
       write_binary_file,
       search_steam_store,
       fetch_steam_app_details,
+      find_steam_screenshots,
+      read_local_image_file,
+      open_local_folder,
       download_steam_artwork
     ])
     .setup(|app| {
