@@ -44,6 +44,15 @@ type DragState = {
   startOffsetY: number
 }
 
+type StatusToastKind = 'info' | 'success' | 'warning' | 'error' | 'steam' | 'artwork' | 'template' | 'export'
+
+type StatusToast = {
+  id: string
+  message: string
+  kind: StatusToastKind
+  icon: string
+}
+
 type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -81,6 +90,69 @@ const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   outerEdge: false,
   printableArea: false,
   safeZone: false,
+}
+
+function getStatusToastKind(message: string): StatusToastKind {
+  const normalizedMessage = message.toLowerCase()
+
+  if (normalizedMessage.includes('failed') || normalizedMessage.includes('could not')) {
+    return 'error'
+  }
+
+  if (normalizedMessage.includes('cancelled')) {
+    return 'warning'
+  }
+
+  if (normalizedMessage.includes('export')) {
+    return 'export'
+  }
+
+  if (normalizedMessage.includes('steam') || normalizedMessage.includes('app id')) {
+    return 'steam'
+  }
+
+  if (
+    normalizedMessage.includes('background') ||
+    normalizedMessage.includes('artwork') ||
+    normalizedMessage.includes('image')
+  ) {
+    return 'artwork'
+  }
+
+  if (
+    normalizedMessage.includes('template') ||
+    normalizedMessage.includes('disc') ||
+    normalizedMessage.includes('dimension')
+  ) {
+    return 'template'
+  }
+
+  if (normalizedMessage.includes('saved') || normalizedMessage.includes('loaded')) {
+    return 'success'
+  }
+
+  return 'info'
+}
+
+function getStatusToastIcon(kind: StatusToastKind) {
+  switch (kind) {
+    case 'success':
+      return '?'
+    case 'warning':
+      return '!'
+    case 'error':
+      return '×'
+    case 'steam':
+      return 'S'
+    case 'artwork':
+      return '?'
+    case 'template':
+      return '?'
+    case 'export':
+      return '?'
+    default:
+      return '•'
+  }
 }
 
 function clampNumber(value: number, min: number, max: number) {
@@ -257,6 +329,7 @@ function App() {
   const [projectStatus, setProjectStatus] = useState(
     'No project file saved yet.',
   )
+  const [statusToasts, setStatusToasts] = useState<StatusToast[]>([])
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
@@ -310,6 +383,26 @@ function App() {
   const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
+  function announceStatus(message: string) {
+    const kind = getStatusToastKind(message)
+    const toast: StatusToast = {
+      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      message,
+      kind,
+      icon: getStatusToastIcon(kind),
+    }
+
+    setProjectStatus(message)
+    setStatusToasts((currentToasts) => [...currentToasts, toast].slice(-5))
+
+    window.setTimeout(() => {
+      setStatusToasts((currentToasts) =>
+        currentToasts.filter((currentToast) => currentToast.id !== toast.id),
+      )
+    }, 3600)
+  }
+
+
   function createProjectSnapshot(): SavedProject {
     return {
       schemaVersion: '0.1.0',
@@ -357,7 +450,7 @@ function App() {
       setSelectedArtworkId(null)
     }
 
-    setProjectStatus(statusMessage)
+    announceStatus(statusMessage)
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -371,11 +464,11 @@ function App() {
     setSelectedDiscTemplateId(templateId)
 
     if (templateId === 'custom') {
-      setProjectStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
+      announceStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
       return
     }
 
-    setProjectStatus(`Selected ${discTemplates[templateId].name}.`)
+    announceStatus(`Selected ${discTemplates[templateId].name}.`)
   }
 
   function handleCustomDimensionChange(field: CustomDimensionKey, value: string) {
@@ -399,23 +492,23 @@ function App() {
     const trimmedQuery = gameSearchQuery.trim()
 
     if (!trimmedQuery) {
-      setProjectStatus('Enter a Steam game title or App ID to search.')
+      announceStatus('Enter a Steam game title or App ID to search.')
       return
     }
 
     setIsSteamSearchLoading(true)
-    setProjectStatus(`Searching Steam for "${trimmedQuery}"...`)
+    announceStatus(`Searching Steam for "${trimmedQuery}"...`)
 
     try {
       const results = await searchSteamStore(trimmedQuery)
       setSteamSearchResults(results)
-      setProjectStatus(
+      announceStatus(
         results.length > 0
           ? `Found ${results.length} Steam result${results.length === 1 ? '' : 's'}.`
           : 'Steam returned no results. Manual title entry is still available.',
       )
     } catch (error) {
-      setProjectStatus(`Steam search failed: ${String(error)}`)
+      announceStatus(`Steam search failed: ${String(error)}`)
     } finally {
       setIsSteamSearchLoading(false)
     }
@@ -424,15 +517,15 @@ function App() {
   async function handleSteamImport(appId: number) {
     setIsSteamImportLoading(true)
     setSelectedArtworkId(null)
-    setProjectStatus(`Importing Steam App ID ${appId}...`)
+    announceStatus(`Importing Steam App ID ${appId}...`)
 
     try {
       const importedGame = await importSteamApp(appId)
       setSelectedSteamGame(importedGame)
-        setManualGameTitle(importedGame.title)
-      setProjectStatus(`Imported Steam metadata for ${importedGame.title}.`)
+      setManualGameTitle(importedGame.title)
+      announceStatus(`Imported Steam metadata for ${importedGame.title}.`)
     } catch (error) {
-      setProjectStatus(`Steam import failed: ${String(error)}`)
+      announceStatus(`Steam import failed: ${String(error)}`)
     } finally {
       setIsSteamImportLoading(false)
     }
@@ -441,7 +534,7 @@ function App() {
   async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
     setIsArtworkLoading(true)
     setSelectedArtworkId(asset.id)
-    setProjectStatus(`Downloading ${asset.label}...`)
+    announceStatus(`Downloading ${asset.label}...`)
 
     try {
       const imageDataUrl = await downloadSteamArtworkAsDataUrl(asset.url)
@@ -452,7 +545,7 @@ function App() {
       )
     } catch (error) {
       setSelectedArtworkId(null)
-      setProjectStatus(`Steam artwork download failed: ${String(error)}`)
+      announceStatus(`Steam artwork download failed: ${String(error)}`)
     } finally {
       setIsArtworkLoading(false)
     }
@@ -471,7 +564,7 @@ function App() {
       })
 
       if (!path) {
-        setProjectStatus('Save cancelled.')
+        announceStatus('Save cancelled.')
         return
       }
 
@@ -481,9 +574,9 @@ function App() {
         contents: JSON.stringify(project, null, 2),
       })
 
-      setProjectStatus(`Saved project to ${path}`)
+      announceStatus(`Saved project to ${path}`)
     } catch (error) {
-      setProjectStatus(`Save failed: ${String(error)}`)
+      announceStatus(`Save failed: ${String(error)}`)
     }
   }
 
@@ -500,7 +593,7 @@ function App() {
       })
 
       if (!selected || Array.isArray(selected)) {
-        setProjectStatus('Load cancelled.')
+        announceStatus('Load cancelled.')
         return
       }
 
@@ -546,13 +639,13 @@ function App() {
         }
       }
 
-      setProjectStatus(
+      announceStatus(
         savedImageDataUrl
           ? 'Loaded project layout, game metadata, embedded background image, and template geometry.'
           : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.',
       )
     } catch (error) {
-      setProjectStatus(`Load failed: ${String(error)}`)
+      announceStatus(`Load failed: ${String(error)}`)
     }
   }
 
@@ -635,7 +728,7 @@ function App() {
       })
 
       if (!path) {
-        setProjectStatus('Export cancelled.')
+        announceStatus('Export cancelled.')
         return
       }
 
@@ -742,11 +835,11 @@ function App() {
         bytes: pngBytes,
       })
 
-      setProjectStatus(
+      announceStatus(
         `Exported ${exportSize} × ${exportSize}px PNG at ${EXPORT_DPI} DPI.`,
       )
     } catch (error) {
-      setProjectStatus(`Export failed: ${String(error)}`)
+      announceStatus(`Export failed: ${String(error)}`)
     }
   }
 
@@ -763,7 +856,7 @@ function App() {
       const imageDataUrl = reader.result
 
       if (typeof imageDataUrl !== 'string') {
-        setProjectStatus('Background image could not be loaded.')
+        announceStatus('Background image could not be loaded.')
         return
       }
 
@@ -774,7 +867,7 @@ function App() {
     }
 
     reader.onerror = () => {
-      setProjectStatus('Background image could not be read.')
+      announceStatus('Background image could not be read.')
     }
 
     reader.readAsDataURL(file)
@@ -1230,7 +1323,23 @@ function App() {
         </details>
       </aside>
 
-      <section className="preview-area">
+      <section className="preview-area" aria-labelledby="disc-preview-title">
+        <div className="preview-pane-label">
+          <span>Live Preview</span>
+          <strong id="disc-preview-title">Disc Preview</strong>
+        </div>
+
+        <div className="preview-toast-stack" aria-live="polite" aria-atomic="false">
+          {statusToasts.map((toast) => (
+            <div className={`preview-toast preview-toast-${toast.kind}`} key={toast.id}>
+              <span className="preview-toast-message">{toast.message}</span>
+              <span className="preview-toast-icon" aria-hidden="true">
+                {toast.icon}
+              </span>
+            </div>
+          ))}
+        </div>
+
         <div
           ref={discPreviewRef}
           className="disc-preview"
