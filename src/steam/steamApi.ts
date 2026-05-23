@@ -11,7 +11,7 @@ export type SteamArtworkAsset = {
   id: string
   label: string
   url: string
-  kind: 'header' | 'capsule' | 'background' | 'logo' | 'screenshot'
+  kind: 'header' | 'capsule' | 'background' | 'logo' | 'screenshot' | 'library'
 }
 
 export type SteamImportedGame = {
@@ -194,6 +194,24 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
     {
       id: 'cdn-logo',
       label: 'Steam CDN logo',
+      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/logo.png`,
+      kind: 'logo' as const,
+    },
+    {
+      id: 'cdn-library-capsule',
+      label: 'Steam library capsule',
+      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`,
+      kind: 'library' as const,
+    },
+    {
+      id: 'cdn-library-hero',
+      label: 'Steam library hero',
+      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_hero.jpg`,
+      kind: 'library' as const,
+    },
+    {
+      id: 'cdn-library-logo',
+      label: 'Steam library logo',
       url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/logo.png`,
       kind: 'logo' as const,
     },
