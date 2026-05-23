@@ -16,24 +16,28 @@ The goal is to eliminate the most manual parts of making personal Steam backup l
 
 A user who wants a basic backup disc label should be able to choose a template, search for a game, select artwork, make small placement adjustments, and export a printable result in five minutes or less.
 
+The app should support blank-project workflows. A user should be able to upload a single image and export without being forced through a checklist. Guided help belongs in Guided Start or export-time summaries and warnings.
+
 ## Current Status
 
 Steam Backup Label Studio is currently in **pre-alpha**.
+
+The current working interface is the **disc-label editor**. The broader planned product also includes future jewel case, DVD/Amaray, and Blu-ray case editors.
 
 The core disc-label workflow is working:
 
 1. Launch the Tauri desktop app.
 2. Search Steam and import real game metadata.
-3. Select imported Steam artwork or upload local artwork.
+3. Select imported Steam artwork from the Artwork panel or upload local artwork.
 4. Drag, resize, and reset the disc background image.
 5. Choose a physical disc template or custom dimensions.
 6. Toggle optional export guide marks.
 7. Save and reload project files.
 8. Export a clean 300 DPI PNG.
 
-Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, and better image scaling for Steam artwork.
+Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, better image scaling for Steam artwork, a labeled preview pane, and stacked preview toast notifications.
 
-The app is usable for early testing, but the UI and workflow are still being cleaned up.
+The app is usable for early disc-label testing, but the larger multi-template product is still in planning and foundation work.
 
 ## Current Features
 
@@ -45,22 +49,23 @@ The app is usable for early testing, but the UI and workflow are still being cle
 - Local background image upload.
 - Steam search and metadata import.
 - Steam artwork import.
+- Imported Steam artwork selection from the Artwork panel.
 - Background drag and scale controls.
 - Save/load project files with embedded artwork.
 - 300 DPI PNG export based on real physical disc dimensions.
 - Optional exported guide marks.
 - Collapsible editor panels that can be opened in any combination.
+- Labeled live preview with top-right stacked toast notifications.
 - Fixed minimum desktop window size to prevent unusable layouts.
 
 ## Near-Term Work
 
 - Replace the temporary Steam Backup text badge with a real graphic/logo layer.
-- Move imported artwork management out of the Game panel and into the Artwork panel.
-- Remove vestigial prototype UI elements, including the mock search fallback.
-- Improve the Guide Legend so it explains actual guide behavior.
-- Add a preview-pane title and TF2-style stacked toast notification feed.
-- Improve panel collapse/restore icon styling.
-- Prepare the app for a first alpha package.
+- Add New Project / Reset Project.
+- Add export-time summary/preflight behavior.
+- Add manual metadata fields and basic text elements.
+- Improve artwork picker presentation with thumbnails, asset type, and dimensions.
+- Begin shared template-system planning for future case editors.
 
 ## Planned Platforms
 
@@ -92,6 +97,7 @@ See the `docs/` folder for:
 - `PRD.md` — product requirements and product direction.
 - `ROADMAP.md` — completed phases, current pre-alpha work, and future roadmap.
 - `CURRENT_STATUS.md` — concise implementation status and next issues.
+- `MILESTONES.md` — milestone boundaries and feature backlog.
 
 ## Disclaimer
 
