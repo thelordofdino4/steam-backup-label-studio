@@ -228,7 +228,7 @@ input:disabled {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
     #e5e7eb;
-  border: 3px solid #f9fafb;
+  border: 0;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
@@ -325,31 +325,74 @@ input:disabled {
   pointer-events: none;
 }
 
-.steam-backup-logo {
+.steam-brand-banner {
   position: absolute;
-  left: 50%;
-  translate: -50% 0;
+  left: 0;
+  width: 100%;
+  height: 15.31%;
   z-index: 2;
-  min-width: 160px;
-  padding: 10px 18px;
-  border-radius: 999px;
-  border: 2px solid rgba(17, 24, 39, 0.8);
-  background: rgba(15, 23, 42, 0.9);
-  color: #f9fafb;
-  text-align: center;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
   pointer-events: none;
+  user-select: none;
 }
 
-.steam-backup-logo.top {
-  top: 12%;
+.steam-brand-banner.top {
+  top: 0;
 }
 
-.steam-backup-logo.bottom {
-  bottom: 12%;
+.steam-brand-banner.bottom {
+  bottom: 0;
+}
+
+.steam-brand-banner-main,
+.steam-brand-banner-accent {
+  position: absolute;
+  left: 0;
+  width: 100%;
+}
+
+.steam-brand-banner-main {
+  display: grid;
+  place-items: center;
+  height: 92.17%;
+  background: linear-gradient(
+    180deg,
+    var(--steam-banner-gradient-start, #2b475e) 0%,
+    var(--steam-banner-gradient-end, #1b2838) 100%
+  );
+}
+
+.steam-brand-banner-accent {
+  height: 9.22%;
+  background: var(--steam-banner-accent, #2aabe1);
+}
+
+.steam-brand-banner.top .steam-brand-banner-main {
+  top: 0;
+}
+
+.steam-brand-banner.top .steam-brand-banner-accent {
+  top: 90.78%;
+}
+
+.steam-brand-banner.bottom .steam-brand-banner-main {
+  bottom: 0;
+}
+
+.steam-brand-banner.bottom .steam-brand-banner-accent {
+  top: 0;
+}
+
+.steam-brand-lockup {
+  display: grid;
+  place-items: center;
+  color: #f9fafb;
+  font-size: clamp(16px, 4.1cqw, 42px);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
 }
 
 @media (max-width: 860px) {

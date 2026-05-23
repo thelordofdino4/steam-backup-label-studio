@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import { useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
+import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
 import {
   downloadSteamArtworkAsDataUrl,
   importSteamApp,
@@ -15,6 +15,12 @@ import './App.css'
 import './layoutFix.css'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
+
+type SteamBannerColors = {
+  gradientStart: string
+  gradientEnd: string
+  accent: string
+}
 type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'
 type ExportGuideKey = 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone'
 type ExportGuideSelection = Record<ExportGuideKey, boolean>
@@ -68,6 +74,7 @@ type SavedProject = {
   }
   steamBackupLogo: {
     placement: SteamLogoPlacement
+    bannerColors?: SteamBannerColors
   }
   export?: {
     guideMode?: ExportGuideMode
@@ -85,11 +92,28 @@ type SavedProject = {
 const EXPORT_DPI = 300
 const MM_PER_INCH = 25.4
 const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
+const STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT = 200
+const STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT = 20
+const STEAM_BANNER_ACCENT_OVERLAP_AT_STANDARD_EXPORT = 3
+const STANDARD_EXPORT_REFERENCE_SIZE = 1417
+const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
+  gradientStart: '#2b475e',
+  gradientEnd: '#1b2838',
+  accent: '#2aabe1',
+}
 const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   centerHole: false,
   outerEdge: false,
   printableArea: false,
   safeZone: false,
+}
+
+function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
+  return {
+    '--steam-banner-gradient-start': colors.gradientStart,
+    '--steam-banner-gradient-end': colors.gradientEnd,
+    '--steam-banner-accent': colors.accent,
+  } as CSSProperties
 }
 
 function getStatusToastKind(message: string): StatusToastKind {
@@ -276,6 +300,75 @@ function drawExportGuideCircle(
   context.restore()
 }
 
+function drawOuterDiscExportOutline(
+  context: CanvasRenderingContext2D,
+  center: number,
+  outerRadius: number,
+  outlineWidth: number,
+) {
+  // Slight inward overlap covers canvas clipping anti-alias pixels at the disc edge.
+  // The outer edge still extends by the requested outline width.
+  const innerOverlapPx = 1.25
+  const strokeWidth = outlineWidth + innerOverlapPx
+  const strokeRadius = outerRadius + (outlineWidth - innerOverlapPx) / 2
+
+  context.save()
+  context.beginPath()
+  context.arc(center, center, strokeRadius, 0, Math.PI * 2)
+  context.strokeStyle = '#000000'
+  context.lineWidth = strokeWidth
+  context.stroke()
+  context.restore()
+}
+
+function drawSteamBrandBanner(
+  context: CanvasRenderingContext2D,
+  exportSize: number,
+  placement: SteamLogoPlacement,
+  colors: SteamBannerColors,
+) {
+  if (placement === 'none') {
+    return
+  }
+
+  const mainBandHeight =
+    exportSize * (STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
+  const accentBandHeight =
+    exportSize * (STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
+  const accentOverlap =
+    exportSize *
+    (STEAM_BANNER_ACCENT_OVERLAP_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
+
+  let mainBandY = 0
+  let accentBandY = mainBandHeight - accentOverlap
+
+  if (placement === 'bottom') {
+    mainBandY = exportSize - mainBandHeight
+    accentBandY = mainBandY - (accentBandHeight - accentOverlap)
+  }
+
+  const gradient = context.createLinearGradient(0, mainBandY, 0, mainBandY + mainBandHeight)
+  gradient.addColorStop(0, colors.gradientStart)
+  gradient.addColorStop(1, colors.gradientEnd)
+
+  context.fillStyle = gradient
+  context.fillRect(0, mainBandY, exportSize, mainBandHeight)
+
+  context.fillStyle = colors.accent
+  context.fillRect(0, accentBandY, exportSize, accentBandHeight)
+
+  // Temporary text lockup for testing the coded banner system.
+  // This can later be replaced with a transparent PNG Steam logo/wordmark asset.
+  context.save()
+  context.fillStyle = '#f9fafb'
+  context.font = `bold ${Math.round(exportSize * 0.04)}px Arial`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.letterSpacing = `${Math.round(exportSize * 0.004)}px`
+  context.fillText('STEAM', exportSize / 2, mainBandY + mainBandHeight / 2)
+  context.restore()
+}
+
 function drawStripedHubGuide(
   context: CanvasRenderingContext2D,
   exportSize: number,
@@ -315,6 +408,9 @@ function App() {
   )
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
+  const [steamBannerColors, setSteamBannerColors] = useState<SteamBannerColors>(
+    DEFAULT_STEAM_BANNER_COLORS,
+  )
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
@@ -346,6 +442,10 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
+  const steamBannerStyle = useMemo(
+    () => getSteamBannerStyle(steamBannerColors),
+    [steamBannerColors],
+  )
 
   const backgroundPreviewSize = useMemo(() => {
     if (!backgroundImageSize || backgroundImageSize.width <= 0 || backgroundImageSize.height <= 0) {
@@ -419,6 +519,7 @@ function App() {
       },
       steamBackupLogo: {
         placement: steamLogoPlacement,
+        bannerColors: steamBannerColors,
       },
       export: {
         guides: exportGuides,
@@ -627,6 +728,7 @@ function App() {
       }
 
       setSteamLogoPlacement(project.steamBackupLogo.placement)
+      setSteamBannerColors(project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS)
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
       )
@@ -737,7 +839,9 @@ function App() {
         return
       }
 
-      const exportSize = mmToPixels(selectedDiscTemplate.outerDiameterMm)
+      const discContentSize = mmToPixels(selectedDiscTemplate.outerDiameterMm)
+      const exportOutlineWidth = 3
+      const exportSize = discContentSize + exportOutlineWidth * 2
       const canvas = document.createElement('canvas')
       canvas.width = exportSize
       canvas.height = exportSize
@@ -749,7 +853,7 @@ function App() {
       }
 
       const center = exportSize / 2
-      const outerRadius = exportSize / 2
+      const outerRadius = discContentSize / 2
       const physicalCenterHoleRadius =
         (selectedDiscTemplate.physicalCenterHoleDiameterMm /
           selectedDiscTemplate.outerDiameterMm) *
@@ -773,10 +877,10 @@ function App() {
         const image = await loadImage(backgroundImageUrl)
         const previewSize =
           discPreviewRef.current?.getBoundingClientRect().width ?? exportSize
-        const offsetScale = exportSize / previewSize
+        const offsetScale = discContentSize / previewSize
         const coverScale = Math.max(
-          exportSize / image.width,
-          exportSize / image.height,
+          discContentSize / image.width,
+          discContentSize / image.height,
         )
         const drawScale = coverScale * backgroundScale
         const drawWidth = image.width * drawScale
@@ -789,33 +893,11 @@ function App() {
         context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
       }
 
-      if (steamLogoPlacement !== 'none') {
-        const logoWidth = exportSize * 0.34
-        const logoHeight = exportSize * 0.065
-        const logoX = center - logoWidth / 2
-        const logoY =
-          steamLogoPlacement === 'top'
-            ? exportSize * 0.12
-            : exportSize * 0.815
-        const logoRadius = logoHeight / 2
-
-        context.fillStyle = 'rgba(15, 23, 42, 0.92)'
-        context.strokeStyle = 'rgba(17, 24, 39, 0.85)'
-        context.lineWidth = Math.max(4, exportSize * 0.004)
-
-        context.beginPath()
-        context.roundRect(logoX, logoY, logoWidth, logoHeight, logoRadius)
-        context.fill()
-        context.stroke()
-
-        context.fillStyle = '#f9fafb'
-        context.font = `bold ${Math.round(exportSize * 0.028)}px Arial`
-        context.textAlign = 'center'
-        context.textBaseline = 'middle'
-        context.fillText('Steam Backup', center, logoY + logoHeight / 2)
-      }
+      drawSteamBrandBanner(context, exportSize, steamLogoPlacement, steamBannerColors)
 
       context.restore()
+
+      drawOuterDiscExportOutline(context, center, outerRadius, exportOutlineWidth)
 
       context.save()
       context.globalCompositeOperation = 'destination-out'
@@ -1408,8 +1490,18 @@ function App() {
           )}
 
           {steamLogoPlacement !== 'none' && (
-            <div className={`steam-backup-logo ${steamLogoPlacement}`}>
-              <span>Steam Backup</span>
+            <div
+              className={`steam-brand-banner ${steamLogoPlacement}`}
+              style={steamBannerStyle}
+              aria-label="Steam brand banner"
+            >
+              {steamLogoPlacement === 'bottom' && <div className="steam-brand-banner-accent" />}
+              <div className="steam-brand-banner-main">
+                <div className="steam-brand-lockup" aria-label="Steam">
+                  <span>STEAM</span>
+                </div>
+              </div>
+              {steamLogoPlacement === 'top' && <div className="steam-brand-banner-accent" />}
             </div>
           )}
 

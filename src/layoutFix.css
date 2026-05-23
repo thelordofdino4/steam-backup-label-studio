@@ -12,15 +12,8 @@
   container-type: inline-size;
 }
 
-.steam-backup-logo {
-  width: 34% !important;
-  height: 6.5% !important;
-  min-width: 0 !important;
-  padding: 0 !important;
-  display: grid !important;
-  place-items: center !important;
-  font-size: clamp(8px, 2.8cqw, 18px) !important;
-  line-height: 1 !important;
+.steam-brand-banner {
+  height: 15.17% !important;
 }
 
 .empty-background-message {
