@@ -1,7 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
-import { mockSteamGames, type MockSteamGame } from './steam/mockSteamGames'
 import {
   downloadSteamArtworkAsDataUrl,
   importSteamApp,
@@ -51,7 +50,6 @@ type SavedProject = {
   savedAt: string
   game: {
     manualTitle: string
-    selectedMockGame: MockSteamGame | null
     selectedSteamGame: SteamImportedGame | null
   }
   template: {
@@ -261,7 +259,6 @@ function App() {
   )
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
-  const [selectedMockGame, setSelectedMockGame] = useState<MockSteamGame | null>(null)
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -276,21 +273,6 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
-
-  const filteredMockGames = useMemo(() => {
-    const normalizedQuery = gameSearchQuery.trim().toLowerCase()
-
-    if (!normalizedQuery) {
-      return mockSteamGames.slice(0, 3)
-    }
-
-    return mockSteamGames.filter((game) =>
-      [game.title, game.developer, game.publisher, String(game.appId)]
-        .join(' ')
-        .toLowerCase()
-        .includes(normalizedQuery),
-    )
-  }, [gameSearchQuery])
 
   const backgroundPreviewSize = useMemo(() => {
     if (!backgroundImageSize || backgroundImageSize.width <= 0 || backgroundImageSize.height <= 0) {
@@ -335,7 +317,6 @@ function App() {
       savedAt: new Date().toISOString(),
       game: {
         manualTitle: manualGameTitle,
-        selectedMockGame,
         selectedSteamGame,
       },
       template: {
@@ -414,14 +395,6 @@ function App() {
     })
   }
 
-  function handleSelectMockGame(game: MockSteamGame) {
-    setSelectedMockGame(game)
-    setSelectedSteamGame(null)
-    setSelectedArtworkId(null)
-    setManualGameTitle(game.title)
-    setProjectStatus(`Selected mock Steam game: ${game.title}.`)
-  }
-
   async function handleSteamSearch() {
     const trimmedQuery = gameSearchQuery.trim()
 
@@ -456,8 +429,7 @@ function App() {
     try {
       const importedGame = await importSteamApp(appId)
       setSelectedSteamGame(importedGame)
-      setSelectedMockGame(null)
-      setManualGameTitle(importedGame.title)
+        setManualGameTitle(importedGame.title)
       setProjectStatus(`Imported Steam metadata for ${importedGame.title}.`)
     } catch (error) {
       setProjectStatus(`Steam import failed: ${String(error)}`)
@@ -540,7 +512,6 @@ function App() {
       const savedImageDataUrl = project.background.imageDataUrl
 
       setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
-      setSelectedMockGame(project.game?.selectedMockGame ?? null)
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
 
@@ -856,7 +827,7 @@ function App() {
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Issue #11: Physical print geometry</p>
+        <p className="muted">Pre-alpha disc label editor</p>
 
         <details className="panel collapsible-panel" open>
           <summary className="panel-summary">Project File</summary>
@@ -972,29 +943,6 @@ function App() {
             ))}
           </div>
 
-          <details className="mock-search-details">
-            <summary>Mock search fallback</summary>
-            <div className="search-results">
-              {filteredMockGames.length > 0 ? (
-                filteredMockGames.map((game) => (
-                  <button
-                    className="search-result-button"
-                    key={game.appId}
-                    type="button"
-                    onClick={() => handleSelectMockGame(game)}
-                  >
-                    <strong>{game.title}</strong>
-                    <span>
-                      App ID {game.appId} · {game.developer} · {game.releaseDate}
-                    </span>
-                  </button>
-                ))
-              ) : (
-                <p className="hint">No mock results. Manual title entry is still available.</p>
-              )}
-            </div>
-          </details>
-
           {selectedSteamGame && (
             <div className="selected-game-card">
               <h3>{selectedSteamGame.title}</h3>
@@ -1043,33 +991,7 @@ function App() {
             </div>
           )}
 
-          {selectedMockGame && !selectedSteamGame && (
-            <div className="selected-game-card">
-              <h3>{selectedMockGame.title}</h3>
-              <p>{selectedMockGame.shortDescription}</p>
-              <dl className="template-metrics">
-                <div>
-                  <dt>App ID</dt>
-                  <dd>{selectedMockGame.appId}</dd>
-                </div>
-                <div>
-                  <dt>Developer</dt>
-                  <dd>{selectedMockGame.developer}</dd>
-                </div>
-                <div>
-                  <dt>Publisher</dt>
-                  <dd>{selectedMockGame.publisher}</dd>
-                </div>
-                <div>
-                  <dt>Release</dt>
-                  <dd>{selectedMockGame.releaseDate}</dd>
-                </div>
-              </dl>
-              <p className="hint">
-                Artwork choices are mocked for now. Real Steam import will connect this flow to live data later.
-              </p>
-            </div>
-          )}
+
           </div>
         </details>
 
@@ -1267,16 +1189,43 @@ function App() {
         <details className="panel collapsible-panel">
           <summary className="panel-summary">Guide Legend</summary>
           <div className="panel-content">
-          <ul>
-            <li>Outer disc edge</li>
-            <li>Outer print boundary</li>
-            <li>Inner print boundary</li>
-            <li>Physical center hole</li>
-            <li>No-print hub ring</li>
-            <li>Safe zone</li>
-            <li>Steam Backup logo zone</li>
-            <li>Background image layer</li>
-          </ul>
+          <div className="guide-legend" aria-label="Disc guide legend">
+            <div className="guide-legend-item">
+              <span className="guide-swatch guide-swatch-outer" aria-hidden="true" />
+              <div>
+                <strong>Outer cut edge</strong>
+                <p>The physical outside edge of the disc.</p>
+              </div>
+            </div>
+            <div className="guide-legend-item">
+              <span className="guide-swatch guide-swatch-print" aria-hidden="true" />
+              <div>
+                <strong>Printable area</strong>
+                <p>The usable printed region between the inner and outer print boundaries.</p>
+              </div>
+            </div>
+            <div className="guide-legend-item">
+              <span className="guide-swatch guide-swatch-hub" aria-hidden="true" />
+              <div>
+                <strong>No-print hub</strong>
+                <p>The striped center region between the physical hole and printable boundary.</p>
+              </div>
+            </div>
+            <div className="guide-legend-item">
+              <span className="guide-swatch guide-swatch-hole" aria-hidden="true" />
+              <div>
+                <strong>Physical center hole</strong>
+                <p>The actual cut-out center hole that is blanked during export.</p>
+              </div>
+            </div>
+            <div className="guide-legend-item">
+              <span className="guide-swatch guide-swatch-safe" aria-hidden="true" />
+              <div>
+                <strong>Safe zone</strong>
+                <p>An advisory boundary for keeping important text and logos away from edge drift.</p>
+              </div>
+            </div>
+          </div>
           </div>
         </details>
       </aside>
