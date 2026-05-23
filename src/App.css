@@ -501,3 +501,27 @@ input:disabled {
 .guide-swatch-safe {
   border: 2px dashed rgba(37, 99, 235, 0.95);
 }
+
+/* Crowbar panel toggle icon override */
+.panel-summary::after {
+  content: "" !important;
+  flex: 0 0 auto !important;
+  width: 34px !important;
+  height: 24px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-image: url("./assets/crowbar-toggle.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  opacity: 0.9 !important;
+  transform: scaleX(-1) rotate(-35deg) !important;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease !important;
+}
+
+.collapsible-panel[open] > .panel-summary::after {
+  transform: scaleX(-1) rotate(-145deg) !important;
+  opacity: 1 !important;
+}
