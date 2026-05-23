@@ -209,12 +209,6 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
       url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_hero.jpg`,
       kind: 'library' as const,
     },
-    {
-      id: 'cdn-library-logo',
-      label: 'Steam library logo',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/logo.png`,
-      kind: 'logo' as const,
-    },
     ...(data.screenshots ?? []).map((screenshot) => ({
       id: `screenshot-${screenshot.id}`,
       label: `Screenshot ${screenshot.id}`,

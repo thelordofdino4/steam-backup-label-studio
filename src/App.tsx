@@ -515,7 +515,6 @@ function App() {
     }, 3600)
   }
 
-
   function createProjectSnapshot(): SavedProject {
     return {
       schemaVersion: '0.1.0',
@@ -1225,29 +1224,14 @@ function App() {
                 </div>
               </dl>
 
-              <p className="hint">
-                Choose imported Steam artwork as the background, or use local upload below to override it.
-              </p>
+              {selectedSteamGame.artwork.length > 0 && (
+                <p className="hint">
+                  Imported Steam artwork is available in the Artwork panel.
+                </p>
+              )}
 
-              <div className="search-results">
-                {selectedSteamGame.artwork.map((asset) => (
-                  <button
-                    className="search-result-button"
-                    key={asset.id}
-                    type="button"
-                    disabled={isArtworkLoading}
-                    onClick={() => handleUseSteamArtwork(asset)}
-                  >
-                    <strong>{asset.label}</strong>
-                    <span>
-                      {asset.kind}{selectedArtworkId === asset.id ? ' · selected' : ''}
-                    </span>
-                  </button>
-                ))}
-              </div>
             </div>
           )}
-
 
           </div>
         </details>
@@ -1380,8 +1364,7 @@ function App() {
         <details className="panel collapsible-panel" open>
           <summary className="panel-summary">Artwork</summary>
           <div className="panel-content">
-
-                    {selectedSteamGame?.artwork.length ? (
+          {selectedSteamGame?.artwork.length ? (
             <div className="artwork-import-section">
               <h3 className="artwork-import-heading">Imported Steam artwork</h3>
               <p className="hint">
@@ -1472,7 +1455,7 @@ function App() {
             )}
           </div>
 
-<label className="field-label" htmlFor="background-upload">
+          <label className="field-label" htmlFor="background-upload">
             Local image
           </label>
           <input

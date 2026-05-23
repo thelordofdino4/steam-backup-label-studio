@@ -451,20 +451,23 @@ input:disabled {
 .panel-summary::after {
   content: "";
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
-  border-left: 3px solid #f97316;
-  border-bottom: 3px solid #f97316;
-  border-radius: 0 0 0 6px;
+  width: 34px;
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  background-image: url("./assets/crowbar-toggle.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
   opacity: 0.9;
-  transform: rotate(-45deg);
+  transform: scaleX(-1) rotate(-35deg);
   transition:
     transform 140ms ease,
     opacity 140ms ease;
 }
 
 .collapsible-panel[open] > .panel-summary::after {
-  transform: rotate(45deg);
+  transform: scaleX(-1) rotate(-145deg);
   opacity: 1;
 }
 
@@ -479,7 +482,6 @@ input:disabled {
 .collapsible-panel:not([open]) .panel-summary {
   color: #d1d5db;
 }
-
 
 .guide-legend {
   display: grid;
@@ -717,11 +719,6 @@ input:disabled {
   }
 }
 
-/* Issue #18: imported Steam artwork is managed from the Artwork panel. */
-.selected-game-card > .search-results {
-  display: none;
-}
-
 .artwork-import-section {
   margin-bottom: 16px;
   padding-bottom: 16px;
@@ -738,7 +735,6 @@ input:disabled {
 .artwork-import-section .hint {
   margin-bottom: 10px !important;
 }
-
 
 .local-steam-screenshot-section {
   margin-bottom: 16px;
