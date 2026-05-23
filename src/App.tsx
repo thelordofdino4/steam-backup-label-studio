@@ -19,6 +19,7 @@ import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templ
 import type { DiscTemplate } from './types/template'
 import './App.css'
 import './layoutFix.css'
+import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 
@@ -104,11 +105,16 @@ const STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT = 200
 const STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT = 20
 const STEAM_BANNER_ACCENT_OVERLAP_AT_STANDARD_EXPORT = 3
 const STANDARD_EXPORT_REFERENCE_SIZE = 1417
+const STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE = 1423
+const STEAM_BANNER_LOCKUP_TOP_AT_STANDARD_EXPORT = 53
+const STEAM_BANNER_LOCKUP_BOTTOM_AT_STANDARD_EXPORT = 170
+const STEAM_BANNER_LOCKUP_X_OFFSET_AT_STANDARD_EXPORT = 0.5
 const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   gradientStart: '#2b475e',
   gradientEnd: '#1b2838',
   accent: '#2aabe1',
 }
+const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
 const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   centerHole: false,
   outerEdge: false,
@@ -276,6 +282,38 @@ function readImageFileAsDataUrl(file: File) {
   })
 }
 
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error('Could not convert image asset to a data URL.'))
+    }
+
+    reader.onerror = () => reject(new Error('Could not convert image asset to a data URL.'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function getCanvasSafeImageSource(source: string) {
+  if (source.startsWith('data:')) {
+    return source
+  }
+
+  const response = await fetch(source)
+
+  if (!response.ok) {
+    throw new Error(`Could not load image asset for export: ${response.status}`)
+  }
+
+  return blobToDataUrl(await response.blob())
+}
+
 function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   return {
     width: image.naturalWidth || image.width,
@@ -385,25 +423,31 @@ async function drawSteamBrandBanner(
   context.fillRect(0, accentBandY, exportSize, accentBandHeight)
 
   if (lockupImageDataUrl) {
-    const lockupImage = await loadImage(lockupImageDataUrl)
+    const canvasSafeLockupSource = await getCanvasSafeImageSource(lockupImageDataUrl)
+    const lockupImage = await loadImage(canvasSafeLockupSource)
     const naturalWidth = lockupImage.naturalWidth || lockupImage.width || 600
     const naturalHeight = lockupImage.naturalHeight || lockupImage.height || 160
     const lockupAspectRatio = naturalWidth / naturalHeight
-    const lockupMaxWidth = exportSize * 0.32
-    const lockupMaxHeight = mainBandHeight * 0.55
+    const lockupTop =
+      exportSize *
+      (STEAM_BANNER_LOCKUP_TOP_AT_STANDARD_EXPORT / STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+    const lockupBottom =
+      exportSize *
+      (STEAM_BANNER_LOCKUP_BOTTOM_AT_STANDARD_EXPORT / STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+    const lockupHeight = lockupBottom - lockupTop
+    const lockupWidth = lockupHeight * lockupAspectRatio
 
-    let lockupWidth = lockupMaxWidth
-    let lockupHeight = lockupWidth / lockupAspectRatio
-
-    if (lockupHeight > lockupMaxHeight) {
-      lockupHeight = lockupMaxHeight
-      lockupWidth = lockupHeight * lockupAspectRatio
-    }
+    const lockupXOffset =
+      exportSize *
+      (STEAM_BANNER_LOCKUP_X_OFFSET_AT_STANDARD_EXPORT /
+        STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
 
     context.drawImage(
       lockupImage,
-      exportSize / 2 - lockupWidth / 2,
-      mainBandY + mainBandHeight / 2 - lockupHeight / 2,
+      exportSize / 2 - lockupWidth / 2 + lockupXOffset,
+      placement === 'top'
+        ? lockupTop
+        : exportSize - lockupBottom,
       lockupWidth,
       lockupHeight,
     )
@@ -465,7 +509,7 @@ function App() {
   )
   const [steamBannerLockupImageUrl, setSteamBannerLockupImageUrl] = useState<
     string | null
-  >(null)
+  >(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
   const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
     useState<BackgroundImageSize | null>(null)
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
@@ -645,9 +689,9 @@ function App() {
   }
 
   function handleClearSteamBannerLockup() {
-    setSteamBannerLockupImageUrl(null)
+    setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
     setSteamBannerLockupImageSize(null)
-    announceStatus('Cleared Steam banner lockup image. Using fallback text.')
+    announceStatus('Reset Steam banner lockup image to the default asset.')
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -889,7 +933,9 @@ function App() {
 
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setSteamBannerColors(project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS)
-      setSteamBannerLockupImageUrl(project.steamBackupLogo.lockupImageDataUrl ?? null)
+      setSteamBannerLockupImageUrl(
+        project.steamBackupLogo.lockupImageDataUrl ?? DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+      )
       setSteamBannerLockupImageSize(project.steamBackupLogo.lockupImageSize ?? null)
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
@@ -1620,7 +1666,7 @@ function App() {
           {steamBannerLockupImageUrl ? (
             <div className="selected-lockup-card">
               <span>
-                Custom lockup loaded
+                Banner lockup active
                 {steamBannerLockupImageSize
                   ? ` · ${steamBannerLockupImageSize.width}×${steamBannerLockupImageSize.height}`
                   : ''}
@@ -1630,12 +1676,12 @@ function App() {
                 type="button"
                 onClick={handleClearSteamBannerLockup}
               >
-                Clear lockup image
+                Reset to default lockup
               </button>
             </div>
           ) : (
             <p className="hint">
-              No lockup image selected. The banner will use temporary fallback text.
+              Using the bundled default Steam banner lockup image. Upload a PNG to override it.
             </p>
           )}
           </div>
