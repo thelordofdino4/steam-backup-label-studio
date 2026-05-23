@@ -14,6 +14,8 @@ The current implementation focuses on the disc-label path. It can search Steam, 
 
 The current app is usable for early testing, but it is still missing several intended product features such as real logo layers, full layer management, richer metadata overrides, case templates, and alpha packaging.
 
+The current working disc-label editor should not be mistaken for the whole planned product. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
+
 ## Product Philosophy
 
 Steam Backup Label Studio is a workflow accelerator, not a replacement for GIMP, Photoshop, Krita, or a general-purpose image editor.
@@ -23,6 +25,8 @@ The app exists to remove the tedious manual work from creating personal Steam ba
 The ideal basic workflow should take five minutes or less: choose a template, search for a game, select imported artwork, make small placement adjustments, save the project, and export a printable label.
 
 The app should support manual overrides for users who want control, but its default behavior should favor speed, consistency, and reduced setup time.
+
+The app should avoid unnecessary hand-holding in blank projects. Users should be allowed to upload one image and export if that is all they need. Guidance should appear through Guided Start or export-time summaries/warnings, not through a permanent project-health checklist.
 
 ## Target Platforms
 
@@ -40,7 +44,7 @@ Possible future platforms:
 
 ## Core User Workflow
 
-1. Create a new project.
+1. Create a new project or start from Guided Start.
 2. Choose a physical template type.
 3. Choose Steam Backup logo placement.
 4. Search for a Steam game or enter details manually.
@@ -48,11 +52,12 @@ Possible future platforms:
 6. Choose background art, logos, screenshots, and optional badges.
 7. Edit the layout in a live canvas/editor area.
 8. Save the project.
-9. Export a print-ready file.
+9. Review export summary/preflight information if needed.
+10. Export a print-ready file.
 
 ## Template Types
 
-Initial templates:
+Initial functional template:
 
 - Disc label
 
@@ -82,6 +87,22 @@ Disc variants to support over time:
 - Sticky label disc
 - LightScribe disc
 - Custom dimensions
+
+## Multi-Template Foundation
+
+The app should eventually use a shared template system that can support all planned interfaces.
+
+Shared template concepts should include:
+
+- Physical dimensions
+- Export dimensions
+- Printable regions
+- Safe zones
+- Bleed regions where relevant
+- Named regions such as front, back, spine, disc face, hub, or logo zones
+- Template-specific guide overlays
+
+The UI should clearly distinguish available template editors from future planned template editors. Planned templates should not be presented as fully supported until they can export usable files.
 
 ## Steam Backup Branding
 
@@ -134,6 +155,8 @@ The Artwork panel should become the home for visual asset management, including:
 - ESRB/PEGI/rating assets
 - Other future visual elements
 
+The project should eventually use a shared asset library so imported or uploaded assets can be reused across disc labels, case fronts, case backs, and spines.
+
 ## Visual Editor Requirements
 
 The editor should eventually support:
@@ -161,7 +184,33 @@ The editor should be organized into independently collapsible panels. Users shou
 
 The preview pane should remain visible while editing on supported desktop window sizes.
 
-The preview pane should have a clear label and should eventually include a top-right stacked toast notification feed for state changes such as save, load, import, artwork updates, template changes, export completion, and errors.
+The preview pane should have a clear label and should include a top-right stacked toast notification feed for state changes such as save, load, import, artwork updates, template changes, export completion, and errors.
+
+The app should eventually include an opening screen with two main choices:
+
+- Guided Start
+- Blank Project
+
+Guided Start should walk users through setup questions. Blank Project should open the editor directly without forcing a checklist or wizard.
+
+## Export and Preflight Requirements
+
+Export should remain fast and non-blocking for normal use.
+
+The app should eventually show an export summary or preflight warning flow near export time. This should replace the idea of a permanent project-health checklist.
+
+Possible export summary/preflight items:
+
+- Output pixel dimensions
+- DPI
+- Selected template
+- Center hole cutout behavior
+- Whether guide marks are enabled
+- Whether the design has no background image
+- Whether important text/logos appear outside the safe zone
+- Whether custom dimensions are unusual
+
+Warnings should generally be informational and should not block export unless a value is truly invalid.
 
 ## Optional Elements
 
@@ -193,10 +242,11 @@ For case templates, the app should eventually support:
 - Rating badges
 - Developer/publisher logos
 - Copyright block
+- Spine text generation
 
 ## MVP Scope
 
-The MVP focuses on one complete path:
+The current MVP focuses on one complete path:
 
 1. Open the app on Windows or Linux.
 2. Create a new disc label project.
@@ -207,7 +257,7 @@ The MVP focuses on one complete path:
 7. Save and reopen the project.
 8. Export a 300 DPI PNG.
 
-## Out of Scope for MVP
+## Out of Scope for Current Disc-Label MVP
 
 - Jewel case support
 - DVD case support
@@ -219,6 +269,30 @@ The MVP focuses on one complete path:
 - General-purpose image editing tools
 - Brush/paint tools
 - Advanced photo filters
+- Permanent project-health checklist panel
+
+## Long-Term Feature Ideas
+
+See `MILESTONES.md` for the detailed milestone and feature backlog.
+
+Long-term ideas include:
+
+- New Project / Reset Project
+- Recent Projects
+- Template preview cards
+- Template type selector
+- Shared project asset library
+- Manual metadata fields
+- Layout presets
+- Steam Archive Identity style presets
+- Backup Set project type for multi-disc games
+- Copyright block generator
+- Spine text generator
+- Print calibration sheet
+- Project schema migration
+- Export presets
+- Known media profiles
+- Safe-zone severity indicators
 
 ## Legal / Usage Positioning
 
