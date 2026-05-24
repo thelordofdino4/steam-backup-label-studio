@@ -368,13 +368,18 @@ function createSvgArcPath(
   startAngleDegrees: number,
   endAngleDegrees: number,
   sweepFlag: 0 | 1,
+  largeArcFlag: 0 | 1 = 0,
 ) {
   const start = getSvgArcPoint(centerX, centerY, radius, startAngleDegrees)
   const end = getSvgArcPoint(centerX, centerY, radius, endAngleDegrees)
 
   return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${radius.toFixed(
     3,
-  )} ${radius.toFixed(3)} 0 0 ${sweepFlag} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`
+  )} ${radius.toFixed(3)} 0 ${largeArcFlag} ${sweepFlag} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`
+}
+
+function getLargeArcFlag(arcDegrees: number): 0 | 1 {
+  return arcDegrees > 180 ? 1 : 0
 }
 
 function splitLongTokenForPreview(token: string, maxCharacters: number) {
@@ -917,14 +922,16 @@ function drawCurvedCopyrightText(
   const isTopArc = arcSide === 'top'
   const centerX = exportSize / 2
   const centerY = exportSize / 2
-  const centerAngle = isTopArc ? -Math.PI / 2 : Math.PI / 2
+  const centerAngle =
+    (isTopArc ? -Math.PI / 2 : Math.PI / 2) + (layout.x * Math.PI) / 180
   const maxArcAngle = (layout.arcDegrees * Math.PI) / 180
   const lineHeight = fontSize * 1.38
 
-  // Keep the text on the safe-zone path. Positive Y in curved mode means inset.
-  const safeLineTextRadius = Math.max(1, safeZoneRadius - fontSize * 0.12)
-  const insetRadiusOffset = Math.max(0, layout.y) * exportSize * 0.0016
-  const outerLineRadius = safeLineTextRadius - insetRadiusOffset
+  // Keep the text centered on the safe-zone path. Positive Y in curved mode means inset.
+  const outerLineRadius = Math.max(
+    1,
+    safeZoneRadius - layout.y * exportSize * 0.0018,
+  )
   const maxArcLength = outerLineRadius * maxArcAngle
   const lines = wrapTextByArcLength(context, text, maxArcLength)
 
@@ -1915,14 +1922,24 @@ function App() {
     const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
     const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
 
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [dragState.key]: {
-        ...currentLayout[dragState.key],
-        x: clampNumber(dragState.startX + deltaXPercent, -35, 35),
-        y: clampNumber(dragState.startY + deltaYPercent, 8, 92),
-      },
-    }))
+    setDiscTextLayout((currentLayout) => {
+      const currentTextLayout = currentLayout[dragState.key]
+      const isCurvedCopyright =
+        dragState.key === 'copyright' && currentTextLayout.mode === 'curved'
+
+      return {
+        ...currentLayout,
+        [dragState.key]: {
+          ...currentTextLayout,
+          x: isCurvedCopyright
+            ? clampNumber(dragState.startX + deltaXPercent, -60, 60)
+            : clampNumber(dragState.startX + deltaXPercent, -35, 35),
+          y: isCurvedCopyright
+            ? clampNumber(dragState.startY + deltaYPercent, -8, 20)
+            : clampNumber(dragState.startY + deltaYPercent, 8, 92),
+        },
+      }
+    })
   }
 
   function handleDiscTextPointerUp(event: PointerEvent<Element>) {
@@ -2539,11 +2556,11 @@ function App() {
                     </label>
 
                     <label>
-                      <span>X</span>
+                      <span>{key === 'copyright' && layout.mode === 'curved' ? 'Angle' : 'X'}</span>
                       <input
                         type="range"
-                        min="-20"
-                        max="20"
+                        min={key === 'copyright' && layout.mode === 'curved' ? '-60' : '-20'}
+                        max={key === 'copyright' && layout.mode === 'curved' ? '60' : '20'}
                         step="0.1"
                         value={layout.x}
                         disabled={!discTextSettings[key]}
@@ -2554,11 +2571,11 @@ function App() {
                     </label>
 
                     <label>
-                      <span>Y</span>
+                      <span>{key === 'copyright' && layout.mode === 'curved' ? 'Inset' : 'Y'}</span>
                       <input
                         type="range"
-                        min="8"
-                        max="92"
+                        min={key === 'copyright' && layout.mode === 'curved' ? '-8' : '8'}
+                        max={key === 'copyright' && layout.mode === 'curved' ? '20' : '92'}
                         step="0.1"
                         value={layout.y}
                         disabled={!discTextSettings[key]}
@@ -2612,7 +2629,7 @@ function App() {
                               <input
                                 type="range"
                                 min="80"
-                                max="260"
+                                max="280"
                                 step="1"
                                 value={layout.arcDegrees}
                                 disabled={!discTextSettings[key]}
@@ -2805,17 +2822,15 @@ function App() {
                 const safeZoneRadius =
                   (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) *
                   50
-
-                // Keep the path on the safe-zone circle. Positive Y in curved mode means inset.
-                const safeLineTextRadius = Math.max(1, safeZoneRadius - fontSize * 0.12)
-                const insetRadiusOffset = Math.max(0, layout.y) * 0.16
-                const outerLineRadius = safeLineTextRadius - insetRadiusOffset
-
-                const arcCenterAngle = isTopArc ? 270 : 90
+                const textRadius = Math.max(
+                  1,
+                  safeZoneRadius - layout.y * 0.18,
+                )
                 const arcHalf = layout.arcDegrees / 2
+                const largeArcFlag = getLargeArcFlag(layout.arcDegrees)
                 const lines = wrapPreviewTextByArcLength(
                   text,
-                  outerLineRadius,
+                  textRadius,
                   layout.arcDegrees,
                   layout.scale,
                 )
@@ -2834,8 +2849,8 @@ function App() {
                     <defs>
                       {lines.map((_, index) => {
                         const lineRadius = isTopArc
-                          ? outerLineRadius - index * lineStep
-                          : outerLineRadius - (lines.length - 1 - index) * lineStep
+                          ? textRadius - index * lineStep
+                          : textRadius - (lines.length - 1 - index) * lineStep
                         const pathId = `${copyrightPathId}-${index}`
 
                         const path = isTopArc
@@ -2843,17 +2858,19 @@ function App() {
                               50,
                               50,
                               lineRadius,
-                              arcCenterAngle - arcHalf,
-                              arcCenterAngle + arcHalf,
+                              270 - arcHalf,
+                              270 + arcHalf,
                               1,
+                              largeArcFlag,
                             )
                           : createSvgArcPath(
                               50,
                               50,
                               lineRadius,
-                              arcCenterAngle + arcHalf,
-                              arcCenterAngle - arcHalf,
+                              90 + arcHalf,
+                              90 - arcHalf,
                               0,
+                              largeArcFlag,
                             )
 
                         return <path id={pathId} d={path} key={pathId} />
