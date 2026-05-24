@@ -1,14 +1,20 @@
 import type { ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
-import type { BackgroundImageSize } from '../../project/projectTypes'
+import type { BackgroundImageSize, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
   handleSteamLogoPlacementChange: (placement: SteamLogoPlacement) => void
   steamBannerLockupImageUrl: string | null
   steamBannerLockupImageSize: BackgroundImageSize | null
+  steamBannerLockupLayout: SteamBannerLockupLayout
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
+  handleSteamBannerLockupLayoutChange: (
+    field: keyof SteamBannerLockupLayout,
+    value: number,
+  ) => void
+  handleResetSteamBannerLockupLayout: () => void
 }
 
 export function BrandingPanel({
@@ -16,8 +22,11 @@ export function BrandingPanel({
   handleSteamLogoPlacementChange,
   steamBannerLockupImageUrl,
   steamBannerLockupImageSize,
+  steamBannerLockupLayout,
   handleSteamBannerLockupUpload,
   handleClearSteamBannerLockup,
+  handleSteamBannerLockupLayoutChange,
+  handleResetSteamBannerLockupLayout,
 }: BrandingPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -69,6 +78,65 @@ export function BrandingPanel({
           Using the bundled default Steam banner lockup image. Upload a PNG to override it.
         </p>
       )}
+
+      <div className="spacing-top">
+        <label className="field-label" htmlFor="steam-banner-lockup-scale">
+          Lockup scale
+        </label>
+        <input
+          id="steam-banner-lockup-scale"
+          type="range"
+          min="0.5"
+          max="1.5"
+          step="0.01"
+          value={steamBannerLockupLayout.scale}
+          disabled={steamLogoPlacement === 'none'}
+          onChange={(event) =>
+            handleSteamBannerLockupLayoutChange('scale', Number(event.target.value))
+          }
+        />
+      </div>
+
+      <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-x">
+        Lockup X offset
+      </label>
+      <input
+        id="steam-banner-lockup-offset-x"
+        type="range"
+        min="-20"
+        max="20"
+        step="0.1"
+        value={steamBannerLockupLayout.offsetX}
+        disabled={steamLogoPlacement === 'none'}
+        onChange={(event) =>
+          handleSteamBannerLockupLayoutChange('offsetX', Number(event.target.value))
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-y">
+        Lockup Y offset
+      </label>
+      <input
+        id="steam-banner-lockup-offset-y"
+        type="range"
+        min="-20"
+        max="20"
+        step="0.1"
+        value={steamBannerLockupLayout.offsetY}
+        disabled={steamLogoPlacement === 'none'}
+        onChange={(event) =>
+          handleSteamBannerLockupLayoutChange('offsetY', Number(event.target.value))
+        }
+      />
+
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={steamLogoPlacement === 'none'}
+        onClick={handleResetSteamBannerLockupLayout}
+      >
+        Reset lockup layout
+      </button>
       </div>
     </details>
   )

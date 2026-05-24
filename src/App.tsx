@@ -342,6 +342,21 @@ function App() {
     announceStatus('Reset Steam banner lockup image to the default asset.')
   }
 
+  function handleSteamBannerLockupLayoutChange(
+    field: keyof SteamBannerLockupLayout,
+    value: number,
+  ) {
+    setSteamBannerLockupLayout((currentLayout) => ({
+      ...currentLayout,
+      [field]: value,
+    }))
+  }
+
+  function handleResetSteamBannerLockupLayout() {
+    setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
+    announceStatus('Reset Steam banner lockup layout to the default position.')
+  }
+
   function handleSteamLogoPlacementChange(placement: SteamLogoPlacement) {
     setSteamLogoPlacement(placement)
 
@@ -1082,8 +1097,11 @@ function App() {
           handleSteamLogoPlacementChange={handleSteamLogoPlacementChange}
           steamBannerLockupImageUrl={steamBannerLockupImageUrl}
           steamBannerLockupImageSize={steamBannerLockupImageSize}
+          steamBannerLockupLayout={steamBannerLockupLayout}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
+          handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
+          handleResetSteamBannerLockupLayout={handleResetSteamBannerLockupLayout}
         />
 
 
