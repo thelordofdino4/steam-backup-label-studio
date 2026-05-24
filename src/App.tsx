@@ -859,6 +859,7 @@ function App() {
         steamLogoPlacement,
         steamBannerColors,
         steamBannerLockupImageUrl,
+        steamBannerLockupLayout,
         discTextSettings,
         discTextValues,
         discTextLayout,

@@ -1,4 +1,4 @@
-import type { SteamBannerColors } from '../project/projectTypes'
+import type { SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import type { SteamLogoPlacement } from '../discText'
 import { getCanvasSafeImageSource, loadImage } from './canvasImage'
 
@@ -15,12 +15,37 @@ const STEAM_BANNER_BOTTOM_LOCKUP_Y_AT_STANDARD_EXPORT = 1253
 const STEAM_BANNER_BOTTOM_LOCKUP_WIDTH_AT_STANDARD_EXPORT = 388
 const STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT = 117
 
+
+function applyLockupLayout(
+  exportSize: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  layout: SteamBannerLockupLayout,
+) {
+  const centerX = x + width / 2
+  const centerY = y + height / 2
+  const scaledWidth = width * layout.scale
+  const scaledHeight = height * layout.scale
+  const offsetX = exportSize * (layout.offsetX / 100)
+  const offsetY = exportSize * (layout.offsetY / 100)
+
+  return {
+    x: centerX - scaledWidth / 2 + offsetX,
+    y: centerY - scaledHeight / 2 + offsetY,
+    width: scaledWidth,
+    height: scaledHeight,
+  }
+}
+
 export async function drawSteamBrandBanner(
   context: CanvasRenderingContext2D,
   exportSize: number,
   placement: SteamLogoPlacement,
   colors: SteamBannerColors,
   lockupImageDataUrl: string | null,
+  lockupLayout: SteamBannerLockupLayout,
 ) {
   if (placement === 'none') {
     return
@@ -77,12 +102,21 @@ export async function drawSteamBrandBanner(
         (STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT /
           STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
 
-      context.drawImage(
-        lockupImage,
+      const adjustedTarget = applyLockupLayout(
+        exportSize,
         targetX,
         targetY,
         targetWidth,
         targetHeight,
+        lockupLayout,
+      )
+
+      context.drawImage(
+        lockupImage,
+        adjustedTarget.x,
+        adjustedTarget.y,
+        adjustedTarget.width,
+        adjustedTarget.height,
       )
       return
     }
@@ -101,12 +135,21 @@ export async function drawSteamBrandBanner(
       (STEAM_BANNER_LOCKUP_X_OFFSET_AT_STANDARD_EXPORT /
         STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
 
-    context.drawImage(
-      lockupImage,
+    const adjustedTarget = applyLockupLayout(
+      exportSize,
       exportSize / 2 - lockupWidth / 2 + lockupXOffset,
       lockupTop,
       lockupWidth,
       lockupHeight,
+      lockupLayout,
+    )
+
+    context.drawImage(
+      lockupImage,
+      adjustedTarget.x,
+      adjustedTarget.y,
+      adjustedTarget.width,
+      adjustedTarget.height,
     )
     return
   }
