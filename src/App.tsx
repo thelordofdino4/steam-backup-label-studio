@@ -35,6 +35,7 @@ import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
+import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
@@ -85,16 +86,6 @@ type DragState = {
   startOffsetY: number
 }
 
-type StatusToastKind = 'info' | 'success' | 'warning' | 'error' | 'steam' | 'artwork' | 'template' | 'export'
-
-type StatusToast = {
-  id: string
-  message: string
-  kind: StatusToastKind
-  icon: string
-}
-
-
 const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   gradientStart: '#2b475e',
   gradientEnd: '#1b2838',
@@ -108,69 +99,6 @@ function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
     '--steam-banner-gradient-end': colors.gradientEnd,
     '--steam-banner-accent': colors.accent,
   } as CSSProperties
-}
-
-function getStatusToastKind(message: string): StatusToastKind {
-  const normalizedMessage = message.toLowerCase()
-
-  if (normalizedMessage.includes('failed') || normalizedMessage.includes('could not')) {
-    return 'error'
-  }
-
-  if (normalizedMessage.includes('cancelled')) {
-    return 'warning'
-  }
-
-  if (normalizedMessage.includes('export')) {
-    return 'export'
-  }
-
-  if (normalizedMessage.includes('steam') || normalizedMessage.includes('app id')) {
-    return 'steam'
-  }
-
-  if (
-    normalizedMessage.includes('background') ||
-    normalizedMessage.includes('artwork') ||
-    normalizedMessage.includes('image')
-  ) {
-    return 'artwork'
-  }
-
-  if (
-    normalizedMessage.includes('template') ||
-    normalizedMessage.includes('disc') ||
-    normalizedMessage.includes('dimension')
-  ) {
-    return 'template'
-  }
-
-  if (normalizedMessage.includes('saved') || normalizedMessage.includes('loaded')) {
-    return 'success'
-  }
-
-  return 'info'
-}
-
-function getStatusToastIcon(kind: StatusToastKind) {
-  switch (kind) {
-    case 'success':
-      return '?'
-    case 'warning':
-      return '!'
-    case 'error':
-      return '×'
-    case 'steam':
-      return 'S'
-    case 'artwork':
-      return '?'
-    case 'template':
-      return '?'
-    case 'export':
-      return '?'
-    default:
-      return '•'
-  }
 }
 
 function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
@@ -240,11 +168,7 @@ function App() {
     x: 0,
     y: 0,
   })
-  const [projectStatus, setProjectStatus] = useState(
-    'No project file saved yet.',
-  )
-  const [statusToasts, setStatusToasts] = useState<StatusToast[]>([])
-  const nextStatusToastIdRef = useRef(0)
+  const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
@@ -318,28 +242,6 @@ function App() {
     (selectedDiscTemplate.physicalCenterHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
   const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
-
-  function announceStatus(message: string) {
-    const kind = getStatusToastKind(message)
-    const toastId = `status-toast-${nextStatusToastIdRef.current}`
-    nextStatusToastIdRef.current += 1
-
-    const toast: StatusToast = {
-      id: toastId,
-      message,
-      kind,
-      icon: getStatusToastIcon(kind),
-    }
-
-    setProjectStatus(message)
-    setStatusToasts((currentToasts) => [...currentToasts, toast].slice(-5))
-
-    window.setTimeout(() => {
-      setStatusToasts((currentToasts) =>
-        currentToasts.filter((currentToast) => currentToast.id !== toastId),
-      )
-    }, 3600)
-  }
 
   function createProjectSnapshot(): SavedProject {
     return {
