@@ -26,6 +26,8 @@ import {
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { PreviewToastStack } from './components/preview/PreviewToastStack'
+import { SteamBannerPreview } from './components/preview/SteamBannerPreview'
 import { ArtworkPanel } from './components/sidebar/ArtworkPanel'
 import { BrandingPanel } from './components/sidebar/BrandingPanel'
 import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
@@ -109,11 +111,6 @@ const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   accent: '#2aabe1',
 }
 const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
-const BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE: CSSProperties = {
-  width: '27.27%',
-  height: '58.75%',
-  transform: 'translateY(-9%)',
-}
 
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
@@ -1136,16 +1133,7 @@ function App() {
           <strong id="disc-preview-title">Disc Preview</strong>
         </div>
 
-        <div className="preview-toast-stack" aria-live="polite" aria-atomic="false">
-          {statusToasts.map((toast) => (
-            <div className={`preview-toast preview-toast-${toast.kind}`} key={toast.id}>
-              <span className="preview-toast-message">{toast.message}</span>
-              <span className="preview-toast-icon" aria-hidden="true">
-                {toast.icon}
-              </span>
-            </div>
-          ))}
-        </div>
+        <PreviewToastStack statusToasts={statusToasts} />
 
         <div
           ref={discPreviewRef}
@@ -1179,37 +1167,11 @@ function App() {
             </div>
           )}
 
-          {steamLogoPlacement !== 'none' && (
-            <div
-              className={`steam-brand-banner ${steamLogoPlacement}`}
-              style={steamBannerStyle}
-              aria-label="Steam brand banner"
-            >
-              {steamLogoPlacement === 'bottom' && <div className="steam-brand-banner-accent" />}
-              <div className="steam-brand-banner-main">
-                <div
-                  className="steam-brand-lockup"
-                  aria-label="Steam"
-                  style={
-                    steamLogoPlacement === 'bottom'
-                      ? BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE
-                      : undefined
-                  }
-                >
-                  {steamBannerLockupImageUrl ? (
-                    <img
-                      src={steamBannerLockupImageUrl}
-                      alt="Steam banner lockup"
-                      draggable={false}
-                    />
-                  ) : (
-                    <span>STEAM</span>
-                  )}
-                </div>
-              </div>
-              {steamLogoPlacement === 'top' && <div className="steam-brand-banner-accent" />}
-            </div>
-          )}
+          <SteamBannerPreview
+            steamLogoPlacement={steamLogoPlacement}
+            steamBannerStyle={steamBannerStyle}
+            steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+          />
 
           <div className="disc-text-layer" aria-label="Disc text elements">
             {DISC_TEXT_KEYS.map((key) => {
