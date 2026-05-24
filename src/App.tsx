@@ -26,6 +26,8 @@ import {
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
+import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { normalizeParsedProject } from './project/normalizeProject'
 import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
@@ -1027,64 +1029,17 @@ function App() {
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">Pre-alpha disc label editor</p>
 
-        <details className="panel collapsible-panel" open>
-          <summary className="panel-summary">Project File</summary>
-          <div className="panel-content">
-          <div className="button-row">
-            <button className="secondary-button" type="button" onClick={handleSaveProject}>
-              Save Project
-            </button>
-            <button className="secondary-button" type="button" onClick={handleLoadProject}>
-              Load Project
-            </button>
-            <button className="secondary-button" type="button" onClick={handleExportPng}>
-              Export PNG
-            </button>
-          </div>
-          <p className="hint">{projectStatus}</p>
-          </div>
-        </details>
+        <ProjectPanel
+          projectStatus={projectStatus}
+          handleSaveProject={handleSaveProject}
+          handleLoadProject={handleLoadProject}
+          handleExportPng={handleExportPng}
+        />
 
-        <details className="panel collapsible-panel" open>
-          <summary className="panel-summary">Export Options</summary>
-          <div className="panel-content">
-          <p className="hint">
-            Clean export is the default. Check only the guide marks you want included.
-          </p>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={exportGuides.centerHole}
-              onChange={(event) => handleExportGuideToggle('centerHole', event.target.checked)}
-            />
-            <span>Physical center hole guide</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={exportGuides.outerEdge}
-              onChange={(event) => handleExportGuideToggle('outerEdge', event.target.checked)}
-            />
-            <span>Outer cut/edge guide</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={exportGuides.printableArea}
-              onChange={(event) => handleExportGuideToggle('printableArea', event.target.checked)}
-            />
-            <span>Printable area guides</span>
-          </label>
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={exportGuides.safeZone}
-              onChange={(event) => handleExportGuideToggle('safeZone', event.target.checked)}
-            />
-            <span>Safe zone guide</span>
-          </label>
-          </div>
-        </details>
+        <ExportOptionsPanel
+          exportGuides={exportGuides}
+          handleExportGuideToggle={handleExportGuideToggle}
+        />
 
         <details className="panel collapsible-panel" open>
           <summary className="panel-summary">Game</summary>
