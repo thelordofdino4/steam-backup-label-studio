@@ -10,6 +10,10 @@ const STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE = 1423
 const STEAM_BANNER_LOCKUP_TOP_AT_STANDARD_EXPORT = 53
 const STEAM_BANNER_LOCKUP_BOTTOM_AT_STANDARD_EXPORT = 170
 const STEAM_BANNER_LOCKUP_X_OFFSET_AT_STANDARD_EXPORT = 0.5
+const STEAM_BANNER_BOTTOM_LOCKUP_X_AT_STANDARD_EXPORT = 518
+const STEAM_BANNER_BOTTOM_LOCKUP_Y_AT_STANDARD_EXPORT = 1253
+const STEAM_BANNER_BOTTOM_LOCKUP_WIDTH_AT_STANDARD_EXPORT = 388
+const STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT = 117
 
 export async function drawSteamBrandBanner(
   context: CanvasRenderingContext2D,
@@ -54,6 +58,35 @@ export async function drawSteamBrandBanner(
     const naturalWidth = lockupImage.naturalWidth || lockupImage.width || 600
     const naturalHeight = lockupImage.naturalHeight || lockupImage.height || 160
     const lockupAspectRatio = naturalWidth / naturalHeight
+
+    if (placement === 'bottom') {
+      const targetX =
+        exportSize *
+        (STEAM_BANNER_BOTTOM_LOCKUP_X_AT_STANDARD_EXPORT /
+          STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+      const targetY =
+        exportSize *
+        (STEAM_BANNER_BOTTOM_LOCKUP_Y_AT_STANDARD_EXPORT /
+          STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+      const targetWidth =
+        exportSize *
+        (STEAM_BANNER_BOTTOM_LOCKUP_WIDTH_AT_STANDARD_EXPORT /
+          STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+      const targetHeight =
+        exportSize *
+        (STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT /
+          STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
+
+      context.drawImage(
+        lockupImage,
+        targetX,
+        targetY,
+        targetWidth,
+        targetHeight,
+      )
+      return
+    }
+
     const lockupTop =
       exportSize *
       (STEAM_BANNER_LOCKUP_TOP_AT_STANDARD_EXPORT / STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
@@ -71,7 +104,7 @@ export async function drawSteamBrandBanner(
     context.drawImage(
       lockupImage,
       exportSize / 2 - lockupWidth / 2 + lockupXOffset,
-      placement === 'top' ? lockupTop : exportSize - lockupBottom,
+      lockupTop,
       lockupWidth,
       lockupHeight,
     )

@@ -108,6 +108,12 @@ const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   accent: '#2aabe1',
 }
 const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
+const BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE: CSSProperties = {
+  width: '27.27%',
+  height: '58.75%',
+  transform: 'translateY(-9%)',
+}
+
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
     '--steam-banner-gradient-start': colors.gradientStart,
@@ -1449,7 +1455,15 @@ function App() {
             >
               {steamLogoPlacement === 'bottom' && <div className="steam-brand-banner-accent" />}
               <div className="steam-brand-banner-main">
-                <div className="steam-brand-lockup" aria-label="Steam">
+                <div
+                  className="steam-brand-lockup"
+                  aria-label="Steam"
+                  style={
+                    steamLogoPlacement === 'bottom'
+                      ? BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE
+                      : undefined
+                  }
+                >
                   {steamBannerLockupImageUrl ? (
                     <img
                       src={steamBannerLockupImageUrl}
