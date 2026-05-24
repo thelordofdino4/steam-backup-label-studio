@@ -244,6 +244,7 @@ function App() {
     'No project file saved yet.',
   )
   const [statusToasts, setStatusToasts] = useState<StatusToast[]>([])
+  const nextStatusToastIdRef = useRef(0)
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
@@ -320,8 +321,11 @@ function App() {
 
   function announceStatus(message: string) {
     const kind = getStatusToastKind(message)
+    const toastId = `status-toast-${nextStatusToastIdRef.current}`
+    nextStatusToastIdRef.current += 1
+
     const toast: StatusToast = {
-      id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      id: toastId,
       message,
       kind,
       icon: getStatusToastIcon(kind),
@@ -332,7 +336,7 @@ function App() {
 
     window.setTimeout(() => {
       setStatusToasts((currentToasts) =>
-        currentToasts.filter((currentToast) => currentToast.id !== toast.id),
+        currentToasts.filter((currentToast) => currentToast.id !== toastId),
       )
     }, 3600)
   }
