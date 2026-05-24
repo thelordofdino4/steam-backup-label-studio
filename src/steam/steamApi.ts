@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { bytesToBase64 } from '../utils/bytesToBase64'
 
 export type SteamSearchResult = {
   appId: number
@@ -90,17 +91,6 @@ function formatPrice(price?: { final?: number; currency?: string }) {
   return `${price.currency ?? 'USD'} ${(price.final / 100).toFixed(2)}`
 }
 
-function bytesToBase64(bytes: number[]) {
-  let binary = ''
-  const chunkSize = 0x8000
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.slice(index, index + chunkSize)
-    binary += String.fromCharCode(...chunk)
-  }
-
-  return btoa(binary)
-}
 
 function dedupeArtwork(artwork: SteamArtworkAsset[]) {
   const seen = new Set<string>()

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { bytesToBase64 } from '../utils/bytesToBase64'
 
 export type LocalSteamScreenshotAsset = {
   id: string
@@ -23,17 +24,6 @@ type DownloadedArtwork = {
   bytes: number[]
 }
 
-function bytesToBase64(bytes: number[]) {
-  let binary = ''
-  const chunkSize = 0x8000
-
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    const chunk = bytes.slice(index, index + chunkSize)
-    binary += String.fromCharCode(...chunk)
-  }
-
-  return btoa(binary)
-}
 
 export async function findSteamScreenshots(appId: number) {
   const screenshots = await invoke<RawLocalSteamScreenshotAsset[]>('find_steam_screenshots', {
