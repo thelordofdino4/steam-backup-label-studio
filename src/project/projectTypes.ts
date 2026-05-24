@@ -16,6 +16,12 @@ export type SteamBannerColors = {
   accent: string
 }
 
+export type SteamBannerLockupLayout = {
+  scale: number
+  offsetX: number
+  offsetY: number
+}
+
 export type SelectedDiscTemplateId = DiscTemplateId | 'custom'
 
 export type BackgroundOffset = {
@@ -46,6 +52,7 @@ export type SavedProject = {
     bannerColors?: SteamBannerColors
     lockupImageDataUrl?: string | null
     lockupImageSize?: BackgroundImageSize | null
+    lockupLayout?: SteamBannerLockupLayout
   }
   export?: {
     guideMode?: ExportGuideMode
