@@ -27,7 +27,9 @@ import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey,
 import './App.css'
 import './layoutFix.css'
 import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
+import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from './components/sidebar/ProjectPanel'
+import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { normalizeParsedProject } from './project/normalizeProject'
 import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
@@ -1133,130 +1135,16 @@ function App() {
           </div>
         </details>
 
-        <details className="panel collapsible-panel" open>
-          <summary className="panel-summary">Template</summary>
-          <div className="panel-content">
-          <label className="field-label" htmlFor="disc-template">
-            Disc type
-          </label>
-          <select
-            id="disc-template"
-            value={selectedDiscTemplateId}
-            onChange={(event) =>
-              handleTemplateChange(event.target.value as SelectedDiscTemplateId)
-            }
-          >
-            {discTemplateOptions.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name}
-              </option>
-            ))}
-            <option value="custom">Custom dimensions</option>
-          </select>
-
-          {isCustomDiscTemplate ? (
-            <div className="custom-dimension-grid">
-              <label className="custom-dimension-row">
-                <span>Outer diameter</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={CUSTOM_OUTER_DIAMETER_MAX_MM}
-                  step="0.1"
-                  value={customDiscTemplate.outerDiameterMm}
-                  onChange={(event) =>
-                    handleCustomDimensionChange('outerDiameterMm', event.target.value)
-                  }
-                />
-                <span>mm</span>
-              </label>
-              <label className="custom-dimension-row">
-                <span>Physical center hole</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={customDiscTemplate.outerDiameterMm}
-                  step="0.1"
-                  value={customDiscTemplate.physicalCenterHoleDiameterMm}
-                  onChange={(event) =>
-                    handleCustomDimensionChange('physicalCenterHoleDiameterMm', event.target.value)
-                  }
-                />
-                <span>mm</span>
-              </label>
-              <label className="custom-dimension-row">
-                <span>Inner print boundary</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={customDiscTemplate.outerDiameterMm}
-                  step="0.1"
-                  value={customDiscTemplate.innerHoleDiameterMm}
-                  onChange={(event) =>
-                    handleCustomDimensionChange('innerHoleDiameterMm', event.target.value)
-                  }
-                />
-                <span>mm</span>
-              </label>
-              <label className="custom-dimension-row">
-                <span>Outer print boundary</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={customDiscTemplate.outerDiameterMm}
-                  step="0.1"
-                  value={customDiscTemplate.printableDiameterMm}
-                  onChange={(event) =>
-                    handleCustomDimensionChange('printableDiameterMm', event.target.value)
-                  }
-                />
-                <span>mm</span>
-              </label>
-              <label className="custom-dimension-row">
-                <span>Safe zone</span>
-                <input
-                  type="number"
-                  min="1"
-                  max={customDiscTemplate.outerDiameterMm}
-                  step="0.1"
-                  value={customDiscTemplate.safeDiameterMm}
-                  onChange={(event) =>
-                    handleCustomDimensionChange('safeDiameterMm', event.target.value)
-                  }
-                />
-                <span>mm</span>
-              </label>
-            </div>
-          ) : (
-            <dl className="template-metrics">
-              <div>
-                <dt>Outer diameter</dt>
-                <dd>{selectedDiscTemplate.outerDiameterMm} mm</dd>
-              </div>
-              <div>
-                <dt>Physical center hole</dt>
-                <dd>{selectedDiscTemplate.physicalCenterHoleDiameterMm} mm</dd>
-              </div>
-              <div>
-                <dt>Inner print boundary</dt>
-                <dd>{selectedDiscTemplate.innerHoleDiameterMm} mm</dd>
-              </div>
-              <div>
-                <dt>Outer print boundary</dt>
-                <dd>{selectedDiscTemplate.printableDiameterMm} mm</dd>
-              </div>
-              <div>
-                <dt>Safe zone</dt>
-                <dd>{selectedDiscTemplate.safeDiameterMm} mm</dd>
-              </div>
-            </dl>
-          )}
-
-          {selectedDiscTemplate.geometryNote && (
-            <p className="hint">{selectedDiscTemplate.geometryNote}</p>
-          )}
-          </div>
-        </details>
+        <TemplatePanel
+          selectedDiscTemplateId={selectedDiscTemplateId}
+          selectedDiscTemplate={selectedDiscTemplate}
+          isCustomDiscTemplate={isCustomDiscTemplate}
+          customDiscTemplate={customDiscTemplate}
+          discTemplateOptions={discTemplateOptions}
+          customOuterDiameterMaxMm={CUSTOM_OUTER_DIAMETER_MAX_MM}
+          handleTemplateChange={handleTemplateChange}
+          handleCustomDimensionChange={handleCustomDimensionChange}
+        />
 
         <details className="panel collapsible-panel" open>
           <summary className="panel-summary">Artwork</summary>
@@ -1621,48 +1509,7 @@ function App() {
           </div>
         </details>
 
-        <details className="panel collapsible-panel">
-          <summary className="panel-summary">Guide Legend</summary>
-          <div className="panel-content">
-          <div className="guide-legend" aria-label="Disc guide legend">
-            <div className="guide-legend-item">
-              <span className="guide-swatch guide-swatch-outer" aria-hidden="true" />
-              <div>
-                <strong>Outer cut edge</strong>
-                <p>The physical outside edge of the disc.</p>
-              </div>
-            </div>
-            <div className="guide-legend-item">
-              <span className="guide-swatch guide-swatch-print" aria-hidden="true" />
-              <div>
-                <strong>Printable area</strong>
-                <p>The usable printed region between the inner and outer print boundaries.</p>
-              </div>
-            </div>
-            <div className="guide-legend-item">
-              <span className="guide-swatch guide-swatch-hub" aria-hidden="true" />
-              <div>
-                <strong>No-print hub</strong>
-                <p>The striped center region between the physical hole and printable boundary.</p>
-              </div>
-            </div>
-            <div className="guide-legend-item">
-              <span className="guide-swatch guide-swatch-hole" aria-hidden="true" />
-              <div>
-                <strong>Physical center hole</strong>
-                <p>The actual cut-out center hole that is blanked during export.</p>
-              </div>
-            </div>
-            <div className="guide-legend-item">
-              <span className="guide-swatch guide-swatch-safe" aria-hidden="true" />
-              <div>
-                <strong>Safe zone</strong>
-                <p>An advisory boundary for keeping important text and logos away from edge drift.</p>
-              </div>
-            </div>
-          </div>
-          </div>
-        </details>
+        <GuideLegendPanel />
       </aside>
 
       <section className="preview-area" aria-labelledby="disc-preview-title">
