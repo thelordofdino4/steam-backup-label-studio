@@ -37,7 +37,7 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
-import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -94,6 +94,11 @@ const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   accent: '#2aabe1',
 }
 const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
+const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
+  scale: 1,
+  offsetX: 0,
+  offsetY: 0,
+}
 
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
@@ -159,6 +164,8 @@ function App() {
   >(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
   const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
     useState<BackgroundImageSize | null>(null)
+  const [steamBannerLockupLayout, setSteamBannerLockupLayout] =
+    useState<SteamBannerLockupLayout>(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
@@ -264,6 +271,7 @@ function App() {
         bannerColors: steamBannerColors,
         lockupImageDataUrl: steamBannerLockupImageUrl,
         lockupImageSize: steamBannerLockupImageSize,
+        lockupLayout: steamBannerLockupLayout,
       },
       export: {
         guides: exportGuides,
@@ -747,6 +755,9 @@ function App() {
         project.steamBackupLogo.lockupImageDataUrl ?? DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
       )
       setSteamBannerLockupImageSize(project.steamBackupLogo.lockupImageSize ?? null)
+      setSteamBannerLockupLayout(
+        project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
+      )
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
       )
