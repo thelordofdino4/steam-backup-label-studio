@@ -1,0 +1,174 @@
+import type { ChangeEvent } from 'react'
+import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
+import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
+
+export type ArtworkPanelProps = {
+  selectedSteamGame: SteamImportedGame | null
+  selectedArtworkId: string | null
+  isArtworkLoading: boolean
+  handleUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
+  localSteamScreenshots: LocalSteamScreenshotAsset[]
+  hasCheckedLocalSteamScreenshots: boolean
+  isLocalSteamScreenshotsLoading: boolean
+  handleFindLocalSteamScreenshots: () => void | Promise<void>
+  handleOpenLocalSteamScreenshotFolder: () => void | Promise<void>
+  handleUseLocalSteamScreenshot: (asset: LocalSteamScreenshotAsset) => void | Promise<void>
+  handleBackgroundUpload: (event: ChangeEvent<HTMLInputElement>) => void
+  backgroundScale: number
+  setBackgroundScale: (value: number) => void
+  backgroundImageUrl: string | null
+  handleResetBackground: () => void
+}
+
+export function ArtworkPanel({
+  selectedSteamGame,
+  selectedArtworkId,
+  isArtworkLoading,
+  handleUseSteamArtwork,
+  localSteamScreenshots,
+  hasCheckedLocalSteamScreenshots,
+  isLocalSteamScreenshotsLoading,
+  handleFindLocalSteamScreenshots,
+  handleOpenLocalSteamScreenshotFolder,
+  handleUseLocalSteamScreenshot,
+  handleBackgroundUpload,
+  backgroundScale,
+  setBackgroundScale,
+  backgroundImageUrl,
+  handleResetBackground,
+}: ArtworkPanelProps) {
+  return (
+    <details className="panel collapsible-panel" open>
+      <summary className="panel-summary">Artwork</summary>
+      <div className="panel-content">
+      {selectedSteamGame?.artwork.length ? (
+        <div className="artwork-import-section">
+          <h3 className="artwork-import-heading">Imported Steam artwork</h3>
+          <p className="hint">
+            Choose one of the imported Steam assets as the disc background.
+          </p>
+
+          <div className="search-results">
+            {selectedSteamGame.artwork.map((asset) => (
+              <button
+                className="search-result-button"
+                key={asset.id}
+                type="button"
+                disabled={isArtworkLoading}
+                onClick={() => handleUseSteamArtwork(asset)}
+              >
+                <strong>{asset.label}</strong>
+                <span>
+                  {asset.kind}{selectedArtworkId === asset.id ? ' · selected' : ''}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <p className="hint">
+          Import a Steam game to see Steam artwork here, or upload a local image below.
+        </p>
+      )}
+
+      <div className="local-steam-screenshot-section">
+        <h3 className="artwork-import-heading">Local Steam screenshots</h3>
+
+        {!selectedSteamGame ? (
+          <p className="hint">
+            Select or import a Steam game first. If Steam screenshots are found for that game, they will appear here.
+          </p>
+        ) : (
+          <>
+            <p className="hint">
+              Check your local Steam screenshot folder for {selectedSteamGame.title}.
+            </p>
+
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={isLocalSteamScreenshotsLoading}
+              onClick={() => void handleFindLocalSteamScreenshots()}
+            >
+              {isLocalSteamScreenshotsLoading ? 'Checking screenshots...' : 'Find local Steam screenshots'}
+            </button>
+
+            {hasCheckedLocalSteamScreenshots &&
+              !isLocalSteamScreenshotsLoading &&
+              localSteamScreenshots.length === 0 && (
+                <p className="hint">
+                  No local Steam screenshots were found for this game.
+                </p>
+              )}
+
+            {localSteamScreenshots.length > 0 && (
+              <>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => void handleOpenLocalSteamScreenshotFolder()}
+                >
+                  Open screenshot folder
+                </button>
+
+                <div className="search-results local-steam-screenshot-results">
+                  {localSteamScreenshots.map((asset) => (
+                    <button
+                      className="search-result-button"
+                      key={asset.id}
+                      type="button"
+                      onClick={() => void handleUseLocalSteamScreenshot(asset)}
+                    >
+                      <strong>{asset.label}</strong>
+                      <span>
+                        local screenshot{selectedArtworkId === asset.id ? ' · selected' : ''}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
+      </div>
+
+      <label className="field-label" htmlFor="background-upload">
+        Local image
+      </label>
+      <input
+        id="background-upload"
+        type="file"
+        accept="image/*"
+        onChange={handleBackgroundUpload}
+      />
+
+      <label className="field-label spacing-top" htmlFor="background-scale">
+        Resize
+      </label>
+      <input
+        id="background-scale"
+        type="range"
+        min="0.1"
+        max="2"
+        step="0.01"
+        value={backgroundScale}
+        disabled={!backgroundImageUrl}
+        onChange={(event) => setBackgroundScale(Number(event.target.value))}
+      />
+
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={!backgroundImageUrl}
+        onClick={handleResetBackground}
+      >
+        Reset background
+      </button>
+
+      <p className="hint">
+        Upload an image, then drag it directly on the disc preview.
+      </p>
+      </div>
+    </details>
+  )
+}
