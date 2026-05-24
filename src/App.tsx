@@ -26,11 +26,7 @@ import {
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
-import { BackgroundLayer } from './components/preview/BackgroundLayer'
-import { DiscTextLayer } from './components/preview/DiscTextLayer'
-import { DiscGuideOverlay } from './components/preview/DiscGuideOverlay'
-import { PreviewToastStack } from './components/preview/PreviewToastStack'
-import { SteamBannerPreview } from './components/preview/SteamBannerPreview'
+import { DiscPreview } from './components/preview/DiscPreview'
 import { ArtworkPanel } from './components/sidebar/ArtworkPanel'
 import { BrandingPanel } from './components/sidebar/BrandingPanel'
 import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
@@ -1121,56 +1117,33 @@ function App() {
         <GuideLegendPanel />
       </aside>
 
-      <section className="preview-area" aria-labelledby="disc-preview-title">
-        <div className="preview-pane-label">
-          <span>Live Preview</span>
-          <strong id="disc-preview-title">Disc Preview</strong>
-        </div>
-
-        <PreviewToastStack statusToasts={statusToasts} />
-
-        <div
-          ref={discPreviewRef}
-          className="disc-preview"
-          aria-label="Blank standard printable disc preview"
-        >
-          <BackgroundLayer
-            backgroundImageUrl={backgroundImageUrl}
-            backgroundPreviewSize={backgroundPreviewSize}
-            backgroundOffset={backgroundOffset}
-            backgroundScale={backgroundScale}
-            handleBackgroundPointerDown={handleBackgroundPointerDown}
-            handleBackgroundPointerMove={handleBackgroundPointerMove}
-            handleBackgroundPointerUp={handleBackgroundPointerUp}
-          />
-
-          <SteamBannerPreview
-            steamLogoPlacement={steamLogoPlacement}
-            steamBannerStyle={steamBannerStyle}
-            steamBannerLockupImageUrl={steamBannerLockupImageUrl}
-          />
-
-          <DiscTextLayer
-            discTextSettings={discTextSettings}
-            discTextValues={discTextValues}
-            manualGameTitle={manualGameTitle}
-            discTextLayout={discTextLayout}
-            steamLogoPlacement={steamLogoPlacement}
-            selectedDiscTemplate={selectedDiscTemplate}
-            getDiscTextPreviewTransform={getDiscTextPreviewTransform}
-            handleDiscTextPointerDown={handleDiscTextPointerDown}
-            handleDiscTextPointerMove={handleDiscTextPointerMove}
-            handleDiscTextPointerUp={handleDiscTextPointerUp}
-          />
-
-          <DiscGuideOverlay
-            innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
-            printableInsetPercent={printableInsetPercent}
-            safeInsetPercent={safeInsetPercent}
-            physicalCenterHolePercent={physicalCenterHolePercent}
-          />
-        </div>
-      </section>
+      <DiscPreview
+        discPreviewRef={discPreviewRef}
+        statusToasts={statusToasts}
+        backgroundImageUrl={backgroundImageUrl}
+        backgroundPreviewSize={backgroundPreviewSize}
+        backgroundOffset={backgroundOffset}
+        backgroundScale={backgroundScale}
+        handleBackgroundPointerDown={handleBackgroundPointerDown}
+        handleBackgroundPointerMove={handleBackgroundPointerMove}
+        handleBackgroundPointerUp={handleBackgroundPointerUp}
+        steamLogoPlacement={steamLogoPlacement}
+        steamBannerStyle={steamBannerStyle}
+        steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        discTextSettings={discTextSettings}
+        discTextValues={discTextValues}
+        manualGameTitle={manualGameTitle}
+        discTextLayout={discTextLayout}
+        selectedDiscTemplate={selectedDiscTemplate}
+        getDiscTextPreviewTransform={getDiscTextPreviewTransform}
+        handleDiscTextPointerDown={handleDiscTextPointerDown}
+        handleDiscTextPointerMove={handleDiscTextPointerMove}
+        handleDiscTextPointerUp={handleDiscTextPointerUp}
+        innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
+        printableInsetPercent={printableInsetPercent}
+        safeInsetPercent={safeInsetPercent}
+        physicalCenterHolePercent={physicalCenterHolePercent}
+      />
     </main>
   )
 }
