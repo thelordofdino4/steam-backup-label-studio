@@ -8,11 +8,11 @@ The core **disc-label** workflow is working: Steam search/import, store/library/
 
 This does not mean the whole planned product is close to complete. The current working interface is the disc-label editor. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
 
-The current emergency refactor for issue #36 is mostly complete but remains open. High-risk editor foundations have been extracted from `App.tsx`, build/lint are clean, and local smoke testing has passed. The remaining closeout work is mostly component extraction, preview UI extraction, and deciding whether CSS/Rust cleanup should stay in issue #36 or move to follow-up cleanup issues.
+The emergency editor-foundation refactor tracked in issue #36 is complete and closed. High-risk editor foundations have been extracted from `App.tsx`, build/lint are clean, and local smoke testing has passed. Remaining cleanup is tracked separately in issues #44-#49 so feature work can continue without keeping the emergency refactor open.
 
 The next stretch of work is focused on finishing the disc-label pre-alpha path, then preparing shared foundations for the other template interfaces.
 
-See `MILESTONES.md` for the broader milestone and feature backlog. See `REFACTOR_STATUS.md` for issue #36 closeout details.
+See `MILESTONES.md` for the broader milestone and feature backlog. See `REFACTOR_STATUS.md` for the issue #36 completion summary and follow-up cleanup notes.
 
 ## Phase 0: Planning Foundation — Complete
 
@@ -82,7 +82,6 @@ Completed:
 
 Remaining:
 
-- Finish issue #36 component extraction for the remaining sidebar and preview UI.
 - Add curved copyright alignment modes without regressing the stable centered curved text behavior.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup scale and offset controls.
@@ -185,14 +184,13 @@ Completed:
 - Add real default Steam banner lockup image support.
 - Add adjustable basic disc text and stable centered curved copyright/legal text.
 - Establish a clean `npm run build` and `npm run lint` baseline after initial refactor work.
-- Extract initial sidebar panels into presentational components.
+- Extract sidebar panels into presentational components.
+- Extract preview UI into focused components.
+- Complete and close issue #36.
 - Update planning documents.
 
 Current targets:
 
-- Finish issue #36 refactor closeout.
-- Extract the remaining sidebar panels.
-- Extract the preview UI into focused components.
 - Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup controls.
@@ -206,7 +204,7 @@ Deferred alpha cleanup:
 - Remove duplicate hidden UI markup created during conservative pre-alpha changes.
 - Polish preview toast action icons.
 - Clean duplicate CSS overrides once component boundaries settle.
-- Consider splitting Rust Tauri commands into focused modules or tracking that as a follow-up cleanup issue.
+- Continue post-refactor cleanup tracked in issues #44-#49, including hook extraction, helper extraction, CSS organization, Rust command organization, toast-symbol polish, and project schema validation/migrations.
 
 ## Phase 8: Case Template Foundation — Upcoming
 

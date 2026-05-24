@@ -41,7 +41,7 @@ The core disc-label workflow is working:
 
 Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, better image scaling for Steam artwork, a labeled preview pane, stacked preview toast notifications, Steam library/local screenshot artwork discovery, a real default Steam banner lockup image, adjustable disc text elements, and stable centered curved copyright text.
 
-The current refactor pass has also moved high-risk editor foundations out of `App.tsx`, including project file helpers, shared utilities, PNG export rendering, and the first sidebar panel components. Build and lint are currently clean, and local smoke testing has passed. See `docs/REFACTOR_STATUS.md` for the remaining closeout checklist.
+The emergency editor-foundation refactor tracked in issue #36 is complete and closed. High-risk editor foundations have moved out of `App.tsx`, including project file helpers, shared utilities, PNG export rendering, status toast state, sidebar panels, and preview components. Build and lint are currently clean, and local smoke testing has passed. Follow-up cleanup work is tracked separately in issues #44-#49.
 
 The app is usable for early disc-label testing, but the larger multi-template product is still in planning and foundation work.
 
@@ -72,7 +72,6 @@ The app is usable for early disc-label testing, but the larger multi-template pr
 
 ## Near-Term Work
 
-- Finish the current refactor closeout: extract remaining sidebar panels, extract preview UI components, and decide which CSS/Rust cleanup belongs here versus follow-up issues.
 - Add curved copyright text alignment modes without regressing the stable centered curved text behavior.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup scale and offset controls.
@@ -81,6 +80,7 @@ The app is usable for early disc-label testing, but the larger multi-template pr
 - Add export-time summary/preflight behavior.
 - Add manual metadata fields and richer metadata overrides.
 - Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
+- Continue post-refactor cleanup tracked by issues #44-#49 where it supports upcoming feature work.
 - Begin shared template-system planning for future case editors.
 
 ## Planned Platforms
@@ -113,7 +113,7 @@ See the `docs/` folder for:
 - `PRD.md` — product requirements and product direction.
 - `ROADMAP.md` — completed phases, current pre-alpha work, and future roadmap.
 - `CURRENT_STATUS.md` — concise implementation status and next issues.
-- `REFACTOR_STATUS.md` — refactor progress, remaining work, and closeout criteria.
+- `REFACTOR_STATUS.md` — completed issue #36 refactor summary and follow-up cleanup notes.
 - `MILESTONES.md` — milestone boundaries and feature backlog.
 
 ## Disclaimer
