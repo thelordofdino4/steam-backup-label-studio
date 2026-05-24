@@ -382,6 +382,40 @@ function getLargeArcFlag(arcDegrees: number): 0 | 1 {
   return arcDegrees > 180 ? 1 : 0
 }
 
+function getCurvedTextPathAlignment(align: DiscTextAlignment) {
+  switch (align) {
+    case 'left':
+      return {
+        startOffset: '0%',
+        textAnchor: 'start' as const,
+      }
+    case 'right':
+      return {
+        startOffset: '100%',
+        textAnchor: 'end' as const,
+      }
+    default:
+      return {
+        startOffset: '50%',
+        textAnchor: 'middle' as const,
+      }
+  }
+}
+
+function getCurvedLinePathAlignment(
+  align: DiscTextAlignment,
+  shouldFitLine: boolean,
+) {
+  if (shouldFitLine) {
+    return {
+      startOffset: '0%',
+      textAnchor: 'start' as const,
+    }
+  }
+
+  return getCurvedTextPathAlignment(align)
+}
+
 function splitLongTokenForPreview(token: string, maxCharacters: number) {
   const chunks: string[] = []
 
@@ -870,27 +904,56 @@ function drawCurvedTextLine(
   centerY: number,
   radius: number,
   centerAngle: number,
+  arcAngle: number,
   isTopArc: boolean,
+  align: DiscTextAlignment,
+  fitToArc: boolean,
 ) {
   const characters = Array.from(text)
-  const characterSpacing = Math.max(1, radius * 0.002)
+  const baseCharacterSpacing = Math.max(1, radius * 0.002)
   const widths = characters.map((character) => context.measureText(character).width)
-  const totalWidth =
-    widths.reduce((sum, width) => sum + width, 0) +
-    Math.max(0, characters.length - 1) * characterSpacing
+  const glyphWidth = widths.reduce((sum, width) => sum + width, 0)
+  const naturalWidth =
+    glyphWidth + Math.max(0, characters.length - 1) * baseCharacterSpacing
+  const availableArcWidth = radius * arcAngle
 
-  if (totalWidth <= 0 || radius <= 0) {
+  if (naturalWidth <= 0 || radius <= 0) {
     return
+  }
+
+  const shouldFitToArc =
+    fitToArc && characters.length > 1 && glyphWidth < availableArcWidth
+  const characterSpacing = shouldFitToArc
+    ? (availableArcWidth - glyphWidth) / Math.max(1, characters.length - 1)
+    : baseCharacterSpacing
+  const totalWidth = shouldFitToArc ? availableArcWidth : naturalWidth
+  const totalTextAngle = totalWidth / radius
+  const effectiveAlign = shouldFitToArc ? 'left' : align
+  let startAngle: number
+
+  if (isTopArc) {
+    if (effectiveAlign === 'left') {
+      startAngle = centerAngle - arcAngle / 2
+    } else if (effectiveAlign === 'right') {
+      startAngle = centerAngle + arcAngle / 2 - totalTextAngle
+    } else {
+      startAngle = centerAngle - totalTextAngle / 2
+    }
+  } else if (effectiveAlign === 'left') {
+    startAngle = centerAngle + arcAngle / 2
+  } else if (effectiveAlign === 'right') {
+    startAngle = centerAngle - arcAngle / 2 + totalTextAngle
+  } else {
+    startAngle = centerAngle + totalTextAngle / 2
   }
 
   let currentOffset = 0
 
   characters.forEach((character, index) => {
     const characterCenterOffset = currentOffset + widths[index] / 2
-    const angleOffset = characterCenterOffset / radius - totalWidth / radius / 2
     const angle = isTopArc
-      ? centerAngle + angleOffset
-      : centerAngle - angleOffset
+      ? startAngle + characterCenterOffset / radius
+      : startAngle - characterCenterOffset / radius
 
     const x = centerX + Math.cos(angle) * radius
     const y = centerY + Math.sin(angle) * radius
@@ -926,8 +989,6 @@ function drawCurvedCopyrightText(
     (isTopArc ? -Math.PI / 2 : Math.PI / 2) + (layout.x * Math.PI) / 180
   const maxArcAngle = (layout.arcDegrees * Math.PI) / 180
   const lineHeight = fontSize * 1.38
-
-  // Keep the text centered on the safe-zone path. Positive Y in curved mode means inset.
   const outerLineRadius = Math.max(
     1,
     safeZoneRadius - layout.y * exportSize * 0.0018,
@@ -951,7 +1012,10 @@ function drawCurvedCopyrightText(
       centerY,
       lineRadius,
       centerAngle,
+      maxArcAngle,
       isTopArc,
+      layout.align,
+      index < lines.length - 1 || line.length > 24,
     )
   })
 }
@@ -2629,7 +2693,7 @@ function App() {
                               <input
                                 type="range"
                                 min="80"
-                                max="280"
+                                max="320"
                                 step="1"
                                 value={layout.arcDegrees}
                                 disabled={!discTextSettings[key]}
@@ -2826,6 +2890,7 @@ function App() {
                   1,
                   safeZoneRadius - layout.y * 0.18,
                 )
+                const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x
                 const arcHalf = layout.arcDegrees / 2
                 const largeArcFlag = getLargeArcFlag(layout.arcDegrees)
                 const lines = wrapPreviewTextByArcLength(
@@ -2858,8 +2923,8 @@ function App() {
                               50,
                               50,
                               lineRadius,
-                              270 - arcHalf,
-                              270 + arcHalf,
+                              arcCenterAngle - arcHalf,
+                              arcCenterAngle + arcHalf,
                               1,
                               largeArcFlag,
                             )
@@ -2867,8 +2932,8 @@ function App() {
                               50,
                               50,
                               lineRadius,
-                              90 + arcHalf,
-                              90 - arcHalf,
+                              arcCenterAngle + arcHalf,
+                              arcCenterAngle - arcHalf,
                               0,
                               largeArcFlag,
                             )
@@ -2876,25 +2941,41 @@ function App() {
                         return <path id={pathId} d={path} key={pathId} />
                       })}
                     </defs>
-                    {lines.map((line, index) => (
-                      <text
-                        className="disc-curved-text"
-                        key={`${copyrightPathId}-line-${index}`}
-                        dominantBaseline="middle"
-                        style={{
-                          fontSize: `${fontSize}px`,
-                          letterSpacing: `${0.08 * layout.scale}px`,
-                        }}
-                      >
-                        <textPath
-                          href={`#${copyrightPathId}-${index}`}
-                          startOffset="50%"
-                          textAnchor="middle"
+                    {lines.map((line, index) => {
+                      const shouldFitLine = index < lines.length - 1 || line.length > 24
+                      const lineRadius = isTopArc
+                        ? textRadius - index * lineStep
+                        : textRadius - (lines.length - 1 - index) * lineStep
+                      const lineArcLength = lineRadius * ((layout.arcDegrees * Math.PI) / 180)
+                      const curvedLineAlignment = getCurvedLinePathAlignment(
+                        layout.align,
+                        shouldFitLine,
+                      )
+
+                      return (
+                        <text
+                          className="disc-curved-text"
+                          key={`${copyrightPathId}-line-${index}`}
+                          dominantBaseline="middle"
+                          lengthAdjust={shouldFitLine ? 'spacing' : undefined}
+                          textLength={shouldFitLine ? lineArcLength : undefined}
+                          style={{
+                            fontSize: `${fontSize}px`,
+                            letterSpacing: shouldFitLine
+                              ? '0px'
+                              : `${0.08 * layout.scale}px`,
+                          }}
                         >
-                          {line}
-                        </textPath>
-                      </text>
-                    ))}
+                          <textPath
+                            href={`#${copyrightPathId}-${index}`}
+                            startOffset={curvedLineAlignment.startOffset}
+                            textAnchor={curvedLineAlignment.textAnchor}
+                          >
+                            {line}
+                          </textPath>
+                        </text>
+                      )
+                    })}
                   </svg>
                 )
               }
