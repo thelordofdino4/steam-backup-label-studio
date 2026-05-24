@@ -41,6 +41,8 @@ The core disc-label workflow is working:
 
 Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, better image scaling for Steam artwork, a labeled preview pane, stacked preview toast notifications, Steam library/local screenshot artwork discovery, a real default Steam banner lockup image, adjustable disc text elements, and stable centered curved copyright text.
 
+The current refactor pass has also moved high-risk editor foundations out of `App.tsx`, including project file helpers, shared utilities, PNG export rendering, and the first sidebar panel components. Build and lint are currently clean, and local smoke testing has passed. See `docs/REFACTOR_STATUS.md` for the remaining closeout checklist.
+
 The app is usable for early disc-label testing, but the larger multi-template product is still in planning and foundation work.
 
 ## Current Features
@@ -70,6 +72,7 @@ The app is usable for early disc-label testing, but the larger multi-template pr
 
 ## Near-Term Work
 
+- Finish the current refactor closeout: extract remaining sidebar panels, extract preview UI components, and decide which CSS/Rust cleanup belongs here versus follow-up issues.
 - Add curved copyright text alignment modes without regressing the stable centered curved text behavior.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup scale and offset controls.
@@ -110,6 +113,7 @@ See the `docs/` folder for:
 - `PRD.md` — product requirements and product direction.
 - `ROADMAP.md` — completed phases, current pre-alpha work, and future roadmap.
 - `CURRENT_STATUS.md` — concise implementation status and next issues.
+- `REFACTOR_STATUS.md` — refactor progress, remaining work, and closeout criteria.
 - `MILESTONES.md` — milestone boundaries and feature backlog.
 
 ## Disclaimer
