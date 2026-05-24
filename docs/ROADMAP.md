@@ -4,7 +4,7 @@
 
 Steam Backup Label Studio is in **pre-alpha**.
 
-The core **disc-label** workflow is working: Steam search/import, artwork import, background drag/resize, physical disc geometry, custom dimensions, save/load, 300 DPI PNG export, optional guide export, collapsible editor panels, labeled live preview, and stacked preview toast notifications.
+The core **disc-label** workflow is working: Steam search/import, store/library/screenshot artwork import, local artwork import, local Steam screenshot discovery, background drag/resize, physical disc geometry, custom dimensions, save/load, 300 DPI PNG export, optional guide export, collapsible editor panels, labeled live preview, stacked preview toast notifications, Steam-style banner lockup placement, optional straight disc text, and stable centered curved copyright/legal text.
 
 This does not mean the whole planned product is close to complete. The current working interface is the disc-label editor. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
 
@@ -69,21 +69,26 @@ Completed:
 - Allow dragging background artwork.
 - Allow resizing background artwork.
 - Add reset behavior for background image placement.
-- Add placeholder Steam Backup branding placement.
+- Add Steam-style banner branding placement with a real default lockup asset.
 - Organize editor controls into independently collapsible panels.
 - Move imported Steam artwork selection into the Artwork panel.
 - Add labeled live preview.
 - Add top-right stacked preview toast notifications.
+- Add optional straight disc text elements: title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
+- Add stable centered curved copyright/legal text with arc length, angle, inset, scale, side, and wrapping controls.
+- Preserve text settings through save/load and PNG export.
 
 Remaining:
 
-- Replace the placeholder Steam Backup text badge with a real graphic/logo layer.
+- Add curved copyright alignment modes without regressing the stable centered curved text behavior.
+- Add adjustable straight text box widths.
+- Add adjustable banner lockup scale and offset controls.
+- Add user-facing banner color controls.
 - Add a New Project / Reset Project action.
 - Add a clearer layer model.
 - Allow selecting layers.
-- Allow dragging/resizing additional layer types beyond the background.
+- Allow dragging/resizing additional layer types beyond the background and current text/banner controls.
 - Add basic layer properties panel.
-- Add optional text elements such as copyright, backup date, disc number, and Steam App ID.
 
 ## Phase 4: Project Save and Load — Complete for Current Disc-Label MVP
 
@@ -100,6 +105,8 @@ Completed:
 - Restore background scale and offset.
 - Restore Steam Backup logo placement.
 - Restore export guide settings.
+- Restore banner lockup settings currently supported by the editor.
+- Restore optional disc text settings, values, layout, and curved copyright settings.
 
 Future improvements:
 
@@ -120,6 +127,9 @@ Completed:
 - Hide editor-only guides by default.
 - Add optional guide export controls.
 - Support guide export for center hole, outer edge, printable area, and safe zone.
+- Export the Steam-style banner lockup.
+- Export optional straight text elements.
+- Export stable centered curved copyright/legal text.
 
 Future improvements:
 
@@ -138,6 +148,9 @@ Completed:
 - Search real Steam results.
 - Import title and basic metadata.
 - Import artwork options when available.
+- Import Steam store artwork.
+- Import Steam library capsule and hero artwork when available.
+- Import Steam screenshots and local Steam screenshots when available.
 - Apply imported artwork as disc background.
 - Preserve imported metadata through save/load.
 - Move imported artwork choices from the visible Game workflow into the Artwork panel.
@@ -145,7 +158,7 @@ Completed:
 Remaining:
 
 - Add clearer manual metadata override fields.
-- Improve artwork picker presentation with thumbnails, asset type, and dimensions.
+- Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
 - Build a shared project asset library for future template interfaces.
 
 ## Phase 7: Pre-Alpha Cleanup and UI Polish — In Progress
@@ -162,13 +175,19 @@ Completed:
 - Add a labeled preview pane.
 - Add a TF2-style top-right stacked toast notification feed in the preview pane.
 - Move imported artwork management into the Artwork panel.
+- Add real default Steam banner lockup image support.
+- Add adjustable basic disc text and stable centered curved copyright/legal text.
 - Update planning documents.
 
 Current targets:
 
-- Replace placeholder Steam Backup branding with a real logo layer.
+- Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
+- Add adjustable straight text box widths.
+- Add adjustable banner lockup controls.
+- Add user-facing banner color controls.
 - Add New Project / Reset Project.
 - Add export summary/preflight behavior.
+- Improve artwork picker presentation.
 
 Deferred alpha cleanup:
 
@@ -211,10 +230,10 @@ Tasks:
 - Screenshots and back-cover layouts.
 - Rating badges.
 - Developer and publisher logo placement.
-- CDN/DVD/logo marks.
+- Optical media logo marks.
 - Copyright block placement and generator.
 - Spine text generator.
-- Curved disc text.
+- Advanced curved disc text alignment.
 - Multi-disc / Backup Set projects.
 - Print calibration sheet.
 - Direct printer support.
