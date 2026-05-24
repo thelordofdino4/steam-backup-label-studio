@@ -8,9 +8,11 @@ The core **disc-label** workflow is working: Steam search/import, store/library/
 
 This does not mean the whole planned product is close to complete. The current working interface is the disc-label editor. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
 
+The current emergency refactor for issue #36 is mostly complete but remains open. High-risk editor foundations have been extracted from `App.tsx`, build/lint are clean, and local smoke testing has passed. The remaining closeout work is mostly component extraction, preview UI extraction, and deciding whether CSS/Rust cleanup should stay in issue #36 or move to follow-up cleanup issues.
+
 The next stretch of work is focused on finishing the disc-label pre-alpha path, then preparing shared foundations for the other template interfaces.
 
-See `MILESTONES.md` for the broader milestone and feature backlog.
+See `MILESTONES.md` for the broader milestone and feature backlog. See `REFACTOR_STATUS.md` for issue #36 closeout details.
 
 ## Phase 0: Planning Foundation — Complete
 
@@ -80,6 +82,7 @@ Completed:
 
 Remaining:
 
+- Finish issue #36 component extraction for the remaining sidebar and preview UI.
 - Add curved copyright alignment modes without regressing the stable centered curved text behavior.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup scale and offset controls.
@@ -107,6 +110,8 @@ Completed:
 - Restore export guide settings.
 - Restore banner lockup settings currently supported by the editor.
 - Restore optional disc text settings, values, layout, and curved copyright settings.
+- Move project schema/type definitions into `src/project/` as part of issue #36.
+- Add a project JSON normalization landing point for future migrations.
 
 Future improvements:
 
@@ -130,6 +135,7 @@ Completed:
 - Export the Steam-style banner lockup.
 - Export optional straight text elements.
 - Export stable centered curved copyright/legal text.
+- Move PNG export rendering into focused `src/export/` modules as part of issue #36.
 
 Future improvements:
 
@@ -154,6 +160,7 @@ Completed:
 - Apply imported artwork as disc background.
 - Preserve imported metadata through save/load.
 - Move imported artwork choices from the visible Game workflow into the Artwork panel.
+- Consolidate shared byte/base64 helper usage for Steam and local artwork paths.
 
 Remaining:
 
@@ -177,10 +184,15 @@ Completed:
 - Move imported artwork management into the Artwork panel.
 - Add real default Steam banner lockup image support.
 - Add adjustable basic disc text and stable centered curved copyright/legal text.
+- Establish a clean `npm run build` and `npm run lint` baseline after initial refactor work.
+- Extract initial sidebar panels into presentational components.
 - Update planning documents.
 
 Current targets:
 
+- Finish issue #36 refactor closeout.
+- Extract the remaining sidebar panels.
+- Extract the preview UI into focused components.
 - Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
 - Add adjustable straight text box widths.
 - Add adjustable banner lockup controls.
@@ -193,7 +205,8 @@ Deferred alpha cleanup:
 
 - Remove duplicate hidden UI markup created during conservative pre-alpha changes.
 - Polish preview toast action icons.
-- Refactor large JSX panels into cleaner components when appropriate.
+- Clean duplicate CSS overrides once component boundaries settle.
+- Consider splitting Rust Tauri commands into focused modules or tracking that as a follow-up cleanup issue.
 
 ## Phase 8: Case Template Foundation — Upcoming
 
