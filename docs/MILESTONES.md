@@ -17,10 +17,12 @@ Goal: Make the current disc-label editor path coherent enough for early testing.
 Core work:
 
 - Keep Steam search/import working.
-- Keep imported Steam artwork and local artwork usable as disc backgrounds.
+- Keep imported Steam artwork, Steam library artwork, Steam screenshots, local Steam screenshots, and local artwork usable as disc backgrounds.
 - Keep physical disc geometry and custom dimensions working.
 - Keep save/load/export working.
-- Replace the temporary Steam Backup text badge with a real graphic/logo layer.
+- Use a real default Steam-style banner lockup instead of a generated placeholder text badge.
+- Keep optional straight disc text working for game title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
+- Keep stable centered curved copyright/legal text working with arc, angle, inset, scale, side, and wrapping controls.
 - Add a New Project or Reset Project action.
 - Add export-time summary/preflight behavior instead of a standing project-health checklist.
 - Keep the app honest that only the disc-label interface is functional at this stage.
@@ -28,9 +30,12 @@ Core work:
 Useful polish:
 
 - Template preview cards for disc label templates.
-- Cleaner artwork picker presentation with asset type and dimensions.
+- Cleaner artwork picker presentation with asset type, origin, thumbnails, and dimensions.
 - Manual metadata override fields.
-- Basic text elements such as backup date, disc number, Steam App ID, and copyright text.
+- Curved copyright alignment modes.
+- Adjustable straight text box widths.
+- Adjustable banner lockup controls.
+- User-facing banner color controls.
 
 ## Milestone: Case Template Foundation
 
@@ -71,7 +76,7 @@ Guided Start:
 - Asks what template type the user wants: disc, jewel case, DVD/Amaray, or Blu-ray.
 - Asks what disc or case dimensions/template they are using.
 - Asks what artwork/background they want.
-- Asks whether to use Steam Backup branding, CD/DVD marks, rating badges, developer/publisher logos, and copyright text.
+- Asks whether to use Steam Backup branding, optical media marks, rating badges, developer/publisher logos, and copyright text.
 - Sends the user into the editor with the selected setup already prepared.
 
 ## Milestone: Alpha UI Polish
@@ -145,13 +150,17 @@ Planned work:
 ### Artwork and Assets
 
 - Shared project asset library.
-- Artwork thumbnails with type and dimensions.
+- Artwork thumbnails with type, origin, and dimensions.
+- Steam library artwork handling.
+- Steam screenshot and local Steam screenshot handling.
 - Developer logo placement.
 - Publisher logo placement.
 - Rating badge support.
-- CD/DVD/logo marks.
+- Optical media/logo marks.
 - Screenshot selection for case backs.
 - Replaceable Steam Backup logo asset.
+- User-adjustable banner lockup controls.
+- User-facing banner color controls.
 
 ### Metadata and Text
 
@@ -159,7 +168,10 @@ Planned work:
 - Copyright block generator.
 - Backup date field.
 - Steam App ID field.
+- Disc number field.
 - Install notes.
+- Curved copyright alignment modes.
+- Adjustable straight text box widths.
 - Spine text generator for case templates.
 - Minimum/recommended requirements fields for case backs.
 
@@ -169,7 +181,7 @@ Planned work:
 - Steam Archive Identity style presets.
 - Real layer model.
 - Layer selection.
-- Layer dragging/resizing beyond background image.
+- Layer dragging/resizing beyond background image and current text/banner controls.
 - Layer hide/lock/reorder behavior.
 - Safe-zone severity indicators.
 
