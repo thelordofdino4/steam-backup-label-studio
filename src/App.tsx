@@ -17,9 +17,37 @@ import {
 } from './local/localArtwork'
 import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
+import {
+  clampNumber,
+  CUSTOM_OUTER_DIAMETER_MAX_MM,
+  EXPORT_DPI,
+  mmToPixels,
+  normalizeCustomDiscTemplate,
+} from './discGeometry'
+import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideMode, type ExportGuideSelection, type ExportGuideKey } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
+import {
+  DEFAULT_DISC_TEXT_SETTINGS,
+  DISC_TEXT_KEYS,
+  createDefaultDiscTextLayout,
+  createDefaultDiscTextValues,
+  getCopyrightArcSide,
+  getCurvedPreviewLetterSpacing,
+  getDefaultCopyrightCurvedLayout,
+  getDefaultCopyrightStraightLayout,
+  getDiscTextContent,
+  getDiscTextLabel,
+  getDiscTextPreviewClassName,
+  getLargeArcFlag,
+  getReadableCurvedTextScale,
+  normalizeDiscTextLayout,
+  normalizeDiscTextSettings,
+  normalizeDiscTextValues,
+  wrapPreviewTextByArcLength,
+  createSvgArcPath,
+} from './discText'
 
 type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 
@@ -28,9 +56,6 @@ type SteamBannerColors = {
   gradientEnd: string
   accent: string
 }
-type ExportGuideMode = 'none' | 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone' | 'all'
-type ExportGuideKey = 'centerHole' | 'outerEdge' | 'printableArea' | 'safeZone'
-type ExportGuideSelection = Record<ExportGuideKey, boolean>
 type SelectedDiscTemplateId = DiscTemplateId | 'custom'
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -146,9 +171,6 @@ type SavedProject = {
   }
 }
 
-const EXPORT_DPI = 300
-const MM_PER_INCH = 25.4
-const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
 const STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT = 200
 const STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT = 20
 const STEAM_BANNER_ACCENT_OVERLAP_AT_STANDARD_EXPORT = 3
@@ -163,301 +185,6 @@ const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   accent: '#2aabe1',
 }
 const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
-const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
-  centerHole: false,
-  outerEdge: false,
-  printableArea: false,
-  safeZone: false,
-}
-const DISC_TEXT_KEYS: DiscTextKey[] = [
-  'title',
-  'discNumber',
-  'backupDate',
-  'appId',
-  'customNote',
-  'copyright',
-]
-const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
-  title: false,
-  discNumber: false,
-  backupDate: false,
-  appId: false,
-  customNote: false,
-  copyright: false,
-}
-
-function createDefaultDiscTextValues(appId?: number): DiscTextValues {
-  return {
-    discNumber: 'Disc 1',
-    backupDate: new Date().toISOString().slice(0, 10),
-    appId: appId ? String(appId) : '',
-    customNote: '',
-    copyright: '',
-  }
-}
-
-function createDefaultDiscTextLayout(placement: SteamLogoPlacement): DiscTextLayoutSettings {
-  const hasBottomBanner = placement === 'bottom'
-
-  return {
-    title: {
-      x: 0,
-      y: hasBottomBanner ? 81.5 : 19.5,
-      scale: 1,
-      align: 'center',
-      mode: 'straight',
-      arcDegrees: 210,
-      arcSide: 'bottom',
-    },
-    discNumber: {
-      x: 0,
-      y: 63.5,
-      scale: 1,
-      align: 'center',
-      mode: 'straight',
-      arcDegrees: 210,
-      arcSide: 'bottom',
-    },
-    backupDate: {
-      x: 0,
-      y: 68,
-      scale: 1,
-      align: 'center',
-      mode: 'straight',
-      arcDegrees: 210,
-      arcSide: 'bottom',
-    },
-    appId: {
-      x: 0,
-      y: 72,
-      scale: 1,
-      align: 'center',
-      mode: 'straight',
-      arcDegrees: 210,
-      arcSide: 'bottom',
-    },
-    customNote: {
-      x: 0,
-      y: hasBottomBanner ? 76 : 78,
-      scale: 1,
-      align: 'center',
-      mode: 'straight',
-      arcDegrees: 210,
-      arcSide: 'bottom',
-    },
-    copyright: getDefaultCopyrightCurvedLayout(placement),
-  }
-}
-
-function getDefaultCopyrightStraightLayout(placement: SteamLogoPlacement): DiscTextLayout {
-  const hasBottomBanner = placement === 'bottom'
-
-  return {
-    x: 0,
-    y: hasBottomBanner ? 16 : 86,
-    scale: 1,
-    align: 'center',
-    mode: 'straight',
-    arcDegrees: 210,
-    arcSide: hasBottomBanner ? 'top' : 'bottom',
-  }
-}
-
-function getDefaultCopyrightCurvedLayout(placement: SteamLogoPlacement): DiscTextLayout {
-  const hasBottomBanner = placement === 'bottom'
-
-  return {
-    x: 0,
-    y: 0,
-    scale: 1,
-    align: 'center',
-    mode: 'curved',
-    arcDegrees: 210,
-    arcSide: hasBottomBanner ? 'top' : 'bottom',
-  }
-}
-
-function normalizeDiscTextSettings(settings?: Partial<DiscTextSettings>): DiscTextSettings {
-  return {
-    ...DEFAULT_DISC_TEXT_SETTINGS,
-    ...(settings ?? {}),
-  }
-}
-
-function normalizeDiscTextValues(
-  values?: Partial<DiscTextValues>,
-  appId?: number,
-): DiscTextValues {
-  return {
-    ...createDefaultDiscTextValues(appId),
-    ...(values ?? {}),
-  }
-}
-
-function normalizeDiscTextLayout(
-  layout: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>> | undefined,
-  placement: SteamLogoPlacement,
-): DiscTextLayoutSettings {
-  const defaults = createDefaultDiscTextLayout(placement)
-
-  return DISC_TEXT_KEYS.reduce((normalizedLayout, key) => {
-    normalizedLayout[key] = {
-      ...defaults[key],
-      ...(layout?.[key] ?? {}),
-    }
-
-    return normalizedLayout
-  }, {} as DiscTextLayoutSettings)
-}
-
-function getDiscTextLabel(key: DiscTextKey) {
-  switch (key) {
-    case 'title':
-      return 'Game title'
-    case 'discNumber':
-      return 'Disc number'
-    case 'backupDate':
-      return 'Backup date'
-    case 'appId':
-      return 'Steam App ID'
-    case 'customNote':
-      return 'Custom note'
-    case 'copyright':
-      return 'Copyright/legal text'
-    default:
-      return key
-  }
-}
-
-function getDiscTextContent(key: DiscTextKey, values: DiscTextValues, title: string) {
-  switch (key) {
-    case 'title':
-      return title
-    case 'discNumber':
-      return values.discNumber
-    case 'backupDate':
-      return values.backupDate ? `Backed up ${values.backupDate}` : ''
-    case 'appId':
-      return values.appId ? `Steam App ID ${values.appId}` : ''
-    case 'customNote':
-      return values.customNote
-    case 'copyright':
-      return values.copyright
-    default:
-      return ''
-  }
-}
-
-function getDiscTextPreviewClassName(key: DiscTextKey) {
-  return `disc-text-${key}`
-}
-
-function getCopyrightArcSide(
-  placement: SteamLogoPlacement,
-  layout: DiscTextLayout,
-): DiscTextArcSide {
-  if (placement === 'bottom') {
-    return 'top'
-  }
-
-  if (placement === 'top') {
-    return 'bottom'
-  }
-
-  return layout.arcSide
-}
-
-function getSvgArcPoint(
-  centerX: number,
-  centerY: number,
-  radius: number,
-  angleDegrees: number,
-) {
-  const angleRadians = (angleDegrees * Math.PI) / 180
-
-  return {
-    x: centerX + Math.cos(angleRadians) * radius,
-    y: centerY + Math.sin(angleRadians) * radius,
-  }
-}
-
-function createSvgArcPath(
-  centerX: number,
-  centerY: number,
-  radius: number,
-  startAngleDegrees: number,
-  endAngleDegrees: number,
-  sweepFlag: 0 | 1,
-  largeArcFlag: 0 | 1 = 0,
-) {
-  const start = getSvgArcPoint(centerX, centerY, radius, startAngleDegrees)
-  const end = getSvgArcPoint(centerX, centerY, radius, endAngleDegrees)
-
-  return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${radius.toFixed(
-    3,
-  )} ${radius.toFixed(3)} 0 ${largeArcFlag} ${sweepFlag} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`
-}
-
-function getLargeArcFlag(arcDegrees: number): 0 | 1 {
-  return arcDegrees > 180 ? 1 : 0
-}
-
-function getReadableCurvedTextScale(scale: number) {
-  return Math.max(scale, 0.72)
-}
-
-function getCurvedPreviewLetterSpacing(scale: number) {
-  return Math.max(0.11, 0.14 * getReadableCurvedTextScale(scale))
-}
-
-function splitLongTokenForPreview(token: string, maxCharacters: number) {
-  const chunks: string[] = []
-
-  for (let index = 0; index < token.length; index += maxCharacters) {
-    chunks.push(token.slice(index, index + maxCharacters))
-  }
-
-  return chunks
-}
-
-function wrapPreviewTextByArcLength(
-  text: string,
-  radius: number,
-  arcDegrees: number,
-  scale: number,
-) {
-  const arcLength = radius * ((arcDegrees * Math.PI) / 180)
-  const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
-  const maxCharacters = Math.max(6, Math.floor(arcLength / averageCharacterWidth))
-  const tokens = text.split(/\s+/).filter(Boolean)
-  const lines: string[] = []
-  let currentLine = ''
-
-  for (const token of tokens) {
-    const tokenParts =
-      token.length > maxCharacters
-        ? splitLongTokenForPreview(token, maxCharacters)
-        : [token]
-
-    for (const part of tokenParts) {
-      const testLine = currentLine ? `${currentLine} ${part}` : part
-
-      if (testLine.length <= maxCharacters || !currentLine) {
-        currentLine = testLine
-        continue
-      }
-
-      lines.push(currentLine)
-      currentLine = part
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine)
-  }
-
-  return lines
-}
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
     '--steam-banner-gradient-start': colors.gradientStart,
@@ -529,31 +256,6 @@ function getStatusToastIcon(kind: StatusToastKind) {
   }
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
-function normalizeCustomDiscTemplate(template: DiscTemplate): DiscTemplate {
-  const outerDiameterMm = clampNumber(
-    template.outerDiameterMm,
-    1,
-    CUSTOM_OUTER_DIAMETER_MAX_MM,
-  )
-
-  return {
-    ...template,
-    outerDiameterMm,
-    physicalCenterHoleDiameterMm: clampNumber(
-      template.physicalCenterHoleDiameterMm,
-      1,
-      outerDiameterMm,
-    ),
-    innerHoleDiameterMm: clampNumber(template.innerHoleDiameterMm, 1, outerDiameterMm),
-    printableDiameterMm: clampNumber(template.printableDiameterMm, 1, outerDiameterMm),
-    safeDiameterMm: clampNumber(template.safeDiameterMm, 1, outerDiameterMm),
-  }
-}
-
 function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
   return normalizeCustomDiscTemplate({
     ...source,
@@ -567,10 +269,6 @@ function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardP
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
-}
-
-function mmToPixels(mm: number) {
-  return Math.round((mm / MM_PER_INCH) * EXPORT_DPI)
 }
 
 function canvasToPngBytes(canvas: HTMLCanvasElement) {
@@ -654,24 +352,6 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   return {
     width: image.naturalWidth || image.width,
     height: image.naturalHeight || image.height,
-  }
-}
-
-function exportGuideModeToSelection(mode: ExportGuideMode = 'none'): ExportGuideSelection {
-  if (mode === 'all') {
-    return {
-      centerHole: true,
-      outerEdge: true,
-      printableArea: true,
-      safeZone: true,
-    }
-  }
-
-  return {
-    centerHole: mode === 'centerHole',
-    outerEdge: mode === 'outerEdge',
-    printableArea: mode === 'printableArea',
-    safeZone: mode === 'safeZone',
   }
 }
 

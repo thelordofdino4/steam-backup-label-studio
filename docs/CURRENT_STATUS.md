@@ -63,6 +63,8 @@ Much of the current work should become reusable foundation for those interfaces,
 - Straight text drag, scale, offset, alignment, preview, export, and save/load support.
 - Stable centered curved copyright/legal text with arc, angle, inset, scale, side, wrapping, preview, export, and save/load support.
 - Straight copyright mode fixed to use normal straight-text positioning instead of curved inset positioning.
+- Disc text helper logic extracted from `App.tsx` into a dedicated `src/discText.ts` module with no behavior changes.
+- Disc geometry and export-guide selection helpers extracted from `App.tsx` into focused modules (`src/discGeometry.ts`, `src/exportGuides.ts`) as part of controlled editor-foundation refactoring.
 - GitHub Actions updated for Node 24 compatibility.
 - Planning docs refreshed with milestone and backlog details.
 
