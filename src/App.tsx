@@ -26,7 +26,9 @@ import {
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { BrandingPanel } from './components/sidebar/BrandingPanel'
 import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
+import { GamePanel } from './components/sidebar/GamePanel'
 import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
@@ -1043,97 +1045,18 @@ function App() {
           handleExportGuideToggle={handleExportGuideToggle}
         />
 
-        <details className="panel collapsible-panel" open>
-          <summary className="panel-summary">Game</summary>
-          <div className="panel-content">
-          <label className="field-label" htmlFor="game-title">
-            Label title
-          </label>
-          <input
-            id="game-title"
-            type="text"
-            value={manualGameTitle}
-            onChange={(event) => setManualGameTitle(event.target.value)}
-          />
-
-          <label className="field-label spacing-top" htmlFor="game-search">
-            Steam search
-          </label>
-          <input
-            id="game-search"
-            type="search"
-            placeholder="Search by title or App ID"
-            value={gameSearchQuery}
-            onChange={(event) => setGameSearchQuery(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                void handleSteamSearch()
-              }
-            }}
-          />
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={isSteamSearchLoading}
-            onClick={handleSteamSearch}
-          >
-            {isSteamSearchLoading ? 'Searching...' : 'Search Steam'}
-          </button>
-
-          <div className="search-results">
-            {steamSearchResults.map((game) => (
-              <button
-                className="search-result-button"
-                key={game.appId}
-                type="button"
-                disabled={isSteamImportLoading}
-                onClick={() => handleSteamImport(game.appId)}
-              >
-                <strong>{game.title}</strong>
-                <span>
-                  App ID {game.appId}
-                  {game.price ? ` · ${game.price}` : ''}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {selectedSteamGame && (
-            <div className="selected-game-card">
-              <h3>{selectedSteamGame.title}</h3>
-              {selectedSteamGame.shortDescription && (
-                <p>{selectedSteamGame.shortDescription}</p>
-              )}
-              <dl className="template-metrics">
-                <div>
-                  <dt>App ID</dt>
-                  <dd>{selectedSteamGame.appId}</dd>
-                </div>
-                <div>
-                  <dt>Developer</dt>
-                  <dd>{selectedSteamGame.developer.join(', ') || 'Unknown'}</dd>
-                </div>
-                <div>
-                  <dt>Publisher</dt>
-                  <dd>{selectedSteamGame.publisher.join(', ') || 'Unknown'}</dd>
-                </div>
-                <div>
-                  <dt>Release</dt>
-                  <dd>{selectedSteamGame.releaseDate ?? 'Unknown'}</dd>
-                </div>
-              </dl>
-
-              {selectedSteamGame.artwork.length > 0 && (
-                <p className="hint">
-                  Imported Steam artwork is available in the Artwork panel.
-                </p>
-              )}
-
-            </div>
-          )}
-
-          </div>
-        </details>
+        <GamePanel
+          manualGameTitle={manualGameTitle}
+          setManualGameTitle={setManualGameTitle}
+          gameSearchQuery={gameSearchQuery}
+          setGameSearchQuery={setGameSearchQuery}
+          handleSteamSearch={handleSteamSearch}
+          steamSearchResults={steamSearchResults}
+          handleSteamImport={handleSteamImport}
+          selectedSteamGame={selectedSteamGame}
+          isSteamSearchLoading={isSteamSearchLoading}
+          isSteamImportLoading={isSteamImportLoading}
+        />
 
         <TemplatePanel
           selectedDiscTemplateId={selectedDiscTemplateId}
@@ -1282,57 +1205,14 @@ function App() {
           </div>
         </details>
 
-        <details className="panel collapsible-panel" open>
-          <summary className="panel-summary">Branding</summary>
-          <div className="panel-content">
-          <label className="field-label" htmlFor="steam-logo-placement">
-            Placement
-          </label>
-          <select
-            id="steam-logo-placement"
-            value={steamLogoPlacement}
-            onChange={(event) =>
-              handleSteamLogoPlacementChange(event.target.value as SteamLogoPlacement)
-            }
-          >
-            <option value="top">Top center</option>
-            <option value="bottom">Bottom center</option>
-            <option value="none">None</option>
-          </select>
-
-          <label className="field-label spacing-top" htmlFor="steam-banner-lockup-upload">
-            Banner lockup image
-          </label>
-          <input
-            id="steam-banner-lockup-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleSteamBannerLockupUpload}
-          />
-
-          {steamBannerLockupImageUrl ? (
-            <div className="selected-lockup-card">
-              <span>
-                Banner lockup active
-                {steamBannerLockupImageSize
-                  ? ` · ${steamBannerLockupImageSize.width}×${steamBannerLockupImageSize.height}`
-                  : ''}
-              </span>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={handleClearSteamBannerLockup}
-              >
-                Reset to default lockup
-              </button>
-            </div>
-          ) : (
-            <p className="hint">
-              Using the bundled default Steam banner lockup image. Upload a PNG to override it.
-            </p>
-          )}
-          </div>
-        </details>
+        <BrandingPanel
+          steamLogoPlacement={steamLogoPlacement}
+          handleSteamLogoPlacementChange={handleSteamLogoPlacementChange}
+          steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+          steamBannerLockupImageSize={steamBannerLockupImageSize}
+          handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
+          handleClearSteamBannerLockup={handleClearSteamBannerLockup}
+        />
 
 
         <details className="panel collapsible-panel" open>
