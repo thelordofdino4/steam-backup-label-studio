@@ -771,3 +771,233 @@ input:disabled {
 .local-steam-screenshot-results {
   margin-top: 10px;
 }
+
+
+.disc-text-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.disc-text-line {
+  position: absolute;
+  left: 50%;
+  max-width: 68%;
+  translate: -50% 0;
+  overflow: hidden;
+  color: #f9fafb;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-overflow: ellipsis;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.85),
+    0 0 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+}
+
+.disc-text-title {
+  top: 41.5%;
+  max-width: 58%;
+  font-size: clamp(14px, 3.6cqw, 34px);
+  font-weight: 900;
+}
+
+.disc-text-discNumber {
+  top: 53%;
+  max-width: 42%;
+  font-size: clamp(10px, 1.9cqw, 18px);
+}
+
+.disc-text-backupDate {
+  top: 58%;
+  max-width: 48%;
+  color: #e5e7eb;
+  font-size: clamp(9px, 1.55cqw, 15px);
+}
+
+.disc-text-appId {
+  top: 62.5%;
+  max-width: 48%;
+  color: #d1d5db;
+  font-size: clamp(9px, 1.45cqw, 14px);
+}
+
+.disc-text-customNote {
+  top: 71%;
+  max-width: 58%;
+  font-size: clamp(9px, 1.45cqw, 14px);
+}
+
+.disc-text-copyright {
+  top: 78.5%;
+  max-width: 68%;
+  color: #d1d5db;
+  font-size: clamp(7px, 1.08cqw, 11px);
+  font-weight: 650;
+}
+
+.disc-text-input {
+  margin-top: 8px;
+}
+
+
+.disc-text-control-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.disc-text-control {
+  padding: 10px;
+  border: 1px solid #2a2e38;
+  border-radius: 12px;
+  background: #111827;
+}
+
+.disc-text-layout-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.disc-text-layout-grid label {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.disc-text-reset-button {
+  margin-top: 10px;
+}
+
+.disc-text-line {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  transform-origin: center;
+}
+
+.disc-text-title {
+  top: auto;
+}
+
+.disc-text-discNumber {
+  top: auto;
+}
+
+.disc-text-backupDate {
+  top: auto;
+}
+
+.disc-text-appId {
+  top: auto;
+}
+
+.disc-text-customNote {
+  top: auto;
+}
+
+.disc-text-copyright {
+  top: auto;
+}
+
+
+.disc-text-input {
+  direction: ltr;
+  text-align: left;
+}
+
+.disc-text-line {
+  translate: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.disc-text-line:active {
+  cursor: grabbing;
+}
+
+.disc-text-layout-grid select {
+  width: 100%;
+  padding: 7px 9px;
+}
+
+
+.disc-curved-text-svg {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  overflow: visible;
+  cursor: grab;
+  pointer-events: auto;
+  transform-origin: center;
+}
+
+.disc-curved-text-svg:active {
+  cursor: grabbing;
+}
+
+.disc-curved-text {
+  fill: #d1d5db;
+  stroke: rgba(0, 0, 0, 0.58);
+  stroke-width: 0.28px;
+  paint-order: stroke fill;
+  font-family: Arial, sans-serif;
+  font-size: 1.25px;
+  font-weight: 650;
+  letter-spacing: 0.03px;
+  text-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.85),
+    0 0 3px rgba(0, 0, 0, 0.9);
+}
+
+
+.disc-curved-text-svg {
+  transform: none !important;
+}
+
+.disc-curved-text {
+  font-size: 1.55px;
+  letter-spacing: 0.08px;
+}
+
+
+.disc-curved-text-svg {
+  overflow: visible;
+}
+
+.disc-curved-text {
+  dominant-baseline: middle;
+}
+
+
+.disc-curved-text {
+  dominant-baseline: middle;
+}
+
+
+.disc-curved-text-svg {
+  overflow: visible;
+  transform: none !important;
+}
+
+.disc-curved-text {
+  dominant-baseline: middle;
+}
+
+
+.disc-curved-text-svg {
+  inset: 0;
+  transform: none !important;
+}
+
+.disc-curved-text {
+  dominant-baseline: middle;
+  alignment-baseline: middle;
+}

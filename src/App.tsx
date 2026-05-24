@@ -49,6 +49,49 @@ type BackgroundImageSize = {
   height: number
 }
 
+type DiscTextKey =
+  | 'title'
+  | 'discNumber'
+  | 'backupDate'
+  | 'appId'
+  | 'customNote'
+  | 'copyright'
+
+type DiscTextSettings = Record<DiscTextKey, boolean>
+
+type DiscTextValues = {
+  discNumber: string
+  backupDate: string
+  appId: string
+  customNote: string
+  copyright: string
+}
+
+type DiscTextAlignment = 'left' | 'center' | 'right'
+type DiscTextMode = 'straight' | 'curved'
+type DiscTextArcSide = 'top' | 'bottom'
+
+type DiscTextLayout = {
+  x: number
+  y: number
+  scale: number
+  align: DiscTextAlignment
+  mode: DiscTextMode
+  arcDegrees: number
+  arcSide: DiscTextArcSide
+}
+
+type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
+
+type TextDragState = {
+  key: DiscTextKey
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
 type DragState = {
   pointerId: number
   startClientX: number
@@ -96,6 +139,11 @@ type SavedProject = {
     imageSize?: BackgroundImageSize | null
     note: string
   }
+  discText?: {
+    settings?: Partial<DiscTextSettings>
+    values?: Partial<DiscTextValues>
+    layout?: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>>
+  }
 }
 
 const EXPORT_DPI = 300
@@ -121,7 +169,262 @@ const DEFAULT_EXPORT_GUIDES: ExportGuideSelection = {
   printableArea: false,
   safeZone: false,
 }
+const DISC_TEXT_KEYS: DiscTextKey[] = [
+  'title',
+  'discNumber',
+  'backupDate',
+  'appId',
+  'customNote',
+  'copyright',
+]
+const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
+  title: false,
+  discNumber: false,
+  backupDate: false,
+  appId: false,
+  customNote: false,
+  copyright: false,
+}
 
+function createDefaultDiscTextValues(appId?: number): DiscTextValues {
+  return {
+    discNumber: 'Disc 1',
+    backupDate: new Date().toISOString().slice(0, 10),
+    appId: appId ? String(appId) : '',
+    customNote: '',
+    copyright: '',
+  }
+}
+
+function createDefaultDiscTextLayout(placement: SteamLogoPlacement): DiscTextLayoutSettings {
+  const hasBottomBanner = placement === 'bottom'
+
+  return {
+    title: {
+      x: 0,
+      y: hasBottomBanner ? 81.5 : 19.5,
+      scale: 1,
+      align: 'center',
+      mode: 'straight',
+      arcDegrees: 210,
+      arcSide: 'bottom',
+    },
+    discNumber: {
+      x: 0,
+      y: 63.5,
+      scale: 1,
+      align: 'center',
+      mode: 'straight',
+      arcDegrees: 210,
+      arcSide: 'bottom',
+    },
+    backupDate: {
+      x: 0,
+      y: 68,
+      scale: 1,
+      align: 'center',
+      mode: 'straight',
+      arcDegrees: 210,
+      arcSide: 'bottom',
+    },
+    appId: {
+      x: 0,
+      y: 72,
+      scale: 1,
+      align: 'center',
+      mode: 'straight',
+      arcDegrees: 210,
+      arcSide: 'bottom',
+    },
+    customNote: {
+      x: 0,
+      y: hasBottomBanner ? 76 : 78,
+      scale: 1,
+      align: 'center',
+      mode: 'straight',
+      arcDegrees: 210,
+      arcSide: 'bottom',
+    },
+    copyright: {
+      x: 0,
+      y: 0,
+      scale: 1,
+      align: 'center',
+      mode: 'curved',
+      arcDegrees: 210,
+      arcSide: hasBottomBanner ? 'top' : 'bottom',
+    },
+  }
+}
+
+function normalizeDiscTextSettings(settings?: Partial<DiscTextSettings>): DiscTextSettings {
+  return {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    ...(settings ?? {}),
+  }
+}
+
+function normalizeDiscTextValues(
+  values?: Partial<DiscTextValues>,
+  appId?: number,
+): DiscTextValues {
+  return {
+    ...createDefaultDiscTextValues(appId),
+    ...(values ?? {}),
+  }
+}
+
+function normalizeDiscTextLayout(
+  layout: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>> | undefined,
+  placement: SteamLogoPlacement,
+): DiscTextLayoutSettings {
+  const defaults = createDefaultDiscTextLayout(placement)
+
+  return DISC_TEXT_KEYS.reduce((normalizedLayout, key) => {
+    normalizedLayout[key] = {
+      ...defaults[key],
+      ...(layout?.[key] ?? {}),
+    }
+
+    return normalizedLayout
+  }, {} as DiscTextLayoutSettings)
+}
+
+function getDiscTextLabel(key: DiscTextKey) {
+  switch (key) {
+    case 'title':
+      return 'Game title'
+    case 'discNumber':
+      return 'Disc number'
+    case 'backupDate':
+      return 'Backup date'
+    case 'appId':
+      return 'Steam App ID'
+    case 'customNote':
+      return 'Custom note'
+    case 'copyright':
+      return 'Copyright/legal text'
+    default:
+      return key
+  }
+}
+
+function getDiscTextContent(key: DiscTextKey, values: DiscTextValues, title: string) {
+  switch (key) {
+    case 'title':
+      return title
+    case 'discNumber':
+      return values.discNumber
+    case 'backupDate':
+      return values.backupDate ? `Backed up ${values.backupDate}` : ''
+    case 'appId':
+      return values.appId ? `Steam App ID ${values.appId}` : ''
+    case 'customNote':
+      return values.customNote
+    case 'copyright':
+      return values.copyright
+    default:
+      return ''
+  }
+}
+
+function getDiscTextPreviewClassName(key: DiscTextKey) {
+  return `disc-text-${key}`
+}
+
+function getCopyrightArcSide(
+  placement: SteamLogoPlacement,
+  layout: DiscTextLayout,
+): DiscTextArcSide {
+  if (placement === 'bottom') {
+    return 'top'
+  }
+
+  if (placement === 'top') {
+    return 'bottom'
+  }
+
+  return layout.arcSide
+}
+
+function getSvgArcPoint(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  angleDegrees: number,
+) {
+  const angleRadians = (angleDegrees * Math.PI) / 180
+
+  return {
+    x: centerX + Math.cos(angleRadians) * radius,
+    y: centerY + Math.sin(angleRadians) * radius,
+  }
+}
+
+function createSvgArcPath(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  startAngleDegrees: number,
+  endAngleDegrees: number,
+  sweepFlag: 0 | 1,
+) {
+  const start = getSvgArcPoint(centerX, centerY, radius, startAngleDegrees)
+  const end = getSvgArcPoint(centerX, centerY, radius, endAngleDegrees)
+
+  return `M ${start.x.toFixed(3)} ${start.y.toFixed(3)} A ${radius.toFixed(
+    3,
+  )} ${radius.toFixed(3)} 0 0 ${sweepFlag} ${end.x.toFixed(3)} ${end.y.toFixed(3)}`
+}
+
+function splitLongTokenForPreview(token: string, maxCharacters: number) {
+  const chunks: string[] = []
+
+  for (let index = 0; index < token.length; index += maxCharacters) {
+    chunks.push(token.slice(index, index + maxCharacters))
+  }
+
+  return chunks
+}
+
+function wrapPreviewTextByArcLength(
+  text: string,
+  radius: number,
+  arcDegrees: number,
+  scale: number,
+) {
+  const arcLength = radius * ((arcDegrees * Math.PI) / 180)
+  const averageCharacterWidth = Math.max(0.82, 1.18 * scale)
+  const maxCharacters = Math.max(6, Math.floor(arcLength / averageCharacterWidth))
+  const tokens = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const token of tokens) {
+    const tokenParts =
+      token.length > maxCharacters
+        ? splitLongTokenForPreview(token, maxCharacters)
+        : [token]
+
+    for (const part of tokenParts) {
+      const testLine = currentLine ? `${currentLine} ${part}` : part
+
+      if (testLine.length <= maxCharacters || !currentLine) {
+        currentLine = testLine
+        continue
+      }
+
+      lines.push(currentLine)
+      currentLine = part
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
     '--steam-banner-gradient-start': colors.gradientStart,
@@ -465,6 +768,311 @@ async function drawSteamBrandBanner(
   context.restore()
 }
 
+function wrapCanvasText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+) {
+  const words = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word
+
+    if (context.measureText(testLine).width <= maxWidth || !currentLine) {
+      currentLine = testLine
+      continue
+    }
+
+    lines.push(currentLine)
+    currentLine = word
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+function splitLongTokenByCanvasWidth(
+  context: CanvasRenderingContext2D,
+  token: string,
+  maxWidth: number,
+) {
+  const chunks: string[] = []
+  let currentChunk = ''
+
+  for (const character of Array.from(token)) {
+    const testChunk = `${currentChunk}${character}`
+
+    if (context.measureText(testChunk).width <= maxWidth || !currentChunk) {
+      currentChunk = testChunk
+      continue
+    }
+
+    chunks.push(currentChunk)
+    currentChunk = character
+  }
+
+  if (currentChunk) {
+    chunks.push(currentChunk)
+  }
+
+  return chunks
+}
+
+function wrapTextByArcLength(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxArcLength: number,
+) {
+  const tokens = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const token of tokens) {
+    const tokenParts =
+      context.measureText(token).width > maxArcLength
+        ? splitLongTokenByCanvasWidth(context, token, maxArcLength)
+        : [token]
+
+    for (const part of tokenParts) {
+      const testLine = currentLine ? `${currentLine} ${part}` : part
+
+      if (context.measureText(testLine).width <= maxArcLength || !currentLine) {
+        currentLine = testLine
+        continue
+      }
+
+      lines.push(currentLine)
+      currentLine = part
+    }
+  }
+
+  if (currentLine) {
+    lines.push(currentLine)
+  }
+
+  return lines
+}
+
+function drawCurvedTextLine(
+  context: CanvasRenderingContext2D,
+  text: string,
+  centerX: number,
+  centerY: number,
+  radius: number,
+  centerAngle: number,
+  isTopArc: boolean,
+) {
+  const characters = Array.from(text)
+  const characterSpacing = Math.max(1, radius * 0.002)
+  const widths = characters.map((character) => context.measureText(character).width)
+  const totalWidth =
+    widths.reduce((sum, width) => sum + width, 0) +
+    Math.max(0, characters.length - 1) * characterSpacing
+
+  if (totalWidth <= 0 || radius <= 0) {
+    return
+  }
+
+  let currentOffset = 0
+
+  characters.forEach((character, index) => {
+    const characterCenterOffset = currentOffset + widths[index] / 2
+    const angleOffset = characterCenterOffset / radius - totalWidth / radius / 2
+    const angle = isTopArc
+      ? centerAngle + angleOffset
+      : centerAngle - angleOffset
+
+    const x = centerX + Math.cos(angle) * radius
+    const y = centerY + Math.sin(angle) * radius
+    const rotation = isTopArc ? angle + Math.PI / 2 : angle - Math.PI / 2
+
+    context.save()
+    context.translate(x, y)
+    context.rotate(rotation)
+    context.strokeText(character, 0, 0)
+    context.fillText(character, 0, 0)
+    context.restore()
+
+    currentOffset += widths[index] + characterSpacing
+  })
+}
+
+function drawCurvedCopyrightText(
+  context: CanvasRenderingContext2D,
+  exportSize: number,
+  safeZoneRadius: number,
+  placement: SteamLogoPlacement,
+  layout: DiscTextLayout,
+  text: string,
+  fontSize: number,
+  _fontWeight: number,
+  _color: string,
+) {
+  const arcSide = getCopyrightArcSide(placement, layout)
+  const isTopArc = arcSide === 'top'
+  const centerX = exportSize / 2
+  const centerY = exportSize / 2
+  const centerAngle = isTopArc ? -Math.PI / 2 : Math.PI / 2
+  const maxArcAngle = (layout.arcDegrees * Math.PI) / 180
+  const lineHeight = fontSize * 1.38
+
+  // Keep the text on the safe-zone path. Positive Y in curved mode means inset.
+  const safeLineTextRadius = Math.max(1, safeZoneRadius - fontSize * 0.12)
+  const insetRadiusOffset = Math.max(0, layout.y) * exportSize * 0.0016
+  const outerLineRadius = safeLineTextRadius - insetRadiusOffset
+  const maxArcLength = outerLineRadius * maxArcAngle
+  const lines = wrapTextByArcLength(context, text, maxArcLength)
+
+  lines.forEach((line, index) => {
+    const lineRadius = isTopArc
+      ? outerLineRadius - index * lineHeight
+      : outerLineRadius - (lines.length - 1 - index) * lineHeight
+
+    if (lineRadius <= safeZoneRadius * 0.35) {
+      return
+    }
+
+    drawCurvedTextLine(
+      context,
+      line,
+      centerX,
+      centerY,
+      lineRadius,
+      centerAngle,
+      isTopArc,
+    )
+  })
+}
+
+function drawDiscTextElements(
+  context: CanvasRenderingContext2D,
+  exportSize: number,
+  settings: DiscTextSettings,
+  values: DiscTextValues,
+  layoutSettings: DiscTextLayoutSettings,
+  title: string,
+  placement: SteamLogoPlacement,
+  safeZoneRadius: number,
+) {
+  const textStyle: Record<
+    DiscTextKey,
+    {
+      fontSize: number
+      fontWeight: number
+      maxWidth: number
+      color: string
+      maxLines: number
+    }
+  > = {
+    title: {
+      fontSize: exportSize * 0.036,
+      fontWeight: 900,
+      maxWidth: exportSize * 0.58,
+      color: '#f9fafb',
+      maxLines: 2,
+    },
+    discNumber: {
+      fontSize: exportSize * 0.019,
+      fontWeight: 800,
+      maxWidth: exportSize * 0.42,
+      color: '#f9fafb',
+      maxLines: 1,
+    },
+    backupDate: {
+      fontSize: exportSize * 0.016,
+      fontWeight: 700,
+      maxWidth: exportSize * 0.48,
+      color: '#e5e7eb',
+      maxLines: 1,
+    },
+    appId: {
+      fontSize: exportSize * 0.015,
+      fontWeight: 700,
+      maxWidth: exportSize * 0.48,
+      color: '#d1d5db',
+      maxLines: 1,
+    },
+    customNote: {
+      fontSize: exportSize * 0.015,
+      fontWeight: 700,
+      maxWidth: exportSize * 0.58,
+      color: '#f9fafb',
+      maxLines: 2,
+    },
+    copyright: {
+      fontSize: exportSize * 0.011,
+      fontWeight: 600,
+      maxWidth: exportSize * 0.68,
+      color: '#d1d5db',
+      maxLines: 3,
+    },
+  }
+
+  for (const key of DISC_TEXT_KEYS) {
+    if (!settings[key]) {
+      continue
+    }
+
+    const text = getDiscTextContent(key, values, title).trim()
+
+    if (!text) {
+      continue
+    }
+
+    const style = textStyle[key]
+    const layout = layoutSettings[key]
+    const fontSize = style.fontSize * layout.scale
+    const lineHeight = fontSize * 1.18
+    const textX = exportSize * ((50 + layout.x) / 100)
+    const textY = exportSize * (layout.y / 100)
+
+    context.save()
+    context.font = `${style.fontWeight} ${Math.round(fontSize)}px Arial`
+    context.textAlign = layout.align
+    context.textBaseline = 'middle'
+    context.lineJoin = 'round'
+    context.shadowColor = 'rgba(0, 0, 0, 0.72)'
+    context.shadowBlur = Math.max(3, exportSize * 0.004)
+    context.shadowOffsetY = Math.max(1, exportSize * 0.0015)
+    context.strokeStyle = 'rgba(0, 0, 0, 0.58)'
+    context.lineWidth = Math.max(2, exportSize * 0.002)
+    context.fillStyle = style.color
+
+    if (key === 'copyright' && layout.mode === 'curved') {
+      context.textAlign = 'center'
+      drawCurvedCopyrightText(
+        context,
+        exportSize,
+        safeZoneRadius,
+        placement,
+        layout,
+        text,
+        fontSize,
+        style.fontWeight,
+        style.color,
+      )
+      context.restore()
+      continue
+    }
+
+    const lines = wrapCanvasText(context, text, style.maxWidth).slice(0, style.maxLines)
+    const firstLineY = textY - ((lines.length - 1) * lineHeight) / 2
+
+    lines.forEach((line, index) => {
+      const lineY = firstLineY + index * lineHeight
+      context.strokeText(line, textX, lineY, style.maxWidth)
+      context.fillText(line, textX, lineY, style.maxWidth)
+    })
+
+    context.restore()
+  }
+}
+
 function drawStripedHubGuide(
   context: CanvasRenderingContext2D,
   exportSize: number,
@@ -542,8 +1150,18 @@ function App() {
   const [isLocalSteamScreenshotsLoading, setIsLocalSteamScreenshotsLoading] =
     useState(false)
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
+  const [discTextSettings, setDiscTextSettings] = useState<DiscTextSettings>(
+    DEFAULT_DISC_TEXT_SETTINGS,
+  )
+  const [discTextValues, setDiscTextValues] = useState<DiscTextValues>(() =>
+    createDefaultDiscTextValues(),
+  )
+  const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
+    createDefaultDiscTextLayout('top'),
+  )
 
   const dragStateRef = useRef<DragState | null>(null)
+  const textDragStateRef = useRef<TextDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -641,6 +1259,11 @@ function App() {
         note:
           'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
       },
+      discText: {
+        settings: discTextSettings,
+        values: discTextValues,
+        layout: discTextLayout,
+      },
     }
   }
 
@@ -692,6 +1315,99 @@ function App() {
     setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
     setSteamBannerLockupImageSize(null)
     announceStatus('Reset Steam banner lockup image to the default asset.')
+  }
+
+  function handleSteamLogoPlacementChange(placement: SteamLogoPlacement) {
+    setSteamLogoPlacement(placement)
+
+    const defaultLayout = createDefaultDiscTextLayout(placement)
+
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      title: defaultLayout.title,
+      customNote: defaultLayout.customNote,
+      copyright: defaultLayout.copyright,
+    }))
+  }
+
+  function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
+    setDiscTextSettings((currentSettings) => ({
+      ...currentSettings,
+      [key]: checked,
+    }))
+  }
+
+  function handleDiscTextContentChange(key: DiscTextKey, value: string) {
+    if (key === 'title') {
+      setManualGameTitle(value)
+      return
+    }
+
+    setDiscTextValues((currentValues) => ({
+      ...currentValues,
+      [key]: value,
+    }))
+  }
+
+  function handleDiscTextLayoutChange(
+    key: DiscTextKey,
+    field: 'x' | 'y' | 'scale' | 'arcDegrees',
+    value: number,
+  ) {
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [key]: {
+        ...currentLayout[key],
+        [field]: value,
+      },
+    }))
+  }
+
+  function handleDiscTextAlignmentChange(key: DiscTextKey, align: DiscTextAlignment) {
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [key]: {
+        ...currentLayout[key],
+        align,
+      },
+    }))
+  }
+
+  function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [key]: {
+        ...currentLayout[key],
+        mode,
+      },
+    }))
+  }
+
+  function handleDiscTextArcSideChange(key: DiscTextKey, arcSide: DiscTextArcSide) {
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [key]: {
+        ...currentLayout[key],
+        arcSide,
+      },
+    }))
+  }
+
+  function handleResetDiscTextLayout(key: DiscTextKey) {
+    const defaultLayout = createDefaultDiscTextLayout(steamLogoPlacement)
+
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [key]: defaultLayout[key],
+    }))
+  }
+
+  function getDiscTextInputValue(key: DiscTextKey) {
+    if (key === 'title') {
+      return manualGameTitle
+    }
+
+    return discTextValues[key]
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -766,6 +1482,10 @@ function App() {
       const importedGame = await importSteamApp(appId)
       setSelectedSteamGame(importedGame)
       setManualGameTitle(importedGame.title)
+      setDiscTextValues((currentValues) => ({
+        ...currentValues,
+        appId: String(importedGame.appId),
+      }))
       const artworkCount = importedGame.artwork.length
       announceStatus(
         artworkCount > 0
@@ -940,6 +1660,13 @@ function App() {
       setExportGuides(
         project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
       )
+      setDiscTextSettings(normalizeDiscTextSettings(project.discText?.settings))
+      setDiscTextValues(
+        normalizeDiscTextValues(project.discText?.values, project.game?.selectedSteamGame?.appId),
+      )
+      setDiscTextLayout(
+        normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
+      )
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
       setBackgroundImageUrl(savedImageDataUrl)
@@ -1070,6 +1797,9 @@ function App() {
         (selectedDiscTemplate.innerHoleDiameterMm /
           selectedDiscTemplate.outerDiameterMm) *
         outerRadius
+      const safeZoneRadius =
+        (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) *
+        outerRadius
 
       context.clearRect(0, 0, exportSize, exportSize)
 
@@ -1109,6 +1839,17 @@ function App() {
         steamBannerLockupImageUrl,
       )
 
+      drawDiscTextElements(
+        context,
+        exportSize,
+        discTextSettings,
+        discTextValues,
+        discTextLayout,
+        manualGameTitle,
+        steamLogoPlacement,
+        safeZoneRadius,
+      )
+
       context.restore()
 
       drawOuterDiscExportOutline(context, center, outerRadius, exportOutlineWidth)
@@ -1142,6 +1883,69 @@ function App() {
     } catch (error) {
       announceStatus(`Export failed: ${String(error)}`)
     }
+  }
+
+  function handleDiscTextPointerDown(
+    event: PointerEvent<Element>,
+    key: DiscTextKey,
+  ) {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    textDragStateRef.current = {
+      key,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: discTextLayout[key].x,
+      startY: discTextLayout[key].y,
+    }
+  }
+
+  function handleDiscTextPointerMove(event: PointerEvent<Element>) {
+    const dragState = textDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      [dragState.key]: {
+        ...currentLayout[dragState.key],
+        x: clampNumber(dragState.startX + deltaXPercent, -35, 35),
+        y: clampNumber(dragState.startY + deltaYPercent, 8, 92),
+      },
+    }))
+  }
+
+  function handleDiscTextPointerUp(event: PointerEvent<Element>) {
+    const dragState = textDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    textDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  function getDiscTextPreviewTransform(layout: DiscTextLayout) {
+    const horizontalTranslate =
+      layout.align === 'left'
+        ? '0'
+        : layout.align === 'right'
+          ? '-100%'
+          : '-50%'
+
+    return `translate(${horizontalTranslate}, -50%) scale(${layout.scale})`
   }
 
   function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -1645,7 +2449,7 @@ function App() {
             id="steam-logo-placement"
             value={steamLogoPlacement}
             onChange={(event) =>
-              setSteamLogoPlacement(event.target.value as SteamLogoPlacement)
+              handleSteamLogoPlacementChange(event.target.value as SteamLogoPlacement)
             }
           >
             <option value="top">Top center</option>
@@ -1684,6 +2488,181 @@ function App() {
               Using the bundled default Steam banner lockup image. Upload a PNG to override it.
             </p>
           )}
+          </div>
+        </details>
+
+
+        <details className="panel collapsible-panel" open>
+          <summary className="panel-summary">Text</summary>
+          <div className="panel-content">
+          <p className="hint">
+            Enable text elements, edit their values, and adjust their preset position and scale.
+          </p>
+
+          <div className="disc-text-control-list">
+            {DISC_TEXT_KEYS.map((key) => {
+              const layout = discTextLayout[key]
+
+              return (
+                <div className="disc-text-control" key={key}>
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={discTextSettings[key]}
+                      onChange={(event) => handleDiscTextToggle(key, event.target.checked)}
+                    />
+                    <span>{getDiscTextLabel(key)}</span>
+                  </label>
+
+                  <input
+                    className="disc-text-input"
+                    type="text"
+                    value={getDiscTextInputValue(key)}
+                    disabled={!discTextSettings[key]}
+                    onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
+                  />
+
+                  <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} layout controls`}>
+                    <label>
+                      <span>Scale</span>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="1.8"
+                        step="0.01"
+                        value={layout.scale}
+                        disabled={!discTextSettings[key]}
+                        onChange={(event) =>
+                          handleDiscTextLayoutChange(key, 'scale', Number(event.target.value))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>X</span>
+                      <input
+                        type="range"
+                        min="-20"
+                        max="20"
+                        step="0.1"
+                        value={layout.x}
+                        disabled={!discTextSettings[key]}
+                        onChange={(event) =>
+                          handleDiscTextLayoutChange(key, 'x', Number(event.target.value))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>Y</span>
+                      <input
+                        type="range"
+                        min="8"
+                        max="92"
+                        step="0.1"
+                        value={layout.y}
+                        disabled={!discTextSettings[key]}
+                        onChange={(event) =>
+                          handleDiscTextLayoutChange(key, 'y', Number(event.target.value))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      <span>Align</span>
+                      <select
+                        value={layout.align}
+                        disabled={!discTextSettings[key]}
+                        onChange={(event) =>
+                          handleDiscTextAlignmentChange(
+                            key,
+                            event.target.value as DiscTextAlignment,
+                          )
+                        }
+                      >
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </label>
+
+                                        {key === 'copyright' && (
+                      <>
+                        <label>
+                          <span>Mode</span>
+                          <select
+                            value={layout.mode}
+                            disabled={!discTextSettings[key]}
+                            onChange={(event) =>
+                              handleDiscTextModeChange(
+                                key,
+                                event.target.value as DiscTextMode,
+                              )
+                            }
+                          >
+                            <option value="straight">Straight</option>
+                            <option value="curved">Curved</option>
+                          </select>
+                        </label>
+
+                        {layout.mode === 'curved' && (
+                          <>
+                            <label>
+                              <span>Arc</span>
+                              <input
+                                type="range"
+                                min="80"
+                                max="260"
+                                step="1"
+                                value={layout.arcDegrees}
+                                disabled={!discTextSettings[key]}
+                                onChange={(event) =>
+                                  handleDiscTextLayoutChange(
+                                    key,
+                                    'arcDegrees',
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <label>
+                              <span>Side</span>
+                              <select
+                                aria-label="Arc side"
+                                value={layout.arcSide}
+                                disabled={
+                                  !discTextSettings[key] || steamLogoPlacement !== 'none'
+                                }
+                                onChange={(event) =>
+                                  handleDiscTextArcSideChange(
+                                    key,
+                                    event.target.value as DiscTextArcSide,
+                                  )
+                                }
+                              >
+                                <option value="top">Top arc</option>
+                                <option value="bottom">Bottom arc</option>
+                              </select>
+                            </label>
+                          </>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  <button
+                    className="secondary-button disc-text-reset-button"
+                    type="button"
+                    disabled={!discTextSettings[key]}
+                    onClick={() => handleResetDiscTextLayout(key)}
+                  >
+                    Reset {getDiscTextLabel(key).toLowerCase()} position
+                  </button>
+                </div>
+              )
+            })}
+          </div>
           </div>
         </details>
 
@@ -1803,6 +2782,125 @@ function App() {
               {steamLogoPlacement === 'top' && <div className="steam-brand-banner-accent" />}
             </div>
           )}
+
+          <div className="disc-text-layer" aria-label="Disc text elements">
+            {DISC_TEXT_KEYS.map((key) => {
+              if (!discTextSettings[key]) {
+                return null
+              }
+
+              const text = getDiscTextContent(key, discTextValues, manualGameTitle).trim()
+
+              if (!text) {
+                return null
+              }
+
+              const layout = discTextLayout[key]
+
+              if (key === 'copyright' && layout.mode === 'curved') {
+                const copyrightPathId = `copyright-safe-zone-path-${steamLogoPlacement}`
+                const copyrightArcSide = getCopyrightArcSide(steamLogoPlacement, layout)
+                const isTopArc = copyrightArcSide === 'top'
+                const fontSize = 1.55 * layout.scale
+                const safeZoneRadius =
+                  (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) *
+                  50
+
+                // Keep the path on the safe-zone circle. Positive Y in curved mode means inset.
+                const safeLineTextRadius = Math.max(1, safeZoneRadius - fontSize * 0.12)
+                const insetRadiusOffset = Math.max(0, layout.y) * 0.16
+                const outerLineRadius = safeLineTextRadius - insetRadiusOffset
+
+                const arcCenterAngle = isTopArc ? 270 : 90
+                const arcHalf = layout.arcDegrees / 2
+                const lines = wrapPreviewTextByArcLength(
+                  text,
+                  outerLineRadius,
+                  layout.arcDegrees,
+                  layout.scale,
+                )
+                const lineStep = 2.2 * layout.scale
+
+                return (
+                  <svg
+                    className="disc-curved-text-svg"
+                    key={key}
+                    viewBox="0 0 100 100"
+                    onPointerDown={(event) => handleDiscTextPointerDown(event, key)}
+                    onPointerMove={handleDiscTextPointerMove}
+                    onPointerUp={handleDiscTextPointerUp}
+                    onPointerCancel={handleDiscTextPointerUp}
+                  >
+                    <defs>
+                      {lines.map((_, index) => {
+                        const lineRadius = isTopArc
+                          ? outerLineRadius - index * lineStep
+                          : outerLineRadius - (lines.length - 1 - index) * lineStep
+                        const pathId = `${copyrightPathId}-${index}`
+
+                        const path = isTopArc
+                          ? createSvgArcPath(
+                              50,
+                              50,
+                              lineRadius,
+                              arcCenterAngle - arcHalf,
+                              arcCenterAngle + arcHalf,
+                              1,
+                            )
+                          : createSvgArcPath(
+                              50,
+                              50,
+                              lineRadius,
+                              arcCenterAngle + arcHalf,
+                              arcCenterAngle - arcHalf,
+                              0,
+                            )
+
+                        return <path id={pathId} d={path} key={pathId} />
+                      })}
+                    </defs>
+                    {lines.map((line, index) => (
+                      <text
+                        className="disc-curved-text"
+                        key={`${copyrightPathId}-line-${index}`}
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: `${fontSize}px`,
+                          letterSpacing: `${0.08 * layout.scale}px`,
+                        }}
+                      >
+                        <textPath
+                          href={`#${copyrightPathId}-${index}`}
+                          startOffset="50%"
+                          textAnchor="middle"
+                        >
+                          {line}
+                        </textPath>
+                      </text>
+                    ))}
+                  </svg>
+                )
+              }
+              return (
+                <div
+                  className={`disc-text-line ${getDiscTextPreviewClassName(key)}`}
+                  key={key}
+                  style={{
+                    left: `${50 + layout.x}%`,
+                    top: `${layout.y}%`,
+                    textAlign: layout.align,
+                    transform: getDiscTextPreviewTransform(layout),
+                  }}
+                  onPointerDown={(event) => handleDiscTextPointerDown(event, key)}
+                  onPointerMove={handleDiscTextPointerMove}
+                  onPointerUp={handleDiscTextPointerUp}
+                  onPointerCancel={handleDiscTextPointerUp}
+                >
+                  {text}
+                </div>
+              )
+            })}
+          </div>
 
           <div
             className="hub-no-print-zone"
