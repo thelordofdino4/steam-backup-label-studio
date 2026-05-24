@@ -1,5 +1,7 @@
 import {
   DISC_TEXT_KEYS,
+  DISC_TEXT_WIDTH_MAX,
+  DISC_TEXT_WIDTH_MIN,
   getDiscTextLabel,
   type DiscTextAlignment,
   type DiscTextArcSide,
@@ -18,7 +20,7 @@ export type TextPanelProps = {
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
   handleDiscTextLayoutChange: (
     key: DiscTextKey,
-    field: 'x' | 'y' | 'scale' | 'arcDegrees',
+    field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
     value: number,
   ) => void
   handleDiscTextAlignmentChange: (key: DiscTextKey, align: DiscTextAlignment) => void
@@ -87,6 +89,23 @@ export function TextPanel({
                     }
                   />
                 </label>
+
+                {!(key === 'copyright' && layout.mode === 'curved') && (
+                  <label>
+                    <span>Width</span>
+                    <input
+                      type="range"
+                      min={DISC_TEXT_WIDTH_MIN}
+                      max={DISC_TEXT_WIDTH_MAX}
+                      step="1"
+                      value={layout.width}
+                      disabled={!discTextSettings[key]}
+                      onChange={(event) =>
+                        handleDiscTextLayoutChange(key, 'width', Number(event.target.value))
+                      }
+                    />
+                  </label>
+                )}
 
                 <label>
                   <span>{key === 'copyright' && layout.mode === 'curved' ? 'Angle' : 'X'}</span>
@@ -207,7 +226,7 @@ export function TextPanel({
                 disabled={!discTextSettings[key]}
                 onClick={() => handleResetDiscTextLayout(key)}
               >
-                Reset {getDiscTextLabel(key).toLowerCase()} position
+                Reset {getDiscTextLabel(key).toLowerCase()} layout
               </button>
             </div>
           )

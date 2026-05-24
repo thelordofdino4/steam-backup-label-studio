@@ -25,6 +25,7 @@ export type DiscTextArcSide = 'top' | 'bottom'
 export type DiscTextLayout = {
   x: number
   y: number
+  width: number
   scale: number
   align: DiscTextAlignment
   mode: DiscTextMode
@@ -52,6 +53,26 @@ export const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
   copyright: false,
 }
 
+export const DISC_TEXT_WIDTH_MIN = 20
+export const DISC_TEXT_WIDTH_MAX = 90
+
+export const DEFAULT_DISC_TEXT_WIDTHS: Record<DiscTextKey, number> = {
+  title: 58,
+  discNumber: 42,
+  backupDate: 48,
+  appId: 48,
+  customNote: 58,
+  copyright: 68,
+}
+
+export function normalizeDiscTextWidth(width: number | undefined, fallback: number) {
+  if (typeof width !== 'number' || !Number.isFinite(width)) {
+    return fallback
+  }
+
+  return Math.min(Math.max(width, DISC_TEXT_WIDTH_MIN), DISC_TEXT_WIDTH_MAX)
+}
+
 export function createDefaultDiscTextValues(appId?: number): DiscTextValues {
   return {
     discNumber: 'Disc 1',
@@ -64,22 +85,22 @@ export function createDefaultDiscTextValues(appId?: number): DiscTextValues {
 
 export function getDefaultCopyrightStraightLayout(placement: SteamLogoPlacement): DiscTextLayout {
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: hasBottomBanner ? 16 : 86, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
+  return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
 }
 
 export function getDefaultCopyrightCurvedLayout(placement: SteamLogoPlacement): DiscTextLayout {
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: 0, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
+  return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
 }
 
 export function createDefaultDiscTextLayout(placement: SteamLogoPlacement): DiscTextLayoutSettings {
   const hasBottomBanner = placement === 'bottom'
   return {
-    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    discNumber: { x: 0, y: 63.5, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    backupDate: { x: 0, y: 68, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    appId: { x: 0, y: 72, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     copyright: getDefaultCopyrightCurvedLayout(placement),
   }
 }
@@ -98,7 +119,11 @@ export function normalizeDiscTextLayout(
 ): DiscTextLayoutSettings {
   const defaults = createDefaultDiscTextLayout(placement)
   return DISC_TEXT_KEYS.reduce((normalizedLayout, key) => {
-    normalizedLayout[key] = { ...defaults[key], ...(layout?.[key] ?? {}) }
+    const mergedLayout = { ...defaults[key], ...(layout?.[key] ?? {}) }
+    normalizedLayout[key] = {
+      ...mergedLayout,
+      width: normalizeDiscTextWidth(mergedLayout.width, defaults[key].width),
+    }
     return normalizedLayout
   }, {} as DiscTextLayoutSettings)
 }

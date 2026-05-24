@@ -41,6 +41,7 @@ import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscT
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
+import { buildExportPreflightSummary } from './export/exportPreflight'
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 import {
   DEFAULT_DISC_TEXT_SETTINGS,
@@ -51,6 +52,7 @@ import {
   normalizeDiscTextLayout,
   normalizeDiscTextSettings,
   normalizeDiscTextValues,
+  normalizeDiscTextWidth,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
@@ -366,14 +368,17 @@ function App() {
 
   function handleDiscTextLayoutChange(
     key: DiscTextKey,
-    field: 'x' | 'y' | 'scale' | 'arcDegrees',
+    field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
     value: number,
   ) {
     setDiscTextLayout((currentLayout) => ({
       ...currentLayout,
       [key]: {
         ...currentLayout[key],
-        [field]: value,
+        [field]:
+          field === 'width'
+            ? normalizeDiscTextWidth(value, currentLayout[key].width)
+            : value,
       },
     }))
   }
@@ -793,6 +798,29 @@ function App() {
         return
       }
 
+      const preflight = buildExportPreflightSummary({
+        selectedDiscTemplateId,
+        selectedDiscTemplate,
+        backgroundImageUrl,
+        backgroundImageSize,
+        selectedSteamGame,
+        manualGameTitle,
+        steamLogoPlacement,
+        discTextSettings,
+        exportGuides,
+      })
+      const shouldExport = await confirm(preflight.message, {
+        title: 'Export PNG preflight',
+        kind: preflight.hasWarnings ? 'warning' : 'info',
+        okLabel: 'Export PNG',
+        cancelLabel: 'Cancel',
+      })
+
+      if (!shouldExport) {
+        announceStatus('Export cancelled after preflight.')
+        return
+      }
+
       const previewSize =
         discPreviewRef.current?.getBoundingClientRect().width ??
         mmToPixels(selectedDiscTemplate.outerDiameterMm)
@@ -884,8 +912,8 @@ function App() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  function getDiscTextPreviewTransform(key: DiscTextKey, layout: DiscTextLayout) {
-    if (key === 'copyright' && layout.mode === 'straight') {
+  function getDiscTextPreviewTransform(_key: DiscTextKey, layout: DiscTextLayout) {
+    if (layout.mode === 'straight') {
       return `translate(-50%, -50%) scale(${layout.scale})`
     }
 

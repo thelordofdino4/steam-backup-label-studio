@@ -92,7 +92,7 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
 }
 
 export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSize: number, settings: DiscTextSettings, values: DiscTextValues, layoutSettings: DiscTextLayoutSettings, title: string, placement: SteamLogoPlacement, safeZoneRadius: number) {
-  const textStyle: Record<DiscTextKey, { fontSize: number; fontWeight: number; maxWidth: number; color: string; maxLines: number }> = { title: { fontSize: exportSize * 0.036, fontWeight: 900, maxWidth: exportSize * 0.58, color: '#f9fafb', maxLines: 2 }, discNumber: { fontSize: exportSize * 0.019, fontWeight: 800, maxWidth: exportSize * 0.42, color: '#f9fafb', maxLines: 1 }, backupDate: { fontSize: exportSize * 0.016, fontWeight: 700, maxWidth: exportSize * 0.48, color: '#e5e7eb', maxLines: 1 }, appId: { fontSize: exportSize * 0.015, fontWeight: 700, maxWidth: exportSize * 0.48, color: '#d1d5db', maxLines: 1 }, customNote: { fontSize: exportSize * 0.015, fontWeight: 700, maxWidth: exportSize * 0.58, color: '#f9fafb', maxLines: 2 }, copyright: { fontSize: exportSize * 0.011, fontWeight: 600, maxWidth: exportSize * 0.68, color: '#d1d5db', maxLines: 3 } }
+  const textStyle: Record<DiscTextKey, { fontSize: number; fontWeight: number; color: string; maxLines: number }> = { title: { fontSize: exportSize * 0.036, fontWeight: 900, color: '#f9fafb', maxLines: 2 }, discNumber: { fontSize: exportSize * 0.019, fontWeight: 800, color: '#f9fafb', maxLines: 1 }, backupDate: { fontSize: exportSize * 0.016, fontWeight: 700, color: '#e5e7eb', maxLines: 1 }, appId: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#d1d5db', maxLines: 1 }, customNote: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 }, copyright: { fontSize: exportSize * 0.011, fontWeight: 600, color: '#d1d5db', maxLines: 3 } }
   for (const key of DISC_TEXT_KEYS) {
     if (!settings[key]) continue
     const text = getDiscTextContent(key, values, title).trim(); if (!text) continue
@@ -102,17 +102,16 @@ export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSi
     const textX = exportSize * ((50 + layout.x) / 100); const textY = exportSize * (layout.y / 100)
     context.save(); context.font = `${style.fontWeight} ${Math.round(fontSize)}px Arial`; context.textAlign = layout.align; context.textBaseline = 'middle'; context.lineJoin = 'round'; context.shadowColor = 'rgba(0, 0, 0, 0.72)'; context.shadowBlur = Math.max(3, exportSize * 0.004); context.shadowOffsetY = Math.max(1, exportSize * 0.0015); context.strokeStyle = 'rgba(0, 0, 0, 0.58)'; context.lineWidth = Math.max(2, exportSize * 0.002); context.fillStyle = style.color
     if (key === 'copyright' && layout.mode === 'curved') { context.textAlign = 'center'; drawCurvedCopyrightText(context, exportSize, safeZoneRadius, placement, layout, text, fontSize); context.restore(); continue }
-    const lines = wrapCanvasText(context, text, style.maxWidth).slice(0, style.maxLines)
+    const maxWidth = exportSize * (layout.width / 100)
+    const lines = wrapCanvasText(context, text, maxWidth).slice(0, style.maxLines)
     const firstLineY = textY - ((lines.length - 1) * lineHeight) / 2
     const drawTextX =
-      key === 'copyright' && layout.mode === 'straight'
-        ? layout.align === 'left'
-          ? textX - style.maxWidth / 2
-          : layout.align === 'right'
-            ? textX + style.maxWidth / 2
-            : textX
+      layout.align === 'left'
+        ? textX - maxWidth / 2
+        : layout.align === 'right'
+          ? textX + maxWidth / 2
         : textX
-    lines.forEach((line, index) => { const lineY = firstLineY + index * lineHeight; context.strokeText(line, drawTextX, lineY, style.maxWidth); context.fillText(line, drawTextX, lineY, style.maxWidth) })
+    lines.forEach((line, index) => { const lineY = firstLineY + index * lineHeight; context.strokeText(line, drawTextX, lineY, maxWidth); context.fillText(line, drawTextX, lineY, maxWidth) })
     context.restore()
   }
 }

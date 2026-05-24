@@ -151,6 +151,8 @@ export function DiscTextLayer({
             style={{
               left: `${50 + layout.x}%`,
               top: `${layout.y}%`,
+              width: `${layout.width}%`,
+              maxWidth: `${layout.width}%`,
               textAlign: layout.align,
               transform: getDiscTextPreviewTransform(key, layout),
             }}
