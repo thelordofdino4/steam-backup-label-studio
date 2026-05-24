@@ -47,9 +47,16 @@ import {
   normalizeDiscTextValues,
   wrapPreviewTextByArcLength,
   createSvgArcPath,
+  type DiscTextAlignment,
+  type DiscTextArcSide,
+  type DiscTextKey,
+  type DiscTextLayout,
+  type DiscTextLayoutSettings,
+  type DiscTextMode,
+  type DiscTextSettings,
+  type DiscTextValues,
+  type SteamLogoPlacement,
 } from './discText'
-
-type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 
 type SteamBannerColors = {
   gradientStart: string
@@ -73,40 +80,6 @@ type BackgroundImageSize = {
   width: number
   height: number
 }
-
-type DiscTextKey =
-  | 'title'
-  | 'discNumber'
-  | 'backupDate'
-  | 'appId'
-  | 'customNote'
-  | 'copyright'
-
-type DiscTextSettings = Record<DiscTextKey, boolean>
-
-type DiscTextValues = {
-  discNumber: string
-  backupDate: string
-  appId: string
-  customNote: string
-  copyright: string
-}
-
-type DiscTextAlignment = 'left' | 'center' | 'right'
-type DiscTextMode = 'straight' | 'curved'
-type DiscTextArcSide = 'top' | 'bottom'
-
-type DiscTextLayout = {
-  x: number
-  y: number
-  scale: number
-  align: DiscTextAlignment
-  mode: DiscTextMode
-  arcDegrees: number
-  arcSide: DiscTextArcSide
-}
-
-type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
 
 type TextDragState = {
   key: DiscTextKey
