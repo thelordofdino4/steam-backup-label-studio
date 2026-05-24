@@ -512,6 +512,7 @@ function App() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
     setSteamBannerLockupImageSize(null)
+    setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
     setExportGuides(DEFAULT_EXPORT_GUIDES)
     setBackgroundImageUrl(null)
     setBackgroundImageSize(null)
