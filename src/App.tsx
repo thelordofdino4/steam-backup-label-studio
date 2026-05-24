@@ -950,7 +950,11 @@ function App() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  function getDiscTextPreviewTransform(layout: DiscTextLayout) {
+  function getDiscTextPreviewTransform(key: DiscTextKey, layout: DiscTextLayout) {
+    if (key === 'copyright' && layout.mode === 'straight') {
+      return `translate(-50%, -50%) scale(${layout.scale})`
+    }
+
     const horizontalTranslate =
       layout.align === 'left'
         ? '0'
@@ -1315,7 +1319,7 @@ function App() {
                     left: `${50 + layout.x}%`,
                     top: `${layout.y}%`,
                     textAlign: layout.align,
-                    transform: getDiscTextPreviewTransform(layout),
+                    transform: getDiscTextPreviewTransform(key, layout),
                   }}
                   onPointerDown={(event) => handleDiscTextPointerDown(event, key)}
                   onPointerMove={handleDiscTextPointerMove}

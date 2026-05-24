@@ -104,7 +104,15 @@ export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSi
     if (key === 'copyright' && layout.mode === 'curved') { context.textAlign = 'center'; drawCurvedCopyrightText(context, exportSize, safeZoneRadius, placement, layout, text, fontSize); context.restore(); continue }
     const lines = wrapCanvasText(context, text, style.maxWidth).slice(0, style.maxLines)
     const firstLineY = textY - ((lines.length - 1) * lineHeight) / 2
-    lines.forEach((line, index) => { const lineY = firstLineY + index * lineHeight; context.strokeText(line, textX, lineY, style.maxWidth); context.fillText(line, textX, lineY, style.maxWidth) })
+    const drawTextX =
+      key === 'copyright' && layout.mode === 'straight'
+        ? layout.align === 'left'
+          ? textX - style.maxWidth / 2
+          : layout.align === 'right'
+            ? textX + style.maxWidth / 2
+            : textX
+        : textX
+    lines.forEach((line, index) => { const lineY = firstLineY + index * lineHeight; context.strokeText(line, drawTextX, lineY, style.maxWidth); context.fillText(line, drawTextX, lineY, style.maxWidth) })
     context.restore()
   }
 }
