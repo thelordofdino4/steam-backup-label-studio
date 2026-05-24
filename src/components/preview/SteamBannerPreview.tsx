@@ -1,22 +1,36 @@
 import type { CSSProperties } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
+import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 
 const BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE: CSSProperties = {
   width: '27.27%',
   height: '58.75%',
-  transform: 'translateY(-9%)',
+}
+
+function getLockupLayoutStyle(
+  placement: SteamLogoPlacement,
+  layout: SteamBannerLockupLayout,
+): CSSProperties {
+  const defaultTranslateY = placement === 'bottom' ? -9 : 0
+
+  return {
+    ...(placement === 'bottom' ? BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE : {}),
+    transform: `translate(${layout.offsetX}%, ${defaultTranslateY + layout.offsetY}%) scale(${layout.scale})`,
+  }
 }
 
 export type SteamBannerPreviewProps = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerStyle: CSSProperties
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupLayout: SteamBannerLockupLayout
 }
 
 export function SteamBannerPreview({
   steamLogoPlacement,
   steamBannerStyle,
   steamBannerLockupImageUrl,
+  steamBannerLockupLayout,
 }: SteamBannerPreviewProps) {
   return (
     <>
@@ -31,11 +45,7 @@ export function SteamBannerPreview({
             <div
               className="steam-brand-lockup"
               aria-label="Steam"
-              style={
-                steamLogoPlacement === 'bottom'
-                  ? BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE
-                  : undefined
-              }
+              style={getLockupLayoutStyle(steamLogoPlacement, steamBannerLockupLayout)}
             >
               {steamBannerLockupImageUrl ? (
                 <img

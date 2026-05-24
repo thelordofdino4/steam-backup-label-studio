@@ -1135,6 +1135,7 @@ function App() {
         steamLogoPlacement={steamLogoPlacement}
         steamBannerStyle={steamBannerStyle}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        steamBannerLockupLayout={steamBannerLockupLayout}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         manualGameTitle={manualGameTitle}

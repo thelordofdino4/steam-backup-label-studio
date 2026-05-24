@@ -7,6 +7,7 @@ import { DiscGuideOverlay } from './DiscGuideOverlay'
 import { DiscTextLayer } from './DiscTextLayer'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { SteamBannerPreview } from './SteamBannerPreview'
+import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -21,6 +22,7 @@ export type DiscPreviewProps = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerStyle: CSSProperties
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupLayout: SteamBannerLockupLayout
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   manualGameTitle: string
@@ -49,6 +51,7 @@ export function DiscPreview({
   steamLogoPlacement,
   steamBannerStyle,
   steamBannerLockupImageUrl,
+  steamBannerLockupLayout,
   discTextSettings,
   discTextValues,
   manualGameTitle,
@@ -91,6 +94,7 @@ export function DiscPreview({
           steamLogoPlacement={steamLogoPlacement}
           steamBannerStyle={steamBannerStyle}
           steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+          steamBannerLockupLayout={steamBannerLockupLayout}
         />
 
         <DiscTextLayer
