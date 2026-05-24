@@ -4,7 +4,7 @@
 
 Steam Backup Label Studio is a cross-platform desktop application for creating standardized, print-ready labels and case artwork for personal Steam game backup discs and physical archive media.
 
-The app allows users to choose a physical template, import game metadata and artwork from Steam where available, customize imported fields, arrange artwork and logos visually, and export print-accurate files for discs, jewel cases, Amaray/DVD cases, and Blu-ray cases.
+The app allows users to choose a physical template, import game metadata and artwork from Steam where available, customize imported fields, arrange artwork, branding, and label text visually, and export print-accurate files for discs, jewel cases, Amaray/DVD cases, and Blu-ray cases.
 
 ## Current Product Status
 
@@ -12,7 +12,7 @@ Steam Backup Label Studio is currently in **pre-alpha**.
 
 The current implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported or local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
 
-The current app is usable for early testing, but it is still missing several intended product features such as real logo layers, full layer management, richer metadata overrides, case templates, and alpha packaging.
+The current disc-label editor also supports Steam-style banner placement, optional straight disc text elements, and stable centered curved copyright/legal text. This makes the disc-label workflow much more complete than the early prototype, but it is still missing several intended product features such as full layer management, richer metadata overrides, case templates, export preflight, and alpha packaging.
 
 The current working disc-label editor should not be mistaken for the whole planned product. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
 
@@ -20,9 +20,9 @@ The current working disc-label editor should not be mistaken for the whole plann
 
 Steam Backup Label Studio is a workflow accelerator, not a replacement for GIMP, Photoshop, Krita, or a general-purpose image editor.
 
-The app exists to remove the tedious manual work from creating personal Steam backup labels: searching for game assets, finding templates, aligning disc geometry, resizing images by hand, adding repeated branding, and preparing print-ready output.
+The app exists to remove the tedious manual work from creating personal Steam backup labels: searching for game assets, finding templates, aligning disc geometry, resizing images by hand, adding repeated branding, adding common label text, and preparing print-ready output.
 
-The ideal basic workflow should take five minutes or less: choose a template, search for a game, select imported artwork, make small placement adjustments, save the project, and export a printable label.
+The ideal basic workflow should take five minutes or less: choose a template, search for a game, select imported artwork, make small placement and text adjustments, save the project, and export a printable label.
 
 The app should support manual overrides for users who want control, but its default behavior should favor speed, consistency, and reduced setup time.
 
@@ -50,10 +50,11 @@ Possible future platforms:
 4. Search for a Steam game or enter details manually.
 5. Review imported metadata and artwork.
 6. Choose background art, logos, screenshots, and optional badges.
-7. Edit the layout in a live canvas/editor area.
-8. Save the project.
-9. Review export summary/preflight information if needed.
-10. Export a print-ready file.
+7. Enable optional disc text such as title, disc number, backup date, Steam App ID, custom notes, and copyright/legal text.
+8. Edit the layout in a live canvas/editor area.
+9. Save the project.
+10. Review export summary/preflight information if needed.
+11. Export a print-ready file.
 
 ## Template Types
 
@@ -112,7 +113,7 @@ The user can choose:
 - Steam Backup logo at bottom
 - No Steam Backup logo
 
-The current implementation uses a temporary generated text badge. The intended implementation is a real editable logo layer that the user can move, resize, hide, lock, or replace.
+The current implementation uses a real default Steam-style banner lockup image and CSS-rendered banner strip. The default placement is treated as the current baseline. Future work should add user-facing lockup scale/offset controls, banner color controls, and eventually platform-specific branding options.
 
 ## Steam Import
 
@@ -136,7 +137,7 @@ Potential imported fields:
 - Screenshots
 - System requirements when available
 
-Current implementation supports real Steam search, basic metadata import, artwork import, and save/load persistence for imported metadata.
+Current implementation supports real Steam search, basic metadata import, store artwork import, Steam library artwork import where available, Steam screenshot discovery, local Steam screenshot discovery, and save/load persistence for imported metadata.
 
 All imported fields should eventually be overrideable.
 
@@ -147,11 +148,14 @@ The Game panel should focus on game search, game import, and game metadata.
 The Artwork panel should become the home for visual asset management, including:
 
 - Imported Steam artwork assets
+- Steam library artwork assets
+- Steam screenshots
+- Local Steam screenshots
 - Local uploaded artwork
 - Background selection
 - Developer logo assets
 - Publisher logo assets
-- CD/DVD/logo marks
+- Optical media/logo marks
 - ESRB/PEGI/rating assets
 - Other future visual elements
 
@@ -177,6 +181,29 @@ The editor should eventually support:
 - Zoom and pan
 
 The editor should avoid becoming a full raster image editor. Features such as painting tools, advanced filters, complex masking, and heavy photo manipulation are out of scope unless they directly support the backup-label workflow.
+
+## Text and Label Element Requirements
+
+The disc-label editor should support common label text without requiring users to use an external image editor for every label.
+
+Current text support includes:
+
+- Game title
+- Disc number
+- Backup date
+- Steam App ID
+- Short custom note
+- Copyright/legal text
+- Straight text placement, scale, offsets, and alignment
+- Stable centered curved copyright/legal text with arc length, angle, inset, scale, side, and wrapping controls
+- Preview/export/save-load support for current text settings
+
+Known text follow-up work includes:
+
+- Curved text alignment modes beyond the current stable centered behavior
+- Adjustable straight text box widths
+- Richer manual metadata fields feeding text elements
+- Possible copyright block generator
 
 ## UI Requirements
 
@@ -254,15 +281,16 @@ The current MVP focuses on one complete path:
 4. Choose Steam Backup logo placement.
 5. Add a game title and artwork manually or through Steam import.
 6. Adjust the background in a live editor.
-7. Save and reopen the project.
-8. Export a 300 DPI PNG.
+7. Add optional basic disc text.
+8. Save and reopen the project.
+9. Export a 300 DPI PNG.
 
 ## Out of Scope for Current Disc-Label MVP
 
 - Jewel case support
 - DVD case support
 - Blu-ray case support
-- Curved text
+- Advanced curved text alignment beyond the stable centered curved copyright implementation
 - Multi-disc wizard
 - Direct printer integration
 - Template marketplace
