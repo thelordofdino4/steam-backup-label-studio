@@ -26,6 +26,8 @@ import {
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { BackgroundLayer } from './components/preview/BackgroundLayer'
+import { DiscGuideOverlay } from './components/preview/DiscGuideOverlay'
 import { PreviewToastStack } from './components/preview/PreviewToastStack'
 import { SteamBannerPreview } from './components/preview/SteamBannerPreview'
 import { ArtworkPanel } from './components/sidebar/ArtworkPanel'
@@ -1140,32 +1142,15 @@ function App() {
           className="disc-preview"
           aria-label="Blank standard printable disc preview"
         >
-          {backgroundImageUrl ? (
-            <div
-              className="background-image-layer"
-              role="img"
-              aria-label="Uploaded background image layer"
-              onPointerDown={handleBackgroundPointerDown}
-              onPointerMove={handleBackgroundPointerMove}
-              onPointerUp={handleBackgroundPointerUp}
-              onPointerCancel={handleBackgroundPointerUp}
-            >
-              <img
-                src={backgroundImageUrl}
-                alt=""
-                draggable={false}
-                style={{
-                  width: backgroundPreviewSize.width,
-                  height: backgroundPreviewSize.height,
-                  transform: `translate(-50%, -50%) translate(${backgroundOffset.x}px, ${backgroundOffset.y}px) scale(${backgroundScale})`,
-                }}
-              />
-            </div>
-          ) : (
-            <div className="empty-background-message">
-              Upload a background image
-            </div>
-          )}
+          <BackgroundLayer
+            backgroundImageUrl={backgroundImageUrl}
+            backgroundPreviewSize={backgroundPreviewSize}
+            backgroundOffset={backgroundOffset}
+            backgroundScale={backgroundScale}
+            handleBackgroundPointerDown={handleBackgroundPointerDown}
+            handleBackgroundPointerMove={handleBackgroundPointerMove}
+            handleBackgroundPointerUp={handleBackgroundPointerUp}
+          />
 
           <SteamBannerPreview
             steamLogoPlacement={steamLogoPlacement}
@@ -1294,22 +1279,11 @@ function App() {
             })}
           </div>
 
-          <div
-            className="hub-no-print-zone"
-            style={{ width: `${innerPrintableBoundaryPercent}%` }}
-          />
-          <div
-            className="printable-zone"
-            style={{ inset: `${printableInsetPercent}%` }}
-          />
-          <div className="safe-zone" style={{ inset: `${safeInsetPercent}%` }} />
-          <div
-            className="inner-print-boundary"
-            style={{ width: `${innerPrintableBoundaryPercent}%` }}
-          />
-          <div
-            className="center-hole"
-            style={{ width: `${physicalCenterHolePercent}%` }}
+          <DiscGuideOverlay
+            innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
+            printableInsetPercent={printableInsetPercent}
+            safeInsetPercent={safeInsetPercent}
+            physicalCenterHolePercent={physicalCenterHolePercent}
           />
         </div>
       </section>
