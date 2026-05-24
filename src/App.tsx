@@ -245,15 +245,35 @@ function createDefaultDiscTextLayout(placement: SteamLogoPlacement): DiscTextLay
       arcDegrees: 210,
       arcSide: 'bottom',
     },
-    copyright: {
-      x: 0,
-      y: 0,
-      scale: 1,
-      align: 'center',
-      mode: 'curved',
-      arcDegrees: 210,
-      arcSide: hasBottomBanner ? 'top' : 'bottom',
-    },
+    copyright: getDefaultCopyrightCurvedLayout(placement),
+  }
+}
+
+function getDefaultCopyrightStraightLayout(placement: SteamLogoPlacement): DiscTextLayout {
+  const hasBottomBanner = placement === 'bottom'
+
+  return {
+    x: 0,
+    y: hasBottomBanner ? 16 : 86,
+    scale: 1,
+    align: 'center',
+    mode: 'straight',
+    arcDegrees: 210,
+    arcSide: hasBottomBanner ? 'top' : 'bottom',
+  }
+}
+
+function getDefaultCopyrightCurvedLayout(placement: SteamLogoPlacement): DiscTextLayout {
+  const hasBottomBanner = placement === 'bottom'
+
+  return {
+    x: 0,
+    y: 0,
+    scale: 1,
+    align: 'center',
+    mode: 'curved',
+    arcDegrees: 210,
+    arcSide: hasBottomBanner ? 'top' : 'bottom',
   }
 }
 
@@ -382,38 +402,12 @@ function getLargeArcFlag(arcDegrees: number): 0 | 1 {
   return arcDegrees > 180 ? 1 : 0
 }
 
-function getCurvedTextPathAlignment(align: DiscTextAlignment) {
-  switch (align) {
-    case 'left':
-      return {
-        startOffset: '0%',
-        textAnchor: 'start' as const,
-      }
-    case 'right':
-      return {
-        startOffset: '100%',
-        textAnchor: 'end' as const,
-      }
-    default:
-      return {
-        startOffset: '50%',
-        textAnchor: 'middle' as const,
-      }
-  }
+function getReadableCurvedTextScale(scale: number) {
+  return Math.max(scale, 0.72)
 }
 
-function getCurvedLinePathAlignment(
-  align: DiscTextAlignment,
-  shouldFitLine: boolean,
-) {
-  if (shouldFitLine) {
-    return {
-      startOffset: '0%',
-      textAnchor: 'start' as const,
-    }
-  }
-
-  return getCurvedTextPathAlignment(align)
+function getCurvedPreviewLetterSpacing(scale: number) {
+  return Math.max(0.11, 0.14 * getReadableCurvedTextScale(scale))
 }
 
 function splitLongTokenForPreview(token: string, maxCharacters: number) {
@@ -433,7 +427,7 @@ function wrapPreviewTextByArcLength(
   scale: number,
 ) {
   const arcLength = radius * ((arcDegrees * Math.PI) / 180)
-  const averageCharacterWidth = Math.max(0.82, 1.18 * scale)
+  const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
   const maxCharacters = Math.max(6, Math.floor(arcLength / averageCharacterWidth))
   const tokens = text.split(/\s+/).filter(Boolean)
   const lines: string[] = []
@@ -910,19 +904,27 @@ function drawCurvedTextLine(
   fitToArc: boolean,
 ) {
   const characters = Array.from(text)
-  const baseCharacterSpacing = Math.max(1, radius * 0.002)
+  const baseCharacterSpacing = Math.max(2.7, radius * 0.0036)
   const widths = characters.map((character) => context.measureText(character).width)
   const glyphWidth = widths.reduce((sum, width) => sum + width, 0)
   const naturalWidth =
     glyphWidth + Math.max(0, characters.length - 1) * baseCharacterSpacing
   const availableArcWidth = radius * arcAngle
+  const naturalFillRatio = availableArcWidth > 0 ? naturalWidth / availableArcWidth : 1
 
   if (naturalWidth <= 0 || radius <= 0) {
     return
   }
 
+  // Only stretch lines that are already reasonably close to filling the arc.
+  // Short wrapped lines should anchor normally instead of exploding into huge gaps.
   const shouldFitToArc =
-    fitToArc && characters.length > 1 && glyphWidth < availableArcWidth
+    false &&
+    fitToArc &&
+    characters.length > 1 &&
+    glyphWidth < availableArcWidth &&
+    naturalFillRatio >= 0.94
+
   const characterSpacing = shouldFitToArc
     ? (availableArcWidth - glyphWidth) / Math.max(1, characters.length - 1)
     : baseCharacterSpacing
@@ -1014,8 +1016,8 @@ function drawCurvedCopyrightText(
       centerAngle,
       maxArcAngle,
       isTopArc,
-      layout.align,
-      index < lines.length - 1 || line.length > 24,
+      'center',
+      false,
     )
   })
 }
@@ -1097,7 +1099,11 @@ function drawDiscTextElements(
 
     const style = textStyle[key]
     const layout = layoutSettings[key]
-    const fontSize = style.fontSize * layout.scale
+    const effectiveScale =
+      key === 'copyright' && layout.mode === 'curved'
+        ? getReadableCurvedTextScale(layout.scale)
+        : layout.scale
+    const fontSize = style.fontSize * effectiveScale
     const lineHeight = fontSize * 1.18
     const textX = exportSize * ((50 + layout.x) / 100)
     const textY = exportSize * (layout.y / 100)
@@ -1445,13 +1451,31 @@ function App() {
   }
 
   function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: {
-        ...currentLayout[key],
-        mode,
-      },
-    }))
+    setDiscTextLayout((currentLayout) => {
+      if (key === 'copyright') {
+        const defaultLayout =
+          mode === 'curved'
+            ? getDefaultCopyrightCurvedLayout(steamLogoPlacement)
+            : getDefaultCopyrightStraightLayout(steamLogoPlacement)
+
+        return {
+          ...currentLayout,
+          copyright: {
+            ...currentLayout.copyright,
+            ...defaultLayout,
+            mode,
+          },
+        }
+      }
+
+      return {
+        ...currentLayout,
+        [key]: {
+          ...currentLayout[key],
+          mode,
+        },
+      }
+    })
   }
 
   function handleDiscTextArcSideChange(key: DiscTextKey, arcSide: DiscTextArcSide) {
@@ -1467,10 +1491,22 @@ function App() {
   function handleResetDiscTextLayout(key: DiscTextKey) {
     const defaultLayout = createDefaultDiscTextLayout(steamLogoPlacement)
 
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: defaultLayout[key],
-    }))
+    setDiscTextLayout((currentLayout) => {
+      if (key === 'copyright') {
+        return {
+          ...currentLayout,
+          copyright:
+            currentLayout.copyright.mode === 'curved'
+              ? getDefaultCopyrightCurvedLayout(steamLogoPlacement)
+              : getDefaultCopyrightStraightLayout(steamLogoPlacement),
+        }
+      }
+
+      return {
+        ...currentLayout,
+        [key]: defaultLayout[key],
+      }
+    })
   }
 
   function getDiscTextInputValue(key: DiscTextKey) {
@@ -2652,8 +2688,8 @@ function App() {
                     <label>
                       <span>Align</span>
                       <select
-                        value={layout.align}
-                        disabled={!discTextSettings[key]}
+                        value={key === 'copyright' && layout.mode === 'curved' ? 'center' : layout.align}
+                        disabled={!discTextSettings[key] || (key === 'copyright' && layout.mode === 'curved')}
                         onChange={(event) =>
                           handleDiscTextAlignmentChange(
                             key,
@@ -2882,7 +2918,8 @@ function App() {
                 const copyrightPathId = `copyright-safe-zone-path-${steamLogoPlacement}`
                 const copyrightArcSide = getCopyrightArcSide(steamLogoPlacement, layout)
                 const isTopArc = copyrightArcSide === 'top'
-                const fontSize = 1.55 * layout.scale
+                const curvedScale = getReadableCurvedTextScale(layout.scale)
+                const fontSize = 1.55 * curvedScale
                 const safeZoneRadius =
                   (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) *
                   50
@@ -2897,9 +2934,9 @@ function App() {
                   text,
                   textRadius,
                   layout.arcDegrees,
-                  layout.scale,
+                  curvedScale,
                 )
-                const lineStep = 2.2 * layout.scale
+                const lineStep = 2.2 * curvedScale
 
                 return (
                   <svg
@@ -2941,41 +2978,25 @@ function App() {
                         return <path id={pathId} d={path} key={pathId} />
                       })}
                     </defs>
-                    {lines.map((line, index) => {
-                      const shouldFitLine = index < lines.length - 1 || line.length > 24
-                      const lineRadius = isTopArc
-                        ? textRadius - index * lineStep
-                        : textRadius - (lines.length - 1 - index) * lineStep
-                      const lineArcLength = lineRadius * ((layout.arcDegrees * Math.PI) / 180)
-                      const curvedLineAlignment = getCurvedLinePathAlignment(
-                        layout.align,
-                        shouldFitLine,
-                      )
-
-                      return (
-                        <text
-                          className="disc-curved-text"
-                          key={`${copyrightPathId}-line-${index}`}
-                          dominantBaseline="middle"
-                          lengthAdjust={shouldFitLine ? 'spacing' : undefined}
-                          textLength={shouldFitLine ? lineArcLength : undefined}
-                          style={{
-                            fontSize: `${fontSize}px`,
-                            letterSpacing: shouldFitLine
-                              ? '0px'
-                              : `${0.08 * layout.scale}px`,
-                          }}
+                    {lines.map((line, index) => (
+                      <text
+                        className="disc-curved-text"
+                        key={`${copyrightPathId}-line-${index}`}
+                        dominantBaseline="middle"
+                        style={{
+                          fontSize: `${fontSize}px`,
+                          letterSpacing: `${getCurvedPreviewLetterSpacing(layout.scale)}px`,
+                        }}
+                      >
+                        <textPath
+                          href={`#${copyrightPathId}-${index}`}
+                          startOffset="50%"
+                          textAnchor="middle"
                         >
-                          <textPath
-                            href={`#${copyrightPathId}-${index}`}
-                            startOffset={curvedLineAlignment.startOffset}
-                            textAnchor={curvedLineAlignment.textAnchor}
-                          >
-                            {line}
-                          </textPath>
-                        </text>
-                      )
-                    })}
+                          {line}
+                        </textPath>
+                      </text>
+                    ))}
                   </svg>
                 )
               }

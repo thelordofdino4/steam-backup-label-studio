@@ -1015,3 +1015,37 @@ input:disabled {
   dominant-baseline: middle;
   alignment-baseline: middle;
 }
+
+
+/* Stable straight text boxes: prevents X offset from changing wrapping width. */
+.disc-text-line {
+  box-sizing: border-box;
+  width: 68%;
+  max-width: 68%;
+}
+
+.disc-text-title {
+  width: 58%;
+  max-width: 58%;
+}
+
+.disc-text-discNumber {
+  width: 42%;
+  max-width: 42%;
+}
+
+.disc-text-backupDate,
+.disc-text-appId {
+  width: 48%;
+  max-width: 48%;
+}
+
+.disc-text-customNote {
+  width: 58%;
+  max-width: 58%;
+}
+
+.disc-text-copyright {
+  width: 68%;
+  max-width: 68%;
+}
