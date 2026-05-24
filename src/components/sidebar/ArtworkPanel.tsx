@@ -20,6 +20,33 @@ export type ArtworkPanelProps = {
   handleResetBackground: () => void
 }
 
+function formatArtworkKind(kind: SteamArtworkAsset['kind']) {
+  switch (kind) {
+    case 'header':
+      return 'Header'
+    case 'capsule':
+      return 'Capsule'
+    case 'background':
+      return 'Background'
+    case 'logo':
+      return 'Logo'
+    case 'screenshot':
+      return 'Screenshot'
+    case 'library':
+      return 'Library artwork'
+    default:
+      return kind
+  }
+}
+
+function formatModifiedDate(modifiedUnixSeconds?: number) {
+  if (!modifiedUnixSeconds) {
+    return null
+  }
+
+  return new Date(modifiedUnixSeconds * 1000).toLocaleDateString()
+}
+
 export function ArtworkPanel({
   selectedSteamGame,
   selectedArtworkId,
@@ -51,15 +78,25 @@ export function ArtworkPanel({
           <div className="search-results">
             {selectedSteamGame.artwork.map((asset) => (
               <button
-                className="search-result-button"
+                className="search-result-button artwork-asset-button"
                 key={asset.id}
                 type="button"
                 disabled={isArtworkLoading}
                 onClick={() => handleUseSteamArtwork(asset)}
               >
-                <strong>{asset.label}</strong>
-                <span>
-                  {asset.kind}{selectedArtworkId === asset.id ? ' · selected' : ''}
+                <img
+                  className="artwork-asset-thumbnail"
+                  src={asset.url}
+                  alt=""
+                  loading="lazy"
+                  draggable={false}
+                />
+                <span className="artwork-asset-copy">
+                  <strong>{asset.label}</strong>
+                  <span>
+                    Source: Steam online · Type: {formatArtworkKind(asset.kind)}
+                    {selectedArtworkId === asset.id ? ' · selected' : ''}
+                  </span>
                 </span>
               </button>
             ))}
@@ -112,19 +149,30 @@ export function ArtworkPanel({
                 </button>
 
                 <div className="search-results local-steam-screenshot-results">
-                  {localSteamScreenshots.map((asset) => (
-                    <button
-                      className="search-result-button"
-                      key={asset.id}
-                      type="button"
-                      onClick={() => void handleUseLocalSteamScreenshot(asset)}
-                    >
-                      <strong>{asset.label}</strong>
-                      <span>
-                        local screenshot{selectedArtworkId === asset.id ? ' · selected' : ''}
-                      </span>
-                    </button>
-                  ))}
+                  {localSteamScreenshots.map((asset) => {
+                    const modifiedDate = formatModifiedDate(asset.modifiedUnixSeconds)
+
+                    return (
+                      <button
+                        className="search-result-button artwork-asset-button"
+                        key={asset.id}
+                        type="button"
+                        onClick={() => void handleUseLocalSteamScreenshot(asset)}
+                      >
+                        <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
+                          Local
+                        </span>
+                        <span className="artwork-asset-copy">
+                          <strong>{asset.label}</strong>
+                          <span>
+                            Source: Local Steam screenshots · Type: Local screenshot
+                            {modifiedDate ? ` · Modified: ${modifiedDate}` : ''}
+                            {selectedArtworkId === asset.id ? ' · selected' : ''}
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
               </>
             )}
