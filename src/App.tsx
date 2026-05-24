@@ -1,4 +1,3 @@
-import { invoke } from '@tauri-apps/api/core'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
 import {
@@ -15,7 +14,7 @@ import {
   readLocalImageAsDataUrl,
   type LocalSteamScreenshotAsset,
 } from './local/localArtwork'
-import { discTemplates, discTemplateOptions, type DiscTemplateId } from './templates/discTemplates'
+import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
   clampNumber,
@@ -24,9 +23,12 @@ import {
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
-import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideMode, type ExportGuideSelection, type ExportGuideKey } from './exportGuides'
+import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { normalizeParsedProject } from './project/normalizeProject'
+import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors } from './project/projectTypes'
+import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 import {
   DEFAULT_DISC_TEXT_SETTINGS,
@@ -58,29 +60,6 @@ import {
   type SteamLogoPlacement,
 } from './discText'
 
-type SteamBannerColors = {
-  gradientStart: string
-  gradientEnd: string
-  accent: string
-}
-type SelectedDiscTemplateId = DiscTemplateId | 'custom'
-type CustomDimensionKey =
-  | 'outerDiameterMm'
-  | 'physicalCenterHoleDiameterMm'
-  | 'innerHoleDiameterMm'
-  | 'printableDiameterMm'
-  | 'safeDiameterMm'
-
-type BackgroundOffset = {
-  x: number
-  y: number
-}
-
-type BackgroundImageSize = {
-  width: number
-  height: number
-}
-
 type TextDragState = {
   key: DiscTextKey
   pointerId: number
@@ -89,6 +68,13 @@ type TextDragState = {
   startX: number
   startY: number
 }
+
+type CustomDimensionKey =
+  | 'outerDiameterMm'
+  | 'physicalCenterHoleDiameterMm'
+  | 'innerHoleDiameterMm'
+  | 'printableDiameterMm'
+  | 'safeDiameterMm'
 
 type DragState = {
   pointerId: number
@@ -107,42 +93,6 @@ type StatusToast = {
   icon: string
 }
 
-type SavedProject = {
-  schemaVersion: '0.1.0'
-  title: string
-  savedAt: string
-  game: {
-    manualTitle: string
-    selectedSteamGame: SteamImportedGame | null
-  }
-  template: {
-    type: 'disc'
-    variant: SelectedDiscTemplateId
-    customDimensions?: DiscTemplate | null
-  }
-  steamBackupLogo: {
-    placement: SteamLogoPlacement
-    bannerColors?: SteamBannerColors
-    lockupImageDataUrl?: string | null
-    lockupImageSize?: BackgroundImageSize | null
-  }
-  export?: {
-    guideMode?: ExportGuideMode
-    guides?: ExportGuideSelection
-  }
-  background: {
-    scale: number
-    offset: BackgroundOffset
-    imageDataUrl: string | null
-    imageSize?: BackgroundImageSize | null
-    note: string
-  }
-  discText?: {
-    settings?: Partial<DiscTextSettings>
-    values?: Partial<DiscTextValues>
-    layout?: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>>
-  }
-}
 
 const STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT = 200
 const STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT = 20
@@ -1357,10 +1307,7 @@ function App() {
       }
 
       const project = createProjectSnapshot()
-      await invoke('write_project_file', {
-        path,
-        contents: JSON.stringify(project, null, 2),
-      })
+      await writeProjectFile(path, JSON.stringify(project, null, 2))
 
       announceStatus(`Saved project to ${path}`)
     } catch (error) {
@@ -1385,10 +1332,8 @@ function App() {
         return
       }
 
-      const contents = await invoke<string>('read_project_file', {
-        path: selected,
-      })
-      const project = JSON.parse(contents) as SavedProject
+      const contents = await readProjectFile(selected)
+      const project = normalizeParsedProject(contents)
       const savedTemplateId = project.template.variant
       const savedImageDataUrl = project.background.imageDataUrl
 
@@ -1632,10 +1577,7 @@ function App() {
 
       const pngBytes = await canvasToPngBytes(canvas)
 
-      await invoke('write_binary_file', {
-        path,
-        bytes: pngBytes,
-      })
+      await writeBinaryFile(path, pngBytes)
 
       announceStatus(
         `Exported ${exportSize} × ${exportSize}px PNG at ${EXPORT_DPI} DPI.`,
