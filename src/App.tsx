@@ -1,4 +1,4 @@
-import { open, save } from '@tauri-apps/plugin-dialog'
+import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
 import {
   downloadSteamArtworkAsDataUrl,
@@ -460,6 +460,51 @@ function App() {
       ...currentGuides,
       [guide]: checked,
     }))
+  }
+
+  async function handleNewProject() {
+    const shouldReset = await confirm(
+      'Start a new project? Unsaved changes will be lost.',
+      {
+        title: 'Start a new project?',
+        kind: 'warning',
+      },
+    )
+
+    if (!shouldReset) {
+      return
+    }
+
+    dragStateRef.current = null
+    textDragStateRef.current = null
+
+    setSelectedDiscTemplateId('standardPrintableDisc')
+    setCustomDiscTemplate(createCustomDiscTemplate())
+    setSteamLogoPlacement('top')
+    setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
+    setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
+    setSteamBannerLockupImageSize(null)
+    setExportGuides(DEFAULT_EXPORT_GUIDES)
+    setBackgroundImageUrl(null)
+    setBackgroundImageSize(null)
+    setBackgroundScale(1)
+    setBackgroundOffset({ x: 0, y: 0 })
+    setGameSearchQuery('')
+    setManualGameTitle('Untitled Steam Backup Label')
+    setSteamSearchResults([])
+    setSelectedSteamGame(null)
+    setIsSteamSearchLoading(false)
+    setIsSteamImportLoading(false)
+    setSelectedArtworkId(null)
+    setLocalSteamScreenshots([])
+    setHasCheckedLocalSteamScreenshots(false)
+    setIsLocalSteamScreenshotsLoading(false)
+    setIsArtworkLoading(false)
+    setDiscTextSettings(DEFAULT_DISC_TEXT_SETTINGS)
+    setDiscTextValues(createDefaultDiscTextValues())
+    setDiscTextLayout(createDefaultDiscTextLayout('top'))
+
+    announceStatus('Started a new blank project.')
   }
 
   function handleTemplateChange(templateId: SelectedDiscTemplateId) {
@@ -940,6 +985,7 @@ function App() {
 
         <ProjectPanel
           projectStatus={projectStatus}
+          handleNewProject={handleNewProject}
           handleSaveProject={handleSaveProject}
           handleLoadProject={handleLoadProject}
           handleExportPng={handleExportPng}
