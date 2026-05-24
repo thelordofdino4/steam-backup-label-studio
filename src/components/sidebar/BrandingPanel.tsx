@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
-import type { BackgroundImageSize, SteamBannerLockupLayout } from '../../project/projectTypes'
+import type { BackgroundImageSize, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -8,6 +8,7 @@ export type BrandingPanelProps = {
   steamBannerLockupImageUrl: string | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerColors: SteamBannerColors
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
   handleSteamBannerLockupLayoutChange: (
@@ -15,6 +16,8 @@ export type BrandingPanelProps = {
     value: number,
   ) => void
   handleResetSteamBannerLockupLayout: () => void
+  handleSteamBannerColorChange: (field: keyof SteamBannerColors, value: string) => void
+  handleResetSteamBannerColors: () => void
 }
 
 export function BrandingPanel({
@@ -23,10 +26,13 @@ export function BrandingPanel({
   steamBannerLockupImageUrl,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
+  steamBannerColors,
   handleSteamBannerLockupUpload,
   handleClearSteamBannerLockup,
   handleSteamBannerLockupLayoutChange,
   handleResetSteamBannerLockupLayout,
+  handleSteamBannerColorChange,
+  handleResetSteamBannerColors,
 }: BrandingPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -46,6 +52,54 @@ export function BrandingPanel({
         <option value="bottom">Bottom center</option>
         <option value="none">None</option>
       </select>
+
+      <label className="field-label spacing-top" htmlFor="steam-banner-gradient-start">
+        Gradient start
+      </label>
+      <input
+        id="steam-banner-gradient-start"
+        type="color"
+        value={steamBannerColors.gradientStart}
+        disabled={steamLogoPlacement === 'none'}
+        onChange={(event) =>
+          handleSteamBannerColorChange('gradientStart', event.target.value)
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="steam-banner-gradient-end">
+        Gradient end
+      </label>
+      <input
+        id="steam-banner-gradient-end"
+        type="color"
+        value={steamBannerColors.gradientEnd}
+        disabled={steamLogoPlacement === 'none'}
+        onChange={(event) =>
+          handleSteamBannerColorChange('gradientEnd', event.target.value)
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="steam-banner-accent">
+        Accent strip
+      </label>
+      <input
+        id="steam-banner-accent"
+        type="color"
+        value={steamBannerColors.accent}
+        disabled={steamLogoPlacement === 'none'}
+        onChange={(event) =>
+          handleSteamBannerColorChange('accent', event.target.value)
+        }
+      />
+
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={steamLogoPlacement === 'none'}
+        onClick={handleResetSteamBannerColors}
+      >
+        Reset banner colors
+      </button>
 
       <label className="field-label spacing-top" htmlFor="steam-banner-lockup-upload">
         Banner lockup image

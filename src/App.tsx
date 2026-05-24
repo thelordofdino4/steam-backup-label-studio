@@ -357,6 +357,21 @@ function App() {
     announceStatus('Reset Steam banner lockup layout to the default position.')
   }
 
+  function handleSteamBannerColorChange(
+    field: keyof SteamBannerColors,
+    value: string,
+  ) {
+    setSteamBannerColors((currentColors) => ({
+      ...currentColors,
+      [field]: value,
+    }))
+  }
+
+  function handleResetSteamBannerColors() {
+    setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
+    announceStatus('Reset Steam banner colors to the default palette.')
+  }
+
   function handleSteamLogoPlacementChange(placement: SteamLogoPlacement) {
     setSteamLogoPlacement(placement)
 
@@ -1100,10 +1115,13 @@ function App() {
           steamBannerLockupImageUrl={steamBannerLockupImageUrl}
           steamBannerLockupImageSize={steamBannerLockupImageSize}
           steamBannerLockupLayout={steamBannerLockupLayout}
+          steamBannerColors={steamBannerColors}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
           handleResetSteamBannerLockupLayout={handleResetSteamBannerLockupLayout}
+          handleSteamBannerColorChange={handleSteamBannerColorChange}
+          handleResetSteamBannerColors={handleResetSteamBannerColors}
         />
 
 
