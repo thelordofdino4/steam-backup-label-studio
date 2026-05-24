@@ -4,13 +4,11 @@ This document tracks the controlled refactor for GitHub issue #36, **Refactor di
 
 ## Current Assessment
 
-The emergency refactor is **well past the danger point but not fully complete**.
+The emergency refactor is **ready to close** once final local validation is confirmed.
 
-The highest-risk work has already been completed and smoke-tested locally: project file helpers, shared types/utilities, PNG export extraction, clean lint baseline, and the first sidebar panel extractions. The app still launches locally and the current disc-label workflow appears intact.
+The original danger was that `App.tsx` had become the owner of too many unrelated responsibilities: editor panels, preview rendering, PNG export rendering, project file schema handling, status toasts, and general app orchestration. That is no longer the case.
 
-A fair status estimate is **about 75-85% complete for the emergency issue**.
-
-The issue should not be closed until the remaining large `App.tsx` UI regions are either extracted or explicitly deferred with a clear reason.
+The current `App.tsx` is still a large orchestration/state file, but the emergency has been resolved: large JSX regions, export rendering, project/file helpers, and status toast state have been moved into focused modules/components. Remaining cleanup such as deeper hook extraction, CSS organization, and Rust command-module splitting should be tracked as follow-up work rather than keeping issue #36 open indefinitely.
 
 ## Completed Refactor Work
 
@@ -25,11 +23,25 @@ The issue should not be closed until the remaining large `App.tsx` UI regions ar
 - Moved disc text export rendering into `src/export/drawDiscText.ts`.
 - Moved export guide and outline rendering into `src/export/drawExportGuides.ts`.
 - Replaced impure toast ID generation with a stable ref-backed incrementing ID so lint now has a clean baseline.
-- Extracted these sidebar panels into presentational components while keeping state and handlers in `App.tsx`:
+- Extracted status toast state and helpers into `src/hooks/useStatusToasts.ts`.
+- Extracted sidebar panels into presentational components while keeping state and handlers in `App.tsx`:
   - `ProjectPanel`
   - `ExportOptionsPanel`
+  - `GamePanel`
   - `TemplatePanel`
+  - `ArtworkPanel`
+  - `BrandingPanel`
+  - `TextPanel`
   - `GuideLegendPanel`
+- Extracted the preview area into focused components while keeping state, refs, and handlers in `App.tsx`:
+  - `DiscPreview`
+  - `PreviewToastStack`
+  - `SteamBannerPreview`
+  - `BackgroundLayer`
+  - `DiscTextLayer`
+  - `DiscGuideOverlay`
+- Fixed straight copyright/legal text alignment so left/right alignment changes text alignment inside a stable box instead of moving the whole text box.
+- Tuned bottom Steam banner lockup placement enough for the pre-alpha baseline.
 
 ## Current Validation Status
 
@@ -37,45 +49,43 @@ Recent checks reported during the refactor sequence:
 
 - `npm run build` passes.
 - `npm run lint` passes.
-- Local app smoke test passes after pulling main.
-- Export behavior was locally checked after the export extraction and nothing obvious broke.
+- Local app smoke testing has passed after the component extractions.
+- Text panel behavior has been locally checked.
+- Straight copyright alignment bugfix has been locally checked.
+- Export behavior was locally checked after the export extraction and later spot-checked during text fixes.
 
-## Remaining Work Before Closing Issue #36
+Before closing issue #36, run one final local validation pass:
 
-These items should be completed before calling the emergency refactor finished:
+- `npm run build`
+- `npm run lint`
+- `npm run tauri dev`
+- Save/load project test.
+- PNG export test with and without artwork.
+- Guide toggle export test.
+- Steam search/import smoke test.
+- Background drag/resize/reset smoke test.
+- Text straight/curved controls smoke test.
+- Banner top/bottom/none smoke test.
 
-1. Extract the remaining sidebar panels from `App.tsx`:
-   - `GamePanel`
-   - `ArtworkPanel`
-   - `BrandingPanel`
-   - `TextPanel`
-2. Extract the live preview area into focused components:
-   - `DiscPreview`
-   - `BackgroundLayer`
-   - `SteamBannerPreview`
-   - `DiscTextLayer`
-   - `DiscGuideOverlay`
-   - `PreviewToastStack`
-3. Review whether the remaining `App.tsx` state/handlers should stay in `App.tsx` or move into focused hooks.
-4. Clean up CSS duplication and decide whether `layoutFix.css` can be merged into organized style files.
-5. Review Rust `src-tauri/src/lib.rs` command organization and either split command modules or explicitly defer that work to a separate backend cleanup issue.
-6. Run final validation:
-   - `npm run build`
-   - `npm run lint`
-   - local `npm run tauri dev` smoke test
-   - save/load project test
-   - PNG export test with and without artwork
-   - guide toggle export test
+## Follow-Up Work After Issue #36
 
-## Recommended Next Work Order
+These items are real cleanup opportunities, but they no longer need to block closing the emergency refactor issue:
 
-1. Extract `GamePanel` and `BrandingPanel` next. These are lower risk than the text and artwork panels.
-2. Extract `ArtworkPanel` after that, preserving all local/Steam artwork behavior.
-3. Extract `TextPanel` last among sidebar panels because it has the densest prop surface.
-4. Extract the preview area into components after the sidebar is complete.
-5. Only then consider hooks for background, disc text, Steam import, local screenshots, and template state.
-6. Do CSS cleanup after component boundaries are stable.
-7. Treat the Rust module split as either the final issue-#36 task or a follow-up cleanup, depending on how large it becomes.
+1. Extract focused hooks for remaining state clusters:
+   - `useDiscTemplate`
+   - `useBackgroundImage`
+   - `useSteamImport`
+   - `useLocalSteamScreenshots`
+   - `useDiscTextEditor`
+2. Move remaining pure helpers out of `App.tsx` where useful:
+   - image file/data URL helpers
+   - natural image size helper
+   - Steam banner style/default helpers
+   - project snapshot creation
+3. Clean up CSS duplication and decide whether `layoutFix.css` can be merged into organized style files.
+4. Review Rust `src-tauri/src/lib.rs` command organization and split command modules if it becomes a maintenance issue.
+5. Polish temporary toast symbols/icons.
+6. Add real project schema validation/migrations when the project format starts changing.
 
 ## Suggested Close Criteria for Issue #36
 
@@ -88,4 +98,4 @@ Issue #36 can be closed when:
 - Build and lint pass.
 - A local smoke test confirms the disc-label workflow still works.
 
-If the Rust command split or full CSS reorganization is intentionally deferred, create follow-up issues before closing #36 so the remaining cleanup is tracked instead of forgotten.
+As of this update, the code appears to meet those criteria pending one final local validation pass.
