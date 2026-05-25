@@ -68,6 +68,22 @@ export type ProjectLogoAssets = {
   publisherLogoLayout: LogoAssetLayout
 }
 
+export type RatingBadgeSource = 'placeholder' | 'custom'
+
+export type RatingBadgeLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectRatingBadge = {
+  source: RatingBadgeSource
+  customImageDataUrl: string | null
+  customImageSize: BackgroundImageSize | null
+  layout: RatingBadgeLayout
+}
+
 export type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -78,6 +94,7 @@ export type SavedProject = {
   }
   metadata?: ProjectMetadata
   logoAssets?: ProjectLogoAssets
+  ratingBadge?: ProjectRatingBadge
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId

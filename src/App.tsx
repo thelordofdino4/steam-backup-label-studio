@@ -39,7 +39,8 @@ import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
-import type { BackgroundImageSize, BackgroundOffset, ProjectLogoAssets, ProjectMetadata, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
+import type { BackgroundImageSize, BackgroundOffset, ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -197,6 +198,9 @@ function App() {
   const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
     createDefaultProjectLogoAssets(),
   )
+  const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
+    createDefaultProjectRatingBadge(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -333,6 +337,7 @@ function App() {
       },
       metadata: projectMetadata,
       logoAssets: projectLogoAssets,
+      ratingBadge: projectRatingBadge,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -748,6 +753,7 @@ function App() {
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
     setProjectLogoAssets(createDefaultProjectLogoAssets())
+    setProjectRatingBadge(createDefaultProjectRatingBadge())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -989,6 +995,7 @@ function App() {
         ),
       )
       setProjectLogoAssets(normalizeProjectLogoAssets(project.logoAssets))
+      setProjectRatingBadge(normalizeProjectRatingBadge(project.ratingBadge))
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
