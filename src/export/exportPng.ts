@@ -1,7 +1,7 @@
 import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
-import type { ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectRatingBadge, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import { canvasToPngBytes, loadImage } from './canvasImage'
 import { drawDiscTextElements } from './drawDiscText'
@@ -9,6 +9,7 @@ import { drawExportGuides, drawOuterDiscExportOutline } from './drawExportGuides
 import { drawSteamBrandBanner } from './drawSteamBanner'
 import { drawLogoAssets } from './drawLogoAssets'
 import { drawRatingBadge } from './drawRatingBadge'
+import { drawMediaMark } from './drawMediaMark'
 
 export async function exportDiscLabelPngBytes(params: {
   selectedDiscTemplate: DiscTemplate
@@ -23,6 +24,7 @@ export async function exportDiscLabelPngBytes(params: {
   projectLogoAssets: ProjectLogoAssets
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
+  projectMediaMark: ProjectMediaMark
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextLayout: DiscTextLayoutSettings
@@ -74,6 +76,7 @@ export async function exportDiscLabelPngBytes(params: {
   )
   await drawLogoAssets(context, exportSize, params.projectLogoAssets)
   await drawRatingBadge(context, exportSize, params.projectMetadata, params.projectRatingBadge)
+  await drawMediaMark(context, exportSize, params.projectMediaMark)
   drawDiscTextElements(context, exportSize, params.discTextSettings, params.discTextValues, params.discTextLayout, params.manualGameTitle, params.steamLogoPlacement, safeZoneRadius)
   context.restore()
 

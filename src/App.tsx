@@ -23,6 +23,8 @@ import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
   getLogoAssetBoundsPercent,
+  getMediaMarkBoundsPercent,
+  getMediaMarkPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   getStraightDiscTextBoundsPercent,
@@ -45,8 +47,9 @@ import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
+import { createDefaultProjectMediaMark, normalizeProjectMediaMark } from './project/projectMediaMark'
 import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
-import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -93,6 +96,14 @@ type LogoDragState = {
 }
 
 type RatingBadgeDragState = {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
+type MediaMarkDragState = {
   pointerId: number
   startClientX: number
   startClientY: number
@@ -211,6 +222,24 @@ function clampRatingBadgeLayoutToSafeZone(
   }
 }
 
+function clampMediaMarkLayoutToSafeZone(
+  mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): MediaMarkLayout {
+  const layout = mediaMark.layout
+  const bounds =
+    mediaMark.source === 'custom' && mediaMark.customImageSize
+      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, layout.scale)
+      : getMediaMarkPlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
 function clampStraightDiscTextLayoutToSafeZone(
   key: DiscTextKey,
   layout: DiscTextLayout,
@@ -291,6 +320,9 @@ function App() {
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
     createDefaultProjectRatingBadge(),
   )
+  const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
+    createDefaultProjectMediaMark(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -321,6 +353,7 @@ function App() {
   const textDragStateRef = useRef<TextDragState | null>(null)
   const logoDragStateRef = useRef<LogoDragState | null>(null)
   const ratingBadgeDragStateRef = useRef<RatingBadgeDragState | null>(null)
+  const mediaMarkDragStateRef = useRef<MediaMarkDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -413,6 +446,22 @@ function App() {
       }
     })
 
+    setProjectMediaMark((currentMark) => {
+      const layout = clampMediaMarkLayoutToSafeZone(currentMark, template)
+
+      if (
+        layout.x === currentMark.layout.x &&
+        layout.y === currentMark.layout.y
+      ) {
+        return currentMark
+      }
+
+      return {
+        ...currentMark,
+        layout,
+      }
+    })
+
     setDiscTextLayout((currentLayout) => {
       const nextLayout = clampDiscTextLayoutToSafeZone(currentLayout, template)
       const didChange = DISC_TEXT_KEYS.some(
@@ -486,6 +535,7 @@ function App() {
       metadata: projectMetadata,
       logoAssets: projectLogoAssets,
       ratingBadge: projectRatingBadge,
+      mediaMark: projectMediaMark,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -874,6 +924,128 @@ function App() {
     announceStatus('Reset rating badge layout.')
   }
 
+  async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the media mark.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+      const imageSize = getNaturalImageSize(image)
+
+      setProjectMediaMark((currentMark) => {
+        const nextMark = {
+          ...currentMark,
+          source: 'custom' as const,
+          customImageDataUrl: imageDataUrl,
+          customImageSize: imageSize,
+          layout: {
+            ...currentMark.layout,
+            enabled: true,
+          },
+        }
+
+        return {
+          ...nextMark,
+          layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+        }
+      })
+
+      announceStatus(`Using ${file.name} as the media mark.`)
+    } catch (error) {
+      announceStatus(`Media mark import failed: ${String(error)}`)
+    }
+  }
+
+  function handleMediaMarkValueChange(value: MediaMarkValue) {
+    setProjectMediaMark((currentMark) => ({
+      ...currentMark,
+      value,
+    }))
+  }
+
+  function handleMediaMarkSourceChange(source: MediaMarkSource) {
+    setProjectMediaMark((currentMark) => {
+      const nextMark = {
+        ...currentMark,
+        source,
+      }
+
+      return {
+        ...nextMark,
+        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleMediaMarkLayoutChange(
+    field: keyof ProjectMediaMark['layout'],
+    value: boolean | number,
+  ) {
+    setProjectMediaMark((currentMark) => {
+      const nextMark = {
+        ...currentMark,
+        layout: {
+          ...currentMark.layout,
+          [field]: value,
+        },
+      }
+
+      return {
+        ...nextMark,
+        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleClearMediaMarkImage() {
+    setProjectMediaMark((currentMark) => {
+      const nextMark = {
+        ...currentMark,
+        source: 'placeholder' as const,
+        customImageDataUrl: null,
+        customImageSize: null,
+      }
+
+      return {
+        ...nextMark,
+        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Cleared custom media mark image.')
+  }
+
+  function handleResetMediaMarkLayout() {
+    const defaults = createDefaultProjectMediaMark()
+
+    setProjectMediaMark((currentMark) => {
+      const nextMark = {
+        ...currentMark,
+        layout: {
+          ...defaults.layout,
+          enabled: currentMark.layout.enabled,
+        },
+      }
+
+      return {
+        ...nextMark,
+        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Reset media mark layout.')
+  }
+
   function handleResetSteamBannerColors() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     announceStatus('Reset Steam banner colors to the default palette.')
@@ -1067,6 +1239,7 @@ function App() {
     textDragStateRef.current = null
     logoDragStateRef.current = null
     ratingBadgeDragStateRef.current = null
+    mediaMarkDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(createCustomDiscTemplate())
@@ -1085,6 +1258,7 @@ function App() {
     setProjectMetadata(createDefaultProjectMetadata())
     setProjectLogoAssets(createDefaultProjectLogoAssets())
     setProjectRatingBadge(createDefaultProjectRatingBadge())
+    setProjectMediaMark(createDefaultProjectMediaMark())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -1360,6 +1534,14 @@ function App() {
           loadedSelectedDiscTemplate,
         ),
       })
+      const loadedMediaMark = normalizeProjectMediaMark(project.mediaMark)
+      setProjectMediaMark({
+        ...loadedMediaMark,
+        layout: clampMediaMarkLayoutToSafeZone(
+          loadedMediaMark,
+          loadedSelectedDiscTemplate,
+        ),
+      })
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
@@ -1480,6 +1662,7 @@ function App() {
         projectLogoAssets,
         projectMetadata,
         projectRatingBadge,
+        projectMediaMark,
         discTextSettings,
         discTextValues,
         discTextLayout,
@@ -1704,6 +1887,61 @@ function App() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
+  function handleMediaMarkPointerDown(event: PointerEvent<Element>) {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    mediaMarkDragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: projectMediaMark.layout.x,
+      startY: projectMediaMark.layout.y,
+    }
+  }
+
+  function handleMediaMarkPointerMove(event: PointerEvent<Element>) {
+    const dragState = mediaMarkDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setProjectMediaMark((currentMark) => {
+      const nextMark = {
+        ...currentMark,
+        layout: {
+          ...currentMark.layout,
+          x: dragState.startX + deltaXPercent,
+          y: dragState.startY + deltaYPercent,
+        },
+      }
+
+      return {
+        ...nextMark,
+        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleMediaMarkPointerUp(event: PointerEvent<Element>) {
+    const dragState = mediaMarkDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    mediaMarkDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   function getDiscTextPreviewTransform(_key: DiscTextKey, layout: DiscTextLayout) {
     if (layout.mode === 'straight') {
       return `translate(-50%, -50%) scale(${layout.scale})`
@@ -1871,6 +2109,7 @@ function App() {
           projectLogoAssets={projectLogoAssets}
           projectMetadata={projectMetadata}
           projectRatingBadge={projectRatingBadge}
+          projectMediaMark={projectMediaMark}
           handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
@@ -1887,6 +2126,12 @@ function App() {
           handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
           handleClearRatingBadgeImage={handleClearRatingBadgeImage}
           handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
+          handleMediaMarkUpload={handleMediaMarkUpload}
+          handleMediaMarkValueChange={handleMediaMarkValueChange}
+          handleMediaMarkSourceChange={handleMediaMarkSourceChange}
+          handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
+          handleClearMediaMarkImage={handleClearMediaMarkImage}
+          handleResetMediaMarkLayout={handleResetMediaMarkLayout}
         />
 
 
@@ -1924,9 +2169,13 @@ function App() {
         projectLogoAssets={projectLogoAssets}
         projectMetadata={projectMetadata}
         projectRatingBadge={projectRatingBadge}
+        projectMediaMark={projectMediaMark}
         handleRatingBadgePointerDown={handleRatingBadgePointerDown}
         handleRatingBadgePointerMove={handleRatingBadgePointerMove}
         handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+        handleMediaMarkPointerDown={handleMediaMarkPointerDown}
+        handleMediaMarkPointerMove={handleMediaMarkPointerMove}
+        handleMediaMarkPointerUp={handleMediaMarkPointerUp}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}

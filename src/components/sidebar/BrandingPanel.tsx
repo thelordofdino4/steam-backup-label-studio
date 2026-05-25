@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
-import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, GameRatingSystem, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
+import { MEDIA_MARK_OPTIONS, getMediaMarkLabel } from '../../project/projectMediaMark'
+import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, GameRatingSystem, MediaMarkLayout, MediaMarkSource, MediaMarkValue, ProjectMediaMark, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -12,6 +13,7 @@ export type BrandingPanelProps = {
   projectLogoAssets: ProjectLogoAssets
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
+  projectMediaMark: ProjectMediaMark
   handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
@@ -41,6 +43,15 @@ export type BrandingPanelProps = {
   ) => void
   handleClearRatingBadgeImage: () => void
   handleResetRatingBadgeLayout: () => void
+  handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleMediaMarkValueChange: (value: MediaMarkValue) => void
+  handleMediaMarkSourceChange: (source: MediaMarkSource) => void
+  handleMediaMarkLayoutChange: (
+    field: keyof MediaMarkLayout,
+    value: boolean | number,
+  ) => void
+  handleClearMediaMarkImage: () => void
+  handleResetMediaMarkLayout: () => void
 }
 
 const LOGO_ALIGNMENT_PRESETS = [
@@ -469,6 +480,168 @@ function RatingBadgeControls({
   )
 }
 
+function MediaMarkControls({
+  projectMediaMark,
+  handleMediaMarkUpload,
+  handleMediaMarkValueChange,
+  handleMediaMarkSourceChange,
+  handleMediaMarkLayoutChange,
+  handleClearMediaMarkImage,
+  handleResetMediaMarkLayout,
+}: {
+  projectMediaMark: ProjectMediaMark
+  handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleMediaMarkValueChange: (value: MediaMarkValue) => void
+  handleMediaMarkSourceChange: (source: MediaMarkSource) => void
+  handleMediaMarkLayoutChange: (
+    field: keyof MediaMarkLayout,
+    value: boolean | number,
+  ) => void
+  handleClearMediaMarkImage: () => void
+  handleResetMediaMarkLayout: () => void
+}) {
+  const currentMarkLabel = getMediaMarkLabel(projectMediaMark.value)
+
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label spacing-top">
+        <input
+          type="checkbox"
+          checked={projectMediaMark.layout.enabled}
+          onChange={(event) =>
+            handleMediaMarkLayoutChange('enabled', event.target.checked)
+          }
+        />
+        Show media/platform mark
+      </label>
+
+      <label className="field-label spacing-top" htmlFor="media-mark-value">
+        Mark
+      </label>
+      <select
+        id="media-mark-value"
+        value={projectMediaMark.value}
+        onChange={(event) =>
+          handleMediaMarkValueChange(event.target.value as MediaMarkValue)
+        }
+      >
+        {MEDIA_MARK_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+
+      <label className="field-label spacing-top" htmlFor="media-mark-source">
+        Mark source
+      </label>
+      <select
+        id="media-mark-source"
+        value={projectMediaMark.source}
+        onChange={(event) =>
+          handleMediaMarkSourceChange(event.target.value as MediaMarkSource)
+        }
+      >
+        <option value="placeholder">Built-in placeholder</option>
+        <option value="custom">Custom image</option>
+      </select>
+
+      <p className="hint">
+        Current mark: {currentMarkLabel}. Placeholder marks are generic internal artwork.
+      </p>
+
+      <span className="field-label spacing-top">Custom mark image</span>
+      <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">
+        Choose custom mark
+      </label>
+      <input
+        id="media-mark-upload"
+        className="logo-file-input"
+        type="file"
+        accept="image/*"
+        onChange={handleMediaMarkUpload}
+      />
+
+      {projectMediaMark.customImageDataUrl ? (
+        <div className="selected-lockup-card logo-asset-status-card">
+          <img
+            className="logo-asset-preview"
+            src={projectMediaMark.customImageDataUrl}
+            alt=""
+            draggable={false}
+          />
+          <span>
+            Custom media mark active
+            {formatLogoSize(projectMediaMark.customImageSize)}
+          </span>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={handleClearMediaMarkImage}
+          >
+            Clear custom mark
+          </button>
+        </div>
+      ) : (
+        <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>
+      )}
+
+      <label className="field-label spacing-top" htmlFor="media-mark-scale">
+        Scale
+      </label>
+      <input
+        id="media-mark-scale"
+        type="range"
+        min="0.25"
+        max="2"
+        step="0.01"
+        value={projectMediaMark.layout.scale}
+        onChange={(event) =>
+          handleMediaMarkLayoutChange('scale', Number(event.target.value))
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="media-mark-x">
+        X position
+      </label>
+      <input
+        id="media-mark-x"
+        type="range"
+        min="0"
+        max="100"
+        step="0.1"
+        value={projectMediaMark.layout.x}
+        onChange={(event) =>
+          handleMediaMarkLayoutChange('x', Number(event.target.value))
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="media-mark-y">
+        Y position
+      </label>
+      <input
+        id="media-mark-y"
+        type="range"
+        min="0"
+        max="100"
+        step="0.1"
+        value={projectMediaMark.layout.y}
+        onChange={(event) =>
+          handleMediaMarkLayoutChange('y', Number(event.target.value))
+        }
+      />
+
+      <button
+        className="secondary-button"
+        type="button"
+        onClick={handleResetMediaMarkLayout}
+      >
+        Reset media mark layout
+      </button>
+    </div>
+  )
+}
+
 export function BrandingPanel({
   steamLogoPlacement,
   handleSteamLogoPlacementChange,
@@ -479,6 +652,7 @@ export function BrandingPanel({
   projectLogoAssets,
   projectMetadata,
   projectRatingBadge,
+  projectMediaMark,
   handleProjectMetadataChange,
   handleSteamBannerLockupUpload,
   handleClearSteamBannerLockup,
@@ -495,6 +669,12 @@ export function BrandingPanel({
   handleRatingBadgeLayoutChange,
   handleClearRatingBadgeImage,
   handleResetRatingBadgeLayout,
+  handleMediaMarkUpload,
+  handleMediaMarkValueChange,
+  handleMediaMarkSourceChange,
+  handleMediaMarkLayoutChange,
+  handleClearMediaMarkImage,
+  handleResetMediaMarkLayout,
 }: BrandingPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -695,6 +875,21 @@ export function BrandingPanel({
             handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
             handleClearRatingBadgeImage={handleClearRatingBadgeImage}
             handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
+          />
+        </div>
+      </details>
+
+      <details className="metadata-details collapsible-panel spacing-top">
+        <summary className="panel-summary">Media / platform mark</summary>
+        <div className="panel-content">
+          <MediaMarkControls
+            projectMediaMark={projectMediaMark}
+            handleMediaMarkUpload={handleMediaMarkUpload}
+            handleMediaMarkValueChange={handleMediaMarkValueChange}
+            handleMediaMarkSourceChange={handleMediaMarkSourceChange}
+            handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
+            handleClearMediaMarkImage={handleClearMediaMarkImage}
+            handleResetMediaMarkLayout={handleResetMediaMarkLayout}
           />
         </div>
       </details>

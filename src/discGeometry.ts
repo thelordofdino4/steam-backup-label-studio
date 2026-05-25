@@ -9,6 +9,8 @@ export const LOGO_BASE_WIDTH_RATIO = 0.18
 export const LOGO_MAX_HEIGHT_RATIO = 0.1
 export const RATING_BADGE_BASE_WIDTH_RATIO = 0.09
 export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
+export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
+export const MEDIA_MARK_BASE_HEIGHT_RATIO = 0.08
 
 export type LayoutPoint = {
   x: number
@@ -198,6 +200,22 @@ export function getRatingBadgePlaceholderBoundsPercent(scale: number): RenderBou
   return {
     halfWidth: (RATING_BADGE_BASE_WIDTH_RATIO * 100 * scale) / 2,
     halfHeight: (RATING_BADGE_BASE_HEIGHT_RATIO * 100 * scale) / 2,
+  }
+}
+
+export function getMediaMarkBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    MEDIA_MARK_BASE_WIDTH_RATIO,
+    MEDIA_MARK_BASE_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getMediaMarkPlaceholderBoundsPercent(scale: number): RenderBoundsPercent {
+  return {
+    halfWidth: (MEDIA_MARK_BASE_WIDTH_RATIO * 100 * scale) / 2,
+    halfHeight: (MEDIA_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
   }
 }
 

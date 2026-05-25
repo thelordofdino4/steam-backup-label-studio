@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent, RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset, ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
+import type { BackgroundOffset, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -9,6 +9,7 @@ import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { SteamBannerPreview } from './SteamBannerPreview'
 import { LogoAssetLayer } from './LogoAssetLayer'
 import { RatingBadgeLayer } from './RatingBadgeLayer'
+import { MediaMarkLayer } from './MediaMarkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type DiscPreviewProps = {
@@ -28,9 +29,13 @@ export type DiscPreviewProps = {
   projectLogoAssets: ProjectLogoAssets
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
+  projectMediaMark: ProjectMediaMark
   handleRatingBadgePointerDown: (event: PointerEvent<Element>) => void
   handleRatingBadgePointerMove: (event: PointerEvent<Element>) => void
   handleRatingBadgePointerUp: (event: PointerEvent<Element>) => void
+  handleMediaMarkPointerDown: (event: PointerEvent<Element>) => void
+  handleMediaMarkPointerMove: (event: PointerEvent<Element>) => void
+  handleMediaMarkPointerUp: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
     logoKey: 'developer' | 'publisher',
@@ -69,9 +74,13 @@ export function DiscPreview({
   projectLogoAssets,
   projectMetadata,
   projectRatingBadge,
+  projectMediaMark,
   handleRatingBadgePointerDown,
   handleRatingBadgePointerMove,
   handleRatingBadgePointerUp,
+  handleMediaMarkPointerDown,
+  handleMediaMarkPointerMove,
+  handleMediaMarkPointerUp,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
@@ -138,6 +147,13 @@ export function DiscPreview({
           handleRatingBadgePointerDown={handleRatingBadgePointerDown}
           handleRatingBadgePointerMove={handleRatingBadgePointerMove}
           handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+        />
+
+        <MediaMarkLayer
+          projectMediaMark={projectMediaMark}
+          handleMediaMarkPointerDown={handleMediaMarkPointerDown}
+          handleMediaMarkPointerMove={handleMediaMarkPointerMove}
+          handleMediaMarkPointerUp={handleMediaMarkPointerUp}
         />
 
         <DiscTextLayer
