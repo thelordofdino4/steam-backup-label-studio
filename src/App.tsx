@@ -85,6 +85,14 @@ type LogoDragState = {
   startY: number
 }
 
+type RatingBadgeDragState = {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
 type CustomDimensionKey =
   | 'outerDiameterMm'
   | 'physicalCenterHoleDiameterMm'
@@ -230,6 +238,7 @@ function App() {
   const dragStateRef = useRef<DragState | null>(null)
   const textDragStateRef = useRef<TextDragState | null>(null)
   const logoDragStateRef = useRef<LogoDragState | null>(null)
+  const ratingBadgeDragStateRef = useRef<RatingBadgeDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -571,6 +580,85 @@ function App() {
     announceStatus(`Reset ${logoKey} logo layout.`)
   }
 
+  async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the rating badge.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+
+      setProjectRatingBadge((currentBadge) => ({
+        ...currentBadge,
+        source: 'custom',
+        customImageDataUrl: imageDataUrl,
+        customImageSize: getNaturalImageSize(image),
+        layout: {
+          ...currentBadge.layout,
+          enabled: true,
+        },
+      }))
+
+      announceStatus(`Using ${file.name} as the rating badge.`)
+    } catch (error) {
+      announceStatus(`Rating badge import failed: ${String(error)}`)
+    }
+  }
+
+  function handleRatingBadgeSourceChange(source: 'placeholder' | 'custom') {
+    setProjectRatingBadge((currentBadge) => ({
+      ...currentBadge,
+      source,
+    }))
+  }
+
+  function handleRatingBadgeLayoutChange(
+    field: keyof ProjectRatingBadge['layout'],
+    value: boolean | number,
+  ) {
+    setProjectRatingBadge((currentBadge) => ({
+      ...currentBadge,
+      layout: {
+        ...currentBadge.layout,
+        [field]: value,
+      },
+    }))
+  }
+
+  function handleClearRatingBadgeImage() {
+    setProjectRatingBadge((currentBadge) => ({
+      ...currentBadge,
+      source: 'placeholder',
+      customImageDataUrl: null,
+      customImageSize: null,
+    }))
+
+    announceStatus('Cleared custom rating badge image.')
+  }
+
+  function handleResetRatingBadgeLayout() {
+    const defaults = createDefaultProjectRatingBadge()
+
+    setProjectRatingBadge((currentBadge) => ({
+      ...currentBadge,
+      layout: {
+        ...defaults.layout,
+        enabled: currentBadge.layout.enabled,
+      },
+    }))
+
+    announceStatus('Reset rating badge layout.')
+  }
+
   function handleResetSteamBannerColors() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     announceStatus('Reset Steam banner colors to the default palette.')
@@ -736,6 +824,7 @@ function App() {
     dragStateRef.current = null
     textDragStateRef.current = null
     logoDragStateRef.current = null
+    ratingBadgeDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(createCustomDiscTemplate())
@@ -1112,6 +1201,8 @@ function App() {
         steamBannerLockupImageUrl,
         steamBannerLockupLayout,
         projectLogoAssets,
+        projectMetadata,
+        projectRatingBadge,
         discTextSettings,
         discTextValues,
         discTextLayout,
@@ -1261,6 +1352,54 @@ function App() {
 
     event.stopPropagation()
     logoDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  function handleRatingBadgePointerDown(event: PointerEvent<Element>) {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    ratingBadgeDragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: projectRatingBadge.layout.x,
+      startY: projectRatingBadge.layout.y,
+    }
+  }
+
+  function handleRatingBadgePointerMove(event: PointerEvent<Element>) {
+    const dragState = ratingBadgeDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setProjectRatingBadge((currentBadge) => ({
+      ...currentBadge,
+      layout: {
+        ...currentBadge.layout,
+        x: clampNumber(dragState.startX + deltaXPercent, 0, 100),
+        y: clampNumber(dragState.startY + deltaYPercent, 0, 100),
+      },
+    }))
+  }
+
+  function handleRatingBadgePointerUp(event: PointerEvent<Element>) {
+    const dragState = ratingBadgeDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    ratingBadgeDragStateRef.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
@@ -1429,6 +1568,9 @@ function App() {
           steamBannerLockupLayout={steamBannerLockupLayout}
           steamBannerColors={steamBannerColors}
           projectLogoAssets={projectLogoAssets}
+          projectMetadata={projectMetadata}
+          projectRatingBadge={projectRatingBadge}
+          handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
@@ -1439,6 +1581,11 @@ function App() {
           handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
           handleClearLogoAsset={handleClearLogoAsset}
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
+          handleRatingBadgeUpload={handleRatingBadgeUpload}
+          handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
+          handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
+          handleClearRatingBadgeImage={handleClearRatingBadgeImage}
+          handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
         />
 
 
@@ -1474,6 +1621,11 @@ function App() {
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
+        projectMetadata={projectMetadata}
+        projectRatingBadge={projectRatingBadge}
+        handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+        handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+        handleRatingBadgePointerUp={handleRatingBadgePointerUp}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}

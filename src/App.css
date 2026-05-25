@@ -1172,3 +1172,66 @@ input:disabled {
   cursor: grabbing;
 }
 
+.disc-rating-badge-layer {
+  position: absolute;
+  z-index: 7;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.disc-rating-badge-layer:active {
+  cursor: grabbing;
+}
+
+.disc-rating-badge-image {
+  display: block;
+  width: 58px;
+  height: auto;
+  max-height: 82px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.rating-badge-placeholder {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  min-height: 78px;
+  padding: 5px;
+  border: 2px solid #111827;
+  border-radius: 6px;
+  background: #f9fafb;
+  color: #111827;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  text-align: center;
+}
+
+.rating-badge-placeholder strong {
+  display: block;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.rating-badge-system,
+.rating-badge-placeholder-note {
+  display: block;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.rating-badge-placeholder-pegi {
+  border-radius: 50%;
+  background: #f9fafb;
+}
+
+.rating-badge-placeholder-custom {
+  background: #111827;
+  color: #f9fafb;
+  border-color: #f9fafb;
+}
+

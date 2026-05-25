@@ -3,8 +3,8 @@ import type { ProjectRatingBadge, RatingBadgeLayout } from './projectTypes'
 export const DEFAULT_RATING_BADGE_LAYOUT: RatingBadgeLayout = {
   enabled: false,
   scale: 1,
-  x: 22,
-  y: 78,
+  x: 75,
+  y: 50,
 }
 
 export function createDefaultProjectRatingBadge(): ProjectRatingBadge {
