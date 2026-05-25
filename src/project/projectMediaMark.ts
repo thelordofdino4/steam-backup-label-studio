@@ -33,8 +33,8 @@ export const DEFAULT_MEDIA_MARK_LAYOUT: MediaMarkLayout = {
 export const DEFAULT_PLATFORM_MARK_LAYOUT: PlatformMarkLayout = {
   enabled: false,
   scale: 1,
-  x: 50,
-  y: 78,
+  x: 31,
+  y: 70,
 }
 
 export function getMediaMarkLabel(value: MediaMarkValue) {

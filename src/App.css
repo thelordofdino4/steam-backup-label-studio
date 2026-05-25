@@ -1291,18 +1291,31 @@ input:disabled {
 }
 
 .disc-platform-marks-placeholder {
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
-  gap: 5px;
+  position: relative;
+  height: 100%;
+  width: 100%;
 }
 
-.disc-platform-marks-placeholder strong {
+.disc-platform-mark-placeholder {
   align-items: center;
-  align-self: stretch;
-  border: 1px solid rgba(249, 250, 251, 0.72);
-  border-radius: 4px;
+  background: rgba(17, 24, 39, 0.88);
+  border: 2px solid rgba(249, 250, 251, 0.92);
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: #f9fafb;
   display: flex;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
   justify-content: center;
   min-width: 0;
-  padding: 0 4px;
+  padding: 4px;
+  position: absolute;
+  text-align: center;
+}
+
+.disc-platform-mark-placeholder strong {
+  font-size: clamp(7px, 0.9cqw, 11px);
+  font-weight: 900;
+  line-height: 1;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
 }

@@ -4,6 +4,10 @@ import {
   getMediaMarkPlaceholderBoundsPercent,
   getPlatformMarkGroupBoundsPercent,
   getPlatformMarkGroupPlaceholderBoundsPercent,
+  PLATFORM_MARK_BASE_HEIGHT_RATIO,
+  PLATFORM_MARK_BASE_WIDTH_RATIO,
+  PLATFORM_MARK_GAP_RATIO,
+  PLATFORM_MARK_MAX_COLUMNS,
 } from '../../discGeometry'
 import { getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
 import type { ProjectMediaMark, ProjectPlatformMarks } from '../../project/projectTypes'
@@ -105,6 +109,23 @@ export function PlatformMarksLayer({
     projectPlatformMarks.values.length > 0
       ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ')
       : 'Platform marks'
+  const columns = Math.min(
+    PLATFORM_MARK_MAX_COLUMNS,
+    Math.max(1, projectPlatformMarks.values.length),
+  )
+  const rows = Math.ceil(
+    Math.max(1, projectPlatformMarks.values.length) / PLATFORM_MARK_MAX_COLUMNS,
+  )
+  const groupWidthRatio =
+    PLATFORM_MARK_BASE_WIDTH_RATIO * columns +
+    PLATFORM_MARK_GAP_RATIO * Math.max(0, columns - 1)
+  const groupHeightRatio =
+    PLATFORM_MARK_BASE_HEIGHT_RATIO * rows +
+    PLATFORM_MARK_GAP_RATIO * Math.max(0, rows - 1)
+  const boxWidthPercent = (PLATFORM_MARK_BASE_WIDTH_RATIO / groupWidthRatio) * 100
+  const boxHeightPercent = (PLATFORM_MARK_BASE_HEIGHT_RATIO / groupHeightRatio) * 100
+  const gapXPercent = (PLATFORM_MARK_GAP_RATIO / groupWidthRatio) * 100
+  const gapYPercent = (PLATFORM_MARK_GAP_RATIO / groupHeightRatio) * 100
 
   return (
     <div
@@ -129,10 +150,26 @@ export function PlatformMarksLayer({
           draggable={false}
         />
       ) : (
-        <div className="disc-media-mark-placeholder disc-platform-marks-placeholder">
-          {projectPlatformMarks.values.map((value) => (
-            <strong key={value}>{getPlatformMarkLabel(value)}</strong>
-          ))}
+        <div className="disc-platform-marks-placeholder">
+          {projectPlatformMarks.values.map((value, index) => {
+            const column = index % PLATFORM_MARK_MAX_COLUMNS
+            const row = Math.floor(index / PLATFORM_MARK_MAX_COLUMNS)
+
+            return (
+              <div
+                key={value}
+                className="disc-platform-mark-placeholder"
+                style={{
+                  left: `${column * (boxWidthPercent + gapXPercent)}%`,
+                  top: `${row * (boxHeightPercent + gapYPercent)}%`,
+                  width: `${boxWidthPercent}%`,
+                  height: `${boxHeightPercent}%`,
+                }}
+              >
+                <strong>{getPlatformMarkLabel(value)}</strong>
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

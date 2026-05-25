@@ -3,7 +3,9 @@ import {
   MEDIA_MARK_BASE_WIDTH_RATIO,
   PLATFORM_MARK_BASE_HEIGHT_RATIO,
   PLATFORM_MARK_BASE_WIDTH_RATIO,
+  PLATFORM_MARK_GAP_RATIO,
   PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
+  PLATFORM_MARK_MAX_COLUMNS,
 } from '../discGeometry'
 import { getMediaMarkLabel, getPlatformMarkLabel } from '../project/projectMediaMark'
 import type { ProjectMediaMark, ProjectPlatformMarks } from '../project/projectTypes'
@@ -94,9 +96,25 @@ export async function drawMediaMark(
 }
 
 function getPlatformMarksPlaceholderWidthRatio(platformMarks: ProjectPlatformMarks) {
-  return Math.min(
-    PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
-    PLATFORM_MARK_BASE_WIDTH_RATIO * Math.max(1, platformMarks.values.length),
+  const columns = Math.min(
+    PLATFORM_MARK_MAX_COLUMNS,
+    Math.max(1, platformMarks.values.length),
+  )
+
+  return (
+    PLATFORM_MARK_BASE_WIDTH_RATIO * columns +
+    PLATFORM_MARK_GAP_RATIO * Math.max(0, columns - 1)
+  )
+}
+
+function getPlatformMarksPlaceholderHeightRatio(platformMarks: ProjectPlatformMarks) {
+  const rows = Math.ceil(
+    Math.max(1, platformMarks.values.length) / PLATFORM_MARK_MAX_COLUMNS,
+  )
+
+  return (
+    PLATFORM_MARK_BASE_HEIGHT_RATIO * rows +
+    PLATFORM_MARK_GAP_RATIO * Math.max(0, rows - 1)
   )
 }
 
@@ -114,45 +132,40 @@ function drawPlaceholderPlatformMarks(
     getPlatformMarksPlaceholderWidthRatio(platformMarks) *
     platformMarks.layout.scale
   const height =
-    exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * platformMarks.layout.scale
+    exportSize *
+    getPlatformMarksPlaceholderHeightRatio(platformMarks) *
+    platformMarks.layout.scale
   const x = exportSize * (platformMarks.layout.x / 100) - width / 2
   const y = exportSize * (platformMarks.layout.y / 100) - height / 2
+  const boxWidth = exportSize * PLATFORM_MARK_BASE_WIDTH_RATIO * platformMarks.layout.scale
+  const boxHeight = exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * platformMarks.layout.scale
+  const gap = exportSize * PLATFORM_MARK_GAP_RATIO * platformMarks.layout.scale
 
   context.save()
-  context.fillStyle = 'rgba(17, 24, 39, 0.88)'
-  context.strokeStyle = 'rgba(249, 250, 251, 0.92)'
-  context.lineWidth = Math.max(2, exportSize * 0.0022)
-  context.beginPath()
-  context.roundRect(x, y, width, height, exportSize * 0.006)
-  context.fill()
-  context.stroke()
-
-  const gap = Math.max(3, width * 0.016)
-  const innerPadding = Math.max(5, height * 0.12)
-  const chipWidth =
-    (width - innerPadding * 2 - gap * (platformMarks.values.length - 1)) /
-    platformMarks.values.length
-  const chipHeight = height - innerPadding * 2
-
-  context.fillStyle = '#f9fafb'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.font = `900 ${Math.max(8, height * 0.24)}px Arial`
+  context.font = `900 ${Math.max(8, boxHeight * 0.23)}px Arial`
 
   platformMarks.values.forEach((value, index) => {
-    const chipX = x + innerPadding + index * (chipWidth + gap)
-    const chipY = y + innerPadding
+    const column = index % PLATFORM_MARK_MAX_COLUMNS
+    const row = Math.floor(index / PLATFORM_MARK_MAX_COLUMNS)
+    const boxX = x + column * (boxWidth + gap)
+    const boxY = y + row * (boxHeight + gap)
 
-    context.strokeStyle = 'rgba(249, 250, 251, 0.72)'
-    context.lineWidth = Math.max(1, exportSize * 0.0011)
+    context.fillStyle = 'rgba(17, 24, 39, 0.88)'
+    context.strokeStyle = 'rgba(249, 250, 251, 0.92)'
+    context.lineWidth = Math.max(2, exportSize * 0.0022)
     context.beginPath()
-    context.roundRect(chipX, chipY, chipWidth, chipHeight, exportSize * 0.004)
+    context.roundRect(boxX, boxY, boxWidth, boxHeight, exportSize * 0.006)
+    context.fill()
     context.stroke()
+
+    context.fillStyle = '#f9fafb'
     context.fillText(
       getPlatformMarkLabel(value).toUpperCase(),
-      chipX + chipWidth / 2,
-      chipY + chipHeight / 2,
-      chipWidth * 0.82,
+      boxX + boxWidth / 2,
+      boxY + boxHeight / 2,
+      boxWidth * 0.82,
     )
   })
 
