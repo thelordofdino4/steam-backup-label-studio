@@ -33,13 +33,16 @@ The core disc-label workflow is working:
 5. Drag, resize, and reset the disc background image.
 6. Choose a physical disc template or custom dimensions.
 7. Place the Steam-style banner lockup at the top or bottom, or hide it.
-8. Enable and edit optional disc text: game title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
-9. Adjust text position, scale, and straight-text alignment; use stable centered curved copyright text with arc, angle, inset, scale, side, and wrapping controls.
-10. Toggle optional export guide marks.
-11. Save and reload project files.
-12. Export a clean 300 DPI PNG.
+8. Edit project-owned metadata, including title, subtitle, Steam App ID, developer, publisher, release date, backup date, disc numbers, install notes, copyright/legal text, and rating fields.
+9. Enable and edit optional disc text: game title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
+10. Adjust text position, scale, and straight-text alignment; use stable centered curved copyright text with arc, angle, inset, scale, side, and wrapping controls.
+11. Adjust Steam banner placement, color, lockup image, scale, and offsets.
+12. Add optional developer/publisher logos with alignment presets, and optional rating badges with placeholder or custom-image rendering.
+13. Toggle optional export guide marks.
+14. Save, reload, reset, and export project files.
+15. Export a clean 300 DPI PNG.
 
-Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, better image scaling for Steam artwork, a labeled preview pane, stacked preview toast notifications, Steam library/local screenshot artwork discovery, a real default Steam banner lockup image, adjustable disc text elements, and stable centered curved copyright text.
+Recent pre-alpha work added physical disc geometry, custom dimensions, independently collapsible editor panels, fixed preview layout behavior, minimum desktop window sizing, better image scaling for Steam artwork, a labeled preview pane, stacked preview toast notifications, Steam library/local screenshot artwork discovery, a real default Steam banner lockup image with user controls, adjustable disc text elements, stable centered curved copyright text, project-owned metadata, developer/publisher logo assets, rating badges, and New Project reset behavior.
 
 The emergency editor-foundation refactor tracked in issue #36 is complete and closed. High-risk editor foundations have moved out of `App.tsx`, including project file helpers, shared utilities, PNG export rendering, status toast state, sidebar panels, and preview components. Build and lint are currently clean, and local smoke testing has passed. Follow-up cleanup work is tracked separately in issues #44-#49.
 
@@ -59,11 +62,15 @@ The app is usable for early disc-label testing, but the larger multi-template pr
 - Steam screenshot and local Steam screenshot discovery where available.
 - Imported Steam artwork selection from the Artwork panel.
 - Background drag and scale controls.
-- Steam-style banner lockup with top, bottom, and hidden placement options.
+- Steam-style banner lockup with top, bottom, hidden placement, color, lockup image, scale, and offset controls.
+- Editable project-owned metadata fields for imported or manual projects.
+- Optional developer and publisher logo assets with alignment presets, drag positioning, scale controls, preview, export, and save/load persistence.
+- Optional rating badge support with ESRB/PEGI/custom placeholders, custom image replacement, drag positioning, scale controls, preview, export, and save/load persistence.
 - Optional disc text elements for title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
 - Straight text dragging, scaling, offsets, alignment, preview, export, and save/load persistence.
 - Stable centered curved copyright/legal text with arc length, angle, inset, scale, side, wrapping, preview, export, and save/load persistence.
 - Save/load project files with embedded artwork and layout settings.
+- New Project reset behavior.
 - 300 DPI PNG export based on real physical disc dimensions.
 - Optional exported guide marks.
 - Collapsible editor panels that can be opened in any combination.
@@ -74,11 +81,10 @@ The app is usable for early disc-label testing, but the larger multi-template pr
 
 - Add curved copyright text alignment modes without regressing the stable centered curved text behavior.
 - Add adjustable straight text box widths.
-- Add adjustable banner lockup scale and offset controls.
-- Add user-facing banner color controls.
-- Add New Project / Reset Project.
-- Add export-time summary/preflight behavior.
-- Add manual metadata fields and richer metadata overrides.
+- Constrain movable visual elements to safe-zone geometry.
+- Expand export-time summary/preflight behavior for logos, rating badges, layout, guides, backgrounds, and custom dimensions.
+- Decide longer-term project asset packaging/provenance behavior.
+- Document and enforce disc editor layer ordering across preview and PNG export.
 - Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
 - Continue post-refactor cleanup tracked by issues #44-#49 where it supports upcoming feature work.
 - Begin shared template-system planning for future case editors.
