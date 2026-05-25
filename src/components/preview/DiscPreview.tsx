@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent, RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge } from '../../project/projectTypes'
+import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -37,9 +37,12 @@ export type DiscPreviewProps = {
   handleMediaMarkPointerDown: (event: PointerEvent<Element>) => void
   handleMediaMarkPointerMove: (event: PointerEvent<Element>) => void
   handleMediaMarkPointerUp: (event: PointerEvent<Element>) => void
-  handlePlatformMarksPointerDown: (event: PointerEvent<Element>) => void
-  handlePlatformMarksPointerMove: (event: PointerEvent<Element>) => void
-  handlePlatformMarksPointerUp: (event: PointerEvent<Element>) => void
+  handlePlatformMarkPointerDown: (
+    event: PointerEvent<Element>,
+    value: PlatformMarkValue,
+  ) => void
+  handlePlatformMarkPointerMove: (event: PointerEvent<Element>) => void
+  handlePlatformMarkPointerUp: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
     logoKey: 'developer' | 'publisher',
@@ -86,9 +89,9 @@ export function DiscPreview({
   handleMediaMarkPointerDown,
   handleMediaMarkPointerMove,
   handleMediaMarkPointerUp,
-  handlePlatformMarksPointerDown,
-  handlePlatformMarksPointerMove,
-  handlePlatformMarksPointerUp,
+  handlePlatformMarkPointerDown,
+  handlePlatformMarkPointerMove,
+  handlePlatformMarkPointerUp,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
@@ -166,9 +169,9 @@ export function DiscPreview({
 
         <PlatformMarksLayer
           projectPlatformMarks={projectPlatformMarks}
-          handlePlatformMarksPointerDown={handlePlatformMarksPointerDown}
-          handlePlatformMarksPointerMove={handlePlatformMarksPointerMove}
-          handlePlatformMarksPointerUp={handlePlatformMarksPointerUp}
+          handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
+          handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
+          handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
         />
 
         <DiscTextLayer

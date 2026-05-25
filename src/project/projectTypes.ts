@@ -124,12 +124,16 @@ export type PlatformMarkLayout = {
   y: number
 }
 
-export type ProjectPlatformMarks = {
-  values: PlatformMarkValue[]
+export type ProjectPlatformMarkAsset = {
   source: PlatformMarkSource
   customImageDataUrl: string | null
   customImageSize: BackgroundImageSize | null
   layout: PlatformMarkLayout
+}
+
+export type ProjectPlatformMarks = {
+  values: PlatformMarkValue[]
+  assets: Partial<Record<PlatformMarkValue, ProjectPlatformMarkAsset>>
 }
 
 export type SavedProject = {

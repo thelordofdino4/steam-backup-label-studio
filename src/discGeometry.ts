@@ -12,10 +12,7 @@ export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
 export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
 export const MEDIA_MARK_BASE_HEIGHT_RATIO = 0.08
 export const PLATFORM_MARK_BASE_WIDTH_RATIO = 0.12
-export const PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO = 0.38
 export const PLATFORM_MARK_BASE_HEIGHT_RATIO = 0.08
-export const PLATFORM_MARK_GAP_RATIO = 0.012
-export const PLATFORM_MARK_MAX_COLUMNS = 3
 
 export type LayoutPoint = {
   x: number
@@ -224,32 +221,19 @@ export function getMediaMarkPlaceholderBoundsPercent(scale: number): RenderBound
   }
 }
 
-export function getPlatformMarkGroupBoundsPercent(naturalSize: NaturalSize, scale: number) {
+export function getPlatformMarkBoundsPercent(naturalSize: NaturalSize, scale: number) {
   return getContainedAssetBoundsPercent(
     naturalSize,
-    PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
+    PLATFORM_MARK_BASE_WIDTH_RATIO,
     PLATFORM_MARK_BASE_HEIGHT_RATIO,
     scale,
   )
 }
 
-export function getPlatformMarkGroupPlaceholderBoundsPercent(
-  markCount: number,
-  scale: number,
-): RenderBoundsPercent {
-  const normalizedCount = Math.max(1, markCount)
-  const columns = Math.min(PLATFORM_MARK_MAX_COLUMNS, normalizedCount)
-  const rows = Math.ceil(normalizedCount / PLATFORM_MARK_MAX_COLUMNS)
-  const widthRatio =
-    PLATFORM_MARK_BASE_WIDTH_RATIO * columns +
-    PLATFORM_MARK_GAP_RATIO * Math.max(0, columns - 1)
-  const heightRatio =
-    PLATFORM_MARK_BASE_HEIGHT_RATIO * rows +
-    PLATFORM_MARK_GAP_RATIO * Math.max(0, rows - 1)
-
+export function getPlatformMarkPlaceholderBoundsPercent(scale: number): RenderBoundsPercent {
   return {
-    halfWidth: (widthRatio * 100 * scale) / 2,
-    halfHeight: (heightRatio * 100 * scale) / 2,
+    halfWidth: (PLATFORM_MARK_BASE_WIDTH_RATIO * 100 * scale) / 2,
+    halfHeight: (PLATFORM_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
   }
 }
 

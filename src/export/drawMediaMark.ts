@@ -3,12 +3,9 @@ import {
   MEDIA_MARK_BASE_WIDTH_RATIO,
   PLATFORM_MARK_BASE_HEIGHT_RATIO,
   PLATFORM_MARK_BASE_WIDTH_RATIO,
-  PLATFORM_MARK_GAP_RATIO,
-  PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
-  PLATFORM_MARK_MAX_COLUMNS,
 } from '../discGeometry'
 import { getMediaMarkLabel, getPlatformMarkLabel } from '../project/projectMediaMark'
-import type { ProjectMediaMark, ProjectPlatformMarks } from '../project/projectTypes'
+import type { PlatformMarkValue, ProjectMediaMark, ProjectPlatformMarkAsset, ProjectPlatformMarks } from '../project/projectTypes'
 import { loadImage } from './canvasImage'
 
 function drawPlaceholderMediaMark(
@@ -95,101 +92,58 @@ export async function drawMediaMark(
   drawPlaceholderMediaMark(context, exportSize, mediaMark)
 }
 
-function getPlatformMarksPlaceholderWidthRatio(platformMarks: ProjectPlatformMarks) {
-  const columns = Math.min(
-    PLATFORM_MARK_MAX_COLUMNS,
-    Math.max(1, platformMarks.values.length),
-  )
-
-  return (
-    PLATFORM_MARK_BASE_WIDTH_RATIO * columns +
-    PLATFORM_MARK_GAP_RATIO * Math.max(0, columns - 1)
-  )
-}
-
-function getPlatformMarksPlaceholderHeightRatio(platformMarks: ProjectPlatformMarks) {
-  const rows = Math.ceil(
-    Math.max(1, platformMarks.values.length) / PLATFORM_MARK_MAX_COLUMNS,
-  )
-
-  return (
-    PLATFORM_MARK_BASE_HEIGHT_RATIO * rows +
-    PLATFORM_MARK_GAP_RATIO * Math.max(0, rows - 1)
-  )
-}
-
-function drawPlaceholderPlatformMarks(
+function drawPlaceholderPlatformMark(
   context: CanvasRenderingContext2D,
   exportSize: number,
-  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  asset: ProjectPlatformMarkAsset,
 ) {
-  if (platformMarks.values.length === 0) {
-    return
-  }
-
-  const width =
-    exportSize *
-    getPlatformMarksPlaceholderWidthRatio(platformMarks) *
-    platformMarks.layout.scale
-  const height =
-    exportSize *
-    getPlatformMarksPlaceholderHeightRatio(platformMarks) *
-    platformMarks.layout.scale
-  const x = exportSize * (platformMarks.layout.x / 100) - width / 2
-  const y = exportSize * (platformMarks.layout.y / 100) - height / 2
-  const boxWidth = exportSize * PLATFORM_MARK_BASE_WIDTH_RATIO * platformMarks.layout.scale
-  const boxHeight = exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * platformMarks.layout.scale
-  const gap = exportSize * PLATFORM_MARK_GAP_RATIO * platformMarks.layout.scale
+  const width = exportSize * PLATFORM_MARK_BASE_WIDTH_RATIO * asset.layout.scale
+  const height = exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * asset.layout.scale
+  const x = exportSize * (asset.layout.x / 100) - width / 2
+  const y = exportSize * (asset.layout.y / 100) - height / 2
 
   context.save()
+  context.fillStyle = 'rgba(17, 24, 39, 0.88)'
+  context.strokeStyle = 'rgba(249, 250, 251, 0.92)'
+  context.lineWidth = Math.max(2, exportSize * 0.0022)
+  context.beginPath()
+  context.roundRect(x, y, width, height, exportSize * 0.006)
+  context.fill()
+  context.stroke()
+
+  context.fillStyle = '#f9fafb'
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.font = `900 ${Math.max(8, boxHeight * 0.23)}px Arial`
-
-  platformMarks.values.forEach((value, index) => {
-    const column = index % PLATFORM_MARK_MAX_COLUMNS
-    const row = Math.floor(index / PLATFORM_MARK_MAX_COLUMNS)
-    const boxX = x + column * (boxWidth + gap)
-    const boxY = y + row * (boxHeight + gap)
-
-    context.fillStyle = 'rgba(17, 24, 39, 0.88)'
-    context.strokeStyle = 'rgba(249, 250, 251, 0.92)'
-    context.lineWidth = Math.max(2, exportSize * 0.0022)
-    context.beginPath()
-    context.roundRect(boxX, boxY, boxWidth, boxHeight, exportSize * 0.006)
-    context.fill()
-    context.stroke()
-
-    context.fillStyle = '#f9fafb'
-    context.fillText(
-      getPlatformMarkLabel(value).toUpperCase(),
-      boxX + boxWidth / 2,
-      boxY + boxHeight / 2,
-      boxWidth * 0.82,
-    )
-  })
+  context.font = `900 ${Math.max(8, height * 0.23)}px Arial`
+  context.fillText(
+    getPlatformMarkLabel(value).toUpperCase(),
+    x + width / 2,
+    y + height / 2,
+    width * 0.82,
+  )
 
   context.restore()
 }
 
-async function drawCustomPlatformMarks(
+async function drawCustomPlatformMark(
   context: CanvasRenderingContext2D,
   exportSize: number,
-  platformMarks: ProjectPlatformMarks,
+  asset: ProjectPlatformMarkAsset,
 ) {
-  if (!platformMarks.customImageDataUrl) {
+  if (!asset.customImageDataUrl) {
     return
   }
 
-  const image = await loadImage(platformMarks.customImageDataUrl)
+  const image = await loadImage(asset.customImageDataUrl)
   const naturalWidth = image.naturalWidth || image.width || 1
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
 
   const maxWidth =
-    exportSize * PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO * platformMarks.layout.scale
+    exportSize * PLATFORM_MARK_BASE_WIDTH_RATIO * asset.layout.scale
   const maxHeight =
-    exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * platformMarks.layout.scale
+    exportSize * PLATFORM_MARK_BASE_HEIGHT_RATIO * asset.layout.scale
 
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio
@@ -199,8 +153,8 @@ async function drawCustomPlatformMarks(
     drawWidth = drawHeight * aspectRatio
   }
 
-  const centerX = exportSize * (platformMarks.layout.x / 100)
-  const centerY = exportSize * (platformMarks.layout.y / 100)
+  const centerX = exportSize * (asset.layout.x / 100)
+  const centerY = exportSize * (asset.layout.y / 100)
 
   context.drawImage(
     image,
@@ -216,14 +170,18 @@ export async function drawPlatformMarks(
   exportSize: number,
   platformMarks: ProjectPlatformMarks,
 ) {
-  if (!platformMarks.layout.enabled) {
-    return
-  }
+  for (const value of platformMarks.values) {
+    const asset = platformMarks.assets[value]
 
-  if (platformMarks.source === 'custom' && platformMarks.customImageDataUrl) {
-    await drawCustomPlatformMarks(context, exportSize, platformMarks)
-    return
-  }
+    if (!asset?.layout.enabled) {
+      continue
+    }
 
-  drawPlaceholderPlatformMarks(context, exportSize, platformMarks)
+    if (asset.source === 'custom' && asset.customImageDataUrl) {
+      await drawCustomPlatformMark(context, exportSize, asset)
+      continue
+    }
+
+    drawPlaceholderPlatformMark(context, exportSize, value, asset)
+  }
 }

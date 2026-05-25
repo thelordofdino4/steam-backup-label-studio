@@ -1290,12 +1290,6 @@ input:disabled {
   text-transform: uppercase;
 }
 
-.disc-platform-marks-placeholder {
-  position: relative;
-  height: 100%;
-  width: 100%;
-}
-
 .disc-platform-mark-placeholder {
   align-items: center;
   background: rgba(17, 24, 39, 0.88);
@@ -1305,11 +1299,12 @@ input:disabled {
   color: #f9fafb;
   display: flex;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  height: 100%;
   justify-content: center;
   min-width: 0;
   padding: 4px;
-  position: absolute;
   text-align: center;
+  width: 100%;
 }
 
 .disc-platform-mark-placeholder strong {

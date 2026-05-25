@@ -54,14 +54,18 @@ export type BrandingPanelProps = {
   handleClearMediaMarkImage: () => void
   handleResetMediaMarkLayout: () => void
   handlePlatformMarkToggle: (value: PlatformMarkValue, enabled: boolean) => void
-  handlePlatformMarksUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
-  handlePlatformMarksSourceChange: (source: PlatformMarkSource) => void
-  handlePlatformMarksLayoutChange: (
+  handlePlatformMarkUpload: (
+    value: PlatformMarkValue,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void | Promise<void>
+  handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
+  handlePlatformMarkLayoutChange: (
+    platformValue: PlatformMarkValue,
     field: keyof PlatformMarkLayout,
-    value: boolean | number,
+    layoutValue: boolean | number,
   ) => void
-  handleClearPlatformMarksImage: () => void
-  handleResetPlatformMarksLayout: () => void
+  handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
+  handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
 }
 
 const LOGO_ALIGNMENT_PRESETS = [
@@ -655,22 +659,26 @@ function MediaMarkControls({
 function PlatformMarkControls({
   projectPlatformMarks,
   handlePlatformMarkToggle,
-  handlePlatformMarksUpload,
-  handlePlatformMarksSourceChange,
-  handlePlatformMarksLayoutChange,
-  handleClearPlatformMarksImage,
-  handleResetPlatformMarksLayout,
+  handlePlatformMarkUpload,
+  handlePlatformMarkSourceChange,
+  handlePlatformMarkLayoutChange,
+  handleClearPlatformMarkImage,
+  handleResetPlatformMarkLayout,
 }: {
   projectPlatformMarks: ProjectPlatformMarks
   handlePlatformMarkToggle: (value: PlatformMarkValue, enabled: boolean) => void
-  handlePlatformMarksUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
-  handlePlatformMarksSourceChange: (source: PlatformMarkSource) => void
-  handlePlatformMarksLayoutChange: (
+  handlePlatformMarkUpload: (
+    value: PlatformMarkValue,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void | Promise<void>
+  handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
+  handlePlatformMarkLayoutChange: (
+    platformValue: PlatformMarkValue,
     field: keyof PlatformMarkLayout,
-    value: boolean | number,
+    layoutValue: boolean | number,
   ) => void
-  handleClearPlatformMarksImage: () => void
-  handleResetPlatformMarksLayout: () => void
+  handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
+  handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
 }) {
   const currentPlatformLabel =
     projectPlatformMarks.values.length > 0
@@ -678,18 +686,7 @@ function PlatformMarkControls({
       : 'None selected'
 
   return (
-    <div className="logo-asset-card">
-      <label className="field-label spacing-top">
-        <input
-          type="checkbox"
-          checked={projectPlatformMarks.layout.enabled}
-          onChange={(event) =>
-            handlePlatformMarksLayoutChange('enabled', event.target.checked)
-          }
-        />
-        Show platform marks
-      </label>
-
+    <div>
       <div className="disc-mark-checkbox-list spacing-top">
         {PLATFORM_MARK_OPTIONS.map((option) => (
           <label key={option.value} className="field-label">
@@ -705,112 +702,128 @@ function PlatformMarkControls({
         ))}
       </div>
 
-      <label className="field-label spacing-top" htmlFor="platform-marks-source">
-        Mark source
-      </label>
-      <select
-        id="platform-marks-source"
-        value={projectPlatformMarks.source}
-        onChange={(event) =>
-          handlePlatformMarksSourceChange(event.target.value as PlatformMarkSource)
-        }
-      >
-        <option value="placeholder">Built-in placeholders</option>
-        <option value="custom">Custom group image</option>
-      </select>
-
       <p className="hint">
-        Current platform marks: {currentPlatformLabel}. Platform marks move as one group in this pass.
+        Current platform marks: {currentPlatformLabel}. Each selected platform mark has its own image and layout.
       </p>
 
-      <span className="field-label spacing-top">Custom platform group image</span>
-      <label className="secondary-button logo-upload-button" htmlFor="platform-marks-upload">
-        Choose custom platform group
-      </label>
-      <input
-        id="platform-marks-upload"
-        className="logo-file-input"
-        type="file"
-        accept="image/*"
-        onChange={handlePlatformMarksUpload}
-      />
+      {projectPlatformMarks.values.map((value) => {
+        const asset = projectPlatformMarks.assets[value]
+        const label = getPlatformMarkLabel(value)
+        const uploadId = `platform-mark-upload-${value}`
 
-      {projectPlatformMarks.customImageDataUrl ? (
-        <div className="selected-lockup-card logo-asset-status-card">
-          <img
-            className="logo-asset-preview"
-            src={projectPlatformMarks.customImageDataUrl}
-            alt=""
-            draggable={false}
-          />
-          <span>
-            Custom platform group active
-            {formatLogoSize(projectPlatformMarks.customImageSize)}
-          </span>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={handleClearPlatformMarksImage}
-          >
-            Clear custom platform group
-          </button>
-        </div>
-      ) : (
-        <p className="hint">Upload a PNG or image to replace the grouped placeholders.</p>
-      )}
-
-      <label className="field-label spacing-top" htmlFor="platform-marks-scale">
-        Scale
-      </label>
-      <input
-        id="platform-marks-scale"
-        type="range"
-        min="0.25"
-        max="2"
-        step="0.01"
-        value={projectPlatformMarks.layout.scale}
-        onChange={(event) =>
-          handlePlatformMarksLayoutChange('scale', Number(event.target.value))
+        if (!asset) {
+          return null
         }
-      />
 
-      <label className="field-label spacing-top" htmlFor="platform-marks-x">
-        X position
-      </label>
-      <input
-        id="platform-marks-x"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectPlatformMarks.layout.x}
-        onChange={(event) =>
-          handlePlatformMarksLayoutChange('x', Number(event.target.value))
-        }
-      />
+        return (
+          <div key={value} className="logo-asset-card spacing-top">
+            <span className="field-label">{label} platform mark</span>
 
-      <label className="field-label spacing-top" htmlFor="platform-marks-y">
-        Y position
-      </label>
-      <input
-        id="platform-marks-y"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectPlatformMarks.layout.y}
-        onChange={(event) =>
-          handlePlatformMarksLayoutChange('y', Number(event.target.value))
-        }
-      />
+            <label className="field-label spacing-top" htmlFor={`platform-mark-source-${value}`}>
+              Mark source
+            </label>
+            <select
+              id={`platform-mark-source-${value}`}
+              value={asset.source}
+              onChange={(event) =>
+                handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)
+              }
+            >
+              <option value="placeholder">Built-in placeholder</option>
+              <option value="custom">Custom image</option>
+            </select>
 
-      <button
-        className="secondary-button"
-        type="button"
-        onClick={handleResetPlatformMarksLayout}
-      >
-        Reset platform marks layout
-      </button>
+            <span className="field-label spacing-top">Custom platform image</span>
+            <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
+              Choose custom {label}
+            </label>
+            <input
+              id={uploadId}
+              className="logo-file-input"
+              type="file"
+              accept="image/*"
+              onChange={(event) => handlePlatformMarkUpload(value, event)}
+            />
+
+            {asset.customImageDataUrl ? (
+              <div className="selected-lockup-card logo-asset-status-card">
+                <img
+                  className="logo-asset-preview"
+                  src={asset.customImageDataUrl}
+                  alt=""
+                  draggable={false}
+                />
+                <span>
+                  Custom {label} mark active
+                  {formatLogoSize(asset.customImageSize)}
+                </span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => handleClearPlatformMarkImage(value)}
+                >
+                  Clear custom {label}
+                </button>
+              </div>
+            ) : (
+              <p className="hint">Using a generic internal placeholder.</p>
+            )}
+
+            <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>
+              Scale
+            </label>
+            <input
+              id={`platform-mark-scale-${value}`}
+              type="range"
+              min="0.25"
+              max="2"
+              step="0.01"
+              value={asset.layout.scale}
+              onChange={(event) =>
+                handlePlatformMarkLayoutChange(value, 'scale', Number(event.target.value))
+              }
+            />
+
+            <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>
+              X position
+            </label>
+            <input
+              id={`platform-mark-x-${value}`}
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={asset.layout.x}
+              onChange={(event) =>
+                handlePlatformMarkLayoutChange(value, 'x', Number(event.target.value))
+              }
+            />
+
+            <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>
+              Y position
+            </label>
+            <input
+              id={`platform-mark-y-${value}`}
+              type="range"
+              min="0"
+              max="100"
+              step="0.1"
+              value={asset.layout.y}
+              onChange={(event) =>
+                handlePlatformMarkLayoutChange(value, 'y', Number(event.target.value))
+              }
+            />
+
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => handleResetPlatformMarkLayout(value)}
+            >
+              Reset {label} layout
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -850,11 +863,11 @@ export function BrandingPanel({
   handleClearMediaMarkImage,
   handleResetMediaMarkLayout,
   handlePlatformMarkToggle,
-  handlePlatformMarksUpload,
-  handlePlatformMarksSourceChange,
-  handlePlatformMarksLayoutChange,
-  handleClearPlatformMarksImage,
-  handleResetPlatformMarksLayout,
+  handlePlatformMarkUpload,
+  handlePlatformMarkSourceChange,
+  handlePlatformMarkLayoutChange,
+  handleClearPlatformMarkImage,
+  handleResetPlatformMarkLayout,
 }: BrandingPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -1080,11 +1093,11 @@ export function BrandingPanel({
           <PlatformMarkControls
             projectPlatformMarks={projectPlatformMarks}
             handlePlatformMarkToggle={handlePlatformMarkToggle}
-            handlePlatformMarksUpload={handlePlatformMarksUpload}
-            handlePlatformMarksSourceChange={handlePlatformMarksSourceChange}
-            handlePlatformMarksLayoutChange={handlePlatformMarksLayoutChange}
-            handleClearPlatformMarksImage={handleClearPlatformMarksImage}
-            handleResetPlatformMarksLayout={handleResetPlatformMarksLayout}
+            handlePlatformMarkUpload={handlePlatformMarkUpload}
+            handlePlatformMarkSourceChange={handlePlatformMarkSourceChange}
+            handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
+            handleClearPlatformMarkImage={handleClearPlatformMarkImage}
+            handleResetPlatformMarkLayout={handleResetPlatformMarkLayout}
           />
         </div>
       </details>
