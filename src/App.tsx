@@ -25,6 +25,8 @@ import {
   getLogoAssetBoundsPercent,
   getMediaMarkBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
+  getPlatformMarkGroupBoundsPercent,
+  getPlatformMarkGroupPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   getStraightDiscTextBoundsPercent,
@@ -47,9 +49,9 @@ import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
-import { createDefaultProjectMediaMark, normalizeProjectMediaMark } from './project/projectMediaMark'
+import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './project/projectMediaMark'
 import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
-import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -104,6 +106,14 @@ type RatingBadgeDragState = {
 }
 
 type MediaMarkDragState = {
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
+type PlatformMarksDragState = {
   pointerId: number
   startClientX: number
   startClientY: number
@@ -240,6 +250,27 @@ function clampMediaMarkLayoutToSafeZone(
   }
 }
 
+function clampPlatformMarksLayoutToSafeZone(
+  platformMarks: Pick<ProjectPlatformMarks, 'values' | 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): PlatformMarkLayout {
+  const layout = platformMarks.layout
+  const bounds =
+    platformMarks.source === 'custom' && platformMarks.customImageSize
+      ? getPlatformMarkGroupBoundsPercent(platformMarks.customImageSize, layout.scale)
+      : getPlatformMarkGroupPlaceholderBoundsPercent(
+          platformMarks.values.length,
+          layout.scale,
+        )
+  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
 function clampStraightDiscTextLayoutToSafeZone(
   key: DiscTextKey,
   layout: DiscTextLayout,
@@ -323,6 +354,9 @@ function App() {
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
     createDefaultProjectMediaMark(),
   )
+  const [projectPlatformMarks, setProjectPlatformMarks] = useState<ProjectPlatformMarks>(() =>
+    createDefaultProjectPlatformMarks(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -354,6 +388,7 @@ function App() {
   const logoDragStateRef = useRef<LogoDragState | null>(null)
   const ratingBadgeDragStateRef = useRef<RatingBadgeDragState | null>(null)
   const mediaMarkDragStateRef = useRef<MediaMarkDragState | null>(null)
+  const platformMarksDragStateRef = useRef<PlatformMarksDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -462,6 +497,22 @@ function App() {
       }
     })
 
+    setProjectPlatformMarks((currentMarks) => {
+      const layout = clampPlatformMarksLayoutToSafeZone(currentMarks, template)
+
+      if (
+        layout.x === currentMarks.layout.x &&
+        layout.y === currentMarks.layout.y
+      ) {
+        return currentMarks
+      }
+
+      return {
+        ...currentMarks,
+        layout,
+      }
+    })
+
     setDiscTextLayout((currentLayout) => {
       const nextLayout = clampDiscTextLayoutToSafeZone(currentLayout, template)
       const didChange = DISC_TEXT_KEYS.some(
@@ -536,6 +587,7 @@ function App() {
       logoAssets: projectLogoAssets,
       ratingBadge: projectRatingBadge,
       mediaMark: projectMediaMark,
+      platformMarks: projectPlatformMarks,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -1046,6 +1098,138 @@ function App() {
     announceStatus('Reset media mark layout.')
   }
 
+  function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
+    setProjectPlatformMarks((currentMarks) => {
+      const values = enabled
+        ? Array.from(new Set([...currentMarks.values, value]))
+        : currentMarks.values.filter((currentValue) => currentValue !== value)
+      const nextMarks = {
+        ...currentMarks,
+        values,
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+  }
+
+  async function handlePlatformMarksUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the platform marks.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+      const imageSize = getNaturalImageSize(image)
+
+      setProjectPlatformMarks((currentMarks) => {
+        const nextMarks = {
+          ...currentMarks,
+          source: 'custom' as const,
+          customImageDataUrl: imageDataUrl,
+          customImageSize: imageSize,
+          layout: {
+            ...currentMarks.layout,
+            enabled: true,
+          },
+        }
+
+        return {
+          ...nextMarks,
+          layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+        }
+      })
+
+      announceStatus(`Using ${file.name} as the platform mark group.`)
+    } catch (error) {
+      announceStatus(`Platform mark import failed: ${String(error)}`)
+    }
+  }
+
+  function handlePlatformMarksSourceChange(source: PlatformMarkSource) {
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = {
+        ...currentMarks,
+        source,
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handlePlatformMarksLayoutChange(
+    field: keyof ProjectPlatformMarks['layout'],
+    value: boolean | number,
+  ) {
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = {
+        ...currentMarks,
+        layout: {
+          ...currentMarks.layout,
+          [field]: value,
+        },
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleClearPlatformMarksImage() {
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = {
+        ...currentMarks,
+        source: 'placeholder' as const,
+        customImageDataUrl: null,
+        customImageSize: null,
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Cleared custom platform mark image.')
+  }
+
+  function handleResetPlatformMarksLayout() {
+    const defaults = createDefaultProjectPlatformMarks()
+
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = {
+        ...currentMarks,
+        layout: {
+          ...defaults.layout,
+          enabled: currentMarks.layout.enabled,
+        },
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Reset platform marks layout.')
+  }
+
   function handleResetSteamBannerColors() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     announceStatus('Reset Steam banner colors to the default palette.')
@@ -1240,6 +1424,7 @@ function App() {
     logoDragStateRef.current = null
     ratingBadgeDragStateRef.current = null
     mediaMarkDragStateRef.current = null
+    platformMarksDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(createCustomDiscTemplate())
@@ -1259,6 +1444,7 @@ function App() {
     setProjectLogoAssets(createDefaultProjectLogoAssets())
     setProjectRatingBadge(createDefaultProjectRatingBadge())
     setProjectMediaMark(createDefaultProjectMediaMark())
+    setProjectPlatformMarks(createDefaultProjectPlatformMarks())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -1542,6 +1728,17 @@ function App() {
           loadedSelectedDiscTemplate,
         ),
       })
+      const loadedPlatformMarks = normalizeProjectPlatformMarks(
+        project.platformMarks,
+        project.mediaMark,
+      )
+      setProjectPlatformMarks({
+        ...loadedPlatformMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(
+          loadedPlatformMarks,
+          loadedSelectedDiscTemplate,
+        ),
+      })
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
@@ -1663,6 +1860,7 @@ function App() {
         projectMetadata,
         projectRatingBadge,
         projectMediaMark,
+        projectPlatformMarks,
         discTextSettings,
         discTextValues,
         discTextLayout,
@@ -1942,6 +2140,61 @@ function App() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
+  function handlePlatformMarksPointerDown(event: PointerEvent<Element>) {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    platformMarksDragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: projectPlatformMarks.layout.x,
+      startY: projectPlatformMarks.layout.y,
+    }
+  }
+
+  function handlePlatformMarksPointerMove(event: PointerEvent<Element>) {
+    const dragState = platformMarksDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = {
+        ...currentMarks,
+        layout: {
+          ...currentMarks.layout,
+          x: dragState.startX + deltaXPercent,
+          y: dragState.startY + deltaYPercent,
+        },
+      }
+
+      return {
+        ...nextMarks,
+        layout: clampPlatformMarksLayoutToSafeZone(nextMarks, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handlePlatformMarksPointerUp(event: PointerEvent<Element>) {
+    const dragState = platformMarksDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    platformMarksDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
   function getDiscTextPreviewTransform(_key: DiscTextKey, layout: DiscTextLayout) {
     if (layout.mode === 'straight') {
       return `translate(-50%, -50%) scale(${layout.scale})`
@@ -2110,6 +2363,7 @@ function App() {
           projectMetadata={projectMetadata}
           projectRatingBadge={projectRatingBadge}
           projectMediaMark={projectMediaMark}
+          projectPlatformMarks={projectPlatformMarks}
           handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
@@ -2132,6 +2386,12 @@ function App() {
           handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
           handleClearMediaMarkImage={handleClearMediaMarkImage}
           handleResetMediaMarkLayout={handleResetMediaMarkLayout}
+          handlePlatformMarkToggle={handlePlatformMarkToggle}
+          handlePlatformMarksUpload={handlePlatformMarksUpload}
+          handlePlatformMarksSourceChange={handlePlatformMarksSourceChange}
+          handlePlatformMarksLayoutChange={handlePlatformMarksLayoutChange}
+          handleClearPlatformMarksImage={handleClearPlatformMarksImage}
+          handleResetPlatformMarksLayout={handleResetPlatformMarksLayout}
         />
 
 
@@ -2170,12 +2430,16 @@ function App() {
         projectMetadata={projectMetadata}
         projectRatingBadge={projectRatingBadge}
         projectMediaMark={projectMediaMark}
+        projectPlatformMarks={projectPlatformMarks}
         handleRatingBadgePointerDown={handleRatingBadgePointerDown}
         handleRatingBadgePointerMove={handleRatingBadgePointerMove}
         handleRatingBadgePointerUp={handleRatingBadgePointerUp}
         handleMediaMarkPointerDown={handleMediaMarkPointerDown}
         handleMediaMarkPointerMove={handleMediaMarkPointerMove}
         handleMediaMarkPointerUp={handleMediaMarkPointerUp}
+        handlePlatformMarksPointerDown={handlePlatformMarksPointerDown}
+        handlePlatformMarksPointerMove={handlePlatformMarksPointerMove}
+        handlePlatformMarksPointerUp={handlePlatformMarksPointerUp}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}

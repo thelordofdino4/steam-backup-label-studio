@@ -928,6 +928,11 @@ input:disabled {
   padding: 7px 9px;
 }
 
+.disc-mark-checkbox-list {
+  display: grid;
+  gap: 8px;
+}
+
 
 .disc-curved-text-svg {
   position: absolute;
@@ -1283,4 +1288,21 @@ input:disabled {
   letter-spacing: 0.08em;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.disc-platform-marks-placeholder {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 5px;
+}
+
+.disc-platform-marks-placeholder strong {
+  align-items: center;
+  align-self: stretch;
+  border: 1px solid rgba(249, 250, 251, 0.72);
+  border-radius: 4px;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 4px;
 }

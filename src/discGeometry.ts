@@ -11,6 +11,9 @@ export const RATING_BADGE_BASE_WIDTH_RATIO = 0.09
 export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
 export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
 export const MEDIA_MARK_BASE_HEIGHT_RATIO = 0.08
+export const PLATFORM_MARK_BASE_WIDTH_RATIO = 0.1
+export const PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO = 0.38
+export const PLATFORM_MARK_BASE_HEIGHT_RATIO = 0.08
 
 export type LayoutPoint = {
   x: number
@@ -216,6 +219,31 @@ export function getMediaMarkPlaceholderBoundsPercent(scale: number): RenderBound
   return {
     halfWidth: (MEDIA_MARK_BASE_WIDTH_RATIO * 100 * scale) / 2,
     halfHeight: (MEDIA_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
+  }
+}
+
+export function getPlatformMarkGroupBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
+    PLATFORM_MARK_BASE_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getPlatformMarkGroupPlaceholderBoundsPercent(
+  markCount: number,
+  scale: number,
+): RenderBoundsPercent {
+  const normalizedCount = Math.max(1, markCount)
+  const widthRatio = Math.min(
+    PLATFORM_MARK_GROUP_MAX_WIDTH_RATIO,
+    PLATFORM_MARK_BASE_WIDTH_RATIO * normalizedCount,
+  )
+
+  return {
+    halfWidth: (widthRatio * 100 * scale) / 2,
+    halfHeight: (PLATFORM_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
   }
 }
 

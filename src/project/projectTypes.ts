@@ -88,10 +88,6 @@ export type MediaMarkValue =
   | 'dvd'
   | 'dvdRom'
   | 'cdRom'
-  | 'pc'
-  | 'windows'
-  | 'linux'
-  | 'steamBackup'
   | 'dataDisc'
   | 'installDisc'
 
@@ -112,6 +108,30 @@ export type ProjectMediaMark = {
   layout: MediaMarkLayout
 }
 
+export type PlatformMarkValue =
+  | 'pc'
+  | 'windows'
+  | 'linux'
+  | 'steamDeck'
+  | 'macos'
+
+export type PlatformMarkSource = 'placeholder' | 'custom'
+
+export type PlatformMarkLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectPlatformMarks = {
+  values: PlatformMarkValue[]
+  source: PlatformMarkSource
+  customImageDataUrl: string | null
+  customImageSize: BackgroundImageSize | null
+  layout: PlatformMarkLayout
+}
+
 export type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -124,6 +144,7 @@ export type SavedProject = {
   logoAssets?: ProjectLogoAssets
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
+  platformMarks?: ProjectPlatformMarks
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId
