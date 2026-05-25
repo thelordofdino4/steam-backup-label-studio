@@ -1162,6 +1162,13 @@ input:disabled {
   max-height: 10%;
   object-fit: contain;
   user-select: none;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.disc-logo-asset:active {
+  cursor: grabbing;
 }
 

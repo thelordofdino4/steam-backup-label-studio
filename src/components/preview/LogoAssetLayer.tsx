@@ -1,3 +1,4 @@
+import type { PointerEvent } from 'react'
 import type { LogoAssetLayout } from '../../project/projectTypes'
 
 export type LogoAssetLayerProps = {
@@ -5,16 +6,33 @@ export type LogoAssetLayerProps = {
   developerLogoLayout: LogoAssetLayout
   publisherLogoDataUrl: string | null
   publisherLogoLayout: LogoAssetLayout
+  handleLogoAssetPointerDown: (
+    event: PointerEvent<Element>,
+    logoKey: 'developer' | 'publisher',
+  ) => void
+  handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
+  handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
 }
 
 function LogoAssetPreview({
   imageDataUrl,
   layout,
   label,
+  logoKey,
+  handleLogoAssetPointerDown,
+  handleLogoAssetPointerMove,
+  handleLogoAssetPointerUp,
 }: {
   imageDataUrl: string | null
   layout: LogoAssetLayout
   label: string
+  logoKey: 'developer' | 'publisher'
+  handleLogoAssetPointerDown: (
+    event: PointerEvent<Element>,
+    logoKey: 'developer' | 'publisher',
+  ) => void
+  handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
+  handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
 }) {
   if (!imageDataUrl || !layout.enabled) {
     return null
@@ -26,6 +44,10 @@ function LogoAssetPreview({
       src={imageDataUrl}
       alt={`${label} logo`}
       draggable={false}
+      onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey)}
+      onPointerMove={handleLogoAssetPointerMove}
+      onPointerUp={handleLogoAssetPointerUp}
+      onPointerCancel={handleLogoAssetPointerUp}
       style={{
         left: `${layout.x}%`,
         top: `${layout.y}%`,
@@ -40,6 +62,9 @@ export function LogoAssetLayer({
   developerLogoLayout,
   publisherLogoDataUrl,
   publisherLogoLayout,
+  handleLogoAssetPointerDown,
+  handleLogoAssetPointerMove,
+  handleLogoAssetPointerUp,
 }: LogoAssetLayerProps) {
   return (
     <div className="disc-logo-asset-layer" aria-label="Developer and publisher logo layer">
@@ -47,11 +72,19 @@ export function LogoAssetLayer({
         imageDataUrl={developerLogoDataUrl}
         layout={developerLogoLayout}
         label="Developer"
+        logoKey="developer"
+        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
       />
       <LogoAssetPreview
         imageDataUrl={publisherLogoDataUrl}
         layout={publisherLogoLayout}
         label="Publisher"
+        logoKey="publisher"
+        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
       />
     </div>
   )

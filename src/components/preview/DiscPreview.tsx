@@ -25,6 +25,12 @@ export type DiscPreviewProps = {
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
+  handleLogoAssetPointerDown: (
+    event: PointerEvent<Element>,
+    logoKey: 'developer' | 'publisher',
+  ) => void
+  handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
+  handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   manualGameTitle: string
@@ -55,6 +61,9 @@ export function DiscPreview({
   steamBannerLockupImageUrl,
   steamBannerLockupLayout,
   projectLogoAssets,
+  handleLogoAssetPointerDown,
+  handleLogoAssetPointerMove,
+  handleLogoAssetPointerUp,
   discTextSettings,
   discTextValues,
   manualGameTitle,
@@ -105,6 +114,9 @@ export function DiscPreview({
           developerLogoLayout={projectLogoAssets.developerLogoLayout}
           publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
           publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
+          handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+          handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+          handleLogoAssetPointerUp={handleLogoAssetPointerUp}
         />
 
         <DiscTextLayer

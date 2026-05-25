@@ -75,6 +75,15 @@ type TextDragState = {
   startY: number
 }
 
+type LogoDragState = {
+  logoKey: 'developer' | 'publisher'
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
 type CustomDimensionKey =
   | 'outerDiameterMm'
   | 'physicalCenterHoleDiameterMm'
@@ -216,6 +225,7 @@ function App() {
 
   const dragStateRef = useRef<DragState | null>(null)
   const textDragStateRef = useRef<TextDragState | null>(null)
+  const logoDragStateRef = useRef<LogoDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -720,6 +730,7 @@ function App() {
 
     dragStateRef.current = null
     textDragStateRef.current = null
+    logoDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(createCustomDiscTemplate())
@@ -1093,6 +1104,7 @@ function App() {
         steamBannerColors,
         steamBannerLockupImageUrl,
         steamBannerLockupLayout,
+        projectLogoAssets,
         discTextSettings,
         discTextValues,
         discTextLayout,
@@ -1169,6 +1181,79 @@ function App() {
 
     event.stopPropagation()
     textDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  function handleLogoAssetPointerDown(
+    event: PointerEvent<Element>,
+    logoKey: 'developer' | 'publisher',
+  ) {
+    const layout =
+      logoKey === 'developer'
+        ? projectLogoAssets.developerLogoLayout
+        : projectLogoAssets.publisherLogoLayout
+
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    logoDragStateRef.current = {
+      logoKey,
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: layout.x,
+      startY: layout.y,
+    }
+  }
+
+  function handleLogoAssetPointerMove(event: PointerEvent<Element>) {
+    const dragState = logoDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setProjectLogoAssets((currentLogoAssets) => {
+      const nextX = clampNumber(dragState.startX + deltaXPercent, 0, 100)
+      const nextY = clampNumber(dragState.startY + deltaYPercent, 0, 100)
+
+      if (dragState.logoKey === 'developer') {
+        return {
+          ...currentLogoAssets,
+          developerLogoLayout: {
+            ...currentLogoAssets.developerLogoLayout,
+            x: nextX,
+            y: nextY,
+          },
+        }
+      }
+
+      return {
+        ...currentLogoAssets,
+        publisherLogoLayout: {
+          ...currentLogoAssets.publisherLogoLayout,
+          x: nextX,
+          y: nextY,
+        },
+      }
+    })
+  }
+
+  function handleLogoAssetPointerUp(event: PointerEvent<Element>) {
+    const dragState = logoDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    logoDragStateRef.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
@@ -1382,6 +1467,9 @@ function App() {
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
+        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         manualGameTitle={manualGameTitle}
