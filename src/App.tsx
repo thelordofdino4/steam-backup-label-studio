@@ -1447,6 +1447,9 @@ function App() {
         manualGameTitle,
         steamLogoPlacement,
         discTextSettings,
+        projectLogoAssets,
+        projectMetadata,
+        projectRatingBadge,
         exportGuides,
       })
       const shouldExport = await confirm(preflight.message, {

@@ -6,7 +6,13 @@ import {
   type SteamLogoPlacement,
 } from '../discText'
 import type { ExportGuideKey, ExportGuideSelection } from '../exportGuides'
-import type { BackgroundImageSize, SelectedDiscTemplateId } from '../project/projectTypes'
+import type {
+  BackgroundImageSize,
+  ProjectLogoAssets,
+  ProjectMetadata,
+  ProjectRatingBadge,
+  SelectedDiscTemplateId,
+} from '../project/projectTypes'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 
@@ -39,6 +45,9 @@ export function buildExportPreflightSummary(params: {
   manualGameTitle: string
   steamLogoPlacement: SteamLogoPlacement
   discTextSettings: DiscTextSettings
+  projectLogoAssets: ProjectLogoAssets
+  projectMetadata: ProjectMetadata
+  projectRatingBadge: ProjectRatingBadge
   exportGuides: ExportGuideSelection
 }): ExportPreflightSummary {
   const exportSize =
@@ -52,6 +61,9 @@ export function buildExportPreflightSummary(params: {
     params.selectedDiscTemplate,
     params.backgroundImageUrl,
     enabledGuideLabels,
+    params.projectLogoAssets,
+    params.projectMetadata,
+    params.projectRatingBadge,
   )
 
   const summaryLines = [
@@ -93,6 +105,9 @@ function buildExportWarnings(
   selectedDiscTemplate: DiscTemplate,
   backgroundImageUrl: string | null,
   enabledGuideLabels: string[],
+  projectLogoAssets: ProjectLogoAssets,
+  projectMetadata: ProjectMetadata,
+  projectRatingBadge: ProjectRatingBadge,
 ) {
   const warnings: string[] = []
 
@@ -106,6 +121,54 @@ function buildExportWarnings(
 
   if (selectedDiscTemplateId === 'custom') {
     warnings.push(...getCustomDimensionWarnings(selectedDiscTemplate))
+  }
+
+  warnings.push(...getLogoAssetWarnings(projectLogoAssets))
+  warnings.push(...getRatingBadgeWarnings(projectMetadata, projectRatingBadge))
+
+  return warnings
+}
+
+function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
+  const warnings: string[] = []
+
+  if (logoAssets.developerLogoLayout.enabled && !logoAssets.developerLogoDataUrl) {
+    warnings.push('Developer logo is enabled, but no developer logo image is uploaded.')
+  }
+
+  if (logoAssets.publisherLogoLayout.enabled && !logoAssets.publisherLogoDataUrl) {
+    warnings.push('Publisher logo is enabled, but no publisher logo image is uploaded.')
+  }
+
+  return warnings
+}
+
+function getRatingBadgeWarnings(
+  metadata: ProjectMetadata,
+  ratingBadge: ProjectRatingBadge,
+) {
+  const warnings: string[] = []
+
+  if (!ratingBadge.layout.enabled) {
+    return warnings
+  }
+
+  if (metadata.ratingSystem === 'none') {
+    warnings.push('Rating badge is enabled, but the rating system is set to none.')
+  } else if (!metadata.ratingValue.trim()) {
+    warnings.push('Rating badge is enabled, but no rating value is set.')
+  }
+
+  if (ratingBadge.source === 'custom' && !ratingBadge.customImageDataUrl) {
+    warnings.push('Custom rating badge is selected, but no custom image is uploaded.')
+  }
+
+  if (
+    ratingBadge.source === 'placeholder' &&
+    metadata.ratingSystem !== 'none' &&
+    metadata.ratingValue.trim()
+  ) {
+    warnings.push('Rating badge uses generated placeholder artwork.')
   }
 
   return warnings
