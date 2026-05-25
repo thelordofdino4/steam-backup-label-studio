@@ -3,6 +3,26 @@ import type { DiscTemplate } from './types/template'
 export const EXPORT_DPI = 300
 export const MM_PER_INCH = 25.4
 export const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
+export const DISC_LAYOUT_CENTER_PERCENT = 50
+export const LOGO_BASE_WIDTH_RATIO = 0.18
+export const LOGO_MAX_HEIGHT_RATIO = 0.1
+export const RATING_BADGE_BASE_WIDTH_RATIO = 0.09
+export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
+
+export type LayoutPoint = {
+  x: number
+  y: number
+}
+
+export type RenderBoundsPercent = {
+  halfWidth: number
+  halfHeight: number
+}
+
+export type NaturalSize = {
+  width: number
+  height: number
+} | null
 
 export function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -10,6 +30,162 @@ export function clampNumber(value: number, min: number, max: number) {
 
 export function mmToPixels(mm: number) {
   return Math.round((mm / MM_PER_INCH) * EXPORT_DPI)
+}
+
+export function getSafeZoneRadiusPercent(template: DiscTemplate) {
+  if (template.outerDiameterMm <= 0) {
+    return 0
+  }
+
+  return (template.safeDiameterMm / template.outerDiameterMm) * DISC_LAYOUT_CENTER_PERCENT
+}
+
+export function clampPointToSafeCircle(point: LayoutPoint, safeZoneRadiusPercent: number): LayoutPoint {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const radius = Math.max(0, safeZoneRadiusPercent)
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const distance = Math.hypot(deltaX, deltaY)
+
+  if (distance <= radius || distance === 0) {
+    return { x, y }
+  }
+
+  const scale = radius / distance
+
+  return {
+    x: DISC_LAYOUT_CENTER_PERCENT + deltaX * scale,
+    y: DISC_LAYOUT_CENTER_PERCENT + deltaY * scale,
+  }
+}
+
+export function clampRectToSafeCircle(
+  point: LayoutPoint,
+  safeZoneRadiusPercent: number,
+  bounds: RenderBoundsPercent,
+): LayoutPoint {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const safeZoneRadius = Math.max(0, safeZoneRadiusPercent)
+  const halfWidth = Math.max(0, bounds.halfWidth)
+  const halfHeight = Math.max(0, bounds.halfHeight)
+
+  if (halfWidth === 0 && halfHeight === 0) {
+    return clampPointToSafeCircle({ x, y }, safeZoneRadius)
+  }
+
+  const cornerRadius = Math.hypot(halfWidth, halfHeight)
+
+  if (cornerRadius >= safeZoneRadius) {
+    return {
+      x: DISC_LAYOUT_CENTER_PERCENT,
+      y: DISC_LAYOUT_CENTER_PERCENT,
+    }
+  }
+
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const distance = Math.hypot(deltaX, deltaY)
+
+  if (distance === 0) {
+    return { x, y }
+  }
+
+  const unitX = Math.abs(deltaX / distance)
+  const unitY = Math.abs(deltaY / distance)
+  const projectedBounds = unitX * halfWidth + unitY * halfHeight
+  const remainingRadiusSquared = Math.max(
+    0,
+    safeZoneRadius ** 2 -
+    halfWidth ** 2 -
+    halfHeight ** 2 +
+    projectedBounds ** 2,
+  )
+  const maxDistance =
+    -projectedBounds +
+    Math.sqrt(remainingRadiusSquared)
+
+  if (distance <= maxDistance) {
+    return { x, y }
+  }
+
+  const scale = maxDistance / distance
+
+  return {
+    x: DISC_LAYOUT_CENTER_PERCENT + deltaX * scale,
+    y: DISC_LAYOUT_CENTER_PERCENT + deltaY * scale,
+  }
+}
+
+export function clampLayoutPointToSafeZone(
+  point: LayoutPoint,
+  template: DiscTemplate,
+  bounds?: RenderBoundsPercent,
+): LayoutPoint {
+  const safeZoneRadius = getSafeZoneRadiusPercent(template)
+
+  if (bounds) {
+    return clampRectToSafeCircle(point, safeZoneRadius, bounds)
+  }
+
+  return clampPointToSafeCircle(point, safeZoneRadius)
+}
+
+export function getContainedAssetBoundsPercent(
+  naturalSize: NaturalSize,
+  baseWidthRatio: number,
+  maxHeightRatio: number,
+  scale: number,
+): RenderBoundsPercent {
+  const maxWidthPercent = baseWidthRatio * 100 * scale
+  const maxHeightPercent = maxHeightRatio * 100 * scale
+
+  if (!naturalSize || naturalSize.width <= 0 || naturalSize.height <= 0) {
+    return {
+      halfWidth: maxWidthPercent / 2,
+      halfHeight: maxHeightPercent / 2,
+    }
+  }
+
+  const aspectRatio = naturalSize.width / naturalSize.height
+  let widthPercent = maxWidthPercent
+  let heightPercent = widthPercent / aspectRatio
+
+  if (heightPercent > maxHeightPercent) {
+    heightPercent = maxHeightPercent
+    widthPercent = heightPercent * aspectRatio
+  }
+
+  return {
+    halfWidth: widthPercent / 2,
+    halfHeight: heightPercent / 2,
+  }
+}
+
+export function getLogoAssetBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    LOGO_BASE_WIDTH_RATIO,
+    LOGO_MAX_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getRatingBadgeBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    RATING_BADGE_BASE_WIDTH_RATIO,
+    RATING_BADGE_BASE_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getRatingBadgePlaceholderBoundsPercent(scale: number): RenderBoundsPercent {
+  return {
+    halfWidth: (RATING_BADGE_BASE_WIDTH_RATIO * 100 * scale) / 2,
+    halfHeight: (RATING_BADGE_BASE_HEIGHT_RATIO * 100 * scale) / 2,
+  }
 }
 
 export function normalizeCustomDiscTemplate(template: DiscTemplate): DiscTemplate {

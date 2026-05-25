@@ -20,10 +20,15 @@ The core disc-label workflow is working:
 - Choose a standard printable disc template or custom dimensions.
 - Use physical center hole, inner print boundary, outer print boundary, and safe-zone geometry.
 - Use a real default Steam-style banner lockup at the top or bottom of the disc, or hide it.
+- Adjust Steam banner colors, lockup image, scale, and offsets.
+- Edit project-owned metadata fields for imported or manual projects.
+- Add optional developer and publisher logos with alignment presets.
+- Add optional rating badges with placeholder rendering or custom image replacement.
 - Enable optional disc text elements for title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
 - Drag, scale, offset, and align straight text elements.
 - Use stable centered curved copyright/legal text with arc length, angle, inset, scale, side, and wrapping controls.
 - Save and reload project files.
+- Reset to a new project.
 - Export a clean 300 DPI PNG.
 - Optionally export guide marks.
 - Receive status feedback through the preview toast feed.
@@ -85,6 +90,11 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 - Top-right stacked preview toast notifications.
 - Default Steam banner lockup image support.
 - Steam banner export alignment matching the current mockup baseline.
+- User-facing Steam banner color, lockup image, scale, and offset controls.
+- Project-owned editable metadata fields.
+- Developer and publisher logo assets with alignment presets, preview, export, and save/load support.
+- Rating badge support with ESRB/PEGI/custom placeholders, custom image replacement, preview, export, and save/load support.
+- New Project reset behavior.
 - Optional disc text elements for title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
 - Straight text drag, scale, offset, alignment, preview, export, and save/load support.
 - Stable centered curved copyright/legal text with arc, angle, inset, scale, side, wrapping, preview, export, and save/load support.
@@ -99,11 +109,12 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 
 - Add curved copyright text alignment modes without regressing stable centered curved text.
 - Add adjustable straight text box widths.
-- Add adjustable banner lockup scale and offset controls.
-- Add user-facing banner color controls.
-- Add New Project / Reset Project.
-- Add export-time summary/preflight behavior.
-- Add manual metadata fields and richer metadata overrides.
+- Constrain movable visual elements to safe-zone geometry.
+- Expand export-time summary/preflight behavior for new logo/rating/layout risks.
+- Decide longer-term project package and embedded asset strategy.
+- Track asset provenance and replacement behavior for imported and uploaded visual assets.
+- Document/enforce preview/export layer ordering.
+- Add project fixtures and a preview/export comparison workflow for regression testing.
 - Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
 
 ## Deferred Alpha Cleanup
@@ -119,23 +130,22 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 - Only the disc-label editor is functional.
 - Case templates are not implemented yet.
 - Full layer management is not implemented yet.
-- Manual metadata override fields are still limited.
+- Project metadata fields are editable, but asset provenance and schema validation/migration remain limited.
 - Curved copyright text is currently stable only in centered mode; left/right curved alignment is tracked separately.
 - Straight text boxes have stable fixed widths, but user-adjustable box widths are not implemented yet.
-- Banner colors exist as internal/default values, but user-facing color controls are not implemented yet.
-- Banner lockup position/scale has a correct default baseline, but user-facing lockup adjustment controls are not implemented yet.
+- Movable logos and rating badges can still be positioned without safe-zone clamping.
 - Some duplicate hidden markup remains intentionally deferred until alpha cleanup.
 - The app has not yet been packaged into an alpha release.
 
 ## Next Recommended Work Order
 
-1. Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
-2. Add adjustable straight text box widths.
-3. Add adjustable banner lockup controls.
-4. Add user-facing banner color controls.
-5. Add New Project / Reset Project.
-6. Add export summary/preflight warnings.
-7. Add manual metadata fields and richer metadata overrides.
+1. Constrain movable visual elements to safe-zone geometry.
+2. Expand export summary/preflight warnings for logos, rating badges, layout, guide marks, backgrounds, and custom dimensions.
+3. Decide project package / embedded asset strategy and asset provenance behavior.
+4. Document and enforce disc editor layer ordering across preview and PNG export.
+5. Add project fixtures and a visual regression/export comparison workflow.
+6. Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
+7. Add adjustable straight text box widths.
 8. Improve artwork picker presentation.
 9. Continue post-refactor cleanup from issues #44-#49 where it supports feature work.
 10. Begin template-system abstraction for future case editors.

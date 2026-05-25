@@ -1,6 +1,6 @@
 import type { CSSProperties, PointerEvent, RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset, ProjectLogoAssets } from '../../project/projectTypes'
+import type { BackgroundOffset, ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -8,6 +8,7 @@ import { DiscTextLayer } from './DiscTextLayer'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { SteamBannerPreview } from './SteamBannerPreview'
 import { LogoAssetLayer } from './LogoAssetLayer'
+import { RatingBadgeLayer } from './RatingBadgeLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type DiscPreviewProps = {
@@ -25,6 +26,11 @@ export type DiscPreviewProps = {
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
+  projectMetadata: ProjectMetadata
+  projectRatingBadge: ProjectRatingBadge
+  handleRatingBadgePointerDown: (event: PointerEvent<Element>) => void
+  handleRatingBadgePointerMove: (event: PointerEvent<Element>) => void
+  handleRatingBadgePointerUp: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
     logoKey: 'developer' | 'publisher',
@@ -61,6 +67,11 @@ export function DiscPreview({
   steamBannerLockupImageUrl,
   steamBannerLockupLayout,
   projectLogoAssets,
+  projectMetadata,
+  projectRatingBadge,
+  handleRatingBadgePointerDown,
+  handleRatingBadgePointerMove,
+  handleRatingBadgePointerUp,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
@@ -111,12 +122,22 @@ export function DiscPreview({
 
         <LogoAssetLayer
           developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
+          developerLogoSize={projectLogoAssets.developerLogoSize}
           developerLogoLayout={projectLogoAssets.developerLogoLayout}
           publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
+          publisherLogoSize={projectLogoAssets.publisherLogoSize}
           publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
           handleLogoAssetPointerDown={handleLogoAssetPointerDown}
           handleLogoAssetPointerMove={handleLogoAssetPointerMove}
           handleLogoAssetPointerUp={handleLogoAssetPointerUp}
+        />
+
+        <RatingBadgeLayer
+          projectMetadata={projectMetadata}
+          projectRatingBadge={projectRatingBadge}
+          handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+          handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+          handleRatingBadgePointerUp={handleRatingBadgePointerUp}
         />
 
         <DiscTextLayer

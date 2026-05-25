@@ -1,6 +1,21 @@
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
 
+const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
+const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
+
+function getRatingValuesForSystem(system: ProjectMetadata['ratingSystem']) {
+  if (system === 'ESRB') {
+    return ESRB_RATING_VALUES
+  }
+
+  if (system === 'PEGI') {
+    return PEGI_RATING_VALUES
+  }
+
+  return []
+}
+
 export type GamePanelProps = {
   manualGameTitle: string
   setManualGameTitle: (value: string) => void
@@ -214,7 +229,29 @@ export function GamePanel({
       <select
         id="game-metadata-rating-system"
         value={projectMetadata.ratingSystem}
-        onChange={(event) => handleProjectMetadataChange('ratingSystem', event.target.value)}
+        onChange={(event) => {
+          const nextSystem = event.target.value as ProjectMetadata['ratingSystem']
+          const allowedValues = getRatingValuesForSystem(nextSystem)
+
+          handleProjectMetadataChange('ratingSystem', nextSystem)
+
+          if (nextSystem === 'none') {
+            handleProjectMetadataChange('ratingValue', '')
+            return
+          }
+
+          if (
+            allowedValues.length > 0 &&
+            !allowedValues.includes(projectMetadata.ratingValue as never)
+          ) {
+            handleProjectMetadataChange('ratingValue', allowedValues[0])
+            return
+          }
+
+          if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
+            handleProjectMetadataChange('ratingValue', 'Custom')
+          }
+        }}
       >
         <option value="none">None</option>
         <option value="ESRB">ESRB</option>
@@ -222,16 +259,39 @@ export function GamePanel({
         <option value="custom">Custom</option>
       </select>
 
-      <label className="field-label spacing-top" htmlFor="game-metadata-rating-value">
-        Rating value
-      </label>
-      <input
-        id="game-metadata-rating-value"
-        type="text"
-        value={projectMetadata.ratingValue}
-        onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}
-        placeholder="T, M, PEGI 16, custom..."
-      />
+      {projectMetadata.ratingSystem !== 'none' && (
+        <>
+          <label className="field-label spacing-top" htmlFor="game-metadata-rating-value">
+            Rating value
+          </label>
+
+          {projectMetadata.ratingSystem === 'custom' ? (
+            <input
+              id="game-metadata-rating-value"
+              type="text"
+              value={projectMetadata.ratingValue}
+              onChange={(event) =>
+                handleProjectMetadataChange('ratingValue', event.target.value)
+              }
+              placeholder="Custom rating label..."
+            />
+          ) : (
+            <select
+              id="game-metadata-rating-value"
+              value={projectMetadata.ratingValue}
+              onChange={(event) =>
+                handleProjectMetadataChange('ratingValue', event.target.value)
+              }
+            >
+              {getRatingValuesForSystem(projectMetadata.ratingSystem).map((value) => (
+                <option key={value} value={value}>
+                  {projectMetadata.ratingSystem === 'PEGI' ? `PEGI ${value}` : value}
+                </option>
+              ))}
+            </select>
+          )}
+        </>
+      )}
 
       <label className="field-label spacing-top" htmlFor="game-metadata-install-notes">
         Install notes

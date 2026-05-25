@@ -1,10 +1,13 @@
 import type { PointerEvent } from 'react'
-import type { LogoAssetLayout } from '../../project/projectTypes'
+import { getLogoAssetBoundsPercent } from '../../discGeometry'
+import type { BackgroundImageSize, LogoAssetLayout } from '../../project/projectTypes'
 
 export type LogoAssetLayerProps = {
   developerLogoDataUrl: string | null
+  developerLogoSize: BackgroundImageSize | null
   developerLogoLayout: LogoAssetLayout
   publisherLogoDataUrl: string | null
+  publisherLogoSize: BackgroundImageSize | null
   publisherLogoLayout: LogoAssetLayout
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
@@ -16,6 +19,7 @@ export type LogoAssetLayerProps = {
 
 function LogoAssetPreview({
   imageDataUrl,
+  imageSize,
   layout,
   label,
   logoKey,
@@ -24,6 +28,7 @@ function LogoAssetPreview({
   handleLogoAssetPointerUp,
 }: {
   imageDataUrl: string | null
+  imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
   label: string
   logoKey: 'developer' | 'publisher'
@@ -38,6 +43,8 @@ function LogoAssetPreview({
     return null
   }
 
+  const unscaledBounds = getLogoAssetBoundsPercent(imageSize, 1)
+
   return (
     <img
       className="disc-logo-asset"
@@ -51,6 +58,9 @@ function LogoAssetPreview({
       style={{
         left: `${layout.x}%`,
         top: `${layout.y}%`,
+        width: `${unscaledBounds.halfWidth * 2}%`,
+        height: `${unscaledBounds.halfHeight * 2}%`,
+        maxHeight: 'none',
         transform: `translate(-50%, -50%) scale(${layout.scale})`,
       }}
     />
@@ -59,8 +69,10 @@ function LogoAssetPreview({
 
 export function LogoAssetLayer({
   developerLogoDataUrl,
+  developerLogoSize,
   developerLogoLayout,
   publisherLogoDataUrl,
+  publisherLogoSize,
   publisherLogoLayout,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
@@ -70,6 +82,7 @@ export function LogoAssetLayer({
     <div className="disc-logo-asset-layer" aria-label="Developer and publisher logo layer">
       <LogoAssetPreview
         imageDataUrl={developerLogoDataUrl}
+        imageSize={developerLogoSize}
         layout={developerLogoLayout}
         label="Developer"
         logoKey="developer"
@@ -79,6 +92,7 @@ export function LogoAssetLayer({
       />
       <LogoAssetPreview
         imageDataUrl={publisherLogoDataUrl}
+        imageSize={publisherLogoSize}
         layout={publisherLogoLayout}
         label="Publisher"
         logoKey="publisher"

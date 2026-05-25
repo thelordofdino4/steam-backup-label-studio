@@ -1,6 +1,6 @@
 import type { ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
-import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
+import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, GameRatingSystem, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -10,6 +10,9 @@ export type BrandingPanelProps = {
   steamBannerLockupLayout: SteamBannerLockupLayout
   steamBannerColors: SteamBannerColors
   projectLogoAssets: ProjectLogoAssets
+  projectMetadata: ProjectMetadata
+  projectRatingBadge: ProjectRatingBadge
+  handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
   handleSteamBannerLockupLayoutChange: (
@@ -30,6 +33,14 @@ export type BrandingPanelProps = {
   ) => void
   handleClearLogoAsset: (logoKey: 'developer' | 'publisher') => void
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
+  handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
+  handleRatingBadgeLayoutChange: (
+    field: keyof RatingBadgeLayout,
+    value: boolean | number,
+  ) => void
+  handleClearRatingBadgeImage: () => void
+  handleResetRatingBadgeLayout: () => void
 }
 
 const LOGO_ALIGNMENT_PRESETS = [
@@ -221,6 +232,243 @@ function LogoAssetControls({
   )
 }
 
+const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
+const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
+
+function getRatingValuesForSystem(system: GameRatingSystem) {
+  if (system === 'ESRB') {
+    return ESRB_RATING_VALUES
+  }
+
+  if (system === 'PEGI') {
+    return PEGI_RATING_VALUES
+  }
+
+  return []
+}
+
+function RatingBadgeControls({
+  projectMetadata,
+  projectRatingBadge,
+  handleProjectMetadataChange,
+  handleRatingBadgeUpload,
+  handleRatingBadgeSourceChange,
+  handleRatingBadgeLayoutChange,
+  handleClearRatingBadgeImage,
+  handleResetRatingBadgeLayout,
+}: {
+  projectMetadata: ProjectMetadata
+  projectRatingBadge: ProjectRatingBadge
+  handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
+  handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
+  handleRatingBadgeLayoutChange: (
+    field: keyof RatingBadgeLayout,
+    value: boolean | number,
+  ) => void
+  handleClearRatingBadgeImage: () => void
+  handleResetRatingBadgeLayout: () => void
+}) {
+  const ratingLabel =
+    projectMetadata.ratingSystem === 'none'
+      ? 'No rating selected'
+      : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label" htmlFor="branding-rating-system">
+        Rating system
+      </label>
+      <select
+        id="branding-rating-system"
+        value={projectMetadata.ratingSystem}
+        onChange={(event) => {
+          const nextSystem = event.target.value as GameRatingSystem
+          const allowedValues = getRatingValuesForSystem(nextSystem)
+
+          handleProjectMetadataChange('ratingSystem', nextSystem)
+
+          if (nextSystem === 'none') {
+            handleProjectMetadataChange('ratingValue', '')
+            return
+          }
+
+          if (
+            allowedValues.length > 0 &&
+            !allowedValues.includes(projectMetadata.ratingValue as never)
+          ) {
+            handleProjectMetadataChange('ratingValue', allowedValues[0])
+            return
+          }
+
+          if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
+            handleProjectMetadataChange('ratingValue', 'Custom')
+          }
+        }}
+      >
+        <option value="none">None</option>
+        <option value="ESRB">ESRB</option>
+        <option value="PEGI">PEGI</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      {projectMetadata.ratingSystem !== 'none' && (
+        <>
+          <label className="field-label spacing-top" htmlFor="branding-rating-value">
+            Rating value
+          </label>
+
+          {projectMetadata.ratingSystem === 'custom' ? (
+            <input
+              id="branding-rating-value"
+              type="text"
+              value={projectMetadata.ratingValue}
+              placeholder="Custom rating label..."
+              onChange={(event) =>
+                handleProjectMetadataChange('ratingValue', event.target.value)
+              }
+            />
+          ) : (
+            <select
+              id="branding-rating-value"
+              value={projectMetadata.ratingValue}
+              onChange={(event) =>
+                handleProjectMetadataChange('ratingValue', event.target.value)
+              }
+            >
+              {getRatingValuesForSystem(projectMetadata.ratingSystem).map((value) => (
+                <option key={value} value={value}>
+                  {projectMetadata.ratingSystem === 'PEGI' ? `PEGI ${value}` : value}
+                </option>
+              ))}
+            </select>
+          )}
+        </>
+      )}
+
+      <p className="hint">
+        Current metadata rating: {ratingLabel}. Rating values are manual for now.
+      </p>
+
+      <label className="field-label spacing-top">
+        <input
+          type="checkbox"
+          checked={projectRatingBadge.layout.enabled}
+          onChange={(event) =>
+            handleRatingBadgeLayoutChange('enabled', event.target.checked)
+          }
+        />
+        Show rating badge
+      </label>
+
+      <label className="field-label spacing-top" htmlFor="rating-badge-source">
+        Badge source
+      </label>
+      <select
+        id="rating-badge-source"
+        value={projectRatingBadge.source}
+        onChange={(event) =>
+          handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)
+        }
+      >
+        <option value="placeholder">Built-in placeholder</option>
+        <option value="custom">Custom image</option>
+      </select>
+
+      <span className="field-label spacing-top">Custom badge image</span>
+      <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">
+        Choose custom badge
+      </label>
+      <input
+        id="rating-badge-upload"
+        className="logo-file-input"
+        type="file"
+        accept="image/*"
+        onChange={handleRatingBadgeUpload}
+      />
+
+      {projectRatingBadge.customImageDataUrl ? (
+        <div className="selected-lockup-card logo-asset-status-card">
+          <img
+            className="logo-asset-preview"
+            src={projectRatingBadge.customImageDataUrl}
+            alt=""
+            draggable={false}
+          />
+          <span>
+            Custom rating badge active
+            {formatLogoSize(projectRatingBadge.customImageSize)}
+          </span>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={handleClearRatingBadgeImage}
+          >
+            Clear custom badge
+          </button>
+        </div>
+      ) : (
+        <p className="hint">
+          Built-in placeholder badges can be replaced by PNG assets later.
+        </p>
+      )}
+
+      <label className="field-label spacing-top" htmlFor="rating-badge-scale">
+        Scale
+      </label>
+      <input
+        id="rating-badge-scale"
+        type="range"
+        min="0.25"
+        max="2"
+        step="0.01"
+        value={projectRatingBadge.layout.scale}
+        onChange={(event) =>
+          handleRatingBadgeLayoutChange('scale', Number(event.target.value))
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="rating-badge-x">
+        X position
+      </label>
+      <input
+        id="rating-badge-x"
+        type="range"
+        min="0"
+        max="100"
+        step="0.1"
+        value={projectRatingBadge.layout.x}
+        onChange={(event) =>
+          handleRatingBadgeLayoutChange('x', Number(event.target.value))
+        }
+      />
+
+      <label className="field-label spacing-top" htmlFor="rating-badge-y">
+        Y position
+      </label>
+      <input
+        id="rating-badge-y"
+        type="range"
+        min="0"
+        max="100"
+        step="0.1"
+        value={projectRatingBadge.layout.y}
+        onChange={(event) =>
+          handleRatingBadgeLayoutChange('y', Number(event.target.value))
+        }
+      />
+
+      <button
+        className="secondary-button"
+        type="button"
+        onClick={handleResetRatingBadgeLayout}
+      >
+        Reset rating badge layout
+      </button>
+    </div>
+  )
+}
+
 export function BrandingPanel({
   steamLogoPlacement,
   handleSteamLogoPlacementChange,
@@ -229,6 +477,9 @@ export function BrandingPanel({
   steamBannerLockupLayout,
   steamBannerColors,
   projectLogoAssets,
+  projectMetadata,
+  projectRatingBadge,
+  handleProjectMetadataChange,
   handleSteamBannerLockupUpload,
   handleClearSteamBannerLockup,
   handleSteamBannerLockupLayoutChange,
@@ -239,6 +490,11 @@ export function BrandingPanel({
   handleLogoAssetLayoutChange,
   handleClearLogoAsset,
   handleResetLogoAssetLayout,
+  handleRatingBadgeUpload,
+  handleRatingBadgeSourceChange,
+  handleRatingBadgeLayoutChange,
+  handleClearRatingBadgeImage,
+  handleResetRatingBadgeLayout,
 }: BrandingPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -423,6 +679,22 @@ export function BrandingPanel({
             handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
             handleClearLogoAsset={handleClearLogoAsset}
             handleResetLogoAssetLayout={handleResetLogoAssetLayout}
+          />
+        </div>
+      </details>
+
+      <details className="metadata-details collapsible-panel spacing-top">
+        <summary className="panel-summary">Rating badge</summary>
+        <div className="panel-content">
+          <RatingBadgeControls
+            projectMetadata={projectMetadata}
+            projectRatingBadge={projectRatingBadge}
+            handleProjectMetadataChange={handleProjectMetadataChange}
+            handleRatingBadgeUpload={handleRatingBadgeUpload}
+            handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
+            handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
+            handleClearRatingBadgeImage={handleClearRatingBadgeImage}
+            handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
           />
         </div>
       </details>

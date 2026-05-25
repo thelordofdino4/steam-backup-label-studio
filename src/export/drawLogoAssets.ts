@@ -1,8 +1,6 @@
 import type { LogoAssetLayout, ProjectLogoAssets } from '../project/projectTypes'
+import { LOGO_BASE_WIDTH_RATIO, LOGO_MAX_HEIGHT_RATIO } from '../discGeometry'
 import { loadImage } from './canvasImage'
-
-const LOGO_BASE_WIDTH_RATIO = 0.18
-const LOGO_MAX_HEIGHT_RATIO = 0.1
 
 async function drawLogoAsset(
   context: CanvasRenderingContext2D,

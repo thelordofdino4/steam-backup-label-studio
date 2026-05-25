@@ -17,9 +17,13 @@ import {
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
+  clampLayoutPointToSafeZone,
   clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
+  getLogoAssetBoundsPercent,
+  getRatingBadgeBoundsPercent,
+  getRatingBadgePlaceholderBoundsPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
@@ -39,7 +43,8 @@ import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
-import type { BackgroundImageSize, BackgroundOffset, ProjectLogoAssets, ProjectMetadata, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
+import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, ProjectLogoAssets, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -77,6 +82,14 @@ type TextDragState = {
 
 type LogoDragState = {
   logoKey: 'developer' | 'publisher'
+  pointerId: number
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+}
+
+type RatingBadgeDragState = {
   pointerId: number
   startClientX: number
   startClientY: number
@@ -159,6 +172,42 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
   }
 }
 
+function clampLogoAssetLayoutToSafeZone(
+  layout: LogoAssetLayout,
+  selectedDiscTemplate: DiscTemplate,
+  imageSize: BackgroundImageSize | null,
+): LogoAssetLayout {
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    getLogoAssetBoundsPercent(imageSize, layout.scale),
+  )
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+function clampRatingBadgeLayoutToSafeZone(
+  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): RatingBadgeLayout {
+  const layout = ratingBadge.layout
+  const bounds =
+    ratingBadge.source === 'custom' && ratingBadge.customImageSize
+      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
+      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<SelectedDiscTemplateId>('standardPrintableDisc')
@@ -197,6 +246,9 @@ function App() {
   const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
     createDefaultProjectLogoAssets(),
   )
+  const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
+    createDefaultProjectRatingBadge(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -226,6 +278,7 @@ function App() {
   const dragStateRef = useRef<DragState | null>(null)
   const textDragStateRef = useRef<TextDragState | null>(null)
   const logoDragStateRef = useRef<LogoDragState | null>(null)
+  const ratingBadgeDragStateRef = useRef<RatingBadgeDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -272,6 +325,52 @@ function App() {
     (selectedDiscTemplate.physicalCenterHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
   const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
+
+  function clampForegroundAssetLayoutsToTemplate(template: DiscTemplate) {
+    setProjectLogoAssets((currentLogoAssets) => {
+      const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
+        currentLogoAssets.developerLogoLayout,
+        template,
+        currentLogoAssets.developerLogoSize,
+      )
+      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
+        currentLogoAssets.publisherLogoLayout,
+        template,
+        currentLogoAssets.publisherLogoSize,
+      )
+
+      if (
+        developerLogoLayout.x === currentLogoAssets.developerLogoLayout.x &&
+        developerLogoLayout.y === currentLogoAssets.developerLogoLayout.y &&
+        publisherLogoLayout.x === currentLogoAssets.publisherLogoLayout.x &&
+        publisherLogoLayout.y === currentLogoAssets.publisherLogoLayout.y
+      ) {
+        return currentLogoAssets
+      }
+
+      return {
+        ...currentLogoAssets,
+        developerLogoLayout,
+        publisherLogoLayout,
+      }
+    })
+
+    setProjectRatingBadge((currentBadge) => {
+      const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
+
+      if (
+        layout.x === currentBadge.layout.x &&
+        layout.y === currentBadge.layout.y
+      ) {
+        return currentBadge
+      }
+
+      return {
+        ...currentBadge,
+        layout,
+      }
+    })
+  }
 
   useEffect(() => {
     let isCancelled = false
@@ -333,6 +432,7 @@ function App() {
       },
       metadata: projectMetadata,
       logoAssets: projectLogoAssets,
+      ratingBadge: projectRatingBadge,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -462,25 +562,37 @@ function App() {
 
       setProjectLogoAssets((currentLogoAssets) => {
         if (logoKey === 'developer') {
+          const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
+            {
+              ...currentLogoAssets.developerLogoLayout,
+              enabled: true,
+            },
+            selectedDiscTemplate,
+            imageSize,
+          )
+
           return {
             ...currentLogoAssets,
             developerLogoDataUrl: imageDataUrl,
             developerLogoSize: imageSize,
-            developerLogoLayout: {
-              ...currentLogoAssets.developerLogoLayout,
-              enabled: true,
-            },
+            developerLogoLayout,
           }
         }
+
+        const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
+          {
+            ...currentLogoAssets.publisherLogoLayout,
+            enabled: true,
+          },
+          selectedDiscTemplate,
+          imageSize,
+        )
 
         return {
           ...currentLogoAssets,
           publisherLogoDataUrl: imageDataUrl,
           publisherLogoSize: imageSize,
-          publisherLogoLayout: {
-            ...currentLogoAssets.publisherLogoLayout,
-            enabled: true,
-          },
+          publisherLogoLayout,
         }
       })
 
@@ -497,21 +609,33 @@ function App() {
   ) {
     setProjectLogoAssets((currentLogoAssets) => {
       if (logoKey === 'developer') {
-        return {
-          ...currentLogoAssets,
-          developerLogoLayout: {
+        const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
+          {
             ...currentLogoAssets.developerLogoLayout,
             [field]: value,
           },
+          selectedDiscTemplate,
+          currentLogoAssets.developerLogoSize,
+        )
+
+        return {
+          ...currentLogoAssets,
+          developerLogoLayout,
         }
       }
 
-      return {
-        ...currentLogoAssets,
-        publisherLogoLayout: {
+      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
+        {
           ...currentLogoAssets.publisherLogoLayout,
           [field]: value,
         },
+        selectedDiscTemplate,
+        currentLogoAssets.publisherLogoSize,
+      )
+
+      return {
+        ...currentLogoAssets,
+        publisherLogoLayout,
       }
     })
   }
@@ -525,7 +649,11 @@ function App() {
           ...currentLogoAssets,
           developerLogoDataUrl: null,
           developerLogoSize: null,
-          developerLogoLayout: defaults.developerLogoLayout,
+          developerLogoLayout: clampLogoAssetLayoutToSafeZone(
+            defaults.developerLogoLayout,
+            selectedDiscTemplate,
+            null,
+          ),
         }
       }
 
@@ -533,7 +661,11 @@ function App() {
         ...currentLogoAssets,
         publisherLogoDataUrl: null,
         publisherLogoSize: null,
-        publisherLogoLayout: defaults.publisherLogoLayout,
+        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
+          defaults.publisherLogoLayout,
+          selectedDiscTemplate,
+          null,
+        ),
       }
     })
 
@@ -547,23 +679,146 @@ function App() {
       if (logoKey === 'developer') {
         return {
           ...currentLogoAssets,
-          developerLogoLayout: {
-            ...defaults.developerLogoLayout,
-            enabled: currentLogoAssets.developerLogoLayout.enabled,
-          },
+          developerLogoLayout: clampLogoAssetLayoutToSafeZone(
+            {
+              ...defaults.developerLogoLayout,
+              enabled: currentLogoAssets.developerLogoLayout.enabled,
+            },
+            selectedDiscTemplate,
+            currentLogoAssets.developerLogoSize,
+          ),
         }
       }
 
       return {
         ...currentLogoAssets,
-        publisherLogoLayout: {
-          ...defaults.publisherLogoLayout,
-          enabled: currentLogoAssets.publisherLogoLayout.enabled,
-        },
+        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
+          {
+            ...defaults.publisherLogoLayout,
+            enabled: currentLogoAssets.publisherLogoLayout.enabled,
+          },
+          selectedDiscTemplate,
+          currentLogoAssets.publisherLogoSize,
+        ),
       }
     })
 
     announceStatus(`Reset ${logoKey} logo layout.`)
+  }
+
+  async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the rating badge.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+      const imageSize = getNaturalImageSize(image)
+
+      setProjectRatingBadge((currentBadge) => {
+        const nextBadge = {
+          ...currentBadge,
+          source: 'custom' as const,
+          customImageDataUrl: imageDataUrl,
+          customImageSize: imageSize,
+          layout: {
+            ...currentBadge.layout,
+            enabled: true,
+          },
+        }
+
+        return {
+          ...nextBadge,
+          layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+        }
+      })
+
+      announceStatus(`Using ${file.name} as the rating badge.`)
+    } catch (error) {
+      announceStatus(`Rating badge import failed: ${String(error)}`)
+    }
+  }
+
+  function handleRatingBadgeSourceChange(source: 'placeholder' | 'custom') {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        source,
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleRatingBadgeLayoutChange(
+    field: keyof ProjectRatingBadge['layout'],
+    value: boolean | number,
+  ) {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
+          ...currentBadge.layout,
+          [field]: value,
+        },
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleClearRatingBadgeImage() {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        source: 'placeholder' as const,
+        customImageDataUrl: null,
+        customImageSize: null,
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Cleared custom rating badge image.')
+  }
+
+  function handleResetRatingBadgeLayout() {
+    const defaults = createDefaultProjectRatingBadge()
+
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
+          ...defaults.layout,
+          enabled: currentBadge.layout.enabled,
+        },
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+
+    announceStatus('Reset rating badge layout.')
   }
 
   function handleResetSteamBannerColors() {
@@ -731,6 +986,7 @@ function App() {
     dragStateRef.current = null
     textDragStateRef.current = null
     logoDragStateRef.current = null
+    ratingBadgeDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(createCustomDiscTemplate())
@@ -748,6 +1004,7 @@ function App() {
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
     setProjectLogoAssets(createDefaultProjectLogoAssets())
+    setProjectRatingBadge(createDefaultProjectRatingBadge())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -768,10 +1025,12 @@ function App() {
     setSelectedDiscTemplateId(templateId)
 
     if (templateId === 'custom') {
+      clampForegroundAssetLayoutsToTemplate(customDiscTemplate)
       announceStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
       return
     }
 
+    clampForegroundAssetLayoutsToTemplate(discTemplates[templateId])
     announceStatus(`Selected ${discTemplates[templateId].name}.`)
   }
 
@@ -782,14 +1041,16 @@ function App() {
       return
     }
 
-    setCustomDiscTemplate((currentTemplate) => {
-      const nextTemplate = {
-        ...currentTemplate,
-        [field]: numericValue,
-      }
-
-      return normalizeCustomDiscTemplate(nextTemplate)
+    const nextTemplate = normalizeCustomDiscTemplate({
+      ...customDiscTemplate,
+      [field]: numericValue,
     })
+
+    setCustomDiscTemplate(nextTemplate)
+
+    if (selectedDiscTemplateId === 'custom') {
+      clampForegroundAssetLayoutsToTemplate(nextTemplate)
+    }
   }
 
   async function handleSteamSearch() {
@@ -978,6 +1239,15 @@ function App() {
       const project = normalizeParsedProject(contents)
       const savedTemplateId = project.template.variant
       const savedImageDataUrl = project.background.imageDataUrl
+      const loadedCustomDiscTemplate = project.template.customDimensions
+        ? createCustomDiscTemplate(project.template.customDimensions)
+        : createCustomDiscTemplate()
+      const loadedSelectedDiscTemplate =
+        savedTemplateId === 'custom'
+          ? loadedCustomDiscTemplate
+          : savedTemplateId in discTemplates
+            ? discTemplates[savedTemplateId]
+            : discTemplates.standardPrintableDisc
 
       const loadedTitle = project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label'
       setManualGameTitle(loadedTitle)
@@ -988,7 +1258,28 @@ function App() {
           project.game?.selectedSteamGame?.appId,
         ),
       )
-      setProjectLogoAssets(normalizeProjectLogoAssets(project.logoAssets))
+      const loadedLogoAssets = normalizeProjectLogoAssets(project.logoAssets)
+      setProjectLogoAssets({
+        ...loadedLogoAssets,
+        developerLogoLayout: clampLogoAssetLayoutToSafeZone(
+          loadedLogoAssets.developerLogoLayout,
+          loadedSelectedDiscTemplate,
+          loadedLogoAssets.developerLogoSize,
+        ),
+        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
+          loadedLogoAssets.publisherLogoLayout,
+          loadedSelectedDiscTemplate,
+          loadedLogoAssets.publisherLogoSize,
+        ),
+      })
+      const loadedRatingBadge = normalizeProjectRatingBadge(project.ratingBadge)
+      setProjectRatingBadge({
+        ...loadedRatingBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(
+          loadedRatingBadge,
+          loadedSelectedDiscTemplate,
+        ),
+      })
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
@@ -996,11 +1287,7 @@ function App() {
       setHasCheckedLocalSteamScreenshots(false)
 
       if (savedTemplateId === 'custom') {
-        setCustomDiscTemplate(
-          project.template.customDimensions
-            ? createCustomDiscTemplate(project.template.customDimensions)
-            : createCustomDiscTemplate(),
-        )
+        setCustomDiscTemplate(loadedCustomDiscTemplate)
         setSelectedDiscTemplateId('custom')
       } else if (savedTemplateId in discTemplates) {
         setSelectedDiscTemplateId(savedTemplateId)
@@ -1105,6 +1392,8 @@ function App() {
         steamBannerLockupImageUrl,
         steamBannerLockupLayout,
         projectLogoAssets,
+        projectMetadata,
+        projectRatingBadge,
         discTextSettings,
         discTextValues,
         discTextLayout,
@@ -1220,27 +1509,36 @@ function App() {
     const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
 
     setProjectLogoAssets((currentLogoAssets) => {
-      const nextX = clampNumber(dragState.startX + deltaXPercent, 0, 100)
-      const nextY = clampNumber(dragState.startY + deltaYPercent, 0, 100)
-
       if (dragState.logoKey === 'developer') {
+        const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
+          {
+            ...currentLogoAssets.developerLogoLayout,
+            x: dragState.startX + deltaXPercent,
+            y: dragState.startY + deltaYPercent,
+          },
+          selectedDiscTemplate,
+          currentLogoAssets.developerLogoSize,
+        )
+
         return {
           ...currentLogoAssets,
-          developerLogoLayout: {
-            ...currentLogoAssets.developerLogoLayout,
-            x: nextX,
-            y: nextY,
-          },
+          developerLogoLayout,
         }
       }
 
+      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
+        {
+          ...currentLogoAssets.publisherLogoLayout,
+          x: dragState.startX + deltaXPercent,
+          y: dragState.startY + deltaYPercent,
+        },
+        selectedDiscTemplate,
+        currentLogoAssets.publisherLogoSize,
+      )
+
       return {
         ...currentLogoAssets,
-        publisherLogoLayout: {
-          ...currentLogoAssets.publisherLogoLayout,
-          x: nextX,
-          y: nextY,
-        },
+        publisherLogoLayout,
       }
     })
   }
@@ -1254,6 +1552,61 @@ function App() {
 
     event.stopPropagation()
     logoDragStateRef.current = null
+    event.currentTarget.releasePointerCapture(event.pointerId)
+  }
+
+  function handleRatingBadgePointerDown(event: PointerEvent<Element>) {
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+
+    ratingBadgeDragStateRef.current = {
+      pointerId: event.pointerId,
+      startClientX: event.clientX,
+      startClientY: event.clientY,
+      startX: projectRatingBadge.layout.x,
+      startY: projectRatingBadge.layout.y,
+    }
+  }
+
+  function handleRatingBadgePointerMove(event: PointerEvent<Element>) {
+    const dragState = ratingBadgeDragStateRef.current
+    const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
+      return
+    }
+
+    event.stopPropagation()
+
+    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
+    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
+          ...currentBadge.layout,
+          x: dragState.startX + deltaXPercent,
+          y: dragState.startY + deltaYPercent,
+        },
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function handleRatingBadgePointerUp(event: PointerEvent<Element>) {
+    const dragState = ratingBadgeDragStateRef.current
+
+    if (!dragState || dragState.pointerId !== event.pointerId) {
+      return
+    }
+
+    event.stopPropagation()
+    ratingBadgeDragStateRef.current = null
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
@@ -1422,6 +1775,9 @@ function App() {
           steamBannerLockupLayout={steamBannerLockupLayout}
           steamBannerColors={steamBannerColors}
           projectLogoAssets={projectLogoAssets}
+          projectMetadata={projectMetadata}
+          projectRatingBadge={projectRatingBadge}
+          handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
@@ -1432,6 +1788,11 @@ function App() {
           handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
           handleClearLogoAsset={handleClearLogoAsset}
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
+          handleRatingBadgeUpload={handleRatingBadgeUpload}
+          handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
+          handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
+          handleClearRatingBadgeImage={handleClearRatingBadgeImage}
+          handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
         />
 
 
@@ -1467,6 +1828,11 @@ function App() {
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
+        projectMetadata={projectMetadata}
+        projectRatingBadge={projectRatingBadge}
+        handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+        handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+        handleRatingBadgePointerUp={handleRatingBadgePointerUp}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}
