@@ -562,6 +562,17 @@ function App() {
     }))
   }
 
+  function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
+    setProjectMetadata((currentMetadata) => ({
+      ...currentMetadata,
+      [field]: value,
+    }))
+
+    if (field === 'title') {
+      setManualGameTitle(value)
+    }
+  }
+
   async function handleNewProject() {
     const shouldReset = await confirm(
       'Start a new project? Unsaved changes will be lost.',
@@ -1142,6 +1153,8 @@ function App() {
         <GamePanel
           manualGameTitle={manualGameTitle}
           setManualGameTitle={setManualGameTitle}
+          projectMetadata={projectMetadata}
+          handleProjectMetadataChange={handleProjectMetadataChange}
           gameSearchQuery={gameSearchQuery}
           setGameSearchQuery={setGameSearchQuery}
           handleSteamSearch={handleSteamSearch}

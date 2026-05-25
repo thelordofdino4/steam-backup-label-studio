@@ -1,8 +1,11 @@
+import type { ProjectMetadata } from '../../project/projectTypes'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
 
 export type GamePanelProps = {
   manualGameTitle: string
   setManualGameTitle: (value: string) => void
+  projectMetadata: ProjectMetadata
+  handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
   gameSearchQuery: string
   setGameSearchQuery: (value: string) => void
   handleSteamSearch: () => void | Promise<void>
@@ -16,6 +19,8 @@ export type GamePanelProps = {
 export function GamePanel({
   manualGameTitle,
   setManualGameTitle,
+  projectMetadata,
+  handleProjectMetadataChange,
   gameSearchQuery,
   setGameSearchQuery,
   handleSteamSearch,
@@ -29,16 +34,6 @@ export function GamePanel({
     <details className="panel collapsible-panel" open>
       <summary className="panel-summary">Game</summary>
       <div className="panel-content">
-      <label className="field-label" htmlFor="game-title">
-        Label title
-      </label>
-      <input
-        id="game-title"
-        type="text"
-        value={manualGameTitle}
-        onChange={(event) => setManualGameTitle(event.target.value)}
-      />
-
       <label className="field-label spacing-top" htmlFor="game-search">
         Steam search
       </label>
@@ -114,6 +109,156 @@ export function GamePanel({
 
         </div>
       )}
+
+
+      <details className="metadata-details spacing-top">
+        <summary className="panel-summary">Additional metadata</summary>
+        <div className="panel-content">
+      <label className="field-label" htmlFor="game-title">
+        Label title
+      </label>
+      <input
+        id="game-title"
+        type="text"
+        value={manualGameTitle}
+        onChange={(event) => {
+          setManualGameTitle(event.target.value)
+          handleProjectMetadataChange('title', event.target.value)
+        }}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-subtitle">
+        Subtitle / edition
+      </label>
+      <input
+        id="game-subtitle"
+        type="text"
+        value={projectMetadata.subtitle}
+        onChange={(event) => handleProjectMetadataChange('subtitle', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-app-id">
+        Steam App ID
+      </label>
+      <input
+        id="game-metadata-app-id"
+        type="text"
+        value={projectMetadata.steamAppId}
+        onChange={(event) => handleProjectMetadataChange('steamAppId', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-developer">
+        Developer
+      </label>
+      <input
+        id="game-metadata-developer"
+        type="text"
+        value={projectMetadata.developer}
+        onChange={(event) => handleProjectMetadataChange('developer', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-publisher">
+        Publisher
+      </label>
+      <input
+        id="game-metadata-publisher"
+        type="text"
+        value={projectMetadata.publisher}
+        onChange={(event) => handleProjectMetadataChange('publisher', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-release-date">
+        Release date
+      </label>
+      <input
+        id="game-metadata-release-date"
+        type="text"
+        value={projectMetadata.releaseDate}
+        onChange={(event) => handleProjectMetadataChange('releaseDate', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-backup-date">
+        Backup date
+      </label>
+      <input
+        id="game-metadata-backup-date"
+        type="date"
+        value={projectMetadata.backupDate}
+        onChange={(event) => handleProjectMetadataChange('backupDate', event.target.value)}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-disc-number">
+        Disc number
+      </label>
+      <div className="metadata-disc-row">
+        <input
+          id="game-metadata-disc-number"
+          type="text"
+          value={projectMetadata.discNumber}
+          onChange={(event) => handleProjectMetadataChange('discNumber', event.target.value)}
+          placeholder="1"
+        />
+        <span className="metadata-disc-separator">of</span>
+        <input
+          aria-label="Disc total"
+          type="text"
+          value={projectMetadata.discTotal}
+          onChange={(event) => handleProjectMetadataChange('discTotal', event.target.value)}
+          placeholder="1"
+        />
+      </div>
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-rating-system">
+        Rating system
+      </label>
+      <select
+        id="game-metadata-rating-system"
+        value={projectMetadata.ratingSystem}
+        onChange={(event) => handleProjectMetadataChange('ratingSystem', event.target.value)}
+      >
+        <option value="none">None</option>
+        <option value="ESRB">ESRB</option>
+        <option value="PEGI">PEGI</option>
+        <option value="custom">Custom</option>
+      </select>
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-rating-value">
+        Rating value
+      </label>
+      <input
+        id="game-metadata-rating-value"
+        type="text"
+        value={projectMetadata.ratingValue}
+        onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}
+        placeholder="T, M, PEGI 16, custom..."
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-install-notes">
+        Install notes
+      </label>
+      <textarea
+        id="game-metadata-install-notes"
+        value={projectMetadata.installNotes}
+        onChange={(event) => handleProjectMetadataChange('installNotes', event.target.value)}
+        rows={3}
+      />
+
+      <label className="field-label spacing-top" htmlFor="game-metadata-copyright">
+        Copyright / legal text
+      </label>
+      <textarea
+        id="game-metadata-copyright"
+        value={projectMetadata.copyrightText}
+        onChange={(event) => handleProjectMetadataChange('copyrightText', event.target.value)}
+        rows={3}
+      />
+
+
+          <p className="hint">
+            Rating values are manual for now. Steam import does not currently provide ESRB or PEGI data.
+          </p>
+        </div>
+      </details>
 
       </div>
     </details>
