@@ -8,6 +8,7 @@ export type ArtworkPanelProps = {
   isArtworkLoading: boolean
   handleUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
   localSteamScreenshots: LocalSteamScreenshotAsset[]
+  localSteamScreenshotThumbnails: Record<string, string>
   hasCheckedLocalSteamScreenshots: boolean
   isLocalSteamScreenshotsLoading: boolean
   handleFindLocalSteamScreenshots: () => void | Promise<void>
@@ -53,6 +54,7 @@ export function ArtworkPanel({
   isArtworkLoading,
   handleUseSteamArtwork,
   localSteamScreenshots,
+  localSteamScreenshotThumbnails,
   hasCheckedLocalSteamScreenshots,
   isLocalSteamScreenshotsLoading,
   handleFindLocalSteamScreenshots,
@@ -159,9 +161,19 @@ export function ArtworkPanel({
                         type="button"
                         onClick={() => void handleUseLocalSteamScreenshot(asset)}
                       >
-                        <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
-                          Local
-                        </span>
+                        {localSteamScreenshotThumbnails[asset.id] ? (
+                          <img
+                            className="artwork-asset-thumbnail"
+                            src={localSteamScreenshotThumbnails[asset.id]}
+                            alt=""
+                            loading="lazy"
+                            draggable={false}
+                          />
+                        ) : (
+                          <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
+                            Local
+                          </span>
+                        )}
                         <span className="artwork-asset-copy">
                           <strong>{asset.label}</strong>
                           <span>
