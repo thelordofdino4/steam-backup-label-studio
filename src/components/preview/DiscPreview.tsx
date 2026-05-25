@@ -1,12 +1,13 @@
 import type { CSSProperties, PointerEvent, RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset } from '../../project/projectTypes'
+import type { BackgroundOffset, ProjectLogoAssets } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
 import { DiscTextLayer } from './DiscTextLayer'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { SteamBannerPreview } from './SteamBannerPreview'
+import { LogoAssetLayer } from './LogoAssetLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type DiscPreviewProps = {
@@ -23,6 +24,7 @@ export type DiscPreviewProps = {
   steamBannerStyle: CSSProperties
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  projectLogoAssets: ProjectLogoAssets
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   manualGameTitle: string
@@ -52,6 +54,7 @@ export function DiscPreview({
   steamBannerStyle,
   steamBannerLockupImageUrl,
   steamBannerLockupLayout,
+  projectLogoAssets,
   discTextSettings,
   discTextValues,
   manualGameTitle,
@@ -95,6 +98,13 @@ export function DiscPreview({
           steamBannerStyle={steamBannerStyle}
           steamBannerLockupImageUrl={steamBannerLockupImageUrl}
           steamBannerLockupLayout={steamBannerLockupLayout}
+        />
+
+        <LogoAssetLayer
+          developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
+          developerLogoLayout={projectLogoAssets.developerLogoLayout}
+          publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
+          publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
         />
 
         <DiscTextLayer

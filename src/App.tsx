@@ -429,6 +429,133 @@ function App() {
     }))
   }
 
+  async function handleLogoAssetUpload(
+    logoKey: 'developer' | 'publisher',
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!file.type.startsWith('image/')) {
+      announceStatus('Choose an image file for the logo asset.')
+      return
+    }
+
+    try {
+      const imageDataUrl = await readImageFileAsDataUrl(file)
+      const image = await loadImage(imageDataUrl)
+      const imageSize = getNaturalImageSize(image)
+
+      setProjectLogoAssets((currentLogoAssets) => {
+        if (logoKey === 'developer') {
+          return {
+            ...currentLogoAssets,
+            developerLogoDataUrl: imageDataUrl,
+            developerLogoSize: imageSize,
+            developerLogoLayout: {
+              ...currentLogoAssets.developerLogoLayout,
+              enabled: true,
+            },
+          }
+        }
+
+        return {
+          ...currentLogoAssets,
+          publisherLogoDataUrl: imageDataUrl,
+          publisherLogoSize: imageSize,
+          publisherLogoLayout: {
+            ...currentLogoAssets.publisherLogoLayout,
+            enabled: true,
+          },
+        }
+      })
+
+      announceStatus(`Using ${file.name} as the ${logoKey} logo.`)
+    } catch (error) {
+      announceStatus(`Logo import failed: ${String(error)}`)
+    }
+  }
+
+  function handleLogoAssetLayoutChange(
+    logoKey: 'developer' | 'publisher',
+    field: 'enabled' | 'scale' | 'x' | 'y',
+    value: boolean | number,
+  ) {
+    setProjectLogoAssets((currentLogoAssets) => {
+      if (logoKey === 'developer') {
+        return {
+          ...currentLogoAssets,
+          developerLogoLayout: {
+            ...currentLogoAssets.developerLogoLayout,
+            [field]: value,
+          },
+        }
+      }
+
+      return {
+        ...currentLogoAssets,
+        publisherLogoLayout: {
+          ...currentLogoAssets.publisherLogoLayout,
+          [field]: value,
+        },
+      }
+    })
+  }
+
+  function handleClearLogoAsset(logoKey: 'developer' | 'publisher') {
+    setProjectLogoAssets((currentLogoAssets) => {
+      const defaults = createDefaultProjectLogoAssets()
+
+      if (logoKey === 'developer') {
+        return {
+          ...currentLogoAssets,
+          developerLogoDataUrl: null,
+          developerLogoSize: null,
+          developerLogoLayout: defaults.developerLogoLayout,
+        }
+      }
+
+      return {
+        ...currentLogoAssets,
+        publisherLogoDataUrl: null,
+        publisherLogoSize: null,
+        publisherLogoLayout: defaults.publisherLogoLayout,
+      }
+    })
+
+    announceStatus(`Cleared ${logoKey} logo asset.`)
+  }
+
+  function handleResetLogoAssetLayout(logoKey: 'developer' | 'publisher') {
+    setProjectLogoAssets((currentLogoAssets) => {
+      const defaults = createDefaultProjectLogoAssets()
+
+      if (logoKey === 'developer') {
+        return {
+          ...currentLogoAssets,
+          developerLogoLayout: {
+            ...defaults.developerLogoLayout,
+            enabled: currentLogoAssets.developerLogoLayout.enabled,
+          },
+        }
+      }
+
+      return {
+        ...currentLogoAssets,
+        publisherLogoLayout: {
+          ...defaults.publisherLogoLayout,
+          enabled: currentLogoAssets.publisherLogoLayout.enabled,
+        },
+      }
+    })
+
+    announceStatus(`Reset ${logoKey} logo layout.`)
+  }
+
   function handleResetSteamBannerColors() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     announceStatus('Reset Steam banner colors to the default palette.')
@@ -1209,12 +1336,17 @@ function App() {
           steamBannerLockupImageSize={steamBannerLockupImageSize}
           steamBannerLockupLayout={steamBannerLockupLayout}
           steamBannerColors={steamBannerColors}
+          projectLogoAssets={projectLogoAssets}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
           handleResetSteamBannerLockupLayout={handleResetSteamBannerLockupLayout}
           handleSteamBannerColorChange={handleSteamBannerColorChange}
           handleResetSteamBannerColors={handleResetSteamBannerColors}
+          handleLogoAssetUpload={handleLogoAssetUpload}
+          handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
+          handleClearLogoAsset={handleClearLogoAsset}
+          handleResetLogoAssetLayout={handleResetLogoAssetLayout}
         />
 
 
@@ -1249,6 +1381,7 @@ function App() {
         steamBannerStyle={steamBannerStyle}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
+        projectLogoAssets={projectLogoAssets}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         manualGameTitle={manualGameTitle}
