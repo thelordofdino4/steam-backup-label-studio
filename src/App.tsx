@@ -127,6 +127,9 @@ type SavedProject = {
     bannerColors?: SteamBannerColors
     lockupImageDataUrl?: string | null
     lockupImageSize?: BackgroundImageSize | null
+    // tai's edit so custom text is remembered when saving/loading project
+    fallbackText?: string;
+    useTextFallback?: boolean;
   }
   export?: {
     guideMode?: ExportGuideMode
@@ -185,6 +188,8 @@ const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
   customNote: false,
   copyright: false,
 }
+
+
 
 function createDefaultDiscTextValues(appId?: number): DiscTextValues {
   return {
@@ -727,6 +732,8 @@ async function drawSteamBrandBanner(
   placement: SteamLogoPlacement,
   colors: SteamBannerColors,
   lockupImageDataUrl: string | null,
+  // setting function deff of brand const
+  fallbackText: string,
 ) {
   if (placement === 'none') {
     return
@@ -797,7 +804,10 @@ async function drawSteamBrandBanner(
   context.textAlign = 'center'
   context.textBaseline = 'middle'
   context.letterSpacing = `${Math.round(exportSize * 0.004)}px`
-  context.fillText('STEAM', exportSize / 2, mainBandY + mainBandHeight / 2)
+
+  // tai's edit replacing the actual default branding text
+
+  context.fillText(fallbackText, exportSize / 2, mainBandY + mainBandHeight / 2)
   context.restore()
 }
 
@@ -1197,6 +1207,13 @@ function App() {
   >(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
   const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
     useState<BackgroundImageSize | null>(null)
+
+    // tai's proposed addon const
+    
+    const [brandFallbackText, setBrandFallbackText] = useState('STEAM');
+    const [useTextFallback, setUseTextFallback] = useState(false);
+     
+    // end of tai's proposed addon const
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
@@ -1324,6 +1341,10 @@ function App() {
         bannerColors: steamBannerColors,
         lockupImageDataUrl: steamBannerLockupImageUrl,
         lockupImageSize: steamBannerLockupImageSize,
+
+        // add tai's text input property
+        fallbackText: brandFallbackText,
+        useTextFallback: useTextFallback,
       },
       export: {
         guides: exportGuides,
@@ -1382,6 +1403,7 @@ function App() {
 
       setSteamBannerLockupImageUrl(imageDataUrl)
       setSteamBannerLockupImageSize(getNaturalImageSize(image))
+      setUseTextFallback(false)   // ← turn off text mode because an image was uploaded
       announceStatus(`Using ${file.name} as the Steam banner lockup.`)
     } catch (error) {
       announceStatus(`Banner lockup import failed: ${String(error)}`)
@@ -1944,6 +1966,10 @@ function App() {
         steamLogoPlacement,
         steamBannerColors,
         steamBannerLockupImageUrl,
+
+        // updating call to add tai's addon
+        brandFallbackText,   
+        // end of tai's call update
       )
 
       drawDiscTextElements(
@@ -2605,6 +2631,44 @@ function App() {
               Using the bundled default Steam banner lockup image. Upload a PNG to override it.
             </p>
           )}
+
+          {/*tai's edit   */}
+
+          {/* checkbox to disable default branding logo */}
+
+          <label className="checkbox-row spacing-top">
+            <input
+              type="checkbox"
+              checked={useTextFallback}
+              onChange={(event) => {
+              const checked = event.target.checked;
+              setUseTextFallback(checked);
+              if (checked) {
+              // Switch to text mode: remove lockup image
+                setSteamBannerLockupImageUrl(null);
+                } else {
+              // Switch back to image mode: restore default lockup
+                setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL);
+      }
+    }}
+  />
+  <span>Use custom text instead of lockup image</span>
+</label>
+
+          {/* New fallback text input */}
+          <label className="field-label spacing-top" htmlFor="brand-fallback-text">
+            Fallback lockup text (shown when no image is loaded)
+          </label>
+          <input
+            id="brand-fallback-text"
+            type="text"
+            value={brandFallbackText}
+            disabled={!useTextFallback}
+            onChange={(event) => setBrandFallbackText(event.target.value)}
+          />
+
+          {/* end of tai's edit */}
+
           </div>
         </details>
 
@@ -2892,7 +2956,13 @@ function App() {
                       draggable={false}
                     />
                   ) : (
-                    <span>STEAM</span>
+
+                    // tai's addon implimenting the branding text
+
+                    <span>{brandFallbackText}</span>
+
+                    // end of tai's addon
+
                   )}
                 </div>
               </div>
