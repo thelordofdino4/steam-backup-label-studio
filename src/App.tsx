@@ -17,6 +17,7 @@ import {
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
+  DISC_LAYOUT_CENTER_PERCENT,
   clampLayoutPointToSafeZone,
   clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
@@ -24,6 +25,7 @@ import {
   getLogoAssetBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
+  getStraightDiscTextBoundsPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
@@ -51,6 +53,7 @@ import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 import {
+  DISC_TEXT_KEYS,
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
@@ -208,6 +211,45 @@ function clampRatingBadgeLayoutToSafeZone(
   }
 }
 
+function clampStraightDiscTextLayoutToSafeZone(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+  selectedDiscTemplate: DiscTemplate,
+): DiscTextLayout {
+  if (layout.mode !== 'straight') {
+    return layout
+  }
+
+  const point = clampLayoutPointToSafeZone(
+    {
+      x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
+      y: layout.y,
+    },
+    selectedDiscTemplate,
+    getStraightDiscTextBoundsPercent(key, layout),
+  )
+
+  return {
+    ...layout,
+    x: point.x - DISC_LAYOUT_CENTER_PERCENT,
+    y: point.y,
+  }
+}
+
+function clampDiscTextLayoutToSafeZone(
+  layout: DiscTextLayoutSettings,
+  selectedDiscTemplate: DiscTemplate,
+): DiscTextLayoutSettings {
+  return DISC_TEXT_KEYS.reduce((nextLayout, key) => {
+    nextLayout[key] = clampStraightDiscTextLayoutToSafeZone(
+      key,
+      layout[key],
+      selectedDiscTemplate,
+    )
+    return nextLayout
+  }, {} as DiscTextLayoutSettings)
+}
+
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<SelectedDiscTemplateId>('standardPrintableDisc')
@@ -326,7 +368,7 @@ function App() {
   const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
-  function clampForegroundAssetLayoutsToTemplate(template: DiscTemplate) {
+  function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     setProjectLogoAssets((currentLogoAssets) => {
       const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
         currentLogoAssets.developerLogoLayout,
@@ -369,6 +411,17 @@ function App() {
         ...currentBadge,
         layout,
       }
+    })
+
+    setDiscTextLayout((currentLayout) => {
+      const nextLayout = clampDiscTextLayoutToSafeZone(currentLayout, template)
+      const didChange = DISC_TEXT_KEYS.some(
+        (key) =>
+          nextLayout[key].x !== currentLayout[key].x ||
+          nextLayout[key].y !== currentLayout[key].y,
+      )
+
+      return didChange ? nextLayout : currentLayout
     })
   }
 
@@ -831,12 +884,16 @@ function App() {
 
     const defaultLayout = createDefaultDiscTextLayout(placement)
 
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      title: defaultLayout.title,
-      customNote: defaultLayout.customNote,
-      copyright: defaultLayout.copyright,
-    }))
+    setDiscTextLayout((currentLayout) => {
+      const nextLayout = {
+        ...currentLayout,
+        title: defaultLayout.title,
+        customNote: defaultLayout.customNote,
+        copyright: defaultLayout.copyright,
+      }
+
+      return clampDiscTextLayoutToSafeZone(nextLayout, selectedDiscTemplate)
+    })
   }
 
   function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
@@ -863,16 +920,24 @@ function App() {
     field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
     value: number,
   ) {
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: {
+    setDiscTextLayout((currentLayout) => {
+      const nextTextLayout = {
         ...currentLayout[key],
         [field]:
           field === 'width'
             ? normalizeDiscTextWidth(value, currentLayout[key].width)
             : value,
-      },
-    }))
+      }
+
+      return {
+        ...currentLayout,
+        [key]: clampStraightDiscTextLayoutToSafeZone(
+          key,
+          nextTextLayout,
+          selectedDiscTemplate,
+        ),
+      }
+    })
   }
 
   function handleDiscTextAlignmentChange(key: DiscTextKey, align: DiscTextAlignment) {
@@ -895,20 +960,28 @@ function App() {
 
         return {
           ...currentLayout,
-          copyright: {
-            ...currentLayout.copyright,
-            ...defaultLayout,
-            mode,
-          },
+          copyright: clampStraightDiscTextLayoutToSafeZone(
+            'copyright',
+            {
+              ...currentLayout.copyright,
+              ...defaultLayout,
+              mode,
+            },
+            selectedDiscTemplate,
+          ),
         }
       }
 
       return {
         ...currentLayout,
-        [key]: {
-          ...currentLayout[key],
-          mode,
-        },
+        [key]: clampStraightDiscTextLayoutToSafeZone(
+          key,
+          {
+            ...currentLayout[key],
+            mode,
+          },
+          selectedDiscTemplate,
+        ),
       }
     })
   }
@@ -930,16 +1003,23 @@ function App() {
       if (key === 'copyright') {
         return {
           ...currentLayout,
-          copyright:
+          copyright: clampStraightDiscTextLayoutToSafeZone(
+            'copyright',
             currentLayout.copyright.mode === 'curved'
               ? getDefaultCopyrightCurvedLayout(steamLogoPlacement)
               : getDefaultCopyrightStraightLayout(steamLogoPlacement),
+            selectedDiscTemplate,
+          ),
         }
       }
 
       return {
         ...currentLayout,
-        [key]: defaultLayout[key],
+        [key]: clampStraightDiscTextLayoutToSafeZone(
+          key,
+          defaultLayout[key],
+          selectedDiscTemplate,
+        ),
       }
     })
   }
@@ -1025,12 +1105,12 @@ function App() {
     setSelectedDiscTemplateId(templateId)
 
     if (templateId === 'custom') {
-      clampForegroundAssetLayoutsToTemplate(customDiscTemplate)
+      clampForegroundElementLayoutsToTemplate(customDiscTemplate)
       announceStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
       return
     }
 
-    clampForegroundAssetLayoutsToTemplate(discTemplates[templateId])
+    clampForegroundElementLayoutsToTemplate(discTemplates[templateId])
     announceStatus(`Selected ${discTemplates[templateId].name}.`)
   }
 
@@ -1049,7 +1129,7 @@ function App() {
     setCustomDiscTemplate(nextTemplate)
 
     if (selectedDiscTemplateId === 'custom') {
-      clampForegroundAssetLayoutsToTemplate(nextTemplate)
+      clampForegroundElementLayoutsToTemplate(nextTemplate)
     }
   }
 
@@ -1312,7 +1392,10 @@ function App() {
         normalizeDiscTextValues(project.discText?.values, project.game?.selectedSteamGame?.appId),
       )
       setDiscTextLayout(
-        normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
+        clampDiscTextLayoutToSafeZone(
+          normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
+          loadedSelectedDiscTemplate,
+        ),
       )
       setBackgroundScale(project.background.scale)
       setBackgroundOffset(project.background.offset)
@@ -1446,17 +1529,25 @@ function App() {
       const isCurvedCopyright =
         dragState.key === 'copyright' && currentTextLayout.mode === 'curved'
 
+      const nextTextLayout = {
+        ...currentTextLayout,
+        x: isCurvedCopyright
+          ? clampNumber(dragState.startX + deltaXPercent, -60, 60)
+          : dragState.startX + deltaXPercent,
+        y: isCurvedCopyright
+          ? clampNumber(dragState.startY + deltaYPercent, -8, 20)
+          : dragState.startY + deltaYPercent,
+      }
+
       return {
         ...currentLayout,
-        [dragState.key]: {
-          ...currentTextLayout,
-          x: isCurvedCopyright
-            ? clampNumber(dragState.startX + deltaXPercent, -60, 60)
-            : clampNumber(dragState.startX + deltaXPercent, -35, 35),
-          y: isCurvedCopyright
-            ? clampNumber(dragState.startY + deltaYPercent, -8, 20)
-            : clampNumber(dragState.startY + deltaYPercent, 8, 92),
-        },
+        [dragState.key]: isCurvedCopyright
+          ? nextTextLayout
+          : clampStraightDiscTextLayoutToSafeZone(
+              dragState.key,
+              nextTextLayout,
+              selectedDiscTemplate,
+            ),
       }
     })
   }

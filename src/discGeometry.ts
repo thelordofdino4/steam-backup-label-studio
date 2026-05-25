@@ -1,4 +1,5 @@
 import type { DiscTemplate } from './types/template'
+import type { DiscTextKey, DiscTextLayout } from './discText'
 
 export const EXPORT_DPI = 300
 export const MM_PER_INCH = 25.4
@@ -23,6 +24,18 @@ export type NaturalSize = {
   width: number
   height: number
 } | null
+
+const STRAIGHT_DISC_TEXT_METRICS: Record<
+  DiscTextKey,
+  { fontSizePercent: number; maxLines: number }
+> = {
+  title: { fontSizePercent: 3.6, maxLines: 2 },
+  discNumber: { fontSizePercent: 1.9, maxLines: 1 },
+  backupDate: { fontSizePercent: 1.6, maxLines: 1 },
+  appId: { fontSizePercent: 1.5, maxLines: 1 },
+  customNote: { fontSizePercent: 1.5, maxLines: 2 },
+  copyright: { fontSizePercent: 1.1, maxLines: 3 },
+}
 
 export function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -185,6 +198,21 @@ export function getRatingBadgePlaceholderBoundsPercent(scale: number): RenderBou
   return {
     halfWidth: (RATING_BADGE_BASE_WIDTH_RATIO * 100 * scale) / 2,
     halfHeight: (RATING_BADGE_BASE_HEIGHT_RATIO * 100 * scale) / 2,
+  }
+}
+
+export function getStraightDiscTextBoundsPercent(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+): RenderBoundsPercent {
+  const metrics = STRAIGHT_DISC_TEXT_METRICS[key]
+  const scale = Number.isFinite(layout.scale) ? Math.max(0, layout.scale) : 1
+  const width = Number.isFinite(layout.width) ? Math.max(0, layout.width) : 0
+  const estimatedLineHeightPercent = metrics.fontSizePercent * 1.2
+
+  return {
+    halfWidth: (width * scale) / 2,
+    halfHeight: (estimatedLineHeightPercent * metrics.maxLines * scale) / 2,
   }
 }
 
