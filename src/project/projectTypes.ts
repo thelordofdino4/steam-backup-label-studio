@@ -52,6 +52,22 @@ export type BackgroundImageSize = {
   height: number
 }
 
+export type LogoAssetLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectLogoAssets = {
+  developerLogoDataUrl: string | null
+  developerLogoSize: BackgroundImageSize | null
+  developerLogoLayout: LogoAssetLayout
+  publisherLogoDataUrl: string | null
+  publisherLogoSize: BackgroundImageSize | null
+  publisherLogoLayout: LogoAssetLayout
+}
+
 export type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -61,6 +77,7 @@ export type SavedProject = {
     selectedSteamGame: SteamImportedGame | null
   }
   metadata?: ProjectMetadata
+  logoAssets?: ProjectLogoAssets
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId

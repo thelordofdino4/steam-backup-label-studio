@@ -38,7 +38,8 @@ import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
-import type { BackgroundImageSize, BackgroundOffset, ProjectMetadata, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
+import type { BackgroundImageSize, BackgroundOffset, ProjectLogoAssets, ProjectMetadata, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -184,6 +185,9 @@ function App() {
   const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
     createDefaultProjectMetadata(),
   )
+  const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
+    createDefaultProjectLogoAssets(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -318,6 +322,7 @@ function App() {
         selectedSteamGame,
       },
       metadata: projectMetadata,
+      logoAssets: projectLogoAssets,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -604,6 +609,7 @@ function App() {
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
+    setProjectLogoAssets(createDefaultProjectLogoAssets())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -844,6 +850,7 @@ function App() {
           project.game?.selectedSteamGame?.appId,
         ),
       )
+      setProjectLogoAssets(normalizeProjectLogoAssets(project.logoAssets))
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
