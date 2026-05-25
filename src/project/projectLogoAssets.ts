@@ -3,15 +3,15 @@ import type { LogoAssetLayout, ProjectLogoAssets } from './projectTypes'
 export const DEFAULT_DEVELOPER_LOGO_LAYOUT: LogoAssetLayout = {
   enabled: false,
   scale: 1,
-  x: 26,
-  y: 82,
+  x: 22,
+  y: 62,
 }
 
 export const DEFAULT_PUBLISHER_LOGO_LAYOUT: LogoAssetLayout = {
   enabled: false,
   scale: 1,
-  x: 74,
-  y: 82,
+  x: 22,
+  y: 72,
 }
 
 export function createDefaultProjectLogoAssets(): ProjectLogoAssets {
