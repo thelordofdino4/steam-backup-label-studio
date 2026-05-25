@@ -22,6 +22,24 @@ export type SteamBannerLockupLayout = {
   offsetY: number
 }
 
+export type GameRatingSystem = 'none' | 'ESRB' | 'PEGI' | 'custom'
+
+export type ProjectMetadata = {
+  title: string
+  subtitle: string
+  steamAppId: string
+  developer: string
+  publisher: string
+  releaseDate: string
+  backupDate: string
+  discNumber: string
+  discTotal: string
+  installNotes: string
+  copyrightText: string
+  ratingSystem: GameRatingSystem
+  ratingValue: string
+}
+
 export type SelectedDiscTemplateId = DiscTemplateId | 'custom'
 
 export type BackgroundOffset = {
@@ -42,6 +60,7 @@ export type SavedProject = {
     manualTitle: string
     selectedSteamGame: SteamImportedGame | null
   }
+  metadata?: ProjectMetadata
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId

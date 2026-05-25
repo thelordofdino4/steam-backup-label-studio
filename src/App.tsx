@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
 import {
   downloadSteamArtworkAsDataUrl,
   importSteamApp,
@@ -37,7 +37,8 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { normalizeParsedProject } from './project/normalizeProject'
-import type { BackgroundImageSize, BackgroundOffset, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
+import type { BackgroundImageSize, BackgroundOffset, ProjectMetadata, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -180,6 +181,9 @@ function App() {
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
+  const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
+    createDefaultProjectMetadata(),
+  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
@@ -188,6 +192,9 @@ function App() {
   const [localSteamScreenshots, setLocalSteamScreenshots] = useState<
     LocalSteamScreenshotAsset[]
   >([])
+  const [localSteamScreenshotThumbnails, setLocalSteamScreenshotThumbnails] = useState<
+    Record<string, string>
+  >({})
   const [hasCheckedLocalSteamScreenshots, setHasCheckedLocalSteamScreenshots] =
     useState(false)
   const [isLocalSteamScreenshotsLoading, setIsLocalSteamScreenshotsLoading] =
@@ -252,6 +259,55 @@ function App() {
   const innerPrintableBoundaryPercent =
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
+  useEffect(() => {
+    let isCancelled = false
+
+    async function loadLocalSteamScreenshotThumbnails() {
+      const screenshotsWithoutThumbnails = localSteamScreenshots.filter(
+        (asset) => !localSteamScreenshotThumbnails[asset.id],
+      )
+
+      if (screenshotsWithoutThumbnails.length === 0) {
+        return
+      }
+
+      const thumbnailEntries = await Promise.all(
+        screenshotsWithoutThumbnails.slice(0, 24).map(async (asset) => {
+          try {
+            const imageDataUrl = await readLocalImageAsDataUrl(asset.path)
+
+            return [asset.id, imageDataUrl] as const
+          } catch {
+            return null
+          }
+        }),
+      )
+
+      if (isCancelled) {
+        return
+      }
+
+      const loadedThumbnails = thumbnailEntries.filter(
+        (entry): entry is readonly [string, string] => entry !== null,
+      )
+
+      if (loadedThumbnails.length === 0) {
+        return
+      }
+
+      setLocalSteamScreenshotThumbnails((currentThumbnails) => ({
+        ...currentThumbnails,
+        ...Object.fromEntries(loadedThumbnails),
+      }))
+    }
+
+    void loadLocalSteamScreenshotThumbnails()
+
+    return () => {
+      isCancelled = true
+    }
+  }, [localSteamScreenshots, localSteamScreenshotThumbnails])
+
   function createProjectSnapshot(): SavedProject {
     return {
       schemaVersion: '0.1.0',
@@ -261,6 +317,7 @@ function App() {
         manualTitle: manualGameTitle,
         selectedSteamGame,
       },
+      metadata: projectMetadata,
       template: {
         type: 'disc',
         variant: selectedDiscTemplateId,
@@ -535,6 +592,7 @@ function App() {
     setBackgroundOffset({ x: 0, y: 0 })
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
+    setProjectMetadata(createDefaultProjectMetadata())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -609,6 +667,7 @@ function App() {
     setIsSteamImportLoading(true)
     setSelectedArtworkId(null)
     setLocalSteamScreenshots([])
+    setLocalSteamScreenshotThumbnails({})
     setHasCheckedLocalSteamScreenshots(false)
     announceStatus(`Importing Steam App ID ${appId}...`)
 
@@ -616,6 +675,9 @@ function App() {
       const importedGame = await importSteamApp(appId)
       setSelectedSteamGame(importedGame)
       setManualGameTitle(importedGame.title)
+      setProjectMetadata((currentMetadata) =>
+        createProjectMetadataFromSteamGame(importedGame, currentMetadata),
+      )
       setDiscTextValues((currentValues) => ({
         ...currentValues,
         appId: String(importedGame.appId),
@@ -674,6 +736,7 @@ function App() {
       )
     } catch (error) {
       setLocalSteamScreenshots([])
+      setLocalSteamScreenshotThumbnails({})
       announceStatus(`Local Steam screenshot check failed: ${String(error)}`)
     } finally {
       setIsLocalSteamScreenshotsLoading(false)
@@ -761,10 +824,19 @@ function App() {
       const savedTemplateId = project.template.variant
       const savedImageDataUrl = project.background.imageDataUrl
 
-      setManualGameTitle(project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label')
+      const loadedTitle = project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label'
+      setManualGameTitle(loadedTitle)
+      setProjectMetadata(
+        normalizeProjectMetadata(
+          project.metadata,
+          loadedTitle,
+          project.game?.selectedSteamGame?.appId,
+        ),
+      )
       setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
+      setLocalSteamScreenshotThumbnails({})
       setHasCheckedLocalSteamScreenshots(false)
 
       if (savedTemplateId === 'custom') {
@@ -1097,6 +1169,7 @@ function App() {
           isArtworkLoading={isArtworkLoading}
           handleUseSteamArtwork={handleUseSteamArtwork}
           localSteamScreenshots={localSteamScreenshots}
+          localSteamScreenshotThumbnails={localSteamScreenshotThumbnails}
           hasCheckedLocalSteamScreenshots={hasCheckedLocalSteamScreenshots}
           isLocalSteamScreenshotsLoading={isLocalSteamScreenshotsLoading}
           handleFindLocalSteamScreenshots={handleFindLocalSteamScreenshots}
