@@ -122,8 +122,10 @@ export function DiscPreview({
 
         <LogoAssetLayer
           developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
+          developerLogoSize={projectLogoAssets.developerLogoSize}
           developerLogoLayout={projectLogoAssets.developerLogoLayout}
           publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
+          publisherLogoSize={projectLogoAssets.publisherLogoSize}
           publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
           handleLogoAssetPointerDown={handleLogoAssetPointerDown}
           handleLogoAssetPointerMove={handleLogoAssetPointerMove}

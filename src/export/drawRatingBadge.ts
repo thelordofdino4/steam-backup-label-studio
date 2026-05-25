@@ -1,8 +1,9 @@
 import type { ProjectMetadata, ProjectRatingBadge } from '../project/projectTypes'
+import {
+  RATING_BADGE_BASE_HEIGHT_RATIO,
+  RATING_BADGE_BASE_WIDTH_RATIO,
+} from '../discGeometry'
 import { loadImage } from './canvasImage'
-
-const BADGE_BASE_WIDTH_RATIO = 0.09
-const BADGE_BASE_HEIGHT_RATIO = 0.13
 
 function getPlaceholderLabel(metadata: ProjectMetadata) {
   if (metadata.ratingSystem === 'none') {
@@ -24,8 +25,8 @@ function drawPlaceholderRatingBadge(
     return
   }
 
-  const width = exportSize * BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const height = exportSize * BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+  const width = exportSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
+  const height = exportSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
   const x = exportSize * (badge.layout.x / 100) - width / 2
   const y = exportSize * (badge.layout.y / 100) - height / 2
   const radius = metadata.ratingSystem === 'PEGI' ? Math.min(width, height) / 2 : exportSize * 0.008
@@ -80,8 +81,8 @@ async function drawCustomRatingBadge(
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
 
-  const maxWidth = exportSize * BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const maxHeight = exportSize * BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+  const maxWidth = exportSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
+  const maxHeight = exportSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
 
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio

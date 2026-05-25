@@ -21,6 +21,9 @@ import {
   clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
+  getLogoAssetBoundsPercent,
+  getRatingBadgeBoundsPercent,
+  getRatingBadgePlaceholderBoundsPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
@@ -172,8 +175,13 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
 function clampLogoAssetLayoutToSafeZone(
   layout: LogoAssetLayout,
   selectedDiscTemplate: DiscTemplate,
+  imageSize: BackgroundImageSize | null,
 ): LogoAssetLayout {
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate)
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    getLogoAssetBoundsPercent(imageSize, layout.scale),
+  )
 
   return {
     ...layout,
@@ -183,10 +191,15 @@ function clampLogoAssetLayoutToSafeZone(
 }
 
 function clampRatingBadgeLayoutToSafeZone(
-  layout: RatingBadgeLayout,
+  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
   selectedDiscTemplate: DiscTemplate,
 ): RatingBadgeLayout {
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate)
+  const layout = ratingBadge.layout
+  const bounds =
+    ratingBadge.source === 'custom' && ratingBadge.customImageSize
+      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
+      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
 
   return {
     ...layout,
@@ -318,10 +331,12 @@ function App() {
       const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
         currentLogoAssets.developerLogoLayout,
         template,
+        currentLogoAssets.developerLogoSize,
       )
       const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
         currentLogoAssets.publisherLogoLayout,
         template,
+        currentLogoAssets.publisherLogoSize,
       )
 
       if (
@@ -341,10 +356,7 @@ function App() {
     })
 
     setProjectRatingBadge((currentBadge) => {
-      const layout = clampRatingBadgeLayoutToSafeZone(
-        currentBadge.layout,
-        template,
-      )
+      const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
 
       if (
         layout.x === currentBadge.layout.x &&
@@ -556,6 +568,7 @@ function App() {
               enabled: true,
             },
             selectedDiscTemplate,
+            imageSize,
           )
 
           return {
@@ -572,6 +585,7 @@ function App() {
             enabled: true,
           },
           selectedDiscTemplate,
+          imageSize,
         )
 
         return {
@@ -601,6 +615,7 @@ function App() {
             [field]: value,
           },
           selectedDiscTemplate,
+          currentLogoAssets.developerLogoSize,
         )
 
         return {
@@ -615,6 +630,7 @@ function App() {
           [field]: value,
         },
         selectedDiscTemplate,
+        currentLogoAssets.publisherLogoSize,
       )
 
       return {
@@ -636,6 +652,7 @@ function App() {
           developerLogoLayout: clampLogoAssetLayoutToSafeZone(
             defaults.developerLogoLayout,
             selectedDiscTemplate,
+            null,
           ),
         }
       }
@@ -647,6 +664,7 @@ function App() {
         publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
           defaults.publisherLogoLayout,
           selectedDiscTemplate,
+          null,
         ),
       }
     })
@@ -667,6 +685,7 @@ function App() {
               enabled: currentLogoAssets.developerLogoLayout.enabled,
             },
             selectedDiscTemplate,
+            currentLogoAssets.developerLogoSize,
           ),
         }
       }
@@ -679,6 +698,7 @@ function App() {
             enabled: currentLogoAssets.publisherLogoLayout.enabled,
           },
           selectedDiscTemplate,
+          currentLogoAssets.publisherLogoSize,
         ),
       }
     })
@@ -702,20 +722,25 @@ function App() {
     try {
       const imageDataUrl = await readImageFileAsDataUrl(file)
       const image = await loadImage(imageDataUrl)
+      const imageSize = getNaturalImageSize(image)
 
-      setProjectRatingBadge((currentBadge) => ({
-        ...currentBadge,
-        source: 'custom',
-        customImageDataUrl: imageDataUrl,
-        customImageSize: getNaturalImageSize(image),
-        layout: clampRatingBadgeLayoutToSafeZone(
-          {
+      setProjectRatingBadge((currentBadge) => {
+        const nextBadge = {
+          ...currentBadge,
+          source: 'custom' as const,
+          customImageDataUrl: imageDataUrl,
+          customImageSize: imageSize,
+          layout: {
             ...currentBadge.layout,
             enabled: true,
           },
-          selectedDiscTemplate,
-        ),
-      }))
+        }
+
+        return {
+          ...nextBadge,
+          layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+        }
+      })
 
       announceStatus(`Using ${file.name} as the rating badge.`)
     } catch (error) {
@@ -724,35 +749,53 @@ function App() {
   }
 
   function handleRatingBadgeSourceChange(source: 'placeholder' | 'custom') {
-    setProjectRatingBadge((currentBadge) => ({
-      ...currentBadge,
-      source,
-    }))
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        source,
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
   }
 
   function handleRatingBadgeLayoutChange(
     field: keyof ProjectRatingBadge['layout'],
     value: boolean | number,
   ) {
-    setProjectRatingBadge((currentBadge) => ({
-      ...currentBadge,
-      layout: clampRatingBadgeLayoutToSafeZone(
-        {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
           ...currentBadge.layout,
           [field]: value,
         },
-        selectedDiscTemplate,
-      ),
-    }))
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
   }
 
   function handleClearRatingBadgeImage() {
-    setProjectRatingBadge((currentBadge) => ({
-      ...currentBadge,
-      source: 'placeholder',
-      customImageDataUrl: null,
-      customImageSize: null,
-    }))
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        source: 'placeholder' as const,
+        customImageDataUrl: null,
+        customImageSize: null,
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
 
     announceStatus('Cleared custom rating badge image.')
   }
@@ -760,16 +803,20 @@ function App() {
   function handleResetRatingBadgeLayout() {
     const defaults = createDefaultProjectRatingBadge()
 
-    setProjectRatingBadge((currentBadge) => ({
-      ...currentBadge,
-      layout: clampRatingBadgeLayoutToSafeZone(
-        {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
           ...defaults.layout,
           enabled: currentBadge.layout.enabled,
         },
-        selectedDiscTemplate,
-      ),
-    }))
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
 
     announceStatus('Reset rating badge layout.')
   }
@@ -1217,17 +1264,19 @@ function App() {
         developerLogoLayout: clampLogoAssetLayoutToSafeZone(
           loadedLogoAssets.developerLogoLayout,
           loadedSelectedDiscTemplate,
+          loadedLogoAssets.developerLogoSize,
         ),
         publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
           loadedLogoAssets.publisherLogoLayout,
           loadedSelectedDiscTemplate,
+          loadedLogoAssets.publisherLogoSize,
         ),
       })
       const loadedRatingBadge = normalizeProjectRatingBadge(project.ratingBadge)
       setProjectRatingBadge({
         ...loadedRatingBadge,
         layout: clampRatingBadgeLayoutToSafeZone(
-          loadedRatingBadge.layout,
+          loadedRatingBadge,
           loadedSelectedDiscTemplate,
         ),
       })
@@ -1460,32 +1509,36 @@ function App() {
     const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
 
     setProjectLogoAssets((currentLogoAssets) => {
-      const nextPoint = clampLayoutPointToSafeZone(
+      if (dragState.logoKey === 'developer') {
+        const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
+          {
+            ...currentLogoAssets.developerLogoLayout,
+            x: dragState.startX + deltaXPercent,
+            y: dragState.startY + deltaYPercent,
+          },
+          selectedDiscTemplate,
+          currentLogoAssets.developerLogoSize,
+        )
+
+        return {
+          ...currentLogoAssets,
+          developerLogoLayout,
+        }
+      }
+
+      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
         {
+          ...currentLogoAssets.publisherLogoLayout,
           x: dragState.startX + deltaXPercent,
           y: dragState.startY + deltaYPercent,
         },
         selectedDiscTemplate,
+        currentLogoAssets.publisherLogoSize,
       )
-
-      if (dragState.logoKey === 'developer') {
-        return {
-          ...currentLogoAssets,
-          developerLogoLayout: {
-            ...currentLogoAssets.developerLogoLayout,
-            x: nextPoint.x,
-            y: nextPoint.y,
-          },
-        }
-      }
 
       return {
         ...currentLogoAssets,
-        publisherLogoLayout: {
-          ...currentLogoAssets.publisherLogoLayout,
-          x: nextPoint.x,
-          y: nextPoint.y,
-        },
+        publisherLogoLayout,
       }
     })
   }
@@ -1528,19 +1581,21 @@ function App() {
     const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
     const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
 
-    setProjectRatingBadge((currentBadge) => ({
-      ...currentBadge,
-      layout: {
-        ...currentBadge.layout,
-        ...clampLayoutPointToSafeZone(
-          {
-            x: dragState.startX + deltaXPercent,
-            y: dragState.startY + deltaYPercent,
-          },
-          selectedDiscTemplate,
-        ),
-      },
-    }))
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
+          ...currentBadge.layout,
+          x: dragState.startX + deltaXPercent,
+          y: dragState.startY + deltaYPercent,
+        },
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
   }
 
   function handleRatingBadgePointerUp(event: PointerEvent<Element>) {
