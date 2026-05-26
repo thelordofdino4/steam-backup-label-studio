@@ -182,16 +182,16 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
 
       {!layout.enabled ? null : (
         <>
-          <p className="hint">{hasLogoImage ? `${label} logo image is active.` : `Using an internal ${label.toLowerCase()} logo placeholder until you upload an image.`}</p>
           <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
           <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event)} />
 
-          {hasLogoImage && (
+          {hasLogoImage ? (
             <div className="selected-lockup-card logo-asset-status-card">
               <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
               <span>{label} logo active{formatLogoSize(imageSize)}</span>
-              <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey)}>Clear logo</button>
             </div>
+          ) : (
+            <p className="hint">Using an internal {label.toLowerCase()} logo placeholder until you upload an image.</p>
           )}
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
@@ -216,6 +216,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
           <input id={`${logoKey}-logo-y`} type="range" min="0" max="100" step="0.1" value={layout.y} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))} />
 
           <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey)}>Reset logo layout</button>
+          {hasLogoImage && <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey)}>Clear logo</button>}
         </>
       )}
     </div>
