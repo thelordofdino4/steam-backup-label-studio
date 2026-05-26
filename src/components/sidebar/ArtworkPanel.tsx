@@ -201,8 +201,14 @@ export function ArtworkPanel({
         onChange={handleBackgroundUpload}
       />
 
+      <p className="hint">
+        {backgroundImageUrl
+          ? 'A background image is selected. Drag it directly on the disc preview or resize it below.'
+          : 'No background image is selected. Export still works as a blank disc label with any enabled branding, marks, or text.'}
+      </p>
+
       <label className="field-label spacing-top" htmlFor="background-scale">
-        Resize
+        Resize background
       </label>
       <input
         id="background-scale"
@@ -215,6 +221,12 @@ export function ArtworkPanel({
         onChange={(event) => setBackgroundScale(Number(event.target.value))}
       />
 
+      {!backgroundImageUrl && (
+        <p className="hint">
+          Background resize and reset controls unlock after you select Steam artwork, a local Steam screenshot, or a local image.
+        </p>
+      )}
+
       <button
         className="secondary-button"
         type="button"
@@ -223,10 +235,6 @@ export function ArtworkPanel({
       >
         Reset background
       </button>
-
-      <p className="hint">
-        Upload an image, then drag it directly on the disc preview.
-      </p>
       </div>
     </details>
   )
