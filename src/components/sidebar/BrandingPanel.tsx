@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
-import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, GameRatingSystem, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
+import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -18,55 +18,34 @@ export type BrandingPanelProps = {
   handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
-  handleSteamBannerLockupLayoutChange: (
-    field: keyof SteamBannerLockupLayout,
-    value: number,
-  ) => void
+  handleSteamBannerLockupLayoutChange: (field: keyof SteamBannerLockupLayout, value: number) => void
   handleResetSteamBannerLockupLayout: () => void
   handleSteamBannerColorChange: (field: keyof SteamBannerColors, value: string) => void
   handleResetSteamBannerColors: () => void
-  handleLogoAssetUpload: (
-    logoKey: 'developer' | 'publisher',
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
-  handleLogoAssetLayoutChange: (
-    logoKey: 'developer' | 'publisher',
-    field: keyof LogoAssetLayout,
-    value: boolean | number,
-  ) => void
+  handleLogoAssetUpload: (logoKey: 'developer' | 'publisher', event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleLogoAssetLayoutChange: (logoKey: 'developer' | 'publisher', field: keyof LogoAssetLayout, value: boolean | number) => void
   handleClearLogoAsset: (logoKey: 'developer' | 'publisher') => void
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
   handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
-  handleRatingBadgeLayoutChange: (
-    field: keyof RatingBadgeLayout,
-    value: boolean | number,
-  ) => void
+  handleRatingBadgeLayoutChange: (field: keyof RatingBadgeLayout, value: boolean | number) => void
   handleClearRatingBadgeImage: () => void
   handleResetRatingBadgeLayout: () => void
   handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleMediaMarkValueChange: (value: MediaMarkValue) => void
   handleMediaMarkSourceChange: (source: MediaMarkSource) => void
-  handleMediaMarkLayoutChange: (
-    field: keyof MediaMarkLayout,
-    value: boolean | number,
-  ) => void
+  handleMediaMarkLayoutChange: (field: keyof MediaMarkLayout, value: boolean | number) => void
   handleClearMediaMarkImage: () => void
   handleResetMediaMarkLayout: () => void
   handlePlatformMarkToggle: (value: PlatformMarkValue, enabled: boolean) => void
-  handlePlatformMarkUpload: (
-    value: PlatformMarkValue,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
+  handlePlatformMarkUpload: (value: PlatformMarkValue, event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
-  handlePlatformMarkLayoutChange: (
-    platformValue: PlatformMarkValue,
-    field: keyof PlatformMarkLayout,
-    layoutValue: boolean | number,
-  ) => void
+  handlePlatformMarkLayoutChange: (platformValue: PlatformMarkValue, field: keyof PlatformMarkLayout, layoutValue: boolean | number) => void
   handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
   handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
 }
+
+type LogoKey = 'developer' | 'publisher'
 
 const LOGO_ALIGNMENT_PRESETS = [
   { label: 'Top left', x: 22, y: 22 },
@@ -83,1091 +62,371 @@ const LOGO_ALIGNMENT_PRESETS = [
   { label: 'Stacked right lower', x: 78, y: 72 },
 ] as const
 
+const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
+const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
+
 function formatLogoSize(size: BackgroundImageSize | null) {
   return size ? ` · ${size.width}×${size.height}` : ''
 }
 
-function LogoAssetControls({
-  logoKey,
-  label,
-  imageDataUrl,
-  imageSize,
-  layout,
-  handleLogoAssetUpload,
-  handleLogoAssetLayoutChange,
-  handleClearLogoAsset,
-  handleResetLogoAssetLayout,
-}: {
-  logoKey: 'developer' | 'publisher'
-  label: string
-  imageDataUrl: string | null
-  imageSize: BackgroundImageSize | null
-  layout: LogoAssetLayout
-  handleLogoAssetUpload: (
-    logoKey: 'developer' | 'publisher',
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
-  handleLogoAssetLayoutChange: (
-    logoKey: 'developer' | 'publisher',
-    field: keyof LogoAssetLayout,
-    value: boolean | number,
-  ) => void
-  handleClearLogoAsset: (logoKey: 'developer' | 'publisher') => void
-  handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
-}) {
-  const uploadId = `${logoKey}-logo-upload`
-  const hasLogoImage = Boolean(imageDataUrl)
-  const showDependentControls = layout.enabled
-  return (
-    <div className="logo-asset-card">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={layout.enabled}
-          onChange={(event) =>
-            handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked)
-          }
-        />
-        Show {label.toLowerCase()} logo
-      </label>
-
-      {!showDependentControls ? null : (
-        <>
-          <p className="hint">
-            {hasLogoImage
-              ? `${label} logo image is active.`
-              : `Using an internal ${label.toLowerCase()} logo placeholder until you upload an image.`}
-          </p>
-
-          <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
-            {hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}
-          </label>
-          <input
-            id={uploadId}
-            className="logo-file-input"
-            type="file"
-            accept="image/*"
-            onChange={(event) => handleLogoAssetUpload(logoKey, event)}
-          />
-
-          {hasLogoImage && (
-            <div className="selected-lockup-card logo-asset-status-card">
-              <img
-                className="logo-asset-preview"
-                src={imageDataUrl ?? undefined}
-                alt=""
-                draggable={false}
-              />
-              <span>
-                {label} logo active{formatLogoSize(imageSize)}
-              </span>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() => handleClearLogoAsset(logoKey)}
-              >
-                Clear logo
-              </button>
-            </div>
-          )}
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>
-            Align logo
-          </label>
-          <select
-            id={`${logoKey}-logo-alignment-preset`}
-            defaultValue=""
-            onChange={(event) => {
-              const preset = LOGO_ALIGNMENT_PRESETS.find(
-                (candidate) => candidate.label === event.target.value,
-              )
-
-              if (!preset) {
-                return
-              }
-
-              handleLogoAssetLayoutChange(logoKey, 'x', preset.x)
-              handleLogoAssetLayoutChange(logoKey, 'y', preset.y)
-              event.currentTarget.value = ''
-            }}
-          >
-            <option value="">Choose preset...</option>
-            {LOGO_ALIGNMENT_PRESETS.map((preset) => (
-              <option key={preset.label} value={preset.label}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-scale`}>
-            Scale
-          </label>
-          <input
-            id={`${logoKey}-logo-scale`}
-            type="range"
-            min="0.25"
-            max="2"
-            step="0.01"
-            value={layout.scale}
-            onChange={(event) =>
-              handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))
-            }
-          />
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>
-            X position
-          </label>
-          <input
-            id={`${logoKey}-logo-x`}
-            type="range"
-            min="0"
-            max="100"
-            step="0.1"
-            value={layout.x}
-            onChange={(event) =>
-              handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))
-            }
-          />
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>
-            Y position
-          </label>
-          <input
-            id={`${logoKey}-logo-y`}
-            type="range"
-            min="0"
-            max="100"
-            step="0.1"
-            value={layout.y}
-            onChange={(event) =>
-              handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))
-            }
-          />
-
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => handleResetLogoAssetLayout(logoKey)}
-          >
-            Reset logo layout
-          </button>
-        </>
-      )}
-    </div>
-  )
-}
-
-const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
-const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
-
 function getRatingValuesForSystem(system: GameRatingSystem) {
-  if (system === 'ESRB') {
-    return ESRB_RATING_VALUES
-  }
-
-  if (system === 'PEGI') {
-    return PEGI_RATING_VALUES
-  }
-
+  if (system === 'ESRB') return ESRB_RATING_VALUES
+  if (system === 'PEGI') return PEGI_RATING_VALUES
   return []
 }
 
-function RatingBadgeControls({
-  projectMetadata,
-  projectRatingBadge,
-  handleProjectMetadataChange,
-  handleRatingBadgeUpload,
-  handleRatingBadgeSourceChange,
-  handleRatingBadgeLayoutChange,
-  handleClearRatingBadgeImage,
-  handleResetRatingBadgeLayout,
-}: {
-  projectMetadata: ProjectMetadata
-  projectRatingBadge: ProjectRatingBadge
-  handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
-  handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
-  handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
-  handleRatingBadgeLayoutChange: (
-    field: keyof RatingBadgeLayout,
-    value: boolean | number,
-  ) => void
-  handleClearRatingBadgeImage: () => void
-  handleResetRatingBadgeLayout: () => void
-}) {
-  const ratingLabel =
-    projectMetadata.ratingSystem === 'none'
-      ? 'No rating selected'
-      : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
-  const visibleRatingSystem =
-    projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
-
-  const isBadgeEnabled = projectRatingBadge.layout.enabled
-  const handleRatingBadgeEnabledChange = (enabled: boolean) => {
-    if (enabled && projectMetadata.ratingSystem === 'none') {
-      handleProjectMetadataChange('ratingSystem', 'custom')
-      handleProjectMetadataChange('ratingValue', 'Custom')
-    }
-
-    handleRatingBadgeLayoutChange('enabled', enabled)
-  }
-
-  return (
-    <div className="logo-asset-card">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isBadgeEnabled}
-          onChange={(event) => {
-            const checked = event.target.checked
-
-            if (checked && projectMetadata.ratingSystem === 'none') {
-              handleProjectMetadataChange('ratingSystem', 'ESRB')
-              handleProjectMetadataChange('ratingValue', 'E')
-            }
-
-            handleRatingBadgeEnabledChange(checked)
-          }}
-        />
-        Show rating badge
-      </label>
-
-      {!isBadgeEnabled ? null : (
-        <>
-      <label className="field-label spacing-top" htmlFor="branding-rating-system">
-        Rating system
-      </label>
-      <select
-        id="branding-rating-system"
-        value={visibleRatingSystem}
-        onChange={(event) => {
-          const nextSystem = event.target.value as GameRatingSystem
-          const allowedValues = getRatingValuesForSystem(nextSystem)
-
-          handleProjectMetadataChange('ratingSystem', nextSystem)
-          if (
-            allowedValues.length > 0 &&
-            !allowedValues.includes(projectMetadata.ratingValue as never)
-          ) {
-            handleProjectMetadataChange('ratingValue', allowedValues[0])
-            return
-          }
-
-          if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
-            handleProjectMetadataChange('ratingValue', 'Custom')
-          }
-        }}
-      >
-        <option value="ESRB">ESRB</option>
-        <option value="PEGI">PEGI</option>
-        <option value="custom">Custom</option>
-      </select>
-
-      {projectMetadata.ratingSystem !== 'none' && (
-        <>
-          <label className="field-label spacing-top" htmlFor="branding-rating-value">
-            Rating value
-          </label>
-
-          {projectMetadata.ratingSystem === 'custom' ? (
-            <input
-              id="branding-rating-value"
-              type="text"
-              value={projectMetadata.ratingValue}
-              placeholder="Custom rating label..."
-              onChange={(event) =>
-                handleProjectMetadataChange('ratingValue', event.target.value)
-              }
-            />
-          ) : (
-            <select
-              id="branding-rating-value"
-              value={projectMetadata.ratingValue}
-              onChange={(event) =>
-                handleProjectMetadataChange('ratingValue', event.target.value)
-              }
-            >
-              {getRatingValuesForSystem(projectMetadata.ratingSystem).map((value) => (
-                <option key={value} value={value}>
-                  {projectMetadata.ratingSystem === 'PEGI' ? `PEGI ${value}` : value}
-                </option>
-              ))}
-            </select>
-          )}
-        </>
-      )}
-
-      <p className="hint">
-        Current metadata rating: {ratingLabel}. Rating values are manual for now.
-      </p>
-
-      <label className="field-label spacing-top" htmlFor="rating-badge-source">
-        Badge source
-      </label>
-      <select
-        id="rating-badge-source"
-        value={projectRatingBadge.source}
-        onChange={(event) =>
-          handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)
-        }
-      >
-        <option value="placeholder">Built-in placeholder</option>
-        <option value="custom">Custom image</option>
-      </select>
-
-      <span className="field-label spacing-top">Custom badge image</span>
-      <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">
-        Choose custom badge
-      </label>
-      <input
-        id="rating-badge-upload"
-        className="logo-file-input"
-        type="file"
-        accept="image/*"
-        onChange={handleRatingBadgeUpload}
-      />
-
-      {projectRatingBadge.customImageDataUrl ? (
-        <div className="selected-lockup-card logo-asset-status-card">
-          <img
-            className="logo-asset-preview"
-            src={projectRatingBadge.customImageDataUrl}
-            alt=""
-            draggable={false}
-          />
-          <span>
-            Custom rating badge active
-            {formatLogoSize(projectRatingBadge.customImageSize)}
-          </span>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={handleClearRatingBadgeImage}
-          >
-            Clear custom badge
-          </button>
-        </div>
-      ) : (
-        <p className="hint">
-          Built-in placeholder badges can be replaced by PNG assets later.
-        </p>
-      )}
-
-      <label className="field-label spacing-top" htmlFor="rating-badge-scale">
-        Scale
-      </label>
-      <input
-        id="rating-badge-scale"
-        type="range"
-        min="0.25"
-        max="2"
-        step="0.01"
-        value={projectRatingBadge.layout.scale}
-        onChange={(event) =>
-          handleRatingBadgeLayoutChange('scale', Number(event.target.value))
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="rating-badge-x">
-        X position
-      </label>
-      <input
-        id="rating-badge-x"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectRatingBadge.layout.x}
-        onChange={(event) =>
-          handleRatingBadgeLayoutChange('x', Number(event.target.value))
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="rating-badge-y">
-        Y position
-      </label>
-      <input
-        id="rating-badge-y"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectRatingBadge.layout.y}
-        onChange={(event) =>
-          handleRatingBadgeLayoutChange('y', Number(event.target.value))
-        }
-      />
-
-      <button
-        className="secondary-button"
-        type="button"
-        onClick={handleResetRatingBadgeLayout}
-      >
-        Reset rating badge layout
-      </button>
-        </>
-      )}
-    </div>
-  )
-}
-
-function MediaMarkControls({
-  projectMediaMark,
-  handleMediaMarkUpload,
-  handleMediaMarkValueChange,
-  handleMediaMarkSourceChange,
-  handleMediaMarkLayoutChange,
-  handleClearMediaMarkImage,
-  handleResetMediaMarkLayout,
-}: {
-  projectMediaMark: ProjectMediaMark
-  handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
-  handleMediaMarkValueChange: (value: MediaMarkValue) => void
-  handleMediaMarkSourceChange: (source: MediaMarkSource) => void
-  handleMediaMarkLayoutChange: (
-    field: keyof MediaMarkLayout,
-    value: boolean | number,
-  ) => void
-  handleClearMediaMarkImage: () => void
-  handleResetMediaMarkLayout: () => void
-}) {
-  const currentMarkLabel = getMediaMarkLabel(projectMediaMark.value)
-  const isMediaMarkEnabled = projectMediaMark.layout.enabled
-
-  return (
-    <div className="logo-asset-card">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isMediaMarkEnabled}
-          onChange={(event) =>
-            handleMediaMarkLayoutChange('enabled', event.target.checked)
-          }
-        />
-        Show media format mark
-      </label>
-
-      {!isMediaMarkEnabled ? null : (
-        <>
-      <label className="field-label spacing-top" htmlFor="media-mark-value">
-        Format
-      </label>
-      <select
-        id="media-mark-value"
-        value={projectMediaMark.value}
-        onChange={(event) =>
-          handleMediaMarkValueChange(event.target.value as MediaMarkValue)
-        }
-      >
-        {MEDIA_MARK_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-
-      <label className="field-label spacing-top" htmlFor="media-mark-source">
-        Mark source
-      </label>
-      <select
-        id="media-mark-source"
-        value={projectMediaMark.source}
-        onChange={(event) =>
-          handleMediaMarkSourceChange(event.target.value as MediaMarkSource)
-        }
-      >
-        <option value="placeholder">Built-in placeholder</option>
-        <option value="custom">Custom image</option>
-      </select>
-
-      <p className="hint">
-        Current media mark: {currentMarkLabel}. Placeholder marks are generic internal artwork.
-      </p>
-
-      <span className="field-label spacing-top">Custom mark image</span>
-      <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">
-        Choose custom mark
-      </label>
-      <input
-        id="media-mark-upload"
-        className="logo-file-input"
-        type="file"
-        accept="image/*"
-        onChange={handleMediaMarkUpload}
-      />
-
-      {projectMediaMark.customImageDataUrl ? (
-        <div className="selected-lockup-card logo-asset-status-card">
-          <img
-            className="logo-asset-preview"
-            src={projectMediaMark.customImageDataUrl}
-            alt=""
-            draggable={false}
-          />
-          <span>
-            Custom media mark active
-            {formatLogoSize(projectMediaMark.customImageSize)}
-          </span>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={handleClearMediaMarkImage}
-          >
-            Clear custom mark
-          </button>
-        </div>
-      ) : (
-        <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>
-      )}
-
-      <label className="field-label spacing-top" htmlFor="media-mark-scale">
-        Scale
-      </label>
-      <input
-        id="media-mark-scale"
-        type="range"
-        min="0.25"
-        max="2"
-        step="0.01"
-        value={projectMediaMark.layout.scale}
-        onChange={(event) =>
-          handleMediaMarkLayoutChange('scale', Number(event.target.value))
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="media-mark-x">
-        X position
-      </label>
-      <input
-        id="media-mark-x"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectMediaMark.layout.x}
-        onChange={(event) =>
-          handleMediaMarkLayoutChange('x', Number(event.target.value))
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="media-mark-y">
-        Y position
-      </label>
-      <input
-        id="media-mark-y"
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={projectMediaMark.layout.y}
-        onChange={(event) =>
-          handleMediaMarkLayoutChange('y', Number(event.target.value))
-        }
-      />
-
-      <button
-        className="secondary-button"
-        type="button"
-        onClick={handleResetMediaMarkLayout}
-      >
-        Reset media mark layout
-      </button>
-        </>
-      )}
-    </div>
-  )
-}
-
-function PlatformMarkControls({
-  projectPlatformMarks,
-  handlePlatformMarkToggle,
-  handlePlatformMarkUpload,
-  handlePlatformMarkSourceChange,
-  handlePlatformMarkLayoutChange,
-  handleClearPlatformMarkImage,
-  handleResetPlatformMarkLayout,
-}: {
-  projectPlatformMarks: ProjectPlatformMarks
-  handlePlatformMarkToggle: (value: PlatformMarkValue, enabled: boolean) => void
-  handlePlatformMarkUpload: (
-    value: PlatformMarkValue,
-    event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
-  handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
-  handlePlatformMarkLayoutChange: (
-    platformValue: PlatformMarkValue,
-    field: keyof PlatformMarkLayout,
-    layoutValue: boolean | number,
-  ) => void
-  handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
-  handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
-}) {
-  const [rememberedPlatformValues, setRememberedPlatformValues] = useState<PlatformMarkValue[]>([])
-  const enabledPlatformValues = projectPlatformMarks.values.filter(
-    (value) => projectPlatformMarks.assets[value]?.layout.enabled,
-  )
-  const isPlatformMarksEnabled = enabledPlatformValues.length > 0
-  const currentPlatformLabel =
-    projectPlatformMarks.values.length > 0
-      ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ')
-      : 'None selected'
-  const handlePlatformMarksEnabledChange = (enabled: boolean) => {
-    if (enabled) {
-      const valuesToRestore: PlatformMarkValue[] =
-        projectPlatformMarks.values.length > 0
-          ? projectPlatformMarks.values
-          : rememberedPlatformValues.length > 0
-            ? rememberedPlatformValues
-            : ['pc']
-
-      valuesToRestore.forEach((value) => {
-        if (projectPlatformMarks.values.includes(value)) {
-          handlePlatformMarkLayoutChange(value, 'enabled', true)
-          return
-        }
-
-        handlePlatformMarkToggle(value, true)
-      })
-      return
-    }
-
-    setRememberedPlatformValues(projectPlatformMarks.values)
-    projectPlatformMarks.values.forEach((value) =>
-      handlePlatformMarkLayoutChange(value, 'enabled', false),
-    )
-  }
-
-  return (
-    <div>
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isPlatformMarksEnabled}
-          onChange={(event) => handlePlatformMarksEnabledChange(event.target.checked)}
-        />
-        Show platform marks
-      </label>
-
-      {!isPlatformMarksEnabled ? null : (
-        <>
-      <div className="platform-mark-selection-group spacing-top">
-        <span className="field-label">Platforms</span>
-        <div className="disc-mark-checkbox-list">
-          {PLATFORM_MARK_OPTIONS.map((option) => (
-            <label key={option.value} className="field-label">
-              <input
-                type="checkbox"
-                checked={projectPlatformMarks.values.includes(option.value)}
-                onChange={(event) =>
-                  handlePlatformMarkToggle(option.value, event.target.checked)
-                }
-              />
-              {option.label}
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <p className="hint">
-        Current platform marks: {currentPlatformLabel}. Each selected platform mark has its own image and layout.
-      </p>
-
-      {projectPlatformMarks.values.map((value) => {
-        const asset = projectPlatformMarks.assets[value]
-        const label = getPlatformMarkLabel(value)
-        const uploadId = `platform-mark-upload-${value}`
-
-        if (!asset) {
-          return null
-        }
-
-        return (
-          <div key={value} className="logo-asset-card spacing-top">
-            <span className="field-label">{label} platform mark</span>
-
-            <label className="field-label spacing-top" htmlFor={`platform-mark-source-${value}`}>
-              Mark source
-            </label>
-            <select
-              id={`platform-mark-source-${value}`}
-              value={asset.source}
-              onChange={(event) =>
-                handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)
-              }
-            >
-              <option value="placeholder">Built-in placeholder</option>
-              <option value="custom">Custom image</option>
-            </select>
-
-            <span className="field-label spacing-top">Custom platform image</span>
-            <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
-              Choose custom {label}
-            </label>
-            <input
-              id={uploadId}
-              className="logo-file-input"
-              type="file"
-              accept="image/*"
-              onChange={(event) => handlePlatformMarkUpload(value, event)}
-            />
-
-            {asset.customImageDataUrl ? (
-              <div className="selected-lockup-card logo-asset-status-card">
-                <img
-                  className="logo-asset-preview"
-                  src={asset.customImageDataUrl}
-                  alt=""
-                  draggable={false}
-                />
-                <span>
-                  Custom {label} mark active
-                  {formatLogoSize(asset.customImageSize)}
-                </span>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => handleClearPlatformMarkImage(value)}
-                >
-                  Clear custom {label}
-                </button>
-              </div>
-            ) : (
-              <p className="hint">Using a generic internal placeholder.</p>
-            )}
-
-            <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>
-              Scale
-            </label>
-            <input
-              id={`platform-mark-scale-${value}`}
-              type="range"
-              min="0.25"
-              max="2"
-              step="0.01"
-              value={asset.layout.scale}
-              onChange={(event) =>
-                handlePlatformMarkLayoutChange(value, 'scale', Number(event.target.value))
-              }
-            />
-
-            <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>
-              X position
-            </label>
-            <input
-              id={`platform-mark-x-${value}`}
-              type="range"
-              min="0"
-              max="100"
-              step="0.1"
-              value={asset.layout.x}
-              onChange={(event) =>
-                handlePlatformMarkLayoutChange(value, 'x', Number(event.target.value))
-              }
-            />
-
-            <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>
-              Y position
-            </label>
-            <input
-              id={`platform-mark-y-${value}`}
-              type="range"
-              min="0"
-              max="100"
-              step="0.1"
-              value={asset.layout.y}
-              onChange={(event) =>
-                handlePlatformMarkLayoutChange(value, 'y', Number(event.target.value))
-              }
-            />
-
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => handleResetPlatformMarkLayout(value)}
-            >
-              Reset {label} layout
-            </button>
-          </div>
-        )
-      })}
-        </>
-      )}
-    </div>
-  )
-}
-
-export function BrandingPanel({
+function SteamBannerControls({
   steamLogoPlacement,
-  handleSteamLogoPlacementChange,
   steamBannerLockupImageUrl,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
   steamBannerColors,
-  projectLogoAssets,
-  projectMetadata,
-  projectRatingBadge,
-  projectMediaMark,
-  projectPlatformMarks,
-  handleProjectMetadataChange,
+  handleSteamLogoPlacementChange,
   handleSteamBannerLockupUpload,
   handleClearSteamBannerLockup,
   handleSteamBannerLockupLayoutChange,
   handleResetSteamBannerLockupLayout,
   handleSteamBannerColorChange,
   handleResetSteamBannerColors,
-  handleLogoAssetUpload,
-  handleLogoAssetLayoutChange,
-  handleClearLogoAsset,
-  handleResetLogoAssetLayout,
-  handleRatingBadgeUpload,
-  handleRatingBadgeSourceChange,
-  handleRatingBadgeLayoutChange,
-  handleClearRatingBadgeImage,
-  handleResetRatingBadgeLayout,
-  handleMediaMarkUpload,
-  handleMediaMarkValueChange,
-  handleMediaMarkSourceChange,
-  handleMediaMarkLayoutChange,
-  handleClearMediaMarkImage,
-  handleResetMediaMarkLayout,
-  handlePlatformMarkToggle,
-  handlePlatformMarkUpload,
-  handlePlatformMarkSourceChange,
-  handlePlatformMarkLayoutChange,
-  handleClearPlatformMarkImage,
-  handleResetPlatformMarkLayout,
-}: BrandingPanelProps) {
+}: Pick<
+  BrandingPanelProps,
+  | 'steamLogoPlacement'
+  | 'steamBannerLockupImageUrl'
+  | 'steamBannerLockupImageSize'
+  | 'steamBannerLockupLayout'
+  | 'steamBannerColors'
+  | 'handleSteamLogoPlacementChange'
+  | 'handleSteamBannerLockupUpload'
+  | 'handleClearSteamBannerLockup'
+  | 'handleSteamBannerLockupLayoutChange'
+  | 'handleResetSteamBannerLockupLayout'
+  | 'handleSteamBannerColorChange'
+  | 'handleResetSteamBannerColors'
+>) {
+  const isEnabled = steamLogoPlacement !== 'none'
+  const [lastPlacement, setLastPlacement] = useState<SteamLogoPlacement>(isEnabled ? steamLogoPlacement : 'bottom')
+
+  const toggleEnabled = (enabled: boolean) => {
+    if (enabled) {
+      handleSteamLogoPlacementChange(lastPlacement === 'none' ? 'bottom' : lastPlacement)
+      return
+    }
+
+    if (steamLogoPlacement !== 'none') setLastPlacement(steamLogoPlacement)
+    handleSteamLogoPlacementChange('none')
+  }
+
+  const updatePlacement = (placement: SteamLogoPlacement) => {
+    if (placement !== 'none') setLastPlacement(placement)
+    handleSteamLogoPlacementChange(placement)
+  }
+
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label">
+        <input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} />
+        Show Steam banner
+      </label>
+
+      {!isEnabled ? null : (
+        <>
+          <label className="field-label spacing-top" htmlFor="steam-logo-placement">Placement</label>
+          <select id="steam-logo-placement" value={steamLogoPlacement === 'none' ? 'bottom' : steamLogoPlacement} onChange={(event) => updatePlacement(event.target.value as SteamLogoPlacement)}>
+            <option value="top">Top center</option>
+            <option value="bottom">Bottom center</option>
+          </select>
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-gradient-start">Gradient start</label>
+          <input id="steam-banner-gradient-start" type="color" value={steamBannerColors.gradientStart} onChange={(event) => handleSteamBannerColorChange('gradientStart', event.target.value)} />
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-gradient-end">Gradient end</label>
+          <input id="steam-banner-gradient-end" type="color" value={steamBannerColors.gradientEnd} onChange={(event) => handleSteamBannerColorChange('gradientEnd', event.target.value)} />
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-accent">Accent strip</label>
+          <input id="steam-banner-accent" type="color" value={steamBannerColors.accent} onChange={(event) => handleSteamBannerColorChange('accent', event.target.value)} />
+
+          <span className="field-label spacing-top">Banner lockup image</span>
+          <label className="secondary-button logo-upload-button" htmlFor="steam-banner-lockup-upload">Choose banner lockup image</label>
+          <input id="steam-banner-lockup-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleSteamBannerLockupUpload} />
+
+          {steamBannerLockupImageUrl ? (
+            <div className="selected-lockup-card"><span>Custom banner lockup active{formatLogoSize(steamBannerLockupImageSize)}</span></div>
+          ) : (
+            <p className="hint">Using the bundled default Steam banner lockup image. Upload a PNG to override it.</p>
+          )}
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-lockup-scale">Lockup scale</label>
+          <input id="steam-banner-lockup-scale" type="range" min="0.5" max="1.5" step="0.01" value={steamBannerLockupLayout.scale} onChange={(event) => handleSteamBannerLockupLayoutChange('scale', Number(event.target.value))} />
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-x">Lockup X offset</label>
+          <input id="steam-banner-lockup-offset-x" type="range" min="-20" max="20" step="0.1" value={steamBannerLockupLayout.offsetX} onChange={(event) => handleSteamBannerLockupLayoutChange('offsetX', Number(event.target.value))} />
+
+          <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-y">Lockup Y offset</label>
+          <input id="steam-banner-lockup-offset-y" type="range" min="-20" max="20" step="0.1" value={steamBannerLockupLayout.offsetY} onChange={(event) => handleSteamBannerLockupLayoutChange('offsetY', Number(event.target.value))} />
+
+          {steamBannerLockupImageUrl && <button className="secondary-button" type="button" onClick={handleClearSteamBannerLockup}>Reset to default lockup</button>}
+          <button className="secondary-button" type="button" onClick={handleResetSteamBannerColors}>Reset banner colors</button>
+          <button className="secondary-button" type="button" onClick={handleResetSteamBannerLockupLayout}>Reset lockup layout</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, handleLogoAssetUpload, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'handleLogoAssetUpload' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
+  const uploadId = `${logoKey}-logo-upload`
+  const hasLogoImage = Boolean(imageDataUrl)
+
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label">
+        <input type="checkbox" checked={layout.enabled} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked)} />
+        Show {label.toLowerCase()} logo
+      </label>
+
+      {!layout.enabled ? null : (
+        <>
+          <p className="hint">{hasLogoImage ? `${label} logo image is active.` : `Using an internal ${label.toLowerCase()} logo placeholder until you upload an image.`}</p>
+          <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
+          <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event)} />
+
+          {hasLogoImage && (
+            <div className="selected-lockup-card logo-asset-status-card">
+              <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
+              <span>{label} logo active{formatLogoSize(imageSize)}</span>
+              <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey)}>Clear logo</button>
+            </div>
+          )}
+
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
+          <select id={`${logoKey}-logo-alignment-preset`} defaultValue="" onChange={(event) => {
+            const preset = LOGO_ALIGNMENT_PRESETS.find((candidate) => candidate.label === event.target.value)
+            if (!preset) return
+            handleLogoAssetLayoutChange(logoKey, 'x', preset.x)
+            handleLogoAssetLayoutChange(logoKey, 'y', preset.y)
+            event.currentTarget.value = ''
+          }}>
+            <option value="">Choose preset...</option>
+            {LOGO_ALIGNMENT_PRESETS.map((preset) => <option key={preset.label} value={preset.label}>{preset.label}</option>)}
+          </select>
+
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-scale`}>Scale</label>
+          <input id={`${logoKey}-logo-scale`} type="range" min="0.25" max="2" step="0.01" value={layout.scale} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))} />
+
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>X position</label>
+          <input id={`${logoKey}-logo-x`} type="range" min="0" max="100" step="0.1" value={layout.x} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))} />
+
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>Y position</label>
+          <input id={`${logoKey}-logo-y`} type="range" min="0" max="100" step="0.1" value={layout.y} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))} />
+
+          <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey)}>Reset logo layout</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
+  const isBadgeEnabled = projectRatingBadge.layout.enabled
+  const activeRatingSystem = projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
+  const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+
+  const handleEnabledChange = (enabled: boolean) => {
+    if (enabled && projectMetadata.ratingSystem === 'none') {
+      handleProjectMetadataChange('ratingSystem', 'ESRB')
+      handleProjectMetadataChange('ratingValue', 'E')
+    }
+    handleRatingBadgeLayoutChange('enabled', enabled)
+  }
+
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleEnabledChange(event.target.checked)} /> Show rating badge</label>
+      {!isBadgeEnabled ? null : (
+        <>
+          <label className="field-label spacing-top" htmlFor="branding-rating-system">Rating system</label>
+          <select id="branding-rating-system" value={activeRatingSystem} onChange={(event) => {
+            const nextSystem = event.target.value as GameRatingSystem
+            const allowedValues = getRatingValuesForSystem(nextSystem)
+            handleProjectMetadataChange('ratingSystem', nextSystem)
+            if (allowedValues.length > 0 && !allowedValues.some((value) => value === projectMetadata.ratingValue)) {
+              handleProjectMetadataChange('ratingValue', allowedValues[0])
+            } else if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
+              handleProjectMetadataChange('ratingValue', 'Custom')
+            }
+          }}>
+            <option value="ESRB">ESRB</option>
+            <option value="PEGI">PEGI</option>
+            <option value="custom">Custom</option>
+          </select>
+
+          <label className="field-label spacing-top" htmlFor="branding-rating-value">Rating value</label>
+          {activeRatingSystem === 'custom' ? (
+            <input id="branding-rating-value" type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
+          ) : (
+            <select id="branding-rating-value" value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
+              {getRatingValuesForSystem(activeRatingSystem).map((value) => <option key={value} value={value}>{activeRatingSystem === 'PEGI' ? `PEGI ${value}` : value}</option>)}
+            </select>
+          )}
+
+          <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
+          <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
+          <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
+            <option value="placeholder">Built-in placeholder</option>
+            <option value="custom">Custom image</option>
+          </select>
+
+          <span className="field-label spacing-top">Custom badge image</span>
+          <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">Choose custom badge</label>
+          <input id="rating-badge-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
+
+          {projectRatingBadge.customImageDataUrl ? (
+            <div className="selected-lockup-card logo-asset-status-card">
+              <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
+              <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
+              <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>
+            </div>
+          ) : <p className="hint">Built-in placeholder badges can be replaced by PNG assets later.</p>}
+
+          <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
+          <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onChange={(event) => handleRatingBadgeLayoutChange('scale', Number(event.target.value))} />
+          <label className="field-label spacing-top" htmlFor="rating-badge-x">X position</label>
+          <input id="rating-badge-x" type="range" min="0" max="100" step="0.1" value={projectRatingBadge.layout.x} onChange={(event) => handleRatingBadgeLayoutChange('x', Number(event.target.value))} />
+          <label className="field-label spacing-top" htmlFor="rating-badge-y">Y position</label>
+          <input id="rating-badge-y" type="range" min="0" max="100" step="0.1" value={projectRatingBadge.layout.y} onChange={(event) => handleRatingBadgeLayoutChange('y', Number(event.target.value))} />
+          <button className="secondary-button" type="button" onClick={handleResetRatingBadgeLayout}>Reset rating badge layout</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
+  const isEnabled = projectMediaMark.layout.enabled
+  return (
+    <div className="logo-asset-card">
+      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => handleMediaMarkLayoutChange('enabled', event.target.checked)} /> Show media format mark</label>
+      {!isEnabled ? null : (
+        <>
+          <label className="field-label spacing-top" htmlFor="media-mark-value">Format</label>
+          <select id="media-mark-value" value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
+            {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+          <label className="field-label spacing-top" htmlFor="media-mark-source">Mark source</label>
+          <select id="media-mark-source" value={projectMediaMark.source} onChange={(event) => handleMediaMarkSourceChange(event.target.value as MediaMarkSource)}>
+            <option value="placeholder">Built-in placeholder</option>
+            <option value="custom">Custom image</option>
+          </select>
+          <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}. Placeholder marks are generic internal artwork.</p>
+          <span className="field-label spacing-top">Custom mark image</span>
+          <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">Choose custom mark</label>
+          <input id="media-mark-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
+          {projectMediaMark.customImageDataUrl ? (
+            <div className="selected-lockup-card logo-asset-status-card">
+              <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
+              <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
+              <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>
+            </div>
+          ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+          <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
+          <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onChange={(event) => handleMediaMarkLayoutChange('scale', Number(event.target.value))} />
+          <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
+          <input id="media-mark-x" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.x} onChange={(event) => handleMediaMarkLayoutChange('x', Number(event.target.value))} />
+          <label className="field-label spacing-top" htmlFor="media-mark-y">Y position</label>
+          <input id="media-mark-y" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.y} onChange={(event) => handleMediaMarkLayoutChange('y', Number(event.target.value))} />
+          <button className="secondary-button" type="button" onClick={handleResetMediaMarkLayout}>Reset media mark layout</button>
+        </>
+      )}
+    </div>
+  )
+}
+
+function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
+  const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
+  const enabledValues = projectPlatformMarks.values.filter((value) => projectPlatformMarks.assets[value]?.layout.enabled)
+  const isEnabled = enabledValues.length > 0
+  const currentLabel = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ') : 'None selected'
+
+  const toggleEnabled = (enabled: boolean) => {
+    if (enabled) {
+      const valuesToRestore = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values : rememberedValues.length > 0 ? rememberedValues : ['pc']
+      valuesToRestore.forEach((value) => projectPlatformMarks.values.includes(value) ? handlePlatformMarkLayoutChange(value, 'enabled', true) : handlePlatformMarkToggle(value, true))
+      return
+    }
+    setRememberedValues(projectPlatformMarks.values)
+    projectPlatformMarks.values.forEach((value) => handlePlatformMarkLayoutChange(value, 'enabled', false))
+  }
+
+  return (
+    <div>
+      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show platform marks</label>
+      {!isEnabled ? null : (
+        <>
+          <div className="platform-mark-selection-group spacing-top">
+            <span className="field-label">Platforms</span>
+            <div className="disc-mark-checkbox-list">
+              {PLATFORM_MARK_OPTIONS.map((option) => (
+                <label key={option.value} className="field-label"><input type="checkbox" checked={projectPlatformMarks.values.includes(option.value)} onChange={(event) => handlePlatformMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
+              ))}
+            </div>
+          </div>
+          <p className="hint">Current platform marks: {currentLabel}. Each selected platform mark has its own image and layout.</p>
+          {projectPlatformMarks.values.map((value) => {
+            const asset = projectPlatformMarks.assets[value]
+            const label = getPlatformMarkLabel(value)
+            const uploadId = `platform-mark-upload-${value}`
+            if (!asset) return null
+            return (
+              <div key={value} className="logo-asset-card spacing-top">
+                <span className="field-label">{label} platform mark</span>
+                <label className="field-label spacing-top" htmlFor={`platform-mark-source-${value}`}>Mark source</label>
+                <select id={`platform-mark-source-${value}`} value={asset.source} onChange={(event) => handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)}>
+                  <option value="placeholder">Built-in placeholder</option>
+                  <option value="custom">Custom image</option>
+                </select>
+                <span className="field-label spacing-top">Custom platform image</span>
+                <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
+                <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handlePlatformMarkUpload(value, event)} />
+                {asset.customImageDataUrl ? (
+                  <div className="selected-lockup-card logo-asset-status-card">
+                    <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
+                    <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
+                    <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>
+                  </div>
+                ) : <p className="hint">Using a generic internal placeholder.</p>}
+                <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
+                <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', Number(event.target.value))} />
+                <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
+                <input id={`platform-mark-x-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.x} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', Number(event.target.value))} />
+                <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
+                <input id={`platform-mark-y-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.y} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', Number(event.target.value))} />
+                <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
+              </div>
+            )
+          })}
+        </>
+      )}
+    </div>
+  )
+}
+
+export function BrandingPanel(props: BrandingPanelProps) {
+  const { projectLogoAssets } = props
   return (
     <details className="panel collapsible-panel" open>
       <summary className="panel-summary">Branding</summary>
       <div className="panel-content">
-      <label className="field-label" htmlFor="steam-logo-placement">
-        Placement
-      </label>
-      <select
-        id="steam-logo-placement"
-        value={steamLogoPlacement}
-        onChange={(event) =>
-          handleSteamLogoPlacementChange(event.target.value as SteamLogoPlacement)
-        }
-      >
-        <option value="top">Top center</option>
-        <option value="bottom">Bottom center</option>
-        <option value="none">None</option>
-      </select>
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-gradient-start">
-        Gradient start
-      </label>
-      <input
-        id="steam-banner-gradient-start"
-        type="color"
-        value={steamBannerColors.gradientStart}
-        disabled={steamLogoPlacement === 'none'}
-        onChange={(event) =>
-          handleSteamBannerColorChange('gradientStart', event.target.value)
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-gradient-end">
-        Gradient end
-      </label>
-      <input
-        id="steam-banner-gradient-end"
-        type="color"
-        value={steamBannerColors.gradientEnd}
-        disabled={steamLogoPlacement === 'none'}
-        onChange={(event) =>
-          handleSteamBannerColorChange('gradientEnd', event.target.value)
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-accent">
-        Accent strip
-      </label>
-      <input
-        id="steam-banner-accent"
-        type="color"
-        value={steamBannerColors.accent}
-        disabled={steamLogoPlacement === 'none'}
-        onChange={(event) =>
-          handleSteamBannerColorChange('accent', event.target.value)
-        }
-      />
-
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={steamLogoPlacement === 'none'}
-        onClick={handleResetSteamBannerColors}
-      >
-        Reset banner colors
-      </button>
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-lockup-upload">
-        Banner lockup image
-      </label>
-      <input
-        id="steam-banner-lockup-upload"
-        type="file"
-        accept="image/*"
-        onChange={handleSteamBannerLockupUpload}
-      />
-
-      {steamBannerLockupImageUrl ? (
-        <div className="selected-lockup-card">
-          <span>
-            Banner lockup active
-            {steamBannerLockupImageSize
-              ? ` · ${steamBannerLockupImageSize.width}×${steamBannerLockupImageSize.height}`
-              : ''}
-          </span>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={handleClearSteamBannerLockup}
-          >
-            Reset to default lockup
-          </button>
-        </div>
-      ) : (
-        <p className="hint">
-          Using the bundled default Steam banner lockup image. Upload a PNG to override it.
-        </p>
-      )}
-
-      <div className="spacing-top">
-        <label className="field-label" htmlFor="steam-banner-lockup-scale">
-          Lockup scale
-        </label>
-        <input
-          id="steam-banner-lockup-scale"
-          type="range"
-          min="0.5"
-          max="1.5"
-          step="0.01"
-          value={steamBannerLockupLayout.scale}
-          disabled={steamLogoPlacement === 'none'}
-          onChange={(event) =>
-            handleSteamBannerLockupLayoutChange('scale', Number(event.target.value))
-          }
-        />
-      </div>
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-x">
-        Lockup X offset
-      </label>
-      <input
-        id="steam-banner-lockup-offset-x"
-        type="range"
-        min="-20"
-        max="20"
-        step="0.1"
-        value={steamBannerLockupLayout.offsetX}
-        disabled={steamLogoPlacement === 'none'}
-        onChange={(event) =>
-          handleSteamBannerLockupLayoutChange('offsetX', Number(event.target.value))
-        }
-      />
-
-      <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-y">
-        Lockup Y offset
-      </label>
-      <input
-        id="steam-banner-lockup-offset-y"
-        type="range"
-        min="-20"
-        max="20"
-        step="0.1"
-        value={steamBannerLockupLayout.offsetY}
-        disabled={steamLogoPlacement === 'none'}
-        onChange={(event) =>
-          handleSteamBannerLockupLayoutChange('offsetY', Number(event.target.value))
-        }
-      />
-
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={steamLogoPlacement === 'none'}
-        onClick={handleResetSteamBannerLockupLayout}
-      >
-        Reset lockup layout
-      </button>
-
-      <details className="metadata-details collapsible-panel spacing-top">
-        <summary className="panel-summary">Developer / publisher logos</summary>
-        <div className="panel-content">
-          <LogoAssetControls
-            logoKey="developer"
-            label="Developer"
-            imageDataUrl={projectLogoAssets.developerLogoDataUrl}
-            imageSize={projectLogoAssets.developerLogoSize}
-            layout={projectLogoAssets.developerLogoLayout}
-            handleLogoAssetUpload={handleLogoAssetUpload}
-            handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
-            handleClearLogoAsset={handleClearLogoAsset}
-            handleResetLogoAssetLayout={handleResetLogoAssetLayout}
-          />
-
-          <LogoAssetControls
-            logoKey="publisher"
-            label="Publisher"
-            imageDataUrl={projectLogoAssets.publisherLogoDataUrl}
-            imageSize={projectLogoAssets.publisherLogoSize}
-            layout={projectLogoAssets.publisherLogoLayout}
-            handleLogoAssetUpload={handleLogoAssetUpload}
-            handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
-            handleClearLogoAsset={handleClearLogoAsset}
-            handleResetLogoAssetLayout={handleResetLogoAssetLayout}
-          />
-        </div>
-      </details>
-
-      <details className="metadata-details collapsible-panel spacing-top">
-        <summary className="panel-summary">Rating badge</summary>
-        <div className="panel-content">
-          <RatingBadgeControls
-            projectMetadata={projectMetadata}
-            projectRatingBadge={projectRatingBadge}
-            handleProjectMetadataChange={handleProjectMetadataChange}
-            handleRatingBadgeUpload={handleRatingBadgeUpload}
-            handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
-            handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
-            handleClearRatingBadgeImage={handleClearRatingBadgeImage}
-            handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
-          />
-        </div>
-      </details>
-
-      <details className="metadata-details collapsible-panel spacing-top">
-        <summary className="panel-summary">Media format mark</summary>
-        <div className="panel-content">
-          <MediaMarkControls
-            projectMediaMark={projectMediaMark}
-            handleMediaMarkUpload={handleMediaMarkUpload}
-            handleMediaMarkValueChange={handleMediaMarkValueChange}
-            handleMediaMarkSourceChange={handleMediaMarkSourceChange}
-            handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
-            handleClearMediaMarkImage={handleClearMediaMarkImage}
-            handleResetMediaMarkLayout={handleResetMediaMarkLayout}
-          />
-        </div>
-      </details>
-
-      <details className="metadata-details collapsible-panel spacing-top">
-        <summary className="panel-summary">Platform marks</summary>
-        <div className="panel-content">
-          <PlatformMarkControls
-            projectPlatformMarks={projectPlatformMarks}
-            handlePlatformMarkToggle={handlePlatformMarkToggle}
-            handlePlatformMarkUpload={handlePlatformMarkUpload}
-            handlePlatformMarkSourceChange={handlePlatformMarkSourceChange}
-            handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
-            handleClearPlatformMarkImage={handleClearPlatformMarkImage}
-            handleResetPlatformMarkLayout={handleResetPlatformMarkLayout}
-          />
-        </div>
-      </details>
+        <SteamBannerControls {...props} />
+        <details className="metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Developer / publisher logos</summary>
+          <div className="panel-content">
+            <LogoAssetControls logoKey="developer" label="Developer" imageDataUrl={projectLogoAssets.developerLogoDataUrl} imageSize={projectLogoAssets.developerLogoSize} layout={projectLogoAssets.developerLogoLayout} {...props} />
+            <LogoAssetControls logoKey="publisher" label="Publisher" imageDataUrl={projectLogoAssets.publisherLogoDataUrl} imageSize={projectLogoAssets.publisherLogoSize} layout={projectLogoAssets.publisherLogoLayout} {...props} />
+          </div>
+        </details>
+        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Rating badge</summary><div className="panel-content"><RatingBadgeControls {...props} /></div></details>
+        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Media format mark</summary><div className="panel-content"><MediaMarkControls {...props} /></div></details>
+        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Platform marks</summary><div className="panel-content"><PlatformMarkControls {...props} /></div></details>
       </div>
     </details>
   )
