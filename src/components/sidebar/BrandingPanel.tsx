@@ -227,6 +227,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
   const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+  const isCustomBadgeSource = projectRatingBadge.source === 'custom'
 
   const handleEnabledChange = (enabled: boolean) => {
     if (enabled && projectMetadata.ratingSystem === 'none') {
@@ -273,17 +274,20 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
             <option value="custom">Custom image</option>
           </select>
 
-          <span className="field-label spacing-top">Custom badge image</span>
-          <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">Choose custom badge</label>
-          <input id="rating-badge-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
+          {isCustomBadgeSource ? (
+            <>
+              <span className="field-label spacing-top">Custom badge image</span>
+              <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">Choose custom badge</label>
+              <input id="rating-badge-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
 
-          {projectRatingBadge.customImageDataUrl ? (
-            <div className="selected-lockup-card logo-asset-status-card">
-              <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
-              <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
-              <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>
-            </div>
-          ) : <p className="hint">Built-in placeholder badges can be replaced by PNG assets later.</p>}
+              {projectRatingBadge.customImageDataUrl ? (
+                <div className="selected-lockup-card logo-asset-status-card">
+                  <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
+                  <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
+                </div>
+              ) : <p className="hint">Upload a PNG or image to replace the placeholder badge.</p>}
+            </>
+          ) : <p className="hint">Using the built-in placeholder badge.</p>}
 
           <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
           <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onChange={(event) => handleRatingBadgeLayoutChange('scale', Number(event.target.value))} />
@@ -292,6 +296,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
           <label className="field-label spacing-top" htmlFor="rating-badge-y">Y position</label>
           <input id="rating-badge-y" type="range" min="0" max="100" step="0.1" value={projectRatingBadge.layout.y} onChange={(event) => handleRatingBadgeLayoutChange('y', Number(event.target.value))} />
           <button className="secondary-button" type="button" onClick={handleResetRatingBadgeLayout}>Reset rating badge layout</button>
+          {isCustomBadgeSource && projectRatingBadge.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>}
         </>
       )}
     </div>
