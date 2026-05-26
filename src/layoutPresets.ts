@@ -42,15 +42,27 @@ export const DISC_TEXT_LAYOUT_PRESETS: readonly DiscTextLayoutPreset[] = [
     layout: { x: 0, y: 81.5, width: 62, scale: 1.05, align: 'center', mode: 'straight' },
   },
   {
+    id: 'subtitle-under-title',
+    label: 'Subtitle under title',
+    targetKeys: ['subtitle'],
+    layout: { x: 0, y: 24, width: 56, scale: 0.92, align: 'center', mode: 'straight' },
+  },
+  {
+    id: 'subtitle-above-bottom-title',
+    label: 'Subtitle above bottom title',
+    targetKeys: ['subtitle'],
+    layout: { x: 0, y: 76.5, width: 56, scale: 0.92, align: 'center', mode: 'straight' },
+  },
+  {
     id: 'left-block',
     label: 'Left block',
-    targetKeys: ['customNote', 'discNumber', 'backupDate', 'appId'],
+    targetKeys: ['customNote', 'installNotes', 'developer', 'publisher', 'discNumber', 'backupDate', 'appId'],
     layout: { x: -20, y: 52, width: 36, scale: 0.88, align: 'left', mode: 'straight' },
   },
   {
     id: 'right-block',
     label: 'Right block',
-    targetKeys: ['customNote', 'discNumber', 'backupDate', 'appId'],
+    targetKeys: ['customNote', 'installNotes', 'developer', 'publisher', 'discNumber', 'backupDate', 'appId'],
     layout: { x: 20, y: 52, width: 36, scale: 0.88, align: 'right', mode: 'straight' },
   },
   {
@@ -58,6 +70,12 @@ export const DISC_TEXT_LAYOUT_PRESETS: readonly DiscTextLayoutPreset[] = [
     label: 'Small lower App ID',
     targetKeys: ['appId'],
     layout: { x: 0, y: 72, width: 44, scale: 0.82, align: 'center', mode: 'straight' },
+  },
+  {
+    id: 'lower-notes-line',
+    label: 'Lower notes line',
+    targetKeys: ['installNotes', 'customNote'],
+    layout: { x: 0, y: 76, width: 58, scale: 0.86, align: 'center', mode: 'straight' },
   },
   {
     id: 'lower-legal-line',
