@@ -2,18 +2,26 @@ export type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 
 export type DiscTextKey =
   | 'title'
+  | 'subtitle'
   | 'discNumber'
   | 'backupDate'
   | 'appId'
+  | 'developer'
+  | 'publisher'
+  | 'installNotes'
   | 'customNote'
   | 'copyright'
 
 export type DiscTextSettings = Record<DiscTextKey, boolean>
 
 export type DiscTextValues = {
+  subtitle: string
   discNumber: string
   backupDate: string
   appId: string
+  developer: string
+  publisher: string
+  installNotes: string
   customNote: string
   copyright: string
 }
@@ -37,18 +45,26 @@ export type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
 
 export const DISC_TEXT_KEYS: DiscTextKey[] = [
   'title',
+  'subtitle',
   'discNumber',
   'backupDate',
   'appId',
+  'developer',
+  'publisher',
+  'installNotes',
   'customNote',
   'copyright',
 ]
 
 export const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
   title: false,
+  subtitle: false,
   discNumber: false,
   backupDate: false,
   appId: false,
+  developer: false,
+  publisher: false,
+  installNotes: false,
   customNote: false,
   copyright: false,
 }
@@ -58,9 +74,13 @@ export const DISC_TEXT_WIDTH_MAX = 90
 
 export const DEFAULT_DISC_TEXT_WIDTHS: Record<DiscTextKey, number> = {
   title: 58,
+  subtitle: 54,
   discNumber: 42,
   backupDate: 48,
   appId: 48,
+  developer: 48,
+  publisher: 48,
+  installNotes: 58,
   customNote: 58,
   copyright: 68,
 }
@@ -75,9 +95,13 @@ export function normalizeDiscTextWidth(width: number | undefined, fallback: numb
 
 export function createDefaultDiscTextValues(appId?: number): DiscTextValues {
   return {
+    subtitle: '',
     discNumber: 'Disc 1',
     backupDate: new Date().toISOString().slice(0, 10),
     appId: appId ? String(appId) : '',
+    developer: '',
+    publisher: '',
+    installNotes: '',
     customNote: '',
     copyright: '',
   }
@@ -97,9 +121,13 @@ export function createDefaultDiscTextLayout(placement: SteamLogoPlacement): Disc
   const hasBottomBanner = placement === 'bottom'
   return {
     title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    subtitle: { x: 0, y: hasBottomBanner ? 86 : 24, width: DEFAULT_DISC_TEXT_WIDTHS.subtitle, scale: 0.92, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    developer: { x: -18, y: 56, width: DEFAULT_DISC_TEXT_WIDTHS.developer, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    publisher: { x: -18, y: 60, width: DEFAULT_DISC_TEXT_WIDTHS.publisher, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    installNotes: { x: 0, y: hasBottomBanner ? 72 : 76, width: DEFAULT_DISC_TEXT_WIDTHS.installNotes, scale: 0.86, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
     copyright: getDefaultCopyrightCurvedLayout(placement),
   }
@@ -131,9 +159,13 @@ export function normalizeDiscTextLayout(
 export function getDiscTextLabel(key: DiscTextKey) {
   switch (key) {
     case 'title': return 'Game title'
+    case 'subtitle': return 'Subtitle / edition'
     case 'discNumber': return 'Disc number'
     case 'backupDate': return 'Backup date'
     case 'appId': return 'Steam App ID'
+    case 'developer': return 'Developer text'
+    case 'publisher': return 'Publisher text'
+    case 'installNotes': return 'Install notes'
     case 'customNote': return 'Custom note'
     case 'copyright': return 'Copyright/legal text'
     default: return key
@@ -143,9 +175,13 @@ export function getDiscTextLabel(key: DiscTextKey) {
 export function getDiscTextContent(key: DiscTextKey, values: DiscTextValues, title: string) {
   switch (key) {
     case 'title': return title
+    case 'subtitle': return values.subtitle
     case 'discNumber': return values.discNumber
     case 'backupDate': return values.backupDate ? `Backed up ${values.backupDate}` : ''
     case 'appId': return values.appId ? `Steam App ID ${values.appId}` : ''
+    case 'developer': return values.developer ? `Developer: ${values.developer}` : ''
+    case 'publisher': return values.publisher ? `Publisher: ${values.publisher}` : ''
+    case 'installNotes': return values.installNotes
     case 'customNote': return values.customNote
     case 'copyright': return values.copyright
     default: return ''
