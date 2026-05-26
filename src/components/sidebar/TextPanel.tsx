@@ -11,6 +11,7 @@ import {
   type DiscTextSettings,
   type SteamLogoPlacement,
 } from '../../discText'
+import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
 
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
@@ -43,6 +44,17 @@ export function TextPanel({
   handleResetDiscTextLayout,
   steamLogoPlacement,
 }: TextPanelProps) {
+  const applyDiscTextPreset = (key: DiscTextKey, preset: DiscTextLayoutPreset) => {
+    if (typeof preset.layout.x === 'number') handleDiscTextLayoutChange(key, 'x', preset.layout.x)
+    if (typeof preset.layout.y === 'number') handleDiscTextLayoutChange(key, 'y', preset.layout.y)
+    if (typeof preset.layout.width === 'number') handleDiscTextLayoutChange(key, 'width', preset.layout.width)
+    if (typeof preset.layout.scale === 'number') handleDiscTextLayoutChange(key, 'scale', preset.layout.scale)
+    if (typeof preset.layout.arcDegrees === 'number') handleDiscTextLayoutChange(key, 'arcDegrees', preset.layout.arcDegrees)
+    if (preset.layout.align) handleDiscTextAlignmentChange(key, preset.layout.align)
+    if (preset.layout.mode) handleDiscTextModeChange(key, preset.layout.mode)
+    if (preset.layout.arcSide) handleDiscTextArcSideChange(key, preset.layout.arcSide)
+  }
+
   return (
     <details className="panel collapsible-panel" open>
       <summary className="panel-summary">Text</summary>
@@ -60,6 +72,7 @@ export function TextPanel({
             const isTextEnabled = discTextSettings[key]
             const isCopyright = key === 'copyright'
             const isCurvedCopyright = isCopyright && layout.mode === 'curved'
+            const presets = getDiscTextLayoutPresetsForKey(key)
 
             return (
               <div className="disc-text-control" key={key}>
@@ -141,6 +154,26 @@ export function TextPanel({
                         </label>
                       )}
                     </div>
+
+                    {presets.length > 0 && (
+                      <label className="field-label spacing-top" htmlFor={`disc-text-preset-${key}`}>
+                        <span>Layout preset</span>
+                        <select
+                          id={`disc-text-preset-${key}`}
+                          defaultValue=""
+                          onChange={(event) => {
+                            const preset = presets.find((candidate) => candidate.id === event.target.value)
+                            if (preset) applyDiscTextPreset(key, preset)
+                            event.currentTarget.value = ''
+                          }}
+                        >
+                          <option value="">Choose preset...</option>
+                          {presets.map((preset) => (
+                            <option key={preset.id} value={preset.id}>{preset.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
 
                     <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} fine tuning controls`}>
                       <label>
