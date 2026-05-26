@@ -192,7 +192,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
               <span>{label} logo active{formatLogoSize(imageSize)}</span>
             </div>
           ) : (
-            <p className="hint">Using an internal {label.toLowerCase()} logo placeholder until you upload an image.</p>
+            <p className="hint">No uploaded {label.toLowerCase()} logo is selected yet. The editor shows a temporary placeholder so you can place the element; upload an image to render your actual logo.</p>
           )}
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
@@ -227,7 +227,8 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
 function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
-  const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+  const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
+  const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${hasRatingValue ? ` ${projectMetadata.ratingValue}` : ''}`
   const isCustomBadgeSource = projectRatingBadge.source === 'custom'
 
   const handleEnabledChange = (enabled: boolean) => {
@@ -277,6 +278,8 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
           )}
 
           <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
+          {!hasRatingValue && <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>}
+
           <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
           <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
             <option value="placeholder">Built-in placeholder</option>
@@ -294,7 +297,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
                   <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">Upload a PNG or image to replace the placeholder badge.</p>}
+              ) : <p className="hint">No custom badge image is selected yet. The generated badge placeholder remains visible until you upload an image.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder badge.</p>}
 
@@ -349,7 +352,7 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
                   <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+              ) : <p className="hint">No custom media mark image is selected yet. The generated mark placeholder remains visible until you upload an image.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder mark.</p>}
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
@@ -420,7 +423,7 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
                         <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
                         <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
                       </div>
-                    ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+                    ) : <p className="hint">No custom {label} platform image is selected yet. The generated platform placeholder remains visible until you upload an image.</p>}
                   </>
                 ) : <p className="hint">Using a generic internal placeholder.</p>}
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
