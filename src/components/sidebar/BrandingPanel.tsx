@@ -305,6 +305,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
 
 function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
   const isEnabled = projectMediaMark.layout.enabled
+  const isCustomMediaMarkSource = projectMediaMark.source === 'custom'
   return (
     <div className="logo-asset-card">
       <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => handleMediaMarkLayoutChange('enabled', event.target.checked)} /> Show media format mark</label>
@@ -319,17 +320,20 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
             <option value="placeholder">Built-in placeholder</option>
             <option value="custom">Custom image</option>
           </select>
-          <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}. Placeholder marks are generic internal artwork.</p>
-          <span className="field-label spacing-top">Custom mark image</span>
-          <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">Choose custom mark</label>
-          <input id="media-mark-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
-          {projectMediaMark.customImageDataUrl ? (
-            <div className="selected-lockup-card logo-asset-status-card">
-              <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
-              <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
-              <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>
-            </div>
-          ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+          <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
+          {isCustomMediaMarkSource ? (
+            <>
+              <span className="field-label spacing-top">Custom mark image</span>
+              <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">Choose custom mark</label>
+              <input id="media-mark-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
+              {projectMediaMark.customImageDataUrl ? (
+                <div className="selected-lockup-card logo-asset-status-card">
+                  <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
+                  <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
+                </div>
+              ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+            </>
+          ) : <p className="hint">Using the built-in placeholder mark.</p>}
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
           <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onChange={(event) => handleMediaMarkLayoutChange('scale', Number(event.target.value))} />
           <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
@@ -337,6 +341,7 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
           <label className="field-label spacing-top" htmlFor="media-mark-y">Y position</label>
           <input id="media-mark-y" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.y} onChange={(event) => handleMediaMarkLayoutChange('y', Number(event.target.value))} />
           <button className="secondary-button" type="button" onClick={handleResetMediaMarkLayout}>Reset media mark layout</button>
+          {isCustomMediaMarkSource && projectMediaMark.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>}
         </>
       )}
     </div>
