@@ -16,11 +16,14 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
+import { resolveMetadataBoundDiscTextValues } from '../../project/metadataDiscText'
+import type { ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  projectMetadata: ProjectMetadata
   manualGameTitle: string
   discTextLayout: DiscTextLayoutSettings
   steamLogoPlacement: SteamLogoPlacement
@@ -34,6 +37,7 @@ export type DiscTextLayerProps = {
 export function DiscTextLayer({
   discTextSettings,
   discTextValues,
+  projectMetadata,
   manualGameTitle,
   discTextLayout,
   steamLogoPlacement,
@@ -43,6 +47,11 @@ export function DiscTextLayer({
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
 }: DiscTextLayerProps) {
+  const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
+    discTextValues,
+    projectMetadata,
+  )
+
   return (
     <div className="disc-text-layer" aria-label="Disc text elements">
       {DISC_TEXT_KEYS.map((key) => {
@@ -50,7 +59,11 @@ export function DiscTextLayer({
           return null
         }
 
-        const text = getDiscTextContent(key, discTextValues, manualGameTitle).trim()
+        const text = getDiscTextContent(
+          key,
+          metadataBoundDiscTextValues,
+          manualGameTitle,
+        ).trim()
 
         if (!text) {
           return null
