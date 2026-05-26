@@ -8,7 +8,6 @@ import {
   getDiscTextPreviewClassName,
   getLargeArcFlag,
   getReadableCurvedTextScale,
-  wrapPreviewTextByArcLength,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
@@ -16,6 +15,7 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
+import { layoutCurvedText, type CurvedTextLineLayout } from '../../discText/curvedTextLayout'
 import { resolveMetadataBoundDiscTextValues } from '../../project/metadataDiscText'
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
@@ -32,6 +32,195 @@ export type DiscTextLayerProps = {
   handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
+}
+
+let curvedPreviewMeasureContext: CanvasRenderingContext2D | null = null
+
+function getCurvedPreviewMeasureContext() {
+  if (curvedPreviewMeasureContext) return curvedPreviewMeasureContext
+  if (typeof document === 'undefined') return null
+
+  curvedPreviewMeasureContext = document.createElement('canvas').getContext('2d')
+  return curvedPreviewMeasureContext
+}
+
+function getFallbackCurvedPreviewLineWidth(line: string, fontSize: number, letterSpacing: number) {
+  const averageCharacterWidth = fontSize * 0.68
+  const characterCount = Array.from(line).length
+  return characterCount * averageCharacterWidth + Math.max(0, characterCount - 1) * letterSpacing
+}
+
+function getCurvedPreviewLineWidth(line: string, fontSize: number, letterSpacing: number) {
+  const context = getCurvedPreviewMeasureContext()
+  if (!context) return getFallbackCurvedPreviewLineWidth(line, fontSize, letterSpacing)
+
+  context.font = `650 ${fontSize}px Arial`
+  const characterCount = Array.from(line).length
+  return context.measureText(line).width + Math.max(0, characterCount - 1) * letterSpacing
+}
+
+function splitLongTokenForCurvedPreview(
+  token: string,
+  maxArcLength: number,
+  fontSize: number,
+  letterSpacing: number,
+) {
+  const chunks: string[] = []
+  let currentChunk = ''
+
+  for (const character of Array.from(token)) {
+    const testChunk = `${currentChunk}${character}`
+    if (getCurvedPreviewLineWidth(testChunk, fontSize, letterSpacing) <= maxArcLength || !currentChunk) {
+      currentChunk = testChunk
+      continue
+    }
+
+    chunks.push(currentChunk)
+    currentChunk = character
+  }
+
+  if (currentChunk) chunks.push(currentChunk)
+  return chunks
+}
+
+function wrapPreviewTextByMeasuredArcLength(
+  text: string,
+  maxArcLength: number,
+  fontSize: number,
+  letterSpacing: number,
+) {
+  const tokens = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const token of tokens) {
+    const tokenParts = getCurvedPreviewLineWidth(token, fontSize, letterSpacing) > maxArcLength
+      ? splitLongTokenForCurvedPreview(token, maxArcLength, fontSize, letterSpacing)
+      : [token]
+
+    for (const part of tokenParts) {
+      const testLine = currentLine ? `${currentLine} ${part}` : part
+      if (getCurvedPreviewLineWidth(testLine, fontSize, letterSpacing) <= maxArcLength || !currentLine) {
+        currentLine = testLine
+        continue
+      }
+
+      lines.push(currentLine)
+      currentLine = part
+    }
+  }
+
+  if (currentLine) lines.push(currentLine)
+  return lines
+}
+
+function getCurvedPreviewLineRadius(
+  isTopArc: boolean,
+  textRadius: number,
+  lineStep: number,
+  lineCount: number,
+  index: number,
+) {
+  const lineRadius = isTopArc
+    ? textRadius - index * lineStep
+    : textRadius - (lineCount - 1 - index) * lineStep
+
+  return Math.max(1, lineRadius)
+}
+
+function getMinimumCurvedPreviewLineRadius(
+  isTopArc: boolean,
+  textRadius: number,
+  lineStep: number,
+  lineCount: number,
+) {
+  let minimumRadius = textRadius
+
+  for (let index = 0; index < lineCount; index += 1) {
+    minimumRadius = Math.min(
+      minimumRadius,
+      getCurvedPreviewLineRadius(isTopArc, textRadius, lineStep, lineCount, index),
+    )
+  }
+
+  return Math.max(1, minimumRadius)
+}
+
+function wrapPreviewTextForCurvedBlock(
+  text: string,
+  textRadius: number,
+  lineStep: number,
+  arcDegrees: number,
+  fontSize: number,
+  letterSpacing: number,
+  isTopArc: boolean,
+) {
+  let lines = wrapPreviewTextByMeasuredArcLength(
+    text,
+    textRadius * ((arcDegrees * Math.PI) / 180),
+    fontSize,
+    letterSpacing,
+  )
+  const centeredLayout = layoutCurvedText({
+    side: isTopArc ? 'top' : 'bottom',
+    centerAngleDegrees: 0,
+    arcDegrees,
+    align: 'center',
+    lines: lines.map((line, index) => ({
+      text: line,
+      measuredWidth: getCurvedPreviewLineWidth(line, fontSize, letterSpacing),
+      radius: getCurvedPreviewLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
+    })),
+  })
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const minimumLineRadius = getMinimumCurvedPreviewLineRadius(
+      isTopArc,
+      textRadius,
+      lineStep,
+      lines.length,
+    )
+    const nextLines = wrapPreviewTextByMeasuredArcLength(
+      text,
+      minimumLineRadius * ((centeredLayout.blockWindowDegrees * Math.PI) / 180),
+      fontSize,
+      letterSpacing,
+    )
+
+    if (nextLines.join('\n') === lines.join('\n')) {
+      return {
+        lines,
+        blockWindowDegrees: centeredLayout.blockWindowDegrees,
+      }
+    }
+
+    lines = nextLines
+  }
+
+  return {
+    lines,
+    blockWindowDegrees: centeredLayout.blockWindowDegrees,
+  }
+}
+
+function getCurvedLinePath(lineLayout: CurvedTextLineLayout, isTopArc: boolean) {
+  return createSvgArcPath(
+    50,
+    50,
+    lineLayout.radius,
+    lineLayout.startAngleDegrees,
+    lineLayout.endAngleDegrees,
+    isTopArc ? 1 : 0,
+    getLargeArcFlag(lineLayout.angleWidthDegrees),
+  )
+}
+
+function getCurvedLineTextPathAnchor(
+  align: DiscTextLayout['align'],
+): { startOffset: string; textAnchor: 'start' | 'end' | 'middle' } {
+  if (align === 'left') return { startOffset: '0%', textAnchor: 'start' }
+  if (align === 'right') return { startOffset: '100%', textAnchor: 'end' }
+  return { startOffset: '50%', textAnchor: 'middle' }
 }
 
 export function DiscTextLayer({
@@ -85,15 +274,30 @@ export function DiscTextLayer({
             safeZoneRadius - layout.y * 0.18,
           )
           const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x
-          const arcHalf = layout.arcDegrees / 2
-          const largeArcFlag = getLargeArcFlag(layout.arcDegrees)
-          const lines = wrapPreviewTextByArcLength(
+          const lineStep = 2.2 * curvedScale
+          const letterSpacing = getCurvedPreviewLetterSpacing(layout.scale)
+          const { lines, blockWindowDegrees } = wrapPreviewTextForCurvedBlock(
             text,
             textRadius,
+            lineStep,
             layout.arcDegrees,
-            curvedScale,
+            fontSize,
+            letterSpacing,
+            isTopArc,
           )
-          const lineStep = 2.2 * curvedScale
+          const curvedLineLayout = layoutCurvedText({
+            side: isTopArc ? 'top' : 'bottom',
+            centerAngleDegrees: arcCenterAngle,
+            arcDegrees: layout.arcDegrees,
+            align: layout.align,
+            blockWindowDegrees,
+            lines: lines.map((line, index) => ({
+              text: line,
+              measuredWidth: getCurvedPreviewLineWidth(line, fontSize, letterSpacing),
+              radius: getCurvedPreviewLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
+            })),
+          })
+          const textPathAnchor = getCurvedLineTextPathAnchor(layout.align)
 
           return (
             <svg
@@ -106,53 +310,31 @@ export function DiscTextLayer({
               onPointerCancel={handleDiscTextPointerUp}
             >
               <defs>
-                {lines.map((_, index) => {
-                  const lineRadius = isTopArc
-                    ? textRadius - index * lineStep
-                    : textRadius - (lines.length - 1 - index) * lineStep
+                {curvedLineLayout.lines.map((lineLayout, index) => {
                   const pathId = `${copyrightPathId}-${index}`
-
-                  const path = isTopArc
-                    ? createSvgArcPath(
-                        50,
-                        50,
-                        lineRadius,
-                        arcCenterAngle - arcHalf,
-                        arcCenterAngle + arcHalf,
-                        1,
-                        largeArcFlag,
-                      )
-                    : createSvgArcPath(
-                        50,
-                        50,
-                        lineRadius,
-                        arcCenterAngle + arcHalf,
-                        arcCenterAngle - arcHalf,
-                        0,
-                        largeArcFlag,
-                      )
+                  const path = getCurvedLinePath(lineLayout, isTopArc)
 
                   return <path id={pathId} d={path} key={pathId} />
                 })}
               </defs>
-              {lines.map((line, index) => (
-                <text
-                  className="disc-curved-text"
-                  key={`${copyrightPathId}-line-${index}`}
-                  dominantBaseline="middle"
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    letterSpacing: `${getCurvedPreviewLetterSpacing(layout.scale)}px`,
-                  }}
-                >
-                  <textPath
-                    href={`#${copyrightPathId}-${index}`}
-                    startOffset="50%"
-                    textAnchor="middle"
+              {curvedLineLayout.lines.map((lineLayout, index) => (
+                  <text
+                    className="disc-curved-text"
+                    key={`${copyrightPathId}-line-${index}`}
+                    dominantBaseline="middle"
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      letterSpacing: `${letterSpacing}px`,
+                    }}
                   >
-                    {line}
-                  </textPath>
-                </text>
+                    <textPath
+                      href={`#${copyrightPathId}-${index}`}
+                      startOffset={textPathAnchor.startOffset}
+                      textAnchor={textPathAnchor.textAnchor}
+                    >
+                      {lineLayout.text}
+                    </textPath>
+                  </text>
               ))}
             </svg>
           )
