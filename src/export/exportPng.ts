@@ -54,8 +54,9 @@ export async function exportDiscLabelPngBytes(params: {
   const canvas = document.createElement('canvas')
   canvas.width = exportSize
   canvas.height = exportSize
-  const context = canvas.getContext('2d')
-  if (!context) throw new Error('Could not create PNG export canvas.')
+  const rawContext = canvas.getContext('2d')
+  if (!rawContext) throw new Error('Could not create PNG export canvas.')
+  const context = rawContext
 
   const center = exportSize / 2
   const outerRadius = discContentSize / 2
