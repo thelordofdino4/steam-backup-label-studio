@@ -118,7 +118,6 @@ function LogoAssetControls({
   const uploadId = `${logoKey}-logo-upload`
   const hasLogoImage = Boolean(imageDataUrl)
   const showDependentControls = layout.enabled
-
   return (
     <div className="logo-asset-card">
       <label className="field-label">
@@ -299,6 +298,9 @@ function RatingBadgeControls({
     projectMetadata.ratingSystem === 'none'
       ? 'No rating selected'
       : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+  const visibleRatingSystem =
+    projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
+
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const handleRatingBadgeEnabledChange = (enabled: boolean) => {
     if (enabled && projectMetadata.ratingSystem === 'none') {
@@ -315,7 +317,16 @@ function RatingBadgeControls({
         <input
           type="checkbox"
           checked={isBadgeEnabled}
-          onChange={(event) => handleRatingBadgeEnabledChange(event.target.checked)}
+          onChange={(event) => {
+            const checked = event.target.checked
+
+            if (checked && projectMetadata.ratingSystem === 'none') {
+              handleProjectMetadataChange('ratingSystem', 'ESRB')
+              handleProjectMetadataChange('ratingValue', 'E')
+            }
+
+            handleRatingBadgeEnabledChange(checked)
+          }}
         />
         Show rating badge
       </label>
@@ -327,18 +338,12 @@ function RatingBadgeControls({
       </label>
       <select
         id="branding-rating-system"
-        value={projectMetadata.ratingSystem}
+        value={visibleRatingSystem}
         onChange={(event) => {
           const nextSystem = event.target.value as GameRatingSystem
           const allowedValues = getRatingValuesForSystem(nextSystem)
 
           handleProjectMetadataChange('ratingSystem', nextSystem)
-
-          if (nextSystem === 'none') {
-            handleProjectMetadataChange('ratingValue', '')
-            return
-          }
-
           if (
             allowedValues.length > 0 &&
             !allowedValues.includes(projectMetadata.ratingValue as never)
@@ -352,7 +357,6 @@ function RatingBadgeControls({
           }
         }}
       >
-        <option value="none">None</option>
         <option value="ESRB">ESRB</option>
         <option value="PEGI">PEGI</option>
         <option value="custom">Custom</option>
