@@ -9,12 +9,12 @@ export type RatingBadgeLayoutPreset = {
 }
 
 export const RATING_BADGE_LAYOUT_PRESETS = [
-  { id: 'right-middle', label: 'Right middle', x: 78, y: 50, scale: 1 },
+  { id: 'middle-right', label: 'Middle right', x: 78, y: 50, scale: 1 },
+  { id: 'middle-left', label: 'Middle left', x: 22, y: 50, scale: 1 },
   { id: 'lower-right', label: 'Lower right', x: 78, y: 76, scale: 1 },
   { id: 'lower-left', label: 'Lower left', x: 22, y: 76, scale: 1 },
   { id: 'top-right', label: 'Top right', x: 78, y: 24, scale: 1 },
-  { id: 'stacked-right-upper', label: 'Stacked right upper', x: 78, y: 62, scale: 0.86 },
-  { id: 'stacked-right-lower', label: 'Stacked right lower', x: 78, y: 74, scale: 0.86 },
+  { id: 'top-left', label: 'Top left', x: 22, y: 24, scale: 1 },
 ] satisfies readonly RatingBadgeLayoutPreset[]
 
 export type DiscTextLayoutPreset = {
