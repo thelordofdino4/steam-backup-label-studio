@@ -117,7 +117,7 @@ function LogoAssetControls({
 }) {
   const uploadId = `${logoKey}-logo-upload`
   const hasLogoImage = Boolean(imageDataUrl)
-  const showDependentControls = layout.enabled && hasLogoImage
+  const showDependentControls = layout.enabled
 
   return (
     <div className="logo-asset-card">
@@ -125,7 +125,6 @@ function LogoAssetControls({
         <input
           type="checkbox"
           checked={layout.enabled}
-          disabled={!imageDataUrl}
           onChange={(event) =>
             handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked)
           }
@@ -133,10 +132,16 @@ function LogoAssetControls({
         Show {label.toLowerCase()} logo
       </label>
 
-      {!imageDataUrl && (
+      {!showDependentControls ? null : (
         <>
+          <p className="hint">
+            {hasLogoImage
+              ? `${label} logo image is active.`
+              : `Using an internal ${label.toLowerCase()} logo placeholder until you upload an image.`}
+          </p>
+
           <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
-            Choose {label.toLowerCase()} logo
+            {hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}
           </label>
           <input
             id={uploadId}
@@ -145,30 +150,27 @@ function LogoAssetControls({
             accept="image/*"
             onChange={(event) => handleLogoAssetUpload(logoKey, event)}
           />
-          <p className="hint">Upload a transparent PNG or logo image before showing this logo.</p>
-        </>
-      )}
 
-      {!showDependentControls ? null : (
-        <>
-          <div className="selected-lockup-card logo-asset-status-card">
-            <img
-              className="logo-asset-preview"
-              src={imageDataUrl ?? undefined}
-              alt=""
-              draggable={false}
-            />
-            <span>
-              {label} logo active{formatLogoSize(imageSize)}
-            </span>
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => handleClearLogoAsset(logoKey)}
-            >
-              Clear logo
-            </button>
-          </div>
+          {hasLogoImage && (
+            <div className="selected-lockup-card logo-asset-status-card">
+              <img
+                className="logo-asset-preview"
+                src={imageDataUrl ?? undefined}
+                alt=""
+                draggable={false}
+              />
+              <span>
+                {label} logo active{formatLogoSize(imageSize)}
+              </span>
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() => handleClearLogoAsset(logoKey)}
+              >
+                Clear logo
+              </button>
+            </div>
+          )}
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>
             Align logo
@@ -743,19 +745,22 @@ function PlatformMarkControls({
 
       {!isPlatformMarksEnabled ? null : (
         <>
-      <div className="disc-mark-checkbox-list spacing-top">
-        {PLATFORM_MARK_OPTIONS.map((option) => (
-          <label key={option.value} className="field-label">
-            <input
-              type="checkbox"
-              checked={projectPlatformMarks.values.includes(option.value)}
-              onChange={(event) =>
-                handlePlatformMarkToggle(option.value, event.target.checked)
-              }
-            />
-            {option.label}
-          </label>
-        ))}
+      <div className="platform-mark-selection-group spacing-top">
+        <span className="field-label">Platforms</span>
+        <div className="disc-mark-checkbox-list">
+          {PLATFORM_MARK_OPTIONS.map((option) => (
+            <label key={option.value} className="field-label">
+              <input
+                type="checkbox"
+                checked={projectPlatformMarks.values.includes(option.value)}
+                onChange={(event) =>
+                  handlePlatformMarkToggle(option.value, event.target.checked)
+                }
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
       </div>
 
       <p className="hint">

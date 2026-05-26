@@ -933,6 +933,12 @@ input:disabled {
   gap: 8px;
 }
 
+.platform-mark-selection-group {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+}
+
 
 .disc-curved-text-svg {
   position: absolute;

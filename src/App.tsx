@@ -809,15 +809,13 @@ function App() {
 
   function handleClearLogoAsset(logoKey: 'developer' | 'publisher') {
     setProjectLogoAssets((currentLogoAssets) => {
-      const defaults = createDefaultProjectLogoAssets()
-
       if (logoKey === 'developer') {
         return {
           ...currentLogoAssets,
           developerLogoDataUrl: null,
           developerLogoSize: null,
           developerLogoLayout: clampLogoAssetLayoutToSafeZone(
-            defaults.developerLogoLayout,
+            currentLogoAssets.developerLogoLayout,
             selectedDiscTemplate,
             null,
           ),
@@ -829,7 +827,7 @@ function App() {
         publisherLogoDataUrl: null,
         publisherLogoSize: null,
         publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
-          defaults.publisherLogoLayout,
+          currentLogoAssets.publisherLogoLayout,
           selectedDiscTemplate,
           null,
         ),

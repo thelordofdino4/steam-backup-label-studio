@@ -1,5 +1,6 @@
 import type { PointerEvent } from 'react'
 import { getLogoAssetBoundsPercent } from '../../discGeometry'
+import { getLogoAssetRenderDataUrl, getLogoAssetRenderSize } from '../../project/projectLogoAssets'
 import type { BackgroundImageSize, LogoAssetLayout } from '../../project/projectTypes'
 
 export type LogoAssetLayerProps = {
@@ -39,16 +40,18 @@ function LogoAssetPreview({
   handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
 }) {
-  if (!imageDataUrl || !layout.enabled) {
+  if (!layout.enabled) {
     return null
   }
 
-  const unscaledBounds = getLogoAssetBoundsPercent(imageSize, 1)
+  const renderImageDataUrl = getLogoAssetRenderDataUrl(logoKey, imageDataUrl)
+  const renderImageSize = getLogoAssetRenderSize(imageSize)
+  const unscaledBounds = getLogoAssetBoundsPercent(renderImageSize, 1)
 
   return (
     <img
       className="disc-logo-asset"
-      src={imageDataUrl}
+      src={renderImageDataUrl}
       alt={`${label} logo`}
       draggable={false}
       onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey)}
