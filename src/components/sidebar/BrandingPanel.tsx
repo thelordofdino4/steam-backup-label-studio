@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
+import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
@@ -237,6 +238,14 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
     handleRatingBadgeLayoutChange('enabled', enabled)
   }
 
+  const applyRatingBadgePreset = (presetId: string) => {
+    const preset = RATING_BADGE_LAYOUT_PRESETS.find((candidate) => candidate.id === presetId)
+    if (!preset) return
+    handleRatingBadgeLayoutChange('x', preset.x)
+    handleRatingBadgeLayoutChange('y', preset.y)
+    handleRatingBadgeLayoutChange('scale', preset.scale)
+  }
+
   return (
     <div className="logo-asset-card">
       <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleEnabledChange(event.target.checked)} /> Show rating badge</label>
@@ -288,6 +297,15 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
               ) : <p className="hint">Upload a PNG or image to replace the placeholder badge.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder badge.</p>}
+
+          <label className="field-label spacing-top" htmlFor="rating-badge-layout-preset">Layout preset</label>
+          <select id="rating-badge-layout-preset" defaultValue="" onChange={(event) => {
+            applyRatingBadgePreset(event.target.value)
+            event.currentTarget.value = ''
+          }}>
+            <option value="">Choose preset...</option>
+            {RATING_BADGE_LAYOUT_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+          </select>
 
           <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
           <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onChange={(event) => handleRatingBadgeLayoutChange('scale', Number(event.target.value))} />
