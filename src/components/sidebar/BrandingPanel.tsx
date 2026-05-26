@@ -383,6 +383,7 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
             const label = getPlatformMarkLabel(value)
             const uploadId = `platform-mark-upload-${value}`
             if (!asset) return null
+            const isCustomPlatformMarkSource = asset.source === 'custom'
             return (
               <div key={value} className="logo-asset-card spacing-top">
                 <span className="field-label">{label} platform mark</span>
@@ -391,15 +392,18 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
                   <option value="placeholder">Built-in placeholder</option>
                   <option value="custom">Custom image</option>
                 </select>
-                <span className="field-label spacing-top">Custom platform image</span>
-                <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
-                <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handlePlatformMarkUpload(value, event)} />
-                {asset.customImageDataUrl ? (
-                  <div className="selected-lockup-card logo-asset-status-card">
-                    <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
-                    <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
-                    <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>
-                  </div>
+                {isCustomPlatformMarkSource ? (
+                  <>
+                    <span className="field-label spacing-top">Custom platform image</span>
+                    <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
+                    <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handlePlatformMarkUpload(value, event)} />
+                    {asset.customImageDataUrl ? (
+                      <div className="selected-lockup-card logo-asset-status-card">
+                        <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
+                        <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
+                      </div>
+                    ) : <p className="hint">Upload a PNG or image to replace the placeholder mark.</p>}
+                  </>
                 ) : <p className="hint">Using a generic internal placeholder.</p>}
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
                 <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', Number(event.target.value))} />
@@ -408,6 +412,7 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
                 <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
                 <input id={`platform-mark-y-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.y} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', Number(event.target.value))} />
                 <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
+                {isCustomPlatformMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>}
               </div>
             )
           })}
