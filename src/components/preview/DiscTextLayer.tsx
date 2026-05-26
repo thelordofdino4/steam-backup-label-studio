@@ -37,31 +37,82 @@ export type DiscTextLayerProps = {
 
 function getCurvedTextPathAlignment(
   align: DiscTextAlignment,
-  line: string,
-  radius: number,
-  arcDegrees: number,
-  scale: number,
 ): { startOffset: string; textAnchor: 'start' | 'middle' | 'end' } {
-  if (align === 'center') {
-    return { startOffset: '50%', textAnchor: 'middle' }
-  }
-
-  const arcLength = radius * ((arcDegrees * Math.PI) / 180)
-  const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
-  const linePercent =
-    arcLength > 0
-      ? (line.length * averageCharacterWidth / arcLength) * 100
-      : 0
-
-  if (linePercent >= 100) {
-    return { startOffset: '50%', textAnchor: 'middle' }
-  }
-
   if (align === 'left') {
     return { startOffset: '0%', textAnchor: 'start' }
   }
 
-  return { startOffset: '100%', textAnchor: 'end' }
+  if (align === 'right') {
+    return { startOffset: '100%', textAnchor: 'end' }
+  }
+
+  return { startOffset: '50%', textAnchor: 'middle' }
+}
+
+function getCurvedPreviewLineRadius(
+  isTopArc: boolean,
+  textRadius: number,
+  lineStep: number,
+  lineCount: number,
+  index: number,
+) {
+  const lineRadius = isTopArc
+    ? textRadius - index * lineStep
+    : textRadius - (lineCount - 1 - index) * lineStep
+
+  return Math.max(1, lineRadius)
+}
+
+function getMinimumCurvedPreviewLineRadius(
+  isTopArc: boolean,
+  textRadius: number,
+  lineStep: number,
+  lineCount: number,
+) {
+  let minimumRadius = textRadius
+
+  for (let index = 0; index < lineCount; index += 1) {
+    minimumRadius = Math.min(
+      minimumRadius,
+      getCurvedPreviewLineRadius(isTopArc, textRadius, lineStep, lineCount, index),
+    )
+  }
+
+  return Math.max(1, minimumRadius)
+}
+
+function wrapPreviewTextForCurvedBlock(
+  text: string,
+  textRadius: number,
+  lineStep: number,
+  arcDegrees: number,
+  scale: number,
+  isTopArc: boolean,
+) {
+  let lines = wrapPreviewTextByArcLength(text, textRadius, arcDegrees, scale)
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const minimumLineRadius = getMinimumCurvedPreviewLineRadius(
+      isTopArc,
+      textRadius,
+      lineStep,
+      lines.length,
+    )
+    const nextLines = wrapPreviewTextByArcLength(
+      text,
+      minimumLineRadius,
+      arcDegrees,
+      scale,
+    )
+
+    if (nextLines.join('\n') === lines.join('\n')) {
+      return lines
+    }
+
+    lines = nextLines
+  }
+
+  return lines
 }
 
 export function DiscTextLayer({
@@ -117,13 +168,15 @@ export function DiscTextLayer({
           const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x
           const arcHalf = layout.arcDegrees / 2
           const largeArcFlag = getLargeArcFlag(layout.arcDegrees)
-          const lines = wrapPreviewTextByArcLength(
+          const lineStep = 2.2 * curvedScale
+          const lines = wrapPreviewTextForCurvedBlock(
             text,
             textRadius,
+            lineStep,
             layout.arcDegrees,
             curvedScale,
+            isTopArc,
           )
-          const lineStep = 2.2 * curvedScale
 
           return (
             <svg
@@ -137,9 +190,13 @@ export function DiscTextLayer({
             >
               <defs>
                 {lines.map((_, index) => {
-                  const lineRadius = isTopArc
-                    ? textRadius - index * lineStep
-                    : textRadius - (lines.length - 1 - index) * lineStep
+                  const lineRadius = getCurvedPreviewLineRadius(
+                    isTopArc,
+                    textRadius,
+                    lineStep,
+                    lines.length,
+                    index,
+                  )
                   const pathId = `${copyrightPathId}-${index}`
 
                   const path = isTopArc
@@ -166,16 +223,7 @@ export function DiscTextLayer({
                 })}
               </defs>
               {lines.map((line, index) => {
-                const lineRadius = isTopArc
-                  ? textRadius - index * lineStep
-                  : textRadius - (lines.length - 1 - index) * lineStep
-                const textPathAlignment = getCurvedTextPathAlignment(
-                  layout.align,
-                  line,
-                  lineRadius,
-                  layout.arcDegrees,
-                  curvedScale,
-                )
+                const textPathAlignment = getCurvedTextPathAlignment(layout.align)
 
                 return (
                   <text

@@ -63,14 +63,13 @@ function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, cen
   if (naturalWidth <= 0 || radius <= 0) return
   const characterSpacing = baseCharacterSpacing
   const totalTextAngle = naturalWidth / radius
-  const effectiveAlign = totalTextAngle >= arcAngle ? 'center' : align
   let startAngle: number
   if (isTopArc) {
-    if (effectiveAlign === 'left') startAngle = centerAngle - arcAngle / 2
-    else if (effectiveAlign === 'right') startAngle = centerAngle + arcAngle / 2 - totalTextAngle
+    if (align === 'left') startAngle = centerAngle - arcAngle / 2
+    else if (align === 'right') startAngle = centerAngle + arcAngle / 2 - totalTextAngle
     else startAngle = centerAngle - totalTextAngle / 2
-  } else if (effectiveAlign === 'left') startAngle = centerAngle + arcAngle / 2
-  else if (effectiveAlign === 'right') startAngle = centerAngle - arcAngle / 2 + totalTextAngle
+  } else if (align === 'left') startAngle = centerAngle + arcAngle / 2
+  else if (align === 'right') startAngle = centerAngle - arcAngle / 2 + totalTextAngle
   else startAngle = centerAngle + totalTextAngle / 2
   let currentOffset = 0
   characters.forEach((character, index) => {
@@ -83,17 +82,101 @@ function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, cen
     currentOffset += widths[index] + characterSpacing
   })
 }
+
+function getCurvedCanvasLineRadius(
+  isTopArc: boolean,
+  outerLineRadius: number,
+  lineHeight: number,
+  lineCount: number,
+  index: number,
+) {
+  return isTopArc
+    ? outerLineRadius - index * lineHeight
+    : outerLineRadius - (lineCount - 1 - index) * lineHeight
+}
+
+function getMinimumVisibleCurvedCanvasLineRadius(
+  isTopArc: boolean,
+  outerLineRadius: number,
+  lineHeight: number,
+  lineCount: number,
+  minimumDrawableRadius: number,
+) {
+  let minimumRadius = outerLineRadius
+
+  for (let index = 0; index < lineCount; index += 1) {
+    const lineRadius = getCurvedCanvasLineRadius(
+      isTopArc,
+      outerLineRadius,
+      lineHeight,
+      lineCount,
+      index,
+    )
+
+    if (lineRadius > minimumDrawableRadius) {
+      minimumRadius = Math.min(minimumRadius, lineRadius)
+    }
+  }
+
+  return Math.max(1, minimumRadius)
+}
+
+function wrapTextForCurvedBlock(
+  context: CanvasRenderingContext2D,
+  text: string,
+  outerLineRadius: number,
+  lineHeight: number,
+  arcAngle: number,
+  isTopArc: boolean,
+  minimumDrawableRadius: number,
+) {
+  let lines = wrapTextByArcLength(context, text, outerLineRadius * arcAngle)
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const minimumLineRadius = getMinimumVisibleCurvedCanvasLineRadius(
+      isTopArc,
+      outerLineRadius,
+      lineHeight,
+      lines.length,
+      minimumDrawableRadius,
+    )
+    const nextLines = wrapTextByArcLength(context, text, minimumLineRadius * arcAngle)
+
+    if (nextLines.join('\n') === lines.join('\n')) {
+      return lines
+    }
+
+    lines = nextLines
+  }
+
+  return lines
+}
+
 function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: number, safeZoneRadius: number, placement: SteamLogoPlacement, layout: DiscTextLayout, text: string, fontSize: number) {
   const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
   const centerAngle = (isTopArc ? -Math.PI / 2 : Math.PI / 2) + (layout.x * Math.PI) / 180
   const maxArcAngle = (layout.arcDegrees * Math.PI) / 180
   const lineHeight = fontSize * 1.38
   const outerLineRadius = Math.max(1, safeZoneRadius - layout.y * exportSize * 0.0018)
-  const maxArcLength = outerLineRadius * maxArcAngle
-  const lines = wrapTextByArcLength(context, text, maxArcLength)
+  const minimumDrawableRadius = safeZoneRadius * 0.35
+  const lines = wrapTextForCurvedBlock(
+    context,
+    text,
+    outerLineRadius,
+    lineHeight,
+    maxArcAngle,
+    isTopArc,
+    minimumDrawableRadius,
+  )
   lines.forEach((line, index) => {
-    const lineRadius = isTopArc ? outerLineRadius - index * lineHeight : outerLineRadius - (lines.length - 1 - index) * lineHeight
-    if (lineRadius <= safeZoneRadius * 0.35) return
+    const lineRadius = getCurvedCanvasLineRadius(
+      isTopArc,
+      outerLineRadius,
+      lineHeight,
+      lines.length,
+      index,
+    )
+    if (lineRadius <= minimumDrawableRadius) return
     drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, maxArcAngle, isTopArc, layout.align)
   })
 }
