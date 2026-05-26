@@ -8,19 +8,19 @@ export type RatingBadgeLayoutPreset = {
   scale: number
 }
 
-export const RATING_BADGE_LAYOUT_PRESETS: RatingBadgeLayoutPreset[] = [
+export const RATING_BADGE_LAYOUT_PRESETS = [
   { id: 'right-middle', label: 'Right middle', x: 78, y: 50, scale: 1 },
   { id: 'lower-right', label: 'Lower right', x: 78, y: 76, scale: 1 },
   { id: 'lower-left', label: 'Lower left', x: 22, y: 76, scale: 1 },
   { id: 'top-right', label: 'Top right', x: 78, y: 24, scale: 1 },
   { id: 'stacked-right-upper', label: 'Stacked right upper', x: 78, y: 62, scale: 0.86 },
   { id: 'stacked-right-lower', label: 'Stacked right lower', x: 78, y: 74, scale: 0.86 },
-] as const
+] satisfies readonly RatingBadgeLayoutPreset[]
 
 export type DiscTextLayoutPreset = {
   id: string
   label: string
-  targetKeys: DiscTextKey[]
+  targetKeys: readonly DiscTextKey[]
   layout: Partial<Pick<DiscTextLayout, 'x' | 'y' | 'width' | 'scale' | 'arcDegrees'>> & {
     align?: DiscTextAlignment
     mode?: DiscTextMode
@@ -28,7 +28,7 @@ export type DiscTextLayoutPreset = {
   }
 }
 
-export const DISC_TEXT_LAYOUT_PRESETS: DiscTextLayoutPreset[] = [
+export const DISC_TEXT_LAYOUT_PRESETS = [
   {
     id: 'title-top',
     label: 'Title top',
@@ -45,13 +45,13 @@ export const DISC_TEXT_LAYOUT_PRESETS: DiscTextLayoutPreset[] = [
     id: 'left-block',
     label: 'Left block',
     targetKeys: ['customNote', 'discNumber', 'backupDate', 'appId'],
-    layout: { x: -24, y: 52, width: 36, scale: 0.88, align: 'left', mode: 'straight' },
+    layout: { x: -20, y: 52, width: 36, scale: 0.88, align: 'left', mode: 'straight' },
   },
   {
     id: 'right-block',
     label: 'Right block',
     targetKeys: ['customNote', 'discNumber', 'backupDate', 'appId'],
-    layout: { x: 24, y: 52, width: 36, scale: 0.88, align: 'right', mode: 'straight' },
+    layout: { x: 20, y: 52, width: 36, scale: 0.88, align: 'right', mode: 'straight' },
   },
   {
     id: 'small-lower-app-id',
@@ -77,7 +77,7 @@ export const DISC_TEXT_LAYOUT_PRESETS: DiscTextLayoutPreset[] = [
     targetKeys: ['copyright'],
     layout: { x: 0, y: 8, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: 'bottom' },
   },
-] as const
+] satisfies readonly DiscTextLayoutPreset[]
 
 export function getDiscTextLayoutPresetsForKey(key: DiscTextKey) {
   return DISC_TEXT_LAYOUT_PRESETS.filter((preset) => preset.targetKeys.includes(key))
