@@ -37,7 +37,7 @@ export type DiscTextLayerProps = {
 
 function getCurvedTextPathAlignment(
   align: DiscTextAlignment,
-  lines: string[],
+  line: string,
   radius: number,
   arcDegrees: number,
   scale: number,
@@ -48,22 +48,20 @@ function getCurvedTextPathAlignment(
 
   const arcLength = radius * ((arcDegrees * Math.PI) / 180)
   const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
-  const longestLineLength = lines.reduce(
-    (longestLength, line) => Math.max(longestLength, line.length),
-    0,
-  )
-  const blockPercent =
+  const linePercent =
     arcLength > 0
-      ? Math.min(100, (longestLineLength * averageCharacterWidth / arcLength) * 100)
+      ? (line.length * averageCharacterWidth / arcLength) * 100
       : 0
 
-  // Keep the curved text block centered on the existing path. Alignment only
-  // changes where each line anchors inside that fixed block span.
-  if (align === 'left') {
-    return { startOffset: `${50 - blockPercent / 2}%`, textAnchor: 'start' }
+  if (linePercent >= 100) {
+    return { startOffset: '50%', textAnchor: 'middle' }
   }
 
-  return { startOffset: `${50 + blockPercent / 2}%`, textAnchor: 'end' }
+  if (align === 'left') {
+    return { startOffset: '0%', textAnchor: 'start' }
+  }
+
+  return { startOffset: '100%', textAnchor: 'end' }
 }
 
 export function DiscTextLayer({
@@ -126,13 +124,6 @@ export function DiscTextLayer({
             curvedScale,
           )
           const lineStep = 2.2 * curvedScale
-          const textPathAlignment = getCurvedTextPathAlignment(
-            layout.align,
-            lines,
-            textRadius,
-            layout.arcDegrees,
-            curvedScale,
-          )
 
           return (
             <svg
@@ -174,25 +165,38 @@ export function DiscTextLayer({
                   return <path id={pathId} d={path} key={pathId} />
                 })}
               </defs>
-              {lines.map((line, index) => (
-                <text
-                  className="disc-curved-text"
-                  key={`${copyrightPathId}-line-${index}`}
-                  dominantBaseline="middle"
-                  style={{
-                    fontSize: `${fontSize}px`,
-                    letterSpacing: `${getCurvedPreviewLetterSpacing(layout.scale)}px`,
-                  }}
-                >
-                  <textPath
-                    href={`#${copyrightPathId}-${index}`}
-                    startOffset={textPathAlignment.startOffset}
-                    textAnchor={textPathAlignment.textAnchor}
+              {lines.map((line, index) => {
+                const lineRadius = isTopArc
+                  ? textRadius - index * lineStep
+                  : textRadius - (lines.length - 1 - index) * lineStep
+                const textPathAlignment = getCurvedTextPathAlignment(
+                  layout.align,
+                  line,
+                  lineRadius,
+                  layout.arcDegrees,
+                  curvedScale,
+                )
+
+                return (
+                  <text
+                    className="disc-curved-text"
+                    key={`${copyrightPathId}-line-${index}`}
+                    dominantBaseline="middle"
+                    style={{
+                      fontSize: `${fontSize}px`,
+                      letterSpacing: `${getCurvedPreviewLetterSpacing(layout.scale)}px`,
+                    }}
                   >
-                    {line}
-                  </textPath>
-                </text>
-              ))}
+                    <textPath
+                      href={`#${copyrightPathId}-${index}`}
+                      startOffset={textPathAlignment.startOffset}
+                      textAnchor={textPathAlignment.textAnchor}
+                    >
+                      {line}
+                    </textPath>
+                  </text>
+                )
+              })}
             </svg>
           )
         }

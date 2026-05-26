@@ -1290,16 +1290,38 @@ function App() {
   }
 
   function handleSteamLogoPlacementChange(placement: SteamLogoPlacement) {
+    const previousPlacement = steamLogoPlacement
     setSteamLogoPlacement(placement)
+
+    const shouldRepositionForBannerSideChange =
+      previousPlacement !== 'none' &&
+      placement !== 'none' &&
+      previousPlacement !== placement
+
+    if (!shouldRepositionForBannerSideChange) {
+      return
+    }
 
     const defaultLayout = createDefaultDiscTextLayout(placement)
 
     setDiscTextLayout((currentLayout) => {
+      const currentCopyrightLayout = currentLayout.copyright
+      const defaultCopyrightLayout =
+        currentCopyrightLayout.mode === 'curved'
+          ? getDefaultCopyrightCurvedLayout(placement)
+          : getDefaultCopyrightStraightLayout(placement)
       const nextLayout = {
         ...currentLayout,
         title: defaultLayout.title,
         customNote: defaultLayout.customNote,
-        copyright: defaultLayout.copyright,
+        copyright: {
+          ...defaultCopyrightLayout,
+          mode: currentCopyrightLayout.mode,
+          scale: currentCopyrightLayout.scale,
+          align: currentCopyrightLayout.align,
+          arcDegrees: currentCopyrightLayout.arcDegrees,
+          width: currentCopyrightLayout.width,
+        },
       }
 
       return clampDiscTextLayoutToSafeZone(nextLayout, selectedDiscTemplate)
