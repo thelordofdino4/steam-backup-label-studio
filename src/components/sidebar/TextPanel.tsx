@@ -50,6 +50,9 @@ export function TextPanel({
         <p className="hint">
           Enable text elements, edit their values, and adjust their preset position and scale.
         </p>
+        <p className="hint">
+          Steam App ID, backup date, disc number, and copyright/legal text render from Game metadata when those fields are filled. Their text values below are used when the matching metadata field is blank.
+        </p>
 
         <div className="disc-text-control-list">
           {DISC_TEXT_KEYS.map((key) => {

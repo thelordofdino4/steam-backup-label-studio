@@ -174,6 +174,7 @@ export function DiscPreview({
       <DiscTextLayer
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
+        projectMetadata={projectMetadata}
         manualGameTitle={manualGameTitle}
         discTextLayout={discTextLayout}
         steamLogoPlacement={steamLogoPlacement}
