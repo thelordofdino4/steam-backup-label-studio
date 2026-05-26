@@ -12,9 +12,13 @@ Steam Backup Label Studio is currently in **pre-alpha**.
 
 The current implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported or local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
 
-The current disc-label editor also supports Steam-style banner placement, optional straight disc text elements, and stable centered curved copyright/legal text. This makes the disc-label workflow much more complete than the early prototype, but it is still missing several intended product features such as full layer management, richer metadata overrides, case templates, export preflight, and alpha packaging.
+The current disc-label editor also supports Steam-style banner placement, optional straight disc text elements, stable centered curved copyright/legal text, developer/publisher logo support, rating badge support, media/platform mark work, project-owned metadata, New Project reset behavior, and toast status feedback. This makes the disc-label workflow much more complete than the early prototype, but it is not yet alpha-complete.
 
 The current working disc-label editor should not be mistaken for the whole planned product. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
+
+The next major milestone is getting the disc artwork editor alone to alpha quality. That milestone is reached when a normal user can create, edit, save, reload, and export a print-ready disc label without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-label work. This does not mean the full app is alpha.
+
+The current editor is a launchpad, not disposable prototype rubble. Existing systems should be extended, migrated carefully, and preserved unless a specific replacement path is planned and reviewed.
 
 ## Product Philosophy
 
@@ -27,6 +31,45 @@ The ideal basic workflow should take five minutes or less: choose a template, se
 The app should support manual overrides for users who want control, but its default behavior should favor speed, consistency, and reduced setup time.
 
 The app should avoid unnecessary hand-holding in blank projects. Users should be allowed to upload one image and export if that is all they need. Guidance should appear through Guided Start or export-time summaries/warnings, not through a permanent project-health checklist.
+
+Guided Start should wait until the editor systems are stable. It is closer to a last step before beta than a blocker for the disc editor to leave indev/pre-alpha.
+
+## Disc Editor Alpha Boundary
+
+Issue #69 defines the disc-editor finish line. The alpha boundary applies only to the disc artwork editor, not case editors and not the whole product.
+
+The disc editor should support common real-world disc artwork structures:
+
+- Background artwork.
+- Dedicated title/logo art, not only plain title text.
+- Age rating mark.
+- Developer logo.
+- Publisher logo.
+- Additional company/studio/distributor logos.
+- Media format mark such as CD-ROM, DVD, Blu-ray, or generic disc format.
+- Region/video-system marker such as a generic NTSC/PAL-style badge where appropriate.
+- Sound-system or technology/middleware-style mark such as a generic audio badge.
+- Platform/store/network mark such as a generic online-service/store badge.
+- Optional quote or short callout text.
+- Copyright/legal text, straight or curved around the edge.
+- Text layouts that can account for nearby logos, badges, title art, and other visual elements.
+
+The project should not bundle official trademarked assets unless licensing is clearly safe. Built-in user-facing assets should be original generic files checked into the repo or user-provided custom images.
+
+Generated placeholder boxes are acceptable during indev implementation. They are not acceptable as the final alpha-complete representation for user-facing developer logo fallback, publisher logo fallback, rating badge fallback, media format mark fallback, platform mark fallback, future optical/media/platform/archive marks, toast icons/symbols, or demos meant to represent real user-facing states. Built-in generic marks, badges, logos, and icons should eventually resolve to actual files, likely under `src/assets/` or a dedicated asset folder.
+
+Critical disc-editor alpha priorities:
+
+- Dedicated title/logo art support.
+- General additional artwork/logo element support.
+- Multiple logo/mark support beyond fixed developer/publisher slots.
+- Real file-backed built-in assets replacing generated placeholders.
+- Text behavior that can avoid or respect visual element boundaries.
+- Toast wording and icon replacement.
+- Layer ordering and preview/export parity.
+- Export preflight expansion around the more complete element model.
+- Metadata-to-rendered-text behavior.
+- Missing/disabled dependency clarity near the affected controls.
 
 ## Target Platforms
 
@@ -44,7 +87,7 @@ Possible future platforms:
 
 ## Core User Workflow
 
-1. Create a new project or start from Guided Start.
+1. Create a new project.
 2. Choose a physical template type.
 3. Choose Steam Backup logo placement.
 4. Search for a Steam game or enter details manually.
@@ -55,6 +98,8 @@ Possible future platforms:
 9. Save the project.
 10. Review export summary/preflight information if needed.
 11. Export a print-ready file.
+
+Guided Start remains a future workflow that should be added after the editor feature set is stable.
 
 ## Template Types
 
@@ -161,6 +206,8 @@ The Artwork panel should become the home for visual asset management, including:
 
 The project should eventually use a shared asset library so imported or uploaded assets can be reused across disc labels, case fronts, case backs, and spines.
 
+For the disc-editor alpha boundary, artwork and asset management should also support dedicated title/logo art and additional user-added visual/logo/mark elements. These elements should support upload/source selection, show/hide, placement, scale, save/load, and export without replacing the current developer logo, publisher logo, rating badge, or media/platform mark systems abruptly.
+
 ## Visual Editor Requirements
 
 The editor should eventually support:
@@ -204,6 +251,10 @@ Known text follow-up work includes:
 - Adjustable straight text box widths
 - Richer manual metadata fields feeding text elements
 - Possible copyright block generator
+- Practical text behavior that can avoid or respect nearby title art, logos, badges, marks, and other visual elements
+- Preflight warnings when text overlaps major enabled elements
+
+Text should always respect the disc safe-zone boundary. If a text box approaches the safe-zone edge, the editor should preserve safe-zone compliance through practical behavior such as clamping, wrapping, adaptive widths, warnings, or shaped text boxes. Respecting nearby image/logo/mark boundaries should be a user-controllable option so users can intentionally overlay art elements when a design calls for it.
 
 ## UI Requirements
 
@@ -213,7 +264,9 @@ The preview pane should remain visible while editing on supported desktop window
 
 The preview pane should have a clear label and should include a top-right stacked toast notification feed for state changes such as save, load, import, artwork updates, template changes, export completion, and errors.
 
-The app should eventually include an opening screen with two main choices:
+The toast system is part of disc-editor alpha readiness, not just optional polish. The foundation should be preserved, but wording should be reviewed as user-facing language, temporary symbols/placeholders should be replaced with real icons or a consistent final visual system, and placement, stacking, and status behavior should not be casually broken.
+
+After the editor systems are stable, the app should eventually include an opening screen with two main choices:
 
 - Guided Start
 - Blank Project
@@ -235,23 +288,42 @@ Possible export summary/preflight items:
 - Whether guide marks are enabled
 - Whether the design has no background image
 - Whether important text/logos appear outside the safe zone
+- Whether text overlaps major enabled logos, marks, badges, title art, or other visual elements
+- Whether enabled built-in marks, badges, logos, or toast visuals are still backed by generated placeholders instead of real assets
 - Whether custom dimensions are unusual
 
 Warnings should generally be informational and should not block export unless a value is truly invalid.
+
+Export should not silently omit enabled visible elements. Preview/export layer ordering should be documented and followed by both preview and PNG export.
 
 ## Optional Elements
 
 The user can add:
 
+- Title/logo art
 - Developer logo
 - Publisher logo
+- Additional company/studio/distributor logos
 - Rating badge
+- Media format mark
+- Region/video-system style mark
+- Sound-system or technology/middleware-style mark
+- Platform/store/network mark
 - Miscellaneous artwork
+- Quote or short callout text
 - Copyright text
 - Disc number
 - Backup date
 - Steam App ID
 - Install notes
+
+The editor should grow toward a flexible visual-element model while preserving current fixed systems and save/load behavior during migration.
+
+## Project File Format
+
+The current app saves plain JSON project files, commonly named like `.sbls.json`.
+
+The future `.sbls` package/container format is not implemented yet. It remains future work for portability, asset bundling, and migration behavior, and it should not block disc-editor alpha unless a specific save/load limitation appears.
 
 ## Case-Specific Future Fields
 
@@ -292,7 +364,14 @@ The current MVP focuses on one complete path:
 - Blu-ray case support
 - Advanced curved text alignment beyond the stable centered curved copyright implementation
 - Multi-disc wizard
+- Guided Start / setup wizard
+- Full `.sbls` package/container format
+- Official asset/logo packs
+- IGDB or automatic rating lookup
 - Direct printer integration
+- Full arbitrary layer manager
+- Visual regression automation
+- Broad App.tsx/CSS/Rust refactors unless directly needed for an alpha blocker
 - Template marketplace
 - General-purpose image editing tools
 - Brush/paint tools

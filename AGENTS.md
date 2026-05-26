@@ -21,6 +21,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Save/load should keep working.
    - PNG export should keep working.
    - Disc text preview/export behavior should keep matching.
+   - Treat the current disc editor systems as working launchpad infrastructure. Extend and migrate them carefully instead of replacing the editor wholesale unless a specific replacement path has been planned and reviewed.
 
 4. Prefer small, reviewable changes.
    - Do not combine unrelated refactors, bug fixes, and features in the same change.
