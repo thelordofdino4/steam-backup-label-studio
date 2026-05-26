@@ -10,6 +10,9 @@ import { drawSteamBrandBanner } from './drawSteamBanner'
 import { drawLogoAssets } from './drawLogoAssets'
 import { drawRatingBadge } from './drawRatingBadge'
 import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
+import { getDiscEditorLayerPolicy, type DiscEditorLayerId } from '../layerOrder'
+
+type ExportLayerRenderer = Partial<Record<DiscEditorLayerId, () => void | Promise<void>>>
 
 export async function exportDiscLabelPngBytes(params: {
   selectedDiscTemplate: DiscTemplate
@@ -50,12 +53,11 @@ export async function exportDiscLabelPngBytes(params: {
   const safeZoneRadius =
     (params.selectedDiscTemplate.safeDiameterMm / params.selectedDiscTemplate.outerDiameterMm) * outerRadius
 
-  context.clearRect(0, 0, exportSize, exportSize)
-  context.save(); context.beginPath(); context.arc(center, center, outerRadius, 0, Math.PI * 2); context.clip()
-  context.fillStyle = '#e5e7eb'
-  context.fillRect(0, 0, exportSize, exportSize)
+  async function drawBackgroundArtwork() {
+    if (!params.backgroundImageUrl) {
+      return
+    }
 
-  if (params.backgroundImageUrl) {
     const image = await loadImage(params.backgroundImageUrl)
     const offsetScale = discContentSize / params.previewSize
     const coverScale = Math.max(discContentSize / image.width, discContentSize / image.height)
@@ -67,26 +69,84 @@ export async function exportDiscLabelPngBytes(params: {
     context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
   }
 
-  await drawSteamBrandBanner(
-    context,
-    exportSize,
-    params.steamLogoPlacement,
-    params.steamBannerColors,
-    params.steamBannerLockupImageUrl,
-    params.steamBannerLockupLayout,
-  )
-  await drawLogoAssets(context, exportSize, params.projectLogoAssets)
-  await drawRatingBadge(context, exportSize, params.projectMetadata, params.projectRatingBadge)
-  await drawMediaMark(context, exportSize, params.projectMediaMark)
-  await drawPlatformMarks(context, exportSize, params.projectPlatformMarks)
-  drawDiscTextElements(context, exportSize, params.discTextSettings, params.discTextValues, params.discTextLayout, params.manualGameTitle, params.steamLogoPlacement, safeZoneRadius)
+  context.clearRect(0, 0, exportSize, exportSize)
+  context.save()
+  context.beginPath()
+  context.arc(center, center, outerRadius, 0, Math.PI * 2)
+  context.clip()
+
+  const exportLayerRenderers: ExportLayerRenderer = {
+    'disc-base-fill': () => {
+      context.fillStyle = '#e5e7eb'
+      context.fillRect(0, 0, exportSize, exportSize)
+    },
+    'background-artwork': drawBackgroundArtwork,
+    'steam-banner': () =>
+      drawSteamBrandBanner(
+        context,
+        exportSize,
+        params.steamLogoPlacement,
+        params.steamBannerColors,
+        params.steamBannerLockupImageUrl,
+        params.steamBannerLockupLayout,
+      ),
+    'logo-assets': () => drawLogoAssets(context, exportSize, params.projectLogoAssets),
+    'rating-badge': () => drawRatingBadge(context, exportSize, params.projectMetadata, params.projectRatingBadge),
+    'media-mark': () => drawMediaMark(context, exportSize, params.projectMediaMark),
+    'platform-marks': () => drawPlatformMarks(context, exportSize, params.projectPlatformMarks),
+    'disc-text': () =>
+      drawDiscTextElements(
+        context,
+        exportSize,
+        params.discTextSettings,
+        params.discTextValues,
+        params.discTextLayout,
+        params.manualGameTitle,
+        params.steamLogoPlacement,
+        safeZoneRadius,
+      ),
+  }
+
+  for (const layer of getDiscEditorLayerPolicy('export')) {
+    if (
+      layer.id === 'export-outline' ||
+      layer.id === 'physical-center-hole-cutout' ||
+      layer.id === 'export-guides'
+    ) {
+      continue
+    }
+
+    await exportLayerRenderers[layer.id]?.()
+  }
+
   context.restore()
 
-  drawOuterDiscExportOutline(context, center, outerRadius, exportOutlineWidth)
+  const postClipExportLayerRenderers: ExportLayerRenderer = {
+    'export-outline': () => drawOuterDiscExportOutline(context, center, outerRadius, exportOutlineWidth),
+    'physical-center-hole-cutout': () => {
+      context.save()
+      context.globalCompositeOperation = 'destination-out'
+      context.beginPath()
+      context.arc(center, center, physicalCenterHoleRadius, 0, Math.PI * 2)
+      context.fill()
+      context.restore()
+    },
+    'export-guides': () =>
+      drawExportGuides(
+        context,
+        exportSize,
+        center,
+        outerRadius,
+        physicalCenterHoleRadius,
+        innerPrintableBoundaryRadius,
+        params.selectedDiscTemplate,
+        params.exportGuides,
+      ),
+  }
 
-  context.save(); context.globalCompositeOperation = 'destination-out'; context.beginPath(); context.arc(center, center, physicalCenterHoleRadius, 0, Math.PI * 2); context.fill(); context.restore()
-
-  drawExportGuides(context, exportSize, center, outerRadius, physicalCenterHoleRadius, innerPrintableBoundaryRadius, params.selectedDiscTemplate, params.exportGuides)
+  for (const layer of getDiscEditorLayerPolicy('export')) {
+    await postClipExportLayerRenderers[layer.id]?.()
+  }
 
   const bytes = await canvasToPngBytes(canvas)
   return { bytes, width: exportSize, height: exportSize }
