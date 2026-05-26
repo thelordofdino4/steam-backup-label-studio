@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "0.1.0",
+  "title": "Background Fixture",
+  "savedAt": "2026-05-26T00:00:00.000Z",
+  "game": {
+    "manualTitle": "Background Fixture",
+    "selectedSteamGame": null
+  },
+  "metadata": {
+    "title": "Background Fixture",
+    "subtitle": "",
+    "steamAppId": "",
+    "developer": "",
+    "publisher": "",
+    "releaseDate": "",
+    "backupDate": "2026-05-26",
+    "discNumber": "",
+    "discTotal": "",
+    "installNotes": "",
+    "copyrightText": "",
+    "ratingSystem": "none",
+    "ratingValue": ""
+  },
+  "template": {
+    "type": "disc",
+    "variant": "standardPrintableDisc",
+    "customDimensions": null
+  },
+  "steamBackupLogo": {
+    "placement": "none"
+  },
+  "export": {
+    "guides": {
+      "outerEdge": false,
+      "physicalCenterHole": false,
+      "innerPrintBoundary": false,
+      "printableBoundary": false,
+      "safeZone": false
+    }
+  },
+  "background": {
+    "scale": 1.08,
+    "offset": {
+      "x": 12,
+      "y": -8
+    },
+    "imageDataUrl": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200' viewBox='0 0 1200 1200'%3E%3Crect width='1200' height='1200' fill='%231b2838'/%3E%3Ccircle cx='600' cy='600' r='430' fill='none' stroke='%2366c0f4' stroke-width='28'/%3E%3Ctext x='600' y='585' text-anchor='middle' font-family='Arial' font-size='96' font-weight='900' fill='white'%3EFIXTURE%3C/text%3E%3Ctext x='600' y='690' text-anchor='middle' font-family='Arial' font-size='48' fill='%23c7d5e0'%3EBACKGROUND%3C/text%3E%3C/svg%3E",
+    "imageSize": {
+      "width": 1200,
+      "height": 1200
+    },
+    "note": "Generated SVG placeholder background for save/load and export checks."
+  },
+  "discText": {
+    "settings": {
+      "title": false,
+      "discNumber": false,
+      "backupDate": false,
+      "appId": false,
+      "customNote": false,
+      "copyright": false
+    },
+    "values": {
+      "discNumber": "Disc 1",
+      "backupDate": "2026-05-26",
+      "appId": "",
+      "customNote": "",
+      "copyright": ""
+    }
+  }
+}
