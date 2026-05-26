@@ -10,9 +10,22 @@ import { drawSteamBrandBanner } from './drawSteamBanner'
 import { drawLogoAssets } from './drawLogoAssets'
 import { drawRatingBadge } from './drawRatingBadge'
 import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
-import { getDiscEditorLayerPolicy, type DiscEditorLayerId } from '../layerOrder'
+import {
+  DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
+  DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
+  type DiscEditorClippedExportLayerId,
+  type DiscEditorPostClipExportLayerId,
+} from '../layerOrder'
 
-type ExportLayerRenderer = Partial<Record<DiscEditorLayerId, () => void | Promise<void>>>
+type ClippedExportLayerRenderer = Record<
+  DiscEditorClippedExportLayerId,
+  () => void | Promise<void>
+>
+
+type PostClipExportLayerRenderer = Record<
+  DiscEditorPostClipExportLayerId,
+  () => void | Promise<void>
+>
 
 export async function exportDiscLabelPngBytes(params: {
   selectedDiscTemplate: DiscTemplate
@@ -75,7 +88,7 @@ export async function exportDiscLabelPngBytes(params: {
   context.arc(center, center, outerRadius, 0, Math.PI * 2)
   context.clip()
 
-  const exportLayerRenderers: ExportLayerRenderer = {
+  const clippedExportLayerRenderers: ClippedExportLayerRenderer = {
     'disc-base-fill': () => {
       context.fillStyle = '#e5e7eb'
       context.fillRect(0, 0, exportSize, exportSize)
@@ -107,21 +120,13 @@ export async function exportDiscLabelPngBytes(params: {
       ),
   }
 
-  for (const layer of getDiscEditorLayerPolicy('export')) {
-    if (
-      layer.id === 'export-outline' ||
-      layer.id === 'physical-center-hole-cutout' ||
-      layer.id === 'export-guides'
-    ) {
-      continue
-    }
-
-    await exportLayerRenderers[layer.id]?.()
+  for (const layerId of DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER) {
+    await clippedExportLayerRenderers[layerId]()
   }
 
   context.restore()
 
-  const postClipExportLayerRenderers: ExportLayerRenderer = {
+  const postClipExportLayerRenderers: PostClipExportLayerRenderer = {
     'export-outline': () => drawOuterDiscExportOutline(context, center, outerRadius, exportOutlineWidth),
     'physical-center-hole-cutout': () => {
       context.save()
@@ -144,8 +149,8 @@ export async function exportDiscLabelPngBytes(params: {
       ),
   }
 
-  for (const layer of getDiscEditorLayerPolicy('export')) {
-    await postClipExportLayerRenderers[layer.id]?.()
+  for (const layerId of DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER) {
+    await postClipExportLayerRenderers[layerId]()
   }
 
   const bytes = await canvasToPngBytes(canvas)
