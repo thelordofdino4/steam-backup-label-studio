@@ -28,7 +28,7 @@ export type DiscTextLayoutPreset = {
   }
 }
 
-export const DISC_TEXT_LAYOUT_PRESETS = [
+export const DISC_TEXT_LAYOUT_PRESETS: readonly DiscTextLayoutPreset[] = [
   {
     id: 'title-top',
     label: 'Title top',
@@ -77,7 +77,7 @@ export const DISC_TEXT_LAYOUT_PRESETS = [
     targetKeys: ['copyright'],
     layout: { x: 0, y: 8, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: 'bottom' },
   },
-] satisfies readonly DiscTextLayoutPreset[]
+]
 
 export function getDiscTextLayoutPresetsForKey(key: DiscTextKey) {
   return DISC_TEXT_LAYOUT_PRESETS.filter((preset) => preset.targetKeys.includes(key))
