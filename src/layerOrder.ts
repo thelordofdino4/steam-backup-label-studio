@@ -97,5 +97,7 @@ export function getDiscEditorLayerPolicy(scope?: DiscEditorLayerScope) {
     return DISC_EDITOR_LAYER_ORDER
   }
 
-  return DISC_EDITOR_LAYER_ORDER.filter((layer) => layer.scopes.includes(scope))
+  return DISC_EDITOR_LAYER_ORDER.filter((layer) =>
+    (layer.scopes as readonly DiscEditorLayerScope[]).includes(scope),
+  )
 }
