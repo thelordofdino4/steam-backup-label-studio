@@ -3,7 +3,6 @@ import {
   getCopyrightArcSide,
   getDiscTextContent,
   getReadableCurvedTextScale,
-  type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
@@ -11,6 +10,7 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../discText'
+import { layoutCurvedText, type CurvedTextLineLayout } from '../discText/curvedTextLayout'
 
 function wrapCanvasText(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const words = text.split(/\s+/).filter(Boolean)
@@ -55,22 +55,15 @@ function getCurvedTextNaturalWidth(context: CanvasRenderingContext2D, text: stri
   const glyphWidth = widths.reduce((sum, width) => sum + width, 0)
   return glyphWidth + Math.max(0, characters.length - 1) * baseCharacterSpacing
 }
-function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, centerX: number, centerY: number, radius: number, centerAngle: number, alignmentWindowAngle: number, isTopArc: boolean, align: DiscTextAlignment) {
+function drawCurvedTextLine(context: CanvasRenderingContext2D, lineLayout: CurvedTextLineLayout, centerX: number, centerY: number, isTopArc: boolean) {
+  const { text, radius } = lineLayout
   const characters = Array.from(text)
   const baseCharacterSpacing = Math.max(2.7, radius * 0.0036)
   const widths = characters.map((c) => context.measureText(c).width)
   const naturalWidth = getCurvedTextNaturalWidth(context, text, radius)
   if (naturalWidth <= 0 || radius <= 0) return
   const characterSpacing = baseCharacterSpacing
-  const totalTextAngle = naturalWidth / radius
-  let startAngle: number
-  if (isTopArc) {
-    if (align === 'left') startAngle = centerAngle - alignmentWindowAngle / 2
-    else if (align === 'right') startAngle = centerAngle + alignmentWindowAngle / 2 - totalTextAngle
-    else startAngle = centerAngle - totalTextAngle / 2
-  } else if (align === 'left') startAngle = centerAngle + alignmentWindowAngle / 2
-  else if (align === 'right') startAngle = centerAngle - alignmentWindowAngle / 2 + totalTextAngle
-  else startAngle = centerAngle + totalTextAngle / 2
+  const startAngle = (lineLayout.startAngleDegrees * Math.PI) / 180
   let currentOffset = 0
   characters.forEach((character, index) => {
     const characterCenterOffset = currentOffset + widths[index] / 2
@@ -131,14 +124,21 @@ function wrapTextForCurvedBlock(
   minimumDrawableRadius: number,
 ) {
   let lines = wrapTextByArcLength(context, text, outerLineRadius * arcAngle)
-  const alignmentWindowAngle = getSharedCurvedCanvasWindowAngle(
-    context,
-    lines,
-    outerLineRadius,
-    lineHeight,
-    arcAngle,
-    isTopArc,
-  )
+  const centeredLayout = layoutCurvedText({
+    side: isTopArc ? 'top' : 'bottom',
+    centerAngleDegrees: 0,
+    arcDegrees: (arcAngle * 180) / Math.PI,
+    align: 'center',
+    lines: lines.map((line, index) => ({
+      text: line,
+      measuredWidth: getCurvedTextNaturalWidth(
+        context,
+        line,
+        getCurvedCanvasLineRadius(isTopArc, outerLineRadius, lineHeight, lines.length, index),
+      ),
+      radius: getCurvedCanvasLineRadius(isTopArc, outerLineRadius, lineHeight, lines.length, index),
+    })),
+  })
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const minimumLineRadius = getMinimumVisibleCurvedCanvasLineRadius(
@@ -151,13 +151,13 @@ function wrapTextForCurvedBlock(
     const nextLines = wrapTextByArcLength(
       context,
       text,
-      minimumLineRadius * alignmentWindowAngle,
+      minimumLineRadius * ((centeredLayout.blockWindowDegrees * Math.PI) / 180),
     )
 
     if (nextLines.join('\n') === lines.join('\n')) {
       return {
         lines,
-        alignmentWindowAngle,
+        blockWindowDegrees: centeredLayout.blockWindowDegrees,
       }
     }
 
@@ -166,33 +166,8 @@ function wrapTextForCurvedBlock(
 
   return {
     lines,
-    alignmentWindowAngle,
+    blockWindowDegrees: centeredLayout.blockWindowDegrees,
   }
-}
-
-function getSharedCurvedCanvasWindowAngle(
-  context: CanvasRenderingContext2D,
-  lines: string[],
-  outerLineRadius: number,
-  lineHeight: number,
-  arcAngle: number,
-  isTopArc: boolean,
-) {
-  if (lines.length === 0) {
-    return arcAngle
-  }
-
-  const firstLineRadius = getCurvedCanvasLineRadius(
-    isTopArc,
-    outerLineRadius,
-    lineHeight,
-    lines.length,
-    0,
-  )
-  const firstLineAngle =
-    getCurvedTextNaturalWidth(context, lines[0], firstLineRadius) / firstLineRadius
-
-  return Math.min(arcAngle, firstLineAngle)
 }
 
 function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: number, safeZoneRadius: number, placement: SteamLogoPlacement, layout: DiscTextLayout, text: string, fontSize: number) {
@@ -202,7 +177,7 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
   const lineHeight = fontSize * 1.38
   const outerLineRadius = Math.max(1, safeZoneRadius - layout.y * exportSize * 0.0018)
   const minimumDrawableRadius = safeZoneRadius * 0.35
-  const { lines, alignmentWindowAngle } = wrapTextForCurvedBlock(
+  const { lines, blockWindowDegrees } = wrapTextForCurvedBlock(
     context,
     text,
     outerLineRadius,
@@ -211,16 +186,32 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
     isTopArc,
     minimumDrawableRadius,
   )
-  lines.forEach((line, index) => {
-    const lineRadius = getCurvedCanvasLineRadius(
-      isTopArc,
-      outerLineRadius,
-      lineHeight,
-      lines.length,
-      index,
-    )
-    if (lineRadius <= minimumDrawableRadius) return
-    drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, alignmentWindowAngle, isTopArc, layout.align)
+  const curvedLineLayout = layoutCurvedText({
+    side: isTopArc ? 'top' : 'bottom',
+    centerAngleDegrees: (centerAngle * 180) / Math.PI,
+    arcDegrees: layout.arcDegrees,
+    align: layout.align,
+    blockWindowDegrees,
+    lines: lines.map((line, index) => {
+      const radius = getCurvedCanvasLineRadius(
+        isTopArc,
+        outerLineRadius,
+        lineHeight,
+        lines.length,
+        index,
+      )
+
+      return {
+        text: line,
+        measuredWidth: getCurvedTextNaturalWidth(context, line, radius),
+        radius,
+      }
+    }),
+  })
+
+  curvedLineLayout.lines.forEach((lineLayout) => {
+    if (lineLayout.radius <= minimumDrawableRadius) return
+    drawCurvedTextLine(context, lineLayout, exportSize / 2, exportSize / 2, isTopArc)
   })
 }
 
