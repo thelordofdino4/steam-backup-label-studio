@@ -78,7 +78,6 @@ function getRatingValuesForSystem(system: GameRatingSystem) {
 function SteamBannerControls({
   steamLogoPlacement,
   steamBannerLockupImageUrl,
-  steamBannerLockupImageSize,
   steamBannerLockupLayout,
   steamBannerColors,
   handleSteamLogoPlacementChange,
@@ -92,7 +91,6 @@ function SteamBannerControls({
   BrandingPanelProps,
   | 'steamLogoPlacement'
   | 'steamBannerLockupImageUrl'
-  | 'steamBannerLockupImageSize'
   | 'steamBannerLockupLayout'
   | 'steamBannerColors'
   | 'handleSteamLogoPlacementChange'
@@ -149,9 +147,7 @@ function SteamBannerControls({
           <label className="secondary-button logo-upload-button" htmlFor="steam-banner-lockup-upload">Choose banner lockup image</label>
           <input id="steam-banner-lockup-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleSteamBannerLockupUpload} />
 
-          {steamBannerLockupImageUrl ? (
-            <div className="selected-lockup-card"><span>Custom banner lockup active{formatLogoSize(steamBannerLockupImageSize)}</span></div>
-          ) : (
+          {!steamBannerLockupImageUrl && (
             <p className="hint">Using the bundled default Steam banner lockup image. Upload a PNG to override it.</p>
           )}
 
