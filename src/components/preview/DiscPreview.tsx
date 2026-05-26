@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent, ReactNode, RefObject } from 'react'
+import { Fragment, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
 import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
@@ -238,9 +238,7 @@ export function DiscPreview({
         aria-label="Blank standard printable disc preview"
       >
         {previewLayers.map((layer) => (
-          <div className="disc-preview-layer" data-layer-id={layer.id} key={layer.id}>
-            {layer.node}
-          </div>
+          <Fragment key={layer.id}>{layer.node}</Fragment>
         ))}
       </div>
     </section>
