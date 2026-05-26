@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "0.1.0",
+  "title": "Legacy Minimal Fixture",
+  "savedAt": "2026-05-26T00:00:00.000Z",
+  "game": {
+    "manualTitle": "Legacy Minimal Fixture",
+    "selectedSteamGame": null
+  },
+  "template": {
+    "type": "disc",
+    "variant": "standardPrintableDisc",
+    "customDimensions": null
+  },
+  "steamBackupLogo": {
+    "placement": "top"
+  },
+  "background": {
+    "scale": 1,
+    "offset": {
+      "x": 0,
+      "y": 0
+    },
+    "imageDataUrl": null,
+    "note": "Intentionally omits newer optional sections to exercise normalization defaults."
+  }
+}
