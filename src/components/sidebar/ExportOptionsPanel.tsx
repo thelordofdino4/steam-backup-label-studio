@@ -9,12 +9,19 @@ export function ExportOptionsPanel({
   exportGuides,
   handleExportGuideToggle,
 }: ExportOptionsPanelProps) {
+  const enabledGuideCount = Object.values(exportGuides).filter(Boolean).length
+
   return (
     <details className="panel collapsible-panel" open>
       <summary className="panel-summary">Export Options</summary>
       <div className="panel-content">
         <p className="hint">
-          Clean export is the default. Check only the guide marks you want included.
+          Clean export is the default. Guide marks are optional print/checking aids and will be drawn into the exported PNG when enabled.
+        </p>
+        <p className="hint">
+          {enabledGuideCount > 0
+            ? `${enabledGuideCount} guide ${enabledGuideCount === 1 ? 'mark is' : 'marks are'} enabled for the next export.`
+            : 'No guide marks are enabled, so the next PNG export will contain only the disc artwork.'}
         </p>
         <label className="checkbox-row">
           <input
