@@ -11,7 +11,7 @@ import { LogoAssetLayer } from './LogoAssetLayer'
 import { RatingBadgeLayer } from './RatingBadgeLayer'
 import { MediaMarkLayer, PlatformMarksLayer } from './MediaMarkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
-import { compareDiscEditorLayerIds, type DiscEditorLayerId } from '../../layerOrder'
+import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -65,10 +65,7 @@ export type DiscPreviewProps = {
   physicalCenterHolePercent: number
 }
 
-type PreviewLayer = {
-  id: DiscEditorLayerId
-  node: ReactNode
-}
+type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
 
 export function DiscPreview({
   discPreviewRef,
@@ -115,113 +112,87 @@ export function DiscPreview({
   safeInsetPercent,
   physicalCenterHolePercent,
 }: DiscPreviewProps) {
-  const previewLayers: PreviewLayer[] = [
-    {
-      id: 'background-artwork',
-      node: (
-        <BackgroundLayer
-          backgroundImageUrl={backgroundImageUrl}
-          backgroundPreviewSize={backgroundPreviewSize}
-          backgroundOffset={backgroundOffset}
-          backgroundScale={backgroundScale}
-          handleBackgroundPointerDown={handleBackgroundPointerDown}
-          handleBackgroundPointerMove={handleBackgroundPointerMove}
-          handleBackgroundPointerUp={handleBackgroundPointerUp}
-        />
-      ),
-    },
-    {
-      id: 'steam-banner',
-      node: (
-        <SteamBannerPreview
-          steamLogoPlacement={steamLogoPlacement}
-          steamBannerStyle={steamBannerStyle}
-          steamBannerLockupImageUrl={steamBannerLockupImageUrl}
-          steamBannerLockupLayout={steamBannerLockupLayout}
-        />
-      ),
-    },
-    {
-      id: 'logo-assets',
-      node: (
-        <LogoAssetLayer
-          developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
-          developerLogoSize={projectLogoAssets.developerLogoSize}
-          developerLogoLayout={projectLogoAssets.developerLogoLayout}
-          publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
-          publisherLogoSize={projectLogoAssets.publisherLogoSize}
-          publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
-          handleLogoAssetPointerDown={handleLogoAssetPointerDown}
-          handleLogoAssetPointerMove={handleLogoAssetPointerMove}
-          handleLogoAssetPointerUp={handleLogoAssetPointerUp}
-        />
-      ),
-    },
-    {
-      id: 'rating-badge',
-      node: (
-        <RatingBadgeLayer
-          projectMetadata={projectMetadata}
-          projectRatingBadge={projectRatingBadge}
-          handleRatingBadgePointerDown={handleRatingBadgePointerDown}
-          handleRatingBadgePointerMove={handleRatingBadgePointerMove}
-          handleRatingBadgePointerUp={handleRatingBadgePointerUp}
-        />
-      ),
-    },
-    {
-      id: 'media-mark',
-      node: (
-        <MediaMarkLayer
-          projectMediaMark={projectMediaMark}
-          handleMediaMarkPointerDown={handleMediaMarkPointerDown}
-          handleMediaMarkPointerMove={handleMediaMarkPointerMove}
-          handleMediaMarkPointerUp={handleMediaMarkPointerUp}
-        />
-      ),
-    },
-    {
-      id: 'platform-marks',
-      node: (
-        <PlatformMarksLayer
-          projectPlatformMarks={projectPlatformMarks}
-          handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
-          handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
-          handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
-        />
-      ),
-    },
-    {
-      id: 'disc-text',
-      node: (
-        <DiscTextLayer
-          discTextSettings={discTextSettings}
-          discTextValues={discTextValues}
-          manualGameTitle={manualGameTitle}
-          discTextLayout={discTextLayout}
-          steamLogoPlacement={steamLogoPlacement}
-          selectedDiscTemplate={selectedDiscTemplate}
-          getDiscTextPreviewTransform={getDiscTextPreviewTransform}
-          handleDiscTextPointerDown={handleDiscTextPointerDown}
-          handleDiscTextPointerMove={handleDiscTextPointerMove}
-          handleDiscTextPointerUp={handleDiscTextPointerUp}
-        />
-      ),
-    },
-    {
-      id: 'editor-guide-overlay',
-      node: (
-        <DiscGuideOverlay
-          innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
-          printableInsetPercent={printableInsetPercent}
-          safeInsetPercent={safeInsetPercent}
-          physicalCenterHolePercent={physicalCenterHolePercent}
-        />
-      ),
-    },
-  ].sort((firstLayer, secondLayer) =>
-    compareDiscEditorLayerIds(firstLayer.id, secondLayer.id),
-  )
+  const previewLayers: PreviewLayerMap = {
+    'background-artwork': (
+      <BackgroundLayer
+        backgroundImageUrl={backgroundImageUrl}
+        backgroundPreviewSize={backgroundPreviewSize}
+        backgroundOffset={backgroundOffset}
+        backgroundScale={backgroundScale}
+        handleBackgroundPointerDown={handleBackgroundPointerDown}
+        handleBackgroundPointerMove={handleBackgroundPointerMove}
+        handleBackgroundPointerUp={handleBackgroundPointerUp}
+      />
+    ),
+    'steam-banner': (
+      <SteamBannerPreview
+        steamLogoPlacement={steamLogoPlacement}
+        steamBannerStyle={steamBannerStyle}
+        steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        steamBannerLockupLayout={steamBannerLockupLayout}
+      />
+    ),
+    'logo-assets': (
+      <LogoAssetLayer
+        developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
+        developerLogoSize={projectLogoAssets.developerLogoSize}
+        developerLogoLayout={projectLogoAssets.developerLogoLayout}
+        publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
+        publisherLogoSize={projectLogoAssets.publisherLogoSize}
+        publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
+        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
+      />
+    ),
+    'rating-badge': (
+      <RatingBadgeLayer
+        projectMetadata={projectMetadata}
+        projectRatingBadge={projectRatingBadge}
+        handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+        handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+        handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+      />
+    ),
+    'media-mark': (
+      <MediaMarkLayer
+        projectMediaMark={projectMediaMark}
+        handleMediaMarkPointerDown={handleMediaMarkPointerDown}
+        handleMediaMarkPointerMove={handleMediaMarkPointerMove}
+        handleMediaMarkPointerUp={handleMediaMarkPointerUp}
+      />
+    ),
+    'platform-marks': (
+      <PlatformMarksLayer
+        projectPlatformMarks={projectPlatformMarks}
+        handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
+        handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
+        handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
+      />
+    ),
+    'disc-text': (
+      <DiscTextLayer
+        discTextSettings={discTextSettings}
+        discTextValues={discTextValues}
+        manualGameTitle={manualGameTitle}
+        discTextLayout={discTextLayout}
+        steamLogoPlacement={steamLogoPlacement}
+        selectedDiscTemplate={selectedDiscTemplate}
+        getDiscTextPreviewTransform={getDiscTextPreviewTransform}
+        handleDiscTextPointerDown={handleDiscTextPointerDown}
+        handleDiscTextPointerMove={handleDiscTextPointerMove}
+        handleDiscTextPointerUp={handleDiscTextPointerUp}
+      />
+    ),
+    'editor-guide-overlay': (
+      <DiscGuideOverlay
+        innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
+        printableInsetPercent={printableInsetPercent}
+        safeInsetPercent={safeInsetPercent}
+        physicalCenterHolePercent={physicalCenterHolePercent}
+      />
+    ),
+  }
 
   return (
     <section className="preview-area" aria-labelledby="disc-preview-title">
@@ -237,8 +208,8 @@ export function DiscPreview({
         className="disc-preview"
         aria-label="Blank standard printable disc preview"
       >
-        {previewLayers.map((layer) => (
-          <Fragment key={layer.id}>{layer.node}</Fragment>
+        {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+          <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
         ))}
       </div>
     </section>
