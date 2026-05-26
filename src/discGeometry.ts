@@ -34,9 +34,13 @@ const STRAIGHT_DISC_TEXT_METRICS: Record<
   { fontSizePercent: number; maxLines: number }
 > = {
   title: { fontSizePercent: 3.6, maxLines: 2 },
+  subtitle: { fontSizePercent: 2.2, maxLines: 1 },
   discNumber: { fontSizePercent: 1.9, maxLines: 1 },
   backupDate: { fontSizePercent: 1.6, maxLines: 1 },
   appId: { fontSizePercent: 1.5, maxLines: 1 },
+  developer: { fontSizePercent: 1.45, maxLines: 1 },
+  publisher: { fontSizePercent: 1.45, maxLines: 1 },
+  installNotes: { fontSizePercent: 1.5, maxLines: 2 },
   customNote: { fontSizePercent: 1.5, maxLines: 2 },
   copyright: { fontSizePercent: 1.1, maxLines: 3 },
 }
