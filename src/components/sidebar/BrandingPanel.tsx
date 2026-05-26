@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets, GameRatingSystem, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
@@ -116,47 +116,12 @@ function LogoAssetControls({
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
 }) {
   const uploadId = `${logoKey}-logo-upload`
+  const hasLogoImage = Boolean(imageDataUrl)
+  const showDependentControls = layout.enabled && hasLogoImage
 
   return (
     <div className="logo-asset-card">
-      <span className="field-label">
-        {label} logo
-      </span>
-      <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
-        Choose {label.toLowerCase()} logo
-      </label>
-      <input
-        id={uploadId}
-        className="logo-file-input"
-        type="file"
-        accept="image/*"
-        onChange={(event) => handleLogoAssetUpload(logoKey, event)}
-      />
-
-      {imageDataUrl ? (
-        <div className="selected-lockup-card logo-asset-status-card">
-          <img
-            className="logo-asset-preview"
-            src={imageDataUrl}
-            alt=""
-            draggable={false}
-          />
-          <span>
-            {label} logo active{formatLogoSize(imageSize)}
-          </span>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() => handleClearLogoAsset(logoKey)}
-          >
-            Clear logo
-          </button>
-        </div>
-      ) : (
-        <p className="hint">Upload a transparent PNG or logo image for this slot.</p>
-      )}
-
-      <label className="field-label spacing-top">
+      <label className="field-label">
         <input
           type="checkbox"
           checked={layout.enabled}
@@ -168,91 +133,125 @@ function LogoAssetControls({
         Show {label.toLowerCase()} logo
       </label>
 
-      <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>
-        Align logo
-      </label>
-      <select
-        id={`${logoKey}-logo-alignment-preset`}
-        defaultValue=""
-        disabled={!imageDataUrl}
-        onChange={(event) => {
-          const preset = LOGO_ALIGNMENT_PRESETS.find(
-            (candidate) => candidate.label === event.target.value,
-          )
+      {!imageDataUrl && (
+        <>
+          <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
+            Choose {label.toLowerCase()} logo
+          </label>
+          <input
+            id={uploadId}
+            className="logo-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => handleLogoAssetUpload(logoKey, event)}
+          />
+          <p className="hint">Upload a transparent PNG or logo image before showing this logo.</p>
+        </>
+      )}
 
-          if (!preset) {
-            return
-          }
+      {!showDependentControls ? null : (
+        <>
+          <div className="selected-lockup-card logo-asset-status-card">
+            <img
+              className="logo-asset-preview"
+              src={imageDataUrl ?? undefined}
+              alt=""
+              draggable={false}
+            />
+            <span>
+              {label} logo active{formatLogoSize(imageSize)}
+            </span>
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => handleClearLogoAsset(logoKey)}
+            >
+              Clear logo
+            </button>
+          </div>
 
-          handleLogoAssetLayoutChange(logoKey, 'x', preset.x)
-          handleLogoAssetLayoutChange(logoKey, 'y', preset.y)
-          event.currentTarget.value = ''
-        }}
-      >
-        <option value="">Choose preset...</option>
-        {LOGO_ALIGNMENT_PRESETS.map((preset) => (
-          <option key={preset.label} value={preset.label}>
-            {preset.label}
-          </option>
-        ))}
-      </select>
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>
+            Align logo
+          </label>
+          <select
+            id={`${logoKey}-logo-alignment-preset`}
+            defaultValue=""
+            onChange={(event) => {
+              const preset = LOGO_ALIGNMENT_PRESETS.find(
+                (candidate) => candidate.label === event.target.value,
+              )
 
-      <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-scale`}>
-        Scale
-      </label>
-      <input
-        id={`${logoKey}-logo-scale`}
-        type="range"
-        min="0.25"
-        max="2"
-        step="0.01"
-        value={layout.scale}
-        disabled={!imageDataUrl}
-        onChange={(event) =>
-          handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))
-        }
-      />
+              if (!preset) {
+                return
+              }
 
-      <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>
-        X position
-      </label>
-      <input
-        id={`${logoKey}-logo-x`}
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={layout.x}
-        disabled={!imageDataUrl}
-        onChange={(event) =>
-          handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))
-        }
-      />
+              handleLogoAssetLayoutChange(logoKey, 'x', preset.x)
+              handleLogoAssetLayoutChange(logoKey, 'y', preset.y)
+              event.currentTarget.value = ''
+            }}
+          >
+            <option value="">Choose preset...</option>
+            {LOGO_ALIGNMENT_PRESETS.map((preset) => (
+              <option key={preset.label} value={preset.label}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
 
-      <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>
-        Y position
-      </label>
-      <input
-        id={`${logoKey}-logo-y`}
-        type="range"
-        min="0"
-        max="100"
-        step="0.1"
-        value={layout.y}
-        disabled={!imageDataUrl}
-        onChange={(event) =>
-          handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))
-        }
-      />
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-scale`}>
+            Scale
+          </label>
+          <input
+            id={`${logoKey}-logo-scale`}
+            type="range"
+            min="0.25"
+            max="2"
+            step="0.01"
+            value={layout.scale}
+            onChange={(event) =>
+              handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))
+            }
+          />
 
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={!imageDataUrl}
-        onClick={() => handleResetLogoAssetLayout(logoKey)}
-      >
-        Reset logo layout
-      </button>
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>
+            X position
+          </label>
+          <input
+            id={`${logoKey}-logo-x`}
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            value={layout.x}
+            onChange={(event) =>
+              handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))
+            }
+          />
+
+          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>
+            Y position
+          </label>
+          <input
+            id={`${logoKey}-logo-y`}
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            value={layout.y}
+            onChange={(event) =>
+              handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))
+            }
+          />
+
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => handleResetLogoAssetLayout(logoKey)}
+          >
+            Reset logo layout
+          </button>
+        </>
+      )}
     </div>
   )
 }
@@ -298,10 +297,30 @@ function RatingBadgeControls({
     projectMetadata.ratingSystem === 'none'
       ? 'No rating selected'
       : `${projectMetadata.ratingSystem}${projectMetadata.ratingValue ? ` ${projectMetadata.ratingValue}` : ''}`
+  const isBadgeEnabled = projectRatingBadge.layout.enabled
+  const handleRatingBadgeEnabledChange = (enabled: boolean) => {
+    if (enabled && projectMetadata.ratingSystem === 'none') {
+      handleProjectMetadataChange('ratingSystem', 'custom')
+      handleProjectMetadataChange('ratingValue', 'Custom')
+    }
+
+    handleRatingBadgeLayoutChange('enabled', enabled)
+  }
 
   return (
     <div className="logo-asset-card">
-      <label className="field-label" htmlFor="branding-rating-system">
+      <label className="field-label">
+        <input
+          type="checkbox"
+          checked={isBadgeEnabled}
+          onChange={(event) => handleRatingBadgeEnabledChange(event.target.checked)}
+        />
+        Show rating badge
+      </label>
+
+      {!isBadgeEnabled ? null : (
+        <>
+      <label className="field-label spacing-top" htmlFor="branding-rating-system">
         Rating system
       </label>
       <select
@@ -374,17 +393,6 @@ function RatingBadgeControls({
       <p className="hint">
         Current metadata rating: {ratingLabel}. Rating values are manual for now.
       </p>
-
-      <label className="field-label spacing-top">
-        <input
-          type="checkbox"
-          checked={projectRatingBadge.layout.enabled}
-          onChange={(event) =>
-            handleRatingBadgeLayoutChange('enabled', event.target.checked)
-          }
-        />
-        Show rating badge
-      </label>
 
       <label className="field-label spacing-top" htmlFor="rating-badge-source">
         Badge source
@@ -490,6 +498,8 @@ function RatingBadgeControls({
       >
         Reset rating badge layout
       </button>
+        </>
+      )}
     </div>
   )
 }
@@ -515,13 +525,14 @@ function MediaMarkControls({
   handleResetMediaMarkLayout: () => void
 }) {
   const currentMarkLabel = getMediaMarkLabel(projectMediaMark.value)
+  const isMediaMarkEnabled = projectMediaMark.layout.enabled
 
   return (
     <div className="logo-asset-card">
-      <label className="field-label spacing-top">
+      <label className="field-label">
         <input
           type="checkbox"
-          checked={projectMediaMark.layout.enabled}
+          checked={isMediaMarkEnabled}
           onChange={(event) =>
             handleMediaMarkLayoutChange('enabled', event.target.checked)
           }
@@ -529,6 +540,8 @@ function MediaMarkControls({
         Show media format mark
       </label>
 
+      {!isMediaMarkEnabled ? null : (
+        <>
       <label className="field-label spacing-top" htmlFor="media-mark-value">
         Format
       </label>
@@ -652,6 +665,8 @@ function MediaMarkControls({
       >
         Reset media mark layout
       </button>
+        </>
+      )}
     </div>
   )
 }
@@ -680,13 +695,54 @@ function PlatformMarkControls({
   handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
   handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
 }) {
+  const [rememberedPlatformValues, setRememberedPlatformValues] = useState<PlatformMarkValue[]>([])
+  const enabledPlatformValues = projectPlatformMarks.values.filter(
+    (value) => projectPlatformMarks.assets[value]?.layout.enabled,
+  )
+  const isPlatformMarksEnabled = enabledPlatformValues.length > 0
   const currentPlatformLabel =
     projectPlatformMarks.values.length > 0
       ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ')
       : 'None selected'
+  const handlePlatformMarksEnabledChange = (enabled: boolean) => {
+    if (enabled) {
+      const valuesToRestore: PlatformMarkValue[] =
+        projectPlatformMarks.values.length > 0
+          ? projectPlatformMarks.values
+          : rememberedPlatformValues.length > 0
+            ? rememberedPlatformValues
+            : ['pc']
+
+      valuesToRestore.forEach((value) => {
+        if (projectPlatformMarks.values.includes(value)) {
+          handlePlatformMarkLayoutChange(value, 'enabled', true)
+          return
+        }
+
+        handlePlatformMarkToggle(value, true)
+      })
+      return
+    }
+
+    setRememberedPlatformValues(projectPlatformMarks.values)
+    projectPlatformMarks.values.forEach((value) =>
+      handlePlatformMarkLayoutChange(value, 'enabled', false),
+    )
+  }
 
   return (
     <div>
+      <label className="field-label">
+        <input
+          type="checkbox"
+          checked={isPlatformMarksEnabled}
+          onChange={(event) => handlePlatformMarksEnabledChange(event.target.checked)}
+        />
+        Show platform marks
+      </label>
+
+      {!isPlatformMarksEnabled ? null : (
+        <>
       <div className="disc-mark-checkbox-list spacing-top">
         {PLATFORM_MARK_OPTIONS.map((option) => (
           <label key={option.value} className="field-label">
@@ -824,6 +880,8 @@ function PlatformMarkControls({
           </div>
         )
       })}
+        </>
+      )}
     </div>
   )
 }
