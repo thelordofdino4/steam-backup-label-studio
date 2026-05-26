@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent, RefObject } from 'react'
+import { Fragment, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
 import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
@@ -11,6 +11,7 @@ import { LogoAssetLayer } from './LogoAssetLayer'
 import { RatingBadgeLayer } from './RatingBadgeLayer'
 import { MediaMarkLayer, PlatformMarksLayer } from './MediaMarkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
+import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -64,6 +65,8 @@ export type DiscPreviewProps = {
   physicalCenterHolePercent: number
 }
 
+type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
+
 export function DiscPreview({
   discPreviewRef,
   statusToasts,
@@ -109,6 +112,88 @@ export function DiscPreview({
   safeInsetPercent,
   physicalCenterHolePercent,
 }: DiscPreviewProps) {
+  const previewLayers: PreviewLayerMap = {
+    'background-artwork': (
+      <BackgroundLayer
+        backgroundImageUrl={backgroundImageUrl}
+        backgroundPreviewSize={backgroundPreviewSize}
+        backgroundOffset={backgroundOffset}
+        backgroundScale={backgroundScale}
+        handleBackgroundPointerDown={handleBackgroundPointerDown}
+        handleBackgroundPointerMove={handleBackgroundPointerMove}
+        handleBackgroundPointerUp={handleBackgroundPointerUp}
+      />
+    ),
+    'steam-banner': (
+      <SteamBannerPreview
+        steamLogoPlacement={steamLogoPlacement}
+        steamBannerStyle={steamBannerStyle}
+        steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        steamBannerLockupLayout={steamBannerLockupLayout}
+      />
+    ),
+    'logo-assets': (
+      <LogoAssetLayer
+        developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
+        developerLogoSize={projectLogoAssets.developerLogoSize}
+        developerLogoLayout={projectLogoAssets.developerLogoLayout}
+        publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
+        publisherLogoSize={projectLogoAssets.publisherLogoSize}
+        publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
+        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
+      />
+    ),
+    'rating-badge': (
+      <RatingBadgeLayer
+        projectMetadata={projectMetadata}
+        projectRatingBadge={projectRatingBadge}
+        handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+        handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+        handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+      />
+    ),
+    'media-mark': (
+      <MediaMarkLayer
+        projectMediaMark={projectMediaMark}
+        handleMediaMarkPointerDown={handleMediaMarkPointerDown}
+        handleMediaMarkPointerMove={handleMediaMarkPointerMove}
+        handleMediaMarkPointerUp={handleMediaMarkPointerUp}
+      />
+    ),
+    'platform-marks': (
+      <PlatformMarksLayer
+        projectPlatformMarks={projectPlatformMarks}
+        handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
+        handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
+        handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
+      />
+    ),
+    'disc-text': (
+      <DiscTextLayer
+        discTextSettings={discTextSettings}
+        discTextValues={discTextValues}
+        manualGameTitle={manualGameTitle}
+        discTextLayout={discTextLayout}
+        steamLogoPlacement={steamLogoPlacement}
+        selectedDiscTemplate={selectedDiscTemplate}
+        getDiscTextPreviewTransform={getDiscTextPreviewTransform}
+        handleDiscTextPointerDown={handleDiscTextPointerDown}
+        handleDiscTextPointerMove={handleDiscTextPointerMove}
+        handleDiscTextPointerUp={handleDiscTextPointerUp}
+      />
+    ),
+    'editor-guide-overlay': (
+      <DiscGuideOverlay
+        innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
+        printableInsetPercent={printableInsetPercent}
+        safeInsetPercent={safeInsetPercent}
+        physicalCenterHolePercent={physicalCenterHolePercent}
+      />
+    ),
+  }
+
   return (
     <section className="preview-area" aria-labelledby="disc-preview-title">
       <div className="preview-pane-label">
@@ -123,76 +208,9 @@ export function DiscPreview({
         className="disc-preview"
         aria-label="Blank standard printable disc preview"
       >
-        <BackgroundLayer
-          backgroundImageUrl={backgroundImageUrl}
-          backgroundPreviewSize={backgroundPreviewSize}
-          backgroundOffset={backgroundOffset}
-          backgroundScale={backgroundScale}
-          handleBackgroundPointerDown={handleBackgroundPointerDown}
-          handleBackgroundPointerMove={handleBackgroundPointerMove}
-          handleBackgroundPointerUp={handleBackgroundPointerUp}
-        />
-
-        <SteamBannerPreview
-          steamLogoPlacement={steamLogoPlacement}
-          steamBannerStyle={steamBannerStyle}
-          steamBannerLockupImageUrl={steamBannerLockupImageUrl}
-          steamBannerLockupLayout={steamBannerLockupLayout}
-        />
-
-        <LogoAssetLayer
-          developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
-          developerLogoSize={projectLogoAssets.developerLogoSize}
-          developerLogoLayout={projectLogoAssets.developerLogoLayout}
-          publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
-          publisherLogoSize={projectLogoAssets.publisherLogoSize}
-          publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
-          handleLogoAssetPointerDown={handleLogoAssetPointerDown}
-          handleLogoAssetPointerMove={handleLogoAssetPointerMove}
-          handleLogoAssetPointerUp={handleLogoAssetPointerUp}
-        />
-
-        <RatingBadgeLayer
-          projectMetadata={projectMetadata}
-          projectRatingBadge={projectRatingBadge}
-          handleRatingBadgePointerDown={handleRatingBadgePointerDown}
-          handleRatingBadgePointerMove={handleRatingBadgePointerMove}
-          handleRatingBadgePointerUp={handleRatingBadgePointerUp}
-        />
-
-        <MediaMarkLayer
-          projectMediaMark={projectMediaMark}
-          handleMediaMarkPointerDown={handleMediaMarkPointerDown}
-          handleMediaMarkPointerMove={handleMediaMarkPointerMove}
-          handleMediaMarkPointerUp={handleMediaMarkPointerUp}
-        />
-
-        <PlatformMarksLayer
-          projectPlatformMarks={projectPlatformMarks}
-          handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
-          handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
-          handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
-        />
-
-        <DiscTextLayer
-          discTextSettings={discTextSettings}
-          discTextValues={discTextValues}
-          manualGameTitle={manualGameTitle}
-          discTextLayout={discTextLayout}
-          steamLogoPlacement={steamLogoPlacement}
-          selectedDiscTemplate={selectedDiscTemplate}
-          getDiscTextPreviewTransform={getDiscTextPreviewTransform}
-          handleDiscTextPointerDown={handleDiscTextPointerDown}
-          handleDiscTextPointerMove={handleDiscTextPointerMove}
-          handleDiscTextPointerUp={handleDiscTextPointerUp}
-        />
-
-        <DiscGuideOverlay
-          innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
-          printableInsetPercent={printableInsetPercent}
-          safeInsetPercent={safeInsetPercent}
-          physicalCenterHolePercent={physicalCenterHolePercent}
-        />
+        {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+          <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+        ))}
       </div>
     </section>
   )
