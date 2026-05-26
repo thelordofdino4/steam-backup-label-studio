@@ -37,6 +37,8 @@ The core disc-label workflow is working:
 
 The app is not close to full product completion yet. The current progress is focused on one of the planned interfaces: the disc-label editor.
 
+The next major milestone is the **disc artwork editor alone** reaching alpha quality. Per issue #69, that means a normal user can create, edit, save, reload, and export a print-ready disc label without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-label work. This does not mean Steam Backup Label Studio as a whole is alpha.
+
 Future planned interfaces still need to become functional:
 
 - Jewel case insert editor.
@@ -44,6 +46,32 @@ Future planned interfaces still need to become functional:
 - Blu-ray case cover editor.
 
 Much of the current work should become reusable foundation for those interfaces, but shared foundation is not the same as finished template editors.
+
+Guided Start, case editors, the future `.sbls` package/container format, direct printer support, official asset packs, automatic rating lookup, visual regression automation, and broad App.tsx/CSS/Rust refactors are not disc-editor alpha blockers unless a specific issue shows they are needed for one of the finish-line items.
+
+## Disc Editor Alpha Boundary
+
+The disc editor is not yet alpha-complete. It still needs to support the visual structures that common real-world game discs use:
+
+- Dedicated title/logo art, not only rendered title text.
+- Age rating mark.
+- Developer logo.
+- Publisher logo.
+- Additional company, studio, distributor, middleware, sound-system, platform, store, network, and media-format marks.
+- Region/video-system style markers such as generic NTSC/PAL-style badges where appropriate.
+- Optional quote or short callout text.
+- Copyright/legal text, straight or curved around the edge.
+- Text layouts that can account for nearby title art, logos, badges, and marks.
+
+The app should not bundle official trademarked assets unless licensing is clearly safe. Built-in user-facing generic marks, badges, logos, toast icons, and demo visuals should come from real checked-in asset files, likely under `src/assets/` or a dedicated asset folder. Generated CSS/canvas placeholder boxes are acceptable during indev implementation, but they block disc-editor alpha if they remain the final user-facing representation.
+
+The current editor systems are a launchpad, not rubble. Steam/manual metadata import and editing, background artwork import/placement/scaling, disc templates and geometry, safe-zone guides, Steam banner controls, developer/publisher logos, rating badges, media/platform mark work, disc text controls, New Project, save/load, export, preview, sidebar panels, and the toast notification foundation should be preserved and evolved through careful migrations.
+
+Text-boundary behavior is a real completion blocker. Text must always respect the disc safe-zone boundary, even if that requires clamping, wrapping, adaptive widths, warnings, or shaped text boxes. Respecting nearby logos/images/marks should be user-controllable so users can intentionally overlay art elements, but ordinary legal/copyright and metadata text should not blindly collide with major enabled visuals.
+
+Toast notifications are part of alpha readiness. The current toast foundation should remain, but wording needs a user-facing review, temporary symbols/placeholders should be replaced with real icons or a consistent final visual system, and placement/stacking/status behavior should not be casually broken.
+
+Current project files are plain JSON, commonly named like `.sbls.json`. The future `.sbls` package/container format is not implemented yet and should not block disc-editor alpha by default.
 
 ## Refactor Status
 
@@ -107,48 +135,62 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 
 ## Active / Open Work
 
-- Add curved copyright text alignment modes without regressing stable centered curved text.
-- Add adjustable straight text box widths.
+- Add dedicated title/logo art support.
+- Add general additional artwork/logo elements and multiple logo/mark support beyond fixed developer/publisher slots.
+- Replace generated user-facing placeholders with real file-backed generic assets.
+- Add text behavior that can optionally respect visual element boundaries while always enforcing safe-zone compliance.
+- Polish toast wording and replace temporary toast symbols/icons.
+- Clarify metadata-to-rendered-text behavior.
+- Add curved copyright text alignment modes only if they do not regress stable centered curved text; otherwise formally keep centered-only curved text as the alpha-supported behavior.
+- Add adjustable straight text box widths and layout presets if placement remains too fiddly.
 - Constrain movable visual elements to safe-zone geometry.
-- Expand export-time summary/preflight behavior for new logo/rating/layout risks.
-- Decide longer-term project package and embedded asset strategy.
+- Expand export-time summary/preflight behavior for new logo/rating/mark/text/layout risks.
 - Track asset provenance and replacement behavior for imported and uploaded visual assets.
 - Document/enforce preview/export layer ordering.
-- Add project fixtures and a preview/export comparison workflow for regression testing.
 - Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
 
 ## Deferred Alpha Cleanup
 
-- Replace temporary toast text/symbol icons with polished action icons.
 - Remove duplicate hidden UI markup created during conservative pre-alpha changes.
 - Review panel indentation and structure.
 - Clean up duplicate CSS overrides once component boundaries settle.
+- Add project fixtures and preview/export comparison workflow for regression testing when the alpha element model is stable enough.
 - Continue post-refactor cleanup tracked in issues #44-#49.
 
 ## Current Known Limitations
 
 - Only the disc-label editor is functional.
+- The app is pre-alpha overall, and the disc editor is not yet alpha-complete.
 - Case templates are not implemented yet.
 - Full layer management is not implemented yet.
+- Dedicated title/logo art and arbitrary additional visual/logo elements are not implemented yet.
+- Built-in user-facing placeholder visuals are not all file-backed generic assets yet.
 - Project metadata fields are editable, but asset provenance and schema validation/migration remain limited.
+- Metadata-to-rendered-text behavior is not fully defined yet.
 - Curved copyright text is currently stable only in centered mode; left/right curved alignment is tracked separately.
 - Straight text boxes have stable fixed widths, but user-adjustable box widths are not implemented yet.
+- Text does not yet understand or warn about occupied regions from logos, badges, title art, marks, and other major visual elements.
 - Movable logos and rating badges can still be positioned without safe-zone clamping.
 - Some duplicate hidden markup remains intentionally deferred until alpha cleanup.
-- The app has not yet been packaged into an alpha release.
+- Project files are currently plain JSON, often named like `.sbls.json`; the future `.sbls` package/container format is not implemented.
+- The app has not yet been packaged into an alpha release, and a future package release should clearly state that only the disc editor is the first alpha surface when ready.
 
 ## Next Recommended Work Order
 
-1. Constrain movable visual elements to safe-zone geometry.
-2. Expand export summary/preflight warnings for logos, rating badges, layout, guide marks, backgrounds, and custom dimensions.
-3. Decide project package / embedded asset strategy and asset provenance behavior.
-4. Document and enforce disc editor layer ordering across preview and PNG export.
-5. Add project fixtures and a visual regression/export comparison workflow.
-6. Add curved copyright alignment modes or explicitly keep centered curved text as the pre-alpha baseline.
-7. Add adjustable straight text box widths.
-8. Improve artwork picker presentation.
-9. Continue post-refactor cleanup from issues #44-#49 where it supports feature work.
-10. Begin template-system abstraction for future case editors.
-11. Prepare known issues and package the first alpha build when the disc-label path is stable enough.
+1. Use issue #69 as the finish-line definition for disc-editor alpha.
+2. Clarify metadata-to-rendered-text behavior (#68).
+3. Document and enforce disc editor layer ordering across preview and PNG export (#60).
+4. Expand export summary/preflight warnings for logos, marks, text collisions, guide marks, backgrounds, custom dimensions, and missing assets (#63).
+5. Explain missing/disabled visual dependencies locally near controls (#66).
+6. Add dedicated title/logo art support.
+7. Add general additional artwork/logo elements and multiple logo/mark support beyond fixed developer/publisher slots.
+8. Replace generated user-facing placeholders with real file-backed generic assets.
+9. Add text behavior that can avoid or respect visual element boundaries, with safe-zone compliance always enforced.
+10. Polish toast wording and replace temporary toast symbols/icons (#49 / #21).
+11. Add layout presets if manual placement remains too fiddly (#61).
+12. Decide curved copyright alignment: implement safely or formally keep centered-only curved text (#33).
+13. Improve artwork picker presentation.
+14. Continue post-refactor cleanup from issues #44-#49 only where it supports feature work or alpha blockers.
+15. Prepare known issues and package the first disc-editor alpha build when the disc-label path is stable enough.
 
 See `MILESTONES.md` for the broader milestone and feature backlog.

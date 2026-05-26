@@ -10,6 +10,10 @@ The original danger was that `App.tsx` had become the owner of too many unrelate
 
 The current `App.tsx` is still a large orchestration/state file, but the emergency has been resolved: large JSX regions, export rendering, project/file helpers, and status toast state have been moved into focused modules/components. Remaining cleanup such as deeper hook extraction, CSS organization, and Rust command-module splitting should be tracked as follow-up work rather than keeping issue #36 open indefinitely.
 
+Future refactors should support the disc-editor alpha boundary from issue #69 without treating the current editor as disposable. The existing Steam/manual metadata, background artwork, disc geometry, safe-zone guides, Steam banner, logo/badge/mark, disc text, New Project, save/load, export, preview, sidebar panel, and toast systems should be preserved and evolved through small migrations unless a specific replacement path is planned and reviewed.
+
+The intended direction is careful migration toward a more flexible visual-element model: title/logo art, additional artwork/logo elements, multiple marks, file-backed generic assets, text that can respect visual boundaries, documented layer ordering, and preview/export parity. This should not be interpreted as a broad rewrite mandate.
+
 ## Completed Refactor Work
 
 - Deduplicated disc text type declarations by importing shared types from `src/discText.ts` instead of redefining them in `App.tsx`.

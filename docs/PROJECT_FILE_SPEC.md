@@ -13,9 +13,15 @@ A project file should store:
 - Editable layers
 - Export settings
 
-## Format
+## Current Format
 
-The first version should use JSON.
+The current implementation saves plain JSON project files. User-facing filenames are commonly named like `.sbls.json`.
+
+The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today.
+
+The future package format should not block disc-editor alpha unless a specific save/load limitation appears.
+
+## Future Format
 
 A future version may use a packaged project format that bundles JSON plus local assets.
 
