@@ -55,7 +55,8 @@ export function TextPanel({
           {DISC_TEXT_KEYS.map((key) => {
             const layout = discTextLayout[key]
             const isTextEnabled = discTextSettings[key]
-            const isCurvedCopyright = key === 'copyright' && layout.mode === 'curved'
+            const isCopyright = key === 'copyright'
+            const isCurvedCopyright = isCopyright && layout.mode === 'curved'
 
             return (
               <div className="disc-text-control" key={key}>
@@ -70,8 +71,19 @@ export function TextPanel({
 
                 {!isTextEnabled ? null : (
                   <>
-                    {key === 'copyright' && (
-                      <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} type controls`}>
+                    <label className="field-label spacing-top" htmlFor={`disc-text-value-${key}`}>
+                      Text value
+                    </label>
+                    <input
+                      id={`disc-text-value-${key}`}
+                      className="disc-text-input"
+                      type="text"
+                      value={getDiscTextInputValue(key)}
+                      onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
+                    />
+
+                    <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} placement controls`}>
+                      {isCopyright && (
                         <label>
                           <span>Mode</span>
                           <select
@@ -87,42 +99,27 @@ export function TextPanel({
                             <option value="curved">Curved</option>
                           </select>
                         </label>
+                      )}
 
-                        {layout.mode === 'curved' && (
-                          <label>
-                            <span>Side</span>
-                            <select
-                              aria-label="Arc side"
-                              value={layout.arcSide}
-                              disabled={steamLogoPlacement !== 'none'}
-                              onChange={(event) =>
-                                handleDiscTextArcSideChange(
-                                  key,
-                                  event.target.value as DiscTextArcSide,
-                                )
-                              }
-                            >
-                              <option value="top">Top arc</option>
-                              <option value="bottom">Bottom arc</option>
-                            </select>
-                          </label>
-                        )}
-                      </div>
-                    )}
-
-                    <label className="field-label spacing-top" htmlFor={`disc-text-value-${key}`}>
-                      Text value
-                    </label>
-                    <input
-                      id={`disc-text-value-${key}`}
-                      className="disc-text-input"
-                      type="text"
-                      value={getDiscTextInputValue(key)}
-                      onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
-                    />
-
-                    {!isCurvedCopyright && (
-                      <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} placement controls`}>
+                      {isCurvedCopyright ? (
+                        <label>
+                          <span>Side</span>
+                          <select
+                            aria-label="Arc side"
+                            value={layout.arcSide}
+                            disabled={steamLogoPlacement !== 'none'}
+                            onChange={(event) =>
+                              handleDiscTextArcSideChange(
+                                key,
+                                event.target.value as DiscTextArcSide,
+                              )
+                            }
+                          >
+                            <option value="top">Top arc</option>
+                            <option value="bottom">Bottom arc</option>
+                          </select>
+                        </label>
+                      ) : (
                         <label>
                           <span>Align</span>
                           <select
@@ -139,8 +136,8 @@ export function TextPanel({
                             <option value="right">Right</option>
                           </select>
                         </label>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} fine tuning controls`}>
                       <label>
