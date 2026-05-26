@@ -37,16 +37,33 @@ export type DiscTextLayerProps = {
 
 function getCurvedTextPathAlignment(
   align: DiscTextAlignment,
+  lines: string[],
+  radius: number,
+  arcDegrees: number,
+  scale: number,
 ): { startOffset: string; textAnchor: 'start' | 'middle' | 'end' } {
+  if (align === 'center') {
+    return { startOffset: '50%', textAnchor: 'middle' }
+  }
+
+  const arcLength = radius * ((arcDegrees * Math.PI) / 180)
+  const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
+  const longestLineLength = lines.reduce(
+    (longestLength, line) => Math.max(longestLength, line.length),
+    0,
+  )
+  const blockPercent =
+    arcLength > 0
+      ? Math.min(100, (longestLineLength * averageCharacterWidth / arcLength) * 100)
+      : 0
+
+  // Keep the curved text block centered on the existing path. Alignment only
+  // changes where each line anchors inside that fixed block span.
   if (align === 'left') {
-    return { startOffset: '0%', textAnchor: 'start' }
+    return { startOffset: `${50 - blockPercent / 2}%`, textAnchor: 'start' }
   }
 
-  if (align === 'right') {
-    return { startOffset: '100%', textAnchor: 'end' }
-  }
-
-  return { startOffset: '50%', textAnchor: 'middle' }
+  return { startOffset: `${50 + blockPercent / 2}%`, textAnchor: 'end' }
 }
 
 export function DiscTextLayer({
@@ -109,7 +126,13 @@ export function DiscTextLayer({
             curvedScale,
           )
           const lineStep = 2.2 * curvedScale
-          const textPathAlignment = getCurvedTextPathAlignment(layout.align)
+          const textPathAlignment = getCurvedTextPathAlignment(
+            layout.align,
+            lines,
+            textRadius,
+            layout.arcDegrees,
+            curvedScale,
+          )
 
           return (
             <svg
