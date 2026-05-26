@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "0.1.0",
+  "title": "Full Branding Fixture",
+  "savedAt": "2026-05-26T00:00:00.000Z",
+  "game": {
+    "manualTitle": "Full Branding Fixture",
+    "selectedSteamGame": {
+      "appId": 480,
+      "title": "Full Branding Fixture",
+      "developer": ["Fixture Developer"],
+      "publisher": ["Fixture Publisher"],
+      "releaseDate": "26 May, 2026",
+      "shortDescription": "Safe placeholder Steam import fixture for manual regression checks.",
+      "detailedDescription": "Generated placeholder data for fixture testing.",
+      "genres": ["Action", "Adventure"],
+      "categories": ["Single-player", "Steam Achievements"],
+      "minimumRequirements": "OS: Windows or Linux test environment",
+      "recommendedRequirements": "Use npm run tauri dev for visual smoke checks.",
+      "storeUrl": "https://store.steampowered.com/app/480/",
+      "artwork": []
+    }
+  },
+  "metadata": {
+    "title": "Full Branding Fixture",
+    "subtitle": "Regression Fixture Edition",
+    "steamAppId": "480",
+    "developer": "Fixture Developer",
+    "publisher": "Fixture Publisher",
+    "releaseDate": "26 May, 2026",
+    "backupDate": "2026-05-26",
+    "discNumber": "1",
+    "discTotal": "2",
+    "installNotes": "Disc 1 of 2. Offline installer archive.",
+    "copyrightText": "Fixture placeholder assets for regression testing only.",
+    "ratingSystem": "ESRB",
+    "ratingValue": "T"
+  },
+  "logoAssets": {
+    "developerLogoDataUrl": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='180' viewBox='0 0 480 180'%3E%3Crect width='480' height='180' rx='24' fill='%23111827'/%3E%3Crect x='12' y='12' width='456' height='156' rx='18' fill='none' stroke='%23f59e0b' stroke-width='8'/%3E%3Ctext x='240' y='82' text-anchor='middle' font-family='Arial' font-size='44' font-weight='900' fill='white'%3EDEV%3C/text%3E%3Ctext x='240' y='126' text-anchor='middle' font-family='Arial' font-size='24' fill='%23cbd5e1'%3ELOGO PLACEHOLDER%3C/text%3E%3C/svg%3E",
+    "developerLogoSize": { "width": 480, "height": 180 },
+    "developerLogoLayout": { "enabled": true, "scale": 0.72, "x": 24, "y": 62 },
+    "publisherLogoDataUrl": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='180' viewBox='0 0 480 180'%3E%3Crect width='480' height='180' rx='24' fill='%23111827'/%3E%3Crect x='12' y='12' width='456' height='156' rx='18' fill='none' stroke='%2322c55e' stroke-width='8'/%3E%3Ctext x='240' y='82' text-anchor='middle' font-family='Arial' font-size='44' font-weight='900' fill='white'%3EPUB%3C/text%3E%3Ctext x='240' y='126' text-anchor='middle' font-family='Arial' font-size='24' fill='%23cbd5e1'%3ELOGO PLACEHOLDER%3C/text%3E%3C/svg%3E",
+    "publisherLogoSize": { "width": 480, "height": 180 },
+    "publisherLogoLayout": { "enabled": true, "scale": 0.72, "x": 24, "y": 72 }
+  },
+  "ratingBadge": {
+    "source": "placeholder",
+    "customImageDataUrl": null,
+    "customImageSize": null,
+    "layout": { "enabled": true, "scale": 0.9, "x": 76, "y": 53 }
+  },
+  "mediaMark": {
+    "value": "dvdRom",
+    "source": "placeholder",
+    "customImageDataUrl": null,
+    "customImageSize": null,
+    "layout": { "enabled": true, "scale": 1, "x": 74, "y": 72 }
+  },
+  "platformMarks": {
+    "values": ["pc", "windows", "linux"],
+    "assets": {
+      "pc": { "source": "placeholder", "customImageDataUrl": null, "customImageSize": null, "layout": { "enabled": true, "scale": 1, "x": 24, "y": 82 } },
+      "windows": { "source": "placeholder", "customImageDataUrl": null, "customImageSize": null, "layout": { "enabled": true, "scale": 1, "x": 37, "y": 82 } },
+      "linux": { "source": "placeholder", "customImageDataUrl": null, "customImageSize": null, "layout": { "enabled": true, "scale": 1, "x": 50, "y": 82 } }
+    }
+  },
+  "template": { "type": "disc", "variant": "standardPrintableDisc", "customDimensions": null },
+  "steamBackupLogo": {
+    "placement": "top",
+    "bannerColors": { "gradientStart": "#2b475e", "gradientEnd": "#1b2838", "accent": "#2aabe1" },
+    "lockupImageDataUrl": null,
+    "lockupImageSize": null,
+    "lockupLayout": { "scale": 1, "offsetX": 0, "offsetY": 0 }
+  },
+  "export": {
+    "guides": { "outerEdge": true, "physicalCenterHole": true, "innerPrintBoundary": true, "printableBoundary": true, "safeZone": true }
+  },
+  "background": {
+    "scale": 1,
+    "offset": { "x": 0, "y": 0 },
+    "imageDataUrl": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1200' height='1200' viewBox='0 0 1200 1200'%3E%3Crect width='1200' height='1200' fill='%231b2838'/%3E%3Ccircle cx='600' cy='600' r='430' fill='none' stroke='%2366c0f4' stroke-width='28'/%3E%3Ctext x='600' y='585' text-anchor='middle' font-family='Arial' font-size='96' font-weight='900' fill='white'%3EFIXTURE%3C/text%3E%3Ctext x='600' y='690' text-anchor='middle' font-family='Arial' font-size='48' fill='%23c7d5e0'%3EFULL BRANDING%3C/text%3E%3C/svg%3E",
+    "imageSize": { "width": 1200, "height": 1200 },
+    "note": "Generated SVG placeholder background for full branding regression checks."
+  },
+  "discText": {
+    "settings": { "title": true, "discNumber": true, "backupDate": true, "appId": true, "customNote": true, "copyright": true },
+    "values": { "discNumber": "Disc 1 of 2", "backupDate": "2026-05-26", "appId": "480", "customNote": "Offline installer archive", "copyright": "Fixture placeholder assets for regression testing only." },
+    "layout": {
+      "title": { "x": 0, "y": 19.5, "width": 58, "scale": 1, "align": "center", "mode": "straight", "arcDegrees": 210, "arcSide": "bottom" },
+      "discNumber": { "x": 0, "y": 63.5, "width": 42, "scale": 1, "align": "center", "mode": "straight", "arcDegrees": 210, "arcSide": "bottom" },
+      "backupDate": { "x": 0, "y": 68, "width": 48, "scale": 1, "align": "center", "mode": "straight", "arcDegrees": 210, "arcSide": "bottom" },
+      "appId": { "x": 0, "y": 72, "width": 48, "scale": 1, "align": "center", "mode": "straight", "arcDegrees": 210, "arcSide": "bottom" },
+      "customNote": { "x": 0, "y": 78, "width": 58, "scale": 1, "align": "center", "mode": "straight", "arcDegrees": 210, "arcSide": "bottom" },
+      "copyright": { "x": 0, "y": 0, "width": 68, "scale": 1, "align": "center", "mode": "curved", "arcDegrees": 210, "arcSide": "bottom" }
+    }
+  }
+}

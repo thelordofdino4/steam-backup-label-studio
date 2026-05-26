@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "0.1.0",
+  "title": "Blank Fixture",
+  "savedAt": "2026-05-26T00:00:00.000Z",
+  "game": {
+    "manualTitle": "Blank Fixture",
+    "selectedSteamGame": null
+  },
+  "metadata": {
+    "title": "Blank Fixture",
+    "subtitle": "",
+    "steamAppId": "",
+    "developer": "",
+    "publisher": "",
+    "releaseDate": "",
+    "backupDate": "2026-05-26",
+    "discNumber": "",
+    "discTotal": "",
+    "installNotes": "",
+    "copyrightText": "",
+    "ratingSystem": "none",
+    "ratingValue": ""
+  },
+  "template": {
+    "type": "disc",
+    "variant": "standardPrintableDisc",
+    "customDimensions": null
+  },
+  "steamBackupLogo": {
+    "placement": "top"
+  },
+  "export": {
+    "guides": {
+      "outerEdge": false,
+      "physicalCenterHole": false,
+      "innerPrintBoundary": false,
+      "printableBoundary": false,
+      "safeZone": false
+    }
+  },
+  "background": {
+    "scale": 1,
+    "offset": {
+      "x": 0,
+      "y": 0
+    },
+    "imageDataUrl": null,
+    "imageSize": null,
+    "note": "Blank fixture for default save/load checks."
+  },
+  "discText": {
+    "settings": {
+      "title": false,
+      "discNumber": false,
+      "backupDate": false,
+      "appId": false,
+      "customNote": false,
+      "copyright": false
+    },
+    "values": {
+      "discNumber": "Disc 1",
+      "backupDate": "2026-05-26",
+      "appId": "",
+      "customNote": "",
+      "copyright": ""
+    }
+  }
+}
