@@ -55,7 +55,7 @@ function getCurvedTextNaturalWidth(context: CanvasRenderingContext2D, text: stri
   const glyphWidth = widths.reduce((sum, width) => sum + width, 0)
   return glyphWidth + Math.max(0, characters.length - 1) * baseCharacterSpacing
 }
-function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, centerX: number, centerY: number, radius: number, centerAngle: number, arcAngle: number, isTopArc: boolean, align: DiscTextAlignment) {
+function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, centerX: number, centerY: number, radius: number, centerAngle: number, alignmentWindowAngle: number, isTopArc: boolean, align: DiscTextAlignment) {
   const characters = Array.from(text)
   const baseCharacterSpacing = Math.max(2.7, radius * 0.0036)
   const widths = characters.map((c) => context.measureText(c).width)
@@ -65,11 +65,11 @@ function drawCurvedTextLine(context: CanvasRenderingContext2D, text: string, cen
   const totalTextAngle = naturalWidth / radius
   let startAngle: number
   if (isTopArc) {
-    if (align === 'left') startAngle = centerAngle - arcAngle / 2
-    else if (align === 'right') startAngle = centerAngle + arcAngle / 2 - totalTextAngle
+    if (align === 'left') startAngle = centerAngle - alignmentWindowAngle / 2
+    else if (align === 'right') startAngle = centerAngle + alignmentWindowAngle / 2 - totalTextAngle
     else startAngle = centerAngle - totalTextAngle / 2
-  } else if (align === 'left') startAngle = centerAngle + arcAngle / 2
-  else if (align === 'right') startAngle = centerAngle - arcAngle / 2 + totalTextAngle
+  } else if (align === 'left') startAngle = centerAngle + alignmentWindowAngle / 2
+  else if (align === 'right') startAngle = centerAngle - alignmentWindowAngle / 2 + totalTextAngle
   else startAngle = centerAngle + totalTextAngle / 2
   let currentOffset = 0
   characters.forEach((character, index) => {
@@ -131,6 +131,14 @@ function wrapTextForCurvedBlock(
   minimumDrawableRadius: number,
 ) {
   let lines = wrapTextByArcLength(context, text, outerLineRadius * arcAngle)
+  const alignmentWindowAngle = getSharedCurvedCanvasWindowAngle(
+    context,
+    lines,
+    outerLineRadius,
+    lineHeight,
+    arcAngle,
+    isTopArc,
+  )
 
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const minimumLineRadius = getMinimumVisibleCurvedCanvasLineRadius(
@@ -140,16 +148,51 @@ function wrapTextForCurvedBlock(
       lines.length,
       minimumDrawableRadius,
     )
-    const nextLines = wrapTextByArcLength(context, text, minimumLineRadius * arcAngle)
+    const nextLines = wrapTextByArcLength(
+      context,
+      text,
+      minimumLineRadius * alignmentWindowAngle,
+    )
 
     if (nextLines.join('\n') === lines.join('\n')) {
-      return lines
+      return {
+        lines,
+        alignmentWindowAngle,
+      }
     }
 
     lines = nextLines
   }
 
-  return lines
+  return {
+    lines,
+    alignmentWindowAngle,
+  }
+}
+
+function getSharedCurvedCanvasWindowAngle(
+  context: CanvasRenderingContext2D,
+  lines: string[],
+  outerLineRadius: number,
+  lineHeight: number,
+  arcAngle: number,
+  isTopArc: boolean,
+) {
+  if (lines.length === 0) {
+    return arcAngle
+  }
+
+  const firstLineRadius = getCurvedCanvasLineRadius(
+    isTopArc,
+    outerLineRadius,
+    lineHeight,
+    lines.length,
+    0,
+  )
+  const firstLineAngle =
+    getCurvedTextNaturalWidth(context, lines[0], firstLineRadius) / firstLineRadius
+
+  return Math.min(arcAngle, firstLineAngle)
 }
 
 function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: number, safeZoneRadius: number, placement: SteamLogoPlacement, layout: DiscTextLayout, text: string, fontSize: number) {
@@ -159,7 +202,7 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
   const lineHeight = fontSize * 1.38
   const outerLineRadius = Math.max(1, safeZoneRadius - layout.y * exportSize * 0.0018)
   const minimumDrawableRadius = safeZoneRadius * 0.35
-  const lines = wrapTextForCurvedBlock(
+  const { lines, alignmentWindowAngle } = wrapTextForCurvedBlock(
     context,
     text,
     outerLineRadius,
@@ -177,7 +220,7 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
       index,
     )
     if (lineRadius <= minimumDrawableRadius) return
-    drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, maxArcAngle, isTopArc, layout.align)
+    drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, alignmentWindowAngle, isTopArc, layout.align)
   })
 }
 

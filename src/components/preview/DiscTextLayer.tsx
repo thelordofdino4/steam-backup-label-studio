@@ -37,16 +37,47 @@ export type DiscTextLayerProps = {
 
 function getCurvedTextPathAlignment(
   align: DiscTextAlignment,
+  windowPercent: number,
 ): { startOffset: string; textAnchor: 'start' | 'middle' | 'end' } {
   if (align === 'left') {
-    return { startOffset: '0%', textAnchor: 'start' }
+    return { startOffset: `${50 - windowPercent / 2}%`, textAnchor: 'start' }
   }
 
   if (align === 'right') {
-    return { startOffset: '100%', textAnchor: 'end' }
+    return { startOffset: `${50 + windowPercent / 2}%`, textAnchor: 'end' }
   }
 
   return { startOffset: '50%', textAnchor: 'middle' }
+}
+
+function getEstimatedCurvedPreviewLineWidth(line: string, scale: number) {
+  const averageCharacterWidth = Math.max(0.92, 1.28 * scale)
+  return line.length * averageCharacterWidth
+}
+
+function getSharedCurvedPreviewWindowAngle(
+  lines: string[],
+  isTopArc: boolean,
+  textRadius: number,
+  lineStep: number,
+  arcDegrees: number,
+  scale: number,
+) {
+  if (lines.length === 0) {
+    return (arcDegrees * Math.PI) / 180
+  }
+
+  const firstLineRadius = getCurvedPreviewLineRadius(
+    isTopArc,
+    textRadius,
+    lineStep,
+    lines.length,
+    0,
+  )
+  const firstLineWidth = getEstimatedCurvedPreviewLineWidth(lines[0], scale)
+  const rawArcAngle = (arcDegrees * Math.PI) / 180
+
+  return Math.min(rawArcAngle, firstLineWidth / firstLineRadius)
 }
 
 function getCurvedPreviewLineRadius(
@@ -90,6 +121,14 @@ function wrapPreviewTextForCurvedBlock(
   isTopArc: boolean,
 ) {
   let lines = wrapPreviewTextByArcLength(text, textRadius, arcDegrees, scale)
+  const sharedWindowAngle = getSharedCurvedPreviewWindowAngle(
+    lines,
+    isTopArc,
+    textRadius,
+    lineStep,
+    arcDegrees,
+    scale,
+  )
 
   for (let attempt = 0; attempt < 6; attempt += 1) {
     const minimumLineRadius = getMinimumCurvedPreviewLineRadius(
@@ -101,18 +140,24 @@ function wrapPreviewTextForCurvedBlock(
     const nextLines = wrapPreviewTextByArcLength(
       text,
       minimumLineRadius,
-      arcDegrees,
+      (sharedWindowAngle * 180) / Math.PI,
       scale,
     )
 
     if (nextLines.join('\n') === lines.join('\n')) {
-      return lines
+      return {
+        lines,
+        sharedWindowAngle,
+      }
     }
 
     lines = nextLines
   }
 
-  return lines
+  return {
+    lines,
+    sharedWindowAngle,
+  }
 }
 
 export function DiscTextLayer({
@@ -169,13 +214,17 @@ export function DiscTextLayer({
           const arcHalf = layout.arcDegrees / 2
           const largeArcFlag = getLargeArcFlag(layout.arcDegrees)
           const lineStep = 2.2 * curvedScale
-          const lines = wrapPreviewTextForCurvedBlock(
+          const { lines, sharedWindowAngle } = wrapPreviewTextForCurvedBlock(
             text,
             textRadius,
             lineStep,
             layout.arcDegrees,
             curvedScale,
             isTopArc,
+          )
+          const sharedWindowPercent = Math.min(
+            100,
+            (sharedWindowAngle / ((layout.arcDegrees * Math.PI) / 180)) * 100,
           )
 
           return (
@@ -223,7 +272,10 @@ export function DiscTextLayer({
                 })}
               </defs>
               {lines.map((line, index) => {
-                const textPathAlignment = getCurvedTextPathAlignment(layout.align)
+                const textPathAlignment = getCurvedTextPathAlignment(
+                  layout.align,
+                  sharedWindowPercent,
+                )
 
                 return (
                   <text
