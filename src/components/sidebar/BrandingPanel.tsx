@@ -131,7 +131,7 @@ function SteamBannerControls({
       {!isEnabled ? null : (
         <>
           <label className="field-label spacing-top" htmlFor="steam-logo-placement">Placement</label>
-          <select id="steam-logo-placement" value={steamLogoPlacement === 'none' ? 'bottom' : steamLogoPlacement} onChange={(event) => updatePlacement(event.target.value as SteamLogoPlacement)}>
+          <select id="steam-logo-placement" value={steamLogoPlacement} onChange={(event) => updatePlacement(event.target.value as SteamLogoPlacement)}>
             <option value="top">Top center</option>
             <option value="bottom">Bottom center</option>
           </select>
@@ -349,7 +349,7 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
 
   const toggleEnabled = (enabled: boolean) => {
     if (enabled) {
-      const valuesToRestore = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values : rememberedValues.length > 0 ? rememberedValues : ['pc']
+      const valuesToRestore: PlatformMarkValue[] = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values : rememberedValues.length > 0 ? rememberedValues : ['pc']
       valuesToRestore.forEach((value) => projectPlatformMarks.values.includes(value) ? handlePlatformMarkLayoutChange(value, 'enabled', true) : handlePlatformMarkToggle(value, true))
       return
     }
