@@ -87,7 +87,7 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
   lines.forEach((line, index) => {
     const lineRadius = isTopArc ? outerLineRadius - index * lineHeight : outerLineRadius - (lines.length - 1 - index) * lineHeight
     if (lineRadius <= safeZoneRadius * 0.35) return
-    drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, maxArcAngle, isTopArc, 'center')
+    drawCurvedTextLine(context, line, exportSize / 2, exportSize / 2, lineRadius, centerAngle, maxArcAngle, isTopArc, layout.align)
   })
 }
 

@@ -9,6 +9,7 @@ import {
   getLargeArcFlag,
   getReadableCurvedTextScale,
   wrapPreviewTextByArcLength,
+  type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
@@ -32,6 +33,20 @@ export type DiscTextLayerProps = {
   handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
+}
+
+function getCurvedTextPathAlignment(
+  align: DiscTextAlignment,
+): { startOffset: string; textAnchor: 'start' | 'middle' | 'end' } {
+  if (align === 'left') {
+    return { startOffset: '0%', textAnchor: 'start' }
+  }
+
+  if (align === 'right') {
+    return { startOffset: '100%', textAnchor: 'end' }
+  }
+
+  return { startOffset: '50%', textAnchor: 'middle' }
 }
 
 export function DiscTextLayer({
@@ -94,6 +109,7 @@ export function DiscTextLayer({
             curvedScale,
           )
           const lineStep = 2.2 * curvedScale
+          const textPathAlignment = getCurvedTextPathAlignment(layout.align)
 
           return (
             <svg
@@ -147,8 +163,8 @@ export function DiscTextLayer({
                 >
                   <textPath
                     href={`#${copyrightPathId}-${index}`}
-                    startOffset="50%"
-                    textAnchor="middle"
+                    startOffset={textPathAlignment.startOffset}
+                    textAnchor={textPathAlignment.textAnchor}
                   >
                     {line}
                   </textPath>

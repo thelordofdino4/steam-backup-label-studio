@@ -117,7 +117,24 @@ export function TextPanel({
                         </label>
                       )}
 
-                      {isCurvedCopyright ? (
+                      <label>
+                        <span>Align</span>
+                        <select
+                          value={layout.align}
+                          onChange={(event) =>
+                            handleDiscTextAlignmentChange(
+                              key,
+                              event.target.value as DiscTextAlignment,
+                            )
+                          }
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </label>
+
+                      {isCurvedCopyright && (
                         <label>
                           <span>Side</span>
                           <select
@@ -133,23 +150,6 @@ export function TextPanel({
                           >
                             <option value="top">Top arc</option>
                             <option value="bottom">Bottom arc</option>
-                          </select>
-                        </label>
-                      ) : (
-                        <label>
-                          <span>Align</span>
-                          <select
-                            value={layout.align}
-                            onChange={(event) =>
-                              handleDiscTextAlignmentChange(
-                                key,
-                                event.target.value as DiscTextAlignment,
-                              )
-                            }
-                          >
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                            <option value="right">Right</option>
                           </select>
                         </label>
                       )}
