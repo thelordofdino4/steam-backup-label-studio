@@ -12,7 +12,7 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../discText'
-import { layoutCurvedText, type CurvedTextLineLayout } from '../discText/curvedTextLayout'
+import { layoutCurvedText } from '../discText/curvedTextLayout'
 import {
   getStraightDiscTextRenderLayout,
   type TextMeasureFunction,
@@ -30,12 +30,6 @@ function escapeSvgText(text: string) {
 
 function createSvgDataUrl(svg: string) {
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
-}
-
-function getFallbackTextWidth(text: string, font: string) {
-  const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/)
-  const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 1
-  return Array.from(text).length * fontSize * 0.58
 }
 
 function splitLongTokenByMeasuredWidth(
