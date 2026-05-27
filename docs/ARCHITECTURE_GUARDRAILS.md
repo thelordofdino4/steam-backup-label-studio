@@ -13,6 +13,7 @@ New logic must not be crammed into existing unrelated structures.
 - If no suitable owner exists and the change does something genuinely new, create a focused new `.ts` or `.tsx` module for it.
 - If an existing feature needs updating, update it where that feature belongs.
 - If an update grows into a new feature or new responsibility, extract it into a new `.ts` or `.tsx` module.
+- Presentation components may call domain helpers/selectors, but must not own domain decisions, mapping rules, layout/clamp math, upload/import rules, or state transition rules.
 - Do not add new behavior to `App.tsx` simply because the state currently lives there.
 - Do not add unrelated responsibilities to existing renderer, panel, export, or utility files.
 - Do not let temporary fixes become permanent dumping grounds.
@@ -62,6 +63,29 @@ Not allowed as new work in `App.tsx`:
 - serialization/migration logic
 
 If a new handler needs more than trivial orchestration, create a focused hook or domain module and call it from `App.tsx`.
+
+## Presentation Component Boundary
+
+Presentation components should stay presentational.
+
+Allowed in sidebar/preview components:
+
+- rendering controls, labels, previews, and visual artifacts
+- calling imported domain helpers/selectors
+- forwarding user events to handlers supplied by a domain hook or orchestration owner
+- applying already-computed view-model values
+
+Not allowed in sidebar/preview components:
+
+- feature-specific branching that decides what a value means
+- state source mapping such as choosing between manual title state, metadata state, and rendered text state
+- layout or safe-zone clamp math
+- upload/import interpretation rules
+- project serialization or normalization rules
+- renderer/export parity decisions
+- pointer/drag math beyond attaching supplied handlers
+
+If a component needs one of those decisions, move the decision into the feature's domain module, a focused selector/view-model helper, or a hook, then pass the result into the component.
 
 ## Domain Ownership
 
