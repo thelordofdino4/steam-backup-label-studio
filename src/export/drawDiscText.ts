@@ -275,7 +275,7 @@ function buildCurvedCopyrightSvgMarkup(
       `).join('')}
     </defs>
     ${curvedLineLayout.lines.map((lineLayout, index) => `
-      <text class="disc-export-text" dominant-baseline="middle" text-anchor="${textAnchor}" style="font-size:${fontSize}px; font-weight:650; letter-spacing:${letterSpacing}px;">
+      <text class="disc-export-text" dominant-baseline="middle" text-anchor="${textAnchor}" style="fill:#d1d5db; font-family:Arial, sans-serif; font-size:${fontSize}px; font-weight:650; letter-spacing:${letterSpacing}px;">
         <textPath href="#copyright-path-${index}" startOffset="${startOffset}" text-anchor="${textAnchor}">${escapeSvgText(lineLayout.text)}</textPath>
       </text>
     `).join('')}
@@ -322,8 +322,8 @@ function buildDiscTextSvg(
     <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
       <defs>
         <filter id="disc-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="0.31" stdDeviation="0.63" flood-color="rgba(0, 0, 0, 0.85)" />
-          <feDropShadow dx="0" dy="0" stdDeviation="0.24" flood-color="rgba(0, 0, 0, 0.9)" />
+          <feDropShadow dx="0" dy="0.31" stdDeviation="0.63" flood-color="#000000" flood-opacity="0.85" />
+          <feDropShadow dx="0" dy="0" stdDeviation="0.24" flood-color="#000000" flood-opacity="0.9" />
         </filter>
       </defs>
       <style>
