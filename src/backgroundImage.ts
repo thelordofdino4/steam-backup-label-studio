@@ -34,6 +34,10 @@ export function createSelectedBackgroundImageState(
   }
 }
 
+export function updateBackgroundScale(value: number) {
+  return value
+}
+
 export function getBackgroundPreviewSize(
   imageSize: BackgroundImageSize | null,
 ) {

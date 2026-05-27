@@ -16,7 +16,7 @@ export type ArtworkPanelProps = {
   handleUseLocalSteamScreenshot: (asset: LocalSteamScreenshotAsset) => void | Promise<void>
   handleBackgroundUpload: (event: ChangeEvent<HTMLInputElement>) => void
   backgroundScale: number
-  setBackgroundScale: (value: number) => void
+  handleBackgroundScaleChange: (value: number) => void
   backgroundImageUrl: string | null
   handleResetBackground: () => void
 }
@@ -62,7 +62,7 @@ export function ArtworkPanel({
   handleUseLocalSteamScreenshot,
   handleBackgroundUpload,
   backgroundScale,
-  setBackgroundScale,
+  handleBackgroundScaleChange,
   backgroundImageUrl,
   handleResetBackground,
 }: ArtworkPanelProps) {
@@ -218,7 +218,7 @@ export function ArtworkPanel({
         step="0.01"
         value={backgroundScale}
         disabled={!backgroundImageUrl}
-        onChange={(event) => setBackgroundScale(Number(event.target.value))}
+        onChange={(event) => handleBackgroundScaleChange(Number(event.target.value))}
       />
 
       {!backgroundImageUrl && (

@@ -230,6 +230,35 @@ export function updatePlatformMarkToggle(
   )
 }
 
+export function getEnabledPlatformMarkValues(
+  platformMarks: ProjectPlatformMarks,
+): PlatformMarkValue[] {
+  return platformMarks.values.filter(
+    (value) => platformMarks.assets[value]?.layout.enabled,
+  )
+}
+
+export function getPlatformMarkValuesForRestore(
+  platformMarks: ProjectPlatformMarks,
+  rememberedValues: PlatformMarkValue[],
+): PlatformMarkValue[] {
+  if (platformMarks.values.length > 0) {
+    return platformMarks.values
+  }
+
+  if (rememberedValues.length > 0) {
+    return rememberedValues
+  }
+
+  return ['pc']
+}
+
+export function getPlatformMarkValuesForRemember(
+  platformMarks: ProjectPlatformMarks,
+): PlatformMarkValue[] {
+  return platformMarks.values
+}
+
 export function setPlatformMarkCustomImage(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,

@@ -1,9 +1,10 @@
 import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
-import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
-import { getRatingValuesForSystem } from '../../project/projectMetadata'
+import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore } from '../../project/projectMediaMark'
+import { getActiveRatingSystemForBadge, getRatingMetadataForBadgeEnabled, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
+import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -95,20 +96,22 @@ function SteamBannerControls({
   | 'handleResetSteamBannerColors'
 >) {
   const isEnabled = steamLogoPlacement !== 'none'
-  const [lastPlacement, setLastPlacement] = useState<SteamLogoPlacement>(isEnabled ? steamLogoPlacement : 'bottom')
+  const [lastPlacement, setLastPlacement] = useState<SteamLogoPlacement>(
+    createSteamLogoPlacementMemory(steamLogoPlacement),
+  )
 
   const toggleEnabled = (enabled: boolean) => {
     if (enabled) {
-      handleSteamLogoPlacementChange(lastPlacement === 'none' ? 'bottom' : lastPlacement)
+      handleSteamLogoPlacementChange(getEnabledSteamLogoPlacement(lastPlacement))
       return
     }
 
-    if (steamLogoPlacement !== 'none') setLastPlacement(steamLogoPlacement)
+    setLastPlacement(getNextSteamLogoPlacementMemory(lastPlacement, steamLogoPlacement))
     handleSteamLogoPlacementChange('none')
   }
 
   const updatePlacement = (placement: SteamLogoPlacement) => {
-    if (placement !== 'none') setLastPlacement(placement)
+    setLastPlacement(getNextSteamLogoPlacementMemory(lastPlacement, placement))
     handleSteamLogoPlacementChange(placement)
   }
 
@@ -218,15 +221,16 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
 
 function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
-  const activeRatingSystem = projectMetadata.ratingSystem === 'none' ? 'ESRB' : projectMetadata.ratingSystem
+  const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
   const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${hasRatingValue ? ` ${projectMetadata.ratingValue}` : ''}`
   const isCustomBadgeSource = projectRatingBadge.source === 'custom'
 
   const handleEnabledChange = (enabled: boolean) => {
-    if (enabled && projectMetadata.ratingSystem === 'none') {
-      handleProjectMetadataChange('ratingSystem', 'ESRB')
-      handleProjectMetadataChange('ratingValue', 'E')
+    if (enabled) {
+      const nextMetadata = getRatingMetadataForBadgeEnabled(projectMetadata)
+      handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
+      handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
     }
     handleRatingBadgeLayoutChange('enabled', enabled)
   }
@@ -247,13 +251,9 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
           <label className="field-label spacing-top" htmlFor="branding-rating-system">Rating system</label>
           <select id="branding-rating-system" value={activeRatingSystem} onChange={(event) => {
             const nextSystem = event.target.value as GameRatingSystem
-            const allowedValues = getRatingValuesForSystem(nextSystem)
-            handleProjectMetadataChange('ratingSystem', nextSystem)
-            if (allowedValues.length > 0 && !allowedValues.some((value) => value === projectMetadata.ratingValue)) {
-              handleProjectMetadataChange('ratingValue', allowedValues[0])
-            } else if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
-              handleProjectMetadataChange('ratingValue', 'Custom')
-            }
+            const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
+            handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
+            handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
           }}>
             <option value="ESRB">ESRB</option>
             <option value="PEGI">PEGI</option>
@@ -363,17 +363,17 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
 
 function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
-  const enabledValues = projectPlatformMarks.values.filter((value) => projectPlatformMarks.assets[value]?.layout.enabled)
+  const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
   const currentLabel = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ') : 'None selected'
 
   const toggleEnabled = (enabled: boolean) => {
     if (enabled) {
-      const valuesToRestore: PlatformMarkValue[] = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values : rememberedValues.length > 0 ? rememberedValues : ['pc']
+      const valuesToRestore = getPlatformMarkValuesForRestore(projectPlatformMarks, rememberedValues)
       valuesToRestore.forEach((value) => projectPlatformMarks.values.includes(value) ? handlePlatformMarkLayoutChange(value, 'enabled', true) : handlePlatformMarkToggle(value, true))
       return
     }
-    setRememberedValues(projectPlatformMarks.values)
+    setRememberedValues(getPlatformMarkValuesForRemember(projectPlatformMarks))
     projectPlatformMarks.values.forEach((value) => handlePlatformMarkLayoutChange(value, 'enabled', false))
   }
 

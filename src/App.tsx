@@ -74,6 +74,7 @@ import {
   createDefaultBackgroundOffset,
   createSelectedBackgroundImageState,
   getBackgroundPreviewSize,
+  updateBackgroundScale,
 } from './backgroundImage'
 import {
   createPercentDragState,
@@ -1776,6 +1777,10 @@ function App() {
     setBackgroundOffset(createDefaultBackgroundOffset())
   }
 
+  function handleBackgroundScaleChange(value: number) {
+    setBackgroundScale(updateBackgroundScale(value))
+  }
+
   function handleBackgroundPointerDown(event: PointerEvent<HTMLDivElement>) {
     if (!backgroundImageUrl) {
       return
@@ -1871,7 +1876,7 @@ function App() {
           handleUseLocalSteamScreenshot={handleUseLocalSteamScreenshot}
           handleBackgroundUpload={handleBackgroundUpload}
           backgroundScale={backgroundScale}
-          setBackgroundScale={setBackgroundScale}
+          handleBackgroundScaleChange={handleBackgroundScaleChange}
           backgroundImageUrl={backgroundImageUrl}
           handleResetBackground={handleResetBackground}
         />

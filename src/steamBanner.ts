@@ -1,5 +1,6 @@
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 import type { BackgroundImageSize, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { SteamLogoPlacement } from './discText'
 
 export type SteamBannerColorField = keyof SteamBannerColors
 export type SteamBannerLockupLayoutField = keyof SteamBannerLockupLayout
@@ -17,6 +18,8 @@ export const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
   offsetX: 0,
   offsetY: 0,
 }
+
+export const DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT: SteamLogoPlacement = 'bottom'
 
 export type SteamBannerLockupImageState = {
   imageUrl: string | null
@@ -48,6 +51,27 @@ export function createCustomSteamBannerLockupImageState(
     imageUrl,
     imageSize,
   }
+}
+
+export function createSteamLogoPlacementMemory(
+  placement: SteamLogoPlacement,
+): SteamLogoPlacement {
+  return placement === 'none' ? DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT : placement
+}
+
+export function getEnabledSteamLogoPlacement(
+  rememberedPlacement: SteamLogoPlacement,
+): SteamLogoPlacement {
+  return rememberedPlacement === 'none'
+    ? DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT
+    : rememberedPlacement
+}
+
+export function getNextSteamLogoPlacementMemory(
+  currentMemory: SteamLogoPlacement,
+  placement: SteamLogoPlacement,
+): SteamLogoPlacement {
+  return placement === 'none' ? currentMemory : placement
 }
 
 export function updateSteamBannerLockupLayoutField(

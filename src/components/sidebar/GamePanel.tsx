@@ -1,5 +1,5 @@
-import { getRatingValuesForSystem } from '../../project/projectMetadata'
-import type { ProjectMetadata } from '../../project/projectTypes'
+import { getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import type { GameRatingSystem, ProjectMetadata } from '../../project/projectTypes'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
 
 export type GamePanelProps = {
@@ -216,27 +216,11 @@ export function GamePanel({
         id="game-metadata-rating-system"
         value={projectMetadata.ratingSystem}
         onChange={(event) => {
-          const nextSystem = event.target.value as ProjectMetadata['ratingSystem']
-          const allowedValues = getRatingValuesForSystem(nextSystem)
+          const nextSystem = event.target.value as GameRatingSystem
+          const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
 
-          handleProjectMetadataChange('ratingSystem', nextSystem)
-
-          if (nextSystem === 'none') {
-            handleProjectMetadataChange('ratingValue', '')
-            return
-          }
-
-          if (
-            allowedValues.length > 0 &&
-            !allowedValues.includes(projectMetadata.ratingValue)
-          ) {
-            handleProjectMetadataChange('ratingValue', allowedValues[0])
-            return
-          }
-
-          if (nextSystem === 'custom' && projectMetadata.ratingValue === '') {
-            handleProjectMetadataChange('ratingValue', 'Custom')
-          }
+          handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
+          handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
         }}
       >
         <option value="none">None</option>
