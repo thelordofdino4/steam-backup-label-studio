@@ -104,16 +104,25 @@ export async function exportDiscLabelPngBytes(params: {
     'steam-banner': () =>
       drawSteamBrandBanner(
         context,
-        exportSize,
+        discContentSize,
+        discOrigin,
         params.steamLogoPlacement,
         params.steamBannerColors,
         params.steamBannerLockupImageUrl,
         params.steamBannerLockupLayout,
       ),
-    'logo-assets': () => drawLogoAssets(context, exportSize, params.projectLogoAssets),
-    'rating-badge': () => drawRatingBadge(context, exportSize, params.projectMetadata, params.projectRatingBadge),
-    'media-mark': () => drawMediaMark(context, exportSize, params.projectMediaMark),
-    'platform-marks': () => drawPlatformMarks(context, exportSize, params.projectPlatformMarks),
+    'logo-assets': () => drawLogoAssets(context, discContentSize, discOrigin, params.projectLogoAssets),
+    'rating-badge': () =>
+      drawRatingBadge(
+        context,
+        discContentSize,
+        discOrigin,
+        params.projectMetadata,
+        params.projectRatingBadge,
+      ),
+    'media-mark': () => drawMediaMark(context, discContentSize, discOrigin, params.projectMediaMark),
+    'platform-marks': () =>
+      drawPlatformMarks(context, discContentSize, discOrigin, params.projectPlatformMarks),
     'disc-text': () =>
       drawDiscTextElements(
         context,

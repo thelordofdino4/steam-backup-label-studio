@@ -3,6 +3,8 @@ import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
 } from '../discGeometry'
+import { buildRatingBadgePlaceholderSvg } from '../discPlaceholderSvg'
+import { createSvgDataUrl } from '../svgUtils'
 import { loadImage } from './canvasImage'
 
 function getPlaceholderLabel(metadata: ProjectMetadata) {
@@ -13,9 +15,10 @@ function getPlaceholderLabel(metadata: ProjectMetadata) {
   return metadata.ratingValue.trim() || metadata.ratingSystem
 }
 
-function drawPlaceholderRatingBadge(
+async function drawPlaceholderRatingBadge(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
 ) {
@@ -25,51 +28,19 @@ function drawPlaceholderRatingBadge(
     return
   }
 
-  const width = exportSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const height = exportSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
-  const x = exportSize * (badge.layout.x / 100) - width / 2
-  const y = exportSize * (badge.layout.y / 100) - height / 2
-  const radius = metadata.ratingSystem === 'PEGI' ? Math.min(width, height) / 2 : exportSize * 0.008
+  const width = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
+  const height = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+  const x = discOrigin + discContentSize * (badge.layout.x / 100) - width / 2
+  const y = discOrigin + discContentSize * (badge.layout.y / 100) - height / 2
+  const image = await loadImage(createSvgDataUrl(buildRatingBadgePlaceholderSvg(metadata)))
 
-  context.save()
-
-  context.fillStyle = metadata.ratingSystem === 'custom' ? '#111827' : '#f9fafb'
-  context.strokeStyle = metadata.ratingSystem === 'custom' ? '#f9fafb' : '#111827'
-  context.lineWidth = Math.max(2, exportSize * 0.004)
-
-  context.beginPath()
-
-  if (metadata.ratingSystem === 'PEGI') {
-    const centerX = x + width / 2
-    const centerY = y + height / 2
-    context.arc(centerX, centerY, Math.min(width, height) / 2, 0, Math.PI * 2)
-  } else {
-    context.roundRect(x, y, width, height, radius)
-  }
-
-  context.fill()
-  context.stroke()
-
-  const textColor = metadata.ratingSystem === 'custom' ? '#f9fafb' : '#111827'
-  context.fillStyle = textColor
-  context.textAlign = 'center'
-  context.textBaseline = 'middle'
-
-  context.font = `800 ${Math.max(8, height * 0.11)}px sans-serif`
-  context.fillText(metadata.ratingSystem, x + width / 2, y + height * 0.18)
-
-  context.font = `900 ${Math.max(12, height * 0.31)}px sans-serif`
-  context.fillText(label, x + width / 2, y + height * 0.5)
-
-  context.font = `800 ${Math.max(6, height * 0.08)}px sans-serif`
-  context.fillText('PLACEHOLDER', x + width / 2, y + height * 0.82)
-
-  context.restore()
+  context.drawImage(image, x, y, width, height)
 }
 
 async function drawCustomRatingBadge(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   badge: ProjectRatingBadge,
 ) {
   if (!badge.customImageDataUrl) {
@@ -81,8 +52,8 @@ async function drawCustomRatingBadge(
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
 
-  const maxWidth = exportSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const maxHeight = exportSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+  const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
+  const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
 
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio
@@ -92,8 +63,8 @@ async function drawCustomRatingBadge(
     drawWidth = drawHeight * aspectRatio
   }
 
-  const centerX = exportSize * (badge.layout.x / 100)
-  const centerY = exportSize * (badge.layout.y / 100)
+  const centerX = discOrigin + discContentSize * (badge.layout.x / 100)
+  const centerY = discOrigin + discContentSize * (badge.layout.y / 100)
 
   context.drawImage(
     image,
@@ -106,7 +77,8 @@ async function drawCustomRatingBadge(
 
 export async function drawRatingBadge(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
 ) {
@@ -115,9 +87,9 @@ export async function drawRatingBadge(
   }
 
   if (badge.source === 'custom' && badge.customImageDataUrl) {
-    await drawCustomRatingBadge(context, exportSize, badge)
+    await drawCustomRatingBadge(context, discContentSize, discOrigin, badge)
     return
   }
 
-  drawPlaceholderRatingBadge(context, exportSize, metadata, badge)
+  await drawPlaceholderRatingBadge(context, discContentSize, discOrigin, metadata, badge)
 }
