@@ -52,6 +52,7 @@ type TextElementReport = {
     layerCount: number
     textNodeCount: number
     textNodes: TextNodeReport[]
+    matchStrategy: string
   }
   straightLayout?: {
     previewMeasured: ReturnType<typeof getStraightDiscTextRenderLayout>
@@ -87,6 +88,7 @@ export type TextParityDiagnosticsReport = {
     outerDiameterMm: number
     safeDiameterMm: number
   }
+  allPreviewTextNodes: TextNodeReport[]
   textElements: TextElementReport[]
 }
 
@@ -156,7 +158,7 @@ function getTextNodeReport(
 
   return {
     index,
-    text: element.textContent ?? '',
+    text: element.textContent?.trim() ?? '',
     className: element.getAttribute('class') ?? '',
     bboxViewBoxUnits,
     rectPx: boxToReport(rect),
@@ -174,25 +176,29 @@ function getTextNodeReport(
   }
 }
 
-function getPreviewTextNodes(
+function getAllPreviewTextNodes(
   previewElement: HTMLElement | null,
-  key: DiscTextKey,
   previewRect: DOMRect | null,
 ) {
   if (!previewElement) return []
 
   return Array.from(
-    previewElement.querySelectorAll(`[data-disc-text-key="${key}"][data-disc-text-line-index]`),
-  ).map((element) => {
-    const rawIndex = element.getAttribute('data-disc-text-line-index')
-    const index = rawIndex === null ? null : Number(rawIndex)
-    return getTextNodeReport(element, Number.isFinite(index) ? index : null, previewRect)
+    previewElement.querySelectorAll('.disc-straight-text, .disc-curved-text'),
+  ).map((element, index) => getTextNodeReport(element, index, previewRect))
+}
+
+function getPreviewTextNodesForText(allNodes: TextNodeReport[], text: string) {
+  if (!text) return []
+  const normalizedText = text.trim()
+  return allNodes.filter((node) => {
+    const nodeText = node.text.trim()
+    return nodeText === normalizedText || normalizedText.includes(nodeText) || nodeText.includes(normalizedText)
   })
 }
 
-function getLayerCount(previewElement: HTMLElement | null, key: DiscTextKey) {
+function getLayerCount(previewElement: HTMLElement | null, mode: string) {
   if (!previewElement) return 0
-  return previewElement.querySelectorAll(`[data-disc-text-layer="true"][data-disc-text-key="${key}"]`).length
+  return previewElement.querySelectorAll(mode === 'curved' ? '.disc-curved-text-svg' : '.disc-straight-text-svg').length
 }
 
 export function buildTextParityDiagnostics(params: {
@@ -206,6 +212,7 @@ export function buildTextParityDiagnostics(params: {
   discTextLayout: DiscTextLayoutSettings
 }): TextParityDiagnosticsReport {
   const previewRect = params.previewElement?.getBoundingClientRect() ?? null
+  const allPreviewTextNodes = getAllPreviewTextNodes(params.previewElement, previewRect)
   const exportDiscContentSizePx = mmToPixels(params.selectedDiscTemplate.outerDiameterMm)
   const previewDiscSizePx = previewRect?.width && previewRect.width > 0
     ? previewRect.width
@@ -223,7 +230,7 @@ export function buildTextParityDiagnostics(params: {
       ? getDiscTextContent(key, resolvedValues, params.manualGameTitle).trim()
       : ''
     const layout = params.discTextLayout[key]
-    const previewTextNodes = getPreviewTextNodes(params.previewElement, key, previewRect)
+    const previewTextNodes = getPreviewTextNodesForText(allPreviewTextNodes, text)
     const baseReport: TextElementReport = {
       key,
       enabled,
@@ -232,9 +239,10 @@ export function buildTextParityDiagnostics(params: {
       sourceLayout: { ...layout },
       renderStyle: { ...DISC_TEXT_RENDER_STYLES[key] },
       previewDom: {
-        layerCount: getLayerCount(params.previewElement, key),
+        layerCount: getLayerCount(params.previewElement, layout.mode),
         textNodeCount: previewTextNodes.length,
         textNodes: previewTextNodes,
+        matchStrategy: 'matched by live SVG text content because preview nodes are not keyed yet',
       },
     }
 
@@ -290,6 +298,7 @@ export function buildTextParityDiagnostics(params: {
       outerDiameterMm: params.selectedDiscTemplate.outerDiameterMm,
       safeDiameterMm: params.selectedDiscTemplate.safeDiameterMm,
     },
+    allPreviewTextNodes,
     textElements,
   }
 }
