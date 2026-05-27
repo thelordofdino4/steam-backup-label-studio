@@ -17,7 +17,7 @@ const STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT = 117
 
 
 function applyLockupLayout(
-  exportSize: number,
+  discContentSize: number,
   x: number,
   y: number,
   width: number,
@@ -28,8 +28,8 @@ function applyLockupLayout(
   const centerY = y + height / 2
   const scaledWidth = width * layout.scale
   const scaledHeight = height * layout.scale
-  const offsetX = exportSize * (layout.offsetX / 100)
-  const offsetY = exportSize * (layout.offsetY / 100)
+  const offsetX = discContentSize * (layout.offsetX / 100)
+  const offsetY = discContentSize * (layout.offsetY / 100)
 
   return {
     x: centerX - scaledWidth / 2 + offsetX,
@@ -41,7 +41,8 @@ function applyLockupLayout(
 
 export async function drawSteamBrandBanner(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   placement: SteamLogoPlacement,
   colors: SteamBannerColors,
   lockupImageDataUrl: string | null,
@@ -52,18 +53,18 @@ export async function drawSteamBrandBanner(
   }
 
   const mainBandHeight =
-    exportSize * (STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
+    discContentSize * (STEAM_BANNER_MAIN_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
   const accentBandHeight =
-    exportSize * (STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
+    discContentSize * (STEAM_BANNER_ACCENT_HEIGHT_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
   const accentOverlap =
-    exportSize *
+    discContentSize *
     (STEAM_BANNER_ACCENT_OVERLAP_AT_STANDARD_EXPORT / STANDARD_EXPORT_REFERENCE_SIZE)
 
-  let mainBandY = 0
-  let accentBandY = mainBandHeight - accentOverlap
+  let mainBandY = discOrigin
+  let accentBandY = discOrigin + mainBandHeight - accentOverlap
 
   if (placement === 'bottom') {
-    mainBandY = exportSize - mainBandHeight
+    mainBandY = discOrigin + discContentSize - mainBandHeight
     accentBandY = mainBandY - (accentBandHeight - accentOverlap)
   }
 
@@ -72,10 +73,10 @@ export async function drawSteamBrandBanner(
   gradient.addColorStop(1, colors.gradientEnd)
 
   context.fillStyle = gradient
-  context.fillRect(0, mainBandY, exportSize, mainBandHeight)
+  context.fillRect(discOrigin, mainBandY, discContentSize, mainBandHeight)
 
   context.fillStyle = colors.accent
-  context.fillRect(0, accentBandY, exportSize, accentBandHeight)
+  context.fillRect(discOrigin, accentBandY, discContentSize, accentBandHeight)
 
   if (lockupImageDataUrl) {
     const canvasSafeLockupSource = await getCanvasSafeImageSource(lockupImageDataUrl)
@@ -86,24 +87,24 @@ export async function drawSteamBrandBanner(
 
     if (placement === 'bottom') {
       const targetX =
-        exportSize *
+        discOrigin + discContentSize *
         (STEAM_BANNER_BOTTOM_LOCKUP_X_AT_STANDARD_EXPORT /
           STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
       const targetY =
-        exportSize *
+        discOrigin + discContentSize *
         (STEAM_BANNER_BOTTOM_LOCKUP_Y_AT_STANDARD_EXPORT /
           STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
       const targetWidth =
-        exportSize *
+        discContentSize *
         (STEAM_BANNER_BOTTOM_LOCKUP_WIDTH_AT_STANDARD_EXPORT /
           STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
       const targetHeight =
-        exportSize *
+        discContentSize *
         (STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT /
           STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
 
       const adjustedTarget = applyLockupLayout(
-        exportSize,
+        discContentSize,
         targetX,
         targetY,
         targetWidth,
@@ -122,22 +123,24 @@ export async function drawSteamBrandBanner(
     }
 
     const lockupTop =
-      exportSize *
+      discOrigin +
+      discContentSize *
       (STEAM_BANNER_LOCKUP_TOP_AT_STANDARD_EXPORT / STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
     const lockupBottom =
-      exportSize *
+      discOrigin +
+      discContentSize *
       (STEAM_BANNER_LOCKUP_BOTTOM_AT_STANDARD_EXPORT / STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
     const lockupHeight = lockupBottom - lockupTop
     const lockupWidth = lockupHeight * lockupAspectRatio
 
     const lockupXOffset =
-      exportSize *
+      discContentSize *
       (STEAM_BANNER_LOCKUP_X_OFFSET_AT_STANDARD_EXPORT /
         STANDARD_LOCKUP_EXPORT_REFERENCE_SIZE)
 
     const adjustedTarget = applyLockupLayout(
-      exportSize,
-      exportSize / 2 - lockupWidth / 2 + lockupXOffset,
+      discContentSize,
+      discOrigin + discContentSize / 2 - lockupWidth / 2 + lockupXOffset,
       lockupTop,
       lockupWidth,
       lockupHeight,
@@ -156,10 +159,10 @@ export async function drawSteamBrandBanner(
 
   context.save()
   context.fillStyle = '#f9fafb'
-  context.font = `bold ${Math.round(exportSize * 0.04)}px Arial`
+  context.font = `bold ${Math.round(discContentSize * 0.04)}px Arial`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.letterSpacing = `${Math.round(exportSize * 0.004)}px`
-  context.fillText('STEAM', exportSize / 2, mainBandY + mainBandHeight / 2)
+  context.letterSpacing = `${Math.round(discContentSize * 0.004)}px`
+  context.fillText('STEAM', discOrigin + discContentSize / 2, mainBandY + mainBandHeight / 2)
   context.restore()
 }

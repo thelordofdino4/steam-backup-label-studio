@@ -5,7 +5,8 @@ import { loadImage } from './canvasImage'
 
 async function drawLogoAsset(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   imageDataUrl: string | null,
   layout: LogoAssetLayout,
   logoKey: LogoAssetKey,
@@ -19,8 +20,8 @@ async function drawLogoAsset(
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
 
-  const maxWidth = exportSize * LOGO_BASE_WIDTH_RATIO * layout.scale
-  const maxHeight = exportSize * LOGO_MAX_HEIGHT_RATIO * layout.scale
+  const maxWidth = discContentSize * LOGO_BASE_WIDTH_RATIO * layout.scale
+  const maxHeight = discContentSize * LOGO_MAX_HEIGHT_RATIO * layout.scale
 
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio
@@ -30,8 +31,8 @@ async function drawLogoAsset(
     drawWidth = drawHeight * aspectRatio
   }
 
-  const centerX = exportSize * (layout.x / 100)
-  const centerY = exportSize * (layout.y / 100)
+  const centerX = discOrigin + discContentSize * (layout.x / 100)
+  const centerY = discOrigin + discContentSize * (layout.y / 100)
 
   context.drawImage(
     image,
@@ -44,19 +45,22 @@ async function drawLogoAsset(
 
 export async function drawLogoAssets(
   context: CanvasRenderingContext2D,
-  exportSize: number,
+  discContentSize: number,
+  discOrigin: number,
   logoAssets: ProjectLogoAssets,
 ) {
   await drawLogoAsset(
     context,
-    exportSize,
+    discContentSize,
+    discOrigin,
     logoAssets.developerLogoDataUrl,
     logoAssets.developerLogoLayout,
     'developer',
   )
   await drawLogoAsset(
     context,
-    exportSize,
+    discContentSize,
+    discOrigin,
     logoAssets.publisherLogoDataUrl,
     logoAssets.publisherLogoLayout,
     'publisher',
