@@ -14,7 +14,6 @@ import {
   getPlatformMarkPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
-  getStraightDiscTextBoundsPercent,
 } from '../discGeometry'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark'
 import type {
@@ -129,7 +128,7 @@ export function clampProjectPlatformMarksToSafeZone(
 }
 
 export function clampStraightDiscTextLayoutToSafeZone(
-  key: DiscTextKey,
+  _key: DiscTextKey,
   layout: DiscTextLayout,
   selectedDiscTemplate: DiscTemplate,
 ): DiscTextLayout {
@@ -143,7 +142,6 @@ export function clampStraightDiscTextLayoutToSafeZone(
       y: layout.y,
     },
     selectedDiscTemplate,
-    getStraightDiscTextBoundsPercent(key, layout),
   )
 
   return {
