@@ -61,6 +61,10 @@ export function getSafeZoneRadiusPercent(template: DiscTemplate) {
   return (template.safeDiameterMm / template.outerDiameterMm) * DISC_LAYOUT_CENTER_PERCENT
 }
 
+export function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
+  return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
+}
+
 export function clampPointToSafeCircle(point: LayoutPoint, safeZoneRadiusPercent: number): LayoutPoint {
   const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
   const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT

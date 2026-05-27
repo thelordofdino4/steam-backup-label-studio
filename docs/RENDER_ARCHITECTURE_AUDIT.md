@@ -35,6 +35,8 @@ Second extraction: generic browser image file reading and natural-size lookup no
 
 Third extraction: custom disc template construction now uses `buildCustomDiscTemplate` in `src/discGeometry.ts`, the existing owner for custom template normalization and geometry constraints. `App.tsx` still owns template state transitions until a focused template hook is extracted.
 
+Fourth extraction: preview guide inset percentage calculation now lives in `src/discGeometry.ts` with the rest of the physical disc geometry helpers. `App.tsx` still computes the selected guide values for wiring into preview props.
+
 ## Preview/Export Render Paths
 
 | Layer | Preview path | Export path | Coordinate system | Current parity risk |

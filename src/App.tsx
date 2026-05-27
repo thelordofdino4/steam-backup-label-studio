@@ -21,6 +21,7 @@ import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
   buildCustomDiscTemplate,
+  getGuideInsetPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
@@ -155,10 +156,6 @@ function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
     '--steam-banner-gradient-end': colors.gradientEnd,
     '--steam-banner-accent': colors.accent,
   } as CSSProperties
-}
-
-function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
-  return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
 }
 
 function App() {
