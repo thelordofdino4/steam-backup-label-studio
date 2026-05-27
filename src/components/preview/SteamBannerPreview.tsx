@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
-import type { SteamBannerLockupLayout } from '../../project/projectTypes'
+import type { SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 const BOTTOM_STEAM_LOCKUP_PREVIEW_STYLE: CSSProperties = {
   width: '27.27%',
@@ -19,16 +19,24 @@ function getLockupLayoutStyle(
   }
 }
 
+function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
+  return {
+    '--steam-banner-gradient-start': colors.gradientStart,
+    '--steam-banner-gradient-end': colors.gradientEnd,
+    '--steam-banner-accent': colors.accent,
+  } as CSSProperties
+}
+
 export type SteamBannerPreviewProps = {
   steamLogoPlacement: SteamLogoPlacement
-  steamBannerStyle: CSSProperties
+  steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
 }
 
 export function SteamBannerPreview({
   steamLogoPlacement,
-  steamBannerStyle,
+  steamBannerColors,
   steamBannerLockupImageUrl,
   steamBannerLockupLayout,
 }: SteamBannerPreviewProps) {
@@ -37,7 +45,7 @@ export function SteamBannerPreview({
       {steamLogoPlacement !== 'none' && (
         <div
           className={`steam-brand-banner ${steamLogoPlacement}`}
-          style={steamBannerStyle}
+          style={getSteamBannerStyle(steamBannerColors)}
           aria-label="Steam brand banner"
         >
           {steamLogoPlacement === 'bottom' && <div className="steam-brand-banner-accent" />}

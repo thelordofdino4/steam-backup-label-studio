@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import {
   downloadSteamArtworkAsDataUrl,
   importSteamApp,
@@ -150,14 +150,6 @@ const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
   offsetY: 0,
 }
 
-function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
-  return {
-    '--steam-banner-gradient-start': colors.gradientStart,
-    '--steam-banner-gradient-end': colors.gradientEnd,
-    '--steam-banner-accent': colors.accent,
-  } as CSSProperties
-}
-
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<SelectedDiscTemplateId>('standardPrintableDisc')
@@ -243,11 +235,6 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
-  const steamBannerStyle = useMemo(
-    () => getSteamBannerStyle(steamBannerColors),
-    [steamBannerColors],
-  )
-
   const backgroundPreviewSize = useMemo(() => {
     if (!backgroundImageSize || backgroundImageSize.width <= 0 || backgroundImageSize.height <= 0) {
       return {
@@ -2336,7 +2323,7 @@ function App() {
         handleBackgroundPointerMove={handleBackgroundPointerMove}
         handleBackgroundPointerUp={handleBackgroundPointerUp}
         steamLogoPlacement={steamLogoPlacement}
-        steamBannerStyle={steamBannerStyle}
+        steamBannerColors={steamBannerColors}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}

@@ -1,6 +1,6 @@
-import { Fragment, type CSSProperties, type PointerEvent, type ReactNode, type RefObject } from 'react'
+import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge } from '../../project/projectTypes'
+import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SteamBannerColors } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -24,7 +24,7 @@ export type DiscPreviewProps = {
   handleBackgroundPointerMove: (event: PointerEvent<HTMLDivElement>) => void
   handleBackgroundPointerUp: (event: PointerEvent<HTMLDivElement>) => void
   steamLogoPlacement: SteamLogoPlacement
-  steamBannerStyle: CSSProperties
+  steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
@@ -78,7 +78,7 @@ export function DiscPreview({
   handleBackgroundPointerMove,
   handleBackgroundPointerUp,
   steamLogoPlacement,
-  steamBannerStyle,
+  steamBannerColors,
   steamBannerLockupImageUrl,
   steamBannerLockupLayout,
   projectLogoAssets,
@@ -127,7 +127,7 @@ export function DiscPreview({
     'steam-banner': (
       <SteamBannerPreview
         steamLogoPlacement={steamLogoPlacement}
-        steamBannerStyle={steamBannerStyle}
+        steamBannerColors={steamBannerColors}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupLayout={steamBannerLockupLayout}
       />

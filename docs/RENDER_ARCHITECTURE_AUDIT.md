@@ -37,6 +37,8 @@ Third extraction: custom disc template construction now uses `buildCustomDiscTem
 
 Fourth extraction: preview guide inset percentage calculation now lives in `src/discGeometry.ts` with the rest of the physical disc geometry helpers. `App.tsx` still computes the selected guide values for wiring into preview props.
 
+Fifth extraction: Steam banner preview CSS-variable construction now lives in `src/components/preview/SteamBannerPreview.tsx`, the existing preview renderer owner. `App.tsx` passes the banner color state through without constructing renderer styles.
+
 ## Preview/Export Render Paths
 
 | Layer | Preview path | Export path | Coordinate system | Current parity risk |
