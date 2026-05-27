@@ -216,7 +216,18 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
 }
 
 export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSize: number, settings: DiscTextSettings, values: DiscTextValues, layoutSettings: DiscTextLayoutSettings, title: string, placement: SteamLogoPlacement, safeZoneRadius: number) {
-  const textStyle: Record<DiscTextKey, { fontSize: number; fontWeight: number; color: string; maxLines: number }> = { title: { fontSize: exportSize * 0.036, fontWeight: 900, color: '#f9fafb', maxLines: 2 }, discNumber: { fontSize: exportSize * 0.019, fontWeight: 800, color: '#f9fafb', maxLines: 1 }, backupDate: { fontSize: exportSize * 0.016, fontWeight: 700, color: '#e5e7eb', maxLines: 1 }, appId: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#d1d5db', maxLines: 1 }, customNote: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 }, copyright: { fontSize: exportSize * 0.011, fontWeight: 600, color: '#d1d5db', maxLines: 3 } }
+  const textStyle: Record<DiscTextKey, { fontSize: number; fontWeight: number; color: string; maxLines: number }> = {
+    title: { fontSize: exportSize * 0.036, fontWeight: 900, color: '#f9fafb', maxLines: 2 },
+    subtitle: { fontSize: exportSize * 0.022, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
+    discNumber: { fontSize: exportSize * 0.019, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
+    backupDate: { fontSize: exportSize * 0.016, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
+    appId: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#d1d5db', maxLines: 1 },
+    developer: { fontSize: exportSize * 0.0145, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
+    publisher: { fontSize: exportSize * 0.0145, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
+    installNotes: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 },
+    customNote: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 },
+    copyright: { fontSize: exportSize * 0.011, fontWeight: 600, color: '#d1d5db', maxLines: 3 },
+  }
   for (const key of DISC_TEXT_KEYS) {
     if (!settings[key]) continue
     const text = getDiscTextContent(key, values, title).trim(); if (!text) continue
