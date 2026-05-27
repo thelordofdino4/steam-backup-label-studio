@@ -1,11 +1,10 @@
-import type { CSSProperties, PointerEvent } from 'react'
+import type { PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   createSvgArcPath,
   getCopyrightArcSide,
   getCurvedPreviewLetterSpacing,
   getDiscTextContent,
-  getDiscTextPreviewClassName,
   getLargeArcFlag,
   getReadableCurvedTextScale,
   type DiscTextKey,
@@ -16,7 +15,7 @@ import {
   type SteamLogoPlacement,
 } from '../../discText'
 import { layoutCurvedText, type CurvedTextLineLayout } from '../../discText/curvedTextLayout'
-import { DISC_TEXT_RENDER_STYLES } from '../../discTextStyles'
+import { getStraightDiscTextRenderLayout, type TextMeasureFunction } from '../../discTextRenderLayout'
 import { resolveMetadataBoundDiscTextValues } from '../../project/metadataDiscText'
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
@@ -36,6 +35,7 @@ export type DiscTextLayerProps = {
 }
 
 let curvedPreviewMeasureContext: CanvasRenderingContext2D | null = null
+let straightPreviewMeasureContext: CanvasRenderingContext2D | null = null
 
 function getCurvedPreviewMeasureContext() {
   if (curvedPreviewMeasureContext) return curvedPreviewMeasureContext
@@ -43,6 +43,27 @@ function getCurvedPreviewMeasureContext() {
 
   curvedPreviewMeasureContext = document.createElement('canvas').getContext('2d')
   return curvedPreviewMeasureContext
+}
+
+function getStraightPreviewMeasureContext() {
+  if (straightPreviewMeasureContext) return straightPreviewMeasureContext
+  if (typeof document === 'undefined') return null
+
+  straightPreviewMeasureContext = document.createElement('canvas').getContext('2d')
+  return straightPreviewMeasureContext
+}
+
+const measureStraightPreviewText: TextMeasureFunction = (text, font) => {
+  const context = getStraightPreviewMeasureContext()
+
+  if (!context) {
+    const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/)
+    const fontSize = fontSizeMatch ? Number(fontSizeMatch[1]) : 1
+    return Array.from(text).length * fontSize * 0.58
+  }
+
+  context.font = font
+  return context.measureText(text).width
 }
 
 function getFallbackCurvedPreviewLineWidth(line: string, fontSize: number, letterSpacing: number) {
@@ -224,20 +245,6 @@ function getCurvedLineTextPathAnchor(
   return { startOffset: '50%', textAnchor: 'middle' }
 }
 
-function getStraightPreviewTextStyle(key: DiscTextKey): CSSProperties {
-  const renderStyle = DISC_TEXT_RENDER_STYLES[key]
-
-  return {
-    color: renderStyle.color,
-    display: '-webkit-box',
-    fontFamily: 'Arial, sans-serif',
-    fontSize: `clamp(7px, ${renderStyle.fontSizePercent}cqw, 34px)`,
-    fontWeight: renderStyle.fontWeight,
-    WebkitBoxOrient: 'vertical',
-    WebkitLineClamp: renderStyle.maxLines,
-  }
-}
-
 export function DiscTextLayer({
   discTextSettings,
   discTextValues,
@@ -246,7 +253,6 @@ export function DiscTextLayer({
   discTextLayout,
   steamLogoPlacement,
   selectedDiscTemplate,
-  getDiscTextPreviewTransform,
   handleDiscTextPointerDown,
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
@@ -354,26 +360,43 @@ export function DiscTextLayer({
             </svg>
           )
         }
+
+        const straightTextLayout = getStraightDiscTextRenderLayout(
+          key,
+          text,
+          layout,
+          measureStraightPreviewText,
+        )
+
         return (
-          <div
-            className={`disc-text-line ${getDiscTextPreviewClassName(key)}`}
+          <svg
+            className="disc-straight-text-svg"
             key={key}
-            style={{
-              ...getStraightPreviewTextStyle(key),
-              left: `${50 + layout.x}%`,
-              top: `${layout.y}%`,
-              width: `${layout.width}%`,
-              maxWidth: `${layout.width}%`,
-              textAlign: layout.align,
-              transform: getDiscTextPreviewTransform(key, layout),
-            }}
+            viewBox="0 0 100 100"
             onPointerDown={(event) => handleDiscTextPointerDown(event, key)}
             onPointerMove={handleDiscTextPointerMove}
             onPointerUp={handleDiscTextPointerUp}
             onPointerCancel={handleDiscTextPointerUp}
           >
-            {text}
-          </div>
+            {straightTextLayout.lines.map((line) => (
+              <text
+                className="disc-straight-text"
+                dominantBaseline="middle"
+                key={`${key}-${line.y}-${line.text}`}
+                textAnchor={straightTextLayout.textAnchor}
+                x={line.x}
+                y={line.y}
+                style={{
+                  fill: straightTextLayout.color,
+                  fontFamily: straightTextLayout.fontFamily,
+                  fontSize: `${straightTextLayout.fontSize}px`,
+                  fontWeight: straightTextLayout.fontWeight,
+                }}
+              >
+                {line.text}
+              </text>
+            ))}
+          </svg>
         )
       })}
     </div>
