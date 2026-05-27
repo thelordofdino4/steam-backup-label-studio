@@ -63,6 +63,7 @@ export async function exportDiscLabelPngBytes(params: {
     params.projectMetadata,
   )
 
+  const discOrigin = exportOutlineWidth
   const center = exportSize / 2
   const outerRadius = discContentSize / 2
   const physicalCenterHoleRadius =
@@ -116,7 +117,8 @@ export async function exportDiscLabelPngBytes(params: {
     'disc-text': () =>
       drawDiscTextElements(
         context,
-        exportSize,
+        discContentSize,
+        discOrigin,
         params.discTextSettings,
         metadataBoundDiscTextValues,
         params.discTextLayout,
