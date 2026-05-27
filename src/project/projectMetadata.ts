@@ -33,6 +33,17 @@ export function createProjectMetadataFromSteamGame(
   }
 }
 
+export function updateProjectMetadataField(
+  metadata: ProjectMetadata,
+  field: keyof ProjectMetadata,
+  value: string,
+): ProjectMetadata {
+  return {
+    ...metadata,
+    [field]: value,
+  }
+}
+
 export function normalizeProjectMetadata(
   metadata: Partial<ProjectMetadata> | undefined,
   fallbackTitle: string,

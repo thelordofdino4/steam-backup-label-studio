@@ -137,8 +137,58 @@ export function normalizeDiscTextSettings(settings?: Partial<DiscTextSettings>):
   return { ...DEFAULT_DISC_TEXT_SETTINGS, ...(settings ?? {}) }
 }
 
+export function updateDiscTextSetting(
+  settings: DiscTextSettings,
+  key: DiscTextKey,
+  checked: boolean,
+): DiscTextSettings {
+  return {
+    ...settings,
+    [key]: checked,
+  }
+}
+
 export function normalizeDiscTextValues(values?: Partial<DiscTextValues>, appId?: number): DiscTextValues {
   return { ...createDefaultDiscTextValues(appId), ...(values ?? {}) }
+}
+
+export function updateDiscTextValue(
+  values: DiscTextValues,
+  key: Exclude<DiscTextKey, 'title'>,
+  value: string,
+): DiscTextValues {
+  return {
+    ...values,
+    [key]: value,
+  }
+}
+
+export function updateDiscTextAlignment(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  align: DiscTextAlignment,
+): DiscTextLayoutSettings {
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...layoutSettings[key],
+      align,
+    },
+  }
+}
+
+export function updateDiscTextArcSide(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  arcSide: DiscTextArcSide,
+): DiscTextLayoutSettings {
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...layoutSettings[key],
+      arcSide,
+    },
+  }
 }
 
 export function normalizeDiscTextLayout(
@@ -154,6 +204,18 @@ export function normalizeDiscTextLayout(
     }
     return normalizedLayout
   }, {} as DiscTextLayoutSettings)
+}
+
+export function getDiscTextInputValue(
+  key: DiscTextKey,
+  values: DiscTextValues,
+  title: string,
+) {
+  if (key === 'title') {
+    return title
+  }
+
+  return values[key]
 }
 
 export function getDiscTextLabel(key: DiscTextKey) {

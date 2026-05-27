@@ -25,3 +25,14 @@ export function exportGuideModeToSelection(mode: ExportGuideMode = 'none'): Expo
       return DEFAULT_EXPORT_GUIDES
   }
 }
+
+export function setExportGuideSelection(
+  currentGuides: ExportGuideSelection,
+  guide: ExportGuideKey,
+  checked: boolean,
+): ExportGuideSelection {
+  return {
+    ...currentGuides,
+    [guide]: checked,
+  }
+}

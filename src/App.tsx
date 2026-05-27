@@ -33,7 +33,7 @@ import {
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from './layout/discElementSafeZone'
-import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
+import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
 import { DiscPreview } from './components/preview/DiscPreview'
@@ -46,12 +46,13 @@ import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
+import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { normalizeParsedProject } from './project/normalizeProject'
-import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata } from './project/projectMetadata'
+import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './project/projectMediaMark'
 import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
-import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -69,6 +70,10 @@ import {
   normalizeDiscTextSettings,
   normalizeDiscTextValues,
   normalizeDiscTextWidth,
+  updateDiscTextAlignment,
+  updateDiscTextArcSide,
+  updateDiscTextSetting,
+  updateDiscTextValue,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
@@ -396,51 +401,6 @@ function App() {
       isCancelled = true
     }
   }, [localSteamScreenshots, localSteamScreenshotThumbnails])
-
-  function createProjectSnapshot(): SavedProject {
-    return {
-      schemaVersion: '0.1.0',
-      title: manualGameTitle,
-      savedAt: new Date().toISOString(),
-      game: {
-        manualTitle: manualGameTitle,
-        selectedSteamGame,
-      },
-      metadata: projectMetadata,
-      logoAssets: projectLogoAssets,
-      ratingBadge: projectRatingBadge,
-      mediaMark: projectMediaMark,
-      platformMarks: projectPlatformMarks,
-      template: {
-        type: 'disc',
-        variant: selectedDiscTemplateId,
-        customDimensions: selectedDiscTemplateId === 'custom' ? customDiscTemplate : null,
-      },
-      steamBackupLogo: {
-        placement: steamLogoPlacement,
-        bannerColors: steamBannerColors,
-        lockupImageDataUrl: steamBannerLockupImageUrl,
-        lockupImageSize: steamBannerLockupImageSize,
-        lockupLayout: steamBannerLockupLayout,
-      },
-      export: {
-        guides: exportGuides,
-      },
-      background: {
-        scale: backgroundScale,
-        offset: backgroundOffset,
-        imageDataUrl: backgroundImageUrl,
-        imageSize: backgroundImageSize,
-        note:
-          'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',
-      },
-      discText: {
-        settings: discTextSettings,
-        values: discTextValues,
-        layout: discTextLayout,
-      },
-    }
-  }
 
   async function setBackgroundFromDataUrl(
     imageDataUrl: string,
@@ -1140,10 +1100,9 @@ function App() {
   }
 
   function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
-    setDiscTextSettings((currentSettings) => ({
-      ...currentSettings,
-      [key]: checked,
-    }))
+    setDiscTextSettings((currentSettings) =>
+      updateDiscTextSetting(currentSettings, key, checked),
+    )
   }
 
   function handleDiscTextContentChange(key: DiscTextKey, value: string) {
@@ -1152,10 +1111,9 @@ function App() {
       return
     }
 
-    setDiscTextValues((currentValues) => ({
-      ...currentValues,
-      [key]: value,
-    }))
+    setDiscTextValues((currentValues) =>
+      updateDiscTextValue(currentValues, key, value),
+    )
   }
 
   function handleDiscTextLayoutChange(
@@ -1184,13 +1142,9 @@ function App() {
   }
 
   function handleDiscTextAlignmentChange(key: DiscTextKey, align: DiscTextAlignment) {
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: {
-        ...currentLayout[key],
-        align,
-      },
-    }))
+    setDiscTextLayout((currentLayout) =>
+      updateDiscTextAlignment(currentLayout, key, align),
+    )
   }
 
   function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {
@@ -1230,13 +1184,9 @@ function App() {
   }
 
   function handleDiscTextArcSideChange(key: DiscTextKey, arcSide: DiscTextArcSide) {
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: {
-        ...currentLayout[key],
-        arcSide,
-      },
-    }))
+    setDiscTextLayout((currentLayout) =>
+      updateDiscTextArcSide(currentLayout, key, arcSide),
+    )
   }
 
   function handleResetDiscTextLayout(key: DiscTextKey) {
@@ -1267,26 +1217,16 @@ function App() {
     })
   }
 
-  function getDiscTextInputValue(key: DiscTextKey) {
-    if (key === 'title') {
-      return manualGameTitle
-    }
-
-    return discTextValues[key]
-  }
-
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
-    setExportGuides((currentGuides) => ({
-      ...currentGuides,
-      [guide]: checked,
-    }))
+    setExportGuides((currentGuides) =>
+      setExportGuideSelection(currentGuides, guide, checked),
+    )
   }
 
   function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
-    setProjectMetadata((currentMetadata) => ({
-      ...currentMetadata,
-      [field]: value,
-    }))
+    setProjectMetadata((currentMetadata) =>
+      updateProjectMetadataField(currentMetadata, field, value),
+    )
 
     if (field === 'title') {
       setManualGameTitle(value)
@@ -1536,7 +1476,30 @@ function App() {
         return
       }
 
-      const project = createProjectSnapshot()
+      const project = createProjectSnapshot({
+        manualGameTitle,
+        selectedSteamGame,
+        projectMetadata,
+        projectLogoAssets,
+        projectRatingBadge,
+        projectMediaMark,
+        projectPlatformMarks,
+        selectedDiscTemplateId,
+        customDiscTemplate,
+        steamLogoPlacement,
+        steamBannerColors,
+        steamBannerLockupImageUrl,
+        steamBannerLockupImageSize,
+        steamBannerLockupLayout,
+        exportGuides,
+        backgroundScale,
+        backgroundOffset,
+        backgroundImageUrl,
+        backgroundImageSize,
+        discTextSettings,
+        discTextValues,
+        discTextLayout,
+      })
       await writeProjectFile(path, JSON.stringify(project, null, 2))
 
       announceStatus(`Saved project to ${path}`)
@@ -2298,7 +2261,8 @@ function App() {
         <TextPanel
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
-          getDiscTextInputValue={getDiscTextInputValue}
+          discTextValues={discTextValues}
+          manualGameTitle={manualGameTitle}
           handleDiscTextToggle={handleDiscTextToggle}
           handleDiscTextContentChange={handleDiscTextContentChange}
           handleDiscTextLayoutChange={handleDiscTextLayoutChange}

@@ -3,12 +3,14 @@ import {
   DISC_TEXT_WIDTH_MAX,
   DISC_TEXT_WIDTH_MIN,
   getDiscTextLabel,
+  getDiscTextInputValue,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
   type DiscTextLayoutSettings,
   type DiscTextMode,
   type DiscTextSettings,
+  type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
@@ -16,7 +18,8 @@ import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../..
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
-  getDiscTextInputValue: (key: DiscTextKey) => string
+  discTextValues: DiscTextValues
+  manualGameTitle: string
   handleDiscTextToggle: (key: DiscTextKey, checked: boolean) => void
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
   handleDiscTextLayoutChange: (
@@ -34,7 +37,8 @@ export type TextPanelProps = {
 export function TextPanel({
   discTextSettings,
   discTextLayout,
-  getDiscTextInputValue,
+  discTextValues,
+  manualGameTitle,
   handleDiscTextToggle,
   handleDiscTextContentChange,
   handleDiscTextLayoutChange,
@@ -94,7 +98,7 @@ export function TextPanel({
                       id={`disc-text-value-${key}`}
                       className="disc-text-input"
                       type="text"
-                      value={getDiscTextInputValue(key)}
+                      value={getDiscTextInputValue(key, discTextValues, manualGameTitle)}
                       onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
                     />
 

@@ -25,7 +25,7 @@ This document is not a close-out for #82. It is an ownership map and risk regist
 | Media mark state transitions and upload | `App.tsx`, `projectMediaMark`, `MediaMarkLayer`, `drawMediaMark` | `useMediaMark` and media mark layout/render modules |
 | Platform mark state transitions and upload | `App.tsx`, `projectMediaMark`, `MediaMarkLayer`, `drawMediaMark` | `usePlatformMarks` and platform mark layout/render modules |
 | Disc text state transitions and pointer movement | `App.tsx`, `discText.ts`, `discTextRenderLayout.ts`, `discTextSvgLayer.ts` | `useDiscTextEditor`, with layout math kept in text modules |
-| Save/load snapshot construction and restoration | `App.tsx`, `src/project/*` | project snapshot and restoration module |
+| Save/load snapshot construction and restoration | `src/project/createProjectSnapshot.ts`, `src/project/normalizeProject.ts`, with restoration wiring still in `App.tsx` | project restoration module |
 | Export preflight orchestration | `App.tsx`, `src/export/exportPreflight.ts` | export orchestration module or hook |
 | Pointer/drag interaction math | `App.tsx` | focused interaction helpers or feature hooks |
 
@@ -38,6 +38,22 @@ Third extraction: custom disc template construction now uses `buildCustomDiscTem
 Fourth extraction: preview guide inset percentage calculation now lives in `src/discGeometry.ts` with the rest of the physical disc geometry helpers. `App.tsx` still computes the selected guide values for wiring into preview props.
 
 Fifth extraction: Steam banner preview CSS-variable construction now lives in `src/components/preview/SteamBannerPreview.tsx`, the existing preview renderer owner. `App.tsx` passes the banner color state through without constructing renderer styles.
+
+Sixth extraction: disc text input value resolution now lives in `src/discText.ts`, the existing owner for disc text keys, values, labels, defaults, and content mapping. `TextPanel` consumes the helper from the domain module instead of receiving a resolver owned by `App.tsx`.
+
+Seventh extraction: saved project snapshot construction now lives in `src/project/createProjectSnapshot.ts`. `App.tsx` still orchestrates the save dialog and file write, but the `SavedProject` schema mapping is owned by the project domain.
+
+Eighth extraction: export guide toggle state transitions now live in `src/exportGuides.ts`, the existing owner for export guide keys, defaults, and selection conversion. `App.tsx` only wires the state setter to that domain helper.
+
+Ninth extraction: project metadata field updates now use `updateProjectMetadataField` from `src/project/projectMetadata.ts`, the existing metadata owner. `App.tsx` still handles the cross-state title synchronization with `manualGameTitle`.
+
+Tenth extraction: non-title disc text value updates now use `updateDiscTextValue` from `src/discText.ts`, the existing disc text owner. `App.tsx` still handles the title special case because it updates `manualGameTitle`.
+
+Eleventh extraction: disc text enabled-setting toggles now use `updateDiscTextSetting` from `src/discText.ts`, keeping the `DiscTextSettings` transition with the disc text domain owner.
+
+Twelfth extraction: disc text alignment layout updates now use `updateDiscTextAlignment` from `src/discText.ts`, keeping that `DiscTextLayoutSettings` transition with the disc text domain owner.
+
+Thirteenth extraction: disc text arc-side layout updates now use `updateDiscTextArcSide` from `src/discText.ts`, keeping another raw `DiscTextLayoutSettings` field transition with the disc text domain owner.
 
 ## Preview/Export Render Paths
 
