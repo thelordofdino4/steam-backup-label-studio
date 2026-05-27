@@ -17,22 +17,20 @@ import {
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
-  DISC_LAYOUT_CENTER_PERCENT,
-  clampLayoutPointToSafeZone,
   clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
-  getLogoAssetBoundsPercent,
-  getMediaMarkBoundsPercent,
-  getMediaMarkPlaceholderBoundsPercent,
-  getPlatformMarkBoundsPercent,
-  getPlatformMarkPlaceholderBoundsPercent,
-  getRatingBadgeBoundsPercent,
-  getRatingBadgePlaceholderBoundsPercent,
-  getStraightDiscTextBoundsPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
+import {
+  clampDiscTextLayoutToSafeZone,
+  clampLogoAssetLayoutToSafeZone,
+  clampMediaMarkLayoutToSafeZone,
+  clampProjectPlatformMarksToSafeZone,
+  clampRatingBadgeLayoutToSafeZone,
+  clampStraightDiscTextLayoutToSafeZone,
+} from './layout/discElementSafeZone'
 import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
@@ -51,7 +49,7 @@ import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, norma
 import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './project/projectMediaMark'
 import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
-import type { BackgroundImageSize, BackgroundOffset, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarkAsset, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SavedProject, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
@@ -195,143 +193,6 @@ function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
     width: image.naturalWidth || image.width,
     height: image.naturalHeight || image.height,
   }
-}
-
-function clampLogoAssetLayoutToSafeZone(
-  layout: LogoAssetLayout,
-  selectedDiscTemplate: DiscTemplate,
-  imageSize: BackgroundImageSize | null,
-): LogoAssetLayout {
-  const point = clampLayoutPointToSafeZone(
-    layout,
-    selectedDiscTemplate,
-    getLogoAssetBoundsPercent(imageSize, layout.scale),
-  )
-
-  return {
-    ...layout,
-    x: point.x,
-    y: point.y,
-  }
-}
-
-function clampRatingBadgeLayoutToSafeZone(
-  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
-  selectedDiscTemplate: DiscTemplate,
-): RatingBadgeLayout {
-  const layout = ratingBadge.layout
-  const bounds =
-    ratingBadge.source === 'custom' && ratingBadge.customImageSize
-      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
-      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
-
-  return {
-    ...layout,
-    x: point.x,
-    y: point.y,
-  }
-}
-
-function clampMediaMarkLayoutToSafeZone(
-  mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
-  selectedDiscTemplate: DiscTemplate,
-): MediaMarkLayout {
-  const layout = mediaMark.layout
-  const bounds =
-    mediaMark.source === 'custom' && mediaMark.customImageSize
-      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, layout.scale)
-      : getMediaMarkPlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
-
-  return {
-    ...layout,
-    x: point.x,
-    y: point.y,
-  }
-}
-
-function clampPlatformMarkLayoutToSafeZone(
-  platformMark: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize' | 'layout'>,
-  selectedDiscTemplate: DiscTemplate,
-): PlatformMarkLayout {
-  const layout = platformMark.layout
-  const bounds =
-    platformMark.source === 'custom' && platformMark.customImageSize
-      ? getPlatformMarkBoundsPercent(platformMark.customImageSize, layout.scale)
-      : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
-
-  return {
-    ...layout,
-    x: point.x,
-    y: point.y,
-  }
-}
-
-function clampProjectPlatformMarksToSafeZone(
-  platformMarks: ProjectPlatformMarks,
-  selectedDiscTemplate: DiscTemplate,
-): ProjectPlatformMarks {
-  return {
-    ...platformMarks,
-    assets: {
-      ...platformMarks.assets,
-      ...Object.fromEntries(
-        platformMarks.values.map((value) => {
-          const asset =
-            platformMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-
-          return [
-            value,
-            {
-              ...asset,
-              layout: clampPlatformMarkLayoutToSafeZone(asset, selectedDiscTemplate),
-            },
-          ]
-        }),
-      ),
-    } as ProjectPlatformMarks['assets'],
-  }
-}
-
-function clampStraightDiscTextLayoutToSafeZone(
-  key: DiscTextKey,
-  layout: DiscTextLayout,
-  selectedDiscTemplate: DiscTemplate,
-): DiscTextLayout {
-  if (layout.mode !== 'straight') {
-    return layout
-  }
-
-  const point = clampLayoutPointToSafeZone(
-    {
-      x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
-      y: layout.y,
-    },
-    selectedDiscTemplate,
-    getStraightDiscTextBoundsPercent(key, layout),
-  )
-
-  return {
-    ...layout,
-    x: point.x - DISC_LAYOUT_CENTER_PERCENT,
-    y: point.y,
-  }
-}
-
-function clampDiscTextLayoutToSafeZone(
-  layout: DiscTextLayoutSettings,
-  selectedDiscTemplate: DiscTemplate,
-): DiscTextLayoutSettings {
-  return DISC_TEXT_KEYS.reduce((nextLayout, key) => {
-    nextLayout[key] = clampStraightDiscTextLayoutToSafeZone(
-      key,
-      layout[key],
-      selectedDiscTemplate,
-    )
-    return nextLayout
-  }, {} as DiscTextLayoutSettings)
 }
 
 function App() {
