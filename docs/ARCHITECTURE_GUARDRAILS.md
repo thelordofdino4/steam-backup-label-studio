@@ -8,12 +8,36 @@ This document is mandatory reading for agents and contributors before implementi
 
 New logic must not be crammed into existing unrelated structures.
 
-- If a change does something new, create a focused new `.ts` or `.tsx` module for it.
+- Before creating new behavior or a new module, do a light search for existing owners: nearby domain modules, hooks, renderers, layout helpers, export helpers, project/schema helpers, and utilities.
+- If an existing feature or module already owns that behavior, update the existing owner instead of creating a parallel implementation.
+- If no suitable owner exists and the change does something genuinely new, create a focused new `.ts` or `.tsx` module for it.
 - If an existing feature needs updating, update it where that feature belongs.
 - If an update grows into a new feature or new responsibility, extract it into a new `.ts` or `.tsx` module.
 - Do not add new behavior to `App.tsx` simply because the state currently lives there.
 - Do not add unrelated responsibilities to existing renderer, panel, export, or utility files.
 - Do not let temporary fixes become permanent dumping grounds.
+
+## Existing Owner Preflight
+
+Before implementing behavior, spend a small amount of time checking whether the project already has an owner for that responsibility.
+
+Use targeted searches rather than broad archaeology. Look for:
+
+- matching domain names such as `discText`, `ratingBadge`, `mediaMark`, `platformMark`, `logoAsset`, `steamBanner`, `background`, `project`, or `export`
+- existing hooks under `src/hooks/`
+- existing layout helpers under `src/layout/` or geometry helpers under `src/discGeometry.ts`
+- existing preview components under `src/components/preview/`
+- existing sidebar panels under `src/components/sidebar/`
+- existing export helpers under `src/export/`
+- existing project/schema helpers under `src/project/`
+- existing utility helpers under `src/utils/`
+
+Decision rule:
+
+- If an owner exists, extend that owner.
+- If an owner almost exists but is missing a clear boundary, extract or rename toward the right owner before expanding behavior.
+- If no owner exists, create a focused module with a clear name and narrow responsibility.
+- Do not create a parallel helper, renderer, or state path that duplicates an existing concept under a different name.
 
 ## App.tsx Boundary
 
