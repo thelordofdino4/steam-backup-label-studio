@@ -3,7 +3,6 @@ import {
   getCopyrightArcSide,
   getDiscTextContent,
   getReadableCurvedTextScale,
-  type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
   type DiscTextSettings,
@@ -11,6 +10,7 @@ import {
   type SteamLogoPlacement,
 } from '../discText'
 import { layoutCurvedText, type CurvedTextLineLayout } from '../discText/curvedTextLayout'
+import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles'
 
 function wrapCanvasText(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
   const words = text.split(/\s+/).filter(Boolean)
@@ -216,24 +216,12 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
 }
 
 export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSize: number, settings: DiscTextSettings, values: DiscTextValues, layoutSettings: DiscTextLayoutSettings, title: string, placement: SteamLogoPlacement, safeZoneRadius: number) {
-  const textStyle: Record<DiscTextKey, { fontSize: number; fontWeight: number; color: string; maxLines: number }> = {
-    title: { fontSize: exportSize * 0.036, fontWeight: 900, color: '#f9fafb', maxLines: 2 },
-    subtitle: { fontSize: exportSize * 0.022, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
-    discNumber: { fontSize: exportSize * 0.019, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
-    backupDate: { fontSize: exportSize * 0.016, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
-    appId: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#d1d5db', maxLines: 1 },
-    developer: { fontSize: exportSize * 0.0145, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
-    publisher: { fontSize: exportSize * 0.0145, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
-    installNotes: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 },
-    customNote: { fontSize: exportSize * 0.015, fontWeight: 700, color: '#f9fafb', maxLines: 2 },
-    copyright: { fontSize: exportSize * 0.011, fontWeight: 600, color: '#d1d5db', maxLines: 3 },
-  }
   for (const key of DISC_TEXT_KEYS) {
     if (!settings[key]) continue
     const text = getDiscTextContent(key, values, title).trim(); if (!text) continue
-    const style = textStyle[key]; const layout = layoutSettings[key]
+    const style = DISC_TEXT_RENDER_STYLES[key]; const layout = layoutSettings[key]
     const effectiveScale = key === 'copyright' && layout.mode === 'curved' ? getReadableCurvedTextScale(layout.scale) : layout.scale
-    const fontSize = style.fontSize * effectiveScale; const lineHeight = fontSize * 1.18
+    const fontSize = exportSize * (style.fontSizePercent / 100) * effectiveScale; const lineHeight = fontSize * 1.18
     const textX = exportSize * ((50 + layout.x) / 100); const textY = exportSize * (layout.y / 100)
     context.save(); context.font = `${style.fontWeight} ${Math.round(fontSize)}px Arial`; context.textAlign = layout.align; context.textBaseline = 'middle'; context.lineJoin = 'round'; context.shadowColor = 'rgba(0, 0, 0, 0.72)'; context.shadowBlur = Math.max(3, exportSize * 0.004); context.shadowOffsetY = Math.max(1, exportSize * 0.0015); context.strokeStyle = 'rgba(0, 0, 0, 0.58)'; context.lineWidth = Math.max(2, exportSize * 0.002); context.fillStyle = style.color
     if (key === 'copyright' && layout.mode === 'curved') { context.textAlign = 'center'; drawCurvedCopyrightText(context, exportSize, safeZoneRadius, placement, layout, text, fontSize); context.restore(); continue }
