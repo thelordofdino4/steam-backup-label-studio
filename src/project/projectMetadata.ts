@@ -1,5 +1,20 @@
-import type { ProjectMetadata } from './projectTypes'
+import type { GameRatingSystem, ProjectMetadata } from './projectTypes'
 import type { SteamImportedGame } from '../steam/steamApi'
+
+const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
+const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
+
+export function getRatingValuesForSystem(system: GameRatingSystem): readonly string[] {
+  if (system === 'ESRB') {
+    return ESRB_RATING_VALUES
+  }
+
+  if (system === 'PEGI') {
+    return PEGI_RATING_VALUES
+  }
+
+  return []
+}
 
 export function createDefaultProjectMetadata(): ProjectMetadata {
   return {

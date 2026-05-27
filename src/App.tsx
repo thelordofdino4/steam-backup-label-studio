@@ -17,7 +17,6 @@ import {
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
-  clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
   buildCustomDiscTemplate,
@@ -49,35 +48,64 @@ import { useStatusToasts } from './hooks/useStatusToasts'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { normalizeParsedProject } from './project/normalizeProject'
 import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
-import { createDefaultProjectLogoAssets, normalizeProjectLogoAssets } from './project/projectLogoAssets'
-import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './project/projectMediaMark'
-import { createDefaultProjectRatingBadge, normalizeProjectRatingBadge } from './project/projectRatingBadge'
-import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, normalizeProjectLogoAssets, resetProjectLogoAssetLayout, setLogoAssetImage, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, setMediaMarkCustomImage, setPlatformMarkCustomImage, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, normalizeProjectRatingBadge, resetProjectRatingBadgeLayout, setRatingBadgeCustomImage, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
 import { getNaturalImageSize, readImageFileAsDataUrl } from './utils/imageFile'
-import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
+import {
+  DEFAULT_STEAM_BANNER_COLORS,
+  DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
+  createCustomSteamBannerLockupImageState,
+  createDefaultSteamBannerLockupImageState,
+  createSteamBannerLockupImageState,
+  updateSteamBannerColor,
+  updateSteamBannerLockupLayoutField,
+  type SteamBannerColorField,
+  type SteamBannerLockupLayoutField,
+} from './steamBanner'
+import {
+  DEFAULT_BACKGROUND_SCALE,
+  createEmptyBackgroundImageState,
+  createDefaultBackgroundOffset,
+  createSelectedBackgroundImageState,
+  getBackgroundPreviewSize,
+} from './backgroundImage'
+import {
+  createPercentDragState,
+  createPixelDragState,
+  getDraggedPercentPoint,
+  getDraggedPixelOffset,
+  type PercentDragState,
+  type PixelDragState,
+} from './interaction/dragGeometry'
 import {
   DISC_TEXT_KEYS,
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
-  getDefaultCopyrightCurvedLayout,
-  getDefaultCopyrightStraightLayout,
+  getDiscTextPreviewTransform,
   normalizeDiscTextLayout,
   normalizeDiscTextSettings,
   normalizeDiscTextValues,
-  normalizeDiscTextWidth,
+  resetDiscTextLayout,
+  isCurvedCopyrightDiscTextLayout,
   updateDiscTextAlignment,
   updateDiscTextArcSide,
+  updateDraggedDiscTextLayoutPosition,
+  updateDiscTextLayoutForSteamLogoPlacement,
+  updateDiscTextLayoutField,
+  updateDiscTextMode,
   updateDiscTextSetting,
   updateDiscTextValue,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
-  type DiscTextLayout,
+  type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
   type DiscTextMode,
   type DiscTextSettings,
@@ -87,46 +115,19 @@ import {
 
 type TextDragState = {
   key: DiscTextKey
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-}
+} & PercentDragState
 
 type LogoDragState = {
   logoKey: 'developer' | 'publisher'
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-}
+} & PercentDragState
 
-type RatingBadgeDragState = {
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-}
+type RatingBadgeDragState = PercentDragState
 
-type MediaMarkDragState = {
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-}
+type MediaMarkDragState = PercentDragState
 
 type PlatformMarkDragState = {
   value: PlatformMarkValue
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-}
+} & PercentDragState
 
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -135,25 +136,7 @@ type CustomDimensionKey =
   | 'printableDiameterMm'
   | 'safeDiameterMm'
 
-type DragState = {
-  pointerId: number
-  startClientX: number
-  startClientY: number
-  startOffsetX: number
-  startOffsetY: number
-}
-
-const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
-  gradientStart: '#2b475e',
-  gradientEnd: '#1b2838',
-  accent: '#2aabe1',
-}
-const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
-const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
-  scale: 1,
-  offsetX: 0,
-  offsetY: 0,
-}
+type DragState = PixelDragState
 
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
@@ -168,7 +151,7 @@ function App() {
   )
   const [steamBannerLockupImageUrl, setSteamBannerLockupImageUrl] = useState<
     string | null
-  >(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
+  >(() => createDefaultSteamBannerLockupImageState().imageUrl)
   const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
     useState<BackgroundImageSize | null>(null)
   const [steamBannerLockupLayout, setSteamBannerLockupLayout] =
@@ -179,10 +162,9 @@ function App() {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
   const [backgroundImageSize, setBackgroundImageSize] =
     useState<BackgroundImageSize | null>(null)
-  const [backgroundScale, setBackgroundScale] = useState(1)
+  const [backgroundScale, setBackgroundScale] = useState(DEFAULT_BACKGROUND_SCALE)
   const [backgroundOffset, setBackgroundOffset] = useState<BackgroundOffset>({
-    x: 0,
-    y: 0,
+    ...createDefaultBackgroundOffset(),
   })
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
@@ -240,28 +222,10 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
-  const backgroundPreviewSize = useMemo(() => {
-    if (!backgroundImageSize || backgroundImageSize.width <= 0 || backgroundImageSize.height <= 0) {
-      return {
-        width: '100%',
-        height: '100%',
-      }
-    }
-
-    const aspectRatio = backgroundImageSize.width / backgroundImageSize.height
-
-    if (aspectRatio >= 1) {
-      return {
-        width: `${aspectRatio * 100}%`,
-        height: '100%',
-      }
-    }
-
-    return {
-      width: '100%',
-      height: `${(1 / aspectRatio) * 100}%`,
-    }
-  }, [backgroundImageSize])
+  const backgroundPreviewSize = useMemo(
+    () => getBackgroundPreviewSize(backgroundImageSize),
+    [backgroundImageSize],
+  )
 
   const printableInsetPercent = getGuideInsetPercent(
     selectedDiscTemplate.outerDiameterMm,
@@ -408,11 +372,15 @@ function App() {
     options: { clearSelectedArtwork?: boolean } = {},
   ) {
     const image = await loadImage(imageDataUrl)
+    const nextBackground = createSelectedBackgroundImageState(
+      imageDataUrl,
+      getNaturalImageSize(image),
+    )
 
-    setBackgroundImageUrl(imageDataUrl)
-    setBackgroundImageSize(getNaturalImageSize(image))
-    setBackgroundScale(1)
-    setBackgroundOffset({ x: 0, y: 0 })
+    setBackgroundImageUrl(nextBackground.imageUrl)
+    setBackgroundImageSize(nextBackground.imageSize)
+    setBackgroundScale(nextBackground.scale)
+    setBackgroundOffset(nextBackground.offset)
 
     if (options.clearSelectedArtwork ?? true) {
       setSelectedArtworkId(null)
@@ -437,9 +405,13 @@ function App() {
     try {
       const imageDataUrl = await readImageFileAsDataUrl(file)
       const image = await loadImage(imageDataUrl)
+      const lockupImage = createCustomSteamBannerLockupImageState(
+        imageDataUrl,
+        getNaturalImageSize(image),
+      )
 
-      setSteamBannerLockupImageUrl(imageDataUrl)
-      setSteamBannerLockupImageSize(getNaturalImageSize(image))
+      setSteamBannerLockupImageUrl(lockupImage.imageUrl)
+      setSteamBannerLockupImageSize(lockupImage.imageSize)
       announceStatus(`Using ${file.name} as the Steam banner lockup.`)
     } catch (error) {
       announceStatus(`Banner lockup import failed: ${String(error)}`)
@@ -447,19 +419,19 @@ function App() {
   }
 
   function handleClearSteamBannerLockup() {
-    setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
-    setSteamBannerLockupImageSize(null)
+    const lockupImage = createDefaultSteamBannerLockupImageState()
+    setSteamBannerLockupImageUrl(lockupImage.imageUrl)
+    setSteamBannerLockupImageSize(lockupImage.imageSize)
     announceStatus('Reset Steam banner lockup image to the default asset.')
   }
 
   function handleSteamBannerLockupLayoutChange(
-    field: keyof SteamBannerLockupLayout,
+    field: SteamBannerLockupLayoutField,
     value: number,
   ) {
-    setSteamBannerLockupLayout((currentLayout) => ({
-      ...currentLayout,
-      [field]: value,
-    }))
+    setSteamBannerLockupLayout((currentLayout) =>
+      updateSteamBannerLockupLayoutField(currentLayout, field, value),
+    )
   }
 
   function handleResetSteamBannerLockupLayout() {
@@ -468,13 +440,12 @@ function App() {
   }
 
   function handleSteamBannerColorChange(
-    field: keyof SteamBannerColors,
+    field: SteamBannerColorField,
     value: string,
   ) {
-    setSteamBannerColors((currentColors) => ({
-      ...currentColors,
-      [field]: value,
-    }))
+    setSteamBannerColors((currentColors) =>
+      updateSteamBannerColor(currentColors, field, value),
+    )
   }
 
   async function handleLogoAssetUpload(
@@ -499,39 +470,19 @@ function App() {
       const imageSize = getNaturalImageSize(image)
 
       setProjectLogoAssets((currentLogoAssets) => {
-        if (logoKey === 'developer') {
-          const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
-            {
-              ...currentLogoAssets.developerLogoLayout,
-              enabled: true,
-            },
-            selectedDiscTemplate,
-            imageSize,
-          )
-
-          return {
-            ...currentLogoAssets,
-            developerLogoDataUrl: imageDataUrl,
-            developerLogoSize: imageSize,
-            developerLogoLayout,
-          }
-        }
-
-        const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
-          {
-            ...currentLogoAssets.publisherLogoLayout,
-            enabled: true,
-          },
-          selectedDiscTemplate,
+        const nextLogoAssets = setLogoAssetImage(
+          currentLogoAssets,
+          logoKey,
+          imageDataUrl,
           imageSize,
         )
+        const nextLayout = clampLogoAssetLayoutToSafeZone(
+          getLogoAssetLayout(nextLogoAssets, logoKey),
+          selectedDiscTemplate,
+          getLogoAssetSize(nextLogoAssets, logoKey),
+        )
 
-        return {
-          ...currentLogoAssets,
-          publisherLogoDataUrl: imageDataUrl,
-          publisherLogoSize: imageSize,
-          publisherLogoLayout,
-        }
+        return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
       })
 
       announceStatus(`Using ${file.name} as the ${logoKey} logo.`)
@@ -541,102 +492,52 @@ function App() {
   }
 
   function handleLogoAssetLayoutChange(
-    logoKey: 'developer' | 'publisher',
-    field: 'enabled' | 'scale' | 'x' | 'y',
+    logoKey: LogoAssetKey,
+    field: LogoAssetLayoutField,
     value: boolean | number,
   ) {
     setProjectLogoAssets((currentLogoAssets) => {
-      if (logoKey === 'developer') {
-        const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
-          {
-            ...currentLogoAssets.developerLogoLayout,
-            [field]: value,
-          },
-          selectedDiscTemplate,
-          currentLogoAssets.developerLogoSize,
-        )
-
-        return {
-          ...currentLogoAssets,
-          developerLogoLayout,
-        }
-      }
-
-      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
-        {
-          ...currentLogoAssets.publisherLogoLayout,
-          [field]: value,
-        },
+      const nextLogoAssets = updateLogoAssetLayoutField(
+        currentLogoAssets,
+        logoKey,
+        field,
+        value,
+      )
+      const nextLayout = clampLogoAssetLayoutToSafeZone(
+        getLogoAssetLayout(nextLogoAssets, logoKey),
         selectedDiscTemplate,
-        currentLogoAssets.publisherLogoSize,
+        getLogoAssetSize(nextLogoAssets, logoKey),
       )
 
-      return {
-        ...currentLogoAssets,
-        publisherLogoLayout,
-      }
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
     })
   }
 
-  function handleClearLogoAsset(logoKey: 'developer' | 'publisher') {
+  function handleClearLogoAsset(logoKey: LogoAssetKey) {
     setProjectLogoAssets((currentLogoAssets) => {
-      if (logoKey === 'developer') {
-        return {
-          ...currentLogoAssets,
-          developerLogoDataUrl: null,
-          developerLogoSize: null,
-          developerLogoLayout: clampLogoAssetLayoutToSafeZone(
-            currentLogoAssets.developerLogoLayout,
-            selectedDiscTemplate,
-            null,
-          ),
-        }
-      }
+      const nextLogoAssets = clearLogoAsset(currentLogoAssets, logoKey)
+      const nextLayout = clampLogoAssetLayoutToSafeZone(
+        getLogoAssetLayout(nextLogoAssets, logoKey),
+        selectedDiscTemplate,
+        getLogoAssetSize(nextLogoAssets, logoKey),
+      )
 
-      return {
-        ...currentLogoAssets,
-        publisherLogoDataUrl: null,
-        publisherLogoSize: null,
-        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
-          currentLogoAssets.publisherLogoLayout,
-          selectedDiscTemplate,
-          null,
-        ),
-      }
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
     })
 
     announceStatus(`Cleared ${logoKey} logo asset.`)
   }
 
-  function handleResetLogoAssetLayout(logoKey: 'developer' | 'publisher') {
+  function handleResetLogoAssetLayout(logoKey: LogoAssetKey) {
     setProjectLogoAssets((currentLogoAssets) => {
-      const defaults = createDefaultProjectLogoAssets()
+      const nextLogoAssets = resetProjectLogoAssetLayout(currentLogoAssets, logoKey)
+      const nextLayout = clampLogoAssetLayoutToSafeZone(
+        getLogoAssetLayout(nextLogoAssets, logoKey),
+        selectedDiscTemplate,
+        getLogoAssetSize(nextLogoAssets, logoKey),
+      )
 
-      if (logoKey === 'developer') {
-        return {
-          ...currentLogoAssets,
-          developerLogoLayout: clampLogoAssetLayoutToSafeZone(
-            {
-              ...defaults.developerLogoLayout,
-              enabled: currentLogoAssets.developerLogoLayout.enabled,
-            },
-            selectedDiscTemplate,
-            currentLogoAssets.developerLogoSize,
-          ),
-        }
-      }
-
-      return {
-        ...currentLogoAssets,
-        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
-          {
-            ...defaults.publisherLogoLayout,
-            enabled: currentLogoAssets.publisherLogoLayout.enabled,
-          },
-          selectedDiscTemplate,
-          currentLogoAssets.publisherLogoSize,
-        ),
-      }
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
     })
 
     announceStatus(`Reset ${logoKey} logo layout.`)
@@ -661,16 +562,11 @@ function App() {
       const imageSize = getNaturalImageSize(image)
 
       setProjectRatingBadge((currentBadge) => {
-        const nextBadge = {
-          ...currentBadge,
-          source: 'custom' as const,
-          customImageDataUrl: imageDataUrl,
-          customImageSize: imageSize,
-          layout: {
-            ...currentBadge.layout,
-            enabled: true,
-          },
-        }
+        const nextBadge = setRatingBadgeCustomImage(
+          currentBadge,
+          imageDataUrl,
+          imageSize,
+        )
 
         return {
           ...nextBadge,
@@ -684,12 +580,9 @@ function App() {
     }
   }
 
-  function handleRatingBadgeSourceChange(source: 'placeholder' | 'custom') {
+  function handleRatingBadgeSourceChange(source: RatingBadgeSource) {
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        source,
-      }
+      const nextBadge = updateRatingBadgeSource(currentBadge, source)
 
       return {
         ...nextBadge,
@@ -699,17 +592,11 @@ function App() {
   }
 
   function handleRatingBadgeLayoutChange(
-    field: keyof ProjectRatingBadge['layout'],
+    field: RatingBadgeLayoutField,
     value: boolean | number,
   ) {
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        layout: {
-          ...currentBadge.layout,
-          [field]: value,
-        },
-      }
+      const nextBadge = updateRatingBadgeLayoutField(currentBadge, field, value)
 
       return {
         ...nextBadge,
@@ -720,12 +607,7 @@ function App() {
 
   function handleClearRatingBadgeImage() {
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        source: 'placeholder' as const,
-        customImageDataUrl: null,
-        customImageSize: null,
-      }
+      const nextBadge = clearRatingBadgeImage(currentBadge)
 
       return {
         ...nextBadge,
@@ -737,16 +619,8 @@ function App() {
   }
 
   function handleResetRatingBadgeLayout() {
-    const defaults = createDefaultProjectRatingBadge()
-
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        layout: {
-          ...defaults.layout,
-          enabled: currentBadge.layout.enabled,
-        },
-      }
+      const nextBadge = resetProjectRatingBadgeLayout(currentBadge)
 
       return {
         ...nextBadge,
@@ -776,16 +650,11 @@ function App() {
       const imageSize = getNaturalImageSize(image)
 
       setProjectMediaMark((currentMark) => {
-        const nextMark = {
-          ...currentMark,
-          source: 'custom' as const,
-          customImageDataUrl: imageDataUrl,
-          customImageSize: imageSize,
-          layout: {
-            ...currentMark.layout,
-            enabled: true,
-          },
-        }
+        const nextMark = setMediaMarkCustomImage(
+          currentMark,
+          imageDataUrl,
+          imageSize,
+        )
 
         return {
           ...nextMark,
@@ -800,18 +669,14 @@ function App() {
   }
 
   function handleMediaMarkValueChange(value: MediaMarkValue) {
-    setProjectMediaMark((currentMark) => ({
-      ...currentMark,
-      value,
-    }))
+    setProjectMediaMark((currentMark) =>
+      updateMediaMarkValue(currentMark, value),
+    )
   }
 
   function handleMediaMarkSourceChange(source: MediaMarkSource) {
     setProjectMediaMark((currentMark) => {
-      const nextMark = {
-        ...currentMark,
-        source,
-      }
+      const nextMark = updateMediaMarkSource(currentMark, source)
 
       return {
         ...nextMark,
@@ -821,17 +686,11 @@ function App() {
   }
 
   function handleMediaMarkLayoutChange(
-    field: keyof ProjectMediaMark['layout'],
+    field: MediaMarkLayoutField,
     value: boolean | number,
   ) {
     setProjectMediaMark((currentMark) => {
-      const nextMark = {
-        ...currentMark,
-        layout: {
-          ...currentMark.layout,
-          [field]: value,
-        },
-      }
+      const nextMark = updateMediaMarkLayoutField(currentMark, field, value)
 
       return {
         ...nextMark,
@@ -842,12 +701,7 @@ function App() {
 
   function handleClearMediaMarkImage() {
     setProjectMediaMark((currentMark) => {
-      const nextMark = {
-        ...currentMark,
-        source: 'placeholder' as const,
-        customImageDataUrl: null,
-        customImageSize: null,
-      }
+      const nextMark = clearMediaMarkImage(currentMark)
 
       return {
         ...nextMark,
@@ -859,16 +713,8 @@ function App() {
   }
 
   function handleResetMediaMarkLayout() {
-    const defaults = createDefaultProjectMediaMark()
-
     setProjectMediaMark((currentMark) => {
-      const nextMark = {
-        ...currentMark,
-        layout: {
-          ...defaults.layout,
-          enabled: currentMark.layout.enabled,
-        },
-      }
+      const nextMark = resetProjectMediaMarkLayout(currentMark)
 
       return {
         ...nextMark,
@@ -880,30 +726,12 @@ function App() {
   }
 
   function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
-    setProjectPlatformMarks((currentMarks) => {
-      const values = enabled
-        ? Array.from(new Set([...currentMarks.values, value]))
-        : currentMarks.values.filter((currentValue) => currentValue !== value)
-      const currentAsset =
-        currentMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-      const nextAsset = {
-        ...currentAsset,
-        layout: {
-          ...currentAsset.layout,
-          enabled,
-        },
-      }
-      const nextMarks = {
-        ...currentMarks,
-        values,
-        assets: {
-          ...currentMarks.assets,
-          [value]: nextAsset,
-        },
-      }
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
+    setProjectPlatformMarks((currentMarks) =>
+      clampProjectPlatformMarksToSafeZone(
+        updatePlatformMarkToggle(currentMarks, value, enabled),
+        selectedDiscTemplate,
+      ),
+    )
   }
 
   async function handlePlatformMarkUpload(
@@ -927,30 +755,12 @@ function App() {
       const image = await loadImage(imageDataUrl)
       const imageSize = getNaturalImageSize(image)
 
-      setProjectPlatformMarks((currentMarks) => {
-        const currentAsset =
-          currentMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-        const nextAsset = {
-          ...currentAsset,
-          source: 'custom' as const,
-          customImageDataUrl: imageDataUrl,
-          customImageSize: imageSize,
-          layout: {
-            ...currentAsset.layout,
-            enabled: true,
-          },
-        }
-        const nextMarks = {
-          ...currentMarks,
-          values: Array.from(new Set([...currentMarks.values, value])),
-          assets: {
-            ...currentMarks.assets,
-            [value]: nextAsset,
-          },
-        }
-
-        return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-      })
+      setProjectPlatformMarks((currentMarks) =>
+        clampProjectPlatformMarksToSafeZone(
+          setPlatformMarkCustomImage(currentMarks, value, imageDataUrl, imageSize),
+          selectedDiscTemplate,
+        ),
+      )
 
       announceStatus(`Using ${file.name} as the platform mark.`)
     } catch (error) {
@@ -959,98 +769,45 @@ function App() {
   }
 
   function handlePlatformMarkSourceChange(value: PlatformMarkValue, source: PlatformMarkSource) {
-    setProjectPlatformMarks((currentMarks) => {
-      const currentAsset =
-        currentMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-      const nextAsset = {
-        ...currentAsset,
-        source,
-      }
-      const nextMarks = {
-        ...currentMarks,
-        assets: {
-          ...currentMarks.assets,
-          [value]: nextAsset,
-        },
-      }
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
+    setProjectPlatformMarks((currentMarks) =>
+      clampProjectPlatformMarksToSafeZone(
+        updatePlatformMarkSource(currentMarks, value, source),
+        selectedDiscTemplate,
+      ),
+    )
   }
 
   function handlePlatformMarkLayoutChange(
     platformValue: PlatformMarkValue,
-    field: keyof PlatformMarkLayout,
+    field: PlatformMarkLayoutField,
     layoutValue: boolean | number,
   ) {
-    setProjectPlatformMarks((currentMarks) => {
-      const currentAsset =
-        currentMarks.assets[platformValue] ?? createDefaultProjectPlatformMarkAsset(platformValue)
-      const nextAsset = {
-        ...currentAsset,
-        layout: {
-          ...currentAsset.layout,
-          [field]: layoutValue,
-        },
-      }
-      const nextMarks = {
-        ...currentMarks,
-        assets: {
-          ...currentMarks.assets,
-          [platformValue]: nextAsset,
-        },
-      }
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
+    setProjectPlatformMarks((currentMarks) =>
+      clampProjectPlatformMarksToSafeZone(
+        updatePlatformMarkLayoutField(currentMarks, platformValue, field, layoutValue),
+        selectedDiscTemplate,
+      ),
+    )
   }
 
   function handleClearPlatformMarkImage(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) => {
-      const currentAsset =
-        currentMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-      const nextAsset = {
-        ...currentAsset,
-        source: 'placeholder' as const,
-        customImageDataUrl: null,
-        customImageSize: null,
-      }
-      const nextMarks = {
-        ...currentMarks,
-        assets: {
-          ...currentMarks.assets,
-          [value]: nextAsset,
-        },
-      }
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
+    setProjectPlatformMarks((currentMarks) =>
+      clampProjectPlatformMarksToSafeZone(
+        clearPlatformMarkImage(currentMarks, value),
+        selectedDiscTemplate,
+      ),
+    )
 
     announceStatus('Cleared custom platform mark image.')
   }
 
   function handleResetPlatformMarkLayout(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) => {
-      const currentAsset =
-        currentMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-      const defaultAsset = createDefaultProjectPlatformMarkAsset(value)
-      const nextAsset = {
-        ...currentAsset,
-        layout: {
-          ...defaultAsset.layout,
-          enabled: currentAsset.layout.enabled,
-        },
-      }
-      const nextMarks = {
-        ...currentMarks,
-        assets: {
-          ...currentMarks.assets,
-          [value]: nextAsset,
-        },
-      }
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
+    setProjectPlatformMarks((currentMarks) =>
+      clampProjectPlatformMarksToSafeZone(
+        resetProjectPlatformMarkLayout(currentMarks, value),
+        selectedDiscTemplate,
+      ),
+    )
 
     announceStatus('Reset platform mark layout.')
   }
@@ -1073,29 +830,11 @@ function App() {
       return
     }
 
-    const defaultLayout = createDefaultDiscTextLayout(placement)
-
     setDiscTextLayout((currentLayout) => {
-      const currentCopyrightLayout = currentLayout.copyright
-      const defaultCopyrightLayout =
-        currentCopyrightLayout.mode === 'curved'
-          ? getDefaultCopyrightCurvedLayout(placement)
-          : getDefaultCopyrightStraightLayout(placement)
-      const nextLayout = {
-        ...currentLayout,
-        title: defaultLayout.title,
-        customNote: defaultLayout.customNote,
-        copyright: {
-          ...defaultCopyrightLayout,
-          mode: currentCopyrightLayout.mode,
-          scale: currentCopyrightLayout.scale,
-          align: currentCopyrightLayout.align,
-          arcDegrees: currentCopyrightLayout.arcDegrees,
-          width: currentCopyrightLayout.width,
-        },
-      }
-
-      return clampDiscTextLayoutToSafeZone(nextLayout, selectedDiscTemplate)
+      return clampDiscTextLayoutToSafeZone(
+        updateDiscTextLayoutForSteamLogoPlacement(currentLayout, placement),
+        selectedDiscTemplate,
+      )
     })
   }
 
@@ -1118,23 +857,17 @@ function App() {
 
   function handleDiscTextLayoutChange(
     key: DiscTextKey,
-    field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
+    field: DiscTextLayoutNumericField,
     value: number,
   ) {
     setDiscTextLayout((currentLayout) => {
-      const nextTextLayout = {
-        ...currentLayout[key],
-        [field]:
-          field === 'width'
-            ? normalizeDiscTextWidth(value, currentLayout[key].width)
-            : value,
-      }
+      const nextLayout = updateDiscTextLayoutField(currentLayout, key, field, value)
 
       return {
-        ...currentLayout,
+        ...nextLayout,
         [key]: clampStraightDiscTextLayoutToSafeZone(
           key,
-          nextTextLayout,
+          nextLayout[key],
           selectedDiscTemplate,
         ),
       }
@@ -1149,34 +882,18 @@ function App() {
 
   function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {
     setDiscTextLayout((currentLayout) => {
-      if (key === 'copyright') {
-        const defaultLayout =
-          mode === 'curved'
-            ? getDefaultCopyrightCurvedLayout(steamLogoPlacement)
-            : getDefaultCopyrightStraightLayout(steamLogoPlacement)
-
-        return {
-          ...currentLayout,
-          copyright: clampStraightDiscTextLayoutToSafeZone(
-            'copyright',
-            {
-              ...currentLayout.copyright,
-              ...defaultLayout,
-              mode,
-            },
-            selectedDiscTemplate,
-          ),
-        }
-      }
+      const nextLayout = updateDiscTextMode(
+        currentLayout,
+        key,
+        mode,
+        steamLogoPlacement,
+      )
 
       return {
-        ...currentLayout,
+        ...nextLayout,
         [key]: clampStraightDiscTextLayoutToSafeZone(
           key,
-          {
-            ...currentLayout[key],
-            mode,
-          },
+          nextLayout[key],
           selectedDiscTemplate,
         ),
       }
@@ -1190,27 +907,14 @@ function App() {
   }
 
   function handleResetDiscTextLayout(key: DiscTextKey) {
-    const defaultLayout = createDefaultDiscTextLayout(steamLogoPlacement)
-
     setDiscTextLayout((currentLayout) => {
-      if (key === 'copyright') {
-        return {
-          ...currentLayout,
-          copyright: clampStraightDiscTextLayoutToSafeZone(
-            'copyright',
-            currentLayout.copyright.mode === 'curved'
-              ? getDefaultCopyrightCurvedLayout(steamLogoPlacement)
-              : getDefaultCopyrightStraightLayout(steamLogoPlacement),
-            selectedDiscTemplate,
-          ),
-        }
-      }
+      const nextLayout = resetDiscTextLayout(currentLayout, key, steamLogoPlacement)
 
       return {
-        ...currentLayout,
+        ...nextLayout,
         [key]: clampStraightDiscTextLayoutToSafeZone(
           key,
-          defaultLayout[key],
+          nextLayout[key],
           selectedDiscTemplate,
         ),
       }
@@ -1257,14 +961,16 @@ function App() {
     setCustomDiscTemplate(buildCustomDiscTemplate(discTemplates.standardPrintableDisc))
     setSteamLogoPlacement('top')
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
-    setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
-    setSteamBannerLockupImageSize(null)
+    const defaultLockupImage = createDefaultSteamBannerLockupImageState()
+    setSteamBannerLockupImageUrl(defaultLockupImage.imageUrl)
+    setSteamBannerLockupImageSize(defaultLockupImage.imageSize)
     setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
     setExportGuides(DEFAULT_EXPORT_GUIDES)
-    setBackgroundImageUrl(null)
-    setBackgroundImageSize(null)
-    setBackgroundScale(1)
-    setBackgroundOffset({ x: 0, y: 0 })
+    const emptyBackground = createEmptyBackgroundImageState()
+    setBackgroundImageUrl(emptyBackground.imageUrl)
+    setBackgroundImageSize(emptyBackground.imageSize)
+    setBackgroundScale(emptyBackground.scale)
+    setBackgroundOffset(emptyBackground.offset)
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
@@ -1605,10 +1311,12 @@ function App() {
 
       setSteamLogoPlacement(project.steamBackupLogo.placement)
       setSteamBannerColors(project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS)
-      setSteamBannerLockupImageUrl(
-        project.steamBackupLogo.lockupImageDataUrl ?? DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+      const loadedLockupImage = createSteamBannerLockupImageState(
+        project.steamBackupLogo.lockupImageDataUrl,
+        project.steamBackupLogo.lockupImageSize,
       )
-      setSteamBannerLockupImageSize(project.steamBackupLogo.lockupImageSize ?? null)
+      setSteamBannerLockupImageUrl(loadedLockupImage.imageUrl)
+      setSteamBannerLockupImageSize(loadedLockupImage.imageSize)
       setSteamBannerLockupLayout(
         project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
       )
@@ -1736,11 +1444,13 @@ function App() {
 
     textDragStateRef.current = {
       key,
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startX: discTextLayout[key].x,
-      startY: discTextLayout[key].y,
+      ...createPercentDragState(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        discTextLayout[key].x,
+        discTextLayout[key].y,
+      ),
     }
   }
 
@@ -1754,27 +1464,27 @@ function App() {
 
     event.stopPropagation()
 
-    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
-    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+    const draggedPoint = getDraggedPercentPoint(
+      dragState,
+      event.clientX,
+      event.clientY,
+      previewRect,
+    )
 
     setDiscTextLayout((currentLayout) => {
-      const currentTextLayout = currentLayout[dragState.key]
-      const isCurvedCopyright =
-        dragState.key === 'copyright' && currentTextLayout.mode === 'curved'
-
-      const nextTextLayout = {
-        ...currentTextLayout,
-        x: isCurvedCopyright
-          ? clampNumber(dragState.startX + deltaXPercent, -60, 60)
-          : dragState.startX + deltaXPercent,
-        y: isCurvedCopyright
-          ? clampNumber(dragState.startY + deltaYPercent, -8, 20)
-          : dragState.startY + deltaYPercent,
-      }
+      const nextLayout = updateDraggedDiscTextLayoutPosition(
+        currentLayout,
+        dragState.key,
+        draggedPoint,
+      )
+      const nextTextLayout = nextLayout[dragState.key]
 
       return {
-        ...currentLayout,
-        [dragState.key]: isCurvedCopyright
+        ...nextLayout,
+        [dragState.key]: isCurvedCopyrightDiscTextLayout(
+          dragState.key,
+          currentLayout[dragState.key],
+        )
           ? nextTextLayout
           : clampStraightDiscTextLayoutToSafeZone(
               dragState.key,
@@ -1811,11 +1521,13 @@ function App() {
 
     logoDragStateRef.current = {
       logoKey,
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startX: layout.x,
-      startY: layout.y,
+      ...createPercentDragState(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        layout.x,
+        layout.y,
+      ),
     }
   }
 
@@ -1829,41 +1541,26 @@ function App() {
 
     event.stopPropagation()
 
-    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
-    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+    const draggedPoint = getDraggedPercentPoint(
+      dragState,
+      event.clientX,
+      event.clientY,
+      previewRect,
+    )
 
     setProjectLogoAssets((currentLogoAssets) => {
-      if (dragState.logoKey === 'developer') {
-        const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
-          {
-            ...currentLogoAssets.developerLogoLayout,
-            x: dragState.startX + deltaXPercent,
-            y: dragState.startY + deltaYPercent,
-          },
-          selectedDiscTemplate,
-          currentLogoAssets.developerLogoSize,
-        )
-
-        return {
-          ...currentLogoAssets,
-          developerLogoLayout,
-        }
-      }
-
-      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
-        {
-          ...currentLogoAssets.publisherLogoLayout,
-          x: dragState.startX + deltaXPercent,
-          y: dragState.startY + deltaYPercent,
-        },
+      const nextLogoAssets = updateLogoAssetLayoutPosition(
+        currentLogoAssets,
+        dragState.logoKey,
+        draggedPoint,
+      )
+      const nextLayout = clampLogoAssetLayoutToSafeZone(
+        getLogoAssetLayout(nextLogoAssets, dragState.logoKey),
         selectedDiscTemplate,
-        currentLogoAssets.publisherLogoSize,
+        getLogoAssetSize(nextLogoAssets, dragState.logoKey),
       )
 
-      return {
-        ...currentLogoAssets,
-        publisherLogoLayout,
-      }
+      return setLogoAssetLayout(nextLogoAssets, dragState.logoKey, nextLayout)
     })
   }
 
@@ -1884,11 +1581,13 @@ function App() {
     event.currentTarget.setPointerCapture(event.pointerId)
 
     ratingBadgeDragStateRef.current = {
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startX: projectRatingBadge.layout.x,
-      startY: projectRatingBadge.layout.y,
+      ...createPercentDragState(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        projectRatingBadge.layout.x,
+        projectRatingBadge.layout.y,
+      ),
     }
   }
 
@@ -1902,18 +1601,15 @@ function App() {
 
     event.stopPropagation()
 
-    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
-    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+    const draggedPoint = getDraggedPercentPoint(
+      dragState,
+      event.clientX,
+      event.clientY,
+      previewRect,
+    )
 
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        layout: {
-          ...currentBadge.layout,
-          x: dragState.startX + deltaXPercent,
-          y: dragState.startY + deltaYPercent,
-        },
-      }
+      const nextBadge = updateRatingBadgeLayoutPosition(currentBadge, draggedPoint)
 
       return {
         ...nextBadge,
@@ -1939,11 +1635,13 @@ function App() {
     event.currentTarget.setPointerCapture(event.pointerId)
 
     mediaMarkDragStateRef.current = {
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startX: projectMediaMark.layout.x,
-      startY: projectMediaMark.layout.y,
+      ...createPercentDragState(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        projectMediaMark.layout.x,
+        projectMediaMark.layout.y,
+      ),
     }
   }
 
@@ -1957,18 +1655,15 @@ function App() {
 
     event.stopPropagation()
 
-    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
-    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+    const draggedPoint = getDraggedPercentPoint(
+      dragState,
+      event.clientX,
+      event.clientY,
+      previewRect,
+    )
 
     setProjectMediaMark((currentMark) => {
-      const nextMark = {
-        ...currentMark,
-        layout: {
-          ...currentMark.layout,
-          x: dragState.startX + deltaXPercent,
-          y: dragState.startY + deltaYPercent,
-        },
-      }
+      const nextMark = updateMediaMarkLayoutPosition(currentMark, draggedPoint)
 
       return {
         ...nextMark,
@@ -2001,11 +1696,13 @@ function App() {
 
     platformMarkDragStateRef.current = {
       value,
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startX: asset.layout.x,
-      startY: asset.layout.y,
+      ...createPercentDragState(
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        asset.layout.x,
+        asset.layout.y,
+      ),
     }
   }
 
@@ -2019,28 +1716,19 @@ function App() {
 
     event.stopPropagation()
 
-    const deltaXPercent = ((event.clientX - dragState.startClientX) / previewRect.width) * 100
-    const deltaYPercent = ((event.clientY - dragState.startClientY) / previewRect.height) * 100
+    const draggedPoint = getDraggedPercentPoint(
+      dragState,
+      event.clientX,
+      event.clientY,
+      previewRect,
+    )
 
     setProjectPlatformMarks((currentMarks) => {
-      const currentAsset =
-        currentMarks.assets[dragState.value] ??
-        createDefaultProjectPlatformMarkAsset(dragState.value)
-      const nextAsset = {
-        ...currentAsset,
-        layout: {
-          ...currentAsset.layout,
-          x: dragState.startX + deltaXPercent,
-          y: dragState.startY + deltaYPercent,
-        },
-      }
-      const nextMarks = {
-        ...currentMarks,
-        assets: {
-          ...currentMarks.assets,
-          [dragState.value]: nextAsset,
-        },
-      }
+      const nextMarks = updatePlatformMarkLayoutPosition(
+        currentMarks,
+        dragState.value,
+        draggedPoint,
+      )
 
       return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
     })
@@ -2058,54 +1746,34 @@ function App() {
     event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
-  function getDiscTextPreviewTransform(_key: DiscTextKey, layout: DiscTextLayout) {
-    if (layout.mode === 'straight') {
-      return `translate(-50%, -50%) scale(${layout.scale})`
-    }
-
-    const horizontalTranslate =
-      layout.align === 'left'
-        ? '0'
-        : layout.align === 'right'
-          ? '-100%'
-          : '-50%'
-
-    return `translate(${horizontalTranslate}, -50%) scale(${layout.scale})`
-  }
-
-  function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
+  async function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
 
     if (!file) {
       return
     }
 
-    const reader = new FileReader()
+    let imageDataUrl: string
+    try {
+      imageDataUrl = await readImageFileAsDataUrl(file)
+    } catch {
+      announceStatus('Background image could not be read.')
+      return
+    }
 
-    reader.onload = () => {
-      const imageDataUrl = reader.result
-
-      if (typeof imageDataUrl !== 'string') {
-        announceStatus('Background image could not be loaded.')
-        return
-      }
-
-      void setBackgroundFromDataUrl(
+    try {
+      await setBackgroundFromDataUrl(
         imageDataUrl,
         'Background image loaded and will be embedded when saved.',
       )
+    } catch {
+      announceStatus('Background image could not be loaded.')
     }
-
-    reader.onerror = () => {
-      announceStatus('Background image could not be read.')
-    }
-
-    reader.readAsDataURL(file)
   }
 
   function handleResetBackground() {
-    setBackgroundScale(1)
-    setBackgroundOffset({ x: 0, y: 0 })
+    setBackgroundScale(DEFAULT_BACKGROUND_SCALE)
+    setBackgroundOffset(createDefaultBackgroundOffset())
   }
 
   function handleBackgroundPointerDown(event: PointerEvent<HTMLDivElement>) {
@@ -2115,13 +1783,12 @@ function App() {
 
     event.currentTarget.setPointerCapture(event.pointerId)
 
-    dragStateRef.current = {
-      pointerId: event.pointerId,
-      startClientX: event.clientX,
-      startClientY: event.clientY,
-      startOffsetX: backgroundOffset.x,
-      startOffsetY: backgroundOffset.y,
-    }
+    dragStateRef.current = createPixelDragState(
+      event.pointerId,
+      event.clientX,
+      event.clientY,
+      backgroundOffset,
+    )
   }
 
   function handleBackgroundPointerMove(event: PointerEvent<HTMLDivElement>) {
@@ -2131,13 +1798,7 @@ function App() {
       return
     }
 
-    const deltaX = event.clientX - dragState.startClientX
-    const deltaY = event.clientY - dragState.startClientY
-
-    setBackgroundOffset({
-      x: dragState.startOffsetX + deltaX,
-      y: dragState.startOffsetY + deltaY,
-    })
+    setBackgroundOffset(getDraggedPixelOffset(dragState, event.clientX, event.clientY))
   }
 
   function handleBackgroundPointerUp(event: PointerEvent<HTMLDivElement>) {

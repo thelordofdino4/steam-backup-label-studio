@@ -1,20 +1,6 @@
+import { getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
-
-const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
-const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
-
-function getRatingValuesForSystem(system: ProjectMetadata['ratingSystem']) {
-  if (system === 'ESRB') {
-    return ESRB_RATING_VALUES
-  }
-
-  if (system === 'PEGI') {
-    return PEGI_RATING_VALUES
-  }
-
-  return []
-}
 
 export type GamePanelProps = {
   manualGameTitle: string
@@ -242,7 +228,7 @@ export function GamePanel({
 
           if (
             allowedValues.length > 0 &&
-            !allowedValues.includes(projectMetadata.ratingValue as never)
+            !allowedValues.includes(projectMetadata.ratingValue)
           ) {
             handleProjectMetadataChange('ratingValue', allowedValues[0])
             return

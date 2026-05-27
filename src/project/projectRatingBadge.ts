@@ -1,4 +1,11 @@
-import type { ProjectRatingBadge, RatingBadgeLayout } from './projectTypes'
+import type { BackgroundImageSize, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from './projectTypes'
+
+export type RatingBadgeLayoutField = keyof RatingBadgeLayout
+
+type RatingBadgeLayoutPoint = {
+  x: number
+  y: number
+}
 
 export const DEFAULT_RATING_BADGE_LAYOUT: RatingBadgeLayout = {
   enabled: false,
@@ -13,6 +20,86 @@ export function createDefaultProjectRatingBadge(): ProjectRatingBadge {
     customImageDataUrl: null,
     customImageSize: null,
     layout: DEFAULT_RATING_BADGE_LAYOUT,
+  }
+}
+
+export function updateRatingBadgeSource(
+  ratingBadge: ProjectRatingBadge,
+  source: RatingBadgeSource,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    source,
+  }
+}
+
+export function updateRatingBadgeLayoutField(
+  ratingBadge: ProjectRatingBadge,
+  field: RatingBadgeLayoutField,
+  value: boolean | number,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    layout: {
+      ...ratingBadge.layout,
+      [field]: value,
+    },
+  }
+}
+
+export function updateRatingBadgeLayoutPosition(
+  ratingBadge: ProjectRatingBadge,
+  point: RatingBadgeLayoutPoint,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    layout: {
+      ...ratingBadge.layout,
+      x: point.x,
+      y: point.y,
+    },
+  }
+}
+
+export function setRatingBadgeCustomImage(
+  ratingBadge: ProjectRatingBadge,
+  imageDataUrl: string,
+  imageSize: BackgroundImageSize,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    source: 'custom',
+    customImageDataUrl: imageDataUrl,
+    customImageSize: imageSize,
+    layout: {
+      ...ratingBadge.layout,
+      enabled: true,
+    },
+  }
+}
+
+export function clearRatingBadgeImage(
+  ratingBadge: ProjectRatingBadge,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    source: 'placeholder',
+    customImageDataUrl: null,
+    customImageSize: null,
+  }
+}
+
+export function resetProjectRatingBadgeLayout(
+  ratingBadge: ProjectRatingBadge,
+): ProjectRatingBadge {
+  const defaults = createDefaultProjectRatingBadge()
+
+  return {
+    ...ratingBadge,
+    layout: {
+      ...defaults.layout,
+      enabled: ratingBadge.layout.enabled,
+    },
   }
 }
 

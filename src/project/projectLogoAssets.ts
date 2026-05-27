@@ -1,6 +1,12 @@
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from './projectTypes'
 
 export type LogoAssetKey = 'developer' | 'publisher'
+export type LogoAssetLayoutField = keyof LogoAssetLayout
+
+type LogoAssetLayoutPoint = {
+  x: number
+  y: number
+}
 
 export const LOGO_PLACEHOLDER_SIZE: BackgroundImageSize = {
   width: 480,
@@ -52,6 +58,127 @@ export function createDefaultProjectLogoAssets(): ProjectLogoAssets {
     publisherLogoSize: null,
     publisherLogoLayout: DEFAULT_PUBLISHER_LOGO_LAYOUT,
   }
+}
+
+export function getLogoAssetLayout(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+) {
+  return logoKey === 'developer'
+    ? logoAssets.developerLogoLayout
+    : logoAssets.publisherLogoLayout
+}
+
+export function getLogoAssetSize(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+) {
+  return logoKey === 'developer'
+    ? logoAssets.developerLogoSize
+    : logoAssets.publisherLogoSize
+}
+
+export function setLogoAssetLayout(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  layout: LogoAssetLayout,
+): ProjectLogoAssets {
+  if (logoKey === 'developer') {
+    return {
+      ...logoAssets,
+      developerLogoLayout: layout,
+    }
+  }
+
+  return {
+    ...logoAssets,
+    publisherLogoLayout: layout,
+  }
+}
+
+export function updateLogoAssetLayoutField(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  field: LogoAssetLayoutField,
+  value: boolean | number,
+): ProjectLogoAssets {
+  return setLogoAssetLayout(logoAssets, logoKey, {
+    ...getLogoAssetLayout(logoAssets, logoKey),
+    [field]: value,
+  })
+}
+
+export function updateLogoAssetLayoutPosition(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  point: LogoAssetLayoutPoint,
+): ProjectLogoAssets {
+  return setLogoAssetLayout(logoAssets, logoKey, {
+    ...getLogoAssetLayout(logoAssets, logoKey),
+    x: point.x,
+    y: point.y,
+  })
+}
+
+export function setLogoAssetImage(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  imageDataUrl: string,
+  imageSize: BackgroundImageSize,
+): ProjectLogoAssets {
+  const nextLayout = {
+    ...getLogoAssetLayout(logoAssets, logoKey),
+    enabled: true,
+  }
+
+  if (logoKey === 'developer') {
+    return {
+      ...logoAssets,
+      developerLogoDataUrl: imageDataUrl,
+      developerLogoSize: imageSize,
+      developerLogoLayout: nextLayout,
+    }
+  }
+
+  return {
+    ...logoAssets,
+    publisherLogoDataUrl: imageDataUrl,
+    publisherLogoSize: imageSize,
+    publisherLogoLayout: nextLayout,
+  }
+}
+
+export function clearLogoAsset(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+): ProjectLogoAssets {
+  if (logoKey === 'developer') {
+    return {
+      ...logoAssets,
+      developerLogoDataUrl: null,
+      developerLogoSize: null,
+    }
+  }
+
+  return {
+    ...logoAssets,
+    publisherLogoDataUrl: null,
+    publisherLogoSize: null,
+  }
+}
+
+export function resetProjectLogoAssetLayout(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+): ProjectLogoAssets {
+  const defaults = createDefaultProjectLogoAssets()
+  const defaultLayout = getLogoAssetLayout(defaults, logoKey)
+  const currentLayout = getLogoAssetLayout(logoAssets, logoKey)
+
+  return setLogoAssetLayout(logoAssets, logoKey, {
+    ...defaultLayout,
+    enabled: currentLayout.enabled,
+  })
 }
 
 function normalizeLogoAssetLayout(

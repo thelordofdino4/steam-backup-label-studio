@@ -1,12 +1,23 @@
 import type {
   MediaMarkLayout,
+  MediaMarkSource,
   MediaMarkValue,
+  BackgroundImageSize,
   PlatformMarkLayout,
+  PlatformMarkSource,
   PlatformMarkValue,
   ProjectMediaMark,
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
 } from './projectTypes'
+
+export type MediaMarkLayoutField = keyof MediaMarkLayout
+export type PlatformMarkLayoutField = keyof PlatformMarkLayout
+
+type MarkLayoutPoint = {
+  x: number
+  y: number
+}
 
 export const MEDIA_MARK_OPTIONS: Array<{ value: MediaMarkValue; label: string }> = [
   { value: 'dvd', label: 'DVD' },
@@ -64,6 +75,96 @@ export function createDefaultProjectMediaMark(): ProjectMediaMark {
   }
 }
 
+export function updateMediaMarkValue(
+  mediaMark: ProjectMediaMark,
+  value: MediaMarkValue,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    value,
+  }
+}
+
+export function updateMediaMarkSource(
+  mediaMark: ProjectMediaMark,
+  source: MediaMarkSource,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    source,
+  }
+}
+
+export function updateMediaMarkLayoutField(
+  mediaMark: ProjectMediaMark,
+  field: MediaMarkLayoutField,
+  value: boolean | number,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    layout: {
+      ...mediaMark.layout,
+      [field]: value,
+    },
+  }
+}
+
+export function updateMediaMarkLayoutPosition(
+  mediaMark: ProjectMediaMark,
+  point: MarkLayoutPoint,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    layout: {
+      ...mediaMark.layout,
+      x: point.x,
+      y: point.y,
+    },
+  }
+}
+
+export function setMediaMarkCustomImage(
+  mediaMark: ProjectMediaMark,
+  imageDataUrl: string,
+  imageSize: BackgroundImageSize,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    source: 'custom',
+    customImageDataUrl: imageDataUrl,
+    customImageSize: imageSize,
+    layout: {
+      ...mediaMark.layout,
+      enabled: true,
+    },
+  }
+}
+
+export function clearMediaMarkImage(
+  mediaMark: ProjectMediaMark,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    source: 'placeholder',
+    customImageDataUrl: null,
+    customImageSize: null,
+  }
+}
+
+export function resetProjectMediaMarkLayout(
+  mediaMark: ProjectMediaMark,
+): ProjectMediaMark {
+  const defaults = createDefaultProjectMediaMark()
+
+  return {
+    ...mediaMark,
+    layout: {
+      ...defaults.layout,
+      enabled: mediaMark.layout.enabled,
+    },
+  }
+}
+
 export function createDefaultProjectPlatformMarks(): ProjectPlatformMarks {
   return {
     values: [],
@@ -80,6 +181,157 @@ export function createDefaultProjectPlatformMarkAsset(
     customImageSize: null,
     layout: DEFAULT_PLATFORM_MARK_LAYOUTS[value],
   }
+}
+
+function getProjectPlatformMarkAsset(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+) {
+  return platformMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
+}
+
+function setProjectPlatformMarkAsset(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  asset: ProjectPlatformMarkAsset,
+): ProjectPlatformMarks {
+  return {
+    ...platformMarks,
+    assets: {
+      ...platformMarks.assets,
+      [value]: asset,
+    },
+  }
+}
+
+export function updatePlatformMarkToggle(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  enabled: boolean,
+): ProjectPlatformMarks {
+  const values = enabled
+    ? Array.from(new Set([...platformMarks.values, value]))
+    : platformMarks.values.filter((currentValue) => currentValue !== value)
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(
+    {
+      ...platformMarks,
+      values,
+    },
+    value,
+    {
+      ...currentAsset,
+      layout: {
+        ...currentAsset.layout,
+        enabled,
+      },
+    },
+  )
+}
+
+export function setPlatformMarkCustomImage(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  imageDataUrl: string,
+  imageSize: ProjectPlatformMarkAsset['customImageSize'],
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(
+    {
+      ...platformMarks,
+      values: Array.from(new Set([...platformMarks.values, value])),
+    },
+    value,
+    {
+      ...currentAsset,
+      source: 'custom',
+      customImageDataUrl: imageDataUrl,
+      customImageSize: imageSize,
+      layout: {
+        ...currentAsset.layout,
+        enabled: true,
+      },
+    },
+  )
+}
+
+export function updatePlatformMarkSource(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  source: PlatformMarkSource,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    source,
+  })
+}
+
+export function updatePlatformMarkLayoutField(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  field: PlatformMarkLayoutField,
+  layoutValue: boolean | number,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    layout: {
+      ...currentAsset.layout,
+      [field]: layoutValue,
+    },
+  })
+}
+
+export function updatePlatformMarkLayoutPosition(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  point: MarkLayoutPoint,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    layout: {
+      ...currentAsset.layout,
+      x: point.x,
+      y: point.y,
+    },
+  })
+}
+
+export function clearPlatformMarkImage(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    source: 'placeholder',
+    customImageDataUrl: null,
+    customImageSize: null,
+  })
+}
+
+export function resetProjectPlatformMarkLayout(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+  const defaultAsset = createDefaultProjectPlatformMarkAsset(value)
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    layout: {
+      ...defaultAsset.layout,
+      enabled: currentAsset.layout.enabled,
+    },
+  })
 }
 
 function isMediaMarkValue(value: unknown): value is MediaMarkValue {

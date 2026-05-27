@@ -42,6 +42,17 @@ export type DiscTextLayout = {
 }
 
 export type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
+export type DiscTextLayoutNumericField = 'x' | 'y' | 'width' | 'scale' | 'arcDegrees'
+
+type DiscTextLayoutPoint = {
+  x: number
+  y: number
+}
+
+const CURVED_COPYRIGHT_DRAG_X_MIN = -60
+const CURVED_COPYRIGHT_DRAG_X_MAX = 60
+const CURVED_COPYRIGHT_DRAG_Y_MIN = -8
+const CURVED_COPYRIGHT_DRAG_Y_MAX = 20
 
 export const DISC_TEXT_KEYS: DiscTextKey[] = [
   'title',
@@ -191,6 +202,144 @@ export function updateDiscTextArcSide(
   }
 }
 
+export function updateDiscTextLayoutField(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  field: DiscTextLayoutNumericField,
+  value: number,
+): DiscTextLayoutSettings {
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...layoutSettings[key],
+      [field]:
+        field === 'width'
+          ? normalizeDiscTextWidth(value, layoutSettings[key].width)
+          : value,
+    },
+  }
+}
+
+function clampDiscTextDragCoordinate(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+export function isCurvedCopyrightDiscTextLayout(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+) {
+  return key === 'copyright' && layout.mode === 'curved'
+}
+
+export function updateDraggedDiscTextLayoutPosition(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  point: DiscTextLayoutPoint,
+): DiscTextLayoutSettings {
+  const currentTextLayout = layoutSettings[key]
+  const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, currentTextLayout)
+
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...currentTextLayout,
+      x: isCurvedCopyright
+        ? clampDiscTextDragCoordinate(
+            point.x,
+            CURVED_COPYRIGHT_DRAG_X_MIN,
+            CURVED_COPYRIGHT_DRAG_X_MAX,
+          )
+        : point.x,
+      y: isCurvedCopyright
+        ? clampDiscTextDragCoordinate(
+            point.y,
+            CURVED_COPYRIGHT_DRAG_Y_MIN,
+            CURVED_COPYRIGHT_DRAG_Y_MAX,
+          )
+        : point.y,
+    },
+  }
+}
+
+export function updateDiscTextMode(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  mode: DiscTextMode,
+  placement: SteamLogoPlacement,
+): DiscTextLayoutSettings {
+  if (key === 'copyright') {
+    const defaultLayout =
+      mode === 'curved'
+        ? getDefaultCopyrightCurvedLayout(placement)
+        : getDefaultCopyrightStraightLayout(placement)
+
+    return {
+      ...layoutSettings,
+      copyright: {
+        ...layoutSettings.copyright,
+        ...defaultLayout,
+        mode,
+      },
+    }
+  }
+
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...layoutSettings[key],
+      mode,
+    },
+  }
+}
+
+export function updateDiscTextLayoutForSteamLogoPlacement(
+  layoutSettings: DiscTextLayoutSettings,
+  placement: SteamLogoPlacement,
+): DiscTextLayoutSettings {
+  const defaultLayout = createDefaultDiscTextLayout(placement)
+  const currentCopyrightLayout = layoutSettings.copyright
+  const defaultCopyrightLayout =
+    currentCopyrightLayout.mode === 'curved'
+      ? getDefaultCopyrightCurvedLayout(placement)
+      : getDefaultCopyrightStraightLayout(placement)
+
+  return {
+    ...layoutSettings,
+    title: defaultLayout.title,
+    customNote: defaultLayout.customNote,
+    copyright: {
+      ...defaultCopyrightLayout,
+      mode: currentCopyrightLayout.mode,
+      scale: currentCopyrightLayout.scale,
+      align: currentCopyrightLayout.align,
+      arcDegrees: currentCopyrightLayout.arcDegrees,
+      width: currentCopyrightLayout.width,
+    },
+  }
+}
+
+export function resetDiscTextLayout(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  placement: SteamLogoPlacement,
+): DiscTextLayoutSettings {
+  if (key === 'copyright') {
+    return {
+      ...layoutSettings,
+      copyright:
+        layoutSettings.copyright.mode === 'curved'
+          ? getDefaultCopyrightCurvedLayout(placement)
+          : getDefaultCopyrightStraightLayout(placement),
+    }
+  }
+
+  const defaultLayout = createDefaultDiscTextLayout(placement)
+  return {
+    ...layoutSettings,
+    [key]: defaultLayout[key],
+  }
+}
+
 export function normalizeDiscTextLayout(
   layout: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>> | undefined,
   placement: SteamLogoPlacement,
@@ -252,6 +401,21 @@ export function getDiscTextContent(key: DiscTextKey, values: DiscTextValues, tit
 
 export function getDiscTextPreviewClassName(key: DiscTextKey) {
   return `disc-text-${key}`
+}
+
+export function getDiscTextPreviewTransform(_key: DiscTextKey, layout: DiscTextLayout) {
+  if (layout.mode === 'straight') {
+    return `translate(-50%, -50%) scale(${layout.scale})`
+  }
+
+  const horizontalTranslate =
+    layout.align === 'left'
+      ? '0'
+      : layout.align === 'right'
+        ? '-100%'
+        : '-50%'
+
+  return `translate(${horizontalTranslate}, -50%) scale(${layout.scale})`
 }
 
 export function getCopyrightArcSide(placement: SteamLogoPlacement, layout: DiscTextLayout): DiscTextArcSide {
