@@ -6,7 +6,7 @@ Steam Backup Label Studio is currently in **pre-alpha**.
 
 The current working interface is the **disc-label editor**.
 
-The core disc-label workflow is working:
+The core disc-label workflow has many working foundations:
 
 - Launch the Tauri desktop app.
 - Search Steam for a real game.
@@ -25,13 +25,14 @@ The core disc-label workflow is working:
 - Add optional developer and publisher logos with alignment presets.
 - Add optional rating badges with placeholder rendering or custom image replacement.
 - Enable optional disc text elements for title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
-- Drag, scale, offset, and align straight text elements.
 - Use stable centered curved copyright/legal text with arc length, angle, inset, scale, side, and wrapping controls.
 - Save and reload project files.
 - Reset to a new project.
 - Export a clean 300 DPI PNG.
 - Optionally export guide marks.
 - Receive status feedback through the preview toast feed.
+
+Recent parity/refactor work exposed regressions in text bounds, drag behavior, manual controls, and platform/media mark behavior. Treat the disc-label editor as a strong working foundation, but do not assume every listed interaction is currently regression-free until the emergency architecture issues are resolved and revalidated.
 
 ## Scope Reminder
 
@@ -47,7 +48,9 @@ Future planned interfaces still need to become functional:
 
 Much of the current work should become reusable foundation for those interfaces, but shared foundation is not the same as finished template editors.
 
-Guided Start, case editors, the future `.sbls` package/container format, direct printer support, official asset packs, automatic rating lookup, visual regression automation, and broad App.tsx/CSS/Rust refactors are not disc-editor alpha blockers unless a specific issue shows they are needed for one of the finish-line items.
+Guided Start, case editors, the future `.sbls` package/container format, direct printer support, official asset packs, automatic rating lookup, visual regression automation, and broad Rust refactors are not disc-editor alpha blockers unless a specific issue shows they are needed for one of the finish-line items.
+
+Architecture guardrails are now alpha-boundary blockers. The editor cannot reach the end of indev if new logic continues to be added to unrelated structures or if preview/export parity depends on hidden coupling. See `docs/ARCHITECTURE_GUARDRAILS.md`.
 
 ## Disc Editor Alpha Boundary
 
@@ -73,9 +76,22 @@ Toast notifications are part of alpha readiness. The current toast foundation sh
 
 Current project files are plain JSON, commonly named like `.sbls.json`. The future `.sbls` package/container format is not implemented yet and should not block disc-editor alpha by default.
 
+## Architecture Guardrails
+
+New development must follow `docs/ARCHITECTURE_GUARDRAILS.md`.
+
+The short version:
+
+- New logic must not be crammed into existing unrelated structures.
+- New responsibilities need focused `.ts` or `.tsx` modules.
+- `App.tsx` should move toward orchestration, not feature ownership.
+- Preview/export visual layers should use shared artifacts wherever feasible.
+- Layout, clamping, upload/import, drag interaction, rendering, export, and persistence logic should have clear owners.
+- A passing visual fixture is validation evidence, not proof that the architecture is safe.
+
 ## Refactor Status
 
-The emergency editor-foundation refactor tracked in issue #36 is **complete and closed**.
+The older emergency editor-foundation refactor tracked in issue #36 extracted several major responsibilities from `App.tsx`, but recent regressions show that deeper architecture guardrails are now required.
 
 Completed high-risk refactor work includes:
 
@@ -91,13 +107,11 @@ Completed high-risk refactor work includes:
 
 Current validation:
 
-- `npm run build` passes.
-- `npm run lint` passes.
-- Local app smoke testing passed after the component extractions.
+- `npm run build` has passed in recent work.
+- `npm run lint` has passed in recent work.
+- Local smoke tests exposed regressions now tracked under emergency architecture/refactor issues.
 
-Follow-up cleanup work from the refactor is tracked separately in issues #44-#49. Those issues cover deeper hook extraction, remaining helper extraction, CSS organization, Rust command organization, toast-symbol polish, and project schema validation/migrations.
-
-See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
+See `REFACTOR_STATUS.md` and `ARCHITECTURE_GUARDRAILS.md` for details.
 
 ## Recently Completed
 
@@ -124,17 +138,19 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 - Rating badge support with ESRB/PEGI/custom placeholders, custom image replacement, preview, export, and save/load support.
 - New Project reset behavior.
 - Optional disc text elements for title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
-- Straight text drag, scale, offset, alignment, preview, export, and save/load support.
-- Stable centered curved copyright/legal text with arc, angle, inset, scale, side, wrapping, preview, export, and save/load support.
 - Straight copyright mode fixed to use normal straight-text positioning instead of curved inset positioning.
 - Disc text helper logic extracted from `App.tsx` into a dedicated `src/discText.ts` module with no behavior changes.
 - Disc geometry and export-guide selection helpers extracted from `App.tsx` into focused modules (`src/discGeometry.ts`, `src/exportGuides.ts`) as part of controlled editor-foundation refactoring.
 - Project file schema helpers, Tauri file wrappers, PNG export rendering, status toast state, sidebar panels, and preview UI extracted from `App.tsx` as part of issue #36.
 - GitHub Actions updated for Node 24 compatibility.
-- Planning docs refreshed with milestone and backlog details.
+- Planning documents refreshed with milestone and backlog details.
 
 ## Active / Open Work
 
+- Emergency rendering architecture and parity refactor (#82).
+- Straight text safe-zone regression (#83).
+- Drag interaction regression (#84).
+- Media/platform mark controls regression.
 - Add dedicated title/logo art support.
 - Add general additional artwork/logo elements and multiple logo/mark support beyond fixed developer/publisher slots.
 - Replace generated user-facing placeholders with real file-backed generic assets.
@@ -155,7 +171,7 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 - Review panel indentation and structure.
 - Clean up duplicate CSS overrides once component boundaries settle.
 - Add project fixtures and preview/export comparison workflow for regression testing when the alpha element model is stable enough.
-- Continue post-refactor cleanup tracked in issues #44-#49.
+- Continue post-refactor cleanup tracked in issues #44-#49 where it supports feature work or alpha blockers.
 
 ## Current Known Limitations
 
@@ -168,29 +184,32 @@ See `REFACTOR_STATUS.md` for the detailed refactor summary and follow-up notes.
 - Project metadata fields are editable, but asset provenance and schema validation/migration remain limited.
 - Metadata-to-rendered-text behavior is not fully defined yet.
 - Curved copyright text is currently stable only in centered mode; left/right curved alignment is tracked separately.
-- Straight text boxes have stable fixed widths, but user-adjustable box widths are not implemented yet.
+- Straight text boxes and safe-zone behavior are under active regression review.
 - Text does not yet understand or warn about occupied regions from logos, badges, title art, marks, and other major visual elements.
-- Movable logos and rating badges can still be positioned without safe-zone clamping.
+- Movable visual element drag/manual controls are under active regression review.
 - Some duplicate hidden markup remains intentionally deferred until alpha cleanup.
 - Project files are currently plain JSON, often named like `.sbls.json`; the future `.sbls` package/container format is not implemented.
 - The app has not yet been packaged into an alpha release, and a future package release should clearly state that only the disc editor is the first alpha surface when ready.
 
 ## Next Recommended Work Order
 
-1. Use issue #69 as the finish-line definition for disc-editor alpha.
-2. Clarify metadata-to-rendered-text behavior (#68).
-3. Document and enforce disc editor layer ordering across preview and PNG export (#60).
-4. Expand export summary/preflight warnings for logos, marks, text collisions, guide marks, backgrounds, custom dimensions, and missing assets (#63).
-5. Explain missing/disabled visual dependencies locally near controls (#66).
-6. Add dedicated title/logo art support.
-7. Add general additional artwork/logo elements and multiple logo/mark support beyond fixed developer/publisher slots.
-8. Replace generated user-facing placeholders with real file-backed generic assets.
-9. Add text behavior that can avoid or respect visual element boundaries, with safe-zone compliance always enforced.
-10. Polish toast wording and replace temporary toast symbols/icons (#49 / #21).
-11. Add layout presets if manual placement remains too fiddly (#61).
-12. Decide curved copyright alignment: implement safely or formally keep centered-only curved text (#33).
-13. Improve artwork picker presentation.
-14. Continue post-refactor cleanup from issues #44-#49 only where it supports feature work or alpha blockers.
-15. Prepare known issues and package the first disc-editor alpha build when the disc-label path is stable enough.
+1. Stabilize the architecture guardrails and emergency parity/refactor work (#82).
+2. Fix straight text safe-zone behavior (#83) after ownership boundaries are clear.
+3. Fix drag and media/platform control regressions (#84 and related issue) after ownership boundaries are clear.
+4. Use issue #69 as the finish-line definition for disc-editor alpha.
+5. Clarify metadata-to-rendered-text behavior (#68).
+6. Document and enforce disc editor layer ordering across preview and PNG export (#60 / #82).
+7. Expand export summary/preflight warnings for logos, marks, text collisions, guide marks, backgrounds, custom dimensions, and missing assets (#63).
+8. Explain missing/disabled visual dependencies locally near controls (#66).
+9. Add dedicated title/logo art support.
+10. Add general additional artwork/logo elements and multiple logo/mark support beyond fixed developer/publisher slots.
+11. Replace generated user-facing placeholders with real file-backed generic assets.
+12. Add text behavior that can avoid or respect visual element boundaries, with safe-zone compliance always enforced.
+13. Polish toast wording and replace temporary toast symbols/icons (#49 / #21).
+14. Add layout presets if manual placement remains too fiddly (#61).
+15. Decide curved copyright alignment: implement safely or formally keep centered-only curved text (#33).
+16. Improve artwork picker presentation.
+17. Continue post-refactor cleanup from issues #44-#49 only where it supports feature work or alpha blockers.
+18. Prepare known issues and package the first disc-editor alpha build when the disc-label path is stable enough.
 
 See `MILESTONES.md` for the broader milestone and feature backlog.
