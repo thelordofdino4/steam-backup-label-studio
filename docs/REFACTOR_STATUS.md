@@ -1,18 +1,54 @@
 # Refactor Status
 
-This document tracks the controlled refactor for GitHub issue #36, **Refactor disc editor foundation before more feature work**.
+This document tracks the controlled refactor history and current architecture expectations for the disc artwork editor.
 
 ## Current Assessment
 
-The emergency refactor is **ready to close** once final local validation is confirmed.
+The earlier editor-foundation refactor from issue #36 extracted many large rendering and project-file responsibilities from `App.tsx`, but recent preview/export parity and interaction regressions showed that the codebase still has hidden coupling risks.
 
-The original danger was that `App.tsx` had become the owner of too many unrelated responsibilities: editor panels, preview rendering, PNG export rendering, project file schema handling, status toasts, and general app orchestration. That is no longer the case.
+The current priority is no longer simply closing an old refactor checklist. The project needs stronger architecture safety rails before pushing to the end of indev for the disc artwork editor.
 
-The current `App.tsx` is still a large orchestration/state file, but the emergency has been resolved: large JSX regions, export rendering, project/file helpers, and status toast state have been moved into focused modules/components. Remaining cleanup such as deeper hook extraction, CSS organization, and Rust command-module splitting should be tracked as follow-up work rather than keeping issue #36 open indefinitely.
+The standing rule is documented in `docs/ARCHITECTURE_GUARDRAILS.md`:
 
-Future refactors should support the disc-editor alpha boundary from issue #69 without treating the current editor as disposable. The existing Steam/manual metadata, background artwork, disc geometry, safe-zone guides, Steam banner, logo/badge/mark, disc text, New Project, save/load, export, preview, sidebar panel, and toast systems should be preserved and evolved through small migrations unless a specific replacement path is planned and reviewed.
+- New logic must not be crammed into existing unrelated structures.
+- New responsibilities need focused `.ts` or `.tsx` modules.
+- Existing features should be updated where they belong.
+- If an update grows into a new feature or responsibility, extract it.
+- `App.tsx` must move toward orchestration, not feature ownership.
+- Preview/export parity must be protected by shared render artifacts, shared layer order, and shared coordinate systems.
 
-The intended direction is careful migration toward a more flexible visual-element model: title/logo art, additional artwork/logo elements, multiple marks, file-backed generic assets, text that can respect visual boundaries, documented layer ordering, and preview/export parity. This should not be interpreted as a broad rewrite mandate.
+## Why This Matters
+
+Recent work on preview/export parity fixed some visible drift but also exposed regressions in safe-zone text bounds, drag behavior, manual controls, and platform/media mark behavior. That is a sign that visual rendering, interaction hit targets, state transitions, layout math, and export artifacts were still too tightly coupled or too hard to audit.
+
+The codebase should be refactored so future work does not require circling through large files to discover where behavior lives.
+
+## Required Refactor Direction
+
+Before adding major new disc-editor features, continue extracting logic into focused domains:
+
+- Disc text state and layout updates
+- Rating badge state and layout updates
+- Media mark state and layout updates
+- Platform mark state and layout updates
+- Logo asset state and layout updates
+- Upload/import image handling
+- Pointer drag interactions
+- Safe-zone clamping and layout math
+- Preview/export shared renderer artifacts
+- Project persistence and normalization behavior
+
+Each feature should have a clear home for:
+
+- state shape and defaults
+- state transitions
+- layout and safe-zone clamping
+- preview rendering artifact
+- export rendering artifact
+- pointer/drag interaction behavior
+- upload/import behavior
+- serialization/normalization behavior
+- validation/preflight behavior
 
 ## Completed Refactor Work
 
@@ -28,7 +64,7 @@ The intended direction is careful migration toward a more flexible visual-elemen
 - Moved export guide and outline rendering into `src/export/drawExportGuides.ts`.
 - Replaced impure toast ID generation with a stable ref-backed incrementing ID so lint now has a clean baseline.
 - Extracted status toast state and helpers into `src/hooks/useStatusToasts.ts`.
-- Extracted sidebar panels into presentational components while keeping state and handlers in `App.tsx`:
+- Extracted sidebar panels into presentational components while keeping much state and many handlers in `App.tsx`:
   - `ProjectPanel`
   - `ExportOptionsPanel`
   - `GamePanel`
@@ -51,55 +87,64 @@ The intended direction is careful migration toward a more flexible visual-elemen
 
 Recent checks reported during the refactor sequence:
 
-- `npm run build` passes.
-- `npm run lint` passes.
-- Local app smoke testing has passed after the component extractions.
-- Text panel behavior has been locally checked.
-- Straight copyright alignment bugfix has been locally checked.
-- Export behavior was locally checked after the export extraction and later spot-checked during text fixes.
+- `npm run build` passes in recent work.
+- `npm run lint` passes in recent work.
+- Local app smoke tests have found important regressions that still need to be handled after boundaries are clarified.
 
-Before closing issue #36, run one final local validation pass:
+For any visual/editor refactor, ask the user to verify:
 
-- `npm run build`
-- `npm run lint`
 - `npm run tauri dev`
-- Save/load project test.
-- PNG export test with and without artwork.
-- Guide toggle export test.
-- Steam search/import smoke test.
-- Background drag/resize/reset smoke test.
-- Text straight/curved controls smoke test.
-- Banner top/bottom/none smoke test.
+- PNG export parity
+- Save/load project behavior
+- Drag behavior
+- Slider/manual controls
+- Upload/custom image behavior
 
-## Follow-Up Work After Issue #36
+## Active Refactor Risks
 
-These items are real cleanup opportunities, but they no longer need to block closing the emergency refactor issue:
+The following risks are active and should not be treated as cosmetic cleanup:
 
-1. Extract focused hooks for remaining state clusters:
+1. `App.tsx` still owns too many feature-specific state transitions and handlers.
+2. Some visual systems may still have split preview/export render paths.
+3. Some interaction behavior may depend on visual DOM structure rather than explicit hit targets.
+4. Some layout and clamp behavior may be buried near UI code instead of domain layout modules.
+5. CSS can still become hidden layout/business logic if stale renderer rules remain.
+6. New feature work can reintroduce drift if it is added to whichever large file is convenient.
+
+## Follow-Up Work
+
+These are not optional polish if they block stable indev completion:
+
+1. Extract focused hooks/domain modules for remaining state clusters:
    - `useDiscTemplate`
    - `useBackgroundImage`
    - `useSteamImport`
    - `useLocalSteamScreenshots`
    - `useDiscTextEditor`
-2. Move remaining pure helpers out of `App.tsx` where useful:
+   - `useLogoAssets`
+   - `useRatingBadge`
+   - `useMediaMark`
+   - `usePlatformMarks`
+2. Move remaining pure helpers out of `App.tsx`:
    - image file/data URL helpers
    - natural image size helper
    - Steam banner style/default helpers
    - project snapshot creation
-3. Clean up CSS duplication and decide whether `layoutFix.css` can be merged into organized style files.
-4. Review Rust `src-tauri/src/lib.rs` command organization and split command modules if it becomes a maintenance issue.
-5. Polish temporary toast symbols/icons.
-6. Add real project schema validation/migrations when the project format starts changing.
+3. Move layout/safe-zone clamp math into domain layout modules.
+4. Move upload/import behavior into asset/domain modules.
+5. Move pointer/drag interaction math into interaction modules.
+6. Clean up CSS duplication and stale renderer rules.
+7. Add clear project schema validation/migrations when the project format changes.
+8. Review Rust `src-tauri/src/lib.rs` command organization and split command modules if it becomes a maintenance issue.
 
-## Suggested Close Criteria for Issue #36
+## Close Criteria for Current Architecture Stabilization
 
-Issue #36 can be closed when:
+The architecture can be considered stable enough for continued alpha-boundary feature work when:
 
-- `App.tsx` is mostly orchestration/state and no longer owns large unrelated JSX/rendering blocks.
-- Export rendering remains outside `App.tsx`.
-- Project file helpers remain outside `App.tsx`.
-- Sidebar and preview UI are componentized enough that feature work can continue safely.
+- `App.tsx` is mostly orchestration and no longer owns large feature-specific logic blocks.
+- New feature responsibilities are represented by focused modules/hooks.
+- Preview/export render paths are shared or explicitly documented where they cannot be shared.
+- Layer order and coordinate systems are centralized.
+- Interaction hit targets are explicit and do not depend accidentally on visual renderer internals.
 - Build and lint pass.
-- A local smoke test confirms the disc-label workflow still works.
-
-As of this update, the code appears to meet those criteria pending one final local validation pass.
+- Local smoke tests confirm the disc-label workflow still works.
