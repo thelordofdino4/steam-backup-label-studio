@@ -273,12 +273,17 @@ export function normalizeCustomDiscTemplate(template: DiscTemplate): DiscTemplat
   }
 }
 
-export function buildCustomDiscTemplate(baseTemplate: DiscTemplate, dimensions: Partial<DiscTemplate>): DiscTemplate {
+export function buildCustomDiscTemplate(
+  source: DiscTemplate,
+  dimensions?: Partial<DiscTemplate>,
+): DiscTemplate {
   return normalizeCustomDiscTemplate({
-    ...baseTemplate,
-    id: 'custom',
-    name: 'Custom Disc',
-    geometryNote: 'User-defined dimensions',
+    ...source,
     ...dimensions,
+    id: 'custom',
+    name: 'Custom dimensions',
+    geometryNote:
+      'Custom dimensions are saved with the project. Safe zone is advisory only and does not crop exported artwork.',
+    defaultZones: [],
   })
 }

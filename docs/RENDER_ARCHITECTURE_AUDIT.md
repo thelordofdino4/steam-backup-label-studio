@@ -33,6 +33,8 @@ First extraction made during this audit pass: current safe-zone clamping for log
 
 Second extraction: generic browser image file reading and natural-size lookup now live in `src/utils/imageFile.ts`. Feature-specific upload state transitions still live in `App.tsx` and remain future hook/domain extraction candidates.
 
+Third extraction: custom disc template construction now uses `buildCustomDiscTemplate` in `src/discGeometry.ts`, the existing owner for custom template normalization and geometry constraints. `App.tsx` still owns template state transitions until a focused template hook is extracted.
+
 ## Preview/Export Render Paths
 
 | Layer | Preview path | Export path | Coordinate system | Current parity risk |
@@ -156,7 +158,7 @@ Some of these selectors appear to describe older DOM/CSS text or placeholder ren
 
 | Domain | State/defaults | State transitions | Layout/clamp | Preview artifact | Export artifact | Interaction | Upload/import | Save/load |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Template geometry | `templates`, `projectTypes` | future `useDiscTemplate` | `discGeometry` | `DiscGuideOverlay` | `drawExportGuides`, `exportPng` | none | none | project schema |
+| Template geometry | `templates`, `projectTypes`, `discGeometry` | future `useDiscTemplate` | `discGeometry` | `DiscGuideOverlay` | `drawExportGuides`, `exportPng` | none | none | project schema |
 | Background artwork | `App.tsx` today | future `useBackgroundImage` | future background layout module | `BackgroundLayer` | `exportPng` background draw | future background interaction module | future asset helper | project schema |
 | Steam banner | `App.tsx` today | future banner hook/module | future banner layout module | `SteamBannerPreview` | `drawSteamBanner` | none | future asset helper | project schema |
 | Logos | `projectLogoAssets` | future `useLogoAssets` | `discElementSafeZone` | `LogoAssetLayer` | `drawLogoAssets` | future logo interaction module | future asset helper | `normalizeProjectLogoAssets` |

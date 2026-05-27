@@ -20,6 +20,7 @@ import {
   clampNumber,
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
+  buildCustomDiscTemplate,
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from './discGeometry'
@@ -156,17 +157,6 @@ function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   } as CSSProperties
 }
 
-function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardPrintableDisc): DiscTemplate {
-  return normalizeCustomDiscTemplate({
-    ...source,
-    id: 'custom',
-    name: 'Custom dimensions',
-    geometryNote:
-      'Custom dimensions are saved with the project. Safe zone is advisory only and does not crop exported artwork.',
-    defaultZones: [],
-  })
-}
-
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
 }
@@ -175,7 +165,7 @@ function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<SelectedDiscTemplateId>('standardPrintableDisc')
   const [customDiscTemplate, setCustomDiscTemplate] = useState<DiscTemplate>(() =>
-    createCustomDiscTemplate(),
+    buildCustomDiscTemplate(discTemplates.standardPrintableDisc),
   )
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
@@ -1340,7 +1330,7 @@ function App() {
     platformMarkDragStateRef.current = null
 
     setSelectedDiscTemplateId('standardPrintableDisc')
-    setCustomDiscTemplate(createCustomDiscTemplate())
+    setCustomDiscTemplate(buildCustomDiscTemplate(discTemplates.standardPrintableDisc))
     setSteamLogoPlacement('top')
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     setSteamBannerLockupImageUrl(DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL)
@@ -1593,8 +1583,8 @@ function App() {
       const savedTemplateId = project.template.variant
       const savedImageDataUrl = project.background.imageDataUrl
       const loadedCustomDiscTemplate = project.template.customDimensions
-        ? createCustomDiscTemplate(project.template.customDimensions)
-        : createCustomDiscTemplate()
+        ? buildCustomDiscTemplate(project.template.customDimensions)
+        : buildCustomDiscTemplate(discTemplates.standardPrintableDisc)
       const loadedSelectedDiscTemplate =
         savedTemplateId === 'custom'
           ? loadedCustomDiscTemplate
