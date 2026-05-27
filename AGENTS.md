@@ -36,6 +36,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - If a change does something genuinely new, create a focused new `.ts` or `.tsx` module for it.
    - If an existing feature needs updating, update it where that feature belongs.
    - If an update grows into a new feature or new responsibility, extract it into a new `.ts` or `.tsx` module.
+   - Presentation components may call domain helpers/selectors, but must not own domain decisions, mapping rules, layout/clamp math, upload/import rules, or state transition rules.
    - New logic must not be crammed into existing unrelated structures.
    - No more logic dumping grounds: do not add feature-specific state transitions, renderers, export drawing, upload/import logic, pointer math, layout/clamp math, or serialization logic to `App.tsx` or other catch-all files.
    - When a regression exposes hidden coupling, refactor the ownership boundary first, then fix the symptom in the correct module.
@@ -44,9 +45,14 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Prefer focused components, hooks, domain modules, and utility modules over adding large new blocks back into `App.tsx`.
    - If a handler needs more than trivial orchestration, create or update a focused hook/domain module and call it from `App.tsx`.
 
-7. Do not delete or overwrite user-created assets or project files unless explicitly instructed.
+7. Keep presentation components presentational.
+   - Sidebar and preview components may render controls/artifacts and call imported domain helpers or selectors.
+   - They should not contain feature-specific branching that decides what a value means, where state comes from, how layout is clamped, how uploads are interpreted, or how project data is normalized.
+   - If a component needs that kind of decision, move the decision into the feature's domain module, a focused selector/view-model helper, or a hook, then pass the result into the component.
 
-8. Follow the editor UI hierarchy rules for optional visual features.
+8. Do not delete or overwrite user-created assets or project files unless explicitly instructed.
+
+9. Follow the editor UI hierarchy rules for optional visual features.
    - Optional visual features should expose only their top-level show/enable checkbox when disabled.
    - When disabled, dependent controls should be hidden from view, not merely greyed out.
    - Disabled visual features should not render in preview or PNG export.
@@ -64,6 +70,6 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Apply this pattern especially to branding/artwork systems such as developer logo, publisher logo, rating badge, media mark, platform marks, and future optional metadata text elements.
    - For rating badges, the top-level show/enable checkbox is the user-facing “no rating badge” control. Do not expose a redundant visible “none” rating system option inside enabled rating controls unless explicitly requested for backward-compatibility UI.
 
-9. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
+10. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
    - Run `npm run lint` and `npm run build` after code changes.
    - Leave interactive UI, drag, preview/export parity, and desktop-window checks for the user to verify manually.
