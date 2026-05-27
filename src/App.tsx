@@ -54,6 +54,7 @@ import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/file
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
+import { getNaturalImageSize, readImageFileAsDataUrl } from './utils/imageFile'
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
 import {
   DISC_TEXT_KEYS,
@@ -168,31 +169,6 @@ function createCustomDiscTemplate(source: DiscTemplate = discTemplates.standardP
 
 function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
-}
-
-function readImageFileAsDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        resolve(reader.result)
-        return
-      }
-
-      reject(new Error(`Could not read ${file.name} as an image.`))
-    }
-
-    reader.onerror = () => reject(new Error(`Could not read ${file.name}.`))
-    reader.readAsDataURL(file)
-  })
-}
-
-function getNaturalImageSize(image: HTMLImageElement): BackgroundImageSize {
-  return {
-    width: image.naturalWidth || image.width,
-    height: image.naturalHeight || image.height,
-  }
 }
 
 function App() {

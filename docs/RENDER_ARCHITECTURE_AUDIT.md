@@ -31,6 +31,8 @@ This document is not a close-out for #82. It is an ownership map and risk regist
 
 First extraction made during this audit pass: current safe-zone clamping for logos, rating badge, media mark, platform marks, and straight disc text now lives in `src/layout/discElementSafeZone.ts` instead of `App.tsx`.
 
+Second extraction: generic browser image file reading and natural-size lookup now live in `src/utils/imageFile.ts`. Feature-specific upload state transitions still live in `App.tsx` and remain future hook/domain extraction candidates.
+
 ## Preview/Export Render Paths
 
 | Layer | Preview path | Export path | Coordinate system | Current parity risk |
@@ -115,9 +117,11 @@ Upload/import logic is still spread across `App.tsx` handlers:
 - platform mark uploads
 - Steam artwork and local Steam screenshot imports
 
-Shared lower-level helpers exist in `src/local/localArtwork.ts`, `src/steam/steamApi.ts`, and `src/utils/bytesToBase64.ts`, but feature-specific update behavior remains in `App.tsx`.
+Shared lower-level helpers exist in `src/utils/imageFile.ts`, `src/local/localArtwork.ts`, `src/steam/steamApi.ts`, and `src/utils/bytesToBase64.ts`, but feature-specific update behavior remains in `App.tsx`.
 
-Target owner: an asset/image helper should own file reading and natural-size lookup, while feature hooks own how uploaded data changes feature state. #85 should be fixed after platform mark upload ownership is explicit.
+Current owner for generic file reading and natural-size lookup: `src/utils/imageFile.ts`.
+
+Target owner for the remaining work: feature hooks should own how uploaded data changes feature state. #85 should be fixed after platform mark upload ownership is explicit.
 
 ## Safe-Zone/Clamp Ownership
 
