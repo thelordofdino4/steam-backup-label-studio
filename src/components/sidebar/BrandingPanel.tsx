@@ -2,6 +2,7 @@ import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
+import { getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 
 export type BrandingPanelProps = {
@@ -63,17 +64,8 @@ const LOGO_ALIGNMENT_PRESETS = [
   { label: 'Stacked right lower', x: 78, y: 72 },
 ] as const
 
-const ESRB_RATING_VALUES = ['RP', 'E', 'E10+', 'T', 'M', 'AO'] as const
-const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
-
 function formatLogoSize(size: BackgroundImageSize | null) {
   return size ? ` · ${size.width}×${size.height}` : ''
-}
-
-function getRatingValuesForSystem(system: GameRatingSystem) {
-  if (system === 'ESRB') return ESRB_RATING_VALUES
-  if (system === 'PEGI') return PEGI_RATING_VALUES
-  return []
 }
 
 function SteamBannerControls({
