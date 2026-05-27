@@ -3,7 +3,9 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
 } from '../../discGeometry'
+import { buildRatingBadgePlaceholderSvg } from '../../discPlaceholderSvg'
 import type { ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
+import { createSvgDataUrl } from '../../svgUtils'
 
 export type RatingBadgeLayerProps = {
   projectMetadata: ProjectMetadata
@@ -19,18 +21,6 @@ function getPlaceholderLabel(metadata: ProjectMetadata) {
   }
 
   return metadata.ratingValue.trim() || metadata.ratingSystem
-}
-
-function getPlaceholderClass(metadata: ProjectMetadata) {
-  if (metadata.ratingSystem === 'PEGI') {
-    return 'rating-badge-placeholder rating-badge-placeholder-pegi'
-  }
-
-  if (metadata.ratingSystem === 'ESRB') {
-    return 'rating-badge-placeholder rating-badge-placeholder-esrb'
-  }
-
-  return 'rating-badge-placeholder rating-badge-placeholder-custom'
 }
 
 export function RatingBadgeLayer({
@@ -60,11 +50,7 @@ export function RatingBadgeLayer({
     height: '100%',
     maxHeight: 'none',
   }
-  const unscaledPlaceholderSize = {
-    ...fillLayerSize,
-    minHeight: '100%',
-    boxSizing: 'border-box' as const,
-  }
+  const placeholderDataUrl = createSvgDataUrl(buildRatingBadgePlaceholderSvg(projectMetadata))
 
   return (
     <div
@@ -90,11 +76,13 @@ export function RatingBadgeLayer({
           style={fillLayerSize}
         />
       ) : (
-        <div className={getPlaceholderClass(projectMetadata)} style={unscaledPlaceholderSize}>
-          <span className="rating-badge-system">{projectMetadata.ratingSystem}</span>
-          <strong>{placeholderLabel}</strong>
-          <span className="rating-badge-placeholder-note">Placeholder</span>
-        </div>
+        <img
+          className="disc-rating-badge-image disc-placeholder-svg-image"
+          src={placeholderDataUrl}
+          alt={`${placeholderLabel} rating placeholder`}
+          draggable={false}
+          style={fillLayerSize}
+        />
       )}
     </div>
   )

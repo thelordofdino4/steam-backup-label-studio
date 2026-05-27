@@ -5,8 +5,13 @@ import {
   getPlatformMarkBoundsPercent,
   getPlatformMarkPlaceholderBoundsPercent,
 } from '../../discGeometry'
+import {
+  buildMediaMarkPlaceholderSvg,
+  buildPlatformMarkPlaceholderSvg,
+} from '../../discPlaceholderSvg'
 import { getMediaMarkLabel, getPlatformMarkLabel } from '../../project/projectMediaMark'
 import type { PlatformMarkValue, ProjectMediaMark, ProjectPlatformMarks } from '../../project/projectTypes'
+import { createSvgDataUrl } from '../../svgUtils'
 
 export type MediaMarkLayerProps = {
   projectMediaMark: ProjectMediaMark
@@ -70,10 +75,12 @@ export function MediaMarkLayer({
           draggable={false}
         />
       ) : (
-        <div className="disc-media-mark-placeholder">
-          <strong>{label}</strong>
-          <span>Media</span>
-        </div>
+        <img
+          className="disc-media-mark-image disc-placeholder-svg-image"
+          src={createSvgDataUrl(buildMediaMarkPlaceholderSvg(projectMediaMark.value))}
+          alt={`${label} media mark placeholder`}
+          draggable={false}
+        />
       )}
     </div>
   )
@@ -128,9 +135,12 @@ export function PlatformMarksLayer({
             draggable={false}
           />
         ) : (
-          <div className="disc-platform-mark-placeholder">
-            <strong>{label}</strong>
-          </div>
+          <img
+            className="disc-media-mark-image disc-placeholder-svg-image"
+            src={createSvgDataUrl(buildPlatformMarkPlaceholderSvg(value))}
+            alt={`${label} platform mark placeholder`}
+            draggable={false}
+          />
         )}
       </div>
     )
