@@ -10,20 +10,18 @@ import {
   type SteamLogoPlacement,
 } from '../discText'
 import { layoutCurvedText, type CurvedTextLineLayout } from '../discText/curvedTextLayout'
-import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles'
+import {
+  getDiscTextFontString,
+  getStraightDiscTextRenderLayout,
+  type TextMeasureFunction,
+} from '../discTextRenderLayout'
 
-function wrapCanvasText(context: CanvasRenderingContext2D, text: string, maxWidth: number) {
-  const words = text.split(/\s+/).filter(Boolean)
-  const lines: string[] = []
-  let currentLine = ''
-  for (const word of words) {
-    const testLine = currentLine ? `${currentLine} ${word}` : word
-    if (context.measureText(testLine).width <= maxWidth || !currentLine) currentLine = testLine
-    else { lines.push(currentLine); currentLine = word }
-  }
-  if (currentLine) lines.push(currentLine)
-  return lines
+function scaleCanvasFont(font: string, exportSize: number) {
+  return font.replace(/(\d+(?:\.\d+)?)px/g, (_, fontSize: string) => {
+    return `${(Number(fontSize) / 100) * exportSize}px`
+  })
 }
+
 function splitLongTokenByCanvasWidth(context: CanvasRenderingContext2D, token: string, maxWidth: number) {
   const chunks: string[] = []; let currentChunk = ''
   for (const character of Array.from(token)) {
@@ -216,25 +214,32 @@ function drawCurvedCopyrightText(context: CanvasRenderingContext2D, exportSize: 
 }
 
 export function drawDiscTextElements(context: CanvasRenderingContext2D, exportSize: number, settings: DiscTextSettings, values: DiscTextValues, layoutSettings: DiscTextLayoutSettings, title: string, placement: SteamLogoPlacement, safeZoneRadius: number) {
+  const measureExportText: TextMeasureFunction = (text, font) => {
+    context.font = scaleCanvasFont(font, exportSize)
+    return (context.measureText(text).width / exportSize) * 100
+  }
+
   for (const key of DISC_TEXT_KEYS) {
     if (!settings[key]) continue
     const text = getDiscTextContent(key, values, title).trim(); if (!text) continue
-    const style = DISC_TEXT_RENDER_STYLES[key]; const layout = layoutSettings[key]
+    const layout = layoutSettings[key]
     const effectiveScale = key === 'copyright' && layout.mode === 'curved' ? getReadableCurvedTextScale(layout.scale) : layout.scale
-    const fontSize = exportSize * (style.fontSizePercent / 100) * effectiveScale; const lineHeight = fontSize * 1.18
-    const textX = exportSize * ((50 + layout.x) / 100); const textY = exportSize * (layout.y / 100)
-    context.save(); context.font = `${style.fontWeight} ${Math.round(fontSize)}px Arial`; context.textAlign = layout.align; context.textBaseline = 'middle'; context.lineJoin = 'round'; context.shadowColor = 'rgba(0, 0, 0, 0.72)'; context.shadowBlur = Math.max(3, exportSize * 0.004); context.shadowOffsetY = Math.max(1, exportSize * 0.0015); context.strokeStyle = 'rgba(0, 0, 0, 0.58)'; context.lineWidth = Math.max(2, exportSize * 0.002); context.fillStyle = style.color
-    if (key === 'copyright' && layout.mode === 'curved') { context.textAlign = 'center'; drawCurvedCopyrightText(context, exportSize, safeZoneRadius, placement, layout, text, fontSize); context.restore(); continue }
-    const maxWidth = exportSize * (layout.width / 100)
-    const lines = wrapCanvasText(context, text, maxWidth).slice(0, style.maxLines)
-    const firstLineY = textY - ((lines.length - 1) * lineHeight) / 2
-    const drawTextX =
-      layout.align === 'left'
-        ? textX - maxWidth / 2
-        : layout.align === 'right'
-          ? textX + maxWidth / 2
-        : textX
-    lines.forEach((line, index) => { const lineY = firstLineY + index * lineHeight; context.strokeText(line, drawTextX, lineY, maxWidth); context.fillText(line, drawTextX, lineY, maxWidth) })
+    if (key === 'copyright' && layout.mode === 'curved') {
+      const fontSize = exportSize * 0.0108 * effectiveScale
+      context.save(); context.font = `${650} ${Math.round(fontSize)}px Arial`; context.textAlign = 'center'; context.textBaseline = 'middle'; context.lineJoin = 'round'; context.shadowColor = 'rgba(0, 0, 0, 0.72)'; context.shadowBlur = Math.max(3, exportSize * 0.004); context.shadowOffsetY = Math.max(1, exportSize * 0.0015); context.strokeStyle = 'rgba(0, 0, 0, 0.58)'; context.lineWidth = Math.max(2, exportSize * 0.002); context.fillStyle = '#d1d5db'; drawCurvedCopyrightText(context, exportSize, safeZoneRadius, placement, layout, text, fontSize); context.restore(); continue
+    }
+
+    const straightTextLayout = getStraightDiscTextRenderLayout(key, text, layout, measureExportText)
+    const fontSize = (straightTextLayout.fontSize / 100) * exportSize
+    context.save(); context.font = scaleCanvasFont(getDiscTextFontString(straightTextLayout.fontWeight, straightTextLayout.fontSize), exportSize); context.textAlign = straightTextLayout.align; context.textBaseline = 'middle'; context.lineJoin = 'round'; context.shadowColor = 'rgba(0, 0, 0, 0.72)'; context.shadowBlur = Math.max(3, exportSize * 0.004); context.shadowOffsetY = Math.max(1, exportSize * 0.0015); context.strokeStyle = 'rgba(0, 0, 0, 0.58)'; context.lineWidth = Math.max(2, exportSize * 0.002); context.fillStyle = straightTextLayout.color
+    straightTextLayout.lines.forEach((line) => {
+      const x = (line.x / 100) * exportSize
+      const y = (line.y / 100) * exportSize
+      const maxWidth = (straightTextLayout.maxWidth / 100) * exportSize
+      context.strokeText(line.text, x, y, maxWidth)
+      context.fillText(line.text, x, y, maxWidth)
+    })
+    void fontSize
     context.restore()
   }
 }
