@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react'
+import type { CSSProperties, PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   createSvgArcPath,
@@ -16,6 +16,7 @@ import {
   type SteamLogoPlacement,
 } from '../../discText'
 import { layoutCurvedText, type CurvedTextLineLayout } from '../../discText/curvedTextLayout'
+import { DISC_TEXT_RENDER_STYLES } from '../../discTextStyles'
 import { resolveMetadataBoundDiscTextValues } from '../../project/metadataDiscText'
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
@@ -223,6 +224,20 @@ function getCurvedLineTextPathAnchor(
   return { startOffset: '50%', textAnchor: 'middle' }
 }
 
+function getStraightPreviewTextStyle(key: DiscTextKey): CSSProperties {
+  const renderStyle = DISC_TEXT_RENDER_STYLES[key]
+
+  return {
+    color: renderStyle.color,
+    display: '-webkit-box',
+    fontFamily: 'Arial, sans-serif',
+    fontSize: `clamp(7px, ${renderStyle.fontSizePercent}cqw, 34px)`,
+    fontWeight: renderStyle.fontWeight,
+    WebkitBoxOrient: 'vertical',
+    WebkitLineClamp: renderStyle.maxLines,
+  }
+}
+
 export function DiscTextLayer({
   discTextSettings,
   discTextValues,
@@ -344,6 +359,7 @@ export function DiscTextLayer({
             className={`disc-text-line ${getDiscTextPreviewClassName(key)}`}
             key={key}
             style={{
+              ...getStraightPreviewTextStyle(key),
               left: `${50 + layout.x}%`,
               top: `${layout.y}%`,
               width: `${layout.width}%`,
