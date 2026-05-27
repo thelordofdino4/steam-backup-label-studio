@@ -28,6 +28,7 @@ export type TextPanelProps = {
   handleDiscTextModeChange: (key: DiscTextKey, mode: DiscTextMode) => void
   handleDiscTextArcSideChange: (key: DiscTextKey, arcSide: DiscTextArcSide) => void
   handleResetDiscTextLayout: (key: DiscTextKey) => void
+  handleCopyTextParityDiagnostics: () => void
   steamLogoPlacement: SteamLogoPlacement
 }
 
@@ -42,6 +43,7 @@ export function TextPanel({
   handleDiscTextModeChange,
   handleDiscTextArcSideChange,
   handleResetDiscTextLayout,
+  handleCopyTextParityDiagnostics,
   steamLogoPlacement,
 }: TextPanelProps) {
   const applyDiscTextPreset = (key: DiscTextKey, preset: DiscTextLayoutPreset) => {
@@ -64,6 +66,16 @@ export function TextPanel({
         </p>
         <p className="hint">
           Metadata-backed text uses the matching Game metadata field first. The value below is used when that metadata field is blank, while the game title still follows the label title field.
+        </p>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={handleCopyTextParityDiagnostics}
+        >
+          Copy text parity diagnostics
+        </button>
+        <p className="hint">
+          Use this when preview and PNG export text do not match. It copies a JSON report with live preview measurements and export layout calculations.
         </p>
 
         <div className="disc-text-control-list">
