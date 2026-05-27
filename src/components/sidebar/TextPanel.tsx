@@ -1,9 +1,14 @@
 import {
+  CURVED_COPYRIGHT_LAYOUT_X_MAX,
+  CURVED_COPYRIGHT_LAYOUT_X_MIN,
+  CURVED_COPYRIGHT_LAYOUT_Y_MAX,
+  CURVED_COPYRIGHT_LAYOUT_Y_MIN,
   DISC_TEXT_KEYS,
   DISC_TEXT_WIDTH_MAX,
   DISC_TEXT_WIDTH_MIN,
   getDiscTextLabel,
   getDiscTextInputValue,
+  isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
@@ -75,7 +80,7 @@ export function TextPanel({
             const layout = discTextLayout[key]
             const isTextEnabled = discTextSettings[key]
             const isCopyright = key === 'copyright'
-            const isCurvedCopyright = isCopyright && layout.mode === 'curved'
+            const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
             const presets = getDiscTextLayoutPresetsForKey(key)
 
             return (
@@ -214,8 +219,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Angle' : 'X'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? '-60' : '-20'}
-                          max={isCurvedCopyright ? '60' : '20'}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : -20}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : 20}
                           step="0.1"
                           value={layout.x}
                           onChange={(event) =>
@@ -228,8 +233,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Inset' : 'Y'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? '-8' : '8'}
-                          max={isCurvedCopyright ? '20' : '92'}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : 8}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : 92}
                           step="0.1"
                           value={layout.y}
                           onChange={(event) =>

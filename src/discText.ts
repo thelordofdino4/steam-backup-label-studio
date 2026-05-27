@@ -49,10 +49,10 @@ type DiscTextLayoutPoint = {
   y: number
 }
 
-const CURVED_COPYRIGHT_DRAG_X_MIN = -60
-const CURVED_COPYRIGHT_DRAG_X_MAX = 60
-const CURVED_COPYRIGHT_DRAG_Y_MIN = -8
-const CURVED_COPYRIGHT_DRAG_Y_MAX = 20
+export const CURVED_COPYRIGHT_LAYOUT_X_MIN = -60
+export const CURVED_COPYRIGHT_LAYOUT_X_MAX = 60
+export const CURVED_COPYRIGHT_LAYOUT_Y_MIN = -8
+export const CURVED_COPYRIGHT_LAYOUT_Y_MAX = 20
 
 export const DISC_TEXT_KEYS: DiscTextKey[] = [
   'title',
@@ -244,17 +244,17 @@ export function updateDraggedDiscTextLayoutPosition(
     [key]: {
       ...currentTextLayout,
       x: isCurvedCopyright
-        ? clampDiscTextDragCoordinate(
+          ? clampDiscTextDragCoordinate(
             point.x,
-            CURVED_COPYRIGHT_DRAG_X_MIN,
-            CURVED_COPYRIGHT_DRAG_X_MAX,
+            CURVED_COPYRIGHT_LAYOUT_X_MIN,
+            CURVED_COPYRIGHT_LAYOUT_X_MAX,
           )
         : point.x,
       y: isCurvedCopyright
-        ? clampDiscTextDragCoordinate(
+          ? clampDiscTextDragCoordinate(
             point.y,
-            CURVED_COPYRIGHT_DRAG_Y_MIN,
-            CURVED_COPYRIGHT_DRAG_Y_MAX,
+            CURVED_COPYRIGHT_LAYOUT_Y_MIN,
+            CURVED_COPYRIGHT_LAYOUT_Y_MAX,
           )
         : point.y,
     },
