@@ -31,10 +31,12 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - For visual/editor changes, ask the user to verify with `npm run tauri dev`.
 
 5. Follow the architecture guardrails. This is a hard rule, not a preference.
-   - New logic must not be crammed into existing unrelated structures.
-   - If a change does something new, create a focused new `.ts` or `.tsx` module for it.
+   - Before creating new behavior or a new module, do a light search for existing owners: nearby domain modules, hooks, renderers, layout helpers, export helpers, project/schema helpers, and utilities.
+   - If an existing feature or module already owns that behavior, update the existing owner instead of creating a parallel implementation.
+   - If a change does something genuinely new, create a focused new `.ts` or `.tsx` module for it.
    - If an existing feature needs updating, update it where that feature belongs.
    - If an update grows into a new feature or new responsibility, extract it into a new `.ts` or `.tsx` module.
+   - New logic must not be crammed into existing unrelated structures.
    - No more logic dumping grounds: do not add feature-specific state transitions, renderers, export drawing, upload/import logic, pointer math, layout/clamp math, or serialization logic to `App.tsx` or other catch-all files.
    - When a regression exposes hidden coupling, refactor the ownership boundary first, then fix the symptom in the correct module.
 
