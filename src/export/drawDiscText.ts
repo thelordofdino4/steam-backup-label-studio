@@ -321,15 +321,8 @@ function buildDiscTextSvg(
 
   return `
     <svg xmlns="http://www.w3.org/2000/svg" width="${rasterSize}" height="${rasterSize}" viewBox="0 0 100 100">
-      <defs>
-        <filter id="disc-text-shadow" x="-50%" y="-50%" width="200%" height="200%">
-          <feDropShadow dx="0" dy="0.31" stdDeviation="0.63" flood-color="#000000" flood-opacity="0.85" />
-          <feDropShadow dx="0" dy="0" stdDeviation="0.24" flood-color="#000000" flood-opacity="0.9" />
-        </filter>
-      </defs>
       <style>
         .disc-export-text {
-          filter: url(#disc-text-shadow);
           paint-order: stroke fill;
           stroke: rgba(0, 0, 0, 0.58);
           stroke-linejoin: round;
@@ -353,11 +346,8 @@ export async function drawDiscTextElements(
   safeZoneRadius: number,
 ) {
   const measureExportText: TextMeasureFunction = (text, font) => {
-    const scaledFont = font.replace(/(\d+(?:\.\d+)?)px/g, (_, fontSize: string) => {
-      return `${(Number(fontSize) / 100) * discContentSize}px`
-    })
-    context.font = scaledFont
-    return (context.measureText(text).width / discContentSize) * 100
+    context.font = font
+    return context.measureText(text).width
   }
   const safeZoneRadiusPercent = (safeZoneRadius / discContentSize) * 100
   const svg = buildDiscTextSvg(
@@ -374,3 +364,6 @@ export async function drawDiscTextElements(
 
   context.drawImage(textLayerImage, discOrigin, discOrigin, discContentSize, discContentSize)
 }
+
+
+
