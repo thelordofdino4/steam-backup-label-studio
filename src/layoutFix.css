@@ -12,10 +12,6 @@
   container-type: inline-size;
 }
 
-.steam-brand-banner {
-  height: 15.17% !important;
-}
-
 .empty-background-message {
   z-index: 9 !important;
   padding: 0 18% !important;

@@ -1967,6 +1967,7 @@ function App() {
         steamLogoPlacement={steamLogoPlacement}
         steamBannerColors={steamBannerColors}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
         projectMetadata={projectMetadata}

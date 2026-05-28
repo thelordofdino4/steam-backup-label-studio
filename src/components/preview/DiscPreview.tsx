@@ -1,6 +1,6 @@
 import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SteamBannerColors } from '../../project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SteamBannerColors } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -26,6 +26,7 @@ export type DiscPreviewProps = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
   projectMetadata: ProjectMetadata
@@ -80,6 +81,7 @@ export function DiscPreview({
   steamLogoPlacement,
   steamBannerColors,
   steamBannerLockupImageUrl,
+  steamBannerLockupImageSize,
   steamBannerLockupLayout,
   projectLogoAssets,
   projectMetadata,
@@ -129,6 +131,7 @@ export function DiscPreview({
         steamLogoPlacement={steamLogoPlacement}
         steamBannerColors={steamBannerColors}
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+        steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
       />
     ),
