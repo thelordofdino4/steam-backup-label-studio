@@ -21,6 +21,13 @@ export type StraightDiscTextRenderLayout = {
   lines: StraightDiscTextLineLayout[]
 }
 
+export type StraightDiscTextVisualBounds = {
+  centerX: number
+  centerY: number
+  halfWidth: number
+  halfHeight: number
+}
+
 export function getDiscTextFontString(fontWeight: number, fontSize: number) {
   return `${fontWeight} ${fontSize}px Arial`
 }
@@ -93,12 +100,78 @@ function getTextAnchor(align: DiscTextAlignment): StraightDiscTextRenderLayout['
   return 'middle'
 }
 
-function getAnchorX(layout: DiscTextLayout) {
+function getAnchorX(layout: DiscTextLayout, firstLineWidth: number) {
   const centerX = 50 + layout.x
 
-  if (layout.align === 'left') return centerX - layout.width / 2
-  if (layout.align === 'right') return centerX + layout.width / 2
+  if (layout.align === 'left') return centerX - firstLineWidth / 2
+  if (layout.align === 'right') return centerX + firstLineWidth / 2
   return centerX
+}
+
+function getLineHorizontalBounds(
+  line: StraightDiscTextLineLayout,
+  textAnchor: StraightDiscTextRenderLayout['textAnchor'],
+  lineWidth: number,
+) {
+  if (textAnchor === 'start') {
+    return {
+      left: line.x,
+      right: line.x + lineWidth,
+    }
+  }
+
+  if (textAnchor === 'end') {
+    return {
+      left: line.x - lineWidth,
+      right: line.x,
+    }
+  }
+
+  return {
+    left: line.x - lineWidth / 2,
+    right: line.x + lineWidth / 2,
+  }
+}
+
+export function getStraightDiscTextVisualBounds(
+  layout: StraightDiscTextRenderLayout,
+  measureText: TextMeasureFunction,
+): StraightDiscTextVisualBounds {
+  if (layout.lines.length === 0) {
+    return {
+      centerX: 50,
+      centerY: 50,
+      halfWidth: 0,
+      halfHeight: 0,
+    }
+  }
+
+  const font = getDiscTextFontString(layout.fontWeight, layout.fontSize)
+  let left = Number.POSITIVE_INFINITY
+  let right = Number.NEGATIVE_INFINITY
+  let top = Number.POSITIVE_INFINITY
+  let bottom = Number.NEGATIVE_INFINITY
+
+  for (const line of layout.lines) {
+    const lineWidth = Math.max(0, measureText(line.text, font))
+    const horizontalBounds = getLineHorizontalBounds(
+      line,
+      layout.textAnchor,
+      lineWidth,
+    )
+
+    left = Math.min(left, horizontalBounds.left)
+    right = Math.max(right, horizontalBounds.right)
+    top = Math.min(top, line.y - layout.lineHeight / 2)
+    bottom = Math.max(bottom, line.y + layout.lineHeight / 2)
+  }
+
+  return {
+    centerX: (left + right) / 2,
+    centerY: (top + bottom) / 2,
+    halfWidth: (right - left) / 2,
+    halfHeight: (bottom - top) / 2,
+  }
 }
 
 export function getStraightDiscTextRenderLayout(
@@ -119,7 +192,8 @@ export function getStraightDiscTextRenderLayout(
     measureText,
   )
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
-  const x = getAnchorX(layout)
+  const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
+  const x = getAnchorX(layout, firstLineWidth)
 
   return {
     align: layout.align,

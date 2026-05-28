@@ -219,8 +219,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Angle' : 'X'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : -20}
-                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : 20}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : -50}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : 50}
                           step="0.1"
                           value={layout.x}
                           onChange={(event) =>
@@ -233,8 +233,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Inset' : 'Y'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : 8}
-                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : 92}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : 0}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : 100}
                           step="0.1"
                           value={layout.y}
                           onChange={(event) =>
