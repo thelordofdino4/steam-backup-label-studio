@@ -47,19 +47,23 @@ type TextVisualBoundsPercent = {
   halfHeight: number
 }
 
-type LayoutAxisRange = {
+export type LayoutAxisRange = {
   min: number
   max: number
 }
 
-export type StraightDiscTextLayoutSliderRanges = {
+export type LayoutSliderRanges = {
   x: LayoutAxisRange
   y: LayoutAxisRange
 }
 
+export type StraightDiscTextLayoutSliderRanges = LayoutSliderRanges
+
 const STRAIGHT_DISC_TEXT_LAYOUT_X_RANGE: LayoutAxisRange = { min: -50, max: 50 }
 const STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE: LayoutAxisRange = { min: 0, max: 100 }
-const STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP = 0.1
+const SAFE_ZONE_LAYOUT_X_RANGE: LayoutAxisRange = { min: 0, max: 100 }
+const SAFE_ZONE_LAYOUT_Y_RANGE: LayoutAxisRange = { min: 0, max: 100 }
+const LAYOUT_SLIDER_STEP = 0.1
 
 function getFallbackTextVisualBounds(
   key: DiscTextKey,
@@ -224,12 +228,12 @@ function clampLayoutAxisRange(
     max: clampNumber(range.max, bounds.min, bounds.max),
   }
   const min = normalizeSliderRangeValue(
-    Math.ceil(clampedRange.min / STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP) *
-    STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP,
+    Math.ceil(clampedRange.min / LAYOUT_SLIDER_STEP) *
+    LAYOUT_SLIDER_STEP,
   )
   const max = normalizeSliderRangeValue(
-    Math.floor(clampedRange.max / STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP) *
-    STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP,
+    Math.floor(clampedRange.max / LAYOUT_SLIDER_STEP) *
+    LAYOUT_SLIDER_STEP,
   )
 
   if (min <= max) {
@@ -248,6 +252,49 @@ function normalizeSliderRangeValue(value: number) {
   const normalizedValue = Number(value.toFixed(4))
 
   return Object.is(normalizedValue, -0) ? 0 : normalizedValue
+}
+
+function getSafeZoneLayoutSliderRanges(
+  layout: Pick<LogoAssetLayout, 'x' | 'y'>,
+  selectedDiscTemplate: DiscTemplate,
+  bounds: { halfWidth: number; halfHeight: number },
+  axisBounds: LayoutSliderRanges = {
+    x: SAFE_ZONE_LAYOUT_X_RANGE,
+    y: SAFE_ZONE_LAYOUT_Y_RANGE,
+  },
+): LayoutSliderRanges {
+  const safeZoneRadius = getSafeZoneRadiusPercent(selectedDiscTemplate)
+  const visualDeltaX = layout.x - DISC_LAYOUT_CENTER_PERCENT
+  const visualDeltaY = layout.y - DISC_LAYOUT_CENTER_PERCENT
+  const xHalfTravel = getSafeAxisHalfTravel(
+    safeZoneRadius,
+    visualDeltaY,
+    bounds.halfHeight,
+    bounds.halfWidth,
+  )
+  const yHalfTravel = getSafeAxisHalfTravel(
+    safeZoneRadius,
+    visualDeltaX,
+    bounds.halfWidth,
+    bounds.halfHeight,
+  )
+
+  return {
+    x: clampLayoutAxisRange(
+      {
+        min: DISC_LAYOUT_CENTER_PERCENT - xHalfTravel,
+        max: DISC_LAYOUT_CENTER_PERCENT + xHalfTravel,
+      },
+      axisBounds.x,
+    ),
+    y: clampLayoutAxisRange(
+      {
+        min: DISC_LAYOUT_CENTER_PERCENT - yHalfTravel,
+        max: DISC_LAYOUT_CENTER_PERCENT + yHalfTravel,
+      },
+      axisBounds.y,
+    ),
+  }
 }
 
 export function getStraightDiscTextLayoutSliderRanges(
@@ -306,6 +353,57 @@ export function getStraightDiscTextLayoutSliderRanges(
       STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE,
     ),
   }
+}
+
+export function getLogoAssetLayoutSliderRanges(
+  layout: LogoAssetLayout,
+  selectedDiscTemplate: DiscTemplate,
+  imageSize: BackgroundImageSize | null,
+): LayoutSliderRanges {
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    getLogoAssetBoundsPercent(imageSize, layout.scale),
+  )
+}
+
+export function getRatingBadgeLayoutSliderRanges(
+  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = ratingBadge.layout
+  const bounds =
+    ratingBadge.source === 'custom' && ratingBadge.customImageSize
+      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
+      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+
+  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+}
+
+export function getMediaMarkLayoutSliderRanges(
+  mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = mediaMark.layout
+  const bounds =
+    mediaMark.source === 'custom' && mediaMark.customImageSize
+      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, layout.scale)
+      : getMediaMarkPlaceholderBoundsPercent(layout.scale)
+
+  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+}
+
+export function getPlatformMarkLayoutSliderRanges(
+  platformMark: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = platformMark.layout
+  const bounds =
+    platformMark.source === 'custom' && platformMark.customImageSize
+      ? getPlatformMarkBoundsPercent(platformMark.customImageSize, layout.scale)
+      : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
+
+  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
 }
 
 export function clampLogoAssetLayoutToSafeZone(

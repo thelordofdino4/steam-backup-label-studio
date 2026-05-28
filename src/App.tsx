@@ -1456,6 +1456,7 @@ function App() {
           projectRatingBadge={projectRatingBadge}
           projectMediaMark={projectMediaMark}
           projectPlatformMarks={projectPlatformMarks}
+          selectedDiscTemplate={selectedDiscTemplate}
           handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}

@@ -1,10 +1,17 @@
 import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
+import {
+  getLogoAssetLayoutSliderRanges,
+  getMediaMarkLayoutSliderRanges,
+  getPlatformMarkLayoutSliderRanges,
+  getRatingBadgeLayoutSliderRanges,
+} from '../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset } from '../../project/projectMediaMark'
 import { getActiveRatingSystemForBadge, getRatingMetadataForBadgeEnabled, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
+import type { DiscTemplate } from '../../types/template'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -18,6 +25,7 @@ export type BrandingPanelProps = {
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
+  selectedDiscTemplate: DiscTemplate
   handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
@@ -169,9 +177,14 @@ function SteamBannerControls({
   )
 }
 
-function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, handleLogoAssetUpload, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'handleLogoAssetUpload' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
+function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, selectedDiscTemplate, handleLogoAssetUpload, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
   const uploadId = `${logoKey}-logo-upload`
   const hasLogoImage = Boolean(imageDataUrl)
+  const sliderRanges = getLogoAssetLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    imageSize,
+  )
 
   return (
     <div className="logo-asset-card">
@@ -210,10 +223,10 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
           <input id={`${logoKey}-logo-scale`} type="range" min="0.25" max="2" step="0.01" value={layout.scale} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))} />
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>X position</label>
-          <input id={`${logoKey}-logo-x`} type="range" min="0" max="100" step="0.1" value={layout.x} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))} />
+          <input id={`${logoKey}-logo-x`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={layout.x} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))} />
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>Y position</label>
-          <input id={`${logoKey}-logo-y`} type="range" min="0" max="100" step="0.1" value={layout.y} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))} />
+          <input id={`${logoKey}-logo-y`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={layout.y} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))} />
 
           <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey)}>Reset logo layout</button>
           {hasLogoImage && <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey)}>Clear logo</button>}
@@ -223,12 +236,16 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, ha
   )
 }
 
-function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
+function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
   const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${hasRatingValue ? ` ${projectMetadata.ratingValue}` : ''}`
   const isCustomBadgeSource = projectRatingBadge.source === 'custom'
+  const sliderRanges = getRatingBadgeLayoutSliderRanges(
+    projectRatingBadge,
+    selectedDiscTemplate,
+  )
 
   const handleEnabledChange = (enabled: boolean) => {
     if (enabled) {
@@ -309,9 +326,9 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
           <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
           <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onChange={(event) => handleRatingBadgeLayoutChange('scale', Number(event.target.value))} />
           <label className="field-label spacing-top" htmlFor="rating-badge-x">X position</label>
-          <input id="rating-badge-x" type="range" min="0" max="100" step="0.1" value={projectRatingBadge.layout.x} onChange={(event) => handleRatingBadgeLayoutChange('x', Number(event.target.value))} />
+          <input id="rating-badge-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectRatingBadge.layout.x} onChange={(event) => handleRatingBadgeLayoutChange('x', Number(event.target.value))} />
           <label className="field-label spacing-top" htmlFor="rating-badge-y">Y position</label>
-          <input id="rating-badge-y" type="range" min="0" max="100" step="0.1" value={projectRatingBadge.layout.y} onChange={(event) => handleRatingBadgeLayoutChange('y', Number(event.target.value))} />
+          <input id="rating-badge-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectRatingBadge.layout.y} onChange={(event) => handleRatingBadgeLayoutChange('y', Number(event.target.value))} />
           <button className="secondary-button" type="button" onClick={handleResetRatingBadgeLayout}>Reset rating badge layout</button>
           {isCustomBadgeSource && projectRatingBadge.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>}
         </>
@@ -320,9 +337,13 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, handleProjec
   )
 }
 
-function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
+function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'selectedDiscTemplate' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
   const isEnabled = projectMediaMark.layout.enabled
   const isCustomMediaMarkSource = projectMediaMark.source === 'custom'
+  const sliderRanges = getMediaMarkLayoutSliderRanges(
+    projectMediaMark,
+    selectedDiscTemplate,
+  )
   return (
     <div className="logo-asset-card">
       <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => handleMediaMarkLayoutChange('enabled', event.target.checked)} /> Show media format mark</label>
@@ -354,9 +375,9 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
           <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onInput={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
-          <input id="media-mark-x" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.x} onInput={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} />
+          <input id="media-mark-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectMediaMark.layout.x} onInput={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="media-mark-y">Y position</label>
-          <input id="media-mark-y" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.y} onInput={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} />
+          <input id="media-mark-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectMediaMark.layout.y} onInput={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} />
           <button className="secondary-button" type="button" onClick={handleResetMediaMarkLayout}>Reset media mark layout</button>
           {isCustomMediaMarkSource && projectMediaMark.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>}
         </>
@@ -365,7 +386,7 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
   )
 }
 
-function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
+function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'selectedDiscTemplate' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
@@ -400,6 +421,10 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
             const label = getPlatformMarkLabel(value)
             const uploadId = `platform-mark-upload-${value}`
             const isCustomPlatformMarkSource = asset.source === 'custom'
+            const sliderRanges = getPlatformMarkLayoutSliderRanges(
+              asset,
+              selectedDiscTemplate,
+            )
             return (
               <div key={value} className="logo-asset-card spacing-top">
                 <span className="field-label">{label} platform mark</span>
@@ -424,9 +449,9 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
                 <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
-                <input id={`platform-mark-x-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
+                <input id={`platform-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
-                <input id={`platform-mark-y-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
+                <input id={`platform-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
                 <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
                 {isCustomPlatformMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>}
               </div>
