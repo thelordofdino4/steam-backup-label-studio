@@ -783,6 +783,19 @@ input:disabled {
   margin-top: 8px;
 }
 
+.disc-text-source-row {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.disc-text-source-button {
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
 
 .disc-text-control-list {
   display: grid;

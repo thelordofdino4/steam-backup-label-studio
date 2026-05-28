@@ -12,7 +12,7 @@ import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
 } from '../../discTextSvgLayer'
-import { resolveMetadataBoundDiscTextValues } from '../../project/metadataDiscText'
+import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
 import type { ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { createSvgDataUrl } from '../../svgUtils'
@@ -20,6 +20,7 @@ import { createSvgDataUrl } from '../../svgUtils'
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   projectMetadata: ProjectMetadata
   manualGameTitle: string
   discTextLayout: DiscTextLayoutSettings
@@ -47,6 +48,7 @@ function getDiscTextKeyFromEventTarget(target: EventTarget | null) {
 export function DiscTextLayer({
   discTextSettings,
   discTextValues,
+  discTextValueSources,
   projectMetadata,
   manualGameTitle,
   discTextLayout,
@@ -63,6 +65,7 @@ export function DiscTextLayer({
       const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
         discTextValues,
         projectMetadata,
+        discTextValueSources,
       )
 
       return buildDiscTextSvgLayer({
@@ -81,6 +84,7 @@ export function DiscTextLayer({
     [
       discTextSettings,
       discTextValues,
+      discTextValueSources,
       discTextLayout,
       manualGameTitle,
       projectMetadata,
@@ -93,6 +97,7 @@ export function DiscTextLayer({
       const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
         discTextValues,
         projectMetadata,
+        discTextValueSources,
       )
 
       return buildDiscTextSvgLayer({
@@ -111,6 +116,7 @@ export function DiscTextLayer({
     [
       discTextSettings,
       discTextValues,
+      discTextValueSources,
       discTextLayout,
       manualGameTitle,
       projectMetadata,

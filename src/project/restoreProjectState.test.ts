@@ -6,6 +6,7 @@ import {
   restoreProjectStateFromContents,
   restoreSavedProjectState,
 } from './restoreProjectState.ts'
+import { createDefaultProjectMetadata } from './projectMetadata.ts'
 import type { SavedProject } from './projectTypes.ts'
 
 const baseProject: SavedProject = {
@@ -134,6 +135,47 @@ test('keeps saved background image size without resolving it again', async () =>
 
   assert.deepEqual(restored.backgroundImageSize, { width: 800, height: 600 })
   assert.equal(resolveCount, 0)
+})
+
+test('restores saved and legacy disc text metadata source state', async () => {
+  const restoredExplicitSources = await restoreSavedProjectState({
+    ...baseProject,
+    metadata: {
+      ...createDefaultProjectMetadata(),
+      title: 'Manual Saved Title',
+      steamAppId: '123',
+      backupDate: '2026-05-28',
+    },
+    discText: {
+      values: {
+        appId: 'Custom rendered ID',
+        backupDate: '2026-05-28',
+      },
+      valueSources: {
+        appId: 'manual',
+        backupDate: 'metadata',
+      },
+    },
+  })
+
+  assert.equal(restoredExplicitSources.discTextValueSources.appId, 'manual')
+  assert.equal(restoredExplicitSources.discTextValueSources.backupDate, 'metadata')
+
+  const restoredLegacySources = await restoreSavedProjectState({
+    ...baseProject,
+    metadata: {
+      ...createDefaultProjectMetadata(),
+      title: 'Manual Saved Title',
+      steamAppId: '123',
+    },
+    discText: {
+      values: {
+        appId: 'Custom rendered ID',
+      },
+    },
+  })
+
+  assert.equal(restoredLegacySources.discTextValueSources.appId, 'manual')
 })
 
 test('restores checked-in project fixtures', async () => {

@@ -21,17 +21,23 @@ import {
 } from '../../discText'
 import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
+import {
+  isMetadataBoundDiscTextKey,
+  type DiscTextValueSources,
+  type MetadataBoundDiscTextKey,
+} from '../../project/metadataDiscText'
 import type { DiscTemplate } from '../../types/template'
 
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
-  discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   metadataBoundDiscTextValues: DiscTextValues
   manualGameTitle: string
   selectedDiscTemplate: DiscTemplate
   handleDiscTextToggle: (key: DiscTextKey, checked: boolean) => void
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
+  handleUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
   handleDiscTextLayoutChange: (
     key: DiscTextKey,
     field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
@@ -47,12 +53,13 @@ export type TextPanelProps = {
 export function TextPanel({
   discTextSettings,
   discTextLayout,
-  discTextValues,
+  discTextValueSources,
   metadataBoundDiscTextValues,
   manualGameTitle,
   selectedDiscTemplate,
   handleDiscTextToggle,
   handleDiscTextContentChange,
+  handleUseMetadataDiscTextValue,
   handleDiscTextLayoutChange,
   handleDiscTextAlignmentChange,
   handleDiscTextModeChange,
@@ -79,7 +86,7 @@ export function TextPanel({
           Enable text elements, edit their fallback values, and adjust their preset position and scale.
         </p>
         <p className="hint">
-          Metadata-backed text uses the matching Game metadata field first. The value below is used when that metadata field is blank, while the game title still follows the label title field.
+          Metadata-backed text follows the matching Game metadata until edited here. Manual overrides can return to the Game metadata value.
         </p>
 
         <div className="disc-text-control-list">
@@ -87,6 +94,9 @@ export function TextPanel({
             const layout = discTextLayout[key]
             const isTextEnabled = discTextSettings[key]
             const isCopyright = key === 'copyright'
+            const isMetadataBacked = isMetadataBoundDiscTextKey(key)
+            const isManualOverride =
+              isMetadataBacked && discTextValueSources[key] === 'manual'
             const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
             const presets = getDiscTextLayoutPresetsForKey(key)
             const renderedText = getDiscTextContent(
@@ -121,9 +131,31 @@ export function TextPanel({
                       id={`disc-text-value-${key}`}
                       className="disc-text-input"
                       type="text"
-                      value={getDiscTextInputValue(key, discTextValues, manualGameTitle)}
+                      value={getDiscTextInputValue(
+                        key,
+                        metadataBoundDiscTextValues,
+                        manualGameTitle,
+                      )}
                       onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
                     />
+                    {isMetadataBacked && (
+                      <div className="disc-text-source-row">
+                        <span>
+                          {isManualOverride
+                            ? 'Manual override'
+                            : 'Using Game metadata'}
+                        </span>
+                        {isManualOverride && (
+                          <button
+                            className="secondary-button disc-text-source-button"
+                            type="button"
+                            onClick={() => handleUseMetadataDiscTextValue(key)}
+                          >
+                            Use Game metadata value
+                          </button>
+                        )}
+                      </div>
+                    )}
 
                     <div className="disc-text-layout-grid" aria-label={`${getDiscTextLabel(key)} placement controls`}>
                       {isCopyright && (

@@ -12,6 +12,7 @@ import { RatingBadgeLayer } from './RatingBadgeLayer'
 import { MediaMarkLayer, PlatformMarksLayer } from './MediaMarkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
+import type { DiscTextValueSources } from '../../project/metadataDiscText'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -53,6 +54,7 @@ export type DiscPreviewProps = {
   handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   manualGameTitle: string
   discTextLayout: DiscTextLayoutSettings
   selectedDiscTemplate: DiscTemplate
@@ -102,6 +104,7 @@ export function DiscPreview({
   handleLogoAssetPointerUp,
   discTextSettings,
   discTextValues,
+  discTextValueSources,
   manualGameTitle,
   discTextLayout,
   selectedDiscTemplate,
@@ -177,6 +180,7 @@ export function DiscPreview({
       <DiscTextLayer
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
+        discTextValueSources={discTextValueSources}
         projectMetadata={projectMetadata}
         manualGameTitle={manualGameTitle}
         discTextLayout={discTextLayout}

@@ -24,6 +24,10 @@ import { discTemplates, type DiscTemplateId } from '../templates/discTemplates.t
 import type { SteamImportedGame } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template'
 import { buildCustomDiscTemplate } from '../discGeometry.ts'
+import {
+  normalizeDiscTextValueSources,
+  type DiscTextValueSources,
+} from './metadataDiscText.ts'
 import { normalizeParsedProject } from './normalizeProject.ts'
 import { normalizeProjectLogoAssets } from './projectLogoAssets.ts'
 import { normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './projectMediaMark.ts'
@@ -66,6 +70,7 @@ export type RestoredProjectState = {
   exportGuides: ExportGuideSelection
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   discTextLayout: DiscTextLayoutSettings
   backgroundScale: number
   backgroundOffset: BackgroundOffset
@@ -180,6 +185,10 @@ export async function restoreSavedProjectState(
     project.steamBackupLogo.lockupImageSize,
     options.defaultSteamBannerLockupImageUrl ?? null,
   )
+  const discTextValues = normalizeDiscTextValues(
+    project.discText?.values,
+    selectedSteamGame?.appId,
+  )
 
   return {
     manualGameTitle,
@@ -201,9 +210,11 @@ export async function restoreSavedProjectState(
       project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
     exportGuides: project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
     discTextSettings: normalizeDiscTextSettings(project.discText?.settings),
-    discTextValues: normalizeDiscTextValues(
-      project.discText?.values,
-      selectedSteamGame?.appId,
+    discTextValues,
+    discTextValueSources: normalizeDiscTextValueSources(
+      project.discText?.valueSources,
+      discTextValues,
+      projectMetadata,
     ),
     discTextLayout: clampDiscTextLayoutToSafeZone(
       normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),

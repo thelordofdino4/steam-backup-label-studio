@@ -7,6 +7,7 @@ import type {
 import type { ExportGuideSelection } from '../exportGuides'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
+import type { DiscTextValueSources } from './metadataDiscText'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -43,6 +44,7 @@ export type CreateProjectSnapshotParams = {
   backgroundImageSize: BackgroundImageSize | null
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   discTextLayout: DiscTextLayoutSettings
 }
 
@@ -68,6 +70,7 @@ export function createProjectSnapshot({
   backgroundImageSize,
   discTextSettings,
   discTextValues,
+  discTextValueSources,
   discTextLayout,
 }: CreateProjectSnapshotParams): SavedProject {
   return {
@@ -109,6 +112,7 @@ export function createProjectSnapshot({
     discText: {
       settings: discTextSettings,
       values: discTextValues,
+      valueSources: discTextValueSources,
       layout: discTextLayout,
     },
   }

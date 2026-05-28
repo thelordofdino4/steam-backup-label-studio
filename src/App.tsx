@@ -58,7 +58,15 @@ import {
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
-import { resolveMetadataBoundDiscTextValues } from './project/metadataDiscText'
+import {
+  createDefaultDiscTextValueSources,
+  getDiscTextKeysForProjectMetadataField,
+  isMetadataBoundDiscTextKey,
+  resolveMetadataBoundDiscTextValues,
+  updateDiscTextValueSource,
+  type DiscTextValueSources,
+  type MetadataBoundDiscTextKey,
+} from './project/metadataDiscText'
 import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
@@ -196,6 +204,9 @@ function App() {
   const [discTextValues, setDiscTextValues] = useState<DiscTextValues>(() =>
     createDefaultDiscTextValues(),
   )
+  const [discTextValueSources, setDiscTextValueSources] = useState<DiscTextValueSources>(() =>
+    createDefaultDiscTextValueSources(),
+  )
   const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
     createDefaultDiscTextLayout('top'),
   )
@@ -211,8 +222,13 @@ function App() {
     [backgroundImageSize],
   )
   const metadataBoundDiscTextValues = useMemo(
-    () => resolveMetadataBoundDiscTextValues(discTextValues, projectMetadata),
-    [discTextValues, projectMetadata],
+    () =>
+      resolveMetadataBoundDiscTextValues(
+        discTextValues,
+        projectMetadata,
+        discTextValueSources,
+      ),
+    [discTextValues, discTextValueSources, projectMetadata],
   )
 
   const {
@@ -833,6 +849,22 @@ function App() {
     })
   }
 
+  function clampMetadataBoundDiscTextLayoutsForContent(
+    keys: MetadataBoundDiscTextKey[],
+    values: DiscTextValues,
+  ) {
+    for (const key of keys) {
+      if (discTextValueSources[key] === 'manual') {
+        continue
+      }
+
+      clampDiscTextLayoutForContent(
+        key,
+        getDiscTextContent(key, values, manualGameTitle),
+      )
+    }
+  }
+
   function handleDiscTextContentChange(key: DiscTextKey, value: string) {
     if (key === 'title') {
       setManualGameTitle(value)
@@ -840,14 +872,44 @@ function App() {
       return
     }
 
+    const nextValueSources = isMetadataBoundDiscTextKey(key)
+      ? updateDiscTextValueSource(discTextValueSources, key, 'manual')
+      : discTextValueSources
     const nextValues = updateDiscTextValue(discTextValues, key, value)
     const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
       nextValues,
       projectMetadata,
+      nextValueSources,
     )
 
+    if (isMetadataBoundDiscTextKey(key)) {
+      setDiscTextValueSources((currentSources) =>
+        updateDiscTextValueSource(currentSources, key, 'manual'),
+      )
+    }
     setDiscTextValues((currentValues) =>
       updateDiscTextValue(currentValues, key, value),
+    )
+    clampDiscTextLayoutForContent(
+      key,
+      getDiscTextContent(key, nextMetadataBoundValues, manualGameTitle),
+    )
+  }
+
+  function handleUseMetadataDiscTextValue(key: MetadataBoundDiscTextKey) {
+    const nextValueSources = updateDiscTextValueSource(
+      discTextValueSources,
+      key,
+      'metadata',
+    )
+    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
+      discTextValues,
+      projectMetadata,
+      nextValueSources,
+    )
+
+    setDiscTextValueSources((currentSources) =>
+      updateDiscTextValueSource(currentSources, key, 'metadata'),
     )
     clampDiscTextLayoutForContent(
       key,
@@ -948,13 +1010,30 @@ function App() {
   }
 
   function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
-    setProjectMetadata((currentMetadata) =>
-      updateProjectMetadataField(currentMetadata, field, value),
+    const nextProjectMetadata = updateProjectMetadataField(
+      projectMetadata,
+      field,
+      value,
     )
+    const affectedTextKeys = getDiscTextKeysForProjectMetadataField(field)
+    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
+      discTextValues,
+      nextProjectMetadata,
+      discTextValueSources,
+    )
+
+    setProjectMetadata(nextProjectMetadata)
 
     if (field === 'title') {
       setManualGameTitle(value)
+      clampDiscTextLayoutForContent('title', value)
+      return
     }
+
+    clampMetadataBoundDiscTextLayoutsForContent(
+      affectedTextKeys,
+      nextMetadataBoundValues,
+    )
   }
 
   async function handleNewProject() {
@@ -1004,6 +1083,7 @@ function App() {
     setIsArtworkLoading(false)
     setDiscTextSettings(DEFAULT_DISC_TEXT_SETTINGS)
     setDiscTextValues(createDefaultDiscTextValues())
+    setDiscTextValueSources(createDefaultDiscTextValueSources())
     setDiscTextLayout(createDefaultDiscTextLayout('top'))
 
     announceStatus('Started a new blank project.')
@@ -1077,16 +1157,32 @@ function App() {
 
     try {
       const importedState = await createSteamGameImport(appId)
+      const nextProjectMetadata = applySteamGameImportToProjectMetadata(
+        importedState.importedGame,
+        projectMetadata,
+      )
+      const nextDiscTextValues = applySteamGameImportToDiscTextValues(
+        importedState.importedGame,
+        discTextValues,
+        discTextValueSources,
+      )
+      const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
+        nextDiscTextValues,
+        nextProjectMetadata,
+        discTextValueSources,
+      )
       setSelectedSteamGame(importedState.importedGame)
       setManualGameTitle(importedState.manualGameTitle)
-      setProjectMetadata((currentMetadata) =>
-        applySteamGameImportToProjectMetadata(
-          importedState.importedGame,
-          currentMetadata,
-        ),
-      )
-      setDiscTextValues((currentValues) =>
-        applySteamGameImportToDiscTextValues(importedState.importedGame, currentValues),
+      setProjectMetadata(nextProjectMetadata)
+      setDiscTextValues(nextDiscTextValues)
+      clampDiscTextLayoutForContent('title', importedState.manualGameTitle)
+      clampMetadataBoundDiscTextLayoutsForContent(
+        [
+          ...getDiscTextKeysForProjectMetadataField('steamAppId'),
+          ...getDiscTextKeysForProjectMetadataField('developer'),
+          ...getDiscTextKeysForProjectMetadataField('publisher'),
+        ],
+        nextMetadataBoundValues,
       )
       announceStatus(importedState.statusMessage)
     } catch (error) {
@@ -1201,6 +1297,7 @@ function App() {
         backgroundImageSize,
         discTextSettings,
         discTextValues,
+        discTextValueSources,
         discTextLayout,
       })
       await writeProjectFile(path, JSON.stringify(project, null, 2))
@@ -1259,6 +1356,7 @@ function App() {
       setExportGuides(restoredProject.exportGuides)
       setDiscTextSettings(restoredProject.discTextSettings)
       setDiscTextValues(restoredProject.discTextValues)
+      setDiscTextValueSources(restoredProject.discTextValueSources)
       setDiscTextLayout(restoredProject.discTextLayout)
       setBackgroundScale(restoredProject.backgroundScale)
       setBackgroundOffset(restoredProject.backgroundOffset)
@@ -1338,6 +1436,7 @@ function App() {
         projectPlatformMarks,
         discTextSettings,
         discTextValues,
+        discTextValueSources,
         discTextLayout,
         manualGameTitle,
         exportGuides,
@@ -1491,12 +1590,13 @@ function App() {
         <TextPanel
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
-          discTextValues={discTextValues}
+          discTextValueSources={discTextValueSources}
           metadataBoundDiscTextValues={metadataBoundDiscTextValues}
           manualGameTitle={manualGameTitle}
           selectedDiscTemplate={selectedDiscTemplate}
           handleDiscTextToggle={handleDiscTextToggle}
           handleDiscTextContentChange={handleDiscTextContentChange}
+          handleUseMetadataDiscTextValue={handleUseMetadataDiscTextValue}
           handleDiscTextLayoutChange={handleDiscTextLayoutChange}
           handleDiscTextAlignmentChange={handleDiscTextAlignmentChange}
           handleDiscTextModeChange={handleDiscTextModeChange}
@@ -1542,6 +1642,7 @@ function App() {
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
+        discTextValueSources={discTextValueSources}
         manualGameTitle={manualGameTitle}
         discTextLayout={discTextLayout}
         selectedDiscTemplate={selectedDiscTemplate}
