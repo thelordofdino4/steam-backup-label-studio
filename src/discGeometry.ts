@@ -46,6 +46,24 @@ export function getSafeZoneRadiusPercent(template: DiscTemplate) {
   return (template.safeDiameterMm / template.outerDiameterMm) * DISC_LAYOUT_CENTER_PERCENT
 }
 
+export function getInnerNoPrintRadiusPercent(template: DiscTemplate) {
+  if (template.outerDiameterMm <= 0) {
+    return 0
+  }
+
+  const innerNoPrintDiameterMm = Math.max(
+    0,
+    template.physicalCenterHoleDiameterMm,
+    template.innerHoleDiameterMm,
+  )
+
+  return clampNumber(
+    (innerNoPrintDiameterMm / template.outerDiameterMm) * DISC_LAYOUT_CENTER_PERCENT,
+    0,
+    getSafeZoneRadiusPercent(template),
+  )
+}
+
 export function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
 }
@@ -68,6 +86,128 @@ export function clampPointToSafeCircle(point: LayoutPoint, safeZoneRadiusPercent
     x: DISC_LAYOUT_CENTER_PERCENT + deltaX * scale,
     y: DISC_LAYOUT_CENTER_PERCENT + deltaY * scale,
   }
+}
+
+export function clampPointToSafeAnnulus(
+  point: LayoutPoint,
+  innerRadiusPercent: number,
+  outerRadiusPercent: number,
+): LayoutPoint {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const outerRadius = Math.max(0, outerRadiusPercent)
+  const innerRadius = clampNumber(Math.max(0, innerRadiusPercent), 0, outerRadius)
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const distance = Math.hypot(deltaX, deltaY)
+
+  if (outerRadius === 0) {
+    return {
+      x: DISC_LAYOUT_CENTER_PERCENT,
+      y: DISC_LAYOUT_CENTER_PERCENT,
+    }
+  }
+
+  if (distance >= innerRadius && distance <= outerRadius) {
+    return { x, y }
+  }
+
+  const targetDistance = distance < innerRadius ? innerRadius : outerRadius
+
+  if (distance === 0) {
+    return {
+      x: DISC_LAYOUT_CENTER_PERCENT,
+      y: DISC_LAYOUT_CENTER_PERCENT + targetDistance,
+    }
+  }
+
+  const scale = targetDistance / distance
+
+  return {
+    x: DISC_LAYOUT_CENTER_PERCENT + deltaX * scale,
+    y: DISC_LAYOUT_CENTER_PERCENT + deltaY * scale,
+  }
+}
+
+function getMaxRectCenterDistanceInsideCircle(
+  outerRadius: number,
+  halfWidth: number,
+  halfHeight: number,
+  unitX: number,
+  unitY: number,
+) {
+  const projectedBounds = Math.abs(unitX) * halfWidth + Math.abs(unitY) * halfHeight
+  const remainingRadiusSquared = Math.max(
+    0,
+    outerRadius ** 2 -
+    halfWidth ** 2 -
+    halfHeight ** 2 +
+    projectedBounds ** 2,
+  )
+
+  return Math.max(0, -projectedBounds + Math.sqrt(remainingRadiusSquared))
+}
+
+function getRectNearestDistanceFromCenter(
+  distance: number,
+  halfWidth: number,
+  halfHeight: number,
+  unitX: number,
+  unitY: number,
+) {
+  const nearestX = Math.max(0, Math.abs(unitX) * distance - halfWidth)
+  const nearestY = Math.max(0, Math.abs(unitY) * distance - halfHeight)
+
+  return Math.hypot(nearestX, nearestY)
+}
+
+function getMinRectCenterDistanceOutsideCircle(
+  innerRadius: number,
+  halfWidth: number,
+  halfHeight: number,
+  unitX: number,
+  unitY: number,
+) {
+  if (innerRadius <= 0) {
+    return 0
+  }
+
+  const upperDistance = innerRadius + Math.hypot(halfWidth, halfHeight)
+
+  if (
+    getRectNearestDistanceFromCenter(
+      upperDistance,
+      halfWidth,
+      halfHeight,
+      unitX,
+      unitY,
+    ) < innerRadius
+  ) {
+    return upperDistance
+  }
+
+  let low = 0
+  let high = upperDistance
+
+  for (let iteration = 0; iteration < 32; iteration += 1) {
+    const mid = (low + high) / 2
+
+    if (
+      getRectNearestDistanceFromCenter(
+        mid,
+        halfWidth,
+        halfHeight,
+        unitX,
+        unitY,
+      ) < innerRadius
+    ) {
+      low = mid
+    } else {
+      high = mid
+    }
+  }
+
+  return high
 }
 
 export function clampRectToSafeCircle(
@@ -102,19 +242,13 @@ export function clampRectToSafeCircle(
     return { x, y }
   }
 
-  const unitX = Math.abs(deltaX / distance)
-  const unitY = Math.abs(deltaY / distance)
-  const projectedBounds = unitX * halfWidth + unitY * halfHeight
-  const remainingRadiusSquared = Math.max(
-    0,
-    safeZoneRadius ** 2 -
-    halfWidth ** 2 -
-    halfHeight ** 2 +
-    projectedBounds ** 2,
+  const maxDistance = getMaxRectCenterDistanceInsideCircle(
+    safeZoneRadius,
+    halfWidth,
+    halfHeight,
+    deltaX / distance,
+    deltaY / distance,
   )
-  const maxDistance =
-    -projectedBounds +
-    Math.sqrt(remainingRadiusSquared)
 
   if (distance <= maxDistance) {
     return { x, y }
@@ -128,18 +262,80 @@ export function clampRectToSafeCircle(
   }
 }
 
+export function clampRectToSafeAnnulus(
+  point: LayoutPoint,
+  innerRadiusPercent: number,
+  outerRadiusPercent: number,
+  bounds: RenderBoundsPercent,
+): LayoutPoint {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const outerRadius = Math.max(0, outerRadiusPercent)
+  const innerRadius = clampNumber(Math.max(0, innerRadiusPercent), 0, outerRadius)
+  const halfWidth = Math.max(0, bounds.halfWidth)
+  const halfHeight = Math.max(0, bounds.halfHeight)
+
+  if (halfWidth === 0 && halfHeight === 0) {
+    return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+  }
+
+  const cornerRadius = Math.hypot(halfWidth, halfHeight)
+
+  if (cornerRadius >= outerRadius) {
+    return {
+      x: DISC_LAYOUT_CENTER_PERCENT,
+      y: DISC_LAYOUT_CENTER_PERCENT,
+    }
+  }
+
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const distance = Math.hypot(deltaX, deltaY)
+  const unitX = distance === 0 ? 0 : deltaX / distance
+  const unitY = distance === 0 ? 1 : deltaY / distance
+  const maxDistance = getMaxRectCenterDistanceInsideCircle(
+    outerRadius,
+    halfWidth,
+    halfHeight,
+    unitX,
+    unitY,
+  )
+  const minDistance = getMinRectCenterDistanceOutsideCircle(
+    innerRadius,
+    halfWidth,
+    halfHeight,
+    unitX,
+    unitY,
+  )
+  const hasAnnularFit = minDistance <= maxDistance
+
+  if (hasAnnularFit && distance >= minDistance && distance <= maxDistance) {
+    return { x, y }
+  }
+
+  const targetDistance = hasAnnularFit
+    ? clampNumber(distance === 0 ? minDistance : distance, minDistance, maxDistance)
+    : clampNumber(distance === 0 ? maxDistance : distance, 0, maxDistance)
+
+  return {
+    x: DISC_LAYOUT_CENTER_PERCENT + unitX * targetDistance,
+    y: DISC_LAYOUT_CENTER_PERCENT + unitY * targetDistance,
+  }
+}
+
 export function clampLayoutPointToSafeZone(
   point: LayoutPoint,
   template: DiscTemplate,
   bounds?: RenderBoundsPercent,
 ): LayoutPoint {
   const safeZoneRadius = getSafeZoneRadiusPercent(template)
+  const innerNoPrintRadius = getInnerNoPrintRadiusPercent(template)
 
   if (bounds) {
-    return clampRectToSafeCircle(point, safeZoneRadius, bounds)
+    return clampRectToSafeAnnulus(point, innerNoPrintRadius, safeZoneRadius, bounds)
   }
 
-  return clampPointToSafeCircle(point, safeZoneRadius)
+  return clampPointToSafeAnnulus(point, innerNoPrintRadius, safeZoneRadius)
 }
 
 export function getContainedAssetBoundsPercent(

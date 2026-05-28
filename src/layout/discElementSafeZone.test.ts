@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  clampLogoAssetLayoutToSafeZone,
+  clampMediaMarkLayoutToSafeZone,
+  clampPlatformMarkLayoutToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
   getLogoAssetLayoutSliderRanges,
@@ -10,6 +13,20 @@ import {
   getStraightDiscTextLayoutSliderRanges,
 } from './discElementSafeZone.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
+import {
+  DISC_LAYOUT_CENTER_PERCENT,
+  buildCustomDiscTemplate,
+  getInnerNoPrintRadiusPercent,
+  getLogoAssetBoundsPercent,
+  getMediaMarkPlaceholderBoundsPercent,
+  getPlatformMarkPlaceholderBoundsPercent,
+  getRatingBadgePlaceholderBoundsPercent,
+  type RenderBoundsPercent,
+} from '../discGeometry.ts'
+import {
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
+} from '../discTextRenderLayout.ts'
 import type { DiscTextLayout } from '../discText.ts'
 import type {
   LogoAssetLayout,
@@ -17,6 +34,7 @@ import type {
   PlatformMarkLayout,
   RatingBadgeLayout,
 } from '../project/projectTypes.ts'
+import type { DiscTemplate } from '../types/template.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
   assert.ok(
@@ -48,6 +66,30 @@ function titleLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
 
 function rangeWidth(range: { min: number; max: number }) {
   return range.max - range.min
+}
+
+function getRectInnerClearance(
+  point: { x: number; y: number },
+  bounds: RenderBoundsPercent,
+  template: DiscTemplate,
+) {
+  const deltaX = point.x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = point.y - DISC_LAYOUT_CENTER_PERCENT
+  const nearestX = Math.max(0, Math.abs(deltaX) - bounds.halfWidth)
+  const nearestY = Math.max(0, Math.abs(deltaY) - bounds.halfHeight)
+
+  return Math.hypot(nearestX, nearestY) - getInnerNoPrintRadiusPercent(template)
+}
+
+function assertRectAvoidsInnerNoPrintArea(
+  point: { x: number; y: number },
+  bounds: RenderBoundsPercent,
+  template: DiscTemplate,
+) {
+  assert.ok(
+    getRectInnerClearance(point, bounds, template) >= -0.000001,
+    `Expected ${JSON.stringify(point)} with ${JSON.stringify(bounds)} to avoid inner no-print radius ${getInnerNoPrintRadiusPercent(template)}`,
+  )
 }
 
 function artworkLayout(
@@ -259,4 +301,130 @@ test('custom artwork slider ranges use uploaded image aspect ratio', () => {
 
   assert.ok(rangeWidth(tallBadge.x) > rangeWidth(wideBadge.x))
   assert.ok(rangeWidth(tallBadge.y) < rangeWidth(wideBadge.y))
+})
+
+test('movable artwork clamps out of the standard inner no-print area', () => {
+  const template = discTemplates.standardPrintableDisc
+  const logo = clampLogoAssetLayoutToSafeZone(artworkLayout(), template, null)
+  const ratingBadge = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as RatingBadgeLayout,
+  }
+  const rating = clampRatingBadgeLayoutToSafeZone(ratingBadge, template)
+  const mediaMark = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as MediaMarkLayout,
+  }
+  const media = clampMediaMarkLayoutToSafeZone(mediaMark, template)
+  const platformMark = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as PlatformMarkLayout,
+  }
+  const platform = clampPlatformMarkLayoutToSafeZone(platformMark, template)
+
+  assertRectAvoidsInnerNoPrintArea(
+    logo,
+    getLogoAssetBoundsPercent(null, logo.scale),
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    rating,
+    getRatingBadgePlaceholderBoundsPercent(rating.scale),
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    media,
+    getMediaMarkPlaceholderBoundsPercent(media.scale),
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    platform,
+    getPlatformMarkPlaceholderBoundsPercent(platform.scale),
+    template,
+  )
+})
+
+test('straight text clamps out of the inner no-print area', () => {
+  const template = discTemplates.standardPrintableDisc
+  const clamped = clampStraightDiscTextLayoutToSafeZone(
+    'title',
+    titleLayout({ width: 44 }),
+    template,
+    'CENTER TITLE',
+    measureText,
+  )
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'CENTER TITLE',
+    clamped,
+    measureText,
+  )
+  const visualBounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
+
+  assertRectAvoidsInnerNoPrintArea(
+    { x: visualBounds.centerX, y: visualBounds.centerY },
+    { halfWidth: visualBounds.halfWidth, halfHeight: visualBounds.halfHeight },
+    template,
+  )
+})
+
+test('custom inner print boundary expands the exclusion region', () => {
+  const standardTemplate = discTemplates.standardPrintableDisc
+  const customTemplate = buildCustomDiscTemplate(standardTemplate, {
+    innerHoleDiameterMm: 60,
+  })
+  const badge = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as RatingBadgeLayout,
+  }
+  const standard = clampRatingBadgeLayoutToSafeZone(badge, standardTemplate)
+  const custom = clampRatingBadgeLayoutToSafeZone(badge, customTemplate)
+  const standardDistance = Math.hypot(
+    standard.x - DISC_LAYOUT_CENTER_PERCENT,
+    standard.y - DISC_LAYOUT_CENTER_PERCENT,
+  )
+  const customDistance = Math.hypot(
+    custom.x - DISC_LAYOUT_CENTER_PERCENT,
+    custom.y - DISC_LAYOUT_CENTER_PERCENT,
+  )
+
+  assert.ok(customDistance > standardDistance)
+  assertRectAvoidsInnerNoPrintArea(
+    custom,
+    getRatingBadgePlaceholderBoundsPercent(custom.scale),
+    customTemplate,
+  )
+})
+
+test('inner no-print clamp preserves already safe artwork placement', () => {
+  const template = discTemplates.standardPrintableDisc
+  const badge = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout({ x: 78, y: 50 }) as RatingBadgeLayout,
+  }
+  const clamped = clampRatingBadgeLayoutToSafeZone(badge, template)
+
+  assertApproximatelyEqual(clamped.x, badge.layout.x)
+  assertApproximatelyEqual(clamped.y, badge.layout.y)
+})
+
+test('default platform mark layouts clamp away from larger no-print hubs', () => {
+  const template = discTemplates.lightScribeDisc
+  const platformMark = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout({ x: 50, y: 70 }) as PlatformMarkLayout,
+  }
+  const clamped = clampPlatformMarkLayoutToSafeZone(platformMark, template)
+
+  assertRectAvoidsInnerNoPrintArea(
+    clamped,
+    getPlatformMarkPlaceholderBoundsPercent(clamped.scale),
+    template,
+  )
 })
