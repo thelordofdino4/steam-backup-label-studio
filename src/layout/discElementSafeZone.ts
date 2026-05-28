@@ -16,6 +16,12 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
   getStraightDiscTextBoundsPercent,
 } from '../discGeometry'
+import {
+  getDiscTextFontString,
+  type TextMeasureFunction,
+} from '../discTextRenderLayout'
+import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles'
+import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark'
 import type {
   BackgroundImageSize,
@@ -48,57 +54,93 @@ function getFallbackTextVisualBounds(
   }
 }
 
-function getRenderedStraightTextVisualBounds(
-  key: DiscTextKey,
-  layout: DiscTextLayout,
-): TextVisualBoundsPercent {
-  const fallbackBounds = getFallbackTextVisualBounds(key, layout)
+function getStraightTextAnchorX(layout: DiscTextLayout) {
+  const centerX = DISC_LAYOUT_CENTER_PERCENT + layout.x
 
-  if (typeof document === 'undefined') {
-    return fallbackBounds
+  if (layout.align === 'left') {
+    return centerX - layout.width / 2
   }
 
-  const textElements = Array.from(
-    document.querySelectorAll<SVGGraphicsElement>(
-      `.disc-text-render-text[data-disc-text-key="${key}"]`,
-    ),
-  )
-
-  if (textElements.length === 0) {
-    return fallbackBounds
+  if (layout.align === 'right') {
+    return centerX + layout.width / 2
   }
 
-  let left = Number.POSITIVE_INFINITY
-  let right = Number.NEGATIVE_INFINITY
-  let top = Number.POSITIVE_INFINITY
-  let bottom = Number.NEGATIVE_INFINITY
+  return centerX
+}
 
-  for (const textElement of textElements) {
-    try {
-      const box = textElement.getBBox()
-
-      if (box.width <= 0 || box.height <= 0) {
-        continue
-      }
-
-      left = Math.min(left, box.x)
-      right = Math.max(right, box.x + box.width)
-      top = Math.min(top, box.y)
-      bottom = Math.max(bottom, box.y + box.height)
-    } catch {
-      return fallbackBounds
+function getLineHorizontalBounds(
+  x: number,
+  align: DiscTextLayout['align'],
+  lineWidth: number,
+) {
+  if (align === 'left') {
+    return {
+      left: x,
+      right: x + lineWidth,
     }
   }
 
-  if (
-    !Number.isFinite(left) ||
-    !Number.isFinite(right) ||
-    !Number.isFinite(top) ||
-    !Number.isFinite(bottom)
-  ) {
-    return fallbackBounds
+  if (align === 'right') {
+    return {
+      left: x - lineWidth,
+      right: x,
+    }
   }
 
+  return {
+    left: x - lineWidth / 2,
+    right: x + lineWidth / 2,
+  }
+}
+
+function getRenderedStraightTextLines(key: DiscTextKey) {
+  if (typeof document === 'undefined') {
+    return []
+  }
+
+  return Array.from(
+    document.querySelectorAll<SVGTextElement>(
+      `.disc-text-render-text[data-disc-text-key="${key}"]`,
+    ),
+  )
+    .map((textElement) => textElement.textContent?.trim() ?? '')
+    .filter(Boolean)
+}
+
+function getMeasuredStraightTextVisualBounds(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+  measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+): TextVisualBoundsPercent {
+  const lines = getRenderedStraightTextLines(key)
+
+  if (lines.length === 0) {
+    return getFallbackTextVisualBounds(key, layout)
+  }
+
+  const renderStyle = DISC_TEXT_RENDER_STYLES[key]
+  const fontSize = renderStyle.fontSizePercent * layout.scale
+  const lineHeight = fontSize * 1.18
+  const font = getDiscTextFontString(renderStyle.fontWeight, fontSize)
+  const x = getStraightTextAnchorX(layout)
+  const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
+  let left = Number.POSITIVE_INFINITY
+  let right = Number.NEGATIVE_INFINITY
+
+  for (const line of lines) {
+    const lineWidth = Math.max(0, measureText(line, font))
+    const horizontalBounds = getLineHorizontalBounds(x, layout.align, lineWidth)
+
+    left = Math.min(left, horizontalBounds.left)
+    right = Math.max(right, horizontalBounds.right)
+  }
+
+  if (!Number.isFinite(left) || !Number.isFinite(right)) {
+    return getFallbackTextVisualBounds(key, layout)
+  }
+
+  const top = firstLineY - lineHeight / 2
+  const bottom = firstLineY + (lines.length - 1) * lineHeight + lineHeight / 2
   const layoutAnchorX = DISC_LAYOUT_CENTER_PERCENT + layout.x
   const layoutAnchorY = layout.y
   const visualCenterX = (left + right) / 2
@@ -223,7 +265,7 @@ export function clampStraightDiscTextLayoutToSafeZone(
     x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
     y: layout.y,
   }
-  const visualBounds = getRenderedStraightTextVisualBounds(key, layout)
+  const visualBounds = getMeasuredStraightTextVisualBounds(key, layout)
   const visualCenter = {
     x: layoutAnchor.x + visualBounds.centerOffsetX,
     y: layoutAnchor.y + visualBounds.centerOffsetY,
