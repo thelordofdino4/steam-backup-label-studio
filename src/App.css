@@ -771,6 +771,10 @@ input:disabled {
   pointer-events: none;
 }
 
+.disc-text-layer-hit-target .disc-text-svg-layer {
+  pointer-events: none;
+}
+
 .disc-text-layer-hit-target .disc-text-render-text {
   pointer-events: visiblePainted;
 }

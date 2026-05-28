@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import {
   searchSteamStore,
   type SteamArtworkAsset,
@@ -58,9 +58,9 @@ import {
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
-import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
   applyImportedLogoAsset,
   applyImportedMediaMark,
@@ -92,14 +92,7 @@ import {
   updateBackgroundScale,
 } from './backgroundImage'
 import { isImageFile, readImportedImageAssetFromFile } from './utils/importedImageAsset'
-import {
-  createPercentDragState,
-  createPixelDragState,
-  getDraggedPercentPoint,
-  getDraggedPixelOffset,
-  type PercentDragState,
-  type PixelDragState,
-} from './interaction/dragGeometry'
+import { useDiscPreviewPointerDrag } from './interaction/useDiscPreviewPointerDrag'
 import {
   DISC_TEXT_KEYS,
   DEFAULT_DISC_TEXT_SETTINGS,
@@ -110,7 +103,6 @@ import {
   isCurvedCopyrightDiscTextLayout,
   updateDiscTextAlignment,
   updateDiscTextArcSide,
-  updateDraggedDiscTextLayoutPosition,
   updateDiscTextLayoutForSteamLogoPlacement,
   updateDiscTextLayoutField,
   updateDiscTextMode,
@@ -127,30 +119,12 @@ import {
   type SteamLogoPlacement,
 } from './discText'
 
-type TextDragState = {
-  key: DiscTextKey
-} & PercentDragState
-
-type LogoDragState = {
-  logoKey: 'developer' | 'publisher'
-} & PercentDragState
-
-type RatingBadgeDragState = PercentDragState
-
-type MediaMarkDragState = PercentDragState
-
-type PlatformMarkDragState = {
-  value: PlatformMarkValue
-} & PercentDragState
-
 type CustomDimensionKey =
   | 'outerDiameterMm'
   | 'physicalCenterHoleDiameterMm'
   | 'innerHoleDiameterMm'
   | 'printableDiameterMm'
   | 'safeDiameterMm'
-
-type DragState = PixelDragState
 
 function App() {
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
@@ -224,12 +198,6 @@ function App() {
     createDefaultDiscTextLayout('top'),
   )
 
-  const dragStateRef = useRef<DragState | null>(null)
-  const textDragStateRef = useRef<TextDragState | null>(null)
-  const logoDragStateRef = useRef<LogoDragState | null>(null)
-  const ratingBadgeDragStateRef = useRef<RatingBadgeDragState | null>(null)
-  const mediaMarkDragStateRef = useRef<MediaMarkDragState | null>(null)
-  const platformMarkDragStateRef = useRef<PlatformMarkDragState | null>(null)
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
     selectedDiscTemplateId === 'custom'
@@ -240,6 +208,44 @@ function App() {
     () => getBackgroundPreviewSize(backgroundImageSize),
     [backgroundImageSize],
   )
+
+  const {
+    cancelPreviewPointerDrag,
+    handleBackgroundPointerDown,
+    handleBackgroundPointerMove,
+    handleBackgroundPointerUp,
+    handleDiscTextPointerDown,
+    handleDiscTextPointerMove,
+    handleDiscTextPointerUp,
+    handleLogoAssetPointerDown,
+    handleLogoAssetPointerMove,
+    handleLogoAssetPointerUp,
+    handleRatingBadgePointerDown,
+    handleRatingBadgePointerMove,
+    handleRatingBadgePointerUp,
+    handleMediaMarkPointerDown,
+    handleMediaMarkPointerMove,
+    handleMediaMarkPointerUp,
+    handlePlatformMarkPointerDown,
+    handlePlatformMarkPointerMove,
+    handlePlatformMarkPointerUp,
+  } = useDiscPreviewPointerDrag({
+    discPreviewRef,
+    selectedDiscTemplate,
+    backgroundImageUrl,
+    backgroundOffset,
+    setBackgroundOffset,
+    discTextLayout,
+    setDiscTextLayout,
+    projectLogoAssets,
+    setProjectLogoAssets,
+    projectRatingBadge,
+    setProjectRatingBadge,
+    projectMediaMark,
+    setProjectMediaMark,
+    projectPlatformMarks,
+    setProjectPlatformMarks,
+  })
 
   const printableInsetPercent = getGuideInsetPercent(
     selectedDiscTemplate.outerDiameterMm,
@@ -919,12 +925,7 @@ function App() {
       return
     }
 
-    dragStateRef.current = null
-    textDragStateRef.current = null
-    logoDragStateRef.current = null
-    ratingBadgeDragStateRef.current = null
-    mediaMarkDragStateRef.current = null
-    platformMarkDragStateRef.current = null
+    cancelPreviewPointerDrag()
 
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(buildCustomDiscTemplate(discTemplates.standardPrintableDisc))
@@ -1307,317 +1308,6 @@ function App() {
     }
   }
 
-  function handleDiscTextPointerDown(
-    event: PointerEvent<Element>,
-    key: DiscTextKey,
-  ) {
-    event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    textDragStateRef.current = {
-      key,
-      ...createPercentDragState(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        discTextLayout[key].x,
-        discTextLayout[key].y,
-      ),
-    }
-  }
-
-  function handleDiscTextPointerMove(event: PointerEvent<Element>) {
-    const dragState = textDragStateRef.current
-    const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
-      return
-    }
-
-    event.stopPropagation()
-
-    const draggedPoint = getDraggedPercentPoint(
-      dragState,
-      event.clientX,
-      event.clientY,
-      previewRect,
-    )
-
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = updateDraggedDiscTextLayoutPosition(
-        currentLayout,
-        dragState.key,
-        draggedPoint,
-      )
-      const nextTextLayout = nextLayout[dragState.key]
-
-      return {
-        ...nextLayout,
-        [dragState.key]: isCurvedCopyrightDiscTextLayout(
-          dragState.key,
-          currentLayout[dragState.key],
-        )
-          ? nextTextLayout
-          : clampStraightDiscTextLayoutToSafeZone(
-              dragState.key,
-              nextTextLayout,
-              selectedDiscTemplate,
-            ),
-      }
-    })
-  }
-
-  function handleDiscTextPointerUp(event: PointerEvent<Element>) {
-    const dragState = textDragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    event.stopPropagation()
-    textDragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function handleLogoAssetPointerDown(
-    event: PointerEvent<Element>,
-    logoKey: 'developer' | 'publisher',
-  ) {
-    const layout =
-      logoKey === 'developer'
-        ? projectLogoAssets.developerLogoLayout
-        : projectLogoAssets.publisherLogoLayout
-
-    event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    logoDragStateRef.current = {
-      logoKey,
-      ...createPercentDragState(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        layout.x,
-        layout.y,
-      ),
-    }
-  }
-
-  function handleLogoAssetPointerMove(event: PointerEvent<Element>) {
-    const dragState = logoDragStateRef.current
-    const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
-      return
-    }
-
-    event.stopPropagation()
-
-    const draggedPoint = getDraggedPercentPoint(
-      dragState,
-      event.clientX,
-      event.clientY,
-      previewRect,
-    )
-
-    setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = updateLogoAssetLayoutPosition(
-        currentLogoAssets,
-        dragState.logoKey,
-        draggedPoint,
-      )
-      const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, dragState.logoKey),
-        selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, dragState.logoKey),
-      )
-
-      return setLogoAssetLayout(nextLogoAssets, dragState.logoKey, nextLayout)
-    })
-  }
-
-  function handleLogoAssetPointerUp(event: PointerEvent<Element>) {
-    const dragState = logoDragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    event.stopPropagation()
-    logoDragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function handleRatingBadgePointerDown(event: PointerEvent<Element>) {
-    event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    ratingBadgeDragStateRef.current = {
-      ...createPercentDragState(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        projectRatingBadge.layout.x,
-        projectRatingBadge.layout.y,
-      ),
-    }
-  }
-
-  function handleRatingBadgePointerMove(event: PointerEvent<Element>) {
-    const dragState = ratingBadgeDragStateRef.current
-    const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
-      return
-    }
-
-    event.stopPropagation()
-
-    const draggedPoint = getDraggedPercentPoint(
-      dragState,
-      event.clientX,
-      event.clientY,
-      previewRect,
-    )
-
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = updateRatingBadgeLayoutPosition(currentBadge, draggedPoint)
-
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
-    })
-  }
-
-  function handleRatingBadgePointerUp(event: PointerEvent<Element>) {
-    const dragState = ratingBadgeDragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    event.stopPropagation()
-    ratingBadgeDragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function handleMediaMarkPointerDown(event: PointerEvent<Element>) {
-    event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    mediaMarkDragStateRef.current = {
-      ...createPercentDragState(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        projectMediaMark.layout.x,
-        projectMediaMark.layout.y,
-      ),
-    }
-  }
-
-  function handleMediaMarkPointerMove(event: PointerEvent<Element>) {
-    const dragState = mediaMarkDragStateRef.current
-    const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
-      return
-    }
-
-    event.stopPropagation()
-
-    const draggedPoint = getDraggedPercentPoint(
-      dragState,
-      event.clientX,
-      event.clientY,
-      previewRect,
-    )
-
-    setProjectMediaMark((currentMark) => {
-      const nextMark = updateMediaMarkLayoutPosition(currentMark, draggedPoint)
-
-      return {
-        ...nextMark,
-        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-      }
-    })
-  }
-
-  function handleMediaMarkPointerUp(event: PointerEvent<Element>) {
-    const dragState = mediaMarkDragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    event.stopPropagation()
-    mediaMarkDragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
-  function handlePlatformMarkPointerDown(
-    event: PointerEvent<Element>,
-    value: PlatformMarkValue,
-  ) {
-    event.stopPropagation()
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    const asset =
-      projectPlatformMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
-
-    platformMarkDragStateRef.current = {
-      value,
-      ...createPercentDragState(
-        event.pointerId,
-        event.clientX,
-        event.clientY,
-        asset.layout.x,
-        asset.layout.y,
-      ),
-    }
-  }
-
-  function handlePlatformMarkPointerMove(event: PointerEvent<Element>) {
-    const dragState = platformMarkDragStateRef.current
-    const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-    if (!dragState || dragState.pointerId !== event.pointerId || !previewRect) {
-      return
-    }
-
-    event.stopPropagation()
-
-    const draggedPoint = getDraggedPercentPoint(
-      dragState,
-      event.clientX,
-      event.clientY,
-      previewRect,
-    )
-
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = updatePlatformMarkLayoutPosition(
-        currentMarks,
-        dragState.value,
-        draggedPoint,
-      )
-
-      return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
-    })
-  }
-
-  function handlePlatformMarkPointerUp(event: PointerEvent<Element>) {
-    const dragState = platformMarkDragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    event.stopPropagation()
-    platformMarkDragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
-  }
-
   async function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
 
@@ -1643,42 +1333,6 @@ function App() {
 
   function handleBackgroundScaleChange(value: number) {
     setBackgroundScale(updateBackgroundScale(value))
-  }
-
-  function handleBackgroundPointerDown(event: PointerEvent<HTMLDivElement>) {
-    if (!backgroundImageUrl) {
-      return
-    }
-
-    event.currentTarget.setPointerCapture(event.pointerId)
-
-    dragStateRef.current = createPixelDragState(
-      event.pointerId,
-      event.clientX,
-      event.clientY,
-      backgroundOffset,
-    )
-  }
-
-  function handleBackgroundPointerMove(event: PointerEvent<HTMLDivElement>) {
-    const dragState = dragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    setBackgroundOffset(getDraggedPixelOffset(dragState, event.clientX, event.clientY))
-  }
-
-  function handleBackgroundPointerUp(event: PointerEvent<HTMLDivElement>) {
-    const dragState = dragStateRef.current
-
-    if (!dragState || dragState.pointerId !== event.pointerId) {
-      return
-    }
-
-    dragStateRef.current = null
-    event.currentTarget.releasePointerCapture(event.pointerId)
   }
 
   return (
