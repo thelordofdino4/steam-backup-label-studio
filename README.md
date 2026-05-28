@@ -155,6 +155,7 @@ See the `docs/` folder for:
 - `CURRENT_STATUS.md` — concise implementation status and next issues.
 - `REFACTOR_STATUS.md` — completed issue #36 refactor summary and follow-up cleanup notes.
 - `MILESTONES.md` — milestone boundaries and feature backlog.
+- `VISUAL_REGRESSION_WORKFLOW.md` — manual preview/export comparison workflow for fixture-based visual checks.
 
 ## Disclaimer
 

@@ -1,6 +1,6 @@
 # Saved Project Fixtures
 
-These `.sbls.json` files are safe placeholder projects for manual regression checks and future visual/export comparison work.
+These `.sbls.json` files are safe placeholder projects for manual regression checks and visual/export comparison work.
 
 They intentionally use generated placeholder SVG data URLs instead of third-party game artwork. The goal is to make save/load, preview, export, normalization, and layout checks repeatable without adding copyrighted assets to the repository.
 
@@ -21,4 +21,6 @@ They intentionally use generated placeholder SVG data URLs instead of third-part
 5. Export a PNG with and without guide marks where relevant.
 6. Confirm saved state survives a save/reload pass.
 
-These fixtures support issue #64 and are intended to feed the future preview/export comparison workflow from issue #65.
+Use `docs/VISUAL_REGRESSION_WORKFLOW.md` for the full issue #65 preview/export parity checklist, mismatch severity labels, known acceptable differences, and run record template.
+
+These fixtures support issue #64 and the preview/export comparison workflow from issue #65.
