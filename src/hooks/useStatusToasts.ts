@@ -1,12 +1,88 @@
 import { useRef, useState } from 'react'
+import toastArtworkIconUrl from '../assets/toast-artwork.png'
+import toastErrorIconUrl from '../assets/toast-error.png'
+import toastExportIconUrl from '../assets/toast-export.png'
+import toastInfoIconUrl from '../assets/toast-info.png'
+import toastLogoIconUrl from '../assets/toast-logo.png'
+import toastProjectIconUrl from '../assets/toast-project.png'
+import toastSteamIconUrl from '../assets/toast-steam.png'
+import toastSuccessIconUrl from '../assets/toast-success.png'
+import toastTemplateIconUrl from '../assets/toast-template.png'
+import toastTextIconUrl from '../assets/toast-text.png'
+import toastWarningIconUrl from '../assets/toast-warning.png'
 
-export type StatusToastKind = 'info' | 'success' | 'warning' | 'error' | 'steam' | 'artwork' | 'template' | 'export'
+export type StatusToastKind =
+  | 'info'
+  | 'success'
+  | 'warning'
+  | 'error'
+  | 'steam'
+  | 'artwork'
+  | 'template'
+  | 'export'
+  | 'project'
+  | 'logo'
+  | 'text'
 
 export type StatusToast = {
   id: string
   message: string
   kind: StatusToastKind
-  icon: string
+  actionLabel: string
+  description: string
+  iconUrl: string
+}
+
+type StatusToastDisplay = {
+  actionLabel: string
+  iconUrl: string
+}
+
+const STATUS_TOAST_DISPLAY: Record<StatusToastKind, StatusToastDisplay> = {
+  info: {
+    actionLabel: 'Status',
+    iconUrl: toastInfoIconUrl,
+  },
+  success: {
+    actionLabel: 'Done',
+    iconUrl: toastSuccessIconUrl,
+  },
+  warning: {
+    actionLabel: 'Warning',
+    iconUrl: toastWarningIconUrl,
+  },
+  error: {
+    actionLabel: 'Error',
+    iconUrl: toastErrorIconUrl,
+  },
+  steam: {
+    actionLabel: 'Steam',
+    iconUrl: toastSteamIconUrl,
+  },
+  artwork: {
+    actionLabel: 'Artwork',
+    iconUrl: toastArtworkIconUrl,
+  },
+  template: {
+    actionLabel: 'Template',
+    iconUrl: toastTemplateIconUrl,
+  },
+  export: {
+    actionLabel: 'Export',
+    iconUrl: toastExportIconUrl,
+  },
+  project: {
+    actionLabel: 'Project',
+    iconUrl: toastProjectIconUrl,
+  },
+  logo: {
+    actionLabel: 'Logo',
+    iconUrl: toastLogoIconUrl,
+  },
+  text: {
+    actionLabel: 'Text',
+    iconUrl: toastTextIconUrl,
+  },
 }
 
 function getStatusToastKind(message: string): StatusToastKind {
@@ -28,6 +104,19 @@ function getStatusToastKind(message: string): StatusToastKind {
     return 'steam'
   }
 
+  if (normalizedMessage.includes('logo')) {
+    return 'logo'
+  }
+
+  if (
+    normalizedMessage.includes('text') ||
+    normalizedMessage.includes('title') ||
+    normalizedMessage.includes('note') ||
+    normalizedMessage.includes('copyright')
+  ) {
+    return 'text'
+  }
+
   if (
     normalizedMessage.includes('background') ||
     normalizedMessage.includes('artwork') ||
@@ -45,31 +134,26 @@ function getStatusToastKind(message: string): StatusToastKind {
   }
 
   if (normalizedMessage.includes('saved') || normalizedMessage.includes('loaded')) {
-    return 'success'
+    return 'project'
   }
 
   return 'info'
 }
 
-function getStatusToastIcon(kind: StatusToastKind) {
-  switch (kind) {
-    case 'success':
-      return '?'
-    case 'warning':
-      return '!'
-    case 'error':
-      return '×'
-    case 'steam':
-      return 'S'
-    case 'artwork':
-      return '?'
-    case 'template':
-      return '?'
-    case 'export':
-      return '?'
-    default:
-      return '•'
+function getStatusToastDescription(message: string, kind: StatusToastKind) {
+  const trimmedMessage = message.trim()
+
+  if (kind === 'export') {
+    return trimmedMessage.replace(/^Exported\s+/i, '')
   }
+
+  if (kind === 'project') {
+    return trimmedMessage
+      .replace(/^Saved project\s+/i, 'saved ')
+      .replace(/^Loaded project\s+/i, 'loaded ')
+  }
+
+  return trimmedMessage
 }
 
 export function useStatusToasts() {
@@ -81,6 +165,7 @@ export function useStatusToasts() {
 
   function announceStatus(message: string) {
     const kind = getStatusToastKind(message)
+    const display = STATUS_TOAST_DISPLAY[kind]
     const toastId = `status-toast-${nextStatusToastIdRef.current}`
     nextStatusToastIdRef.current += 1
 
@@ -88,7 +173,9 @@ export function useStatusToasts() {
       id: toastId,
       message,
       kind,
-      icon: getStatusToastIcon(kind),
+      actionLabel: display.actionLabel,
+      description: getStatusToastDescription(message, kind),
+      iconUrl: display.iconUrl,
     }
 
     setProjectStatus(message)
