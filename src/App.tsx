@@ -63,7 +63,7 @@ import {
   getDiscTextKeysForProjectMetadataField,
   isMetadataBoundDiscTextKey,
   resolveMetadataBoundDiscTextValues,
-  updateDiscTextValueSource,
+  updateDiscTextInputValue,
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
@@ -117,7 +117,6 @@ import {
   updateDiscTextLayoutField,
   updateDiscTextMode,
   updateDiscTextSetting,
-  updateDiscTextValue,
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
@@ -872,24 +871,22 @@ function App() {
       return
     }
 
-    const nextValueSources = isMetadataBoundDiscTextKey(key)
-      ? updateDiscTextValueSource(discTextValueSources, key, 'manual')
-      : discTextValueSources
-    const nextValues = updateDiscTextValue(discTextValues, key, value)
+    const nextInputUpdate = updateDiscTextInputValue(
+      discTextValues,
+      discTextValueSources,
+      key,
+      value,
+    )
     const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-      nextValues,
+      nextInputUpdate.values,
       projectMetadata,
-      nextValueSources,
+      nextInputUpdate.sources,
     )
 
     if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources((currentSources) =>
-        updateDiscTextValueSource(currentSources, key, 'manual'),
-      )
+      setDiscTextValueSources(nextInputUpdate.sources)
     }
-    setDiscTextValues((currentValues) =>
-      updateDiscTextValue(currentValues, key, value),
-    )
+    setDiscTextValues(nextInputUpdate.values)
     clampDiscTextLayoutForContent(
       key,
       getDiscTextContent(key, nextMetadataBoundValues, manualGameTitle),
@@ -897,20 +894,20 @@ function App() {
   }
 
   function handleUseMetadataDiscTextValue(key: MetadataBoundDiscTextKey) {
-    const nextValueSources = updateDiscTextValueSource(
+    const nextInputUpdate = updateDiscTextInputValue(
+      discTextValues,
       discTextValueSources,
       key,
-      'metadata',
+      '',
     )
     const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-      discTextValues,
+      nextInputUpdate.values,
       projectMetadata,
-      nextValueSources,
+      nextInputUpdate.sources,
     )
 
-    setDiscTextValueSources((currentSources) =>
-      updateDiscTextValueSource(currentSources, key, 'metadata'),
-    )
+    setDiscTextValueSources(nextInputUpdate.sources)
+    setDiscTextValues(nextInputUpdate.values)
     clampDiscTextLayoutForContent(
       key,
       getDiscTextContent(key, nextMetadataBoundValues, manualGameTitle),
@@ -1590,6 +1587,7 @@ function App() {
         <TextPanel
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
+          discTextValues={discTextValues}
           discTextValueSources={discTextValueSources}
           metadataBoundDiscTextValues={metadataBoundDiscTextValues}
           manualGameTitle={manualGameTitle}

@@ -176,6 +176,25 @@ test('restores saved and legacy disc text metadata source state', async () => {
   })
 
   assert.equal(restoredLegacySources.discTextValueSources.appId, 'manual')
+
+  const restoredEmptyManualSource = await restoreSavedProjectState({
+    ...baseProject,
+    metadata: {
+      ...createDefaultProjectMetadata(),
+      title: 'Manual Saved Title',
+      steamAppId: '123',
+    },
+    discText: {
+      values: {
+        appId: '',
+      },
+      valueSources: {
+        appId: 'manual',
+      },
+    },
+  })
+
+  assert.equal(restoredEmptyManualSource.discTextValueSources.appId, 'metadata')
 })
 
 test('restores checked-in project fixtures', async () => {

@@ -8,7 +8,6 @@ import {
   DISC_TEXT_WIDTH_MIN,
   getDiscTextLabel,
   getDiscTextContent,
-  getDiscTextInputValue,
   isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
   type DiscTextArcSide,
@@ -22,6 +21,7 @@ import {
 import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
 import {
+  getDiscTextInputState,
   isMetadataBoundDiscTextKey,
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
@@ -31,6 +31,7 @@ import type { DiscTemplate } from '../../types/template'
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
+  discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   metadataBoundDiscTextValues: DiscTextValues
   manualGameTitle: string
@@ -53,6 +54,7 @@ export type TextPanelProps = {
 export function TextPanel({
   discTextSettings,
   discTextLayout,
+  discTextValues,
   discTextValueSources,
   metadataBoundDiscTextValues,
   manualGameTitle,
@@ -83,10 +85,10 @@ export function TextPanel({
       <summary className="panel-summary">Text</summary>
       <div className="panel-content">
         <p className="hint">
-          Enable text elements, edit their fallback values, and adjust their preset position and scale.
+          Enable text elements, type manual overrides, and adjust their preset position and scale.
         </p>
         <p className="hint">
-          Metadata-backed text follows the matching Game metadata until edited here. Manual overrides can return to the Game metadata value.
+          Metadata-backed text shows the Game metadata/default as placeholder text until edited here. Clearing the override returns to the placeholder value.
         </p>
 
         <div className="disc-text-control-list">
@@ -94,11 +96,15 @@ export function TextPanel({
             const layout = discTextLayout[key]
             const isTextEnabled = discTextSettings[key]
             const isCopyright = key === 'copyright'
-            const isMetadataBacked = isMetadataBoundDiscTextKey(key)
-            const isManualOverride =
-              isMetadataBacked && discTextValueSources[key] === 'manual'
             const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
             const presets = getDiscTextLayoutPresetsForKey(key)
+            const inputState = getDiscTextInputState(
+              key,
+              discTextValues,
+              metadataBoundDiscTextValues,
+              discTextValueSources,
+              manualGameTitle,
+            )
             const renderedText = getDiscTextContent(
               key,
               metadataBoundDiscTextValues,
@@ -131,25 +137,26 @@ export function TextPanel({
                       id={`disc-text-value-${key}`}
                       className="disc-text-input"
                       type="text"
-                      value={getDiscTextInputValue(
-                        key,
-                        metadataBoundDiscTextValues,
-                        manualGameTitle,
-                      )}
+                      value={inputState.value}
+                      placeholder={inputState.placeholder}
                       onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
                     />
-                    {isMetadataBacked && (
+                    {inputState.isMetadataBacked && (
                       <div className="disc-text-source-row">
                         <span>
-                          {isManualOverride
+                          {inputState.isManualOverride
                             ? 'Manual override'
-                            : 'Using Game metadata'}
+                            : 'Using Game metadata/default'}
                         </span>
-                        {isManualOverride && (
+                        {inputState.isManualOverride && (
                           <button
                             className="secondary-button disc-text-source-button"
                             type="button"
-                            onClick={() => handleUseMetadataDiscTextValue(key)}
+                            onClick={() => {
+                              if (isMetadataBoundDiscTextKey(key)) {
+                                handleUseMetadataDiscTextValue(key)
+                              }
+                            }}
                           >
                             Use Game metadata value
                           </button>

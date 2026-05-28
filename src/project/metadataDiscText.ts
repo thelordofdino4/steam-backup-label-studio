@@ -1,4 +1,4 @@
-import type { DiscTextKey, DiscTextValues } from '../discText'
+import { updateDiscTextValue, type DiscTextKey, type DiscTextValues } from '../discText.ts'
 import type { ProjectMetadata } from './projectTypes'
 
 function normalizeText(value: string | undefined) {
@@ -8,6 +8,19 @@ function normalizeText(value: string | undefined) {
 export type MetadataBoundDiscTextKey = Exclude<keyof DiscTextValues, 'customNote'>
 export type DiscTextValueSource = 'metadata' | 'manual'
 export type DiscTextValueSources = Record<MetadataBoundDiscTextKey, DiscTextValueSource>
+export type DiscTextInputValueKey = Exclude<DiscTextKey, 'title'>
+
+export type DiscTextInputState = {
+  value: string
+  placeholder: string
+  isMetadataBacked: boolean
+  isManualOverride: boolean
+}
+
+export type DiscTextInputUpdate = {
+  values: DiscTextValues
+  sources: DiscTextValueSources
+}
 
 export const METADATA_BOUND_DISC_TEXT_KEYS: MetadataBoundDiscTextKey[] = [
   'subtitle',
@@ -103,6 +116,41 @@ export function resolveMetadataBoundDiscTextValues(
   return resolvedValues
 }
 
+export function getDiscTextInputState(
+  key: DiscTextKey,
+  values: DiscTextValues,
+  resolvedValues: DiscTextValues,
+  sources: DiscTextValueSources,
+  title: string,
+): DiscTextInputState {
+  if (key === 'title') {
+    return {
+      value: title,
+      placeholder: '',
+      isMetadataBacked: false,
+      isManualOverride: false,
+    }
+  }
+
+  if (!isMetadataBoundDiscTextKey(key)) {
+    return {
+      value: values[key],
+      placeholder: '',
+      isMetadataBacked: false,
+      isManualOverride: false,
+    }
+  }
+
+  const isManualOverride = sources[key] === 'manual'
+
+  return {
+    value: isManualOverride ? values[key] : '',
+    placeholder: isManualOverride ? '' : resolvedValues[key],
+    isMetadataBacked: true,
+    isManualOverride,
+  }
+}
+
 export function updateDiscTextValueSource(
   sources: DiscTextValueSources,
   key: MetadataBoundDiscTextKey,
@@ -111,6 +159,31 @@ export function updateDiscTextValueSource(
   return {
     ...sources,
     [key]: source,
+  }
+}
+
+export function updateDiscTextInputValue(
+  values: DiscTextValues,
+  sources: DiscTextValueSources,
+  key: DiscTextInputValueKey,
+  value: string,
+): DiscTextInputUpdate {
+  if (!isMetadataBoundDiscTextKey(key)) {
+    return {
+      values: updateDiscTextValue(values, key, value),
+      sources,
+    }
+  }
+
+  const manualValue = normalizeText(value) ? value : ''
+
+  return {
+    values: updateDiscTextValue(values, key, manualValue),
+    sources: updateDiscTextValueSource(
+      sources,
+      key,
+      manualValue ? 'manual' : 'metadata',
+    ),
   }
 }
 
@@ -125,6 +198,10 @@ function inferDiscTextValueSource(
 ): DiscTextValueSource {
   const savedValue = normalizeText(values[key])
   const metadataValue = getProjectMetadataDiscTextValue(key, metadata)
+
+  if (!savedValue) {
+    return 'metadata'
+  }
 
   if (savedValue && savedValue !== metadataValue) {
     return 'manual'
@@ -142,9 +219,13 @@ export function normalizeDiscTextValueSources(
 
   for (const key of METADATA_BOUND_DISC_TEXT_KEYS) {
     const savedSource = sources?.[key]
-    normalizedSources[key] = isDiscTextValueSource(savedSource)
-      ? savedSource
-      : inferDiscTextValueSource(key, values, metadata)
+    const inferredSource = inferDiscTextValueSource(key, values, metadata)
+    if (!isDiscTextValueSource(savedSource)) {
+      normalizedSources[key] = inferredSource
+      continue
+    }
+
+    normalizedSources[key] = normalizeText(values[key]) ? savedSource : 'metadata'
   }
 
   return normalizedSources
