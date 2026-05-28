@@ -23,6 +23,9 @@ export function ExportOptionsPanel({
             ? `${enabledGuideCount} guide ${enabledGuideCount === 1 ? 'mark is' : 'marks are'} enabled for the next export.`
             : 'No guide marks are enabled, so the next PNG export will contain only the disc artwork.'}
         </p>
+        <p className="hint">
+          Leaving a guide unchecked only keeps that guide out of the exported PNG; it does not change the disc artwork itself.
+        </p>
         <label className="checkbox-row">
           <input
             type="checkbox"

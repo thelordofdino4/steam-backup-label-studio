@@ -204,7 +204,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, se
               <span>{label} logo active{formatLogoSize(imageSize)}</span>
             </div>
           ) : (
-            <p className="hint">No uploaded {label.toLowerCase()} logo is selected yet. The editor shows a temporary placeholder so you can place the element; upload an image to render your actual logo.</p>
+            <p className="hint">No {label.toLowerCase()} logo image is selected yet. A temporary placeholder is shown for placement; upload an image before export to render your actual logo.</p>
           )}
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
@@ -291,7 +291,12 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
           )}
 
           <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
-          {!hasRatingValue && <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>}
+          {projectMetadata.ratingSystem === 'none' && (
+            <p className="hint">No rating badge will render while the rating system is set to None.</p>
+          )}
+          {projectMetadata.ratingSystem !== 'none' && !hasRatingValue && (
+            <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>
+          )}
 
           <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
           <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
@@ -310,7 +315,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
                   <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom badge image is selected yet. The generated badge placeholder remains visible until you upload an image.</p>}
+              ) : <p className="hint">No custom badge image is selected yet. The generated badge placeholder is used when a rating system and value are set.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder badge.</p>}
 

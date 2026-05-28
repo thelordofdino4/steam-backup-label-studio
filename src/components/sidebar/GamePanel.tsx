@@ -228,6 +228,11 @@ export function GamePanel({
         <option value="PEGI">PEGI</option>
         <option value="custom">Custom</option>
       </select>
+      {projectMetadata.ratingSystem === 'none' && (
+        <p className="hint">
+          None is valid for unrated labels. Rating badge artwork will not render until a rating system and value are selected.
+        </p>
+      )}
 
       {projectMetadata.ratingSystem !== 'none' && (
         <>
