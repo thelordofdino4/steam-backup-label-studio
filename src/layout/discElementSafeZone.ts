@@ -54,15 +54,15 @@ function getFallbackTextVisualBounds(
   }
 }
 
-function getStraightTextAnchorX(layout: DiscTextLayout) {
+function getStraightTextAnchorX(layout: DiscTextLayout, firstLineWidth: number) {
   const centerX = DISC_LAYOUT_CENTER_PERCENT + layout.x
 
   if (layout.align === 'left') {
-    return centerX - layout.width / 2
+    return centerX - firstLineWidth / 2
   }
 
   if (layout.align === 'right') {
-    return centerX + layout.width / 2
+    return centerX + firstLineWidth / 2
   }
 
   return centerX
@@ -122,7 +122,8 @@ function getMeasuredStraightTextVisualBounds(
   const fontSize = renderStyle.fontSizePercent * layout.scale
   const lineHeight = fontSize * 1.18
   const font = getDiscTextFontString(renderStyle.fontWeight, fontSize)
-  const x = getStraightTextAnchorX(layout)
+  const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
+  const x = getStraightTextAnchorX(layout, firstLineWidth)
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
   let left = Number.POSITIVE_INFINITY
   let right = Number.NEGATIVE_INFINITY

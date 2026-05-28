@@ -876,9 +876,21 @@ function App() {
   }
 
   function handleDiscTextAlignmentChange(key: DiscTextKey, align: DiscTextAlignment) {
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextAlignment(currentLayout, key, align),
-    )
+    setDiscTextLayout((currentLayout) => {
+      const nextLayout = updateDiscTextAlignment(currentLayout, key, align)
+      const nextTextLayout = nextLayout[key]
+
+      return {
+        ...nextLayout,
+        [key]: isCurvedCopyrightDiscTextLayout(key, nextTextLayout)
+          ? nextTextLayout
+          : clampStraightDiscTextLayoutToSafeZone(
+              key,
+              nextTextLayout,
+              selectedDiscTemplate,
+            ),
+      }
+    })
   }
 
   function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {

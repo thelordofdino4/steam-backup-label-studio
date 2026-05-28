@@ -100,11 +100,11 @@ function getTextAnchor(align: DiscTextAlignment): StraightDiscTextRenderLayout['
   return 'middle'
 }
 
-function getAnchorX(layout: DiscTextLayout) {
+function getAnchorX(layout: DiscTextLayout, firstLineWidth: number) {
   const centerX = 50 + layout.x
 
-  if (layout.align === 'left') return centerX - layout.width / 2
-  if (layout.align === 'right') return centerX + layout.width / 2
+  if (layout.align === 'left') return centerX - firstLineWidth / 2
+  if (layout.align === 'right') return centerX + firstLineWidth / 2
   return centerX
 }
 
@@ -192,7 +192,8 @@ export function getStraightDiscTextRenderLayout(
     measureText,
   )
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
-  const x = getAnchorX(layout)
+  const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
+  const x = getAnchorX(layout, firstLineWidth)
 
   return {
     align: layout.align,
