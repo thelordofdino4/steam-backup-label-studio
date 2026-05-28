@@ -6,7 +6,9 @@ import {
 } from '../discText.ts'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
+  clampNumber,
   clampLayoutPointToSafeZone,
+  getSafeZoneRadiusPercent,
   getLogoAssetBoundsPercent,
   getMediaMarkBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
@@ -18,6 +20,8 @@ import {
 } from '../discGeometry.ts'
 import {
   getDiscTextFontString,
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
 } from '../discTextRenderLayout.ts'
 import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles.ts'
@@ -42,6 +46,20 @@ type TextVisualBoundsPercent = {
   halfWidth: number
   halfHeight: number
 }
+
+type LayoutAxisRange = {
+  min: number
+  max: number
+}
+
+export type StraightDiscTextLayoutSliderRanges = {
+  x: LayoutAxisRange
+  y: LayoutAxisRange
+}
+
+const STRAIGHT_DISC_TEXT_LAYOUT_X_RANGE: LayoutAxisRange = { min: -50, max: 50 }
+const STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE: LayoutAxisRange = { min: 0, max: 100 }
+const STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP = 0.1
 
 function getFallbackTextVisualBounds(
   key: DiscTextKey,
@@ -155,6 +173,141 @@ function getMeasuredStraightTextVisualBounds(
   }
 }
 
+function getMeasuredStraightTextVisualBoundsFromContent(
+  key: DiscTextKey,
+  text: string,
+  layout: DiscTextLayout,
+  measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+): TextVisualBoundsPercent {
+  if (!text.trim()) {
+    return getFallbackTextVisualBounds(key, layout)
+  }
+
+  const renderLayout = getStraightDiscTextRenderLayout(key, text, layout, measureText)
+
+  if (renderLayout.lines.length === 0) {
+    return getFallbackTextVisualBounds(key, layout)
+  }
+
+  const bounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
+  const layoutAnchorX = DISC_LAYOUT_CENTER_PERCENT + layout.x
+  const layoutAnchorY = layout.y
+
+  return {
+    centerOffsetX: bounds.centerX - layoutAnchorX,
+    centerOffsetY: bounds.centerY - layoutAnchorY,
+    halfWidth: bounds.halfWidth,
+    halfHeight: bounds.halfHeight,
+  }
+}
+
+function getSafeAxisHalfTravel(
+  safeZoneRadius: number,
+  fixedAxisDelta: number,
+  fixedAxisHalfSize: number,
+  movingAxisHalfSize: number,
+) {
+  const fixedOuterDistance = Math.abs(fixedAxisDelta) + Math.max(0, fixedAxisHalfSize)
+  const remainingDistance = Math.sqrt(
+    Math.max(0, safeZoneRadius ** 2 - fixedOuterDistance ** 2),
+  )
+
+  return Math.max(0, remainingDistance - Math.max(0, movingAxisHalfSize))
+}
+
+function clampLayoutAxisRange(
+  range: LayoutAxisRange,
+  bounds: LayoutAxisRange,
+): LayoutAxisRange {
+  const clampedRange = {
+    min: clampNumber(range.min, bounds.min, bounds.max),
+    max: clampNumber(range.max, bounds.min, bounds.max),
+  }
+  const min = normalizeSliderRangeValue(
+    Math.ceil(clampedRange.min / STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP) *
+    STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP,
+  )
+  const max = normalizeSliderRangeValue(
+    Math.floor(clampedRange.max / STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP) *
+    STRAIGHT_DISC_TEXT_LAYOUT_SLIDER_STEP,
+  )
+
+  if (min <= max) {
+    return { min, max }
+  }
+
+  const midpoint = normalizeSliderRangeValue((clampedRange.min + clampedRange.max) / 2)
+
+  return {
+    min: midpoint,
+    max: midpoint,
+  }
+}
+
+function normalizeSliderRangeValue(value: number) {
+  const normalizedValue = Number(value.toFixed(4))
+
+  return Object.is(normalizedValue, -0) ? 0 : normalizedValue
+}
+
+export function getStraightDiscTextLayoutSliderRanges(
+  key: DiscTextKey,
+  text: string,
+  layout: DiscTextLayout,
+  selectedDiscTemplate: DiscTemplate,
+  measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+): StraightDiscTextLayoutSliderRanges {
+  if (layout.mode !== 'straight') {
+    return {
+      x: STRAIGHT_DISC_TEXT_LAYOUT_X_RANGE,
+      y: STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE,
+    }
+  }
+
+  const safeZoneRadius = getSafeZoneRadiusPercent(selectedDiscTemplate)
+  const visualBounds = getMeasuredStraightTextVisualBoundsFromContent(
+    key,
+    text,
+    layout,
+    measureText,
+  )
+  const visualCenter = {
+    x: DISC_LAYOUT_CENTER_PERCENT + layout.x + visualBounds.centerOffsetX,
+    y: layout.y + visualBounds.centerOffsetY,
+  }
+  const visualDeltaX = visualCenter.x - DISC_LAYOUT_CENTER_PERCENT
+  const visualDeltaY = visualCenter.y - DISC_LAYOUT_CENTER_PERCENT
+  const xHalfTravel = getSafeAxisHalfTravel(
+    safeZoneRadius,
+    visualDeltaY,
+    visualBounds.halfHeight,
+    visualBounds.halfWidth,
+  )
+  const yHalfTravel = getSafeAxisHalfTravel(
+    safeZoneRadius,
+    visualDeltaX,
+    visualBounds.halfWidth,
+    visualBounds.halfHeight,
+  )
+
+  return {
+    x: clampLayoutAxisRange(
+      {
+        min: -xHalfTravel - visualBounds.centerOffsetX,
+        max: xHalfTravel - visualBounds.centerOffsetX,
+      },
+      STRAIGHT_DISC_TEXT_LAYOUT_X_RANGE,
+    ),
+    y: clampLayoutAxisRange(
+      {
+        min: DISC_LAYOUT_CENTER_PERCENT - yHalfTravel - visualBounds.centerOffsetY,
+        max: DISC_LAYOUT_CENTER_PERCENT + yHalfTravel - visualBounds.centerOffsetY,
+      },
+      STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE,
+    ),
+  }
+}
+
 export function clampLogoAssetLayoutToSafeZone(
   layout: LogoAssetLayout,
   selectedDiscTemplate: DiscTemplate,
@@ -257,6 +410,8 @@ export function clampStraightDiscTextLayoutToSafeZone(
   key: DiscTextKey,
   layout: DiscTextLayout,
   selectedDiscTemplate: DiscTemplate,
+  text?: string,
+  measureText?: TextMeasureFunction,
 ): DiscTextLayout {
   if (layout.mode !== 'straight') {
     return layout
@@ -266,7 +421,15 @@ export function clampStraightDiscTextLayoutToSafeZone(
     x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
     y: layout.y,
   }
-  const visualBounds = getMeasuredStraightTextVisualBounds(key, layout)
+  const visualBounds =
+    typeof text === 'string'
+      ? getMeasuredStraightTextVisualBoundsFromContent(
+          key,
+          text,
+          layout,
+          measureText,
+        )
+      : getMeasuredStraightTextVisualBounds(key, layout, measureText)
   const visualCenter = {
     x: layoutAnchor.x + visualBounds.centerOffsetX,
     y: layoutAnchor.y + visualBounds.centerOffsetY,

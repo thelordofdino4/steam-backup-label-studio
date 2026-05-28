@@ -58,6 +58,7 @@ import {
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
+import { resolveMetadataBoundDiscTextValues } from './project/metadataDiscText'
 import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
@@ -98,6 +99,7 @@ import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
+  getDiscTextContent,
   getDiscTextPreviewTransform,
   resetDiscTextLayout,
   isCurvedCopyrightDiscTextLayout,
@@ -207,6 +209,10 @@ function App() {
   const backgroundPreviewSize = useMemo(
     () => getBackgroundPreviewSize(backgroundImageSize),
     [backgroundImageSize],
+  )
+  const metadataBoundDiscTextValues = useMemo(
+    () => resolveMetadataBoundDiscTextValues(discTextValues, projectMetadata),
+    [discTextValues, projectMetadata],
   )
 
   const {
@@ -807,15 +813,50 @@ function App() {
     )
   }
 
+  function clampDiscTextLayoutForContent(key: DiscTextKey, renderedText: string) {
+    setDiscTextLayout((currentLayout) => {
+      const currentTextLayout = currentLayout[key]
+
+      if (isCurvedCopyrightDiscTextLayout(key, currentTextLayout)) {
+        return currentLayout
+      }
+
+      return {
+        ...currentLayout,
+        [key]: clampStraightDiscTextLayoutToSafeZone(
+          key,
+          currentTextLayout,
+          selectedDiscTemplate,
+          renderedText,
+        ),
+      }
+    })
+  }
+
   function handleDiscTextContentChange(key: DiscTextKey, value: string) {
     if (key === 'title') {
       setManualGameTitle(value)
+      clampDiscTextLayoutForContent(key, value)
       return
     }
+
+    const nextValues = updateDiscTextValue(discTextValues, key, value)
+    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
+      nextValues,
+      projectMetadata,
+    )
 
     setDiscTextValues((currentValues) =>
       updateDiscTextValue(currentValues, key, value),
     )
+    clampDiscTextLayoutForContent(
+      key,
+      getDiscTextContent(key, nextMetadataBoundValues, manualGameTitle),
+    )
+  }
+
+  function getCurrentDiscTextContent(key: DiscTextKey) {
+    return getDiscTextContent(key, metadataBoundDiscTextValues, manualGameTitle)
   }
 
   function handleDiscTextLayoutChange(
@@ -832,6 +873,7 @@ function App() {
           key,
           nextLayout[key],
           selectedDiscTemplate,
+          getCurrentDiscTextContent(key),
         ),
       }
     })
@@ -850,6 +892,7 @@ function App() {
               key,
               nextTextLayout,
               selectedDiscTemplate,
+              getCurrentDiscTextContent(key),
             ),
       }
     })
@@ -870,6 +913,7 @@ function App() {
           key,
           nextLayout[key],
           selectedDiscTemplate,
+          getCurrentDiscTextContent(key),
         ),
       }
     })
@@ -891,6 +935,7 @@ function App() {
           key,
           nextLayout[key],
           selectedDiscTemplate,
+          getCurrentDiscTextContent(key),
         ),
       }
     })
@@ -1446,7 +1491,9 @@ function App() {
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
           discTextValues={discTextValues}
+          metadataBoundDiscTextValues={metadataBoundDiscTextValues}
           manualGameTitle={manualGameTitle}
+          selectedDiscTemplate={selectedDiscTemplate}
           handleDiscTextToggle={handleDiscTextToggle}
           handleDiscTextContentChange={handleDiscTextContentChange}
           handleDiscTextLayoutChange={handleDiscTextLayoutChange}

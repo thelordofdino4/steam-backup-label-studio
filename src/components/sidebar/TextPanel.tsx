@@ -7,6 +7,7 @@ import {
   DISC_TEXT_WIDTH_MAX,
   DISC_TEXT_WIDTH_MIN,
   getDiscTextLabel,
+  getDiscTextContent,
   getDiscTextInputValue,
   isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
@@ -18,13 +19,17 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
+import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
+import type { DiscTemplate } from '../../types/template'
 
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
   discTextValues: DiscTextValues
+  metadataBoundDiscTextValues: DiscTextValues
   manualGameTitle: string
+  selectedDiscTemplate: DiscTemplate
   handleDiscTextToggle: (key: DiscTextKey, checked: boolean) => void
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
   handleDiscTextLayoutChange: (
@@ -43,7 +48,9 @@ export function TextPanel({
   discTextSettings,
   discTextLayout,
   discTextValues,
+  metadataBoundDiscTextValues,
   manualGameTitle,
+  selectedDiscTemplate,
   handleDiscTextToggle,
   handleDiscTextContentChange,
   handleDiscTextLayoutChange,
@@ -82,6 +89,17 @@ export function TextPanel({
             const isCopyright = key === 'copyright'
             const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
             const presets = getDiscTextLayoutPresetsForKey(key)
+            const renderedText = getDiscTextContent(
+              key,
+              metadataBoundDiscTextValues,
+              manualGameTitle,
+            )
+            const straightSliderRanges = getStraightDiscTextLayoutSliderRanges(
+              key,
+              renderedText,
+              layout,
+              selectedDiscTemplate,
+            )
 
             return (
               <div className="disc-text-control" key={key}>
@@ -219,8 +237,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Angle' : 'X'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : -50}
-                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : 50}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : straightSliderRanges.x.min}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : straightSliderRanges.x.max}
                           step="0.1"
                           value={layout.x}
                           onChange={(event) =>
@@ -233,8 +251,8 @@ export function TextPanel({
                         <span>{isCurvedCopyright ? 'Inset' : 'Y'}</span>
                         <input
                           type="range"
-                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : 0}
-                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : 100}
+                          min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : straightSliderRanges.y.min}
+                          max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : straightSliderRanges.y.max}
                           step="0.1"
                           value={layout.y}
                           onChange={(event) =>
