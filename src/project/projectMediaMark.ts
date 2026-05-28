@@ -1,3 +1,8 @@
+import {
+  getDefaultMediaMarkLayoutForTemplate,
+  getDefaultPlatformMarkLayoutForTemplate,
+} from '../layout/discTemplateLayoutDefaults.ts'
+import type { DiscTemplate } from '../types/template'
 import type {
   MediaMarkLayout,
   MediaMarkSource,
@@ -65,13 +70,17 @@ export function getPlatformMarkLabel(value: PlatformMarkValue) {
   return PLATFORM_MARK_OPTIONS.find((option) => option.value === value)?.label ?? 'PC'
 }
 
-export function createDefaultProjectMediaMark(): ProjectMediaMark {
+export function createDefaultProjectMediaMark(
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectMediaMark {
   return {
     value: 'dataDisc',
     source: 'placeholder',
     customImageDataUrl: null,
     customImageSize: null,
-    layout: DEFAULT_MEDIA_MARK_LAYOUT,
+    layout: selectedDiscTemplate
+      ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate)
+      : DEFAULT_MEDIA_MARK_LAYOUT,
   }
 }
 
@@ -153,13 +162,17 @@ export function clearMediaMarkImage(
 
 export function resetProjectMediaMarkLayout(
   mediaMark: ProjectMediaMark,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectMediaMark {
-  const defaults = createDefaultProjectMediaMark()
+  const defaults = createDefaultProjectMediaMark(selectedDiscTemplate)
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, mediaMark)
+    : defaults.layout
 
   return {
     ...mediaMark,
     layout: {
-      ...defaults.layout,
+      ...defaultLayout,
       enabled: mediaMark.layout.enabled,
     },
   }
@@ -174,20 +187,25 @@ export function createDefaultProjectPlatformMarks(): ProjectPlatformMarks {
 
 export function createDefaultProjectPlatformMarkAsset(
   value: PlatformMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarkAsset {
   return {
     source: 'placeholder',
     customImageDataUrl: null,
     customImageSize: null,
-    layout: DEFAULT_PLATFORM_MARK_LAYOUTS[value],
+    layout: selectedDiscTemplate
+      ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value)
+      : DEFAULT_PLATFORM_MARK_LAYOUTS[value],
   }
 }
 
 export function getProjectPlatformMarkAsset(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
 ) {
-  return platformMarks.assets[value] ?? createDefaultProjectPlatformMarkAsset(value)
+  return platformMarks.assets[value] ??
+    createDefaultProjectPlatformMarkAsset(value, selectedDiscTemplate)
 }
 
 function setProjectPlatformMarkAsset(
@@ -208,11 +226,16 @@ export function updatePlatformMarkToggle(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
   enabled: boolean,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarks {
   const values = enabled
     ? Array.from(new Set([...platformMarks.values, value]))
     : platformMarks.values.filter((currentValue) => currentValue !== value)
-  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+  const currentAsset = getProjectPlatformMarkAsset(
+    platformMarks,
+    value,
+    selectedDiscTemplate,
+  )
 
   return setProjectPlatformMarkAsset(
     {
@@ -264,8 +287,13 @@ export function setPlatformMarkCustomImage(
   value: PlatformMarkValue,
   imageDataUrl: string,
   imageSize: ProjectPlatformMarkAsset['customImageSize'],
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarks {
-  const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
+  const currentAsset = getProjectPlatformMarkAsset(
+    platformMarks,
+    value,
+    selectedDiscTemplate,
+  )
 
   return setProjectPlatformMarkAsset(
     {
@@ -350,14 +378,21 @@ export function clearPlatformMarkImage(
 export function resetProjectPlatformMarkLayout(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarks {
   const currentAsset = getProjectPlatformMarkAsset(platformMarks, value)
-  const defaultAsset = createDefaultProjectPlatformMarkAsset(value)
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultPlatformMarkLayoutForTemplate(
+        selectedDiscTemplate,
+        value,
+        currentAsset,
+      )
+    : createDefaultProjectPlatformMarkAsset(value).layout
 
   return setProjectPlatformMarkAsset(platformMarks, value, {
     ...currentAsset,
     layout: {
-      ...defaultAsset.layout,
+      ...defaultLayout,
       enabled: currentAsset.layout.enabled,
     },
   })
@@ -385,12 +420,13 @@ function mapLegacyPlatformMarkValue(value: unknown): PlatformMarkValue | null {
 
 function normalizeMediaMarkLayout(
   layout: Partial<MediaMarkLayout> | undefined,
+  defaults: MediaMarkLayout = DEFAULT_MEDIA_MARK_LAYOUT,
 ): MediaMarkLayout {
   return {
-    enabled: layout?.enabled ?? DEFAULT_MEDIA_MARK_LAYOUT.enabled,
-    scale: layout?.scale ?? DEFAULT_MEDIA_MARK_LAYOUT.scale,
-    x: layout?.x ?? DEFAULT_MEDIA_MARK_LAYOUT.x,
-    y: layout?.y ?? DEFAULT_MEDIA_MARK_LAYOUT.y,
+    enabled: layout?.enabled ?? defaults.enabled,
+    scale: layout?.scale ?? defaults.scale,
+    x: layout?.x ?? defaults.x,
+    y: layout?.y ?? defaults.y,
   }
 }
 
@@ -409,14 +445,23 @@ function normalizePlatformMarkLayout(
 function normalizePlatformMarkAsset(
   value: PlatformMarkValue,
   asset: Partial<ProjectPlatformMarkAsset> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarkAsset {
-  const defaults = createDefaultProjectPlatformMarkAsset(value)
+  const source = asset?.source === 'custom' ? 'custom' : 'placeholder'
+  const customImageSize = asset?.customImageSize ?? null
+  const defaults = createDefaultProjectPlatformMarkAsset(value, selectedDiscTemplate)
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value, {
+        source,
+        customImageSize,
+      })
+    : defaults.layout
 
   return {
-    source: asset?.source === 'custom' ? 'custom' : 'placeholder',
+    source,
     customImageDataUrl: asset?.customImageDataUrl ?? null,
-    customImageSize: asset?.customImageSize ?? null,
-    layout: normalizePlatformMarkLayout(asset?.layout, defaults.layout),
+    customImageSize,
+    layout: normalizePlatformMarkLayout(asset?.layout, defaultLayout),
   }
 }
 
@@ -425,14 +470,23 @@ function getLegacyPlatformMarkLayout(
   index: number,
   values: PlatformMarkValue[],
   legacyLayout: Partial<PlatformMarkLayout> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
 ): PlatformMarkLayout {
-  const defaultAsset = createDefaultProjectPlatformMarkAsset(value)
+  const defaultAsset = createDefaultProjectPlatformMarkAsset(
+    value,
+    selectedDiscTemplate,
+  )
 
   if (!legacyLayout) {
     return defaultAsset.layout
   }
 
-  const baseLayout = normalizePlatformMarkLayout(legacyLayout, DEFAULT_PLATFORM_MARK_LAYOUT)
+  const baseLayout = normalizePlatformMarkLayout(
+    legacyLayout,
+    selectedDiscTemplate
+      ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value)
+      : DEFAULT_PLATFORM_MARK_LAYOUT,
+  )
   const columns = Math.min(3, Math.max(1, values.length))
   const column = index % 3
   const row = Math.floor(index / 3)
@@ -449,26 +503,36 @@ function getLegacyPlatformMarkLayout(
 
 export function normalizeProjectMediaMark(
   mediaMark: Partial<ProjectMediaMark> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectMediaMark {
-  const defaults = createDefaultProjectMediaMark()
+  const defaults = createDefaultProjectMediaMark(selectedDiscTemplate)
   const rawValue = (mediaMark as { value?: unknown } | undefined)?.value
 
   if (!isMediaMarkValue(rawValue)) {
     return defaults
   }
+  const source = mediaMark?.source === 'custom' ? 'custom' : 'placeholder'
+  const customImageSize = mediaMark?.customImageSize ?? null
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, {
+        source,
+        customImageSize,
+      })
+    : defaults.layout
 
   return {
     value: rawValue,
-    source: mediaMark?.source === 'custom' ? 'custom' : 'placeholder',
+    source,
     customImageDataUrl: mediaMark?.customImageDataUrl ?? null,
-    customImageSize: mediaMark?.customImageSize ?? null,
-    layout: normalizeMediaMarkLayout(mediaMark?.layout),
+    customImageSize,
+    layout: normalizeMediaMarkLayout(mediaMark?.layout, defaultLayout),
   }
 }
 
 export function normalizeProjectPlatformMarks(
   platformMarks: Partial<ProjectPlatformMarks> | undefined,
   legacyMediaMark?: Partial<ProjectMediaMark>,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarks {
   const defaults = createDefaultProjectPlatformMarks()
   const rawValues = Array.isArray(platformMarks?.values) ? platformMarks.values : null
@@ -492,7 +556,7 @@ export function normalizeProjectPlatformMarks(
         assets: Object.fromEntries(
           values.map((value) => [
             value,
-            normalizePlatformMarkAsset(value, rawAssets[value]),
+            normalizePlatformMarkAsset(value, rawAssets[value], selectedDiscTemplate),
           ]),
         ) as ProjectPlatformMarks['assets'],
       }
@@ -500,7 +564,9 @@ export function normalizeProjectPlatformMarks(
 
     const legacyLayout = normalizePlatformMarkLayout(
       rawPlatformMarks.layout,
-      DEFAULT_PLATFORM_MARK_LAYOUT,
+      selectedDiscTemplate
+        ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, 'pc')
+        : DEFAULT_PLATFORM_MARK_LAYOUT,
     )
     const legacyValues = legacyLayout.enabled ? values : []
 
@@ -523,6 +589,7 @@ export function normalizeProjectPlatformMarks(
               index,
               values,
               legacyLayout,
+              selectedDiscTemplate,
             ),
           },
         ]),
@@ -540,7 +607,10 @@ export function normalizeProjectPlatformMarks(
 
   const legacyLayout = normalizePlatformMarkLayout(
     legacyMediaMark?.layout,
-    createDefaultProjectPlatformMarkAsset(legacyValue).layout,
+    createDefaultProjectPlatformMarkAsset(
+      legacyValue,
+      selectedDiscTemplate,
+    ).layout,
   )
 
   return {

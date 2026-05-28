@@ -1,3 +1,5 @@
+import { getDefaultLogoAssetLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import type { DiscTemplate } from '../types/template'
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from './projectTypes'
 
 export type LogoAssetKey = 'developer' | 'publisher'
@@ -49,14 +51,20 @@ export const DEFAULT_PUBLISHER_LOGO_LAYOUT: LogoAssetLayout = {
   y: 72,
 }
 
-export function createDefaultProjectLogoAssets(): ProjectLogoAssets {
+export function createDefaultProjectLogoAssets(
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectLogoAssets {
   return {
     developerLogoDataUrl: null,
     developerLogoSize: null,
-    developerLogoLayout: DEFAULT_DEVELOPER_LOGO_LAYOUT,
+    developerLogoLayout: selectedDiscTemplate
+      ? getDefaultLogoAssetLayoutForTemplate(selectedDiscTemplate, 'developer')
+      : DEFAULT_DEVELOPER_LOGO_LAYOUT,
     publisherLogoDataUrl: null,
     publisherLogoSize: null,
-    publisherLogoLayout: DEFAULT_PUBLISHER_LOGO_LAYOUT,
+    publisherLogoLayout: selectedDiscTemplate
+      ? getDefaultLogoAssetLayoutForTemplate(selectedDiscTemplate, 'publisher')
+      : DEFAULT_PUBLISHER_LOGO_LAYOUT,
   }
 }
 
@@ -170,8 +178,9 @@ export function clearLogoAsset(
 export function resetProjectLogoAssetLayout(
   logoAssets: ProjectLogoAssets,
   logoKey: LogoAssetKey,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectLogoAssets {
-  const defaults = createDefaultProjectLogoAssets()
+  const defaults = createDefaultProjectLogoAssets(selectedDiscTemplate)
   const defaultLayout = getLogoAssetLayout(defaults, logoKey)
   const currentLayout = getLogoAssetLayout(logoAssets, logoKey)
 
@@ -195,19 +204,22 @@ function normalizeLogoAssetLayout(
 
 export function normalizeProjectLogoAssets(
   logoAssets: Partial<ProjectLogoAssets> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectLogoAssets {
+  const defaults = createDefaultProjectLogoAssets(selectedDiscTemplate)
+
   return {
     developerLogoDataUrl: logoAssets?.developerLogoDataUrl ?? null,
     developerLogoSize: logoAssets?.developerLogoSize ?? null,
     developerLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.developerLogoLayout,
-      DEFAULT_DEVELOPER_LOGO_LAYOUT,
+      defaults.developerLogoLayout,
     ),
     publisherLogoDataUrl: logoAssets?.publisherLogoDataUrl ?? null,
     publisherLogoSize: logoAssets?.publisherLogoSize ?? null,
     publisherLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.publisherLogoLayout,
-      DEFAULT_PUBLISHER_LOGO_LAYOUT,
+      defaults.publisherLogoLayout,
     ),
   }
 }

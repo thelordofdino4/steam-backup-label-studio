@@ -1,3 +1,10 @@
+import {
+  createDefaultDiscTextLayoutForTemplate,
+  getDefaultCopyrightCurvedLayoutForTemplate,
+  getDefaultCopyrightStraightLayoutForTemplate,
+} from './layout/discTemplateLayoutDefaults.ts'
+import type { DiscTemplate } from './types/template'
+
 export type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 
 export type DiscTextKey =
@@ -118,17 +125,50 @@ export function createDefaultDiscTextValues(appId?: number): DiscTextValues {
   }
 }
 
-export function getDefaultCopyrightStraightLayout(placement: SteamLogoPlacement): DiscTextLayout {
+export function getDefaultCopyrightStraightLayout(
+  placement: SteamLogoPlacement,
+  template?: DiscTemplate,
+): DiscTextLayout {
+  if (template) {
+    return getDefaultCopyrightStraightLayoutForTemplate(
+      template,
+      placement,
+      DEFAULT_DISC_TEXT_WIDTHS,
+    )
+  }
+
   const hasBottomBanner = placement === 'bottom'
   return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
 }
 
-export function getDefaultCopyrightCurvedLayout(placement: SteamLogoPlacement): DiscTextLayout {
+export function getDefaultCopyrightCurvedLayout(
+  placement: SteamLogoPlacement,
+  template?: DiscTemplate,
+): DiscTextLayout {
+  if (template) {
+    return getDefaultCopyrightCurvedLayoutForTemplate(
+      template,
+      placement,
+      DEFAULT_DISC_TEXT_WIDTHS,
+    )
+  }
+
   const hasBottomBanner = placement === 'bottom'
   return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
 }
 
-export function createDefaultDiscTextLayout(placement: SteamLogoPlacement): DiscTextLayoutSettings {
+export function createDefaultDiscTextLayout(
+  placement: SteamLogoPlacement,
+  template?: DiscTemplate,
+): DiscTextLayoutSettings {
+  if (template) {
+    return createDefaultDiscTextLayoutForTemplate(
+      template,
+      placement,
+      DEFAULT_DISC_TEXT_WIDTHS,
+    )
+  }
+
   const hasBottomBanner = placement === 'bottom'
   return {
     title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
@@ -266,12 +306,13 @@ export function updateDiscTextMode(
   key: DiscTextKey,
   mode: DiscTextMode,
   placement: SteamLogoPlacement,
+  template?: DiscTemplate,
 ): DiscTextLayoutSettings {
   if (key === 'copyright') {
     const defaultLayout =
       mode === 'curved'
-        ? getDefaultCopyrightCurvedLayout(placement)
-        : getDefaultCopyrightStraightLayout(placement)
+        ? getDefaultCopyrightCurvedLayout(placement, template)
+        : getDefaultCopyrightStraightLayout(placement, template)
 
     return {
       ...layoutSettings,
@@ -295,13 +336,14 @@ export function updateDiscTextMode(
 export function updateDiscTextLayoutForSteamLogoPlacement(
   layoutSettings: DiscTextLayoutSettings,
   placement: SteamLogoPlacement,
+  template?: DiscTemplate,
 ): DiscTextLayoutSettings {
-  const defaultLayout = createDefaultDiscTextLayout(placement)
+  const defaultLayout = createDefaultDiscTextLayout(placement, template)
   const currentCopyrightLayout = layoutSettings.copyright
   const defaultCopyrightLayout =
     currentCopyrightLayout.mode === 'curved'
-      ? getDefaultCopyrightCurvedLayout(placement)
-      : getDefaultCopyrightStraightLayout(placement)
+      ? getDefaultCopyrightCurvedLayout(placement, template)
+      : getDefaultCopyrightStraightLayout(placement, template)
 
   return {
     ...layoutSettings,
@@ -322,18 +364,19 @@ export function resetDiscTextLayout(
   layoutSettings: DiscTextLayoutSettings,
   key: DiscTextKey,
   placement: SteamLogoPlacement,
+  template?: DiscTemplate,
 ): DiscTextLayoutSettings {
   if (key === 'copyright') {
     return {
       ...layoutSettings,
       copyright:
         layoutSettings.copyright.mode === 'curved'
-          ? getDefaultCopyrightCurvedLayout(placement)
-          : getDefaultCopyrightStraightLayout(placement),
+          ? getDefaultCopyrightCurvedLayout(placement, template)
+          : getDefaultCopyrightStraightLayout(placement, template),
     }
   }
 
-  const defaultLayout = createDefaultDiscTextLayout(placement)
+  const defaultLayout = createDefaultDiscTextLayout(placement, template)
   return {
     ...layoutSettings,
     [key]: defaultLayout[key],
@@ -343,8 +386,9 @@ export function resetDiscTextLayout(
 export function normalizeDiscTextLayout(
   layout: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>> | undefined,
   placement: SteamLogoPlacement,
+  template?: DiscTemplate,
 ): DiscTextLayoutSettings {
-  const defaults = createDefaultDiscTextLayout(placement)
+  const defaults = createDefaultDiscTextLayout(placement, template)
   return DISC_TEXT_KEYS.reduce((normalizedLayout, key) => {
     const mergedLayout = { ...defaults[key], ...(layout?.[key] ?? {}) }
     normalizedLayout[key] = {

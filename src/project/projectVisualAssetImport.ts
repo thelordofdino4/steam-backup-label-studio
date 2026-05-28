@@ -90,6 +90,7 @@ export function applyImportedPlatformMark(
       value,
       importedImage.imageDataUrl,
       importedImage.imageSize,
+      selectedDiscTemplate,
     ),
     selectedDiscTemplate,
   )

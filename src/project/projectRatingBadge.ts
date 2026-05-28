@@ -1,3 +1,5 @@
+import { getDefaultRatingBadgeLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import type { DiscTemplate } from '../types/template'
 import type { BackgroundImageSize, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from './projectTypes'
 
 export type RatingBadgeLayoutField = keyof RatingBadgeLayout
@@ -14,12 +16,16 @@ export const DEFAULT_RATING_BADGE_LAYOUT: RatingBadgeLayout = {
   y: 50,
 }
 
-export function createDefaultProjectRatingBadge(): ProjectRatingBadge {
+export function createDefaultProjectRatingBadge(
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectRatingBadge {
   return {
     source: 'placeholder',
     customImageDataUrl: null,
     customImageSize: null,
-    layout: DEFAULT_RATING_BADGE_LAYOUT,
+    layout: selectedDiscTemplate
+      ? getDefaultRatingBadgeLayoutForTemplate(selectedDiscTemplate)
+      : DEFAULT_RATING_BADGE_LAYOUT,
   }
 }
 
@@ -91,13 +97,17 @@ export function clearRatingBadgeImage(
 
 export function resetProjectRatingBadgeLayout(
   ratingBadge: ProjectRatingBadge,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectRatingBadge {
-  const defaults = createDefaultProjectRatingBadge()
+  const defaults = createDefaultProjectRatingBadge(selectedDiscTemplate)
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultRatingBadgeLayoutForTemplate(selectedDiscTemplate, ratingBadge)
+    : defaults.layout
 
   return {
     ...ratingBadge,
     layout: {
-      ...defaults.layout,
+      ...defaultLayout,
       enabled: ratingBadge.layout.enabled,
     },
   }
@@ -105,22 +115,34 @@ export function resetProjectRatingBadgeLayout(
 
 function normalizeRatingBadgeLayout(
   layout: Partial<RatingBadgeLayout> | undefined,
+  defaults: RatingBadgeLayout = DEFAULT_RATING_BADGE_LAYOUT,
 ): RatingBadgeLayout {
   return {
-    enabled: layout?.enabled ?? DEFAULT_RATING_BADGE_LAYOUT.enabled,
-    scale: layout?.scale ?? DEFAULT_RATING_BADGE_LAYOUT.scale,
-    x: layout?.x ?? DEFAULT_RATING_BADGE_LAYOUT.x,
-    y: layout?.y ?? DEFAULT_RATING_BADGE_LAYOUT.y,
+    enabled: layout?.enabled ?? defaults.enabled,
+    scale: layout?.scale ?? defaults.scale,
+    x: layout?.x ?? defaults.x,
+    y: layout?.y ?? defaults.y,
   }
 }
 
 export function normalizeProjectRatingBadge(
   ratingBadge: Partial<ProjectRatingBadge> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectRatingBadge {
+  const defaults = createDefaultProjectRatingBadge(selectedDiscTemplate)
+  const source = ratingBadge?.source ?? 'placeholder'
+  const customImageSize = ratingBadge?.customImageSize ?? null
+  const defaultLayout = selectedDiscTemplate
+    ? getDefaultRatingBadgeLayoutForTemplate(selectedDiscTemplate, {
+        source,
+        customImageSize,
+      })
+    : defaults.layout
+
   return {
-    source: ratingBadge?.source ?? 'placeholder',
+    source,
     customImageDataUrl: ratingBadge?.customImageDataUrl ?? null,
-    customImageSize: ratingBadge?.customImageSize ?? null,
-    layout: normalizeRatingBadgeLayout(ratingBadge?.layout),
+    customImageSize,
+    layout: normalizeRatingBadgeLayout(ratingBadge?.layout, defaultLayout),
   }
 }

@@ -171,13 +171,13 @@ function App() {
     createDefaultProjectMetadata(),
   )
   const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
-    createDefaultProjectLogoAssets(),
+    createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
   )
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
-    createDefaultProjectRatingBadge(),
+    createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
   )
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
-    createDefaultProjectMediaMark(),
+    createDefaultProjectMediaMark(discTemplates.standardPrintableDisc),
   )
   const [projectPlatformMarks, setProjectPlatformMarks] = useState<ProjectPlatformMarks>(() =>
     createDefaultProjectPlatformMarks(),
@@ -209,7 +209,7 @@ function App() {
   )
   const [discTextTitleValue, setDiscTextTitleValue] = useState('')
   const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
-    createDefaultDiscTextLayout('top'),
+    createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
   )
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
@@ -539,7 +539,11 @@ function App() {
 
   function handleResetLogoAssetLayout(logoKey: LogoAssetKey) {
     setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = resetProjectLogoAssetLayout(currentLogoAssets, logoKey)
+      const nextLogoAssets = resetProjectLogoAssetLayout(
+        currentLogoAssets,
+        logoKey,
+        selectedDiscTemplate,
+      )
       const nextLayout = clampLogoAssetLayoutToSafeZone(
         getLogoAssetLayout(nextLogoAssets, logoKey),
         selectedDiscTemplate,
@@ -622,7 +626,10 @@ function App() {
 
   function handleResetRatingBadgeLayout() {
     setProjectRatingBadge((currentBadge) => {
-      const nextBadge = resetProjectRatingBadgeLayout(currentBadge)
+      const nextBadge = resetProjectRatingBadgeLayout(
+        currentBadge,
+        selectedDiscTemplate,
+      )
 
       return {
         ...nextBadge,
@@ -709,7 +716,10 @@ function App() {
 
   function handleResetMediaMarkLayout() {
     setProjectMediaMark((currentMark) => {
-      const nextMark = resetProjectMediaMarkLayout(currentMark)
+      const nextMark = resetProjectMediaMarkLayout(
+        currentMark,
+        selectedDiscTemplate,
+      )
 
       return {
         ...nextMark,
@@ -723,7 +733,12 @@ function App() {
   function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
     setProjectPlatformMarks((currentMarks) =>
       clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkToggle(currentMarks, value, enabled),
+        updatePlatformMarkToggle(
+          currentMarks,
+          value,
+          enabled,
+          selectedDiscTemplate,
+        ),
         selectedDiscTemplate,
       ),
     )
@@ -799,7 +814,7 @@ function App() {
   function handleResetPlatformMarkLayout(value: PlatformMarkValue) {
     setProjectPlatformMarks((currentMarks) =>
       clampProjectPlatformMarksToSafeZone(
-        resetProjectPlatformMarkLayout(currentMarks, value),
+        resetProjectPlatformMarkLayout(currentMarks, value, selectedDiscTemplate),
         selectedDiscTemplate,
       ),
     )
@@ -827,7 +842,11 @@ function App() {
 
     setDiscTextLayout((currentLayout) => {
       return clampDiscTextLayoutToSafeZone(
-        updateDiscTextLayoutForSteamLogoPlacement(currentLayout, placement),
+        updateDiscTextLayoutForSteamLogoPlacement(
+          currentLayout,
+          placement,
+          selectedDiscTemplate,
+        ),
         selectedDiscTemplate,
       )
     })
@@ -985,6 +1004,7 @@ function App() {
         key,
         mode,
         steamLogoPlacement,
+        selectedDiscTemplate,
       )
 
       return {
@@ -1007,7 +1027,12 @@ function App() {
 
   function handleResetDiscTextLayout(key: DiscTextKey) {
     setDiscTextLayout((currentLayout) => {
-      const nextLayout = resetDiscTextLayout(currentLayout, key, steamLogoPlacement)
+      const nextLayout = resetDiscTextLayout(
+        currentLayout,
+        key,
+        steamLogoPlacement,
+        selectedDiscTemplate,
+      )
 
       return {
         ...nextLayout,
@@ -1090,9 +1115,15 @@ function App() {
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
-    setProjectLogoAssets(createDefaultProjectLogoAssets())
-    setProjectRatingBadge(createDefaultProjectRatingBadge())
-    setProjectMediaMark(createDefaultProjectMediaMark())
+    setProjectLogoAssets(
+      createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
+    )
+    setProjectRatingBadge(
+      createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
+    )
+    setProjectMediaMark(
+      createDefaultProjectMediaMark(discTemplates.standardPrintableDisc),
+    )
     setProjectPlatformMarks(createDefaultProjectPlatformMarks())
     setSteamSearchResults([])
     setSelectedSteamGame(null)
@@ -1107,7 +1138,9 @@ function App() {
     setDiscTextValues(createDefaultDiscTextValues())
     setDiscTextValueSources(createDefaultDiscTextValueSources())
     setDiscTextTitleValue('')
-    setDiscTextLayout(createDefaultDiscTextLayout('top'))
+    setDiscTextLayout(
+      createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
+    )
 
     announceStatus('Started a new blank project.')
   }
