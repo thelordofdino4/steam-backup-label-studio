@@ -57,7 +57,7 @@ import {
 } from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
-import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
+import { createDefaultProjectMetadata, getRatingMetadataForBadgeEnabled, updateProjectMetadataField } from './project/projectMetadata'
 import {
   createDefaultDiscTextValueSources,
   getDiscTextKeysForProjectMetadataField,
@@ -595,6 +595,38 @@ function App() {
         layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
       }
     })
+  }
+
+  function handleRatingBadgeEnabledChange(enabled: boolean) {
+    if (enabled) {
+      const nextRatingMetadata = getRatingMetadataForBadgeEnabled(projectMetadata)
+      const nextProjectMetadata = {
+        ...projectMetadata,
+        ...nextRatingMetadata,
+      }
+      const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
+        discTextValues,
+        nextProjectMetadata,
+        discTextValueSources,
+      )
+      const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
+        discTextTitleValue,
+        nextProjectMetadata,
+        discTextValueSources,
+      )
+
+      setProjectMetadata(nextProjectMetadata)
+      clampMetadataBoundDiscTextLayoutsForContent(
+        [
+          ...getDiscTextKeysForProjectMetadataField('ratingSystem'),
+          ...getDiscTextKeysForProjectMetadataField('ratingValue'),
+        ],
+        nextMetadataBoundValues,
+        nextResolvedTitle,
+      )
+    }
+
+    handleRatingBadgeLayoutChange('enabled', enabled)
   }
 
   function handleRatingBadgeLayoutChange(
@@ -1633,6 +1665,7 @@ function App() {
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
           handleRatingBadgeUpload={handleRatingBadgeUpload}
           handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
+          handleRatingBadgeEnabledChange={handleRatingBadgeEnabledChange}
           handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
           handleClearRatingBadgeImage={handleClearRatingBadgeImage}
           handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}

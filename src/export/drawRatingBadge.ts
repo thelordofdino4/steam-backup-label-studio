@@ -1,4 +1,5 @@
 import type { ProjectMetadata, ProjectRatingBadge } from '../project/projectTypes'
+import { shouldRenderRatingBadge } from '../project/projectRatingBadge'
 import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
@@ -82,7 +83,7 @@ export async function drawRatingBadge(
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
 ) {
-  if (!badge.layout.enabled || metadata.ratingSystem === 'none') {
+  if (!shouldRenderRatingBadge(metadata, badge)) {
     return
   }
 

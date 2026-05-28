@@ -1,6 +1,6 @@
 import { getDefaultRatingBadgeLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
 import type { DiscTemplate } from '../types/template'
-import type { BackgroundImageSize, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from './projectTypes'
+import type { BackgroundImageSize, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from './projectTypes'
 
 export type RatingBadgeLayoutField = keyof RatingBadgeLayout
 
@@ -111,6 +111,13 @@ export function resetProjectRatingBadgeLayout(
       enabled: ratingBadge.layout.enabled,
     },
   }
+}
+
+export function shouldRenderRatingBadge(
+  metadata: Pick<ProjectMetadata, 'ratingSystem'>,
+  ratingBadge: ProjectRatingBadge,
+) {
+  return ratingBadge.layout.enabled && metadata.ratingSystem !== 'none'
 }
 
 function normalizeRatingBadgeLayout(

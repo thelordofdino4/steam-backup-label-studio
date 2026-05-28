@@ -8,6 +8,8 @@ import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampNumber,
   clampLayoutPointToSafeZone,
+  doesRectAvoidDiscCenterCircle,
+  getInnerNoPrintRadiusPercent,
   getSafeZoneRadiusPercent,
   getLogoAssetBoundsPercent,
   getMediaMarkBoundsPercent,
@@ -219,6 +221,83 @@ function getSafeAxisHalfTravel(
   return Math.max(0, remainingDistance - Math.max(0, movingAxisHalfSize))
 }
 
+function constrainAxisRangeToInnerNoPrintSide(
+  range: LayoutAxisRange,
+  currentValue: number,
+  centerValue: number,
+  innerNoPrintRadius: number,
+  bounds: { halfWidth: number; halfHeight: number },
+  getPointForValue: (value: number) => { x: number; y: number },
+  getAxisCoordinate: (point: { x: number; y: number }) => number,
+): LayoutAxisRange {
+  if (innerNoPrintRadius <= 0 || centerValue < range.min || centerValue > range.max) {
+    return range
+  }
+
+  if (doesRectAvoidDiscCenterCircle(getPointForValue(centerValue), innerNoPrintRadius, bounds)) {
+    return range
+  }
+
+  const currentPoint = getPointForValue(currentValue)
+  const preferPositiveSide =
+    getAxisCoordinate(currentPoint) >= DISC_LAYOUT_CENTER_PERCENT
+  const edgeValue = preferPositiveSide ? range.max : range.min
+
+  if (!doesRectAvoidDiscCenterCircle(getPointForValue(edgeValue), innerNoPrintRadius, bounds)) {
+    return range
+  }
+
+  let unsafeValue = centerValue
+  let safeValue = edgeValue
+
+  for (let iteration = 0; iteration < 32; iteration += 1) {
+    const mid = (unsafeValue + safeValue) / 2
+
+    if (doesRectAvoidDiscCenterCircle(getPointForValue(mid), innerNoPrintRadius, bounds)) {
+      safeValue = mid
+    } else {
+      unsafeValue = mid
+    }
+  }
+
+  return clampLayoutAxisRange(
+    preferPositiveSide
+      ? { min: safeValue, max: range.max }
+      : { min: range.min, max: safeValue },
+    range,
+  )
+}
+
+function constrainSliderRangesToInnerNoPrint(
+  ranges: LayoutSliderRanges,
+  layout: Pick<LogoAssetLayout, 'x' | 'y'>,
+  selectedDiscTemplate: DiscTemplate,
+  bounds: { halfWidth: number; halfHeight: number },
+): LayoutSliderRanges {
+  const innerNoPrintRadius = getInnerNoPrintRadiusPercent(selectedDiscTemplate)
+
+  return {
+    x: constrainAxisRangeToInnerNoPrintSide(
+      ranges.x,
+      layout.x,
+      DISC_LAYOUT_CENTER_PERCENT,
+      innerNoPrintRadius,
+      bounds,
+      (value) => ({ x: value, y: layout.y }),
+      (point) => point.x,
+    ),
+    y: constrainAxisRangeToInnerNoPrintSide(
+      ranges.y,
+      layout.y,
+      DISC_LAYOUT_CENTER_PERCENT,
+      innerNoPrintRadius,
+      bounds,
+      (value) => ({ x: layout.x, y: value }),
+      (point) => point.y,
+    ),
+  }
+}
+
 function clampLayoutAxisRange(
   range: LayoutAxisRange,
   bounds: LayoutAxisRange,
@@ -278,8 +357,7 @@ function getSafeZoneLayoutSliderRanges(
     bounds.halfWidth,
     bounds.halfHeight,
   )
-
-  return {
+  const outerRanges = {
     x: clampLayoutAxisRange(
       {
         min: DISC_LAYOUT_CENTER_PERCENT - xHalfTravel,
@@ -295,6 +373,13 @@ function getSafeZoneLayoutSliderRanges(
       axisBounds.y,
     ),
   }
+
+  return constrainSliderRangesToInnerNoPrint(
+    outerRanges,
+    layout,
+    selectedDiscTemplate,
+    bounds,
+  )
 }
 
 export function getStraightDiscTextLayoutSliderRanges(
@@ -337,7 +422,7 @@ export function getStraightDiscTextLayoutSliderRanges(
     visualBounds.halfHeight,
   )
 
-  return {
+  const outerRanges = {
     x: clampLayoutAxisRange(
       {
         min: -xHalfTravel - visualBounds.centerOffsetX,
@@ -351,6 +436,36 @@ export function getStraightDiscTextLayoutSliderRanges(
         max: DISC_LAYOUT_CENTER_PERCENT + yHalfTravel - visualBounds.centerOffsetY,
       },
       STRAIGHT_DISC_TEXT_LAYOUT_Y_RANGE,
+    ),
+  }
+  const innerNoPrintRadius = getInnerNoPrintRadiusPercent(selectedDiscTemplate)
+  const xCenterValue = -visualBounds.centerOffsetX
+  const yCenterValue = DISC_LAYOUT_CENTER_PERCENT - visualBounds.centerOffsetY
+
+  return {
+    x: constrainAxisRangeToInnerNoPrintSide(
+      outerRanges.x,
+      layout.x,
+      xCenterValue,
+      innerNoPrintRadius,
+      visualBounds,
+      (value) => ({
+        x: DISC_LAYOUT_CENTER_PERCENT + value + visualBounds.centerOffsetX,
+        y: visualCenter.y,
+      }),
+      (point) => point.x,
+    ),
+    y: constrainAxisRangeToInnerNoPrintSide(
+      outerRanges.y,
+      layout.y,
+      yCenterValue,
+      innerNoPrintRadius,
+      visualBounds,
+      (value) => ({
+        x: visualCenter.x,
+        y: value + visualBounds.centerOffsetY,
+      }),
+      (point) => point.y,
     ),
   }
 }

@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "test": "node --test --experimental-strip-types src/discText/curvedTextLayout.test.ts src/layout/discElementSafeZone.test.ts src/layout/discTemplateLayoutDefaults.test.ts src/project/metadataDiscText.test.ts src/project/projectMediaMark.test.ts src/project/projectVisualAssetImport.test.ts src/project/restoreProjectState.test.ts",
+    "test": "node --test --experimental-strip-types src/discText/curvedTextLayout.test.ts src/layout/discElementSafeZone.test.ts src/layout/discTemplateLayoutDefaults.test.ts src/project/metadataDiscText.test.ts src/project/projectMediaMark.test.ts src/project/projectRatingBadge.test.ts src/project/projectVisualAssetImport.test.ts src/project/restoreProjectState.test.ts",
     "preview": "vite preview",
     "tauri": "tauri"
   },

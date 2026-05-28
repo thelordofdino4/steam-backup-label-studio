@@ -4,6 +4,7 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
 } from '../../discGeometry'
 import { buildRatingBadgePlaceholderSvg } from '../../discPlaceholderSvg'
+import { shouldRenderRatingBadge } from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
 import { createSvgDataUrl } from '../../svgUtils'
 
@@ -30,7 +31,7 @@ export function RatingBadgeLayer({
   handleRatingBadgePointerMove,
   handleRatingBadgePointerUp,
 }: RatingBadgeLayerProps) {
-  if (!projectRatingBadge.layout.enabled || projectMetadata.ratingSystem === 'none') {
+  if (!shouldRenderRatingBadge(projectMetadata, projectRatingBadge)) {
     return null
   }
 

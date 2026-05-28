@@ -20,6 +20,7 @@ import {
   getLogoAssetBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
   getPlatformMarkPlaceholderBoundsPercent,
+  getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   type RenderBoundsPercent,
 } from '../discGeometry.ts'
@@ -110,14 +111,14 @@ test('straight text slider ranges shrink as rendered scale grows', () => {
   const small = getStraightDiscTextLayoutSliderRanges(
     'title',
     text,
-    titleLayout({ scale: 0.75 }),
+    titleLayout({ y: 19.5, scale: 0.75 }),
     template,
     measureText,
   )
   const large = getStraightDiscTextLayoutSliderRanges(
     'title',
     text,
-    titleLayout({ scale: 1.8 }),
+    titleLayout({ y: 19.5, scale: 1.8 }),
     template,
     measureText,
   )
@@ -347,6 +348,33 @@ test('movable artwork clamps out of the standard inner no-print area', () => {
   )
 })
 
+test('rating badge placeholder and custom image clamps avoid the inner no-print area', () => {
+  const template = discTemplates.standardPrintableDisc
+  const placeholderBadge = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as RatingBadgeLayout,
+  }
+  const customBadge = {
+    source: 'custom' as const,
+    customImageSize: { width: 220, height: 80 },
+    layout: artworkLayout() as RatingBadgeLayout,
+  }
+  const placeholder = clampRatingBadgeLayoutToSafeZone(placeholderBadge, template)
+  const custom = clampRatingBadgeLayoutToSafeZone(customBadge, template)
+
+  assertRectAvoidsInnerNoPrintArea(
+    placeholder,
+    getRatingBadgePlaceholderBoundsPercent(placeholder.scale),
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    custom,
+    getRatingBadgeBoundsPercent(customBadge.customImageSize, custom.scale),
+    template,
+  )
+})
+
 test('straight text clamps out of the inner no-print area', () => {
   const template = discTemplates.standardPrintableDisc
   const clamped = clampStraightDiscTextLayoutToSafeZone(
@@ -364,6 +392,66 @@ test('straight text clamps out of the inner no-print area', () => {
   )
   const visualBounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
 
+  assertRectAvoidsInnerNoPrintArea(
+    { x: visualBounds.centerX, y: visualBounds.centerY },
+    { halfWidth: visualBounds.halfWidth, halfHeight: visualBounds.halfHeight },
+    template,
+  )
+})
+
+test('rating badge slider range excludes center-hub positions when the fixed axis crosses the hub', () => {
+  const template = discTemplates.standardPrintableDisc
+  const badge = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout({ x: 78, y: 50 }) as RatingBadgeLayout,
+  }
+  const ranges = getRatingBadgeLayoutSliderRanges(badge, template)
+  const bounds = getRatingBadgePlaceholderBoundsPercent(badge.layout.scale)
+
+  assert.ok(ranges.x.min > DISC_LAYOUT_CENTER_PERCENT)
+  assertRectAvoidsInnerNoPrintArea(
+    { x: ranges.x.min, y: badge.layout.y },
+    bounds,
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    { x: ranges.x.max, y: badge.layout.y },
+    bounds,
+    template,
+  )
+})
+
+test('straight text slider range excludes center-hub positions when the fixed axis crosses the hub', () => {
+  const template = discTemplates.standardPrintableDisc
+  const text = 'CENTER TITLE'
+  const clamped = clampStraightDiscTextLayoutToSafeZone(
+    'title',
+    titleLayout({ width: 44 }),
+    template,
+    text,
+    measureText,
+  )
+  const ranges = getStraightDiscTextLayoutSliderRanges(
+    'title',
+    text,
+    clamped,
+    template,
+    measureText,
+  )
+  const sliderLayout = {
+    ...clamped,
+    y: ranges.y.min,
+  }
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    text,
+    sliderLayout,
+    measureText,
+  )
+  const visualBounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
+
+  assert.ok(ranges.y.min > DISC_LAYOUT_CENTER_PERCENT)
   assertRectAvoidsInnerNoPrintArea(
     { x: visualBounds.centerX, y: visualBounds.centerY },
     { halfWidth: visualBounds.halfWidth, halfHeight: visualBounds.halfHeight },

@@ -8,7 +8,7 @@ import {
 } from '../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset } from '../../project/projectMediaMark'
-import { getActiveRatingSystemForBadge, getRatingMetadataForBadgeEnabled, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
@@ -39,6 +39,7 @@ export type BrandingPanelProps = {
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
   handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
+  handleRatingBadgeEnabledChange: (enabled: boolean) => void
   handleRatingBadgeLayoutChange: (field: keyof RatingBadgeLayout, value: boolean | number) => void
   handleClearRatingBadgeImage: () => void
   handleResetRatingBadgeLayout: () => void
@@ -236,7 +237,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, se
   )
 }
 
-function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
+function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeEnabledChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeEnabledChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
@@ -246,15 +247,6 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
     projectRatingBadge,
     selectedDiscTemplate,
   )
-
-  const handleEnabledChange = (enabled: boolean) => {
-    if (enabled) {
-      const nextMetadata = getRatingMetadataForBadgeEnabled(projectMetadata)
-      handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
-      handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
-    }
-    handleRatingBadgeLayoutChange('enabled', enabled)
-  }
 
   const applyRatingBadgePreset = (presetId: string) => {
     const preset = RATING_BADGE_LAYOUT_PRESETS.find((candidate) => candidate.id === presetId)
@@ -266,7 +258,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
 
   return (
     <div className="logo-asset-card">
-      <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleEnabledChange(event.target.checked)} /> Show rating badge</label>
+      <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleRatingBadgeEnabledChange(event.target.checked)} /> Show rating badge</label>
       {!isBadgeEnabled ? null : (
         <>
           <label className="field-label spacing-top" htmlFor="branding-rating-system">Rating system</label>

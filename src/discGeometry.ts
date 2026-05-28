@@ -64,6 +64,30 @@ export function getInnerNoPrintRadiusPercent(template: DiscTemplate) {
   )
 }
 
+export function getRectDistanceFromDiscCenter(
+  point: LayoutPoint,
+  bounds: RenderBoundsPercent,
+) {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const halfWidth = Math.max(0, bounds.halfWidth)
+  const halfHeight = Math.max(0, bounds.halfHeight)
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const nearestX = Math.max(0, Math.abs(deltaX) - halfWidth)
+  const nearestY = Math.max(0, Math.abs(deltaY) - halfHeight)
+
+  return Math.hypot(nearestX, nearestY)
+}
+
+export function doesRectAvoidDiscCenterCircle(
+  point: LayoutPoint,
+  radiusPercent: number,
+  bounds: RenderBoundsPercent,
+) {
+  return getRectDistanceFromDiscCenter(point, bounds) >= Math.max(0, radiusPercent) - 0.000001
+}
+
 export function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
   return ((outerDiameterMm - guideDiameterMm) / 2 / outerDiameterMm) * 100
 }
@@ -282,10 +306,7 @@ export function clampRectToSafeAnnulus(
   const cornerRadius = Math.hypot(halfWidth, halfHeight)
 
   if (cornerRadius >= outerRadius) {
-    return {
-      x: DISC_LAYOUT_CENTER_PERCENT,
-      y: DISC_LAYOUT_CENTER_PERCENT,
-    }
+    return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
   }
 
   const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
@@ -313,9 +334,15 @@ export function clampRectToSafeAnnulus(
     return { x, y }
   }
 
-  const targetDistance = hasAnnularFit
-    ? clampNumber(distance === 0 ? minDistance : distance, minDistance, maxDistance)
-    : clampNumber(distance === 0 ? maxDistance : distance, 0, maxDistance)
+  if (!hasAnnularFit) {
+    return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+  }
+
+  const targetDistance = clampNumber(
+    distance === 0 ? minDistance : distance,
+    minDistance,
+    maxDistance,
+  )
 
   return {
     x: DISC_LAYOUT_CENTER_PERCENT + unitX * targetDistance,
