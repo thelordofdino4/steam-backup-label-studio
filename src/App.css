@@ -768,7 +768,11 @@ input:disabled {
 
 .disc-text-layer-hit-target {
   opacity: 0;
-  pointer-events: auto;
+  pointer-events: none;
+}
+
+.disc-text-layer-hit-target .disc-text-render-text {
+  pointer-events: visiblePainted;
 }
 
 .disc-text-line {
