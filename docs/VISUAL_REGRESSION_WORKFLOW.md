@@ -25,7 +25,12 @@ The workflow checks:
 2. Confirm the working tree is clean with `git status --short --branch`.
 3. Update main with `git fetch origin main` and the normal local main update flow.
 4. Record the commit SHA with `git rev-parse HEAD`.
-5. Run the non-interactive validation baseline:
+5. Confirm runtime freshness before judging app behavior:
+   - Confirm the primary checkout is at the commit being tested.
+   - Check whether an old Vite, Tauri, or other dev-server process is still serving stale code for this repository.
+   - If testing a built/static runtime path, rebuild ignored generated output such as `dist/` before comparing behavior.
+   - If a stale process is found, stop it only when it is clearly tied to this repository runtime, then relaunch through the approved manual path.
+6. Run the non-interactive validation baseline:
 
 ```powershell
 npm run test
@@ -33,7 +38,7 @@ npm run lint
 npm run build
 ```
 
-6. Launch the desktop app manually only when doing the visual pass:
+7. Launch the desktop app manually only when doing the visual pass:
 
 ```powershell
 npm run tauri dev

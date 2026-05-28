@@ -165,6 +165,28 @@ First:
 3. Make visual rendering, state updates, layout math, and interaction surfaces explicit.
 4. Then fix the regression inside the correct owner.
 
+## Primary Checkout And Runtime Verification
+
+User-visible fixes must be verified against the checkout and runtime the user is actually testing.
+
+- Primary checkout: `C:\Users\John Paul Keller\steam-backup-label-studio`.
+- Pushing to `origin/main` is not enough when the user tests from the primary checkout. The primary checkout must be synced to the fixed commit or reported as blocked with exact dirty/conflicting files.
+- Clean side worktrees are useful for protecting WIP and proving the source builds, but they do not prove the user's running app has updated.
+- If the user reports that the app still behaves incorrectly after a claimed fix, verify runtime state before making another code change:
+  - run `git status --short`
+  - run `git branch --show-current`
+  - run `git rev-parse HEAD`
+  - run `git fetch origin`
+  - run `git rev-parse origin/main`
+  - confirm whether the primary checkout contains the claimed fix commit
+  - check whether a stale Vite, Tauri, or other dev-server process is serving old code
+  - check whether ignored generated output such as `dist/` is stale
+- Kill stale dev-server processes only when it is safe and clearly tied to this repository runtime.
+- Rebuild generated or ignored runtime output such as `dist/` when the user is testing a built/static runtime path.
+- If the primary checkout is dirty, inspect dirty files and incoming files. Safely stash/reapply non-overlapping work or report the exact safe action. If dirty files overlap incoming changes, stop and report the exact conflicting files.
+- Do not claim a live UI/runtime regression is fixed solely from helper or unit tests. Final reports for user-visible fixes must distinguish source validation passed, primary checkout synced, runtime rebuilt/restarted, live/browser/Tauri/manual behavior verified, and anything left for the user.
+- This rule does not override the `npm run tauri dev` restriction: agents must not run Tauri unless the user explicitly asks.
+
 ## Validation Expectations
 
 After code changes:
@@ -181,6 +203,18 @@ For visual/editor changes, validation should include:
 - direct drag behavior where applicable
 - slider/manual controls where applicable
 - upload/custom image behavior where applicable
+
+For user-visible fixes, final reports must also include:
+
+- `origin/main` SHA
+- primary checkout SHA
+- whether the primary checkout is clean or dirty
+- whether the primary checkout is synced to the fix
+- whether stale dev processes were found or stopped
+- whether `dist/` or other generated runtime output was rebuilt
+- validation commands run
+- what was actually verified in the running app
+- what remains for the user to verify
 
 ## End-of-Indev Standard
 

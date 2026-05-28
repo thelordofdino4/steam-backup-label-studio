@@ -70,6 +70,26 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Apply this pattern especially to branding/artwork systems such as developer logo, publisher logo, rating badge, media mark, platform marks, and future optional metadata text elements.
    - For rating badges, the top-level show/enable checkbox is the user-facing “no rating badge” control. Do not expose a redundant visible “none” rating system option inside enabled rating controls unless explicitly requested for backward-compatibility UI.
 
-10. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
+10. Follow the primary checkout and runtime verification rule for user-visible fixes.
+   - Primary checkout: `C:\Users\John Paul Keller\steam-backup-label-studio`.
+   - Pushing a fix to `origin/main` is not enough when the user is testing from the primary checkout. The primary checkout must either be synced to the fixed commit or reported as blocked with exact dirty/conflicting files.
+   - When the user reports that the app still behaves incorrectly after a claimed fix, do not immediately make another code change. First verify the actual checkout and runtime state:
+     - `git status --short`
+     - `git branch --show-current`
+     - `git rev-parse HEAD`
+     - `git fetch origin`
+     - `git rev-parse origin/main`
+     - whether the primary checkout contains the claimed fix commit
+     - whether a stale Vite, Tauri, or other dev-server process is still serving old code
+     - whether ignored generated output such as `dist/` is stale
+   - Kill stale dev-server processes only when it is safe and clearly tied to this repository runtime.
+   - Rebuild generated or ignored runtime output such as `dist/` when the user is testing a built/static runtime path, then retest or ask the user to retest.
+   - Clean side worktrees are allowed to protect dirty WIP, but they are not enough for final user-facing verification when the user tests from the primary checkout. A clean worktree can prove the source builds; it does not prove the user's running app has updated.
+   - Do not claim a live UI/runtime regression is fixed solely from helper or unit tests. The final report for user-visible fixes must distinguish source validation passed, primary checkout synced, runtime rebuilt/restarted, live/browser/Tauri/manual behavior verified, and anything explicitly left for the user.
+   - If the primary checkout is dirty, do not overwrite user work. Inspect dirty files and incoming files. If they do not overlap, safely stash/reapply or report the exact safe action. If they overlap, stop and report exact conflicting files. Do not leave the primary checkout stale without a concrete blocker.
+   - Final reports for user-visible fixes must include: `origin/main` SHA, primary checkout SHA, whether the primary checkout is clean or dirty, whether it is synced to the fix, whether stale dev processes were found or stopped, whether `dist/` or other generated runtime output was rebuilt, validation commands run, what was actually verified in the running app, and what remains for the user to verify.
+
+11. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
    - Run `npm run lint` and `npm run build` after code changes.
    - Leave interactive UI, drag, preview/export parity, and desktop-window checks for the user to verify manually.
+   - The primary checkout/runtime verification rule does not grant blanket permission to run Tauri; it requires stale runtime and build-output state to be detected and reported instead of repeatedly patching source code blindly.
