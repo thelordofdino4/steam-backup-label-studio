@@ -30,6 +30,88 @@ import type {
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 
+type TextVisualBoundsPercent = {
+  centerOffsetX: number
+  centerOffsetY: number
+  halfWidth: number
+  halfHeight: number
+}
+
+function getFallbackTextVisualBounds(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+): TextVisualBoundsPercent {
+  return {
+    centerOffsetX: 0,
+    centerOffsetY: 0,
+    ...getStraightDiscTextBoundsPercent(key, layout),
+  }
+}
+
+function getRenderedStraightTextVisualBounds(
+  key: DiscTextKey,
+  layout: DiscTextLayout,
+): TextVisualBoundsPercent {
+  const fallbackBounds = getFallbackTextVisualBounds(key, layout)
+
+  if (typeof document === 'undefined') {
+    return fallbackBounds
+  }
+
+  const textElements = Array.from(
+    document.querySelectorAll<SVGGraphicsElement>(
+      `.disc-text-render-text[data-disc-text-key="${key}"]`,
+    ),
+  )
+
+  if (textElements.length === 0) {
+    return fallbackBounds
+  }
+
+  let left = Number.POSITIVE_INFINITY
+  let right = Number.NEGATIVE_INFINITY
+  let top = Number.POSITIVE_INFINITY
+  let bottom = Number.NEGATIVE_INFINITY
+
+  for (const textElement of textElements) {
+    try {
+      const box = textElement.getBBox()
+
+      if (box.width <= 0 || box.height <= 0) {
+        continue
+      }
+
+      left = Math.min(left, box.x)
+      right = Math.max(right, box.x + box.width)
+      top = Math.min(top, box.y)
+      bottom = Math.max(bottom, box.y + box.height)
+    } catch {
+      return fallbackBounds
+    }
+  }
+
+  if (
+    !Number.isFinite(left) ||
+    !Number.isFinite(right) ||
+    !Number.isFinite(top) ||
+    !Number.isFinite(bottom)
+  ) {
+    return fallbackBounds
+  }
+
+  const layoutAnchorX = DISC_LAYOUT_CENTER_PERCENT + layout.x
+  const layoutAnchorY = layout.y
+  const visualCenterX = (left + right) / 2
+  const visualCenterY = (top + bottom) / 2
+
+  return {
+    centerOffsetX: visualCenterX - layoutAnchorX,
+    centerOffsetY: visualCenterY - layoutAnchorY,
+    halfWidth: (right - left) / 2,
+    halfHeight: (bottom - top) / 2,
+  }
+}
+
 export function clampLogoAssetLayoutToSafeZone(
   layout: LogoAssetLayout,
   selectedDiscTemplate: DiscTemplate,
@@ -137,19 +219,28 @@ export function clampStraightDiscTextLayoutToSafeZone(
     return layout
   }
 
+  const layoutAnchor = {
+    x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
+    y: layout.y,
+  }
+  const visualBounds = getRenderedStraightTextVisualBounds(key, layout)
+  const visualCenter = {
+    x: layoutAnchor.x + visualBounds.centerOffsetX,
+    y: layoutAnchor.y + visualBounds.centerOffsetY,
+  }
   const point = clampLayoutPointToSafeZone(
-    {
-      x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
-      y: layout.y,
-    },
+    visualCenter,
     selectedDiscTemplate,
-    getStraightDiscTextBoundsPercent(key, layout),
+    {
+      halfWidth: visualBounds.halfWidth,
+      halfHeight: visualBounds.halfHeight,
+    },
   )
 
   return {
     ...layout,
-    x: point.x - DISC_LAYOUT_CENTER_PERCENT,
-    y: point.y,
+    x: layout.x + point.x - visualCenter.x,
+    y: layout.y + point.y - visualCenter.y,
   }
 }
 
