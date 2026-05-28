@@ -1,19 +1,22 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type PointerEvent } from 'react'
 import {
-  downloadSteamArtworkAsDataUrl,
-  importSteamApp,
   searchSteamStore,
   type SteamArtworkAsset,
   type SteamImportedGame,
   type SteamSearchResult,
 } from './steam/steamApi'
 import {
-  findSteamScreenshots,
   openLocalFolder,
-  readLocalImageAsDataUrl,
   type LocalSteamScreenshotAsset,
 } from './local/localArtwork'
+import { createLocalSteamScreenshotDiscovery } from './local/localSteamScreenshotDiscovery'
+import { loadMissingLocalSteamScreenshotThumbnails } from './local/localSteamScreenshotThumbnails'
+import {
+  applySteamGameImportToDiscTextValues,
+  applySteamGameImportToProjectMetadata,
+  createSteamGameImport,
+} from './steam/steamGameImport'
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
@@ -45,18 +48,31 @@ import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
+import {
+  BackgroundImageLoadError,
+  createLocalSteamScreenshotBackgroundImport,
+  createSteamArtworkBackgroundImport,
+  createUploadedBackgroundImageImport,
+  type BackgroundImageImportResult,
+} from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
-import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, updateProjectMetadataField } from './project/projectMetadata'
-import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetImage, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, setMediaMarkCustomImage, setPlatformMarkCustomImage, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, setRatingBadgeCustomImage, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
+import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import {
+  applyImportedLogoAsset,
+  applyImportedMediaMark,
+  applyImportedPlatformMark,
+  applyImportedRatingBadge,
+} from './project/projectVisualAssetImport'
 import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
-import { getNaturalImageSize, readImageFileAsDataUrl } from './utils/imageFile'
+import { getNaturalImageSize } from './utils/imageFile'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
@@ -72,10 +88,10 @@ import {
   DEFAULT_BACKGROUND_SCALE,
   createEmptyBackgroundImageState,
   createDefaultBackgroundOffset,
-  createSelectedBackgroundImageState,
   getBackgroundPreviewSize,
   updateBackgroundScale,
 } from './backgroundImage'
+import { isImageFile, readImportedImageAssetFromFile } from './utils/importedImageAsset'
 import {
   createPercentDragState,
   createPixelDragState,
@@ -319,41 +335,22 @@ function App() {
     let isCancelled = false
 
     async function loadLocalSteamScreenshotThumbnails() {
-      const screenshotsWithoutThumbnails = localSteamScreenshots.filter(
-        (asset) => !localSteamScreenshotThumbnails[asset.id],
-      )
-
-      if (screenshotsWithoutThumbnails.length === 0) {
-        return
-      }
-
-      const thumbnailEntries = await Promise.all(
-        screenshotsWithoutThumbnails.slice(0, 24).map(async (asset) => {
-          try {
-            const imageDataUrl = await readLocalImageAsDataUrl(asset.path)
-
-            return [asset.id, imageDataUrl] as const
-          } catch {
-            return null
-          }
-        }),
+      const loadedThumbnails = await loadMissingLocalSteamScreenshotThumbnails(
+        localSteamScreenshots,
+        localSteamScreenshotThumbnails,
       )
 
       if (isCancelled) {
         return
       }
 
-      const loadedThumbnails = thumbnailEntries.filter(
-        (entry): entry is readonly [string, string] => entry !== null,
-      )
-
-      if (loadedThumbnails.length === 0) {
+      if (Object.keys(loadedThumbnails).length === 0) {
         return
       }
 
       setLocalSteamScreenshotThumbnails((currentThumbnails) => ({
         ...currentThumbnails,
-        ...Object.fromEntries(loadedThumbnails),
+        ...loadedThumbnails,
       }))
     }
 
@@ -364,27 +361,13 @@ function App() {
     }
   }, [localSteamScreenshots, localSteamScreenshotThumbnails])
 
-  async function setBackgroundFromDataUrl(
-    imageDataUrl: string,
-    statusMessage: string,
-    options: { clearSelectedArtwork?: boolean } = {},
-  ) {
-    const image = await loadImage(imageDataUrl)
-    const nextBackground = createSelectedBackgroundImageState(
-      imageDataUrl,
-      getNaturalImageSize(image),
-    )
-
-    setBackgroundImageUrl(nextBackground.imageUrl)
-    setBackgroundImageSize(nextBackground.imageSize)
-    setBackgroundScale(nextBackground.scale)
-    setBackgroundOffset(nextBackground.offset)
-
-    if (options.clearSelectedArtwork ?? true) {
-      setSelectedArtworkId(null)
-    }
-
-    announceStatus(statusMessage)
+  function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
+    setBackgroundImageUrl(importedBackground.background.imageUrl)
+    setBackgroundImageSize(importedBackground.background.imageSize)
+    setBackgroundScale(importedBackground.background.scale)
+    setBackgroundOffset(importedBackground.background.offset)
+    setSelectedArtworkId(importedBackground.selectedArtworkId)
+    announceStatus(importedBackground.statusMessage)
   }
 
   async function handleSteamBannerLockupUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -395,17 +378,16 @@ function App() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       announceStatus('Choose an image file for the banner lockup.')
       return
     }
 
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(file)
-      const image = await loadImage(imageDataUrl)
+      const importedImage = await readImportedImageAssetFromFile(file)
       const lockupImage = createCustomSteamBannerLockupImageState(
-        imageDataUrl,
-        getNaturalImageSize(image),
+        importedImage.imageDataUrl,
+        importedImage.imageSize,
       )
 
       setSteamBannerLockupImageUrl(lockupImage.imageUrl)
@@ -457,31 +439,22 @@ function App() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       announceStatus('Choose an image file for the logo asset.')
       return
     }
 
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(file)
-      const image = await loadImage(imageDataUrl)
-      const imageSize = getNaturalImageSize(image)
+      const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectLogoAssets((currentLogoAssets) => {
-        const nextLogoAssets = setLogoAssetImage(
+      setProjectLogoAssets((currentLogoAssets) =>
+        applyImportedLogoAsset(
           currentLogoAssets,
           logoKey,
-          imageDataUrl,
-          imageSize,
-        )
-        const nextLayout = clampLogoAssetLayoutToSafeZone(
-          getLogoAssetLayout(nextLogoAssets, logoKey),
+          importedImage,
           selectedDiscTemplate,
-          getLogoAssetSize(nextLogoAssets, logoKey),
-        )
-
-        return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
-      })
+        ),
+      )
 
       announceStatus(`Using ${file.name} as the ${logoKey} logo.`)
     } catch (error) {
@@ -549,28 +522,21 @@ function App() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       announceStatus('Choose an image file for the rating badge.')
       return
     }
 
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(file)
-      const image = await loadImage(imageDataUrl)
-      const imageSize = getNaturalImageSize(image)
+      const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectRatingBadge((currentBadge) => {
-        const nextBadge = setRatingBadgeCustomImage(
+      setProjectRatingBadge((currentBadge) =>
+        applyImportedRatingBadge(
           currentBadge,
-          imageDataUrl,
-          imageSize,
-        )
-
-        return {
-          ...nextBadge,
-          layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-        }
-      })
+          importedImage,
+          selectedDiscTemplate,
+        ),
+      )
 
       announceStatus(`Using ${file.name} as the rating badge.`)
     } catch (error) {
@@ -637,28 +603,21 @@ function App() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       announceStatus('Choose an image file for the media mark.')
       return
     }
 
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(file)
-      const image = await loadImage(imageDataUrl)
-      const imageSize = getNaturalImageSize(image)
+      const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectMediaMark((currentMark) => {
-        const nextMark = setMediaMarkCustomImage(
+      setProjectMediaMark((currentMark) =>
+        applyImportedMediaMark(
           currentMark,
-          imageDataUrl,
-          imageSize,
-        )
-
-        return {
-          ...nextMark,
-          layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-        }
-      })
+          importedImage,
+          selectedDiscTemplate,
+        ),
+      )
 
       announceStatus(`Using ${file.name} as the media mark.`)
     } catch (error) {
@@ -743,19 +702,19 @@ function App() {
       return
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!isImageFile(file)) {
       announceStatus('Choose an image file for the platform mark.')
       return
     }
 
     try {
-      const imageDataUrl = await readImageFileAsDataUrl(file)
-      const image = await loadImage(imageDataUrl)
-      const imageSize = getNaturalImageSize(image)
+      const importedImage = await readImportedImageAssetFromFile(file)
 
       setProjectPlatformMarks((currentMarks) =>
-        clampProjectPlatformMarksToSafeZone(
-          setPlatformMarkCustomImage(currentMarks, value, imageDataUrl, imageSize),
+        applyImportedPlatformMark(
+          currentMarks,
+          value,
+          importedImage,
           selectedDiscTemplate,
         ),
       )
@@ -1071,22 +1030,19 @@ function App() {
     announceStatus(`Importing Steam App ID ${appId}...`)
 
     try {
-      const importedGame = await importSteamApp(appId)
-      setSelectedSteamGame(importedGame)
-      setManualGameTitle(importedGame.title)
+      const importedState = await createSteamGameImport(appId)
+      setSelectedSteamGame(importedState.importedGame)
+      setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata((currentMetadata) =>
-        createProjectMetadataFromSteamGame(importedGame, currentMetadata),
+        applySteamGameImportToProjectMetadata(
+          importedState.importedGame,
+          currentMetadata,
+        ),
       )
-      setDiscTextValues((currentValues) => ({
-        ...currentValues,
-        appId: String(importedGame.appId),
-      }))
-      const artworkCount = importedGame.artwork.length
-      announceStatus(
-        artworkCount > 0
-          ? `Imported Steam metadata and ${artworkCount} artwork asset${artworkCount === 1 ? '' : 's'} for ${importedGame.title}.`
-          : `Imported Steam metadata for ${importedGame.title}.`,
+      setDiscTextValues((currentValues) =>
+        applySteamGameImportToDiscTextValues(importedState.importedGame, currentValues),
       )
+      announceStatus(importedState.statusMessage)
     } catch (error) {
       announceStatus(`Steam import failed: ${String(error)}`)
     } finally {
@@ -1100,12 +1056,7 @@ function App() {
     announceStatus(`Downloading ${asset.label}...`)
 
     try {
-      const imageDataUrl = await downloadSteamArtworkAsDataUrl(asset.url)
-      await setBackgroundFromDataUrl(
-        imageDataUrl,
-        `Using ${asset.label} as the disc background.`,
-        { clearSelectedArtwork: false },
-      )
+      applyBackgroundImageImport(await createSteamArtworkBackgroundImport(asset))
     } catch (error) {
       setSelectedArtworkId(null)
       announceStatus(`Steam artwork download failed: ${String(error)}`)
@@ -1125,14 +1076,9 @@ function App() {
     announceStatus(`Checking local Steam screenshots for ${selectedSteamGame.title}...`)
 
     try {
-      const screenshots = await findSteamScreenshots(selectedSteamGame.appId)
-      setLocalSteamScreenshots(screenshots)
-
-      announceStatus(
-        screenshots.length > 0
-          ? `Found ${screenshots.length} local Steam screenshot${screenshots.length === 1 ? '' : 's'} for ${selectedSteamGame.title}.`
-          : `No local Steam screenshots found for ${selectedSteamGame.title}.`,
-      )
+      const discovery = await createLocalSteamScreenshotDiscovery(selectedSteamGame)
+      setLocalSteamScreenshots(discovery.screenshots)
+      announceStatus(discovery.statusMessage)
     } catch (error) {
       setLocalSteamScreenshots([])
       setLocalSteamScreenshotThumbnails({})
@@ -1147,12 +1093,7 @@ function App() {
     announceStatus(`Loading ${asset.label}...`)
 
     try {
-      const imageDataUrl = await readLocalImageAsDataUrl(asset.path)
-      await setBackgroundFromDataUrl(
-        imageDataUrl,
-        `Using ${asset.label} as the disc background.`,
-        { clearSelectedArtwork: false },
-      )
+      applyBackgroundImageImport(await createLocalSteamScreenshotBackgroundImport(asset))
     } catch (error) {
       setSelectedArtworkId(null)
       announceStatus(`Local screenshot could not be applied: ${String(error)}`)
@@ -1684,21 +1625,14 @@ function App() {
       return
     }
 
-    let imageDataUrl: string
     try {
-      imageDataUrl = await readImageFileAsDataUrl(file)
-    } catch {
-      announceStatus('Background image could not be read.')
-      return
-    }
-
-    try {
-      await setBackgroundFromDataUrl(
-        imageDataUrl,
-        'Background image loaded and will be embedded when saved.',
+      applyBackgroundImageImport(await createUploadedBackgroundImageImport(file))
+    } catch (error) {
+      announceStatus(
+        error instanceof BackgroundImageLoadError
+          ? 'Background image could not be loaded.'
+          : 'Background image could not be read.',
       )
-    } catch {
-      announceStatus('Background image could not be loaded.')
     }
   }
 
