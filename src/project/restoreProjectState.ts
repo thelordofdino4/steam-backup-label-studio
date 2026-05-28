@@ -71,6 +71,7 @@ export type RestoredProjectState = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextTitleValue: string
   discTextLayout: DiscTextLayoutSettings
   backgroundScale: number
   backgroundOffset: BackgroundOffset
@@ -189,6 +190,7 @@ export async function restoreSavedProjectState(
     project.discText?.values,
     selectedSteamGame?.appId,
   )
+  const discTextTitleValue = project.discText?.titleValue ?? ''
 
   return {
     manualGameTitle,
@@ -215,7 +217,9 @@ export async function restoreSavedProjectState(
       project.discText?.valueSources,
       discTextValues,
       projectMetadata,
+      discTextTitleValue,
     ),
+    discTextTitleValue,
     discTextLayout: clampDiscTextLayoutToSafeZone(
       normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
       template.selectedDiscTemplate,

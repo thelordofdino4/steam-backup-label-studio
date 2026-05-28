@@ -177,6 +177,7 @@ export type SavedProject = {
     settings?: Partial<DiscTextSettings>
     values?: Partial<DiscTextValues>
     valueSources?: Partial<DiscTextValueSources>
+    titleValue?: string
     layout?: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>>
   }
 }

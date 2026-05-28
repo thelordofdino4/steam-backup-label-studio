@@ -45,6 +45,7 @@ export type CreateProjectSnapshotParams = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextTitleValue: string
   discTextLayout: DiscTextLayoutSettings
 }
 
@@ -71,6 +72,7 @@ export function createProjectSnapshot({
   discTextSettings,
   discTextValues,
   discTextValueSources,
+  discTextTitleValue,
   discTextLayout,
 }: CreateProjectSnapshotParams): SavedProject {
   return {
@@ -113,6 +115,7 @@ export function createProjectSnapshot({
       settings: discTextSettings,
       values: discTextValues,
       valueSources: discTextValueSources,
+      titleValue: discTextTitleValue,
       layout: discTextLayout,
     },
   }

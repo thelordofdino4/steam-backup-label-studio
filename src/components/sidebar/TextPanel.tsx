@@ -34,7 +34,8 @@ export type TextPanelProps = {
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   metadataBoundDiscTextValues: DiscTextValues
-  manualGameTitle: string
+  discTextTitleValue: string
+  resolvedDiscTextTitle: string
   selectedDiscTemplate: DiscTemplate
   handleDiscTextToggle: (key: DiscTextKey, checked: boolean) => void
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
@@ -57,7 +58,8 @@ export function TextPanel({
   discTextValues,
   discTextValueSources,
   metadataBoundDiscTextValues,
-  manualGameTitle,
+  discTextTitleValue,
+  resolvedDiscTextTitle,
   selectedDiscTemplate,
   handleDiscTextToggle,
   handleDiscTextContentChange,
@@ -103,12 +105,13 @@ export function TextPanel({
               discTextValues,
               metadataBoundDiscTextValues,
               discTextValueSources,
-              manualGameTitle,
+              discTextTitleValue,
+              resolvedDiscTextTitle,
             )
             const renderedText = getDiscTextContent(
               key,
               metadataBoundDiscTextValues,
-              manualGameTitle,
+              resolvedDiscTextTitle,
             )
             const straightSliderRanges = getStraightDiscTextLayoutSliderRanges(
               key,

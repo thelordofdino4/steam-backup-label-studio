@@ -6,6 +6,7 @@ import {
   createDefaultDiscTextValueSources,
   getDiscTextInputState,
   normalizeDiscTextValueSources,
+  resolveMetadataBoundDiscTextTitle,
   resolveMetadataBoundDiscTextValues,
   updateDiscTextInputValue,
   updateDiscTextValueSource,
@@ -116,6 +117,7 @@ test('metadata-bound input state shows metadata/default as a placeholder', () =>
     values,
     resolvedValues,
     sources,
+    '',
     metadata.title,
   )
 
@@ -124,6 +126,31 @@ test('metadata-bound input state shows metadata/default as a placeholder', () =>
   assert.equal(inputState.isMetadataBacked, true)
   assert.equal(inputState.isManualOverride, false)
   assert.equal(resolvedValues.appId, '440')
+})
+
+test('title input state shows Game metadata title as a placeholder', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const values = createDefaultDiscTextValues()
+  const sources = createDefaultDiscTextValueSources()
+  const resolvedTitle = resolveMetadataBoundDiscTextTitle('', metadata, sources)
+
+  const inputState = getDiscTextInputState(
+    'title',
+    values,
+    values,
+    sources,
+    '',
+    resolvedTitle,
+  )
+
+  assert.equal(inputState.value, '')
+  assert.equal(inputState.placeholder, 'Warframe')
+  assert.equal(inputState.isMetadataBacked, true)
+  assert.equal(inputState.isManualOverride, false)
+  assert.equal(resolvedTitle, 'Warframe')
 })
 
 test('typing metadata-bound input creates a manual override', () => {
@@ -147,6 +174,29 @@ test('typing metadata-bound input creates a manual override', () => {
   assert.equal(inputUpdate.sources.appId, 'manual')
   assert.equal(inputUpdate.values.appId, 'Custom ID')
   assert.equal(resolvedValues.appId, 'Custom ID')
+})
+
+test('typing title input creates a manual title override', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const inputUpdate = updateDiscTextInputValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'title',
+    'Custom Label Title',
+    '',
+  )
+  const resolvedTitle = resolveMetadataBoundDiscTextTitle(
+    inputUpdate.titleValue,
+    metadata,
+    inputUpdate.sources,
+  )
+
+  assert.equal(inputUpdate.sources.title, 'manual')
+  assert.equal(inputUpdate.titleValue, 'Custom Label Title')
+  assert.equal(resolvedTitle, 'Custom Label Title')
 })
 
 test('clearing metadata-bound input returns it to metadata/default', () => {
@@ -176,4 +226,35 @@ test('clearing metadata-bound input returns it to metadata/default', () => {
   assert.equal(clearedUpdate.sources.appId, 'metadata')
   assert.equal(clearedUpdate.values.appId, '')
   assert.equal(resolvedValues.appId, '440')
+})
+
+test('clearing title input returns it to Game metadata/default', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const manualUpdate = updateDiscTextInputValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'title',
+    'Custom Label Title',
+    '',
+  )
+
+  const clearedUpdate = updateDiscTextInputValue(
+    manualUpdate.values,
+    manualUpdate.sources,
+    'title',
+    '   ',
+    manualUpdate.titleValue,
+  )
+  const resolvedTitle = resolveMetadataBoundDiscTextTitle(
+    clearedUpdate.titleValue,
+    metadata,
+    clearedUpdate.sources,
+  )
+
+  assert.equal(clearedUpdate.sources.title, 'metadata')
+  assert.equal(clearedUpdate.titleValue, '')
+  assert.equal(resolvedTitle, 'Warframe')
 })

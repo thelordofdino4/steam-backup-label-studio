@@ -47,6 +47,8 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.selectedSteamGame?.appId, 123)
   assert.equal(restored.projectMetadata.title, 'Manual Saved Title')
   assert.equal(restored.projectMetadata.steamAppId, '123')
+  assert.equal(restored.discTextTitleValue, '')
+  assert.equal(restored.discTextValueSources.title, 'metadata')
   assert.equal(restored.template.selectedDiscTemplateId, 'standardPrintableDisc')
   assert.equal(restored.template.customDiscTemplate, undefined)
   assert.deepEqual(restored.backgroundOffset, { x: 8, y: -4 })
@@ -147,17 +149,21 @@ test('restores saved and legacy disc text metadata source state', async () => {
       backupDate: '2026-05-28',
     },
     discText: {
+      titleValue: 'Custom rendered title',
       values: {
         appId: 'Custom rendered ID',
         backupDate: '2026-05-28',
       },
       valueSources: {
+        title: 'manual',
         appId: 'manual',
         backupDate: 'metadata',
       },
     },
   })
 
+  assert.equal(restoredExplicitSources.discTextTitleValue, 'Custom rendered title')
+  assert.equal(restoredExplicitSources.discTextValueSources.title, 'manual')
   assert.equal(restoredExplicitSources.discTextValueSources.appId, 'manual')
   assert.equal(restoredExplicitSources.discTextValueSources.backupDate, 'metadata')
 
@@ -177,6 +183,21 @@ test('restores saved and legacy disc text metadata source state', async () => {
 
   assert.equal(restoredLegacySources.discTextValueSources.appId, 'manual')
 
+  const restoredLegacyTitleSource = await restoreSavedProjectState({
+    ...baseProject,
+    metadata: {
+      ...createDefaultProjectMetadata(),
+      title: 'Game metadata title',
+      steamAppId: '123',
+    },
+    discText: {
+      titleValue: 'Custom rendered title',
+    },
+  })
+
+  assert.equal(restoredLegacyTitleSource.discTextTitleValue, 'Custom rendered title')
+  assert.equal(restoredLegacyTitleSource.discTextValueSources.title, 'manual')
+
   const restoredEmptyManualSource = await restoreSavedProjectState({
     ...baseProject,
     metadata: {
@@ -185,15 +206,18 @@ test('restores saved and legacy disc text metadata source state', async () => {
       steamAppId: '123',
     },
     discText: {
+      titleValue: '',
       values: {
         appId: '',
       },
       valueSources: {
+        title: 'manual',
         appId: 'manual',
       },
     },
   })
 
+  assert.equal(restoredEmptyManualSource.discTextValueSources.title, 'metadata')
   assert.equal(restoredEmptyManualSource.discTextValueSources.appId, 'metadata')
 })
 
