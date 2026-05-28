@@ -1,7 +1,7 @@
 import { useState, type ChangeEvent } from 'react'
 import type { SteamLogoPlacement } from '../../discText'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
-import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore } from '../../project/projectMediaMark'
+import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset } from '../../project/projectMediaMark'
 import { getActiveRatingSystemForBadge, getRatingMetadataForBadgeEnabled, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
@@ -67,6 +67,10 @@ const LOGO_ALIGNMENT_PRESETS = [
 
 function formatLogoSize(size: BackgroundImageSize | null) {
   return size ? ` · ${size.width}×${size.height}` : ''
+}
+
+function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
+  return Number(event.currentTarget.value)
 }
 
 function SteamBannerControls({
@@ -348,11 +352,11 @@ function MediaMarkControls({ projectMediaMark, handleMediaMarkUpload, handleMedi
             </>
           ) : <p className="hint">Using the built-in placeholder mark.</p>}
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
-          <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onChange={(event) => handleMediaMarkLayoutChange('scale', Number(event.target.value))} />
+          <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onInput={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
-          <input id="media-mark-x" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.x} onChange={(event) => handleMediaMarkLayoutChange('x', Number(event.target.value))} />
+          <input id="media-mark-x" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.x} onInput={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="media-mark-y">Y position</label>
-          <input id="media-mark-y" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.y} onChange={(event) => handleMediaMarkLayoutChange('y', Number(event.target.value))} />
+          <input id="media-mark-y" type="range" min="0" max="100" step="0.1" value={projectMediaMark.layout.y} onInput={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} />
           <button className="secondary-button" type="button" onClick={handleResetMediaMarkLayout}>Reset media mark layout</button>
           {isCustomMediaMarkSource && projectMediaMark.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>}
         </>
@@ -392,10 +396,9 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
           </div>
           <p className="hint">Current platform marks: {currentLabel}. Each selected platform mark has its own image and layout.</p>
           {projectPlatformMarks.values.map((value) => {
-            const asset = projectPlatformMarks.assets[value]
+            const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
             const label = getPlatformMarkLabel(value)
             const uploadId = `platform-mark-upload-${value}`
-            if (!asset) return null
             const isCustomPlatformMarkSource = asset.source === 'custom'
             return (
               <div key={value} className="logo-asset-card spacing-top">
@@ -419,11 +422,11 @@ function PlatformMarkControls({ projectPlatformMarks, handlePlatformMarkToggle, 
                   </>
                 ) : <p className="hint">Using a generic internal placeholder.</p>}
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
-                <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', Number(event.target.value))} />
+                <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
-                <input id={`platform-mark-x-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.x} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', Number(event.target.value))} />
+                <input id={`platform-mark-x-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
-                <input id={`platform-mark-y-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.y} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', Number(event.target.value))} />
+                <input id={`platform-mark-y-${value}`} type="range" min="0" max="100" step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
                 <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
                 {isCustomPlatformMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>}
               </div>

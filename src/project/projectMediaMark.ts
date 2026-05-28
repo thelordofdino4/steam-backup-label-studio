@@ -183,7 +183,7 @@ export function createDefaultProjectPlatformMarkAsset(
   }
 }
 
-function getProjectPlatformMarkAsset(
+export function getProjectPlatformMarkAsset(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
 ) {
@@ -234,7 +234,7 @@ export function getEnabledPlatformMarkValues(
   platformMarks: ProjectPlatformMarks,
 ): PlatformMarkValue[] {
   return platformMarks.values.filter(
-    (value) => platformMarks.assets[value]?.layout.enabled,
+    (value) => getProjectPlatformMarkAsset(platformMarks, value).layout.enabled,
   )
 }
 
