@@ -147,7 +147,10 @@ export async function restoreSavedProjectState(
     manualGameTitle,
     selectedSteamGame?.appId,
   )
-  const loadedLogoAssets = normalizeProjectLogoAssets(project.logoAssets)
+  const loadedLogoAssets = normalizeProjectLogoAssets(
+    project.logoAssets,
+    template.selectedDiscTemplate,
+  )
   const projectLogoAssets = {
     ...loadedLogoAssets,
     developerLogoLayout: clampLogoAssetLayoutToSafeZone(
@@ -161,7 +164,10 @@ export async function restoreSavedProjectState(
       loadedLogoAssets.publisherLogoSize,
     ),
   }
-  const loadedRatingBadge = normalizeProjectRatingBadge(project.ratingBadge)
+  const loadedRatingBadge = normalizeProjectRatingBadge(
+    project.ratingBadge,
+    template.selectedDiscTemplate,
+  )
   const projectRatingBadge = {
     ...loadedRatingBadge,
     layout: clampRatingBadgeLayoutToSafeZone(
@@ -169,7 +175,10 @@ export async function restoreSavedProjectState(
       template.selectedDiscTemplate,
     ),
   }
-  const loadedMediaMark = normalizeProjectMediaMark(project.mediaMark)
+  const loadedMediaMark = normalizeProjectMediaMark(
+    project.mediaMark,
+    template.selectedDiscTemplate,
+  )
   const projectMediaMark = {
     ...loadedMediaMark,
     layout: clampMediaMarkLayoutToSafeZone(
@@ -180,6 +189,7 @@ export async function restoreSavedProjectState(
   const loadedPlatformMarks = normalizeProjectPlatformMarks(
     project.platformMarks,
     project.mediaMark,
+    template.selectedDiscTemplate,
   )
   const steamBannerLockupImage = createSteamBannerLockupImageState(
     project.steamBackupLogo.lockupImageDataUrl,
@@ -221,7 +231,11 @@ export async function restoreSavedProjectState(
     ),
     discTextTitleValue,
     discTextLayout: clampDiscTextLayoutToSafeZone(
-      normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
+      normalizeDiscTextLayout(
+        project.discText?.layout,
+        project.steamBackupLogo.placement,
+        template.selectedDiscTemplate,
+      ),
       template.selectedDiscTemplate,
     ),
     backgroundScale: project.background.scale,
