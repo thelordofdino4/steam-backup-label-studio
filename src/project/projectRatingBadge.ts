@@ -1,5 +1,6 @@
 import { getDefaultRatingBadgeLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
 import type { DiscTemplate } from '../types/template'
+import { getRatingMetadataForBadgeEnabled } from './projectMetadata.ts'
 import type { BackgroundImageSize, ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from './projectTypes'
 
 export type RatingBadgeLayoutField = keyof RatingBadgeLayout
@@ -118,6 +119,36 @@ export function shouldRenderRatingBadge(
   ratingBadge: ProjectRatingBadge,
 ) {
   return ratingBadge.layout.enabled && metadata.ratingSystem !== 'none'
+}
+
+export function shouldUseCustomRatingBadgeImage(
+  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageDataUrl'>,
+) {
+  return ratingBadge.source === 'custom' && Boolean(ratingBadge.customImageDataUrl)
+}
+
+export function updateRatingBadgeEnabledState(
+  metadata: ProjectMetadata,
+  ratingBadge: ProjectRatingBadge,
+  enabled: boolean,
+): { metadata: ProjectMetadata; ratingBadge: ProjectRatingBadge } {
+  const nextMetadata = enabled
+    ? {
+        ...metadata,
+        ...getRatingMetadataForBadgeEnabled(metadata),
+      }
+    : metadata
+
+  return {
+    metadata: nextMetadata,
+    ratingBadge: {
+      ...ratingBadge,
+      layout: {
+        ...ratingBadge.layout,
+        enabled,
+      },
+    },
+  }
 }
 
 function normalizeRatingBadgeLayout(

@@ -1,5 +1,8 @@
 import type { ProjectMetadata, ProjectRatingBadge } from '../project/projectTypes'
-import { shouldRenderRatingBadge } from '../project/projectRatingBadge'
+import {
+  shouldRenderRatingBadge,
+  shouldUseCustomRatingBadgeImage,
+} from '../project/projectRatingBadge'
 import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
@@ -87,7 +90,7 @@ export async function drawRatingBadge(
     return
   }
 
-  if (badge.source === 'custom' && badge.customImageDataUrl) {
+  if (shouldUseCustomRatingBadgeImage(badge)) {
     await drawCustomRatingBadge(context, discContentSize, discOrigin, badge)
     return
   }

@@ -4,7 +4,10 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
 } from '../../discGeometry'
 import { buildRatingBadgePlaceholderSvg } from '../../discPlaceholderSvg'
-import { shouldRenderRatingBadge } from '../../project/projectRatingBadge'
+import {
+  shouldRenderRatingBadge,
+  shouldUseCustomRatingBadgeImage,
+} from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
 import { createSvgDataUrl } from '../../svgUtils'
 
@@ -36,8 +39,7 @@ export function RatingBadgeLayer({
   }
 
   const placeholderLabel = getPlaceholderLabel(projectMetadata)
-  const shouldUseCustomImage =
-    projectRatingBadge.source === 'custom' && projectRatingBadge.customImageDataUrl
+  const shouldUseCustomImage = shouldUseCustomRatingBadgeImage(projectRatingBadge)
   const unscaledBounds =
     shouldUseCustomImage && projectRatingBadge.customImageSize
       ? getRatingBadgeBoundsPercent(projectRatingBadge.customImageSize, 1)

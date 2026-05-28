@@ -321,11 +321,11 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
           </select>
 
           <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
-          <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onChange={(event) => handleRatingBadgeLayoutChange('scale', Number(event.target.value))} />
+          <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onInput={(event) => handleRatingBadgeLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('scale', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="rating-badge-x">X position</label>
-          <input id="rating-badge-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectRatingBadge.layout.x} onChange={(event) => handleRatingBadgeLayoutChange('x', Number(event.target.value))} />
+          <input id="rating-badge-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectRatingBadge.layout.x} onInput={(event) => handleRatingBadgeLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('x', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="rating-badge-y">Y position</label>
-          <input id="rating-badge-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectRatingBadge.layout.y} onChange={(event) => handleRatingBadgeLayoutChange('y', Number(event.target.value))} />
+          <input id="rating-badge-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectRatingBadge.layout.y} onInput={(event) => handleRatingBadgeLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('y', getNumericInputValue(event))} />
           <button className="secondary-button" type="button" onClick={handleResetRatingBadgeLayout}>Reset rating badge layout</button>
           {isCustomBadgeSource && projectRatingBadge.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>}
         </>

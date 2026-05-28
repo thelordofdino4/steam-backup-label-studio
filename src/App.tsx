@@ -57,7 +57,7 @@ import {
 } from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
-import { createDefaultProjectMetadata, getRatingMetadataForBadgeEnabled, updateProjectMetadataField } from './project/projectMetadata'
+import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
 import {
   createDefaultDiscTextValueSources,
   getDiscTextKeysForProjectMetadataField,
@@ -70,7 +70,7 @@ import {
 } from './project/metadataDiscText'
 import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
   applyImportedLogoAsset,
   applyImportedMediaMark,
@@ -598,24 +598,33 @@ function App() {
   }
 
   function handleRatingBadgeEnabledChange(enabled: boolean) {
+    const nextState = updateRatingBadgeEnabledState(
+      projectMetadata,
+      projectRatingBadge,
+      enabled,
+    )
+
+    setProjectMetadata(nextState.metadata)
+    setProjectRatingBadge({
+      ...nextState.ratingBadge,
+      layout: clampRatingBadgeLayoutToSafeZone(
+        nextState.ratingBadge,
+        selectedDiscTemplate,
+      ),
+    })
+
     if (enabled) {
-      const nextRatingMetadata = getRatingMetadataForBadgeEnabled(projectMetadata)
-      const nextProjectMetadata = {
-        ...projectMetadata,
-        ...nextRatingMetadata,
-      }
       const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
         discTextValues,
-        nextProjectMetadata,
+        nextState.metadata,
         discTextValueSources,
       )
       const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
         discTextTitleValue,
-        nextProjectMetadata,
+        nextState.metadata,
         discTextValueSources,
       )
 
-      setProjectMetadata(nextProjectMetadata)
       clampMetadataBoundDiscTextLayoutsForContent(
         [
           ...getDiscTextKeysForProjectMetadataField('ratingSystem'),
@@ -625,8 +634,6 @@ function App() {
         nextResolvedTitle,
       )
     }
-
-    handleRatingBadgeLayoutChange('enabled', enabled)
   }
 
   function handleRatingBadgeLayoutChange(
