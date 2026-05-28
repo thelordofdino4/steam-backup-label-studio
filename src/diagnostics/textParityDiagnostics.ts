@@ -183,7 +183,9 @@ function getAllPreviewTextNodes(
   if (!previewElement) return []
 
   return Array.from(
-    previewElement.querySelectorAll('.disc-straight-text, .disc-curved-text'),
+    previewElement.querySelectorAll(
+      '.disc-text-layer-hit-target .disc-text-render-text',
+    ),
   ).map((element, index) => getTextNodeReport(element, index, previewRect))
 }
 
@@ -196,9 +198,11 @@ function getPreviewTextNodesForText(allNodes: TextNodeReport[], text: string) {
   })
 }
 
-function getLayerCount(previewElement: HTMLElement | null, mode: string) {
+function getLayerCount(previewElement: HTMLElement | null) {
   if (!previewElement) return 0
-  return previewElement.querySelectorAll(mode === 'curved' ? '.disc-curved-text-svg' : '.disc-straight-text-svg').length
+  return previewElement.querySelectorAll(
+    '.disc-text-layer-hit-target .disc-text-svg-layer',
+  ).length
 }
 
 export function buildTextParityDiagnostics(params: {
@@ -239,10 +243,11 @@ export function buildTextParityDiagnostics(params: {
       sourceLayout: { ...layout },
       renderStyle: { ...DISC_TEXT_RENDER_STYLES[key] },
       previewDom: {
-        layerCount: getLayerCount(params.previewElement, layout.mode),
+        layerCount: getLayerCount(params.previewElement),
         textNodeCount: previewTextNodes.length,
         textNodes: previewTextNodes,
-        matchStrategy: 'matched by live SVG text content because preview nodes are not keyed yet',
+        matchStrategy:
+          'matched by current hit-target SVG text content because the visible preview layer is image-backed',
       },
     }
 
