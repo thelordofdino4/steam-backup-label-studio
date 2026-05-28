@@ -1,6 +1,6 @@
 import type { DiscTemplate } from './types/template'
 import type { DiscTextKey, DiscTextLayout } from './discText'
-import { DISC_TEXT_RENDER_STYLES } from './discTextStyles'
+import { DISC_TEXT_RENDER_STYLES } from './discTextStyles.ts'
 
 export const EXPORT_DPI = 300
 export const MM_PER_INCH = 25.4

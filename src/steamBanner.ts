@@ -1,30 +1,26 @@
 import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
-import type { BackgroundImageSize, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
-import type { SteamLogoPlacement } from './discText'
+import type { BackgroundImageSize } from './project/projectTypes'
+import {
+  createSteamBannerLockupImageState as createSteamBannerLockupImageStateWithDefault,
+  type SteamBannerLockupImageState,
+} from './steamBannerDefaults'
 
-export type SteamBannerColorField = keyof SteamBannerColors
-export type SteamBannerLockupLayoutField = keyof SteamBannerLockupLayout
-
-export const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
-  gradientStart: '#2b475e',
-  gradientEnd: '#1b2838',
-  accent: '#2aabe1',
-}
+export {
+  DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT,
+  DEFAULT_STEAM_BANNER_COLORS,
+  DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
+  createCustomSteamBannerLockupImageState,
+  createSteamLogoPlacementMemory,
+  getEnabledSteamLogoPlacement,
+  getNextSteamLogoPlacementMemory,
+  updateSteamBannerColor,
+  updateSteamBannerLockupLayoutField,
+  type SteamBannerColorField,
+  type SteamBannerLockupLayoutField,
+} from './steamBannerDefaults'
+export type { SteamBannerLockupImageState } from './steamBannerDefaults'
 
 export const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
-
-export const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
-  scale: 1,
-  offsetX: 0,
-  offsetY: 0,
-}
-
-export const DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT: SteamLogoPlacement = 'bottom'
-
-export type SteamBannerLockupImageState = {
-  imageUrl: string | null
-  imageSize: BackgroundImageSize | null
-}
 
 export function createDefaultSteamBannerLockupImageState(): SteamBannerLockupImageState {
   return {
@@ -37,61 +33,9 @@ export function createSteamBannerLockupImageState(
   imageUrl: string | null | undefined,
   imageSize: BackgroundImageSize | null | undefined,
 ): SteamBannerLockupImageState {
-  return {
-    imageUrl: imageUrl ?? DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
-    imageSize: imageSize ?? null,
-  }
-}
-
-export function createCustomSteamBannerLockupImageState(
-  imageUrl: string,
-  imageSize: BackgroundImageSize,
-): SteamBannerLockupImageState {
-  return {
+  return createSteamBannerLockupImageStateWithDefault(
     imageUrl,
     imageSize,
-  }
-}
-
-export function createSteamLogoPlacementMemory(
-  placement: SteamLogoPlacement,
-): SteamLogoPlacement {
-  return placement === 'none' ? DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT : placement
-}
-
-export function getEnabledSteamLogoPlacement(
-  rememberedPlacement: SteamLogoPlacement,
-): SteamLogoPlacement {
-  return rememberedPlacement === 'none'
-    ? DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT
-    : rememberedPlacement
-}
-
-export function getNextSteamLogoPlacementMemory(
-  currentMemory: SteamLogoPlacement,
-  placement: SteamLogoPlacement,
-): SteamLogoPlacement {
-  return placement === 'none' ? currentMemory : placement
-}
-
-export function updateSteamBannerLockupLayoutField(
-  layout: SteamBannerLockupLayout,
-  field: SteamBannerLockupLayoutField,
-  value: number,
-): SteamBannerLockupLayout {
-  return {
-    ...layout,
-    [field]: value,
-  }
-}
-
-export function updateSteamBannerColor(
-  colors: SteamBannerColors,
-  field: SteamBannerColorField,
-  value: string,
-): SteamBannerColors {
-  return {
-    ...colors,
-    [field]: value,
-  }
+    DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+  )
 }

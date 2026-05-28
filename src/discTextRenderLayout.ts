@@ -1,5 +1,5 @@
 import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './discText'
-import { DISC_TEXT_RENDER_STYLES } from './discTextStyles'
+import { DISC_TEXT_RENDER_STYLES } from './discTextStyles.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 

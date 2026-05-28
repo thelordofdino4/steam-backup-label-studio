@@ -3,7 +3,7 @@ import {
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
-} from '../discText'
+} from '../discText.ts'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampLayoutPointToSafeZone,
@@ -15,14 +15,14 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   getStraightDiscTextBoundsPercent,
-} from '../discGeometry'
+} from '../discGeometry.ts'
 import {
   getDiscTextFontString,
   type TextMeasureFunction,
-} from '../discTextRenderLayout'
-import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles'
-import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer'
-import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark'
+} from '../discTextRenderLayout.ts'
+import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles.ts'
+import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer.ts'
+import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark.ts'
 import type {
   BackgroundImageSize,
   LogoAssetLayout,

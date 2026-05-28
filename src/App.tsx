@@ -32,7 +32,7 @@ import {
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from './layout/discElementSafeZone'
-import { DEFAULT_EXPORT_GUIDES, exportGuideModeToSelection, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
+import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
 import { DiscPreview } from './components/preview/DiscPreview'
@@ -46,11 +46,11 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
-import { normalizeParsedProject } from './project/normalizeProject'
-import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, normalizeProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
-import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, normalizeProjectLogoAssets, resetProjectLogoAssetLayout, setLogoAssetImage, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, normalizeProjectMediaMark, normalizeProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, setMediaMarkCustomImage, setPlatformMarkCustomImage, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, normalizeProjectRatingBadge, resetProjectRatingBadgeLayout, setRatingBadgeCustomImage, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import { restoreProjectStateFromContents } from './project/restoreProjectState'
+import { createDefaultProjectMetadata, createProjectMetadataFromSteamGame, updateProjectMetadataField } from './project/projectMetadata'
+import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetImage, setLogoAssetLayout, updateLogoAssetLayoutField, updateLogoAssetLayoutPosition, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarkAsset, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, setMediaMarkCustomImage, setPlatformMarkCustomImage, updateMediaMarkLayoutField, updateMediaMarkLayoutPosition, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkLayoutPosition, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, setRatingBadgeCustomImage, updateRatingBadgeLayoutField, updateRatingBadgeLayoutPosition, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import { loadImage } from './export/canvasImage'
@@ -59,10 +59,10 @@ import { buildExportPreflightSummary } from './export/exportPreflight'
 import { getNaturalImageSize, readImageFileAsDataUrl } from './utils/imageFile'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
+  DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createCustomSteamBannerLockupImageState,
   createDefaultSteamBannerLockupImageState,
-  createSteamBannerLockupImageState,
   updateSteamBannerColor,
   updateSteamBannerLockupLayoutField,
   type SteamBannerColorField,
@@ -90,9 +90,6 @@ import {
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
   getDiscTextPreviewTransform,
-  normalizeDiscTextLayout,
-  normalizeDiscTextSettings,
-  normalizeDiscTextValues,
   resetDiscTextLayout,
   isCurvedCopyrightDiscTextLayout,
   updateDiscTextAlignment,
@@ -1245,123 +1242,44 @@ function App() {
       }
 
       const contents = await readProjectFile(selected)
-      const project = normalizeParsedProject(contents)
-      const savedTemplateId = project.template.variant
-      const savedImageDataUrl = project.background.imageDataUrl
-      const loadedCustomDiscTemplate = project.template.customDimensions
-        ? buildCustomDiscTemplate(project.template.customDimensions)
-        : buildCustomDiscTemplate(discTemplates.standardPrintableDisc)
-      const loadedSelectedDiscTemplate =
-        savedTemplateId === 'custom'
-          ? loadedCustomDiscTemplate
-          : savedTemplateId in discTemplates
-            ? discTemplates[savedTemplateId]
-            : discTemplates.standardPrintableDisc
+      const restoredProject = await restoreProjectStateFromContents(contents, {
+        defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+        resolveBackgroundImageSize: async (imageDataUrl) =>
+          getNaturalImageSize(await loadImage(imageDataUrl)),
+      })
 
-      const loadedTitle = project.game?.manualTitle ?? project.title ?? 'Untitled Steam Backup Label'
-      setManualGameTitle(loadedTitle)
-      setProjectMetadata(
-        normalizeProjectMetadata(
-          project.metadata,
-          loadedTitle,
-          project.game?.selectedSteamGame?.appId,
-        ),
-      )
-      const loadedLogoAssets = normalizeProjectLogoAssets(project.logoAssets)
-      setProjectLogoAssets({
-        ...loadedLogoAssets,
-        developerLogoLayout: clampLogoAssetLayoutToSafeZone(
-          loadedLogoAssets.developerLogoLayout,
-          loadedSelectedDiscTemplate,
-          loadedLogoAssets.developerLogoSize,
-        ),
-        publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
-          loadedLogoAssets.publisherLogoLayout,
-          loadedSelectedDiscTemplate,
-          loadedLogoAssets.publisherLogoSize,
-        ),
-      })
-      const loadedRatingBadge = normalizeProjectRatingBadge(project.ratingBadge)
-      setProjectRatingBadge({
-        ...loadedRatingBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(
-          loadedRatingBadge,
-          loadedSelectedDiscTemplate,
-        ),
-      })
-      const loadedMediaMark = normalizeProjectMediaMark(project.mediaMark)
-      setProjectMediaMark({
-        ...loadedMediaMark,
-        layout: clampMediaMarkLayoutToSafeZone(
-          loadedMediaMark,
-          loadedSelectedDiscTemplate,
-        ),
-      })
-      const loadedPlatformMarks = normalizeProjectPlatformMarks(
-        project.platformMarks,
-        project.mediaMark,
-      )
-      setProjectPlatformMarks(
-        clampProjectPlatformMarksToSafeZone(
-          loadedPlatformMarks,
-          loadedSelectedDiscTemplate,
-        ),
-      )
-      setSelectedSteamGame(project.game?.selectedSteamGame ?? null)
+      setManualGameTitle(restoredProject.manualGameTitle)
+      setProjectMetadata(restoredProject.projectMetadata)
+      setProjectLogoAssets(restoredProject.projectLogoAssets)
+      setProjectRatingBadge(restoredProject.projectRatingBadge)
+      setProjectMediaMark(restoredProject.projectMediaMark)
+      setProjectPlatformMarks(restoredProject.projectPlatformMarks)
+      setSelectedSteamGame(restoredProject.selectedSteamGame)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
       setLocalSteamScreenshotThumbnails({})
       setHasCheckedLocalSteamScreenshots(false)
 
-      if (savedTemplateId === 'custom') {
-        setCustomDiscTemplate(loadedCustomDiscTemplate)
-        setSelectedDiscTemplateId('custom')
-      } else if (savedTemplateId in discTemplates) {
-        setSelectedDiscTemplateId(savedTemplateId)
-      } else {
-        setSelectedDiscTemplateId('standardPrintableDisc')
+      if (restoredProject.template.customDiscTemplate) {
+        setCustomDiscTemplate(restoredProject.template.customDiscTemplate)
       }
-
-      setSteamLogoPlacement(project.steamBackupLogo.placement)
-      setSteamBannerColors(project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS)
-      const loadedLockupImage = createSteamBannerLockupImageState(
-        project.steamBackupLogo.lockupImageDataUrl,
-        project.steamBackupLogo.lockupImageSize,
-      )
-      setSteamBannerLockupImageUrl(loadedLockupImage.imageUrl)
-      setSteamBannerLockupImageSize(loadedLockupImage.imageSize)
-      setSteamBannerLockupLayout(
-        project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
-      )
-      setExportGuides(
-        project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
-      )
-      setDiscTextSettings(normalizeDiscTextSettings(project.discText?.settings))
-      setDiscTextValues(
-        normalizeDiscTextValues(project.discText?.values, project.game?.selectedSteamGame?.appId),
-      )
-      setDiscTextLayout(
-        clampDiscTextLayoutToSafeZone(
-          normalizeDiscTextLayout(project.discText?.layout, project.steamBackupLogo.placement),
-          loadedSelectedDiscTemplate,
-        ),
-      )
-      setBackgroundScale(project.background.scale)
-      setBackgroundOffset(project.background.offset)
-      setBackgroundImageUrl(savedImageDataUrl)
-      setBackgroundImageSize(project.background.imageSize ?? null)
-
-      if (savedImageDataUrl && !project.background.imageSize) {
-        try {
-          const image = await loadImage(savedImageDataUrl)
-          setBackgroundImageSize(getNaturalImageSize(image))
-        } catch {
-          setBackgroundImageSize(null)
-        }
-      }
+      setSelectedDiscTemplateId(restoredProject.template.selectedDiscTemplateId)
+      setSteamLogoPlacement(restoredProject.steamLogoPlacement)
+      setSteamBannerColors(restoredProject.steamBannerColors)
+      setSteamBannerLockupImageUrl(restoredProject.steamBannerLockupImageUrl)
+      setSteamBannerLockupImageSize(restoredProject.steamBannerLockupImageSize)
+      setSteamBannerLockupLayout(restoredProject.steamBannerLockupLayout)
+      setExportGuides(restoredProject.exportGuides)
+      setDiscTextSettings(restoredProject.discTextSettings)
+      setDiscTextValues(restoredProject.discTextValues)
+      setDiscTextLayout(restoredProject.discTextLayout)
+      setBackgroundScale(restoredProject.backgroundScale)
+      setBackgroundOffset(restoredProject.backgroundOffset)
+      setBackgroundImageUrl(restoredProject.backgroundImageUrl)
+      setBackgroundImageSize(restoredProject.backgroundImageSize)
 
       announceStatus(
-        savedImageDataUrl
+        restoredProject.backgroundImageUrl
           ? 'Loaded project layout, game metadata, embedded background image, and template geometry.'
           : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.',
       )
