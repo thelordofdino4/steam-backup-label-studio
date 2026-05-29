@@ -142,58 +142,62 @@ function WebArtworkCandidateSection({
   | 'handleUseWebArtworkCandidate'
 >) {
   return (
-    <div className="artwork-import-section spacing-top">
-      <h3 className="artwork-import-heading">Web artwork</h3>
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={webArtworkDiscovery.isLoading || webArtworkDiscovery.isApplying}
-        onClick={() => void handleFindWebArtworkCandidates()}
-      >
-        {webArtworkDiscovery.isLoading ? 'Finding web artwork...' : 'Import web artwork'}
-      </button>
+    <details className="metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">Web artwork</summary>
+      <div className="panel-content">
+        <div className="artwork-import-section">
+          <button
+            className="secondary-button"
+            type="button"
+            disabled={webArtworkDiscovery.isLoading || webArtworkDiscovery.isApplying}
+            onClick={() => void handleFindWebArtworkCandidates()}
+          >
+            {webArtworkDiscovery.isLoading ? 'Finding web artwork...' : 'Import web artwork'}
+          </button>
 
-      {webArtworkDiscovery.error ? (
-        <p className="hint logo-candidate-error">{webArtworkDiscovery.error}</p>
-      ) : null}
+          {webArtworkDiscovery.error ? (
+            <p className="hint logo-candidate-error">{webArtworkDiscovery.error}</p>
+          ) : null}
 
-      {webArtworkDiscovery.hasSearched &&
-        !webArtworkDiscovery.isLoading &&
-        webArtworkDiscovery.candidates.length === 0 &&
-        !webArtworkDiscovery.error ? (
-          <p className="hint">No web artwork candidates found.</p>
-        ) : null}
+          {webArtworkDiscovery.hasSearched &&
+            !webArtworkDiscovery.isLoading &&
+            webArtworkDiscovery.candidates.length === 0 &&
+            !webArtworkDiscovery.error ? (
+              <p className="hint">No web artwork candidates found.</p>
+            ) : null}
 
-      {webArtworkDiscovery.candidates.length > 0 ? (
-        <div className="search-results">
-          {webArtworkDiscovery.candidates.map((candidate) => (
-            <button
-              className="search-result-button artwork-asset-button"
-              key={candidate.id}
-              type="button"
-              disabled={webArtworkDiscovery.isApplying}
-              onClick={() => void handleUseWebArtworkCandidate(candidate)}
-            >
-              <img
-                className="artwork-asset-thumbnail"
-                src={candidate.previewUrl ?? candidate.url}
-                alt=""
-                loading="lazy"
-                draggable={false}
-              />
-              <span className="artwork-asset-copy">
-                <strong>{candidate.label}</strong>
-                <span>
-                  Source: {formatWebArtworkSourceKind(candidate.sourceKind)}
-                  {formatCandidateDimensions(candidate)}
-                </span>
-                <span>{candidate.reasons.slice(0, 3).join(', ')}</span>
-              </span>
-            </button>
-          ))}
+          {webArtworkDiscovery.candidates.length > 0 ? (
+            <div className="search-results">
+              {webArtworkDiscovery.candidates.map((candidate) => (
+                <button
+                  className="search-result-button artwork-asset-button"
+                  key={candidate.id}
+                  type="button"
+                  disabled={webArtworkDiscovery.isApplying}
+                  onClick={() => void handleUseWebArtworkCandidate(candidate)}
+                >
+                  <img
+                    className="artwork-asset-thumbnail"
+                    src={candidate.previewUrl ?? candidate.url}
+                    alt=""
+                    loading="lazy"
+                    draggable={false}
+                  />
+                  <span className="artwork-asset-copy">
+                    <strong>{candidate.label}</strong>
+                    <span>
+                      Source: {formatWebArtworkSourceKind(candidate.sourceKind)}
+                      {formatCandidateDimensions(candidate)}
+                    </span>
+                    <span>{candidate.reasons.slice(0, 3).join(', ')}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
-      ) : null}
-    </div>
+      </div>
+    </details>
   )
 }
 
@@ -210,7 +214,7 @@ function ImportedSteamArtworkSection({
   | 'handleUseSteamArtwork'
 >) {
   return (
-    <details className="metadata-details collapsible-panel spacing-top" open>
+    <details className="metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Imported Steam artwork</summary>
       <div className="panel-content">
         {selectedSteamGame?.artwork.length ? (
@@ -367,6 +371,26 @@ function LocalSteamScreenshotSection({
   )
 }
 
+function LocalArtworkSection({
+  handleBackgroundUpload,
+}: Pick<ArtworkPanelProps, 'handleBackgroundUpload'>) {
+  return (
+    <details className="metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">Local artwork</summary>
+      <div className="panel-content">
+        <div className="artwork-import-section">
+          <input
+            id="background-upload"
+            type="file"
+            accept="image/*"
+            onChange={handleBackgroundUpload}
+          />
+        </div>
+      </div>
+    </details>
+  )
+}
+
 function BackgroundArtworkControls(props: ArtworkPanelProps) {
   const {
     isBackgroundArtworkEnabled,
@@ -402,16 +426,7 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
           <ImportedSteamArtworkSection {...props} />
           <WebArtworkCandidateSection {...props} />
           <LocalSteamScreenshotSection {...props} />
-
-          <div className="artwork-import-section spacing-top">
-            <h3 className="artwork-import-heading">Local image</h3>
-            <input
-              id="background-upload"
-              type="file"
-              accept="image/*"
-              onChange={handleBackgroundUpload}
-            />
-          </div>
+          <LocalArtworkSection handleBackgroundUpload={handleBackgroundUpload} />
 
           <p className="hint">
             {backgroundImageUrl
