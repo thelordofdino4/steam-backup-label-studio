@@ -4,6 +4,7 @@ import type {
   DiscTextValues,
   SteamLogoPlacement,
 } from '../discText'
+import type { DiscTextStyleSettings } from '../discTextStyles'
 import type { ExportGuideSelection } from '../exportGuides'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
@@ -52,6 +53,7 @@ export type CreateProjectSnapshotParams = {
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
   discTextLayout: DiscTextLayoutSettings
+  discTextStyles: DiscTextStyleSettings
 }
 
 export function createProjectSnapshot({
@@ -82,6 +84,7 @@ export function createProjectSnapshot({
   discTextValueSources,
   discTextTitleValue,
   discTextLayout,
+  discTextStyles,
 }: CreateProjectSnapshotParams): SavedProject {
   return {
     schemaVersion: '0.1.0',
@@ -128,6 +131,7 @@ export function createProjectSnapshot({
       valueSources: discTextValueSources,
       titleValue: discTextTitleValue,
       layout: discTextLayout,
+      styles: discTextStyles,
     },
   }
 }

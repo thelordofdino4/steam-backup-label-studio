@@ -18,6 +18,15 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
+import {
+  DISC_TEXT_CONTRAST_OPTIONS,
+  DISC_TEXT_FONT_OPTIONS,
+  type DiscTextContrastMode,
+  type DiscTextFontFamily,
+  type DiscTextStyleField,
+  type DiscTextStyleSettings,
+  type DiscTextStyleValue,
+} from '../../discTextStyles'
 import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
 import {
@@ -31,6 +40,7 @@ import type { DiscTemplate } from '../../types/template'
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
+  discTextStyles: DiscTextStyleSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   metadataBoundDiscTextValues: DiscTextValues
@@ -49,12 +59,19 @@ export type TextPanelProps = {
   handleDiscTextModeChange: (key: DiscTextKey, mode: DiscTextMode) => void
   handleDiscTextArcSideChange: (key: DiscTextKey, arcSide: DiscTextArcSide) => void
   handleResetDiscTextLayout: (key: DiscTextKey) => void
+  handleDiscTextStyleChange: (
+    key: DiscTextKey,
+    field: DiscTextStyleField,
+    value: DiscTextStyleValue,
+  ) => void
+  handleResetDiscTextStyle: (key: DiscTextKey) => void
   steamLogoPlacement: SteamLogoPlacement
 }
 
 export function TextPanel({
   discTextSettings,
   discTextLayout,
+  discTextStyles,
   discTextValues,
   discTextValueSources,
   metadataBoundDiscTextValues,
@@ -69,6 +86,8 @@ export function TextPanel({
   handleDiscTextModeChange,
   handleDiscTextArcSideChange,
   handleResetDiscTextLayout,
+  handleDiscTextStyleChange,
+  handleResetDiscTextStyle,
   steamLogoPlacement,
 }: TextPanelProps) {
   const applyDiscTextPreset = (key: DiscTextKey, preset: DiscTextLayoutPreset) => {
@@ -96,6 +115,7 @@ export function TextPanel({
         <div className="disc-text-control-list">
           {DISC_TEXT_KEYS.map((key) => {
             const layout = discTextLayout[key]
+            const textStyle = discTextStyles[key]
             const isTextEnabled = discTextSettings[key]
             const isCopyright = key === 'copyright'
             const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
@@ -163,6 +183,181 @@ export function TextPanel({
                           >
                             Use Game metadata value
                           </button>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="disc-text-style-grid" aria-label={`${getDiscTextLabel(key)} style controls`}>
+                      <label>
+                        <span>Font</span>
+                        <select
+                          value={textStyle.fontFamily}
+                          onChange={(event) =>
+                            handleDiscTextStyleChange(
+                              key,
+                              'fontFamily',
+                              event.target.value as DiscTextFontFamily,
+                            )
+                          }
+                        >
+                          {DISC_TEXT_FONT_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Color</span>
+                        <input
+                          type="color"
+                          value={textStyle.color}
+                          onChange={(event) =>
+                            handleDiscTextStyleChange(key, 'color', event.target.value)
+                          }
+                        />
+                      </label>
+
+                      <label>
+                        <span>Contrast</span>
+                        <select
+                          value={textStyle.contrast}
+                          onChange={(event) =>
+                            handleDiscTextStyleChange(
+                              key,
+                              'contrast',
+                              event.target.value as DiscTextContrastMode,
+                            )
+                          }
+                        >
+                          {DISC_TEXT_CONTRAST_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>{option.label}</option>
+                          ))}
+                        </select>
+                      </label>
+                    </div>
+
+                    {!isCurvedCopyright && (
+                      <div className="disc-text-box-style">
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={textStyle.backgroundEnabled}
+                            onChange={(event) =>
+                              handleDiscTextStyleChange(
+                                key,
+                                'backgroundEnabled',
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Block background</span>
+                        </label>
+
+                        {textStyle.backgroundEnabled && (
+                          <div className="disc-text-style-grid">
+                            <label>
+                              <span>Fill</span>
+                              <input
+                                type="color"
+                                value={textStyle.backgroundColor}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'backgroundColor',
+                                    event.target.value,
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <label>
+                              <span>Opacity</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={textStyle.backgroundOpacity}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'backgroundOpacity',
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <label>
+                              <span>Padding</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="4"
+                                step="0.1"
+                                value={textStyle.backgroundPadding}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'backgroundPadding',
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <label className="disc-text-style-checkbox">
+                              <span>Border</span>
+                              <input
+                                type="checkbox"
+                                checked={textStyle.borderEnabled}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'borderEnabled',
+                                    event.target.checked,
+                                  )
+                                }
+                              />
+                            </label>
+
+                            {textStyle.borderEnabled && (
+                              <>
+                                <label>
+                                  <span>Line</span>
+                                  <input
+                                    type="color"
+                                    value={textStyle.borderColor}
+                                    onChange={(event) =>
+                                      handleDiscTextStyleChange(
+                                        key,
+                                        'borderColor',
+                                        event.target.value,
+                                      )
+                                    }
+                                  />
+                                </label>
+
+                                <label>
+                                  <span>Radius</span>
+                                  <input
+                                    type="range"
+                                    min="0"
+                                    max="4"
+                                    step="0.1"
+                                    value={textStyle.borderRadius}
+                                    onChange={(event) =>
+                                      handleDiscTextStyleChange(
+                                        key,
+                                        'borderRadius',
+                                        Number(event.target.value),
+                                      )
+                                    }
+                                  />
+                                </label>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
                     )}
@@ -330,6 +525,14 @@ export function TextPanel({
                       onClick={() => handleResetDiscTextLayout(key)}
                     >
                       Reset {getDiscTextLabel(key).toLowerCase()} layout
+                    </button>
+
+                    <button
+                      className="secondary-button disc-text-reset-button"
+                      type="button"
+                      onClick={() => handleResetDiscTextStyle(key)}
+                    >
+                      Reset {getDiscTextLabel(key).toLowerCase()} style
                     </button>
                   </>
                 )}

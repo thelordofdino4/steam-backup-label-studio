@@ -1,5 +1,8 @@
 import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './discText'
-import { DISC_TEXT_RENDER_STYLES } from './discTextStyles.ts'
+import {
+  getResolvedDiscTextRenderStyle,
+  type DiscTextStyleInput,
+} from './discTextStyles.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 
@@ -13,10 +16,12 @@ export type StraightDiscTextRenderLayout = {
   align: DiscTextAlignment
   color: string
   fontFamily: string
+  font: string
   fontSize: number
   fontWeight: number
   lineHeight: number
   maxWidth: number
+  style: ReturnType<typeof getResolvedDiscTextRenderStyle>
   textAnchor: 'start' | 'middle' | 'end'
   lines: StraightDiscTextLineLayout[]
 }
@@ -28,8 +33,12 @@ export type StraightDiscTextVisualBounds = {
   halfHeight: number
 }
 
-export function getDiscTextFontString(fontWeight: number, fontSize: number) {
-  return `${fontWeight} ${fontSize}px Arial`
+export function getDiscTextFontString(
+  fontWeight: number,
+  fontSize: number,
+  fontFamily = 'Arial, sans-serif',
+) {
+  return `${fontWeight} ${fontSize}px ${fontFamily}`
 }
 
 function splitLongTokenByMeasuredWidth(
@@ -146,7 +155,7 @@ export function getStraightDiscTextVisualBounds(
     }
   }
 
-  const font = getDiscTextFontString(layout.fontWeight, layout.fontSize)
+  const font = layout.font
   let left = Number.POSITIVE_INFINITY
   let right = Number.NEGATIVE_INFINITY
   let top = Number.POSITIVE_INFINITY
@@ -179,11 +188,16 @@ export function getStraightDiscTextRenderLayout(
   text: string,
   layout: DiscTextLayout,
   measureText: TextMeasureFunction,
+  styles?: DiscTextStyleInput,
 ): StraightDiscTextRenderLayout {
-  const renderStyle = DISC_TEXT_RENDER_STYLES[key]
+  const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const fontSize = renderStyle.fontSizePercent * layout.scale
   const lineHeight = fontSize * 1.18
-  const font = getDiscTextFontString(renderStyle.fontWeight, fontSize)
+  const font = getDiscTextFontString(
+    renderStyle.fontWeight,
+    fontSize,
+    renderStyle.fontFamilyCanvas,
+  )
   const lines = wrapMeasuredTextLines(
     text,
     layout.width,
@@ -198,11 +212,13 @@ export function getStraightDiscTextRenderLayout(
   return {
     align: layout.align,
     color: renderStyle.color,
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: renderStyle.fontFamilyCss,
+    font,
     fontSize,
     fontWeight: renderStyle.fontWeight,
     lineHeight,
     maxWidth: layout.width,
+    style: renderStyle,
     textAnchor: getTextAnchor(layout.align),
     lines: lines.map((line, index) => ({
       text: line,

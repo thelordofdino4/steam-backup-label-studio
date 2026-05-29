@@ -1,4 +1,5 @@
 import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
+import type { DiscTextStyleSettings } from '../discTextStyles'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
 import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
@@ -50,6 +51,7 @@ export async function exportDiscLabelPngBytes(params: {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextStyles: DiscTextStyleSettings
   discTextLayout: DiscTextLayoutSettings
   manualGameTitle: string
   exportGuides: ExportGuideSelection
@@ -145,6 +147,7 @@ export async function exportDiscLabelPngBytes(params: {
         discOrigin,
         params.discTextSettings,
         metadataBoundDiscTextValues,
+        params.discTextStyles,
         params.discTextLayout,
         params.manualGameTitle,
         params.steamLogoPlacement,
