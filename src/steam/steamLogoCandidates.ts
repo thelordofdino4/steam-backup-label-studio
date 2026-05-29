@@ -4,6 +4,9 @@ import type { ProjectMetadata } from '../project/projectTypes'
 import { bytesToBase64 } from '../utils/bytesToBase64.ts'
 import type { SteamImportedGame } from './steamApi'
 
+export type RemoteImageCandidateWorkflow = 'branding-logo' | 'artwork'
+export type RemoteImageCandidateKind = 'logo' | 'artwork'
+
 export type RemoteLogoCandidate = {
   id: string
   url: string
@@ -26,6 +29,9 @@ export type RemoteLogoCandidate = {
   height?: number
   alt?: string
   selector?: string
+  targetWorkflow: RemoteImageCandidateWorkflow
+  contentKind: RemoteImageCandidateKind
+  routingReasons: string[]
   reasons: string[]
 }
 
@@ -39,6 +45,7 @@ export type LogoCandidateSourceStatus = {
 
 export type LogoCandidateDiscoveryResult = {
   candidates: RemoteLogoCandidate[]
+  artworkCandidates: RemoteLogoCandidate[]
   sourceStatuses: LogoCandidateSourceStatus[]
 }
 
@@ -75,6 +82,27 @@ const MAX_OFFICIAL_SITE_URLS = 4
 const MAX_OFFICIAL_CSS_FILES = 6
 const MAX_RETURNED_CANDIDATES = 80
 const POSITIVE_TERMS = ['logo', 'brand', 'wordmark', 'avatar', 'developer', 'publisher', 'curator', 'creator']
+const LOGO_TERMS = ['logo', 'wordmark', 'brandmark', 'logotype']
+const HEADER_LOGO_TERMS = ['nav logo', 'navbar logo', 'site logo', 'brand logo', 'logo video', 'nav brand']
+const ARTWORK_TERMS = [
+  'background',
+  'hero',
+  'key art',
+  'keyart',
+  'screenshot',
+  'capsule',
+  'header',
+  'header image',
+  'store header',
+  'library',
+  'poster',
+  'cover',
+  'wallpaper',
+  'gallery',
+  'carousel',
+  'promo',
+  'social share',
+]
 const SOCIAL_TERMS = [
   'facebook',
   'twitter',
@@ -87,10 +115,18 @@ const SOCIAL_TERMS = [
   'twitch',
   'tiktok',
 ]
+const HARD_REJECT_TERMS = [
+  'tracking pixel',
+  'analytics pixel',
+  'tracking gif',
+  'analytics gif',
+  'beacon',
+  'spacer gif',
+  '1x1',
+  'sprite',
+]
 const GENERIC_NEGATIVE_TERMS = [
   'favicon',
-  'sprite',
-  'pixel',
   'tracking',
   'analytics',
   'apple',
@@ -102,10 +138,34 @@ const GENERIC_NEGATIVE_TERMS = [
   'store badge',
   'badge',
 ]
+const STEAM_PLATFORM_BRANDING_TERMS = [
+  'steam logo',
+  'steam wordmark',
+  'steam icon',
+  'steam homepage',
+  'steam home page',
+  'steam store homepage',
+  'steam store home',
+  'steam platform',
+  'steampowered logo',
+  'steam powered',
+  'powered by steam',
+  'steamworks',
+  'steam deck',
+]
+const VALVE_BRANDING_TERMS = [
+  'valve logo',
+  'valve wordmark',
+  'valve avatar',
+  'valve corporation',
+  'valve corp',
+]
 const OFFICIAL_LINK_CONTEXT_TERMS = ['official', 'website', 'homepage', 'home page', 'visit website', 'external link']
 const NON_IMAGE_EXTENSIONS = ['css', 'js', 'json', 'map', 'txt', 'pdf', 'woff', 'woff2', 'ttf', 'otf', 'eot', 'mp4', 'webm', 'mov']
 const STEAM_PAGE_HOST_PATTERNS = ['steampowered.com', 'steamcommunity.com']
 const STEAM_IMAGE_HOST_PATTERNS = ['steamstatic.com', 'steampowered.com']
+const EXTREMELY_SMALL_MAX_DIMENSION = 64
+const SMALL_SHORTEST_SIDE = 96
 
 function fetchSteamPageHtml(url: string) {
   return invoke<string>('fetch_steam_page_html', { url })
@@ -282,9 +342,98 @@ function hasEntityMatch(haystack: string, entityNames: string[]) {
 
     return Boolean(
       compactName && compactHaystack.includes(compactName)
-        || tokens.length > 0 && tokens.every((token) => compactHaystack.includes(token)),
+      || tokens.length > 0 && tokens.every((token) => compactHaystack.includes(token)),
     )
   })
+}
+
+function getUrlSignalText(url: string) {
+  try {
+    const parsedUrl = new URL(url)
+    return decodeURIComponent(`${parsedUrl.pathname} ${parsedUrl.search}`)
+  } catch {
+    return url
+  }
+}
+
+function getCandidateSignalText(seed: CandidateSeed, url = seed.url) {
+  return normalizeForMatch([
+    getUrlSignalText(url),
+    seed.label,
+    seed.alt,
+    seed.selector,
+    seed.context,
+  ].filter(Boolean).join(' '))
+}
+
+function getSocialSignalText(seed: CandidateSeed, url = seed.url) {
+  const isMetadataImage = seed.sourceKind === 'steam-meta-image' || seed.sourceKind === 'official-meta-image'
+
+  return normalizeForMatch([
+    getUrlSignalText(url),
+    seed.alt,
+    seed.selector && !seed.selector.includes('twitter:image') ? seed.selector : '',
+    isMetadataImage ? '' : seed.label,
+    isMetadataImage ? '' : seed.context,
+  ].filter(Boolean).join(' '))
+}
+
+function hasValveEntity(entityNames: string[]) {
+  return entityNames.some((name) => {
+    const compactName = compactForMatch(name)
+    return compactName === 'valve' || compactName === 'valvecorporation' || compactName === 'valvesoftware'
+  })
+}
+
+function getCandidateRouting(
+  seed: CandidateSeed,
+  fileType: RemoteLogoCandidate['fileType'],
+  haystack: string,
+  candidateSignalText: string,
+) {
+  const routingReasons: string[] = []
+  const hasLogoTerm = includesAny(haystack, LOGO_TERMS)
+  const hasHeaderLogoTerm = includesAny(haystack, HEADER_LOGO_TERMS)
+  const hasCreatorLogoSignal = seed.sourceKind === 'steam-avatar' || includesAny(haystack, ['avatar', 'curator'])
+  const hasArtworkSignal = includesAny(haystack, ARTWORK_TERMS)
+    || seed.sourceKind === 'official-meta-image' && !hasLogoTerm
+    || fileType === 'jpg' && !hasLogoTerm
+  const isLogoLike = hasLogoTerm || hasHeaderLogoTerm || hasCreatorLogoSignal
+  const isArtworkLike = hasArtworkSignal && !isLogoLike
+
+  if (isArtworkLike) {
+    routingReasons.push('Artwork-like image routed to Artwork')
+    return {
+      targetWorkflow: 'artwork' as const,
+      contentKind: 'artwork' as const,
+      routingReasons,
+    }
+  }
+
+  if (!isLogoLike && isOfficialSourceKind(seed.sourceKind)) {
+    routingReasons.push('Official-site image lacks logo signals and is routed to Artwork')
+    return {
+      targetWorkflow: 'artwork' as const,
+      contentKind: 'artwork' as const,
+      routingReasons,
+    }
+  }
+
+  if (!isLogoLike && isSteamSourceKind(seed.sourceKind) && includesAny(candidateSignalText, ARTWORK_TERMS)) {
+    routingReasons.push('Steam artwork image routed to Artwork')
+    return {
+      targetWorkflow: 'artwork' as const,
+      contentKind: 'artwork' as const,
+      routingReasons,
+    }
+  }
+
+  routingReasons.push('Logo-like image routed to Branding')
+  return {
+    targetWorkflow: 'branding-logo' as const,
+    contentKind: 'logo' as const,
+    routingReasons,
+  }
 }
 
 function scoreCandidate(
@@ -293,6 +442,7 @@ function scoreCandidate(
   entityNames: string[],
 ) {
   let score = 0
+  let reject = false
   const reasons: string[] = []
   const haystack = normalizeForMatch([
     seed.url,
@@ -302,6 +452,8 @@ function scoreCandidate(
     seed.selector,
     seed.context,
   ].filter(Boolean).join(' '))
+  const candidateSignalText = getCandidateSignalText(seed)
+  const socialSignalText = getSocialSignalText(seed)
 
   if (seed.sourceKind === 'steam-avatar') {
     score += 60
@@ -382,11 +534,12 @@ function scoreCandidate(
     const shortestSide = Math.min(seed.width, seed.height)
     const aspectRatio = seed.width / seed.height
 
-    if (shortestSide <= 32) {
-      score -= 40
-      reasons.push('Very small image')
-    } else if (shortestSide <= 64) {
-      score -= 15
+    if (seed.width <= EXTREMELY_SMALL_MAX_DIMENSION && seed.height <= EXTREMELY_SMALL_MAX_DIMENSION) {
+      score -= 120
+      reject = true
+      reasons.push('Extremely small image')
+    } else if (shortestSide <= SMALL_SHORTEST_SIDE) {
+      score -= 22
       reasons.push('Small image')
     }
 
@@ -397,14 +550,24 @@ function scoreCandidate(
       score += 8
       reasons.push('Logo-like aspect ratio')
     }
+  } else {
+    score -= 6
+    reasons.push('Unknown dimensions')
   }
 
-  if (includesAny(haystack, SOCIAL_TERMS)) {
-    score -= 40
+  if (includesAny(socialSignalText, SOCIAL_TERMS)) {
+    score -= 90
+    reject = true
     reasons.push('Social icon signal')
   }
 
-  if (includesAny(haystack, GENERIC_NEGATIVE_TERMS)) {
+  if (includesAny(candidateSignalText, HARD_REJECT_TERMS)) {
+    score -= 120
+    reject = true
+    reasons.push('Tracking, sprite, or analytics image')
+  }
+
+  if (includesAny(candidateSignalText, GENERIC_NEGATIVE_TERMS)) {
     score -= 28
     reasons.push('Generic icon or tracking signal')
   }
@@ -422,7 +585,25 @@ function scoreCandidate(
     reasons.push('Likely store art instead of company logo')
   }
 
-  return { score, reasons }
+  if (includesAny(candidateSignalText, STEAM_PLATFORM_BRANDING_TERMS)) {
+    score -= 120
+    reject = true
+    reasons.push('Generic Steam platform branding')
+  }
+
+  if (includesAny(candidateSignalText, VALVE_BRANDING_TERMS) && !hasValveEntity(entityNames)) {
+    score -= 120
+    reject = true
+    reasons.push('Valve branding does not match selected developer or publisher')
+  }
+
+  const routing = getCandidateRouting(seed, fileType, haystack, candidateSignalText)
+
+  if (routing.targetWorkflow === 'artwork') {
+    score -= 12
+  }
+
+  return { score, reasons, reject, ...routing }
 }
 
 function createCandidate(
@@ -435,7 +616,16 @@ function createCandidate(
 
   const url = canonicalizeUrl(seed.url)
   const fileType = getFileType(url)
-  const { score, reasons } = scoreCandidate({ ...seed, url }, fileType, entityNames)
+  const {
+    score,
+    reasons,
+    reject,
+    targetWorkflow,
+    contentKind,
+    routingReasons,
+  } = scoreCandidate({ ...seed, url }, fileType, entityNames)
+
+  if (reject) return null
 
   return {
     id: `${seed.sourceKind}-${index}-${url}`,
@@ -451,14 +641,25 @@ function createCandidate(
     height: seed.height,
     alt: seed.alt,
     selector: seed.selector,
-    reasons,
+    targetWorkflow,
+    contentKind,
+    routingReasons,
+    reasons: uniqueStrings([...reasons, ...routingReasons]),
   }
 }
 
-function mergeCandidateReasons(existing: RemoteLogoCandidate, candidate: RemoteLogoCandidate) {
+function mergeCandidateReasons(existing: RemoteLogoCandidate, candidate: RemoteLogoCandidate): RemoteLogoCandidate {
+  const targetWorkflow: RemoteImageCandidateWorkflow = existing.targetWorkflow === 'branding-logo' || candidate.targetWorkflow === 'branding-logo'
+    ? 'branding-logo'
+    : 'artwork'
+  const contentKind: RemoteImageCandidateKind = targetWorkflow === 'branding-logo' ? 'logo' : 'artwork'
+
   return {
     ...existing,
+    targetWorkflow,
+    contentKind,
     score: Math.max(existing.score, candidate.score),
+    routingReasons: uniqueStrings([...existing.routingReasons, ...candidate.routingReasons]),
     reasons: uniqueStrings([...existing.reasons, ...candidate.reasons]),
   }
 }
@@ -474,6 +675,14 @@ function dedupeCandidates(candidates: RemoteLogoCandidate[]) {
   return [...byUrl.values()].sort((left, right) =>
     right.score - left.score || left.label.localeCompare(right.label),
   )
+}
+
+function getLogoRoutedCandidates(candidates: RemoteLogoCandidate[]) {
+  return dedupeCandidates(candidates.filter((candidate) => candidate.targetWorkflow === 'branding-logo'))
+}
+
+function getArtworkRoutedCandidates(candidates: RemoteLogoCandidate[]) {
+  return dedupeCandidates(candidates.filter((candidate) => candidate.targetWorkflow === 'artwork'))
 }
 
 function isObviousSteamImage(attrs: Record<string, string>, absoluteUrl: string) {
@@ -987,18 +1196,21 @@ async function discoverSteamLogoCandidateSources(input: SteamLogoCandidateDiscov
 
   return {
     entityNames,
-    candidates: dedupeCandidates(candidates),
+    candidates: getLogoRoutedCandidates(candidates),
+    artworkCandidates: getArtworkRoutedCandidates(candidates),
     officialSiteUrls,
   }
 }
 
 async function discoverOfficialLogoCandidates(officialSiteUrls: string[], entityNames: string[]) {
   const candidates: RemoteLogoCandidate[] = []
+  const artworkCandidates: RemoteLogoCandidate[] = []
   const sourceStatuses: LogoCandidateSourceStatus[] = []
 
   if (officialSiteUrls.length === 0) {
     return {
       candidates,
+      artworkCandidates,
       sourceStatuses: [
         {
           source: 'official-site' as const,
@@ -1032,13 +1244,16 @@ async function discoverOfficialLogoCandidates(officialSiteUrls: string[], entity
         ),
       )
       const siteCandidates = dedupeCandidates([...pageCandidates, ...cssCandidates])
+      const siteLogoCandidates = getLogoRoutedCandidates(siteCandidates)
+      const siteArtworkCandidates = getArtworkRoutedCandidates(siteCandidates)
 
-      candidates.push(...siteCandidates)
+      candidates.push(...siteLogoCandidates)
+      artworkCandidates.push(...siteArtworkCandidates)
       sourceStatuses.push({
         source: 'official-site',
         label,
         status: 'searched',
-        candidateCount: siteCandidates.length,
+        candidateCount: siteLogoCandidates.length,
         detail: stylesheetUrls.length > 0
           ? `Checked static HTML and ${stylesheetUrls.length} linked CSS file${stylesheetUrls.length === 1 ? '' : 's'}.`
           : 'Checked static HTML; no linked CSS files were available.',
@@ -1055,6 +1270,7 @@ async function discoverOfficialLogoCandidates(officialSiteUrls: string[], entity
 
   return {
     candidates: dedupeCandidates(candidates),
+    artworkCandidates: dedupeCandidates(artworkCandidates),
     sourceStatuses,
   }
 }
@@ -1073,9 +1289,14 @@ export async function discoverLogoCandidates(input: SteamLogoCandidateDiscoveryI
     ...officialSources.candidates,
     ...steamSources.candidates,
   ]).slice(0, MAX_RETURNED_CANDIDATES)
+  const artworkCandidates = dedupeCandidates([
+    ...officialSources.artworkCandidates,
+    ...steamSources.artworkCandidates,
+  ]).slice(0, MAX_RETURNED_CANDIDATES)
 
   return {
     candidates,
+    artworkCandidates,
     sourceStatuses: [
       {
         source: 'steam',
