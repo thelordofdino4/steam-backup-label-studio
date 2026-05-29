@@ -583,7 +583,7 @@ function GameLogoArtworkControls({
 
 export function ArtworkPanel(props: ArtworkPanelProps) {
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Artwork</summary>
       <div className="panel-content">
         <BackgroundArtworkControls {...props} />

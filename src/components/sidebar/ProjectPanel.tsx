@@ -14,7 +14,7 @@ export function ProjectPanel({
   handleExportPng,
 }: ProjectPanelProps) {
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Project File</summary>
       <div className="panel-content">
         <div className="button-row">

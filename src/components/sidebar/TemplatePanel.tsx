@@ -30,7 +30,7 @@ export function TemplatePanel({
   handleCustomDimensionChange,
 }: TemplatePanelProps) {
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Template</summary>
       <div className="panel-content">
         <label className="field-label" htmlFor="disc-template">
