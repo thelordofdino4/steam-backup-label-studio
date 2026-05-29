@@ -1065,6 +1065,10 @@ input:disabled {
   z-index: 6;
 }
 
+.disc-technical-mark-layer {
+  z-index: 7;
+}
+
 .disc-media-mark-image {
   display: block;
   width: 100%;

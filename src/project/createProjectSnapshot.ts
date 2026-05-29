@@ -16,6 +16,7 @@ import type {
   ProjectMetadata,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
   SavedProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
@@ -30,6 +31,7 @@ export type CreateProjectSnapshotParams = {
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
+  projectTechnicalMarks: ProjectTechnicalMarks
   selectedDiscTemplateId: SelectedDiscTemplateId
   customDiscTemplate: DiscTemplate
   steamLogoPlacement: SteamLogoPlacement
@@ -57,6 +59,7 @@ export function createProjectSnapshot({
   projectRatingBadge,
   projectMediaMark,
   projectPlatformMarks,
+  projectTechnicalMarks,
   selectedDiscTemplateId,
   customDiscTemplate,
   steamLogoPlacement,
@@ -88,6 +91,7 @@ export function createProjectSnapshot({
     ratingBadge: projectRatingBadge,
     mediaMark: projectMediaMark,
     platformMarks: projectPlatformMarks,
+    technicalMarks: projectTechnicalMarks,
     template: {
       type: 'disc',
       variant: selectedDiscTemplateId,

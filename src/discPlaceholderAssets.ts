@@ -3,6 +3,7 @@ import type {
   MediaMarkValue,
   PlatformMarkValue,
   ProjectMetadata,
+  TechnicalMarkValue,
 } from './project/projectTypes'
 
 const developerLogoPlaceholderUrl = new URL(
@@ -65,6 +66,26 @@ const platformMarkWindowsPlaceholderUrl = new URL(
   './assets/placeholders/platform-mark-windows-placeholder.svg',
   import.meta.url,
 ).href
+const technicalMarkAudioPlaceholderUrl = new URL(
+  './assets/placeholders/technical-mark-audio-placeholder.svg',
+  import.meta.url,
+).href
+const technicalMarkCodecPlaceholderUrl = new URL(
+  './assets/placeholders/technical-mark-codec-placeholder.svg',
+  import.meta.url,
+).href
+const technicalMarkMiddlewarePlaceholderUrl = new URL(
+  './assets/placeholders/technical-mark-middleware-placeholder.svg',
+  import.meta.url,
+).href
+const technicalMarkSurroundPlaceholderUrl = new URL(
+  './assets/placeholders/technical-mark-surround-placeholder.svg',
+  import.meta.url,
+).href
+const technicalMarkTechnologyPlaceholderUrl = new URL(
+  './assets/placeholders/technical-mark-technology-placeholder.svg',
+  import.meta.url,
+).href
 
 type RatingBadgePlaceholderKind = Exclude<GameRatingSystem, 'none'>
 
@@ -95,6 +116,14 @@ const PLATFORM_MARK_PLACEHOLDER_IMAGE_URLS: Record<PlatformMarkValue, string> = 
   windows: platformMarkWindowsPlaceholderUrl,
 }
 
+const TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS: Record<TechnicalMarkValue, string> = {
+  audio: technicalMarkAudioPlaceholderUrl,
+  codec: technicalMarkCodecPlaceholderUrl,
+  middleware: technicalMarkMiddlewarePlaceholderUrl,
+  surround: technicalMarkSurroundPlaceholderUrl,
+  technology: technicalMarkTechnologyPlaceholderUrl,
+}
+
 export function getRatingBadgePlaceholderImageUrl(
   metadata: Pick<ProjectMetadata, 'ratingSystem'>,
 ) {
@@ -121,4 +150,8 @@ export function getMediaMarkPlaceholderImageUrl(value: MediaMarkValue) {
 
 export function getPlatformMarkPlaceholderImageUrl(value: PlatformMarkValue) {
   return PLATFORM_MARK_PLACEHOLDER_IMAGE_URLS[value]
+}
+
+export function getTechnicalMarkPlaceholderImageUrl(value: TechnicalMarkValue) {
+  return TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS[value]
 }

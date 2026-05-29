@@ -7,6 +7,7 @@ import {
   restoreSavedProjectState,
 } from './restoreProjectState.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
+import { getProjectTechnicalMarkAsset } from './projectTechnicalMarks.ts'
 import type { SavedProject } from './projectTypes.ts'
 
 const baseProject: SavedProject = {
@@ -49,6 +50,7 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.projectMetadata.steamAppId, '123')
   assert.equal(restored.discTextTitleValue, '')
   assert.equal(restored.discTextValueSources.title, 'metadata')
+  assert.deepEqual(restored.projectTechnicalMarks.values, [])
   assert.equal(restored.template.selectedDiscTemplateId, 'standardPrintableDisc')
   assert.equal(restored.template.customDiscTemplate, undefined)
   assert.deepEqual(restored.backgroundOffset, { x: 8, y: -4 })
@@ -117,6 +119,36 @@ test('restores custom template, clamps foreground layouts, and backfills old bac
   })
   assert.deepEqual(restored.backgroundImageSize, { width: 640, height: 480 })
   assert.equal(resolveCount, 1)
+})
+
+test('restores technical marks from saved project data and clamps layout', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    technicalMarks: {
+      values: ['audio'],
+      assets: {
+        audio: {
+          source: 'custom',
+          customImageDataUrl: 'data:image/png;base64,audio',
+          customImageSize: { width: 512, height: 128 },
+          layout: {
+            enabled: true,
+            scale: 1,
+            x: 99,
+            y: 99,
+          },
+        },
+      },
+    },
+  })
+  const audioMark = getProjectTechnicalMarkAsset(restored.projectTechnicalMarks, 'audio')
+
+  assert.deepEqual(restored.projectTechnicalMarks.values, ['audio'])
+  assert.equal(audioMark.source, 'custom')
+  assert.equal(audioMark.customImageDataUrl, 'data:image/png;base64,audio')
+  assert.equal(audioMark.layout.enabled, true)
+  assert.equal(audioMark.layout.x < 99, true)
+  assert.equal(audioMark.layout.y < 99, true)
 })
 
 test('keeps saved background image size without resolving it again', async () => {

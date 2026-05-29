@@ -1,7 +1,7 @@
 import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
-import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
 import { canvasToPngBytes, loadImage } from './canvasImage'
@@ -11,6 +11,7 @@ import { drawSteamBrandBanner } from './drawSteamBanner'
 import { drawLogoAssets } from './drawLogoAssets'
 import { drawRatingBadge } from './drawRatingBadge'
 import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
+import { drawTechnicalMarks } from './drawTechnicalMarks'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
@@ -43,6 +44,7 @@ export async function exportDiscLabelPngBytes(params: {
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
+  projectTechnicalMarks: ProjectTechnicalMarks
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
@@ -125,6 +127,8 @@ export async function exportDiscLabelPngBytes(params: {
     'media-mark': () => drawMediaMark(context, discContentSize, discOrigin, params.projectMediaMark),
     'platform-marks': () =>
       drawPlatformMarks(context, discContentSize, discOrigin, params.projectPlatformMarks),
+    'technical-marks': () =>
+      drawTechnicalMarks(context, discContentSize, discOrigin, params.projectTechnicalMarks),
     'disc-text': () =>
       drawDiscTextElements(
         context,

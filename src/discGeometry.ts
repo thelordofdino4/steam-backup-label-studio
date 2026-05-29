@@ -14,6 +14,8 @@ export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
 export const MEDIA_MARK_BASE_HEIGHT_RATIO = 0.08
 export const PLATFORM_MARK_BASE_WIDTH_RATIO = 0.12
 export const PLATFORM_MARK_BASE_HEIGHT_RATIO = 0.08
+export const TECHNICAL_MARK_BASE_WIDTH_RATIO = 0.13
+export const TECHNICAL_MARK_BASE_HEIGHT_RATIO = 0.08
 
 export type LayoutPoint = {
   x: number
@@ -450,6 +452,22 @@ export function getPlatformMarkPlaceholderBoundsPercent(scale: number): RenderBo
   return {
     halfWidth: (PLATFORM_MARK_BASE_WIDTH_RATIO * 100 * scale) / 2,
     halfHeight: (PLATFORM_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
+  }
+}
+
+export function getTechnicalMarkBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    TECHNICAL_MARK_BASE_WIDTH_RATIO,
+    TECHNICAL_MARK_BASE_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getTechnicalMarkPlaceholderBoundsPercent(scale: number): RenderBoundsPercent {
+  return {
+    halfWidth: (TECHNICAL_MARK_BASE_WIDTH_RATIO * 100 * scale) / 2,
+    halfHeight: (TECHNICAL_MARK_BASE_HEIGHT_RATIO * 100 * scale) / 2,
   }
 }
 

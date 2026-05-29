@@ -137,6 +137,34 @@ export type ProjectPlatformMarks = {
   assets: Partial<Record<PlatformMarkValue, ProjectPlatformMarkAsset>>
 }
 
+export type TechnicalMarkValue =
+  | 'audio'
+  | 'surround'
+  | 'codec'
+  | 'middleware'
+  | 'technology'
+
+export type TechnicalMarkSource = 'placeholder' | 'custom'
+
+export type TechnicalMarkLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectTechnicalMarkAsset = {
+  source: TechnicalMarkSource
+  customImageDataUrl: string | null
+  customImageSize: BackgroundImageSize | null
+  layout: TechnicalMarkLayout
+}
+
+export type ProjectTechnicalMarks = {
+  values: TechnicalMarkValue[]
+  assets: Partial<Record<TechnicalMarkValue, ProjectTechnicalMarkAsset>>
+}
+
 export type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -150,6 +178,7 @@ export type SavedProject = {
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks
+  technicalMarks?: ProjectTechnicalMarks
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId

@@ -6,11 +6,13 @@ import {
   clampPlatformMarkLayoutToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
+  clampTechnicalMarkLayoutToSafeZone,
   getLogoAssetLayoutSliderRanges,
   getMediaMarkLayoutSliderRanges,
   getPlatformMarkLayoutSliderRanges,
   getRatingBadgeLayoutSliderRanges,
   getStraightDiscTextLayoutSliderRanges,
+  getTechnicalMarkLayoutSliderRanges,
 } from './discElementSafeZone.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
@@ -22,6 +24,7 @@ import {
   getPlatformMarkPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
+  getTechnicalMarkPlaceholderBoundsPercent,
   type RenderBoundsPercent,
 } from '../discGeometry.ts'
 import {
@@ -34,6 +37,7 @@ import type {
   MediaMarkLayout,
   PlatformMarkLayout,
   RatingBadgeLayout,
+  TechnicalMarkLayout,
 } from '../project/projectTypes.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
@@ -247,12 +251,29 @@ test('artwork and placeholder slider ranges shrink as rendered scale grows', () 
     },
     template,
   )
+  const technicalSmall = getTechnicalMarkLayoutSliderRanges(
+    {
+      source: 'placeholder',
+      customImageSize: null,
+      layout: artworkLayout({ scale: 0.75 }) as TechnicalMarkLayout,
+    },
+    template,
+  )
+  const technicalLarge = getTechnicalMarkLayoutSliderRanges(
+    {
+      source: 'placeholder',
+      customImageSize: null,
+      layout: artworkLayout({ scale: 1.8 }) as TechnicalMarkLayout,
+    },
+    template,
+  )
 
   for (const [small, large] of [
     [logoSmall, logoLarge],
     [ratingSmall, ratingLarge],
     [mediaSmall, mediaLarge],
     [platformSmall, platformLarge],
+    [technicalSmall, technicalLarge],
   ]) {
     assert.ok(rangeWidth(large.x) < rangeWidth(small.x))
     assert.ok(rangeWidth(large.y) < rangeWidth(small.y))
@@ -325,6 +346,12 @@ test('movable artwork clamps out of the standard inner no-print area', () => {
     layout: artworkLayout() as PlatformMarkLayout,
   }
   const platform = clampPlatformMarkLayoutToSafeZone(platformMark, template)
+  const technicalMark = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout() as TechnicalMarkLayout,
+  }
+  const technical = clampTechnicalMarkLayoutToSafeZone(technicalMark, template)
 
   assertRectAvoidsInnerNoPrintArea(
     logo,
@@ -344,6 +371,11 @@ test('movable artwork clamps out of the standard inner no-print area', () => {
   assertRectAvoidsInnerNoPrintArea(
     platform,
     getPlatformMarkPlaceholderBoundsPercent(platform.scale),
+    template,
+  )
+  assertRectAvoidsInnerNoPrintArea(
+    technical,
+    getTechnicalMarkPlaceholderBoundsPercent(technical.scale),
     template,
   )
 })
@@ -513,6 +545,22 @@ test('default platform mark layouts clamp away from larger no-print hubs', () =>
   assertRectAvoidsInnerNoPrintArea(
     clamped,
     getPlatformMarkPlaceholderBoundsPercent(clamped.scale),
+    template,
+  )
+})
+
+test('default technical mark layouts clamp away from larger no-print hubs', () => {
+  const template = discTemplates.lightScribeDisc
+  const technicalMark = {
+    source: 'placeholder' as const,
+    customImageSize: null,
+    layout: artworkLayout({ x: 50, y: 70 }) as TechnicalMarkLayout,
+  }
+  const clamped = clampTechnicalMarkLayoutToSafeZone(technicalMark, template)
+
+  assertRectAvoidsInnerNoPrintArea(
+    clamped,
+    getTechnicalMarkPlaceholderBoundsPercent(clamped.scale),
     template,
   )
 })

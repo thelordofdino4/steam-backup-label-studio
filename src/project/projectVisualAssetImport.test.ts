@@ -5,11 +5,13 @@ import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
 import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks } from './projectMediaMark.ts'
 import { createDefaultProjectRatingBadge } from './projectRatingBadge.ts'
+import { createDefaultProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import {
   applyImportedLogoAsset,
   applyImportedMediaMark,
   applyImportedPlatformMark,
   applyImportedRatingBadge,
+  applyImportedTechnicalMark,
 } from './projectVisualAssetImport.ts'
 
 const importedImage: ImportedImageAsset = {
@@ -72,4 +74,20 @@ test('imported platform mark image enables the target platform mark', () => {
   assert.equal(windowsMark?.customImageDataUrl, importedImage.imageDataUrl)
   assert.deepEqual(windowsMark?.customImageSize, importedImage.imageSize)
   assert.equal(windowsMark?.layout.enabled, true)
+})
+
+test('imported technical mark image enables the target technical mark', () => {
+  const technicalMarks = applyImportedTechnicalMark(
+    createDefaultProjectTechnicalMarks(),
+    'audio',
+    importedImage,
+    discTemplates.standardPrintableDisc,
+  )
+  const audioMark = technicalMarks.assets.audio
+
+  assert.deepEqual(technicalMarks.values, ['audio'])
+  assert.equal(audioMark?.source, 'custom')
+  assert.equal(audioMark?.customImageDataUrl, importedImage.imageDataUrl)
+  assert.deepEqual(audioMark?.customImageSize, importedImage.imageSize)
+  assert.equal(audioMark?.layout.enabled, true)
 })

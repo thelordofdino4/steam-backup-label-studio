@@ -13,6 +13,7 @@ import {
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
+  clampProjectTechnicalMarksToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
 } from '../layout/discElementSafeZone.ts'
 import {
@@ -33,6 +34,7 @@ import { normalizeProjectLogoAssets } from './projectLogoAssets.ts'
 import { normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './projectMediaMark.ts'
 import { normalizeProjectMetadata } from './projectMetadata.ts'
 import { normalizeProjectRatingBadge } from './projectRatingBadge.ts'
+import { normalizeProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -41,6 +43,7 @@ import type {
   ProjectMetadata,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
   SavedProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
@@ -60,6 +63,7 @@ export type RestoredProjectState = {
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
+  projectTechnicalMarks: ProjectTechnicalMarks
   selectedSteamGame: SteamImportedGame | null
   template: RestoredProjectTemplateState
   steamLogoPlacement: SteamLogoPlacement
@@ -191,6 +195,10 @@ export async function restoreSavedProjectState(
     project.mediaMark,
     template.selectedDiscTemplate,
   )
+  const loadedTechnicalMarks = normalizeProjectTechnicalMarks(
+    project.technicalMarks,
+    template.selectedDiscTemplate,
+  )
   const steamBannerLockupImage = createSteamBannerLockupImageState(
     project.steamBackupLogo.lockupImageDataUrl,
     project.steamBackupLogo.lockupImageSize,
@@ -210,6 +218,10 @@ export async function restoreSavedProjectState(
     projectMediaMark,
     projectPlatformMarks: clampProjectPlatformMarksToSafeZone(
       loadedPlatformMarks,
+      template.selectedDiscTemplate,
+    ),
+    projectTechnicalMarks: clampProjectTechnicalMarksToSafeZone(
+      loadedTechnicalMarks,
       template.selectedDiscTemplate,
     ),
     selectedSteamGame,

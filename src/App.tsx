@@ -49,6 +49,7 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
+import { useTechnicalMarks } from './hooks/useTechnicalMarks'
 import {
   BackgroundImageLoadError,
   createLocalSteamScreenshotBackgroundImport,
@@ -220,6 +221,21 @@ function App() {
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
   const {
+    projectTechnicalMarks,
+    setProjectTechnicalMarks,
+    clampProjectTechnicalMarksToTemplate,
+    resetProjectTechnicalMarks,
+    handleTechnicalMarkToggle,
+    handleTechnicalMarkUpload,
+    handleTechnicalMarkSourceChange,
+    handleTechnicalMarkLayoutChange,
+    handleClearTechnicalMarkImage,
+    handleResetTechnicalMarkLayout,
+  } = useTechnicalMarks({
+    selectedDiscTemplate,
+    announceStatus,
+  })
+  const {
     logoCandidateDiscovery,
     findLogoCandidates,
     applyLogoCandidate,
@@ -273,6 +289,9 @@ function App() {
     handlePlatformMarkPointerDown,
     handlePlatformMarkPointerMove,
     handlePlatformMarkPointerUp,
+    handleTechnicalMarkPointerDown,
+    handleTechnicalMarkPointerMove,
+    handleTechnicalMarkPointerUp,
   } = useDiscPreviewPointerDrag({
     discPreviewRef,
     selectedDiscTemplate,
@@ -289,6 +308,8 @@ function App() {
     setProjectMediaMark,
     projectPlatformMarks,
     setProjectPlatformMarks,
+    projectTechnicalMarks,
+    setProjectTechnicalMarks,
   })
 
   const printableInsetPercent = getGuideInsetPercent(
@@ -368,6 +389,8 @@ function App() {
     setProjectPlatformMarks((currentMarks) =>
       clampProjectPlatformMarksToSafeZone(currentMarks, template),
     )
+
+    clampProjectTechnicalMarksToTemplate(template)
 
     setDiscTextLayout((currentLayout) => {
       const nextLayout = clampDiscTextLayoutToSafeZone(currentLayout, template)
@@ -1176,6 +1199,7 @@ function App() {
       createDefaultProjectMediaMark(discTemplates.standardPrintableDisc),
     )
     setProjectPlatformMarks(createDefaultProjectPlatformMarks())
+    resetProjectTechnicalMarks()
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -1396,6 +1420,7 @@ function App() {
         projectRatingBadge,
         projectMediaMark,
         projectPlatformMarks,
+        projectTechnicalMarks,
         selectedDiscTemplateId,
         customDiscTemplate,
         steamLogoPlacement,
@@ -1452,6 +1477,7 @@ function App() {
       setProjectRatingBadge(restoredProject.projectRatingBadge)
       setProjectMediaMark(restoredProject.projectMediaMark)
       setProjectPlatformMarks(restoredProject.projectPlatformMarks)
+      setProjectTechnicalMarks(restoredProject.projectTechnicalMarks)
       setSelectedSteamGame(restoredProject.selectedSteamGame)
       setSelectedArtworkId(null)
       setLocalSteamScreenshots([])
@@ -1549,6 +1575,7 @@ function App() {
         projectRatingBadge,
         projectMediaMark,
         projectPlatformMarks,
+        projectTechnicalMarks,
         discTextSettings,
         discTextValues,
         discTextValueSources,
@@ -1670,6 +1697,7 @@ function App() {
           projectRatingBadge={projectRatingBadge}
           projectMediaMark={projectMediaMark}
           projectPlatformMarks={projectPlatformMarks}
+          projectTechnicalMarks={projectTechnicalMarks}
           selectedDiscTemplate={selectedDiscTemplate}
           handleProjectMetadataChange={handleProjectMetadataChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
@@ -1703,6 +1731,12 @@ function App() {
           handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
           handleClearPlatformMarkImage={handleClearPlatformMarkImage}
           handleResetPlatformMarkLayout={handleResetPlatformMarkLayout}
+          handleTechnicalMarkToggle={handleTechnicalMarkToggle}
+          handleTechnicalMarkUpload={handleTechnicalMarkUpload}
+          handleTechnicalMarkSourceChange={handleTechnicalMarkSourceChange}
+          handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
+          handleClearTechnicalMarkImage={handleClearTechnicalMarkImage}
+          handleResetTechnicalMarkLayout={handleResetTechnicalMarkLayout}
         />
 
 
@@ -1749,6 +1783,7 @@ function App() {
         projectRatingBadge={projectRatingBadge}
         projectMediaMark={projectMediaMark}
         projectPlatformMarks={projectPlatformMarks}
+        projectTechnicalMarks={projectTechnicalMarks}
         handleRatingBadgePointerDown={handleRatingBadgePointerDown}
         handleRatingBadgePointerMove={handleRatingBadgePointerMove}
         handleRatingBadgePointerUp={handleRatingBadgePointerUp}
@@ -1758,6 +1793,9 @@ function App() {
         handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
         handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
         handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
+        handleTechnicalMarkPointerDown={handleTechnicalMarkPointerDown}
+        handleTechnicalMarkPointerMove={handleTechnicalMarkPointerMove}
+        handleTechnicalMarkPointerUp={handleTechnicalMarkPointerUp}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}

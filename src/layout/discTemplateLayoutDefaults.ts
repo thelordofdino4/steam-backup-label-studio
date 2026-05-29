@@ -10,6 +10,8 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   getSafeZoneRadiusPercent,
+  getTechnicalMarkBoundsPercent,
+  getTechnicalMarkPlaceholderBoundsPercent,
 } from '../discGeometry.ts'
 import type {
   DiscTextKey,
@@ -25,8 +27,11 @@ import type {
   PlatformMarkValue,
   ProjectMediaMark,
   ProjectPlatformMarkAsset,
+  ProjectTechnicalMarkAsset,
   ProjectRatingBadge,
   RatingBadgeLayout,
+  TechnicalMarkLayout,
+  TechnicalMarkValue,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 
@@ -118,6 +123,14 @@ const PLATFORM_MARK_ANCHORS = {
   steamDeck: createReferenceAnchor({ x: 24, y: 80 }),
   macos: createReferenceAnchor({ x: 37, y: 80 }),
 } satisfies Record<PlatformMarkValue, RadialAnchor>
+
+const TECHNICAL_MARK_ANCHORS = {
+  audio: createReferenceAnchor({ x: 63, y: 70 }),
+  surround: createReferenceAnchor({ x: 76, y: 70 }),
+  codec: createReferenceAnchor({ x: 63, y: 80 }),
+  middleware: createReferenceAnchor({ x: 76, y: 80 }),
+  technology: createReferenceAnchor({ x: 63, y: 60 }),
+} satisfies Record<TechnicalMarkValue, RadialAnchor>
 
 export function getDiscTemplateLayoutMetrics(
   template: DiscTemplate,
@@ -441,6 +454,26 @@ export function getDefaultPlatformMarkLayoutForTemplate(
       ? getPlatformMarkBoundsPercent(platformMark.customImageSize, scale)
       : getPlatformMarkPlaceholderBoundsPercent(scale)
   const point = getTemplateAwarePoint(template, PLATFORM_MARK_ANCHORS[value], bounds)
+
+  return {
+    enabled: true,
+    scale,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getDefaultTechnicalMarkLayoutForTemplate(
+  template: DiscTemplate,
+  value: TechnicalMarkValue,
+  technicalMark?: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize'>,
+): TechnicalMarkLayout {
+  const scale = 1
+  const bounds =
+    technicalMark?.source === 'custom' && technicalMark.customImageSize
+      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, scale)
+      : getTechnicalMarkPlaceholderBoundsPercent(scale)
+  const point = getTemplateAwarePoint(template, TECHNICAL_MARK_ANCHORS[value], bounds)
 
   return {
     enabled: true,

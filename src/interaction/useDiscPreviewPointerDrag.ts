@@ -17,6 +17,7 @@ import {
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
+  clampProjectTechnicalMarksToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from '../layout/discElementSafeZone'
@@ -32,6 +33,10 @@ import {
   updateMediaMarkLayoutPosition,
   updatePlatformMarkLayoutPosition,
 } from '../project/projectMediaMark'
+import {
+  getProjectTechnicalMarkAsset,
+  updateTechnicalMarkLayoutPosition,
+} from '../project/projectTechnicalMarks'
 import { updateRatingBadgeLayoutPosition } from '../project/projectRatingBadge'
 import type {
   BackgroundOffset,
@@ -40,6 +45,8 @@ import type {
   ProjectMediaMark,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
+  TechnicalMarkValue,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import { usePointerDrag } from './usePointerDrag'
@@ -60,6 +67,10 @@ type PlatformMarkDragState = {
   value: PlatformMarkValue
 } & PercentDragState
 
+type TechnicalMarkDragState = {
+  value: TechnicalMarkValue
+} & PercentDragState
+
 type UseDiscPreviewPointerDragOptions = {
   discPreviewRef: RefObject<HTMLDivElement | null>
   selectedDiscTemplate: DiscTemplate
@@ -76,6 +87,8 @@ type UseDiscPreviewPointerDragOptions = {
   setProjectMediaMark: Dispatch<SetStateAction<ProjectMediaMark>>
   projectPlatformMarks: ProjectPlatformMarks
   setProjectPlatformMarks: Dispatch<SetStateAction<ProjectPlatformMarks>>
+  projectTechnicalMarks: ProjectTechnicalMarks
+  setProjectTechnicalMarks: Dispatch<SetStateAction<ProjectTechnicalMarks>>
 }
 
 export function useDiscPreviewPointerDrag({
@@ -94,6 +107,8 @@ export function useDiscPreviewPointerDrag({
   setProjectMediaMark,
   projectPlatformMarks,
   setProjectPlatformMarks,
+  projectTechnicalMarks,
+  setProjectTechnicalMarks,
 }: UseDiscPreviewPointerDragOptions) {
   const backgroundPointerDrag = usePointerDrag<PixelDragState, HTMLDivElement>({
     onDragMove: (dragState, event) => {
@@ -257,6 +272,34 @@ export function useDiscPreviewPointerDrag({
     },
   })
 
+  const technicalMarkPointerDrag = usePointerDrag<TechnicalMarkDragState>({
+    stopPropagation: true,
+    onDragMove: (dragState, event) => {
+      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+      if (!previewRect) {
+        return
+      }
+
+      const draggedPoint = getDraggedPercentPoint(
+        dragState,
+        event.clientX,
+        event.clientY,
+        previewRect,
+      )
+
+      setProjectTechnicalMarks((currentMarks) => {
+        const nextMarks = updateTechnicalMarkLayoutPosition(
+          currentMarks,
+          dragState.value,
+          draggedPoint,
+        )
+
+        return clampProjectTechnicalMarksToSafeZone(nextMarks, selectedDiscTemplate)
+      })
+    },
+  })
+
   const handleBackgroundPointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
       if (!backgroundImageUrl) {
@@ -360,6 +403,24 @@ export function useDiscPreviewPointerDrag({
     [platformMarkPointerDrag, projectPlatformMarks],
   )
 
+  const handleTechnicalMarkPointerDown = useCallback(
+    (event: PointerEvent<Element>, value: TechnicalMarkValue) => {
+      const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
+
+      technicalMarkPointerDrag.beginPointerDrag(event, {
+        value,
+        ...createPercentDragState(
+          event.pointerId,
+          event.clientX,
+          event.clientY,
+          asset.layout.x,
+          asset.layout.y,
+        ),
+      })
+    },
+    [projectTechnicalMarks, technicalMarkPointerDrag],
+  )
+
   const cancelPreviewPointerDrag = useCallback(() => {
     backgroundPointerDrag.cancelPointerDrag()
     discTextPointerDrag.cancelPointerDrag()
@@ -367,6 +428,7 @@ export function useDiscPreviewPointerDrag({
     ratingBadgePointerDrag.cancelPointerDrag()
     mediaMarkPointerDrag.cancelPointerDrag()
     platformMarkPointerDrag.cancelPointerDrag()
+    technicalMarkPointerDrag.cancelPointerDrag()
   }, [
     backgroundPointerDrag,
     discTextPointerDrag,
@@ -374,6 +436,7 @@ export function useDiscPreviewPointerDrag({
     mediaMarkPointerDrag,
     platformMarkPointerDrag,
     ratingBadgePointerDrag,
+    technicalMarkPointerDrag,
   ])
 
   return {
@@ -396,5 +459,8 @@ export function useDiscPreviewPointerDrag({
     handlePlatformMarkPointerDown,
     handlePlatformMarkPointerMove: platformMarkPointerDrag.handlePointerMove,
     handlePlatformMarkPointerUp: platformMarkPointerDrag.endPointerDrag,
+    handleTechnicalMarkPointerDown,
+    handleTechnicalMarkPointerMove: technicalMarkPointerDrag.handlePointerMove,
+    handleTechnicalMarkPointerUp: technicalMarkPointerDrag.endPointerDrag,
   }
 }

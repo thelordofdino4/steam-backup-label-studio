@@ -2,6 +2,7 @@ import {
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
+  clampProjectTechnicalMarksToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
 } from '../layout/discElementSafeZone.ts'
 import type { DiscTemplate } from '../types/template'
@@ -15,12 +16,15 @@ import {
 } from './projectLogoAssets.ts'
 import { setMediaMarkCustomImage, setPlatformMarkCustomImage } from './projectMediaMark.ts'
 import { setRatingBadgeCustomImage } from './projectRatingBadge.ts'
+import { setTechnicalMarkCustomImage } from './projectTechnicalMarks.ts'
 import type {
   PlatformMarkValue,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
+  TechnicalMarkValue,
 } from './projectTypes'
 
 export function applyImportedLogoAsset(
@@ -87,6 +91,24 @@ export function applyImportedPlatformMark(
   return clampProjectPlatformMarksToSafeZone(
     setPlatformMarkCustomImage(
       platformMarks,
+      value,
+      importedImage.imageDataUrl,
+      importedImage.imageSize,
+      selectedDiscTemplate,
+    ),
+    selectedDiscTemplate,
+  )
+}
+
+export function applyImportedTechnicalMark(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+  importedImage: ImportedImageAsset,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectTechnicalMarks {
+  return clampProjectTechnicalMarksToSafeZone(
+    setTechnicalMarkCustomImage(
+      technicalMarks,
       value,
       importedImage.imageDataUrl,
       importedImage.imageSize,

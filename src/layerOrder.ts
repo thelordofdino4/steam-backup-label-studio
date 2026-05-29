@@ -6,6 +6,7 @@ export const DISC_EDITOR_LAYER_ORDER = [
   'rating-badge',
   'media-mark',
   'platform-marks',
+  'technical-marks',
   'disc-text',
   'editor-guide-overlay',
   'export-outline',
@@ -22,6 +23,7 @@ export const DISC_EDITOR_PREVIEW_LAYER_ORDER = [
   'rating-badge',
   'media-mark',
   'platform-marks',
+  'technical-marks',
   'disc-text',
   'editor-guide-overlay',
 ] as const satisfies readonly DiscEditorLayerId[]
@@ -37,6 +39,7 @@ export const DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER = [
   'rating-badge',
   'media-mark',
   'platform-marks',
+  'technical-marks',
   'disc-text',
 ] as const satisfies readonly DiscEditorLayerId[]
 
@@ -60,6 +63,7 @@ export const DISC_EDITOR_LAYER_LABELS: Record<DiscEditorLayerId, string> = {
   'rating-badge': 'Rating badge',
   'media-mark': 'Media format mark',
   'platform-marks': 'Platform marks',
+  'technical-marks': 'Technical marks',
   'disc-text': 'Disc text',
   'editor-guide-overlay': 'Editor guide overlay',
   'export-outline': 'Export outer outline',

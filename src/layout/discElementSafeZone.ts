@@ -19,6 +19,8 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
   getStraightDiscTextBoundsPercent,
+  getTechnicalMarkBoundsPercent,
+  getTechnicalMarkPlaceholderBoundsPercent,
 } from '../discGeometry.ts'
 import {
   getDiscTextFontString,
@@ -29,6 +31,7 @@ import {
 import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark.ts'
+import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
 import type {
   BackgroundImageSize,
   LogoAssetLayout,
@@ -38,7 +41,10 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarkAsset,
+  ProjectTechnicalMarks,
   RatingBadgeLayout,
+  TechnicalMarkLayout,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 
@@ -521,6 +527,19 @@ export function getPlatformMarkLayoutSliderRanges(
   return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
 }
 
+export function getTechnicalMarkLayoutSliderRanges(
+  technicalMark: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = technicalMark.layout
+  const bounds =
+    technicalMark.source === 'custom' && technicalMark.customImageSize
+      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, layout.scale)
+      : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
+
+  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+}
+
 export function clampLogoAssetLayoutToSafeZone(
   layout: LogoAssetLayout,
   selectedDiscTemplate: DiscTemplate,
@@ -593,6 +612,24 @@ export function clampPlatformMarkLayoutToSafeZone(
   }
 }
 
+export function clampTechnicalMarkLayoutToSafeZone(
+  technicalMark: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): TechnicalMarkLayout {
+  const layout = technicalMark.layout
+  const bounds =
+    technicalMark.source === 'custom' && technicalMark.customImageSize
+      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, layout.scale)
+      : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
 export function clampProjectPlatformMarksToSafeZone(
   platformMarks: ProjectPlatformMarks,
   selectedDiscTemplate: DiscTemplate,
@@ -616,6 +653,32 @@ export function clampProjectPlatformMarksToSafeZone(
         }),
       ),
     } as ProjectPlatformMarks['assets'],
+  }
+}
+
+export function clampProjectTechnicalMarksToSafeZone(
+  technicalMarks: ProjectTechnicalMarks,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectTechnicalMarks {
+  return {
+    ...technicalMarks,
+    assets: {
+      ...technicalMarks.assets,
+      ...Object.fromEntries(
+        technicalMarks.values.map((value) => {
+          const asset =
+            technicalMarks.assets[value] ?? createDefaultProjectTechnicalMarkAsset(value)
+
+          return [
+            value,
+            {
+              ...asset,
+              layout: clampTechnicalMarkLayoutToSafeZone(asset, selectedDiscTemplate),
+            },
+          ]
+        }),
+      ),
+    } as ProjectTechnicalMarks['assets'],
   }
 }
 

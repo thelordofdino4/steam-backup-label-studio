@@ -7,6 +7,7 @@ import {
   getDefaultMediaMarkLayoutForTemplate,
   getDefaultPlatformMarkLayoutForTemplate,
   getDefaultRatingBadgeLayoutForTemplate,
+  getDefaultTechnicalMarkLayoutForTemplate,
   getDiscTemplateLayoutMetrics,
 } from './discTemplateLayoutDefaults.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
@@ -25,6 +26,11 @@ import {
   createDefaultProjectRatingBadge,
   resetProjectRatingBadgeLayout,
 } from '../project/projectRatingBadge.ts'
+import {
+  createDefaultProjectTechnicalMarks,
+  resetProjectTechnicalMarkLayout,
+  updateTechnicalMarkToggle,
+} from '../project/projectTechnicalMarks.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
   assert.ok(
@@ -78,6 +84,7 @@ test('standard printable disc defaults preserve the current baseline anchors', (
   const ratingBadgeLayout = getDefaultRatingBadgeLayoutForTemplate(template)
   const mediaMarkLayout = getDefaultMediaMarkLayoutForTemplate(template)
   const windowsPlatformLayout = getDefaultPlatformMarkLayoutForTemplate(template, 'windows')
+  const audioTechnicalLayout = getDefaultTechnicalMarkLayoutForTemplate(template, 'audio')
 
   assertApproximatelyEqual(textLayout.title.x, 0)
   assertApproximatelyEqual(textLayout.title.y, 19.5)
@@ -93,6 +100,8 @@ test('standard printable disc defaults preserve the current baseline anchors', (
   assertApproximatelyEqual(mediaMarkLayout.y, 72)
   assertApproximatelyEqual(windowsPlatformLayout.x, 37)
   assertApproximatelyEqual(windowsPlatformLayout.y, 70)
+  assertApproximatelyEqual(audioTechnicalLayout.x, 63)
+  assertApproximatelyEqual(audioTechnicalLayout.y, 70)
 })
 
 test('custom large-hub templates push default text and marks into the safe printable ring', () => {
@@ -108,6 +117,11 @@ test('custom large-hub templates push default text and marks into the safe print
     getDefaultPlatformMarkLayoutForTemplate(template, 'linux'),
     getDefaultPlatformMarkLayoutForTemplate(template, 'steamDeck'),
     getDefaultPlatformMarkLayoutForTemplate(template, 'macos'),
+    getDefaultTechnicalMarkLayoutForTemplate(template, 'audio'),
+    getDefaultTechnicalMarkLayoutForTemplate(template, 'surround'),
+    getDefaultTechnicalMarkLayoutForTemplate(template, 'codec'),
+    getDefaultTechnicalMarkLayoutForTemplate(template, 'middleware'),
+    getDefaultTechnicalMarkLayoutForTemplate(template, 'technology'),
   ]
 
   for (const key of [
@@ -179,6 +193,16 @@ test('template-aware reset helpers preserve enabled state while resetting to tem
     'windows',
     template,
   )
+  const technicalMarks = updateTechnicalMarkToggle(
+    createDefaultProjectTechnicalMarks(),
+    'audio',
+    true,
+  )
+  const resetTechnicalMarks = resetProjectTechnicalMarkLayout(
+    technicalMarks,
+    'audio',
+    template,
+  )
 
   assert.equal(resetLogoAssets.developerLogoLayout.enabled, true)
   assertPointInsideSafeRing(resetLogoAssets.developerLogoLayout, template)
@@ -188,4 +212,6 @@ test('template-aware reset helpers preserve enabled state while resetting to tem
   assertPointInsideSafeRing(resetMediaMark.layout, template)
   assert.equal(resetPlatformMarks.assets.windows?.layout.enabled, true)
   assertPointInsideSafeRing(resetPlatformMarks.assets.windows!.layout, template)
+  assert.equal(resetTechnicalMarks.assets.audio?.layout.enabled, true)
+  assertPointInsideSafeRing(resetTechnicalMarks.assets.audio!.layout, template)
 })
