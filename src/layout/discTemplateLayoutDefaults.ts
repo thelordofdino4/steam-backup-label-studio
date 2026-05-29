@@ -2,6 +2,7 @@ import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampLayoutPointToSafeZone,
   clampNumber,
+  getAdditionalArtworkBoundsPercent,
   getLogoAssetBoundsPercent,
   getMediaMarkBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
@@ -21,6 +22,7 @@ import type {
   SteamLogoPlacement,
 } from '../discText.ts'
 import type {
+  AdditionalArtworkLayout,
   BackgroundImageSize,
   LogoAssetLayout,
   MediaMarkLayout,
@@ -120,7 +122,17 @@ const TITLE_ARTWORK_ANCHORS = {
   bottom: createReferenceAnchor({ x: 50, y: 81.5 }),
 } satisfies Record<'top' | 'bottom', RadialAnchor>
 
+const ADDITIONAL_ARTWORK_ANCHORS = [
+  createReferenceAnchor({ x: 68, y: 42 }),
+  createReferenceAnchor({ x: 32, y: 42 }),
+  createReferenceAnchor({ x: 68, y: 58 }),
+  createReferenceAnchor({ x: 32, y: 58 }),
+  createReferenceAnchor({ x: 50, y: 50 }),
+] as const
+
 const ADDITIONAL_LOGO_X_OFFSET_PERCENT = 20
+const ADDITIONAL_ARTWORK_X_OFFSET_PERCENT = 9
+const ADDITIONAL_ARTWORK_Y_OFFSET_PERCENT = 7
 
 const RATING_BADGE_ANCHOR = createReferenceAnchor({ x: 78, y: 50 })
 const MEDIA_MARK_ANCHOR = createReferenceAnchor({ x: 74, y: 72 })
@@ -478,6 +490,52 @@ export function getDefaultTitleArtworkLayoutForTemplate(
   return {
     enabled: false,
     scale,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getDefaultAdditionalArtworkLayoutForTemplate(
+  template: DiscTemplate,
+  additionalArtworkIndex: number,
+  imageSize: BackgroundImageSize | null = null,
+): AdditionalArtworkLayout {
+  const scale = 1
+  const anchor =
+    ADDITIONAL_ARTWORK_ANCHORS[
+      additionalArtworkIndex % ADDITIONAL_ARTWORK_ANCHORS.length
+    ]
+  const point = getTemplateAwarePoint(
+    template,
+    anchor,
+    getAdditionalArtworkBoundsPercent(imageSize, scale),
+  )
+
+  return {
+    enabled: true,
+    scale,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getNextAdditionalArtworkLayoutForTemplate(
+  template: DiscTemplate,
+  referenceLayout: AdditionalArtworkLayout,
+  imageSize: BackgroundImageSize | null = null,
+): AdditionalArtworkLayout {
+  const point = clampLayoutPointToSafeZone(
+    {
+      x: referenceLayout.x + ADDITIONAL_ARTWORK_X_OFFSET_PERCENT,
+      y: referenceLayout.y + ADDITIONAL_ARTWORK_Y_OFFSET_PERCENT,
+    },
+    template,
+    getAdditionalArtworkBoundsPercent(imageSize, referenceLayout.scale),
+  )
+
+  return {
+    ...referenceLayout,
+    enabled: true,
     x: point.x,
     y: point.y,
   }

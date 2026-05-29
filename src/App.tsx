@@ -49,6 +49,7 @@ import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
+import { useAdditionalArtwork } from './hooks/useAdditionalArtwork'
 import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { useSteamMetadataAssistance } from './hooks/useSteamMetadataAssistance'
@@ -281,6 +282,24 @@ function App() {
     announceStatus,
   })
   const {
+    projectAdditionalArtwork,
+    setProjectAdditionalArtwork,
+    clampProjectAdditionalArtworkToTemplate,
+    resetProjectAdditionalArtwork,
+    handleAdditionalArtworkEnabledChange,
+    handleAddAdditionalArtworkElement,
+    handleAdditionalArtworkUpload,
+    handleUseSteamArtworkAsAdditionalArtwork,
+    handleUseLocalSteamScreenshotAsAdditionalArtwork,
+    handleAdditionalArtworkLayoutChange,
+    handleResetAdditionalArtworkElementLayout,
+    handleClearAdditionalArtworkElementImage,
+    handleRemoveAdditionalArtworkElement,
+  } = useAdditionalArtwork({
+    selectedDiscTemplate,
+    announceStatus,
+  })
+  const {
     logoCandidateDiscovery,
     findLogoCandidates,
     applyLogoCandidate,
@@ -389,6 +408,9 @@ function App() {
     handleTitleArtworkPointerDown,
     handleTitleArtworkPointerMove,
     handleTitleArtworkPointerUp,
+    handleAdditionalArtworkPointerDown,
+    handleAdditionalArtworkPointerMove,
+    handleAdditionalArtworkPointerUp,
     handleRatingBadgePointerDown,
     handleRatingBadgePointerMove,
     handleRatingBadgePointerUp,
@@ -415,6 +437,8 @@ function App() {
     setProjectLogoAssets,
     projectTitleArtwork,
     setProjectTitleArtwork,
+    projectAdditionalArtwork,
+    setProjectAdditionalArtwork,
     projectRatingBadge,
     setProjectRatingBadge,
     projectMediaMark,
@@ -444,6 +468,7 @@ function App() {
     )
 
     clampProjectTitleArtworkToTemplate(template)
+    clampProjectAdditionalArtworkToTemplate(template)
 
     setProjectRatingBadge((currentBadge) => {
       const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
@@ -1532,6 +1557,7 @@ function App() {
       createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
     )
     resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
+    resetProjectAdditionalArtwork()
     setProjectRatingBadge(
       createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
     )
@@ -1858,6 +1884,7 @@ function App() {
         projectMetadata,
         projectLogoAssets,
         projectTitleArtwork,
+        projectAdditionalArtwork,
         projectRatingBadge,
         projectMediaMark,
         projectPlatformMarks,
@@ -1918,6 +1945,7 @@ function App() {
       setProjectMetadata(restoredProject.projectMetadata)
       setProjectLogoAssets(restoredProject.projectLogoAssets)
       setProjectTitleArtwork(restoredProject.projectTitleArtwork)
+      setProjectAdditionalArtwork(restoredProject.projectAdditionalArtwork)
       setProjectRatingBadge(restoredProject.projectRatingBadge)
       setProjectMediaMark(restoredProject.projectMediaMark)
       setProjectPlatformMarks(restoredProject.projectPlatformMarks)
@@ -2022,6 +2050,7 @@ function App() {
         steamBannerLockupLayout,
         projectLogoAssets,
         projectTitleArtwork,
+        projectAdditionalArtwork,
         projectMetadata,
         projectRatingBadge,
         projectMediaMark,
@@ -2215,6 +2244,24 @@ function App() {
           handleTitleArtworkLayoutChange={handleTitleArtworkLayoutChange}
           handleResetTitleArtworkLayout={handleResetTitleArtworkLayout}
           handleTitleArtworkUpload={handleTitleArtworkUpload}
+          projectAdditionalArtwork={projectAdditionalArtwork}
+          handleAdditionalArtworkEnabledChange={handleAdditionalArtworkEnabledChange}
+          handleAddAdditionalArtworkElement={handleAddAdditionalArtworkElement}
+          handleAdditionalArtworkUpload={handleAdditionalArtworkUpload}
+          handleUseSteamArtworkAsAdditionalArtwork={
+            handleUseSteamArtworkAsAdditionalArtwork
+          }
+          handleUseLocalSteamScreenshotAsAdditionalArtwork={
+            handleUseLocalSteamScreenshotAsAdditionalArtwork
+          }
+          handleAdditionalArtworkLayoutChange={handleAdditionalArtworkLayoutChange}
+          handleResetAdditionalArtworkElementLayout={
+            handleResetAdditionalArtworkElementLayout
+          }
+          handleClearAdditionalArtworkElementImage={
+            handleClearAdditionalArtworkElementImage
+          }
+          handleRemoveAdditionalArtworkElement={handleRemoveAdditionalArtworkElement}
         />
 
         <BrandingPanel
@@ -2317,6 +2364,7 @@ function App() {
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
         projectTitleArtwork={projectTitleArtwork}
+        projectAdditionalArtwork={projectAdditionalArtwork}
         projectMetadata={projectMetadata}
         projectRatingBadge={projectRatingBadge}
         projectMediaMark={projectMediaMark}
@@ -2340,6 +2388,9 @@ function App() {
         handleTitleArtworkPointerDown={handleTitleArtworkPointerDown}
         handleTitleArtworkPointerMove={handleTitleArtworkPointerMove}
         handleTitleArtworkPointerUp={handleTitleArtworkPointerUp}
+        handleAdditionalArtworkPointerDown={handleAdditionalArtworkPointerDown}
+        handleAdditionalArtworkPointerMove={handleAdditionalArtworkPointerMove}
+        handleAdditionalArtworkPointerUp={handleAdditionalArtworkPointerUp}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         discTextValueSources={discTextValueSources}

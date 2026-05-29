@@ -15,6 +15,7 @@ import { exportGuideModeToSelection, type ExportGuideSelection } from '../export
 import {
   clampDiscTextLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
+  clampProjectAdditionalArtworkToSafeZone,
   clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
@@ -35,6 +36,7 @@ import {
   type DiscTextValueSources,
 } from './metadataDiscText.ts'
 import { normalizeParsedProject } from './normalizeProject.ts'
+import { normalizeProjectAdditionalArtwork } from './projectAdditionalArtwork.ts'
 import { normalizeProjectLogoAssets } from './projectLogoAssets.ts'
 import { normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './projectMediaMark.ts'
 import { normalizeProjectMetadata } from './projectMetadata.ts'
@@ -44,6 +46,7 @@ import { normalizeProjectTitleArtwork } from './projectTitleArtwork.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
+  ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectMetadata,
@@ -68,6 +71,7 @@ export type RestoredProjectState = {
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectAdditionalArtwork: ProjectAdditionalArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
@@ -178,6 +182,14 @@ export async function restoreSavedProjectState(
     loadedTitleArtwork,
     template.selectedDiscTemplate,
   )
+  const loadedAdditionalArtwork = normalizeProjectAdditionalArtwork(
+    project.additionalArtwork,
+    template.selectedDiscTemplate,
+  )
+  const projectAdditionalArtwork = clampProjectAdditionalArtworkToSafeZone(
+    loadedAdditionalArtwork,
+    template.selectedDiscTemplate,
+  )
   const loadedRatingBadge = normalizeProjectRatingBadge(
     project.ratingBadge,
     template.selectedDiscTemplate,
@@ -225,6 +237,7 @@ export async function restoreSavedProjectState(
     projectMetadata,
     projectLogoAssets,
     projectTitleArtwork,
+    projectAdditionalArtwork,
     projectRatingBadge,
     projectMediaMark,
     projectPlatformMarks: clampProjectPlatformMarksToSafeZone(

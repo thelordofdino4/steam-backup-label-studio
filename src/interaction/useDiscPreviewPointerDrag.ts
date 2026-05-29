@@ -14,6 +14,7 @@ import {
   type PixelDragState,
 } from './dragGeometry'
 import {
+  clampAdditionalArtworkElementLayoutToSafeZone,
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
@@ -22,6 +23,12 @@ import {
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from '../layout/discElementSafeZone'
+import {
+  getAdditionalArtworkElementImageSize,
+  getAdditionalArtworkElementLayout,
+  setAdditionalArtworkElementLayout,
+  updateAdditionalArtworkElementLayoutPosition,
+} from '../project/projectAdditionalArtwork'
 import {
   getLogoAssetLayout,
   getLogoAssetSize,
@@ -47,6 +54,7 @@ import type {
   BackgroundImageSize,
   BackgroundOffset,
   PlatformMarkValue,
+  ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarks,
@@ -69,6 +77,10 @@ type LogoDragState = {
 } & PercentDragState
 
 type TitleArtworkDragState = PercentDragState
+
+type AdditionalArtworkDragState = {
+  elementId: string
+} & PercentDragState
 
 type RatingBadgeDragState = PercentDragState
 
@@ -96,6 +108,8 @@ type UseDiscPreviewPointerDragOptions = {
   setProjectLogoAssets: Dispatch<SetStateAction<ProjectLogoAssets>>
   projectTitleArtwork: ProjectTitleArtwork
   setProjectTitleArtwork: Dispatch<SetStateAction<ProjectTitleArtwork>>
+  projectAdditionalArtwork: ProjectAdditionalArtwork
+  setProjectAdditionalArtwork: Dispatch<SetStateAction<ProjectAdditionalArtwork>>
   projectRatingBadge: ProjectRatingBadge
   setProjectRatingBadge: Dispatch<SetStateAction<ProjectRatingBadge>>
   projectMediaMark: ProjectMediaMark
@@ -120,6 +134,8 @@ export function useDiscPreviewPointerDrag({
   setProjectLogoAssets,
   projectTitleArtwork,
   setProjectTitleArtwork,
+  projectAdditionalArtwork,
+  setProjectAdditionalArtwork,
   projectRatingBadge,
   setProjectRatingBadge,
   projectMediaMark,
@@ -263,6 +279,46 @@ export function useDiscPreviewPointerDrag({
         )
 
         return setTitleArtworkLayout(nextTitleArtwork, nextLayout)
+      })
+    },
+  })
+
+  const additionalArtworkPointerDrag = usePointerDrag<AdditionalArtworkDragState>({
+    stopPropagation: true,
+    onDragMove: (dragState, event) => {
+      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+      if (!previewRect) {
+        return
+      }
+
+      const draggedPoint = getDraggedPercentPoint(
+        dragState,
+        event.clientX,
+        event.clientY,
+        previewRect,
+      )
+
+      setProjectAdditionalArtwork((currentAdditionalArtwork) => {
+        const nextAdditionalArtwork = updateAdditionalArtworkElementLayoutPosition(
+          currentAdditionalArtwork,
+          dragState.elementId,
+          draggedPoint,
+        )
+        const nextLayout = clampAdditionalArtworkElementLayoutToSafeZone(
+          getAdditionalArtworkElementLayout(nextAdditionalArtwork, dragState.elementId),
+          selectedDiscTemplate,
+          getAdditionalArtworkElementImageSize(
+            nextAdditionalArtwork,
+            dragState.elementId,
+          ),
+        )
+
+        return setAdditionalArtworkElementLayout(
+          nextAdditionalArtwork,
+          dragState.elementId,
+          nextLayout,
+        )
       })
     },
   })
@@ -455,6 +511,27 @@ export function useDiscPreviewPointerDrag({
     ],
   )
 
+  const handleAdditionalArtworkPointerDown = useCallback(
+    (event: PointerEvent<Element>, elementId: string) => {
+      const layout = getAdditionalArtworkElementLayout(
+        projectAdditionalArtwork,
+        elementId,
+      )
+
+      additionalArtworkPointerDrag.beginPointerDrag(event, {
+        elementId,
+        ...createPercentDragState(
+          event.pointerId,
+          event.clientX,
+          event.clientY,
+          layout.x,
+          layout.y,
+        ),
+      })
+    },
+    [additionalArtworkPointerDrag, projectAdditionalArtwork],
+  )
+
   const handleRatingBadgePointerDown = useCallback(
     (event: PointerEvent<Element>) => {
       ratingBadgePointerDrag.beginPointerDrag(
@@ -528,12 +605,14 @@ export function useDiscPreviewPointerDrag({
     discTextPointerDrag.cancelPointerDrag()
     logoAssetPointerDrag.cancelPointerDrag()
     titleArtworkPointerDrag.cancelPointerDrag()
+    additionalArtworkPointerDrag.cancelPointerDrag()
     ratingBadgePointerDrag.cancelPointerDrag()
     mediaMarkPointerDrag.cancelPointerDrag()
     platformMarkPointerDrag.cancelPointerDrag()
     technicalMarkPointerDrag.cancelPointerDrag()
   }, [
     backgroundPointerDrag,
+    additionalArtworkPointerDrag,
     discTextPointerDrag,
     logoAssetPointerDrag,
     mediaMarkPointerDrag,
@@ -557,6 +636,9 @@ export function useDiscPreviewPointerDrag({
     handleTitleArtworkPointerDown,
     handleTitleArtworkPointerMove: titleArtworkPointerDrag.handlePointerMove,
     handleTitleArtworkPointerUp: titleArtworkPointerDrag.endPointerDrag,
+    handleAdditionalArtworkPointerDown,
+    handleAdditionalArtworkPointerMove: additionalArtworkPointerDrag.handlePointerMove,
+    handleAdditionalArtworkPointerUp: additionalArtworkPointerDrag.endPointerDrag,
     handleRatingBadgePointerDown,
     handleRatingBadgePointerMove: ratingBadgePointerDrag.handlePointerMove,
     handleRatingBadgePointerUp: ratingBadgePointerDrag.endPointerDrag,

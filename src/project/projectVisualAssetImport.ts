@@ -1,4 +1,5 @@
 import {
+  clampAdditionalArtworkElementLayoutToSafeZone,
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
@@ -7,6 +8,11 @@ import {
 } from '../layout/discElementSafeZone.ts'
 import type { DiscTemplate } from '../types/template'
 import type { ImportedImageAsset } from '../utils/importedImageAsset'
+import {
+  setAdditionalArtworkElementImage,
+  setAdditionalArtworkElementLayout,
+  type AdditionalArtworkImportSource,
+} from './projectAdditionalArtwork.ts'
 import {
   getLogoAssetLayout,
   getLogoAssetSize,
@@ -19,6 +25,7 @@ import { setRatingBadgeCustomImage } from './projectRatingBadge.ts'
 import { setTechnicalMarkCustomImage } from './projectTechnicalMarks.ts'
 import type {
   PlatformMarkValue,
+  ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarks,
@@ -48,6 +55,40 @@ export function applyImportedLogoAsset(
   )
 
   return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
+}
+
+export function applyImportedAdditionalArtwork(
+  additionalArtwork: ProjectAdditionalArtwork,
+  elementId: string,
+  importedImage: ImportedImageAsset,
+  selectedDiscTemplate: DiscTemplate,
+  importSource: AdditionalArtworkImportSource,
+): ProjectAdditionalArtwork {
+  const nextAdditionalArtwork = setAdditionalArtworkElementImage(
+    additionalArtwork,
+    elementId,
+    importedImage,
+    importSource,
+  )
+  const nextElement = nextAdditionalArtwork.elements.find(
+    (element) => element.id === elementId,
+  )
+
+  if (!nextElement) {
+    return additionalArtwork
+  }
+
+  const nextLayout = clampAdditionalArtworkElementLayoutToSafeZone(
+    nextElement.layout,
+    selectedDiscTemplate,
+    nextElement.imageSize,
+  )
+
+  return setAdditionalArtworkElementLayout(
+    nextAdditionalArtwork,
+    elementId,
+    nextLayout,
+  )
 }
 
 export function applyImportedRatingBadge(

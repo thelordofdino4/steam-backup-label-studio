@@ -1,7 +1,7 @@
 import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
 import type { DiscTextStyleSettings } from '../../discTextStyles'
-import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -13,6 +13,7 @@ import { RatingBadgeLayer } from './RatingBadgeLayer'
 import { MediaMarkLayer, PlatformMarksLayer } from './MediaMarkLayer'
 import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import { TitleArtworkLayer } from './TitleArtworkLayer'
+import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
 import type { DiscTextValueSources } from '../../project/metadataDiscText'
@@ -35,6 +36,7 @@ export type DiscPreviewProps = {
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectAdditionalArtwork: ProjectAdditionalArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -68,6 +70,12 @@ export type DiscPreviewProps = {
   handleTitleArtworkPointerDown: (event: PointerEvent<Element>) => void
   handleTitleArtworkPointerMove: (event: PointerEvent<Element>) => void
   handleTitleArtworkPointerUp: (event: PointerEvent<Element>) => void
+  handleAdditionalArtworkPointerDown: (
+    event: PointerEvent<Element>,
+    elementId: string,
+  ) => void
+  handleAdditionalArtworkPointerMove: (event: PointerEvent<Element>) => void
+  handleAdditionalArtworkPointerUp: (event: PointerEvent<Element>) => void
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
@@ -104,6 +112,7 @@ export function DiscPreview({
   steamBannerLockupLayout,
   projectLogoAssets,
   projectTitleArtwork,
+  projectAdditionalArtwork,
   projectMetadata,
   projectRatingBadge,
   projectMediaMark,
@@ -127,6 +136,9 @@ export function DiscPreview({
   handleTitleArtworkPointerDown,
   handleTitleArtworkPointerMove,
   handleTitleArtworkPointerUp,
+  handleAdditionalArtworkPointerDown,
+  handleAdditionalArtworkPointerMove,
+  handleAdditionalArtworkPointerUp,
   discTextSettings,
   discTextValues,
   discTextValueSources,
@@ -162,6 +174,14 @@ export function DiscPreview({
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
+      />
+    ),
+    'additional-artwork': (
+      <AdditionalArtworkLayer
+        projectAdditionalArtwork={projectAdditionalArtwork}
+        handleAdditionalArtworkPointerDown={handleAdditionalArtworkPointerDown}
+        handleAdditionalArtworkPointerMove={handleAdditionalArtworkPointerMove}
+        handleAdditionalArtworkPointerUp={handleAdditionalArtworkPointerUp}
       />
     ),
     'title-artwork': (

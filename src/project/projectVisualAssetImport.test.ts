@@ -2,12 +2,14 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { discTemplates } from '../templates/discTemplates.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
+import { addAdditionalArtworkElement, createDefaultProjectAdditionalArtwork } from './projectAdditionalArtwork.ts'
 import { addAdditionalLogoAsset, createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks } from './projectMediaMark.ts'
 import { createDefaultProjectRatingBadge } from './projectRatingBadge.ts'
 import { createDefaultProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import {
   applyImportedLogoAsset,
+  applyImportedAdditionalArtwork,
   applyImportedMediaMark,
   applyImportedPlatformMark,
   applyImportedRatingBadge,
@@ -55,6 +57,41 @@ test('imported logo image can target an additional logo without replacing primar
   assert.equal(additionalLogo.imageDataUrl, importedImage.imageDataUrl)
   assert.deepEqual(additionalLogo.imageSize, importedImage.imageSize)
   assert.equal(additionalLogo.layout.enabled, true)
+})
+
+test('imported additional artwork image updates only the targeted element', () => {
+  const additionalArtworkWithElements = addAdditionalArtworkElement(
+    addAdditionalArtworkElement(
+      createDefaultProjectAdditionalArtwork(),
+      discTemplates.standardPrintableDisc,
+    ),
+    discTemplates.standardPrintableDisc,
+  )
+  const firstElementId = additionalArtworkWithElements.elements[0]!.id
+  const secondElementId = additionalArtworkWithElements.elements[1]!.id
+  const additionalArtwork = applyImportedAdditionalArtwork(
+    additionalArtworkWithElements,
+    firstElementId,
+    importedImage,
+    discTemplates.standardPrintableDisc,
+    {
+      source: 'steam-artwork',
+      sourceId: 'steam-header',
+      sourceLabel: 'Steam header',
+    },
+  )
+  const firstElement = additionalArtwork.elements[0]!
+  const secondElement = additionalArtwork.elements[1]!
+
+  assert.equal(additionalArtwork.enabled, true)
+  assert.equal(firstElement.imageDataUrl, importedImage.imageDataUrl)
+  assert.deepEqual(firstElement.imageSize, importedImage.imageSize)
+  assert.equal(firstElement.source, 'steam-artwork')
+  assert.equal(firstElement.sourceId, 'steam-header')
+  assert.equal(firstElement.sourceLabel, 'Steam header')
+  assert.equal(firstElement.layout.enabled, true)
+  assert.equal(secondElement.id, secondElementId)
+  assert.equal(secondElement.imageDataUrl, null)
 })
 
 test('imported rating badge image switches the badge to custom source', () => {

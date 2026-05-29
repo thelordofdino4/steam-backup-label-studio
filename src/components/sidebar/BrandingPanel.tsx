@@ -16,6 +16,7 @@ import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkL
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
+import { PlusIcon, TrashIcon } from './PanelIcons'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -74,22 +75,6 @@ export type BrandingPanelProps = {
 }
 
 type LogoKey = 'developer' | 'publisher'
-
-function PlusIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  )
-}
-
-function TrashIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
-      <path d="M9 5h6M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M10 5l1-2h2l1 2" />
-    </svg>
-  )
-}
 
 const LOGO_ALIGNMENT_PRESETS = [
   { label: 'Top left', x: 22, y: 22 },

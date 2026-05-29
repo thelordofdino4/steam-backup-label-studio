@@ -9,6 +9,7 @@ import {
   clampNumber,
   clampLayoutPointToSafeZone,
   doesRectAvoidDiscCenterCircle,
+  getAdditionalArtworkBoundsPercent,
   getInnerNoPrintRadiusPercent,
   getSafeZoneRadiusPercent,
   getLogoAssetBoundsPercent,
@@ -34,10 +35,13 @@ import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark.ts'
 import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
 import type {
+  AdditionalArtworkLayout,
   BackgroundImageSize,
   LogoAssetLayout,
   MediaMarkLayout,
   PlatformMarkLayout,
+  ProjectAdditionalArtwork,
+  ProjectAdditionalArtworkElement,
   ProjectAdditionalLogoAsset,
   ProjectLogoAssets,
   ProjectMediaMark,
@@ -506,6 +510,19 @@ export function getTitleArtworkLayoutSliderRanges(
   )
 }
 
+export function getAdditionalArtworkLayoutSliderRanges(
+  additionalArtworkElement: Pick<ProjectAdditionalArtworkElement, 'imageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = additionalArtworkElement.layout
+
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    getAdditionalArtworkBoundsPercent(additionalArtworkElement.imageSize, layout.scale),
+  )
+}
+
 export function getRatingBadgeLayoutSliderRanges(
   ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
   selectedDiscTemplate: DiscTemplate,
@@ -594,6 +611,24 @@ export function clampTitleArtworkLayoutToSafeZone(
   }
 }
 
+export function clampAdditionalArtworkElementLayoutToSafeZone(
+  layout: AdditionalArtworkLayout,
+  selectedDiscTemplate: DiscTemplate,
+  imageSize: BackgroundImageSize | null,
+): AdditionalArtworkLayout {
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    getAdditionalArtworkBoundsPercent(imageSize, layout.scale),
+  )
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
 export function clampProjectTitleArtworkToSafeZone(
   titleArtwork: ProjectTitleArtwork,
   selectedDiscTemplate: DiscTemplate,
@@ -605,6 +640,23 @@ export function clampProjectTitleArtworkToSafeZone(
       selectedDiscTemplate,
       titleArtwork.imageSize,
     ),
+  }
+}
+
+export function clampProjectAdditionalArtworkToSafeZone(
+  additionalArtwork: ProjectAdditionalArtwork,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectAdditionalArtwork {
+  return {
+    ...additionalArtwork,
+    elements: additionalArtwork.elements.map((element) => ({
+      ...element,
+      layout: clampAdditionalArtworkElementLayoutToSafeZone(
+        element.layout,
+        selectedDiscTemplate,
+        element.imageSize,
+      ),
+    })),
   }
 }
 

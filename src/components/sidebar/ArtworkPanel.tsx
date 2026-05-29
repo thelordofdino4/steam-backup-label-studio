@@ -9,8 +9,18 @@ import type {
 } from '../../backgroundImage'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
-import { getTitleArtworkLayoutSliderRanges } from '../../layout/discElementSafeZone'
+import {
+  getAdditionalArtworkLayoutSliderRanges,
+  getTitleArtworkLayoutSliderRanges,
+} from '../../layout/discElementSafeZone'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
+import {
+  ADDITIONAL_ARTWORK_SCALE_MAX,
+  ADDITIONAL_ARTWORK_SCALE_MIN,
+  canUseAdditionalArtworkElement,
+  shouldRenderAdditionalArtworkElement,
+  type AdditionalArtworkLayoutField,
+} from '../../project/projectAdditionalArtwork'
 import {
   canUseTitleArtwork,
   shouldRenderTitleArtwork,
@@ -20,11 +30,14 @@ import {
 } from '../../project/projectTitleArtwork'
 import type {
   BackgroundOffset,
+  ProjectAdditionalArtwork,
+  ProjectAdditionalArtworkElement,
   ProjectTitleArtwork,
 } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
 import type { DiscTemplate } from '../../types/template'
+import { PlusIcon, TrashIcon } from './PanelIcons'
 
 export type ArtworkPanelProps = {
   selectedSteamGame: SteamImportedGame | null
@@ -67,6 +80,29 @@ export type ArtworkPanelProps = {
   ) => void
   handleResetTitleArtworkLayout: () => void
   handleTitleArtworkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  projectAdditionalArtwork: ProjectAdditionalArtwork
+  handleAdditionalArtworkEnabledChange: (enabled: boolean) => void
+  handleAddAdditionalArtworkElement: () => void
+  handleAdditionalArtworkUpload: (
+    elementId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) => void | Promise<void>
+  handleUseSteamArtworkAsAdditionalArtwork: (
+    elementId: string,
+    asset: SteamArtworkAsset,
+  ) => void | Promise<void>
+  handleUseLocalSteamScreenshotAsAdditionalArtwork: (
+    elementId: string,
+    asset: LocalSteamScreenshotAsset,
+  ) => void | Promise<void>
+  handleAdditionalArtworkLayoutChange: (
+    elementId: string,
+    field: AdditionalArtworkLayoutField,
+    value: boolean | number,
+  ) => void
+  handleResetAdditionalArtworkElementLayout: (elementId: string) => void
+  handleClearAdditionalArtworkElementImage: (elementId: string) => void
+  handleRemoveAdditionalArtworkElement: (elementId: string) => void
 }
 
 function formatArtworkKind(kind: SteamArtworkAsset['kind']) {
@@ -124,6 +160,12 @@ function formatModifiedDate(modifiedUnixSeconds?: number) {
 }
 
 function formatTitleArtworkSize(size: ProjectTitleArtwork['imageSize']) {
+  return size ? ` (${size.width} x ${size.height}px)` : ''
+}
+
+function formatAdditionalArtworkSize(
+  size: ProjectAdditionalArtworkElement['imageSize'],
+) {
   return size ? ` (${size.width} x ${size.height}px)` : ''
 }
 
@@ -695,6 +737,360 @@ function GameLogoArtworkControls({
   )
 }
 
+function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      className="secondary-button icon-text-button"
+      type="button"
+      onClick={onClick}
+    >
+      <PlusIcon />
+      <span>Add artwork element</span>
+    </button>
+  )
+}
+
+function AdditionalArtworkElementControls({
+  element,
+  elementIndex,
+  selectedSteamGame,
+  localSteamScreenshots,
+  localSteamScreenshotThumbnails,
+  selectedDiscTemplate,
+  projectAdditionalArtwork,
+  handleAdditionalArtworkUpload,
+  handleUseSteamArtworkAsAdditionalArtwork,
+  handleUseLocalSteamScreenshotAsAdditionalArtwork,
+  handleAdditionalArtworkLayoutChange,
+  handleResetAdditionalArtworkElementLayout,
+  handleClearAdditionalArtworkElementImage,
+  handleRemoveAdditionalArtworkElement,
+  handleAddAdditionalArtworkElement,
+  showAddButton,
+}: Pick<
+  ArtworkPanelProps,
+  | 'selectedSteamGame'
+  | 'localSteamScreenshots'
+  | 'localSteamScreenshotThumbnails'
+  | 'selectedDiscTemplate'
+  | 'projectAdditionalArtwork'
+  | 'handleAdditionalArtworkUpload'
+  | 'handleUseSteamArtworkAsAdditionalArtwork'
+  | 'handleUseLocalSteamScreenshotAsAdditionalArtwork'
+  | 'handleAdditionalArtworkLayoutChange'
+  | 'handleResetAdditionalArtworkElementLayout'
+  | 'handleClearAdditionalArtworkElementImage'
+  | 'handleRemoveAdditionalArtworkElement'
+  | 'handleAddAdditionalArtworkElement'
+> & {
+  element: ProjectAdditionalArtworkElement
+  elementIndex: number
+  showAddButton: boolean
+}) {
+  const hasImage = canUseAdditionalArtworkElement(element)
+  const isRenderable = shouldRenderAdditionalArtworkElement(
+    projectAdditionalArtwork,
+    element,
+  )
+  const sliderRanges = getAdditionalArtworkLayoutSliderRanges(
+    element,
+    selectedDiscTemplate,
+  )
+  const uploadId = `additional-artwork-upload-${element.id}`
+  const title = `Artwork ${elementIndex + 1}`
+  const deleteLabel = `Delete ${title.toLowerCase()}`
+
+  return (
+    <div className="additional-artwork-block">
+      <div className="additional-artwork-block-header">
+        <label className="field-label">
+          <input
+            type="checkbox"
+            checked={element.layout.enabled}
+            onChange={(event) =>
+              handleAdditionalArtworkLayoutChange(
+                element.id,
+                'enabled',
+                event.target.checked,
+              )}
+          />
+          Show {title.toLowerCase()}
+        </label>
+        <button
+          className="icon-button danger-icon-button"
+          type="button"
+          aria-label={deleteLabel}
+          title={deleteLabel}
+          onClick={() => handleRemoveAdditionalArtworkElement(element.id)}
+        >
+          <TrashIcon />
+        </button>
+      </div>
+
+      {!element.layout.enabled ? (
+        showAddButton ? (
+          <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+        ) : null
+      ) : (
+        <>
+          <span className="field-label spacing-top">Image source</span>
+          <label
+            className="secondary-button logo-upload-button"
+            htmlFor={uploadId}
+          >
+            {hasImage ? 'Replace with local image' : 'Choose local image'}
+          </label>
+          <input
+            id={uploadId}
+            className="logo-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) =>
+              void handleAdditionalArtworkUpload(element.id, event)}
+          />
+
+          {selectedSteamGame?.artwork.length ? (
+            <details className="metadata-details collapsible-panel spacing-top">
+              <summary className="panel-summary">Use imported Steam artwork</summary>
+              <div className="panel-content">
+                <div className="search-results">
+                  {selectedSteamGame.artwork.map((asset) => (
+                    <button
+                      className="search-result-button artwork-asset-button"
+                      key={`${element.id}-${asset.id}`}
+                      type="button"
+                      onClick={() =>
+                        void handleUseSteamArtworkAsAdditionalArtwork(
+                          element.id,
+                          asset,
+                        )}
+                    >
+                      <img
+                        className="artwork-asset-thumbnail"
+                        src={asset.url}
+                        alt=""
+                        loading="lazy"
+                        draggable={false}
+                      />
+                      <span className="artwork-asset-copy">
+                        <strong>{asset.label}</strong>
+                        <span>Type: {formatArtworkKind(asset.kind)}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {localSteamScreenshots.length > 0 ? (
+            <details className="metadata-details collapsible-panel spacing-top">
+              <summary className="panel-summary">Use local Steam screenshot</summary>
+              <div className="panel-content">
+                <div className="search-results local-steam-screenshot-results">
+                  {localSteamScreenshots.map((asset) => (
+                    <button
+                      className="search-result-button artwork-asset-button"
+                      key={`${element.id}-${asset.id}`}
+                      type="button"
+                      onClick={() =>
+                        void handleUseLocalSteamScreenshotAsAdditionalArtwork(
+                          element.id,
+                          asset,
+                        )}
+                    >
+                      {localSteamScreenshotThumbnails[asset.id] ? (
+                        <img
+                          className="artwork-asset-thumbnail"
+                          src={localSteamScreenshotThumbnails[asset.id]}
+                          alt=""
+                          draggable={false}
+                        />
+                      ) : (
+                        <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
+                          Local
+                        </span>
+                      )}
+                      <span className="artwork-asset-copy">
+                        <strong>{asset.label}</strong>
+                        <span>Source: Local Steam screenshots</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </details>
+          ) : null}
+
+          {hasImage ? (
+            <div className="selected-lockup-card logo-asset-status-card">
+              <img
+                className="logo-asset-preview additional-artwork-preview"
+                src={element.imageDataUrl ?? undefined}
+                alt=""
+                draggable={false}
+              />
+              <span>
+                {element.sourceLabel}
+                {formatAdditionalArtworkSize(element.imageSize)}
+              </span>
+            </div>
+          ) : (
+            <p className="hint">
+              No image is selected yet. Upload a local image or use an imported Steam artwork source.
+            </p>
+          )}
+
+          <div
+            className="disc-text-layout-grid"
+            aria-label={`${title} fine tuning controls`}
+          >
+            <label>
+              <span>Scale</span>
+              <input
+                type="range"
+                min={ADDITIONAL_ARTWORK_SCALE_MIN}
+                max={ADDITIONAL_ARTWORK_SCALE_MAX}
+                step="0.01"
+                value={element.layout.scale}
+                disabled={!isRenderable}
+                onInput={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'scale',
+                    getNumericInputValue(event),
+                  )}
+                onChange={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'scale',
+                    getNumericInputValue(event),
+                  )}
+              />
+            </label>
+
+            <label>
+              <span>X</span>
+              <input
+                type="range"
+                min={sliderRanges.x.min}
+                max={sliderRanges.x.max}
+                step="0.1"
+                value={element.layout.x}
+                disabled={!isRenderable}
+                onInput={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'x',
+                    getNumericInputValue(event),
+                  )}
+                onChange={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'x',
+                    getNumericInputValue(event),
+                  )}
+              />
+            </label>
+
+            <label>
+              <span>Y</span>
+              <input
+                type="range"
+                min={sliderRanges.y.min}
+                max={sliderRanges.y.max}
+                step="0.1"
+                value={element.layout.y}
+                disabled={!isRenderable}
+                onInput={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'y',
+                    getNumericInputValue(event),
+                  )}
+                onChange={(event) =>
+                  handleAdditionalArtworkLayoutChange(
+                    element.id,
+                    'y',
+                    getNumericInputValue(event),
+                  )}
+              />
+            </label>
+          </div>
+
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => handleResetAdditionalArtworkElementLayout(element.id)}
+          >
+            Reset {title.toLowerCase()} layout
+          </button>
+          {showAddButton ? (
+            <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+          ) : null}
+          {hasImage ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => handleClearAdditionalArtworkElementImage(element.id)}
+            >
+              Clear {title.toLowerCase()} image
+            </button>
+          ) : null}
+        </>
+      )}
+    </div>
+  )
+}
+
+function AdditionalArtworkControls(props: ArtworkPanelProps) {
+  const {
+    projectAdditionalArtwork,
+    handleAdditionalArtworkEnabledChange,
+    handleAddAdditionalArtworkElement,
+  } = props
+  const isEnabled = projectAdditionalArtwork.enabled
+  const hasArtworkElements = projectAdditionalArtwork.elements.length > 0
+
+  return (
+    <div className="logo-asset-card additional-artwork-control">
+      <label className="field-label">
+        <input
+          type="checkbox"
+          checked={isEnabled}
+          onChange={(event) =>
+            handleAdditionalArtworkEnabledChange(event.target.checked)}
+        />
+        Show additional artwork
+      </label>
+
+      {!isEnabled ? null : (
+        <>
+          {!hasArtworkElements ? (
+            <>
+              <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+
+              <p className="hint">
+                Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
+              </p>
+            </>
+          ) : null}
+
+          {projectAdditionalArtwork.elements.map((element, index) => (
+            <AdditionalArtworkElementControls
+              key={element.id}
+              {...props}
+              element={element}
+              elementIndex={index}
+              showAddButton={index === projectAdditionalArtwork.elements.length - 1}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  )
+}
+
 export function ArtworkPanel(props: ArtworkPanelProps) {
   return (
     <details className="panel collapsible-panel">
@@ -702,6 +1098,7 @@ export function ArtworkPanel(props: ArtworkPanelProps) {
       <div className="panel-content">
         <BackgroundArtworkControls {...props} />
         <GameLogoArtworkControls {...props} />
+        <AdditionalArtworkControls {...props} />
       </div>
     </details>
   )

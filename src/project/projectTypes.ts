@@ -97,6 +97,33 @@ export type ProjectTitleArtwork = {
   layout: TitleArtworkLayout
 }
 
+export type AdditionalArtworkSource =
+  | 'custom'
+  | 'steam-artwork'
+  | 'local-steam-screenshot'
+
+export type AdditionalArtworkLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectAdditionalArtworkElement = {
+  id: string
+  source: AdditionalArtworkSource
+  sourceId: string | null
+  sourceLabel: string
+  imageDataUrl: string | null
+  imageSize: BackgroundImageSize | null
+  layout: AdditionalArtworkLayout
+}
+
+export type ProjectAdditionalArtwork = {
+  enabled: boolean
+  elements: ProjectAdditionalArtworkElement[]
+}
+
 export type RatingBadgeSource = 'placeholder' | 'custom'
 
 export type RatingBadgeLayout = {
@@ -204,6 +231,7 @@ export type SavedProject = {
   metadata?: ProjectMetadata
   logoAssets?: Partial<ProjectLogoAssets>
   titleArtwork?: Partial<ProjectTitleArtwork>
+  additionalArtwork?: Partial<ProjectAdditionalArtwork>
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks

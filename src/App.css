@@ -834,6 +834,10 @@ input:disabled {
   object-fit: contain;
 }
 
+.additional-artwork-control {
+  margin-top: 12px;
+}
+
 .disc-text-layout-grid {
   display: grid;
   gap: 8px;
@@ -979,6 +983,27 @@ input:disabled {
 
 .additional-logo-block-header .field-label {
   margin-bottom: 0;
+}
+
+.additional-artwork-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.additional-artwork-block-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.additional-artwork-block-header .field-label {
+  margin-bottom: 0;
+}
+
+.additional-artwork-preview {
+  object-fit: cover;
 }
 
 .metadata-details[open] > .panel-summary::after {
@@ -1207,7 +1232,15 @@ input:disabled {
   pointer-events: none;
 }
 
-.disc-title-artwork {
+.disc-additional-artwork-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.disc-title-artwork,
+.disc-additional-artwork {
   position: absolute;
   object-fit: contain;
   user-select: none;
@@ -1217,7 +1250,8 @@ input:disabled {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.38));
 }
 
-.disc-title-artwork:active {
+.disc-title-artwork:active,
+.disc-additional-artwork:active {
   cursor: grabbing;
 }
 

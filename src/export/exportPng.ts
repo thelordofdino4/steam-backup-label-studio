@@ -2,7 +2,7 @@ import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLog
 import type { DiscTextStyleSettings } from '../discTextStyles'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
-import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { ProjectAdditionalArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
 import { canvasToPngBytes, loadImage } from './canvasImage'
@@ -14,6 +14,7 @@ import { drawRatingBadge } from './drawRatingBadge'
 import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
 import { drawTechnicalMarks } from './drawTechnicalMarks'
 import { drawTitleArtwork } from './drawTitleArtwork'
+import { drawAdditionalArtwork } from './drawAdditionalArtwork'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
@@ -43,6 +44,7 @@ export async function exportDiscLabelPngBytes(params: {
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectAdditionalArtwork: ProjectAdditionalArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -109,6 +111,13 @@ export async function exportDiscLabelPngBytes(params: {
       context.fillRect(0, 0, exportSize, exportSize)
     },
     'background-artwork': drawBackgroundArtwork,
+    'additional-artwork': () =>
+      drawAdditionalArtwork(
+        context,
+        discContentSize,
+        discOrigin,
+        params.projectAdditionalArtwork,
+      ),
     'steam-banner': () =>
       drawSteamBrandBanner(
         context,

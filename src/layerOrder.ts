@@ -1,6 +1,7 @@
 export const DISC_EDITOR_LAYER_ORDER = [
   'disc-base-fill',
   'background-artwork',
+  'additional-artwork',
   'steam-banner',
   'title-artwork',
   'logo-assets',
@@ -19,6 +20,7 @@ export type DiscEditorLayerId = (typeof DISC_EDITOR_LAYER_ORDER)[number]
 
 export const DISC_EDITOR_PREVIEW_LAYER_ORDER = [
   'background-artwork',
+  'additional-artwork',
   'steam-banner',
   'title-artwork',
   'logo-assets',
@@ -36,6 +38,7 @@ export type DiscEditorPreviewLayerId =
 export const DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER = [
   'disc-base-fill',
   'background-artwork',
+  'additional-artwork',
   'steam-banner',
   'title-artwork',
   'logo-assets',
@@ -61,6 +64,7 @@ export type DiscEditorPostClipExportLayerId =
 export const DISC_EDITOR_LAYER_LABELS: Record<DiscEditorLayerId, string> = {
   'disc-base-fill': 'Disc base fill',
   'background-artwork': 'Background artwork',
+  'additional-artwork': 'Additional artwork',
   'steam-banner': 'Steam backup banner',
   'title-artwork': 'Game title artwork',
   'logo-assets': 'Developer and publisher logos',

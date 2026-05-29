@@ -10,6 +10,8 @@ export const LOGO_BASE_WIDTH_RATIO = 0.18
 export const LOGO_MAX_HEIGHT_RATIO = 0.1
 export const TITLE_ARTWORK_BASE_WIDTH_RATIO = 0.38
 export const TITLE_ARTWORK_MAX_HEIGHT_RATIO = 0.16
+export const ADDITIONAL_ARTWORK_BASE_WIDTH_RATIO = 0.32
+export const ADDITIONAL_ARTWORK_MAX_HEIGHT_RATIO = 0.32
 export const RATING_BADGE_BASE_WIDTH_RATIO = 0.09
 export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
 export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
@@ -469,6 +471,15 @@ export function getTitleArtworkBoundsPercent(naturalSize: NaturalSize, scale: nu
     naturalSize,
     TITLE_ARTWORK_BASE_WIDTH_RATIO,
     TITLE_ARTWORK_MAX_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getAdditionalArtworkBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    ADDITIONAL_ARTWORK_BASE_WIDTH_RATIO,
+    ADDITIONAL_ARTWORK_MAX_HEIGHT_RATIO,
     scale,
   )
 }

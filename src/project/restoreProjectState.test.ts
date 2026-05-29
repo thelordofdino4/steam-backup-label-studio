@@ -52,6 +52,8 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.discTextValueSources.title, 'metadata')
   assert.deepEqual(restored.projectLogoAssets.additionalDeveloperLogos, [])
   assert.deepEqual(restored.projectLogoAssets.additionalPublisherLogos, [])
+  assert.equal(restored.projectAdditionalArtwork.enabled, false)
+  assert.deepEqual(restored.projectAdditionalArtwork.elements, [])
   assert.deepEqual(restored.projectTechnicalMarks.values, [])
   assert.equal(restored.template.selectedDiscTemplateId, 'standardPrintableDisc')
   assert.equal(restored.template.customDiscTemplate, undefined)
@@ -183,6 +185,58 @@ test('restores additional developer and publisher logos from saved project data'
   assert.equal(additionalPublisherLogo.id, 'publisher-extra')
   assert.equal(additionalPublisherLogo.layout.enabled, false)
   assert.equal(additionalPublisherLogo.layout.scale, 1.2)
+})
+
+test('restores additional artwork from saved project data and clamps layout', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    additionalArtwork: {
+      enabled: true,
+      elements: [
+        {
+          id: 'character-art',
+          source: 'local-steam-screenshot',
+          sourceId: 'screenshot-1',
+          sourceLabel: 'Screenshot 1',
+          imageDataUrl: 'data:image/png;base64,character',
+          imageSize: { width: 900, height: 900 },
+          layout: {
+            enabled: true,
+            scale: 1.4,
+            x: 99,
+            y: 99,
+          },
+        },
+        {
+          id: 'hidden-art',
+          source: 'custom',
+          sourceId: null,
+          sourceLabel: 'Hidden',
+          imageDataUrl: 'data:image/png;base64,hidden',
+          imageSize: { width: 400, height: 200 },
+          layout: {
+            enabled: false,
+            scale: 0.8,
+            x: 50,
+            y: 50,
+          },
+        },
+      ],
+    },
+  })
+  const characterArt = restored.projectAdditionalArtwork.elements[0]!
+  const hiddenArt = restored.projectAdditionalArtwork.elements[1]!
+
+  assert.equal(restored.projectAdditionalArtwork.enabled, true)
+  assert.equal(characterArt.id, 'character-art')
+  assert.equal(characterArt.source, 'local-steam-screenshot')
+  assert.equal(characterArt.imageDataUrl, 'data:image/png;base64,character')
+  assert.equal(characterArt.layout.enabled, true)
+  assert.equal(characterArt.layout.scale, 1.4)
+  assert.equal(characterArt.layout.x < 99, true)
+  assert.equal(characterArt.layout.y < 99, true)
+  assert.equal(hiddenArt.layout.enabled, false)
+  assert.equal(hiddenArt.imageDataUrl, 'data:image/png;base64,hidden')
 })
 
 test('restores technical marks from saved project data and clamps layout', async () => {

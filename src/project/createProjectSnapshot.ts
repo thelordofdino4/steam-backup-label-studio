@@ -12,6 +12,7 @@ import type { DiscTextValueSources } from './metadataDiscText'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
+  ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectMetadata,
@@ -31,6 +32,7 @@ export type CreateProjectSnapshotParams = {
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectAdditionalArtwork: ProjectAdditionalArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
@@ -62,6 +64,7 @@ export function createProjectSnapshot({
   projectMetadata,
   projectLogoAssets,
   projectTitleArtwork,
+  projectAdditionalArtwork,
   projectRatingBadge,
   projectMediaMark,
   projectPlatformMarks,
@@ -97,6 +100,7 @@ export function createProjectSnapshot({
     metadata: projectMetadata,
     logoAssets: projectLogoAssets,
     titleArtwork: projectTitleArtwork,
+    additionalArtwork: projectAdditionalArtwork,
     ratingBadge: projectRatingBadge,
     mediaMark: projectMediaMark,
     platformMarks: projectPlatformMarks,
