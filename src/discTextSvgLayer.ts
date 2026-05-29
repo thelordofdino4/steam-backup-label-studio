@@ -15,14 +15,21 @@ import {
 } from './discText.ts'
 import { layoutCurvedText } from './discText/curvedTextLayout.ts'
 import {
+  getDiscTextFontString,
   getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
 } from './discTextRenderLayout.ts'
+import {
+  getResolvedDiscTextRenderStyle,
+  type DiscTextStyleInput,
+} from './discTextStyles.ts'
 import { escapeSvgAttribute, escapeSvgText } from './svgUtils.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
   values: DiscTextValues
+  styles?: DiscTextStyleInput
   layoutSettings: DiscTextLayoutSettings
   title: string
   placement: SteamLogoPlacement
@@ -32,6 +39,13 @@ export type DiscTextSvgLayerParams = {
   height: number | string
   idPrefix?: string
 }
+
+type ResolvedDiscTextRenderStyle = ReturnType<typeof getResolvedDiscTextRenderStyle>
+
+const DISC_TEXT_STROKE_COLOR = 'rgba(0, 0, 0, 0.58)'
+const DISC_TEXT_STRAIGHT_STROKE_WIDTH = 0.28
+const DISC_TEXT_CURVED_STROKE_WIDTH = 0.28
+const DISC_TEXT_BOX_BORDER_WIDTH = 0.18
 
 let discTextMeasureContext: CanvasRenderingContext2D | null = null
 
@@ -64,11 +78,11 @@ function getFallbackCurvedLineWidth(line: string, fontSize: number, letterSpacin
 
 function getCurvedLineWidth(
   line: string,
+  font: string,
   fontSize: number,
   letterSpacing: number,
   measureText: TextMeasureFunction,
 ) {
-  const font = `650 ${fontSize}px Arial`
   const measuredWidth = measureText(line, font)
   const characterCount = Array.from(line).length
 
@@ -82,6 +96,7 @@ function getCurvedLineWidth(
 function splitLongTokenForCurvedText(
   token: string,
   maxArcLength: number,
+  font: string,
   fontSize: number,
   letterSpacing: number,
   measureText: TextMeasureFunction,
@@ -92,7 +107,7 @@ function splitLongTokenForCurvedText(
   for (const character of Array.from(token)) {
     const testChunk = `${currentChunk}${character}`
     if (
-      getCurvedLineWidth(testChunk, fontSize, letterSpacing, measureText) <= maxArcLength ||
+      getCurvedLineWidth(testChunk, font, fontSize, letterSpacing, measureText) <= maxArcLength ||
       !currentChunk
     ) {
       currentChunk = testChunk
@@ -110,6 +125,7 @@ function splitLongTokenForCurvedText(
 function wrapCurvedTextByMeasuredArcLength(
   text: string,
   maxArcLength: number,
+  font: string,
   fontSize: number,
   letterSpacing: number,
   measureText: TextMeasureFunction,
@@ -120,14 +136,21 @@ function wrapCurvedTextByMeasuredArcLength(
 
   for (const token of tokens) {
     const tokenParts =
-      getCurvedLineWidth(token, fontSize, letterSpacing, measureText) > maxArcLength
-        ? splitLongTokenForCurvedText(token, maxArcLength, fontSize, letterSpacing, measureText)
+      getCurvedLineWidth(token, font, fontSize, letterSpacing, measureText) > maxArcLength
+        ? splitLongTokenForCurvedText(
+            token,
+            maxArcLength,
+            font,
+            fontSize,
+            letterSpacing,
+            measureText,
+          )
         : [token]
 
     for (const part of tokenParts) {
       const testLine = currentLine ? `${currentLine} ${part}` : part
       if (
-        getCurvedLineWidth(testLine, fontSize, letterSpacing, measureText) <= maxArcLength ||
+        getCurvedLineWidth(testLine, font, fontSize, letterSpacing, measureText) <= maxArcLength ||
         !currentLine
       ) {
         currentLine = testLine
@@ -180,6 +203,7 @@ function wrapCurvedTextBlock(
   textRadius: number,
   lineStep: number,
   arcDegrees: number,
+  font: string,
   fontSize: number,
   letterSpacing: number,
   isTopArc: boolean,
@@ -188,6 +212,7 @@ function wrapCurvedTextBlock(
   let lines = wrapCurvedTextByMeasuredArcLength(
     text,
     textRadius * ((arcDegrees * Math.PI) / 180),
+    font,
     fontSize,
     letterSpacing,
     measureText,
@@ -199,7 +224,7 @@ function wrapCurvedTextBlock(
     align: 'center',
     lines: lines.map((line, index) => ({
       text: line,
-      measuredWidth: getCurvedLineWidth(line, fontSize, letterSpacing, measureText),
+      measuredWidth: getCurvedLineWidth(line, font, fontSize, letterSpacing, measureText),
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
@@ -214,6 +239,7 @@ function wrapCurvedTextBlock(
     const nextLines = wrapCurvedTextByMeasuredArcLength(
       text,
       minimumLineRadius * ((centeredLayout.blockWindowDegrees * Math.PI) / 180),
+      font,
       fontSize,
       letterSpacing,
       measureText,
@@ -235,6 +261,42 @@ function wrapCurvedTextBlock(
   }
 }
 
+function hasDiscTextShadow(style: ResolvedDiscTextRenderStyle) {
+  return style.contrast === 'shadow' || style.contrast === 'strokeShadow'
+}
+
+function hasDiscTextStroke(style: ResolvedDiscTextRenderStyle) {
+  return style.contrast === 'stroke' || style.contrast === 'strokeShadow'
+}
+
+function buildTextStyleAttribute(
+  style: ResolvedDiscTextRenderStyle,
+  shadowFilterId: string,
+  fontSize: number,
+  fontWeight: number,
+  strokeWidth: number,
+  letterSpacing?: number,
+) {
+  const declarations = [
+    `fill:${style.color}`,
+    `font-family:${style.fontFamilyCss}`,
+    `font-size:${fontSize}px`,
+    `font-weight:${fontWeight}`,
+    typeof letterSpacing === 'number' ? `letter-spacing:${letterSpacing}px` : '',
+    hasDiscTextShadow(style) ? `filter:url(#${shadowFilterId})` : '',
+    'paint-order:stroke fill',
+    `stroke:${hasDiscTextStroke(style) ? DISC_TEXT_STROKE_COLOR : 'transparent'}`,
+    `stroke-width:${hasDiscTextStroke(style) ? strokeWidth : 0}px`,
+    'stroke-linejoin:round',
+  ].filter(Boolean)
+
+  return escapeSvgAttribute(declarations.join('; '))
+}
+
+function formatSvgNumber(value: number) {
+  return Number(value.toFixed(3))
+}
+
 function getCurvedLineTextPathAnchor(
   align: DiscTextLayout['align'],
 ): { startOffset: string; textAnchor: 'start' | 'end' | 'middle' } {
@@ -251,10 +313,18 @@ function buildCurvedCopyrightMarkup(
   safeZoneRadiusPercent: number,
   measureText: TextMeasureFunction,
   idPrefix: string,
+  shadowFilterId: string,
+  styles?: DiscTextStyleInput,
 ) {
   const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
+  const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const curvedScale = getReadableCurvedTextScale(layout.scale)
   const fontSize = 1.55 * curvedScale
+  const font = getDiscTextFontString(
+    renderStyle.fontWeight,
+    fontSize,
+    renderStyle.fontFamilyCanvas,
+  )
   const textRadius = Math.max(1, safeZoneRadiusPercent - layout.y * 0.18)
   const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x
   const lineStep = 2.2 * curvedScale
@@ -264,6 +334,7 @@ function buildCurvedCopyrightMarkup(
     textRadius,
     lineStep,
     layout.arcDegrees,
+    font,
     fontSize,
     letterSpacing,
     isTopArc,
@@ -277,7 +348,13 @@ function buildCurvedCopyrightMarkup(
     blockWindowDegrees,
     lines: lines.map((line, index) => ({
       text: line,
-      measuredWidth: getCurvedLineWidth(line, fontSize, letterSpacing, measureText),
+      measuredWidth: getCurvedLineWidth(
+        line,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      ),
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
@@ -298,13 +375,21 @@ function buildCurvedCopyrightMarkup(
   }).join('')
   const textMarkup = curvedLineLayout.lines.map((lineLayout, index) => {
     const pathId = `${idPrefix}-${key}-path-${index}`
+    const style = buildTextStyleAttribute(
+      renderStyle,
+      shadowFilterId,
+      fontSize,
+      renderStyle.fontWeight,
+      DISC_TEXT_CURVED_STROKE_WIDTH,
+      letterSpacing,
+    )
 
     return `
       <text
         class="disc-text-render-text"
         dominant-baseline="middle"
         data-disc-text-key="${key}"
-        style="fill:#d1d5db; font-family:Arial, sans-serif; font-size:${fontSize}px; font-weight:650; letter-spacing:${letterSpacing}px;"
+        style="${style}"
       >
         <textPath href="#${pathId}" xlink:href="#${pathId}" startOffset="${textPathAnchor.startOffset}" text-anchor="${textPathAnchor.textAnchor}">${escapeSvgText(lineLayout.text)}</textPath>
       </text>
@@ -319,10 +404,26 @@ function buildStraightTextMarkup(
   text: string,
   layout: DiscTextLayout,
   measureText: TextMeasureFunction,
+  shadowFilterId: string,
+  styles?: DiscTextStyleInput,
 ) {
-  const straightTextLayout = getStraightDiscTextRenderLayout(key, text, layout, measureText)
+  const straightTextLayout = getStraightDiscTextRenderLayout(
+    key,
+    text,
+    layout,
+    measureText,
+    styles,
+  )
+  const textStyle = buildTextStyleAttribute(
+    straightTextLayout.style,
+    shadowFilterId,
+    straightTextLayout.fontSize,
+    straightTextLayout.fontWeight,
+    DISC_TEXT_STRAIGHT_STROKE_WIDTH,
+  )
+  const boxMarkup = buildStraightTextBoxMarkup(key, straightTextLayout, measureText)
 
-  return straightTextLayout.lines.map((line) => `
+  const textMarkup = straightTextLayout.lines.map((line) => `
     <text
       class="disc-text-render-text"
       dominant-baseline="middle"
@@ -330,14 +431,54 @@ function buildStraightTextMarkup(
       text-anchor="${straightTextLayout.textAnchor}"
       x="${line.x}"
       y="${line.y}"
-      style="fill:${straightTextLayout.color}; font-family:${straightTextLayout.fontFamily}; font-size:${straightTextLayout.fontSize}px; font-weight:${straightTextLayout.fontWeight};"
+      style="${textStyle}"
     >${escapeSvgText(line.text)}</text>
   `).join('')
+
+  return `${boxMarkup}${textMarkup}`
+}
+
+function buildStraightTextBoxMarkup(
+  key: DiscTextKey,
+  straightTextLayout: ReturnType<typeof getStraightDiscTextRenderLayout>,
+  measureText: TextMeasureFunction,
+) {
+  const style = straightTextLayout.style
+
+  if (straightTextLayout.lines.length === 0) return ''
+  if (!style.backgroundEnabled && !style.borderEnabled) return ''
+
+  const bounds = getStraightDiscTextVisualBounds(straightTextLayout, measureText)
+  const padding = style.backgroundPadding
+  const x = bounds.centerX - bounds.halfWidth - padding
+  const y = bounds.centerY - bounds.halfHeight - padding
+  const width = bounds.halfWidth * 2 + padding * 2
+  const height = bounds.halfHeight * 2 + padding * 2
+
+  if (width <= 0 || height <= 0) return ''
+
+  return `
+    <rect
+      class="disc-text-render-box"
+      data-disc-text-key="${key}"
+      x="${formatSvgNumber(x)}"
+      y="${formatSvgNumber(y)}"
+      width="${formatSvgNumber(width)}"
+      height="${formatSvgNumber(height)}"
+      rx="${formatSvgNumber(style.borderRadius)}"
+      ry="${formatSvgNumber(style.borderRadius)}"
+      fill="${style.backgroundEnabled ? escapeSvgAttribute(style.backgroundColor) : 'none'}"
+      fill-opacity="${style.backgroundEnabled ? style.backgroundOpacity : 0}"
+      stroke="${style.borderEnabled ? escapeSvgAttribute(style.borderColor) : 'none'}"
+      stroke-width="${style.borderEnabled ? DISC_TEXT_BOX_BORDER_WIDTH : 0}"
+    />
+  `
 }
 
 export function buildDiscTextSvgLayer({
   settings,
   values,
+  styles,
   layoutSettings,
   title,
   placement,
@@ -366,12 +507,14 @@ export function buildDiscTextSvgLayer({
         safeZoneRadiusPercent,
         measureText,
         idPrefix,
+        shadowFilterId,
+        styles,
       )
       pathDefs.push(curvedMarkup.defs)
       return curvedMarkup.body
     }
 
-    return buildStraightTextMarkup(key, text, layout, measureText)
+    return buildStraightTextMarkup(key, text, layout, measureText, shadowFilterId, styles)
   }).join('')
 
   return `
@@ -400,16 +543,18 @@ export function buildDiscTextSvgLayer({
         .disc-text-render-text {
           alignment-baseline: middle;
           cursor: grab;
-          filter: url(#${shadowFilterId});
-          paint-order: stroke fill;
           pointer-events: visiblePainted;
-          stroke: rgba(0, 0, 0, 0.58);
-          stroke-linejoin: round;
-          stroke-width: 0.28px;
           user-select: none;
         }
 
-        .disc-text-render-text:active {
+        .disc-text-render-box {
+          cursor: grab;
+          pointer-events: visiblePainted;
+          user-select: none;
+        }
+
+        .disc-text-render-text:active,
+        .disc-text-render-box:active {
           cursor: grabbing;
         }
       </style>

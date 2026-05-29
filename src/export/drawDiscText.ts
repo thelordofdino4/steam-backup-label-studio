@@ -4,6 +4,7 @@ import type {
   DiscTextValues,
   SteamLogoPlacement,
 } from '../discText'
+import type { DiscTextStyleSettings } from '../discTextStyles'
 import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
@@ -17,6 +18,7 @@ export async function drawDiscTextElements(
   discOrigin: number,
   settings: DiscTextSettings,
   values: DiscTextValues,
+  styles: DiscTextStyleSettings,
   layoutSettings: DiscTextLayoutSettings,
   title: string,
   placement: SteamLogoPlacement,
@@ -26,6 +28,7 @@ export async function drawDiscTextElements(
   const svg = buildDiscTextSvgLayer({
     settings,
     values,
+    styles,
     layoutSettings,
     title,
     placement,

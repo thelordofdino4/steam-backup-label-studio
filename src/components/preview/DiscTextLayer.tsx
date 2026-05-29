@@ -8,6 +8,7 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../../discText'
+import type { DiscTextStyleSettings } from '../../discTextStyles'
 import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
@@ -21,6 +22,7 @@ export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextStyles: DiscTextStyleSettings
   projectMetadata: ProjectMetadata
   manualGameTitle: string
   discTextLayout: DiscTextLayoutSettings
@@ -49,6 +51,7 @@ export function DiscTextLayer({
   discTextSettings,
   discTextValues,
   discTextValueSources,
+  discTextStyles,
   projectMetadata,
   manualGameTitle,
   discTextLayout,
@@ -71,6 +74,7 @@ export function DiscTextLayer({
       return buildDiscTextSvgLayer({
         settings: discTextSettings,
         values: metadataBoundDiscTextValues,
+        styles: discTextStyles,
         layoutSettings: discTextLayout,
         title: manualGameTitle,
         placement: steamLogoPlacement,
@@ -85,6 +89,7 @@ export function DiscTextLayer({
       discTextSettings,
       discTextValues,
       discTextValueSources,
+      discTextStyles,
       discTextLayout,
       manualGameTitle,
       projectMetadata,
@@ -103,6 +108,7 @@ export function DiscTextLayer({
       return buildDiscTextSvgLayer({
         settings: discTextSettings,
         values: metadataBoundDiscTextValues,
+        styles: discTextStyles,
         layoutSettings: discTextLayout,
         title: manualGameTitle,
         placement: steamLogoPlacement,
@@ -117,6 +123,7 @@ export function DiscTextLayer({
       discTextSettings,
       discTextValues,
       discTextValueSources,
+      discTextStyles,
       discTextLayout,
       manualGameTitle,
       projectMetadata,

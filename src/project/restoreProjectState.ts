@@ -7,6 +7,10 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from '../discText.ts'
+import {
+  normalizeDiscTextStyles,
+  type DiscTextStyleSettings,
+} from '../discTextStyles.ts'
 import { exportGuideModeToSelection, type ExportGuideSelection } from '../exportGuides.ts'
 import {
   clampDiscTextLayoutToSafeZone,
@@ -81,6 +85,7 @@ export type RestoredProjectState = {
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
   discTextLayout: DiscTextLayoutSettings
+  discTextStyles: DiscTextStyleSettings
   backgroundScale: number
   backgroundOffset: BackgroundOffset
   backgroundImageUrl: string | null
@@ -256,6 +261,7 @@ export async function restoreSavedProjectState(
       ),
       template.selectedDiscTemplate,
     ),
+    discTextStyles: normalizeDiscTextStyles(project.discText?.styles),
     backgroundScale: project.background.scale,
     backgroundOffset: project.background.offset,
     backgroundImageUrl: project.background.imageDataUrl,

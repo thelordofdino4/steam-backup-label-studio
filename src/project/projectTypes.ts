@@ -7,6 +7,7 @@ import type {
   DiscTextValues,
   SteamLogoPlacement,
 } from '../discText'
+import type { DiscTextStyle } from '../discTextStyles'
 import type { DiscTextValueSources } from './metadataDiscText'
 import type { DiscTemplateId } from '../templates/discTemplates'
 import type { SteamImportedGame } from '../steam/steamApi'
@@ -237,5 +238,6 @@ export type SavedProject = {
     valueSources?: Partial<DiscTextValueSources>
     titleValue?: string
     layout?: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>>
+    styles?: Partial<Record<DiscTextKey, Partial<DiscTextStyle>>>
   }
 }

@@ -1,5 +1,6 @@
 import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
+import type { DiscTextStyleSettings } from '../../discTextStyles'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
@@ -70,6 +71,7 @@ export type DiscPreviewProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextStyles: DiscTextStyleSettings
   manualGameTitle: string
   discTextLayout: DiscTextLayoutSettings
   selectedDiscTemplate: DiscTemplate
@@ -128,6 +130,7 @@ export function DiscPreview({
   discTextSettings,
   discTextValues,
   discTextValueSources,
+  discTextStyles,
   manualGameTitle,
   discTextLayout,
   selectedDiscTemplate,
@@ -215,6 +218,7 @@ export function DiscPreview({
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         discTextValueSources={discTextValueSources}
+        discTextStyles={discTextStyles}
         projectMetadata={projectMetadata}
         manualGameTitle={manualGameTitle}
         discTextLayout={discTextLayout}

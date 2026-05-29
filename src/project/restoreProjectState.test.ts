@@ -331,6 +331,44 @@ test('restores saved and legacy disc text metadata source state', async () => {
   assert.equal(restoredEmptyManualSource.discTextValueSources.appId, 'metadata')
 })
 
+test('restores saved disc text styles and backfills legacy style defaults', async () => {
+  const restoredLegacyStyles = await restoreSavedProjectState(baseProject)
+  const restoredSavedStyles = await restoreSavedProjectState({
+    ...baseProject,
+    discText: {
+      styles: {
+        title: {
+          fontFamily: 'georgia',
+          color: '#112233',
+          contrast: 'shadow',
+          backgroundEnabled: true,
+          backgroundColor: '#445566',
+          backgroundOpacity: 0.5,
+          backgroundPadding: 2.2,
+          borderEnabled: true,
+          borderColor: '#778899',
+          borderRadius: 1.4,
+        },
+      },
+    },
+  })
+
+  assert.equal(restoredLegacyStyles.discTextStyles.title.fontFamily, 'arial')
+  assert.equal(restoredLegacyStyles.discTextStyles.title.contrast, 'strokeShadow')
+  assert.equal(restoredLegacyStyles.discTextStyles.title.backgroundEnabled, false)
+  assert.equal(restoredSavedStyles.discTextStyles.title.fontFamily, 'georgia')
+  assert.equal(restoredSavedStyles.discTextStyles.title.color, '#112233')
+  assert.equal(restoredSavedStyles.discTextStyles.title.contrast, 'shadow')
+  assert.equal(restoredSavedStyles.discTextStyles.title.backgroundEnabled, true)
+  assert.equal(restoredSavedStyles.discTextStyles.title.backgroundColor, '#445566')
+  assert.equal(restoredSavedStyles.discTextStyles.title.backgroundOpacity, 0.5)
+  assert.equal(restoredSavedStyles.discTextStyles.title.backgroundPadding, 2.2)
+  assert.equal(restoredSavedStyles.discTextStyles.title.borderEnabled, true)
+  assert.equal(restoredSavedStyles.discTextStyles.title.borderColor, '#778899')
+  assert.equal(restoredSavedStyles.discTextStyles.title.borderRadius, 1.4)
+  assert.equal(restoredSavedStyles.discTextStyles.subtitle.backgroundEnabled, false)
+})
+
 test('restores checked-in project fixtures', async () => {
   const fixturePaths = [
     'fixtures/projects/legacy-minimal-0.1.0.sbls.json',

@@ -138,6 +138,14 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from './discText'
+import {
+  createDefaultDiscTextStyles,
+  resetDiscTextStyle,
+  updateDiscTextStyleField,
+  type DiscTextStyleField,
+  type DiscTextStyleSettings,
+  type DiscTextStyleValue,
+} from './discTextStyles'
 
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -222,6 +230,9 @@ function App() {
   const [discTextTitleValue, setDiscTextTitleValue] = useState('')
   const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
     createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
+  )
+  const [discTextStyles, setDiscTextStyles] = useState<DiscTextStyleSettings>(() =>
+    createDefaultDiscTextStyles(),
   )
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
@@ -1202,6 +1213,20 @@ function App() {
     })
   }
 
+  function handleDiscTextStyleChange(
+    key: DiscTextKey,
+    field: DiscTextStyleField,
+    value: DiscTextStyleValue,
+  ) {
+    setDiscTextStyles((currentStyles) =>
+      updateDiscTextStyleField(currentStyles, key, field, value),
+    )
+  }
+
+  function handleResetDiscTextStyle(key: DiscTextKey) {
+    setDiscTextStyles((currentStyles) => resetDiscTextStyle(currentStyles, key))
+  }
+
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
     setExportGuides((currentGuides) =>
       setExportGuideSelection(currentGuides, guide, checked),
@@ -1300,6 +1325,7 @@ function App() {
     setDiscTextLayout(
       createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
     )
+    setDiscTextStyles(createDefaultDiscTextStyles())
 
     announceStatus('Started a new blank project.')
   }
@@ -1551,6 +1577,7 @@ function App() {
         discTextValueSources,
         discTextTitleValue,
         discTextLayout,
+        discTextStyles,
       })
       await writeProjectFile(path, JSON.stringify(project, null, 2))
 
@@ -1613,6 +1640,7 @@ function App() {
       setDiscTextValueSources(restoredProject.discTextValueSources)
       setDiscTextTitleValue(restoredProject.discTextTitleValue)
       setDiscTextLayout(restoredProject.discTextLayout)
+      setDiscTextStyles(restoredProject.discTextStyles)
       setBackgroundScale(restoredProject.backgroundScale)
       setBackgroundOffset(restoredProject.backgroundOffset)
       setBackgroundImageUrl(restoredProject.backgroundImageUrl)
@@ -1699,6 +1727,7 @@ function App() {
         discTextSettings,
         discTextValues,
         discTextValueSources,
+        discTextStyles,
         discTextLayout,
         manualGameTitle: resolvedDiscTextTitle,
         exportGuides,
@@ -1935,6 +1964,7 @@ function App() {
         <TextPanel
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
+          discTextStyles={discTextStyles}
           discTextValues={discTextValues}
           discTextValueSources={discTextValueSources}
           metadataBoundDiscTextValues={metadataBoundDiscTextValues}
@@ -1949,6 +1979,8 @@ function App() {
           handleDiscTextModeChange={handleDiscTextModeChange}
           handleDiscTextArcSideChange={handleDiscTextArcSideChange}
           handleResetDiscTextLayout={handleResetDiscTextLayout}
+          handleDiscTextStyleChange={handleDiscTextStyleChange}
+          handleResetDiscTextStyle={handleResetDiscTextStyle}
           steamLogoPlacement={steamLogoPlacement}
         />
 
@@ -1998,6 +2030,7 @@ function App() {
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         discTextValueSources={discTextValueSources}
+        discTextStyles={discTextStyles}
         manualGameTitle={resolvedDiscTextTitle}
         discTextLayout={discTextLayout}
         selectedDiscTemplate={selectedDiscTemplate}
