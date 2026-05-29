@@ -1,12 +1,16 @@
 import { getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { GameRatingSystem, ProjectMetadata } from '../../project/projectTypes'
+import type { SteamMetadataAssistanceState } from '../../hooks/useSteamMetadataAssistance'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
+import type { LegalTextCandidate, RatingBoardCandidate } from '../../steam/steamMetadataCandidates'
+import { MetadataAssistanceControls } from './MetadataAssistanceControls'
 
 export type GamePanelProps = {
   manualGameTitle: string
   setManualGameTitle: (value: string) => void
   projectMetadata: ProjectMetadata
   handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
+  handleProjectMetadataFieldsChange: (fields: Partial<ProjectMetadata>) => void
   gameSearchQuery: string
   setGameSearchQuery: (value: string) => void
   handleSteamSearch: () => void | Promise<void>
@@ -15,6 +19,12 @@ export type GamePanelProps = {
   selectedSteamGame: SteamImportedGame | null
   isSteamSearchLoading: boolean
   isSteamImportLoading: boolean
+  metadataAssistance: SteamMetadataAssistanceState
+  canFindMetadataCandidates: boolean
+  handleFindMetadataCandidates: () => void | Promise<void>
+  handleApplyRatingCandidate: (candidate: RatingBoardCandidate) => void
+  handleApplyLegalCandidate: (candidate: LegalTextCandidate) => void
+  handleCopyLegalCandidate: (candidate: LegalTextCandidate) => void | Promise<void>
 }
 
 export function GamePanel({
@@ -22,6 +32,7 @@ export function GamePanel({
   setManualGameTitle,
   projectMetadata,
   handleProjectMetadataChange,
+  handleProjectMetadataFieldsChange,
   gameSearchQuery,
   setGameSearchQuery,
   handleSteamSearch,
@@ -30,7 +41,21 @@ export function GamePanel({
   selectedSteamGame,
   isSteamSearchLoading,
   isSteamImportLoading,
+  metadataAssistance,
+  canFindMetadataCandidates,
+  handleFindMetadataCandidates,
+  handleApplyRatingCandidate,
+  handleApplyLegalCandidate,
+  handleCopyLegalCandidate,
 }: GamePanelProps) {
+  const getSuggestedRatingForSystem = (system: GameRatingSystem) =>
+    metadataAssistance.ratingCandidates.find(
+      (candidate) =>
+        candidate.canApply &&
+        candidate.applyKind === 'rating' &&
+        candidate.ratingSystem === system,
+    )
+
   return (
     <details className="panel collapsible-panel">
       <summary className="panel-summary">Game</summary>
@@ -220,10 +245,16 @@ export function GamePanel({
         value={projectMetadata.ratingSystem}
         onChange={(event) => {
           const nextSystem = event.target.value as GameRatingSystem
+          const suggestedRating = getSuggestedRatingForSystem(nextSystem)
+
+          if (suggestedRating) {
+            handleApplyRatingCandidate(suggestedRating)
+            return
+          }
+
           const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
 
-          handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
-          handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
+          handleProjectMetadataFieldsChange(nextMetadata)
         }}
       >
         <option value="none">None</option>
@@ -271,6 +302,17 @@ export function GamePanel({
         </>
       )}
 
+      <div className="spacing-top">
+        <MetadataAssistanceControls
+          metadataAssistance={metadataAssistance}
+          canFindMetadataCandidates={canFindMetadataCandidates}
+          handleFindMetadataCandidates={handleFindMetadataCandidates}
+          handleApplyRatingCandidate={handleApplyRatingCandidate}
+          handleApplyLegalCandidate={handleApplyLegalCandidate}
+          handleCopyLegalCandidate={handleCopyLegalCandidate}
+        />
+      </div>
+
       <label className="field-label spacing-top" htmlFor="game-metadata-install-notes">
         Install notes
       </label>
@@ -293,7 +335,7 @@ export function GamePanel({
 
 
           <p className="hint">
-            Rating values are manual for now. Steam import does not currently provide ESRB or PEGI data.
+            Rating and legal candidates are suggestions only. Keep or edit manual values when Steam data is missing or uncertain.
           </p>
         </div>
       </details>

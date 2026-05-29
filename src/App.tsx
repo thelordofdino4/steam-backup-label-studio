@@ -51,6 +51,7 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
+import { useSteamMetadataAssistance } from './hooks/useSteamMetadataAssistance'
 import { useTechnicalMarks } from './hooks/useTechnicalMarks'
 import { useTitleArtwork } from './hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from './hooks/useWebArtworkDiscovery'
@@ -63,7 +64,7 @@ import {
 } from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
-import { createDefaultProjectMetadata, updateProjectMetadataField } from './project/projectMetadata'
+import { createDefaultProjectMetadata } from './project/projectMetadata'
 import {
   createDefaultDiscTextValueSources,
   getDiscTextKeysForProjectMetadataField,
@@ -85,6 +86,13 @@ import {
 } from './project/projectVisualAssetImport'
 import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
+import {
+  getAutoApplyLegalTextCandidate,
+  getAutoApplyRatingCandidate,
+  type LegalTextCandidate,
+  type RatingBoardCandidate,
+  type SteamMetadataCandidateDiscoveryResult,
+} from './steam/steamMetadataCandidates'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
@@ -281,6 +289,16 @@ function App() {
     projectMetadata,
     selectedDiscTemplate,
     setProjectLogoAssets,
+    announceStatus,
+  })
+  const {
+    steamMetadataAssistance,
+    canFindMetadataCandidates,
+    findSteamMetadataCandidates,
+    loadImportedSteamMetadataCandidates,
+  } = useSteamMetadataAssistance({
+    selectedSteamGame,
+    projectMetadata,
     announceStatus,
   })
   const {
@@ -1244,13 +1262,13 @@ function App() {
     )
   }
 
-  function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
-    const nextProjectMetadata = updateProjectMetadataField(
-      projectMetadata,
-      field,
-      value,
-    )
-    const affectedTextKeys = getDiscTextKeysForProjectMetadataField(field)
+  function handleProjectMetadataFieldsChange(fields: Partial<ProjectMetadata>) {
+    const nextProjectMetadata = {
+      ...projectMetadata,
+      ...fields,
+    }
+    const affectedTextKeys = (Object.keys(fields) as Array<keyof ProjectMetadata>)
+      .flatMap((field) => getDiscTextKeysForProjectMetadataField(field))
     const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
       discTextValues,
       nextProjectMetadata,
@@ -1264,8 +1282,8 @@ function App() {
 
     setProjectMetadata(nextProjectMetadata)
 
-    if (field === 'title') {
-      setManualGameTitle(value)
+    if (typeof fields.title === 'string') {
+      setManualGameTitle(fields.title)
     }
 
     clampMetadataBoundDiscTextLayoutsForContent(
@@ -1273,6 +1291,208 @@ function App() {
       nextMetadataBoundValues,
       nextResolvedTitle,
     )
+  }
+
+  function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
+    handleProjectMetadataFieldsChange({ [field]: value } as Partial<ProjectMetadata>)
+  }
+
+  function setRatingBadgeEnabledForAppliedCandidate(candidate: RatingBoardCandidate) {
+    setRatingBadgeEnabled(candidate.applyKind !== 'none' && candidate.ratingSystem !== 'none')
+  }
+
+  function setRatingBadgeEnabled(enabled: boolean) {
+    setProjectRatingBadge((currentBadge) => {
+      const nextBadge = {
+        ...currentBadge,
+        layout: {
+          ...currentBadge.layout,
+          enabled,
+        },
+      }
+
+      return {
+        ...nextBadge,
+        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
+      }
+    })
+  }
+
+  function enableCurvedCopyrightDiscText() {
+    setDiscTextValueSources((currentSources) => ({
+      ...currentSources,
+      copyright: 'metadata',
+    }))
+    setDiscTextSettings((currentSettings) =>
+      updateDiscTextSetting(currentSettings, 'copyright', true),
+    )
+    setDiscTextLayout((currentLayout) =>
+      updateDiscTextMode(
+        currentLayout,
+        'copyright',
+        'curved',
+        steamLogoPlacement,
+        selectedDiscTemplate,
+      ),
+    )
+  }
+
+  function setCopyrightDiscTextEnabled(enabled: boolean) {
+    setDiscTextSettings((currentSettings) =>
+      updateDiscTextSetting(currentSettings, 'copyright', enabled),
+    )
+  }
+
+  function applyRatingCandidateToProject(
+    candidate: RatingBoardCandidate,
+    options: { announce?: boolean } = {},
+  ) {
+    if (!candidate.canApply) {
+      announceStatus('That rating candidate is informational only.')
+      return
+    }
+
+    handleProjectMetadataFieldsChange({
+      ratingSystem: candidate.ratingSystem,
+      ratingValue: candidate.ratingValue,
+    })
+    setRatingBadgeEnabledForAppliedCandidate(candidate)
+
+    if (options.announce ?? true) announceStatus(
+      candidate.applyKind === 'none'
+        ? `Using no rating badge value from ${candidate.boardLabel} candidate.`
+        : `Applied ${candidate.boardLabel} ${candidate.displayRating} to rating metadata.`,
+    )
+  }
+
+  function applyLegalCandidateToProject(
+    candidate: LegalTextCandidate,
+    options: { announce?: boolean } = {},
+  ) {
+    handleProjectMetadataFieldsChange({
+      copyrightText: candidate.text,
+    })
+    enableCurvedCopyrightDiscText()
+
+    if (options.announce ?? true) {
+      announceStatus('Applied suggested legal text and enabled curved copyright text.')
+    }
+  }
+
+  function announceAutoAppliedMetadataCandidates(
+    ratingCandidate: RatingBoardCandidate | null,
+    legalCandidate: LegalTextCandidate | null,
+  ) {
+    const appliedLabels: string[] = []
+
+    if (ratingCandidate) {
+      appliedLabels.push(`${ratingCandidate.boardLabel} ${ratingCandidate.displayRating} rating badge`)
+    }
+
+    if (legalCandidate) {
+      appliedLabels.push('curved copyright/legal text')
+    }
+
+    if (appliedLabels.length > 0) {
+      announceStatus(`Auto-applied ${appliedLabels.join(' and ')}.`)
+    }
+  }
+
+  function isRatingMetadataDefault(metadata: ProjectMetadata) {
+    return metadata.ratingSystem === 'none' && metadata.ratingValue.trim() === ''
+  }
+
+  function getAutoApplyRatingCandidateForMetadata(
+    result: SteamMetadataCandidateDiscoveryResult,
+    metadata: ProjectMetadata,
+    allowReplaceExisting: boolean,
+  ) {
+    const candidate = getAutoApplyRatingCandidate(result.ratingCandidates)
+
+    if (!candidate) return null
+    if (allowReplaceExisting || isRatingMetadataDefault(metadata)) return candidate
+
+    return null
+  }
+
+  function getAutoApplyLegalCandidateForMetadata(
+    result: SteamMetadataCandidateDiscoveryResult,
+    metadata: ProjectMetadata,
+    allowReplaceExisting: boolean,
+  ) {
+    const candidate = getAutoApplyLegalTextCandidate(result.legalCandidates)
+
+    if (!candidate) return null
+    if (allowReplaceExisting || metadata.copyrightText.trim() === '') return candidate
+
+    return null
+  }
+
+  function autoApplySteamMetadataCandidates(
+    result: SteamMetadataCandidateDiscoveryResult,
+  ) {
+    const ratingCandidate = getAutoApplyRatingCandidateForMetadata(
+      result,
+      projectMetadata,
+      false,
+    )
+    const legalCandidate = getAutoApplyLegalCandidateForMetadata(
+      result,
+      projectMetadata,
+      false,
+    )
+    const metadataFields: Partial<ProjectMetadata> = {
+      ...(ratingCandidate
+        ? {
+            ratingSystem: ratingCandidate.ratingSystem,
+            ratingValue: ratingCandidate.ratingValue,
+          }
+        : {}),
+      ...(legalCandidate
+        ? {
+            copyrightText: legalCandidate.text,
+          }
+        : {}),
+    }
+
+    if (Object.keys(metadataFields).length > 0) {
+      handleProjectMetadataFieldsChange(metadataFields)
+    }
+
+    if (ratingCandidate) setRatingBadgeEnabledForAppliedCandidate(ratingCandidate)
+    if (legalCandidate) enableCurvedCopyrightDiscText()
+
+    announceAutoAppliedMetadataCandidates(ratingCandidate, legalCandidate)
+  }
+
+  async function handleFindAndApplySteamMetadataCandidates() {
+    const result = await findSteamMetadataCandidates()
+
+    if (result) {
+      autoApplySteamMetadataCandidates(result)
+    }
+  }
+
+  function handleApplyRatingCandidate(candidate: RatingBoardCandidate) {
+    applyRatingCandidateToProject(candidate)
+  }
+
+  function handleApplyLegalCandidate(candidate: LegalTextCandidate) {
+    applyLegalCandidateToProject(candidate)
+  }
+
+  async function handleCopyLegalCandidate(candidate: LegalTextCandidate) {
+    if (!navigator.clipboard?.writeText) {
+      announceStatus('Clipboard copy is unavailable in this runtime. The legal text field remains editable.')
+      return
+    }
+
+    try {
+      await navigator.clipboard.writeText(candidate.text)
+      announceStatus('Copied suggested legal text.')
+    } catch (error) {
+      announceStatus(`Copying legal text failed: ${String(error)}`)
+    }
   }
 
   async function handleNewProject() {
@@ -1432,24 +1652,79 @@ function App() {
 
     try {
       const importedState = await createSteamGameImport(appId)
+      const metadataCandidateResult = loadImportedSteamMetadataCandidates(
+        importedState.importedGame,
+      )
+      const isDifferentSelectedSteamGame =
+        selectedSteamGame !== null &&
+        selectedSteamGame.appId !== importedState.importedGame.appId
+      const autoRatingCandidate = getAutoApplyRatingCandidateForMetadata(
+        metadataCandidateResult,
+        projectMetadata,
+        isDifferentSelectedSteamGame,
+      )
+      const autoLegalCandidate = getAutoApplyLegalCandidateForMetadata(
+        metadataCandidateResult,
+        projectMetadata,
+        isDifferentSelectedSteamGame,
+      )
       const nextProjectMetadata = applySteamGameImportToProjectMetadata(
         importedState.importedGame,
         projectMetadata,
       )
-      const nextDiscTextValues = applySteamGameImportToDiscTextValues(
+      const shouldResetGameScopedRating = isDifferentSelectedSteamGame
+      const shouldResetGameScopedLegal = isDifferentSelectedSteamGame
+      const nextProjectMetadataWithAutoApply = {
+        ...nextProjectMetadata,
+        ...(autoRatingCandidate
+          ? {
+              ratingSystem: autoRatingCandidate.ratingSystem,
+              ratingValue: autoRatingCandidate.ratingValue,
+            }
+          : shouldResetGameScopedRating
+            ? {
+                ratingSystem: 'none' as const,
+                ratingValue: '',
+              }
+            : {}),
+        ...(autoLegalCandidate
+          ? {
+              copyrightText: autoLegalCandidate.text,
+            }
+          : shouldResetGameScopedLegal
+            ? {
+                copyrightText: '',
+              }
+            : {}),
+      }
+      const shouldUpdateCopyrightDiscTextSource =
+        Boolean(autoLegalCandidate) || shouldResetGameScopedLegal
+      const nextDiscTextValueSources = shouldUpdateCopyrightDiscTextSource
+        ? {
+            ...discTextValueSources,
+            copyright: 'metadata' as const,
+          }
+        : discTextValueSources
+      const nextDiscTextValuesBase = applySteamGameImportToDiscTextValues(
         importedState.importedGame,
         discTextValues,
-        discTextValueSources,
+        nextDiscTextValueSources,
       )
+      const nextDiscTextValues = shouldUpdateCopyrightDiscTextSource
+        ? {
+            ...nextDiscTextValuesBase,
+            copyright: '',
+          }
+        : nextDiscTextValuesBase
       const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
         nextDiscTextValues,
-        nextProjectMetadata,
-        discTextValueSources,
+        nextProjectMetadataWithAutoApply,
+        nextDiscTextValueSources,
       )
       const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
         discTextTitleValue,
-        nextProjectMetadata,
-        discTextValueSources,
+        nextProjectMetadataWithAutoApply,
+        nextDiscTextValueSources,
       )
       const titleArtworkImport = await applySteamTitleArtworkImport(
         importedState.importedGame,
@@ -1457,20 +1732,36 @@ function App() {
       setSelectedSteamGame(importedState.importedGame)
       setSteamSearchResults([])
       setManualGameTitle(importedState.manualGameTitle)
-      setProjectMetadata(nextProjectMetadata)
+      setProjectMetadata(nextProjectMetadataWithAutoApply)
       setDiscTextValues(nextDiscTextValues)
+      if (shouldUpdateCopyrightDiscTextSource) {
+        setDiscTextValueSources(nextDiscTextValueSources)
+      }
+      if (autoLegalCandidate) {
+        enableCurvedCopyrightDiscText()
+      } else if (shouldResetGameScopedLegal) {
+        setCopyrightDiscTextEnabled(false)
+      }
+      if (autoRatingCandidate) {
+        setRatingBadgeEnabledForAppliedCandidate(autoRatingCandidate)
+      } else if (shouldResetGameScopedRating) {
+        setRatingBadgeEnabled(false)
+      }
       clampDiscTextLayoutForContent('title', nextResolvedTitle)
       clampMetadataBoundDiscTextLayoutsForContent(
         [
           ...getDiscTextKeysForProjectMetadataField('steamAppId'),
           ...getDiscTextKeysForProjectMetadataField('developer'),
           ...getDiscTextKeysForProjectMetadataField('publisher'),
+          ...getDiscTextKeysForProjectMetadataField('copyrightText'),
         ],
         nextMetadataBoundValues,
         nextResolvedTitle,
+        nextDiscTextValueSources,
       )
       announceStatus(importedState.statusMessage)
       announceStatus(titleArtworkImport.statusMessage)
+      announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate)
     } catch (error) {
       announceStatus(`Steam import failed: ${String(error)}`)
     } finally {
@@ -1857,6 +2148,7 @@ function App() {
           setManualGameTitle={setManualGameTitle}
           projectMetadata={projectMetadata}
           handleProjectMetadataChange={handleProjectMetadataChange}
+          handleProjectMetadataFieldsChange={handleProjectMetadataFieldsChange}
           gameSearchQuery={gameSearchQuery}
           setGameSearchQuery={setGameSearchQuery}
           handleSteamSearch={handleSteamSearch}
@@ -1865,6 +2157,12 @@ function App() {
           selectedSteamGame={selectedSteamGame}
           isSteamSearchLoading={isSteamSearchLoading}
           isSteamImportLoading={isSteamImportLoading}
+          metadataAssistance={steamMetadataAssistance}
+          canFindMetadataCandidates={canFindMetadataCandidates}
+          handleFindMetadataCandidates={handleFindAndApplySteamMetadataCandidates}
+          handleApplyRatingCandidate={handleApplyRatingCandidate}
+          handleApplyLegalCandidate={handleApplyLegalCandidate}
+          handleCopyLegalCandidate={handleCopyLegalCandidate}
         />
 
         <TemplatePanel

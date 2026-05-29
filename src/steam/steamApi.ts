@@ -27,9 +27,24 @@ export type SteamImportedGame = {
   categories: string[]
   minimumRequirements?: string
   recommendedRequirements?: string
+  legalNotice?: string
+  ratings?: SteamRatingBoardMap
+  website?: string
   storeUrl: string
   artwork: SteamArtworkAsset[]
 }
+
+export type SteamRatingBoardData = {
+  rating?: string
+  descriptors?: string
+  required_age?: string
+  use_age_gate?: string
+  rating_generated?: string
+  banned?: string
+  [key: string]: unknown
+}
+
+export type SteamRatingBoardMap = Record<string, SteamRatingBoardData>
 
 type DownloadedArtwork = {
   content_type: string
@@ -67,6 +82,9 @@ type SteamAppDetailsResponse = Record<
         minimum?: string
         recommended?: string
       }
+      legal_notice?: string
+      ratings?: SteamRatingBoardMap
+      website?: string
       header_image?: string
       capsule_image?: string
       background_raw?: string
@@ -219,9 +237,16 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
     categories: (data.categories ?? []).map((category) => category.description),
     minimumRequirements: data.pc_requirements?.minimum,
     recommendedRequirements: data.pc_requirements?.recommended,
+    legalNotice: data.legal_notice,
+    ratings: data.ratings,
+    website: data.website,
     storeUrl: `https://store.steampowered.com/app/${appId}`,
     artwork,
   }
+}
+
+export async function fetchSteamPageHtml(url: string) {
+  return invoke<string>('fetch_steam_page_html', { url })
 }
 
 export async function downloadSteamArtworkAsDataUrl(url: string) {

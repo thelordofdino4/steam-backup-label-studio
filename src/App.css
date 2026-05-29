@@ -1121,6 +1121,78 @@ input:disabled {
   overflow-wrap: anywhere;
 }
 
+.metadata-assistance {
+  display: grid;
+  gap: 10px;
+}
+
+.metadata-source-status-list,
+.metadata-candidate-list {
+  display: grid;
+  gap: 8px;
+}
+
+.metadata-source-status {
+  margin: 0;
+}
+
+.metadata-assistance-error {
+  color: #fca5a5;
+}
+
+.metadata-candidate-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.metadata-candidate-details {
+  min-width: 0;
+}
+
+.metadata-candidate-title,
+.metadata-candidate-meta,
+.metadata-candidate-reasons {
+  display: block;
+}
+
+.metadata-candidate-title {
+  color: #e5e7eb;
+  font-size: 13px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.metadata-candidate-meta,
+.metadata-candidate-reasons {
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.metadata-legal-snippet {
+  max-height: 140px;
+  margin: 8px 0 0;
+  overflow: auto;
+  color: #d1d5db;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.metadata-candidate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metadata-candidate-action {
+  width: fit-content;
+}
+
 .disc-logo-asset-layer {
   position: absolute;
   inset: 0;
