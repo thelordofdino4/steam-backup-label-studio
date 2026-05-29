@@ -9,7 +9,9 @@ import {
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset } from '../../project/projectMediaMark'
 import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
+import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
 
@@ -34,6 +36,9 @@ export type BrandingPanelProps = {
   handleSteamBannerColorChange: (field: keyof SteamBannerColors, value: string) => void
   handleResetSteamBannerColors: () => void
   handleLogoAssetUpload: (logoKey: 'developer' | 'publisher', event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  logoCandidateDiscovery: LogoCandidateDiscoveryState
+  handleFindLogoCandidates: (logoKey: 'developer' | 'publisher') => void | Promise<void>
+  handleApplyLogoCandidate: (logoKey: 'developer' | 'publisher', candidate: RemoteLogoCandidate) => void | Promise<void>
   handleLogoAssetLayoutChange: (logoKey: 'developer' | 'publisher', field: keyof LogoAssetLayout, value: boolean | number) => void
   handleClearLogoAsset: (logoKey: 'developer' | 'publisher') => void
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
@@ -80,6 +85,79 @@ function formatLogoSize(size: BackgroundImageSize | null) {
 
 function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
   return Number(event.currentTarget.value)
+}
+
+function formatSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
+  switch (sourceKind) {
+    case 'steam-avatar':
+      return 'Steam avatar'
+    case 'steam-meta-image':
+      return 'Steam metadata'
+    case 'steam-img':
+      return 'Steam image'
+  }
+}
+
+function formatCandidateDimensions(candidate: RemoteLogoCandidate) {
+  return candidate.width && candidate.height ? ` · ${candidate.width}x${candidate.height}` : ''
+}
+
+function LogoCandidateList({
+  logoKey,
+  label,
+  discovery,
+  handleFindLogoCandidates,
+  handleApplyLogoCandidate,
+}: {
+  logoKey: LogoKey
+  label: string
+  discovery: LogoCandidateDiscoveryState[LogoKey]
+  handleFindLogoCandidates: (logoKey: LogoKey) => void | Promise<void>
+  handleApplyLogoCandidate: (logoKey: LogoKey, candidate: RemoteLogoCandidate) => void | Promise<void>
+}) {
+  return (
+    <div className="logo-candidate-discovery">
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={discovery.isLoading || discovery.isApplying}
+        onClick={() => handleFindLogoCandidates(logoKey)}
+      >
+        {discovery.isLoading ? 'Finding logo candidates...' : 'Find logo candidates'}
+      </button>
+
+      {discovery.error ? <p className="hint logo-candidate-error">{discovery.error}</p> : null}
+
+      {!discovery.isLoading && discovery.lastSearchedLabel && discovery.candidates.length === 0 && !discovery.error ? (
+        <p className="hint">No Steam logo candidates found for {discovery.lastSearchedLabel}. Manual upload is still available.</p>
+      ) : null}
+
+      {discovery.candidates.length > 0 ? (
+        <div className="logo-candidate-list">
+          {discovery.candidates.map((candidate) => (
+            <div className="logo-candidate-row" key={candidate.id}>
+              <img className="logo-candidate-preview" src={candidate.url} alt={candidate.alt ?? candidate.label} draggable={false} />
+              <div className="logo-candidate-details">
+                <span className="logo-candidate-title">{candidate.label}</span>
+                <span className="logo-candidate-meta">
+                  {formatSourceKind(candidate.sourceKind)} · {candidate.fileType.toUpperCase()} · score {candidate.score}{formatCandidateDimensions(candidate)}
+                </span>
+                <span className="logo-candidate-reasons">{candidate.reasons.slice(0, 4).join(', ')}</span>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  disabled={discovery.isApplying}
+                  onClick={() => handleApplyLogoCandidate(logoKey, candidate)}
+                >
+                  {discovery.isApplying ? 'Importing candidate...' : `Use as ${label.toLowerCase()} logo`}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function SteamBannerControls({
@@ -178,7 +256,7 @@ function SteamBannerControls({
   )
 }
 
-function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, selectedDiscTemplate, handleLogoAssetUpload, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
+function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, selectedDiscTemplate, handleLogoAssetUpload, logoCandidateDiscovery, handleFindLogoCandidates, handleApplyLogoCandidate, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
   const uploadId = `${logoKey}-logo-upload`
   const hasLogoImage = Boolean(imageDataUrl)
   const sliderRanges = getLogoAssetLayoutSliderRanges(
@@ -198,6 +276,14 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, se
         <>
           <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
           <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event)} />
+
+          <LogoCandidateList
+            logoKey={logoKey}
+            label={label}
+            discovery={logoCandidateDiscovery[logoKey]}
+            handleFindLogoCandidates={handleFindLogoCandidates}
+            handleApplyLogoCandidate={handleApplyLogoCandidate}
+          />
 
           {hasLogoImage ? (
             <div className="selected-lockup-card logo-asset-status-card">

@@ -1,0 +1,188 @@
+import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
+import { applyImportedLogoAsset } from '../project/projectVisualAssetImport'
+import type { LogoAssetKey } from '../project/projectLogoAssets'
+import type { ProjectLogoAssets, ProjectMetadata } from '../project/projectTypes'
+import { discoverSteamLogoCandidates, type RemoteLogoCandidate } from '../steam/steamLogoCandidates'
+import { downloadSteamArtworkAsDataUrl, type SteamImportedGame } from '../steam/steamApi'
+import type { DiscTemplate } from '../types/template'
+import { createImportedImageAssetFromDataUrl } from '../utils/importedImageAsset'
+
+export type LogoCandidateDiscoverySlot = {
+  candidates: RemoteLogoCandidate[]
+  isLoading: boolean
+  isApplying: boolean
+  error: string | null
+  lastSearchedLabel: string | null
+  inputKey: string | null
+}
+
+export type LogoCandidateDiscoveryState = Record<LogoAssetKey, LogoCandidateDiscoverySlot>
+
+type UseLogoAssetDiscoveryParams = {
+  selectedSteamGame: SteamImportedGame | null
+  projectMetadata: ProjectMetadata
+  selectedDiscTemplate: DiscTemplate
+  setProjectLogoAssets: Dispatch<SetStateAction<ProjectLogoAssets>>
+  announceStatus: (message: string) => void
+}
+
+const EMPTY_DISCOVERY_SLOT: LogoCandidateDiscoverySlot = {
+  candidates: [],
+  isLoading: false,
+  isApplying: false,
+  error: null,
+  lastSearchedLabel: null,
+  inputKey: null,
+}
+
+function createInitialDiscoveryState(): LogoCandidateDiscoveryState {
+  return {
+    developer: { ...EMPTY_DISCOVERY_SLOT },
+    publisher: { ...EMPTY_DISCOVERY_SLOT },
+  }
+}
+
+function getLogoEntityLabel(
+  logoKey: LogoAssetKey,
+  selectedSteamGame: SteamImportedGame | null,
+  projectMetadata: ProjectMetadata,
+) {
+  const steamNames = logoKey === 'developer'
+    ? selectedSteamGame?.developer ?? []
+    : selectedSteamGame?.publisher ?? []
+  const metadataName = logoKey === 'developer'
+    ? projectMetadata.developer
+    : projectMetadata.publisher
+  const names = [...steamNames, metadataName].map((name) => name.trim()).filter(Boolean)
+
+  return names[0] ?? logoKey
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : String(error)
+}
+
+export function useLogoAssetDiscovery({
+  selectedSteamGame,
+  projectMetadata,
+  selectedDiscTemplate,
+  setProjectLogoAssets,
+  announceStatus,
+}: UseLogoAssetDiscoveryParams) {
+  const [logoCandidateDiscovery, setLogoCandidateDiscovery] =
+    useState<LogoCandidateDiscoveryState>(() => createInitialDiscoveryState())
+  const discoveryInputKey = [
+    selectedSteamGame?.appId ?? projectMetadata.steamAppId,
+    projectMetadata.developer,
+    projectMetadata.publisher,
+  ].join('|')
+
+  const updateSlot = useCallback((
+    logoKey: LogoAssetKey,
+    updater: (slot: LogoCandidateDiscoverySlot) => LogoCandidateDiscoverySlot,
+  ) => {
+    setLogoCandidateDiscovery((currentState) => ({
+      ...currentState,
+      [logoKey]: updater(currentState[logoKey]),
+    }))
+  }, [])
+
+  const findLogoCandidates = useCallback(async (logoKey: LogoAssetKey) => {
+    const lastSearchedLabel = getLogoEntityLabel(logoKey, selectedSteamGame, projectMetadata)
+
+    updateSlot(logoKey, (slot) => ({
+      ...slot,
+      isLoading: true,
+      error: null,
+      lastSearchedLabel,
+      inputKey: discoveryInputKey,
+    }))
+
+    try {
+      const candidates = await discoverSteamLogoCandidates({
+        logoKey,
+        selectedSteamGame,
+        projectMetadata,
+      })
+
+      updateSlot(logoKey, (slot) => ({
+        ...slot,
+        candidates,
+        isLoading: false,
+        error: null,
+        inputKey: discoveryInputKey,
+      }))
+
+      announceStatus(
+        candidates.length > 0
+          ? `Found ${candidates.length} Steam logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
+          : `No Steam logo candidates found for ${lastSearchedLabel}.`,
+      )
+    } catch (error) {
+      const message = getErrorMessage(error)
+      updateSlot(logoKey, (slot) => ({
+        ...slot,
+        isLoading: false,
+        error: message,
+        inputKey: discoveryInputKey,
+      }))
+      announceStatus(`Logo candidate search failed: ${message}`)
+    }
+  }, [announceStatus, discoveryInputKey, projectMetadata, selectedSteamGame, updateSlot])
+
+  const applyLogoCandidate = useCallback(async (
+    logoKey: LogoAssetKey,
+    candidate: RemoteLogoCandidate,
+  ) => {
+    updateSlot(logoKey, (slot) => ({
+      ...slot,
+      isApplying: true,
+      error: null,
+    }))
+
+    try {
+      const imageDataUrl = await downloadSteamArtworkAsDataUrl(candidate.url)
+      const importedImage = await createImportedImageAssetFromDataUrl(
+        imageDataUrl,
+        candidate.label,
+      )
+
+      setProjectLogoAssets((currentLogoAssets) =>
+        applyImportedLogoAsset(
+          currentLogoAssets,
+          logoKey,
+          importedImage,
+          selectedDiscTemplate,
+        ),
+      )
+
+      updateSlot(logoKey, (slot) => ({
+        ...slot,
+        isApplying: false,
+        error: null,
+      }))
+      announceStatus(`Using ${candidate.label} as the ${logoKey} logo.`)
+    } catch (error) {
+      const message = getErrorMessage(error)
+      updateSlot(logoKey, (slot) => ({
+        ...slot,
+        isApplying: false,
+        error: message,
+      }))
+      announceStatus(`Logo candidate import failed: ${message}`)
+    }
+  }, [announceStatus, selectedDiscTemplate, setProjectLogoAssets, updateSlot])
+
+  return {
+    logoCandidateDiscovery: {
+      developer: logoCandidateDiscovery.developer.inputKey === discoveryInputKey
+        ? logoCandidateDiscovery.developer
+        : { ...EMPTY_DISCOVERY_SLOT },
+      publisher: logoCandidateDiscovery.publisher.inputKey === discoveryInputKey
+        ? logoCandidateDiscovery.publisher
+        : { ...EMPTY_DISCOVERY_SLOT },
+    },
+    findLogoCandidates,
+    applyLogoCandidate,
+  }
+}

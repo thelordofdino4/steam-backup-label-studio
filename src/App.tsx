@@ -47,6 +47,7 @@ import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from './components/sidebar/ProjectPanel'
 import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
+import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import {
   BackgroundImageLoadError,
@@ -218,6 +219,17 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
+  const {
+    logoCandidateDiscovery,
+    findLogoCandidates,
+    applyLogoCandidate,
+  } = useLogoAssetDiscovery({
+    selectedSteamGame,
+    projectMetadata,
+    selectedDiscTemplate,
+    setProjectLogoAssets,
+    announceStatus,
+  })
   const backgroundPreviewSize = useMemo(
     () => getBackgroundPreviewSize(backgroundImageSize),
     [backgroundImageSize],
@@ -1667,6 +1679,9 @@ function App() {
           handleSteamBannerColorChange={handleSteamBannerColorChange}
           handleResetSteamBannerColors={handleResetSteamBannerColors}
           handleLogoAssetUpload={handleLogoAssetUpload}
+          logoCandidateDiscovery={logoCandidateDiscovery}
+          handleFindLogoCandidates={findLogoCandidates}
+          handleApplyLogoCandidate={applyLogoCandidate}
           handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
           handleClearLogoAsset={handleClearLogoAsset}
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
