@@ -53,6 +53,7 @@ import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { useTechnicalMarks } from './hooks/useTechnicalMarks'
 import { useTitleArtwork } from './hooks/useTitleArtwork'
+import { useWebArtworkDiscovery } from './hooks/useWebArtworkDiscovery'
 import {
   BackgroundImageLoadError,
   createLocalSteamScreenshotBackgroundImport,
@@ -280,6 +281,16 @@ function App() {
     projectMetadata,
     selectedDiscTemplate,
     setProjectLogoAssets,
+    announceStatus,
+  })
+  const {
+    webArtworkDiscovery,
+    findWebArtworkCandidates,
+    applyWebArtworkCandidate,
+  } = useWebArtworkDiscovery({
+    selectedSteamGame,
+    projectMetadata,
+    applyBackgroundImageImport,
     announceStatus,
   })
   const backgroundPreviewSize = useMemo(
@@ -1871,6 +1882,9 @@ function App() {
           selectedArtworkId={selectedArtworkId}
           isArtworkLoading={isArtworkLoading}
           handleUseSteamArtwork={handleUseSteamArtwork}
+          webArtworkDiscovery={webArtworkDiscovery}
+          handleFindWebArtworkCandidates={findWebArtworkCandidates}
+          handleUseWebArtworkCandidate={applyWebArtworkCandidate}
           localSteamScreenshots={localSteamScreenshots}
           localSteamScreenshotThumbnails={localSteamScreenshotThumbnails}
           hasCheckedLocalSteamScreenshots={hasCheckedLocalSteamScreenshots}

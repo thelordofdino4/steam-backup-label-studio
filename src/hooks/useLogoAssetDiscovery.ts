@@ -14,6 +14,7 @@ import { createImportedImageAssetFromDataUrl } from '../utils/importedImageAsset
 
 export type LogoCandidateDiscoverySlot = {
   candidates: RemoteLogoCandidate[]
+  artworkCandidates: RemoteLogoCandidate[]
   sourceStatuses: LogoCandidateSourceStatus[]
   isLoading: boolean
   isApplying: boolean
@@ -34,6 +35,7 @@ type UseLogoAssetDiscoveryParams = {
 
 const EMPTY_DISCOVERY_SLOT: LogoCandidateDiscoverySlot = {
   candidates: [],
+  artworkCandidates: [],
   sourceStatuses: [],
   isLoading: false,
   isApplying: false,
@@ -111,11 +113,12 @@ export function useLogoAssetDiscovery({
         selectedSteamGame,
         projectMetadata,
       })
-      const { candidates, sourceStatuses } = discoveryResult
+      const { candidates, artworkCandidates, sourceStatuses } = discoveryResult
 
       updateSlot(logoKey, (slot) => ({
         ...slot,
         candidates,
+        artworkCandidates,
         sourceStatuses,
         isLoading: false,
         error: null,

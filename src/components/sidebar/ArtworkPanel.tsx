@@ -8,6 +8,7 @@ import type {
   BackgroundOffsetSliderRanges,
 } from '../../backgroundImage'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
+import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import { getTitleArtworkLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import {
@@ -21,6 +22,7 @@ import type {
   BackgroundOffset,
   ProjectTitleArtwork,
 } from '../../project/projectTypes'
+import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
 import type { DiscTemplate } from '../../types/template'
 
@@ -29,6 +31,9 @@ export type ArtworkPanelProps = {
   selectedArtworkId: string | null
   isArtworkLoading: boolean
   handleUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
+  webArtworkDiscovery: WebArtworkDiscoveryState
+  handleFindWebArtworkCandidates: () => void | Promise<void>
+  handleUseWebArtworkCandidate: (candidate: RemoteLogoCandidate) => void | Promise<void>
   localSteamScreenshots: LocalSteamScreenshotAsset[]
   localSteamScreenshotThumbnails: Record<string, string>
   hasCheckedLocalSteamScreenshots: boolean
@@ -83,6 +88,33 @@ function formatArtworkKind(kind: SteamArtworkAsset['kind']) {
   }
 }
 
+function formatWebArtworkSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
+  switch (sourceKind) {
+    case 'official-img':
+      return 'Official site image'
+    case 'official-srcset':
+      return 'Official srcset'
+    case 'official-css-background':
+      return 'Official CSS image'
+    case 'official-meta-image':
+      return 'Official metadata image'
+    case 'steam-meta-image':
+      return 'Steam metadata image'
+    case 'steam-img':
+      return 'Steam page image'
+    case 'steam-avatar':
+      return 'Steam creator image'
+    case 'favicon':
+      return 'Site icon'
+    default:
+      return sourceKind
+  }
+}
+
+function formatCandidateDimensions(candidate: RemoteLogoCandidate) {
+  return candidate.width && candidate.height ? ` · ${candidate.width} x ${candidate.height}px` : ''
+}
+
 function formatModifiedDate(modifiedUnixSeconds?: number) {
   if (!modifiedUnixSeconds) {
     return null
@@ -97,6 +129,72 @@ function formatTitleArtworkSize(size: ProjectTitleArtwork['imageSize']) {
 
 function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
   return Number(event.currentTarget.value)
+}
+
+function WebArtworkCandidateSection({
+  webArtworkDiscovery,
+  handleFindWebArtworkCandidates,
+  handleUseWebArtworkCandidate,
+}: Pick<
+  ArtworkPanelProps,
+  | 'webArtworkDiscovery'
+  | 'handleFindWebArtworkCandidates'
+  | 'handleUseWebArtworkCandidate'
+>) {
+  return (
+    <div className="artwork-import-section spacing-top">
+      <h3 className="artwork-import-heading">Web artwork</h3>
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={webArtworkDiscovery.isLoading || webArtworkDiscovery.isApplying}
+        onClick={() => void handleFindWebArtworkCandidates()}
+      >
+        {webArtworkDiscovery.isLoading ? 'Finding web artwork...' : 'Import web artwork'}
+      </button>
+
+      {webArtworkDiscovery.error ? (
+        <p className="hint logo-candidate-error">{webArtworkDiscovery.error}</p>
+      ) : null}
+
+      {webArtworkDiscovery.hasSearched &&
+        !webArtworkDiscovery.isLoading &&
+        webArtworkDiscovery.candidates.length === 0 &&
+        !webArtworkDiscovery.error ? (
+          <p className="hint">No web artwork candidates found.</p>
+        ) : null}
+
+      {webArtworkDiscovery.candidates.length > 0 ? (
+        <div className="search-results">
+          {webArtworkDiscovery.candidates.map((candidate) => (
+            <button
+              className="search-result-button artwork-asset-button"
+              key={candidate.id}
+              type="button"
+              disabled={webArtworkDiscovery.isApplying}
+              onClick={() => void handleUseWebArtworkCandidate(candidate)}
+            >
+              <img
+                className="artwork-asset-thumbnail"
+                src={candidate.previewUrl ?? candidate.url}
+                alt=""
+                loading="lazy"
+                draggable={false}
+              />
+              <span className="artwork-asset-copy">
+                <strong>{candidate.label}</strong>
+                <span>
+                  Source: {formatWebArtworkSourceKind(candidate.sourceKind)}
+                  {formatCandidateDimensions(candidate)}
+                </span>
+                <span>{candidate.reasons.slice(0, 3).join(', ')}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  )
 }
 
 function ImportedSteamArtworkSection({
@@ -302,6 +400,7 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
       {!isBackgroundArtworkEnabled ? null : (
         <>
           <ImportedSteamArtworkSection {...props} />
+          <WebArtworkCandidateSection {...props} />
           <LocalSteamScreenshotSection {...props} />
 
           <div className="artwork-import-section spacing-top">
