@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="180" viewBox="0 0 480 180" role="img" aria-label="Developer logo placeholder">
+  <title>Developer logo placeholder</title>
+  <rect width="480" height="180" rx="24" fill="#111827"/>
+  <rect x="12" y="12" width="456" height="156" rx="18" fill="none" stroke="#f9fafb" stroke-width="8"/>
+  <text x="240" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#f9fafb">DEVELOPER</text>
+  <text x="240" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="800" fill="#cbd5e1">LOGO PLACEHOLDER</text>
+</svg>

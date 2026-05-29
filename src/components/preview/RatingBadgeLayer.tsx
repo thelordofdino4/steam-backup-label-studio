@@ -3,13 +3,15 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
 } from '../../discGeometry'
-import { buildRatingBadgePlaceholderSvg } from '../../discPlaceholderSvg'
+import {
+  getRatingBadgePlaceholderImageUrl,
+  getRatingBadgePlaceholderTextColor,
+} from '../../discPlaceholderAssets'
 import {
   shouldRenderRatingBadge,
   shouldUseCustomRatingBadgeImage,
 } from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
-import { createSvgDataUrl } from '../../svgUtils'
 
 export type RatingBadgeLayerProps = {
   projectMetadata: ProjectMetadata
@@ -53,7 +55,8 @@ export function RatingBadgeLayer({
     height: '100%',
     maxHeight: 'none',
   }
-  const placeholderDataUrl = createSvgDataUrl(buildRatingBadgePlaceholderSvg(projectMetadata))
+  const placeholderImageUrl = getRatingBadgePlaceholderImageUrl(projectMetadata)
+  const placeholderTextColor = getRatingBadgePlaceholderTextColor(projectMetadata)
 
   return (
     <div
@@ -79,13 +82,34 @@ export function RatingBadgeLayer({
           style={fillLayerSize}
         />
       ) : (
-        <img
-          className="disc-rating-badge-image disc-placeholder-svg-image"
-          src={placeholderDataUrl}
-          alt={`${placeholderLabel} rating placeholder`}
-          draggable={false}
-          style={fillLayerSize}
-        />
+        <>
+          <img
+            className="disc-rating-badge-image disc-placeholder-svg-image"
+            src={placeholderImageUrl}
+            alt={`${placeholderLabel} rating placeholder`}
+            draggable={false}
+            style={fillLayerSize}
+          />
+          <svg
+            className="disc-rating-badge-text-overlay"
+            viewBox="0 0 90 130"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <text
+              x="45"
+              y="66"
+              fill={placeholderTextColor}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontFamily="Arial, sans-serif"
+              fontSize="36"
+              fontWeight="900"
+            >
+              {placeholderLabel}
+            </text>
+          </svg>
+        </>
       )}
     </div>
   )

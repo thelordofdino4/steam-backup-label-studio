@@ -1,4 +1,5 @@
 import { getDefaultLogoAssetLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import { LOGO_PLACEHOLDER_IMAGE_URLS } from '../discPlaceholderAssets.ts'
 import type { DiscTemplate } from '../types/template'
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from './projectTypes'
 
@@ -15,22 +16,11 @@ export const LOGO_PLACEHOLDER_SIZE: BackgroundImageSize = {
   height: 180,
 }
 
-function createLogoPlaceholderDataUrl(label: string) {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${LOGO_PLACEHOLDER_SIZE.width}" height="${LOGO_PLACEHOLDER_SIZE.height}" viewBox="0 0 ${LOGO_PLACEHOLDER_SIZE.width} ${LOGO_PLACEHOLDER_SIZE.height}"><rect width="480" height="180" rx="24" fill="#111827"/><rect x="12" y="12" width="456" height="156" rx="18" fill="none" stroke="#f9fafb" stroke-width="8"/><text x="240" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="900" fill="#f9fafb">${label}</text><text x="240" y="126" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="800" fill="#cbd5e1">LOGO PLACEHOLDER</text></svg>`
-
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`
-}
-
-const LOGO_PLACEHOLDER_DATA_URLS: Record<LogoAssetKey, string> = {
-  developer: createLogoPlaceholderDataUrl('DEVELOPER'),
-  publisher: createLogoPlaceholderDataUrl('PUBLISHER'),
-}
-
 export function getLogoAssetRenderDataUrl(
   logoKey: LogoAssetKey,
   imageDataUrl: string | null,
 ) {
-  return imageDataUrl ?? LOGO_PLACEHOLDER_DATA_URLS[logoKey]
+  return imageDataUrl ?? LOGO_PLACEHOLDER_IMAGE_URLS[logoKey]
 }
 
 export function getLogoAssetRenderSize(imageSize: BackgroundImageSize | null) {

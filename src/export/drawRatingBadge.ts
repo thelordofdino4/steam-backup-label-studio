@@ -7,8 +7,10 @@ import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
 } from '../discGeometry'
-import { buildRatingBadgePlaceholderSvg } from '../discPlaceholderSvg'
-import { createSvgDataUrl } from '../svgUtils'
+import {
+  getRatingBadgePlaceholderImageUrl,
+  getRatingBadgePlaceholderTextColor,
+} from '../discPlaceholderAssets'
 import { loadImage } from './canvasImage'
 
 function getPlaceholderLabel(metadata: ProjectMetadata) {
@@ -36,9 +38,16 @@ async function drawPlaceholderRatingBadge(
   const height = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
   const x = discOrigin + discContentSize * (badge.layout.x / 100) - width / 2
   const y = discOrigin + discContentSize * (badge.layout.y / 100) - height / 2
-  const image = await loadImage(createSvgDataUrl(buildRatingBadgePlaceholderSvg(metadata)))
+  const image = await loadImage(getRatingBadgePlaceholderImageUrl(metadata))
 
   context.drawImage(image, x, y, width, height)
+  context.save()
+  context.fillStyle = getRatingBadgePlaceholderTextColor(metadata)
+  context.font = `900 ${height * (36 / 130)}px Arial, sans-serif`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(label, x + width * (45 / 90), y + height * (66 / 130))
+  context.restore()
 }
 
 async function drawCustomRatingBadge(

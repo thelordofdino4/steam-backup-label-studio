@@ -168,7 +168,7 @@ function getRatingBadgeWarnings(
     metadata.ratingSystem !== 'none' &&
     metadata.ratingValue.trim()
   ) {
-    warnings.push('Rating badge uses generated placeholder artwork.')
+    warnings.push('Rating badge uses bundled placeholder artwork.')
   }
 
   return warnings

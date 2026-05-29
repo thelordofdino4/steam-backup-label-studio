@@ -291,7 +291,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, se
               <span>{label} logo active{formatLogoSize(imageSize)}</span>
             </div>
           ) : (
-            <p className="hint">No {label.toLowerCase()} logo image is selected yet. A temporary placeholder is shown for placement; upload an image before export to render your actual logo.</p>
+            <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled placeholder is shown for placement; upload an image before export to render your actual logo.</p>
           )}
 
           <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
@@ -393,7 +393,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
                   <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom badge image is selected yet. The generated badge placeholder is used when a rating system and value are set.</p>}
+              ) : <p className="hint">No custom badge image is selected yet. The bundled badge placeholder is used when a rating system and value are set.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder badge.</p>}
 
@@ -452,7 +452,7 @@ function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMedia
                   <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom media mark image is selected yet. The generated mark placeholder remains visible until you upload an image.</p>}
+              ) : <p className="hint">No custom media mark image is selected yet. The bundled mark placeholder remains visible until you upload an image.</p>}
             </>
           ) : <p className="hint">Using the built-in placeholder mark.</p>}
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
@@ -526,9 +526,9 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
                         <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
                         <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
                       </div>
-                    ) : <p className="hint">No custom {label} platform image is selected yet. The generated platform placeholder remains visible until you upload an image.</p>}
+                    ) : <p className="hint">No custom {label} platform image is selected yet. The bundled platform placeholder remains visible until you upload an image.</p>}
                   </>
-                ) : <p className="hint">Using a generic internal placeholder.</p>}
+                ) : <p className="hint">Using a bundled placeholder.</p>}
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
                 <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>

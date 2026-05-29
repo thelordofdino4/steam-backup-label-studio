@@ -6,9 +6,9 @@ import {
   type RenderBoundsPercent,
 } from './discGeometry'
 import {
-  buildMediaMarkPlaceholderSvg,
-  buildPlatformMarkPlaceholderSvg,
-} from './discPlaceholderSvg'
+  getMediaMarkPlaceholderImageUrl,
+  getPlatformMarkPlaceholderImageUrl,
+} from './discPlaceholderAssets'
 import {
   getMediaMarkLabel,
   getPlatformMarkLabel,
@@ -22,7 +22,6 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
 } from './project/projectTypes'
-import { createSvgDataUrl } from './svgUtils'
 
 export type MediaMarkRenderModel = {
   imageDataUrl: string
@@ -74,7 +73,7 @@ export function createMediaMarkRenderModel(
   return {
     imageDataUrl: isCustomImage
       ? customImageDataUrl
-      : createSvgDataUrl(buildMediaMarkPlaceholderSvg(mediaMark.value)),
+      : getMediaMarkPlaceholderImageUrl(mediaMark.value),
     isPlaceholderImage: !isCustomImage,
     label,
     alt: isCustomImage ? label : `${label} media mark placeholder`,
@@ -107,7 +106,7 @@ export function createPlatformMarkRenderModels(
       asset,
       imageDataUrl: isCustomImage
         ? customImageDataUrl
-        : createSvgDataUrl(buildPlatformMarkPlaceholderSvg(value)),
+        : getPlatformMarkPlaceholderImageUrl(value),
       isPlaceholderImage: !isCustomImage,
       label,
       alt: isCustomImage ? label : `${label} platform mark placeholder`,
