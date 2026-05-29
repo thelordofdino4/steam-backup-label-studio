@@ -2,13 +2,19 @@ import { useCallback, useState, type Dispatch, type SetStateAction } from 'react
 import { applyImportedLogoAsset } from '../project/projectVisualAssetImport'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { ProjectLogoAssets, ProjectMetadata } from '../project/projectTypes'
-import { discoverSteamLogoCandidates, type RemoteLogoCandidate } from '../steam/steamLogoCandidates'
-import { downloadSteamArtworkAsDataUrl, type SteamImportedGame } from '../steam/steamApi'
+import {
+  discoverLogoCandidates,
+  downloadRemoteLogoCandidateAsDataUrl,
+  type LogoCandidateSourceStatus,
+  type RemoteLogoCandidate,
+} from '../steam/steamLogoCandidates'
+import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import { createImportedImageAssetFromDataUrl } from '../utils/importedImageAsset'
 
 export type LogoCandidateDiscoverySlot = {
   candidates: RemoteLogoCandidate[]
+  sourceStatuses: LogoCandidateSourceStatus[]
   isLoading: boolean
   isApplying: boolean
   error: string | null
@@ -28,6 +34,7 @@ type UseLogoAssetDiscoveryParams = {
 
 const EMPTY_DISCOVERY_SLOT: LogoCandidateDiscoverySlot = {
   candidates: [],
+  sourceStatuses: [],
   isLoading: false,
   isApplying: false,
   error: null,
@@ -99,15 +106,17 @@ export function useLogoAssetDiscovery({
     }))
 
     try {
-      const candidates = await discoverSteamLogoCandidates({
+      const discoveryResult = await discoverLogoCandidates({
         logoKey,
         selectedSteamGame,
         projectMetadata,
       })
+      const { candidates, sourceStatuses } = discoveryResult
 
       updateSlot(logoKey, (slot) => ({
         ...slot,
         candidates,
+        sourceStatuses,
         isLoading: false,
         error: null,
         inputKey: discoveryInputKey,
@@ -115,8 +124,8 @@ export function useLogoAssetDiscovery({
 
       announceStatus(
         candidates.length > 0
-          ? `Found ${candidates.length} Steam logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
-          : `No Steam logo candidates found for ${lastSearchedLabel}.`,
+          ? `Found ${candidates.length} logo candidate${candidates.length === 1 ? '' : 's'} for ${lastSearchedLabel}.`
+          : `No logo candidates found for ${lastSearchedLabel}. Manual upload is still available.`,
       )
     } catch (error) {
       const message = getErrorMessage(error)
@@ -142,7 +151,7 @@ export function useLogoAssetDiscovery({
     }))
 
     try {
-      const imageDataUrl = await downloadSteamArtworkAsDataUrl(candidate.url)
+      const imageDataUrl = await downloadRemoteLogoCandidateAsDataUrl(candidate)
       const importedImage = await createImportedImageAssetFromDataUrl(
         imageDataUrl,
         candidate.label,

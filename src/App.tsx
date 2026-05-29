@@ -36,6 +36,7 @@ import {
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from './layout/discElementSafeZone'
+import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeometryGuardrail'
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
@@ -51,6 +52,7 @@ import { TextPanel } from './components/sidebar/TextPanel'
 import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { useTechnicalMarks } from './hooks/useTechnicalMarks'
+import { useTitleArtwork } from './hooks/useTitleArtwork'
 import {
   BackgroundImageLoadError,
   createLocalSteamScreenshotBackgroundImport,
@@ -99,11 +101,16 @@ import {
 } from './steamBanner'
 import {
   DEFAULT_BACKGROUND_SCALE,
+  clampBackgroundOffsetToImageBounds,
   createEmptyBackgroundImageState,
   createDefaultBackgroundOffset,
+  getBackgroundOffsetSliderRanges,
   getBackgroundPreviewSize,
+  updateBackgroundOffsetField,
   updateBackgroundScale,
+  type BackgroundOffsetField,
 } from './backgroundImage'
+import { getBackgroundFitToSteamBannerOpenArea } from './layout/backgroundArtworkFit'
 import { isImageFile, readImportedImageAssetFromFile } from './utils/importedImageAsset'
 import { useDiscPreviewPointerDrag } from './interaction/useDiscPreviewPointerDrag'
 import {
@@ -167,6 +174,8 @@ function App() {
   const [backgroundOffset, setBackgroundOffset] = useState<BackgroundOffset>({
     ...createDefaultBackgroundOffset(),
   })
+  const [isBackgroundArtworkEnabled, setIsBackgroundArtworkEnabled] = useState(true)
+  const [discPreviewSize, setDiscPreviewSize] = useState(640)
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
@@ -237,6 +246,21 @@ function App() {
     announceStatus,
   })
   const {
+    projectTitleArtwork,
+    setProjectTitleArtwork,
+    clampProjectTitleArtworkToTemplate,
+    resetProjectTitleArtwork,
+    resetTitleArtworkLayoutForPlacement,
+    handleTitleArtworkLayoutChange,
+    handleResetTitleArtworkLayout,
+    handleTitleArtworkUpload,
+    applySteamTitleArtworkImport,
+  } = useTitleArtwork({
+    selectedDiscTemplate,
+    steamLogoPlacement,
+    announceStatus,
+  })
+  const {
     logoCandidateDiscovery,
     findLogoCandidates,
     applyLogoCandidate,
@@ -251,6 +275,21 @@ function App() {
     () => getBackgroundPreviewSize(backgroundImageSize),
     [backgroundImageSize],
   )
+  const backgroundOffsetSliderRanges = useMemo(
+    () =>
+      getBackgroundOffsetSliderRanges(
+        backgroundImageSize,
+        backgroundScale,
+        discPreviewSize,
+      ),
+    [backgroundImageSize, backgroundScale, discPreviewSize],
+  )
+  const effectiveBackgroundImageUrl = isBackgroundArtworkEnabled
+    ? backgroundImageUrl
+    : null
+  const effectiveBackgroundImageSize = isBackgroundArtworkEnabled
+    ? backgroundImageSize
+    : null
   const metadataBoundDiscTextValues = useMemo(
     () =>
       resolveMetadataBoundDiscTextValues(
@@ -269,6 +308,32 @@ function App() {
       ),
     [discTextTitleValue, projectMetadata, discTextValueSources],
   )
+  useEffect(() => {
+    const previewElement = discPreviewRef.current
+
+    if (!previewElement) {
+      return
+    }
+
+    const updatePreviewSize = () => {
+      const nextSize = previewElement.getBoundingClientRect().width
+
+      if (Number.isFinite(nextSize) && nextSize > 0) {
+        setDiscPreviewSize(nextSize)
+      }
+    }
+
+    updatePreviewSize()
+
+    if (typeof ResizeObserver === 'undefined') {
+      return
+    }
+
+    const resizeObserver = new ResizeObserver(updatePreviewSize)
+    resizeObserver.observe(previewElement)
+
+    return () => resizeObserver.disconnect()
+  }, [])
 
   const {
     cancelPreviewPointerDrag,
@@ -281,6 +346,9 @@ function App() {
     handleLogoAssetPointerDown,
     handleLogoAssetPointerMove,
     handleLogoAssetPointerUp,
+    handleTitleArtworkPointerDown,
+    handleTitleArtworkPointerMove,
+    handleTitleArtworkPointerUp,
     handleRatingBadgePointerDown,
     handleRatingBadgePointerMove,
     handleRatingBadgePointerUp,
@@ -296,13 +364,17 @@ function App() {
   } = useDiscPreviewPointerDrag({
     discPreviewRef,
     selectedDiscTemplate,
-    backgroundImageUrl,
+    backgroundImageUrl: effectiveBackgroundImageUrl,
+    backgroundImageSize,
+    backgroundScale,
     backgroundOffset,
     setBackgroundOffset,
     discTextLayout,
     setDiscTextLayout,
     projectLogoAssets,
     setProjectLogoAssets,
+    projectTitleArtwork,
+    setProjectTitleArtwork,
     projectRatingBadge,
     setProjectRatingBadge,
     projectMediaMark,
@@ -330,6 +402,8 @@ function App() {
     setProjectLogoAssets((currentLogoAssets) =>
       clampProjectLogoAssetsToSafeZone(currentLogoAssets, template),
     )
+
+    clampProjectTitleArtworkToTemplate(template)
 
     setProjectRatingBadge((currentBadge) => {
       const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
@@ -416,6 +490,7 @@ function App() {
     setBackgroundImageSize(importedBackground.background.imageSize)
     setBackgroundScale(importedBackground.background.scale)
     setBackgroundOffset(importedBackground.background.offset)
+    setIsBackgroundArtworkEnabled(true)
     setSelectedArtworkId(importedBackground.selectedArtworkId)
     announceStatus(importedBackground.statusMessage)
   }
@@ -929,6 +1004,8 @@ function App() {
         selectedDiscTemplate,
       )
     })
+
+    resetTitleArtworkLayoutForPlacement(placement)
   }
 
   function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
@@ -1191,12 +1268,14 @@ function App() {
     setBackgroundImageSize(emptyBackground.imageSize)
     setBackgroundScale(emptyBackground.scale)
     setBackgroundOffset(emptyBackground.offset)
+    setIsBackgroundArtworkEnabled(true)
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
     setProjectLogoAssets(
       createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
     )
+    resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
     setProjectRatingBadge(
       createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
     )
@@ -1249,6 +1328,29 @@ function App() {
       ...customDiscTemplate,
       [field]: numericValue,
     })
+    const geometryGuardrail = validateDiscTemplateGeometryGuardrail(
+      nextTemplate,
+      {
+        discTextSettings,
+        discTextValues: metadataBoundDiscTextValues,
+        discTextTitle: resolvedDiscTextTitle,
+        discTextLayout,
+        projectLogoAssets,
+        projectRatingBadge,
+        projectMediaMark,
+        projectPlatformMarks,
+      },
+    )
+
+    if (!geometryGuardrail.allowed) {
+      const [firstBlockingElement] = geometryGuardrail.blockingElementLabels
+      const extraCount = geometryGuardrail.blockingElementLabels.length - 1
+
+      announceStatus(
+        `Custom geometry needs more printable space for ${firstBlockingElement}${extraCount > 0 ? ` and ${extraCount} more` : ''}.`,
+      )
+      return
+    }
 
     setCustomDiscTemplate(nextTemplate)
 
@@ -1312,6 +1414,9 @@ function App() {
         nextProjectMetadata,
         discTextValueSources,
       )
+      const titleArtworkImport = await applySteamTitleArtworkImport(
+        importedState.importedGame,
+      )
       setSelectedSteamGame(importedState.importedGame)
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadata)
@@ -1327,6 +1432,7 @@ function App() {
         nextResolvedTitle,
       )
       announceStatus(importedState.statusMessage)
+      announceStatus(titleArtworkImport.statusMessage)
     } catch (error) {
       announceStatus(`Steam import failed: ${String(error)}`)
     } finally {
@@ -1422,6 +1528,7 @@ function App() {
         selectedSteamGame,
         projectMetadata,
         projectLogoAssets,
+        projectTitleArtwork,
         projectRatingBadge,
         projectMediaMark,
         projectPlatformMarks,
@@ -1438,6 +1545,7 @@ function App() {
         backgroundOffset,
         backgroundImageUrl,
         backgroundImageSize,
+        isBackgroundArtworkEnabled,
         discTextSettings,
         discTextValues,
         discTextValueSources,
@@ -1479,6 +1587,7 @@ function App() {
       setManualGameTitle(restoredProject.manualGameTitle)
       setProjectMetadata(restoredProject.projectMetadata)
       setProjectLogoAssets(restoredProject.projectLogoAssets)
+      setProjectTitleArtwork(restoredProject.projectTitleArtwork)
       setProjectRatingBadge(restoredProject.projectRatingBadge)
       setProjectMediaMark(restoredProject.projectMediaMark)
       setProjectPlatformMarks(restoredProject.projectPlatformMarks)
@@ -1508,6 +1617,7 @@ function App() {
       setBackgroundOffset(restoredProject.backgroundOffset)
       setBackgroundImageUrl(restoredProject.backgroundImageUrl)
       setBackgroundImageSize(restoredProject.backgroundImageSize)
+      setIsBackgroundArtworkEnabled(restoredProject.isBackgroundArtworkEnabled)
 
       announceStatus(
         restoredProject.backgroundImageUrl
@@ -1539,15 +1649,19 @@ function App() {
       const preflight = buildExportPreflightSummary({
         selectedDiscTemplateId,
         selectedDiscTemplate,
-        backgroundImageUrl,
-        backgroundImageSize,
+        backgroundImageUrl: effectiveBackgroundImageUrl,
+        backgroundImageSize: effectiveBackgroundImageSize,
         selectedSteamGame,
         manualGameTitle,
         steamLogoPlacement,
         discTextSettings,
         projectLogoAssets,
+        projectTitleArtwork,
         projectMetadata,
         projectRatingBadge,
+        projectMediaMark,
+        projectPlatformMarks,
+        projectTechnicalMarks,
         exportGuides,
       })
       const shouldExport = await confirm(preflight.message, {
@@ -1567,7 +1681,7 @@ function App() {
         mmToPixels(selectedDiscTemplate.outerDiameterMm)
       const result = await exportDiscLabelPngBytes({
         selectedDiscTemplate,
-        backgroundImageUrl,
+        backgroundImageUrl: effectiveBackgroundImageUrl,
         backgroundScale,
         backgroundOffset,
         previewSize,
@@ -1576,6 +1690,7 @@ function App() {
         steamBannerLockupImageUrl,
         steamBannerLockupLayout,
         projectLogoAssets,
+        projectTitleArtwork,
         projectMetadata,
         projectRatingBadge,
         projectMediaMark,
@@ -1622,8 +1737,59 @@ function App() {
     setBackgroundOffset(createDefaultBackgroundOffset())
   }
 
+  function handleBackgroundArtworkEnabledChange(enabled: boolean) {
+    setIsBackgroundArtworkEnabled(enabled)
+  }
+
   function handleBackgroundScaleChange(value: number) {
-    setBackgroundScale(updateBackgroundScale(value))
+    const nextScale = updateBackgroundScale(value)
+
+    setBackgroundScale(nextScale)
+    setBackgroundOffset((currentOffset) =>
+      clampBackgroundOffsetToImageBounds(
+        currentOffset,
+        backgroundImageSize,
+        nextScale,
+        discPreviewSize,
+      ),
+    )
+  }
+
+  function handleBackgroundOffsetChange(
+    field: BackgroundOffsetField,
+    value: number,
+  ) {
+    setBackgroundOffset((currentOffset) =>
+      updateBackgroundOffsetField(
+        currentOffset,
+        field,
+        value,
+        backgroundImageSize,
+        backgroundScale,
+        discPreviewSize,
+      ),
+    )
+  }
+
+  function handleFitBackgroundToSteamBannerOpenArea() {
+    const fit = getBackgroundFitToSteamBannerOpenArea({
+      imageSize: backgroundImageSize,
+      previewSize: discPreviewSize,
+      steamLogoPlacement,
+    })
+
+    if (!fit) {
+      announceStatus('Choose a background image before fitting the background.')
+      return
+    }
+
+    setBackgroundScale(updateBackgroundScale(fit.scale))
+    setBackgroundOffset(fit.offset)
+    announceStatus(
+      steamLogoPlacement === 'none'
+        ? 'Fit background edge to edge.'
+        : 'Fit background between the Steam banner and disc edge.',
+    )
   }
 
   return (
@@ -1684,10 +1850,29 @@ function App() {
           handleOpenLocalSteamScreenshotFolder={handleOpenLocalSteamScreenshotFolder}
           handleUseLocalSteamScreenshot={handleUseLocalSteamScreenshot}
           handleBackgroundUpload={handleBackgroundUpload}
+          isBackgroundArtworkEnabled={isBackgroundArtworkEnabled}
+          handleBackgroundArtworkEnabledChange={handleBackgroundArtworkEnabledChange}
           backgroundScale={backgroundScale}
+          backgroundOffset={backgroundOffset}
+          backgroundOffsetSliderRanges={backgroundOffsetSliderRanges}
           handleBackgroundScaleChange={handleBackgroundScaleChange}
+          handleBackgroundOffsetChange={handleBackgroundOffsetChange}
           backgroundImageUrl={backgroundImageUrl}
           handleResetBackground={handleResetBackground}
+          canFitBackgroundToSteamBannerOpenArea={
+            Boolean(backgroundImageUrl)
+          }
+          backgroundFitButtonLabel={
+            steamLogoPlacement === 'none'
+              ? 'Fit edge to edge'
+              : 'Fit between Steam banner and disc edge'
+          }
+          handleFitBackgroundToSteamBannerOpenArea={handleFitBackgroundToSteamBannerOpenArea}
+          projectTitleArtwork={projectTitleArtwork}
+          selectedDiscTemplate={selectedDiscTemplate}
+          handleTitleArtworkLayoutChange={handleTitleArtworkLayoutChange}
+          handleResetTitleArtworkLayout={handleResetTitleArtworkLayout}
+          handleTitleArtworkUpload={handleTitleArtworkUpload}
         />
 
         <BrandingPanel
@@ -1773,7 +1958,7 @@ function App() {
       <DiscPreview
         discPreviewRef={discPreviewRef}
         statusToasts={statusToasts}
-        backgroundImageUrl={backgroundImageUrl}
+        backgroundImageUrl={effectiveBackgroundImageUrl}
         backgroundPreviewSize={backgroundPreviewSize}
         backgroundOffset={backgroundOffset}
         backgroundScale={backgroundScale}
@@ -1786,6 +1971,7 @@ function App() {
         steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
+        projectTitleArtwork={projectTitleArtwork}
         projectMetadata={projectMetadata}
         projectRatingBadge={projectRatingBadge}
         projectMediaMark={projectMediaMark}
@@ -1806,6 +1992,9 @@ function App() {
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}
+        handleTitleArtworkPointerDown={handleTitleArtworkPointerDown}
+        handleTitleArtworkPointerMove={handleTitleArtworkPointerMove}
+        handleTitleArtworkPointerUp={handleTitleArtworkPointerUp}
         discTextSettings={discTextSettings}
         discTextValues={discTextValues}
         discTextValueSources={discTextValueSources}

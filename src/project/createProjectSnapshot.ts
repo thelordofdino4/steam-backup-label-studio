@@ -17,6 +17,7 @@ import type {
   ProjectPlatformMarks,
   ProjectRatingBadge,
   ProjectTechnicalMarks,
+  ProjectTitleArtwork,
   SavedProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
@@ -28,6 +29,7 @@ export type CreateProjectSnapshotParams = {
   selectedSteamGame: SteamImportedGame | null
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
+  projectTitleArtwork: ProjectTitleArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
@@ -44,6 +46,7 @@ export type CreateProjectSnapshotParams = {
   backgroundOffset: BackgroundOffset
   backgroundImageUrl: string | null
   backgroundImageSize: BackgroundImageSize | null
+  isBackgroundArtworkEnabled: boolean
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
@@ -56,6 +59,7 @@ export function createProjectSnapshot({
   selectedSteamGame,
   projectMetadata,
   projectLogoAssets,
+  projectTitleArtwork,
   projectRatingBadge,
   projectMediaMark,
   projectPlatformMarks,
@@ -72,6 +76,7 @@ export function createProjectSnapshot({
   backgroundOffset,
   backgroundImageUrl,
   backgroundImageSize,
+  isBackgroundArtworkEnabled,
   discTextSettings,
   discTextValues,
   discTextValueSources,
@@ -88,6 +93,7 @@ export function createProjectSnapshot({
     },
     metadata: projectMetadata,
     logoAssets: projectLogoAssets,
+    titleArtwork: projectTitleArtwork,
     ratingBadge: projectRatingBadge,
     mediaMark: projectMediaMark,
     platformMarks: projectPlatformMarks,
@@ -108,6 +114,7 @@ export function createProjectSnapshot({
       guides: exportGuides,
     },
     background: {
+      enabled: isBackgroundArtworkEnabled,
       scale: backgroundScale,
       offset: backgroundOffset,
       imageDataUrl: backgroundImageUrl,

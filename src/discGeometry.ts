@@ -8,6 +8,8 @@ export const CUSTOM_OUTER_DIAMETER_MAX_MM = 305
 export const DISC_LAYOUT_CENTER_PERCENT = 50
 export const LOGO_BASE_WIDTH_RATIO = 0.18
 export const LOGO_MAX_HEIGHT_RATIO = 0.1
+export const TITLE_ARTWORK_BASE_WIDTH_RATIO = 0.38
+export const TITLE_ARTWORK_MAX_HEIGHT_RATIO = 0.16
 export const RATING_BADGE_BASE_WIDTH_RATIO = 0.09
 export const RATING_BADGE_BASE_HEIGHT_RATIO = 0.13
 export const MEDIA_MARK_BASE_WIDTH_RATIO = 0.13
@@ -88,6 +90,49 @@ export function doesRectAvoidDiscCenterCircle(
   bounds: RenderBoundsPercent,
 ) {
   return getRectDistanceFromDiscCenter(point, bounds) >= Math.max(0, radiusPercent) - 0.000001
+}
+
+export function doesRectFitInsideDiscCircle(
+  point: LayoutPoint,
+  radiusPercent: number,
+  bounds: RenderBoundsPercent,
+) {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const halfWidth = Math.max(0, bounds.halfWidth)
+  const halfHeight = Math.max(0, bounds.halfHeight)
+  const farthestX = Math.abs(x - DISC_LAYOUT_CENTER_PERCENT) + halfWidth
+  const farthestY = Math.abs(y - DISC_LAYOUT_CENTER_PERCENT) + halfHeight
+
+  return Math.hypot(farthestX, farthestY) <= Math.max(0, radiusPercent) + 0.000001
+}
+
+export function doesRectFitSafeAnnulus(
+  point: LayoutPoint,
+  innerRadiusPercent: number,
+  outerRadiusPercent: number,
+  bounds: RenderBoundsPercent,
+) {
+  const outerRadius = Math.max(0, outerRadiusPercent)
+  const innerRadius = clampNumber(Math.max(0, innerRadiusPercent), 0, outerRadius)
+
+  return (
+    doesRectFitInsideDiscCircle(point, outerRadius, bounds) &&
+    doesRectAvoidDiscCenterCircle(point, innerRadius, bounds)
+  )
+}
+
+export function doesRectFitTemplateSafeAnnulus(
+  point: LayoutPoint,
+  template: DiscTemplate,
+  bounds: RenderBoundsPercent,
+) {
+  return doesRectFitSafeAnnulus(
+    point,
+    getInnerNoPrintRadiusPercent(template),
+    getSafeZoneRadiusPercent(template),
+    bounds,
+  )
 }
 
 export function getGuideInsetPercent(outerDiameterMm: number, guideDiameterMm: number) {
@@ -367,6 +412,18 @@ export function clampLayoutPointToSafeZone(
   return clampPointToSafeAnnulus(point, innerNoPrintRadius, safeZoneRadius)
 }
 
+export function canClampRectToTemplateSafeAnnulus(
+  point: LayoutPoint,
+  template: DiscTemplate,
+  bounds: RenderBoundsPercent,
+) {
+  return doesRectFitTemplateSafeAnnulus(
+    clampLayoutPointToSafeZone(point, template, bounds),
+    template,
+    bounds,
+  )
+}
+
 export function getContainedAssetBoundsPercent(
   naturalSize: NaturalSize,
   baseWidthRatio: number,
@@ -403,6 +460,15 @@ export function getLogoAssetBoundsPercent(naturalSize: NaturalSize, scale: numbe
     naturalSize,
     LOGO_BASE_WIDTH_RATIO,
     LOGO_MAX_HEIGHT_RATIO,
+    scale,
+  )
+}
+
+export function getTitleArtworkBoundsPercent(naturalSize: NaturalSize, scale: number) {
+  return getContainedAssetBoundsPercent(
+    naturalSize,
+    TITLE_ARTWORK_BASE_WIDTH_RATIO,
+    TITLE_ARTWORK_MAX_HEIGHT_RATIO,
     scale,
   )
 }

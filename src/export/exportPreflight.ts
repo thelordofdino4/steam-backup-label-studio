@@ -1,20 +1,31 @@
-import { EXPORT_DPI, mmToPixels } from '../discGeometry'
+import { EXPORT_DPI, mmToPixels } from '../discGeometry.ts'
 import {
   DISC_TEXT_KEYS,
   getDiscTextLabel,
   type DiscTextSettings,
   type SteamLogoPlacement,
-} from '../discText'
-import type { ExportGuideKey, ExportGuideSelection } from '../exportGuides'
+} from '../discText.ts'
+import type { ExportGuideKey, ExportGuideSelection } from '../exportGuides.ts'
+import {
+  createMediaMarkRenderModel,
+  createPlatformMarkRenderModels,
+} from '../mediaMarkRenderModel.ts'
+import { canUseTitleArtwork } from '../project/projectTitleArtwork.ts'
+import { createLogoAssetRenderItems } from '../project/projectLogoAssets.ts'
 import type {
   BackgroundImageSize,
   ProjectLogoAssets,
+  ProjectMediaMark,
   ProjectMetadata,
+  ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
+  ProjectTitleArtwork,
   SelectedDiscTemplateId,
-} from '../project/projectTypes'
-import type { SteamImportedGame } from '../steam/steamApi'
-import type { DiscTemplate } from '../types/template'
+} from '../project/projectTypes.ts'
+import type { SteamImportedGame } from '../steam/steamApi.ts'
+import { createTechnicalMarkRenderModels } from '../technicalMarkRenderModel.ts'
+import type { DiscTemplate } from '../types/template.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3
 
@@ -34,6 +45,7 @@ const BRANDING_LABELS: Record<SteamLogoPlacement, string> = {
 export type ExportPreflightSummary = {
   message: string
   hasWarnings: boolean
+  warnings: string[]
 }
 
 export function buildExportPreflightSummary(params: {
@@ -46,8 +58,12 @@ export function buildExportPreflightSummary(params: {
   steamLogoPlacement: SteamLogoPlacement
   discTextSettings: DiscTextSettings
   projectLogoAssets: ProjectLogoAssets
+  projectTitleArtwork: ProjectTitleArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
+  projectMediaMark: ProjectMediaMark
+  projectPlatformMarks: ProjectPlatformMarks
+  projectTechnicalMarks: ProjectTechnicalMarks
   exportGuides: ExportGuideSelection
 }): ExportPreflightSummary {
   const exportSize =
@@ -62,8 +78,12 @@ export function buildExportPreflightSummary(params: {
     params.backgroundImageUrl,
     enabledGuideLabels,
     params.projectLogoAssets,
+    params.projectTitleArtwork,
     params.projectMetadata,
     params.projectRatingBadge,
+    params.projectMediaMark,
+    params.projectPlatformMarks,
+    params.projectTechnicalMarks,
   )
 
   const summaryLines = [
@@ -91,6 +111,7 @@ export function buildExportPreflightSummary(params: {
   return {
     message,
     hasWarnings: warnings.length > 0,
+    warnings,
   }
 }
 
@@ -106,8 +127,12 @@ function buildExportWarnings(
   backgroundImageUrl: string | null,
   enabledGuideLabels: string[],
   projectLogoAssets: ProjectLogoAssets,
+  projectTitleArtwork: ProjectTitleArtwork,
   projectMetadata: ProjectMetadata,
   projectRatingBadge: ProjectRatingBadge,
+  projectMediaMark: ProjectMediaMark,
+  projectPlatformMarks: ProjectPlatformMarks,
+  projectTechnicalMarks: ProjectTechnicalMarks,
 ) {
   const warnings: string[] = []
 
@@ -116,15 +141,19 @@ function buildExportWarnings(
   }
 
   if (!backgroundImageUrl) {
-    warnings.push('No background image is selected; the export will use the default dark disc fill.')
+    warnings.push('No background image is selected; the export will use the default blank disc fill.')
   }
 
   if (selectedDiscTemplateId === 'custom') {
     warnings.push(...getCustomDimensionWarnings(selectedDiscTemplate))
   }
 
+  warnings.push(...getTitleArtworkWarnings(projectTitleArtwork))
   warnings.push(...getLogoAssetWarnings(projectLogoAssets))
   warnings.push(...getRatingBadgeWarnings(projectMetadata, projectRatingBadge))
+  warnings.push(...getMediaMarkWarnings(projectMediaMark))
+  warnings.push(...getPlatformMarkWarnings(projectPlatformMarks))
+  warnings.push(...getTechnicalMarkWarnings(projectTechnicalMarks))
 
   return warnings
 }
@@ -132,15 +161,25 @@ function buildExportWarnings(
 function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
   const warnings: string[] = []
 
-  if (logoAssets.developerLogoLayout.enabled && !logoAssets.developerLogoDataUrl) {
-    warnings.push('Developer logo is enabled, but no developer logo image is uploaded.')
-  }
-
-  if (logoAssets.publisherLogoLayout.enabled && !logoAssets.publisherLogoDataUrl) {
-    warnings.push('Publisher logo is enabled, but no publisher logo image is uploaded.')
+  for (const logoAsset of createLogoAssetRenderItems(logoAssets)) {
+    if (!logoAsset.imageDataUrl) {
+      warnings.push(
+        `${logoAsset.label} logo is enabled, but no image is uploaded; the bundled placeholder will export.`,
+      )
+    }
   }
 
   return warnings
+}
+
+function getTitleArtworkWarnings(titleArtwork: ProjectTitleArtwork) {
+  if (!titleArtwork.layout.enabled || canUseTitleArtwork(titleArtwork)) {
+    return []
+  }
+
+  return [
+    'Title/logo artwork is enabled, but no Steam or custom title artwork image is selected; it will not render in the exported PNG.',
+  ]
 }
 
 function getRatingBadgeWarnings(
@@ -160,7 +199,7 @@ function getRatingBadgeWarnings(
   }
 
   if (ratingBadge.source === 'custom' && !ratingBadge.customImageDataUrl) {
-    warnings.push('Custom rating badge is selected, but no custom image is uploaded.')
+    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled placeholder artwork will export when rating metadata is renderable.')
   }
 
   if (
@@ -172,6 +211,58 @@ function getRatingBadgeWarnings(
   }
 
   return warnings
+}
+
+function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
+  const model = createMediaMarkRenderModel(mediaMark)
+
+  if (!model) {
+    return []
+  }
+
+  if (mediaMark.source === 'custom' && !mediaMark.customImageDataUrl) {
+    return [
+      `Custom ${model.label} media mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+    ]
+  }
+
+  if (model.isPlaceholderImage) {
+    return [`${model.label} media mark uses bundled placeholder artwork.`]
+  }
+
+  return []
+}
+
+function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
+  return createPlatformMarkRenderModels(platformMarks).flatMap((model) => {
+    if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
+      return [
+        `Custom ${model.label} platform mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+      ]
+    }
+
+    if (model.isPlaceholderImage) {
+      return [`${model.label} platform mark uses bundled placeholder artwork.`]
+    }
+
+    return []
+  })
+}
+
+function getTechnicalMarkWarnings(technicalMarks: ProjectTechnicalMarks) {
+  return createTechnicalMarkRenderModels(technicalMarks).flatMap((model) => {
+    if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
+      return [
+        `Custom ${model.label} technical mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+      ]
+    }
+
+    if (model.isPlaceholderImage) {
+      return [`${model.label} technical mark uses bundled placeholder artwork.`]
+    }
+
+    return []
+  })
 }
 
 function getCustomDimensionWarnings(template: DiscTemplate) {

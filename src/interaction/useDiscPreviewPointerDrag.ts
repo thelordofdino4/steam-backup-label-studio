@@ -18,6 +18,7 @@ import {
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
+  clampTitleArtworkLayoutToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from '../layout/discElementSafeZone'
@@ -37,8 +38,13 @@ import {
   getProjectTechnicalMarkAsset,
   updateTechnicalMarkLayoutPosition,
 } from '../project/projectTechnicalMarks'
+import {
+  setTitleArtworkLayout,
+  updateTitleArtworkLayoutPosition,
+} from '../project/projectTitleArtwork'
 import { updateRatingBadgeLayoutPosition } from '../project/projectRatingBadge'
 import type {
+  BackgroundImageSize,
   BackgroundOffset,
   PlatformMarkValue,
   ProjectLogoAssets,
@@ -46,10 +52,12 @@ import type {
   ProjectPlatformMarks,
   ProjectRatingBadge,
   ProjectTechnicalMarks,
+  ProjectTitleArtwork,
   TechnicalMarkValue,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import { usePointerDrag } from './usePointerDrag'
+import { clampBackgroundOffsetToImageBounds } from '../backgroundImage'
 
 type TextDragState = {
   key: DiscTextKey
@@ -59,6 +67,8 @@ type LogoDragState = {
   logoKey: LogoAssetKey
   additionalLogoId?: string
 } & PercentDragState
+
+type TitleArtworkDragState = PercentDragState
 
 type RatingBadgeDragState = PercentDragState
 
@@ -76,12 +86,16 @@ type UseDiscPreviewPointerDragOptions = {
   discPreviewRef: RefObject<HTMLDivElement | null>
   selectedDiscTemplate: DiscTemplate
   backgroundImageUrl: string | null
+  backgroundImageSize: BackgroundImageSize | null
+  backgroundScale: number
   backgroundOffset: BackgroundOffset
   setBackgroundOffset: Dispatch<SetStateAction<BackgroundOffset>>
   discTextLayout: DiscTextLayoutSettings
   setDiscTextLayout: Dispatch<SetStateAction<DiscTextLayoutSettings>>
   projectLogoAssets: ProjectLogoAssets
   setProjectLogoAssets: Dispatch<SetStateAction<ProjectLogoAssets>>
+  projectTitleArtwork: ProjectTitleArtwork
+  setProjectTitleArtwork: Dispatch<SetStateAction<ProjectTitleArtwork>>
   projectRatingBadge: ProjectRatingBadge
   setProjectRatingBadge: Dispatch<SetStateAction<ProjectRatingBadge>>
   projectMediaMark: ProjectMediaMark
@@ -96,12 +110,16 @@ export function useDiscPreviewPointerDrag({
   discPreviewRef,
   selectedDiscTemplate,
   backgroundImageUrl,
+  backgroundImageSize,
+  backgroundScale,
   backgroundOffset,
   setBackgroundOffset,
   discTextLayout,
   setDiscTextLayout,
   projectLogoAssets,
   setProjectLogoAssets,
+  projectTitleArtwork,
+  setProjectTitleArtwork,
   projectRatingBadge,
   setProjectRatingBadge,
   projectMediaMark,
@@ -113,7 +131,19 @@ export function useDiscPreviewPointerDrag({
 }: UseDiscPreviewPointerDragOptions) {
   const backgroundPointerDrag = usePointerDrag<PixelDragState, HTMLDivElement>({
     onDragMove: (dragState, event) => {
-      setBackgroundOffset(getDraggedPixelOffset(dragState, event.clientX, event.clientY))
+      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+      const nextOffset = getDraggedPixelOffset(dragState, event.clientX, event.clientY)
+
+      setBackgroundOffset(
+        previewRect
+          ? clampBackgroundOffsetToImageBounds(
+              nextOffset,
+              backgroundImageSize,
+              backgroundScale,
+              previewRect.width,
+            )
+          : nextOffset,
+      )
     },
   })
 
@@ -201,6 +231,38 @@ export function useDiscPreviewPointerDrag({
           nextLayout,
           dragState.additionalLogoId,
         )
+      })
+    },
+  })
+
+  const titleArtworkPointerDrag = usePointerDrag<TitleArtworkDragState>({
+    stopPropagation: true,
+    onDragMove: (dragState, event) => {
+      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+
+      if (!previewRect) {
+        return
+      }
+
+      const draggedPoint = getDraggedPercentPoint(
+        dragState,
+        event.clientX,
+        event.clientY,
+        previewRect,
+      )
+
+      setProjectTitleArtwork((currentTitleArtwork) => {
+        const nextTitleArtwork = updateTitleArtworkLayoutPosition(
+          currentTitleArtwork,
+          draggedPoint,
+        )
+        const nextLayout = clampTitleArtworkLayoutToSafeZone(
+          nextTitleArtwork.layout,
+          selectedDiscTemplate,
+          nextTitleArtwork.imageSize,
+        )
+
+        return setTitleArtworkLayout(nextTitleArtwork, nextLayout)
       })
     },
   })
@@ -373,6 +435,26 @@ export function useDiscPreviewPointerDrag({
     [logoAssetPointerDrag, projectLogoAssets],
   )
 
+  const handleTitleArtworkPointerDown = useCallback(
+    (event: PointerEvent<Element>) => {
+      titleArtworkPointerDrag.beginPointerDrag(
+        event,
+        createPercentDragState(
+          event.pointerId,
+          event.clientX,
+          event.clientY,
+          projectTitleArtwork.layout.x,
+          projectTitleArtwork.layout.y,
+        ),
+      )
+    },
+    [
+      projectTitleArtwork.layout.x,
+      projectTitleArtwork.layout.y,
+      titleArtworkPointerDrag,
+    ],
+  )
+
   const handleRatingBadgePointerDown = useCallback(
     (event: PointerEvent<Element>) => {
       ratingBadgePointerDrag.beginPointerDrag(
@@ -445,6 +527,7 @@ export function useDiscPreviewPointerDrag({
     backgroundPointerDrag.cancelPointerDrag()
     discTextPointerDrag.cancelPointerDrag()
     logoAssetPointerDrag.cancelPointerDrag()
+    titleArtworkPointerDrag.cancelPointerDrag()
     ratingBadgePointerDrag.cancelPointerDrag()
     mediaMarkPointerDrag.cancelPointerDrag()
     platformMarkPointerDrag.cancelPointerDrag()
@@ -457,6 +540,7 @@ export function useDiscPreviewPointerDrag({
     platformMarkPointerDrag,
     ratingBadgePointerDrag,
     technicalMarkPointerDrag,
+    titleArtworkPointerDrag,
   ])
 
   return {
@@ -470,6 +554,9 @@ export function useDiscPreviewPointerDrag({
     handleLogoAssetPointerDown,
     handleLogoAssetPointerMove: logoAssetPointerDrag.handlePointerMove,
     handleLogoAssetPointerUp: logoAssetPointerDrag.endPointerDrag,
+    handleTitleArtworkPointerDown,
+    handleTitleArtworkPointerMove: titleArtworkPointerDrag.handlePointerMove,
+    handleTitleArtworkPointerUp: titleArtworkPointerDrag.endPointerDrag,
     handleRatingBadgePointerDown,
     handleRatingBadgePointerMove: ratingBadgePointerDrag.handlePointerMove,
     handleRatingBadgePointerUp: ratingBadgePointerDrag.endPointerDrag,

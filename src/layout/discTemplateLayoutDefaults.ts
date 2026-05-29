@@ -12,6 +12,7 @@ import {
   getSafeZoneRadiusPercent,
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
+  getTitleArtworkBoundsPercent,
 } from '../discGeometry.ts'
 import type {
   DiscTextKey,
@@ -29,6 +30,7 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectTechnicalMarkAsset,
   ProjectRatingBadge,
+  TitleArtworkLayout,
   RatingBadgeLayout,
   TechnicalMarkLayout,
   TechnicalMarkValue,
@@ -112,6 +114,11 @@ const LOGO_ANCHORS = {
   developer: createReferenceAnchor({ x: 22, y: 62 }),
   publisher: createReferenceAnchor({ x: 22, y: 72 }),
 } satisfies Record<'developer' | 'publisher', RadialAnchor>
+
+const TITLE_ARTWORK_ANCHORS = {
+  top: createReferenceAnchor({ x: 50, y: 19.5 }),
+  bottom: createReferenceAnchor({ x: 50, y: 81.5 }),
+} satisfies Record<'top' | 'bottom', RadialAnchor>
 
 const ADDITIONAL_LOGO_X_OFFSET_PERCENT = 20
 
@@ -449,6 +456,28 @@ export function getNextAdditionalLogoAssetLayoutForTemplate(
   return {
     ...referenceLayout,
     enabled: true,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getDefaultTitleArtworkLayoutForTemplate(
+  template: DiscTemplate,
+  placement: SteamLogoPlacement,
+  imageSize: BackgroundImageSize | null = null,
+): TitleArtworkLayout {
+  const scale = 1
+  const point = getTemplateAwarePoint(
+    template,
+    placement === 'bottom'
+      ? TITLE_ARTWORK_ANCHORS.bottom
+      : TITLE_ARTWORK_ANCHORS.top,
+    getTitleArtworkBoundsPercent(imageSize, scale),
+  )
+
+  return {
+    enabled: false,
+    scale,
     x: point.x,
     y: point.y,
   }

@@ -21,6 +21,7 @@ import {
   getStraightDiscTextBoundsPercent,
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
+  getTitleArtworkBoundsPercent,
 } from '../discGeometry.ts'
 import {
   getDiscTextFontString,
@@ -45,8 +46,10 @@ import type {
   ProjectRatingBadge,
   ProjectTechnicalMarkAsset,
   ProjectTechnicalMarks,
+  ProjectTitleArtwork,
   RatingBadgeLayout,
   TechnicalMarkLayout,
+  TitleArtworkLayout,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 
@@ -490,6 +493,19 @@ export function getLogoAssetLayoutSliderRanges(
   )
 }
 
+export function getTitleArtworkLayoutSliderRanges(
+  titleArtwork: Pick<ProjectTitleArtwork, 'imageSize' | 'layout'>,
+  selectedDiscTemplate: DiscTemplate,
+): LayoutSliderRanges {
+  const layout = titleArtwork.layout
+
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    getTitleArtworkBoundsPercent(titleArtwork.imageSize, layout.scale),
+  )
+}
+
 export function getRatingBadgeLayoutSliderRanges(
   ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
   selectedDiscTemplate: DiscTemplate,
@@ -557,6 +573,38 @@ export function clampLogoAssetLayoutToSafeZone(
     ...layout,
     x: point.x,
     y: point.y,
+  }
+}
+
+export function clampTitleArtworkLayoutToSafeZone(
+  layout: TitleArtworkLayout,
+  selectedDiscTemplate: DiscTemplate,
+  imageSize: BackgroundImageSize | null,
+): TitleArtworkLayout {
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    getTitleArtworkBoundsPercent(imageSize, layout.scale),
+  )
+
+  return {
+    ...layout,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function clampProjectTitleArtworkToSafeZone(
+  titleArtwork: ProjectTitleArtwork,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectTitleArtwork {
+  return {
+    ...titleArtwork,
+    layout: clampTitleArtworkLayoutToSafeZone(
+      titleArtwork.layout,
+      selectedDiscTemplate,
+      titleArtwork.imageSize,
+    ),
   }
 }
 

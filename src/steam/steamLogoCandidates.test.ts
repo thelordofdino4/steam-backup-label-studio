@@ -1,6 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  extractOfficialSiteUrlsFromSteamHtml,
+  parseOfficialLogoCandidatesFromCss,
+  parseOfficialLogoCandidatesFromHtml,
   parseSteamLogoCandidatesFromHtml,
 } from './steamLogoCandidates.ts'
 
@@ -69,4 +72,66 @@ test('deduplicates repeated candidate URLs and preserves reasons', () => {
   assert.ok(candidates[0].reasons.includes('Steam page metadata image'))
   assert.ok(candidates[0].reasons.includes('Logo-like filename or metadata'))
   assert.equal(candidates[0].sourceKind, 'steam-meta-image')
+})
+
+test('extracts official website URLs from Steam linkfilter links', () => {
+  const html = `
+    <a class="btnv6_blue_hoverfade" href="https://steamcommunity.com/linkfilter/?u=https%3A%2F%2Fwww.cdprojektred.com%2Fen">Official website</a>
+    <a href="https://steamcommunity.com/linkfilter/?url=https%3A%2F%2Fwww.youtube.com%2Fcdprojektred">YouTube</a>
+    <a href="https://store.steampowered.com/developer/cdprojektred">Steam page</a>
+  `
+  const urls = extractOfficialSiteUrlsFromSteamHtml(
+    html,
+    'https://store.steampowered.com/developer/cdprojektred',
+  )
+
+  assert.deepEqual(urls, ['https://www.cdprojektred.com/en'])
+})
+
+test('extracts official-site images, srcsets, metadata, icons, and inline backgrounds', () => {
+  const html = `
+    <meta property="og:image" content="/assets/cd-projekt-red-social.jpg">
+    <link rel="icon" sizes="32x32" href="/favicon.png">
+    <img class="site-logo brand" src="/assets/cd-projekt-red-logo.svg" alt="CD PROJEKT RED logo" width="480" height="120">
+    <img srcset="/assets/cdprojektred-wordmark-320.png 320w, /assets/cdprojektred-wordmark-640.png 640w" alt="CD PROJEKT RED wordmark">
+    <picture><source srcset="/assets/cdprojektred-mark.webp 2x"></picture>
+    <a class="logo-video" style="background-image: url('/assets/cdprojektred-logo-video.png')"></a>
+  `
+  const candidates = parseOfficialLogoCandidatesFromHtml(
+    html,
+    'https://www.cdprojektred.com/en',
+    ['CD PROJEKT RED'],
+  )
+
+  assert.ok(candidates.some((candidate) => candidate.sourceKind === 'official-img'))
+  assert.ok(candidates.some((candidate) => candidate.sourceKind === 'official-srcset'))
+  assert.ok(candidates.some((candidate) => candidate.sourceKind === 'official-meta-image'))
+  assert.ok(candidates.some((candidate) => candidate.sourceKind === 'favicon'))
+  assert.ok(candidates.some((candidate) => candidate.selector === 'a.logo-video'))
+  assert.equal(candidates[0].url, 'https://www.cdprojektred.com/assets/cd-projekt-red-logo.svg')
+  assert.ok(candidates[0].reasons.includes('Logo-like filename or metadata'))
+  assert.ok(candidates[0].reasons.includes('Header, nav, or logo selector'))
+})
+
+test('extracts CSS-backed official logo candidates with selector context', () => {
+  const css = `
+    .logo-video { background-image: url("../images/cdprojektred-logo.svg"); }
+    .social-twitter { background-image: url("../images/twitter.svg"); }
+    @media (min-width: 800px) { .nav-brand { background: url("../images/brand-wordmark.png"); } }
+  `
+  const candidates = parseOfficialLogoCandidatesFromCss(
+    css,
+    'https://www.cdprojektred.com/styles/main.css',
+    ['CD PROJEKT RED'],
+  )
+  const logoCandidate = candidates.find((candidate) => candidate.selector === '.logo-video')
+  const socialCandidate = candidates.find((candidate) => candidate.selector === '.social-twitter')
+
+  assert.ok(logoCandidate)
+  assert.equal(logoCandidate.sourceKind, 'official-css-background')
+  assert.equal(logoCandidate.fileType, 'svg')
+  assert.ok(logoCandidate.reasons.includes('Header, nav, or logo selector'))
+  assert.ok(socialCandidate)
+  assert.ok(logoCandidate.score > socialCandidate.score)
+  assert.ok(socialCandidate.reasons.includes('Social icon signal'))
 })

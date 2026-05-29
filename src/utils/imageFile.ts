@@ -1,4 +1,4 @@
-import type { BackgroundImageSize } from '../project/projectTypes'
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
 
 export function readImageFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {

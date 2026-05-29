@@ -1,6 +1,6 @@
-import type { BackgroundImageSize } from '../project/projectTypes'
-import { loadImage } from '../export/canvasImage'
-import { getNaturalImageSize, readImageFileAsDataUrl } from './imageFile'
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
+import { loadImage } from '../export/canvasImage.ts'
+import { getNaturalImageSize, readImageFileAsDataUrl } from './imageFile.ts'
 
 export type ImportedImageAsset = {
   imageDataUrl: string

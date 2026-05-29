@@ -78,6 +78,24 @@ export type ProjectLogoAssets = {
   additionalPublisherLogos: ProjectAdditionalLogoAsset[]
 }
 
+export type TitleArtworkSource = 'steam' | 'custom'
+
+export type TitleArtworkLayout = {
+  enabled: boolean
+  scale: number
+  x: number
+  y: number
+}
+
+export type ProjectTitleArtwork = {
+  source: TitleArtworkSource
+  steamArtworkAssetId: string | null
+  sourceLabel: string
+  imageDataUrl: string | null
+  imageSize: BackgroundImageSize | null
+  layout: TitleArtworkLayout
+}
+
 export type RatingBadgeSource = 'placeholder' | 'custom'
 
 export type RatingBadgeLayout = {
@@ -184,6 +202,7 @@ export type SavedProject = {
   }
   metadata?: ProjectMetadata
   logoAssets?: Partial<ProjectLogoAssets>
+  titleArtwork?: Partial<ProjectTitleArtwork>
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks
@@ -205,6 +224,7 @@ export type SavedProject = {
     guides?: ExportGuideSelection
   }
   background: {
+    enabled?: boolean
     scale: number
     offset: BackgroundOffset
     imageDataUrl: string | null

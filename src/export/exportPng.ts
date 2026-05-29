@@ -1,7 +1,7 @@
 import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
-import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
 import { canvasToPngBytes, loadImage } from './canvasImage'
@@ -12,6 +12,7 @@ import { drawLogoAssets } from './drawLogoAssets'
 import { drawRatingBadge } from './drawRatingBadge'
 import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
 import { drawTechnicalMarks } from './drawTechnicalMarks'
+import { drawTitleArtwork } from './drawTitleArtwork'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
@@ -40,6 +41,7 @@ export async function exportDiscLabelPngBytes(params: {
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
+  projectTitleArtwork: ProjectTitleArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -114,6 +116,13 @@ export async function exportDiscLabelPngBytes(params: {
         params.steamBannerColors,
         params.steamBannerLockupImageUrl,
         params.steamBannerLockupLayout,
+      ),
+    'title-artwork': () =>
+      drawTitleArtwork(
+        context,
+        discContentSize,
+        discOrigin,
+        params.projectTitleArtwork,
       ),
     'logo-assets': () => drawLogoAssets(context, discContentSize, discOrigin, params.projectLogoAssets),
     'rating-badge': () =>

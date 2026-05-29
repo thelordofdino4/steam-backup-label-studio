@@ -57,6 +57,7 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.template.customDiscTemplate, undefined)
   assert.deepEqual(restored.backgroundOffset, { x: 8, y: -4 })
   assert.equal(restored.backgroundScale, 1.35)
+  assert.equal(restored.isBackgroundArtworkEnabled, true)
 })
 
 test('restores custom template, clamps foreground layouts, and backfills old background image size', async () => {
@@ -232,6 +233,20 @@ test('keeps saved background image size without resolving it again', async () =>
 
   assert.deepEqual(restored.backgroundImageSize, { width: 800, height: 600 })
   assert.equal(resolveCount, 0)
+})
+
+test('restores saved background artwork visibility', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    background: {
+      ...baseProject.background,
+      enabled: false,
+      imageDataUrl: 'data:image/png;base64,background',
+    },
+  })
+
+  assert.equal(restored.isBackgroundArtworkEnabled, false)
+  assert.equal(restored.backgroundImageUrl, 'data:image/png;base64,background')
 })
 
 test('restores saved and legacy disc text metadata source state', async () => {

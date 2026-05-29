@@ -822,6 +822,18 @@ input:disabled {
   background: #111827;
 }
 
+.title-artwork-control {
+  margin-top: 12px;
+}
+
+.title-artwork-status-card {
+  margin-top: 10px;
+}
+
+.title-artwork-preview {
+  object-fit: contain;
+}
+
 .disc-text-layout-grid {
   display: grid;
   gap: 8px;
@@ -987,6 +999,16 @@ input:disabled {
   color: #fca5a5 !important;
 }
 
+.logo-candidate-source-status-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.logo-candidate-source-status {
+  margin: 0;
+}
+
 .logo-candidate-list {
   display: grid;
   gap: 10px;
@@ -1039,11 +1061,35 @@ input:disabled {
 }
 
 .logo-candidate-meta,
-.logo-candidate-reasons {
+.logo-candidate-reasons,
+.logo-candidate-selector {
   margin-top: 4px;
   color: #9ca3af;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.logo-candidate-source-badge {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: #e5e7eb;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.logo-candidate-source-steam {
+  background: rgba(37, 99, 235, 0.45);
+}
+
+.logo-candidate-source-official {
+  background: rgba(22, 163, 74, 0.45);
+}
+
+.logo-candidate-selector {
+  display: block;
+  overflow-wrap: anywhere;
 }
 
 .disc-logo-asset-layer {
@@ -1051,6 +1097,27 @@ input:disabled {
   inset: 0;
   z-index: 3;
   pointer-events: none;
+}
+
+.disc-title-artwork-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.disc-title-artwork {
+  position: absolute;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.38));
+}
+
+.disc-title-artwork:active {
+  cursor: grabbing;
 }
 
 .disc-logo-asset {

@@ -122,11 +122,45 @@ function formatSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
       return 'Steam metadata'
     case 'steam-img':
       return 'Steam image'
+    case 'official-img':
+      return 'Official image'
+    case 'official-srcset':
+      return 'Official srcset'
+    case 'official-css-background':
+      return 'Official CSS'
+    case 'official-meta-image':
+      return 'Official metadata'
+    case 'favicon':
+      return 'Favicon'
   }
+}
+
+function getSourceBadgeClass(sourceKind: RemoteLogoCandidate['sourceKind']) {
+  return sourceKind.startsWith('steam-') ? 'logo-candidate-source-steam' : 'logo-candidate-source-official'
 }
 
 function formatCandidateDimensions(candidate: RemoteLogoCandidate) {
   return candidate.width && candidate.height ? ` · ${candidate.width}x${candidate.height}` : ''
+}
+
+function formatCandidateSourceStatus(discovery: LogoCandidateDiscoveryState[LogoKey]) {
+  if (discovery.sourceStatuses.length === 0) return null
+
+  return (
+    <div className="logo-candidate-source-status-list">
+      {discovery.sourceStatuses.map((sourceStatus) => (
+        <p className="hint logo-candidate-source-status" key={`${sourceStatus.source}-${sourceStatus.label}`}>
+          <strong>{sourceStatus.label}:</strong>{' '}
+          {sourceStatus.status === 'searched'
+            ? `${sourceStatus.candidateCount ?? 0} candidate${sourceStatus.candidateCount === 1 ? '' : 's'}`
+            : sourceStatus.status === 'unavailable'
+              ? 'not available'
+              : 'blocked or unavailable'}
+          {sourceStatus.detail ? ` · ${sourceStatus.detail}` : ''}
+        </p>
+      ))}
+    </div>
+  )
 }
 
 function LogoCandidateList({
@@ -153,22 +187,29 @@ function LogoCandidateList({
         {discovery.isLoading ? 'Finding logo candidates...' : 'Find logo candidates'}
       </button>
 
+      <p className="hint">
+        Searches Steam fallback pages and best-effort official-site HTML/CSS for logo candidates. Manual upload remains the reliable fallback.
+      </p>
+
       {discovery.error ? <p className="hint logo-candidate-error">{discovery.error}</p> : null}
+      {formatCandidateSourceStatus(discovery)}
 
       {!discovery.isLoading && discovery.lastSearchedLabel && discovery.candidates.length === 0 && !discovery.error ? (
-        <p className="hint">No Steam logo candidates found for {discovery.lastSearchedLabel}. Manual upload is still available.</p>
+        <p className="hint">No logo candidates found for {discovery.lastSearchedLabel}. Manual upload is still available.</p>
       ) : null}
 
       {discovery.candidates.length > 0 ? (
         <div className="logo-candidate-list">
           {discovery.candidates.map((candidate) => (
             <div className="logo-candidate-row" key={candidate.id}>
-              <img className="logo-candidate-preview" src={candidate.url} alt={candidate.alt ?? candidate.label} draggable={false} />
+              <img className="logo-candidate-preview" src={candidate.previewUrl ?? candidate.url} alt={candidate.alt ?? candidate.label} draggable={false} />
               <div className="logo-candidate-details">
                 <span className="logo-candidate-title">{candidate.label}</span>
                 <span className="logo-candidate-meta">
-                  {formatSourceKind(candidate.sourceKind)} · {candidate.fileType.toUpperCase()} · score {candidate.score}{formatCandidateDimensions(candidate)}
+                  <span className={`logo-candidate-source-badge ${getSourceBadgeClass(candidate.sourceKind)}`}>{formatSourceKind(candidate.sourceKind)}</span>
+                  {' '}{candidate.fileType.toUpperCase()} · score {candidate.score}{formatCandidateDimensions(candidate)}
                 </span>
+                {candidate.selector ? <span className="logo-candidate-selector">{candidate.selector}</span> : null}
                 <span className="logo-candidate-reasons">{candidate.reasons.slice(0, 4).join(', ')}</span>
                 <button
                   className="secondary-button"

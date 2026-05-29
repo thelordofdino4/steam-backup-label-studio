@@ -14,6 +14,7 @@ import {
   clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
+  clampProjectTitleArtworkToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
 } from '../layout/discElementSafeZone.ts'
 import {
@@ -35,6 +36,7 @@ import { normalizeProjectMediaMark, normalizeProjectPlatformMarks } from './proj
 import { normalizeProjectMetadata } from './projectMetadata.ts'
 import { normalizeProjectRatingBadge } from './projectRatingBadge.ts'
 import { normalizeProjectTechnicalMarks } from './projectTechnicalMarks.ts'
+import { normalizeProjectTitleArtwork } from './projectTitleArtwork.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -44,6 +46,7 @@ import type {
   ProjectPlatformMarks,
   ProjectRatingBadge,
   ProjectTechnicalMarks,
+  ProjectTitleArtwork,
   SavedProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
@@ -60,6 +63,7 @@ export type RestoredProjectState = {
   manualGameTitle: string
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
+  projectTitleArtwork: ProjectTitleArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
@@ -81,6 +85,7 @@ export type RestoredProjectState = {
   backgroundOffset: BackgroundOffset
   backgroundImageUrl: string | null
   backgroundImageSize: BackgroundImageSize | null
+  isBackgroundArtworkEnabled: boolean
 }
 
 export type RestoreProjectStateOptions = {
@@ -159,6 +164,15 @@ export async function restoreSavedProjectState(
     loadedLogoAssets,
     template.selectedDiscTemplate,
   )
+  const loadedTitleArtwork = normalizeProjectTitleArtwork(
+    project.titleArtwork,
+    template.selectedDiscTemplate,
+    project.steamBackupLogo.placement,
+  )
+  const projectTitleArtwork = clampProjectTitleArtworkToSafeZone(
+    loadedTitleArtwork,
+    template.selectedDiscTemplate,
+  )
   const loadedRatingBadge = normalizeProjectRatingBadge(
     project.ratingBadge,
     template.selectedDiscTemplate,
@@ -205,6 +219,7 @@ export async function restoreSavedProjectState(
     manualGameTitle,
     projectMetadata,
     projectLogoAssets,
+    projectTitleArtwork,
     projectRatingBadge,
     projectMediaMark,
     projectPlatformMarks: clampProjectPlatformMarksToSafeZone(
@@ -248,6 +263,7 @@ export async function restoreSavedProjectState(
       project,
       options.resolveBackgroundImageSize,
     ),
+    isBackgroundArtworkEnabled: project.background.enabled ?? true,
   }
 }
 
