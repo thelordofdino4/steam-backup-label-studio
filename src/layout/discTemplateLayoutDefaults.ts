@@ -113,6 +113,8 @@ const LOGO_ANCHORS = {
   publisher: createReferenceAnchor({ x: 22, y: 72 }),
 } satisfies Record<'developer' | 'publisher', RadialAnchor>
 
+const ADDITIONAL_LOGO_X_OFFSET_PERCENT = 20
+
 const RATING_BADGE_ANCHOR = createReferenceAnchor({ x: 78, y: 50 })
 const MEDIA_MARK_ANCHOR = createReferenceAnchor({ x: 74, y: 72 })
 
@@ -400,6 +402,53 @@ export function getDefaultLogoAssetLayoutForTemplate(
   return {
     enabled: false,
     scale,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getDefaultAdditionalLogoAssetLayoutForTemplate(
+  template: DiscTemplate,
+  logoKey: 'developer' | 'publisher',
+  additionalLogoIndex: number,
+  imageSize: BackgroundImageSize | null = null,
+): LogoAssetLayout {
+  const baseLayout = getDefaultLogoAssetLayoutForTemplate(template, logoKey, imageSize)
+  const scale = baseLayout.scale
+  const point = clampLayoutPointToSafeZone(
+    {
+      x: baseLayout.x + ADDITIONAL_LOGO_X_OFFSET_PERCENT * (additionalLogoIndex + 1),
+      y: baseLayout.y,
+    },
+    template,
+    getLogoAssetBoundsPercent(imageSize, scale),
+  )
+
+  return {
+    enabled: false,
+    scale,
+    x: point.x,
+    y: point.y,
+  }
+}
+
+export function getNextAdditionalLogoAssetLayoutForTemplate(
+  template: DiscTemplate,
+  referenceLayout: LogoAssetLayout,
+  imageSize: BackgroundImageSize | null = null,
+): LogoAssetLayout {
+  const point = clampLayoutPointToSafeZone(
+    {
+      x: referenceLayout.x + ADDITIONAL_LOGO_X_OFFSET_PERCENT,
+      y: referenceLayout.y,
+    },
+    template,
+    getLogoAssetBoundsPercent(imageSize, referenceLayout.scale),
+  )
+
+  return {
+    ...referenceLayout,
+    enabled: true,
     x: point.x,
     y: point.y,
   }

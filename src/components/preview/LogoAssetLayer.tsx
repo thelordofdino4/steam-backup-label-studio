@@ -1,18 +1,20 @@
 import type { PointerEvent } from 'react'
 import { getLogoAssetBoundsPercent } from '../../discGeometry'
-import { getLogoAssetRenderDataUrl, getLogoAssetRenderSize } from '../../project/projectLogoAssets'
-import type { BackgroundImageSize, LogoAssetLayout } from '../../project/projectTypes'
+import {
+  createLogoAssetRenderItems,
+  getLogoAssetRenderDataUrl,
+  getLogoAssetRenderSize,
+  type LogoAssetKey,
+  type LogoAssetRenderItem,
+} from '../../project/projectLogoAssets'
+import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from '../../project/projectTypes'
 
 export type LogoAssetLayerProps = {
-  developerLogoDataUrl: string | null
-  developerLogoSize: BackgroundImageSize | null
-  developerLogoLayout: LogoAssetLayout
-  publisherLogoDataUrl: string | null
-  publisherLogoSize: BackgroundImageSize | null
-  publisherLogoLayout: LogoAssetLayout
+  projectLogoAssets: ProjectLogoAssets
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
-    logoKey: 'developer' | 'publisher',
+    logoKey: LogoAssetKey,
+    additionalLogoId?: string,
   ) => void
   handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
@@ -24,26 +26,22 @@ function LogoAssetPreview({
   layout,
   label,
   logoKey,
+  additionalLogoId,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
-}: {
-  imageDataUrl: string | null
-  imageSize: BackgroundImageSize | null
-  layout: LogoAssetLayout
-  label: string
-  logoKey: 'developer' | 'publisher'
+}: LogoAssetRenderItem & {
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
-    logoKey: 'developer' | 'publisher',
+    logoKey: LogoAssetKey,
+    additionalLogoId?: string,
   ) => void
   handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
+  imageDataUrl: string | null
+  imageSize: BackgroundImageSize | null
+  layout: LogoAssetLayout
 }) {
-  if (!layout.enabled) {
-    return null
-  }
-
   const renderImageDataUrl = getLogoAssetRenderDataUrl(logoKey, imageDataUrl)
   const renderImageSize = getLogoAssetRenderSize(imageSize)
   const unscaledBounds = getLogoAssetBoundsPercent(renderImageSize, 1)
@@ -54,7 +52,7 @@ function LogoAssetPreview({
       src={renderImageDataUrl}
       alt={`${label} logo`}
       draggable={false}
-      onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey)}
+      onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey, additionalLogoId)}
       onPointerMove={handleLogoAssetPointerMove}
       onPointerUp={handleLogoAssetPointerUp}
       onPointerCancel={handleLogoAssetPointerUp}
@@ -71,38 +69,22 @@ function LogoAssetPreview({
 }
 
 export function LogoAssetLayer({
-  developerLogoDataUrl,
-  developerLogoSize,
-  developerLogoLayout,
-  publisherLogoDataUrl,
-  publisherLogoSize,
-  publisherLogoLayout,
+  projectLogoAssets,
   handleLogoAssetPointerDown,
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
 }: LogoAssetLayerProps) {
   return (
     <div className="disc-logo-asset-layer" aria-label="Developer and publisher logo layer">
-      <LogoAssetPreview
-        imageDataUrl={developerLogoDataUrl}
-        imageSize={developerLogoSize}
-        layout={developerLogoLayout}
-        label="Developer"
-        logoKey="developer"
-        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
-        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
-        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
-      />
-      <LogoAssetPreview
-        imageDataUrl={publisherLogoDataUrl}
-        imageSize={publisherLogoSize}
-        layout={publisherLogoLayout}
-        label="Publisher"
-        logoKey="publisher"
-        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
-        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
-        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
-      />
+      {createLogoAssetRenderItems(projectLogoAssets).map((logoAsset) => (
+        <LogoAssetPreview
+          key={logoAsset.additionalLogoId ?? logoAsset.logoKey}
+          {...logoAsset}
+          handleLogoAssetPointerDown={handleLogoAssetPointerDown}
+          handleLogoAssetPointerMove={handleLogoAssetPointerMove}
+          handleLogoAssetPointerUp={handleLogoAssetPointerUp}
+        />
+      ))}
     </div>
   )
 }

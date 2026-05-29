@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
+  clampProjectLogoAssetsToSafeZone,
   clampPlatformMarkLayoutToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
@@ -39,6 +40,10 @@ import type {
   RatingBadgeLayout,
   TechnicalMarkLayout,
 } from '../project/projectTypes.ts'
+import {
+  addAdditionalLogoAsset,
+  createDefaultProjectLogoAssets,
+} from '../project/projectLogoAssets.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
@@ -376,6 +381,40 @@ test('movable artwork clamps out of the standard inner no-print area', () => {
   assertRectAvoidsInnerNoPrintArea(
     technical,
     getTechnicalMarkPlaceholderBoundsPercent(technical.scale),
+    template,
+  )
+})
+
+test('project logo safe-zone clamp includes additional logos', () => {
+  const template = discTemplates.standardPrintableDisc
+  const logoAssets = addAdditionalLogoAsset(
+    {
+      ...createDefaultProjectLogoAssets(template),
+      developerLogoLayout: artworkLayout({ x: 22, y: 62 }),
+    },
+    'developer',
+    template,
+  )
+  const additionalLogoId = logoAssets.additionalDeveloperLogos[0]!.id
+  const clampedLogoAssets = clampProjectLogoAssetsToSafeZone(
+    {
+      ...logoAssets,
+      additionalDeveloperLogos: logoAssets.additionalDeveloperLogos.map((logoAsset) =>
+        logoAsset.id === additionalLogoId
+          ? {
+              ...logoAsset,
+              layout: artworkLayout({ x: 50, y: 50 }),
+            }
+          : logoAsset,
+      ),
+    },
+    template,
+  )
+  const additionalLogo = clampedLogoAssets.additionalDeveloperLogos[0]!
+
+  assertRectAvoidsInnerNoPrintArea(
+    additionalLogo.layout,
+    getLogoAssetBoundsPercent(null, additionalLogo.layout.scale),
     template,
   )
 })

@@ -57,6 +57,7 @@ type TextDragState = {
 
 type LogoDragState = {
   logoKey: LogoAssetKey
+  additionalLogoId?: string
 } & PercentDragState
 
 type RatingBadgeDragState = PercentDragState
@@ -178,14 +179,28 @@ export function useDiscPreviewPointerDrag({
           currentLogoAssets,
           dragState.logoKey,
           draggedPoint,
+          dragState.additionalLogoId,
         )
         const nextLayout = clampLogoAssetLayoutToSafeZone(
-          getLogoAssetLayout(nextLogoAssets, dragState.logoKey),
+          getLogoAssetLayout(
+            nextLogoAssets,
+            dragState.logoKey,
+            dragState.additionalLogoId,
+          ),
           selectedDiscTemplate,
-          getLogoAssetSize(nextLogoAssets, dragState.logoKey),
+          getLogoAssetSize(
+            nextLogoAssets,
+            dragState.logoKey,
+            dragState.additionalLogoId,
+          ),
         )
 
-        return setLogoAssetLayout(nextLogoAssets, dragState.logoKey, nextLayout)
+        return setLogoAssetLayout(
+          nextLogoAssets,
+          dragState.logoKey,
+          nextLayout,
+          dragState.additionalLogoId,
+        )
       })
     },
   })
@@ -336,11 +351,16 @@ export function useDiscPreviewPointerDrag({
   )
 
   const handleLogoAssetPointerDown = useCallback(
-    (event: PointerEvent<Element>, logoKey: LogoAssetKey) => {
-      const layout = getLogoAssetLayout(projectLogoAssets, logoKey)
+    (
+      event: PointerEvent<Element>,
+      logoKey: LogoAssetKey,
+      additionalLogoId?: string,
+    ) => {
+      const layout = getLogoAssetLayout(projectLogoAssets, logoKey, additionalLogoId)
 
       logoAssetPointerDrag.beginPointerDrag(event, {
         logoKey,
+        additionalLogoId,
         ...createPercentDragState(
           event.pointerId,
           event.clientX,

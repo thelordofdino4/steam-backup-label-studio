@@ -31,6 +31,7 @@ import {
   clampDiscTextLayoutToSafeZone,
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
+  clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
@@ -70,7 +71,7 @@ import {
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
-import { clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
@@ -326,33 +327,9 @@ function App() {
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
-    setProjectLogoAssets((currentLogoAssets) => {
-      const developerLogoLayout = clampLogoAssetLayoutToSafeZone(
-        currentLogoAssets.developerLogoLayout,
-        template,
-        currentLogoAssets.developerLogoSize,
-      )
-      const publisherLogoLayout = clampLogoAssetLayoutToSafeZone(
-        currentLogoAssets.publisherLogoLayout,
-        template,
-        currentLogoAssets.publisherLogoSize,
-      )
-
-      if (
-        developerLogoLayout.x === currentLogoAssets.developerLogoLayout.x &&
-        developerLogoLayout.y === currentLogoAssets.developerLogoLayout.y &&
-        publisherLogoLayout.x === currentLogoAssets.publisherLogoLayout.x &&
-        publisherLogoLayout.y === currentLogoAssets.publisherLogoLayout.y
-      ) {
-        return currentLogoAssets
-      }
-
-      return {
-        ...currentLogoAssets,
-        developerLogoLayout,
-        publisherLogoLayout,
-      }
-    })
+    setProjectLogoAssets((currentLogoAssets) =>
+      clampProjectLogoAssetsToSafeZone(currentLogoAssets, template),
+    )
 
     setProjectRatingBadge((currentBadge) => {
       const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
@@ -504,6 +481,7 @@ function App() {
   async function handleLogoAssetUpload(
     logoKey: 'developer' | 'publisher',
     event: ChangeEvent<HTMLInputElement>,
+    additionalLogoId?: string,
   ) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -526,10 +504,13 @@ function App() {
           logoKey,
           importedImage,
           selectedDiscTemplate,
+          additionalLogoId,
         ),
       )
 
-      announceStatus(`Using ${file.name} as the ${logoKey} logo.`)
+      announceStatus(
+        `Using ${file.name} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
+      )
     } catch (error) {
       announceStatus(`Logo import failed: ${String(error)}`)
     }
@@ -539,6 +520,7 @@ function App() {
     logoKey: LogoAssetKey,
     field: LogoAssetLayoutField,
     value: boolean | number,
+    additionalLogoId?: string,
   ) {
     setProjectLogoAssets((currentLogoAssets) => {
       const nextLogoAssets = updateLogoAssetLayoutField(
@@ -546,49 +528,72 @@ function App() {
         logoKey,
         field,
         value,
+        additionalLogoId,
       )
       const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey),
+        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
         selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey),
+        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
       )
 
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
     })
   }
 
-  function handleClearLogoAsset(logoKey: LogoAssetKey) {
+  function handleClearLogoAsset(logoKey: LogoAssetKey, additionalLogoId?: string) {
     setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = clearLogoAsset(currentLogoAssets, logoKey)
+      const nextLogoAssets = clearLogoAsset(
+        currentLogoAssets,
+        logoKey,
+        additionalLogoId,
+      )
       const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey),
+        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
         selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey),
+        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
       )
 
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
     })
 
-    announceStatus(`Cleared ${logoKey} logo asset.`)
+    announceStatus(`Cleared ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo asset.`)
   }
 
-  function handleResetLogoAssetLayout(logoKey: LogoAssetKey) {
+  function handleResetLogoAssetLayout(logoKey: LogoAssetKey, additionalLogoId?: string) {
     setProjectLogoAssets((currentLogoAssets) => {
       const nextLogoAssets = resetProjectLogoAssetLayout(
         currentLogoAssets,
         logoKey,
         selectedDiscTemplate,
+        additionalLogoId,
       )
       const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey),
+        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
         selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey),
+        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
       )
 
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
+      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
     })
 
-    announceStatus(`Reset ${logoKey} logo layout.`)
+    announceStatus(`Reset ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo layout.`)
+  }
+
+  function handleAddAdditionalLogoAsset(logoKey: LogoAssetKey) {
+    setProjectLogoAssets((currentLogoAssets) =>
+      addAdditionalLogoAsset(currentLogoAssets, logoKey, selectedDiscTemplate),
+    )
+    announceStatus(`Added an additional ${logoKey} logo.`)
+  }
+
+  function handleRemoveAdditionalLogoAsset(
+    logoKey: LogoAssetKey,
+    additionalLogoId: string,
+  ) {
+    setProjectLogoAssets((currentLogoAssets) =>
+      removeAdditionalLogoAsset(currentLogoAssets, logoKey, additionalLogoId),
+    )
+    announceStatus(`Deleted an additional ${logoKey} logo.`)
   }
 
   async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -1713,6 +1718,8 @@ function App() {
           handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
           handleClearLogoAsset={handleClearLogoAsset}
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
+          handleAddAdditionalLogoAsset={handleAddAdditionalLogoAsset}
+          handleRemoveAdditionalLogoAsset={handleRemoveAdditionalLogoAsset}
           handleRatingBadgeUpload={handleRatingBadgeUpload}
           handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
           handleRatingBadgeEnabledChange={handleRatingBadgeEnabledChange}

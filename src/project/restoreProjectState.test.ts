@@ -50,6 +50,8 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.projectMetadata.steamAppId, '123')
   assert.equal(restored.discTextTitleValue, '')
   assert.equal(restored.discTextValueSources.title, 'metadata')
+  assert.deepEqual(restored.projectLogoAssets.additionalDeveloperLogos, [])
+  assert.deepEqual(restored.projectLogoAssets.additionalPublisherLogos, [])
   assert.deepEqual(restored.projectTechnicalMarks.values, [])
   assert.equal(restored.template.selectedDiscTemplateId, 'standardPrintableDisc')
   assert.equal(restored.template.customDiscTemplate, undefined)
@@ -119,6 +121,67 @@ test('restores custom template, clamps foreground layouts, and backfills old bac
   })
   assert.deepEqual(restored.backgroundImageSize, { width: 640, height: 480 })
   assert.equal(resolveCount, 1)
+})
+
+test('restores additional developer and publisher logos from saved project data', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    logoAssets: {
+      developerLogoDataUrl: null,
+      developerLogoSize: null,
+      developerLogoLayout: {
+        enabled: true,
+        scale: 1,
+        x: 22,
+        y: 62,
+      },
+      additionalDeveloperLogos: [
+        {
+          id: 'developer-extra',
+          imageDataUrl: 'data:image/png;base64,developer-extra',
+          imageSize: { width: 400, height: 120 },
+          layout: {
+            enabled: true,
+            scale: 1,
+            x: 99,
+            y: 99,
+          },
+        },
+      ],
+      publisherLogoDataUrl: null,
+      publisherLogoSize: null,
+      publisherLogoLayout: {
+        enabled: true,
+        scale: 1,
+        x: 22,
+        y: 72,
+      },
+      additionalPublisherLogos: [
+        {
+          id: 'publisher-extra',
+          imageDataUrl: null,
+          imageSize: null,
+          layout: {
+            enabled: false,
+            scale: 1.2,
+            x: 42,
+            y: 72,
+          },
+        },
+      ],
+    },
+  })
+  const additionalDeveloperLogo = restored.projectLogoAssets.additionalDeveloperLogos[0]!
+  const additionalPublisherLogo = restored.projectLogoAssets.additionalPublisherLogos[0]!
+
+  assert.equal(additionalDeveloperLogo.id, 'developer-extra')
+  assert.equal(additionalDeveloperLogo.imageDataUrl, 'data:image/png;base64,developer-extra')
+  assert.equal(additionalDeveloperLogo.layout.enabled, true)
+  assert.equal(additionalDeveloperLogo.layout.x < 99, true)
+  assert.equal(additionalDeveloperLogo.layout.y < 99, true)
+  assert.equal(additionalPublisherLogo.id, 'publisher-extra')
+  assert.equal(additionalPublisherLogo.layout.enabled, false)
+  assert.equal(additionalPublisherLogo.layout.scale, 1.2)
 })
 
 test('restores technical marks from saved project data and clamps layout', async () => {

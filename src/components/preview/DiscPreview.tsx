@@ -14,6 +14,7 @@ import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
 import type { DiscTextValueSources } from '../../project/metadataDiscText'
+import type { LogoAssetKey } from '../../project/projectLogoAssets'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -56,7 +57,8 @@ export type DiscPreviewProps = {
   handleTechnicalMarkPointerUp: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerDown: (
     event: PointerEvent<Element>,
-    logoKey: 'developer' | 'publisher',
+    logoKey: LogoAssetKey,
+    additionalLogoId?: string,
   ) => void
   handleLogoAssetPointerMove: (event: PointerEvent<Element>) => void
   handleLogoAssetPointerUp: (event: PointerEvent<Element>) => void
@@ -152,12 +154,7 @@ export function DiscPreview({
     ),
     'logo-assets': (
       <LogoAssetLayer
-        developerLogoDataUrl={projectLogoAssets.developerLogoDataUrl}
-        developerLogoSize={projectLogoAssets.developerLogoSize}
-        developerLogoLayout={projectLogoAssets.developerLogoLayout}
-        publisherLogoDataUrl={projectLogoAssets.publisherLogoDataUrl}
-        publisherLogoSize={projectLogoAssets.publisherLogoSize}
-        publisherLogoLayout={projectLogoAssets.publisherLogoLayout}
+        projectLogoAssets={projectLogoAssets}
         handleLogoAssetPointerDown={handleLogoAssetPointerDown}
         handleLogoAssetPointerMove={handleLogoAssetPointerMove}
         handleLogoAssetPointerUp={handleLogoAssetPointerUp}

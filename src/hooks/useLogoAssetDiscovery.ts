@@ -133,6 +133,7 @@ export function useLogoAssetDiscovery({
   const applyLogoCandidate = useCallback(async (
     logoKey: LogoAssetKey,
     candidate: RemoteLogoCandidate,
+    additionalLogoId?: string,
   ) => {
     updateSlot(logoKey, (slot) => ({
       ...slot,
@@ -153,6 +154,7 @@ export function useLogoAssetDiscovery({
           logoKey,
           importedImage,
           selectedDiscTemplate,
+          additionalLogoId,
         ),
       )
 
@@ -161,7 +163,9 @@ export function useLogoAssetDiscovery({
         isApplying: false,
         error: null,
       }))
-      announceStatus(`Using ${candidate.label} as the ${logoKey} logo.`)
+      announceStatus(
+        `Using ${candidate.label} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
+      )
     } catch (error) {
       const message = getErrorMessage(error)
       updateSlot(logoKey, (slot) => ({

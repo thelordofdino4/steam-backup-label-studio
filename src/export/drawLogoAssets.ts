@@ -1,6 +1,10 @@
 import type { LogoAssetLayout, ProjectLogoAssets } from '../project/projectTypes'
 import { LOGO_BASE_WIDTH_RATIO, LOGO_MAX_HEIGHT_RATIO } from '../discGeometry'
-import { getLogoAssetRenderDataUrl, type LogoAssetKey } from '../project/projectLogoAssets'
+import {
+  createLogoAssetRenderItems,
+  getLogoAssetRenderDataUrl,
+  type LogoAssetKey,
+} from '../project/projectLogoAssets'
 import { loadImage } from './canvasImage'
 
 async function drawLogoAsset(
@@ -11,10 +15,6 @@ async function drawLogoAsset(
   layout: LogoAssetLayout,
   logoKey: LogoAssetKey,
 ) {
-  if (!layout.enabled) {
-    return
-  }
-
   const image = await loadImage(getLogoAssetRenderDataUrl(logoKey, imageDataUrl))
   const naturalWidth = image.naturalWidth || image.width || 1
   const naturalHeight = image.naturalHeight || image.height || 1
@@ -49,20 +49,14 @@ export async function drawLogoAssets(
   discOrigin: number,
   logoAssets: ProjectLogoAssets,
 ) {
-  await drawLogoAsset(
-    context,
-    discContentSize,
-    discOrigin,
-    logoAssets.developerLogoDataUrl,
-    logoAssets.developerLogoLayout,
-    'developer',
-  )
-  await drawLogoAsset(
-    context,
-    discContentSize,
-    discOrigin,
-    logoAssets.publisherLogoDataUrl,
-    logoAssets.publisherLogoLayout,
-    'publisher',
-  )
+  for (const logoAsset of createLogoAssetRenderItems(logoAssets)) {
+    await drawLogoAsset(
+      context,
+      discContentSize,
+      discOrigin,
+      logoAsset.imageDataUrl,
+      logoAsset.layout,
+      logoAsset.logoKey,
+    )
+  }
 }

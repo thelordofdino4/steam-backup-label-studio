@@ -159,6 +159,40 @@ select {
   cursor: pointer;
 }
 
+.icon-text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.icon-text-button svg,
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.icon-button {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #111827;
+  color: #f9fafb;
+  cursor: pointer;
+}
+
+.danger-icon-button {
+  color: #fecaca;
+}
+
 .button-row {
   display: grid;
   gap: 10px;
@@ -887,6 +921,23 @@ input:disabled {
   border-top: 1px solid rgba(148, 163, 184, 0.18);
   margin-top: 0.9rem;
   padding-top: 0.9rem;
+}
+
+.additional-logo-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.additional-logo-block-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.additional-logo-block-header .field-label {
+  margin-bottom: 0;
 }
 
 .metadata-details[open] > .panel-summary::after {

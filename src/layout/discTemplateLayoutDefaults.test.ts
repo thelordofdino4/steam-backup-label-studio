@@ -3,6 +3,7 @@ import test from 'node:test'
 import { buildCustomDiscTemplate } from '../discGeometry.ts'
 import {
   createDefaultDiscTextLayoutForTemplate,
+  getDefaultAdditionalLogoAssetLayoutForTemplate,
   getDefaultLogoAssetLayoutForTemplate,
   getDefaultMediaMarkLayoutForTemplate,
   getDefaultPlatformMarkLayoutForTemplate,
@@ -12,6 +13,7 @@ import {
 } from './discTemplateLayoutDefaults.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
+  addAdditionalLogoAsset,
   createDefaultProjectLogoAssets,
   resetProjectLogoAssetLayout,
 } from '../project/projectLogoAssets.ts'
@@ -81,6 +83,8 @@ test('standard printable disc defaults preserve the current baseline anchors', (
   const textLayout = createDefaultDiscTextLayoutForTemplate(template, 'top')
   const developerLogoLayout = getDefaultLogoAssetLayoutForTemplate(template, 'developer')
   const publisherLogoLayout = getDefaultLogoAssetLayoutForTemplate(template, 'publisher')
+  const additionalDeveloperLogoLayout =
+    getDefaultAdditionalLogoAssetLayoutForTemplate(template, 'developer', 0)
   const ratingBadgeLayout = getDefaultRatingBadgeLayoutForTemplate(template)
   const mediaMarkLayout = getDefaultMediaMarkLayoutForTemplate(template)
   const windowsPlatformLayout = getDefaultPlatformMarkLayoutForTemplate(template, 'windows')
@@ -94,6 +98,8 @@ test('standard printable disc defaults preserve the current baseline anchors', (
   assertApproximatelyEqual(developerLogoLayout.y, 62)
   assertApproximatelyEqual(publisherLogoLayout.x, 22)
   assertApproximatelyEqual(publisherLogoLayout.y, 72)
+  assert.ok(additionalDeveloperLogoLayout.x > developerLogoLayout.x)
+  assertPointInsideSafeRing(additionalDeveloperLogoLayout, template)
   assertApproximatelyEqual(ratingBadgeLayout.x, 78)
   assertApproximatelyEqual(ratingBadgeLayout.y, 50)
   assertApproximatelyEqual(mediaMarkLayout.x, 74)
@@ -147,7 +153,7 @@ test('template-aware reset helpers preserve enabled state while resetting to tem
   const template = largeHubTemplate()
   const logoAssets = createDefaultProjectLogoAssets()
   const resetLogoAssets = resetProjectLogoAssetLayout(
-    {
+    addAdditionalLogoAsset({
       ...logoAssets,
       developerLogoLayout: {
         enabled: true,
@@ -155,10 +161,16 @@ test('template-aware reset helpers preserve enabled state while resetting to tem
         x: 95,
         y: 95,
       },
-    },
+    }, 'developer', template),
     'developer',
     template,
   )
+  const additionalDeveloperLogo = resetProjectLogoAssetLayout(
+    resetLogoAssets,
+    'developer',
+    template,
+    resetLogoAssets.additionalDeveloperLogos[0]?.id,
+  ).additionalDeveloperLogos[0]!
   const resetRatingBadge = resetProjectRatingBadgeLayout(
     {
       ...createDefaultProjectRatingBadge(),
@@ -206,6 +218,8 @@ test('template-aware reset helpers preserve enabled state while resetting to tem
 
   assert.equal(resetLogoAssets.developerLogoLayout.enabled, true)
   assertPointInsideSafeRing(resetLogoAssets.developerLogoLayout, template)
+  assert.equal(additionalDeveloperLogo.layout.enabled, true)
+  assertPointInsideSafeRing(additionalDeveloperLogo.layout, template)
   assert.equal(resetRatingBadge.layout.enabled, true)
   assertPointInsideSafeRing(resetRatingBadge.layout, template)
   assert.equal(resetMediaMark.layout.enabled, true)

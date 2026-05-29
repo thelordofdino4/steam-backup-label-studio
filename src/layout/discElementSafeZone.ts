@@ -37,6 +37,8 @@ import type {
   LogoAssetLayout,
   MediaMarkLayout,
   PlatformMarkLayout,
+  ProjectAdditionalLogoAsset,
+  ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
@@ -555,6 +557,47 @@ export function clampLogoAssetLayoutToSafeZone(
     ...layout,
     x: point.x,
     y: point.y,
+  }
+}
+
+function clampAdditionalLogoAssetsToSafeZone(
+  logoAssets: ProjectAdditionalLogoAsset[],
+  selectedDiscTemplate: DiscTemplate,
+) {
+  return logoAssets.map((logoAsset) => ({
+    ...logoAsset,
+    layout: clampLogoAssetLayoutToSafeZone(
+      logoAsset.layout,
+      selectedDiscTemplate,
+      logoAsset.imageSize,
+    ),
+  }))
+}
+
+export function clampProjectLogoAssetsToSafeZone(
+  logoAssets: ProjectLogoAssets,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectLogoAssets {
+  return {
+    ...logoAssets,
+    developerLogoLayout: clampLogoAssetLayoutToSafeZone(
+      logoAssets.developerLogoLayout,
+      selectedDiscTemplate,
+      logoAssets.developerLogoSize,
+    ),
+    additionalDeveloperLogos: clampAdditionalLogoAssetsToSafeZone(
+      logoAssets.additionalDeveloperLogos,
+      selectedDiscTemplate,
+    ),
+    publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
+      logoAssets.publisherLogoLayout,
+      selectedDiscTemplate,
+      logoAssets.publisherLogoSize,
+    ),
+    additionalPublisherLogos: clampAdditionalLogoAssetsToSafeZone(
+      logoAssets.additionalPublisherLogos,
+      selectedDiscTemplate,
+    ),
   }
 }
 

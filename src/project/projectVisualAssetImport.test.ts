@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { discTemplates } from '../templates/discTemplates.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
-import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
+import { addAdditionalLogoAsset, createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks } from './projectMediaMark.ts'
 import { createDefaultProjectRatingBadge } from './projectRatingBadge.ts'
 import { createDefaultProjectTechnicalMarks } from './projectTechnicalMarks.ts'
@@ -32,6 +32,29 @@ test('imported logo image enables and stores the selected logo asset', () => {
   assert.deepEqual(logoAssets.developerLogoSize, importedImage.imageSize)
   assert.equal(logoAssets.developerLogoLayout.enabled, true)
   assert.equal(logoAssets.publisherLogoDataUrl, null)
+})
+
+test('imported logo image can target an additional logo without replacing primary logos', () => {
+  const logoAssetsWithAdditional = addAdditionalLogoAsset(
+    createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
+    'developer',
+    discTemplates.standardPrintableDisc,
+  )
+  const additionalLogoId = logoAssetsWithAdditional.additionalDeveloperLogos[0]!.id
+  const logoAssets = applyImportedLogoAsset(
+    logoAssetsWithAdditional,
+    'developer',
+    importedImage,
+    discTemplates.standardPrintableDisc,
+    additionalLogoId,
+  )
+  const additionalLogo = logoAssets.additionalDeveloperLogos[0]!
+
+  assert.equal(logoAssets.developerLogoDataUrl, null)
+  assert.equal(logoAssets.publisherLogoDataUrl, null)
+  assert.equal(additionalLogo.imageDataUrl, importedImage.imageDataUrl)
+  assert.deepEqual(additionalLogo.imageSize, importedImage.imageSize)
+  assert.equal(additionalLogo.layout.enabled, true)
 })
 
 test('imported rating badge image switches the badge to custom source', () => {

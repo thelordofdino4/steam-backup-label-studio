@@ -10,8 +10,8 @@ import {
 import { exportGuideModeToSelection, type ExportGuideSelection } from '../exportGuides.ts'
 import {
   clampDiscTextLayoutToSafeZone,
-  clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
+  clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
   clampRatingBadgeLayoutToSafeZone,
@@ -155,19 +155,10 @@ export async function restoreSavedProjectState(
     project.logoAssets,
     template.selectedDiscTemplate,
   )
-  const projectLogoAssets = {
-    ...loadedLogoAssets,
-    developerLogoLayout: clampLogoAssetLayoutToSafeZone(
-      loadedLogoAssets.developerLogoLayout,
-      template.selectedDiscTemplate,
-      loadedLogoAssets.developerLogoSize,
-    ),
-    publisherLogoLayout: clampLogoAssetLayoutToSafeZone(
-      loadedLogoAssets.publisherLogoLayout,
-      template.selectedDiscTemplate,
-      loadedLogoAssets.publisherLogoSize,
-    ),
-  }
+  const projectLogoAssets = clampProjectLogoAssetsToSafeZone(
+    loadedLogoAssets,
+    template.selectedDiscTemplate,
+  )
   const loadedRatingBadge = normalizeProjectRatingBadge(
     project.ratingBadge,
     template.selectedDiscTemplate,

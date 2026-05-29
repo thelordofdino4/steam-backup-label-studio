@@ -12,7 +12,7 @@ import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
 import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
-import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
@@ -38,13 +38,15 @@ export type BrandingPanelProps = {
   handleResetSteamBannerLockupLayout: () => void
   handleSteamBannerColorChange: (field: keyof SteamBannerColors, value: string) => void
   handleResetSteamBannerColors: () => void
-  handleLogoAssetUpload: (logoKey: 'developer' | 'publisher', event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleLogoAssetUpload: (logoKey: 'developer' | 'publisher', event: ChangeEvent<HTMLInputElement>, additionalLogoId?: string) => void | Promise<void>
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: 'developer' | 'publisher') => void | Promise<void>
-  handleApplyLogoCandidate: (logoKey: 'developer' | 'publisher', candidate: RemoteLogoCandidate) => void | Promise<void>
-  handleLogoAssetLayoutChange: (logoKey: 'developer' | 'publisher', field: keyof LogoAssetLayout, value: boolean | number) => void
-  handleClearLogoAsset: (logoKey: 'developer' | 'publisher') => void
-  handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher') => void
+  handleApplyLogoCandidate: (logoKey: 'developer' | 'publisher', candidate: RemoteLogoCandidate, additionalLogoId?: string) => void | Promise<void>
+  handleLogoAssetLayoutChange: (logoKey: 'developer' | 'publisher', field: keyof LogoAssetLayout, value: boolean | number, additionalLogoId?: string) => void
+  handleClearLogoAsset: (logoKey: 'developer' | 'publisher', additionalLogoId?: string) => void
+  handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher', additionalLogoId?: string) => void
+  handleAddAdditionalLogoAsset: (logoKey: 'developer' | 'publisher') => void
+  handleRemoveAdditionalLogoAsset: (logoKey: 'developer' | 'publisher', additionalLogoId: string) => void
   handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
   handleRatingBadgeEnabledChange: (enabled: boolean) => void
@@ -72,6 +74,22 @@ export type BrandingPanelProps = {
 }
 
 type LogoKey = 'developer' | 'publisher'
+
+function PlusIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path d="M12 5v14M5 12h14" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path d="M9 5h6M5 7h14M10 11v6M14 11v6M7 7l1 13h8l1-13M10 5l1-2h2l1 2" />
+    </svg>
+  )
+}
 
 const LOGO_ALIGNMENT_PRESETS = [
   { label: 'Top left', x: 22, y: 22 },
@@ -122,7 +140,7 @@ function LogoCandidateList({
   label: string
   discovery: LogoCandidateDiscoveryState[LogoKey]
   handleFindLogoCandidates: (logoKey: LogoKey) => void | Promise<void>
-  handleApplyLogoCandidate: (logoKey: LogoKey, candidate: RemoteLogoCandidate) => void | Promise<void>
+  handleApplyLogoCandidate: (candidate: RemoteLogoCandidate) => void | Promise<void>
 }) {
   return (
     <div className="logo-candidate-discovery">
@@ -156,7 +174,7 @@ function LogoCandidateList({
                   className="secondary-button"
                   type="button"
                   disabled={discovery.isApplying}
-                  onClick={() => handleApplyLogoCandidate(logoKey, candidate)}
+                  onClick={() => handleApplyLogoCandidate(candidate)}
                 >
                   {discovery.isApplying ? 'Importing candidate...' : `Use as ${label.toLowerCase()} logo`}
                 </button>
@@ -265,14 +283,137 @@ function SteamBannerControls({
   )
 }
 
-function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, selectedDiscTemplate, handleLogoAssetUpload, logoCandidateDiscovery, handleFindLogoCandidates, handleApplyLogoCandidate, handleLogoAssetLayoutChange, handleClearLogoAsset, handleResetLogoAssetLayout }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
-  const uploadId = `${logoKey}-logo-upload`
+function LogoAssetControlBody({
+  logoKey,
+  label,
+  imageDataUrl,
+  imageSize,
+  layout,
+  uploadId,
+  controlIdPrefix,
+  additionalLogoId,
+  selectedDiscTemplate,
+  handleLogoAssetUpload,
+  logoCandidateDiscovery,
+  handleFindLogoCandidates,
+  handleApplyLogoCandidate,
+  handleLogoAssetLayoutChange,
+  handleClearLogoAsset,
+  handleResetLogoAssetLayout,
+}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout; uploadId: string; controlIdPrefix: string; additionalLogoId?: string }) {
   const hasLogoImage = Boolean(imageDataUrl)
   const sliderRanges = getLogoAssetLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
     imageSize,
   )
+  const updateLayout = (field: keyof LogoAssetLayout, value: boolean | number) =>
+    handleLogoAssetLayoutChange(logoKey, field, value, additionalLogoId)
+
+  return (
+    <>
+      <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
+      <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event, additionalLogoId)} />
+
+      <LogoCandidateList
+        logoKey={logoKey}
+        label={label}
+        discovery={logoCandidateDiscovery[logoKey]}
+        handleFindLogoCandidates={handleFindLogoCandidates}
+        handleApplyLogoCandidate={(candidate) =>
+          handleApplyLogoCandidate(logoKey, candidate, additionalLogoId)}
+      />
+
+      {hasLogoImage ? (
+        <div className="selected-lockup-card logo-asset-status-card">
+          <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
+          <span>{label} logo active{formatLogoSize(imageSize)}</span>
+        </div>
+      ) : (
+        <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled placeholder is shown for placement; upload an image before export to render your actual logo.</p>
+      )}
+
+      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-alignment-preset`}>Align logo</label>
+      <select id={`${controlIdPrefix}-alignment-preset`} defaultValue="" onChange={(event) => {
+        const preset = LOGO_ALIGNMENT_PRESETS.find((candidate) => candidate.label === event.target.value)
+        if (!preset) return
+        updateLayout('x', preset.x)
+        updateLayout('y', preset.y)
+        event.currentTarget.value = ''
+      }}>
+        <option value="">Choose preset...</option>
+        {LOGO_ALIGNMENT_PRESETS.map((preset) => <option key={preset.label} value={preset.label}>{preset.label}</option>)}
+      </select>
+
+      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-scale`}>Scale</label>
+      <input id={`${controlIdPrefix}-scale`} type="range" min="0.25" max="2" step="0.01" value={layout.scale} onChange={(event) => updateLayout('scale', Number(event.target.value))} />
+
+      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-x`}>X position</label>
+      <input id={`${controlIdPrefix}-x`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={layout.x} onChange={(event) => updateLayout('x', Number(event.target.value))} />
+
+      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-y`}>Y position</label>
+      <input id={`${controlIdPrefix}-y`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={layout.y} onChange={(event) => updateLayout('y', Number(event.target.value))} />
+
+      <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey, additionalLogoId)}>Reset logo layout</button>
+      {hasLogoImage && <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey, additionalLogoId)}>Clear logo</button>}
+    </>
+  )
+}
+
+function AdditionalLogoAssetControls({
+  logoKey,
+  label,
+  logoAsset,
+  additionalLogoIndex,
+  handleLogoAssetLayoutChange,
+  handleRemoveAdditionalLogoAsset,
+  ...props
+}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; logoAsset: ProjectAdditionalLogoAsset; additionalLogoIndex: number }) {
+  const uploadId = `${logoKey}-additional-logo-${additionalLogoIndex + 1}`
+  const additionalLabel = `Additional ${label.toLowerCase()}`
+  const deleteLabel = `Delete ${additionalLabel} logo`
+
+  return (
+    <div className="additional-logo-block">
+      <div className="additional-logo-block-header">
+        <label className="field-label">
+          <input type="checkbox" checked={logoAsset.layout.enabled} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked, logoAsset.id)} />
+          Show {additionalLabel} logo
+        </label>
+        <button
+          className="icon-button danger-icon-button"
+          type="button"
+          aria-label={deleteLabel}
+          title={deleteLabel}
+          onClick={() => handleRemoveAdditionalLogoAsset(logoKey, logoAsset.id)}
+        >
+          <TrashIcon />
+        </button>
+      </div>
+
+      {!logoAsset.layout.enabled ? null : (
+        <LogoAssetControlBody
+          {...props}
+          logoKey={logoKey}
+          label={additionalLabel}
+          imageDataUrl={logoAsset.imageDataUrl}
+          imageSize={logoAsset.imageSize}
+          layout={logoAsset.layout}
+          uploadId={uploadId}
+          controlIdPrefix={uploadId}
+          additionalLogoId={logoAsset.id}
+          handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
+        />
+      )}
+    </div>
+  )
+}
+
+function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, projectLogoAssets, handleLogoAssetLayoutChange, handleAddAdditionalLogoAsset, ...props }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'projectLogoAssets' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleAddAdditionalLogoAsset' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
+  const uploadId = `${logoKey}-logo-upload`
+  const additionalLogos = logoKey === 'developer'
+    ? projectLogoAssets.additionalDeveloperLogos
+    : projectLogoAssets.additionalPublisherLogos
 
   return (
     <div className="logo-asset-card">
@@ -283,49 +424,38 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, se
 
       {!layout.enabled ? null : (
         <>
-          <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
-          <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event)} />
-
-          <LogoCandidateList
+          <LogoAssetControlBody
+            {...props}
             logoKey={logoKey}
             label={label}
-            discovery={logoCandidateDiscovery[logoKey]}
-            handleFindLogoCandidates={handleFindLogoCandidates}
-            handleApplyLogoCandidate={handleApplyLogoCandidate}
+            imageDataUrl={imageDataUrl}
+            imageSize={imageSize}
+            layout={layout}
+            uploadId={uploadId}
+            controlIdPrefix={`${logoKey}-logo`}
+            handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
           />
 
-          {hasLogoImage ? (
-            <div className="selected-lockup-card logo-asset-status-card">
-              <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
-              <span>{label} logo active{formatLogoSize(imageSize)}</span>
-            </div>
-          ) : (
-            <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled placeholder is shown for placement; upload an image before export to render your actual logo.</p>
-          )}
+          {additionalLogos.map((logoAsset, index) => (
+            <AdditionalLogoAssetControls
+              key={logoAsset.id}
+              {...props}
+              logoKey={logoKey}
+              label={label}
+              logoAsset={logoAsset}
+              additionalLogoIndex={index}
+              handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
+            />
+          ))}
 
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-alignment-preset`}>Align logo</label>
-          <select id={`${logoKey}-logo-alignment-preset`} defaultValue="" onChange={(event) => {
-            const preset = LOGO_ALIGNMENT_PRESETS.find((candidate) => candidate.label === event.target.value)
-            if (!preset) return
-            handleLogoAssetLayoutChange(logoKey, 'x', preset.x)
-            handleLogoAssetLayoutChange(logoKey, 'y', preset.y)
-            event.currentTarget.value = ''
-          }}>
-            <option value="">Choose preset...</option>
-            {LOGO_ALIGNMENT_PRESETS.map((preset) => <option key={preset.label} value={preset.label}>{preset.label}</option>)}
-          </select>
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-scale`}>Scale</label>
-          <input id={`${logoKey}-logo-scale`} type="range" min="0.25" max="2" step="0.01" value={layout.scale} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'scale', Number(event.target.value))} />
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-x`}>X position</label>
-          <input id={`${logoKey}-logo-x`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={layout.x} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'x', Number(event.target.value))} />
-
-          <label className="field-label spacing-top" htmlFor={`${logoKey}-logo-y`}>Y position</label>
-          <input id={`${logoKey}-logo-y`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={layout.y} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'y', Number(event.target.value))} />
-
-          <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey)}>Reset logo layout</button>
-          {hasLogoImage && <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey)}>Clear logo</button>}
+          <button
+            className="secondary-button icon-text-button"
+            type="button"
+            onClick={() => handleAddAdditionalLogoAsset(logoKey)}
+          >
+            <PlusIcon />
+            <span>Add additional logo</span>
+          </button>
         </>
       )}
     </div>

@@ -60,13 +60,22 @@ export type LogoAssetLayout = {
   y: number
 }
 
+export type ProjectAdditionalLogoAsset = {
+  id: string
+  imageDataUrl: string | null
+  imageSize: BackgroundImageSize | null
+  layout: LogoAssetLayout
+}
+
 export type ProjectLogoAssets = {
   developerLogoDataUrl: string | null
   developerLogoSize: BackgroundImageSize | null
   developerLogoLayout: LogoAssetLayout
+  additionalDeveloperLogos: ProjectAdditionalLogoAsset[]
   publisherLogoDataUrl: string | null
   publisherLogoSize: BackgroundImageSize | null
   publisherLogoLayout: LogoAssetLayout
+  additionalPublisherLogos: ProjectAdditionalLogoAsset[]
 }
 
 export type RatingBadgeSource = 'placeholder' | 'custom'
@@ -174,7 +183,7 @@ export type SavedProject = {
     selectedSteamGame: SteamImportedGame | null
   }
   metadata?: ProjectMetadata
-  logoAssets?: ProjectLogoAssets
+  logoAssets?: Partial<ProjectLogoAssets>
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks

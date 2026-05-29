@@ -32,20 +32,22 @@ export function applyImportedLogoAsset(
   logoKey: LogoAssetKey,
   importedImage: ImportedImageAsset,
   selectedDiscTemplate: DiscTemplate,
+  additionalLogoId?: string,
 ): ProjectLogoAssets {
   const nextLogoAssets = setLogoAssetImage(
     logoAssets,
     logoKey,
     importedImage.imageDataUrl,
     importedImage.imageSize,
+    additionalLogoId,
   )
   const nextLayout = clampLogoAssetLayoutToSafeZone(
-    getLogoAssetLayout(nextLogoAssets, logoKey),
+    getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
     selectedDiscTemplate,
-    getLogoAssetSize(nextLogoAssets, logoKey),
+    getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
   )
 
-  return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout)
+  return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
 }
 
 export function applyImportedRatingBadge(
