@@ -806,7 +806,7 @@ function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, ha
 export function BrandingPanel(props: BrandingPanelProps) {
   const { projectLogoAssets } = props
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Branding</summary>
       <div className="panel-content">
         <SteamBannerControls {...props} />

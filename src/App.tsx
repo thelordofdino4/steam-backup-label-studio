@@ -1455,6 +1455,7 @@ function App() {
         importedState.importedGame,
       )
       setSelectedSteamGame(importedState.importedGame)
+      setSteamSearchResults([])
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadata)
       setDiscTextValues(nextDiscTextValues)

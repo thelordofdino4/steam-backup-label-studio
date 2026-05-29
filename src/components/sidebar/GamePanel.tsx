@@ -32,12 +32,15 @@ export function GamePanel({
   isSteamImportLoading,
 }: GamePanelProps) {
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Game</summary>
       <div className="panel-content">
       <label className="field-label spacing-top" htmlFor="game-search">
         Steam search
       </label>
+      <p className="hint">
+        Selecting a Steam game imports available Steam metadata and artwork where possible. Imported details may still need manual review.
+      </p>
       <input
         id="game-search"
         type="search"

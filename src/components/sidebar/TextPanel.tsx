@@ -102,7 +102,7 @@ export function TextPanel({
   }
 
   return (
-    <details className="panel collapsible-panel" open>
+    <details className="panel collapsible-panel">
       <summary className="panel-summary">Text</summary>
       <div className="panel-content">
         <p className="hint">
