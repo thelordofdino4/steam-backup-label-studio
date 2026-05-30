@@ -16,6 +16,10 @@ import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkL
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
+import {
+  ImageCandidatePreviewPicker,
+  type ImageCandidatePickerItem,
+} from './ImageCandidatePicker'
 import { PlusIcon } from './PanelIcons'
 import { RepeatedVisualElementCard } from './RepeatedVisualElementCard'
 
@@ -123,12 +127,24 @@ function formatSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
   }
 }
 
-function getSourceBadgeClass(sourceKind: RemoteLogoCandidate['sourceKind']) {
-  return sourceKind.startsWith('steam-') ? 'logo-candidate-source-steam' : 'logo-candidate-source-official'
-}
-
 function formatCandidateDimensions(candidate: RemoteLogoCandidate) {
   return candidate.width && candidate.height ? ` · ${candidate.width}x${candidate.height}` : ''
+}
+
+function createLogoCandidatePickerItems(
+  candidates: RemoteLogoCandidate[],
+): ImageCandidatePickerItem[] {
+  return candidates.map((candidate) => ({
+    id: candidate.id,
+    title: candidate.label,
+    subtitle: `${formatSourceKind(candidate.sourceKind)} · ${candidate.fileType.toUpperCase()} · score ${candidate.score}${formatCandidateDimensions(candidate)}`,
+    details: [
+      ...(candidate.selector ? [`Selector: ${candidate.selector}`] : []),
+      ...candidate.reasons.slice(0, 3),
+    ],
+    imageUrl: candidate.previewUrl ?? candidate.url,
+    imageFit: 'contain',
+  }))
 }
 
 function formatCandidateSourceStatus(discovery: LogoCandidateDiscoveryState[LogoKey]) {
@@ -164,6 +180,15 @@ function LogoCandidateList({
   handleFindLogoCandidates: (logoKey: LogoKey) => void | Promise<void>
   handleApplyLogoCandidate: (candidate: RemoteLogoCandidate) => void | Promise<void>
 }) {
+  const pickerItems = createLogoCandidatePickerItems(discovery.candidates)
+  const selectLogoCandidate = (itemId: string) => {
+    const candidate = discovery.candidates.find(
+      (currentCandidate) => currentCandidate.id === itemId,
+    )
+
+    if (candidate) return handleApplyLogoCandidate(candidate)
+  }
+
   return (
     <div className="logo-candidate-discovery">
       <button
@@ -187,30 +212,14 @@ function LogoCandidateList({
       ) : null}
 
       {discovery.candidates.length > 0 ? (
-        <div className="logo-candidate-list">
-          {discovery.candidates.map((candidate) => (
-            <div className="logo-candidate-row" key={candidate.id}>
-              <img className="logo-candidate-preview" src={candidate.previewUrl ?? candidate.url} alt={candidate.alt ?? candidate.label} draggable={false} />
-              <div className="logo-candidate-details">
-                <span className="logo-candidate-title">{candidate.label}</span>
-                <span className="logo-candidate-meta">
-                  <span className={`logo-candidate-source-badge ${getSourceBadgeClass(candidate.sourceKind)}`}>{formatSourceKind(candidate.sourceKind)}</span>
-                  {' '}{candidate.fileType.toUpperCase()} · score {candidate.score}{formatCandidateDimensions(candidate)}
-                </span>
-                {candidate.selector ? <span className="logo-candidate-selector">{candidate.selector}</span> : null}
-                <span className="logo-candidate-reasons">{candidate.reasons.slice(0, 4).join(', ')}</span>
-                <button
-                  className="secondary-button"
-                  type="button"
-                  disabled={discovery.isApplying}
-                  onClick={() => handleApplyLogoCandidate(candidate)}
-                >
-                  {discovery.isApplying ? 'Importing candidate...' : `Use as ${label.toLowerCase()} logo`}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <ImageCandidatePreviewPicker
+          ariaLabel={`${label} logo candidate previews`}
+          title={`${label} Logo Candidates`}
+          items={pickerItems}
+          disabled={discovery.isApplying}
+          selectLabel={`Use as ${label.toLowerCase()} logo`}
+          onSelect={selectLogoCandidate}
+        />
       ) : null}
     </div>
   )

@@ -48,7 +48,10 @@ import type {
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
 import type { DiscTemplate } from '../../types/template'
-import { ImageCandidatePicker, type ImageCandidatePickerItem } from './ImageCandidatePicker'
+import {
+  ImageCandidatePreviewPicker,
+  type ImageCandidatePickerItem,
+} from './ImageCandidatePicker'
 import { PlusIcon } from './PanelIcons'
 import { RepeatedVisualElementCard } from './RepeatedVisualElementCard'
 
@@ -199,6 +202,7 @@ function createSteamArtworkPickerItems(
     title: asset.label,
     subtitle: `Source: Steam online · Type: ${formatArtworkKind(asset.kind)}`,
     imageUrl: asset.url,
+    imageFit: 'cover',
     isSelected: selectedArtworkId === asset.id,
   }))
 }
@@ -217,6 +221,7 @@ function createLocalSteamScreenshotPickerItems(
       subtitle: 'Source: Local Steam screenshots · Type: Local screenshot',
       details: modifiedDate ? [`Modified: ${modifiedDate}`] : undefined,
       imageUrl: thumbnails[asset.id] ?? null,
+      imageFit: 'cover',
       placeholderLabel: 'Local',
       isSelected: selectedArtworkId === asset.id,
     }
@@ -392,8 +397,16 @@ function WebArtworkCandidateSection({
       subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatCandidateDimensions(candidate)}`,
       details: candidate.reasons.slice(0, 3),
       imageUrl: candidate.previewUrl ?? candidate.url,
+      imageFit: 'cover',
     }),
   )
+  const selectWebArtworkCandidate = (itemId: string) => {
+    const candidate = webArtworkDiscovery.candidates.find(
+      (currentCandidate) => currentCandidate.id === itemId,
+    )
+
+    if (candidate) return handleUseWebArtworkCandidate(candidate)
+  }
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">
@@ -421,18 +434,13 @@ function WebArtworkCandidateSection({
             ) : null}
 
           {webArtworkDiscovery.candidates.length > 0 ? (
-            <ImageCandidatePicker
-              buttonLabel={`Choose from ${webArtworkDiscovery.candidates.length} web artwork candidate${webArtworkDiscovery.candidates.length === 1 ? '' : 's'}`}
+            <ImageCandidatePreviewPicker
+              ariaLabel="Web artwork candidate previews"
               title="Web Artwork Candidates"
               items={pickerItems}
               disabled={webArtworkDiscovery.isApplying}
-              onSelect={(itemId) => {
-                const candidate = webArtworkDiscovery.candidates.find(
-                  (currentCandidate) => currentCandidate.id === itemId,
-                )
-
-                if (candidate) return handleUseWebArtworkCandidate(candidate)
-              }}
+              selectLabel="Use as background"
+              onSelect={selectWebArtworkCandidate}
             />
           ) : null}
           {fineTuneControls}
@@ -459,6 +467,11 @@ function ImportedSteamArtworkSection({
 }) {
   const artwork = selectedSteamGame?.artwork ?? []
   const pickerItems = createSteamArtworkPickerItems(artwork, selectedArtworkId)
+  const selectSteamArtwork = (itemId: string) => {
+    const asset = artwork.find((currentAsset) => currentAsset.id === itemId)
+
+    if (asset) return handleUseSteamArtwork(asset)
+  }
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">
@@ -470,16 +483,13 @@ function ImportedSteamArtworkSection({
               Choose one of the imported Steam assets as the disc background.
             </p>
 
-            <ImageCandidatePicker
-              buttonLabel={`Choose from ${artwork.length} Steam artwork asset${artwork.length === 1 ? '' : 's'}`}
+            <ImageCandidatePreviewPicker
+              ariaLabel="Imported Steam artwork previews"
               title="Imported Steam Artwork"
               items={pickerItems}
               disabled={isArtworkLoading}
-              onSelect={(itemId) => {
-                const asset = artwork.find((currentAsset) => currentAsset.id === itemId)
-
-                if (asset) return handleUseSteamArtwork(asset)
-              }}
+              selectLabel="Use as background"
+              onSelect={selectSteamArtwork}
             />
           </div>
         ) : (
@@ -523,6 +533,13 @@ function LocalSteamScreenshotSection({
     localSteamScreenshotThumbnails,
     selectedArtworkId,
   )
+  const selectLocalSteamScreenshot = (itemId: string) => {
+    const asset = localSteamScreenshots.find(
+      (currentAsset) => currentAsset.id === itemId,
+    )
+
+    if (asset) return handleUseLocalSteamScreenshot(asset)
+  }
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">
@@ -567,17 +584,12 @@ function LocalSteamScreenshotSection({
                   Open screenshot folder
                 </button>
 
-                <ImageCandidatePicker
-                  buttonLabel={`Choose from ${localSteamScreenshots.length} local screenshot${localSteamScreenshots.length === 1 ? '' : 's'}`}
+                <ImageCandidatePreviewPicker
+                  ariaLabel="Local Steam screenshot previews"
                   title="Local Steam Screenshots"
                   items={pickerItems}
-                  onSelect={(itemId) => {
-                    const asset = localSteamScreenshots.find(
-                      (currentAsset) => currentAsset.id === itemId,
-                    )
-
-                    if (asset) return handleUseLocalSteamScreenshot(asset)
-                  }}
+                  selectLabel="Use as background"
+                  onSelect={selectLocalSteamScreenshot}
                 />
               </>
             )}
@@ -965,6 +977,30 @@ function AdditionalArtworkElementControls({
     localSteamScreenshots,
     localSteamScreenshotThumbnails,
   )
+  const selectSteamArtworkForElement = (itemId: string) => {
+    const asset = steamArtwork.find(
+      (currentAsset) => currentAsset.id === itemId,
+    )
+
+    if (asset) {
+      return handleUseSteamArtworkAsAdditionalArtwork(
+        element.id,
+        asset,
+      )
+    }
+  }
+  const selectLocalSteamScreenshotForElement = (itemId: string) => {
+    const asset = localSteamScreenshots.find(
+      (currentAsset) => currentAsset.id === itemId,
+    )
+
+    if (asset) {
+      return handleUseLocalSteamScreenshotAsAdditionalArtwork(
+        element.id,
+        asset,
+      )
+    }
+  }
 
   return (
     <>
@@ -1003,22 +1039,12 @@ function AdditionalArtworkElementControls({
             <details className="metadata-details collapsible-panel spacing-top">
               <summary className="panel-summary">Use imported Steam artwork</summary>
               <div className="panel-content">
-                <ImageCandidatePicker
-                  buttonLabel={`Choose from ${steamArtwork.length} Steam artwork asset${steamArtwork.length === 1 ? '' : 's'}`}
+                <ImageCandidatePreviewPicker
+                  ariaLabel={`${title} imported Steam artwork previews`}
                   title={`${title} Steam Artwork`}
                   items={steamArtworkPickerItems}
-                  onSelect={(itemId) => {
-                    const asset = steamArtwork.find(
-                      (currentAsset) => currentAsset.id === itemId,
-                    )
-
-                    if (asset) {
-                      return handleUseSteamArtworkAsAdditionalArtwork(
-                        element.id,
-                        asset,
-                      )
-                    }
-                  }}
+                  selectLabel={`Use for ${title.toLowerCase()}`}
+                  onSelect={selectSteamArtworkForElement}
                 />
               </div>
             </details>
@@ -1028,22 +1054,12 @@ function AdditionalArtworkElementControls({
             <details className="metadata-details collapsible-panel spacing-top">
               <summary className="panel-summary">Use local Steam screenshot</summary>
               <div className="panel-content">
-                <ImageCandidatePicker
-                  buttonLabel={`Choose from ${localSteamScreenshots.length} local screenshot${localSteamScreenshots.length === 1 ? '' : 's'}`}
+                <ImageCandidatePreviewPicker
+                  ariaLabel={`${title} local Steam screenshot previews`}
                   title={`${title} Local Steam Screenshots`}
                   items={localScreenshotPickerItems}
-                  onSelect={(itemId) => {
-                    const asset = localSteamScreenshots.find(
-                      (currentAsset) => currentAsset.id === itemId,
-                    )
-
-                    if (asset) {
-                      return handleUseLocalSteamScreenshotAsAdditionalArtwork(
-                        element.id,
-                        asset,
-                      )
-                    }
-                  }}
+                  selectLabel={`Use for ${title.toLowerCase()}`}
+                  onSelect={selectLocalSteamScreenshotForElement}
                 />
               </div>
             </details>
