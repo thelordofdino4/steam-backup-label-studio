@@ -7,7 +7,9 @@ import {
   getMediaMarkLabel,
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
+  getProjectPlatformMarkInference,
   normalizeProjectMediaMark,
+  normalizeProjectPlatformMarks,
   setPlatformMarkCustomImage,
 } from './projectMediaMark.ts'
 import type { ProjectPlatformMarks } from './projectTypes.ts'
@@ -59,4 +61,23 @@ test('custom platform mark upload state enables the target asset', () => {
   assert.equal(asset.customImageDataUrl, imageDataUrl)
   assert.deepEqual(asset.customImageSize, { width: 512, height: 256 })
   assert.equal(asset.layout.enabled, true)
+})
+
+test('older saved platform marks without inference normalize as manual selections', () => {
+  const normalized = normalizeProjectPlatformMarks(
+    {
+      values: ['windows', 'linux'],
+      assets: {},
+    },
+    undefined,
+    undefined,
+    123,
+  )
+  const inference = getProjectPlatformMarkInference(normalized)
+
+  assert.deepEqual(normalized.values, ['windows', 'linux'])
+  assert.equal(inference.source, 'manual')
+  assert.equal(inference.status, 'manual')
+  assert.equal(inference.steamAppId, 123)
+  assert.deepEqual(inference.values, ['windows', 'linux'])
 })

@@ -8,7 +8,7 @@ import {
   getTechnicalMarkLayoutSliderRanges,
 } from '../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
-import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset } from '../../project/projectMediaMark'
+import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference } from '../../project/projectMediaMark'
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
 import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
@@ -643,6 +643,8 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
   const currentLabel = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ') : 'None selected'
+  const inference = getProjectPlatformMarkInference(projectPlatformMarks)
+  const shouldShowInferenceHint = inference.source !== 'none'
 
   const toggleEnabled = (enabled: boolean) => {
     if (enabled) {
@@ -657,6 +659,7 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
   return (
     <div>
       <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
+      {shouldShowInferenceHint ? <p className="hint">{inference.message}</p> : null}
       {!isEnabled ? null : (
         <>
           <div className="platform-mark-selection-group spacing-top">

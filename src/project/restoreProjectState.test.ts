@@ -7,6 +7,10 @@ import {
   restoreSavedProjectState,
 } from './restoreProjectState.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
+import {
+  getProjectPlatformMarkAsset,
+  getProjectPlatformMarkInference,
+} from './projectMediaMark.ts'
 import { getProjectTechnicalMarkAsset } from './projectTechnicalMarks.ts'
 import type { SavedProject } from './projectTypes.ts'
 
@@ -341,6 +345,60 @@ test('restores technical marks from saved project data and clamps layout', async
   assert.equal(audioMark.layout.enabled, true)
   assert.equal(audioMark.layout.x < 99, true)
   assert.equal(audioMark.layout.y < 99, true)
+})
+
+test('restores inferred platform mark metadata from saved project data', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    platformMarks: {
+      values: ['windows', 'linux'],
+      inference: {
+        source: 'steam-appdetails',
+        status: 'applied',
+        steamAppId: 123,
+        values: ['windows', 'linux'],
+        message: 'Steam appdetails platform flags applied: Windows, Linux.',
+      },
+      assets: {
+        windows: {
+          source: 'placeholder',
+          customImageDataUrl: null,
+          customImageSize: null,
+          layout: {
+            enabled: true,
+            scale: 1,
+            x: 99,
+            y: 99,
+          },
+        },
+        linux: {
+          source: 'placeholder',
+          customImageDataUrl: null,
+          customImageSize: null,
+          layout: {
+            enabled: true,
+            scale: 1,
+            x: 50,
+            y: 70,
+          },
+        },
+      },
+    },
+  })
+  const windowsMark = getProjectPlatformMarkAsset(
+    restored.projectPlatformMarks,
+    'windows',
+  )
+  const inference = getProjectPlatformMarkInference(restored.projectPlatformMarks)
+
+  assert.deepEqual(restored.projectPlatformMarks.values, ['windows', 'linux'])
+  assert.equal(windowsMark.layout.enabled, true)
+  assert.equal(windowsMark.layout.x < 99, true)
+  assert.equal(windowsMark.layout.y < 99, true)
+  assert.equal(inference.source, 'steam-appdetails')
+  assert.equal(inference.status, 'applied')
+  assert.equal(inference.steamAppId, 123)
+  assert.deepEqual(inference.values, ['windows', 'linux'])
 })
 
 test('keeps saved background image size without resolving it again', async () => {

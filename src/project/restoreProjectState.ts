@@ -222,6 +222,7 @@ export async function restoreSavedProjectState(
     project.platformMarks,
     project.mediaMark,
     template.selectedDiscTemplate,
+    selectedSteamGame?.appId ?? null,
   )
   const loadedTechnicalMarks = normalizeProjectTechnicalMarks(
     project.technicalMarks,

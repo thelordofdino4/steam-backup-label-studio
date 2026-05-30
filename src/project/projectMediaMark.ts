@@ -12,6 +12,7 @@ import type {
   PlatformMarkSource,
   PlatformMarkValue,
   ProjectMediaMark,
+  ProjectPlatformMarkInference,
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
 } from './projectTypes'
@@ -40,6 +41,16 @@ export const PLATFORM_MARK_OPTIONS: Array<{ value: PlatformMarkValue; label: str
   { value: 'steamDeck', label: 'SteamOS' },
   { value: 'macos', label: 'macOS' },
 ]
+
+const PLATFORM_MARK_VALUES = PLATFORM_MARK_OPTIONS.map((option) => option.value)
+
+const DEFAULT_PLATFORM_MARK_INFERENCE: ProjectPlatformMarkInference = {
+  source: 'none',
+  status: 'not-applied',
+  steamAppId: null,
+  values: [],
+  message: 'No Steam platform metadata has been applied.',
+}
 
 export const DEFAULT_MEDIA_MARK_LAYOUT: MediaMarkLayout = {
   enabled: false,
@@ -183,6 +194,7 @@ export function createDefaultProjectPlatformMarks(): ProjectPlatformMarks {
   return {
     values: [],
     assets: {},
+    inference: DEFAULT_PLATFORM_MARK_INFERENCE,
   }
 }
 
@@ -209,6 +221,24 @@ export function getProjectPlatformMarkAsset(
     createDefaultProjectPlatformMarkAsset(value, selectedDiscTemplate)
 }
 
+export function createProjectPlatformMarkInference(
+  inference: Partial<ProjectPlatformMarkInference> = {},
+): ProjectPlatformMarkInference {
+  return {
+    source: inference.source ?? DEFAULT_PLATFORM_MARK_INFERENCE.source,
+    status: inference.status ?? DEFAULT_PLATFORM_MARK_INFERENCE.status,
+    steamAppId: inference.steamAppId ?? DEFAULT_PLATFORM_MARK_INFERENCE.steamAppId,
+    values: inference.values ? Array.from(new Set(inference.values)) : [],
+    message: inference.message ?? DEFAULT_PLATFORM_MARK_INFERENCE.message,
+  }
+}
+
+export function getProjectPlatformMarkInference(
+  platformMarks: ProjectPlatformMarks,
+): ProjectPlatformMarkInference {
+  return platformMarks.inference ?? DEFAULT_PLATFORM_MARK_INFERENCE
+}
+
 function setProjectPlatformMarkAsset(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
@@ -220,6 +250,64 @@ function setProjectPlatformMarkAsset(
       ...platformMarks.assets,
       [value]: asset,
     },
+  }
+}
+
+export function setProjectPlatformMarkValues(
+  platformMarks: ProjectPlatformMarks,
+  values: PlatformMarkValue[],
+  selectedDiscTemplate?: DiscTemplate,
+  inference?: ProjectPlatformMarkInference,
+): ProjectPlatformMarks {
+  const nextValues = Array.from(new Set(values))
+  const selectedValues = new Set(nextValues)
+  const touchedValues = Array.from(
+    new Set([
+      ...platformMarks.values,
+      ...Object.keys(platformMarks.assets).filter(isPlatformMarkValue),
+      ...nextValues,
+    ]),
+  )
+  const assets = { ...platformMarks.assets }
+
+  touchedValues.forEach((value) => {
+    const currentAsset = getProjectPlatformMarkAsset(
+      platformMarks,
+      value,
+      selectedDiscTemplate,
+    )
+
+    assets[value] = {
+      ...currentAsset,
+      layout: {
+        ...currentAsset.layout,
+        enabled: selectedValues.has(value),
+      },
+    }
+  })
+
+  return {
+    ...platformMarks,
+    values: nextValues,
+    assets,
+    ...(inference ? { inference } : {}),
+  }
+}
+
+export function markProjectPlatformMarksManual(
+  platformMarks: ProjectPlatformMarks,
+  steamAppId: number | null = getProjectPlatformMarkInference(platformMarks).steamAppId,
+): ProjectPlatformMarks {
+  return {
+    ...platformMarks,
+    inference: createProjectPlatformMarkInference({
+      source: 'manual',
+      status: 'manual',
+      steamAppId,
+      values: platformMarks.values,
+      message:
+        'Operating system marks were manually edited and will remain editable.',
+    }),
   }
 }
 
@@ -404,7 +492,24 @@ function isMediaMarkValue(value: unknown): value is MediaMarkValue {
 }
 
 function isPlatformMarkValue(value: unknown): value is PlatformMarkValue {
-  return PLATFORM_MARK_OPTIONS.some((option) => option.value === value)
+  return PLATFORM_MARK_VALUES.includes(value as PlatformMarkValue)
+}
+
+function isPlatformMarkInferenceSource(
+  value: unknown,
+): value is ProjectPlatformMarkInference['source'] {
+  return value === 'none' || value === 'manual' || value === 'steam-appdetails'
+}
+
+function isPlatformMarkInferenceStatus(
+  value: unknown,
+): value is ProjectPlatformMarkInference['status'] {
+  return (
+    value === 'not-applied' ||
+    value === 'manual' ||
+    value === 'applied' ||
+    value === 'no-data'
+  )
 }
 
 function mapLegacyPlatformMarkValue(value: unknown): PlatformMarkValue | null {
@@ -464,6 +569,53 @@ function normalizePlatformMarkAsset(
     customImageSize,
     layout: normalizePlatformMarkLayout(asset?.layout, defaultLayout),
   }
+}
+
+function normalizeProjectPlatformMarkInference(
+  inference: unknown,
+  values: PlatformMarkValue[],
+  manualSteamAppId?: number | null,
+): ProjectPlatformMarkInference {
+  if (!inference || typeof inference !== 'object') {
+    if (values.length > 0) {
+      return createProjectPlatformMarkInference({
+        source: 'manual',
+        status: 'manual',
+        steamAppId: manualSteamAppId ?? null,
+        values,
+        message:
+          'Existing project operating system marks are treated as manual selections.',
+      })
+    }
+
+    return DEFAULT_PLATFORM_MARK_INFERENCE
+  }
+
+  const rawInference = inference as Partial<ProjectPlatformMarkInference>
+  const source = isPlatformMarkInferenceSource(rawInference.source)
+    ? rawInference.source
+    : DEFAULT_PLATFORM_MARK_INFERENCE.source
+  const status = isPlatformMarkInferenceStatus(rawInference.status)
+    ? rawInference.status
+    : DEFAULT_PLATFORM_MARK_INFERENCE.status
+  const rawValues = Array.isArray(rawInference.values) ? rawInference.values : values
+  const inferenceValues = Array.from(
+    new Set(rawValues.filter(isPlatformMarkValue)),
+  )
+
+  return createProjectPlatformMarkInference({
+    source,
+    status,
+    steamAppId:
+      typeof rawInference.steamAppId === 'number'
+        ? rawInference.steamAppId
+        : null,
+    values: inferenceValues,
+    message:
+      typeof rawInference.message === 'string' && rawInference.message.trim()
+        ? rawInference.message
+        : DEFAULT_PLATFORM_MARK_INFERENCE.message,
+  })
 }
 
 function getLegacyPlatformMarkLayout(
@@ -534,6 +686,7 @@ export function normalizeProjectPlatformMarks(
   platformMarks: Partial<ProjectPlatformMarks> | undefined,
   legacyMediaMark?: Partial<ProjectMediaMark>,
   selectedDiscTemplate?: DiscTemplate,
+  manualSteamAppId?: number | null,
 ): ProjectPlatformMarks {
   const defaults = createDefaultProjectPlatformMarks()
   const rawValues = Array.isArray(platformMarks?.values) ? platformMarks.values : null
@@ -554,6 +707,11 @@ export function normalizeProjectPlatformMarks(
     if (hasPerPlatformAssets) {
       return {
         values,
+        inference: normalizeProjectPlatformMarkInference(
+          rawPlatformMarks.inference,
+          values,
+          manualSteamAppId,
+        ),
         assets: Object.fromEntries(
           values.map((value) => [
             value,
@@ -573,6 +731,11 @@ export function normalizeProjectPlatformMarks(
 
     return {
       values: legacyValues,
+      inference: normalizeProjectPlatformMarkInference(
+        rawPlatformMarks.inference,
+        legacyValues,
+        manualSteamAppId,
+      ),
       assets: Object.fromEntries(
         values.map((value, index) => [
           value,
@@ -616,6 +779,14 @@ export function normalizeProjectPlatformMarks(
 
   return {
     values: legacyLayout.enabled ? [legacyValue] : [],
+    inference: createProjectPlatformMarkInference({
+      source: 'manual',
+      status: 'manual',
+      steamAppId: manualSteamAppId ?? null,
+      values: legacyLayout.enabled ? [legacyValue] : [],
+      message:
+        'Legacy operating system mark data is treated as a manual selection.',
+    }),
     assets: {
       [legacyValue]: {
         source: legacyMediaMark?.source === 'custom' ? 'custom' : 'placeholder',

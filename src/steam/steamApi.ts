@@ -29,9 +29,16 @@ export type SteamImportedGame = {
   recommendedRequirements?: string
   legalNotice?: string
   ratings?: SteamRatingBoardMap
+  platforms?: SteamPlatformSupport
   website?: string
   storeUrl: string
   artwork: SteamArtworkAsset[]
+}
+
+export type SteamPlatformSupport = {
+  windows?: boolean
+  mac?: boolean
+  linux?: boolean
 }
 
 export type SteamRatingBoardData = {
@@ -84,6 +91,11 @@ type SteamAppDetailsResponse = Record<
       }
       legal_notice?: string
       ratings?: SteamRatingBoardMap
+      platforms?: {
+        windows?: boolean
+        mac?: boolean
+        linux?: boolean
+      }
       website?: string
       header_image?: string
       capsule_image?: string
@@ -121,6 +133,30 @@ function dedupeArtwork(artwork: SteamArtworkAsset[]) {
     seen.add(asset.url)
     return true
   })
+}
+
+function normalizeSteamPlatformSupport(
+  platforms: SteamPlatformSupport | undefined,
+): SteamPlatformSupport | undefined {
+  if (!platforms) {
+    return undefined
+  }
+
+  const normalized: SteamPlatformSupport = {}
+
+  if (typeof platforms.windows === 'boolean') {
+    normalized.windows = platforms.windows
+  }
+
+  if (typeof platforms.mac === 'boolean') {
+    normalized.mac = platforms.mac
+  }
+
+  if (typeof platforms.linux === 'boolean') {
+    normalized.linux = platforms.linux
+  }
+
+  return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
 export async function searchSteamStore(term: string): Promise<SteamSearchResult[]> {
@@ -239,6 +275,7 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
     recommendedRequirements: data.pc_requirements?.recommended,
     legalNotice: data.legal_notice,
     ratings: data.ratings,
+    platforms: normalizeSteamPlatformSupport(data.platforms),
     website: data.website,
     storeUrl: `https://store.steampowered.com/app/${appId}`,
     artwork,

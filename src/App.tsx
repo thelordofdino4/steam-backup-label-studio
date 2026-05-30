@@ -17,6 +17,7 @@ import {
   applySteamGameImportToProjectMetadata,
   createSteamGameImport,
 } from './steam/steamGameImport'
+import { applySteamPlatformMarksImport } from './steam/steamPlatformMarks'
 import { discTemplates, discTemplateOptions } from './templates/discTemplates'
 import type { DiscTemplate } from './types/template'
 import {
@@ -77,7 +78,7 @@ import {
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
 import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateAdditionalLogoAssetLabel, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, markProjectPlatformMarksManual, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
   applyImportedLogoAsset,
@@ -982,8 +983,8 @@ function App() {
   }
 
   function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = clampProjectPlatformMarksToSafeZone(
         updatePlatformMarkToggle(
           currentMarks,
           value,
@@ -991,8 +992,10 @@ function App() {
           selectedDiscTemplate,
         ),
         selectedDiscTemplate,
-      ),
-    )
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
   }
 
   async function handlePlatformMarkUpload(
@@ -1014,14 +1017,16 @@ function App() {
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectPlatformMarks((currentMarks) =>
-        applyImportedPlatformMark(
+      setProjectPlatformMarks((currentMarks) => {
+        const nextMarks = applyImportedPlatformMark(
           currentMarks,
           value,
           importedImage,
           selectedDiscTemplate,
-        ),
-      )
+        )
+
+        return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+      })
 
       announceStatus(`Using ${file.name} as the platform mark.`)
     } catch (error) {
@@ -1030,12 +1035,14 @@ function App() {
   }
 
   function handlePlatformMarkSourceChange(value: PlatformMarkValue, source: PlatformMarkSource) {
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = clampProjectPlatformMarksToSafeZone(
         updatePlatformMarkSource(currentMarks, value, source),
         selectedDiscTemplate,
-      ),
-    )
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
   }
 
   function handlePlatformMarkLayoutChange(
@@ -1043,32 +1050,38 @@ function App() {
     field: PlatformMarkLayoutField,
     layoutValue: boolean | number,
   ) {
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = clampProjectPlatformMarksToSafeZone(
         updatePlatformMarkLayoutField(currentMarks, platformValue, field, layoutValue),
         selectedDiscTemplate,
-      ),
-    )
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
   }
 
   function handleClearPlatformMarkImage(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = clampProjectPlatformMarksToSafeZone(
         clearPlatformMarkImage(currentMarks, value),
         selectedDiscTemplate,
-      ),
-    )
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
 
     announceStatus('Cleared custom platform mark image.')
   }
 
   function handleResetPlatformMarkLayout(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = clampProjectPlatformMarksToSafeZone(
         resetProjectPlatformMarkLayout(currentMarks, value, selectedDiscTemplate),
         selectedDiscTemplate,
-      ),
-    )
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
 
     announceStatus('Reset platform mark layout.')
   }
@@ -1819,10 +1832,17 @@ function App() {
       const titleArtworkImport = await applySteamTitleArtworkImport(
         importedState.importedGame,
       )
+      const platformMarkImport = applySteamPlatformMarksImport({
+        importedGame: importedState.importedGame,
+        currentPlatformMarks: projectPlatformMarks,
+        selectedDiscTemplate,
+        previousSelectedSteamGame: selectedSteamGame,
+      })
       setSelectedSteamGame(importedState.importedGame)
       setSteamSearchResults([])
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadataWithAutoApply)
+      setProjectPlatformMarks(platformMarkImport.platformMarks)
       setDiscTextValues(nextDiscTextValues)
       if (shouldUpdateCopyrightDiscTextSource) {
         setDiscTextValueSources(nextDiscTextValueSources)
@@ -1851,6 +1871,7 @@ function App() {
       )
       announceStatus(importedState.statusMessage)
       announceStatus(titleArtworkImport.statusMessage)
+      announceStatus(platformMarkImport.statusMessage)
       announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate)
     } catch (error) {
       announceStatus(`Steam import failed: ${String(error)}`)

@@ -212,6 +212,14 @@ export type PlatformMarkValue =
   | 'steamDeck'
   | 'macos'
 
+export type ProjectPlatformMarkInference = {
+  source: 'none' | 'manual' | 'steam-appdetails'
+  status: 'not-applied' | 'manual' | 'applied' | 'no-data'
+  steamAppId: number | null
+  values: PlatformMarkValue[]
+  message: string
+}
+
 export type PlatformMarkSource = 'placeholder' | 'custom'
 
 export type PlatformMarkLayout = {
@@ -231,6 +239,7 @@ export type ProjectPlatformMarkAsset = {
 export type ProjectPlatformMarks = {
   values: PlatformMarkValue[]
   assets: Partial<Record<PlatformMarkValue, ProjectPlatformMarkAsset>>
+  inference?: ProjectPlatformMarkInference
 }
 
 export type TechnicalMarkValue =

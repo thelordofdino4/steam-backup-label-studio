@@ -38,6 +38,7 @@ import {
 } from '../project/projectLogoAssets'
 import {
   getProjectPlatformMarkAsset,
+  markProjectPlatformMarksManual,
   updateMediaMarkLayoutPosition,
   updatePlatformMarkLayoutPosition,
 } from '../project/projectMediaMark'
@@ -400,7 +401,9 @@ export function useDiscPreviewPointerDrag({
           draggedPoint,
         )
 
-        return clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate)
+        return markProjectPlatformMarksManual(
+          clampProjectPlatformMarksToSafeZone(nextMarks, selectedDiscTemplate),
+        )
       })
     },
   })
