@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
@@ -7,6 +7,12 @@ import type {
   BackgroundOffsetField,
   BackgroundOffsetSliderRanges,
 } from '../../backgroundImage'
+import {
+  canTuneBackgroundArtworkSource,
+  type ActiveBackgroundArtworkSource,
+  type BackgroundArtworkSource,
+  resolveActiveBackgroundArtworkSource,
+} from '../../backgroundArtworkSource'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import {
@@ -221,16 +227,164 @@ function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
   return Number(event.currentTarget.value)
 }
 
+const BACKGROUND_SOURCE_LABELS: Record<ActiveBackgroundArtworkSource, string> = {
+  'steam-artwork': 'Imported Steam artwork',
+  'web-artwork': 'Web artwork',
+  'local-steam-screenshot': 'Local Steam screenshot',
+  'local-file': 'Local file',
+  none: 'No source',
+}
+
+function BackgroundArtworkFineTuneControls({
+  source,
+  idPrefix,
+  sectionLabel,
+  backgroundArtworkSource,
+  backgroundScale,
+  backgroundOffset,
+  backgroundOffsetSliderRanges,
+  handleBackgroundScaleChange,
+  handleBackgroundOffsetChange,
+  backgroundImageUrl,
+  handleResetBackground,
+  canFitBackgroundToSteamBannerOpenArea,
+  backgroundFitButtonLabel,
+  handleFitBackgroundToSteamBannerOpenArea,
+}: Pick<
+  ArtworkPanelProps,
+  | 'backgroundScale'
+  | 'backgroundOffset'
+  | 'backgroundOffsetSliderRanges'
+  | 'handleBackgroundScaleChange'
+  | 'handleBackgroundOffsetChange'
+  | 'backgroundImageUrl'
+  | 'handleResetBackground'
+  | 'canFitBackgroundToSteamBannerOpenArea'
+  | 'backgroundFitButtonLabel'
+  | 'handleFitBackgroundToSteamBannerOpenArea'
+> & {
+  backgroundArtworkSource: ActiveBackgroundArtworkSource
+  source: BackgroundArtworkSource
+  idPrefix: string
+  sectionLabel: string
+}) {
+  const hasBackgroundImage = Boolean(backgroundImageUrl)
+  const canTune = canTuneBackgroundArtworkSource(
+    backgroundArtworkSource,
+    source,
+    hasBackgroundImage,
+  )
+  const activeSourceLabel = BACKGROUND_SOURCE_LABELS[backgroundArtworkSource]
+  const statusMessage = !hasBackgroundImage
+    ? `Choose ${sectionLabel.toLowerCase()} to unlock scale, X/Y position, fit, and reset controls here.`
+    : canTune
+      ? `These controls adjust the current background from ${sectionLabel.toLowerCase()}.`
+      : `Inactive while ${activeSourceLabel.toLowerCase()} controls the current background. Choose ${sectionLabel.toLowerCase()} to enable these controls.`
+
+  return (
+    <fieldset
+      className="background-source-layout-controls"
+      disabled={!canTune}
+      aria-label={`${sectionLabel} background fine tuning controls`}
+    >
+      <legend>Placement</legend>
+      <p className="hint">{statusMessage}</p>
+
+      <div className="disc-text-layout-grid">
+        <label>
+          <span>Scale</span>
+          <input
+            id={`${idPrefix}-background-scale`}
+            type="range"
+            min={BACKGROUND_SCALE_MIN}
+            max={BACKGROUND_SCALE_MAX}
+            step="0.01"
+            value={backgroundScale}
+            onInput={(event) =>
+              handleBackgroundScaleChange(getNumericInputValue(event))}
+            onChange={(event) =>
+              handleBackgroundScaleChange(getNumericInputValue(event))}
+          />
+        </label>
+
+        <label>
+          <span>X</span>
+          <input
+            id={`${idPrefix}-background-offset-x`}
+            type="range"
+            min={backgroundOffsetSliderRanges.x.min}
+            max={backgroundOffsetSliderRanges.x.max}
+            step="0.1"
+            value={backgroundOffset.x}
+            onInput={(event) =>
+              handleBackgroundOffsetChange(
+                'x',
+                getNumericInputValue(event),
+              )}
+            onChange={(event) =>
+              handleBackgroundOffsetChange(
+                'x',
+                getNumericInputValue(event),
+              )}
+          />
+        </label>
+
+        <label>
+          <span>Y</span>
+          <input
+            id={`${idPrefix}-background-offset-y`}
+            type="range"
+            min={backgroundOffsetSliderRanges.y.min}
+            max={backgroundOffsetSliderRanges.y.max}
+            step="0.1"
+            value={backgroundOffset.y}
+            onInput={(event) =>
+              handleBackgroundOffsetChange(
+                'y',
+                getNumericInputValue(event),
+              )}
+            onChange={(event) =>
+              handleBackgroundOffsetChange(
+                'y',
+                getNumericInputValue(event),
+              )}
+          />
+        </label>
+      </div>
+
+      <button
+        className="secondary-button"
+        type="button"
+        disabled={!canFitBackgroundToSteamBannerOpenArea}
+        onClick={handleFitBackgroundToSteamBannerOpenArea}
+      >
+        {backgroundFitButtonLabel}
+      </button>
+
+      <button
+        className="secondary-button"
+        type="button"
+        onClick={handleResetBackground}
+      >
+        Reset background
+      </button>
+    </fieldset>
+  )
+}
+
 function WebArtworkCandidateSection({
   webArtworkDiscovery,
   handleFindWebArtworkCandidates,
   handleUseWebArtworkCandidate,
+  fineTuneControls,
 }: Pick<
   ArtworkPanelProps,
   | 'webArtworkDiscovery'
   | 'handleFindWebArtworkCandidates'
   | 'handleUseWebArtworkCandidate'
->) {
+> & {
+  fineTuneControls: ReactNode
+}) {
   const pickerItems: ImageCandidatePickerItem[] = webArtworkDiscovery.candidates.map(
     (candidate) => ({
       id: candidate.id,
@@ -242,7 +396,7 @@ function WebArtworkCandidateSection({
   )
 
   return (
-    <details className="metadata-details collapsible-panel spacing-top">
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Web artwork</summary>
       <div className="panel-content">
         <div className="artwork-import-section">
@@ -281,6 +435,7 @@ function WebArtworkCandidateSection({
               }}
             />
           ) : null}
+          {fineTuneControls}
         </div>
       </div>
     </details>
@@ -292,18 +447,21 @@ function ImportedSteamArtworkSection({
   selectedArtworkId,
   isArtworkLoading,
   handleUseSteamArtwork,
+  fineTuneControls,
 }: Pick<
   ArtworkPanelProps,
   | 'selectedSteamGame'
   | 'selectedArtworkId'
   | 'isArtworkLoading'
   | 'handleUseSteamArtwork'
->) {
+> & {
+  fineTuneControls: ReactNode
+}) {
   const artwork = selectedSteamGame?.artwork ?? []
   const pickerItems = createSteamArtworkPickerItems(artwork, selectedArtworkId)
 
   return (
-    <details className="metadata-details collapsible-panel spacing-top">
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Imported Steam artwork</summary>
       <div className="panel-content">
         {selectedSteamGame?.artwork.length ? (
@@ -329,6 +487,7 @@ function ImportedSteamArtworkSection({
             Import a Steam game to see Steam artwork here, or upload a local image below.
           </p>
         )}
+        {fineTuneControls}
       </div>
     </details>
   )
@@ -344,6 +503,7 @@ function LocalSteamScreenshotSection({
   handleFindLocalSteamScreenshots,
   handleOpenLocalSteamScreenshotFolder,
   handleUseLocalSteamScreenshot,
+  fineTuneControls,
 }: Pick<
   ArtworkPanelProps,
   | 'selectedSteamGame'
@@ -355,7 +515,9 @@ function LocalSteamScreenshotSection({
   | 'handleFindLocalSteamScreenshots'
   | 'handleOpenLocalSteamScreenshotFolder'
   | 'handleUseLocalSteamScreenshot'
->) {
+> & {
+  fineTuneControls: ReactNode
+}) {
   const pickerItems = createLocalSteamScreenshotPickerItems(
     localSteamScreenshots,
     localSteamScreenshotThumbnails,
@@ -363,7 +525,7 @@ function LocalSteamScreenshotSection({
   )
 
   return (
-    <details className="metadata-details collapsible-panel spacing-top">
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Local Steam screenshots</summary>
       <div className="panel-content">
         {!selectedSteamGame ? (
@@ -421,6 +583,7 @@ function LocalSteamScreenshotSection({
             )}
           </>
         )}
+        {fineTuneControls}
       </div>
     </details>
   )
@@ -428,21 +591,29 @@ function LocalSteamScreenshotSection({
 
 function LocalArtworkSection({
   handleBackgroundUpload,
-}: Pick<ArtworkPanelProps, 'handleBackgroundUpload'>) {
+  fineTuneControls,
+}: Pick<ArtworkPanelProps, 'handleBackgroundUpload'> & {
+  fineTuneControls: ReactNode
+}) {
   return (
-    <details className="metadata-details collapsible-panel spacing-top">
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Local file</summary>
       <div className="panel-content">
         <div className="artwork-import-section">
           <p className="hint">
             Choose an image from this computer when Steam, web, or screenshot sources do not have the artwork you want. Local files become the current disc background.
           </p>
+          <label className="secondary-button logo-upload-button" htmlFor="background-upload">
+            Choose local image
+          </label>
           <input
             id="background-upload"
+            className="logo-file-input"
             type="file"
             accept="image/*"
             onChange={handleBackgroundUpload}
           />
+          {fineTuneControls}
         </div>
       </div>
     </details>
@@ -453,19 +624,32 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
   const {
     isBackgroundArtworkEnabled,
     handleBackgroundArtworkEnabledChange,
-    handleBackgroundUpload,
-    backgroundScale,
-    backgroundOffset,
-    backgroundOffsetSliderRanges,
-    handleBackgroundScaleChange,
-    handleBackgroundOffsetChange,
     backgroundImageUrl,
-    handleResetBackground,
-    canFitBackgroundToSteamBannerOpenArea,
-    backgroundFitButtonLabel,
-    handleFitBackgroundToSteamBannerOpenArea,
+    selectedArtworkId,
+    selectedSteamGame,
+    webArtworkDiscovery,
+    localSteamScreenshots,
   } = props
-  const hasBackgroundImage = Boolean(backgroundImageUrl)
+  const backgroundArtworkSource = resolveActiveBackgroundArtworkSource({
+    backgroundImageUrl,
+    selectedArtworkId,
+    steamArtwork: selectedSteamGame?.artwork ?? [],
+    webArtworkCandidates: webArtworkDiscovery.candidates,
+    localSteamScreenshots,
+  })
+  const renderFineTuneControls = (
+    source: BackgroundArtworkSource,
+    idPrefix: string,
+    sectionLabel: string,
+  ) => (
+    <BackgroundArtworkFineTuneControls
+      {...props}
+      backgroundArtworkSource={backgroundArtworkSource}
+      source={source}
+      idPrefix={idPrefix}
+      sectionLabel={sectionLabel}
+    />
+  )
 
   return (
     <div className="logo-asset-card artwork-feature-card">
@@ -481,108 +665,38 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
 
       {!isBackgroundArtworkEnabled ? null : (
         <>
-          <ImportedSteamArtworkSection {...props} />
-          <WebArtworkCandidateSection {...props} />
-          <LocalSteamScreenshotSection {...props} />
-          <LocalArtworkSection handleBackgroundUpload={handleBackgroundUpload} />
-
-          <p className="hint">
-            {backgroundImageUrl
-              ? 'A background image is selected. Drag it directly on the disc preview or tune it below.'
-              : 'No background image is selected. Export still works as a blank disc label with any enabled branding, marks, or text.'}
-          </p>
-
-          <div
-            className="disc-text-layout-grid"
-            aria-label="Background artwork fine tuning controls"
-          >
-            <label>
-              <span>Scale</span>
-              <input
-                id="background-scale"
-                type="range"
-                min={BACKGROUND_SCALE_MIN}
-                max={BACKGROUND_SCALE_MAX}
-                step="0.01"
-                value={backgroundScale}
-                disabled={!hasBackgroundImage}
-                onInput={(event) =>
-                  handleBackgroundScaleChange(getNumericInputValue(event))}
-                onChange={(event) =>
-                  handleBackgroundScaleChange(getNumericInputValue(event))}
-              />
-            </label>
-
-            <label>
-              <span>X</span>
-              <input
-                id="background-offset-x"
-                type="range"
-                min={backgroundOffsetSliderRanges.x.min}
-                max={backgroundOffsetSliderRanges.x.max}
-                step="0.1"
-                value={backgroundOffset.x}
-                disabled={!hasBackgroundImage}
-                onInput={(event) =>
-                  handleBackgroundOffsetChange(
-                    'x',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleBackgroundOffsetChange(
-                    'x',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
-
-            <label>
-              <span>Y</span>
-              <input
-                id="background-offset-y"
-                type="range"
-                min={backgroundOffsetSliderRanges.y.min}
-                max={backgroundOffsetSliderRanges.y.max}
-                step="0.1"
-                value={backgroundOffset.y}
-                disabled={!hasBackgroundImage}
-                onInput={(event) =>
-                  handleBackgroundOffsetChange(
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleBackgroundOffsetChange(
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
-          </div>
-
-          {!hasBackgroundImage && (
-            <p className="hint">
-              Background scale, X/Y position, and reset controls unlock after you select Steam artwork, a local Steam screenshot, or a local image.
-            </p>
-          )}
-
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={!canFitBackgroundToSteamBannerOpenArea}
-            onClick={handleFitBackgroundToSteamBannerOpenArea}
-          >
-            {backgroundFitButtonLabel}
-          </button>
-
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={!hasBackgroundImage}
-            onClick={handleResetBackground}
-          >
-            Reset background
-          </button>
+          <ImportedSteamArtworkSection
+            {...props}
+            fineTuneControls={renderFineTuneControls(
+              'steam-artwork',
+              'steam-artwork',
+              'Imported Steam artwork',
+            )}
+          />
+          <WebArtworkCandidateSection
+            {...props}
+            fineTuneControls={renderFineTuneControls(
+              'web-artwork',
+              'web-artwork',
+              'Web artwork',
+            )}
+          />
+          <LocalSteamScreenshotSection
+            {...props}
+            fineTuneControls={renderFineTuneControls(
+              'local-steam-screenshot',
+              'local-steam-screenshot',
+              'Local Steam screenshot',
+            )}
+          />
+          <LocalArtworkSection
+            {...props}
+            fineTuneControls={renderFineTuneControls(
+              'local-file',
+              'local-file',
+              'Local file',
+            )}
+          />
         </>
       )}
     </div>
@@ -622,7 +736,7 @@ function GameLogoArtworkControls({
   }
 
   return (
-    <div className="logo-asset-card title-artwork-control">
+    <div className="feature-control-body title-artwork-control">
       <label className="field-label">
         <input
           type="checkbox"
@@ -1150,7 +1264,7 @@ function AdditionalArtworkControls(props: ArtworkPanelProps) {
   const hasArtworkElements = projectAdditionalArtwork.elements.length > 0
 
   return (
-    <div className="logo-asset-card additional-artwork-control">
+    <div className="feature-control-body additional-artwork-control">
       <label className="field-label">
         <input
           type="checkbox"
@@ -1194,8 +1308,18 @@ export function ArtworkPanel(props: ArtworkPanelProps) {
       <summary className="panel-summary">Artwork</summary>
       <div className="panel-content">
         <BackgroundArtworkControls {...props} />
-        <GameLogoArtworkControls {...props} />
-        <AdditionalArtworkControls {...props} />
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Game Logo</summary>
+          <div className="panel-content">
+            <GameLogoArtworkControls {...props} />
+          </div>
+        </details>
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Additional Artwork</summary>
+          <div className="panel-content">
+            <AdditionalArtworkControls {...props} />
+          </div>
+        </details>
       </div>
     </details>
   )

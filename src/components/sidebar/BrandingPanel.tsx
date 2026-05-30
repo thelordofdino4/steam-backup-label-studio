@@ -263,7 +263,7 @@ function SteamBannerControls({
   }
 
   return (
-    <div className="branding-feature-card">
+    <div className="feature-control-body">
       <label className="field-label">
         <input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} />
         Show Steam banner
@@ -821,7 +821,12 @@ export function BrandingPanel(props: BrandingPanelProps) {
     <details className="panel collapsible-panel">
       <summary className="panel-summary">Branding</summary>
       <div className="panel-content">
-        <SteamBannerControls {...props} />
+        <details className="feature-section-card metadata-details collapsible-panel">
+          <summary className="panel-summary">Steam banner</summary>
+          <div className="panel-content">
+            <SteamBannerControls {...props} />
+          </div>
+        </details>
         <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
           <summary className="panel-summary">Developer / publisher logos</summary>
           <div className="panel-content">
