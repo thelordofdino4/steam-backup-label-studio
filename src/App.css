@@ -891,6 +891,19 @@ input:disabled {
   gap: 8px;
 }
 
+.disc-text-optional-checkboxes {
+  display: grid;
+  gap: 8px;
+}
+
+.disc-text-optional-checkboxes .checkbox-row {
+  margin-top: 0;
+}
+
+.disc-text-nested-checkbox {
+  margin-left: 24px;
+}
+
 .title-artwork-status-card {
   margin-top: 10px;
 }
@@ -930,20 +943,12 @@ input:disabled {
   padding: 4px;
 }
 
-.disc-text-box-style {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
-}
-
 .disc-number-artwork-controls {
   margin-top: 0;
 }
 
-.disc-text-style-checkbox input {
-  width: 16px;
-  height: 16px;
-  justify-self: start;
+.disc-number-artwork-controls + .disc-text-style-grid {
+  margin-top: 12px;
 }
 
 .disc-text-reset-button {

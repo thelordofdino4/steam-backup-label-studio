@@ -174,6 +174,59 @@ export function TextPanel({
 
                 {!isTextEnabled ? null : (
                   <div className="disc-text-control-body">
+                    {!isCurvedCopyright && (
+                      <div
+                        className="disc-text-control-group disc-text-optional-checkboxes"
+                        aria-label={`${controlLabel} optional controls`}
+                      >
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={layout.avoidVisualElements}
+                            onChange={(event) =>
+                              handleDiscTextVisualAvoidanceChange(
+                                key,
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Respect visual elements</span>
+                        </label>
+
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={textStyle.backgroundEnabled}
+                            onChange={(event) =>
+                              handleDiscTextStyleChange(
+                                key,
+                                'backgroundEnabled',
+                                event.target.checked,
+                              )
+                            }
+                          />
+                          <span>Block background</span>
+                        </label>
+
+                        {textStyle.backgroundEnabled && (
+                          <label className="checkbox-row disc-text-nested-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={textStyle.borderEnabled}
+                              onChange={(event) =>
+                                handleDiscTextStyleChange(
+                                  key,
+                                  'borderEnabled',
+                                  event.target.checked,
+                                )
+                              }
+                            />
+                            <span>Border</span>
+                          </label>
+                        )}
+                      </div>
+                    )}
+
                     {inputState.isMetadataBacked && (
                       <div
                         className="disc-text-control-group"
@@ -204,24 +257,7 @@ export function TextPanel({
 
                     <div
                       className="disc-text-control-group"
-                      aria-label={`${controlLabel} value controls`}
-                    >
-                      <label className="field-label" htmlFor={`disc-text-value-${key}`}>
-                        Text value
-                      </label>
-                      <input
-                        id={`disc-text-value-${key}`}
-                        className="disc-text-input"
-                        type="text"
-                        value={inputState.value}
-                        placeholder={inputState.placeholder}
-                        onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
-                      />
-                    </div>
-
-                    <div
-                      className="disc-text-control-group"
-                      aria-label={`${controlLabel} style controls`}
+                      aria-label={`${controlLabel} type and style controls`}
                     >
                       {key === 'discNumber' && (
                         <div className="disc-number-artwork-controls">
@@ -266,6 +302,24 @@ export function TextPanel({
                       )}
 
                       <div className="disc-text-style-grid">
+                        {isCopyright && (
+                          <label>
+                            <span>Mode</span>
+                            <select
+                              value={layout.mode}
+                              onChange={(event) =>
+                                handleDiscTextModeChange(
+                                  key,
+                                  event.target.value as DiscTextMode,
+                                )
+                              }
+                            >
+                              <option value="straight">Straight</option>
+                              <option value="curved">Curved</option>
+                            </select>
+                          </label>
+                        )}
+
                         <label>
                           <span>Style preset</span>
                           <select
@@ -330,133 +384,59 @@ export function TextPanel({
                             ))}
                           </select>
                         </label>
-                      </div>
 
-                      {!isCurvedCopyright && (
-                        <div className="disc-text-box-style">
-                          <label className="checkbox-row">
+                        {!isCurvedCopyright && textStyle.backgroundEnabled && (
+                          <label>
+                            <span>Fill</span>
                             <input
-                              type="checkbox"
-                              checked={textStyle.backgroundEnabled}
+                              type="color"
+                              value={textStyle.backgroundColor}
                               onChange={(event) =>
                                 handleDiscTextStyleChange(
                                   key,
-                                  'backgroundEnabled',
-                                  event.target.checked,
+                                  'backgroundColor',
+                                  event.target.value,
                                 )
                               }
                             />
-                            <span>Block background</span>
                           </label>
+                        )}
 
-                          {textStyle.backgroundEnabled && (
-                            <div className="disc-text-style-grid">
-                              <label>
-                                <span>Fill</span>
-                                <input
-                                  type="color"
-                                  value={textStyle.backgroundColor}
-                                  onChange={(event) =>
-                                    handleDiscTextStyleChange(
-                                      key,
-                                      'backgroundColor',
-                                      event.target.value,
-                                    )
-                                  }
-                                />
-                              </label>
+                        {!isCurvedCopyright && textStyle.backgroundEnabled && textStyle.borderEnabled && (
+                          <label>
+                            <span>Line</span>
+                            <input
+                              type="color"
+                              value={textStyle.borderColor}
+                              onChange={(event) =>
+                                handleDiscTextStyleChange(
+                                  key,
+                                  'borderColor',
+                                  event.target.value,
+                                )
+                              }
+                            />
+                          </label>
+                        )}
+                      </div>
 
-                              <label>
-                                <span>Opacity</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="1"
-                                  step="0.05"
-                                  value={textStyle.backgroundOpacity}
-                                  onChange={(event) =>
-                                    handleDiscTextStyleChange(
-                                      key,
-                                      'backgroundOpacity',
-                                      Number(event.target.value),
-                                    )
-                                  }
-                                />
-                              </label>
+                    </div>
 
-                              <label>
-                                <span>Padding</span>
-                                <input
-                                  type="range"
-                                  min="0"
-                                  max="4"
-                                  step="0.1"
-                                  value={textStyle.backgroundPadding}
-                                  onChange={(event) =>
-                                    handleDiscTextStyleChange(
-                                      key,
-                                      'backgroundPadding',
-                                      Number(event.target.value),
-                                    )
-                                  }
-                                />
-                              </label>
-
-                              <label className="disc-text-style-checkbox">
-                                <span>Border</span>
-                                <input
-                                  type="checkbox"
-                                  checked={textStyle.borderEnabled}
-                                  onChange={(event) =>
-                                    handleDiscTextStyleChange(
-                                      key,
-                                      'borderEnabled',
-                                      event.target.checked,
-                                    )
-                                  }
-                                />
-                              </label>
-
-                              {textStyle.borderEnabled && (
-                                <>
-                                  <label>
-                                    <span>Line</span>
-                                    <input
-                                      type="color"
-                                      value={textStyle.borderColor}
-                                      onChange={(event) =>
-                                        handleDiscTextStyleChange(
-                                          key,
-                                          'borderColor',
-                                          event.target.value,
-                                        )
-                                      }
-                                    />
-                                  </label>
-
-                                  <label>
-                                    <span>Radius</span>
-                                    <input
-                                      type="range"
-                                      min="0"
-                                      max="4"
-                                      step="0.1"
-                                      value={textStyle.borderRadius}
-                                      onChange={(event) =>
-                                        handleDiscTextStyleChange(
-                                          key,
-                                          'borderRadius',
-                                          Number(event.target.value),
-                                        )
-                                      }
-                                    />
-                                  </label>
-                                </>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                    <div
+                      className="disc-text-control-group"
+                      aria-label={`${controlLabel} text controls`}
+                    >
+                      <label className="field-label" htmlFor={`disc-text-value-${key}`}>
+                        Text value
+                      </label>
+                      <input
+                        id={`disc-text-value-${key}`}
+                        className="disc-text-input"
+                        type="text"
+                        value={inputState.value}
+                        placeholder={inputState.placeholder}
+                        onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
+                      />
                     </div>
 
                     <div
@@ -464,24 +444,6 @@ export function TextPanel({
                       aria-label={`${controlLabel} placement controls`}
                     >
                       <div className="disc-text-layout-grid">
-                        {isCopyright && (
-                          <label>
-                            <span>Mode</span>
-                            <select
-                              value={layout.mode}
-                              onChange={(event) =>
-                                handleDiscTextModeChange(
-                                  key,
-                                  event.target.value as DiscTextMode,
-                                )
-                              }
-                            >
-                              <option value="straight">Straight</option>
-                              <option value="curved">Curved</option>
-                            </select>
-                          </label>
-                        )}
-
                         <label>
                           <span>Align</span>
                           <select
@@ -519,22 +481,6 @@ export function TextPanel({
                           </label>
                         )}
                       </div>
-
-                      {!isCurvedCopyright && (
-                        <label className="checkbox-row spacing-top">
-                          <input
-                            type="checkbox"
-                            checked={layout.avoidVisualElements}
-                            onChange={(event) =>
-                              handleDiscTextVisualAvoidanceChange(
-                                key,
-                                event.target.checked,
-                              )
-                            }
-                          />
-                          <span>Respect visual elements</span>
-                        </label>
-                      )}
 
                       {presets.length > 0 && (
                         <label className="field-label spacing-top" htmlFor={`disc-text-preset-${key}`}>
@@ -633,6 +579,66 @@ export function TextPanel({
                                 handleDiscTextLayoutChange(
                                   key,
                                   'arcDegrees',
+                                  Number(event.target.value),
+                                )
+                              }
+                            />
+                          </label>
+                        )}
+
+                        {!isCurvedCopyright && textStyle.backgroundEnabled && (
+                          <>
+                            <label>
+                              <span>Opacity</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                value={textStyle.backgroundOpacity}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'backgroundOpacity',
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </label>
+
+                            <label>
+                              <span>Padding</span>
+                              <input
+                                type="range"
+                                min="0"
+                                max="4"
+                                step="0.1"
+                                value={textStyle.backgroundPadding}
+                                onChange={(event) =>
+                                  handleDiscTextStyleChange(
+                                    key,
+                                    'backgroundPadding',
+                                    Number(event.target.value),
+                                  )
+                                }
+                              />
+                            </label>
+                          </>
+                        )}
+
+                        {!isCurvedCopyright && textStyle.backgroundEnabled && textStyle.borderEnabled && (
+                          <label>
+                            <span>Radius</span>
+                            <input
+                              type="range"
+                              min="0"
+                              max="4"
+                              step="0.1"
+                              value={textStyle.borderRadius}
+                              onChange={(event) =>
+                                handleDiscTextStyleChange(
+                                  key,
+                                  'borderRadius',
                                   Number(event.target.value),
                                 )
                               }
