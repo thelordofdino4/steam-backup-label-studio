@@ -54,7 +54,7 @@ export type DiscTextContrastOption = {
 export type DiscTextStylePreset = {
   id: string
   label: string
-  style: Partial<DiscTextStyle>
+  style: DiscTextStyle
 }
 
 export const DISC_TEXT_RENDER_STYLES: Record<DiscTextKey, DiscTextRenderStyle> = {
@@ -119,59 +119,66 @@ export const DISC_TEXT_CONTRAST_OPTIONS: readonly DiscTextContrastOption[] = [
 export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
   {
     id: 'metallic',
-    label: 'Metallic',
+    label: 'Metallic silver',
     style: {
       fontFamily: 'trebuchet',
-      color: '#e5e7eb',
+      color: '#f8fafc',
       contrast: 'strokeShadow',
-      backgroundEnabled: false,
-      borderEnabled: false,
+      backgroundEnabled: true,
+      backgroundColor: '#1e293b',
+      backgroundOpacity: 0.54,
+      backgroundPadding: 0.75,
+      borderEnabled: true,
+      borderColor: '#cbd5e1',
+      borderRadius: 0.45,
     },
   },
   {
     id: 'futuristic',
-    label: 'Futuristic',
+    label: 'Futuristic cyan',
     style: {
       fontFamily: 'system',
-      color: '#7dd3fc',
+      color: '#67e8f9',
       contrast: 'shadow',
       backgroundEnabled: true,
-      backgroundColor: '#082f49',
-      backgroundOpacity: 0.55,
-      backgroundPadding: 0.9,
+      backgroundColor: '#031b2d',
+      backgroundOpacity: 0.72,
+      backgroundPadding: 0.85,
       borderEnabled: true,
-      borderColor: '#38bdf8',
-      borderRadius: 0.8,
+      borderColor: '#22d3ee',
+      borderRadius: 1.2,
     },
   },
   {
     id: 'horror',
-    label: 'Horror',
+    label: 'Horror crimson',
     style: {
       fontFamily: 'georgia',
-      color: '#fca5a5',
+      color: '#fecaca',
       contrast: 'strokeShadow',
       backgroundEnabled: true,
       backgroundColor: '#1f0507',
-      backgroundOpacity: 0.72,
-      backgroundPadding: 1,
+      backgroundOpacity: 0.78,
+      backgroundPadding: 0.9,
       borderEnabled: true,
-      borderColor: '#991b1b',
-      borderRadius: 0.3,
+      borderColor: '#dc2626',
+      borderRadius: 0.15,
     },
   },
   {
     id: 'gritty',
-    label: 'Gritty',
+    label: 'Gritty amber',
     style: {
       fontFamily: 'courier',
-      color: '#facc15',
+      color: '#fde68a',
       contrast: 'stroke',
       backgroundEnabled: true,
-      backgroundColor: '#292524',
-      backgroundOpacity: 0.62,
-      backgroundPadding: 0.75,
-      borderEnabled: false,
+      backgroundColor: '#1c1917',
+      backgroundOpacity: 0.74,
+      backgroundPadding: 0.7,
+      borderEnabled: true,
+      borderColor: '#a16207',
+      borderRadius: 0.2,
     },
   },
 ]

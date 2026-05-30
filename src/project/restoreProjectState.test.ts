@@ -12,6 +12,10 @@ import {
   getProjectPlatformMarkInference,
 } from './projectMediaMark.ts'
 import { getProjectTechnicalMarkAsset } from './projectTechnicalMarks.ts'
+import {
+  applyDiscTextStylePreset,
+  createDefaultDiscTextStyles,
+} from '../discTextStyles.ts'
 import type { SavedProject } from './projectTypes.ts'
 
 const baseProject: SavedProject = {
@@ -519,6 +523,11 @@ test('restores saved and legacy disc text metadata source state', async () => {
 
 test('restores saved disc text styles and backfills legacy style defaults', async () => {
   const restoredLegacyStyles = await restoreSavedProjectState(baseProject)
+  const metallicPresetStyles = applyDiscTextStylePreset(
+    createDefaultDiscTextStyles(),
+    'title',
+    'metallic',
+  )
   const restoredSavedStyles = await restoreSavedProjectState({
     ...baseProject,
     discText: {
@@ -538,6 +547,14 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
       },
     },
   })
+  const restoredPresetStyles = await restoreSavedProjectState({
+    ...baseProject,
+    discText: {
+      styles: {
+        title: metallicPresetStyles.title,
+      },
+    },
+  })
 
   assert.equal(restoredLegacyStyles.discTextStyles.title.fontFamily, 'arial')
   assert.equal(restoredLegacyStyles.discTextStyles.title.contrast, 'strokeShadow')
@@ -553,6 +570,7 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
   assert.equal(restoredSavedStyles.discTextStyles.title.borderColor, '#778899')
   assert.equal(restoredSavedStyles.discTextStyles.title.borderRadius, 1.4)
   assert.equal(restoredSavedStyles.discTextStyles.subtitle.backgroundEnabled, false)
+  assert.deepEqual(restoredPresetStyles.discTextStyles.title, metallicPresetStyles.title)
 })
 
 test('restores checked-in project fixtures', async () => {
