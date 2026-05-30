@@ -76,6 +76,37 @@ test('restores saved disc number artwork badge settings', async () => {
   assert.equal(restored.projectDiscNumberArtwork.badgeSet, 'starterRing')
 })
 
+test('restores saved Steam default game logo for later restore actions', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    titleArtwork: {
+      source: 'custom',
+      sourceLabel: 'Custom game logo artwork',
+      imageDataUrl: 'data:image/png;base64,current-custom-logo',
+      imageSize: { width: 640, height: 240 },
+      defaultSteamLogo: {
+        steamArtworkAssetId: 'cdn-logo',
+        sourceLabel: 'Steam CDN logo',
+        imageDataUrl: 'data:image/png;base64,steam-default-logo',
+        imageSize: { width: 900, height: 360 },
+      },
+      layout: {
+        enabled: true,
+        scale: 1.2,
+        x: 50,
+        y: 28,
+      },
+    },
+  })
+
+  assert.equal(
+    restored.projectTitleArtwork.defaultSteamLogo?.imageDataUrl,
+    'data:image/png;base64,steam-default-logo',
+  )
+  assert.equal(restored.projectTitleArtwork.defaultSteamLogo?.sourceLabel, 'Steam CDN logo')
+  assert.equal(restored.projectTitleArtwork.source, 'custom')
+})
+
 test('restores saved disc text visual avoidance and backfills legacy layouts', async () => {
   const restored = await restoreSavedProjectState({
     ...baseProject,

@@ -287,6 +287,7 @@ function App() {
     resetTitleArtworkLayoutForPlacement,
     handleTitleArtworkLayoutChange,
     handleResetTitleArtworkLayout,
+    handleRestoreTitleArtworkDefault,
     handleTitleArtworkUpload,
     applySteamTitleArtworkImport,
   } = useTitleArtwork({
@@ -2309,6 +2310,7 @@ function App() {
           selectedDiscTemplate={selectedDiscTemplate}
           handleTitleArtworkLayoutChange={handleTitleArtworkLayoutChange}
           handleResetTitleArtworkLayout={handleResetTitleArtworkLayout}
+          handleRestoreTitleArtworkDefault={handleRestoreTitleArtworkDefault}
           handleTitleArtworkUpload={handleTitleArtworkUpload}
           projectAdditionalArtwork={projectAdditionalArtwork}
           handleAdditionalArtworkEnabledChange={handleAdditionalArtworkEnabledChange}

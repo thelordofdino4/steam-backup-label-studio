@@ -7,6 +7,7 @@ import {
 import {
   createDefaultProjectTitleArtwork,
   resetProjectTitleArtworkLayout,
+  restoreTitleArtworkDefaultSteamLogo,
   setCustomTitleArtworkImage,
   setTitleArtworkLayout,
   updateTitleArtworkLayoutField,
@@ -89,6 +90,16 @@ export function useTitleArtwork({
     announceStatus('Reset title artwork layout.')
   }
 
+  function handleRestoreTitleArtworkDefault() {
+    setProjectTitleArtwork((currentTitleArtwork) =>
+      clampProjectTitleArtworkToSafeZone(
+        restoreTitleArtworkDefaultSteamLogo(currentTitleArtwork),
+        selectedDiscTemplate,
+      ),
+    )
+    announceStatus('Restored game logo to the Steam default logo.')
+  }
+
   async function handleTitleArtworkUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -143,6 +154,7 @@ export function useTitleArtwork({
     resetTitleArtworkLayoutForPlacement,
     handleTitleArtworkLayoutChange,
     handleResetTitleArtworkLayout,
+    handleRestoreTitleArtworkDefault,
     handleTitleArtworkUpload,
     applySteamTitleArtworkImport,
   }

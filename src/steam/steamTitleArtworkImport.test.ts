@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
+  canRestoreTitleArtworkDefaultSteamLogo,
   createDefaultProjectTitleArtwork,
   setCustomTitleArtworkImage,
   setTitleArtworkImage,
@@ -77,6 +78,8 @@ test('selecting a Steam game with the Steam CDN logo seeds title artwork from th
   assert.equal(result.titleArtwork.sourceLabel, 'Steam CDN logo')
   assert.equal(result.titleArtwork.imageDataUrl, imageDataUrl)
   assert.deepEqual(result.titleArtwork.imageSize, { width: 800, height: 300 })
+  assert.equal(result.titleArtwork.defaultSteamLogo?.steamArtworkAssetId, 'cdn-logo')
+  assert.equal(result.titleArtwork.defaultSteamLogo?.imageDataUrl, imageDataUrl)
   assert.equal(result.titleArtwork.layout.enabled, true)
   assert.equal(result.titleArtwork.layout.x, 50)
   assert.equal(result.titleArtwork.layout.y, 19.5)
@@ -135,8 +138,21 @@ test('missing Steam title artwork clears stale artwork and leaves rendered text 
 })
 
 test('missing Steam title artwork preserves custom title artwork upload', async () => {
+  const previousLogo: SteamArtworkAsset = {
+    id: 'cdn-logo',
+    label: 'Steam CDN logo',
+    url: 'https://cdn.akamai.steamstatic.com/steam/apps/12345/logo.png',
+    kind: 'logo',
+  }
   const currentTitleArtwork = setCustomTitleArtworkImage(
-    createDefaultProjectTitleArtwork(standardDiscTemplate, 'top'),
+    setTitleArtworkImage(
+      createDefaultProjectTitleArtwork(standardDiscTemplate, 'top'),
+      createImportedImage('data:image/png;base64,old-default'),
+      previousLogo,
+      standardDiscTemplate,
+      'top',
+      { rememberAsDefault: true },
+    ),
     createImportedImage('data:image/png;base64,custom-logo'),
     standardDiscTemplate,
     'top',
@@ -152,5 +168,7 @@ test('missing Steam title artwork preserves custom title artwork upload', async 
   assert.equal(result.status, 'unavailable')
   assert.equal(result.titleArtwork.source, 'custom')
   assert.equal(result.titleArtwork.imageDataUrl, 'data:image/png;base64,custom-logo')
+  assert.equal(result.titleArtwork.defaultSteamLogo, null)
+  assert.equal(canRestoreTitleArtworkDefaultSteamLogo(result.titleArtwork), false)
   assert.equal(result.titleArtwork.layout.enabled, true)
 })

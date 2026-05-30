@@ -25,7 +25,9 @@ import {
   type AdditionalArtworkLayoutField,
 } from '../../project/projectAdditionalArtwork'
 import {
+  canRestoreTitleArtworkDefaultSteamLogo,
   canUseTitleArtwork,
+  getTitleArtworkDefaultSteamLogo,
   shouldRenderTitleArtwork,
   TITLE_ARTWORK_SCALE_MAX,
   TITLE_ARTWORK_SCALE_MIN,
@@ -84,6 +86,7 @@ export type ArtworkPanelProps = {
     value: boolean | number,
   ) => void
   handleResetTitleArtworkLayout: () => void
+  handleRestoreTitleArtworkDefault: () => void
   handleTitleArtworkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   projectAdditionalArtwork: ProjectAdditionalArtwork
   handleAdditionalArtworkEnabledChange: (enabled: boolean) => void
@@ -591,6 +594,7 @@ function GameLogoArtworkControls({
   selectedDiscTemplate,
   handleTitleArtworkLayoutChange,
   handleResetTitleArtworkLayout,
+  handleRestoreTitleArtworkDefault,
   handleTitleArtworkUpload,
 }: Pick<
   ArtworkPanelProps,
@@ -598,11 +602,15 @@ function GameLogoArtworkControls({
   | 'selectedDiscTemplate'
   | 'handleTitleArtworkLayoutChange'
   | 'handleResetTitleArtworkLayout'
+  | 'handleRestoreTitleArtworkDefault'
   | 'handleTitleArtworkUpload'
 >) {
   const hasTitleArtwork = canUseTitleArtwork(projectTitleArtwork)
   const isFeatureEnabled = projectTitleArtwork.layout.enabled
   const isRenderable = shouldRenderTitleArtwork(projectTitleArtwork)
+  const defaultSteamLogo = getTitleArtworkDefaultSteamLogo(projectTitleArtwork)
+  const canRestoreDefaultSteamLogo =
+    canRestoreTitleArtworkDefaultSteamLogo(projectTitleArtwork)
   const sliderRanges = getTitleArtworkLayoutSliderRanges(
     projectTitleArtwork,
     selectedDiscTemplate,
@@ -660,6 +668,20 @@ function GameLogoArtworkControls({
               No game logo image is selected yet. Importing a Steam game can seed the Steam CDN logo automatically, or upload a custom image here.
             </p>
           )}
+
+          {canRestoreDefaultSteamLogo ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={handleRestoreTitleArtworkDefault}
+            >
+              Restore Steam default game logo
+            </button>
+          ) : null}
+
+          {defaultSteamLogo ? (
+            <p className="hint">Steam default: {defaultSteamLogo.sourceLabel}.</p>
+          ) : null}
 
           <p className="hint">
             This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the Steam CDN logo when available; rendered title text stays independently available in the Text tab as the fallback.

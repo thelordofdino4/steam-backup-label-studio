@@ -1,6 +1,7 @@
 import type { SteamLogoPlacement } from '../discText.ts'
 import { clampTitleArtworkLayoutToSafeZone } from '../layout/discElementSafeZone.ts'
 import {
+  clearTitleArtworkDefaultSteamLogo,
   clearTitleArtworkImage,
   setTitleArtworkImage,
   setTitleArtworkLayout,
@@ -55,12 +56,15 @@ export async function createSteamTitleArtworkImport(
   const steamLogoAsset = findSteamTitleArtworkAsset(importedGame)
 
   if (!steamLogoAsset) {
+    const titleArtworkWithoutDefault =
+      clearTitleArtworkDefaultSteamLogo(currentTitleArtwork)
+
     return {
       titleArtwork:
         currentTitleArtwork.source === 'custom'
-          ? currentTitleArtwork
+          ? titleArtworkWithoutDefault
           : clearTitleArtworkImage(
-              currentTitleArtwork,
+              titleArtworkWithoutDefault,
               selectedDiscTemplate,
               steamLogoPlacement,
             ),
@@ -85,6 +89,7 @@ export async function createSteamTitleArtworkImport(
       steamLogoAsset,
       selectedDiscTemplate,
       steamLogoPlacement,
+      { rememberAsDefault: true },
     )
     const nextLayout = clampTitleArtworkLayoutToSafeZone(
       nextTitleArtwork.layout,
@@ -98,12 +103,15 @@ export async function createSteamTitleArtworkImport(
       statusMessage: `Using ${steamLogoAsset.label} as the disc title artwork.`,
     }
   } catch {
+    const titleArtworkWithoutDefault =
+      clearTitleArtworkDefaultSteamLogo(currentTitleArtwork)
+
     return {
       titleArtwork:
         currentTitleArtwork.source === 'custom'
-          ? currentTitleArtwork
+          ? titleArtworkWithoutDefault
           : clearTitleArtworkImage(
-              currentTitleArtwork,
+              titleArtworkWithoutDefault,
               selectedDiscTemplate,
               steamLogoPlacement,
             ),

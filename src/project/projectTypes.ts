@@ -95,12 +95,20 @@ export type TitleArtworkLayout = {
   y: number
 }
 
+export type ProjectTitleArtworkDefaultAsset = {
+  steamArtworkAssetId: string
+  sourceLabel: string
+  imageDataUrl: string
+  imageSize: BackgroundImageSize
+}
+
 export type ProjectTitleArtwork = {
   source: TitleArtworkSource
   steamArtworkAssetId: string | null
   sourceLabel: string
   imageDataUrl: string | null
   imageSize: BackgroundImageSize | null
+  defaultSteamLogo: ProjectTitleArtworkDefaultAsset | null
   layout: TitleArtworkLayout
 }
 
