@@ -838,7 +838,6 @@ input:disabled {
 .disc-text-source-row {
   display: grid;
   gap: 8px;
-  margin-top: 8px;
   color: #9ca3af;
   font-size: 12px;
 }
@@ -860,6 +859,36 @@ input:disabled {
   border: 1px solid #2a2e38;
   border-radius: 12px;
   background: #111827;
+}
+
+.disc-text-enable-row {
+  margin-top: 0;
+}
+
+.disc-text-control-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.disc-text-control-group {
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.disc-text-control-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.disc-text-control-group > .disc-text-layout-grid:first-child,
+.disc-text-control-group > .disc-text-style-grid:first-child {
+  margin-top: 0;
+}
+
+.disc-text-action-group {
+  display: grid;
+  gap: 8px;
 }
 
 .title-artwork-status-card {
@@ -908,9 +937,7 @@ input:disabled {
 }
 
 .disc-number-artwork-controls {
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  margin-top: 0;
 }
 
 .disc-text-style-checkbox input {
@@ -920,7 +947,7 @@ input:disabled {
 }
 
 .disc-text-reset-button {
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 .disc-text-input {
