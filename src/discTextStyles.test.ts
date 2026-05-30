@@ -4,6 +4,7 @@ import { createDefaultDiscTextLayout } from './discText.ts'
 import { getStraightDiscTextRenderLayout } from './discTextRenderLayout.ts'
 import {
   DISC_TEXT_RENDER_STYLES,
+  applyDiscTextStylePreset,
   createDefaultDiscTextStyles,
   normalizeDiscTextStyles,
   resetDiscTextStyle,
@@ -71,6 +72,28 @@ test('updates and resets a single disc text style without touching other text el
   assert.equal(updatedStyles.title.color, '#224466')
   assert.equal(updatedStyles.subtitle.color, defaultStyles.subtitle.color)
   assert.equal(resetStyles.title.color, defaultStyles.title.color)
+})
+
+test('applies editable text style presets through the existing style model', () => {
+  const defaultStyles = createDefaultDiscTextStyles()
+  const presetStyles = applyDiscTextStylePreset(defaultStyles, 'title', 'futuristic')
+  const unchangedStyles = applyDiscTextStylePreset(presetStyles, 'title', 'unknown')
+
+  assert.equal(presetStyles.title.fontFamily, 'system')
+  assert.equal(presetStyles.title.color, '#7dd3fc')
+  assert.equal(presetStyles.title.backgroundEnabled, true)
+  assert.equal(presetStyles.title.borderEnabled, true)
+  assert.equal(presetStyles.subtitle.color, defaultStyles.subtitle.color)
+  assert.deepEqual(unchangedStyles, presetStyles)
+
+  const editedStyles = updateDiscTextStyleField(
+    presetStyles,
+    'title',
+    'color',
+    '#ffffff',
+  )
+
+  assert.equal(editedStyles.title.color, '#ffffff')
 })
 
 test('applies font, color, contrast, and box style to the shared straight text render model', () => {

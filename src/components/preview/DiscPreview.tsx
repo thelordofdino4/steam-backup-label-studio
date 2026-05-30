@@ -1,7 +1,7 @@
 import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
 import type { DiscTextStyleSettings } from '../../discTextStyles'
-import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -16,8 +16,10 @@ import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
-import type { DiscTextValueSources } from '../../project/metadataDiscText'
+import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
+import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
+import { measureDiscTextWithBrowserCanvas } from '../../discTextSvgLayer'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -36,6 +38,7 @@ export type DiscPreviewProps = {
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectAdditionalArtwork: ProjectAdditionalArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
@@ -112,6 +115,7 @@ export function DiscPreview({
   steamBannerLockupLayout,
   projectLogoAssets,
   projectTitleArtwork,
+  projectDiscNumberArtwork,
   projectAdditionalArtwork,
   projectMetadata,
   projectRatingBadge,
@@ -155,6 +159,28 @@ export function DiscPreview({
   safeInsetPercent,
   physicalCenterHolePercent,
 }: DiscPreviewProps) {
+  const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
+    discTextValues,
+    projectMetadata,
+    discTextValueSources,
+  )
+  const discTextOccupiedRegions = createDiscTextOccupiedRegions({
+    projectTitleArtwork,
+    projectLogoAssets,
+    projectAdditionalArtwork,
+    projectMetadata,
+    projectRatingBadge,
+    projectMediaMark,
+    projectPlatformMarks,
+    projectTechnicalMarks,
+    projectDiscNumberArtwork,
+    discTextSettings,
+    discTextValues: metadataBoundDiscTextValues,
+    discTextLayout,
+    discTextStyles,
+    discTextTitle: manualGameTitle,
+    measureText: measureDiscTextWithBrowserCanvas,
+  })
   const previewLayers: PreviewLayerMap = {
     'background-artwork': (
       <BackgroundLayer
@@ -239,11 +265,13 @@ export function DiscPreview({
         discTextValues={discTextValues}
         discTextValueSources={discTextValueSources}
         discTextStyles={discTextStyles}
+        projectDiscNumberArtwork={projectDiscNumberArtwork}
         projectMetadata={projectMetadata}
         manualGameTitle={manualGameTitle}
         discTextLayout={discTextLayout}
         steamLogoPlacement={steamLogoPlacement}
         selectedDiscTemplate={selectedDiscTemplate}
+        avoidanceRegions={discTextOccupiedRegions}
         getDiscTextPreviewTransform={getDiscTextPreviewTransform}
         handleDiscTextPointerDown={handleDiscTextPointerDown}
         handleDiscTextPointerMove={handleDiscTextPointerMove}

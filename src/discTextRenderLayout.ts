@@ -1,4 +1,5 @@
 import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './discText'
+import type { DiscTextAvoidanceRegion } from './discTextAvoidance.ts'
 import {
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
@@ -24,6 +25,18 @@ export type StraightDiscTextRenderLayout = {
   style: ReturnType<typeof getResolvedDiscTextRenderStyle>
   textAnchor: 'start' | 'middle' | 'end'
   lines: StraightDiscTextLineLayout[]
+}
+
+export type StraightDiscTextRenderOptions = {
+  avoidanceRegions?: DiscTextAvoidanceRegion[]
+}
+
+const AVOIDANCE_EXTRA_MAX_LINES = 3
+
+type DiscTextLineSegment = {
+  left: number
+  right: number
+  y: number
 }
 
 export type StraightDiscTextVisualBounds = {
@@ -103,6 +116,240 @@ export function wrapMeasuredTextLines(
   return lines
 }
 
+function getBaseTextSegment(layout: DiscTextLayout) {
+  const centerX = 50 + layout.x
+  const halfWidth = layout.width / 2
+
+  return {
+    left: centerX - halfWidth,
+    right: centerX + halfWidth,
+  }
+}
+
+function doVerticalRangesOverlap(
+  top: number,
+  bottom: number,
+  region: DiscTextAvoidanceRegion,
+) {
+  return bottom >= region.top && top <= region.bottom
+}
+
+function subtractRegionFromSegments(
+  segments: Array<Omit<DiscTextLineSegment, 'y'>>,
+  region: DiscTextAvoidanceRegion,
+) {
+  return segments.flatMap((segment) => {
+    if (region.right <= segment.left || region.left >= segment.right) {
+      return [segment]
+    }
+
+    return [
+      { left: segment.left, right: Math.min(region.left, segment.right) },
+      { left: Math.max(region.right, segment.left), right: segment.right },
+    ].filter((candidate) => candidate.right - candidate.left > 1)
+  })
+}
+
+function getPreferredSegment(
+  segments: Array<Omit<DiscTextLineSegment, 'y'>>,
+  align: DiscTextAlignment,
+  baseSegment: Omit<DiscTextLineSegment, 'y'>,
+) {
+  if (segments.length === 0) {
+    return baseSegment
+  }
+
+  if (align === 'left') {
+    return segments[0] ?? baseSegment
+  }
+
+  if (align === 'right') {
+    return segments[segments.length - 1] ?? baseSegment
+  }
+
+  const centerX = (baseSegment.left + baseSegment.right) / 2
+  const containingCenter = segments.find(
+    (segment) => segment.left <= centerX && segment.right >= centerX,
+  )
+
+  if (containingCenter) {
+    return containingCenter
+  }
+
+  return segments.reduce((bestSegment, segment) => {
+    const bestWidth = bestSegment.right - bestSegment.left
+    const segmentWidth = segment.right - segment.left
+
+    if (segmentWidth !== bestWidth) {
+      return segmentWidth > bestWidth ? segment : bestSegment
+    }
+
+    const bestCenter = (bestSegment.left + bestSegment.right) / 2
+    const segmentCenter = (segment.left + segment.right) / 2
+
+    return Math.abs(segmentCenter - centerX) < Math.abs(bestCenter - centerX)
+      ? segment
+      : bestSegment
+  }, segments[0] ?? baseSegment)
+}
+
+function getAvoidanceLineSegments(
+  layout: DiscTextLayout,
+  lineCount: number,
+  lineHeight: number,
+  regions: DiscTextAvoidanceRegion[],
+): DiscTextLineSegment[] {
+  const baseSegment = getBaseTextSegment(layout)
+  const firstLineY = layout.y - ((lineCount - 1) * lineHeight) / 2
+
+  return Array.from({ length: Math.max(1, lineCount) }, (_, index) => {
+    const y = firstLineY + index * lineHeight
+    const top = y - lineHeight / 2
+    const bottom = y + lineHeight / 2
+    const overlappingRegions = regions.filter((region) =>
+      doVerticalRangesOverlap(top, bottom, region),
+    )
+    const availableSegments = overlappingRegions.reduce(
+      (segments, region) => subtractRegionFromSegments(segments, region),
+      [baseSegment],
+    )
+    const preferredSegment = getPreferredSegment(
+      availableSegments,
+      layout.align,
+      baseSegment,
+    )
+
+    return {
+      ...preferredSegment,
+      y,
+    }
+  })
+}
+
+function splitLongTokenByLineSegments(
+  token: string,
+  lineSegments: DiscTextLineSegment[],
+  currentLineIndex: number,
+  font: string,
+  measureText: TextMeasureFunction,
+) {
+  const chunks: string[] = []
+  let currentChunk = ''
+  let lineIndex = currentLineIndex
+
+  for (const character of Array.from(token)) {
+    const segment = lineSegments[Math.min(lineIndex, lineSegments.length - 1)]
+    const maxWidth = segment ? segment.right - segment.left : 1
+    const testChunk = `${currentChunk}${character}`
+
+    if (measureText(testChunk, font) <= maxWidth || !currentChunk) {
+      currentChunk = testChunk
+      continue
+    }
+
+    chunks.push(currentChunk)
+    currentChunk = character
+    lineIndex += 1
+  }
+
+  if (currentChunk) chunks.push(currentChunk)
+  return chunks
+}
+
+function wrapMeasuredTextLinesBySegments(
+  text: string,
+  lineSegments: DiscTextLineSegment[],
+  font: string,
+  maxLines: number,
+  measureText: TextMeasureFunction,
+) {
+  const tokens = text.split(/\s+/).filter(Boolean)
+  const lines: string[] = []
+  let currentLine = ''
+
+  for (const token of tokens) {
+    const currentSegment = lineSegments[Math.min(lines.length, lineSegments.length - 1)]
+    const currentMaxWidth = currentSegment ? currentSegment.right - currentSegment.left : 1
+    const tokenParts = measureText(token, font) > currentMaxWidth
+      ? splitLongTokenByLineSegments(
+          token,
+          lineSegments,
+          lines.length,
+          font,
+          measureText,
+        )
+      : [token]
+
+    for (const part of tokenParts) {
+      const lineSegment = lineSegments[Math.min(lines.length, lineSegments.length - 1)]
+      const maxWidth = lineSegment ? lineSegment.right - lineSegment.left : 1
+      const testLine = currentLine ? `${currentLine} ${part}` : part
+
+      if (measureText(testLine, font) <= maxWidth || !currentLine) {
+        currentLine = testLine
+        continue
+      }
+
+      lines.push(currentLine)
+      currentLine = part
+
+      if (lines.length >= maxLines) {
+        return lines
+      }
+    }
+  }
+
+  if (currentLine && lines.length < maxLines) lines.push(currentLine)
+  return lines
+}
+
+function wrapMeasuredTextLinesWithAvoidance(
+  text: string,
+  layout: DiscTextLayout,
+  lineHeight: number,
+  font: string,
+  maxLines: number,
+  measureText: TextMeasureFunction,
+  regions: DiscTextAvoidanceRegion[],
+) {
+  let lines = wrapMeasuredTextLines(text, layout.width, font, maxLines, measureText)
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const lineSegments = getAvoidanceLineSegments(
+      layout,
+      Math.max(1, lines.length),
+      lineHeight,
+      regions,
+    )
+    const nextLines = wrapMeasuredTextLinesBySegments(
+      text,
+      lineSegments,
+      font,
+      maxLines,
+      measureText,
+    )
+
+    if (nextLines.join('\n') === lines.join('\n')) {
+      return {
+        lines,
+        lineSegments,
+      }
+    }
+
+    lines = nextLines
+  }
+
+  return {
+    lines,
+    lineSegments: getAvoidanceLineSegments(
+      layout,
+      Math.max(1, lines.length),
+      lineHeight,
+      regions,
+    ),
+  }
+}
+
 function getTextAnchor(align: DiscTextAlignment): StraightDiscTextRenderLayout['textAnchor'] {
   if (align === 'left') return 'start'
   if (align === 'right') return 'end'
@@ -115,6 +362,15 @@ function getAnchorX(layout: DiscTextLayout, firstLineWidth: number) {
   if (layout.align === 'left') return centerX - firstLineWidth / 2
   if (layout.align === 'right') return centerX + firstLineWidth / 2
   return centerX
+}
+
+function getLineSegmentAnchorX(
+  segment: DiscTextLineSegment,
+  align: DiscTextAlignment,
+) {
+  if (align === 'left') return segment.left
+  if (align === 'right') return segment.right
+  return (segment.left + segment.right) / 2
 }
 
 function getLineHorizontalBounds(
@@ -189,6 +445,7 @@ export function getStraightDiscTextRenderLayout(
   layout: DiscTextLayout,
   measureText: TextMeasureFunction,
   styles?: DiscTextStyleInput,
+  options: StraightDiscTextRenderOptions = {},
 ): StraightDiscTextRenderLayout {
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const fontSize = renderStyle.fontSizePercent * layout.scale
@@ -198,16 +455,34 @@ export function getStraightDiscTextRenderLayout(
     fontSize,
     renderStyle.fontFamilyCanvas,
   )
-  const lines = wrapMeasuredTextLines(
+  const avoidanceRegions = layout.avoidVisualElements
+    ? options.avoidanceRegions ?? []
+    : []
+  const maxLines = avoidanceRegions.length > 0
+    ? Math.min(6, renderStyle.maxLines + AVOIDANCE_EXTRA_MAX_LINES)
+    : renderStyle.maxLines
+  const avoidanceResult = avoidanceRegions.length > 0
+    ? wrapMeasuredTextLinesWithAvoidance(
+        text,
+        layout,
+        lineHeight,
+        font,
+        maxLines,
+        measureText,
+        avoidanceRegions,
+      )
+    : null
+  const lines = avoidanceResult?.lines ?? wrapMeasuredTextLines(
     text,
     layout.width,
     font,
-    renderStyle.maxLines,
+    maxLines,
     measureText,
   )
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
   const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
   const x = getAnchorX(layout, firstLineWidth)
+  const lineSegments = avoidanceResult?.lineSegments
 
   return {
     align: layout.align,
@@ -220,10 +495,17 @@ export function getStraightDiscTextRenderLayout(
     maxWidth: layout.width,
     style: renderStyle,
     textAnchor: getTextAnchor(layout.align),
-    lines: lines.map((line, index) => ({
-      text: line,
-      x,
-      y: firstLineY + index * lineHeight,
-    })),
+    lines: lines.map((line, index) => {
+      const lineSegment = lineSegments?.[index]
+      const segmentX = lineSegment
+        ? getLineSegmentAnchorX(lineSegment, layout.align)
+        : x
+
+      return {
+        text: line,
+        x: segmentX,
+        y: lineSegment?.y ?? firstLineY + index * lineHeight,
+      }
+    }),
   }
 }

@@ -46,6 +46,7 @@ export type DiscTextLayout = {
   mode: DiscTextMode
   arcDegrees: number
   arcSide: DiscTextArcSide
+  avoidVisualElements: boolean
 }
 
 export type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
@@ -138,7 +139,7 @@ export function getDefaultCopyrightStraightLayout(
   }
 
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
+  return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
 }
 
 export function getDefaultCopyrightCurvedLayout(
@@ -154,7 +155,7 @@ export function getDefaultCopyrightCurvedLayout(
   }
 
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom' }
+  return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
 }
 
 export function createDefaultDiscTextLayout(
@@ -171,15 +172,15 @@ export function createDefaultDiscTextLayout(
 
   const hasBottomBanner = placement === 'bottom'
   return {
-    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    subtitle: { x: 0, y: hasBottomBanner ? 86 : 24, width: DEFAULT_DISC_TEXT_WIDTHS.subtitle, scale: 0.92, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    developer: { x: -18, y: 56, width: DEFAULT_DISC_TEXT_WIDTHS.developer, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    publisher: { x: -18, y: 60, width: DEFAULT_DISC_TEXT_WIDTHS.publisher, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    installNotes: { x: 0, y: hasBottomBanner ? 72 : 76, width: DEFAULT_DISC_TEXT_WIDTHS.installNotes, scale: 0.86, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
-    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom' },
+    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    subtitle: { x: 0, y: hasBottomBanner ? 86 : 24, width: DEFAULT_DISC_TEXT_WIDTHS.subtitle, scale: 0.92, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    developer: { x: -18, y: 56, width: DEFAULT_DISC_TEXT_WIDTHS.developer, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    publisher: { x: -18, y: 60, width: DEFAULT_DISC_TEXT_WIDTHS.publisher, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    installNotes: { x: 0, y: hasBottomBanner ? 72 : 76, width: DEFAULT_DISC_TEXT_WIDTHS.installNotes, scale: 0.86, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
     copyright: getDefaultCopyrightCurvedLayout(placement),
   }
 }
@@ -238,6 +239,20 @@ export function updateDiscTextArcSide(
     [key]: {
       ...layoutSettings[key],
       arcSide,
+    },
+  }
+}
+
+export function updateDiscTextVisualAvoidance(
+  layoutSettings: DiscTextLayoutSettings,
+  key: DiscTextKey,
+  avoidVisualElements: boolean,
+): DiscTextLayoutSettings {
+  return {
+    ...layoutSettings,
+    [key]: {
+      ...layoutSettings[key],
+      avoidVisualElements,
     },
   }
 }
@@ -394,6 +409,7 @@ export function normalizeDiscTextLayout(
     normalizedLayout[key] = {
       ...mergedLayout,
       width: normalizeDiscTextWidth(mergedLayout.width, defaults[key].width),
+      avoidVisualElements: mergedLayout.avoidVisualElements ?? defaults[key].avoidVisualElements,
     }
     return normalizedLayout
   }, {} as DiscTextLayoutSettings)

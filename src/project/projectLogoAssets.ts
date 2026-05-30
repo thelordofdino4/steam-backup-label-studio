@@ -10,6 +10,7 @@ import type {
   LogoAssetLayout,
   ProjectAdditionalLogoAsset,
   ProjectLogoAssets,
+  ProjectLogoAssetsInput,
 } from './projectTypes'
 
 export type LogoAssetKey = 'developer' | 'publisher'
@@ -62,6 +63,19 @@ function createAdditionalLogoAssetId(logoKey: LogoAssetKey) {
   additionalLogoAssetIdCounter += 1
 
   return `${logoKey}-${Date.now().toString(36)}-${additionalLogoAssetIdCounter}`
+}
+
+function getDefaultAdditionalLogoAssetLabel(
+  logoKey: LogoAssetKey,
+  additionalLogoIndex: number,
+) {
+  return `Additional ${logoKey} ${additionalLogoIndex + 1}`
+}
+
+function normalizeElementLabel(label: unknown, fallbackLabel: string) {
+  return typeof label === 'string' && label.trim()
+    ? label
+    : fallbackLabel
 }
 
 function getAdditionalLogoField(logoKey: LogoAssetKey) {
@@ -383,11 +397,29 @@ export function addAdditionalLogoAsset(
     ...additionalLogos,
     {
       id: createAdditionalLogoAssetId(logoKey),
+      label: getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogos.length),
       imageDataUrl: null,
       imageSize: null,
       layout,
     },
   ])
+}
+
+export function updateAdditionalLogoAssetLabel(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  additionalLogoId: string,
+  label: string,
+): ProjectLogoAssets {
+  return updateAdditionalLogoAsset(
+    logoAssets,
+    logoKey,
+    additionalLogoId,
+    (logoAsset) => ({
+      ...logoAsset,
+      label,
+    }),
+  )
 }
 
 export function removeAdditionalLogoAsset(
@@ -474,7 +506,10 @@ export function createLogoAssetRenderItems(
           imageDataUrl: logoAsset.imageDataUrl,
           imageSize: logoAsset.imageSize,
           layout: logoAsset.layout,
-          label: `Additional developer ${index + 1}`,
+          label: normalizeElementLabel(
+            logoAsset.label,
+            getDefaultAdditionalLogoAssetLabel('developer', index),
+          ),
         })),
     )
   }
@@ -496,7 +531,10 @@ export function createLogoAssetRenderItems(
           imageDataUrl: logoAsset.imageDataUrl,
           imageSize: logoAsset.imageSize,
           layout: logoAsset.layout,
-          label: `Additional publisher ${index + 1}`,
+          label: normalizeElementLabel(
+            logoAsset.label,
+            getDefaultAdditionalLogoAssetLabel('publisher', index),
+          ),
         })),
     )
   }
@@ -540,6 +578,10 @@ function normalizeAdditionalLogoAsset(
     id: typeof logoAsset.id === 'string' && logoAsset.id.trim()
       ? logoAsset.id
       : createAdditionalLogoAssetId(logoKey),
+    label: normalizeElementLabel(
+      logoAsset.label,
+      getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogoIndex),
+    ),
     imageDataUrl: logoAsset.imageDataUrl ?? null,
     imageSize,
     layout: normalizeLogoAssetLayout(logoAsset.layout, defaultLayout),
@@ -547,7 +589,7 @@ function normalizeAdditionalLogoAsset(
 }
 
 function normalizeAdditionalLogoAssets(
-  logoAssets: Partial<ProjectLogoAssets> | undefined,
+  logoAssets: ProjectLogoAssetsInput | undefined,
   logoKey: LogoAssetKey,
   selectedDiscTemplate?: DiscTemplate,
 ) {
@@ -570,7 +612,7 @@ function normalizeAdditionalLogoAssets(
 }
 
 export function normalizeProjectLogoAssets(
-  logoAssets: Partial<ProjectLogoAssets> | undefined,
+  logoAssets: ProjectLogoAssetsInput | undefined,
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectLogoAssets {
   const defaults = createDefaultProjectLogoAssets(selectedDiscTemplate)

@@ -15,7 +15,7 @@ test('disabled technical marks do not create render models', () => {
   assert.deepEqual(createTechnicalMarkRenderModels(technicalMarks), [])
 })
 
-test('custom technical source without an image falls back to bundled placeholder rendering', () => {
+test('custom technical source without an image falls back to bundled generic rendering', () => {
   const technicalMarks = updateTechnicalMarkSource(
     updateTechnicalMarkToggle(createDefaultProjectTechnicalMarks(), 'audio', true),
     'audio',
@@ -26,7 +26,7 @@ test('custom technical source without an image falls back to bundled placeholder
   assert.equal(models.length, 1)
   assert.equal(models[0].isPlaceholderImage, true)
   assert.equal(models[0].label, 'Audio')
-  assert.equal(models[0].alt, 'Audio technical mark placeholder')
+  assert.equal(models[0].alt, 'Audio generic technical mark')
 })
 
 test('custom technical image render model uses custom artwork bounds', () => {

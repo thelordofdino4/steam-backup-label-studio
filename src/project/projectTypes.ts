@@ -63,6 +63,7 @@ export type LogoAssetLayout = {
 
 export type ProjectAdditionalLogoAsset = {
   id: string
+  label: string
   imageDataUrl: string | null
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
@@ -78,6 +79,12 @@ export type ProjectLogoAssets = {
   publisherLogoLayout: LogoAssetLayout
   additionalPublisherLogos: ProjectAdditionalLogoAsset[]
 }
+
+export type ProjectLogoAssetsInput =
+  Partial<Omit<ProjectLogoAssets, 'additionalDeveloperLogos' | 'additionalPublisherLogos'>> & {
+    additionalDeveloperLogos?: Array<Partial<ProjectAdditionalLogoAsset>>
+    additionalPublisherLogos?: Array<Partial<ProjectAdditionalLogoAsset>>
+  }
 
 export type TitleArtworkSource = 'steam' | 'custom'
 
@@ -97,6 +104,15 @@ export type ProjectTitleArtwork = {
   layout: TitleArtworkLayout
 }
 
+export type DiscNumberArtworkMode = 'text' | 'badge'
+
+export type DiscNumberBadgeSet = 'starterRing'
+
+export type ProjectDiscNumberArtwork = {
+  mode: DiscNumberArtworkMode
+  badgeSet: DiscNumberBadgeSet
+}
+
 export type AdditionalArtworkSource =
   | 'custom'
   | 'steam-artwork'
@@ -109,20 +125,36 @@ export type AdditionalArtworkLayout = {
   y: number
 }
 
+export type AdditionalArtworkFrameShape = 'rectangle' | 'circle'
+
+export type AdditionalArtworkFrame = {
+  enabled: boolean
+  color: string
+  width: number
+  shape: AdditionalArtworkFrameShape
+}
+
 export type ProjectAdditionalArtworkElement = {
   id: string
+  label: string
   source: AdditionalArtworkSource
   sourceId: string | null
   sourceLabel: string
   imageDataUrl: string | null
   imageSize: BackgroundImageSize | null
   layout: AdditionalArtworkLayout
+  frame: AdditionalArtworkFrame
 }
 
 export type ProjectAdditionalArtwork = {
   enabled: boolean
   elements: ProjectAdditionalArtworkElement[]
 }
+
+export type ProjectAdditionalArtworkInput =
+  Partial<Omit<ProjectAdditionalArtwork, 'elements'>> & {
+    elements?: Array<Partial<ProjectAdditionalArtworkElement>>
+  }
 
 export type RatingBadgeSource = 'placeholder' | 'custom'
 
@@ -141,6 +173,7 @@ export type ProjectRatingBadge = {
 }
 
 export type MediaMarkValue =
+  | 'bluRay'
   | 'dvd'
   | 'dvdRom'
   | 'cdRom'
@@ -209,6 +242,7 @@ export type TechnicalMarkLayout = {
 }
 
 export type ProjectTechnicalMarkAsset = {
+  label: string
   source: TechnicalMarkSource
   customImageDataUrl: string | null
   customImageSize: BackgroundImageSize | null
@@ -220,6 +254,11 @@ export type ProjectTechnicalMarks = {
   assets: Partial<Record<TechnicalMarkValue, ProjectTechnicalMarkAsset>>
 }
 
+export type ProjectTechnicalMarksInput =
+  Partial<Omit<ProjectTechnicalMarks, 'assets'>> & {
+    assets?: Partial<Record<TechnicalMarkValue, Partial<ProjectTechnicalMarkAsset>>>
+  }
+
 export type SavedProject = {
   schemaVersion: '0.1.0'
   title: string
@@ -229,13 +268,14 @@ export type SavedProject = {
     selectedSteamGame: SteamImportedGame | null
   }
   metadata?: ProjectMetadata
-  logoAssets?: Partial<ProjectLogoAssets>
+  logoAssets?: ProjectLogoAssetsInput
   titleArtwork?: Partial<ProjectTitleArtwork>
-  additionalArtwork?: Partial<ProjectAdditionalArtwork>
+  discNumberArtwork?: Partial<ProjectDiscNumberArtwork>
+  additionalArtwork?: ProjectAdditionalArtworkInput
   ratingBadge?: ProjectRatingBadge
   mediaMark?: ProjectMediaMark
   platformMarks?: ProjectPlatformMarks
-  technicalMarks?: ProjectTechnicalMarks
+  technicalMarks?: ProjectTechnicalMarksInput
   template: {
     type: 'disc'
     variant: SelectedDiscTemplateId

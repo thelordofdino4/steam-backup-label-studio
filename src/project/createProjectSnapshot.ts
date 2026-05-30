@@ -13,6 +13,7 @@ import type {
   BackgroundImageSize,
   BackgroundOffset,
   ProjectAdditionalArtwork,
+  ProjectDiscNumberArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectMetadata,
@@ -32,6 +33,7 @@ export type CreateProjectSnapshotParams = {
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectAdditionalArtwork: ProjectAdditionalArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -64,6 +66,7 @@ export function createProjectSnapshot({
   projectMetadata,
   projectLogoAssets,
   projectTitleArtwork,
+  projectDiscNumberArtwork,
   projectAdditionalArtwork,
   projectRatingBadge,
   projectMediaMark,
@@ -100,6 +103,7 @@ export function createProjectSnapshot({
     metadata: projectMetadata,
     logoAssets: projectLogoAssets,
     titleArtwork: projectTitleArtwork,
+    discNumberArtwork: projectDiscNumberArtwork,
     additionalArtwork: projectAdditionalArtwork,
     ratingBadge: projectRatingBadge,
     mediaMark: projectMediaMark,

@@ -70,6 +70,7 @@ function titleLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
     mode: 'straight',
     arcDegrees: 210,
     arcSide: 'bottom',
+    avoidVisualElements: false,
     ...layout,
   }
 }

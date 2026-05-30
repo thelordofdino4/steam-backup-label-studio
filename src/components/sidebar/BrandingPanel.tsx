@@ -16,7 +16,8 @@ import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkL
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
-import { PlusIcon, TrashIcon } from './PanelIcons'
+import { PlusIcon } from './PanelIcons'
+import { RepeatedVisualElementCard } from './RepeatedVisualElementCard'
 
 export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
@@ -47,6 +48,7 @@ export type BrandingPanelProps = {
   handleClearLogoAsset: (logoKey: 'developer' | 'publisher', additionalLogoId?: string) => void
   handleResetLogoAssetLayout: (logoKey: 'developer' | 'publisher', additionalLogoId?: string) => void
   handleAddAdditionalLogoAsset: (logoKey: 'developer' | 'publisher') => void
+  handleAdditionalLogoAssetLabelChange: (logoKey: 'developer' | 'publisher', additionalLogoId: string, label: string) => void
   handleRemoveAdditionalLogoAsset: (logoKey: 'developer' | 'publisher', additionalLogoId: string) => void
   handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
@@ -70,6 +72,7 @@ export type BrandingPanelProps = {
   handleTechnicalMarkUpload: (value: TechnicalMarkValue, event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleTechnicalMarkSourceChange: (value: TechnicalMarkValue, source: TechnicalMarkSource) => void
   handleTechnicalMarkLayoutChange: (technicalValue: TechnicalMarkValue, field: keyof TechnicalMarkLayout, layoutValue: boolean | number) => void
+  handleTechnicalMarkLabelChange: (value: TechnicalMarkValue, label: string) => void
   handleClearTechnicalMarkImage: (value: TechnicalMarkValue) => void
   handleResetTechnicalMarkLayout: (value: TechnicalMarkValue) => void
 }
@@ -260,7 +263,7 @@ function SteamBannerControls({
   }
 
   return (
-    <div className="logo-asset-card">
+    <div className="branding-feature-card">
       <label className="field-label">
         <input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} />
         Show Steam banner
@@ -356,7 +359,7 @@ function LogoAssetControlBody({
           <span>{label} logo active{formatLogoSize(imageSize)}</span>
         </div>
       ) : (
-        <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled placeholder is shown for placement; upload an image before export to render your actual logo.</p>
+        <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled generic logo is shown for placement; upload an image before export to render your actual logo.</p>
       )}
 
       <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-alignment-preset`}>Align logo</label>
@@ -392,32 +395,34 @@ function AdditionalLogoAssetControls({
   logoAsset,
   additionalLogoIndex,
   handleLogoAssetLayoutChange,
+  handleAdditionalLogoAssetLabelChange,
   handleRemoveAdditionalLogoAsset,
   ...props
-}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; logoAsset: ProjectAdditionalLogoAsset; additionalLogoIndex: number }) {
+}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleAdditionalLogoAssetLabelChange' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; logoAsset: ProjectAdditionalLogoAsset; additionalLogoIndex: number }) {
   const uploadId = `${logoKey}-additional-logo-${additionalLogoIndex + 1}`
   const additionalLabel = `Additional ${label.toLowerCase()}`
   const deleteLabel = `Delete ${additionalLabel} logo`
+  const summary = [
+    logoAsset.layout.enabled ? 'shown' : 'hidden',
+    logoAsset.imageDataUrl ? 'custom image' : 'bundled generic',
+    `scale ${logoAsset.layout.scale.toFixed(2)}`,
+  ].join(' · ')
 
   return (
-    <div className="additional-logo-block">
-      <div className="additional-logo-block-header">
-        <label className="field-label">
-          <input type="checkbox" checked={logoAsset.layout.enabled} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked, logoAsset.id)} />
-          Show {additionalLabel} logo
-        </label>
-        <button
-          className="icon-button danger-icon-button"
-          type="button"
-          aria-label={deleteLabel}
-          title={deleteLabel}
-          onClick={() => handleRemoveAdditionalLogoAsset(logoKey, logoAsset.id)}
-        >
-          <TrashIcon />
-        </button>
-      </div>
-
-      {!logoAsset.layout.enabled ? null : (
+    <RepeatedVisualElementCard
+      title={`${additionalLabel} ${additionalLogoIndex + 1}`}
+      label={logoAsset.label}
+      labelInputId={`${uploadId}-label`}
+      enabled={logoAsset.layout.enabled}
+      enableLabel={`Show ${additionalLabel} logo`}
+      summary={summary}
+      deleteLabel={deleteLabel}
+      onEnabledChange={(enabled) =>
+        handleLogoAssetLayoutChange(logoKey, 'enabled', enabled, logoAsset.id)}
+      onLabelChange={(nextLabel) =>
+        handleAdditionalLogoAssetLabelChange(logoKey, logoAsset.id, nextLabel)}
+      onDelete={() => handleRemoveAdditionalLogoAsset(logoKey, logoAsset.id)}
+    >
         <LogoAssetControlBody
           {...props}
           logoKey={logoKey}
@@ -430,12 +435,11 @@ function AdditionalLogoAssetControls({
           additionalLogoId={logoAsset.id}
           handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
         />
-      )}
-    </div>
+    </RepeatedVisualElementCard>
   )
 }
 
-function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, projectLogoAssets, handleLogoAssetLayoutChange, handleAddAdditionalLogoAsset, ...props }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'projectLogoAssets' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleAddAdditionalLogoAsset' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
+function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, projectLogoAssets, handleLogoAssetLayoutChange, handleAddAdditionalLogoAsset, ...props }: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'projectLogoAssets' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout' | 'handleAddAdditionalLogoAsset' | 'handleAdditionalLogoAssetLabelChange' | 'handleRemoveAdditionalLogoAsset'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout }) {
   const uploadId = `${logoKey}-logo-upload`
   const additionalLogos = logoKey === 'developer'
     ? projectLogoAssets.additionalDeveloperLogos
@@ -543,7 +547,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
 
           <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
           <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
-            <option value="placeholder">Built-in placeholder</option>
+            <option value="placeholder">Built-in generic</option>
             <option value="custom">Custom image</option>
           </select>
 
@@ -558,9 +562,9 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
                   <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom badge image is selected yet. The bundled badge placeholder is used when a rating system and value are set.</p>}
+              ) : <p className="hint">No custom badge image is selected yet. The bundled generic badge is used when a rating system and value are set.</p>}
             </>
-          ) : <p className="hint">Using the built-in placeholder badge.</p>}
+          ) : <p className="hint">Using the built-in generic badge.</p>}
 
           <label className="field-label spacing-top" htmlFor="rating-badge-layout-preset">Layout preset</label>
           <select id="rating-badge-layout-preset" defaultValue="" onChange={(event) => {
@@ -603,7 +607,7 @@ function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMedia
           </select>
           <label className="field-label spacing-top" htmlFor="media-mark-source">Mark source</label>
           <select id="media-mark-source" value={projectMediaMark.source} onChange={(event) => handleMediaMarkSourceChange(event.target.value as MediaMarkSource)}>
-            <option value="placeholder">Built-in placeholder</option>
+            <option value="placeholder">Built-in generic</option>
             <option value="custom">Custom image</option>
           </select>
           <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
@@ -617,9 +621,9 @@ function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMedia
                   <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom media mark image is selected yet. The bundled mark placeholder remains visible until you upload an image.</p>}
+              ) : <p className="hint">No custom media mark image is selected yet. The bundled generic mark remains visible until you upload an image.</p>}
             </>
-          ) : <p className="hint">Using the built-in placeholder mark.</p>}
+          ) : <p className="hint">Using the built-in generic mark.</p>}
           <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
           <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onInput={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} />
           <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
@@ -652,18 +656,18 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
 
   return (
     <div>
-      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show platform marks</label>
+      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
       {!isEnabled ? null : (
         <>
           <div className="platform-mark-selection-group spacing-top">
-            <span className="field-label">Platforms</span>
+            <span className="field-label">Operating systems</span>
             <div className="disc-mark-checkbox-list">
               {PLATFORM_MARK_OPTIONS.map((option) => (
                 <label key={option.value} className="field-label"><input type="checkbox" checked={projectPlatformMarks.values.includes(option.value)} onChange={(event) => handlePlatformMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
               ))}
             </div>
           </div>
-          <p className="hint">Current platform marks: {currentLabel}. Each selected platform mark has its own image and layout.</p>
+          <p className="hint">Current operating system marks: {currentLabel}. Each selected operating system mark has its own image and layout.</p>
           {projectPlatformMarks.values.map((value) => {
             const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
             const label = getPlatformMarkLabel(value)
@@ -675,15 +679,15 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
             )
             return (
               <div key={value} className="logo-asset-card spacing-top">
-                <span className="field-label">{label} platform mark</span>
+                <span className="field-label">{label} operating system mark</span>
                 <label className="field-label spacing-top" htmlFor={`platform-mark-source-${value}`}>Mark source</label>
                 <select id={`platform-mark-source-${value}`} value={asset.source} onChange={(event) => handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)}>
-                  <option value="placeholder">Built-in placeholder</option>
+                  <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>
                 {isCustomPlatformMarkSource ? (
                   <>
-                    <span className="field-label spacing-top">Custom platform image</span>
+                    <span className="field-label spacing-top">Custom operating system image</span>
                     <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
                     <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handlePlatformMarkUpload(value, event)} />
                     {asset.customImageDataUrl ? (
@@ -691,9 +695,9 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
                         <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
                         <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
                       </div>
-                    ) : <p className="hint">No custom {label} platform image is selected yet. The bundled platform placeholder remains visible until you upload an image.</p>}
+                    ) : <p className="hint">No custom {label} operating system image is selected yet. The bundled generic mark remains visible until you upload an image.</p>}
                   </>
-                ) : <p className="hint">Using a bundled placeholder.</p>}
+                ) : <p className="hint">Using a bundled generic mark.</p>}
                 <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
                 <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
@@ -711,7 +715,7 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
   )
 }
 
-function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, handleTechnicalMarkToggle, handleTechnicalMarkUpload, handleTechnicalMarkSourceChange, handleTechnicalMarkLayoutChange, handleClearTechnicalMarkImage, handleResetTechnicalMarkLayout }: Pick<BrandingPanelProps, 'projectTechnicalMarks' | 'selectedDiscTemplate' | 'handleTechnicalMarkToggle' | 'handleTechnicalMarkUpload' | 'handleTechnicalMarkSourceChange' | 'handleTechnicalMarkLayoutChange' | 'handleClearTechnicalMarkImage' | 'handleResetTechnicalMarkLayout'>) {
+function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, handleTechnicalMarkToggle, handleTechnicalMarkUpload, handleTechnicalMarkSourceChange, handleTechnicalMarkLayoutChange, handleTechnicalMarkLabelChange, handleClearTechnicalMarkImage, handleResetTechnicalMarkLayout }: Pick<BrandingPanelProps, 'projectTechnicalMarks' | 'selectedDiscTemplate' | 'handleTechnicalMarkToggle' | 'handleTechnicalMarkUpload' | 'handleTechnicalMarkSourceChange' | 'handleTechnicalMarkLayoutChange' | 'handleTechnicalMarkLabelChange' | 'handleClearTechnicalMarkImage' | 'handleResetTechnicalMarkLayout'>) {
   const [rememberedValues, setRememberedValues] = useState<TechnicalMarkValue[]>([])
   const enabledValues = getEnabledTechnicalMarkValues(projectTechnicalMarks)
   const isEnabled = enabledValues.length > 0
@@ -750,12 +754,32 @@ function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, ha
               asset,
               selectedDiscTemplate,
             )
+            const summary = [
+              asset.layout.enabled ? 'shown' : 'hidden',
+              isCustomTechnicalMarkSource && asset.customImageDataUrl
+                ? 'custom image'
+                : 'bundled generic',
+              `scale ${asset.layout.scale.toFixed(2)}`,
+            ].join(' · ')
             return (
-              <div key={value} className="logo-asset-card spacing-top">
-                <span className="field-label">{label} technical mark</span>
+              <RepeatedVisualElementCard
+                key={value}
+                title={`${label} technical mark`}
+                label={asset.label}
+                labelInputId={`technical-mark-label-${value}`}
+                enabled={asset.layout.enabled}
+                enableLabel={`Show ${label.toLowerCase()} technical mark`}
+                summary={summary}
+                deleteLabel={`Remove ${label.toLowerCase()} technical mark`}
+                onEnabledChange={(enabled) =>
+                  handleTechnicalMarkLayoutChange(value, 'enabled', enabled)}
+                onLabelChange={(nextLabel) =>
+                  handleTechnicalMarkLabelChange(value, nextLabel)}
+                onDelete={() => handleTechnicalMarkToggle(value, false)}
+              >
                 <label className="field-label spacing-top" htmlFor={`technical-mark-source-${value}`}>Mark source</label>
                 <select id={`technical-mark-source-${value}`} value={asset.source} onChange={(event) => handleTechnicalMarkSourceChange(value, event.target.value as TechnicalMarkSource)}>
-                  <option value="placeholder">Built-in placeholder</option>
+                  <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>
                 {isCustomTechnicalMarkSource ? (
@@ -768,9 +792,9 @@ function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, ha
                         <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
                         <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
                       </div>
-                    ) : <p className="hint">No custom {label.toLowerCase()} technical image is selected yet. The bundled technical placeholder remains visible until you upload an image.</p>}
+                    ) : <p className="hint">No custom {label.toLowerCase()} technical image is selected yet. The bundled generic technical mark remains visible until you upload an image.</p>}
                   </>
-                ) : <p className="hint">Using a bundled placeholder.</p>}
+                ) : <p className="hint">Using a bundled generic mark.</p>}
                 <label className="field-label spacing-top" htmlFor={`technical-mark-scale-${value}`}>Scale</label>
                 <input id={`technical-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
                 <label className="field-label spacing-top" htmlFor={`technical-mark-x-${value}`}>X position</label>
@@ -779,7 +803,7 @@ function TechnicalMarkControls({ projectTechnicalMarks, selectedDiscTemplate, ha
                 <input id={`technical-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
                 <button className="secondary-button" type="button" onClick={() => handleResetTechnicalMarkLayout(value)}>Reset {label} layout</button>
                 {isCustomTechnicalMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearTechnicalMarkImage(value)}>Clear custom {label}</button>}
-              </div>
+              </RepeatedVisualElementCard>
             )
           })}
         </>
@@ -795,17 +819,17 @@ export function BrandingPanel(props: BrandingPanelProps) {
       <summary className="panel-summary">Branding</summary>
       <div className="panel-content">
         <SteamBannerControls {...props} />
-        <details className="metadata-details collapsible-panel spacing-top">
+        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
           <summary className="panel-summary">Developer / publisher logos</summary>
           <div className="panel-content">
             <LogoAssetControls logoKey="developer" label="Developer" imageDataUrl={projectLogoAssets.developerLogoDataUrl} imageSize={projectLogoAssets.developerLogoSize} layout={projectLogoAssets.developerLogoLayout} {...props} />
             <LogoAssetControls logoKey="publisher" label="Publisher" imageDataUrl={projectLogoAssets.publisherLogoDataUrl} imageSize={projectLogoAssets.publisherLogoSize} layout={projectLogoAssets.publisherLogoLayout} {...props} />
           </div>
         </details>
-        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Rating badge</summary><div className="panel-content"><RatingBadgeControls {...props} /></div></details>
-        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Media format mark</summary><div className="panel-content"><MediaMarkControls {...props} /></div></details>
-        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Platform marks</summary><div className="panel-content"><PlatformMarkControls {...props} /></div></details>
-        <details className="metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Technical marks</summary><div className="panel-content"><TechnicalMarkControls {...props} /></div></details>
+        <details className="branding-feature-card metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Rating badge</summary><div className="panel-content"><RatingBadgeControls {...props} /></div></details>
+        <details className="branding-feature-card metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Media format mark</summary><div className="panel-content"><MediaMarkControls {...props} /></div></details>
+        <details className="branding-feature-card metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Operating system marks</summary><div className="panel-content"><PlatformMarkControls {...props} /></div></details>
+        <details className="branding-feature-card metadata-details collapsible-panel spacing-top"><summary className="panel-summary">Technical marks</summary><div className="panel-content"><TechnicalMarkControls {...props} /></div></details>
       </div>
     </details>
   )

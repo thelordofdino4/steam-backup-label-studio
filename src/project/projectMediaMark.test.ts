@@ -1,11 +1,33 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  MEDIA_MARK_OPTIONS,
+  PLATFORM_MARK_OPTIONS,
   createDefaultProjectPlatformMarks,
+  getMediaMarkLabel,
+  getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
+  normalizeProjectMediaMark,
   setPlatformMarkCustomImage,
 } from './projectMediaMark.ts'
 import type { ProjectPlatformMarks } from './projectTypes.ts'
+
+test('media mark options include a Blu-ray built-in generic mark', () => {
+  assert.ok(MEDIA_MARK_OPTIONS.some((option) => option.value === 'bluRay' && option.label === 'Blu-ray'))
+
+  const normalized = normalizeProjectMediaMark({
+    value: 'bluRay',
+    source: 'placeholder',
+  })
+
+  assert.equal(normalized.value, 'bluRay')
+  assert.equal(getMediaMarkLabel(normalized.value), 'Blu-ray')
+})
+
+test('platform mark saved value keeps compatibility while showing SteamOS wording', () => {
+  assert.ok(PLATFORM_MARK_OPTIONS.some((option) => option.value === 'steamDeck' && option.label === 'SteamOS'))
+  assert.equal(getPlatformMarkLabel('steamDeck'), 'SteamOS')
+})
 
 test('selected platform marks materialize default assets when assets are missing', () => {
   const platformMarks: ProjectPlatformMarks = {

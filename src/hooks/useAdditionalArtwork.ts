@@ -11,10 +11,14 @@ import {
   getAdditionalArtworkElementImageSize,
   getAdditionalArtworkElementLayout,
   removeAdditionalArtworkElement,
+  resetAdditionalArtworkElementFrame,
   resetProjectAdditionalArtworkElementLayout,
   setAdditionalArtworkElementLayout,
   setAdditionalArtworkEnabled,
+  updateAdditionalArtworkElementLabel,
+  updateAdditionalArtworkElementFrameField,
   updateAdditionalArtworkElementLayoutField,
+  type AdditionalArtworkFrameField,
   type AdditionalArtworkLayoutField,
 } from '../project/projectAdditionalArtwork'
 import { applyImportedAdditionalArtwork } from '../project/projectVisualAssetImport'
@@ -188,6 +192,12 @@ export function useAdditionalArtwork({
     })
   }
 
+  function handleAdditionalArtworkLabelChange(elementId: string, label: string) {
+    setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+      updateAdditionalArtworkElementLabel(currentAdditionalArtwork, elementId, label),
+    )
+  }
+
   function handleResetAdditionalArtworkElementLayout(elementId: string) {
     setProjectAdditionalArtwork((currentAdditionalArtwork) =>
       clampProjectAdditionalArtworkToSafeZone(
@@ -201,6 +211,29 @@ export function useAdditionalArtwork({
     )
 
     announceStatus('Reset additional artwork layout.')
+  }
+
+  function handleAdditionalArtworkFrameChange(
+    elementId: string,
+    field: AdditionalArtworkFrameField,
+    value: boolean | number | string,
+  ) {
+    setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+      updateAdditionalArtworkElementFrameField(
+        currentAdditionalArtwork,
+        elementId,
+        field,
+        value,
+      ),
+    )
+  }
+
+  function handleResetAdditionalArtworkElementFrame(elementId: string) {
+    setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+      resetAdditionalArtworkElementFrame(currentAdditionalArtwork, elementId),
+    )
+
+    announceStatus('Reset additional artwork frame.')
   }
 
   function handleClearAdditionalArtworkElementImage(elementId: string) {
@@ -230,7 +263,10 @@ export function useAdditionalArtwork({
     handleUseSteamArtworkAsAdditionalArtwork,
     handleUseLocalSteamScreenshotAsAdditionalArtwork,
     handleAdditionalArtworkLayoutChange,
+    handleAdditionalArtworkLabelChange,
     handleResetAdditionalArtworkElementLayout,
+    handleAdditionalArtworkFrameChange,
+    handleResetAdditionalArtworkElementFrame,
     handleClearAdditionalArtworkElementImage,
     handleRemoveAdditionalArtworkElement,
   }

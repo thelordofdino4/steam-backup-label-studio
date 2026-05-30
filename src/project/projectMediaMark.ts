@@ -25,6 +25,7 @@ type MarkLayoutPoint = {
 }
 
 export const MEDIA_MARK_OPTIONS: Array<{ value: MediaMarkValue; label: string }> = [
+  { value: 'bluRay', label: 'Blu-ray' },
   { value: 'dvd', label: 'DVD' },
   { value: 'dvdRom', label: 'DVD-ROM' },
   { value: 'cdRom', label: 'CD-ROM' },
@@ -36,7 +37,7 @@ export const PLATFORM_MARK_OPTIONS: Array<{ value: PlatformMarkValue; label: str
   { value: 'pc', label: 'PC' },
   { value: 'windows', label: 'Windows' },
   { value: 'linux', label: 'Linux' },
-  { value: 'steamDeck', label: 'Steam Deck' },
+  { value: 'steamDeck', label: 'SteamOS' },
   { value: 'macos', label: 'macOS' },
 ]
 

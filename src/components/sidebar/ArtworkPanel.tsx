@@ -17,8 +17,11 @@ import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import {
   ADDITIONAL_ARTWORK_SCALE_MAX,
   ADDITIONAL_ARTWORK_SCALE_MIN,
+  ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
+  ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN,
   canUseAdditionalArtworkElement,
   shouldRenderAdditionalArtworkElement,
+  type AdditionalArtworkFrameField,
   type AdditionalArtworkLayoutField,
 } from '../../project/projectAdditionalArtwork'
 import {
@@ -37,7 +40,9 @@ import type {
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
 import type { DiscTemplate } from '../../types/template'
-import { PlusIcon, TrashIcon } from './PanelIcons'
+import { ImageCandidatePicker, type ImageCandidatePickerItem } from './ImageCandidatePicker'
+import { PlusIcon } from './PanelIcons'
+import { RepeatedVisualElementCard } from './RepeatedVisualElementCard'
 
 export type ArtworkPanelProps = {
   selectedSteamGame: SteamImportedGame | null
@@ -100,7 +105,14 @@ export type ArtworkPanelProps = {
     field: AdditionalArtworkLayoutField,
     value: boolean | number,
   ) => void
+  handleAdditionalArtworkLabelChange: (elementId: string, label: string) => void
+  handleAdditionalArtworkFrameChange: (
+    elementId: string,
+    field: AdditionalArtworkFrameField,
+    value: boolean | number | string,
+  ) => void
   handleResetAdditionalArtworkElementLayout: (elementId: string) => void
+  handleResetAdditionalArtworkElementFrame: (elementId: string) => void
   handleClearAdditionalArtworkElementImage: (elementId: string) => void
   handleRemoveAdditionalArtworkElement: (elementId: string) => void
 }
@@ -169,6 +181,39 @@ function formatAdditionalArtworkSize(
   return size ? ` (${size.width} x ${size.height}px)` : ''
 }
 
+function createSteamArtworkPickerItems(
+  assets: SteamArtworkAsset[],
+  selectedArtworkId?: string | null,
+): ImageCandidatePickerItem[] {
+  return assets.map((asset) => ({
+    id: asset.id,
+    title: asset.label,
+    subtitle: `Source: Steam online · Type: ${formatArtworkKind(asset.kind)}`,
+    imageUrl: asset.url,
+    isSelected: selectedArtworkId === asset.id,
+  }))
+}
+
+function createLocalSteamScreenshotPickerItems(
+  assets: LocalSteamScreenshotAsset[],
+  thumbnails: Record<string, string>,
+  selectedArtworkId?: string | null,
+): ImageCandidatePickerItem[] {
+  return assets.map((asset) => {
+    const modifiedDate = formatModifiedDate(asset.modifiedUnixSeconds)
+
+    return {
+      id: asset.id,
+      title: asset.label,
+      subtitle: 'Source: Local Steam screenshots · Type: Local screenshot',
+      details: modifiedDate ? [`Modified: ${modifiedDate}`] : undefined,
+      imageUrl: thumbnails[asset.id] ?? null,
+      placeholderLabel: 'Local',
+      isSelected: selectedArtworkId === asset.id,
+    }
+  })
+}
+
 function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
   return Number(event.currentTarget.value)
 }
@@ -183,6 +228,16 @@ function WebArtworkCandidateSection({
   | 'handleFindWebArtworkCandidates'
   | 'handleUseWebArtworkCandidate'
 >) {
+  const pickerItems: ImageCandidatePickerItem[] = webArtworkDiscovery.candidates.map(
+    (candidate) => ({
+      id: candidate.id,
+      title: candidate.label,
+      subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatCandidateDimensions(candidate)}`,
+      details: candidate.reasons.slice(0, 3),
+      imageUrl: candidate.previewUrl ?? candidate.url,
+    }),
+  )
+
   return (
     <details className="metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Web artwork</summary>
@@ -194,7 +249,7 @@ function WebArtworkCandidateSection({
             disabled={webArtworkDiscovery.isLoading || webArtworkDiscovery.isApplying}
             onClick={() => void handleFindWebArtworkCandidates()}
           >
-            {webArtworkDiscovery.isLoading ? 'Finding web artwork...' : 'Import web artwork'}
+            {webArtworkDiscovery.isLoading ? 'Finding web artwork...' : 'Find web artwork candidates'}
           </button>
 
           {webArtworkDiscovery.error ? (
@@ -209,33 +264,19 @@ function WebArtworkCandidateSection({
             ) : null}
 
           {webArtworkDiscovery.candidates.length > 0 ? (
-            <div className="search-results">
-              {webArtworkDiscovery.candidates.map((candidate) => (
-                <button
-                  className="search-result-button artwork-asset-button"
-                  key={candidate.id}
-                  type="button"
-                  disabled={webArtworkDiscovery.isApplying}
-                  onClick={() => void handleUseWebArtworkCandidate(candidate)}
-                >
-                  <img
-                    className="artwork-asset-thumbnail"
-                    src={candidate.previewUrl ?? candidate.url}
-                    alt=""
-                    loading="lazy"
-                    draggable={false}
-                  />
-                  <span className="artwork-asset-copy">
-                    <strong>{candidate.label}</strong>
-                    <span>
-                      Source: {formatWebArtworkSourceKind(candidate.sourceKind)}
-                      {formatCandidateDimensions(candidate)}
-                    </span>
-                    <span>{candidate.reasons.slice(0, 3).join(', ')}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
+            <ImageCandidatePicker
+              buttonLabel={`Choose from ${webArtworkDiscovery.candidates.length} web artwork candidate${webArtworkDiscovery.candidates.length === 1 ? '' : 's'}`}
+              title="Web Artwork Candidates"
+              items={pickerItems}
+              disabled={webArtworkDiscovery.isApplying}
+              onSelect={(itemId) => {
+                const candidate = webArtworkDiscovery.candidates.find(
+                  (currentCandidate) => currentCandidate.id === itemId,
+                )
+
+                if (candidate) return handleUseWebArtworkCandidate(candidate)
+              }}
+            />
           ) : null}
         </div>
       </div>
@@ -255,6 +296,9 @@ function ImportedSteamArtworkSection({
   | 'isArtworkLoading'
   | 'handleUseSteamArtwork'
 >) {
+  const artwork = selectedSteamGame?.artwork ?? []
+  const pickerItems = createSteamArtworkPickerItems(artwork, selectedArtworkId)
+
   return (
     <details className="metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Imported Steam artwork</summary>
@@ -265,32 +309,17 @@ function ImportedSteamArtworkSection({
               Choose one of the imported Steam assets as the disc background.
             </p>
 
-            <div className="search-results">
-              {selectedSteamGame.artwork.map((asset) => (
-                <button
-                  className="search-result-button artwork-asset-button"
-                  key={asset.id}
-                  type="button"
-                  disabled={isArtworkLoading}
-                  onClick={() => handleUseSteamArtwork(asset)}
-                >
-                  <img
-                    className="artwork-asset-thumbnail"
-                    src={asset.url}
-                    alt=""
-                    loading="lazy"
-                    draggable={false}
-                  />
-                  <span className="artwork-asset-copy">
-                    <strong>{asset.label}</strong>
-                    <span>
-                      Source: Steam online · Type: {formatArtworkKind(asset.kind)}
-                      {selectedArtworkId === asset.id ? ' · selected' : ''}
-                    </span>
-                  </span>
-                </button>
-              ))}
-            </div>
+            <ImageCandidatePicker
+              buttonLabel={`Choose from ${artwork.length} Steam artwork asset${artwork.length === 1 ? '' : 's'}`}
+              title="Imported Steam Artwork"
+              items={pickerItems}
+              disabled={isArtworkLoading}
+              onSelect={(itemId) => {
+                const asset = artwork.find((currentAsset) => currentAsset.id === itemId)
+
+                if (asset) return handleUseSteamArtwork(asset)
+              }}
+            />
           </div>
         ) : (
           <p className="hint">
@@ -324,6 +353,12 @@ function LocalSteamScreenshotSection({
   | 'handleOpenLocalSteamScreenshotFolder'
   | 'handleUseLocalSteamScreenshot'
 >) {
+  const pickerItems = createLocalSteamScreenshotPickerItems(
+    localSteamScreenshots,
+    localSteamScreenshotThumbnails,
+    selectedArtworkId,
+  )
+
   return (
     <details className="metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">Local Steam screenshots</summary>
@@ -367,43 +402,18 @@ function LocalSteamScreenshotSection({
                   Open screenshot folder
                 </button>
 
-                <div className="search-results local-steam-screenshot-results">
-                  {localSteamScreenshots.map((asset) => {
-                    const modifiedDate = formatModifiedDate(
-                      asset.modifiedUnixSeconds,
+                <ImageCandidatePicker
+                  buttonLabel={`Choose from ${localSteamScreenshots.length} local screenshot${localSteamScreenshots.length === 1 ? '' : 's'}`}
+                  title="Local Steam Screenshots"
+                  items={pickerItems}
+                  onSelect={(itemId) => {
+                    const asset = localSteamScreenshots.find(
+                      (currentAsset) => currentAsset.id === itemId,
                     )
 
-                    return (
-                      <button
-                        className="search-result-button artwork-asset-button"
-                        key={asset.id}
-                        type="button"
-                        onClick={() => void handleUseLocalSteamScreenshot(asset)}
-                      >
-                        {localSteamScreenshotThumbnails[asset.id] ? (
-                          <img
-                            className="artwork-asset-thumbnail"
-                            src={localSteamScreenshotThumbnails[asset.id]}
-                            alt=""
-                            draggable={false}
-                          />
-                        ) : (
-                          <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
-                            Local
-                          </span>
-                        )}
-                        <span className="artwork-asset-copy">
-                          <strong>{asset.label}</strong>
-                          <span>
-                            Source: Local Steam screenshots · Type: Local screenshot
-                            {modifiedDate ? ` · Modified: ${modifiedDate}` : ''}
-                            {selectedArtworkId === asset.id ? ' · selected' : ''}
-                          </span>
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
+                    if (asset) return handleUseLocalSteamScreenshot(asset)
+                  }}
+                />
               </>
             )}
           </>
@@ -418,9 +428,12 @@ function LocalArtworkSection({
 }: Pick<ArtworkPanelProps, 'handleBackgroundUpload'>) {
   return (
     <details className="metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">Local artwork</summary>
+      <summary className="panel-summary">Local file</summary>
       <div className="panel-content">
         <div className="artwork-import-section">
+          <p className="hint">
+            Choose an image from this computer when Steam, web, or screenshot sources do not have the artwork you want. Local files become the current disc background.
+          </p>
           <input
             id="background-upload"
             type="file"
@@ -649,7 +662,7 @@ function GameLogoArtworkControls({
           )}
 
           <p className="hint">
-            Rendered Game title text stays independently available in the Text tab.
+            This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the Steam CDN logo when available; rendered title text stays independently available in the Text tab as the fallback.
           </p>
 
           <div
@@ -762,7 +775,10 @@ function AdditionalArtworkElementControls({
   handleUseSteamArtworkAsAdditionalArtwork,
   handleUseLocalSteamScreenshotAsAdditionalArtwork,
   handleAdditionalArtworkLayoutChange,
+  handleAdditionalArtworkLabelChange,
+  handleAdditionalArtworkFrameChange,
   handleResetAdditionalArtworkElementLayout,
+  handleResetAdditionalArtworkElementFrame,
   handleClearAdditionalArtworkElementImage,
   handleRemoveAdditionalArtworkElement,
   handleAddAdditionalArtworkElement,
@@ -778,7 +794,10 @@ function AdditionalArtworkElementControls({
   | 'handleUseSteamArtworkAsAdditionalArtwork'
   | 'handleUseLocalSteamScreenshotAsAdditionalArtwork'
   | 'handleAdditionalArtworkLayoutChange'
+  | 'handleAdditionalArtworkLabelChange'
+  | 'handleAdditionalArtworkFrameChange'
   | 'handleResetAdditionalArtworkElementLayout'
+  | 'handleResetAdditionalArtworkElementFrame'
   | 'handleClearAdditionalArtworkElementImage'
   | 'handleRemoveAdditionalArtworkElement'
   | 'handleAddAdditionalArtworkElement'
@@ -799,39 +818,34 @@ function AdditionalArtworkElementControls({
   const uploadId = `additional-artwork-upload-${element.id}`
   const title = `Artwork ${elementIndex + 1}`
   const deleteLabel = `Delete ${title.toLowerCase()}`
+  const summary = [
+    element.layout.enabled ? 'shown' : 'hidden',
+    hasImage ? element.sourceLabel : 'no image',
+    element.frame.enabled ? `${element.frame.shape} frame` : 'no frame',
+  ].join(' · ')
+  const steamArtwork = selectedSteamGame?.artwork ?? []
+  const steamArtworkPickerItems = createSteamArtworkPickerItems(steamArtwork)
+  const localScreenshotPickerItems = createLocalSteamScreenshotPickerItems(
+    localSteamScreenshots,
+    localSteamScreenshotThumbnails,
+  )
 
   return (
-    <div className="additional-artwork-block">
-      <div className="additional-artwork-block-header">
-        <label className="field-label">
-          <input
-            type="checkbox"
-            checked={element.layout.enabled}
-            onChange={(event) =>
-              handleAdditionalArtworkLayoutChange(
-                element.id,
-                'enabled',
-                event.target.checked,
-              )}
-          />
-          Show {title.toLowerCase()}
-        </label>
-        <button
-          className="icon-button danger-icon-button"
-          type="button"
-          aria-label={deleteLabel}
-          title={deleteLabel}
-          onClick={() => handleRemoveAdditionalArtworkElement(element.id)}
-        >
-          <TrashIcon />
-        </button>
-      </div>
-
-      {!element.layout.enabled ? (
-        showAddButton ? (
-          <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
-        ) : null
-      ) : (
+    <>
+      <RepeatedVisualElementCard
+        title={title}
+        label={element.label}
+        labelInputId={`additional-artwork-label-${element.id}`}
+        enabled={element.layout.enabled}
+        enableLabel={`Show ${title.toLowerCase()}`}
+        summary={summary}
+        deleteLabel={deleteLabel}
+        onEnabledChange={(enabled) =>
+          handleAdditionalArtworkLayoutChange(element.id, 'enabled', enabled)}
+        onLabelChange={(nextLabel) =>
+          handleAdditionalArtworkLabelChange(element.id, nextLabel)}
+        onDelete={() => handleRemoveAdditionalArtworkElement(element.id)}
+      >
         <>
           <span className="field-label spacing-top">Image source</span>
           <label
@@ -853,32 +867,23 @@ function AdditionalArtworkElementControls({
             <details className="metadata-details collapsible-panel spacing-top">
               <summary className="panel-summary">Use imported Steam artwork</summary>
               <div className="panel-content">
-                <div className="search-results">
-                  {selectedSteamGame.artwork.map((asset) => (
-                    <button
-                      className="search-result-button artwork-asset-button"
-                      key={`${element.id}-${asset.id}`}
-                      type="button"
-                      onClick={() =>
-                        void handleUseSteamArtworkAsAdditionalArtwork(
-                          element.id,
-                          asset,
-                        )}
-                    >
-                      <img
-                        className="artwork-asset-thumbnail"
-                        src={asset.url}
-                        alt=""
-                        loading="lazy"
-                        draggable={false}
-                      />
-                      <span className="artwork-asset-copy">
-                        <strong>{asset.label}</strong>
-                        <span>Type: {formatArtworkKind(asset.kind)}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <ImageCandidatePicker
+                  buttonLabel={`Choose from ${steamArtwork.length} Steam artwork asset${steamArtwork.length === 1 ? '' : 's'}`}
+                  title={`${title} Steam Artwork`}
+                  items={steamArtworkPickerItems}
+                  onSelect={(itemId) => {
+                    const asset = steamArtwork.find(
+                      (currentAsset) => currentAsset.id === itemId,
+                    )
+
+                    if (asset) {
+                      return handleUseSteamArtworkAsAdditionalArtwork(
+                        element.id,
+                        asset,
+                      )
+                    }
+                  }}
+                />
               </div>
             </details>
           ) : null}
@@ -887,37 +892,23 @@ function AdditionalArtworkElementControls({
             <details className="metadata-details collapsible-panel spacing-top">
               <summary className="panel-summary">Use local Steam screenshot</summary>
               <div className="panel-content">
-                <div className="search-results local-steam-screenshot-results">
-                  {localSteamScreenshots.map((asset) => (
-                    <button
-                      className="search-result-button artwork-asset-button"
-                      key={`${element.id}-${asset.id}`}
-                      type="button"
-                      onClick={() =>
-                        void handleUseLocalSteamScreenshotAsAdditionalArtwork(
-                          element.id,
-                          asset,
-                        )}
-                    >
-                      {localSteamScreenshotThumbnails[asset.id] ? (
-                        <img
-                          className="artwork-asset-thumbnail"
-                          src={localSteamScreenshotThumbnails[asset.id]}
-                          alt=""
-                          draggable={false}
-                        />
-                      ) : (
-                        <span className="artwork-asset-thumbnail artwork-asset-thumbnail-placeholder">
-                          Local
-                        </span>
-                      )}
-                      <span className="artwork-asset-copy">
-                        <strong>{asset.label}</strong>
-                        <span>Source: Local Steam screenshots</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <ImageCandidatePicker
+                  buttonLabel={`Choose from ${localSteamScreenshots.length} local screenshot${localSteamScreenshots.length === 1 ? '' : 's'}`}
+                  title={`${title} Local Steam Screenshots`}
+                  items={localScreenshotPickerItems}
+                  onSelect={(itemId) => {
+                    const asset = localSteamScreenshots.find(
+                      (currentAsset) => currentAsset.id === itemId,
+                    )
+
+                    if (asset) {
+                      return handleUseLocalSteamScreenshotAsAdditionalArtwork(
+                        element.id,
+                        asset,
+                      )
+                    }
+                  }}
+                />
               </div>
             </details>
           ) : null}
@@ -940,6 +931,87 @@ function AdditionalArtworkElementControls({
               No image is selected yet. Upload a local image or use an imported Steam artwork source.
             </p>
           )}
+
+          <div className="additional-artwork-frame-controls">
+            <label className="field-label">
+              <input
+                type="checkbox"
+                checked={element.frame.enabled}
+                onChange={(event) =>
+                  handleAdditionalArtworkFrameChange(
+                    element.id,
+                    'enabled',
+                    event.target.checked,
+                  )}
+              />
+              Show border/frame
+            </label>
+
+            {element.frame.enabled ? (
+              <div className="disc-text-layout-grid">
+                <label>
+                  <span>Shape</span>
+                  <select
+                    value={element.frame.shape}
+                    onChange={(event) =>
+                      handleAdditionalArtworkFrameChange(
+                        element.id,
+                        'shape',
+                        event.target.value,
+                      )}
+                  >
+                    <option value="rectangle">Rectangle</option>
+                    <option value="circle">Circle / oval</option>
+                  </select>
+                </label>
+
+                <label>
+                  <span>Color</span>
+                  <input
+                    type="color"
+                    value={element.frame.color}
+                    onChange={(event) =>
+                      handleAdditionalArtworkFrameChange(
+                        element.id,
+                        'color',
+                        event.target.value,
+                      )}
+                  />
+                </label>
+
+                <label>
+                  <span>Width</span>
+                  <input
+                    type="range"
+                    min={ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN}
+                    max={ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX}
+                    step="0.25"
+                    value={element.frame.width}
+                    onInput={(event) =>
+                      handleAdditionalArtworkFrameChange(
+                        element.id,
+                        'width',
+                        getNumericInputValue(event),
+                      )}
+                    onChange={(event) =>
+                      handleAdditionalArtworkFrameChange(
+                        element.id,
+                        'width',
+                        getNumericInputValue(event),
+                      )}
+                  />
+                </label>
+
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() => handleResetAdditionalArtworkElementFrame(element.id)}
+                >
+                  Reset frame
+                </button>
+              </div>
+            ) : null}
+          </div>
 
           <div
             className="disc-text-layout-grid"
@@ -1038,8 +1110,11 @@ function AdditionalArtworkElementControls({
             </button>
           ) : null}
         </>
-      )}
-    </div>
+      </RepeatedVisualElementCard>
+      {showAddButton && !element.layout.enabled ? (
+        <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+      ) : null}
+    </>
   )
 }
 

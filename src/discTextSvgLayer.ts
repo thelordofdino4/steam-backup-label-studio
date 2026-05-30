@@ -13,6 +13,7 @@ import {
   type DiscTextValues,
   type SteamLogoPlacement,
 } from './discText.ts'
+import type { DiscTextAvoidanceRegion } from './discTextAvoidance.ts'
 import { layoutCurvedText } from './discText/curvedTextLayout.ts'
 import {
   getDiscTextFontString,
@@ -35,6 +36,7 @@ export type DiscTextSvgLayerParams = {
   placement: SteamLogoPlacement
   safeZoneRadiusPercent: number
   measureText: TextMeasureFunction
+  avoidanceRegions?: DiscTextAvoidanceRegion[]
   width: number | string
   height: number | string
   idPrefix?: string
@@ -406,13 +408,18 @@ function buildStraightTextMarkup(
   measureText: TextMeasureFunction,
   shadowFilterId: string,
   styles?: DiscTextStyleInput,
+  avoidanceRegions?: DiscTextAvoidanceRegion[],
 ) {
+  const textAvoidanceRegions = avoidanceRegions?.filter(
+    (region) => region.sourceDiscTextKey !== key,
+  )
   const straightTextLayout = getStraightDiscTextRenderLayout(
     key,
     text,
     layout,
     measureText,
     styles,
+    { avoidanceRegions: textAvoidanceRegions },
   )
   const textStyle = buildTextStyleAttribute(
     straightTextLayout.style,
@@ -484,6 +491,7 @@ export function buildDiscTextSvgLayer({
   placement,
   safeZoneRadiusPercent,
   measureText,
+  avoidanceRegions = [],
   width,
   height,
   idPrefix = 'disc-text-layer',
@@ -514,7 +522,15 @@ export function buildDiscTextSvgLayer({
       return curvedMarkup.body
     }
 
-    return buildStraightTextMarkup(key, text, layout, measureText, shadowFilterId, styles)
+    return buildStraightTextMarkup(
+      key,
+      text,
+      layout,
+      measureText,
+      shadowFilterId,
+      styles,
+      avoidanceRegions,
+    )
   }).join('')
 
   return `

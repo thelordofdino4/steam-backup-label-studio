@@ -2,7 +2,7 @@ import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLog
 import type { DiscTextStyleSettings } from '../discTextStyles'
 import { mmToPixels } from '../discGeometry'
 import type { ExportGuideSelection } from '../exportGuides'
-import type { ProjectAdditionalArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
 import { canvasToPngBytes, loadImage } from './canvasImage'
@@ -15,6 +15,8 @@ import { drawMediaMark, drawPlatformMarks } from './drawMediaMark'
 import { drawTechnicalMarks } from './drawTechnicalMarks'
 import { drawTitleArtwork } from './drawTitleArtwork'
 import { drawAdditionalArtwork } from './drawAdditionalArtwork'
+import { createDiscTextOccupiedRegions } from '../layout/discTextOccupiedRegions'
+import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
@@ -44,6 +46,7 @@ export async function exportDiscLabelPngBytes(params: {
   steamBannerLockupLayout: SteamBannerLockupLayout
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectAdditionalArtwork: ProjectAdditionalArtwork
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
@@ -72,6 +75,23 @@ export async function exportDiscLabelPngBytes(params: {
     params.projectMetadata,
     params.discTextValueSources,
   )
+  const discTextOccupiedRegions = createDiscTextOccupiedRegions({
+    projectTitleArtwork: params.projectTitleArtwork,
+    projectLogoAssets: params.projectLogoAssets,
+    projectAdditionalArtwork: params.projectAdditionalArtwork,
+    projectMetadata: params.projectMetadata,
+    projectRatingBadge: params.projectRatingBadge,
+    projectMediaMark: params.projectMediaMark,
+    projectPlatformMarks: params.projectPlatformMarks,
+    projectTechnicalMarks: params.projectTechnicalMarks,
+    projectDiscNumberArtwork: params.projectDiscNumberArtwork,
+    discTextSettings: params.discTextSettings,
+    discTextValues: metadataBoundDiscTextValues,
+    discTextLayout: params.discTextLayout,
+    discTextStyles: params.discTextStyles,
+    discTextTitle: params.manualGameTitle,
+    measureText: measureDiscTextWithBrowserCanvas,
+  })
 
   const discOrigin = exportOutlineWidth
   const center = exportSize / 2
@@ -157,10 +177,12 @@ export async function exportDiscLabelPngBytes(params: {
         params.discTextSettings,
         metadataBoundDiscTextValues,
         params.discTextStyles,
+        params.projectDiscNumberArtwork,
         params.discTextLayout,
         params.manualGameTitle,
         params.steamLogoPlacement,
         safeZoneRadius,
+        discTextOccupiedRegions,
       ),
   }
 

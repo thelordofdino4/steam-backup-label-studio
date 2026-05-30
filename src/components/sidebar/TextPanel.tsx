@@ -21,12 +21,18 @@ import {
 import {
   DISC_TEXT_CONTRAST_OPTIONS,
   DISC_TEXT_FONT_OPTIONS,
+  DISC_TEXT_STYLE_PRESETS,
   type DiscTextContrastMode,
   type DiscTextFontFamily,
   type DiscTextStyleField,
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
 } from '../../discTextStyles'
+import {
+  DISC_NUMBER_BADGE_SET_OPTIONS,
+  type DiscNumberArtworkMode,
+  type DiscNumberBadgeSet,
+} from '../../discNumberArtwork'
 import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
 import {
@@ -36,11 +42,13 @@ import {
   type MetadataBoundDiscTextKey,
 } from '../../project/metadataDiscText'
 import type { DiscTemplate } from '../../types/template'
+import type { ProjectDiscNumberArtwork } from '../../project/projectTypes'
 
 export type TextPanelProps = {
   discTextSettings: DiscTextSettings
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
+  projectDiscNumberArtwork: ProjectDiscNumberArtwork
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   metadataBoundDiscTextValues: DiscTextValues
@@ -58,12 +66,19 @@ export type TextPanelProps = {
   handleDiscTextAlignmentChange: (key: DiscTextKey, align: DiscTextAlignment) => void
   handleDiscTextModeChange: (key: DiscTextKey, mode: DiscTextMode) => void
   handleDiscTextArcSideChange: (key: DiscTextKey, arcSide: DiscTextArcSide) => void
+  handleDiscTextVisualAvoidanceChange: (
+    key: DiscTextKey,
+    avoidVisualElements: boolean,
+  ) => void
   handleResetDiscTextLayout: (key: DiscTextKey) => void
   handleDiscTextStyleChange: (
     key: DiscTextKey,
     field: DiscTextStyleField,
     value: DiscTextStyleValue,
   ) => void
+  handleApplyDiscTextStylePreset: (key: DiscTextKey, presetId: string) => void
+  handleDiscNumberArtworkModeChange: (mode: DiscNumberArtworkMode) => void
+  handleDiscNumberArtworkBadgeSetChange: (badgeSet: DiscNumberBadgeSet) => void
   handleResetDiscTextStyle: (key: DiscTextKey) => void
   steamLogoPlacement: SteamLogoPlacement
 }
@@ -72,6 +87,7 @@ export function TextPanel({
   discTextSettings,
   discTextLayout,
   discTextStyles,
+  projectDiscNumberArtwork,
   discTextValues,
   discTextValueSources,
   metadataBoundDiscTextValues,
@@ -85,8 +101,12 @@ export function TextPanel({
   handleDiscTextAlignmentChange,
   handleDiscTextModeChange,
   handleDiscTextArcSideChange,
+  handleDiscTextVisualAvoidanceChange,
   handleResetDiscTextLayout,
   handleDiscTextStyleChange,
+  handleApplyDiscTextStylePreset,
+  handleDiscNumberArtworkModeChange,
+  handleDiscNumberArtworkBadgeSetChange,
   handleResetDiscTextStyle,
   steamLogoPlacement,
 }: TextPanelProps) {
@@ -187,7 +207,67 @@ export function TextPanel({
                       </div>
                     )}
 
+                    {key === 'discNumber' && (
+                      <div className="disc-number-artwork-controls">
+                        <label className="field-label" htmlFor="disc-number-artwork-mode">
+                          Display
+                        </label>
+                        <select
+                          id="disc-number-artwork-mode"
+                          value={projectDiscNumberArtwork.mode}
+                          onChange={(event) =>
+                            handleDiscNumberArtworkModeChange(
+                              event.target.value as DiscNumberArtworkMode,
+                            )}
+                        >
+                          <option value="text">Plain text</option>
+                          <option value="badge">Graphic badge</option>
+                        </select>
+
+                        {projectDiscNumberArtwork.mode === 'badge' ? (
+                          <>
+                            <label className="field-label spacing-top" htmlFor="disc-number-badge-set">
+                              Badge set
+                            </label>
+                            <select
+                              id="disc-number-badge-set"
+                              value={projectDiscNumberArtwork.badgeSet}
+                              onChange={(event) =>
+                                handleDiscNumberArtworkBadgeSetChange(
+                                  event.target.value as DiscNumberBadgeSet,
+                                )}
+                            >
+                              {DISC_NUMBER_BADGE_SET_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
+                              ))}
+                            </select>
+                            <p className="hint">
+                              Uses the current disc number value and placement with a bundled generic badge.
+                            </p>
+                          </>
+                        ) : null}
+                      </div>
+                    )}
+
                     <div className="disc-text-style-grid" aria-label={`${getDiscTextLabel(key)} style controls`}>
+                      <label>
+                        <span>Style preset</span>
+                        <select
+                          defaultValue=""
+                          onChange={(event) => {
+                            if (event.target.value) {
+                              handleApplyDiscTextStylePreset(key, event.target.value)
+                            }
+                            event.currentTarget.value = ''
+                          }}
+                        >
+                          <option value="">Choose preset...</option>
+                          {DISC_TEXT_STYLE_PRESETS.map((preset) => (
+                            <option key={preset.id} value={preset.id}>{preset.label}</option>
+                          ))}
+                        </select>
+                      </label>
+
                       <label>
                         <span>Font</span>
                         <select
@@ -418,6 +498,22 @@ export function TextPanel({
                         </label>
                       )}
                     </div>
+
+                    {!isCurvedCopyright && (
+                      <label className="checkbox-row spacing-top">
+                        <input
+                          type="checkbox"
+                          checked={layout.avoidVisualElements}
+                          onChange={(event) =>
+                            handleDiscTextVisualAvoidanceChange(
+                              key,
+                              event.target.checked,
+                            )
+                          }
+                        />
+                        <span>Respect visual elements</span>
+                      </label>
+                    )}
 
                     {presets.length > 0 && (
                       <label className="field-label spacing-top" htmlFor={`disc-text-preset-${key}`}>

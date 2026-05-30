@@ -63,7 +63,7 @@ test('missing background is advisory and still lets the user continue export', (
   assert.match(summary.message, /Continue with export\?/)
 })
 
-test('preflight warns about enabled visual elements that will be missing or placeholder-backed', () => {
+test('preflight warns about enabled visual elements that will be missing or generic-asset-backed', () => {
   const params = createDefaultPreflightParams()
   const projectMediaMark = updateMediaMarkSource(
     updateMediaMarkLayoutField(params.projectMediaMark, 'enabled', true),
@@ -97,6 +97,7 @@ test('preflight warns about enabled visual elements that will be missing or plac
       additionalDeveloperLogos: [
         {
           id: 'developer-extra',
+          label: 'Licensor logo',
           imageDataUrl: null,
           imageSize: null,
           layout: {
@@ -125,21 +126,21 @@ test('preflight warns about enabled visual elements that will be missing or plac
     'Title/logo artwork is enabled, but no Steam or custom title artwork image is selected; it will not render in the exported PNG.',
   ))
   assert.ok(summary.warnings.includes(
-    'Developer logo is enabled, but no image is uploaded; the bundled placeholder will export.',
+    'Developer logo is enabled, but no image is uploaded; the bundled generic logo will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Additional developer 1 logo is enabled, but no image is uploaded; the bundled placeholder will export.',
+    'Licensor logo is enabled, but no image is uploaded; the bundled generic logo will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom rating badge is selected, but no custom image is uploaded; bundled placeholder artwork will export when rating metadata is renderable.',
+    'Custom rating badge is selected, but no custom image is uploaded; bundled generic artwork will export when rating metadata is renderable.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom Data Disc media mark is selected, but no custom image is uploaded; the bundled placeholder will export.',
+    'Custom Data Disc media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom PC platform mark is selected, but no custom image is uploaded; the bundled placeholder will export.',
+    'Custom PC operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom Audio technical mark is selected, but no custom image is uploaded; the bundled placeholder will export.',
+    'Custom Audio technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
   ))
 })

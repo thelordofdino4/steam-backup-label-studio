@@ -81,7 +81,7 @@ export function PlatformMarksLayer({
       <div
         key={model.value}
         className="disc-media-mark-layer disc-platform-mark-layer"
-        aria-label={`${model.label} platform mark layer`}
+        aria-label={`${model.label} operating system mark layer`}
         style={{
           left: `${model.layout.x}%`,
           top: `${model.layout.y}%`,

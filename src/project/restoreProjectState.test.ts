@@ -55,11 +55,45 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.projectAdditionalArtwork.enabled, false)
   assert.deepEqual(restored.projectAdditionalArtwork.elements, [])
   assert.deepEqual(restored.projectTechnicalMarks.values, [])
+  assert.equal(restored.projectDiscNumberArtwork.mode, 'text')
   assert.equal(restored.template.selectedDiscTemplateId, 'standardPrintableDisc')
   assert.equal(restored.template.customDiscTemplate, undefined)
   assert.deepEqual(restored.backgroundOffset, { x: 8, y: -4 })
   assert.equal(restored.backgroundScale, 1.35)
   assert.equal(restored.isBackgroundArtworkEnabled, true)
+})
+
+test('restores saved disc number artwork badge settings', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    discNumberArtwork: {
+      mode: 'badge',
+      badgeSet: 'starterRing',
+    },
+  })
+
+  assert.equal(restored.projectDiscNumberArtwork.mode, 'badge')
+  assert.equal(restored.projectDiscNumberArtwork.badgeSet, 'starterRing')
+})
+
+test('restores saved disc text visual avoidance and backfills legacy layouts', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    discText: {
+      layout: {
+        title: {
+          avoidVisualElements: true,
+        },
+        subtitle: {
+          y: 25,
+        },
+      },
+    },
+  })
+
+  assert.equal(restored.discTextLayout.title.avoidVisualElements, true)
+  assert.equal(restored.discTextLayout.subtitle.avoidVisualElements, false)
+  assert.equal(restored.discTextLayout.subtitle.y, 25)
 })
 
 test('restores custom template, clamps foreground layouts, and backfills old background image size', async () => {
@@ -141,6 +175,7 @@ test('restores additional developer and publisher logos from saved project data'
       additionalDeveloperLogos: [
         {
           id: 'developer-extra',
+          label: 'Studio logo',
           imageDataUrl: 'data:image/png;base64,developer-extra',
           imageSize: { width: 400, height: 120 },
           layout: {
@@ -178,11 +213,13 @@ test('restores additional developer and publisher logos from saved project data'
   const additionalPublisherLogo = restored.projectLogoAssets.additionalPublisherLogos[0]!
 
   assert.equal(additionalDeveloperLogo.id, 'developer-extra')
+  assert.equal(additionalDeveloperLogo.label, 'Studio logo')
   assert.equal(additionalDeveloperLogo.imageDataUrl, 'data:image/png;base64,developer-extra')
   assert.equal(additionalDeveloperLogo.layout.enabled, true)
   assert.equal(additionalDeveloperLogo.layout.x < 99, true)
   assert.equal(additionalDeveloperLogo.layout.y < 99, true)
   assert.equal(additionalPublisherLogo.id, 'publisher-extra')
+  assert.equal(additionalPublisherLogo.label, 'Additional publisher 1')
   assert.equal(additionalPublisherLogo.layout.enabled, false)
   assert.equal(additionalPublisherLogo.layout.scale, 1.2)
 })
@@ -195,6 +232,7 @@ test('restores additional artwork from saved project data and clamps layout', as
       elements: [
         {
           id: 'character-art',
+          label: 'Character render',
           source: 'local-steam-screenshot',
           sourceId: 'screenshot-1',
           sourceLabel: 'Screenshot 1',
@@ -229,13 +267,16 @@ test('restores additional artwork from saved project data and clamps layout', as
 
   assert.equal(restored.projectAdditionalArtwork.enabled, true)
   assert.equal(characterArt.id, 'character-art')
+  assert.equal(characterArt.label, 'Character render')
   assert.equal(characterArt.source, 'local-steam-screenshot')
   assert.equal(characterArt.imageDataUrl, 'data:image/png;base64,character')
   assert.equal(characterArt.layout.enabled, true)
   assert.equal(characterArt.layout.scale, 1.4)
   assert.equal(characterArt.layout.x < 99, true)
   assert.equal(characterArt.layout.y < 99, true)
+  assert.equal(characterArt.frame.enabled, false)
   assert.equal(hiddenArt.layout.enabled, false)
+  assert.equal(hiddenArt.label, 'Artwork 2')
   assert.equal(hiddenArt.imageDataUrl, 'data:image/png;base64,hidden')
 })
 
@@ -246,6 +287,7 @@ test('restores technical marks from saved project data and clamps layout', async
       values: ['audio'],
       assets: {
         audio: {
+          label: 'Dolby-style audio',
           source: 'custom',
           customImageDataUrl: 'data:image/png;base64,audio',
           customImageSize: { width: 512, height: 128 },
@@ -263,6 +305,7 @@ test('restores technical marks from saved project data and clamps layout', async
 
   assert.deepEqual(restored.projectTechnicalMarks.values, ['audio'])
   assert.equal(audioMark.source, 'custom')
+  assert.equal(audioMark.label, 'Dolby-style audio')
   assert.equal(audioMark.customImageDataUrl, 'data:image/png;base64,audio')
   assert.equal(audioMark.layout.enabled, true)
   assert.equal(audioMark.layout.x < 99, true)

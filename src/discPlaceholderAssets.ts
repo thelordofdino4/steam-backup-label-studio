@@ -30,6 +30,10 @@ const mediaMarkCdRomPlaceholderUrl = new URL(
   './assets/placeholders/media-mark-cd-rom-placeholder.svg',
   import.meta.url,
 ).href
+const mediaMarkBluRayPlaceholderUrl = new URL(
+  './assets/placeholders/media-mark-blu-ray-placeholder.svg',
+  import.meta.url,
+).href
 const mediaMarkDataDiscPlaceholderUrl = new URL(
   './assets/placeholders/media-mark-data-disc-placeholder.svg',
   import.meta.url,
@@ -101,6 +105,7 @@ const RATING_BADGE_PLACEHOLDER_IMAGE_URLS: Record<RatingBadgePlaceholderKind, st
 }
 
 const MEDIA_MARK_PLACEHOLDER_IMAGE_URLS: Record<MediaMarkValue, string> = {
+  bluRay: mediaMarkBluRayPlaceholderUrl,
   cdRom: mediaMarkCdRomPlaceholderUrl,
   dataDisc: mediaMarkDataDiscPlaceholderUrl,
   dvd: mediaMarkDvdPlaceholderUrl,

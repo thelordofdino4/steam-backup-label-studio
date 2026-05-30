@@ -44,7 +44,8 @@ export function createTechnicalMarkRenderModels(
       return []
     }
 
-    const label = getTechnicalMarkLabel(value)
+    const defaultLabel = getTechnicalMarkLabel(value)
+    const label = asset.label.trim() ? asset.label : defaultLabel
     const customImageDataUrl = asset.customImageDataUrl
     const isCustomImage = hasCustomImage(asset.source, customImageDataUrl)
     const getBounds = (scale: number) =>
@@ -60,7 +61,7 @@ export function createTechnicalMarkRenderModels(
         : getTechnicalMarkPlaceholderImageUrl(value),
       isPlaceholderImage: !isCustomImage,
       label,
-      alt: isCustomImage ? label : `${label} technical mark placeholder`,
+      alt: isCustomImage ? label : `${label} generic technical mark`,
       layout: asset.layout,
       unscaledBounds: getBounds(1),
       scaledBounds: getBounds(asset.layout.scale),

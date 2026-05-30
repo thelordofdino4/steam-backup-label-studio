@@ -51,6 +51,12 @@ export type DiscTextContrastOption = {
   label: string
 }
 
+export type DiscTextStylePreset = {
+  id: string
+  label: string
+  style: Partial<DiscTextStyle>
+}
+
 export const DISC_TEXT_RENDER_STYLES: Record<DiscTextKey, DiscTextRenderStyle> = {
   title: { fontSizePercent: 3.6, fontWeight: 900, color: '#f9fafb', maxLines: 2 },
   subtitle: { fontSizePercent: 2.2, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
@@ -108,6 +114,66 @@ export const DISC_TEXT_CONTRAST_OPTIONS: readonly DiscTextContrastOption[] = [
   { value: 'shadow', label: 'Shadow' },
   { value: 'stroke', label: 'Stroke' },
   { value: 'none', label: 'None' },
+]
+
+export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
+  {
+    id: 'metallic',
+    label: 'Metallic',
+    style: {
+      fontFamily: 'trebuchet',
+      color: '#e5e7eb',
+      contrast: 'strokeShadow',
+      backgroundEnabled: false,
+      borderEnabled: false,
+    },
+  },
+  {
+    id: 'futuristic',
+    label: 'Futuristic',
+    style: {
+      fontFamily: 'system',
+      color: '#7dd3fc',
+      contrast: 'shadow',
+      backgroundEnabled: true,
+      backgroundColor: '#082f49',
+      backgroundOpacity: 0.55,
+      backgroundPadding: 0.9,
+      borderEnabled: true,
+      borderColor: '#38bdf8',
+      borderRadius: 0.8,
+    },
+  },
+  {
+    id: 'horror',
+    label: 'Horror',
+    style: {
+      fontFamily: 'georgia',
+      color: '#fca5a5',
+      contrast: 'strokeShadow',
+      backgroundEnabled: true,
+      backgroundColor: '#1f0507',
+      backgroundOpacity: 0.72,
+      backgroundPadding: 1,
+      borderEnabled: true,
+      borderColor: '#991b1b',
+      borderRadius: 0.3,
+    },
+  },
+  {
+    id: 'gritty',
+    label: 'Gritty',
+    style: {
+      fontFamily: 'courier',
+      color: '#facc15',
+      contrast: 'stroke',
+      backgroundEnabled: true,
+      backgroundColor: '#292524',
+      backgroundOpacity: 0.62,
+      backgroundPadding: 0.75,
+      borderEnabled: false,
+    },
+  },
 ]
 
 const DISC_TEXT_FONT_FAMILY_VALUES = new Set<DiscTextFontFamily>(
@@ -254,6 +320,26 @@ export function resetDiscTextStyle(
   return {
     ...styles,
     [key]: createDefaultDiscTextStyle(key),
+  }
+}
+
+export function applyDiscTextStylePreset(
+  styles: DiscTextStyleSettings,
+  key: DiscTextKey,
+  presetId: string,
+): DiscTextStyleSettings {
+  const preset = DISC_TEXT_STYLE_PRESETS.find((candidate) => candidate.id === presetId)
+
+  if (!preset) {
+    return styles
+  }
+
+  return {
+    ...styles,
+    [key]: normalizeDiscTextStyle(key, {
+      ...styles[key],
+      ...preset.style,
+    }),
   }
 }
 

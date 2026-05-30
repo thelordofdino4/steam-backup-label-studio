@@ -163,8 +163,12 @@ function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
 
   for (const logoAsset of createLogoAssetRenderItems(logoAssets)) {
     if (!logoAsset.imageDataUrl) {
+      const logoLabel = /\blogo\b/i.test(logoAsset.label)
+        ? logoAsset.label
+        : `${logoAsset.label} logo`
+
       warnings.push(
-        `${logoAsset.label} logo is enabled, but no image is uploaded; the bundled placeholder will export.`,
+        `${logoLabel} is enabled, but no image is uploaded; the bundled generic logo will export.`,
       )
     }
   }
@@ -199,7 +203,7 @@ function getRatingBadgeWarnings(
   }
 
   if (ratingBadge.source === 'custom' && !ratingBadge.customImageDataUrl) {
-    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled placeholder artwork will export when rating metadata is renderable.')
+    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled generic artwork will export when rating metadata is renderable.')
   }
 
   if (
@@ -207,7 +211,7 @@ function getRatingBadgeWarnings(
     metadata.ratingSystem !== 'none' &&
     metadata.ratingValue.trim()
   ) {
-    warnings.push('Rating badge uses bundled placeholder artwork.')
+    warnings.push('Rating badge uses bundled generic artwork.')
   }
 
   return warnings
@@ -222,12 +226,12 @@ function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
 
   if (mediaMark.source === 'custom' && !mediaMark.customImageDataUrl) {
     return [
-      `Custom ${model.label} media mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+      `Custom ${model.label} media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
     ]
   }
 
   if (model.isPlaceholderImage) {
-    return [`${model.label} media mark uses bundled placeholder artwork.`]
+    return [`${model.label} media mark uses bundled generic artwork.`]
   }
 
   return []
@@ -237,12 +241,12 @@ function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
   return createPlatformMarkRenderModels(platformMarks).flatMap((model) => {
     if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
       return [
-        `Custom ${model.label} platform mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+        `Custom ${model.label} operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
       ]
     }
 
     if (model.isPlaceholderImage) {
-      return [`${model.label} platform mark uses bundled placeholder artwork.`]
+      return [`${model.label} operating system mark uses bundled generic artwork.`]
     }
 
     return []
@@ -253,12 +257,12 @@ function getTechnicalMarkWarnings(technicalMarks: ProjectTechnicalMarks) {
   return createTechnicalMarkRenderModels(technicalMarks).flatMap((model) => {
     if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
       return [
-        `Custom ${model.label} technical mark is selected, but no custom image is uploaded; the bundled placeholder will export.`,
+        `Custom ${model.label} technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
       ]
     }
 
     if (model.isPlaceholderImage) {
-      return [`${model.label} technical mark uses bundled placeholder artwork.`]
+      return [`${model.label} technical mark uses bundled generic artwork.`]
     }
 
     return []

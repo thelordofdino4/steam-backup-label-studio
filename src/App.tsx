@@ -76,7 +76,7 @@ import {
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
-import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
+import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateAdditionalLogoAssetLabel, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
@@ -86,6 +86,13 @@ import {
   applyImportedRatingBadge,
 } from './project/projectVisualAssetImport'
 import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import {
+  createDefaultProjectDiscNumberArtwork,
+  updateDiscNumberArtworkBadgeSet,
+  updateDiscNumberArtworkMode,
+  type DiscNumberArtworkMode,
+  type DiscNumberBadgeSet,
+} from './discNumberArtwork'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import {
   getAutoApplyLegalTextCandidate,
@@ -136,6 +143,7 @@ import {
   updateDiscTextArcSide,
   updateDiscTextLayoutForSteamLogoPlacement,
   updateDiscTextLayoutField,
+  updateDiscTextVisualAvoidance,
   updateDiscTextMode,
   updateDiscTextSetting,
   type DiscTextAlignment,
@@ -150,6 +158,7 @@ import {
 } from './discText'
 import {
   createDefaultDiscTextStyles,
+  applyDiscTextStylePreset,
   resetDiscTextStyle,
   updateDiscTextStyleField,
   type DiscTextStyleField,
@@ -244,6 +253,9 @@ function App() {
   const [discTextStyles, setDiscTextStyles] = useState<DiscTextStyleSettings>(() =>
     createDefaultDiscTextStyles(),
   )
+  const [projectDiscNumberArtwork, setProjectDiscNumberArtwork] = useState(() =>
+    createDefaultProjectDiscNumberArtwork(),
+  )
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
@@ -260,6 +272,7 @@ function App() {
     handleTechnicalMarkUpload,
     handleTechnicalMarkSourceChange,
     handleTechnicalMarkLayoutChange,
+    handleTechnicalMarkLabelChange,
     handleClearTechnicalMarkImage,
     handleResetTechnicalMarkLayout,
   } = useTechnicalMarks({
@@ -292,7 +305,10 @@ function App() {
     handleUseSteamArtworkAsAdditionalArtwork,
     handleUseLocalSteamScreenshotAsAdditionalArtwork,
     handleAdditionalArtworkLayoutChange,
+    handleAdditionalArtworkLabelChange,
     handleResetAdditionalArtworkElementLayout,
+    handleAdditionalArtworkFrameChange,
+    handleResetAdditionalArtworkElementFrame,
     handleClearAdditionalArtworkElementImage,
     handleRemoveAdditionalArtworkElement,
   } = useAdditionalArtwork({
@@ -734,6 +750,21 @@ function App() {
       removeAdditionalLogoAsset(currentLogoAssets, logoKey, additionalLogoId),
     )
     announceStatus(`Deleted an additional ${logoKey} logo.`)
+  }
+
+  function handleAdditionalLogoAssetLabelChange(
+    logoKey: LogoAssetKey,
+    additionalLogoId: string,
+    label: string,
+  ) {
+    setProjectLogoAssets((currentLogoAssets) =>
+      updateAdditionalLogoAssetLabel(
+        currentLogoAssets,
+        logoKey,
+        additionalLogoId,
+        label,
+      ),
+    )
   }
 
   async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -1246,6 +1277,19 @@ function App() {
     )
   }
 
+  function handleDiscTextVisualAvoidanceChange(
+    key: DiscTextKey,
+    avoidVisualElements: boolean,
+  ) {
+    setDiscTextLayout((currentLayout) =>
+      updateDiscTextVisualAvoidance(
+        currentLayout,
+        key,
+        avoidVisualElements,
+      ),
+    )
+  }
+
   function handleResetDiscTextLayout(key: DiscTextKey) {
     setDiscTextLayout((currentLayout) => {
       const nextLayout = resetDiscTextLayout(
@@ -1279,6 +1323,24 @@ function App() {
 
   function handleResetDiscTextStyle(key: DiscTextKey) {
     setDiscTextStyles((currentStyles) => resetDiscTextStyle(currentStyles, key))
+  }
+
+  function handleApplyDiscTextStylePreset(key: DiscTextKey, presetId: string) {
+    setDiscTextStyles((currentStyles) =>
+      applyDiscTextStylePreset(currentStyles, key, presetId),
+    )
+  }
+
+  function handleDiscNumberArtworkModeChange(mode: DiscNumberArtworkMode) {
+    setProjectDiscNumberArtwork((currentArtwork) =>
+      updateDiscNumberArtworkMode(currentArtwork, mode),
+    )
+  }
+
+  function handleDiscNumberArtworkBadgeSetChange(badgeSet: DiscNumberBadgeSet) {
+    setProjectDiscNumberArtwork((currentArtwork) =>
+      updateDiscNumberArtworkBadgeSet(currentArtwork, badgeSet),
+    )
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -1557,6 +1619,7 @@ function App() {
       createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
     )
     resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
+    setProjectDiscNumberArtwork(createDefaultProjectDiscNumberArtwork())
     resetProjectAdditionalArtwork()
     setProjectRatingBadge(
       createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
@@ -1884,6 +1947,7 @@ function App() {
         projectMetadata,
         projectLogoAssets,
         projectTitleArtwork,
+        projectDiscNumberArtwork,
         projectAdditionalArtwork,
         projectRatingBadge,
         projectMediaMark,
@@ -1945,6 +2009,7 @@ function App() {
       setProjectMetadata(restoredProject.projectMetadata)
       setProjectLogoAssets(restoredProject.projectLogoAssets)
       setProjectTitleArtwork(restoredProject.projectTitleArtwork)
+      setProjectDiscNumberArtwork(restoredProject.projectDiscNumberArtwork)
       setProjectAdditionalArtwork(restoredProject.projectAdditionalArtwork)
       setProjectRatingBadge(restoredProject.projectRatingBadge)
       setProjectMediaMark(restoredProject.projectMediaMark)
@@ -2050,6 +2115,7 @@ function App() {
         steamBannerLockupLayout,
         projectLogoAssets,
         projectTitleArtwork,
+        projectDiscNumberArtwork,
         projectAdditionalArtwork,
         projectMetadata,
         projectRatingBadge,
@@ -2255,8 +2321,13 @@ function App() {
             handleUseLocalSteamScreenshotAsAdditionalArtwork
           }
           handleAdditionalArtworkLayoutChange={handleAdditionalArtworkLayoutChange}
+          handleAdditionalArtworkLabelChange={handleAdditionalArtworkLabelChange}
+          handleAdditionalArtworkFrameChange={handleAdditionalArtworkFrameChange}
           handleResetAdditionalArtworkElementLayout={
             handleResetAdditionalArtworkElementLayout
+          }
+          handleResetAdditionalArtworkElementFrame={
+            handleResetAdditionalArtworkElementFrame
           }
           handleClearAdditionalArtworkElementImage={
             handleClearAdditionalArtworkElementImage
@@ -2293,6 +2364,7 @@ function App() {
           handleClearLogoAsset={handleClearLogoAsset}
           handleResetLogoAssetLayout={handleResetLogoAssetLayout}
           handleAddAdditionalLogoAsset={handleAddAdditionalLogoAsset}
+          handleAdditionalLogoAssetLabelChange={handleAdditionalLogoAssetLabelChange}
           handleRemoveAdditionalLogoAsset={handleRemoveAdditionalLogoAsset}
           handleRatingBadgeUpload={handleRatingBadgeUpload}
           handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
@@ -2316,6 +2388,7 @@ function App() {
           handleTechnicalMarkUpload={handleTechnicalMarkUpload}
           handleTechnicalMarkSourceChange={handleTechnicalMarkSourceChange}
           handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
+          handleTechnicalMarkLabelChange={handleTechnicalMarkLabelChange}
           handleClearTechnicalMarkImage={handleClearTechnicalMarkImage}
           handleResetTechnicalMarkLayout={handleResetTechnicalMarkLayout}
         />
@@ -2325,6 +2398,7 @@ function App() {
           discTextSettings={discTextSettings}
           discTextLayout={discTextLayout}
           discTextStyles={discTextStyles}
+          projectDiscNumberArtwork={projectDiscNumberArtwork}
           discTextValues={discTextValues}
           discTextValueSources={discTextValueSources}
           metadataBoundDiscTextValues={metadataBoundDiscTextValues}
@@ -2338,8 +2412,12 @@ function App() {
           handleDiscTextAlignmentChange={handleDiscTextAlignmentChange}
           handleDiscTextModeChange={handleDiscTextModeChange}
           handleDiscTextArcSideChange={handleDiscTextArcSideChange}
+          handleDiscTextVisualAvoidanceChange={handleDiscTextVisualAvoidanceChange}
           handleResetDiscTextLayout={handleResetDiscTextLayout}
           handleDiscTextStyleChange={handleDiscTextStyleChange}
+          handleApplyDiscTextStylePreset={handleApplyDiscTextStylePreset}
+          handleDiscNumberArtworkModeChange={handleDiscNumberArtworkModeChange}
+          handleDiscNumberArtworkBadgeSetChange={handleDiscNumberArtworkBadgeSetChange}
           handleResetDiscTextStyle={handleResetDiscTextStyle}
           steamLogoPlacement={steamLogoPlacement}
         />
@@ -2364,6 +2442,7 @@ function App() {
         steamBannerLockupLayout={steamBannerLockupLayout}
         projectLogoAssets={projectLogoAssets}
         projectTitleArtwork={projectTitleArtwork}
+        projectDiscNumberArtwork={projectDiscNumberArtwork}
         projectAdditionalArtwork={projectAdditionalArtwork}
         projectMetadata={projectMetadata}
         projectRatingBadge={projectRatingBadge}

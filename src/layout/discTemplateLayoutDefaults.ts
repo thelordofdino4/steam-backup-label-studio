@@ -269,6 +269,7 @@ export function getDefaultCopyrightStraightLayoutForTemplate(
     mode: 'straight',
     arcDegrees: 210,
     arcSide: hasBottomBanner ? 'top' : 'bottom',
+    avoidVisualElements: false,
   })
 }
 
@@ -289,6 +290,7 @@ export function getDefaultCopyrightCurvedLayoutForTemplate(
     mode: 'curved',
     arcDegrees: 210,
     arcSide: hasBottomBanner ? 'top' : 'bottom',
+    avoidVisualElements: false,
   }
 }
 
@@ -311,6 +313,7 @@ export function createDefaultDiscTextLayoutForTemplate(
         mode: 'straight',
         arcDegrees: 210,
         arcSide: 'bottom',
+        avoidVisualElements: false,
       },
     ),
     subtitle: textLayoutFromPoint(
@@ -326,6 +329,7 @@ export function createDefaultDiscTextLayoutForTemplate(
         mode: 'straight',
         arcDegrees: 210,
         arcSide: 'bottom',
+        avoidVisualElements: false,
       },
     ),
     discNumber: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.discNumber), {
@@ -335,6 +339,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       mode: 'straight',
       arcDegrees: 210,
       arcSide: 'bottom',
+      avoidVisualElements: false,
     }),
     backupDate: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.backupDate), {
       width: resolvedWidths.backupDate,
@@ -343,6 +348,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       mode: 'straight',
       arcDegrees: 210,
       arcSide: 'bottom',
+      avoidVisualElements: false,
     }),
     appId: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.appId), {
       width: resolvedWidths.appId,
@@ -351,6 +357,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       mode: 'straight',
       arcDegrees: 210,
       arcSide: 'bottom',
+      avoidVisualElements: false,
     }),
     developer: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.developer), {
       width: resolvedWidths.developer,
@@ -359,6 +366,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       mode: 'straight',
       arcDegrees: 210,
       arcSide: 'bottom',
+      avoidVisualElements: false,
     }),
     publisher: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.publisher), {
       width: resolvedWidths.publisher,
@@ -367,6 +375,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       mode: 'straight',
       arcDegrees: 210,
       arcSide: 'bottom',
+      avoidVisualElements: false,
     }),
     installNotes: textLayoutFromPoint(
       getPoint(
@@ -381,6 +390,7 @@ export function createDefaultDiscTextLayoutForTemplate(
         mode: 'straight',
         arcDegrees: 210,
         arcSide: 'bottom',
+        avoidVisualElements: false,
       },
     ),
     customNote: textLayoutFromPoint(
@@ -396,6 +406,7 @@ export function createDefaultDiscTextLayoutForTemplate(
         mode: 'straight',
         arcDegrees: 210,
         arcSide: 'bottom',
+        avoidVisualElements: false,
       },
     ),
     copyright: getDefaultCopyrightCurvedLayoutForTemplate(

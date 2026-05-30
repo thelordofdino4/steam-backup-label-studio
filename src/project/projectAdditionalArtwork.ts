@@ -7,13 +7,17 @@ import type { DiscTemplate } from '../types/template'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
 import type {
   AdditionalArtworkLayout,
+  AdditionalArtworkFrame,
+  AdditionalArtworkFrameShape,
   AdditionalArtworkSource,
   BackgroundImageSize,
   ProjectAdditionalArtwork,
   ProjectAdditionalArtworkElement,
+  ProjectAdditionalArtworkInput,
 } from './projectTypes'
 
 export type AdditionalArtworkLayoutField = keyof AdditionalArtworkLayout
+export type AdditionalArtworkFrameField = keyof AdditionalArtworkFrame
 
 export type AdditionalArtworkImportSource = {
   source: AdditionalArtworkSource
@@ -23,9 +27,11 @@ export type AdditionalArtworkImportSource = {
 
 export type AdditionalArtworkRenderItem = {
   id: string
+  label: string
   imageDataUrl: string
   imageSize: BackgroundImageSize
   layout: AdditionalArtworkLayout
+  frame: AdditionalArtworkFrame
   unscaledBounds: RenderBoundsPercent
   scaledBounds: RenderBoundsPercent
   sourceLabel: string
@@ -57,6 +63,16 @@ export const DEFAULT_ADDITIONAL_ARTWORK_LAYOUT: AdditionalArtworkLayout = {
   y: 42,
 }
 
+export const ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN = 0.25
+export const ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX = 8
+
+export const DEFAULT_ADDITIONAL_ARTWORK_FRAME: AdditionalArtworkFrame = {
+  enabled: false,
+  color: '#f9fafb',
+  width: 2,
+  shape: 'rectangle',
+}
+
 function createAdditionalArtworkElementId() {
   const randomId = globalThis.crypto?.randomUUID?.()
 
@@ -67,6 +83,16 @@ function createAdditionalArtworkElementId() {
   additionalArtworkIdCounter += 1
 
   return `artwork-${Date.now().toString(36)}-${additionalArtworkIdCounter}`
+}
+
+function getDefaultAdditionalArtworkLabel(additionalArtworkIndex: number) {
+  return `Artwork ${additionalArtworkIndex + 1}`
+}
+
+function normalizeElementLabel(label: unknown, fallbackLabel: string) {
+  return typeof label === 'string' && label.trim()
+    ? label
+    : fallbackLabel
 }
 
 function createFallbackAdditionalArtworkLayout(
@@ -103,6 +129,7 @@ function createAdditionalArtworkElement(
 ): ProjectAdditionalArtworkElement {
   return {
     id: createAdditionalArtworkElementId(),
+    label: getDefaultAdditionalArtworkLabel(additionalArtworkIndex),
     source: 'custom',
     sourceId: null,
     sourceLabel: DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
@@ -112,6 +139,7 @@ function createAdditionalArtworkElement(
       additionalArtworkIndex,
       selectedDiscTemplate,
     ),
+    frame: DEFAULT_ADDITIONAL_ARTWORK_FRAME,
   }
 }
 
@@ -202,6 +230,21 @@ export function removeAdditionalArtworkElement(
   }
 }
 
+export function updateAdditionalArtworkElementLabel(
+  additionalArtwork: ProjectAdditionalArtwork,
+  elementId: string,
+  label: string,
+): ProjectAdditionalArtwork {
+  return updateAdditionalArtworkElement(
+    additionalArtwork,
+    elementId,
+    (element) => ({
+      ...element,
+      label,
+    }),
+  )
+}
+
 export function getAdditionalArtworkElement(
   additionalArtwork: ProjectAdditionalArtwork,
   elementId: string,
@@ -268,6 +311,39 @@ export function updateAdditionalArtworkElementLayoutPosition(
       x: point.x,
       y: point.y,
     },
+  )
+}
+
+export function updateAdditionalArtworkElementFrameField(
+  additionalArtwork: ProjectAdditionalArtwork,
+  elementId: string,
+  field: AdditionalArtworkFrameField,
+  value: boolean | number | string,
+): ProjectAdditionalArtwork {
+  return updateAdditionalArtworkElement(
+    additionalArtwork,
+    elementId,
+    (element) => ({
+      ...element,
+      frame: {
+        ...element.frame,
+        [field]: value,
+      },
+    }),
+  )
+}
+
+export function resetAdditionalArtworkElementFrame(
+  additionalArtwork: ProjectAdditionalArtwork,
+  elementId: string,
+): ProjectAdditionalArtwork {
+  return updateAdditionalArtworkElement(
+    additionalArtwork,
+    elementId,
+    (element) => ({
+      ...element,
+      frame: DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+    }),
   )
 }
 
@@ -375,6 +451,7 @@ export function createAdditionalArtworkRenderItems(
     return [
       {
         id: element.id,
+        label: element.label,
         imageDataUrl,
         imageSize,
         layout: element.layout,
@@ -383,6 +460,7 @@ export function createAdditionalArtworkRenderItems(
           imageSize,
           element.layout.scale,
         ),
+        frame: element.frame,
         sourceLabel: element.sourceLabel,
       },
     ]
@@ -395,6 +473,36 @@ function isAdditionalArtworkSource(value: unknown): value is AdditionalArtworkSo
     value === 'steam-artwork' ||
     value === 'local-steam-screenshot'
   )
+}
+
+function isAdditionalArtworkFrameShape(
+  value: unknown,
+): value is AdditionalArtworkFrameShape {
+  return value === 'rectangle' || value === 'circle'
+}
+
+function normalizeAdditionalArtworkFrame(
+  frame: Partial<AdditionalArtworkFrame> | undefined,
+): AdditionalArtworkFrame {
+  const width =
+    typeof frame?.width === 'number' && Number.isFinite(frame.width)
+      ? Math.min(
+          ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
+          Math.max(ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN, frame.width),
+        )
+      : DEFAULT_ADDITIONAL_ARTWORK_FRAME.width
+
+  return {
+    enabled: frame?.enabled ?? DEFAULT_ADDITIONAL_ARTWORK_FRAME.enabled,
+    color:
+      typeof frame?.color === 'string' && frame.color.trim()
+        ? frame.color
+        : DEFAULT_ADDITIONAL_ARTWORK_FRAME.color,
+    width,
+    shape: isAdditionalArtworkFrameShape(frame?.shape)
+      ? frame.shape
+      : DEFAULT_ADDITIONAL_ARTWORK_FRAME.shape,
+  }
 }
 
 function normalizeAdditionalArtworkLayout(
@@ -429,6 +537,10 @@ function normalizeAdditionalArtworkElement(
     id: typeof element.id === 'string' && element.id.trim()
       ? element.id
       : createAdditionalArtworkElementId(),
+    label: normalizeElementLabel(
+      element.label,
+      getDefaultAdditionalArtworkLabel(additionalArtworkIndex),
+    ),
     source: isAdditionalArtworkSource(element.source) ? element.source : 'custom',
     sourceId: typeof element.sourceId === 'string' ? element.sourceId : null,
     sourceLabel:
@@ -438,11 +550,12 @@ function normalizeAdditionalArtworkElement(
     imageDataUrl: element.imageDataUrl ?? null,
     imageSize,
     layout: normalizeAdditionalArtworkLayout(element.layout, defaultLayout),
+    frame: normalizeAdditionalArtworkFrame(element.frame),
   }
 }
 
 export function normalizeProjectAdditionalArtwork(
-  additionalArtwork: Partial<ProjectAdditionalArtwork> | undefined,
+  additionalArtwork: ProjectAdditionalArtworkInput | undefined,
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectAdditionalArtwork {
   const defaults = createDefaultProjectAdditionalArtwork()

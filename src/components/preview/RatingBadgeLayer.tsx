@@ -86,7 +86,7 @@ export function RatingBadgeLayer({
           <img
             className="disc-rating-badge-image disc-placeholder-svg-image"
             src={placeholderImageUrl}
-            alt={`${placeholderLabel} rating placeholder`}
+            alt={`${placeholderLabel} generic rating badge`}
             draggable={false}
             style={fillLayerSize}
           />

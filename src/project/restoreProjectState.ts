@@ -11,6 +11,7 @@ import {
   normalizeDiscTextStyles,
   type DiscTextStyleSettings,
 } from '../discTextStyles.ts'
+import { normalizeProjectDiscNumberArtwork } from '../discNumberArtwork.ts'
 import { exportGuideModeToSelection, type ExportGuideSelection } from '../exportGuides.ts'
 import {
   clampDiscTextLayoutToSafeZone,
@@ -47,6 +48,7 @@ import type {
   BackgroundImageSize,
   BackgroundOffset,
   ProjectAdditionalArtwork,
+  ProjectDiscNumberArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectMetadata,
@@ -71,6 +73,7 @@ export type RestoredProjectState = {
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
+  projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectAdditionalArtwork: ProjectAdditionalArtwork
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -182,6 +185,9 @@ export async function restoreSavedProjectState(
     loadedTitleArtwork,
     template.selectedDiscTemplate,
   )
+  const projectDiscNumberArtwork = normalizeProjectDiscNumberArtwork(
+    project.discNumberArtwork,
+  )
   const loadedAdditionalArtwork = normalizeProjectAdditionalArtwork(
     project.additionalArtwork,
     template.selectedDiscTemplate,
@@ -237,6 +243,7 @@ export async function restoreSavedProjectState(
     projectMetadata,
     projectLogoAssets,
     projectTitleArtwork,
+    projectDiscNumberArtwork,
     projectAdditionalArtwork,
     projectRatingBadge,
     projectMediaMark,

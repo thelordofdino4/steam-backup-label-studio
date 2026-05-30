@@ -4,6 +4,7 @@ import type {
   BackgroundImageSize,
   ProjectTechnicalMarkAsset,
   ProjectTechnicalMarks,
+  ProjectTechnicalMarksInput,
   TechnicalMarkLayout,
   TechnicalMarkSource,
   TechnicalMarkValue,
@@ -43,6 +44,16 @@ export function getTechnicalMarkLabel(value: TechnicalMarkValue) {
   return TECHNICAL_MARK_OPTIONS.find((option) => option.value === value)?.label ?? 'Audio'
 }
 
+function getDefaultTechnicalMarkAssetLabel(value: TechnicalMarkValue) {
+  return getTechnicalMarkLabel(value)
+}
+
+function normalizeElementLabel(label: unknown, fallbackLabel: string) {
+  return typeof label === 'string' && label.trim()
+    ? label
+    : fallbackLabel
+}
+
 export function createDefaultProjectTechnicalMarks(): ProjectTechnicalMarks {
   return {
     values: [],
@@ -55,6 +66,7 @@ export function createDefaultProjectTechnicalMarkAsset(
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectTechnicalMarkAsset {
   return {
+    label: getDefaultTechnicalMarkAssetLabel(value),
     source: 'placeholder',
     customImageDataUrl: null,
     customImageSize: null,
@@ -192,6 +204,19 @@ export function updateTechnicalMarkSource(
   })
 }
 
+export function updateTechnicalMarkLabel(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+  label: string,
+): ProjectTechnicalMarks {
+  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+
+  return setProjectTechnicalMarkAsset(technicalMarks, value, {
+    ...currentAsset,
+    label,
+  })
+}
+
 export function updateTechnicalMarkLayoutField(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
@@ -295,6 +320,10 @@ function normalizeTechnicalMarkAsset(
     : defaults.layout
 
   return {
+    label: normalizeElementLabel(
+      asset?.label,
+      getDefaultTechnicalMarkAssetLabel(value),
+    ),
     source,
     customImageDataUrl: asset?.customImageDataUrl ?? null,
     customImageSize,
@@ -303,7 +332,7 @@ function normalizeTechnicalMarkAsset(
 }
 
 export function normalizeProjectTechnicalMarks(
-  technicalMarks: Partial<ProjectTechnicalMarks> | undefined,
+  technicalMarks: ProjectTechnicalMarksInput | undefined,
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectTechnicalMarks {
   const defaults = createDefaultProjectTechnicalMarks()

@@ -4,6 +4,7 @@ import {
   clearTechnicalMarkImage,
   createDefaultProjectTechnicalMarks,
   resetProjectTechnicalMarkLayout,
+  updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
   updateTechnicalMarkSource,
   updateTechnicalMarkToggle,
@@ -113,6 +114,12 @@ export function useTechnicalMarks({
     )
   }
 
+  function handleTechnicalMarkLabelChange(value: TechnicalMarkValue, label: string) {
+    setProjectTechnicalMarks((currentMarks) =>
+      updateTechnicalMarkLabel(currentMarks, value, label),
+    )
+  }
+
   function handleClearTechnicalMarkImage(value: TechnicalMarkValue) {
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
@@ -144,6 +151,7 @@ export function useTechnicalMarks({
     handleTechnicalMarkUpload,
     handleTechnicalMarkSourceChange,
     handleTechnicalMarkLayoutChange,
+    handleTechnicalMarkLabelChange,
     handleClearTechnicalMarkImage,
     handleResetTechnicalMarkLayout,
   }

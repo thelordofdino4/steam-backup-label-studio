@@ -202,7 +202,7 @@ export function getMovableDiscElementGeometry(
 
     elements.push(
       createElementGeometry(
-        `${getPlatformMarkLabel(value)} platform mark`,
+        `${getPlatformMarkLabel(value)} operating system mark`,
         asset.layout,
         bounds,
       ),

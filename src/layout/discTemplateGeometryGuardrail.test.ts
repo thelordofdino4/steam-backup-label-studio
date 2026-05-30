@@ -160,7 +160,7 @@ test('custom geometry guardrail includes enabled straight disc text bounds', () 
   assert.ok(result.blockingElementLabels.includes('Game title'))
 })
 
-test('custom geometry guardrail includes enabled platform marks', () => {
+test('custom geometry guardrail includes enabled operating system marks', () => {
   const template = buildCustomDiscTemplate(standardTemplate, {
     innerHoleDiameterMm: 90,
   })
@@ -178,7 +178,7 @@ test('custom geometry guardrail includes enabled platform marks', () => {
   )
 
   assert.equal(result.allowed, false)
-  assert.ok(result.blockingElementLabels.includes('Windows platform mark'))
+  assert.ok(result.blockingElementLabels.includes('Windows operating system mark'))
 })
 
 test('custom geometry guardrail ignores hidden movable element state', () => {

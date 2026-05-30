@@ -5,6 +5,7 @@ import {
   getProjectTechnicalMarkAsset,
   normalizeProjectTechnicalMarks,
   setTechnicalMarkCustomImage,
+  updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
 } from './projectTechnicalMarks.ts'
 import type { ProjectTechnicalMarks } from './projectTypes.ts'
@@ -18,9 +19,26 @@ test('selected technical marks materialize default assets when assets are missin
   const asset = getProjectTechnicalMarkAsset(technicalMarks, 'audio')
 
   assert.equal(asset.source, 'placeholder')
+  assert.equal(asset.label, 'Audio')
   assert.equal(asset.layout.enabled, true)
   assert.equal(asset.layout.x, 63)
   assert.equal(asset.layout.y, 70)
+})
+
+test('technical mark labels persist independently from the mark type', () => {
+  const technicalMarks = updateTechnicalMarkLabel(
+    setTechnicalMarkCustomImage(
+      createDefaultProjectTechnicalMarks(),
+      'audio',
+      'data:image/png;base64,custom-audio-mark',
+      { width: 320, height: 120 },
+    ),
+    'audio',
+    'Dolby-style mark',
+  )
+  const asset = getProjectTechnicalMarkAsset(technicalMarks, 'audio')
+
+  assert.equal(asset.label, 'Dolby-style mark')
 })
 
 test('custom technical mark upload state enables the target asset', () => {
@@ -69,6 +87,7 @@ test('normalizes saved technical mark values and default assets', () => {
   } as Partial<ProjectTechnicalMarks>)
 
   assert.deepEqual(normalized.values, ['audio', 'codec'])
+  assert.equal(normalized.assets.audio?.label, 'Audio')
   assert.equal(normalized.assets.audio?.source, 'placeholder')
   assert.equal(normalized.assets.codec?.layout.enabled, true)
 })

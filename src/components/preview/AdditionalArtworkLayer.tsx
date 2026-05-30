@@ -1,5 +1,8 @@
 import type { PointerEvent } from 'react'
-import { createAdditionalArtworkRenderItems } from '../../project/projectAdditionalArtwork'
+import {
+  createAdditionalArtworkRenderItems,
+  type AdditionalArtworkRenderItem,
+} from '../../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtwork } from '../../project/projectTypes'
 
 export type AdditionalArtworkLayerProps = {
@@ -10,6 +13,60 @@ export type AdditionalArtworkLayerProps = {
   ) => void
   handleAdditionalArtworkPointerMove: (event: PointerEvent<Element>) => void
   handleAdditionalArtworkPointerUp: (event: PointerEvent<Element>) => void
+}
+
+function getFrameViewBox(renderItem: AdditionalArtworkRenderItem) {
+  const width = 100
+  const height =
+    renderItem.imageSize.width > 0
+      ? Math.max(1, 100 * (renderItem.imageSize.height / renderItem.imageSize.width))
+      : 100
+
+  return { width, height }
+}
+
+function AdditionalArtworkFrame({ renderItem }: { renderItem: AdditionalArtworkRenderItem }) {
+  const frame = renderItem.frame
+
+  if (!frame.enabled) {
+    return null
+  }
+
+  const viewBox = getFrameViewBox(renderItem)
+  const strokeWidth = Math.min(frame.width, viewBox.width, viewBox.height)
+  const inset = strokeWidth / 2
+
+  return (
+    <svg
+      className="disc-additional-artwork-frame"
+      viewBox={`0 0 ${viewBox.width} ${viewBox.height}`}
+      preserveAspectRatio="none"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {frame.shape === 'circle' ? (
+        <ellipse
+          cx={viewBox.width / 2}
+          cy={viewBox.height / 2}
+          rx={Math.max(0, (viewBox.width - strokeWidth) / 2)}
+          ry={Math.max(0, (viewBox.height - strokeWidth) / 2)}
+          fill="none"
+          stroke={frame.color}
+          strokeWidth={strokeWidth}
+        />
+      ) : (
+        <rect
+          x={inset}
+          y={inset}
+          width={Math.max(0, viewBox.width - strokeWidth)}
+          height={Math.max(0, viewBox.height - strokeWidth)}
+          fill="none"
+          stroke={frame.color}
+          strokeWidth={strokeWidth}
+        />
+      )}
+    </svg>
+  )
 }
 
 export function AdditionalArtworkLayer({
@@ -27,12 +84,9 @@ export function AdditionalArtworkLayer({
   return (
     <div className="disc-additional-artwork-layer" aria-label="Additional artwork layer">
       {renderItems.map((renderItem) => (
-        <img
-          className="disc-additional-artwork"
+        <div
+          className={`disc-additional-artwork${renderItem.frame.enabled && renderItem.frame.shape === 'circle' ? ' disc-additional-artwork--circle' : ''}`}
           key={renderItem.id}
-          src={renderItem.imageDataUrl}
-          alt={`${renderItem.sourceLabel} additional artwork`}
-          draggable={false}
           onPointerDown={(event) =>
             handleAdditionalArtworkPointerDown(event, renderItem.id)}
           onPointerMove={handleAdditionalArtworkPointerMove}
@@ -46,7 +100,15 @@ export function AdditionalArtworkLayer({
             maxHeight: 'none',
             transform: `translate(-50%, -50%) scale(${renderItem.layout.scale})`,
           }}
-        />
+        >
+          <img
+            className="disc-additional-artwork-image"
+            src={renderItem.imageDataUrl}
+            alt={`${renderItem.sourceLabel} additional artwork`}
+            draggable={false}
+          />
+          <AdditionalArtworkFrame renderItem={renderItem} />
+        </div>
       ))}
     </div>
   )
