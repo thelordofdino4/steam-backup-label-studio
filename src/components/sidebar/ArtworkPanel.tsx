@@ -11,6 +11,7 @@ import {
   canTuneBackgroundArtworkSource,
   type ActiveBackgroundArtworkSource,
   type BackgroundArtworkSource,
+  type PersistedBackgroundArtworkSource,
   resolveActiveBackgroundArtworkSource,
 } from '../../backgroundArtworkSource'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
@@ -41,10 +42,12 @@ import {
 } from '../../project/projectTitleArtwork'
 import type {
   BackgroundOffset,
+  ProjectImageAssetProvenance,
   ProjectAdditionalArtwork,
   ProjectAdditionalArtworkElement,
   ProjectTitleArtwork,
 } from '../../project/projectTypes'
+import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import type { SteamArtworkAsset, SteamImportedGame } from '../../steam/steamApi'
 import type { DiscTemplate } from '../../types/template'
@@ -84,6 +87,7 @@ export type ArtworkPanelProps = {
     value: number,
   ) => void
   backgroundImageUrl: string | null
+  backgroundImageSource: ProjectImageAssetProvenance | null
   handleResetBackground: () => void
   canFitBackgroundToSteamBannerOpenArea: boolean
   backgroundFitButtonLabel: string
@@ -238,6 +242,24 @@ const BACKGROUND_SOURCE_LABELS: Record<ActiveBackgroundArtworkSource, string> = 
   'local-steam-screenshot': 'Local Steam screenshot',
   'local-file': 'Local file',
   none: 'No source',
+}
+
+function getPersistedBackgroundArtworkSource(
+  imageSource: ProjectImageAssetProvenance | null,
+): PersistedBackgroundArtworkSource | null {
+  if (!imageSource) return null
+
+  switch (imageSource.source) {
+    case 'steam-artwork':
+    case 'web-artwork':
+    case 'local-steam-screenshot':
+      return imageSource.source
+    case 'uploaded':
+    case 'embedded':
+      return imageSource.source
+    default:
+      return null
+  }
 }
 
 function BackgroundArtworkFineTuneControls({
@@ -637,13 +659,20 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
     isBackgroundArtworkEnabled,
     handleBackgroundArtworkEnabledChange,
     backgroundImageUrl,
+    backgroundImageSource,
     selectedArtworkId,
     selectedSteamGame,
     webArtworkDiscovery,
     localSteamScreenshots,
   } = props
+  const backgroundStatus = getProjectImageAssetStatus({
+    imageDataUrl: backgroundImageUrl,
+    provenance: backgroundImageSource,
+    fallbackLabel: 'No background image selected',
+  })
   const backgroundArtworkSource = resolveActiveBackgroundArtworkSource({
     backgroundImageUrl,
+    persistedSource: getPersistedBackgroundArtworkSource(backgroundImageSource),
     selectedArtworkId,
     steamArtwork: selectedSteamGame?.artwork ?? [],
     webArtworkCandidates: webArtworkDiscovery.candidates,
@@ -677,6 +706,9 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
 
       {!isBackgroundArtworkEnabled ? null : (
         <>
+          <p className="hint">
+            Current background: {backgroundStatus.summary}. {backgroundStatus.availabilityLabel}
+          </p>
           <ImportedSteamArtworkSection
             {...props}
             fineTuneControls={renderFineTuneControls(

@@ -1,5 +1,6 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 import { applyImportedLogoAsset } from '../project/projectVisualAssetImport'
+import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { ProjectLogoAssets, ProjectMetadata } from '../project/projectTypes'
 import {
@@ -69,6 +70,17 @@ function getLogoEntityLabel(
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
+}
+
+function getLogoCandidateAssetSource(candidate: RemoteLogoCandidate) {
+  return createProjectImageAssetProvenance({
+    source: candidate.sourceKind.startsWith('steam-')
+      ? 'steam-logo-candidate'
+      : 'official-logo-candidate',
+    sourceId: candidate.id,
+    sourceLabel: candidate.label,
+    sourceUrl: candidate.url,
+  })
 }
 
 export function useLogoAssetDiscovery({
@@ -166,6 +178,7 @@ export function useLogoAssetDiscovery({
           logoKey,
           importedImage,
           selectedDiscTemplate,
+          getLogoCandidateAssetSource(candidate),
           additionalLogoId,
         ),
       )

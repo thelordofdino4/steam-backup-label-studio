@@ -54,6 +54,25 @@ export type BackgroundImageSize = {
   height: number
 }
 
+export type ProjectImageAssetSource =
+  | 'built-in'
+  | 'placeholder'
+  | 'steam-artwork'
+  | 'web-artwork'
+  | 'steam-logo-candidate'
+  | 'official-logo-candidate'
+  | 'local-steam-screenshot'
+  | 'uploaded'
+  | 'custom'
+  | 'embedded'
+
+export type ProjectImageAssetProvenance = {
+  source: ProjectImageAssetSource
+  sourceId: string | null
+  sourceLabel: string
+  sourceUrl?: string | null
+}
+
 export type LogoAssetLayout = {
   enabled: boolean
   scale: number
@@ -65,16 +84,19 @@ export type ProjectAdditionalLogoAsset = {
   id: string
   label: string
   imageDataUrl: string | null
+  imageSource?: ProjectImageAssetProvenance | null
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
 }
 
 export type ProjectLogoAssets = {
   developerLogoDataUrl: string | null
+  developerLogoSource: ProjectImageAssetProvenance | null
   developerLogoSize: BackgroundImageSize | null
   developerLogoLayout: LogoAssetLayout
   additionalDeveloperLogos: ProjectAdditionalLogoAsset[]
   publisherLogoDataUrl: string | null
+  publisherLogoSource: ProjectImageAssetProvenance | null
   publisherLogoSize: BackgroundImageSize | null
   publisherLogoLayout: LogoAssetLayout
   additionalPublisherLogos: ProjectAdditionalLogoAsset[]
@@ -302,6 +324,7 @@ export type SavedProject = {
     placement: SteamLogoPlacement
     bannerColors?: SteamBannerColors
     lockupImageDataUrl?: string | null
+    lockupImageSource?: ProjectImageAssetProvenance | null
     lockupImageSize?: BackgroundImageSize | null
     lockupLayout?: SteamBannerLockupLayout
   }
@@ -314,6 +337,7 @@ export type SavedProject = {
     scale: number
     offset: BackgroundOffset
     imageDataUrl: string | null
+    imageSource?: ProjectImageAssetProvenance | null
     imageSize?: BackgroundImageSize | null
     note: string
   }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { discTemplates } from '../templates/discTemplates.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
+import { createProjectImageAssetProvenance } from './projectAssetStatus.ts'
 import { addAdditionalArtworkElement, createDefaultProjectAdditionalArtwork } from './projectAdditionalArtwork.ts'
 import { addAdditionalLogoAsset, createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks } from './projectMediaMark.ts'
@@ -23,14 +24,21 @@ const importedImage: ImportedImageAsset = {
 }
 
 test('imported logo image enables and stores the selected logo asset', () => {
+  const source = createProjectImageAssetProvenance({
+    source: 'uploaded',
+    sourceLabel: 'C:\\Users\\John\\Pictures\\developer-logo.png',
+  })
   const logoAssets = applyImportedLogoAsset(
     createDefaultProjectLogoAssets(),
     'developer',
     importedImage,
     discTemplates.standardPrintableDisc,
+    source,
   )
 
   assert.equal(logoAssets.developerLogoDataUrl, importedImage.imageDataUrl)
+  assert.equal(logoAssets.developerLogoSource?.source, 'uploaded')
+  assert.equal(logoAssets.developerLogoSource?.sourceLabel, 'developer-logo.png')
   assert.deepEqual(logoAssets.developerLogoSize, importedImage.imageSize)
   assert.equal(logoAssets.developerLogoLayout.enabled, true)
   assert.equal(logoAssets.publisherLogoDataUrl, null)
@@ -48,6 +56,7 @@ test('imported logo image can target an additional logo without replacing primar
     'developer',
     importedImage,
     discTemplates.standardPrintableDisc,
+    null,
     additionalLogoId,
   )
   const additionalLogo = logoAssets.additionalDeveloperLogos[0]!

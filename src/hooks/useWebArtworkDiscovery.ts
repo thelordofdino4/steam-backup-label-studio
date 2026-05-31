@@ -3,6 +3,7 @@ import {
   createBackgroundImageImportFromDataUrl,
   type BackgroundImageImportResult,
 } from '../backgroundImageImport'
+import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectMetadata } from '../project/projectTypes'
 import {
   discoverLogoCandidates,
@@ -172,6 +173,12 @@ export function useWebArtworkDiscovery({
         await createBackgroundImageImportFromDataUrl(
           imageDataUrl,
           `Using ${candidate.label} as the disc background.`,
+          createProjectImageAssetProvenance({
+            source: 'web-artwork',
+            sourceId: candidate.id,
+            sourceLabel: candidate.label,
+            sourceUrl: candidate.url,
+          }),
           candidate.id,
         ),
       )

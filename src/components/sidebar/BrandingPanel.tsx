@@ -11,8 +11,10 @@ import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference } from '../../project/projectMediaMark'
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
 import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
+import { getLogoAssetSource } from '../../project/projectLogoAssets'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
-import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
@@ -27,6 +29,7 @@ export type BrandingPanelProps = {
   steamLogoPlacement: SteamLogoPlacement
   handleSteamLogoPlacementChange: (placement: SteamLogoPlacement) => void
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupImageSource: ProjectImageAssetProvenance | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   steamBannerColors: SteamBannerColors
@@ -228,6 +231,7 @@ function LogoCandidateList({
 function SteamBannerControls({
   steamLogoPlacement,
   steamBannerLockupImageUrl,
+  steamBannerLockupImageSource,
   steamBannerLockupLayout,
   steamBannerColors,
   handleSteamLogoPlacementChange,
@@ -241,6 +245,7 @@ function SteamBannerControls({
   BrandingPanelProps,
   | 'steamLogoPlacement'
   | 'steamBannerLockupImageUrl'
+  | 'steamBannerLockupImageSource'
   | 'steamBannerLockupLayout'
   | 'steamBannerColors'
   | 'handleSteamLogoPlacementChange'
@@ -252,6 +257,12 @@ function SteamBannerControls({
   | 'handleResetSteamBannerColors'
 >) {
   const isEnabled = steamLogoPlacement !== 'none'
+  const lockupStatus = getProjectImageAssetStatus({
+    imageDataUrl: steamBannerLockupImageUrl,
+    provenance: steamBannerLockupImageSource,
+    fallbackLabel: 'Default Steam banner lockup',
+  })
+  const hasCustomLockupImage = steamBannerLockupImageSource?.source !== 'built-in'
   const [lastPlacement, setLastPlacement] = useState<SteamLogoPlacement>(
     createSteamLogoPlacementMemory(steamLogoPlacement),
   )
@@ -299,9 +310,9 @@ function SteamBannerControls({
           <label className="secondary-button logo-upload-button" htmlFor="steam-banner-lockup-upload">Choose banner lockup image</label>
           <input id="steam-banner-lockup-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleSteamBannerLockupUpload} />
 
-          {!steamBannerLockupImageUrl && (
-            <p className="hint">Using the bundled default Steam banner lockup image. Upload a PNG to override it.</p>
-          )}
+          <p className="hint">
+            Banner lockup: {lockupStatus.summary}. {lockupStatus.availabilityLabel}
+          </p>
 
           <label className="field-label spacing-top" htmlFor="steam-banner-lockup-scale">Lockup scale</label>
           <input id="steam-banner-lockup-scale" type="range" min="0.5" max="1.5" step="0.01" value={steamBannerLockupLayout.scale} onChange={(event) => handleSteamBannerLockupLayoutChange('scale', Number(event.target.value))} />
@@ -312,7 +323,7 @@ function SteamBannerControls({
           <label className="field-label spacing-top" htmlFor="steam-banner-lockup-offset-y">Lockup Y offset</label>
           <input id="steam-banner-lockup-offset-y" type="range" min="-20" max="20" step="0.1" value={steamBannerLockupLayout.offsetY} onChange={(event) => handleSteamBannerLockupLayoutChange('offsetY', Number(event.target.value))} />
 
-          {steamBannerLockupImageUrl && <button className="secondary-button" type="button" onClick={handleClearSteamBannerLockup}>Reset to default lockup</button>}
+          {hasCustomLockupImage && <button className="secondary-button" type="button" onClick={handleClearSteamBannerLockup}>Reset to default lockup</button>}
           <button className="secondary-button" type="button" onClick={handleResetSteamBannerColors}>Reset banner colors</button>
           <button className="secondary-button" type="button" onClick={handleResetSteamBannerLockupLayout}>Reset lockup layout</button>
         </>
@@ -325,6 +336,7 @@ function LogoAssetControlBody({
   logoKey,
   label,
   imageDataUrl,
+  imageSource,
   imageSize,
   layout,
   uploadId,
@@ -338,8 +350,13 @@ function LogoAssetControlBody({
   handleLogoAssetLayoutChange,
   handleClearLogoAsset,
   handleResetLogoAssetLayout,
-}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout; uploadId: string; controlIdPrefix: string; additionalLogoId?: string }) {
+}: Pick<BrandingPanelProps, 'selectedDiscTemplate' | 'handleLogoAssetUpload' | 'logoCandidateDiscovery' | 'handleFindLogoCandidates' | 'handleApplyLogoCandidate' | 'handleLogoAssetLayoutChange' | 'handleClearLogoAsset' | 'handleResetLogoAssetLayout'> & { logoKey: LogoKey; label: string; imageDataUrl: string | null; imageSource: ProjectImageAssetProvenance | null; imageSize: BackgroundImageSize | null; layout: LogoAssetLayout; uploadId: string; controlIdPrefix: string; additionalLogoId?: string }) {
   const hasLogoImage = Boolean(imageDataUrl)
+  const logoStatus = getProjectImageAssetStatus({
+    imageDataUrl,
+    provenance: imageSource,
+    fallbackLabel: `${label} logo image`,
+  })
   const sliderRanges = getLogoAssetLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
@@ -365,7 +382,7 @@ function LogoAssetControlBody({
       {hasLogoImage ? (
         <div className="selected-lockup-card logo-asset-status-card">
           <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
-          <span>{label} logo active{formatLogoSize(imageSize)}</span>
+          <span>{logoStatus.summary}{formatLogoSize(imageSize)}</span>
         </div>
       ) : (
         <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled generic logo is shown for placement; upload an image before export to render your actual logo.</p>
@@ -437,6 +454,7 @@ function AdditionalLogoAssetControls({
           logoKey={logoKey}
           label={additionalLabel}
           imageDataUrl={logoAsset.imageDataUrl}
+          imageSource={logoAsset.imageSource ?? null}
           imageSize={logoAsset.imageSize}
           layout={logoAsset.layout}
           uploadId={uploadId}
@@ -468,6 +486,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, pr
             logoKey={logoKey}
             label={label}
             imageDataUrl={imageDataUrl}
+            imageSource={getLogoAssetSource(projectLogoAssets, logoKey)}
             imageSize={imageSize}
             layout={layout}
             uploadId={uploadId}

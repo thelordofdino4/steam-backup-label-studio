@@ -24,6 +24,7 @@ import { setMediaMarkCustomImage, setPlatformMarkCustomImage } from './projectMe
 import { setRatingBadgeCustomImage } from './projectRatingBadge.ts'
 import { setTechnicalMarkCustomImage } from './projectTechnicalMarks.ts'
 import type {
+  ProjectImageAssetProvenance,
   PlatformMarkValue,
   ProjectAdditionalArtwork,
   ProjectLogoAssets,
@@ -39,6 +40,7 @@ export function applyImportedLogoAsset(
   logoKey: LogoAssetKey,
   importedImage: ImportedImageAsset,
   selectedDiscTemplate: DiscTemplate,
+  imageSource: ProjectImageAssetProvenance | null = null,
   additionalLogoId?: string,
 ): ProjectLogoAssets {
   const nextLogoAssets = setLogoAssetImage(
@@ -46,6 +48,7 @@ export function applyImportedLogoAsset(
     logoKey,
     importedImage.imageDataUrl,
     importedImage.imageSize,
+    imageSource,
     additionalLogoId,
   )
   const nextLayout = clampLogoAssetLayoutToSafeZone(

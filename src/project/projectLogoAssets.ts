@@ -9,9 +9,14 @@ import type {
   BackgroundImageSize,
   LogoAssetLayout,
   ProjectAdditionalLogoAsset,
+  ProjectImageAssetProvenance,
   ProjectLogoAssets,
   ProjectLogoAssetsInput,
 } from './projectTypes'
+import {
+  createEmbeddedProjectImageAssetProvenance,
+  normalizeProjectImageAssetProvenance,
+} from './projectAssetStatus.ts'
 
 export type LogoAssetKey = 'developer' | 'publisher'
 export type LogoAssetLayoutField = keyof LogoAssetLayout
@@ -78,6 +83,12 @@ function normalizeElementLabel(label: unknown, fallbackLabel: string) {
     : fallbackLabel
 }
 
+function getLegacyEmbeddedLogoLabel(logoKey: LogoAssetKey) {
+  return logoKey === 'developer'
+    ? 'Developer logo image'
+    : 'Publisher logo image'
+}
+
 function getAdditionalLogoField(logoKey: LogoAssetKey) {
   return logoKey === 'developer'
     ? 'additionalDeveloperLogos'
@@ -100,6 +111,15 @@ function getPrimaryLogoAssetSize(
   return logoKey === 'developer'
     ? logoAssets.developerLogoSize
     : logoAssets.publisherLogoSize
+}
+
+function getPrimaryLogoAssetSource(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+) {
+  return logoKey === 'developer'
+    ? logoAssets.developerLogoSource
+    : logoAssets.publisherLogoSource
 }
 
 function getFallbackAdditionalLogoLayout(
@@ -184,12 +204,14 @@ export function createDefaultProjectLogoAssets(
 ): ProjectLogoAssets {
   return {
     developerLogoDataUrl: null,
+    developerLogoSource: null,
     developerLogoSize: null,
     developerLogoLayout: selectedDiscTemplate
       ? getDefaultLogoAssetLayoutForTemplate(selectedDiscTemplate, 'developer')
       : DEFAULT_DEVELOPER_LOGO_LAYOUT,
     additionalDeveloperLogos: [],
     publisherLogoDataUrl: null,
+    publisherLogoSource: null,
     publisherLogoSize: null,
     publisherLogoLayout: selectedDiscTemplate
       ? getDefaultLogoAssetLayoutForTemplate(selectedDiscTemplate, 'publisher')
@@ -228,6 +250,18 @@ export function getLogoAssetSize(
   }
 
   return getPrimaryLogoAssetSize(logoAssets, logoKey)
+}
+
+export function getLogoAssetSource(
+  logoAssets: ProjectLogoAssets,
+  logoKey: LogoAssetKey,
+  additionalLogoId?: string,
+) {
+  if (additionalLogoId) {
+    return findAdditionalLogoAsset(logoAssets, logoKey, additionalLogoId)?.imageSource ?? null
+  }
+
+  return getPrimaryLogoAssetSource(logoAssets, logoKey)
 }
 
 export function setLogoAssetLayout(
@@ -302,6 +336,7 @@ export function setLogoAssetImage(
   logoKey: LogoAssetKey,
   imageDataUrl: string,
   imageSize: BackgroundImageSize,
+  imageSource: ProjectImageAssetProvenance | null = null,
   additionalLogoId?: string,
 ): ProjectLogoAssets {
   const nextLayout = {
@@ -317,6 +352,7 @@ export function setLogoAssetImage(
       (logoAsset) => ({
         ...logoAsset,
         imageDataUrl,
+        imageSource,
         imageSize,
         layout: nextLayout,
       }),
@@ -327,6 +363,7 @@ export function setLogoAssetImage(
     return {
       ...logoAssets,
       developerLogoDataUrl: imageDataUrl,
+      developerLogoSource: imageSource,
       developerLogoSize: imageSize,
       developerLogoLayout: nextLayout,
     }
@@ -335,6 +372,7 @@ export function setLogoAssetImage(
   return {
     ...logoAssets,
     publisherLogoDataUrl: imageDataUrl,
+    publisherLogoSource: imageSource,
     publisherLogoSize: imageSize,
     publisherLogoLayout: nextLayout,
   }
@@ -353,6 +391,7 @@ export function clearLogoAsset(
       (logoAsset) => ({
         ...logoAsset,
         imageDataUrl: null,
+        imageSource: null,
         imageSize: null,
       }),
     )
@@ -362,6 +401,7 @@ export function clearLogoAsset(
     return {
       ...logoAssets,
       developerLogoDataUrl: null,
+      developerLogoSource: null,
       developerLogoSize: null,
     }
   }
@@ -369,6 +409,7 @@ export function clearLogoAsset(
   return {
     ...logoAssets,
     publisherLogoDataUrl: null,
+    publisherLogoSource: null,
     publisherLogoSize: null,
   }
 }
@@ -399,6 +440,7 @@ export function addAdditionalLogoAsset(
       id: createAdditionalLogoAssetId(logoKey),
       label: getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogos.length),
       imageDataUrl: null,
+      imageSource: null,
       imageSize: null,
       layout,
     },
@@ -583,6 +625,14 @@ function normalizeAdditionalLogoAsset(
       getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogoIndex),
     ),
     imageDataUrl: logoAsset.imageDataUrl ?? null,
+    imageSource: normalizeProjectImageAssetProvenance(
+      logoAsset.imageSource,
+      logoAsset.imageDataUrl
+        ? createEmbeddedProjectImageAssetProvenance(
+            `${getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)} image`,
+          )
+        : null,
+    ),
     imageSize,
     layout: normalizeLogoAssetLayout(logoAsset.layout, defaultLayout),
   }
@@ -619,6 +669,14 @@ export function normalizeProjectLogoAssets(
 
   return {
     developerLogoDataUrl: logoAssets?.developerLogoDataUrl ?? null,
+    developerLogoSource: normalizeProjectImageAssetProvenance(
+      logoAssets?.developerLogoSource,
+      logoAssets?.developerLogoDataUrl
+        ? createEmbeddedProjectImageAssetProvenance(
+            getLegacyEmbeddedLogoLabel('developer'),
+          )
+        : null,
+    ),
     developerLogoSize: logoAssets?.developerLogoSize ?? null,
     developerLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.developerLogoLayout,
@@ -630,6 +688,14 @@ export function normalizeProjectLogoAssets(
       selectedDiscTemplate,
     ),
     publisherLogoDataUrl: logoAssets?.publisherLogoDataUrl ?? null,
+    publisherLogoSource: normalizeProjectImageAssetProvenance(
+      logoAssets?.publisherLogoSource,
+      logoAssets?.publisherLogoDataUrl
+        ? createEmbeddedProjectImageAssetProvenance(
+            getLegacyEmbeddedLogoLabel('publisher'),
+          )
+        : null,
+    ),
     publisherLogoSize: logoAssets?.publisherLogoSize ?? null,
     publisherLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.publisherLogoLayout,

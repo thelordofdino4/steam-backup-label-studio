@@ -33,6 +33,11 @@ import type { SteamImportedGame } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template'
 import { buildCustomDiscTemplate } from '../discGeometry.ts'
 import {
+  createEmbeddedProjectImageAssetProvenance,
+  createProjectImageAssetProvenance,
+  normalizeProjectImageAssetProvenance,
+} from './projectAssetStatus.ts'
+import {
   normalizeDiscTextValueSources,
   type DiscTextValueSources,
 } from './metadataDiscText.ts'
@@ -47,6 +52,7 @@ import { normalizeProjectTitleArtwork } from './projectTitleArtwork.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
+  ProjectImageAssetProvenance,
   ProjectAdditionalArtwork,
   ProjectDiscNumberArtwork,
   ProjectLogoAssets,
@@ -84,6 +90,7 @@ export type RestoredProjectState = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupImageSource: ProjectImageAssetProvenance | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   exportGuides: ExportGuideSelection
@@ -96,6 +103,7 @@ export type RestoredProjectState = {
   backgroundScale: number
   backgroundOffset: BackgroundOffset
   backgroundImageUrl: string | null
+  backgroundImageSource: ProjectImageAssetProvenance | null
   backgroundImageSize: BackgroundImageSize | null
   isBackgroundArtworkEnabled: boolean
 }
@@ -153,6 +161,35 @@ async function restoreBackgroundImageSize(
   } catch {
     return null
   }
+}
+
+function restoreSteamBannerLockupImageSource(
+  project: SavedProject,
+): ProjectImageAssetProvenance | null {
+  const fallback = project.steamBackupLogo.lockupImageDataUrl
+    ? project.steamBackupLogo.lockupImageSize
+      ? createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup')
+      : createProjectImageAssetProvenance({
+          source: 'built-in',
+          sourceLabel: 'Default Steam banner lockup',
+        })
+    : null
+
+  return normalizeProjectImageAssetProvenance(
+    project.steamBackupLogo.lockupImageSource,
+    fallback,
+  )
+}
+
+function restoreBackgroundImageSource(
+  project: SavedProject,
+): ProjectImageAssetProvenance | null {
+  return normalizeProjectImageAssetProvenance(
+    project.background.imageSource,
+    project.background.imageDataUrl
+      ? createEmbeddedProjectImageAssetProvenance('Embedded background image')
+      : null,
+  )
 }
 
 export async function restoreSavedProjectState(
@@ -261,6 +298,7 @@ export async function restoreSavedProjectState(
     steamLogoPlacement: project.steamBackupLogo.placement,
     steamBannerColors: project.steamBackupLogo.bannerColors ?? DEFAULT_STEAM_BANNER_COLORS,
     steamBannerLockupImageUrl: steamBannerLockupImage.imageUrl,
+    steamBannerLockupImageSource: restoreSteamBannerLockupImageSource(project),
     steamBannerLockupImageSize: steamBannerLockupImage.imageSize,
     steamBannerLockupLayout:
       project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
@@ -286,6 +324,7 @@ export async function restoreSavedProjectState(
     backgroundScale: project.background.scale,
     backgroundOffset: project.background.offset,
     backgroundImageUrl: project.background.imageDataUrl,
+    backgroundImageSource: restoreBackgroundImageSource(project),
     backgroundImageSize: await restoreBackgroundImageSize(
       project,
       options.resolveBackgroundImageSize,

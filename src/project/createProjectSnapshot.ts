@@ -12,6 +12,7 @@ import type { DiscTextValueSources } from './metadataDiscText'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
+  ProjectImageAssetProvenance,
   ProjectAdditionalArtwork,
   ProjectDiscNumberArtwork,
   ProjectLogoAssets,
@@ -44,12 +45,14 @@ export type CreateProjectSnapshotParams = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupImageSource: ProjectImageAssetProvenance | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   exportGuides: ExportGuideSelection
   backgroundScale: number
   backgroundOffset: BackgroundOffset
   backgroundImageUrl: string | null
+  backgroundImageSource: ProjectImageAssetProvenance | null
   backgroundImageSize: BackgroundImageSize | null
   isBackgroundArtworkEnabled: boolean
   discTextSettings: DiscTextSettings
@@ -77,12 +80,14 @@ export function createProjectSnapshot({
   steamLogoPlacement,
   steamBannerColors,
   steamBannerLockupImageUrl,
+  steamBannerLockupImageSource,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
   exportGuides,
   backgroundScale,
   backgroundOffset,
   backgroundImageUrl,
+  backgroundImageSource,
   backgroundImageSize,
   isBackgroundArtworkEnabled,
   discTextSettings,
@@ -118,6 +123,7 @@ export function createProjectSnapshot({
       placement: steamLogoPlacement,
       bannerColors: steamBannerColors,
       lockupImageDataUrl: steamBannerLockupImageUrl,
+      lockupImageSource: steamBannerLockupImageSource,
       lockupImageSize: steamBannerLockupImageSize,
       lockupLayout: steamBannerLockupLayout,
     },
@@ -129,6 +135,7 @@ export function createProjectSnapshot({
       scale: backgroundScale,
       offset: backgroundOffset,
       imageDataUrl: backgroundImageUrl,
+      imageSource: backgroundImageSource,
       imageSize: backgroundImageSize,
       note:
         'MVP save state embeds the background image as a data URL. A more efficient .sbls package format can replace this later.',

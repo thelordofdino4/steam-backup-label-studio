@@ -62,6 +62,32 @@ test('resolves selected Steam, web, and local screenshot background sources', ()
   )
 })
 
+test('resolves persisted embedded background source after project reload', () => {
+  assert.equal(
+    resolveActiveBackgroundArtworkSource({
+      backgroundImageUrl: 'data:image/png;base64,steam',
+      persistedSource: 'steam-artwork',
+      selectedArtworkId: null,
+      steamArtwork: [],
+      webArtworkCandidates: [],
+      localSteamScreenshots: [],
+    }),
+    'steam-artwork',
+  )
+
+  assert.equal(
+    resolveActiveBackgroundArtworkSource({
+      backgroundImageUrl: 'data:image/png;base64,uploaded',
+      persistedSource: 'uploaded',
+      selectedArtworkId: null,
+      steamArtwork: [],
+      webArtworkCandidates: [],
+      localSteamScreenshots: [],
+    }),
+    'local-file',
+  )
+})
+
 test('enables tuning only for the active background source', () => {
   assert.equal(
     canTuneBackgroundArtworkSource('local-file', 'local-file', true),

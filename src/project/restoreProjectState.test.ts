@@ -71,6 +71,44 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.isBackgroundArtworkEnabled, true)
 })
 
+test('restores saved asset provenance and defaults legacy embedded assets safely', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    steamBackupLogo: {
+      placement: 'top',
+      lockupImageDataUrl: 'data:image/png;base64,custom-lockup',
+      lockupImageSize: { width: 480, height: 128 },
+    },
+    background: {
+      ...baseProject.background,
+      imageDataUrl: 'data:image/png;base64,background',
+      imageSource: {
+        source: 'local-steam-screenshot',
+        sourceId: 'shot-1',
+        sourceLabel: 'C:\\Users\\John\\Steam\\screenshots\\shot.png',
+        sourceUrl: 'file:///C:/Users/John/Steam/screenshots/shot.png',
+      },
+    },
+    logoAssets: {
+      developerLogoDataUrl: 'data:image/png;base64,developer',
+      developerLogoSource: {
+        source: 'steam-logo-candidate',
+        sourceId: 'candidate-1',
+        sourceLabel: 'Developer logo',
+        sourceUrl: 'https://example.test/logo.png',
+      },
+    },
+  })
+
+  assert.equal(restored.backgroundImageSource?.source, 'local-steam-screenshot')
+  assert.equal(restored.backgroundImageSource?.sourceId, 'shot-1')
+  assert.equal(restored.backgroundImageSource?.sourceLabel, 'shot.png')
+  assert.equal(restored.backgroundImageSource?.sourceUrl, null)
+  assert.equal(restored.steamBannerLockupImageSource?.source, 'embedded')
+  assert.equal(restored.projectLogoAssets.developerLogoSource?.source, 'steam-logo-candidate')
+  assert.equal(restored.projectLogoAssets.developerLogoSource?.sourceUrl, 'https://example.test/logo.png')
+})
+
 test('restores saved disc number artwork badge settings', async () => {
   const restored = await restoreSavedProjectState({
     ...baseProject,

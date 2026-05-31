@@ -65,6 +65,7 @@ import {
   type BackgroundImageImportResult,
 } from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
+import { createProjectImageAssetProvenance } from './project/projectAssetStatus'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata } from './project/projectMetadata'
 import {
@@ -86,7 +87,7 @@ import {
   applyImportedPlatformMark,
   applyImportedRatingBadge,
 } from './project/projectVisualAssetImport'
-import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import {
   createDefaultProjectDiscNumberArtwork,
   updateDiscNumberArtworkBadgeSet,
@@ -188,6 +189,13 @@ function App() {
   const [steamBannerLockupImageUrl, setSteamBannerLockupImageUrl] = useState<
     string | null
   >(() => createDefaultSteamBannerLockupImageState().imageUrl)
+  const [steamBannerLockupImageSource, setSteamBannerLockupImageSource] =
+    useState<ProjectImageAssetProvenance | null>(() =>
+      createProjectImageAssetProvenance({
+        source: 'built-in',
+        sourceLabel: 'Default Steam banner lockup',
+      }),
+    )
   const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
     useState<BackgroundImageSize | null>(null)
   const [steamBannerLockupLayout, setSteamBannerLockupLayout] =
@@ -196,6 +204,8 @@ function App() {
     DEFAULT_EXPORT_GUIDES,
   )
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
+  const [backgroundImageSource, setBackgroundImageSource] =
+    useState<ProjectImageAssetProvenance | null>(null)
   const [backgroundImageSize, setBackgroundImageSize] =
     useState<BackgroundImageSize | null>(null)
   const [backgroundScale, setBackgroundScale] = useState(DEFAULT_BACKGROUND_SCALE)
@@ -570,6 +580,7 @@ function App() {
 
   function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
     setBackgroundImageUrl(importedBackground.background.imageUrl)
+    setBackgroundImageSource(importedBackground.imageSource)
     setBackgroundImageSize(importedBackground.background.imageSize)
     setBackgroundScale(importedBackground.background.scale)
     setBackgroundOffset(importedBackground.background.offset)
@@ -599,6 +610,10 @@ function App() {
       )
 
       setSteamBannerLockupImageUrl(lockupImage.imageUrl)
+      setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
+        source: 'uploaded',
+        sourceLabel: file.name,
+      }))
       setSteamBannerLockupImageSize(lockupImage.imageSize)
       announceStatus(`Using ${file.name} as the Steam banner lockup.`)
     } catch (error) {
@@ -609,6 +624,10 @@ function App() {
   function handleClearSteamBannerLockup() {
     const lockupImage = createDefaultSteamBannerLockupImageState()
     setSteamBannerLockupImageUrl(lockupImage.imageUrl)
+    setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
+      source: 'built-in',
+      sourceLabel: 'Default Steam banner lockup',
+    }))
     setSteamBannerLockupImageSize(lockupImage.imageSize)
     announceStatus('Reset Steam banner lockup image to the default asset.')
   }
@@ -662,6 +681,10 @@ function App() {
           logoKey,
           importedImage,
           selectedDiscTemplate,
+          createProjectImageAssetProvenance({
+            source: 'uploaded',
+            sourceLabel: file.name,
+          }),
           additionalLogoId,
         ),
       )
@@ -1617,11 +1640,16 @@ function App() {
     setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
     const defaultLockupImage = createDefaultSteamBannerLockupImageState()
     setSteamBannerLockupImageUrl(defaultLockupImage.imageUrl)
+    setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
+      source: 'built-in',
+      sourceLabel: 'Default Steam banner lockup',
+    }))
     setSteamBannerLockupImageSize(defaultLockupImage.imageSize)
     setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
     setExportGuides(DEFAULT_EXPORT_GUIDES)
     const emptyBackground = createEmptyBackgroundImageState()
     setBackgroundImageUrl(emptyBackground.imageUrl)
+    setBackgroundImageSource(null)
     setBackgroundImageSize(emptyBackground.imageSize)
     setBackgroundScale(emptyBackground.scale)
     setBackgroundOffset(emptyBackground.offset)
@@ -1980,12 +2008,14 @@ function App() {
         steamLogoPlacement,
         steamBannerColors,
         steamBannerLockupImageUrl,
+        steamBannerLockupImageSource,
         steamBannerLockupImageSize,
         steamBannerLockupLayout,
         exportGuides,
         backgroundScale,
         backgroundOffset,
         backgroundImageUrl,
+        backgroundImageSource,
         backgroundImageSize,
         isBackgroundArtworkEnabled,
         discTextSettings,
@@ -2050,6 +2080,7 @@ function App() {
       setSteamLogoPlacement(restoredProject.steamLogoPlacement)
       setSteamBannerColors(restoredProject.steamBannerColors)
       setSteamBannerLockupImageUrl(restoredProject.steamBannerLockupImageUrl)
+      setSteamBannerLockupImageSource(restoredProject.steamBannerLockupImageSource)
       setSteamBannerLockupImageSize(restoredProject.steamBannerLockupImageSize)
       setSteamBannerLockupLayout(restoredProject.steamBannerLockupLayout)
       setExportGuides(restoredProject.exportGuides)
@@ -2062,6 +2093,7 @@ function App() {
       setBackgroundScale(restoredProject.backgroundScale)
       setBackgroundOffset(restoredProject.backgroundOffset)
       setBackgroundImageUrl(restoredProject.backgroundImageUrl)
+      setBackgroundImageSource(restoredProject.backgroundImageSource)
       setBackgroundImageSize(restoredProject.backgroundImageSize)
       setIsBackgroundArtworkEnabled(restoredProject.isBackgroundArtworkEnabled)
 
@@ -2317,6 +2349,7 @@ function App() {
           handleBackgroundScaleChange={handleBackgroundScaleChange}
           handleBackgroundOffsetChange={handleBackgroundOffsetChange}
           backgroundImageUrl={backgroundImageUrl}
+          backgroundImageSource={backgroundImageSource}
           handleResetBackground={handleResetBackground}
           canFitBackgroundToSteamBannerOpenArea={
             Boolean(backgroundImageUrl)
@@ -2362,6 +2395,7 @@ function App() {
           steamLogoPlacement={steamLogoPlacement}
           handleSteamLogoPlacementChange={handleSteamLogoPlacementChange}
           steamBannerLockupImageUrl={steamBannerLockupImageUrl}
+          steamBannerLockupImageSource={steamBannerLockupImageSource}
           steamBannerLockupImageSize={steamBannerLockupImageSize}
           steamBannerLockupLayout={steamBannerLockupLayout}
           steamBannerColors={steamBannerColors}

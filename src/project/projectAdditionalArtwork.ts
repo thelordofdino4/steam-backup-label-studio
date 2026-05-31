@@ -15,6 +15,7 @@ import type {
   ProjectAdditionalArtworkElement,
   ProjectAdditionalArtworkInput,
 } from './projectTypes'
+import { sanitizeProjectImageAssetSourceLabel } from './projectAssetStatus.ts'
 
 export type AdditionalArtworkLayoutField = keyof AdditionalArtworkLayout
 export type AdditionalArtworkFrameField = keyof AdditionalArtworkFrame
@@ -360,7 +361,10 @@ export function setAdditionalArtworkElementImage(
       ...element,
       source: importSource.source,
       sourceId: importSource.sourceId,
-      sourceLabel: importSource.sourceLabel,
+      sourceLabel: sanitizeProjectImageAssetSourceLabel(
+        importSource.sourceLabel,
+        DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
+      ),
       imageDataUrl: importedImage.imageDataUrl,
       imageSize: importedImage.imageSize,
       layout: {
@@ -544,9 +548,10 @@ function normalizeAdditionalArtworkElement(
     source: isAdditionalArtworkSource(element.source) ? element.source : 'custom',
     sourceId: typeof element.sourceId === 'string' ? element.sourceId : null,
     sourceLabel:
-      typeof element.sourceLabel === 'string' && element.sourceLabel.trim()
-        ? element.sourceLabel
-        : DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
+      sanitizeProjectImageAssetSourceLabel(
+        element.sourceLabel,
+        DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
+      ),
     imageDataUrl: element.imageDataUrl ?? null,
     imageSize,
     layout: normalizeAdditionalArtworkLayout(element.layout, defaultLayout),
