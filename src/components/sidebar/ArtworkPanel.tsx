@@ -682,7 +682,7 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
     source: BackgroundArtworkSource,
     idPrefix: string,
     sectionLabel: string,
-  ) => (
+  ) => !isBackgroundArtworkEnabled ? null : (
     <BackgroundArtworkFineTuneControls
       {...props}
       backgroundArtworkSource={backgroundArtworkSource}
@@ -704,45 +704,42 @@ function BackgroundArtworkControls(props: ArtworkPanelProps) {
         Show background art
       </label>
 
-      {!isBackgroundArtworkEnabled ? null : (
-        <>
-          <p className="hint">
-            Current background: {backgroundStatus.summary}. {backgroundStatus.availabilityLabel}
-          </p>
-          <ImportedSteamArtworkSection
-            {...props}
-            fineTuneControls={renderFineTuneControls(
-              'steam-artwork',
-              'steam-artwork',
-              'Imported Steam artwork',
-            )}
-          />
-          <WebArtworkCandidateSection
-            {...props}
-            fineTuneControls={renderFineTuneControls(
-              'web-artwork',
-              'web-artwork',
-              'Web artwork',
-            )}
-          />
-          <LocalSteamScreenshotSection
-            {...props}
-            fineTuneControls={renderFineTuneControls(
-              'local-steam-screenshot',
-              'local-steam-screenshot',
-              'Local Steam screenshot',
-            )}
-          />
-          <LocalArtworkSection
-            {...props}
-            fineTuneControls={renderFineTuneControls(
-              'local-file',
-              'local-file',
-              'Local file',
-            )}
-          />
-        </>
-      )}
+      <p className="hint">
+        Current background: {backgroundStatus.summary}. {backgroundStatus.availabilityLabel}
+        {!isBackgroundArtworkEnabled ? ' Background art is hidden from preview and export.' : ''}
+      </p>
+      <ImportedSteamArtworkSection
+        {...props}
+        fineTuneControls={renderFineTuneControls(
+          'steam-artwork',
+          'steam-artwork',
+          'Imported Steam artwork',
+        )}
+      />
+      <WebArtworkCandidateSection
+        {...props}
+        fineTuneControls={renderFineTuneControls(
+          'web-artwork',
+          'web-artwork',
+          'Web artwork',
+        )}
+      />
+      <LocalSteamScreenshotSection
+        {...props}
+        fineTuneControls={renderFineTuneControls(
+          'local-steam-screenshot',
+          'local-steam-screenshot',
+          'Local Steam screenshot',
+        )}
+      />
+      <LocalArtworkSection
+        {...props}
+        fineTuneControls={renderFineTuneControls(
+          'local-file',
+          'local-file',
+          'Local file',
+        )}
+      />
     </div>
   )
 }
