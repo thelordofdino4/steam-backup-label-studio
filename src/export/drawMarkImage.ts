@@ -1,5 +1,5 @@
 import type { RenderBoundsPercent } from '../discGeometry'
-import { loadImage } from './canvasImage'
+import { loadImage } from './canvasImage.ts'
 
 type MarkImageRenderModel = {
   imageDataUrl: string
@@ -18,8 +18,19 @@ export async function drawMarkImage(
   imageLoader: typeof loadImage = loadImage,
 ) {
   const image = await imageLoader(model.imageDataUrl)
-  const drawWidth = discContentSize * (model.scaledBounds.halfWidth * 2 / 100)
-  const drawHeight = discContentSize * (model.scaledBounds.halfHeight * 2 / 100)
+  const maxWidth = discContentSize * (model.scaledBounds.halfWidth * 2 / 100)
+  const maxHeight = discContentSize * (model.scaledBounds.halfHeight * 2 / 100)
+  const naturalWidth = image.naturalWidth || image.width || 1
+  const naturalHeight = image.naturalHeight || image.height || 1
+  const aspectRatio = naturalWidth / naturalHeight
+  let drawWidth = maxWidth
+  let drawHeight = drawWidth / aspectRatio
+
+  if (drawHeight > maxHeight) {
+    drawHeight = maxHeight
+    drawWidth = drawHeight * aspectRatio
+  }
+
   const centerX = discOrigin + discContentSize * (model.layout.x / 100)
   const centerY = discOrigin + discContentSize * (model.layout.y / 100)
 

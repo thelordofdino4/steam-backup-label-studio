@@ -2,6 +2,8 @@
 
 These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor cannot reach the end of indev if new work keeps adding logic to unrelated structures.
 
+Last refreshed: 2026-05-31.
+
 This document is mandatory reading for agents and contributors before implementing features, fixes, or refactors.
 
 ## Core Rule
@@ -24,7 +26,7 @@ Before implementing behavior, spend a small amount of time checking whether the 
 
 Use targeted searches rather than broad archaeology. Look for:
 
-- matching domain names such as `discText`, `ratingBadge`, `mediaMark`, `platformMark`, `logoAsset`, `steamBanner`, `background`, `project`, or `export`
+- matching domain names such as `discText`, `discTextStyles`, `discTextAvoidance`, `titleArtwork`, `additionalArtwork`, `discNumberArtwork`, `ratingBadge`, `mediaMark`, `platformMark`, `technicalMark`, `logoAsset`, `steamBanner`, `background`, `projectAssetStatus`, `metadataDiscText`, `project`, `exportPreflight`, or `export`
 - existing hooks under `src/hooks/`
 - existing layout helpers under `src/layout/` or geometry helpers under `src/discGeometry.ts`
 - existing preview components under `src/components/preview/`
@@ -105,6 +107,20 @@ For every feature, it should be clear where these live:
 
 If those responsibilities are spread through unrelated files, refactor before expanding the feature.
 
+Current real-disc-art owners include, at minimum:
+
+- Background artwork: `src/backgroundImage.ts`, `src/backgroundArtworkSource.ts`, `src/backgroundImageImport.ts`, preview/export owners, and future focused hook work.
+- Title/logo artwork: `src/hooks/useTitleArtwork.ts`, `src/project/projectTitleArtwork.ts`, `src/steam/steamTitleArtworkImport.ts`, `TitleArtworkLayer`, and `drawTitleArtwork`.
+- Additional artwork: `src/hooks/useAdditionalArtwork.ts`, `src/project/projectAdditionalArtwork.ts`, `AdditionalArtworkLayer`, and `drawAdditionalArtwork`.
+- Developer/publisher/additional logos: `src/project/projectLogoAssets.ts`, logo discovery hooks, `LogoAssetLayer`, and `drawLogoAssets`.
+- Rating badge: `src/project/projectRatingBadge.ts`, `RatingBadgeLayer`, and `drawRatingBadge`.
+- Media and operating-system marks: `src/project/projectMediaMark.ts`, `src/steam/steamPlatformMarks.ts`, `MediaMarkLayer`, and `drawMediaMark`.
+- Technical marks: `src/hooks/useTechnicalMarks.ts`, `src/project/projectTechnicalMarks.ts`, `TechnicalMarksLayer`, and `drawTechnicalMarks`.
+- Metadata-bound text: `src/project/metadataDiscText.ts`.
+- Export preflight: `src/export/exportPreflight.ts`.
+- Asset provenance/status: `src/project/projectAssetStatus.ts`.
+- Layer order: `src/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
+
 ## Preview and Export Parity Rule
 
 Preview and export must not be separate visual products.
@@ -114,7 +130,7 @@ When a visual element appears in both preview and PNG export:
 - prefer one shared renderer/artifact used by both paths
 - avoid independent DOM/CSS preview renderers paired with canvas-only export renderers
 - do not duplicate placeholder layout logic in CSS and canvas
-- keep layer order shared and explicit
+- keep layer order shared and explicit through `src/layerOrder.ts`
 - keep coordinate systems shared and documented
 - avoid preview-only CSS effects that export cannot reproduce
 - avoid export-only raster/canvas effects that preview cannot reproduce
@@ -134,7 +150,26 @@ For every movable/editable visual element, preserve or deliberately recreate:
 - save/load behavior
 - preview/export parity
 
+This currently applies to background artwork, title/logo artwork, additional artwork, developer/publisher/additional logos, rating badges, media marks, operating-system marks, technical marks, and disc text.
+
 A visual artifact can be image-backed or SVG-backed, but the interaction layer must remain intentional and testable.
+
+## Optional Visual UI Hierarchy
+
+Optional visual features should expose only their top-level show/enable checkbox when disabled. Dependent controls should be hidden from view, disabled visuals should not render in preview or PNG export, and disabling should preserve saved state.
+
+Inside an enabled optional visual feature, prefer this order:
+
+1. Show/enable checkbox.
+2. Subordinate optional checkboxes.
+3. Source/type/value controls.
+4. Text/value inputs.
+5. Upload/custom asset controls.
+6. Placement/alignment presets.
+7. Sliders/fine-tuning controls.
+8. Reset/clear actions.
+
+Follow this especially for title artwork, additional artwork, developer logo, publisher logo, rating badge, media mark, operating-system marks, technical marks, and future optional metadata text elements.
 
 ## Safe-Zone and Layout Rule
 
@@ -203,6 +238,8 @@ For visual/editor changes, validation should include:
 - direct drag behavior where applicable
 - slider/manual controls where applicable
 - upload/custom image behavior where applicable
+
+For documentation-only freshness work, do not claim these manual/runtime checks were performed unless they actually were. Non-interactive validation can show the source still builds; it does not prove live Tauri/editor behavior.
 
 For user-visible fixes, final reports must also include:
 

@@ -1,10 +1,11 @@
-import defaultSteamBannerLockupUrl from './assets/steam-default-lockup.png'
+import { DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL } from './discPlaceholderAssets.ts'
 import type { BackgroundImageSize } from './project/projectTypes'
 import {
   createSteamBannerLockupImageState as createSteamBannerLockupImageStateWithDefault,
   type SteamBannerLockupImageState,
 } from './steamBannerDefaults'
 
+export { DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL } from './discPlaceholderAssets.ts'
 export {
   DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT,
   DEFAULT_STEAM_BANNER_COLORS,
@@ -19,8 +20,6 @@ export {
   type SteamBannerLockupLayoutField,
 } from './steamBannerDefaults'
 export type { SteamBannerLockupImageState } from './steamBannerDefaults'
-
-export const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = defaultSteamBannerLockupUrl
 
 export function createDefaultSteamBannerLockupImageState(): SteamBannerLockupImageState {
   return {

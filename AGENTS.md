@@ -22,7 +22,9 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Save/load should keep working.
    - PNG export should keep working.
    - Disc text preview/export behavior should keep matching.
+   - Export preflight and optional guide export behavior should keep working.
    - Drag, slider/manual positioning, upload/custom image, reset/clear, and save/load behavior for existing visual elements should keep working.
+   - Background artwork, title/logo artwork, additional artwork, Steam banner branding, developer/publisher/additional logos, rating badges, media marks, operating-system marks, technical marks, disc-number artwork, and legal/text systems should keep working.
    - Treat the current disc editor systems as working launchpad infrastructure. Extend and migrate them carefully instead of replacing the editor wholesale unless a specific replacement path has been planned and reviewed.
 
 4. Prefer small, reviewable changes.
@@ -53,6 +55,9 @@ Before implementing new features, refactors, bug fixes, or documentation changes
 8. Do not delete or overwrite user-created assets or project files unless explicitly instructed.
 
 9. Follow the editor UI hierarchy rules for optional visual features.
+   - The current intended main sidebar flow is: Project File → Export Options → Game → Template → Artwork → Branding → Text → Guide Legend.
+   - Do not reorder that flow during unrelated work.
+   - Guide Legend is currently still in the sidebar flow. Issue #124 tracks the likely future move into a collapsible, open-by-default panel inside the live preview, bottom-right.
    - Optional visual features should expose only their top-level show/enable checkbox when disabled.
    - When disabled, dependent controls should be hidden from view, not merely greyed out.
    - Disabled visual features should not render in preview or PNG export.

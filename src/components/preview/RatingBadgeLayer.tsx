@@ -4,8 +4,7 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
 } from '../../discGeometry'
 import {
-  getRatingBadgePlaceholderImageUrl,
-  getRatingBadgePlaceholderTextColor,
+  getRatingBadgePlaceholderRenderModel,
 } from '../../discPlaceholderAssets'
 import {
   shouldRenderRatingBadge,
@@ -21,14 +20,6 @@ export type RatingBadgeLayerProps = {
   handleRatingBadgePointerUp?: (event: PointerEvent<Element>) => void
 }
 
-function getPlaceholderLabel(metadata: ProjectMetadata) {
-  if (metadata.ratingSystem === 'none') {
-    return ''
-  }
-
-  return metadata.ratingValue.trim() || metadata.ratingSystem
-}
-
 export function RatingBadgeLayer({
   projectMetadata,
   projectRatingBadge,
@@ -40,7 +31,6 @@ export function RatingBadgeLayer({
     return null
   }
 
-  const placeholderLabel = getPlaceholderLabel(projectMetadata)
   const shouldUseCustomImage = shouldUseCustomRatingBadgeImage(projectRatingBadge)
   const unscaledBounds =
     shouldUseCustomImage && projectRatingBadge.customImageSize
@@ -55,8 +45,7 @@ export function RatingBadgeLayer({
     height: '100%',
     maxHeight: 'none',
   }
-  const placeholderImageUrl = getRatingBadgePlaceholderImageUrl(projectMetadata)
-  const placeholderTextColor = getRatingBadgePlaceholderTextColor(projectMetadata)
+  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(projectMetadata)
 
   return (
     <div
@@ -85,30 +74,32 @@ export function RatingBadgeLayer({
         <>
           <img
             className="disc-rating-badge-image disc-placeholder-svg-image"
-            src={placeholderImageUrl}
-            alt={`${placeholderLabel} generic rating badge`}
+            src={placeholderRenderModel.imageUrl}
+            alt={placeholderRenderModel.altLabel}
             draggable={false}
             style={fillLayerSize}
           />
-          <svg
-            className="disc-rating-badge-text-overlay"
-            viewBox="0 0 90 130"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <text
-              x="45"
-              y="66"
-              fill={placeholderTextColor}
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontFamily="Arial, sans-serif"
-              fontSize="36"
-              fontWeight="900"
+          {placeholderRenderModel.overlayLabel ? (
+            <svg
+              className="disc-rating-badge-text-overlay"
+              viewBox="0 0 90 130"
+              aria-hidden="true"
+              focusable="false"
             >
-              {placeholderLabel}
-            </text>
-          </svg>
+              <text
+                x="45"
+                y="66"
+                fill={placeholderRenderModel.textColor}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontFamily="Arial, sans-serif"
+                fontSize="36"
+                fontWeight="900"
+              >
+                {placeholderRenderModel.overlayLabel}
+              </text>
+            </svg>
+          ) : null}
         </>
       )}
     </div>

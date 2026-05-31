@@ -8,18 +8,9 @@ import {
   RATING_BADGE_BASE_WIDTH_RATIO,
 } from '../discGeometry'
 import {
-  getRatingBadgePlaceholderImageUrl,
-  getRatingBadgePlaceholderTextColor,
+  getRatingBadgePlaceholderRenderModel,
 } from '../discPlaceholderAssets'
 import { loadImage } from './canvasImage'
-
-function getPlaceholderLabel(metadata: ProjectMetadata) {
-  if (metadata.ratingSystem === 'none') {
-    return ''
-  }
-
-  return metadata.ratingValue.trim() || metadata.ratingSystem
-}
 
 async function drawPlaceholderRatingBadge(
   context: CanvasRenderingContext2D,
@@ -28,25 +19,44 @@ async function drawPlaceholderRatingBadge(
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
 ) {
-  const label = getPlaceholderLabel(metadata)
+  const renderModel = getRatingBadgePlaceholderRenderModel(metadata)
 
-  if (!label) {
+  const image = await loadImage(renderModel.imageUrl)
+  const naturalWidth = image.naturalWidth || image.width || 1
+  const naturalHeight = image.naturalHeight || image.height || 1
+  const aspectRatio = naturalWidth / naturalHeight
+  const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
+  const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
+
+  let drawWidth = maxWidth
+  let drawHeight = drawWidth / aspectRatio
+
+  if (drawHeight > maxHeight) {
+    drawHeight = maxHeight
+    drawWidth = drawHeight * aspectRatio
+  }
+
+  const centerX = discOrigin + discContentSize * (badge.layout.x / 100)
+  const centerY = discOrigin + discContentSize * (badge.layout.y / 100)
+  const x = centerX - drawWidth / 2
+  const y = centerY - drawHeight / 2
+
+  context.drawImage(image, x, y, drawWidth, drawHeight)
+
+  if (!renderModel.overlayLabel) {
     return
   }
 
-  const width = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
-  const height = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
-  const x = discOrigin + discContentSize * (badge.layout.x / 100) - width / 2
-  const y = discOrigin + discContentSize * (badge.layout.y / 100) - height / 2
-  const image = await loadImage(getRatingBadgePlaceholderImageUrl(metadata))
-
-  context.drawImage(image, x, y, width, height)
   context.save()
-  context.fillStyle = getRatingBadgePlaceholderTextColor(metadata)
-  context.font = `900 ${height * (36 / 130)}px Arial, sans-serif`
+  context.fillStyle = renderModel.textColor
+  context.font = `900 ${drawHeight * (36 / 130)}px Arial, sans-serif`
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.fillText(label, x + width * (45 / 90), y + height * (66 / 130))
+  context.fillText(
+    renderModel.overlayLabel,
+    x + drawWidth * (45 / 90),
+    y + drawHeight * (66 / 130),
+  )
   context.restore()
 }
 

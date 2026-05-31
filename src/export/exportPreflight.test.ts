@@ -132,7 +132,7 @@ test('preflight warns about enabled visual elements that will be missing or gene
     'Licensor logo is enabled, but no image is uploaded; the bundled generic logo will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom rating badge is selected, but no custom image is uploaded; bundled generic artwork will export when rating metadata is renderable.',
+    'Custom rating badge is selected, but no custom image is uploaded; bundled rating artwork will export when rating metadata is renderable.',
   ))
   assert.ok(summary.warnings.includes(
     'Custom Data Disc media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',

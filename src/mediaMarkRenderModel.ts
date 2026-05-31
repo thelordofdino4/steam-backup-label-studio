@@ -73,7 +73,7 @@ export function createMediaMarkRenderModel(
   return {
     imageDataUrl: isCustomImage
       ? customImageDataUrl
-      : getMediaMarkPlaceholderImageUrl(mediaMark.value),
+      : getMediaMarkPlaceholderImageUrl(mediaMark.value, mediaMark.theme),
     isPlaceholderImage: !isCustomImage,
     label,
     alt: isCustomImage ? label : `${label} generic media mark`,
@@ -106,7 +106,7 @@ export function createPlatformMarkRenderModels(
       asset,
       imageDataUrl: isCustomImage
         ? customImageDataUrl
-        : getPlatformMarkPlaceholderImageUrl(value),
+        : getPlatformMarkPlaceholderImageUrl(value, asset.theme),
       isPlaceholderImage: !isCustomImage,
       label,
       alt: isCustomImage ? label : `${label} generic operating system mark`,

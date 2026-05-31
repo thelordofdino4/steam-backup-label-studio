@@ -129,7 +129,7 @@ export function TextPanel({
           Enable text elements, type manual overrides, and adjust their preset position and scale.
         </p>
         <p className="hint">
-          Metadata-backed text shows the Game metadata/default as placeholder text until edited here. Clearing the override returns to the placeholder value.
+          Metadata-backed text shows the Game metadata/default as input hint text until edited here. Clearing the override returns to the Game metadata/default value.
         </p>
 
         <div className="disc-text-control-list">

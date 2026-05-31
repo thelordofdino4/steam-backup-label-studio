@@ -1,24 +1,48 @@
 # Roadmap
 
+Last refreshed: 2026-05-31.
+
 ## Current State
 
 Steam Backup Label Studio is in **pre-alpha**.
 
-The core **disc-label** workflow is working: Steam search/import, store/library/screenshot artwork import, local artwork import, local Steam screenshot discovery, background drag/resize, physical disc geometry, custom dimensions, save/load, New Project reset, 300 DPI PNG export, optional guide export, collapsible editor panels, labeled live preview, stacked preview toast notifications, Steam-style banner lockup placement and controls, project-owned metadata, developer/publisher logo assets, rating badge support, optional straight disc text, and stable centered curved copyright/legal text.
+The current working interface is the **disc-label editor**. It is now a Steam backup disc-label editor with a real-disc-art workflow: Steam/manual metadata, Steam and local artwork sources, real disc geometry, background editing, title/logo artwork, additional artwork, Steam banner branding, developer/publisher/additional logos, rating badges, media marks, operating-system marks, technical marks, optional text systems, export preflight, save/load, and 300 DPI PNG export.
 
-This does not mean the whole planned product is close to complete. The current working interface is the disc-label editor. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
+This does not mean the whole planned product is close to complete. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
 
-The emergency editor-foundation refactor tracked in issue #36 is complete and closed. High-risk editor foundations have been extracted from `App.tsx`, build/lint are clean, and local smoke testing has passed. Remaining cleanup is tracked separately in issues #44-#49 so feature work can continue without keeping the emergency refactor open.
+The next stretch of work remains focused on getting the **disc artwork editor alone** to alpha quality. This is not whole-app alpha. Issue #69 remains the parent finish-line definition for that boundary.
 
-The next stretch of work is focused on getting the **disc artwork editor alone** to alpha quality. This is not whole-app alpha. The disc editor is alpha-ready when a normal user can create, edit, save, reload, and export a print-ready disc label without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-label work.
+The current editor should be preserved and evolved in place. Steam/manual metadata, artwork import, title artwork, additional artwork, background placement, geometry, safe-zone guides, banner controls, logo/badge/mark systems, disc text, export preflight, New Project, save/load, export, preview, sidebar panels, and toast notifications are working launchpad systems.
 
-Issue #69 is the current finish-line definition for that boundary. The current editor should be preserved and evolved in place: Steam/manual metadata, background artwork, geometry, safe-zone guides, banner controls, developer/publisher logos, rating badges, media/platform mark work, disc text, New Project, save/load, export, preview, sidebar panels, and toast notifications are working launchpad systems, not a reason to restart from zero.
+Do not claim current native/Tauri manual smoke unless it has actually been run for the current checkout. This documentation update does not include `npm run tauri dev`.
 
-The disc editor is not yet alpha-complete because it still needs real-world disc-art composition features: dedicated title/logo art, additional artwork/logo elements, multiple marks beyond the fixed developer/publisher slots, file-backed generic built-in assets instead of generated placeholders, text behavior that can respect visual element boundaries, safe-zone enforcement, layer-order parity, expanded export preflight, metadata-to-rendered-text behavior, and toast wording/icon polish.
+## Current Sidebar Flow
 
-See `MILESTONES.md` for the broader milestone and feature backlog. See `REFACTOR_STATUS.md` for the issue #36 completion summary and follow-up cleanup notes.
+The intended main sidebar flow is:
 
-## Phase 0: Planning Foundation — Complete
+Project File → Export Options → Game → Template → Artwork → Branding → Text → Guide Legend
+
+Guide Legend remains a sidebar section for now. Issue #124 tracks moving it to a collapsible, open-by-default bottom-right panel inside the live preview. Export Options should not move as part of that future issue.
+
+## Issue Tracker Context
+
+Open issues most relevant to this roadmap:
+
+- #69 - parent real-disc-art alpha finish line.
+- #123 - centralize/de-placeholder built-in generic visuals for manual replacement.
+- #124 - move Guide Legend into the live preview.
+- #56 - decide embedded asset strategy and future `.sbls` package format.
+- #48 - add project schema validation and migration support.
+- #47 - review Rust Tauri command module organization.
+- #46 - organize CSS after component extraction.
+- #44 - extract remaining editor state into focused hooks.
+- #17 - design future Guided Start / Blank Project opening screen.
+
+Recently completed issue work that should not be described as missing:
+
+- #33, #59, #60, #61, #62, #63, #65, #66, #68, #82-#85, #95, #96, #97, #98, and #99.
+
+## Phase 0: Planning Foundation - Complete
 
 Goal: Make the repository understandable and ready for implementation.
 
@@ -30,13 +54,14 @@ Completed:
 - Add starter GitHub issues.
 - Add current status document.
 - Add milestone and feature backlog document.
+- Add architecture guardrails, layer-order docs, metadata-bound text docs, project-file notes, and visual regression workflow docs.
 
 Still useful later:
 
 - Add dedicated template notes once template support expands beyond disc labels.
-- Add dedicated project file notes once the project format stabilizes.
+- Add dedicated project format notes once the project format stabilizes beyond plain JSON.
 
-## Phase 1: Project Scaffold — Complete
+## Phase 1: Project Scaffold - Complete
 
 Goal: Create a basic desktop app that launches on Windows and Linux.
 
@@ -45,11 +70,11 @@ Completed:
 - Scaffold Tauri + React + TypeScript app.
 - Set app name to Steam Backup Label Studio.
 - Add basic app shell.
-- Confirm the app runs locally.
+- Confirm the app runs locally during earlier setup work.
 - Add CI build workflow.
 - Update GitHub Actions for Node 24 compatibility.
 
-## Phase 2: Blank Disc Preview — Complete
+## Phase 2: Blank Disc Preview - Complete
 
 Goal: Render the first disc label template.
 
@@ -60,81 +85,64 @@ Completed:
 - Draw physical center hole.
 - Draw inner print boundary.
 - Draw outer print boundary.
-- Draw safe zone guide.
+- Draw safe-zone guide.
 - Draw non-printable hub region.
 - Scale preview to fit the editor window.
 - Set minimum desktop window size to prevent unusable layouts.
 
-## Phase 3: Basic Editor — Partially Complete
+## Phase 3: Basic Disc Editor - Mostly Complete For Current Alpha Path
 
-Goal: Add the first editable design layers.
+Goal: Add the first editable disc design layers and controls.
 
 Completed:
 
-- Add background image layer.
-- Allow dragging background artwork.
-- Allow resizing background artwork.
-- Add reset behavior for background image placement.
-- Add Steam-style banner branding placement with a real default lockup asset.
-- Add adjustable banner lockup scale and offset controls.
-- Add user-facing banner color controls.
-- Organize editor controls into independently collapsible panels.
-- Move imported Steam artwork selection into the Artwork panel.
-- Add labeled live preview.
-- Add top-right stacked preview toast notifications.
-- Add optional straight disc text elements: title, disc number, backup date, Steam App ID, custom note, and copyright/legal text.
-- Add stable centered curved copyright/legal text with arc length, angle, inset, scale, side, and wrapping controls.
-- Preserve text settings through save/load and PNG export.
-- Add developer/publisher logo assets with alignment presets.
-- Add rating badge support with placeholders and custom image replacement.
-- Add a New Project / Reset Project action.
+- Background image layer with upload, drag, scale, fit, reset, show/hide, save/load, and export.
+- Steam-style banner branding with placement, colors, custom/default lockup image, scale, offsets, save/load, and export.
+- Imported Steam artwork selection moved into the Artwork panel.
+- Web artwork candidate discovery and preview picker.
+- Game title/logo artwork from Steam logo assets or custom upload.
+- Additional artwork elements with local, Steam artwork, and local Steam screenshot sources.
+- Developer/publisher logo assets, additional logo marks, candidate discovery, alignment presets, drag/manual positioning, upload/custom image, reset/clear/delete, save/load, preview, and export.
+- Rating badge support with metadata, layout presets, generic/custom images, drag/manual positioning, upload/custom image, reset/clear, save/load, preview, and export.
+- Media format marks.
+- Operating-system marks with reliable Steam appdetails inference where available.
+- Technical/audio/codec/middleware/technology marks.
+- Optional straight disc text, metadata-bound text, style presets, layout presets, widths, visual avoidance, and centered curved copyright/legal text.
+- Disc-number graphic badge mode.
+- Independently collapsible sidebar sections.
+- Labeled live preview and stacked preview toast notifications.
 
 Remaining:
 
-- Add dedicated title/logo art support.
-- Add general artwork/logo element insertion with upload/source, show/hide, placement, scale, save/load, and export.
-- Support multiple logos/marks beyond the fixed developer/publisher slots.
-- Replace generated user-facing placeholder boxes with real checked-in generic asset files.
-- Add text behavior that can optionally respect nearby visual element boundaries while always respecting the disc safe-zone boundary.
-- Add curved copyright alignment modes only if they do not regress the stable centered curved text behavior; otherwise formally keep centered-only curved text as the alpha-supported baseline.
-- Add adjustable straight text box widths.
-- Constrain movable elements to safe-zone geometry.
-- Add a clearer layer model.
-- Allow selecting layers.
-- Allow dragging/resizing additional layer types beyond the background and current text/banner/logo/badge controls.
-- Add basic layer properties panel if needed for the alpha element model.
+- Finish #123 so all built-in/default/generic visual assets are centralized and easy to manually replace.
+- Keep the optional-feature hierarchy and disabled-state preservation consistent across future visual systems.
+- Improve fixture/manual smoke coverage for newer systems.
+- Continue architecture cleanup where it directly supports alpha risk reduction.
 
-## Phase 4: Project Save and Load — Complete for Current Disc-Label MVP
+## Phase 4: Project Save and Load - Complete For Current Disc-Label MVP
 
 Goal: Make work persistent.
 
 Completed:
 
-- Save project to local file.
-- Load project from local file.
-- Restore template choice.
-- Restore custom dimensions.
-- Restore game metadata.
-- Restore embedded background artwork.
-- Restore background scale and offset.
-- Restore Steam Backup logo placement.
+- Save project to a local plain JSON file, commonly named `.sbls.json`.
+- Load project from a local JSON file.
+- Restore template choice and custom dimensions.
+- Restore selected Steam game metadata and project-owned metadata.
+- Restore embedded background artwork and layout settings.
+- Restore Steam banner settings.
+- Restore title artwork, additional artwork, logo assets, rating badge, media/platform/technical marks, disc-number artwork, and disc text state where supported by the current schema.
 - Restore export guide settings.
-- Restore banner lockup settings currently supported by the editor.
-- Restore optional disc text settings, values, layout, and curved copyright settings.
-- Restore project-owned metadata, logo assets, rating badge settings, and New Project defaults.
-- Move project schema/type definitions into `src/project/` as part of issue #36.
-- Add a project JSON normalization landing point for future migrations.
+- Normalize sparse/legacy project data through `src/project/`.
 
 Future improvements:
 
-- Current saved projects are plain JSON, commonly named like `.sbls.json`.
-- A future `.sbls` package/container format may replace or complement JSON if embedded artwork becomes too large or portability becomes a blocker.
-- Do not imply `.sbls` package support exists today.
+- The future `.sbls` package/container format may replace or complement JSON if embedded artwork size, portability, or migration behavior becomes a blocker.
+- Do not imply package support exists today.
 - Do not treat the future package format as a disc-editor alpha blocker unless a specific save/load limitation appears.
-- Document project schema once it stabilizes.
-- Add migration handling for future project schema versions.
+- Add schema validation and migration support (#48).
 
-## Phase 5: Export — Complete for Current Disc-Label MVP
+## Phase 5: Export - Complete For Current Disc-Label MVP
 
 Goal: Produce a usable print file.
 
@@ -146,91 +154,64 @@ Completed:
 - Cut out the physical center hole.
 - Hide editor-only guides by default.
 - Add optional guide export controls.
-- Support guide export for center hole, outer edge, printable area, and safe zone.
-- Export the Steam-style banner lockup.
-- Export optional straight text elements.
-- Export stable centered curved copyright/legal text.
-- Move PNG export rendering into focused `src/export/` modules as part of issue #36.
+- Export background, additional artwork, Steam banner, title artwork, logos, rating badge, media mark, operating-system marks, technical marks, disc text, and optional guide marks.
+- Centralize layer order through `src/layerOrder.ts`.
+- Add export preflight summary and warnings.
 
 Future improvements:
 
-- Add export-time summary/preflight.
 - Add richer export presets.
 - Add print calibration output.
 - Add direct printer support later.
 
-## Phase 6: Steam Import — Complete for Current Disc-Label MVP
+## Phase 6: Steam Import - Complete For Current Disc-Label MVP
 
-Goal: Bring in basic Steam metadata and artwork.
+Goal: Bring in useful Steam metadata and artwork.
 
 Completed:
 
 - Add game search UI.
 - Search real Steam results.
 - Import title and basic metadata.
-- Import artwork options when available.
-- Import Steam store artwork.
-- Import Steam library capsule and hero artwork when available.
+- Import store artwork, library capsule/hero artwork, screenshots, and logo artwork where available.
 - Import Steam screenshots and local Steam screenshots when available.
-- Apply imported artwork as disc background.
+- Seed title/logo artwork from Steam logo assets when available.
+- Infer operating-system marks from reliable Steam appdetails platform flags.
+- Load rating/legal candidates from Steam sources and allow manual application.
+- Populate editable project-owned metadata from imported values where available.
 - Preserve imported metadata through save/load.
-- Populate editable project-owned metadata from imported Steam values where available.
-- Move imported artwork choices from the visible Game workflow into the Artwork panel.
-- Consolidate shared byte/base64 helper usage for Steam and local artwork paths.
 
 Remaining:
 
-- Improve artwork picker presentation with thumbnails, asset type, origin, and dimensions.
-- Build a shared project asset library for future template interfaces.
+- Keep improving candidate confidence/copy without pretending automatic rating lookup is complete.
+- Build a shared project asset library only when it is needed for case editors or packaging work.
 
-## Phase 7: Pre-Alpha Cleanup and UI Polish — In Progress
+## Phase 7: Real-Disc-Art Alpha Polish - In Progress
 
-Goal: Make the working disc-label prototype feel like an intentional editor.
+Goal: Make the disc-label editor intentional enough for a first alpha package.
 
 Completed:
 
 - Remove stale prototype UI elements.
-- Replace stale build/status text.
-- Align package/app version metadata.
-- Improve Guide Legend with meaningful explanations.
-- Replace the default collapse/expand glyph with a custom crowbar element.
-- Add a labeled preview pane.
-- Add a TF2-style top-right stacked toast notification feed in the preview pane.
-- Move imported artwork management into the Artwork panel.
+- Improve Guide Legend content.
+- Replace default collapse/expand glyph with a custom panel toggle.
+- Add labeled preview pane and toast feed.
 - Add real default Steam banner lockup image support.
-- Add user-facing Steam banner color, lockup image, scale, and offset controls.
-- Add adjustable basic disc text and stable centered curved copyright/legal text.
-- Add project-owned metadata, developer/publisher logo assets, logo alignment presets, rating badge support, and New Project reset behavior.
-- Establish a clean `npm run build` and `npm run lint` baseline after initial refactor work.
-- Extract sidebar panels into presentational components.
-- Extract preview UI into focused components.
-- Complete and close issue #36.
-- Update planning documents.
+- Add user-facing banner controls.
+- Add metadata-bound text, style/layout controls, and export parity work.
+- Add title artwork, additional artwork, multiple logos, media/platform/technical marks, and export preflight.
+- Establish architecture guardrails and layer-order policy.
 
 Current targets:
 
-- Use issue #69 as the finish-line definition for disc-editor alpha.
-- Add dedicated title/logo art support.
-- Add general additional artwork/logo element support.
-- Support multiple logo/mark elements beyond the fixed developer/publisher slots.
-- Replace generated user-facing placeholders with real file-backed generic assets.
-- Add text behavior that can avoid or respect visual element boundaries, while disc safe-zone compliance is always enforced.
-- Polish toast wording and replace temporary toast symbols/icons.
-- Constrain movable visual elements to safe-zone geometry.
-- Clarify metadata-to-rendered-text behavior.
-- Document and enforce preview/export layer ordering.
-- Expand export summary/preflight behavior for logos, marks, text collisions, guide marks, backgrounds, custom dimensions, missing assets, and enabled-but-unavailable dependencies.
-- Add curved copyright alignment modes only if safe; otherwise explicitly keep centered curved text as the alpha baseline.
-- Add adjustable straight text box widths and layout presets if manual placement remains too fiddly.
-- Improve artwork picker presentation.
+- Finish #123.
+- Keep #124 scoped as a separate UI relocation issue.
+- Add/update fixture coverage for newer real-disc-art systems.
+- Keep optional visual hierarchy consistent.
+- Continue architecture cleanup and schema migration work where it reduces alpha risk.
+- Prepare known issues and packaging only after non-interactive validation and manual runtime smoke are honestly complete.
 
-Deferred alpha cleanup:
-
-- Remove duplicate hidden UI markup created during conservative pre-alpha changes.
-- Clean duplicate CSS overrides once component boundaries settle.
-- Continue post-refactor cleanup tracked in issues #44-#49, including hook extraction, helper extraction, CSS organization, Rust command organization, toast-symbol polish, and project schema validation/migrations.
-
-## Phase 8: Case Template Foundation — Deferred Until Disc Editor Alpha
+## Phase 8: Case Template Foundation - Deferred Until Disc Editor Alpha
 
 Goal: Prepare the code and UI for interfaces beyond the disc label editor.
 
@@ -243,30 +224,30 @@ Planned work:
 - Build shared metadata model.
 - Keep unavailable template interfaces clearly marked as incomplete until they can export usable files.
 
-## Phase 9: Disc Editor Alpha Release — Upcoming
+## Phase 9: Disc Editor Alpha Release - Upcoming
 
 Goal: Package the first testable build with honest limitations, with the disc editor as the first alpha surface. This must not imply the whole app is alpha or that jewel/DVD/Blu-ray case editors are ready.
 
 Tasks:
 
+- Finish remaining #69-linked alpha work.
 - Build Windows package.
 - Build Linux package.
 - Add known issues list.
 - Create first disc-editor alpha release.
 - Include clear limitations and legal/disclaimer notes.
 - State which template interfaces are functional.
+- Record validation honestly, including whether native/Tauri manual smoke was performed.
 
 ## Future Phases
 
-- Guided Start and Blank Project opening screen. Guided Start should wait until the editor systems are stable; it is closer to a last step before beta than a blocker for disc-editor alpha.
+- Guided Start and Blank Project opening screen (#17).
 - Jewel case templates.
 - DVD/Amaray case templates.
 - Blu-ray case templates.
 - Screenshots and back-cover layouts.
-- Optical media logo marks.
 - Copyright block placement and generator.
 - Spine text generator.
-- Advanced curved disc text alignment.
-- Multi-disc / Backup Set projects.
+- Advanced multi-disc / Backup Set projects.
 - Print calibration sheet.
 - Direct printer support.

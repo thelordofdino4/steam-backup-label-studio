@@ -8,13 +8,13 @@ import {
   getTechnicalMarkLayoutSliderRanges,
 } from '../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
-import { MEDIA_MARK_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference } from '../../project/projectMediaMark'
+import { MEDIA_MARK_OPTIONS, MEDIA_MARK_THEME_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkThemeOptions, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference, mediaMarkSupportsTheme, platformMarkSupportsTheme } from '../../project/projectMediaMark'
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
 import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import { getLogoAssetSource } from '../../project/projectLogoAssets'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
-import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkTheme, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
 import type { DiscTemplate } from '../../types/template'
@@ -41,6 +41,7 @@ export type BrandingPanelProps = {
   projectTechnicalMarks: ProjectTechnicalMarks
   selectedDiscTemplate: DiscTemplate
   handleProjectMetadataChange: (field: keyof ProjectMetadata, value: string) => void
+  handleProjectMetadataFieldsChange: (fields: Partial<ProjectMetadata>) => void
   handleSteamBannerLockupUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleClearSteamBannerLockup: () => void
   handleSteamBannerLockupLayoutChange: (field: keyof SteamBannerLockupLayout, value: number) => void
@@ -66,12 +67,14 @@ export type BrandingPanelProps = {
   handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleMediaMarkValueChange: (value: MediaMarkValue) => void
   handleMediaMarkSourceChange: (source: MediaMarkSource) => void
+  handleMediaMarkThemeChange: (theme: MediaMarkTheme) => void
   handleMediaMarkLayoutChange: (field: keyof MediaMarkLayout, value: boolean | number) => void
   handleClearMediaMarkImage: () => void
   handleResetMediaMarkLayout: () => void
   handlePlatformMarkToggle: (value: PlatformMarkValue, enabled: boolean) => void
   handlePlatformMarkUpload: (value: PlatformMarkValue, event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
+  handlePlatformMarkThemeChange: (value: PlatformMarkValue, theme: PlatformMarkTheme) => void
   handlePlatformMarkLayoutChange: (platformValue: PlatformMarkValue, field: keyof PlatformMarkLayout, layoutValue: boolean | number) => void
   handleClearPlatformMarkImage: (value: PlatformMarkValue) => void
   handleResetPlatformMarkLayout: (value: PlatformMarkValue) => void
@@ -520,7 +523,7 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, pr
   )
 }
 
-function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeEnabledChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeEnabledChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
+function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleProjectMetadataFieldsChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeEnabledChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleProjectMetadataFieldsChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeEnabledChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
@@ -548,8 +551,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
           <select id="branding-rating-system" value={activeRatingSystem} onChange={(event) => {
             const nextSystem = event.target.value as GameRatingSystem
             const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
-            handleProjectMetadataChange('ratingSystem', nextMetadata.ratingSystem)
-            handleProjectMetadataChange('ratingValue', nextMetadata.ratingValue)
+            handleProjectMetadataFieldsChange(nextMetadata)
           }}>
             <option value="ESRB">ESRB</option>
             <option value="PEGI">PEGI</option>
@@ -575,7 +577,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
 
           <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
           <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
-            <option value="placeholder">Built-in generic</option>
+            <option value="placeholder">Built-in artwork</option>
             <option value="custom">Custom image</option>
           </select>
 
@@ -590,9 +592,9 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
                   <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
                   <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
                 </div>
-              ) : <p className="hint">No custom badge image is selected yet. The bundled generic badge is used when a rating system and value are set.</p>}
+              ) : <p className="hint">No custom badge image is selected yet. The bundled rating artwork is used when a rating system and value are set.</p>}
             </>
-          ) : <p className="hint">Using the built-in generic badge.</p>}
+          ) : <p className="hint">Using the built-in rating artwork.</p>}
 
           <label className="field-label spacing-top" htmlFor="rating-badge-layout-preset">Layout preset</label>
           <select id="rating-badge-layout-preset" defaultValue="" onChange={(event) => {
@@ -617,9 +619,11 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
   )
 }
 
-function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'selectedDiscTemplate' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
+function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMediaMarkUpload, handleMediaMarkValueChange, handleMediaMarkSourceChange, handleMediaMarkThemeChange, handleMediaMarkLayoutChange, handleClearMediaMarkImage, handleResetMediaMarkLayout }: Pick<BrandingPanelProps, 'projectMediaMark' | 'selectedDiscTemplate' | 'handleMediaMarkUpload' | 'handleMediaMarkValueChange' | 'handleMediaMarkSourceChange' | 'handleMediaMarkThemeChange' | 'handleMediaMarkLayoutChange' | 'handleClearMediaMarkImage' | 'handleResetMediaMarkLayout'>) {
   const isEnabled = projectMediaMark.layout.enabled
   const isCustomMediaMarkSource = projectMediaMark.source === 'custom'
+  const showsThemeControl = !isCustomMediaMarkSource &&
+    mediaMarkSupportsTheme(projectMediaMark.value)
   const sliderRanges = getMediaMarkLayoutSliderRanges(
     projectMediaMark,
     selectedDiscTemplate,
@@ -638,6 +642,14 @@ function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMedia
             <option value="placeholder">Built-in generic</option>
             <option value="custom">Custom image</option>
           </select>
+          {showsThemeControl ? (
+            <>
+              <label className="field-label spacing-top" htmlFor="media-mark-theme">Mark theme</label>
+              <select id="media-mark-theme" value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
+                {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+            </>
+          ) : null}
           <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
           {isCustomMediaMarkSource ? (
             <>
@@ -666,7 +678,7 @@ function MediaMarkControls({ projectMediaMark, selectedDiscTemplate, handleMedia
   )
 }
 
-function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'selectedDiscTemplate' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
+function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, handlePlatformMarkToggle, handlePlatformMarkUpload, handlePlatformMarkSourceChange, handlePlatformMarkThemeChange, handlePlatformMarkLayoutChange, handleClearPlatformMarkImage, handleResetPlatformMarkLayout }: Pick<BrandingPanelProps, 'projectPlatformMarks' | 'selectedDiscTemplate' | 'handlePlatformMarkToggle' | 'handlePlatformMarkUpload' | 'handlePlatformMarkSourceChange' | 'handlePlatformMarkThemeChange' | 'handlePlatformMarkLayoutChange' | 'handleClearPlatformMarkImage' | 'handleResetPlatformMarkLayout'>) {
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
@@ -704,6 +716,10 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
             const label = getPlatformMarkLabel(value)
             const uploadId = `platform-mark-upload-${value}`
             const isCustomPlatformMarkSource = asset.source === 'custom'
+            const themeOptions = getPlatformMarkThemeOptions(value)
+            const showsThemeControl =
+              !isCustomPlatformMarkSource &&
+              platformMarkSupportsTheme(value)
             const sliderRanges = getPlatformMarkLayoutSliderRanges(
               asset,
               selectedDiscTemplate,
@@ -716,6 +732,14 @@ function PlatformMarkControls({ projectPlatformMarks, selectedDiscTemplate, hand
                   <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>
+                {showsThemeControl ? (
+                  <>
+                    <label className="field-label spacing-top" htmlFor={`platform-mark-theme-${value}`}>Mark style</label>
+                    <select id={`platform-mark-theme-${value}`} value={asset.theme} onChange={(event) => handlePlatformMarkThemeChange(value, event.target.value as PlatformMarkTheme)}>
+                      {themeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </>
+                ) : null}
                 {isCustomPlatformMarkSource ? (
                   <>
                     <span className="field-label spacing-top">Custom operating system image</span>

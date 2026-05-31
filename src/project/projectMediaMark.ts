@@ -6,10 +6,12 @@ import type { DiscTemplate } from '../types/template'
 import type {
   MediaMarkLayout,
   MediaMarkSource,
+  MediaMarkTheme,
   MediaMarkValue,
   BackgroundImageSize,
   PlatformMarkLayout,
   PlatformMarkSource,
+  PlatformMarkTheme,
   PlatformMarkValue,
   ProjectMediaMark,
   ProjectPlatformMarkInference,
@@ -34,6 +36,11 @@ export const MEDIA_MARK_OPTIONS: Array<{ value: MediaMarkValue; label: string }>
   { value: 'installDisc', label: 'Install Disc' },
 ]
 
+export const MEDIA_MARK_THEME_OPTIONS: Array<{ value: MediaMarkTheme; label: string }> = [
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+]
+
 export const PLATFORM_MARK_OPTIONS: Array<{ value: PlatformMarkValue; label: string }> = [
   { value: 'pc', label: 'PC' },
   { value: 'windows', label: 'Windows' },
@@ -41,6 +48,68 @@ export const PLATFORM_MARK_OPTIONS: Array<{ value: PlatformMarkValue; label: str
   { value: 'steamDeck', label: 'SteamOS' },
   { value: 'macos', label: 'macOS' },
 ]
+
+export const PLATFORM_MARK_THEME_OPTIONS: Array<{ value: PlatformMarkTheme; label: string }> = [
+  { value: 'color', label: 'Color' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+  { value: 'macos1988', label: '1988' },
+  { value: 'macos1995', label: '1995' },
+  { value: 'macos2001', label: '2001' },
+  { value: 'macos2003', label: '2003' },
+  { value: 'macos2012', label: '2012' },
+  { value: 'macos2016', label: '2016' },
+  { value: 'macos2017', label: '2017' },
+  { value: 'retro', label: 'Retro' },
+  { value: 'xp', label: 'XP' },
+  { value: 'vista', label: 'Vista' },
+  { value: 'windows7', label: '7' },
+  { value: 'windows10', label: '10' },
+  { value: 'windows11', label: '11' },
+  { value: 'pcPlatform', label: 'PC Platform' },
+  { value: 'pcSimplified', label: 'PC Simplified' },
+  { value: 'pcSimplifiedDark', label: 'PC Simplified Dark' },
+]
+
+const LINUX_PLATFORM_MARK_THEME_OPTIONS = PLATFORM_MARK_THEME_OPTIONS.filter(
+  (option) => option.value === 'color' || option.value === 'light' || option.value === 'dark',
+)
+
+const MACOS_PLATFORM_MARK_THEME_OPTIONS = PLATFORM_MARK_THEME_OPTIONS.filter(
+  (option) =>
+    option.value === 'macos1988' ||
+    option.value === 'macos1995' ||
+    option.value === 'macos2001' ||
+    option.value === 'macos2003' ||
+    option.value === 'macos2012' ||
+    option.value === 'macos2016' ||
+    option.value === 'macos2017',
+)
+
+const WINDOWS_PLATFORM_MARK_THEME_OPTIONS = PLATFORM_MARK_THEME_OPTIONS.filter(
+  (option) =>
+    option.value === 'retro' ||
+    option.value === 'xp' ||
+    option.value === 'vista' ||
+    option.value === 'windows7' ||
+    option.value === 'windows10' ||
+    option.value === 'windows11',
+)
+
+const PC_PLATFORM_MARK_THEME_OPTIONS = PLATFORM_MARK_THEME_OPTIONS.filter(
+  (option) =>
+    option.value === 'pcPlatform' ||
+    option.value === 'pcSimplified' ||
+    option.value === 'pcSimplifiedDark',
+)
+
+const PLATFORM_MARK_THEME_OPTIONS_BY_VALUE: Record<PlatformMarkValue, Array<{ value: PlatformMarkTheme; label: string }>> = {
+  linux: LINUX_PLATFORM_MARK_THEME_OPTIONS,
+  macos: MACOS_PLATFORM_MARK_THEME_OPTIONS,
+  pc: PC_PLATFORM_MARK_THEME_OPTIONS,
+  steamDeck: LINUX_PLATFORM_MARK_THEME_OPTIONS,
+  windows: WINDOWS_PLATFORM_MARK_THEME_OPTIONS,
+}
 
 const PLATFORM_MARK_VALUES = PLATFORM_MARK_OPTIONS.map((option) => option.value)
 
@@ -50,6 +119,12 @@ const DEFAULT_PLATFORM_MARK_INFERENCE: ProjectPlatformMarkInference = {
   steamAppId: null,
   values: [],
   message: 'No Steam platform metadata has been applied.',
+}
+
+const DEFAULT_MEDIA_MARK_THEME: MediaMarkTheme = 'light'
+const FALLBACK_PLATFORM_MARK_THEME: PlatformMarkTheme = 'color'
+const DEFAULT_PLATFORM_MARK_THEME_BY_VALUE: Partial<Record<PlatformMarkValue, PlatformMarkTheme>> = {
+  windows: 'windows11',
 }
 
 export const DEFAULT_MEDIA_MARK_LAYOUT: MediaMarkLayout = {
@@ -78,8 +153,32 @@ export function getMediaMarkLabel(value: MediaMarkValue) {
   return MEDIA_MARK_OPTIONS.find((option) => option.value === value)?.label ?? 'Data Disc'
 }
 
+export function mediaMarkSupportsTheme(value: MediaMarkValue) {
+  return (
+    value === 'cdRom' ||
+    value === 'dataDisc' ||
+    value === 'dvd' ||
+    value === 'dvdRom' ||
+    value === 'installDisc'
+  )
+}
+
 export function getPlatformMarkLabel(value: PlatformMarkValue) {
   return PLATFORM_MARK_OPTIONS.find((option) => option.value === value)?.label ?? 'PC'
+}
+
+export function getPlatformMarkThemeOptions(value: PlatformMarkValue) {
+  return PLATFORM_MARK_THEME_OPTIONS_BY_VALUE[value]
+}
+
+export function getDefaultPlatformMarkTheme(value: PlatformMarkValue) {
+  return DEFAULT_PLATFORM_MARK_THEME_BY_VALUE[value] ??
+    getPlatformMarkThemeOptions(value)[0]?.value ??
+    FALLBACK_PLATFORM_MARK_THEME
+}
+
+export function platformMarkSupportsTheme(value: PlatformMarkValue) {
+  return getPlatformMarkThemeOptions(value).length > 0
 }
 
 export function createDefaultProjectMediaMark(
@@ -88,6 +187,7 @@ export function createDefaultProjectMediaMark(
   return {
     value: 'dataDisc',
     source: 'placeholder',
+    theme: DEFAULT_MEDIA_MARK_THEME,
     customImageDataUrl: null,
     customImageSize: null,
     layout: selectedDiscTemplate
@@ -113,6 +213,16 @@ export function updateMediaMarkSource(
   return {
     ...mediaMark,
     source,
+  }
+}
+
+export function updateMediaMarkTheme(
+  mediaMark: ProjectMediaMark,
+  theme: MediaMarkTheme,
+): ProjectMediaMark {
+  return {
+    ...mediaMark,
+    theme,
   }
 }
 
@@ -204,6 +314,7 @@ export function createDefaultProjectPlatformMarkAsset(
 ): ProjectPlatformMarkAsset {
   return {
     source: 'placeholder',
+    theme: getDefaultPlatformMarkTheme(value),
     customImageDataUrl: null,
     customImageSize: null,
     layout: selectedDiscTemplate
@@ -416,6 +527,24 @@ export function updatePlatformMarkSource(
   })
 }
 
+export function updatePlatformMarkTheme(
+  platformMarks: ProjectPlatformMarks,
+  value: PlatformMarkValue,
+  theme: PlatformMarkTheme,
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectPlatformMarks {
+  const currentAsset = getProjectPlatformMarkAsset(
+    platformMarks,
+    value,
+    selectedDiscTemplate,
+  )
+
+  return setProjectPlatformMarkAsset(platformMarks, value, {
+    ...currentAsset,
+    theme: normalizePlatformMarkTheme(value, theme),
+  })
+}
+
 export function updatePlatformMarkLayoutField(
   platformMarks: ProjectPlatformMarks,
   value: PlatformMarkValue,
@@ -491,8 +620,32 @@ function isMediaMarkValue(value: unknown): value is MediaMarkValue {
   return MEDIA_MARK_OPTIONS.some((option) => option.value === value)
 }
 
+function isMediaMarkTheme(value: unknown): value is MediaMarkTheme {
+  return MEDIA_MARK_THEME_OPTIONS.some((option) => option.value === value)
+}
+
 function isPlatformMarkValue(value: unknown): value is PlatformMarkValue {
   return PLATFORM_MARK_VALUES.includes(value as PlatformMarkValue)
+}
+
+function isPlatformMarkTheme(value: unknown): value is PlatformMarkTheme {
+  return PLATFORM_MARK_THEME_OPTIONS.some((option) => option.value === value)
+}
+
+function isPlatformMarkThemeForValue(
+  value: PlatformMarkValue,
+  theme: PlatformMarkTheme,
+) {
+  return getPlatformMarkThemeOptions(value).some((option) => option.value === theme)
+}
+
+function normalizePlatformMarkTheme(
+  value: PlatformMarkValue,
+  theme: PlatformMarkTheme,
+) {
+  return isPlatformMarkThemeForValue(value, theme)
+    ? theme
+    : getDefaultPlatformMarkTheme(value)
 }
 
 function isPlatformMarkInferenceSource(
@@ -554,6 +707,9 @@ function normalizePlatformMarkAsset(
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarkAsset {
   const source = asset?.source === 'custom' ? 'custom' : 'placeholder'
+  const theme = isPlatformMarkTheme(asset?.theme)
+    ? normalizePlatformMarkTheme(value, asset.theme)
+    : getDefaultPlatformMarkTheme(value)
   const customImageSize = asset?.customImageSize ?? null
   const defaults = createDefaultProjectPlatformMarkAsset(value, selectedDiscTemplate)
   const defaultLayout = selectedDiscTemplate
@@ -565,6 +721,7 @@ function normalizePlatformMarkAsset(
 
   return {
     source,
+    theme,
     customImageDataUrl: asset?.customImageDataUrl ?? null,
     customImageSize,
     layout: normalizePlatformMarkLayout(asset?.layout, defaultLayout),
@@ -665,6 +822,10 @@ export function normalizeProjectMediaMark(
     return defaults
   }
   const source = mediaMark?.source === 'custom' ? 'custom' : 'placeholder'
+  const rawTheme = (mediaMark as { theme?: unknown } | undefined)?.theme
+  const theme = isMediaMarkTheme(rawTheme)
+    ? rawTheme
+    : DEFAULT_MEDIA_MARK_THEME
   const customImageSize = mediaMark?.customImageSize ?? null
   const defaultLayout = selectedDiscTemplate
     ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, {
@@ -676,6 +837,7 @@ export function normalizeProjectMediaMark(
   return {
     value: rawValue,
     source,
+    theme,
     customImageDataUrl: mediaMark?.customImageDataUrl ?? null,
     customImageSize,
     layout: normalizeMediaMarkLayout(mediaMark?.layout, defaultLayout),
@@ -744,6 +906,7 @@ export function normalizeProjectPlatformMarks(
               index === 0 && rawPlatformMarks.source === 'custom'
                 ? 'custom'
                 : 'placeholder',
+            theme: getDefaultPlatformMarkTheme(value),
             customImageDataUrl:
               index === 0 ? rawPlatformMarks.customImageDataUrl ?? null : null,
             customImageSize:
@@ -790,6 +953,7 @@ export function normalizeProjectPlatformMarks(
     assets: {
       [legacyValue]: {
         source: legacyMediaMark?.source === 'custom' ? 'custom' : 'placeholder',
+        theme: getDefaultPlatformMarkTheme(legacyValue),
         customImageDataUrl: legacyMediaMark?.customImageDataUrl ?? null,
         customImageSize: legacyMediaMark?.customImageSize ?? null,
         layout: legacyLayout,

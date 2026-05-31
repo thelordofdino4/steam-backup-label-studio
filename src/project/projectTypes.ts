@@ -212,6 +212,8 @@ export type MediaMarkValue =
 
 export type MediaMarkSource = 'placeholder' | 'custom'
 
+export type MediaMarkTheme = 'light' | 'dark'
+
 export type MediaMarkLayout = {
   enabled: boolean
   scale: number
@@ -222,6 +224,7 @@ export type MediaMarkLayout = {
 export type ProjectMediaMark = {
   value: MediaMarkValue
   source: MediaMarkSource
+  theme: MediaMarkTheme
   customImageDataUrl: string | null
   customImageSize: BackgroundImageSize | null
   layout: MediaMarkLayout
@@ -244,6 +247,27 @@ export type ProjectPlatformMarkInference = {
 
 export type PlatformMarkSource = 'placeholder' | 'custom'
 
+export type PlatformMarkTheme =
+  | 'color'
+  | 'light'
+  | 'dark'
+  | 'macos1988'
+  | 'macos1995'
+  | 'macos2001'
+  | 'macos2003'
+  | 'macos2012'
+  | 'macos2016'
+  | 'macos2017'
+  | 'retro'
+  | 'xp'
+  | 'vista'
+  | 'windows7'
+  | 'windows10'
+  | 'windows11'
+  | 'pcPlatform'
+  | 'pcSimplified'
+  | 'pcSimplifiedDark'
+
 export type PlatformMarkLayout = {
   enabled: boolean
   scale: number
@@ -253,6 +277,7 @@ export type PlatformMarkLayout = {
 
 export type ProjectPlatformMarkAsset = {
   source: PlatformMarkSource
+  theme: PlatformMarkTheme
   customImageDataUrl: string | null
   customImageSize: BackgroundImageSize | null
   layout: PlatformMarkLayout

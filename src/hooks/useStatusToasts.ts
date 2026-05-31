@@ -1,15 +1,5 @@
 import { useRef, useState } from 'react'
-import toastArtworkIconUrl from '../assets/toast-artwork.png'
-import toastErrorIconUrl from '../assets/toast-error.png'
-import toastExportIconUrl from '../assets/toast-export.png'
-import toastInfoIconUrl from '../assets/toast-info.png'
-import toastLogoIconUrl from '../assets/toast-logo.png'
-import toastProjectIconUrl from '../assets/toast-project.png'
-import toastSteamIconUrl from '../assets/toast-steam.png'
-import toastSuccessIconUrl from '../assets/toast-success.png'
-import toastTemplateIconUrl from '../assets/toast-template.png'
-import toastTextIconUrl from '../assets/toast-text.png'
-import toastWarningIconUrl from '../assets/toast-warning.png'
+import { STATUS_TOAST_ICON_URLS } from '../discPlaceholderAssets'
 
 export type StatusToastKind =
   | 'info'
@@ -41,47 +31,47 @@ type StatusToastDisplay = {
 const STATUS_TOAST_DISPLAY: Record<StatusToastKind, StatusToastDisplay> = {
   info: {
     actionLabel: 'Status',
-    iconUrl: toastInfoIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.info,
   },
   success: {
     actionLabel: 'Done',
-    iconUrl: toastSuccessIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.success,
   },
   warning: {
     actionLabel: 'Warning',
-    iconUrl: toastWarningIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.warning,
   },
   error: {
     actionLabel: 'Error',
-    iconUrl: toastErrorIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.error,
   },
   steam: {
     actionLabel: 'Steam',
-    iconUrl: toastSteamIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.steam,
   },
   artwork: {
     actionLabel: 'Artwork',
-    iconUrl: toastArtworkIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.artwork,
   },
   template: {
     actionLabel: 'Template',
-    iconUrl: toastTemplateIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.template,
   },
   export: {
     actionLabel: 'Export',
-    iconUrl: toastExportIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.export,
   },
   project: {
     actionLabel: 'Project',
-    iconUrl: toastProjectIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.project,
   },
   logo: {
     actionLabel: 'Logo',
-    iconUrl: toastLogoIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.logo,
   },
   text: {
     actionLabel: 'Text',
-    iconUrl: toastTextIconUrl,
+    iconUrl: STATUS_TOAST_ICON_URLS.text,
   },
 }
 

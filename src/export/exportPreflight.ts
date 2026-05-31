@@ -203,7 +203,7 @@ function getRatingBadgeWarnings(
   }
 
   if (ratingBadge.source === 'custom' && !ratingBadge.customImageDataUrl) {
-    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled generic artwork will export when rating metadata is renderable.')
+    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled rating artwork will export when rating metadata is renderable.')
   }
 
   if (
@@ -211,7 +211,7 @@ function getRatingBadgeWarnings(
     metadata.ratingSystem !== 'none' &&
     metadata.ratingValue.trim()
   ) {
-    warnings.push('Rating badge uses bundled generic artwork.')
+    warnings.push('Rating badge uses bundled rating artwork.')
   }
 
   return warnings

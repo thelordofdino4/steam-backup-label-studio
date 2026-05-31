@@ -1,5 +1,9 @@
 import type { GameRatingSystem, ProjectMetadata } from '../project/projectTypes'
 import {
+  normalizeEsrbRatingValue,
+  normalizePegiRatingValue,
+} from '../project/projectMetadata.ts'
+import {
   fetchSteamPageHtml,
   importSteamApp,
   type SteamImportedGame,
@@ -85,7 +89,6 @@ const BOARD_LABELS: Record<string, string> = {
   igrs: 'IGRS',
   steam_germany: 'Steam Germany',
 }
-const PEGI_VALUES = new Set(['3', '7', '12', '16', '18'])
 const MAX_LEGAL_CANDIDATES = 8
 const MAX_AUTO_APPLY_LEGAL_TEXT_LENGTH = 650
 const LEGAL_TERMS = [
@@ -186,24 +189,11 @@ function getBoardLabel(boardId: string) {
 }
 
 function normalizeEsrbRating(value: string) {
-  const normalized = normalizeForMatch(value)
-  const tokens = normalized.split(/\s+/)
-
-  if (tokens.includes('ao') || normalized.includes('adults only')) return 'AO'
-  if (normalized.includes('e10') || normalized.includes('everyone 10')) return 'E10+'
-  if (tokens.includes('rp') || normalized.includes('rating pending')) return 'RP'
-  if (tokens.includes('m') || normalized.includes('mature')) return 'M'
-  if (tokens.includes('t') || normalized.includes('teen')) return 'T'
-  if (tokens.includes('e') || normalized.includes('everyone')) return 'E'
-
-  return null
+  return normalizeEsrbRatingValue(value)
 }
 
 function normalizePegiRating(value: string) {
-  const normalized = normalizeForMatch(value)
-  const rating = normalized.match(/\b(3|7|12|16|18)\b/)?.[1] ?? null
-
-  return rating && PEGI_VALUES.has(rating) ? rating : null
+  return normalizePegiRatingValue(value)
 }
 
 function isUnratedValue(value: string) {

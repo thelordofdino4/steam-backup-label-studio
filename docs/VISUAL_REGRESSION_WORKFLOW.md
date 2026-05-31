@@ -1,6 +1,8 @@
 # Visual Regression Workflow
 
-This workflow is the pre-alpha manual process for checking live preview and PNG export parity across saved project fixtures. It supports issue #65 and is intentionally documentation-only for now. Do not treat a mismatch found here as part of this workflow task unless a separate issue asks for the rendering fix.
+This workflow is the pre-alpha manual process for checking live preview and PNG export parity across saved project fixtures. It supports the closed issue #65 workflow and is intentionally documentation-only unless a separate issue asks for fixture or rendering fixes. Do not treat a mismatch found here as part of an unrelated docs task.
+
+Last refreshed: 2026-05-31.
 
 ## Purpose
 
@@ -9,13 +11,18 @@ Use this pass when visual rendering changes, project fixtures change, export beh
 The workflow checks:
 
 - Background artwork placement and scale.
+- Additional artwork elements.
 - Steam Backup banner placement, colors, and lockup.
+- Game title/logo artwork.
 - Developer and publisher logos.
+- Additional developer/publisher/studio-style logos.
 - Rating badge.
 - Media format mark.
 - Platform marks.
+- Technical/audio/codec marks.
 - Straight metadata-bound text.
 - Curved copyright/legal text.
+- Export preflight warnings.
 - Optional exported guide marks.
 - Standard and custom disc dimensions.
 
@@ -58,7 +65,7 @@ Primary fixture projects live in `fixtures/projects/`.
 | `custom-dimensions.sbls.json` | Custom geometry, bottom Steam banner, custom export dimensions, guide export, text placement. |
 | `legacy-minimal-0.1.0.sbls.json` | Loader normalization for sparse older project data before visual comparison. |
 
-If these fixtures are missing a case that matters for the current change, manually create a project and record it in the run notes. Do not commit new fixtures unless the fixture data is safe placeholder content and the change is intentionally scoped to fixture maintenance.
+The current fixtures predate some real-disc-art alpha work. They do not fully cover title artwork, additional artwork, technical marks, disc-number badge mode, or all export preflight warnings. If these cases matter for the current change, manually create a project and record it in the run notes. Do not commit new fixtures unless the fixture data is safe placeholder/generic content and the change is intentionally scoped to fixture maintenance.
 
 ## Export Output Location
 
@@ -91,12 +98,17 @@ For each fixture:
 5. Open the exported PNG beside the app preview.
 6. Compare the expected layers:
    - Background placement, scale, clipping, and center-hole treatment.
+   - Additional artwork image, frame, placement, scale, and visibility.
    - Steam banner placement, color, lockup scale, and top/bottom alignment.
+   - Game title/logo artwork source, placement, scale, and visibility.
    - Developer and publisher logo placement, scale, and visibility.
+   - Additional logo placement, scale, and visibility when present.
    - Rating badge placement, scale, label/value, and visibility.
    - Media and platform mark placement, scale, labels, and visibility.
+   - Technical mark placement, scale, labels, and visibility.
    - Straight text content, alignment, width, scale, and placement.
    - Curved copyright/legal text content, arc side, inset, wrapping, and placement.
+   - Export preflight warnings match enabled/missing/generic visual state.
    - Guide export behavior for outer edge, physical center hole, inner print boundary, printable boundary, and safe zone.
    - Safe-zone constrained elements remain inside the intended bounds.
 7. If an expected export PNG already exists, compare the new PNG against it and record whether the difference is intentional.
@@ -153,8 +165,12 @@ Copy this template into the run notes for each fixture or export file.
 | Rating badge |  |  |
 | Media mark |  |  |
 | Platform marks |  |  |
+| Technical marks |  |  |
+| Title/logo artwork |  |  |
+| Additional artwork |  |  |
 | Straight text |  |  |
 | Curved copyright/legal text |  |  |
+| Export preflight |  |  |
 | Export guides |  |  |
 | Safe-zone constraints |  |  |
 | Custom dimensions |  |  |

@@ -4,6 +4,7 @@ import type {
   DiscTextValues,
 } from './discText.ts'
 import { getDiscTextContent } from './discText.ts'
+import { DISC_NUMBER_BADGE_IMAGE_URLS } from './discPlaceholderAssets.ts'
 import type { ProjectDiscNumberArtwork } from './project/projectTypes.ts'
 
 export type DiscNumberArtworkMode = ProjectDiscNumberArtwork['mode']
@@ -22,11 +23,6 @@ export type DiscNumberBadgeRenderModel = {
   widthPercent: number
   heightPercent: number
 }
-
-const starterRingBadgeUrl = new URL(
-  './assets/disc-number-badges/starter-ring.svg',
-  import.meta.url,
-).href
 
 export const DISC_NUMBER_BADGE_SET_OPTIONS: readonly DiscNumberBadgeSetOption[] = [
   { value: 'starterRing', label: 'Starter ring badge' },
@@ -105,7 +101,7 @@ export function createDiscNumberBadgeRenderModel(
   }
 
   return {
-    imageDataUrl: starterRingBadgeUrl,
+    imageDataUrl: DISC_NUMBER_BADGE_IMAGE_URLS[discNumberArtwork.badgeSet],
     text,
     label: DISC_NUMBER_BADGE_SET_OPTIONS.find(
       (option) => option.value === discNumberArtwork.badgeSet,

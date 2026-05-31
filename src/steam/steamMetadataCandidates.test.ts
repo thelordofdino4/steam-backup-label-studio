@@ -141,6 +141,22 @@ test('auto-applies only ESRB rating candidates for the current US default', () =
   )
 })
 
+test('normalizes ESRB rating pending likely mature as RP17+', () => {
+  const result = buildSteamMetadataCandidatesFromImportedGame(
+    createSteamGame({
+      ratings: {
+        esrb: {
+          rating: 'Rating Pending Likely Mature 17+',
+        },
+      },
+    }),
+  )
+
+  assert.equal(result.ratingCandidates.length, 1)
+  assert.equal(result.ratingCandidates[0].ratingSystem, 'ESRB')
+  assert.equal(result.ratingCandidates[0].ratingValue, 'RP17+')
+})
+
 test('auto-applies the best legal text candidate when one is available', () => {
   const result = buildSteamMetadataCandidatesFromImportedGame(
     createSteamGame({

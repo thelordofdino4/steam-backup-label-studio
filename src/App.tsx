@@ -79,7 +79,7 @@ import {
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
 import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateAdditionalLogoAssetLabel, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, markProjectPlatformMarksManual, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
+import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, markProjectPlatformMarksManual, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkTheme, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkTheme, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
 import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
   applyImportedLogoAsset,
@@ -87,7 +87,7 @@ import {
   applyImportedPlatformMark,
   applyImportedRatingBadge,
 } from './project/projectVisualAssetImport'
-import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkValue, PlatformMarkSource, PlatformMarkValue, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkTheme, MediaMarkValue, PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
 import {
   createDefaultProjectDiscNumberArtwork,
   updateDiscNumberArtworkBadgeSet,
@@ -962,6 +962,12 @@ function App() {
     })
   }
 
+  function handleMediaMarkThemeChange(theme: MediaMarkTheme) {
+    setProjectMediaMark((currentMark) =>
+      updateMediaMarkTheme(currentMark, theme),
+    )
+  }
+
   function handleMediaMarkLayoutChange(
     field: MediaMarkLayoutField,
     value: boolean | number,
@@ -1061,6 +1067,19 @@ function App() {
     setProjectPlatformMarks((currentMarks) => {
       const nextMarks = clampProjectPlatformMarksToSafeZone(
         updatePlatformMarkSource(currentMarks, value, source),
+        selectedDiscTemplate,
+      )
+
+      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
+    })
+  }
+
+  function handlePlatformMarkThemeChange(value: PlatformMarkValue, theme: PlatformMarkTheme) {
+    setProjectPlatformMarks((currentMarks) => {
+      const nextMarks = updatePlatformMarkTheme(
+        currentMarks,
+        value,
+        theme,
         selectedDiscTemplate,
       )
 
@@ -2407,6 +2426,7 @@ function App() {
           projectTechnicalMarks={projectTechnicalMarks}
           selectedDiscTemplate={selectedDiscTemplate}
           handleProjectMetadataChange={handleProjectMetadataChange}
+          handleProjectMetadataFieldsChange={handleProjectMetadataFieldsChange}
           handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
@@ -2432,12 +2452,14 @@ function App() {
           handleMediaMarkUpload={handleMediaMarkUpload}
           handleMediaMarkValueChange={handleMediaMarkValueChange}
           handleMediaMarkSourceChange={handleMediaMarkSourceChange}
+          handleMediaMarkThemeChange={handleMediaMarkThemeChange}
           handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
           handleClearMediaMarkImage={handleClearMediaMarkImage}
           handleResetMediaMarkLayout={handleResetMediaMarkLayout}
           handlePlatformMarkToggle={handlePlatformMarkToggle}
           handlePlatformMarkUpload={handlePlatformMarkUpload}
           handlePlatformMarkSourceChange={handlePlatformMarkSourceChange}
+          handlePlatformMarkThemeChange={handlePlatformMarkThemeChange}
           handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
           handleClearPlatformMarkImage={handleClearPlatformMarkImage}
           handleResetPlatformMarkLayout={handleResetPlatformMarkLayout}

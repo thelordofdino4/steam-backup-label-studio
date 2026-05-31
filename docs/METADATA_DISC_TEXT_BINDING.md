@@ -1,17 +1,28 @@
-# Metadata-bound Disc Text
+# Metadata-Bound Disc Text
 
-The disc text system keeps the existing flexible Text panel controls, but several rendered text elements now resolve obvious Game metadata fields before preview/export rendering.
+Last refreshed: 2026-05-31.
 
-## Bound fields
+The disc text system keeps the flexible Text panel controls, but rendered text elements can resolve obvious Game metadata fields before preview/export rendering.
 
-The following rendered text values use Game metadata when the metadata value is present:
+The source of truth is `src/project/metadataDiscText.ts`.
 
+## Bound Fields
+
+The following rendered text values use Game metadata when the text element is still set to its metadata/default source:
+
+- Game title text uses `projectMetadata.title`.
+- Subtitle / edition text uses `projectMetadata.subtitle`.
 - Steam App ID text uses `projectMetadata.steamAppId`.
 - Backup date text uses `projectMetadata.backupDate`.
 - Disc number text derives from `projectMetadata.discNumber` and `projectMetadata.discTotal`.
+- Developer text uses `projectMetadata.developer`.
+- Publisher text uses `projectMetadata.publisher`.
+- Install notes text uses `projectMetadata.installNotes`.
 - Copyright/legal text uses `projectMetadata.copyrightText`.
 
-## Disc number formatting
+`customNote` remains manual-only.
+
+## Disc Number Formatting
 
 Disc number text resolves as follows:
 
@@ -20,12 +31,16 @@ Disc number text resolves as follows:
 - `discTotal` only: `Disc 1 of Y`.
 - Neither field: fall back to the existing rendered disc text value.
 
-## Fallback behavior
+## Manual Override Behavior
 
-If a metadata field is blank, the existing rendered text value is used. This preserves existing saved project behavior and keeps the current Text panel useful for manual labels.
+Metadata-backed text shows the Game metadata/default as input placeholder text until edited in the Text panel.
 
-This is intentionally not a full text-system rewrite. Subtitle, edition, install notes, developer text, and publisher text remain covered by existing manual/custom text behavior until a later design decision adds dedicated rendered elements or presets.
+When a user types a non-empty value into a metadata-backed text input, that element switches to a manual override. Clearing the manual override returns that element to the Game metadata/default value.
 
-## Preview/export parity
+The Text panel exposes a "Use Game metadata value" action for manual overrides where appropriate.
+
+## Preview/Export Parity
 
 Both live preview and PNG export resolve through `src/project/metadataDiscText.ts`, so metadata-bound text should match between what the user sees and the exported PNG.
+
+If future text elements bind to metadata, add the mapping in `src/project/metadataDiscText.ts`, update save/load normalization if needed, and update this document.
