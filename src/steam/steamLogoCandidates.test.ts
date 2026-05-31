@@ -44,6 +44,31 @@ test('extracts Steam page metadata image candidates and filters social-logo tras
   assert.ok(candidates.some((candidate) => candidate.reasons.includes('Unknown dimensions')))
 })
 
+test('routes non-logo Steam metadata image_src artwork away from logo candidate lists', () => {
+  const candidates = parseSteamLogoCandidatesFromHtml(
+    '<link rel="image_src" href="https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/230410/warframe-1980x1080.png">',
+    'https://store.steampowered.com/app/230410/Warframe/',
+    ['Digital Extremes'],
+  )
+
+  assert.equal(candidates.length, 1)
+  assert.equal(candidates[0].selector, 'link[rel="image_src"]')
+  assert.equal(candidates[0].sourceKind, 'steam-meta-image')
+  assert.equal(candidates[0].targetWorkflow, 'artwork')
+  assert.equal(candidates[0].contentKind, 'artwork')
+  assert.ok(candidates[0].routingReasons.includes('Steam metadata image lacks logo signals and is routed to Artwork'))
+})
+
+test('rejects non-logo Steam creator-page metadata image_src candidates', () => {
+  const candidates = parseSteamLogoCandidatesFromHtml(
+    '<link rel="image_src" href="https://shared.akamai.steamstatic.com/store_item_assets/developer/digitalextremes/share-1980x1080.png">',
+    'https://store.steampowered.com/developer/digitalextremes',
+    ['Digital Extremes'],
+  )
+
+  assert.equal(candidates.length, 0)
+})
+
 test('filters social and tiny icon candidates before logo lists', () => {
   const html = `
     <img class="brand logo" src="https://shared.akamai.steamstatic.com/store_item_assets/developer/valve/valve-logo.png" width="360" height="120" alt="Valve logo">
@@ -63,6 +88,7 @@ test('filters social and tiny icon candidates before logo lists', () => {
 test('rejects generic Steam platform branding and non-matching Valve branding', () => {
   const html = `
     <img class="brand logo" src="https://shared.akamai.steamstatic.com/public/images/v6/steam-logo.svg" width="320" height="80" alt="Steam logo">
+    <img class="brand logo" src="https://shared.akamai.steamstatic.com/public/images/v6/logo_steam.svg" width="320" height="80" alt="Logo Steam">
     <img class="brand logo" src="https://shared.akamai.steamstatic.com/public/images/v6/home-logo.png" width="320" height="80" alt="Steam homepage">
     <img class="brand logo" src="https://shared.akamai.steamstatic.com/store_item_assets/developer/valve/valve-logo.png" width="360" height="120" alt="Valve logo">
   `
@@ -81,7 +107,45 @@ test('rejects generic Steam platform branding and non-matching Valve branding', 
   assert.equal(valveCandidates.length, 1)
   assert.equal(valveCandidates[0].url, 'https://shared.akamai.steamstatic.com/store_item_assets/developer/valve/valve-logo.png')
   assert.ok(valveCandidates.every((candidate) => !candidate.url.includes('steam-logo')))
+  assert.ok(valveCandidates.every((candidate) => !candidate.url.includes('logo_steam')))
   assert.ok(valveCandidates.every((candidate) => !candidate.url.includes('home-logo')))
+})
+
+test('rejects short Valve branding signals for unrelated developer and publisher slots', () => {
+  const html = `
+    <img class="brand logo" src="https://shared.akamai.steamstatic.com/store_item_assets/developer/valve/valve.png" width="360" height="120" alt="Valve">
+    <img class="brand logo" src="https://shared.akamai.steamstatic.com/store_item_assets/developer/digitalextremes/digital-extremes-logo.png" width="360" height="120" alt="Digital Extremes logo">
+  `
+  const candidates = parseSteamLogoCandidatesFromHtml(
+    html,
+    'https://store.steampowered.com/app/230410',
+    ['Digital Extremes'],
+  )
+
+  assert.equal(candidates.length, 1)
+  assert.equal(candidates[0].url, 'https://shared.akamai.steamstatic.com/store_item_assets/developer/digitalextremes/digital-extremes-logo.png')
+  assert.ok(candidates.every((candidate) => !candidate.url.endsWith('/valve.png')))
+})
+
+test('filters rating badge and icon-like images from logo candidate extraction', () => {
+  const html = `
+    <link rel="icon" href="/favicon.png">
+    <img class="rating badge logo" src="/assets/esrb-mature-17-logo.png" width="240" height="120" alt="ESRB Mature 17 rating badge">
+    <img class="app-icon logo" src="/assets/app-icon.png" alt="App icon">
+    <img class="brand logo" src="/assets/digital-extremes-logo.svg" width="420" height="110" alt="Digital Extremes logo">
+  `
+  const candidates = parseOfficialLogoCandidatesFromHtml(
+    html,
+    'https://www.warframe.com',
+    ['Digital Extremes'],
+  )
+
+  assert.equal(candidates.length, 1)
+  assert.equal(candidates[0].url, 'https://www.warframe.com/assets/digital-extremes-logo.svg')
+  assert.equal(candidates[0].targetWorkflow, 'branding-logo')
+  assert.ok(candidates.every((candidate) => !candidate.url.includes('esrb')))
+  assert.ok(candidates.every((candidate) => !candidate.url.includes('app-icon')))
+  assert.ok(candidates.every((candidate) => candidate.sourceKind !== 'favicon'))
 })
 
 test('deduplicates repeated candidate URLs and preserves reasons', () => {

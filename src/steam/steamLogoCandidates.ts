@@ -125,6 +125,37 @@ const HARD_REJECT_TERMS = [
   '1x1',
   'sprite',
 ]
+const RATING_BADGE_TERMS = [
+  'age rating',
+  'content rating',
+  'rating badge',
+  'rating icon',
+  'rating logo',
+  'ratings badge',
+  'esrb',
+  'pegi',
+  'usk',
+  'cero',
+  'acb',
+  'oflc',
+  'grac',
+  'classind',
+  'classificacao indicativa',
+  'bbfc',
+  'mature 17',
+  'everyone 10',
+]
+const ICON_TRASH_TERMS = [
+  'apple touch icon',
+  'app icon',
+  'favicon',
+  'icon sprite',
+  'mask icon',
+  'share icon',
+  'social icon',
+  'store badge',
+  'touch icon',
+]
 const GENERIC_NEGATIVE_TERMS = [
   'favicon',
   'tracking',
@@ -142,6 +173,7 @@ const STEAM_PLATFORM_BRANDING_TERMS = [
   'steam logo',
   'steam wordmark',
   'steam icon',
+  'logo steam',
   'steam homepage',
   'steam home page',
   'steam store homepage',
@@ -311,8 +343,24 @@ function includesAny(haystack: string, terms: string[]) {
   return terms.some((term) => haystack.includes(term))
 }
 
+function includesStandaloneTerm(haystack: string, term: string) {
+  const normalizedTerm = normalizeForMatch(term)
+  return Boolean(normalizedTerm) && ` ${haystack} `.includes(` ${normalizedTerm} `)
+}
+
 function isSteamSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
   return sourceKind.startsWith('steam-')
+}
+
+function isSteamCreatorPageUrl(url: string) {
+  try {
+    const pathname = new URL(url).pathname.toLowerCase()
+    return pathname.includes('/developer/')
+      || pathname.includes('/publisher/')
+      || pathname.includes('/curator/')
+  } catch {
+    return false
+  }
 }
 
 function isOfficialSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
@@ -366,6 +414,15 @@ function getCandidateSignalText(seed: CandidateSeed, url = seed.url) {
   ].filter(Boolean).join(' '))
 }
 
+function getGuardSignalText(seed: CandidateSeed, url = seed.url) {
+  return normalizeForMatch([
+    getUrlSignalText(url),
+    seed.alt,
+    seed.selector,
+    seed.context,
+  ].filter(Boolean).join(' '))
+}
+
 function getSocialSignalText(seed: CandidateSeed, url = seed.url) {
   const isMetadataImage = seed.sourceKind === 'steam-meta-image' || seed.sourceKind === 'official-meta-image'
 
@@ -385,6 +442,80 @@ function hasValveEntity(entityNames: string[]) {
   })
 }
 
+function hasGenericSteamPlatformBrandingSignal(guardSignalText: string) {
+  if (includesAny(guardSignalText, STEAM_PLATFORM_BRANDING_TERMS)) {
+    return true
+  }
+
+  const hasSteamToken =
+    includesStandaloneTerm(guardSignalText, 'steam') ||
+    guardSignalText.includes('steampowered') ||
+    guardSignalText.includes('steamworks')
+
+  return hasSteamToken && includesAny(guardSignalText, [
+    'brand',
+    'deck',
+    'home',
+    'homepage',
+    'icon',
+    'logo',
+    'platform',
+    'powered',
+    'wordmark',
+  ])
+}
+
+function hasValveBrandingSignal(guardSignalText: string) {
+  return includesAny(guardSignalText, VALVE_BRANDING_TERMS)
+    || includesStandaloneTerm(guardSignalText, 'valve') && includesAny(guardSignalText, [
+      'avatar',
+      'brand',
+      'corp',
+      'corporation',
+      'logo',
+      'software',
+      'wordmark',
+    ])
+}
+
+function hasRatingBadgeSignal(guardSignalText: string) {
+  return includesAny(guardSignalText, RATING_BADGE_TERMS)
+}
+
+function hasIconTrashSignal(
+  seed: CandidateSeed,
+  guardSignalText: string,
+) {
+  return seed.sourceKind === 'favicon' || includesAny(guardSignalText, ICON_TRASH_TERMS)
+}
+
+function getCandidateRoutingSignals(
+  seed: CandidateSeed,
+  fileType: RemoteLogoCandidate['fileType'],
+  haystack: string,
+  candidateSignalText: string,
+) {
+  const hasLogoTerm = includesAny(haystack, LOGO_TERMS)
+  const hasHeaderLogoTerm = includesAny(haystack, HEADER_LOGO_TERMS)
+  const hasCreatorLogoSignal = seed.sourceKind === 'steam-avatar' || includesAny(candidateSignalText, ['avatar'])
+  const hasArtworkSignal = includesAny(haystack, ARTWORK_TERMS)
+    || seed.sourceKind === 'official-meta-image' && !hasLogoTerm
+    || fileType === 'jpg' && !hasLogoTerm
+  const isLogoLike = hasLogoTerm || hasHeaderLogoTerm || hasCreatorLogoSignal
+  const isArtworkLike = hasArtworkSignal && !isLogoLike
+
+  return {
+    isLogoLike,
+    isArtworkLike,
+  }
+}
+
+function isNonLogoSteamCreatorMetadataImage(seed: CandidateSeed, isLogoLike: boolean) {
+  return seed.sourceKind === 'steam-meta-image'
+    && isSteamCreatorPageUrl(seed.sourcePageUrl)
+    && !isLogoLike
+}
+
 function getCandidateRouting(
   seed: CandidateSeed,
   fileType: RemoteLogoCandidate['fileType'],
@@ -392,17 +523,24 @@ function getCandidateRouting(
   candidateSignalText: string,
 ) {
   const routingReasons: string[] = []
-  const hasLogoTerm = includesAny(haystack, LOGO_TERMS)
-  const hasHeaderLogoTerm = includesAny(haystack, HEADER_LOGO_TERMS)
-  const hasCreatorLogoSignal = seed.sourceKind === 'steam-avatar' || includesAny(haystack, ['avatar', 'curator'])
-  const hasArtworkSignal = includesAny(haystack, ARTWORK_TERMS)
-    || seed.sourceKind === 'official-meta-image' && !hasLogoTerm
-    || fileType === 'jpg' && !hasLogoTerm
-  const isLogoLike = hasLogoTerm || hasHeaderLogoTerm || hasCreatorLogoSignal
-  const isArtworkLike = hasArtworkSignal && !isLogoLike
+  const { isLogoLike, isArtworkLike } = getCandidateRoutingSignals(
+    seed,
+    fileType,
+    haystack,
+    candidateSignalText,
+  )
 
   if (isArtworkLike) {
     routingReasons.push('Artwork-like image routed to Artwork')
+    return {
+      targetWorkflow: 'artwork' as const,
+      contentKind: 'artwork' as const,
+      routingReasons,
+    }
+  }
+
+  if (!isLogoLike && seed.sourceKind === 'steam-meta-image') {
+    routingReasons.push('Steam metadata image lacks logo signals and is routed to Artwork')
     return {
       targetWorkflow: 'artwork' as const,
       contentKind: 'artwork' as const,
@@ -453,6 +591,7 @@ function scoreCandidate(
     seed.context,
   ].filter(Boolean).join(' '))
   const candidateSignalText = getCandidateSignalText(seed)
+  const guardSignalText = getGuardSignalText(seed)
   const socialSignalText = getSocialSignalText(seed)
 
   if (seed.sourceKind === 'steam-avatar') {
@@ -567,14 +706,28 @@ function scoreCandidate(
     reasons.push('Tracking, sprite, or analytics image')
   }
 
+  if (hasRatingBadgeSignal(guardSignalText)) {
+    score -= 120
+    reject = true
+    reasons.push('Rating badge image is not a developer or publisher logo')
+  }
+
+  if (hasIconTrashSignal(seed, guardSignalText)) {
+    score -= 90
+    reject = true
+    reasons.push('Icon-like image')
+  }
+
+  const { isLogoLike } = getCandidateRoutingSignals(seed, fileType, haystack, candidateSignalText)
+  if (isNonLogoSteamCreatorMetadataImage(seed, isLogoLike)) {
+    score -= 120
+    reject = true
+    reasons.push('Generic Steam creator-page metadata image')
+  }
+
   if (includesAny(candidateSignalText, GENERIC_NEGATIVE_TERMS)) {
     score -= 28
     reasons.push('Generic icon or tracking signal')
-  }
-
-  if (seed.sourceKind === 'favicon') {
-    score -= 22
-    reasons.push('Favicon fallback')
   }
 
   if (
@@ -585,13 +738,13 @@ function scoreCandidate(
     reasons.push('Likely store art instead of company logo')
   }
 
-  if (includesAny(candidateSignalText, STEAM_PLATFORM_BRANDING_TERMS)) {
+  if (hasGenericSteamPlatformBrandingSignal(guardSignalText)) {
     score -= 120
     reject = true
     reasons.push('Generic Steam platform branding')
   }
 
-  if (includesAny(candidateSignalText, VALVE_BRANDING_TERMS) && !hasValveEntity(entityNames)) {
+  if (hasValveBrandingSignal(guardSignalText) && !hasValveEntity(entityNames)) {
     score -= 120
     reject = true
     reasons.push('Valve branding does not match selected developer or publisher')
