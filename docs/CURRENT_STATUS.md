@@ -82,7 +82,7 @@ The structural real-disc-art elements are now mostly represented:
 
 The remaining alpha risk is not simply "add the missing categories." It is to finish and validate the quality of the representation:
 
-- Finish #123 so built-in asset routing is centralized through `src/discPlaceholderAssets.ts`, official replacements live in domain folders under `src/assets/`, true placeholder-named fallbacks remain under `src/assets/placeholders/`, and generated-only user-facing visuals are removed.
+- Keep built-in asset routing centralized through `src/discPlaceholderAssets.ts`, official replacements in domain folders under `src/assets/`, true placeholder-named fallbacks under `src/assets/placeholders/`, and generated-only user-facing visuals out of the editor surface.
 - Keep preview and PNG export layer order in sync through `src/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - Preserve optional visual state when disabled, hide dependent controls while disabled, and prevent disabled visuals from rendering/exporting.
 - Keep text inside the safe zone and keep visual-element avoidance behavior honest.
@@ -96,8 +96,8 @@ The project should not bundle official trademarked assets unless licensing is cl
 Open issues reviewed for this audit:
 
 - #69 - parent real-disc-art alpha finish-line tracker; remains open.
-- #123 - centralize built-in placeholder/generic visuals for manual replacement; related to #69 and still open.
 - #124 - move Guide Legend into the live preview; related to #69 and still open.
+- #125 - add historical technology mark catalog and missing mark families; related to #69 and still open.
 - #56 - decide embedded asset strategy and future `.sbls` package format.
 - #48 - add project schema validation and migration support.
 - #47 - review Rust Tauri command module organization.
@@ -122,6 +122,7 @@ Closed issue work that older docs may still mention as active:
 - #97 Steam title/logo artwork.
 - #98 multiple developer/publisher logo marks.
 - #99 technical/audio/codec marks.
+- #123 built-in placeholder/generic visual centralization and de-placeholdering.
 
 ## Current Feature Status
 
@@ -154,7 +155,7 @@ Still limited or intentionally incomplete:
 - Only the disc-label editor is functional.
 - Case templates are not implemented yet.
 - Full arbitrary layer management is not implemented yet.
-- Built-in generic/placeholder visual centralization and manual replacement readiness are still tracked by #123.
+- Missing historical technology mark families are still tracked by #125.
 - Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format is not implemented.
 - Project schema validation/migrations are still limited (#48).
 - Existing fixtures do not yet cover every recently added real-disc-art system; title artwork, additional artwork, technical marks, metadata-bound text, and export preflight need better fixture/manual smoke coverage.
@@ -179,7 +180,7 @@ When disabled, optional visual features should hide dependent controls, not rend
 ## Next Recommended Work Order
 
 1. Keep #69 as the parent alpha finish-line tracker; do not close it in documentation-only work.
-2. Finish #123 and keep its scope to centralization/manual replacement readiness, not final art design.
+2. Keep the built-in asset tree organized and route new built-ins through `src/discPlaceholderAssets.ts`.
 3. Keep #124 separate from documentation freshness work.
 4. Add or update a fixture/manual smoke issue for recently added systems not covered by the current fixtures.
 5. Continue #44, #46, #47, and #48 only where they support alpha or reduce active implementation risk.

@@ -67,7 +67,7 @@ The following risks remain worth attention:
 3. Preview/export renderers are better aligned than before, but some layers still have separate preview and canvas implementations that must stay synchronized.
 4. CSS can still become hidden layout/business logic if stale renderer rules remain.
 5. Project schema validation and migrations remain limited (#48).
-6. Built-in generic visual centralization is still open (#123).
+6. Built-in asset routing is centralized, but future assets still need to follow the manifest and folder hierarchy.
 
 ## Follow-Up Work
 

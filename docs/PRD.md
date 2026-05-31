@@ -83,7 +83,7 @@ The disc editor should support common real-world disc artwork structures:
 - Copyright/legal text, straight or curved around the edge.
 - Text layouts that can account for nearby logos, badges, title art, marks, and other visual elements.
 
-Most categories now have an implementation path. The remaining alpha risk is quality and validation: built-in generic asset centralization (#123), optional feature state behavior, preview/export parity, safe-zone behavior, fixture/manual smoke coverage, and honest runtime validation.
+Most categories now have an implementation path. The remaining alpha risk is quality and validation: missing technical mark families (#125), optional feature state behavior, preview/export parity, safe-zone behavior, fixture/manual smoke coverage, and honest runtime validation.
 
 The project should not bundle official trademarked assets unless licensing is clearly safe. Built-in user-facing assets should be original generic files checked into the repo or user-provided custom images.
 
@@ -263,7 +263,7 @@ The preview pane should remain visible while editing on supported desktop window
 
 The preview pane should have a clear label and a top-right stacked toast notification feed for state changes such as save, load, import, artwork updates, template changes, export completion, and errors.
 
-The toast system is part of disc-editor alpha readiness, not just optional polish. The foundation should be preserved, wording should stay user-facing, and built-in icon/generic asset behavior should follow #123 where applicable.
+The toast system is part of disc-editor alpha readiness, not just optional polish. The foundation should be preserved, wording should stay user-facing, and built-in icon/generic asset behavior should stay routed through the centralized asset manifest.
 
 After the editor systems are stable, the app should eventually include an opening screen with two main choices:
 

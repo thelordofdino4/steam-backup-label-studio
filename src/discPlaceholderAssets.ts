@@ -50,11 +50,11 @@ export const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = new URL(
 
 export const LOGO_PLACEHOLDER_IMAGE_URLS: Record<LogoPlaceholderKind, string> = {
   developer: new URL(
-    './assets/placeholders/developer-logo-placeholder.svg',
+    './assets/placeholders/logos/developer-logo-placeholder.svg',
     import.meta.url,
   ).href,
   publisher: new URL(
-    './assets/placeholders/publisher-logo-placeholder.svg',
+    './assets/placeholders/logos/publisher-logo-placeholder.svg',
     import.meta.url,
   ).href,
 }
@@ -115,7 +115,7 @@ const PEGI_RATING_BADGE_IMAGE_URLS: Record<PegiRatingValue, string> = {
 
 const RATING_BADGE_PLACEHOLDER_IMAGE_URLS: Record<Exclude<RatingBadgePlaceholderKind, 'ESRB' | 'PEGI'>, string> = {
   custom: new URL(
-    './assets/placeholders/rating-badge-custom-placeholder.svg',
+    './assets/placeholders/rating/rating-badge-custom-placeholder.svg',
     import.meta.url,
   ).href,
 }
@@ -288,23 +288,23 @@ const DEFAULT_PLATFORM_MARK_PLACEHOLDER_THEME: Record<PlatformMarkValue, Platfor
 
 const TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS: Record<TechnicalMarkValue, string> = {
   audio: new URL(
-    './assets/placeholders/technical-mark-audio-placeholder.svg',
+    './assets/placeholders/technical/technical-mark-audio-placeholder.svg',
     import.meta.url,
   ).href,
   codec: new URL(
-    './assets/placeholders/technical-mark-codec-placeholder.svg',
+    './assets/placeholders/technical/technical-mark-codec-placeholder.svg',
     import.meta.url,
   ).href,
   middleware: new URL(
-    './assets/placeholders/technical-mark-middleware-placeholder.svg',
+    './assets/placeholders/technical/technical-mark-middleware-placeholder.svg',
     import.meta.url,
   ).href,
   surround: new URL(
-    './assets/placeholders/technical-mark-surround-placeholder.svg',
+    './assets/placeholders/technical/technical-mark-surround-placeholder.svg',
     import.meta.url,
   ).href,
   technology: new URL(
-    './assets/placeholders/technical-mark-technology-placeholder.svg',
+    './assets/placeholders/technical/technical-mark-technology-placeholder.svg',
     import.meta.url,
   ).href,
 }

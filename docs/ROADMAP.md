@@ -29,8 +29,8 @@ Guide Legend remains a sidebar section for now. Issue #124 tracks moving it to a
 Open issues most relevant to this roadmap:
 
 - #69 - parent real-disc-art alpha finish line.
-- #123 - centralize/de-placeholder built-in generic visuals for manual replacement.
 - #124 - move Guide Legend into the live preview.
+- #125 - add historical technology mark catalog and missing mark families.
 - #56 - decide embedded asset strategy and future `.sbls` package format.
 - #48 - add project schema validation and migration support.
 - #47 - review Rust Tauri command module organization.
@@ -40,7 +40,7 @@ Open issues most relevant to this roadmap:
 
 Recently completed issue work that should not be described as missing:
 
-- #33, #59, #60, #61, #62, #63, #65, #66, #68, #82-#85, #95, #96, #97, #98, and #99.
+- #33, #59, #60, #61, #62, #63, #65, #66, #68, #82-#85, #95, #96, #97, #98, #99, and #123.
 
 ## Phase 0: Planning Foundation - Complete
 
@@ -114,7 +114,7 @@ Completed:
 
 Remaining:
 
-- Finish #123 so all built-in/default/generic visual assets are centralized and easy to manually replace.
+- Keep built-in/default/generic visual assets organized and routed through `src/discPlaceholderAssets.ts`.
 - Keep the optional-feature hierarchy and disabled-state preservation consistent across future visual systems.
 - Improve fixture/manual smoke coverage for newer systems.
 - Continue architecture cleanup where it directly supports alpha risk reduction.
@@ -204,7 +204,7 @@ Completed:
 
 Current targets:
 
-- Finish #123.
+- Fill missing technical mark families tracked by #125.
 - Keep #124 scoped as a separate UI relocation issue.
 - Add/update fixture coverage for newer real-disc-art systems.
 - Keep optional visual hierarchy consistent.

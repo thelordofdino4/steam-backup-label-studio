@@ -26,7 +26,7 @@ The current working interface is the **disc-label editor**. The broader planned 
 
 The next major milestone is not whole-app alpha. It is getting the **disc artwork editor alone** to alpha quality: a normal user should be able to create, edit, save, reload, and export a print-ready disc label without needing another editor for ordinary backup-label work.
 
-Issue #69 remains the parent real-disc-art alpha finish-line tracker. Several focused alpha items are now implemented and closed, including title/logo artwork (#97), multiple developer/publisher logo marks (#98), technical/audio/codec marks (#99), layer-order policy (#60), metadata-bound disc text (#68), export preflight (#63), provenance/status work (#59), template-derived default layouts (#62), and the emergency parity/interaction fixes (#82-#85). Issue #123 remains open for centralizing and de-placeholdering built-in generic visuals. Issue #124 tracks the likely future Guide Legend move.
+Issue #69 remains the parent real-disc-art alpha finish-line tracker. Several focused alpha items are now implemented and closed, including title/logo artwork (#97), multiple developer/publisher logo marks (#98), technical/audio/codec marks (#99), layer-order policy (#60), metadata-bound disc text (#68), export preflight (#63), provenance/status work (#59), template-derived default layouts (#62), built-in asset centralization and de-placeholdering (#123), and the emergency parity/interaction fixes (#82-#85). Issue #124 tracks the likely future Guide Legend move, and #125 tracks missing technical mark families.
 
 Do not treat historical "recent validation" notes in older docs as proof that native/Tauri manual smoke has happened for the current checkout. For this docs pass, no `npm run tauri dev` verification is claimed.
 
@@ -91,7 +91,7 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Plain JSON project files, commonly named `.sbls.json`, with embedded data URLs for current visual assets and provenance/status metadata where supported.
 - Export preflight summary and warnings for guide marks, missing backgrounds, unusual custom dimensions, enabled-but-unavailable visuals, and generic/bundled assets.
 - Shared layer-order policy in `src/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
-- File-backed built-in asset work is underway through `src/discPlaceholderAssets.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`. #123 remains open to finish centralization, terminology cleanup, and manual replacement readiness.
+- File-backed built-in assets route through `src/discPlaceholderAssets.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`.
 
 ## Disc Editor Alpha Boundary
 
@@ -109,7 +109,7 @@ The structural disc-face elements are now mostly represented:
 - Media-format and operating-system marks.
 - Additional artwork elements.
 
-This does not mean #69 is complete. The remaining alpha risk is now less about whether the editor has any representation for each real-disc-art category and more about finalizing built-in generic assets (#123), validating preview/export parity, preserving optional-feature state behavior, and doing honest manual smoke/release verification.
+This does not mean #69 is complete. The remaining alpha risk is now less about whether the editor has any representation for each real-disc-art category and more about filling missing technical mark families (#125), validating preview/export parity, preserving optional-feature state behavior, and doing honest manual smoke/release verification.
 
 Disabled optional visual features should hide dependent controls, should not render in preview or PNG export, and should preserve saved state so re-enabling restores previous selections, uploaded assets, layout, scale, source choices, and settings.
 
@@ -129,7 +129,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 ## Near-Term Work
 
 - Keep #69 open as the parent real-disc-art alpha tracker until the alpha finish line is actually satisfied.
-- Finish #123: centralize built-in asset routing, keep official replacements in domain folders under `src/assets/`, keep true placeholder-named fallbacks under `src/assets/placeholders/`, make manual replacement straightforward, and clean user-facing terminology.
+- Keep built-in asset routing centralized, keep official replacements in domain folders under `src/assets/`, and keep true placeholder-named fallbacks under `src/assets/placeholders/`.
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, and export preflight so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, #47, and #48 only where it supports alpha work.

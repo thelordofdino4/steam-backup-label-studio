@@ -40,7 +40,7 @@ Core work now in place:
 
 Useful remaining polish:
 
-- Finish #123 for centralized, replaceable built-in generic visuals.
+- Keep centralized, replaceable built-in generic visuals organized.
 - Move Guide Legend to the live preview only under #124.
 - Expand manual fixture coverage for newer systems.
 - Keep optional visual UI hierarchy consistent.
@@ -83,7 +83,7 @@ Most of those categories now have an implementation path. The alpha blockers are
 Critical alpha blockers:
 
 - Keep #69 open until the real-disc-art finish line is actually satisfied.
-- Finish #123 for centralized, file-backed, replaceable built-in generic visuals and non-temporary user-facing terminology.
+- Keep centralized, file-backed, replaceable built-in generic visuals and non-temporary user-facing terminology.
 - Preserve preview/export parity through `src/layerOrder.ts` and shared render artifacts where feasible.
 - Preserve optional visual disabled-state behavior: hide dependent controls, do not render/export, keep saved state.
 - Keep safe-zone compliance for text and movable visual elements.
@@ -111,12 +111,12 @@ Toast readiness:
 
 - Preserve the toast notification system and its placement, stacking, and status-feedback behavior.
 - Keep wording user-facing.
-- Keep icons/assets routed through the built-in asset approach from #123 where applicable.
+- Keep icons/assets routed through the built-in asset manifest approach.
 
 High-priority issue order:
 
 - #69 parent finish-line definition.
-- #123 built-in visual centralization and manual replacement readiness.
+- #125 missing technical mark families where they affect real-disc-art coverage.
 - Fixture/manual smoke follow-up for newer real-disc-art systems if no issue exists.
 - #44, #46, #47, and #48 only where they support alpha or reduce active implementation risk.
 - #56 only when project file packaging becomes necessary.
@@ -186,7 +186,7 @@ Goal: Make the app feel intentional enough for a first alpha package.
 
 Planned work:
 
-- Finish built-in generic visual centralization and terminology cleanup (#123).
+- Keep built-in generic visual organization and terminology clean.
 - Move Guide Legend into the live preview if #124 is selected for the alpha path.
 - Clean duplicate hidden UI markup and panel structure where it remains.
 - Improve panel indentation and component organization.
@@ -252,7 +252,7 @@ Planned work:
 - Shared project asset library.
 - Expanded artwork thumbnails with type, origin, dimensions, and provenance details.
 - Additional fixture coverage for current visual systems.
-- File-backed built-in generic marks, badges, logos, and toast icons finalized through #123.
+- File-backed built-in generic marks, badges, logos, and toast icons routed through the centralized asset manifest.
 - Screenshot selection for case backs.
 - Replaceable Steam Backup logo asset behavior beyond the current banner lockup controls.
 
