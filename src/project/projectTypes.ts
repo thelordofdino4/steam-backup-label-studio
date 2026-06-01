@@ -358,6 +358,8 @@ export type SavedProject = {
     lockupImageSource?: ProjectImageAssetProvenance | null
     lockupImageSize?: BackgroundImageSize | null
     lockupLayout?: SteamBannerLockupLayout
+    useTextFallback?: boolean
+    fallbackText?: string
   }
   export?: {
     guideMode?: ExportGuideMode

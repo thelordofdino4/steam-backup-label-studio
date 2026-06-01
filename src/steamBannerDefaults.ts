@@ -20,6 +20,9 @@ export const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
   offsetY: 0,
 }
 
+// Taihazu's Steam lockup text fallback idea lives here so preview, export, and saved projects share one behavior.
+export const DEFAULT_STEAM_BANNER_FALLBACK_TEXT = 'STEAM'
+
 export const DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT: SteamLogoPlacement = 'bottom'
 
 export type SteamBannerLockupImageState = {
@@ -46,6 +49,19 @@ export function createCustomSteamBannerLockupImageState(
     imageUrl,
     imageSize,
   }
+}
+
+export function normalizeSteamBannerFallbackText(value: unknown): string {
+  return typeof value === 'string' && value.trim()
+    ? value.trim()
+    : DEFAULT_STEAM_BANNER_FALLBACK_TEXT
+}
+
+export function shouldRenderSteamBannerTextFallback(
+  useTextFallback: boolean,
+  lockupImageUrl: string | null | undefined,
+): boolean {
+  return useTextFallback || !lockupImageUrl
 }
 
 export function createSteamLogoPlacementMemory(

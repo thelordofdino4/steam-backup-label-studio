@@ -27,7 +27,7 @@ Current project files use schema version `0.1.0` and include:
 - project-owned metadata
 - background artwork enabled state, embedded image data, source/provenance, size, scale, and offset
 - template type, selected built-in template, or custom disc dimensions
-- Steam banner placement, colors, lockup image data/source/size, and lockup layout
+- Steam banner placement, colors, lockup image data/source/size, lockup layout, and optional text fallback
 - export guide settings
 - developer/publisher/additional logo assets
 - title/logo artwork state
@@ -86,6 +86,8 @@ type SavedProject = {
     lockupImageSource?: ProjectImageAssetProvenance | null
     lockupImageSize?: BackgroundImageSize | null
     lockupLayout?: SteamBannerLockupLayout
+    useTextFallback?: boolean
+    fallbackText?: string
   }
   export?: {
     guideMode?: ExportGuideMode

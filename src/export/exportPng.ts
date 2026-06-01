@@ -44,6 +44,8 @@ export async function exportDiscLabelPngBytes(params: {
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
@@ -147,6 +149,8 @@ export async function exportDiscLabelPngBytes(params: {
         params.steamBannerColors,
         params.steamBannerLockupImageUrl,
         params.steamBannerLockupLayout,
+        params.steamBannerUseTextFallback,
+        params.steamBannerFallbackText,
       ),
     'title-artwork': () =>
       drawTitleArtwork(

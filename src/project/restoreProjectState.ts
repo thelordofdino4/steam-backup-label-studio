@@ -25,8 +25,10 @@ import {
 } from '../layout/discElementSafeZone.ts'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
+  DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createSteamBannerLockupImageState,
+  normalizeSteamBannerFallbackText,
 } from '../steamBannerDefaults.ts'
 import { discTemplates, type DiscTemplateId } from '../templates/discTemplates.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
@@ -93,6 +95,8 @@ export type RestoredProjectState = {
   steamBannerLockupImageSource: ProjectImageAssetProvenance | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
   exportGuides: ExportGuideSelection
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
@@ -299,6 +303,10 @@ export async function restoreSavedProjectState(
     steamBannerLockupImageSize: steamBannerLockupImage.imageSize,
     steamBannerLockupLayout:
       project.steamBackupLogo.lockupLayout ?? DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
+    steamBannerUseTextFallback: project.steamBackupLogo.useTextFallback ?? false,
+    steamBannerFallbackText: normalizeSteamBannerFallbackText(
+      project.steamBackupLogo.fallbackText ?? DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
+    ),
     exportGuides: project.export?.guides ?? exportGuideModeToSelection(project.export?.guideMode),
     discTextSettings: normalizeDiscTextSettings(project.discText?.settings),
     discTextValues,

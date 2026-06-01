@@ -58,7 +58,7 @@ Preservation rule:
 - Preserve and evolve background artwork import, placement, scaling, save/load, and export.
 - Preserve and evolve title/logo artwork and additional artwork systems.
 - Preserve and evolve disc templates, custom dimensions, physical geometry, safe-zone guides, and export dimensions.
-- Preserve and evolve Steam banner placement, colors, lockup image, layout, save/load, and export.
+- Preserve and evolve Steam banner placement, colors, lockup image/text fallback, layout, save/load, and export.
 - Preserve and evolve developer logo, publisher logo, additional logo, rating badge, media mark, operating-system mark, technical mark, disc-number artwork, and disc text systems.
 - Preserve and evolve New Project, save/load, export preflight, export, preview, sidebar panel structure, and toast notification foundation.
 - Prefer small migrations toward clearer ownership over total rewrites.

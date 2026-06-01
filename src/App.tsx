@@ -109,6 +109,7 @@ import { buildExportPreflightSummary } from './export/exportPreflight'
 import { getNaturalImageSize } from './utils/imageFile'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
+  DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createCustomSteamBannerLockupImageState,
@@ -200,6 +201,11 @@ function App() {
     useState<BackgroundImageSize | null>(null)
   const [steamBannerLockupLayout, setSteamBannerLockupLayout] =
     useState<SteamBannerLockupLayout>(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
+  const [steamBannerUseTextFallback, setSteamBannerUseTextFallback] =
+    useState(false)
+  const [steamBannerFallbackText, setSteamBannerFallbackText] = useState(
+    DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
+  )
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
@@ -603,6 +609,7 @@ function App() {
         sourceLabel: file.name,
       }))
       setSteamBannerLockupImageSize(lockupImage.imageSize)
+      setSteamBannerUseTextFallback(false)
       announceStatus(`Using ${file.name} as the Steam banner lockup.`)
     } catch (error) {
       announceStatus(`Banner lockup import failed: ${String(error)}`)
@@ -618,6 +625,19 @@ function App() {
     }))
     setSteamBannerLockupImageSize(lockupImage.imageSize)
     announceStatus('Reset Steam banner lockup image to the default asset.')
+  }
+
+  function handleSteamBannerUseTextFallbackChange(useTextFallback: boolean) {
+    setSteamBannerUseTextFallback(useTextFallback)
+    announceStatus(
+      useTextFallback
+        ? 'Using saved text for the Steam banner lockup.'
+        : 'Using the Steam banner lockup image.',
+    )
+  }
+
+  function handleSteamBannerFallbackTextChange(fallbackText: string) {
+    setSteamBannerFallbackText(fallbackText)
   }
 
   function handleSteamBannerLockupLayoutChange(
@@ -1709,6 +1729,8 @@ function App() {
     }))
     setSteamBannerLockupImageSize(defaultLockupImage.imageSize)
     setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
+    setSteamBannerUseTextFallback(false)
+    setSteamBannerFallbackText(DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
     setExportGuides(DEFAULT_EXPORT_GUIDES)
     const emptyBackground = createEmptyBackgroundImageState()
     setBackgroundImageUrl(emptyBackground.imageUrl)
@@ -2075,6 +2097,8 @@ function App() {
         steamBannerLockupImageSource,
         steamBannerLockupImageSize,
         steamBannerLockupLayout,
+        steamBannerUseTextFallback,
+        steamBannerFallbackText,
         exportGuides,
         backgroundScale,
         backgroundOffset,
@@ -2147,6 +2171,8 @@ function App() {
       setSteamBannerLockupImageSource(restoredProject.steamBannerLockupImageSource)
       setSteamBannerLockupImageSize(restoredProject.steamBannerLockupImageSize)
       setSteamBannerLockupLayout(restoredProject.steamBannerLockupLayout)
+      setSteamBannerUseTextFallback(restoredProject.steamBannerUseTextFallback)
+      setSteamBannerFallbackText(restoredProject.steamBannerFallbackText)
       setExportGuides(restoredProject.exportGuides)
       setDiscTextSettings(restoredProject.discTextSettings)
       setDiscTextValues(restoredProject.discTextValues)
@@ -2196,6 +2222,9 @@ function App() {
         selectedSteamGame,
         manualGameTitle,
         steamLogoPlacement,
+        steamBannerUseTextFallback,
+        steamBannerFallbackText,
+        steamBannerLockupImageUrl,
         discTextSettings,
         projectLogoAssets,
         projectTitleArtwork,
@@ -2231,6 +2260,8 @@ function App() {
         steamBannerColors,
         steamBannerLockupImageUrl,
         steamBannerLockupLayout,
+        steamBannerUseTextFallback,
+        steamBannerFallbackText,
         projectLogoAssets,
         projectTitleArtwork,
         projectDiscNumberArtwork,
@@ -2462,6 +2493,8 @@ function App() {
           steamBannerLockupImageSource={steamBannerLockupImageSource}
           steamBannerLockupImageSize={steamBannerLockupImageSize}
           steamBannerLockupLayout={steamBannerLockupLayout}
+          steamBannerUseTextFallback={steamBannerUseTextFallback}
+          steamBannerFallbackText={steamBannerFallbackText}
           steamBannerColors={steamBannerColors}
           projectLogoAssets={projectLogoAssets}
           projectMetadata={projectMetadata}
@@ -2476,6 +2509,10 @@ function App() {
           handleClearSteamBannerLockup={handleClearSteamBannerLockup}
           handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
           handleResetSteamBannerLockupLayout={handleResetSteamBannerLockupLayout}
+          handleSteamBannerUseTextFallbackChange={
+            handleSteamBannerUseTextFallbackChange
+          }
+          handleSteamBannerFallbackTextChange={handleSteamBannerFallbackTextChange}
           handleSteamBannerColorChange={handleSteamBannerColorChange}
           handleResetSteamBannerColors={handleResetSteamBannerColors}
           handleLogoAssetUpload={handleLogoAssetUpload}
@@ -2568,6 +2605,8 @@ function App() {
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
+        steamBannerUseTextFallback={steamBannerUseTextFallback}
+        steamBannerFallbackText={steamBannerFallbackText}
         projectLogoAssets={projectLogoAssets}
         projectTitleArtwork={projectTitleArtwork}
         projectDiscNumberArtwork={projectDiscNumberArtwork}

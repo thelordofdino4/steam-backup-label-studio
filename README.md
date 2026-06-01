@@ -75,7 +75,7 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Artwork panel ownership of imported artwork selection, local screenshots, web artwork candidates, game title/logo artwork, and additional artwork elements.
 - Steam title/logo artwork seeding from Steam logo assets when available, plus custom game-logo upload and restore-to-Steam-default behavior.
 - Additional artwork elements with labels, show/hide, local/Steam/local-screenshot sources, optional frames, drag, scale/position controls, reset/clear/delete, preview, export, and save/load behavior.
-- Steam-style banner lockup with top, bottom, hidden placement, color controls, custom/default lockup image, scale, offsets, preview, export, and save/load behavior.
+- Steam-style banner lockup with top, bottom, hidden placement, color controls, custom/default lockup image, text fallback, scale, offsets, preview, export, and save/load behavior.
 - Developer, publisher, and additional logo assets with candidate discovery, upload, alignment presets, drag, scale/position controls, reset/clear/delete, preview, export, and save/load behavior.
 - Optional rating badge support with ESRB/PEGI/USK/custom metadata, built-in or custom images, layout presets, drag, scale/position controls, preview, export, and save/load behavior; PEGI labels can also enable a separate companion USK badge.
 - Optional media format mark support for Blu-ray, DVD, DVD-ROM, CD-ROM, data disc, and install disc.

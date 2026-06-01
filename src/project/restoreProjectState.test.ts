@@ -16,6 +16,7 @@ import {
   applyDiscTextStylePreset,
   createDefaultDiscTextStyles,
 } from '../discTextStyles.ts'
+import { DEFAULT_STEAM_BANNER_FALLBACK_TEXT } from '../steamBannerDefaults.ts'
 import type { SavedProject } from './projectTypes.ts'
 
 const baseProject: SavedProject = {
@@ -69,6 +70,8 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.deepEqual(restored.backgroundOffset, { x: 8, y: -4 })
   assert.equal(restored.backgroundScale, 1.35)
   assert.equal(restored.isBackgroundArtworkEnabled, true)
+  assert.equal(restored.steamBannerUseTextFallback, false)
+  assert.equal(restored.steamBannerFallbackText, DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
 })
 
 test('restores saved asset provenance and defaults legacy embedded assets safely', async () => {
@@ -107,6 +110,38 @@ test('restores saved asset provenance and defaults legacy embedded assets safely
   assert.equal(restored.steamBannerLockupImageSource?.source, 'embedded')
   assert.equal(restored.projectLogoAssets.developerLogoSource?.source, 'steam-logo-candidate')
   assert.equal(restored.projectLogoAssets.developerLogoSource?.sourceUrl, 'https://example.test/logo.png')
+})
+
+test('restores saved Steam banner text fallback while keeping the lockup image', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    steamBackupLogo: {
+      placement: 'bottom',
+      lockupImageDataUrl: 'data:image/png;base64,custom-lockup',
+      lockupImageSize: { width: 480, height: 128 },
+      useTextFallback: true,
+      fallbackText: 'Taihazu Archive',
+    },
+  })
+
+  assert.equal(restored.steamLogoPlacement, 'bottom')
+  assert.equal(restored.steamBannerLockupImageUrl, 'data:image/png;base64,custom-lockup')
+  assert.equal(restored.steamBannerUseTextFallback, true)
+  assert.equal(restored.steamBannerFallbackText, 'Taihazu Archive')
+})
+
+test('normalizes blank Steam banner fallback text to the default', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    steamBackupLogo: {
+      placement: 'top',
+      useTextFallback: true,
+      fallbackText: '   ',
+    },
+  })
+
+  assert.equal(restored.steamBannerUseTextFallback, true)
+  assert.equal(restored.steamBannerFallbackText, DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
 })
 
 test('restores saved disc number artwork badge settings', async () => {

@@ -20,6 +20,9 @@ function createDefaultPreflightParams(): Parameters<typeof buildExportPreflightS
     selectedSteamGame: null,
     manualGameTitle: 'Test Game',
     steamLogoPlacement: 'top',
+    steamBannerUseTextFallback: false,
+    steamBannerFallbackText: 'STEAM',
+    steamBannerLockupImageUrl: 'default-lockup.png',
     discTextSettings: DEFAULT_DISC_TEXT_SETTINGS,
     projectLogoAssets: createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
     projectTitleArtwork: createDefaultProjectTitleArtwork(
@@ -46,6 +49,20 @@ test('clean export preflight has no warnings', () => {
 
   assert.equal(summary.hasWarnings, false)
   assert.deepEqual(summary.warnings, [])
+  assert.match(summary.message, /Steam Backup branding: Top, image lockup/)
+})
+
+test('preflight identifies text fallback Steam banner lockups', () => {
+  const summary = buildExportPreflightSummary({
+    ...createDefaultPreflightParams(),
+    steamBannerUseTextFallback: true,
+    steamBannerFallbackText: 'Taihazu Archive',
+  })
+
+  assert.match(
+    summary.message,
+    /Steam Backup branding: Top, text lockup "Taihazu Archive"/,
+  )
 })
 
 test('missing background is advisory and still lets the user continue export', () => {

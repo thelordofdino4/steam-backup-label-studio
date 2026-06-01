@@ -136,7 +136,7 @@ Implemented for the current disc-label surface:
 - Local Steam screenshot discovery.
 - Web artwork and logo candidate discovery.
 - Background artwork import, tuning, and save/load.
-- Steam banner branding with configurable colors, image, placement, scale, and offsets.
+- Steam banner branding with configurable colors, image/text lockup, placement, scale, and offsets.
 - Title/logo artwork support.
 - Additional artwork elements.
 - Developer, publisher, and additional logo support.

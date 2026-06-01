@@ -9,6 +9,7 @@ import type { ExportGuideSelection } from '../exportGuides'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import type { DiscTextValueSources } from './metadataDiscText'
+import { normalizeSteamBannerFallbackText } from '../steamBannerDefaults'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -48,6 +49,8 @@ export type CreateProjectSnapshotParams = {
   steamBannerLockupImageSource: ProjectImageAssetProvenance | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
   exportGuides: ExportGuideSelection
   backgroundScale: number
   backgroundOffset: BackgroundOffset
@@ -83,6 +86,8 @@ export function createProjectSnapshot({
   steamBannerLockupImageSource,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
+  steamBannerUseTextFallback,
+  steamBannerFallbackText,
   exportGuides,
   backgroundScale,
   backgroundOffset,
@@ -126,6 +131,8 @@ export function createProjectSnapshot({
       lockupImageSource: steamBannerLockupImageSource,
       lockupImageSize: steamBannerLockupImageSize,
       lockupLayout: steamBannerLockupLayout,
+      useTextFallback: steamBannerUseTextFallback,
+      fallbackText: normalizeSteamBannerFallbackText(steamBannerFallbackText),
     },
     export: {
       guides: exportGuides,

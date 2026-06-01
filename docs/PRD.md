@@ -169,7 +169,7 @@ The user can choose:
 - Steam Backup banner at bottom.
 - No Steam Backup banner.
 
-The current implementation uses a real default Steam-style banner lockup image with a rendered banner strip. It supports user-facing placement, color, lockup image, scale, and offset controls. The Steam banner remains separate from game title/logo artwork.
+The current implementation uses a real default Steam-style banner lockup image with a rendered banner strip. It supports user-facing placement, color, lockup image or text fallback, scale, and offset controls. The Steam banner remains separate from game title/logo artwork.
 
 ## Steam Import
 

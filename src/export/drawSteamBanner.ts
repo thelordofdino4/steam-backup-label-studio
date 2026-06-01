@@ -6,6 +6,10 @@ import {
   getSteamBannerLockupRect,
   type SteamBannerRect,
 } from '../steamBannerLayout'
+import {
+  normalizeSteamBannerFallbackText,
+  shouldRenderSteamBannerTextFallback,
+} from '../steamBannerDefaults'
 import { getCanvasSafeImageSource, loadImage } from './canvasImage'
 
 export async function drawSteamBrandBanner(
@@ -16,6 +20,8 @@ export async function drawSteamBrandBanner(
   colors: SteamBannerColors,
   lockupImageDataUrl: string | null,
   lockupLayout: SteamBannerLockupLayout,
+  useTextFallback: boolean,
+  fallbackText: string,
 ) {
   if (placement === 'none') {
     return
@@ -40,24 +46,34 @@ export async function drawSteamBrandBanner(
   context.fillStyle = colors.accent
   context.fillRect(accentBand.x, accentBand.y, accentBand.width, accentBand.height)
 
-  if (lockupImageDataUrl) {
+  const shouldDrawText = shouldRenderSteamBannerTextFallback(
+    useTextFallback,
+    lockupImageDataUrl,
+  )
+  const lockupRect = getSteamBannerLockupRect(
+    placement,
+    lockupLayout,
+    getSteamBannerLockupAspectRatio(null),
+  )
+
+  if (!shouldDrawText && lockupImageDataUrl) {
     const canvasSafeLockupSource = await getCanvasSafeImageSource(lockupImageDataUrl)
     const lockupImage = await loadImage(canvasSafeLockupSource)
     const lockupAspectRatio = getSteamBannerLockupAspectRatio({
       width: lockupImage.naturalWidth || lockupImage.width,
       height: lockupImage.naturalHeight || lockupImage.height,
     })
-    const lockupRect = getSteamBannerLockupRect(
+    const imageLockupRect = getSteamBannerLockupRect(
       placement,
       lockupLayout,
       lockupAspectRatio,
     )
 
-    if (!lockupRect) {
+    if (!imageLockupRect) {
       return
     }
 
-    const adjustedTarget = toExportRect(lockupRect, discContentSize, discOrigin)
+    const adjustedTarget = toExportRect(imageLockupRect, discContentSize, discOrigin)
 
     context.drawImage(
       lockupImage,
@@ -69,13 +85,42 @@ export async function drawSteamBrandBanner(
     return
   }
 
+  if (!lockupRect) {
+    return
+  }
+
+  const adjustedTarget = toExportRect(lockupRect, discContentSize, discOrigin)
+  drawTextLockup(
+    context,
+    normalizeSteamBannerFallbackText(fallbackText),
+    adjustedTarget,
+  )
+}
+
+function drawTextLockup(
+  context: CanvasRenderingContext2D,
+  text: string,
+  target: SteamBannerRect,
+) {
   context.save()
   context.fillStyle = '#f9fafb'
-  context.font = `bold ${Math.round(discContentSize * 0.04)}px Arial`
+  context.shadowColor = 'rgba(0, 0, 0, 0.35)'
+  context.shadowBlur = Math.max(6, target.height * 0.08)
+  context.shadowOffsetY = Math.max(2, target.height * 0.02)
   context.textAlign = 'center'
   context.textBaseline = 'middle'
-  context.letterSpacing = `${Math.round(discContentSize * 0.004)}px`
-  context.fillText('STEAM', discOrigin + discContentSize / 2, mainBand.y + mainBand.height / 2)
+  context.letterSpacing = '0px'
+
+  const maxWidth = target.width * 0.96
+  const maxHeight = target.height * 0.72
+  const baseFontSize = Math.max(10, Math.round(target.height * 0.72))
+  context.font = `900 ${baseFontSize}px Arial`
+
+  const measuredWidth = Math.max(context.measureText(text).width, 1)
+  const fontScale = Math.min(1, maxWidth / measuredWidth, maxHeight / baseFontSize)
+  const fontSize = Math.max(10, Math.floor(baseFontSize * fontScale))
+  context.font = `900 ${fontSize}px Arial`
+  context.fillText(text, target.x + target.width / 2, target.y + target.height / 2, maxWidth)
   context.restore()
 }
 

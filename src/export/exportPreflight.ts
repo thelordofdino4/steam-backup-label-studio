@@ -26,6 +26,10 @@ import type {
 } from '../project/projectTypes.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
 import { createTechnicalMarkRenderModels } from '../technicalMarkRenderModel.ts'
+import {
+  normalizeSteamBannerFallbackText,
+  shouldRenderSteamBannerTextFallback,
+} from '../steamBannerDefaults.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3
@@ -57,6 +61,9 @@ export function buildExportPreflightSummary(params: {
   selectedSteamGame: SteamImportedGame | null
   manualGameTitle: string
   steamLogoPlacement: SteamLogoPlacement
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
+  steamBannerLockupImageUrl: string | null
   discTextSettings: DiscTextSettings
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
@@ -96,7 +103,12 @@ export function buildExportPreflightSummary(params: {
     `Guide marks: ${enabledGuideLabels.length ? enabledGuideLabels.join(', ') : 'None'}`,
     `Background image: ${formatBackgroundStatus(params.backgroundImageUrl, params.backgroundImageSize)}`,
     `Metadata: ${formatMetadataStatus(params.selectedSteamGame, params.manualGameTitle)}`,
-    `Steam Backup branding: ${BRANDING_LABELS[params.steamLogoPlacement]}`,
+    `Steam Backup branding: ${formatBrandingStatus(
+      params.steamLogoPlacement,
+      params.steamBannerUseTextFallback,
+      params.steamBannerLockupImageUrl,
+      params.steamBannerFallbackText,
+    )}`,
     `Optional text: ${enabledTextLabels.length ? enabledTextLabels.join(', ') : 'None'}`,
   ]
 
@@ -114,6 +126,23 @@ export function buildExportPreflightSummary(params: {
     hasWarnings: warnings.length > 0,
     warnings,
   }
+}
+
+function formatBrandingStatus(
+  placement: SteamLogoPlacement,
+  useTextFallback: boolean,
+  lockupImageUrl: string | null,
+  fallbackText: string,
+) {
+  if (placement === 'none') {
+    return BRANDING_LABELS.none
+  }
+
+  const lockupMode = shouldRenderSteamBannerTextFallback(useTextFallback, lockupImageUrl)
+    ? `text lockup "${normalizeSteamBannerFallbackText(fallbackText)}"`
+    : 'image lockup'
+
+  return `${BRANDING_LABELS[placement]}, ${lockupMode}`
 }
 
 function getEnabledGuideLabels(exportGuides: ExportGuideSelection) {

@@ -37,6 +37,8 @@ export type DiscPreviewProps = {
   steamBannerLockupImageUrl: string | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
   projectLogoAssets: ProjectLogoAssets
   projectTitleArtwork: ProjectTitleArtwork
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
@@ -117,6 +119,8 @@ export function DiscPreview({
   steamBannerLockupImageUrl,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
+  steamBannerUseTextFallback,
+  steamBannerFallbackText,
   projectLogoAssets,
   projectTitleArtwork,
   projectDiscNumberArtwork,
@@ -204,6 +208,8 @@ export function DiscPreview({
         steamBannerLockupImageUrl={steamBannerLockupImageUrl}
         steamBannerLockupImageSize={steamBannerLockupImageSize}
         steamBannerLockupLayout={steamBannerLockupLayout}
+        steamBannerUseTextFallback={steamBannerUseTextFallback}
+        steamBannerFallbackText={steamBannerFallbackText}
       />
     ),
     'additional-artwork': (

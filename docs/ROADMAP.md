@@ -97,7 +97,7 @@ Goal: Add the first editable disc design layers and controls.
 Completed:
 
 - Background image layer with upload, drag, scale, fit, reset, show/hide, save/load, and export.
-- Steam-style banner branding with placement, colors, custom/default lockup image, scale, offsets, save/load, and export.
+- Steam-style banner branding with placement, colors, custom/default lockup image, text fallback, scale, offsets, save/load, and export.
 - Imported Steam artwork selection moved into the Artwork panel.
 - Web artwork candidate discovery and preview picker.
 - Game title/logo artwork from Steam logo assets or custom upload.

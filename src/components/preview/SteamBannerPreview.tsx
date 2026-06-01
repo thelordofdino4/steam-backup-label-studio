@@ -7,6 +7,10 @@ import {
   getSteamBannerLockupRect,
   type SteamBannerRect,
 } from '../../steamBannerLayout'
+import {
+  normalizeSteamBannerFallbackText,
+  shouldRenderSteamBannerTextFallback,
+} from '../../steamBannerDefaults'
 
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
@@ -38,12 +42,22 @@ function getLockupRectStyle(rect: SteamBannerRect): CSSProperties {
   }
 }
 
+function getTextLockupStyle(text: string): CSSProperties {
+  const scale = Math.min(1, 7 / Math.max(text.length, 1))
+
+  return {
+    fontSize: `${Math.max(0.22, scale)}em`,
+  }
+}
+
 export type SteamBannerPreviewProps = {
   steamLogoPlacement: SteamLogoPlacement
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
   steamBannerLockupImageSize: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
+  steamBannerUseTextFallback: boolean
+  steamBannerFallbackText: string
 }
 
 export function SteamBannerPreview({
@@ -52,9 +66,18 @@ export function SteamBannerPreview({
   steamBannerLockupImageUrl,
   steamBannerLockupImageSize,
   steamBannerLockupLayout,
+  steamBannerUseTextFallback,
+  steamBannerFallbackText,
 }: SteamBannerPreviewProps) {
   const bandLayout = getSteamBannerBandLayout(steamLogoPlacement)
-  const lockupAspectRatio = getSteamBannerLockupAspectRatio(steamBannerLockupImageSize)
+  const shouldShowTextFallback = shouldRenderSteamBannerTextFallback(
+    steamBannerUseTextFallback,
+    steamBannerLockupImageUrl,
+  )
+  const fallbackText = normalizeSteamBannerFallbackText(steamBannerFallbackText)
+  const lockupAspectRatio = getSteamBannerLockupAspectRatio(
+    shouldShowTextFallback ? null : steamBannerLockupImageSize,
+  )
   const lockupRect = getSteamBannerLockupRect(
     steamLogoPlacement,
     steamBannerLockupLayout,
@@ -79,17 +102,22 @@ export function SteamBannerPreview({
           />
           <div
             className="steam-brand-lockup"
-            aria-label="Steam"
+            aria-label={fallbackText}
             style={lockupRect ? getLockupRectStyle(lockupRect) : undefined}
           >
-            {steamBannerLockupImageUrl ? (
+            {!shouldShowTextFallback && steamBannerLockupImageUrl ? (
               <img
                 src={steamBannerLockupImageUrl}
                 alt="Steam banner lockup"
                 draggable={false}
               />
             ) : (
-              <span>STEAM</span>
+              <span
+                className="steam-brand-lockup-text"
+                style={getTextLockupStyle(fallbackText)}
+              >
+                {fallbackText}
+              </span>
             )}
           </div>
         </div>
