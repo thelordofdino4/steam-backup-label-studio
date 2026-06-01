@@ -10,6 +10,7 @@ import {
   createMediaMarkRenderModel,
   createPlatformMarkRenderModels,
 } from '../mediaMarkRenderModel.ts'
+import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import { canUseTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { createLogoAssetRenderItems } from '../project/projectLogoAssets.ts'
 import type {
@@ -212,6 +213,10 @@ function getRatingBadgeWarnings(
     metadata.ratingValue.trim()
   ) {
     warnings.push('Rating badge uses bundled rating artwork.')
+  }
+
+  if (shouldRenderSupplementalUskRatingBadge(metadata, ratingBadge)) {
+    warnings.push('Additional USK rating badge uses bundled rating artwork.')
   }
 
   return warnings

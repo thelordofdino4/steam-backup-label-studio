@@ -7,34 +7,52 @@ import {
   getRatingBadgePlaceholderRenderModel,
 } from '../../discPlaceholderAssets'
 import {
+  shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,
   shouldUseCustomRatingBadgeImage,
+  type RatingBadgeElementKey,
 } from '../../project/projectRatingBadge'
-import type { ProjectMetadata, ProjectRatingBadge } from '../../project/projectTypes'
+import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout } from '../../project/projectTypes'
 
 export type RatingBadgeLayerProps = {
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
-  handleRatingBadgePointerDown?: (event: PointerEvent<Element>) => void
+  handleRatingBadgePointerDown?: (
+    event: PointerEvent<Element>,
+    badgeKey?: RatingBadgeElementKey,
+  ) => void
   handleRatingBadgePointerMove?: (event: PointerEvent<Element>) => void
   handleRatingBadgePointerUp?: (event: PointerEvent<Element>) => void
 }
 
-export function RatingBadgeLayer({
-  projectMetadata,
-  projectRatingBadge,
+type RatingBadgeLayerItemProps = {
+  ariaLabel: string
+  metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
+  layout: RatingBadgeLayout
+  shouldUseCustomImage: boolean
+  customImageDataUrl?: string | null
+  customImageSize?: ProjectRatingBadge['customImageSize']
+  badgeKey: RatingBadgeElementKey
+  handleRatingBadgePointerDown?: RatingBadgeLayerProps['handleRatingBadgePointerDown']
+  handleRatingBadgePointerMove?: RatingBadgeLayerProps['handleRatingBadgePointerMove']
+  handleRatingBadgePointerUp?: RatingBadgeLayerProps['handleRatingBadgePointerUp']
+}
+
+function RatingBadgeLayerItem({
+  ariaLabel,
+  metadata,
+  layout,
+  shouldUseCustomImage,
+  customImageDataUrl,
+  customImageSize,
+  badgeKey,
   handleRatingBadgePointerDown,
   handleRatingBadgePointerMove,
   handleRatingBadgePointerUp,
-}: RatingBadgeLayerProps) {
-  if (!shouldRenderRatingBadge(projectMetadata, projectRatingBadge)) {
-    return null
-  }
-
-  const shouldUseCustomImage = shouldUseCustomRatingBadgeImage(projectRatingBadge)
+}: RatingBadgeLayerItemProps) {
   const unscaledBounds =
-    shouldUseCustomImage && projectRatingBadge.customImageSize
-      ? getRatingBadgeBoundsPercent(projectRatingBadge.customImageSize, 1)
+    shouldUseCustomImage && customImageSize
+      ? getRatingBadgeBoundsPercent(customImageSize, 1)
       : getRatingBadgePlaceholderBoundsPercent(1)
   const unscaledLayerSize = {
     width: `${unscaledBounds.halfWidth * 2}%`,
@@ -45,19 +63,19 @@ export function RatingBadgeLayer({
     height: '100%',
     maxHeight: 'none',
   }
-  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(projectMetadata)
+  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(metadata)
 
   return (
     <div
       className="disc-rating-badge-layer"
-      aria-label="Rating badge layer"
+      aria-label={ariaLabel}
       style={{
-        left: `${projectRatingBadge.layout.x}%`,
-        top: `${projectRatingBadge.layout.y}%`,
+        left: `${layout.x}%`,
+        top: `${layout.y}%`,
         ...unscaledLayerSize,
-        transform: `translate(-50%, -50%) scale(${projectRatingBadge.layout.scale})`,
+        transform: `translate(-50%, -50%) scale(${layout.scale})`,
       }}
-      onPointerDown={handleRatingBadgePointerDown}
+      onPointerDown={(event) => handleRatingBadgePointerDown?.(event, badgeKey)}
       onPointerMove={handleRatingBadgePointerMove}
       onPointerUp={handleRatingBadgePointerUp}
       onPointerCancel={handleRatingBadgePointerUp}
@@ -65,7 +83,7 @@ export function RatingBadgeLayer({
       {shouldUseCustomImage ? (
         <img
           className="disc-rating-badge-image"
-          src={projectRatingBadge.customImageDataUrl ?? undefined}
+          src={customImageDataUrl ?? undefined}
           alt="Rating badge"
           draggable={false}
           style={fillLayerSize}
@@ -103,5 +121,62 @@ export function RatingBadgeLayer({
         </>
       )}
     </div>
+  )
+}
+
+export function RatingBadgeLayer({
+  projectMetadata,
+  projectRatingBadge,
+  handleRatingBadgePointerDown,
+  handleRatingBadgePointerMove,
+  handleRatingBadgePointerUp,
+}: RatingBadgeLayerProps) {
+  const shouldRenderPrimaryBadge = shouldRenderRatingBadge(
+    projectMetadata,
+    projectRatingBadge,
+  )
+  const shouldRenderUskBadge = shouldRenderSupplementalUskRatingBadge(
+    projectMetadata,
+    projectRatingBadge,
+  )
+
+  if (!shouldRenderPrimaryBadge && !shouldRenderUskBadge) {
+    return null
+  }
+
+  const shouldUseCustomImage = shouldUseCustomRatingBadgeImage(projectRatingBadge)
+
+  return (
+    <>
+      {shouldRenderPrimaryBadge ? (
+        <RatingBadgeLayerItem
+          ariaLabel="Rating badge layer"
+          metadata={projectMetadata}
+          layout={projectRatingBadge.layout}
+          shouldUseCustomImage={shouldUseCustomImage}
+          customImageDataUrl={projectRatingBadge.customImageDataUrl}
+          customImageSize={projectRatingBadge.customImageSize}
+          badgeKey="primary"
+          handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+          handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+          handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+        />
+      ) : null}
+      {shouldRenderUskBadge ? (
+        <RatingBadgeLayerItem
+          ariaLabel="Additional USK rating badge layer"
+          metadata={{
+            ratingSystem: 'USK',
+            ratingValue: projectRatingBadge.uskBadge.ratingValue,
+          }}
+          layout={projectRatingBadge.uskBadge.layout}
+          shouldUseCustomImage={false}
+          badgeKey="usk"
+          handleRatingBadgePointerDown={handleRatingBadgePointerDown}
+          handleRatingBadgePointerMove={handleRatingBadgePointerMove}
+          handleRatingBadgePointerUp={handleRatingBadgePointerUp}
+        />
+      ) : null}
+    </>
   )
 }

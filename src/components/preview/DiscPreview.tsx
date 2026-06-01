@@ -18,6 +18,7 @@ import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
+import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discTextSvgLayer'
 
@@ -45,7 +46,10 @@ export type DiscPreviewProps = {
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
   projectTechnicalMarks: ProjectTechnicalMarks
-  handleRatingBadgePointerDown: (event: PointerEvent<Element>) => void
+  handleRatingBadgePointerDown: (
+    event: PointerEvent<Element>,
+    badgeKey?: RatingBadgeElementKey,
+  ) => void
   handleRatingBadgePointerMove: (event: PointerEvent<Element>) => void
   handleRatingBadgePointerUp: (event: PointerEvent<Element>) => void
   handleMediaMarkPointerDown: (event: PointerEvent<Element>) => void

@@ -10,7 +10,7 @@ import {
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
 import { MEDIA_MARK_OPTIONS, MEDIA_MARK_THEME_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkThemeOptions, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference, mediaMarkSupportsTheme, platformMarkSupportsTheme } from '../../project/projectMediaMark'
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
-import { getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import { formatRatingValueForSystem, getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import { getLogoAssetSource } from '../../project/projectLogoAssets'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
@@ -62,8 +62,12 @@ export type BrandingPanelProps = {
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
   handleRatingBadgeEnabledChange: (enabled: boolean) => void
   handleRatingBadgeLayoutChange: (field: keyof RatingBadgeLayout, value: boolean | number) => void
+  handleSupplementalUskRatingBadgeEnabledChange: (enabled: boolean) => void
+  handleSupplementalUskRatingBadgeValueChange: (ratingValue: string) => void
+  handleSupplementalUskRatingBadgeLayoutChange: (field: keyof RatingBadgeLayout, value: boolean | number) => void
   handleClearRatingBadgeImage: () => void
   handleResetRatingBadgeLayout: () => void
+  handleResetSupplementalUskRatingBadgeLayout: () => void
   handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   handleMediaMarkValueChange: (value: MediaMarkValue) => void
   handleMediaMarkSourceChange: (source: MediaMarkSource) => void
@@ -523,14 +527,57 @@ function LogoAssetControls({ logoKey, label, imageDataUrl, imageSize, layout, pr
   )
 }
 
-function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDiscTemplate, handleProjectMetadataChange, handleProjectMetadataFieldsChange, handleRatingBadgeUpload, handleRatingBadgeSourceChange, handleRatingBadgeEnabledChange, handleRatingBadgeLayoutChange, handleClearRatingBadgeImage, handleResetRatingBadgeLayout }: Pick<BrandingPanelProps, 'projectMetadata' | 'projectRatingBadge' | 'selectedDiscTemplate' | 'handleProjectMetadataChange' | 'handleProjectMetadataFieldsChange' | 'handleRatingBadgeUpload' | 'handleRatingBadgeSourceChange' | 'handleRatingBadgeEnabledChange' | 'handleRatingBadgeLayoutChange' | 'handleClearRatingBadgeImage' | 'handleResetRatingBadgeLayout'>) {
+function RatingBadgeControls({
+  projectMetadata,
+  projectRatingBadge,
+  selectedDiscTemplate,
+  handleProjectMetadataChange,
+  handleProjectMetadataFieldsChange,
+  handleRatingBadgeUpload,
+  handleRatingBadgeSourceChange,
+  handleRatingBadgeEnabledChange,
+  handleRatingBadgeLayoutChange,
+  handleSupplementalUskRatingBadgeEnabledChange,
+  handleSupplementalUskRatingBadgeValueChange,
+  handleSupplementalUskRatingBadgeLayoutChange,
+  handleClearRatingBadgeImage,
+  handleResetRatingBadgeLayout,
+  handleResetSupplementalUskRatingBadgeLayout,
+}: Pick<
+  BrandingPanelProps,
+  | 'projectMetadata'
+  | 'projectRatingBadge'
+  | 'selectedDiscTemplate'
+  | 'handleProjectMetadataChange'
+  | 'handleProjectMetadataFieldsChange'
+  | 'handleRatingBadgeUpload'
+  | 'handleRatingBadgeSourceChange'
+  | 'handleRatingBadgeEnabledChange'
+  | 'handleRatingBadgeLayoutChange'
+  | 'handleSupplementalUskRatingBadgeEnabledChange'
+  | 'handleSupplementalUskRatingBadgeValueChange'
+  | 'handleSupplementalUskRatingBadgeLayoutChange'
+  | 'handleClearRatingBadgeImage'
+  | 'handleResetRatingBadgeLayout'
+  | 'handleResetSupplementalUskRatingBadgeLayout'
+>) {
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
   const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${hasRatingValue ? ` ${projectMetadata.ratingValue}` : ''}`
   const isCustomBadgeSource = projectRatingBadge.source === 'custom'
+  const shouldShowSupplementalUskControls = activeRatingSystem === 'PEGI'
+  const isSupplementalUskBadgeEnabled = projectRatingBadge.uskBadge.layout.enabled
   const sliderRanges = getRatingBadgeLayoutSliderRanges(
     projectRatingBadge,
+    selectedDiscTemplate,
+  )
+  const supplementalUskSliderRanges = getRatingBadgeLayoutSliderRanges(
+    {
+      source: 'placeholder',
+      customImageSize: null,
+      layout: projectRatingBadge.uskBadge.layout,
+    },
     selectedDiscTemplate,
   )
 
@@ -540,6 +587,14 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
     handleRatingBadgeLayoutChange('x', preset.x)
     handleRatingBadgeLayoutChange('y', preset.y)
     handleRatingBadgeLayoutChange('scale', preset.scale)
+  }
+
+  const applySupplementalUskBadgePreset = (presetId: string) => {
+    const preset = RATING_BADGE_LAYOUT_PRESETS.find((candidate) => candidate.id === presetId)
+    if (!preset) return
+    handleSupplementalUskRatingBadgeLayoutChange('x', preset.x)
+    handleSupplementalUskRatingBadgeLayoutChange('y', preset.y)
+    handleSupplementalUskRatingBadgeLayoutChange('scale', preset.scale)
   }
 
   return (
@@ -555,6 +610,7 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
           }}>
             <option value="ESRB">ESRB</option>
             <option value="PEGI">PEGI</option>
+            <option value="USK">USK</option>
             <option value="custom">Custom</option>
           </select>
 
@@ -563,9 +619,52 @@ function RatingBadgeControls({ projectMetadata, projectRatingBadge, selectedDisc
             <input id="branding-rating-value" type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
           ) : (
             <select id="branding-rating-value" value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
-              {getRatingValuesForSystem(activeRatingSystem).map((value) => <option key={value} value={value}>{activeRatingSystem === 'PEGI' ? `PEGI ${value}` : value}</option>)}
+              {getRatingValuesForSystem(activeRatingSystem).map((value) => (
+                <option key={value} value={value}>
+                  {formatRatingValueForSystem(activeRatingSystem, value)}
+                </option>
+              ))}
             </select>
           )}
+
+          {shouldShowSupplementalUskControls ? (
+            <div className="platform-mark-selection-group spacing-top">
+              <label className="field-label">
+                <input type="checkbox" checked={isSupplementalUskBadgeEnabled} onChange={(event) => handleSupplementalUskRatingBadgeEnabledChange(event.target.checked)} />
+                Show additional USK badge
+              </label>
+
+              {!isSupplementalUskBadgeEnabled ? null : (
+                <>
+                  <label className="field-label spacing-top" htmlFor="branding-usk-rating-value">USK rating value</label>
+                  <select id="branding-usk-rating-value" value={projectRatingBadge.uskBadge.ratingValue} onChange={(event) => handleSupplementalUskRatingBadgeValueChange(event.target.value)}>
+                    {getRatingValuesForSystem('USK').map((value) => (
+                      <option key={value} value={value}>
+                        {formatRatingValueForSystem('USK', value)}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="field-label spacing-top" htmlFor="usk-rating-badge-layout-preset">USK layout preset</label>
+                  <select id="usk-rating-badge-layout-preset" defaultValue="" onChange={(event) => {
+                    applySupplementalUskBadgePreset(event.target.value)
+                    event.currentTarget.value = ''
+                  }}>
+                    <option value="">Choose preset...</option>
+                    {RATING_BADGE_LAYOUT_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+                  </select>
+
+                  <label className="field-label spacing-top" htmlFor="usk-rating-badge-scale">USK scale</label>
+                  <input id="usk-rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.uskBadge.layout.scale} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('scale', getNumericInputValue(event))} />
+                  <label className="field-label spacing-top" htmlFor="usk-rating-badge-x">USK X position</label>
+                  <input id="usk-rating-badge-x" type="range" min={supplementalUskSliderRanges.x.min} max={supplementalUskSliderRanges.x.max} step="0.1" value={projectRatingBadge.uskBadge.layout.x} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('x', getNumericInputValue(event))} />
+                  <label className="field-label spacing-top" htmlFor="usk-rating-badge-y">USK Y position</label>
+                  <input id="usk-rating-badge-y" type="range" min={supplementalUskSliderRanges.y.min} max={supplementalUskSliderRanges.y.max} step="0.1" value={projectRatingBadge.uskBadge.layout.y} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('y', getNumericInputValue(event))} />
+                  <button className="secondary-button" type="button" onClick={handleResetSupplementalUskRatingBadgeLayout}>Reset USK badge layout</button>
+                </>
+              )}
+            </div>
+          ) : null}
 
           <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
           {projectMetadata.ratingSystem === 'none' && (

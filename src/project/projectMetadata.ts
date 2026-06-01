@@ -3,11 +3,13 @@ import type { SteamImportedGame } from '../steam/steamApi'
 
 export const ESRB_RATING_VALUES = ['E', 'E10+', 'T', 'M', 'AO', 'RP', 'RP17+'] as const
 export const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
+export const USK_RATING_VALUES = ['0', '6', '12', '16', '18'] as const
 const DEFAULT_ENABLED_RATING_SYSTEM: GameRatingSystem = 'ESRB'
 const DEFAULT_ENABLED_RATING_VALUE = 'E'
 
 export type EsrbRatingValue = (typeof ESRB_RATING_VALUES)[number]
 export type PegiRatingValue = (typeof PEGI_RATING_VALUES)[number]
+export type UskRatingValue = (typeof USK_RATING_VALUES)[number]
 
 function normalizeForRatingMatch(value: string) {
   return value
@@ -57,6 +59,19 @@ export function normalizePegiRatingValue(value: string): PegiRatingValue | null 
     : null
 }
 
+export function normalizeUskRatingValue(value: string): UskRatingValue | null {
+  const normalized = normalizeForRatingMatch(value)
+  const compact = normalized.replace(/\s+/g, '')
+  const rating =
+    normalized.match(/\b(0|6|12|16|18)\b/)?.[1] ??
+    compact.match(/^usk(0|6|12|16|18)$/)?.[1] ??
+    null
+
+  return USK_RATING_VALUES.includes(rating as UskRatingValue)
+    ? rating as UskRatingValue
+    : null
+}
+
 export function getRatingValuesForSystem(system: GameRatingSystem): readonly string[] {
   if (system === 'ESRB') {
     return ESRB_RATING_VALUES
@@ -66,7 +81,19 @@ export function getRatingValuesForSystem(system: GameRatingSystem): readonly str
     return PEGI_RATING_VALUES
   }
 
+  if (system === 'USK') {
+    return USK_RATING_VALUES
+  }
+
   return []
+}
+
+export function formatRatingValueForSystem(system: GameRatingSystem, value: string) {
+  if (system === 'PEGI' || system === 'USK') {
+    return `${system} ${value}`
+  }
+
+  return value
 }
 
 export function getActiveRatingSystemForBadge(system: GameRatingSystem): GameRatingSystem {

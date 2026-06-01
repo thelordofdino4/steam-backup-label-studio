@@ -1,4 +1,8 @@
-import { getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
+import {
+  formatRatingValueForSystem,
+  getRatingMetadataForSystemChange,
+  getRatingValuesForSystem,
+} from '../../project/projectMetadata'
 import type { GameRatingSystem, ProjectMetadata } from '../../project/projectTypes'
 import type { SteamMetadataAssistanceState } from '../../hooks/useSteamMetadataAssistance'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
@@ -22,7 +26,10 @@ export type GamePanelProps = {
   metadataAssistance: SteamMetadataAssistanceState
   canFindMetadataCandidates: boolean
   handleFindMetadataCandidates: () => void | Promise<void>
-  handleApplyRatingCandidate: (candidate: RatingBoardCandidate) => void
+  handleApplyRatingCandidate: (
+    candidate: RatingBoardCandidate,
+    options?: { mode?: 'primary' | 'supplemental-usk' },
+  ) => void
   handleApplyLegalCandidate: (candidate: LegalTextCandidate) => void
   handleCopyLegalCandidate: (candidate: LegalTextCandidate) => void | Promise<void>
 }
@@ -248,7 +255,7 @@ export function GamePanel({
           const suggestedRating = getSuggestedRatingForSystem(nextSystem)
 
           if (suggestedRating) {
-            handleApplyRatingCandidate(suggestedRating)
+            handleApplyRatingCandidate(suggestedRating, { mode: 'primary' })
             return
           }
 
@@ -260,6 +267,7 @@ export function GamePanel({
         <option value="none">None</option>
         <option value="ESRB">ESRB</option>
         <option value="PEGI">PEGI</option>
+        <option value="USK">USK</option>
         <option value="custom">Custom</option>
       </select>
       {projectMetadata.ratingSystem === 'none' && (
@@ -294,7 +302,7 @@ export function GamePanel({
             >
               {getRatingValuesForSystem(projectMetadata.ratingSystem).map((value) => (
                 <option key={value} value={value}>
-                  {projectMetadata.ratingSystem === 'PEGI' ? `PEGI ${value}` : value}
+                  {formatRatingValueForSystem(projectMetadata.ratingSystem, value)}
                 </option>
               ))}
             </select>

@@ -1,5 +1,6 @@
-import type { ProjectMetadata, ProjectRatingBadge } from '../project/projectTypes'
+import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from '../project/projectTypes'
 import {
+  shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,
   shouldUseCustomRatingBadgeImage,
 } from '../project/projectRatingBadge'
@@ -12,12 +13,19 @@ import {
 } from '../discPlaceholderAssets'
 import { loadImage } from './canvasImage'
 
+type DrawableRatingBadge = {
+  source: RatingBadgeSource
+  customImageDataUrl: string | null
+  customImageSize: ProjectRatingBadge['customImageSize']
+  layout: RatingBadgeLayout
+}
+
 async function drawPlaceholderRatingBadge(
   context: CanvasRenderingContext2D,
   discContentSize: number,
   discOrigin: number,
-  metadata: ProjectMetadata,
-  badge: ProjectRatingBadge,
+  metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
+  badge: DrawableRatingBadge,
 ) {
   const renderModel = getRatingBadgePlaceholderRenderModel(metadata)
 
@@ -64,7 +72,7 @@ async function drawCustomRatingBadge(
   context: CanvasRenderingContext2D,
   discContentSize: number,
   discOrigin: number,
-  badge: ProjectRatingBadge,
+  badge: DrawableRatingBadge,
 ) {
   if (!badge.customImageDataUrl) {
     return
@@ -105,14 +113,29 @@ export async function drawRatingBadge(
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
 ) {
-  if (!shouldRenderRatingBadge(metadata, badge)) {
-    return
+  if (shouldRenderRatingBadge(metadata, badge)) {
+    if (shouldUseCustomRatingBadgeImage(badge)) {
+      await drawCustomRatingBadge(context, discContentSize, discOrigin, badge)
+    } else {
+      await drawPlaceholderRatingBadge(context, discContentSize, discOrigin, metadata, badge)
+    }
   }
 
-  if (shouldUseCustomRatingBadgeImage(badge)) {
-    await drawCustomRatingBadge(context, discContentSize, discOrigin, badge)
-    return
+  if (shouldRenderSupplementalUskRatingBadge(metadata, badge)) {
+    await drawPlaceholderRatingBadge(
+      context,
+      discContentSize,
+      discOrigin,
+      {
+        ratingSystem: 'USK',
+        ratingValue: badge.uskBadge.ratingValue,
+      },
+      {
+        source: 'placeholder',
+        customImageDataUrl: null,
+        customImageSize: null,
+        layout: badge.uskBadge.layout,
+      },
+    )
   }
-
-  await drawPlaceholderRatingBadge(context, discContentSize, discOrigin, metadata, badge)
 }

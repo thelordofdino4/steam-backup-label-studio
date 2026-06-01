@@ -29,8 +29,10 @@ import {
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
 } from '../project/projectMediaMark.ts'
+import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import type {
   LogoAssetLayout,
+  ProjectMetadata,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarks,
@@ -50,6 +52,7 @@ export type DiscTemplateGeometryGuardrailState = {
   discTextTitle: string
   discTextLayout: DiscTextLayoutSettings
   projectLogoAssets: ProjectLogoAssets
+  projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
@@ -172,6 +175,18 @@ export function getMovableDiscElementGeometry(
         : getRatingBadgePlaceholderBoundsPercent(layout.scale)
 
     elements.push(createElementGeometry('rating badge', layout, bounds))
+  }
+
+  if (shouldRenderSupplementalUskRatingBadge(state.projectMetadata, state.projectRatingBadge)) {
+    const layout = state.projectRatingBadge.uskBadge.layout
+
+    elements.push(
+      createElementGeometry(
+        'additional USK rating badge',
+        layout,
+        getRatingBadgePlaceholderBoundsPercent(layout.scale),
+      ),
+    )
   }
 
   if (state.projectMediaMark.layout.enabled) {

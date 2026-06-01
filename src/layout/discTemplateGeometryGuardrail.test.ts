@@ -7,6 +7,7 @@ import {
 } from '../discText.ts'
 import { buildCustomDiscTemplate } from '../discGeometry.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import {
   createDefaultProjectMediaMark,
   createDefaultProjectPlatformMarks,
@@ -37,6 +38,7 @@ function createGuardrailState(
     discTextTitle: 'Untitled Steam Backup Label',
     discTextLayout: createDefaultDiscTextLayout('top', standardTemplate),
     projectLogoAssets: createDefaultProjectLogoAssets(standardTemplate),
+    projectMetadata: createDefaultProjectMetadata(),
     projectRatingBadge: createDefaultProjectRatingBadge(standardTemplate),
     projectMediaMark: createDefaultProjectMediaMark(standardTemplate),
     projectPlatformMarks: createDefaultProjectPlatformMarks(),

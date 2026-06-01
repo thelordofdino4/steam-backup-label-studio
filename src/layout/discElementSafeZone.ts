@@ -719,6 +719,27 @@ export function clampRatingBadgeLayoutToSafeZone(
   }
 }
 
+export function clampProjectRatingBadgeToSafeZone(
+  ratingBadge: ProjectRatingBadge,
+  selectedDiscTemplate: DiscTemplate,
+): ProjectRatingBadge {
+  return {
+    ...ratingBadge,
+    layout: clampRatingBadgeLayoutToSafeZone(ratingBadge, selectedDiscTemplate),
+    uskBadge: {
+      ...ratingBadge.uskBadge,
+      layout: clampRatingBadgeLayoutToSafeZone(
+        {
+          source: 'placeholder',
+          customImageSize: null,
+          layout: ratingBadge.uskBadge.layout,
+        },
+        selectedDiscTemplate,
+      ),
+    },
+  }
+}
+
 export function clampMediaMarkLayoutToSafeZone(
   mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
   selectedDiscTemplate: DiscTemplate,

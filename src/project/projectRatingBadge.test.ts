@@ -6,12 +6,16 @@ import {
   getRatingValuesForSystem,
   normalizeEsrbRatingValue,
   normalizePegiRatingValue,
+  normalizeUskRatingValue,
 } from './projectMetadata.ts'
 import { getRatingBadgePlaceholderRenderModel } from '../discPlaceholderAssets.ts'
 import {
   createDefaultProjectRatingBadge,
   shouldRenderRatingBadge,
+  shouldRenderSupplementalUskRatingBadge,
   shouldUseCustomRatingBadgeImage,
+  updateSupplementalUskRatingBadgeEnabledState,
+  updateSupplementalUskRatingBadgeValue,
   updateRatingBadgeEnabledState,
 } from './projectRatingBadge.ts'
 
@@ -26,6 +30,12 @@ test('clean default project enables a renderable default rating badge', () => {
   assert.equal(shouldRenderRatingBadge(nextState.metadata, nextState.ratingBadge), true)
 })
 
+test('additional USK badge defaults larger to visually match PEGI badge scale', () => {
+  const ratingBadge = createDefaultProjectRatingBadge()
+
+  assert.equal(ratingBadge.uskBadge.layout.scale, 1.2)
+})
+
 test('ESRB rating metadata exposes all built-in badge variants in menu order', () => {
   assert.deepEqual(
     getRatingValuesForSystem('ESRB'),
@@ -37,6 +47,13 @@ test('PEGI rating metadata exposes all built-in badge variants in menu order', (
   assert.deepEqual(
     getRatingValuesForSystem('PEGI'),
     ['3', '7', '12', '16', '18'],
+  )
+})
+
+test('USK rating metadata exposes all built-in badge variants in menu order', () => {
+  assert.deepEqual(
+    getRatingValuesForSystem('USK'),
+    ['0', '6', '12', '16', '18'],
   )
 })
 
@@ -59,6 +76,10 @@ test('rating system changes return system and coerced value together', () => {
   assert.deepEqual(
     getRatingMetadataForSystemChange(pegiMetadata, 'ESRB'),
     { ratingSystem: 'ESRB', ratingValue: 'E' },
+  )
+  assert.deepEqual(
+    getRatingMetadataForSystemChange(pegiMetadata, 'USK'),
+    { ratingSystem: 'USK', ratingValue: '16' },
   )
   assert.deepEqual(
     getRatingMetadataForSystemChange(pegiMetadata, 'custom'),
@@ -94,6 +115,17 @@ test('PEGI built-in badge artwork is value-specific and does not use text overla
   assert.equal(pegiModel.altLabel, 'PEGI 16 rating badge')
 })
 
+test('USK built-in badge artwork is value-specific and does not use text overlays', () => {
+  const uskModel = getRatingBadgePlaceholderRenderModel({
+    ratingSystem: 'USK',
+    ratingValue: 'ab 18',
+  })
+
+  assert.match(uskModel.imageUrl, /rating-badge-usk-18\.svg$/)
+  assert.equal(uskModel.overlayLabel, null)
+  assert.equal(uskModel.altLabel, 'USK 18 rating badge')
+})
+
 test('custom bundled rating badges keep generic text overlays', () => {
   const customModel = getRatingBadgePlaceholderRenderModel({
     ratingSystem: 'custom',
@@ -119,6 +151,13 @@ test('PEGI rating value normalization supports labeled sources', () => {
   assert.equal(normalizePegiRatingValue('PEGI 21'), null)
 })
 
+test('USK rating value normalization supports labeled sources', () => {
+  assert.equal(normalizeUskRatingValue('USK 0'), '0')
+  assert.equal(normalizeUskRatingValue('USK ab 16'), '16')
+  assert.equal(normalizeUskRatingValue('18'), '18')
+  assert.equal(normalizeUskRatingValue('USK 21'), null)
+})
+
 test('enabling rating badge preserves existing valid rating metadata', () => {
   const metadata = {
     ...createDefaultProjectMetadata(),
@@ -135,6 +174,47 @@ test('enabling rating badge preserves existing valid rating metadata', () => {
   assert.equal(nextState.metadata.ratingSystem, 'PEGI')
   assert.equal(nextState.metadata.ratingValue, '16')
   assert.equal(shouldRenderRatingBadge(nextState.metadata, nextState.ratingBadge), true)
+})
+
+test('additional USK badge renders only as a PEGI companion badge', () => {
+  const pegiMetadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'PEGI' as const,
+    ratingValue: '16',
+  }
+  const uskMetadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'USK' as const,
+    ratingValue: '16',
+  }
+  const ratingBadge = updateSupplementalUskRatingBadgeValue(
+    updateSupplementalUskRatingBadgeEnabledState(
+      updateRatingBadgeEnabledState(
+        pegiMetadata,
+        createDefaultProjectRatingBadge(),
+        true,
+      ).ratingBadge,
+      true,
+    ),
+    '16',
+  )
+
+  assert.equal(shouldRenderRatingBadge(pegiMetadata, ratingBadge), true)
+  assert.equal(shouldRenderSupplementalUskRatingBadge(pegiMetadata, ratingBadge), true)
+  assert.equal(shouldRenderSupplementalUskRatingBadge(uskMetadata, ratingBadge), false)
+  assert.equal(
+    shouldRenderSupplementalUskRatingBadge(
+      pegiMetadata,
+      {
+        ...ratingBadge,
+        layout: {
+          ...ratingBadge.layout,
+          enabled: false,
+        },
+      },
+    ),
+    false,
+  )
 })
 
 test('custom badge source without an image falls back to placeholder rendering when enabled', () => {

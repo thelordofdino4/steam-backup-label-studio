@@ -19,9 +19,9 @@ import {
   clampProjectAdditionalArtworkToSafeZone,
   clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
+  clampProjectRatingBadgeToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
   clampProjectTitleArtworkToSafeZone,
-  clampRatingBadgeLayoutToSafeZone,
 } from '../layout/discElementSafeZone.ts'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
@@ -237,13 +237,10 @@ export async function restoreSavedProjectState(
     project.ratingBadge,
     template.selectedDiscTemplate,
   )
-  const projectRatingBadge = {
-    ...loadedRatingBadge,
-    layout: clampRatingBadgeLayoutToSafeZone(
-      loadedRatingBadge,
-      template.selectedDiscTemplate,
-    ),
-  }
+  const projectRatingBadge = clampProjectRatingBadgeToSafeZone(
+    loadedRatingBadge,
+    template.selectedDiscTemplate,
+  )
   const loadedMediaMark = normalizeProjectMediaMark(
     project.mediaMark,
     template.selectedDiscTemplate,

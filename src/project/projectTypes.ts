@@ -24,7 +24,7 @@ export type SteamBannerLockupLayout = {
   offsetY: number
 }
 
-export type GameRatingSystem = 'none' | 'ESRB' | 'PEGI' | 'custom'
+export type GameRatingSystem = 'none' | 'ESRB' | 'PEGI' | 'USK' | 'custom'
 
 export type ProjectMetadata = {
   title: string
@@ -195,11 +195,17 @@ export type RatingBadgeLayout = {
   y: number
 }
 
+export type ProjectSupplementalUskRatingBadge = {
+  ratingValue: string
+  layout: RatingBadgeLayout
+}
+
 export type ProjectRatingBadge = {
   source: RatingBadgeSource
   customImageDataUrl: string | null
   customImageSize: BackgroundImageSize | null
   layout: RatingBadgeLayout
+  uskBadge: ProjectSupplementalUskRatingBadge
 }
 
 export type MediaMarkValue =

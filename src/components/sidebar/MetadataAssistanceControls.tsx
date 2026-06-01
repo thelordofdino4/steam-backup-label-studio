@@ -9,7 +9,10 @@ export type MetadataAssistanceControlsProps = {
   metadataAssistance: SteamMetadataAssistanceState
   canFindMetadataCandidates: boolean
   handleFindMetadataCandidates: () => void | Promise<void>
-  handleApplyRatingCandidate: (candidate: RatingBoardCandidate) => void
+  handleApplyRatingCandidate: (
+    candidate: RatingBoardCandidate,
+    options?: { mode?: 'primary' | 'supplemental-usk' },
+  ) => void
   handleApplyLegalCandidate: (candidate: LegalTextCandidate) => void
   handleCopyLegalCandidate: (candidate: LegalTextCandidate) => void | Promise<void>
 }
@@ -61,7 +64,10 @@ function RatingCandidateRow({
   handleApplyRatingCandidate,
 }: {
   candidate: RatingBoardCandidate
-  handleApplyRatingCandidate: (candidate: RatingBoardCandidate) => void
+  handleApplyRatingCandidate: (
+    candidate: RatingBoardCandidate,
+    options?: { mode?: 'primary' | 'supplemental-usk' },
+  ) => void
 }) {
   return (
     <div className="metadata-candidate-row">
@@ -142,7 +148,10 @@ export function MetadataAssistanceControls({
 }: MetadataAssistanceControlsProps) {
   const hasSearched = Boolean(metadataAssistance.lastSearchedLabel)
   const supportedRatingCount = metadataAssistance.ratingCandidates.filter(
-    (candidate) => candidate.ratingSystem === 'ESRB' || candidate.ratingSystem === 'PEGI',
+    (candidate) =>
+      candidate.ratingSystem === 'ESRB' ||
+      candidate.ratingSystem === 'PEGI' ||
+      candidate.ratingSystem === 'USK',
   ).length
   const otherRatingCount = metadataAssistance.ratingCandidates.length - supportedRatingCount
 
@@ -182,7 +191,7 @@ export function MetadataAssistanceControls({
           <span className="field-label">Rating candidates</span>
           {supportedRatingCount === 0 && otherRatingCount > 0 && (
             <p className="hint">
-              No ESRB or PEGI rating was found. Other regional boards can be applied only as custom labels.
+              No ESRB, PEGI, or USK rating was found. Other regional boards can be applied only as custom labels.
             </p>
           )}
           {metadataAssistance.ratingCandidates.map((candidate) => (
@@ -200,7 +209,7 @@ export function MetadataAssistanceControls({
         metadataAssistance.ratingCandidates.length === 0 &&
         !metadataAssistance.error && (
           <p className="hint">
-            No rating candidates were found. Leave rating as None, or choose ESRB, PEGI, or Custom manually if you have a verified value.
+            No rating candidates were found. Leave rating as None, or choose ESRB, PEGI, USK, or Custom manually if you have a verified value.
           </p>
         )}
 

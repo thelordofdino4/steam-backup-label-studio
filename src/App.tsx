@@ -34,7 +34,7 @@ import {
   clampMediaMarkLayoutToSafeZone,
   clampProjectLogoAssetsToSafeZone,
   clampProjectPlatformMarksToSafeZone,
-  clampRatingBadgeLayoutToSafeZone,
+  clampProjectRatingBadgeToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from './layout/discElementSafeZone'
 import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeometryGuardrail'
@@ -80,7 +80,7 @@ import {
 } from './project/metadataDiscText'
 import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateAdditionalLogoAssetLabel, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
 import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, markProjectPlatformMarksManual, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkTheme, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkTheme, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, type RatingBadgeLayoutField } from './project/projectRatingBadge'
+import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, resetSupplementalUskRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, updateSupplementalUskRatingBadgeEnabledState, updateSupplementalUskRatingBadgeLayoutField, updateSupplementalUskRatingBadgeValue, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
   applyImportedLogoAsset,
   applyImportedMediaMark,
@@ -498,21 +498,9 @@ function App() {
     clampProjectTitleArtworkToTemplate(template)
     clampProjectAdditionalArtworkToTemplate(template)
 
-    setProjectRatingBadge((currentBadge) => {
-      const layout = clampRatingBadgeLayoutToSafeZone(currentBadge, template)
-
-      if (
-        layout.x === currentBadge.layout.x &&
-        layout.y === currentBadge.layout.y
-      ) {
-        return currentBadge
-      }
-
-      return {
-        ...currentBadge,
-        layout,
-      }
-    })
+    setProjectRatingBadge((currentBadge) =>
+      clampProjectRatingBadgeToSafeZone(currentBadge, template),
+    )
 
     setProjectMediaMark((currentMark) => {
       const layout = clampMediaMarkLayoutToSafeZone(currentMark, template)
@@ -826,10 +814,7 @@ function App() {
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = updateRatingBadgeSource(currentBadge, source)
 
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
+      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
     })
   }
 
@@ -841,13 +826,9 @@ function App() {
     )
 
     setProjectMetadata(nextState.metadata)
-    setProjectRatingBadge({
-      ...nextState.ratingBadge,
-      layout: clampRatingBadgeLayoutToSafeZone(
-        nextState.ratingBadge,
-        selectedDiscTemplate,
-      ),
-    })
+    setProjectRatingBadge(
+      clampProjectRatingBadgeToSafeZone(nextState.ratingBadge, selectedDiscTemplate),
+    )
 
     if (enabled) {
       const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
@@ -879,21 +860,42 @@ function App() {
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = updateRatingBadgeLayoutField(currentBadge, field, value)
 
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
+      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
     })
+  }
+
+  function handleSupplementalUskRatingBadgeEnabledChange(enabled: boolean) {
+    setProjectRatingBadge((currentBadge) =>
+      clampProjectRatingBadgeToSafeZone(
+        updateSupplementalUskRatingBadgeEnabledState(currentBadge, enabled),
+        selectedDiscTemplate,
+      ),
+    )
+  }
+
+  function handleSupplementalUskRatingBadgeValueChange(ratingValue: string) {
+    setProjectRatingBadge((currentBadge) =>
+      updateSupplementalUskRatingBadgeValue(currentBadge, ratingValue),
+    )
+  }
+
+  function handleSupplementalUskRatingBadgeLayoutChange(
+    field: RatingBadgeLayoutField,
+    value: boolean | number,
+  ) {
+    setProjectRatingBadge((currentBadge) =>
+      clampProjectRatingBadgeToSafeZone(
+        updateSupplementalUskRatingBadgeLayoutField(currentBadge, field, value),
+        selectedDiscTemplate,
+      ),
+    )
   }
 
   function handleClearRatingBadgeImage() {
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = clearRatingBadgeImage(currentBadge)
 
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
+      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
     })
 
     announceStatus('Cleared custom rating badge image.')
@@ -906,13 +908,24 @@ function App() {
         selectedDiscTemplate,
       )
 
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
+      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
     })
 
     announceStatus('Reset rating badge layout.')
+  }
+
+  function handleResetSupplementalUskRatingBadgeLayout() {
+    setProjectRatingBadge((currentBadge) =>
+      clampProjectRatingBadgeToSafeZone(
+        resetSupplementalUskRatingBadgeLayout(
+          currentBadge,
+          selectedDiscTemplate,
+        ),
+        selectedDiscTemplate,
+      ),
+    )
+
+    announceStatus('Reset additional USK badge layout.')
   }
 
   async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -1454,10 +1467,7 @@ function App() {
         },
       }
 
-      return {
-        ...nextBadge,
-        layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-      }
+      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
     })
   }
 
@@ -1488,10 +1498,41 @@ function App() {
 
   function applyRatingCandidateToProject(
     candidate: RatingBoardCandidate,
-    options: { announce?: boolean } = {},
+    options: { announce?: boolean; mode?: 'primary' | 'supplemental-usk' } = {},
   ) {
     if (!candidate.canApply) {
       announceStatus('That rating candidate is informational only.')
+      return
+    }
+
+    const shouldApplyAsSupplementalUsk =
+      options.mode !== 'primary' &&
+      candidate.applyKind === 'rating' &&
+      candidate.ratingSystem === 'USK' &&
+      projectMetadata.ratingSystem === 'PEGI'
+
+    if (shouldApplyAsSupplementalUsk) {
+      setProjectRatingBadge((currentBadge) => {
+        const enabledBadge = {
+          ...currentBadge,
+          layout: {
+            ...currentBadge.layout,
+            enabled: true,
+          },
+        }
+        const nextBadge = updateSupplementalUskRatingBadgeEnabledState(
+          updateSupplementalUskRatingBadgeValue(enabledBadge, candidate.ratingValue),
+          true,
+        )
+
+        return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      })
+
+      if (options.announce ?? true) {
+        announceStatus(
+          `Applied ${candidate.boardLabel} ${candidate.displayRating} as an additional badge alongside PEGI.`,
+        )
+      }
       return
     }
 
@@ -1616,8 +1657,11 @@ function App() {
     }
   }
 
-  function handleApplyRatingCandidate(candidate: RatingBoardCandidate) {
-    applyRatingCandidateToProject(candidate)
+  function handleApplyRatingCandidate(
+    candidate: RatingBoardCandidate,
+    options?: { mode?: 'primary' | 'supplemental-usk' },
+  ) {
+    applyRatingCandidateToProject(candidate, options)
   }
 
   function handleApplyLegalCandidate(candidate: LegalTextCandidate) {
@@ -1743,6 +1787,7 @@ function App() {
         discTextTitle: resolvedDiscTextTitle,
         discTextLayout,
         projectLogoAssets,
+        projectMetadata,
         projectRatingBadge,
         projectMediaMark,
         projectPlatformMarks,
@@ -2447,8 +2492,12 @@ function App() {
           handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
           handleRatingBadgeEnabledChange={handleRatingBadgeEnabledChange}
           handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
+          handleSupplementalUskRatingBadgeEnabledChange={handleSupplementalUskRatingBadgeEnabledChange}
+          handleSupplementalUskRatingBadgeValueChange={handleSupplementalUskRatingBadgeValueChange}
+          handleSupplementalUskRatingBadgeLayoutChange={handleSupplementalUskRatingBadgeLayoutChange}
           handleClearRatingBadgeImage={handleClearRatingBadgeImage}
           handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
+          handleResetSupplementalUskRatingBadgeLayout={handleResetSupplementalUskRatingBadgeLayout}
           handleMediaMarkUpload={handleMediaMarkUpload}
           handleMediaMarkValueChange={handleMediaMarkValueChange}
           handleMediaMarkSourceChange={handleMediaMarkSourceChange}

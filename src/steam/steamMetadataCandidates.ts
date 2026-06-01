@@ -2,6 +2,7 @@ import type { GameRatingSystem, ProjectMetadata } from '../project/projectTypes'
 import {
   normalizeEsrbRatingValue,
   normalizePegiRatingValue,
+  normalizeUskRatingValue,
 } from '../project/projectMetadata.ts'
 import {
   fetchSteamPageHtml,
@@ -73,7 +74,7 @@ type RatingCandidateSeed = {
   allowUnknownSupportedRating?: boolean
 }
 
-const SUPPORTED_RATING_BOARDS = new Set(['esrb', 'pegi'])
+const SUPPORTED_RATING_BOARDS = new Set(['esrb', 'pegi', 'usk'])
 const BOARD_LABELS: Record<string, string> = {
   esrb: 'ESRB',
   pegi: 'PEGI',
@@ -196,6 +197,10 @@ function normalizePegiRating(value: string) {
   return normalizePegiRatingValue(value)
 }
 
+function normalizeUskRating(value: string) {
+  return normalizeUskRatingValue(value)
+}
+
 function isUnratedValue(value: string) {
   const normalized = normalizeForMatch(value)
 
@@ -205,6 +210,7 @@ function isUnratedValue(value: string) {
 function getSupportedRatingValue(boardId: string, rawRating: string) {
   if (boardId === 'esrb') return normalizeEsrbRating(rawRating)
   if (boardId === 'pegi') return normalizePegiRating(rawRating)
+  if (boardId === 'usk') return normalizeUskRating(rawRating)
 
   return null
 }
@@ -384,7 +390,12 @@ function dedupeRatingCandidates(candidates: RatingBoardCandidate[]) {
 function getRatingCandidateRank(candidate: RatingBoardCandidate) {
   const sourceRank = candidate.source === 'steam-appdetails' ? 4 : 0
   const confidenceRank = candidate.confidence === 'high' ? 3 : candidate.confidence === 'medium' ? 2 : 1
-  const supportedRank = candidate.ratingSystem === 'ESRB' || candidate.ratingSystem === 'PEGI' ? 3 : 0
+  const supportedRank =
+    candidate.ratingSystem === 'ESRB' ||
+    candidate.ratingSystem === 'PEGI' ||
+    candidate.ratingSystem === 'USK'
+      ? 3
+      : 0
 
   return sourceRank + confidenceRank + supportedRank
 }
@@ -423,7 +434,7 @@ function getStructuredRatingCandidates(game: SteamImportedGame) {
       sourceLabel: 'Steam appdetails',
       sourceUrl: game.storeUrl,
       reasons: [`Steam appdetails includes ${getBoardLabel(boardId)} rating data.`],
-      confidence: SUPPORTED_RATING_BOARDS.has(boardId) ? 'high' : 'medium',
+      confidence: SUPPORTED_RATING_BOARDS.has(boardId.toLowerCase()) ? 'high' : 'medium',
     })
 
     if (candidate) candidates.push(candidate)
@@ -511,8 +522,8 @@ function extractRatingMentionsFromText(
   sourceUrl: string | null,
 ) {
   const candidates: RatingBoardCandidate[] = []
-  const ratingTextPattern = /\b(ESRB|PEGI)\b(?:\s*(?:rating|rated)?\s*[:-]?\s*)([a-zA-Z0-9+ ]{1,36})/gi
-  const fileNamePattern = /(?:^|[^a-z0-9])(esrb|pegi)[\s_-]+([a-z0-9+]{1,8})(?:[^a-z0-9+]|$)/gi
+  const ratingTextPattern = /\b(ESRB|PEGI|USK)\b(?:\s*(?:rating|rated)?\s*[:-]?\s*)([a-zA-Z0-9+ ]{1,36})/gi
+  const fileNamePattern = /(?:^|[^a-z0-9])(esrb|pegi|usk)[\s_-]+([a-z0-9+]{1,8})(?:[^a-z0-9+]|$)/gi
   let match: RegExpExecArray | null
 
   while ((match = ratingTextPattern.exec(text)) !== null) {

@@ -26,7 +26,11 @@ import { createDiscNumberBadgeRenderModel } from '../discNumberArtwork.ts'
 import { createMediaMarkRenderModel, createPlatformMarkRenderModels } from '../mediaMarkRenderModel.ts'
 import { createAdditionalArtworkRenderItems } from '../project/projectAdditionalArtwork.ts'
 import { createLogoAssetRenderItems, getLogoAssetRenderSize } from '../project/projectLogoAssets.ts'
-import { shouldRenderRatingBadge, shouldUseCustomRatingBadgeImage } from '../project/projectRatingBadge.ts'
+import {
+  shouldRenderRatingBadge,
+  shouldRenderSupplementalUskRatingBadge,
+  shouldUseCustomRatingBadgeImage,
+} from '../project/projectRatingBadge.ts'
 import { createTitleArtworkRenderItem } from '../project/projectTitleArtwork.ts'
 import type {
   ProjectAdditionalArtwork,
@@ -156,6 +160,20 @@ export function createDiscTextOccupiedRegions({
         projectRatingBadge.layout.x,
         projectRatingBadge.layout.y,
         ratingBounds,
+      ),
+    )
+  }
+
+  if (shouldRenderSupplementalUskRatingBadge(projectMetadata, projectRatingBadge)) {
+    regions.push(
+      createDiscTextAvoidanceRegionFromBounds(
+        'rating-badge-usk',
+        'Additional USK rating badge',
+        projectRatingBadge.uskBadge.layout.x,
+        projectRatingBadge.uskBadge.layout.y,
+        getRatingBadgePlaceholderBoundsPercent(
+          projectRatingBadge.uskBadge.layout.scale,
+        ),
       ),
     )
   }

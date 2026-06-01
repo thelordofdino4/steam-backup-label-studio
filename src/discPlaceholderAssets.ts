@@ -11,8 +11,10 @@ import type {
 import {
   normalizeEsrbRatingValue,
   normalizePegiRatingValue,
+  normalizeUskRatingValue,
   type EsrbRatingValue,
   type PegiRatingValue,
+  type UskRatingValue,
 } from './project/projectMetadata.ts'
 
 type LogoPlaceholderKind = 'developer' | 'publisher'
@@ -113,7 +115,30 @@ const PEGI_RATING_BADGE_IMAGE_URLS: Record<PegiRatingValue, string> = {
   ).href,
 }
 
-const RATING_BADGE_PLACEHOLDER_IMAGE_URLS: Record<Exclude<RatingBadgePlaceholderKind, 'ESRB' | 'PEGI'>, string> = {
+const USK_RATING_BADGE_IMAGE_URLS: Record<UskRatingValue, string> = {
+  '0': new URL(
+    './assets/rating/usk/rating-badge-usk-0.svg',
+    import.meta.url,
+  ).href,
+  '6': new URL(
+    './assets/rating/usk/rating-badge-usk-6.svg',
+    import.meta.url,
+  ).href,
+  '12': new URL(
+    './assets/rating/usk/rating-badge-usk-12.svg',
+    import.meta.url,
+  ).href,
+  '16': new URL(
+    './assets/rating/usk/rating-badge-usk-16.svg',
+    import.meta.url,
+  ).href,
+  '18': new URL(
+    './assets/rating/usk/rating-badge-usk-18.svg',
+    import.meta.url,
+  ).href,
+}
+
+const RATING_BADGE_PLACEHOLDER_IMAGE_URLS: Record<Exclude<RatingBadgePlaceholderKind, 'ESRB' | 'PEGI' | 'USK'>, string> = {
   custom: new URL(
     './assets/placeholders/rating/rating-badge-custom-placeholder.svg',
     import.meta.url,
@@ -378,6 +403,12 @@ export function getRatingBadgePlaceholderImageUrl(
     return PEGI_RATING_BADGE_IMAGE_URLS[ratingValue]
   }
 
+  if (metadata.ratingSystem === 'USK') {
+    const ratingValue = normalizeUskRatingValue(metadata.ratingValue) ?? '0'
+
+    return USK_RATING_BADGE_IMAGE_URLS[ratingValue]
+  }
+
   if (metadata.ratingSystem === 'custom') {
     return RATING_BADGE_PLACEHOLDER_IMAGE_URLS.custom
   }
@@ -410,14 +441,21 @@ export function getRatingBadgePlaceholderRenderModel(
   const pegiRatingValue = metadata.ratingSystem === 'PEGI'
     ? normalizePegiRatingValue(metadata.ratingValue) ?? '3'
     : null
+  const uskRatingValue = metadata.ratingSystem === 'USK'
+    ? normalizeUskRatingValue(metadata.ratingValue) ?? '0'
+    : null
   const overlayLabel =
-    metadata.ratingSystem === 'ESRB' || metadata.ratingSystem === 'PEGI'
+    metadata.ratingSystem === 'ESRB' ||
+    metadata.ratingSystem === 'PEGI' ||
+    metadata.ratingSystem === 'USK'
       ? null
       : getRatingBadgePlaceholderLabel(metadata)
   const label = metadata.ratingSystem === 'ESRB'
     ? `ESRB ${esrbRatingValue}`
     : metadata.ratingSystem === 'PEGI'
       ? `PEGI ${pegiRatingValue}`
+      : metadata.ratingSystem === 'USK'
+        ? `USK ${uskRatingValue}`
       : getRatingBadgePlaceholderLabel(metadata)
 
   return {

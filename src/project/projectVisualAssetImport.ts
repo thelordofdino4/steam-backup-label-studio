@@ -3,8 +3,8 @@ import {
   clampLogoAssetLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,
   clampProjectPlatformMarksToSafeZone,
+  clampProjectRatingBadgeToSafeZone,
   clampProjectTechnicalMarksToSafeZone,
-  clampRatingBadgeLayoutToSafeZone,
 } from '../layout/discElementSafeZone.ts'
 import type { DiscTemplate } from '../types/template'
 import type { ImportedImageAsset } from '../utils/importedImageAsset'
@@ -105,10 +105,7 @@ export function applyImportedRatingBadge(
     importedImage.imageSize,
   )
 
-  return {
-    ...nextBadge,
-    layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-  }
+  return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
 }
 
 export function applyImportedMediaMark(

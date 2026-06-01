@@ -62,7 +62,7 @@ test('builds high-confidence ESRB, PEGI, and legal candidates from Steam appdeta
   assert.match(result.legalCandidates[0].text, /All rights reserved/)
 })
 
-test('represents other regional ratings as custom candidates without inventing ESRB or PEGI', () => {
+test('represents USK as supported while keeping unsupported regional ratings custom', () => {
   const result = buildSteamMetadataCandidatesFromImportedGame(
     createSteamGame({
       ratings: {
@@ -77,20 +77,25 @@ test('represents other regional ratings as custom candidates without inventing E
     }),
   )
 
+  const uskCandidate = result.ratingCandidates.find(
+    (candidate) => candidate.boardLabel === 'USK',
+  )
+  const dejusCandidate = result.ratingCandidates.find(
+    (candidate) => candidate.boardLabel === 'ClassInd',
+  )
+
   assert.equal(
     result.ratingCandidates.some(
       (candidate) => candidate.ratingSystem === 'ESRB' || candidate.ratingSystem === 'PEGI',
     ),
     false,
   )
-  assert.ok(
-    result.ratingCandidates.some(
-      (candidate) =>
-        candidate.boardLabel === 'USK' &&
-        candidate.ratingSystem === 'custom' &&
-        candidate.ratingValue === 'USK 12',
-    ),
-  )
+  assert.equal(uskCandidate?.ratingSystem, 'USK')
+  assert.equal(uskCandidate?.ratingValue, '12')
+  assert.equal(uskCandidate?.applyKind, 'rating')
+  assert.equal(uskCandidate?.confidence, 'high')
+  assert.equal(dejusCandidate?.ratingSystem, 'custom')
+  assert.equal(dejusCandidate?.ratingValue, 'ClassInd 10')
 })
 
 test('represents unrated board data as a no-rating candidate', () => {

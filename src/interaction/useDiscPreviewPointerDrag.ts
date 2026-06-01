@@ -50,7 +50,12 @@ import {
   setTitleArtworkLayout,
   updateTitleArtworkLayoutPosition,
 } from '../project/projectTitleArtwork'
-import { updateRatingBadgeLayoutPosition } from '../project/projectRatingBadge'
+import {
+  getRatingBadgeElementLayout,
+  setRatingBadgeElementLayout,
+  updateRatingBadgeElementLayoutPosition,
+  type RatingBadgeElementKey,
+} from '../project/projectRatingBadge'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -83,7 +88,9 @@ type AdditionalArtworkDragState = {
   elementId: string
 } & PercentDragState
 
-type RatingBadgeDragState = PercentDragState
+type RatingBadgeDragState = {
+  badgeKey: RatingBadgeElementKey
+} & PercentDragState
 
 type MediaMarkDragState = PercentDragState
 
@@ -341,12 +348,27 @@ export function useDiscPreviewPointerDrag({
       )
 
       setProjectRatingBadge((currentBadge) => {
-        const nextBadge = updateRatingBadgeLayoutPosition(currentBadge, draggedPoint)
+        const nextBadge = updateRatingBadgeElementLayoutPosition(
+          currentBadge,
+          dragState.badgeKey,
+          draggedPoint,
+        )
+        const nextLayout = dragState.badgeKey === 'primary'
+          ? clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate)
+          : clampRatingBadgeLayoutToSafeZone(
+              {
+                source: 'placeholder',
+                customImageSize: null,
+                layout: nextBadge.uskBadge.layout,
+              },
+              selectedDiscTemplate,
+            )
 
-        return {
-          ...nextBadge,
-          layout: clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate),
-        }
+        return setRatingBadgeElementLayout(
+          nextBadge,
+          dragState.badgeKey,
+          nextLayout,
+        )
       })
     },
   })
@@ -536,19 +558,24 @@ export function useDiscPreviewPointerDrag({
   )
 
   const handleRatingBadgePointerDown = useCallback(
-    (event: PointerEvent<Element>) => {
+    (event: PointerEvent<Element>, badgeKey: RatingBadgeElementKey = 'primary') => {
+      const layout = getRatingBadgeElementLayout(projectRatingBadge, badgeKey)
+
       ratingBadgePointerDrag.beginPointerDrag(
         event,
-        createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
-          projectRatingBadge.layout.x,
-          projectRatingBadge.layout.y,
-        ),
+        {
+          badgeKey,
+          ...createPercentDragState(
+            event.pointerId,
+            event.clientX,
+            event.clientY,
+            layout.x,
+            layout.y,
+          ),
+        },
       )
     },
-    [projectRatingBadge.layout.x, projectRatingBadge.layout.y, ratingBadgePointerDrag],
+    [projectRatingBadge, ratingBadgePointerDrag],
   )
 
   const handleMediaMarkPointerDown = useCallback(
