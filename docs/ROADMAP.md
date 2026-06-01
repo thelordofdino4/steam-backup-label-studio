@@ -1,16 +1,16 @@
 # Roadmap
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
 ## Current State
 
-Steam Backup Label Studio is in **pre-alpha**.
+Steam Backup Label Studio is **post-indev for the disc-label editor**.
 
 The current working interface is the **disc-label editor**. It is now a Steam backup disc-label editor with a real-disc-art workflow: Steam/manual metadata, Steam and local artwork sources, real disc geometry, background editing, title/logo artwork, additional artwork, Steam banner branding, developer/publisher/additional logos, rating badges, media marks, operating-system marks, technical marks, optional text systems, export preflight, save/load, and 300 DPI PNG export.
 
-This does not mean the whole planned product is close to complete. Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned interfaces.
+This does not mean the whole planned product is close to complete. Jewel case, DVD/Amaray, and Blu-ray case editors remain planned interfaces, with the jewel case editor now next.
 
-The next stretch of work remains focused on getting the **disc artwork editor alone** to alpha quality. This is not whole-app alpha. Issue #69 remains the parent finish-line definition for that boundary.
+The disc artwork editor alone has reached its alpha feature boundary. Issue #69 is closed. The next stretch of work should build the **jewel case editor** defined by #126 without regressing the disc-label editor.
 
 The current editor should be preserved and evolved in place. Steam/manual metadata, artwork import, title artwork, additional artwork, background placement, geometry, safe-zone guides, banner controls, logo/badge/mark systems, disc text, export preflight, New Project, save/load, export, preview, sidebar panels, and toast notifications are working launchpad systems.
 
@@ -28,9 +28,9 @@ Guide Legend remains a sidebar section for now. Issue #124 tracks moving it to a
 
 Open issues most relevant to this roadmap:
 
-- #69 - parent real-disc-art alpha finish line.
 - #124 - move Guide Legend into the live preview.
 - #125 - add historical technology mark catalog and missing mark families.
+- #126 - jewel case editor alpha finish line.
 - #56 - decide embedded asset strategy and future `.sbls` package format.
 - #48 - add project schema validation and migration support.
 - #47 - review Rust Tauri command module organization.
@@ -40,7 +40,7 @@ Open issues most relevant to this roadmap:
 
 Recently completed issue work that should not be described as missing:
 
-- #33, #59, #60, #61, #62, #63, #65, #66, #68, #82-#85, #95, #96, #97, #98, #99, and #123.
+- #33, #59, #60, #61, #62, #63, #65, #66, #68, #69, #82-#85, #95, #96, #97, #98, #99, and #123.
 
 ## Phase 0: Planning Foundation - Complete
 
@@ -186,7 +186,7 @@ Remaining:
 - Keep improving candidate confidence/copy without pretending automatic rating lookup is complete.
 - Build a shared project asset library only when it is needed for case editors or packaging work.
 
-## Phase 7: Real-Disc-Art Alpha Polish - In Progress
+## Phase 7: Disc Editor Alpha Boundary - Complete
 
 Goal: Make the disc-label editor intentional enough for a first alpha package.
 
@@ -202,27 +202,28 @@ Completed:
 - Add title artwork, additional artwork, multiple logos, media/platform/technical marks, and export preflight.
 - Establish architecture guardrails and layer-order policy.
 
-Current targets:
+Follow-up targets:
 
-- Fill missing technical mark families tracked by #125.
+- Treat missing technical mark families tracked by #125 as future catalog expansion, not as an indev blocker.
 - Keep #124 scoped as a separate UI relocation issue.
 - Add/update fixture coverage for newer real-disc-art systems.
 - Keep optional visual hierarchy consistent.
 - Continue architecture cleanup and schema migration work where it reduces alpha risk.
 - Prepare known issues and packaging only after non-interactive validation and manual runtime smoke are honestly complete.
 
-## Phase 8: Case Template Foundation - Deferred Until Disc Editor Alpha
+## Phase 8: Jewel Case Editor Foundation - Next
 
-Goal: Prepare the code and UI for interfaces beyond the disc label editor.
+Goal: Define and implement the first case editor surface: jewel case front, back, and spine artwork.
 
 Planned work:
 
-- Add a template type selector.
-- Define shared template model for disc, jewel case, DVD/Amaray, and Blu-ray layouts.
-- Define shared region model for printable area, bleed, safe zones, spine, front, back, and named placement regions.
-- Build shared project asset library.
-- Build shared metadata model.
-- Keep unavailable template interfaces clearly marked as incomplete until they can export usable files.
+- Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
+- Add a template/editor type selector that does not hide or destabilize the disc-label editor.
+- Define a jewel case template model with front, back, spine, bleed/trim, safe zones, and export dimensions.
+- Define reusable region and layout helpers for case fronts, backs, screenshots, system requirements, legal text, marks, logos, and spine content.
+- Reuse Steam/manual metadata, artwork, screenshots, rating/legal candidates, logos, marks, and project asset provenance where those systems already own behavior.
+- Build focused jewel-case preview/export/project modules instead of adding case behavior to disc-specific owners.
+- Keep DVD/Amaray and Blu-ray interfaces clearly unavailable until they can export usable files.
 
 ## Phase 9: Disc Editor Alpha Release - Upcoming
 
@@ -230,7 +231,6 @@ Goal: Package the first testable build with honest limitations, with the disc ed
 
 Tasks:
 
-- Finish remaining #69-linked alpha work.
 - Build Windows package.
 - Build Linux package.
 - Add known issues list.
@@ -242,7 +242,6 @@ Tasks:
 ## Future Phases
 
 - Guided Start and Blank Project opening screen (#17).
-- Jewel case templates.
 - DVD/Amaray case templates.
 - Blu-ray case templates.
 - Screenshots and back-cover layouts.

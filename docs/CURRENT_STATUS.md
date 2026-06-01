@@ -1,10 +1,10 @@
 # Current Project Status
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
-Steam Backup Label Studio is currently in **pre-alpha**.
+Steam Backup Label Studio is **post-indev for the disc-label editor**. The disc-label editor is the first alpha-capable product surface.
 
-The current working interface is the **disc-label editor**. The app is now a Steam backup disc-label editor with a real-disc-art alpha path, not just an early placeholder prototype. Jewel case, DVD/Amaray, and Blu-ray case editors remain planned future interfaces.
+The current working interface is the **disc-label editor**. The app is now a Steam backup disc-label editor with a real-disc-art workflow, not just an early placeholder prototype. Jewel case, DVD/Amaray, and Blu-ray case editors remain planned future interfaces, with the jewel case editor next in #126.
 
 ## Current Sidebar Flow
 
@@ -50,9 +50,9 @@ The current disc-label workflow has many working systems:
 
 ## Scope Reminder
 
-The app is not close to full product completion yet. The current progress is focused on one planned interface: the disc-label editor.
+The app is not close to full product completion yet. The completed alpha-capable surface is one planned interface: the disc-label editor.
 
-The next major milestone is the **disc artwork editor alone** reaching alpha quality. Per issue #69, that means a normal user can create, edit, save, reload, and export a print-ready disc label without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-label work. This does not mean Steam Backup Label Studio as a whole is alpha.
+Issue #69 is closed because the disc artwork editor now satisfies that feature boundary: a normal user can create, edit, save, reload, and export a print-ready disc label without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-label work. This does not mean Steam Backup Label Studio as a whole is complete.
 
 Future planned interfaces still need to become functional:
 
@@ -62,11 +62,11 @@ Future planned interfaces still need to become functional:
 
 Guided Start, case editors, the future `.sbls` package/container format, direct printer support, official asset packs, automatic rating lookup, visual regression automation, and broad Rust refactors are not disc-editor alpha blockers unless a specific issue shows they are needed for one of the finish-line items.
 
-Architecture guardrails remain alpha-boundary requirements. The editor cannot reach the end of indev if new logic is added to unrelated structures or if preview/export parity depends on hidden coupling. See `docs/ARCHITECTURE_GUARDRAILS.md`.
+Architecture guardrails remain mandatory for the next phase. Jewel case work should not add new logic to unrelated structures or make preview/export parity depend on hidden coupling. See `docs/ARCHITECTURE_GUARDRAILS.md`.
 
-## Disc Editor Alpha Boundary
+## Disc Editor Alpha Status
 
-Issue #69 remains open and defines the parent finish line for disc-editor alpha.
+Issue #69 is closed as the parent finish line for disc-editor alpha.
 
 The structural real-disc-art elements are now mostly represented:
 
@@ -80,14 +80,14 @@ The structural real-disc-art elements are now mostly represented:
 - Media-format and operating-system marks.
 - Additional artwork elements.
 
-The remaining alpha risk is not simply "add the missing categories." It is to finish and validate the quality of the representation:
+Remaining disc-editor work is polish, validation, and future expansion:
 
 - Keep built-in asset routing centralized through `src/discPlaceholderAssets.ts`, official replacements in domain folders under `src/assets/`, true placeholder-named fallbacks under `src/assets/placeholders/`, and generated-only user-facing visuals out of the editor surface.
 - Keep preview and PNG export layer order in sync through `src/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - Preserve optional visual state when disabled, hide dependent controls while disabled, and prevent disabled visuals from rendering/exporting.
 - Keep text inside the safe zone and keep visual-element avoidance behavior honest.
 - Keep drag, slider/manual positioning, upload/custom image, reset/clear, preview, export, and save/load behavior working for existing visual systems.
-- Do manual native/Tauri smoke before claiming alpha readiness or live UI behavior is verified.
+- Do manual native/Tauri smoke before claiming current live UI behavior is verified for a release package.
 
 The project should not bundle official trademarked assets unless licensing is clearly safe. Built-in user-facing marks, badges, logos, toast icons, and demo visuals should come from real checked-in generic asset files. Custom user images remain supported.
 
@@ -95,9 +95,9 @@ The project should not bundle official trademarked assets unless licensing is cl
 
 Open issues reviewed for this audit:
 
-- #69 - parent real-disc-art alpha finish-line tracker; remains open.
-- #124 - move Guide Legend into the live preview; related to #69 and still open.
-- #125 - add historical technology mark catalog and missing mark families; related to #69 and still open.
+- #124 - move Guide Legend into the live preview.
+- #125 - add historical technology mark catalog and missing mark families.
+- #126 - jewel case editor alpha finish line.
 - #56 - decide embedded asset strategy and future `.sbls` package format.
 - #48 - add project schema validation and migration support.
 - #47 - review Rust Tauri command module organization.
@@ -107,6 +107,7 @@ Open issues reviewed for this audit:
 
 Closed issue work that older docs may still mention as active:
 
+- #69 disc-editor alpha finish-line tracker.
 - #33 curved copyright alignment decision.
 - #59 project asset provenance/status/replacement behavior.
 - #60 layer ordering policy.
@@ -151,15 +152,14 @@ Implemented for the current disc-label surface:
 
 Still limited or intentionally incomplete:
 
-- The app is pre-alpha overall, and the disc editor is not yet alpha-complete.
-- Only the disc-label editor is functional.
+- Only the disc-label editor is functional today.
 - Case templates are not implemented yet.
 - Full arbitrary layer management is not implemented yet.
-- Missing historical technology mark families are still tracked by #125.
+- Missing historical technology mark families are still tracked by #125 as catalog/future-expansion work.
 - Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format is not implemented.
 - Project schema validation/migrations are still limited (#48).
 - Existing fixtures do not yet cover every recently added real-disc-art system; title artwork, additional artwork, technical marks, metadata-bound text, and export preflight need better fixture/manual smoke coverage.
-- Manual native/Tauri smoke is still required before claiming current live editor behavior is verified.
+- Manual native/Tauri smoke is still required before claiming current live editor behavior is verified for a release package.
 - Guided Start remains deferred (#17).
 
 ## Optional Visual UI Rule
@@ -179,12 +179,12 @@ When disabled, optional visual features should hide dependent controls, not rend
 
 ## Next Recommended Work Order
 
-1. Keep #69 as the parent alpha finish-line tracker; do not close it in documentation-only work.
-2. Keep the built-in asset tree organized and route new built-ins through `src/discPlaceholderAssets.ts`.
-3. Keep #124 separate from documentation freshness work.
-4. Add or update a fixture/manual smoke issue for recently added systems not covered by the current fixtures.
-5. Continue #44, #46, #47, and #48 only where they support alpha or reduce active implementation risk.
-6. Keep #56 as the project packaging decision point.
-7. Prepare known issues and package the first disc-editor alpha build only after source validation, primary checkout freshness, generated output freshness, and manual runtime behavior are honestly verified.
+1. Use #69 as the closed baseline for the disc-editor alpha feature boundary.
+2. Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
+3. Keep the built-in asset tree organized and route new built-ins through `src/discPlaceholderAssets.ts` or a successor manifest if shared case assets require one.
+4. Keep #124 and #125 as separate polish/future-expansion work.
+5. Add or update fixture/manual smoke coverage for recently added disc systems and future case systems.
+6. Continue #44, #46, #47, and #48 only where they support current implementation risk.
+7. Keep #56 as the project packaging decision point.
 
 See `docs/MILESTONES.md` for broader milestone and feature backlog context.

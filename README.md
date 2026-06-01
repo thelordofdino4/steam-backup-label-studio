@@ -20,13 +20,11 @@ Blank-project workflows must remain supported. A user should be able to upload o
 
 ## Current Status
 
-Steam Backup Label Studio is currently in **pre-alpha**.
+The **disc-label editor** is now past the indev finish line and is the first alpha-capable surface. A normal user can create, edit, save, reload, and export a print-ready disc label without needing another editor for ordinary backup-label work.
 
-The current working interface is the **disc-label editor**. The broader planned product still includes future jewel case, DVD/Amaray, and Blu-ray case editors, but those are not implemented.
+The broader product is still early because jewel case, DVD/Amaray, and Blu-ray case editors are not implemented yet. The next major milestone is the **jewel case editor** tracked by #126.
 
-The next major milestone is not whole-app alpha. It is getting the **disc artwork editor alone** to alpha quality: a normal user should be able to create, edit, save, reload, and export a print-ready disc label without needing another editor for ordinary backup-label work.
-
-Issue #69 remains the parent real-disc-art alpha finish-line tracker. Several focused alpha items are now implemented and closed, including title/logo artwork (#97), multiple developer/publisher logo marks (#98), technical/audio/codec marks (#99), layer-order policy (#60), metadata-bound disc text (#68), export preflight (#63), provenance/status work (#59), template-derived default layouts (#62), built-in asset centralization and de-placeholdering (#123), and the emergency parity/interaction fixes (#82-#85). Issue #124 tracks the likely future Guide Legend move, and #125 tracks missing technical mark families.
+Issue #69 is closed as the disc-editor alpha finish-line tracker. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), schema/migration work (#48), project packaging decisions (#56), and architecture cleanup (#44, #46, #47).
 
 Do not treat historical "recent validation" notes in older docs as proof that native/Tauri manual smoke has happened for the current checkout. For this docs pass, no `npm run tauri dev` verification is claimed.
 
@@ -93,9 +91,9 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Shared layer-order policy in `src/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - File-backed built-in assets route through `src/discPlaceholderAssets.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`.
 
-## Disc Editor Alpha Boundary
+## Disc Editor Alpha Status
 
-Issue #69 defines the current finish line for the disc editor. The disc editor becomes alpha-ready when it can represent the common visual structure of real game discs using project-owned generic assets, Steam-provided assets where available, or user-provided custom images.
+Issue #69 defined the disc-editor finish line and is now closed. The disc editor is alpha-capable when evaluated as its own product surface: it can represent the common visual structure of real game discs using project-owned generic assets, Steam-provided assets where available, or user-provided custom images.
 
 The structural disc-face elements are now mostly represented:
 
@@ -109,7 +107,7 @@ The structural disc-face elements are now mostly represented:
 - Media-format and operating-system marks.
 - Additional artwork elements.
 
-This does not mean #69 is complete. The remaining alpha risk is now less about whether the editor has any representation for each real-disc-art category and more about filling missing technical mark families (#125), validating preview/export parity, preserving optional-feature state behavior, and doing honest manual smoke/release verification.
+Remaining work is polish, validation, and future expansion rather than an indev blocker. Historical technology mark families (#125), Guide Legend relocation (#124), broader schema migration, packaging, and additional runtime smoke should continue as focused follow-up work.
 
 Disabled optional visual features should hide dependent controls, should not render in preview or PNG export, and should preserve saved state so re-enabling restores previous selections, uploaded assets, layout, scale, source choices, and settings.
 
@@ -128,13 +126,14 @@ The project should not bundle official trademarked assets unless licensing is cl
 
 ## Near-Term Work
 
-- Keep #69 open as the parent real-disc-art alpha tracker until the alpha finish line is actually satisfied.
+- Treat #69 as the closed baseline for the disc-editor alpha finish line.
+- Start the jewel case editor as the next major product surface; see #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
 - Keep built-in asset routing centralized, keep official replacements in domain folders under `src/assets/`, and keep true placeholder-named fallbacks under `src/assets/placeholders/`.
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
-- Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, and export preflight so manual preview/export checks match the current feature set.
+- Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
 - Continue architecture cleanup tracked by open issues such as #44, #46, #47, and #48 only where it supports alpha work.
 - Keep project asset packaging decisions in #56; the future `.sbls` package/container format is not implemented and should not block disc-editor alpha unless a concrete save/load limitation appears.
-- Defer Guided Start (#17), case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
+- Defer Guided Start (#17), DVD/Amaray and Blu-ray case editors, direct printer support, official asset packs, automatic rating lookup, full arbitrary layer management, and broad refactors unless they become necessary for a focused alpha blocker.
 
 ## Planned Platforms
 
@@ -157,7 +156,7 @@ Possible future targets:
 - TypeScript for safer app code.
 - Rust through Tauri for native desktop features.
 
-The original plan included Konva/React Konva for the visual editor. The current pre-alpha uses native React preview layers and canvas export logic. A richer layer/canvas system may still be added later if the editor grows beyond the current focused workflow.
+The original plan included Konva/React Konva for the visual editor. The current disc editor uses native React preview layers and canvas export logic. A richer layer/canvas system may still be added later if the editor grows beyond the current focused workflow.
 
 ## Documentation
 
@@ -165,8 +164,9 @@ See the `docs/` folder for:
 
 - `CURRENT_STATUS.md` - concise implementation status and next issues.
 - `PRD.md` - product requirements and product direction.
-- `ROADMAP.md` - completed phases, current pre-alpha work, and future roadmap.
+- `ROADMAP.md` - completed phases, current roadmap, and future work.
 - `MILESTONES.md` - milestone boundaries and feature backlog.
+- `JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` - reviewed local planning mirror for jewel case editor issue #126.
 - `ARCHITECTURE_GUARDRAILS.md` - hard implementation guardrails for future work.
 - `REFACTOR_STATUS.md` - historical refactor status and remaining architecture risks.
 - `PROJECT_FILE_SPEC.md` - current saved-project format notes.

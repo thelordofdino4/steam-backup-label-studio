@@ -1,6 +1,6 @@
 # Product Requirements Document
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
 ## Product Summary
 
@@ -8,17 +8,17 @@ Steam Backup Label Studio is a cross-platform desktop application for creating s
 
 The current app is a Steam backup **disc-label editor**. It lets users choose a real disc template, import Steam metadata and artwork where available, use local or custom assets, arrange real-disc-art elements visually, save projects, review export preflight information, and export print-accurate PNG files.
 
-Jewel case, DVD/Amaray, and Blu-ray case editors remain future planned surfaces.
+The disc-label editor is the first alpha-capable surface. The next planned surface is the jewel case editor tracked by #126; DVD/Amaray and Blu-ray case editors remain future planned surfaces.
 
 ## Current Product Status
 
-Steam Backup Label Studio is currently in **pre-alpha**.
+Steam Backup Label Studio is **post-indev for the disc-label editor**.
 
 The current implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported/discovered/local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
 
 The current disc-label editor also supports Steam-style banner placement, title/logo artwork, additional artwork elements, optional straight and curved disc text, metadata-bound text defaults, developer/publisher/additional logo marks, rating badges, media marks, operating-system marks, technical/audio/codec marks, project-owned metadata, rating/legal candidate assistance, New Project reset behavior, export preflight, and toast status feedback.
 
-This makes the disc-label workflow much more complete than the early prototype, but it is not yet alpha-complete. Issue #69 remains open as the parent alpha finish-line tracker.
+This makes the disc-label workflow the first alpha-capable product surface. Issue #69 is closed as the parent alpha finish-line tracker.
 
 The current working disc-label editor should not be mistaken for the whole planned product. Existing systems should be extended, migrated carefully, and preserved unless a specific replacement path is planned and reviewed.
 
@@ -34,7 +34,7 @@ The app should support manual overrides for users who want control, but its defa
 
 The app should avoid unnecessary hand-holding in blank projects. Users should be allowed to upload one image and export if that is all they need. Guidance should appear through Guided Start or export-time summaries/warnings, not through a permanent project-health checklist.
 
-Guided Start should wait until the editor systems are stable. It is closer to a last step before beta than a blocker for the disc editor to leave indev/pre-alpha.
+Guided Start should wait until the editor systems are stable. It is closer to a last step before beta than a blocker for the disc editor or jewel case editor to move forward.
 
 ## Current Sidebar Flow
 
@@ -64,9 +64,9 @@ Guide Legend remains in the sidebar today. The likely future improvement is to m
 
 Guided Start remains a future workflow that should be added after the editor feature set is stable.
 
-## Disc Editor Alpha Boundary
+## Disc Editor Alpha Status
 
-Issue #69 defines the disc-editor finish line. The alpha boundary applies only to the disc artwork editor, not case editors and not the whole product.
+Issue #69 defined the disc-editor finish line and is now closed. The alpha boundary applies only to the disc artwork editor, not case editors and not the whole product.
 
 The disc editor should support common real-world disc artwork structures:
 
@@ -83,7 +83,7 @@ The disc editor should support common real-world disc artwork structures:
 - Copyright/legal text, straight or curved around the edge.
 - Text layouts that can account for nearby logos, badges, title art, marks, and other visual elements.
 
-Most categories now have an implementation path. The remaining alpha risk is quality and validation: missing technical mark families (#125), optional feature state behavior, preview/export parity, safe-zone behavior, fixture/manual smoke coverage, and honest runtime validation.
+Those categories now have an implementation path. Remaining disc-editor work is quality polish and future expansion: missing historical mark families (#125), optional feature state consistency, preview/export parity maintenance, fixture/manual smoke coverage, and honest runtime validation.
 
 The project should not bundle official trademarked assets unless licensing is clearly safe. Built-in user-facing assets should be original generic files checked into the repo or user-provided custom images.
 
@@ -109,11 +109,43 @@ Initial functional template:
 
 Future templates:
 
-- Jewel case insert
+- Jewel case insert/front-back-spine editor
 - Amaray/DVD case cover
 - Blu-ray case cover
 
 The UI should clearly distinguish available template editors from future planned template editors. Planned templates should not be presented as fully supported until they can export usable files.
+
+## Jewel Case Editor Requirements
+
+The next editor surface should follow the Steam Game Covers front-cover, back-cover, and design-mistakes guides listed in `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+
+The jewel case front should support:
+
+- Dominant background/promotional artwork.
+- Game title or title/logo artwork.
+- Game-info marks such as rating, media, platform, or technical marks.
+- Developer, publisher, studio, distributor, or related company logos.
+- Optional short callout, quote, edition note, or marketing message.
+
+The jewel case back should support:
+
+- Background/promotional artwork or designed backdrop.
+- Game description.
+- Feature bullets or short feature callouts.
+- Screenshot slots, with a practical default around three screenshots.
+- Rating, media, platform, and technical marks where useful.
+- Developer, publisher, company, and technology logos.
+- Minimum and recommended system requirements.
+- Copyright/legal/attribution text.
+
+The jewel case spine should support:
+
+- Game title or title/logo behavior.
+- Optional Steam Backup/system branding.
+- Optional company or publisher mark.
+- Readable spine text orientation and safe sizing.
+
+The case editor should preserve template dimensions, avoid distorted image fitting, warn about low-resolution artwork and unreadable text, and prefer cropping or content reduction over shrinking everything until it becomes unusable.
 
 ## Disc Template Requirements
 
@@ -297,9 +329,9 @@ Current saved projects embed image data URLs for the visual assets they need to 
 
 The future `.sbls` package/container format is not implemented yet. It remains future work for portability, asset bundling, and migration behavior, and it should not block disc-editor alpha unless a specific save/load limitation appears.
 
-## Case-Specific Future Fields
+## Case-Specific Fields
 
-For case templates, the app should eventually support:
+For case templates, the app should support or plan for:
 
 - Front cover.
 - Spine.

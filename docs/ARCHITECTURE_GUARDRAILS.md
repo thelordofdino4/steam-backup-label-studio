@@ -1,8 +1,8 @@
 # Architecture Guardrails
 
-These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor cannot reach the end of indev if new work keeps adding logic to unrelated structures.
+These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor has reached its alpha feature boundary, and future disc polish or jewel case work must preserve that baseline instead of adding logic to unrelated structures.
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
 This document is mandatory reading for agents and contributors before implementing features, fixes, or refactors.
 
@@ -253,8 +253,8 @@ For user-visible fixes, final reports must also include:
 - what was actually verified in the running app
 - what remains for the user to verify
 
-## End-of-Indev Standard
+## Post-Indev Standard
 
-The disc artwork editor cannot leave indev while core behavior depends on hidden coupling in large files.
+The disc artwork editor has left indev as a feature surface, but the same standard applies to future work: core behavior must not depend on hidden coupling in large files.
 
-Before alpha-boundary work continues, the code should make it plain where each feature lives and how preview/export parity is protected.
+Before jewel case editor work expands, the code should make it plain where each feature lives and how preview/export parity is protected.

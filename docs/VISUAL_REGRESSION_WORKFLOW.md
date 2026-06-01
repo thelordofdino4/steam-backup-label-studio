@@ -1,8 +1,8 @@
 # Visual Regression Workflow
 
-This workflow is the pre-alpha manual process for checking live preview and PNG export parity across saved project fixtures. It supports the closed issue #65 workflow and is intentionally documentation-only unless a separate issue asks for fixture or rendering fixes. Do not treat a mismatch found here as part of an unrelated docs task.
+This workflow is the manual process for checking live preview and PNG export parity across saved project fixtures. It supports the closed issue #65 workflow and is intentionally documentation-only unless a separate issue asks for fixture or rendering fixes. Do not treat a mismatch found here as part of an unrelated docs task.
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
 ## Purpose
 
@@ -121,13 +121,13 @@ Use one of these severities for every mismatch:
 | Severity | Meaning |
 | --- | --- |
 | `blocker` | Export is visibly wrong, missing a required layer, contradicts preview, breaks print geometry, or makes the fixture unusable. |
-| `visible but acceptable` | Difference is visible, but does not change layer intent, print usefulness, or user-facing meaning for the current pre-alpha baseline. |
+| `visible but acceptable` | Difference is visible, but does not change layer intent, print usefulness, or user-facing meaning for the current alpha-capable disc-editor baseline. |
 | `expected/known difference` | Difference is already documented below or linked to an existing issue. |
 | `no issue` | Preview, export, and expected output agree for the checked layer. |
 
 ## Known Acceptable Differences
 
-Record new known differences here only when they are expected and acceptable for pre-alpha manual comparison. Link a follow-up issue if the difference should eventually be removed.
+Record new known differences here only when they are expected and acceptable for manual comparison. Link a follow-up issue if the difference should eventually be removed.
 
 | Difference | Applies to | Status |
 | --- | --- | --- |

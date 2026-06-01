@@ -1,6 +1,6 @@
 # Milestones and Feature Backlog
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-01.
 
 This document tracks larger feature ideas and milestone boundaries so the project does not confuse a working disc-label path with the whole planned product.
 
@@ -12,7 +12,7 @@ The app should avoid becoming a full image editor. Advanced control is useful, b
 
 The app should not force a rigid checklist on users who want a blank project. Guided help belongs in the future Guided Start workflow or in export-time warnings, not as a permanent project-health panel.
 
-Current planning should treat issue #69 as the parent finish-line definition for the disc artwork editor. The app remains pre-alpha overall. The next major milestone is getting the disc editor alone to alpha quality, not making the whole multi-template product alpha.
+Issue #69 is closed as the parent finish-line definition for the disc artwork editor. The disc-label editor is now the first alpha-capable surface, while the whole multi-template product remains incomplete. The next major milestone is the jewel case editor tracked by #126.
 
 ## Milestone: Disc Label Pre-Alpha Complete
 
@@ -78,11 +78,11 @@ Real-world disc artwork baseline:
 - Copyright/legal text, straight or curved around the edge.
 - Text layouts that can account for nearby logos, badges, title art, and other visual elements.
 
-Most of those categories now have an implementation path. The alpha blockers are now quality, centralization, validation, and packaging blockers rather than simple absence of every category.
+Those categories now have an implementation path. Remaining disc-label work is polish, validation, packaging, and future expansion rather than an indev blocker.
 
-Critical alpha blockers:
+Follow-up expectations:
 
-- Keep #69 open until the real-disc-art finish line is actually satisfied.
+- Treat #69 as closed and preserve the working disc-editor baseline.
 - Keep centralized, file-backed, replaceable built-in generic visuals and non-temporary user-facing terminology.
 - Preserve preview/export parity through `src/layerOrder.ts` and shared render artifacts where feasible.
 - Preserve optional visual disabled-state behavior: hide dependent controls, do not render/export, keep saved state.
@@ -115,8 +115,8 @@ Toast readiness:
 
 High-priority issue order:
 
-- #69 parent finish-line definition.
-- #125 missing technical mark families where they affect real-disc-art coverage.
+- Jewel case editor alpha definition (#126), mirrored in `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+- #125 missing technical mark families as future catalog expansion.
 - Fixture/manual smoke follow-up for newer real-disc-art systems if no issue exists.
 - #44, #46, #47, and #48 only where they support alpha or reduce active implementation risk.
 - #56 only when project file packaging becomes necessary.
@@ -134,18 +134,26 @@ Not blockers for disc-editor alpha:
 - Direct printer support.
 - Full arbitrary layer manager.
 
-## Milestone: Case Template Foundation
+## Milestone: Jewel Case Editor Alpha
 
-Goal: Prepare the code and UI for interfaces beyond the disc label editor.
+Goal: Make the jewel case editor good enough that a normal user can create, edit, save, reload, and export a print-ready jewel case insert without needing GIMP, Krita, Photoshop, or another editor for ordinary backup-case work.
 
-This milestone should follow the disc editor becoming stable enough to serve as a trustworthy foundation. Case editors should not be presented as complete until their own editors can export usable files.
+This milestone follows the disc editor becoming stable enough to serve as a trustworthy foundation. Case editors should not be presented as complete until their own editors can export usable files.
 
-Planned interfaces:
+Source-of-truth guides:
 
-- Disc label editor.
-- Jewel case insert editor.
-- DVD/Amaray case cover editor.
-- Blu-ray case cover editor.
+- Steam Game Covers front-cover guide: https://www.steamgamecovers.com/how-to-design-a-good-case-front-cover
+- Steam Game Covers back-cover guide: https://www.steamgamecovers.com/how-to-design-a-good-case-back-cover
+- Steam Game Covers design mistakes guide: https://www.steamgamecovers.com/design-mistakes-and-how-to-avoid-them
+
+Jewel case editor baseline:
+
+- Front cover with background artwork, title/logo artwork, game-info marks, company logos, and optional short callout text.
+- Back cover with background artwork, description, feature bullets, screenshots, game-info marks, company/technology logos, system requirements, and legal/attribution text.
+- Spine with title/logo behavior, optional Steam Backup/system branding, and optional company mark.
+- Template geometry with front, back, spine, bleed/trim, safe zones, and export dimensions.
+- Print-quality safeguards that preserve template dimensions, avoid distorted artwork, warn about low-resolution assets, and keep text readable.
+- Save/load, preview/export parity, export preflight, and blank-project support.
 
 Shared foundation:
 
@@ -157,13 +165,13 @@ Shared foundation:
 
 Important note:
 
-Only the disc-label interface needs to be functional first. The other template types should not be presented as complete until their editors can actually export usable files.
+The disc-label interface is functional. The jewel case editor is next, and DVD/Amaray or Blu-ray template types should not be presented as complete until their editors can actually export usable files.
 
 ## Milestone: Guided Start and Blank Project
 
 Goal: Add an opening screen that supports both fast blank work and guided setup.
 
-Guided Start is deferred until the editor feature set is stable. Building it before the disc editor alpha surface is feature-complete would encode assumptions that may change and cause avoidable rework. Guided Start is closer to a last step before beta than a requirement for the disc editor to leave indev/pre-alpha.
+Guided Start is deferred until the disc and case editor feature sets are stable. Building it before the next editor surface exists would encode assumptions that may change and cause avoidable rework. Guided Start is closer to a last step before beta than a requirement for the jewel case editor to start.
 
 Blank Project:
 
