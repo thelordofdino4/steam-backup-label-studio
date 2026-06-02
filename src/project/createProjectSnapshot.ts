@@ -116,6 +116,7 @@ export function createProjectSnapshot({
 
   return {
     schemaVersion: '0.1.0',
+    projectType: 'disc',
     title: manualGameTitle,
     savedAt: new Date().toISOString(),
     game: {

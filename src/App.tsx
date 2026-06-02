@@ -69,6 +69,7 @@ import {
 } from './backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
 import { createProjectImageAssetProvenance } from './project/projectAssetStatus'
+import { resolveSavedProjectRouteFromContents } from './project/projectRouting'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata } from './project/projectMetadata'
 import {
@@ -2204,6 +2205,17 @@ function App() {
       }
 
       const contents = await readProjectFile(selected)
+      const projectRoute = resolveSavedProjectRouteFromContents(contents)
+
+      if (projectRoute.projectType === 'caseInsert') {
+        setActiveWorkspace('caseInsert')
+        setHomeStatusMessage(null)
+        announceStatus(
+          'Loaded a case insert project shell. Jewel case editing is not implemented yet.',
+        )
+        return
+      }
+
       const restoredProject = await restoreProjectStateFromContents(contents, {
         defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
         resolveBackgroundImageSize: async (imageDataUrl) =>

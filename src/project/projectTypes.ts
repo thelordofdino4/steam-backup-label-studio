@@ -11,6 +11,7 @@ import type { DiscTextStyle } from '../discTextStyles'
 import type { DiscTextValueSources } from './metadataDiscText'
 import type { DiscTemplateId } from '../templates/discTemplates'
 import type { SteamImportedGame } from '../steam/steamApi'
+import type { EditorProjectType } from '../editor/editorTypes'
 
 export type SteamBannerColors = {
   gradientStart: string
@@ -331,6 +332,7 @@ export type ProjectTechnicalMarksInput =
 
 export type SavedProject = {
   schemaVersion: '0.1.0'
+  projectType?: EditorProjectType
   title: string
   savedAt: string
   game: {
