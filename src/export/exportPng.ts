@@ -5,7 +5,7 @@ import type { ExportGuideSelection } from '../exportGuides'
 import type { ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
-import { canvasToPngBytes, loadImage } from './canvasImage'
+import { canvasToPngBytes, loadCanvasSafeImage } from './canvasImage'
 import { drawDiscTextElements } from './drawDiscText'
 import { drawExportGuides, drawOuterDiscExportOutline } from './drawExportGuides'
 import { drawSteamBrandBanner } from './drawSteamBanner'
@@ -110,7 +110,10 @@ export async function exportDiscLabelPngBytes(params: {
       return
     }
 
-    const image = await loadImage(params.backgroundImageUrl)
+    const image = await loadCanvasSafeImage(
+      params.backgroundImageUrl,
+      'background artwork image',
+    )
     const offsetScale = discContentSize / params.previewSize
     const coverScale = Math.max(discContentSize / image.width, discContentSize / image.height)
     const drawScale = coverScale * params.backgroundScale

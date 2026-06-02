@@ -74,6 +74,31 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.steamBannerFallbackText, DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
 })
 
+test('restores saved built-in Steam banner lockups with the current bundled default', async () => {
+  const restored = await restoreSavedProjectState(
+    {
+      ...baseProject,
+      steamBackupLogo: {
+        placement: 'top',
+        lockupImageDataUrl: '/assets/steam-default-lockup-stale.png',
+        lockupImageSource: {
+          source: 'built-in',
+          sourceId: null,
+          sourceLabel: 'Default Steam banner lockup',
+        },
+        lockupImageSize: null,
+      },
+    },
+    {
+      defaultSteamBannerLockupImageUrl: 'current-default-lockup.png',
+    },
+  )
+
+  assert.equal(restored.steamBannerLockupImageUrl, 'current-default-lockup.png')
+  assert.equal(restored.steamBannerLockupImageSource?.source, 'built-in')
+  assert.equal(restored.steamBannerLockupImageSize, null)
+})
+
 test('restores saved asset provenance and defaults legacy embedded assets safely', async () => {
   const restored = await restoreSavedProjectState({
     ...baseProject,

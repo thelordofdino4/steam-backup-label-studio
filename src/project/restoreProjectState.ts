@@ -167,11 +167,43 @@ async function restoreBackgroundImageSize(
   }
 }
 
+function isDataImageUrl(value: string | null | undefined) {
+  return Boolean(value?.startsWith('data:'))
+}
+
+function isSavedBuiltInSteamBannerLockup(project: SavedProject) {
+  const savedLockupImageUrl = project.steamBackupLogo.lockupImageDataUrl
+
+  if (!savedLockupImageUrl || isDataImageUrl(savedLockupImageUrl)) {
+    return false
+  }
+
+  return (
+    project.steamBackupLogo.lockupImageSource?.source === 'built-in' ||
+    !project.steamBackupLogo.lockupImageSize
+  )
+}
+
+function restoreSteamBannerLockupImage(
+  project: SavedProject,
+  defaultImageUrl: string | null,
+) {
+  if (isSavedBuiltInSteamBannerLockup(project)) {
+    return createSteamBannerLockupImageState(null, null, defaultImageUrl)
+  }
+
+  return createSteamBannerLockupImageState(
+    project.steamBackupLogo.lockupImageDataUrl,
+    project.steamBackupLogo.lockupImageSize,
+    defaultImageUrl,
+  )
+}
+
 function restoreSteamBannerLockupImageSource(
   project: SavedProject,
 ): ProjectImageAssetProvenance | null {
   const fallback = project.steamBackupLogo.lockupImageDataUrl
-    ? project.steamBackupLogo.lockupImageSize
+    ? isDataImageUrl(project.steamBackupLogo.lockupImageDataUrl)
       ? createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup')
       : createProjectImageAssetProvenance({
           source: 'built-in',
@@ -266,9 +298,8 @@ export async function restoreSavedProjectState(
     project.technicalMarks,
     template.selectedDiscTemplate,
   )
-  const steamBannerLockupImage = createSteamBannerLockupImageState(
-    project.steamBackupLogo.lockupImageDataUrl,
-    project.steamBackupLogo.lockupImageSize,
+  const steamBannerLockupImage = restoreSteamBannerLockupImage(
+    project,
     options.defaultSteamBannerLockupImageUrl ?? null,
   )
   const discTextValues = normalizeDiscTextValues(

@@ -16,7 +16,7 @@ export async function createImportedImageAssetFromDataUrl(
   imageDataUrl: string,
   fileName?: string,
 ): Promise<ImportedImageAsset> {
-  const image = await loadImage(imageDataUrl)
+  const image = await loadImage(imageDataUrl, fileName ?? 'imported image')
 
   return {
     imageDataUrl,

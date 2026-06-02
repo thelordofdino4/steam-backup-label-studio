@@ -19,7 +19,7 @@ import {
   measureDiscTextWithBrowserCanvas,
 } from '../discTextSvgLayer'
 import { createSvgDataUrl } from '../svgUtils'
-import { loadImage } from './canvasImage'
+import { loadCanvasSafeImage, loadImage } from './canvasImage'
 
 export async function drawDiscTextElements(
   context: CanvasRenderingContext2D,
@@ -48,7 +48,10 @@ export async function drawDiscTextElements(
   )
 
   if (discNumberBadge) {
-    const badgeImage = await loadImage(discNumberBadge.imageDataUrl)
+    const badgeImage = await loadCanvasSafeImage(
+      discNumberBadge.imageDataUrl,
+      discNumberBadge.label,
+    )
     const drawWidth = discContentSize * (discNumberBadge.widthPercent / 100) * discNumberBadge.layout.scale
     const drawHeight = discContentSize * (discNumberBadge.heightPercent / 100) * discNumberBadge.layout.scale
     const centerX = discOrigin + discContentSize * (discNumberBadge.layout.x / 100)
@@ -102,7 +105,7 @@ export async function drawDiscTextElements(
     height: discContentSize,
     idPrefix: 'disc-text-export',
   })
-  const textLayerImage = await loadImage(createSvgDataUrl(svg))
+  const textLayerImage = await loadImage(createSvgDataUrl(svg), 'disc text layer')
 
   context.drawImage(textLayerImage, discOrigin, discOrigin, discContentSize, discContentSize)
 }

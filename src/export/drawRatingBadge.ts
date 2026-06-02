@@ -1,17 +1,17 @@
-import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from '../project/projectTypes'
+import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout, RatingBadgeSource } from '../project/projectTypes.ts'
 import {
   shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,
   shouldUseCustomRatingBadgeImage,
-} from '../project/projectRatingBadge'
+} from '../project/projectRatingBadge.ts'
 import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
-} from '../discGeometry'
+} from '../discGeometry.ts'
 import {
   getRatingBadgePlaceholderRenderModel,
-} from '../discPlaceholderAssets'
-import { loadImage } from './canvasImage'
+} from '../discPlaceholderAssets.ts'
+import { loadCanvasSafeImage } from './canvasImage.ts'
 
 type DrawableRatingBadge = {
   source: RatingBadgeSource
@@ -20,16 +20,19 @@ type DrawableRatingBadge = {
   layout: RatingBadgeLayout
 }
 
+type RatingBadgeImageLoader = typeof loadCanvasSafeImage
+
 async function drawPlaceholderRatingBadge(
   context: CanvasRenderingContext2D,
   discContentSize: number,
   discOrigin: number,
   metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
   badge: DrawableRatingBadge,
+  imageLoader: RatingBadgeImageLoader,
 ) {
   const renderModel = getRatingBadgePlaceholderRenderModel(metadata)
 
-  const image = await loadImage(renderModel.imageUrl)
+  const image = await imageLoader(renderModel.imageUrl, renderModel.altLabel)
   const naturalWidth = image.naturalWidth || image.width || 1
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
@@ -73,12 +76,13 @@ async function drawCustomRatingBadge(
   discContentSize: number,
   discOrigin: number,
   badge: DrawableRatingBadge,
+  imageLoader: RatingBadgeImageLoader,
 ) {
   if (!badge.customImageDataUrl) {
     return
   }
 
-  const image = await loadImage(badge.customImageDataUrl)
+  const image = await imageLoader(badge.customImageDataUrl, 'custom rating badge image')
   const naturalWidth = image.naturalWidth || image.width || 1
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
@@ -112,12 +116,20 @@ export async function drawRatingBadge(
   discOrigin: number,
   metadata: ProjectMetadata,
   badge: ProjectRatingBadge,
+  imageLoader: RatingBadgeImageLoader = loadCanvasSafeImage,
 ) {
   if (shouldRenderRatingBadge(metadata, badge)) {
     if (shouldUseCustomRatingBadgeImage(badge)) {
-      await drawCustomRatingBadge(context, discContentSize, discOrigin, badge)
+      await drawCustomRatingBadge(context, discContentSize, discOrigin, badge, imageLoader)
     } else {
-      await drawPlaceholderRatingBadge(context, discContentSize, discOrigin, metadata, badge)
+      await drawPlaceholderRatingBadge(
+        context,
+        discContentSize,
+        discOrigin,
+        metadata,
+        badge,
+        imageLoader,
+      )
     }
   }
 
@@ -136,6 +148,7 @@ export async function drawRatingBadge(
         customImageSize: null,
         layout: badge.uskBadge.layout,
       },
+      imageLoader,
     )
   }
 }

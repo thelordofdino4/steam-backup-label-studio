@@ -66,6 +66,13 @@ export type CreateProjectSnapshotParams = {
   discTextStyles: DiscTextStyleSettings
 }
 
+function shouldPersistSteamBannerLockupImage(
+  imageUrl: string | null,
+  imageSource: ProjectImageAssetProvenance | null,
+) {
+  return Boolean(imageUrl) && imageSource?.source !== 'built-in'
+}
+
 export function createProjectSnapshot({
   manualGameTitle,
   selectedSteamGame,
@@ -102,6 +109,11 @@ export function createProjectSnapshot({
   discTextLayout,
   discTextStyles,
 }: CreateProjectSnapshotParams): SavedProject {
+  const shouldPersistLockupImage = shouldPersistSteamBannerLockupImage(
+    steamBannerLockupImageUrl,
+    steamBannerLockupImageSource,
+  )
+
   return {
     schemaVersion: '0.1.0',
     title: manualGameTitle,
@@ -127,9 +139,9 @@ export function createProjectSnapshot({
     steamBackupLogo: {
       placement: steamLogoPlacement,
       bannerColors: steamBannerColors,
-      lockupImageDataUrl: steamBannerLockupImageUrl,
+      lockupImageDataUrl: shouldPersistLockupImage ? steamBannerLockupImageUrl : null,
       lockupImageSource: steamBannerLockupImageSource,
-      lockupImageSize: steamBannerLockupImageSize,
+      lockupImageSize: shouldPersistLockupImage ? steamBannerLockupImageSize : null,
       lockupLayout: steamBannerLockupLayout,
       useTextFallback: steamBannerUseTextFallback,
       fallbackText: normalizeSteamBannerFallbackText(steamBannerFallbackText),

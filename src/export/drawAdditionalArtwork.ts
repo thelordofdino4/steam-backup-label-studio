@@ -3,7 +3,7 @@ import {
   type AdditionalArtworkRenderItem,
 } from '../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtwork } from '../project/projectTypes'
-import { loadImage } from './canvasImage'
+import { loadCanvasSafeImage } from './canvasImage'
 
 type AdditionalArtworkCanvasBounds = {
   centerX: number
@@ -93,7 +93,10 @@ async function drawAdditionalArtworkItem(
   discOrigin: number,
   renderItem: AdditionalArtworkRenderItem,
 ) {
-  const image = await loadImage(renderItem.imageDataUrl)
+  const image = await loadCanvasSafeImage(
+    renderItem.imageDataUrl,
+    `${renderItem.label} image`,
+  )
   const bounds = getCanvasBounds(discContentSize, discOrigin, renderItem)
 
   context.save()

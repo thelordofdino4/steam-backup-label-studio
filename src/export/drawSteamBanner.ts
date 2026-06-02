@@ -1,16 +1,18 @@
 import type { SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
-import type { SteamLogoPlacement } from '../discText'
+import type { SteamLogoPlacement } from '../discText.ts'
 import {
   getSteamBannerBandLayout,
   getSteamBannerLockupAspectRatio,
   getSteamBannerLockupRect,
   type SteamBannerRect,
-} from '../steamBannerLayout'
+} from '../steamBannerLayout.ts'
 import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
-} from '../steamBannerDefaults'
-import { getCanvasSafeImageSource, loadImage } from './canvasImage'
+} from '../steamBannerDefaults.ts'
+import { loadCanvasSafeImage } from './canvasImage.ts'
+
+type SteamBannerImageLoader = typeof loadCanvasSafeImage
 
 export async function drawSteamBrandBanner(
   context: CanvasRenderingContext2D,
@@ -22,6 +24,7 @@ export async function drawSteamBrandBanner(
   lockupLayout: SteamBannerLockupLayout,
   useTextFallback: boolean,
   fallbackText: string,
+  imageLoader: SteamBannerImageLoader = loadCanvasSafeImage,
 ) {
   if (placement === 'none') {
     return
@@ -57,32 +60,36 @@ export async function drawSteamBrandBanner(
   )
 
   if (!shouldDrawText && lockupImageDataUrl) {
-    const canvasSafeLockupSource = await getCanvasSafeImageSource(lockupImageDataUrl)
-    const lockupImage = await loadImage(canvasSafeLockupSource)
-    const lockupAspectRatio = getSteamBannerLockupAspectRatio({
-      width: lockupImage.naturalWidth || lockupImage.width,
-      height: lockupImage.naturalHeight || lockupImage.height,
-    })
-    const imageLockupRect = getSteamBannerLockupRect(
-      placement,
-      lockupLayout,
-      lockupAspectRatio,
-    )
+    try {
+      const lockupImage = await imageLoader(
+        lockupImageDataUrl,
+        'Steam banner lockup image',
+      )
+      const lockupAspectRatio = getSteamBannerLockupAspectRatio({
+        width: lockupImage.naturalWidth || lockupImage.width,
+        height: lockupImage.naturalHeight || lockupImage.height,
+      })
+      const imageLockupRect = getSteamBannerLockupRect(
+        placement,
+        lockupLayout,
+        lockupAspectRatio,
+      )
 
-    if (!imageLockupRect) {
-      return
+      if (imageLockupRect) {
+        const adjustedTarget = toExportRect(imageLockupRect, discContentSize, discOrigin)
+
+        context.drawImage(
+          lockupImage,
+          adjustedTarget.x,
+          adjustedTarget.y,
+          adjustedTarget.width,
+          adjustedTarget.height,
+        )
+        return
+      }
+    } catch {
+      // Preserve export when a saved/custom lockup URL goes stale; draw the text fallback instead.
     }
-
-    const adjustedTarget = toExportRect(imageLockupRect, discContentSize, discOrigin)
-
-    context.drawImage(
-      lockupImage,
-      adjustedTarget.x,
-      adjustedTarget.y,
-      adjustedTarget.width,
-      adjustedTarget.height,
-    )
-    return
   }
 
   if (!lockupRect) {

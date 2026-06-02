@@ -14,12 +14,16 @@ export function canvasToPngBytes(canvas: HTMLCanvasElement) {
   })
 }
 
-export function loadImage(source: string) {
+function formatImageLoadError(description: string) {
+  return `Could not load ${description}.`
+}
+
+export function loadImage(source: string, description = 'image') {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image()
 
     image.onload = () => resolve(image)
-    image.onerror = () => reject(new Error('Could not load background image.'))
+    image.onerror = () => reject(new Error(formatImageLoadError(description)))
 
     image.src = source
   })
@@ -43,16 +47,41 @@ export function blobToDataUrl(blob: Blob) {
   })
 }
 
-export async function getCanvasSafeImageSource(source: string) {
+export async function getCanvasSafeImageSource(
+  source: string,
+  description = 'image asset',
+) {
   if (source.startsWith('data:')) {
     return source
   }
 
-  const response = await fetch(source)
+  let response: Response
+
+  try {
+    response = await fetch(source)
+  } catch (error) {
+    throw new Error(`Could not load ${description} for export: ${String(error)}`, {
+      cause: error,
+    })
+  }
 
   if (!response.ok) {
-    throw new Error(`Could not load image asset for export: ${response.status}`)
+    throw new Error(`Could not load ${description} for export: ${response.status}`)
   }
 
   return blobToDataUrl(await response.blob())
+}
+
+export async function loadCanvasSafeImage(source: string, description = 'image') {
+  const canvasSafeSource = await getCanvasSafeImageSource(source, description)
+
+  try {
+    return await loadImage(canvasSafeSource, description)
+  } catch (error) {
+    if (canvasSafeSource !== source) {
+      return loadImage(source, description)
+    }
+
+    throw error
+  }
 }

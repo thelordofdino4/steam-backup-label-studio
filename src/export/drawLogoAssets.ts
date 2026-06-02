@@ -5,7 +5,7 @@ import {
   getLogoAssetRenderDataUrl,
   type LogoAssetKey,
 } from '../project/projectLogoAssets'
-import { loadImage } from './canvasImage'
+import { loadCanvasSafeImage } from './canvasImage'
 
 async function drawLogoAsset(
   context: CanvasRenderingContext2D,
@@ -15,7 +15,10 @@ async function drawLogoAsset(
   layout: LogoAssetLayout,
   logoKey: LogoAssetKey,
 ) {
-  const image = await loadImage(getLogoAssetRenderDataUrl(logoKey, imageDataUrl))
+  const image = await loadCanvasSafeImage(
+    getLogoAssetRenderDataUrl(logoKey, imageDataUrl),
+    `${logoKey} logo image`,
+  )
   const naturalWidth = image.naturalWidth || image.width || 1
   const naturalHeight = image.naturalHeight || image.height || 1
   const aspectRatio = naturalWidth / naturalHeight
