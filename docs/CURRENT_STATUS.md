@@ -64,6 +64,8 @@ Guided Start, case editors, the future `.sbls` package/container format, direct 
 
 Architecture guardrails remain mandatory for the next phase. Jewel case work should not add new logic to unrelated structures or make preview/export parity depend on hidden coupling. See `docs/ARCHITECTURE_GUARDRAILS.md`.
 
+The case insert editor boundary is documented in `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`. Jewel case is the first template inside the Case Insert Editor, not a Disc Editor template, and saved project type should remain separate from concrete template/case variant choices.
+
 ## Disc Editor Alpha Status
 
 Issue #69 is closed as the parent finish line for disc-editor alpha.

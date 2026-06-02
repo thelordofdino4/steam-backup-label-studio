@@ -258,3 +258,5 @@ For user-visible fixes, final reports must also include:
 The disc artwork editor has left indev as a feature surface, but the same standard applies to future work: core behavior must not depend on hidden coupling in large files.
 
 Before jewel case editor work expands, the code should make it plain where each feature lives and how preview/export parity is protected.
+
+The case insert editor boundary is recorded in `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`: jewel case is the first case insert template, not another disc template, and project type stays separate from concrete template/case variants.

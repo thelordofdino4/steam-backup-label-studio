@@ -4,6 +4,8 @@ export type ProjectPanelProps = {
   handleSaveProject: () => void
   handleLoadProject: () => void
   handleExportPng: () => void
+  handleMainMenu: () => void
+  handleNewCaseInsert: () => void
 }
 
 export function ProjectPanel({
@@ -12,14 +14,19 @@ export function ProjectPanel({
   handleSaveProject,
   handleLoadProject,
   handleExportPng,
+  handleMainMenu,
+  handleNewCaseInsert,
 }: ProjectPanelProps) {
   return (
     <details className="panel collapsible-panel">
       <summary className="panel-summary">Project File</summary>
       <div className="panel-content">
         <div className="button-row">
+          <button className="secondary-button" type="button" onClick={handleMainMenu}>
+            Main Menu
+          </button>
           <button className="secondary-button" type="button" onClick={handleNewProject}>
-            New Project
+            New Disc
           </button>
           <button className="secondary-button" type="button" onClick={handleSaveProject}>
             Save Project
@@ -29,6 +36,9 @@ export function ProjectPanel({
           </button>
           <button className="secondary-button" type="button" onClick={handleExportPng}>
             Export PNG
+          </button>
+          <button className="secondary-button" type="button" onClick={handleNewCaseInsert}>
+            New Case Insert
           </button>
         </div>
         <p className="hint">{projectStatus}</p>

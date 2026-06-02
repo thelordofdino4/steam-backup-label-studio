@@ -41,6 +41,9 @@ import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeom
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
+import { CaseInsertPlaceholder } from './components/caseInsert/CaseInsertPlaceholder'
+import { HomeScreen } from './components/home/HomeScreen'
+import type { EditorWorkspace } from './editor/editorTypes'
 import { DiscPreview } from './components/preview/DiscPreview'
 import { ArtworkPanel } from './components/sidebar/ArtworkPanel'
 import { BrandingPanel } from './components/sidebar/BrandingPanel'
@@ -177,6 +180,8 @@ type CustomDimensionKey =
   | 'safeDiameterMm'
 
 function App() {
+  const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
+  const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
     useState<SelectedDiscTemplateId>('standardPrintableDisc')
   const [customDiscTemplate, setCustomDiscTemplate] = useState<DiscTemplate>(() =>
@@ -402,6 +407,10 @@ function App() {
     [discTextTitleValue, projectMetadata, discTextValueSources],
   )
   useEffect(() => {
+    if (activeWorkspace !== 'disc') {
+      return
+    }
+
     const previewElement = discPreviewRef.current
 
     if (!previewElement) {
@@ -426,7 +435,7 @@ function App() {
     resizeObserver.observe(previewElement)
 
     return () => resizeObserver.disconnect()
-  }, [])
+  }, [activeWorkspace])
 
   const {
     cancelPreviewPointerDrag,
@@ -1702,19 +1711,7 @@ function App() {
     }
   }
 
-  async function handleNewProject() {
-    const shouldReset = await confirm(
-      'Start a new project? Unsaved changes will be lost.',
-      {
-        title: 'Start a new project?',
-        kind: 'warning',
-      },
-    )
-
-    if (!shouldReset) {
-      return
-    }
-
+  function resetDiscProjectState() {
     cancelPreviewPointerDrag()
 
     setSelectedDiscTemplateId('standardPrintableDisc')
@@ -1773,8 +1770,76 @@ function App() {
       createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
     )
     setDiscTextStyles(createDefaultDiscTextStyles())
+  }
 
+  async function handleNewProject() {
+    const shouldReset = await confirm(
+      'Start a new project? Unsaved changes will be lost.',
+      {
+        title: 'Start a new project?',
+        kind: 'warning',
+      },
+    )
+
+    if (!shouldReset) {
+      return
+    }
+
+    resetDiscProjectState()
+    setActiveWorkspace('disc')
+    setHomeStatusMessage(null)
     announceStatus('Started a new blank project.')
+  }
+
+  function handleStartNewDiscProject() {
+    resetDiscProjectState()
+    setActiveWorkspace('disc')
+    setHomeStatusMessage(null)
+    announceStatus('Started a new blank disc project.')
+  }
+
+  function handleOpenCaseInsertEditor() {
+    setActiveWorkspace('caseInsert')
+    setHomeStatusMessage(null)
+    announceStatus('Case Insert Editor is ready for the jewel case foundation pass.')
+  }
+
+  function handleWizardPlaceholder() {
+    setHomeStatusMessage('Guided setup is planned for a future pass.')
+  }
+
+  async function handleReturnToHome() {
+    const shouldReturn = await confirm(
+      'Return to the main menu? Unsaved changes will remain in memory for now, but new actions may replace them.',
+      {
+        title: 'Return to main menu?',
+        kind: 'warning',
+      },
+    )
+
+    if (!shouldReturn) {
+      return
+    }
+
+    cancelPreviewPointerDrag()
+    setActiveWorkspace('home')
+    setHomeStatusMessage(null)
+  }
+
+  async function handleSwitchToCaseInsertFromDisc() {
+    const shouldSwitch = await confirm(
+      'Switch to the Case Insert Editor? Unsaved disc changes will remain in memory for now, but case editor work is still in progress.',
+      {
+        title: 'Switch editor?',
+        kind: 'warning',
+      },
+    )
+
+    if (!shouldSwitch) {
+      return
+    }
+
+    handleOpenCaseInsertEditor()
   }
 
   function handleTemplateChange(templateId: SelectedDiscTemplateId) {
@@ -2186,6 +2251,8 @@ function App() {
       setBackgroundImageSource(restoredProject.backgroundImageSource)
       setBackgroundImageSize(restoredProject.backgroundImageSize)
       setIsBackgroundArtworkEnabled(restoredProject.isBackgroundArtworkEnabled)
+      setActiveWorkspace('disc')
+      setHomeStatusMessage(null)
 
       announceStatus(
         restoredProject.backgroundImageUrl
@@ -2368,11 +2435,32 @@ function App() {
     )
   }
 
+  if (activeWorkspace === 'home') {
+    return (
+      <HomeScreen
+        onLoadProject={handleLoadProject}
+        onNewDisc={handleStartNewDiscProject}
+        onNewCaseInsert={handleOpenCaseInsertEditor}
+        onWizard={handleWizardPlaceholder}
+        statusMessage={homeStatusMessage}
+      />
+    )
+  }
+
+  if (activeWorkspace === 'caseInsert') {
+    return (
+      <CaseInsertPlaceholder
+        onMainMenu={handleReturnToHome}
+        onNewDisc={handleStartNewDiscProject}
+      />
+    )
+  }
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Pre-alpha disc label editor</p>
+        <p className="muted">Alpha disc label editor</p>
 
         <ProjectPanel
           projectStatus={projectStatus}
@@ -2380,6 +2468,8 @@ function App() {
           handleSaveProject={handleSaveProject}
           handleLoadProject={handleLoadProject}
           handleExportPng={handleExportPng}
+          handleMainMenu={handleReturnToHome}
+          handleNewCaseInsert={handleSwitchToCaseInsertFromDisc}
         />
 
         <ExportOptionsPanel
