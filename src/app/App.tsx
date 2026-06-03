@@ -1411,6 +1411,11 @@ function App() {
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
         frontEditor={jewelCaseFrontEditor}
+        imageSources={{
+          selectedSteamGame,
+          localSteamScreenshots,
+          localSteamScreenshotThumbnails,
+        }}
         projectStatus={projectStatus}
         manualGameTitle={manualGameTitle}
         statusToasts={statusToasts}

@@ -8,6 +8,9 @@ import {
   updateJewelCaseFrontRepeatedImageSlot,
 } from '../caseInsert/frontCoverTransitions.ts'
 import {
+  createCaseInsertImageSlotImageFromImportedAsset,
+} from '../caseInsert/imageSlotSourceImport.ts'
+import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   addCaseInsertTextListItem,
   addJewelCaseBackScreenshotSlot,
@@ -34,6 +37,7 @@ import {
   restoreCaseInsertProjectState,
   restoreCaseInsertProjectStateFromContents,
 } from './projectCaseInsert.ts'
+import { createProjectImageAssetProvenance } from './projectAssetStatus.ts'
 import { resolveSavedProjectRoute } from './projectRouting.ts'
 import { restoreProjectStateFromContents } from './restoreProjectState.ts'
 
@@ -336,6 +340,42 @@ test('case update helpers preserve optional state while toggling visibility', ()
   assert.deepEqual(state.back.featureBullets.items, ['Two-player puzzles'])
   assert.equal(state.spine.left.title.enabled, false)
   assert.equal(state.spine.left.title.value, '')
+})
+
+test('case image slot source import keeps reusable provenance and size metadata', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+  const slotImage = createCaseInsertImageSlotImageFromImportedAsset(
+    {
+      imageDataUrl: 'data:image/png;base64,library',
+      imageSize: { width: 600, height: 900 },
+      fileName: 'library_600x900.jpg',
+    },
+    createProjectImageAssetProvenance({
+      source: 'steam-artwork',
+      sourceId: 'cdn-library-capsule',
+      sourceLabel: 'Steam library capsule',
+      sourceUrl: 'https://cdn.akamai.steamstatic.com/steam/apps/620/library_600x900.jpg',
+    }),
+  )
+
+  state = updateProjectJewelCaseFront(state, (front) => ({
+    ...front,
+    background: setCaseInsertImageSlotEnabled(
+      setCaseInsertImageSlotImage(front.background, slotImage),
+      false,
+    ),
+  }))
+
+  assert.equal(state.front.background.enabled, false)
+  assert.equal(state.front.background.imageDataUrl, 'data:image/png;base64,library')
+  assert.deepEqual(state.front.background.imageSize, { width: 600, height: 900 })
+  assert.equal(state.front.background.imageSource?.source, 'steam-artwork')
+  assert.equal(state.front.background.imageSource?.sourceId, 'cdn-library-capsule')
+  assert.equal(state.front.background.imageSource?.sourceLabel, 'Steam library capsule')
+  assert.equal(
+    state.front.background.imageSource?.sourceUrl,
+    'https://cdn.akamai.steamstatic.com/steam/apps/620/library_600x900.jpg',
+  )
 })
 
 test('case helpers update screenshot slots and export settings', () => {

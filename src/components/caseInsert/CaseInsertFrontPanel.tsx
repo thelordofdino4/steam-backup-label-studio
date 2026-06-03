@@ -13,10 +13,15 @@ import type {
   ProjectJewelCaseFrontState,
 } from '../../project/projectTypes'
 import { PlusIcon } from '../sidebar/PanelIcons'
+import {
+  CaseInsertImageSourceControls,
+  type CaseInsertImageSourceCatalog,
+} from './CaseInsertImageSourceControls'
 
 export type CaseInsertFrontPanelProps = {
   front: ProjectJewelCaseFrontState
   actions: JewelCaseFrontEditorActions
+  imageSources: CaseInsertImageSourceCatalog
 }
 
 const IMAGE_FIT_OPTIONS: Array<{
@@ -175,6 +180,7 @@ function FrontImageSlotControls({
   enableLabel,
   uploadId,
   isBackground = false,
+  imageSources,
   actions,
 }: {
   slotKey: JewelCaseFrontImageSlotKey
@@ -183,6 +189,7 @@ function FrontImageSlotControls({
   enableLabel: string
   uploadId: string
   isBackground?: boolean
+  imageSources: CaseInsertImageSourceCatalog
   actions: JewelCaseFrontEditorActions
 }) {
   const onLayoutChange = (
@@ -207,16 +214,21 @@ function FrontImageSlotControls({
 
       {!slot.enabled ? null : (
         <>
-          <label className="secondary-button spacing-top" htmlFor={uploadId}>
-            {slot.imageDataUrl ? `Replace ${title}` : `Choose ${title}`}
-          </label>
-          <input
-            id={uploadId}
-            className="case-insert-file-input"
-            type="file"
-            accept="image/*"
-            onChange={(event) =>
+          <CaseInsertImageSourceControls
+            {...imageSources}
+            uploadId={uploadId}
+            title={title}
+            hasImage={Boolean(slot.imageDataUrl)}
+            imageSource={slot.imageSource}
+            onUpload={(event) =>
               actions.handleFrontImageSlotUpload(slotKey, event)}
+            onUseSteamArtwork={(asset) =>
+              actions.handleUseFrontImageSlotSteamArtwork(slotKey, asset)}
+            onUseLocalSteamScreenshot={(asset) =>
+              actions.handleUseFrontImageSlotLocalSteamScreenshot(
+                slotKey,
+                asset,
+              )}
           />
 
           <ImageSlotStatus slot={slot} />
@@ -327,11 +339,13 @@ function RepeatedImageSlotControls({
   slotKey,
   slot,
   uploadId,
+  imageSources,
   actions,
 }: {
   slotKey: JewelCaseFrontRepeatedImageSlotKey
   slot: ProjectCaseInsertImageSlot
   uploadId: string
+  imageSources: CaseInsertImageSourceCatalog
   actions: JewelCaseFrontEditorActions
 }) {
   const onLayoutChange = (
@@ -377,19 +391,29 @@ function RepeatedImageSlotControls({
               )}
           />
 
-          <label className="secondary-button spacing-top" htmlFor={uploadId}>
-            {slot.imageDataUrl ? 'Replace image' : 'Choose image'}
-          </label>
-          <input
-            id={uploadId}
-            className="case-insert-file-input"
-            type="file"
-            accept="image/*"
-            onChange={(event) =>
+          <CaseInsertImageSourceControls
+            {...imageSources}
+            uploadId={uploadId}
+            title={slot.label}
+            hasImage={Boolean(slot.imageDataUrl)}
+            imageSource={slot.imageSource}
+            onUpload={(event) =>
               actions.handleFrontRepeatedImageSlotUpload(
                 slotKey,
                 slot.id,
                 event,
+              )}
+            onUseSteamArtwork={(asset) =>
+              actions.handleUseFrontRepeatedImageSlotSteamArtwork(
+                slotKey,
+                slot.id,
+                asset,
+              )}
+            onUseLocalSteamScreenshot={(asset) =>
+              actions.handleUseFrontRepeatedImageSlotLocalSteamScreenshot(
+                slotKey,
+                slot.id,
+                asset,
               )}
           />
 
@@ -470,6 +494,7 @@ function RepeatedImageSlotSection({
   addLabel,
   slotKey,
   slots,
+  imageSources,
   actions,
 }: {
   title: string
@@ -477,6 +502,7 @@ function RepeatedImageSlotSection({
   addLabel: string
   slotKey: JewelCaseFrontRepeatedImageSlotKey
   slots: ProjectCaseInsertImageSlot[]
+  imageSources: CaseInsertImageSourceCatalog
   actions: JewelCaseFrontEditorActions
 }) {
   return (
@@ -490,6 +516,7 @@ function RepeatedImageSlotSection({
             slotKey={slotKey}
             slot={slot}
             uploadId={`${slotKey}-${index + 1}-upload`}
+            imageSources={imageSources}
             actions={actions}
           />
         ))}
@@ -607,6 +634,7 @@ function CalloutTextControls({
 export function CaseInsertFrontPanel({
   front,
   actions,
+  imageSources,
 }: CaseInsertFrontPanelProps) {
   return (
     <details className="panel collapsible-panel" open>
@@ -619,6 +647,7 @@ export function CaseInsertFrontPanel({
           enableLabel="Show front background artwork"
           uploadId="front-background-upload"
           isBackground
+          imageSources={imageSources}
           actions={actions}
         />
 
@@ -628,6 +657,7 @@ export function CaseInsertFrontPanel({
           title="front title/logo artwork"
           enableLabel="Show front title/logo artwork"
           uploadId="front-title-artwork-upload"
+          imageSources={imageSources}
           actions={actions}
         />
 
@@ -637,6 +667,7 @@ export function CaseInsertFrontPanel({
           title="front callout artwork"
           enableLabel="Show front callout artwork"
           uploadId="front-callout-artwork-upload"
+          imageSources={imageSources}
           actions={actions}
         />
 
@@ -646,6 +677,7 @@ export function CaseInsertFrontPanel({
           addLabel="Add front logo"
           slotKey="logoSlots"
           slots={front.logoSlots}
+          imageSources={imageSources}
           actions={actions}
         />
 
@@ -655,6 +687,7 @@ export function CaseInsertFrontPanel({
           addLabel="Add front mark"
           slotKey="markSlots"
           slots={front.markSlots}
+          imageSources={imageSources}
           actions={actions}
         />
 

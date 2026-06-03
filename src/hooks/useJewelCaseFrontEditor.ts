@@ -20,21 +20,26 @@ import {
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
 import {
+  createLocalSteamScreenshotCaseInsertImageSlotImage,
+  createSteamArtworkCaseInsertImageSlotImage,
+  createUploadedCaseInsertImageSlotImage,
+} from '../caseInsert/imageSlotSourceImport'
+import {
   setCaseInsertTextBlockEnabled,
   updateCaseInsertTextBlockLayoutField,
   updateCaseInsertTextBlockValue,
 } from '../caseInsert/textTransitions'
+import type { LocalSteamScreenshotAsset } from '../local/localArtwork'
 import { updateProjectJewelCaseFront } from '../caseInsert/jewelCaseTransitions'
-import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
+import type { SteamArtworkAsset } from '../steam/steamApi'
 import {
   isImageFile,
-  readImportedImageAssetFromFile,
 } from '../utils/importedImageAsset'
 
 type UseJewelCaseFrontEditorOptions = {
@@ -98,22 +103,6 @@ export function useJewelCaseFrontEditor({
     )
   }, [setProjectJewelCase])
 
-  async function importImageFile(
-    file: File,
-    fallbackLabel: string,
-  ) {
-    const importedImage = await readImportedImageAssetFromFile(file)
-
-    return {
-      imageDataUrl: importedImage.imageDataUrl,
-      imageSize: importedImage.imageSize,
-      imageSource: createProjectImageAssetProvenance({
-        source: 'uploaded',
-        sourceLabel: importedImage.fileName ?? fallbackLabel,
-      }),
-    }
-  }
-
   async function handleFrontImageSlotUpload(
     slotKey: JewelCaseFrontImageSlotKey,
     event: ChangeEvent<HTMLInputElement>,
@@ -133,12 +122,46 @@ export function useJewelCaseFrontEditor({
     }
 
     try {
-      const image = await importImageFile(file, label)
+      const image = await createUploadedCaseInsertImageSlotImage(file, label)
 
       updateImageSlot(slotKey, (slot) => setCaseInsertImageSlotImage(slot, image))
       announceStatus(`Selected ${label} image.`)
     } catch {
       announceStatus(`The ${label} image could not be read.`)
+    }
+  }
+
+  async function handleUseFrontImageSlotSteamArtwork(
+    slotKey: JewelCaseFrontImageSlotKey,
+    asset: SteamArtworkAsset,
+  ) {
+    const label = imageSlotLabels[slotKey]
+    announceStatus(`Downloading ${asset.label} for ${label}...`)
+
+    try {
+      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
+
+      updateImageSlot(slotKey, (slot) => setCaseInsertImageSlotImage(slot, image))
+      announceStatus(`Using ${asset.label} as the ${label}.`)
+    } catch (error) {
+      announceStatus(`Steam artwork import failed for ${label}: ${String(error)}`)
+    }
+  }
+
+  async function handleUseFrontImageSlotLocalSteamScreenshot(
+    slotKey: JewelCaseFrontImageSlotKey,
+    asset: LocalSteamScreenshotAsset,
+  ) {
+    const label = imageSlotLabels[slotKey]
+    announceStatus(`Loading ${asset.label} for ${label}...`)
+
+    try {
+      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
+
+      updateImageSlot(slotKey, (slot) => setCaseInsertImageSlotImage(slot, image))
+      announceStatus(`Using ${asset.label} as the ${label}.`)
+    } catch (error) {
+      announceStatus(`Local screenshot import failed for ${label}: ${String(error)}`)
     }
   }
 
@@ -252,7 +275,7 @@ export function useJewelCaseFrontEditor({
     }
 
     try {
-      const image = await importImageFile(file, label)
+      const image = await createUploadedCaseInsertImageSlotImage(file, label)
 
       updateRepeatedImageSlot(slotKey, slotId, (slot) =>
         setCaseInsertImageSlotImage(slot, image),
@@ -260,6 +283,46 @@ export function useJewelCaseFrontEditor({
       announceStatus(`Selected ${label} image.`)
     } catch {
       announceStatus(`The ${label} image could not be read.`)
+    }
+  }
+
+  async function handleUseFrontRepeatedImageSlotSteamArtwork(
+    slotKey: JewelCaseFrontRepeatedImageSlotKey,
+    slotId: string,
+    asset: SteamArtworkAsset,
+  ) {
+    const label = repeatedSlotLabels[slotKey]
+    announceStatus(`Downloading ${asset.label} for ${label}...`)
+
+    try {
+      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
+
+      updateRepeatedImageSlot(slotKey, slotId, (slot) =>
+        setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Using ${asset.label} as the ${label}.`)
+    } catch (error) {
+      announceStatus(`Steam artwork import failed for ${label}: ${String(error)}`)
+    }
+  }
+
+  async function handleUseFrontRepeatedImageSlotLocalSteamScreenshot(
+    slotKey: JewelCaseFrontRepeatedImageSlotKey,
+    slotId: string,
+    asset: LocalSteamScreenshotAsset,
+  ) {
+    const label = repeatedSlotLabels[slotKey]
+    announceStatus(`Loading ${asset.label} for ${label}...`)
+
+    try {
+      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
+
+      updateRepeatedImageSlot(slotKey, slotId, (slot) =>
+        setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Using ${asset.label} as the ${label}.`)
+    } catch (error) {
+      announceStatus(`Local screenshot import failed for ${label}: ${String(error)}`)
     }
   }
 
@@ -357,6 +420,8 @@ export function useJewelCaseFrontEditor({
 
   return {
     handleFrontImageSlotUpload,
+    handleUseFrontImageSlotSteamArtwork,
+    handleUseFrontImageSlotLocalSteamScreenshot,
     handleFrontImageSlotEnabledChange,
     handleFrontImageSlotFitChange,
     handleFrontImageSlotLayoutChange,
@@ -367,6 +432,8 @@ export function useJewelCaseFrontEditor({
     handleFrontRepeatedImageSlotEnabledChange,
     handleFrontRepeatedImageSlotLabelChange,
     handleFrontRepeatedImageSlotUpload,
+    handleUseFrontRepeatedImageSlotSteamArtwork,
+    handleUseFrontRepeatedImageSlotLocalSteamScreenshot,
     handleFrontRepeatedImageSlotLayoutChange,
     handleResetFrontRepeatedImageSlotLayout,
     handleClearFrontRepeatedImageSlot,

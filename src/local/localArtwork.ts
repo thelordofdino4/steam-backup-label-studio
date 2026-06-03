@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import { bytesToBase64 } from '../utils/bytesToBase64'
+import { bytesToBase64 } from '../utils/bytesToBase64.ts'
 
 export type LocalSteamScreenshotAsset = {
   id: string

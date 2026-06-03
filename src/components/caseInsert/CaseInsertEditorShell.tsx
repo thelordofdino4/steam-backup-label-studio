@@ -7,11 +7,13 @@ import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import type { JewelCaseFrontEditorActions } from '../../hooks/useJewelCaseFrontEditor'
 import { CaseInsertFrontPanel } from './CaseInsertFrontPanel'
+import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
   frontEditor: JewelCaseFrontEditorActions
+  imageSources: CaseInsertImageSourceCatalog
   projectStatus: string
   manualGameTitle: string
   statusToasts: PreviewToast[]
@@ -55,7 +57,11 @@ function CaseInsertProjectPanel({
   onExportPng,
 }: Omit<
   CaseInsertEditorShellProps,
-  'caseInsert' | 'frontEditor' | 'manualGameTitle' | 'statusToasts'
+  | 'caseInsert'
+  | 'frontEditor'
+  | 'imageSources'
+  | 'manualGameTitle'
+  | 'statusToasts'
 >) {
   return (
     <details className="panel collapsible-panel">
@@ -174,6 +180,7 @@ function CaseInsertGuideLegendPanel() {
 export function CaseInsertEditorShell({
   caseInsert,
   frontEditor,
+  imageSources,
   projectStatus,
   manualGameTitle,
   statusToasts,
@@ -213,6 +220,7 @@ export function CaseInsertEditorShell({
         <CaseInsertFrontPanel
           front={caseInsert.front}
           actions={frontEditor}
+          imageSources={imageSources}
         />
 
         <CaseInsertSidebarNotePanel title="Artwork">
