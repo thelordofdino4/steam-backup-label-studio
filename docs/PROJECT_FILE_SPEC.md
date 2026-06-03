@@ -21,8 +21,9 @@ It is a union of `SavedDiscProject` and `SavedCaseInsertProject`.
 
 Disc snapshot creation lives in `src/project/createProjectSnapshot.ts`, and disc
 restoration/normalization lives in `src/project/restoreProjectState.ts` plus
-related project modules. Case insert snapshot/default creation and normalization
-live in `src/project/projectCaseInsert.ts`.
+related project modules. Case insert saved-project adapters remain available
+through `src/project/projectCaseInsert.ts`, while case-owned defaults,
+normalization, and state transitions live under `src/caseInsert/`.
 
 The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today.
 
