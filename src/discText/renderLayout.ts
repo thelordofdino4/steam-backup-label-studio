@@ -1,4 +1,4 @@
-import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './index'
+import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './types'
 import type { DiscTextAvoidanceRegion } from './avoidance.ts'
 import {
   getResolvedDiscTextRenderStyle,

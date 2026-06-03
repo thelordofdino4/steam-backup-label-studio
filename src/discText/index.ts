@@ -4,104 +4,36 @@ import {
   getDefaultCopyrightStraightLayoutForTemplate,
 } from '../layout/discTemplateLayoutDefaults.ts'
 import type { DiscTemplate } from '../types/template'
+import {
+  CURVED_COPYRIGHT_LAYOUT_X_MAX,
+  CURVED_COPYRIGHT_LAYOUT_X_MIN,
+  CURVED_COPYRIGHT_LAYOUT_Y_MAX,
+  CURVED_COPYRIGHT_LAYOUT_Y_MIN,
+  DEFAULT_DISC_TEXT_SETTINGS,
+  DEFAULT_DISC_TEXT_WIDTHS,
+  DISC_TEXT_KEYS,
+  DISC_TEXT_WIDTH_MAX,
+  DISC_TEXT_WIDTH_MIN,
+} from './constants.ts'
+import type {
+  DiscTextArcSide,
+  DiscTextAlignment,
+  DiscTextKey,
+  DiscTextLayout,
+  DiscTextLayoutNumericField,
+  DiscTextLayoutSettings,
+  DiscTextMode,
+  DiscTextSettings,
+  DiscTextValues,
+  SteamLogoPlacement,
+} from './types'
 
-export type SteamLogoPlacement = 'top' | 'bottom' | 'none'
-
-export type DiscTextKey =
-  | 'title'
-  | 'subtitle'
-  | 'discNumber'
-  | 'backupDate'
-  | 'appId'
-  | 'developer'
-  | 'publisher'
-  | 'installNotes'
-  | 'customNote'
-  | 'copyright'
-
-export type DiscTextSettings = Record<DiscTextKey, boolean>
-
-export type DiscTextValues = {
-  subtitle: string
-  discNumber: string
-  backupDate: string
-  appId: string
-  developer: string
-  publisher: string
-  installNotes: string
-  customNote: string
-  copyright: string
-}
-
-export type DiscTextAlignment = 'left' | 'center' | 'right'
-export type DiscTextMode = 'straight' | 'curved'
-export type DiscTextArcSide = 'top' | 'bottom'
-
-export type DiscTextLayout = {
-  x: number
-  y: number
-  width: number
-  scale: number
-  align: DiscTextAlignment
-  mode: DiscTextMode
-  arcDegrees: number
-  arcSide: DiscTextArcSide
-  avoidVisualElements: boolean
-}
-
-export type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
-export type DiscTextLayoutNumericField = 'x' | 'y' | 'width' | 'scale' | 'arcDegrees'
+export * from './constants.ts'
+export type * from './types.ts'
 
 type DiscTextLayoutPoint = {
   x: number
   y: number
-}
-
-export const CURVED_COPYRIGHT_LAYOUT_X_MIN = -60
-export const CURVED_COPYRIGHT_LAYOUT_X_MAX = 60
-export const CURVED_COPYRIGHT_LAYOUT_Y_MIN = -8
-export const CURVED_COPYRIGHT_LAYOUT_Y_MAX = 20
-
-export const DISC_TEXT_KEYS: DiscTextKey[] = [
-  'title',
-  'subtitle',
-  'discNumber',
-  'backupDate',
-  'appId',
-  'developer',
-  'publisher',
-  'installNotes',
-  'customNote',
-  'copyright',
-]
-
-export const DEFAULT_DISC_TEXT_SETTINGS: DiscTextSettings = {
-  title: false,
-  subtitle: false,
-  discNumber: false,
-  backupDate: false,
-  appId: false,
-  developer: false,
-  publisher: false,
-  installNotes: false,
-  customNote: false,
-  copyright: false,
-}
-
-export const DISC_TEXT_WIDTH_MIN = 20
-export const DISC_TEXT_WIDTH_MAX = 90
-
-export const DEFAULT_DISC_TEXT_WIDTHS: Record<DiscTextKey, number> = {
-  title: 58,
-  subtitle: 54,
-  discNumber: 42,
-  backupDate: 48,
-  appId: 48,
-  developer: 48,
-  publisher: 48,
-  installNotes: 58,
-  customNote: 58,
-  copyright: 68,
 }
 
 export function normalizeDiscTextWidth(width: number | undefined, fallback: number) {

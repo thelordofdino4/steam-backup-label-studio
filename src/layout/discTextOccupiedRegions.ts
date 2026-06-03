@@ -3,15 +3,17 @@ import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
 } from '../disc/geometry.ts'
+import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import {
-  DISC_TEXT_KEYS,
   getDiscTextContent,
   getDiscTextLabel,
-  type DiscTextKey,
-  type DiscTextLayoutSettings,
-  type DiscTextSettings,
-  type DiscTextValues,
 } from '../discText/index.ts'
+import type {
+  DiscTextKey,
+  DiscTextLayoutSettings,
+  DiscTextSettings,
+  DiscTextValues,
+} from '../discText/types'
 import {
   createDiscTextAvoidanceRegionFromBounds,
   type DiscTextAvoidanceRegion,

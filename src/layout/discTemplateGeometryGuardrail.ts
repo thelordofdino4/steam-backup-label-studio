@@ -1,12 +1,14 @@
+import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import {
-  DISC_TEXT_KEYS,
   getDiscTextContent,
   getDiscTextLabel,
-  type DiscTextLayout,
-  type DiscTextLayoutSettings,
-  type DiscTextSettings,
-  type DiscTextValues,
 } from '../discText/index.ts'
+import type {
+  DiscTextLayout,
+  DiscTextLayoutSettings,
+  DiscTextSettings,
+  DiscTextValues,
+} from '../discText/types'
 import {
   canClampRectToTemplateSafeAnnulus,
   getLogoAssetBoundsPercent,

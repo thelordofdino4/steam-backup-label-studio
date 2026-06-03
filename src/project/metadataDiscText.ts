@@ -1,26 +1,26 @@
-import { updateDiscTextValue, type DiscTextKey, type DiscTextValues } from '../discText/index.ts'
+import { updateDiscTextValue } from '../discText/index.ts'
+import type { DiscTextKey, DiscTextValues } from '../discText/types'
 import type { ProjectMetadata } from './projectTypes'
+import type {
+  DiscTextInputState,
+  DiscTextInputUpdate,
+  DiscTextInputValueKey,
+  DiscTextValueSource,
+  DiscTextValueSources,
+  MetadataBoundDiscTextKey,
+} from './metadataDiscTextTypes'
+
+export type {
+  DiscTextInputState,
+  DiscTextInputUpdate,
+  DiscTextInputValueKey,
+  DiscTextValueSource,
+  DiscTextValueSources,
+  MetadataBoundDiscTextKey,
+} from './metadataDiscTextTypes'
 
 function normalizeText(value: string | undefined) {
   return value?.trim() ?? ''
-}
-
-export type MetadataBoundDiscTextKey = Exclude<DiscTextKey, 'customNote'>
-export type DiscTextValueSource = 'metadata' | 'manual'
-export type DiscTextValueSources = Record<MetadataBoundDiscTextKey, DiscTextValueSource>
-export type DiscTextInputValueKey = DiscTextKey
-
-export type DiscTextInputState = {
-  value: string
-  placeholder: string
-  isMetadataBacked: boolean
-  isManualOverride: boolean
-}
-
-export type DiscTextInputUpdate = {
-  values: DiscTextValues
-  sources: DiscTextValueSources
-  titleValue: string
 }
 
 export const METADATA_BOUND_DISC_TEXT_KEYS: MetadataBoundDiscTextKey[] = [

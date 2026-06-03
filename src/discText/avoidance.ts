@@ -1,5 +1,5 @@
 import type { RenderBoundsPercent } from '../disc/geometry.ts'
-import type { DiscTextKey } from './index.ts'
+import type { DiscTextKey } from './types'
 
 export type DiscTextAvoidanceRegion = {
   id: string

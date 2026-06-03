@@ -6,9 +6,9 @@ import type {
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
-} from '../discText/index'
+} from '../discText/types'
 import type { DiscTextStyle } from '../discText/styles'
-import type { DiscTextValueSources } from './metadataDiscText'
+import type { DiscTextValueSources } from './metadataDiscTextTypes'
 import type { DiscTemplateId } from '../templates/discTemplates'
 import type {
   JewelCaseGuideId,

@@ -5,7 +5,7 @@ import {
   getBackgroundDrawSize,
 } from '../image/backgroundImage.ts'
 import { clampNumber } from '../disc/geometry.ts'
-import type { SteamLogoPlacement } from '../discText/index.ts'
+import type { SteamLogoPlacement } from '../discText/types'
 import type {
   BackgroundImageSize,
   BackgroundOffset,

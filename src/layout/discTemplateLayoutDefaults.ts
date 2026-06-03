@@ -20,7 +20,7 @@ import type {
   DiscTextLayout,
   DiscTextLayoutSettings,
   SteamLogoPlacement,
-} from '../discText/index.ts'
+} from '../discText/types'
 import type {
   AdditionalArtworkLayout,
   BackgroundImageSize,

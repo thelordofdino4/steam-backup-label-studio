@@ -200,6 +200,14 @@ First:
 3. Make visual rendering, state updates, layout math, and interaction surfaces explicit.
 4. Then fix the regression inside the correct owner.
 
+## Dependency Cycle Guard
+
+Relative import cycles under `src` should remain at zero. Cycles hide ownership boundaries, make safe module moves harder, and can turn type-only convenience imports into runtime coupling during later refactors.
+
+Run `npm run check:cycles` after ownership refactors, file moves, or import cleanup. The check scans `.ts` and `.tsx` files under `src`, resolves relative imports, reports cycle paths, and exits nonzero when any cycle is found.
+
+When a cycle appears, prefer extracting neutral types, constants, or shared declarations into a narrower owner instead of importing through a broad feature entry point.
+
 ## Primary Checkout And Runtime Verification
 
 User-visible fixes must be verified against the checkout and runtime the user is actually testing.

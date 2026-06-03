@@ -1,9 +1,5 @@
-import {
-  DISC_TEXT_KEYS,
-  type DiscTextKey,
-  type DiscTextLayout,
-  type DiscTextLayoutSettings,
-} from '../discText/index.ts'
+import { DISC_TEXT_KEYS } from '../discText/constants.ts'
+import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings } from '../discText/types'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampNumber,
