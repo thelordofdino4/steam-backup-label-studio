@@ -1,6 +1,8 @@
-import type {
-  CaseInsertTemplateType,
-  EditorProjectType,
+import {
+  DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+  UNAVAILABLE_CASE_INSERT_TEMPLATE_TYPES,
+  type CaseInsertTemplateType,
+  type EditorProjectType,
 } from '../editor/editorTypes.ts'
 
 export type SavedProjectRoute = {
@@ -11,9 +13,8 @@ export type SavedProjectRoute = {
 type JsonRecord = Record<string, unknown>
 
 const CASE_INSERT_TEMPLATE_TYPES: readonly CaseInsertTemplateType[] = [
-  'jewelCase',
-  'dvdAmaray',
-  'bluRay',
+  DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+  ...UNAVAILABLE_CASE_INSERT_TEMPLATE_TYPES,
 ]
 
 function asRecord(value: unknown): JsonRecord | null {

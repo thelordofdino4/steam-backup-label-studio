@@ -1,6 +1,6 @@
 # Template Specification
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-03.
 
 ## Purpose
 
@@ -28,13 +28,36 @@ Current functional category:
 
 - Disc label.
 
-Future categories:
+Planned case insert categories:
 
 - Jewel case.
 - DVD/Amaray case.
 - Blu-ray case.
 
 Do not present future categories as available until their editors can export usable files.
+
+The top-level project/editor type remains separate from the concrete template or case variant. Disc projects use disc templates. Case insert projects use case insert templates such as jewel case.
+
+## Shared Template Model
+
+The shared template model is owned by `src/types/template.ts`.
+
+The model now distinguishes:
+
+- `DiscTemplate` for circular disc labels.
+- `RectangularPrintTemplate` for rectangular case insert layouts.
+- `PrintTemplate` as the union for shared helpers.
+
+Shared template helpers live in `src/templates/templateModel.ts`.
+
+Those helpers can:
+
+- Distinguish disc templates from rectangular templates.
+- Resolve physical width and height in millimeters.
+- Look up named rectangular regions and guides.
+- Validate that rectangular regions and guide lines stay inside the template canvas.
+
+Disc-specific circular geometry remains owned by `src/discGeometry.ts` and `src/layout/discElementSafeZone.ts`.
 
 ## Current Disc Template Data
 
@@ -53,6 +76,17 @@ A disc template currently defines:
 - optional `geometryNote`
 
 The app supports built-in disc templates and a custom dimensions option.
+
+## Rectangular Case Template Model
+
+Rectangular templates can describe:
+
+- Physical `widthMm` and `heightMm`.
+- Named regions such as front, back, spine, trim, bleed, safe, and printable areas.
+- Region parent relationships, for example a front safe area inside the front cover region.
+- Guide definitions for trim bounds, safe bounds, bleed bounds, fold lines, and spine boundaries.
+
+#130 owns the first real jewel case physical template definition. #129 only establishes the shared model and validation helpers needed for that data.
 
 ## Current Geometry Meaning
 
