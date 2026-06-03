@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
-import type { SteamLogoPlacement } from '../../discText'
+import type { SteamLogoPlacement } from '../../discText/index'
 import {
   getLogoAssetLayoutSliderRanges,
   getMediaMarkLayoutSliderRanges,
@@ -7,7 +7,7 @@ import {
   getRatingBadgeLayoutSliderRanges,
   getTechnicalMarkLayoutSliderRanges,
 } from '../../layout/discElementSafeZone'
-import { RATING_BADGE_LAYOUT_PRESETS } from '../../layoutPresets'
+import { RATING_BADGE_LAYOUT_PRESETS } from '../../layout/presets'
 import { MEDIA_MARK_OPTIONS, MEDIA_MARK_THEME_OPTIONS, PLATFORM_MARK_OPTIONS, getEnabledPlatformMarkValues, getMediaMarkLabel, getPlatformMarkLabel, getPlatformMarkThemeOptions, getPlatformMarkValuesForRemember, getPlatformMarkValuesForRestore, getProjectPlatformMarkAsset, getProjectPlatformMarkInference, mediaMarkSupportsTheme, platformMarkSupportsTheme } from '../../project/projectMediaMark'
 import { TECHNICAL_MARK_OPTIONS, getEnabledTechnicalMarkValues, getProjectTechnicalMarkAsset, getTechnicalMarkLabel, getTechnicalMarkValuesForRemember, getTechnicalMarkValuesForRestore } from '../../project/projectTechnicalMarks'
 import { formatRatingValueForSystem, getActiveRatingSystemForBadge, getRatingMetadataForSystemChange, getRatingValuesForSystem } from '../../project/projectMetadata'
@@ -16,7 +16,7 @@ import { getLogoAssetSource } from '../../project/projectLogoAssets'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import type { BackgroundImageSize, GameRatingSystem, LogoAssetLayout, MediaMarkLayout, MediaMarkSource, MediaMarkTheme, MediaMarkValue, PlatformMarkLayout, PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue, ProjectAdditionalLogoAsset, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, RatingBadgeLayout, RatingBadgeSource, SteamBannerColors, SteamBannerLockupLayout, TechnicalMarkLayout, TechnicalMarkSource, TechnicalMarkValue } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
-import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../steamBanner'
+import { createSteamLogoPlacementMemory, getEnabledSteamLogoPlacement, getNextSteamLogoPlacementMemory } from '../../branding/steamBanner'
 import type { DiscTemplate } from '../../types/template'
 import {
   ImageCandidatePreviewPicker,

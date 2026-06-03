@@ -6,8 +6,8 @@ import type {
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
-} from '../discText'
-import type { DiscTextStyle } from '../discTextStyles'
+} from '../discText/index'
+import type { DiscTextStyle } from '../discText/styles'
 import type { DiscTextValueSources } from './metadataDiscText'
 import type { DiscTemplateId } from '../templates/discTemplates'
 import type {

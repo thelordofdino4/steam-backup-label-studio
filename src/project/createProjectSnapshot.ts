@@ -3,13 +3,13 @@ import type {
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
-} from '../discText'
-import type { DiscTextStyleSettings } from '../discTextStyles'
+} from '../discText/index'
+import type { DiscTextStyleSettings } from '../discText/styles'
 import type { ExportGuideSelection } from '../export/exportGuides'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import type { DiscTextValueSources } from './metadataDiscText'
-import { normalizeSteamBannerFallbackText } from '../steamBannerDefaults'
+import { normalizeSteamBannerFallbackText } from '../branding/steamBannerDefaults'
 import type {
   BackgroundImageSize,
   BackgroundOffset,

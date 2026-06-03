@@ -4,8 +4,8 @@ import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
-} from '../discText.ts'
-import { buildCustomDiscTemplate } from '../discGeometry.ts'
+} from '../discText/index.ts'
+import { buildCustomDiscTemplate } from '../disc/geometry.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import {

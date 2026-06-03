@@ -12,20 +12,20 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from './discText.ts'
-import type { DiscTextAvoidanceRegion } from './discTextAvoidance.ts'
-import { layoutCurvedText } from './discText/curvedTextLayout.ts'
+} from './index.ts'
+import type { DiscTextAvoidanceRegion } from './avoidance.ts'
+import { layoutCurvedText } from './curvedTextLayout.ts'
 import {
   getDiscTextFontString,
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
-} from './discTextRenderLayout.ts'
+} from './renderLayout.ts'
 import {
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
-} from './discTextStyles.ts'
-import { escapeSvgAttribute, escapeSvgText } from './svgUtils.ts'
+} from './styles.ts'
+import { escapeSvgAttribute, escapeSvgText } from '../utils/svg.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings

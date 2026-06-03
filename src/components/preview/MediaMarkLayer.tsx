@@ -3,7 +3,7 @@ import {
   createMediaMarkRenderModel,
   createPlatformMarkRenderModels,
   type PlatformMarkRenderModel,
-} from '../../mediaMarkRenderModel'
+} from '../../render/mediaMarkRenderModel'
 import type { PlatformMarkValue, ProjectMediaMark, ProjectPlatformMarks } from '../../project/projectTypes'
 
 export type MediaMarkLayerProps = {

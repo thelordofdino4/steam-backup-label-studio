@@ -1,15 +1,15 @@
 import type { SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
-import type { SteamLogoPlacement } from '../discText.ts'
+import type { SteamLogoPlacement } from '../discText/index.ts'
 import {
   getSteamBannerBandLayout,
   getSteamBannerLockupAspectRatio,
   getSteamBannerLockupRect,
   type SteamBannerRect,
-} from '../steamBannerLayout.ts'
+} from '../branding/steamBannerLayout.ts'
 import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
-} from '../steamBannerDefaults.ts'
+} from '../branding/steamBannerDefaults.ts'
 import { loadCanvasSafeImage } from './canvasImage.ts'
 
 type SteamBannerImageLoader = typeof loadCanvasSafeImage

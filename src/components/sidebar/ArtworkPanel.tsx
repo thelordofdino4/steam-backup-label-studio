@@ -14,7 +14,7 @@ import {
   type PersistedBackgroundArtworkSource,
   resolveActiveBackgroundArtworkSource,
 } from '../../image/backgroundArtworkSource'
-import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
+import { DISC_LAYOUT_CENTER_PERCENT } from '../../disc/geometry'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import {
   getAdditionalArtworkLayoutSliderRanges,

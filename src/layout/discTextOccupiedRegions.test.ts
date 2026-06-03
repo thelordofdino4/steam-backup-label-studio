@@ -4,9 +4,9 @@ import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
-} from '../discText.ts'
-import { createDefaultDiscTextStyles } from '../discTextStyles.ts'
-import { createDefaultProjectDiscNumberArtwork } from '../discNumberArtwork.ts'
+} from '../discText/index.ts'
+import { createDefaultDiscTextStyles } from '../discText/styles.ts'
+import { createDefaultProjectDiscNumberArtwork } from '../discText/discNumberArtwork.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'

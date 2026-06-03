@@ -8,7 +8,7 @@ import {
   normalizePegiRatingValue,
   normalizeUskRatingValue,
 } from './projectMetadata.ts'
-import { getRatingBadgePlaceholderRenderModel } from '../discPlaceholderAssets.ts'
+import { getRatingBadgePlaceholderRenderModel } from '../assets/assetManifest.ts'
 import {
   createDefaultProjectRatingBadge,
   shouldRenderRatingBadge,

@@ -2,7 +2,7 @@
 
 Issue context: #134 and #141.
 
-The case insert editor uses a separate layer-order path from the disc editor. The order lives in `src/layerOrder.ts` so preview and export can share the same visual stack as the jewel case editor fills in.
+The case insert editor uses a separate layer-order path from the disc editor. The order lives in `src/editor/layerOrder.ts` so preview and export can share the same visual stack as the jewel case editor fills in.
 
 Preview layers currently render in this order:
 

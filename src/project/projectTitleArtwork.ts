@@ -1,5 +1,5 @@
-import type { SteamLogoPlacement } from '../discText.ts'
-import { getTitleArtworkBoundsPercent, type RenderBoundsPercent } from '../discGeometry.ts'
+import type { SteamLogoPlacement } from '../discText/index.ts'
+import { getTitleArtworkBoundsPercent, type RenderBoundsPercent } from '../disc/geometry.ts'
 import { getDefaultTitleArtworkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'

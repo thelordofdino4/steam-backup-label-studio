@@ -84,8 +84,8 @@ The structural real-disc-art elements are now mostly represented:
 
 Remaining disc-editor work is polish, validation, and future expansion:
 
-- Keep built-in asset routing centralized through `src/discPlaceholderAssets.ts`, official replacements in domain folders under `src/assets/`, true placeholder-named fallbacks under `src/assets/placeholders/`, and generated-only user-facing visuals out of the editor surface.
-- Keep preview and PNG export layer order in sync through `src/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
+- Keep built-in asset routing centralized through `src/assets/assetManifest.ts`, official replacements in domain folders under `src/assets/`, true placeholder-named fallbacks under `src/assets/placeholders/`, and generated-only user-facing visuals out of the editor surface.
+- Keep preview and PNG export layer order in sync through `src/editor/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - Preserve optional visual state when disabled, hide dependent controls while disabled, and prevent disabled visuals from rendering/exporting.
 - Keep text inside the safe zone and keep visual-element avoidance behavior honest.
 - Keep drag, slider/manual positioning, upload/custom image, reset/clear, preview, export, and save/load behavior working for existing visual systems.
@@ -183,7 +183,7 @@ When disabled, optional visual features should hide dependent controls, not rend
 
 1. Use #69 as the closed baseline for the disc-editor alpha feature boundary.
 2. Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
-3. Keep the built-in asset tree organized and route new built-ins through `src/discPlaceholderAssets.ts` or a successor manifest if shared case assets require one.
+3. Keep the built-in asset tree organized and route new built-ins through `src/assets/assetManifest.ts` or a successor manifest if shared case assets require one.
 4. Keep #124 and #125 as separate polish/future-expansion work.
 5. Add or update fixture/manual smoke coverage for recently added disc systems and future case systems.
 6. Continue #44, #46, #47, and #48 only where they support current implementation risk.

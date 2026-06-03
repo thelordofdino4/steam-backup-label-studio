@@ -1,4 +1,4 @@
-import type { SteamLogoPlacement } from '../discText.ts'
+import type { SteamLogoPlacement } from '../discText/index.ts'
 import { clampTitleArtworkLayoutToSafeZone } from '../layout/discElementSafeZone.ts'
 import {
   clearTitleArtworkDefaultSteamLogo,

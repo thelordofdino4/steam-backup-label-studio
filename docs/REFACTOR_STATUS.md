@@ -25,7 +25,7 @@ Because they are now broad enough to be real product surface, future work should
 
 ## Completed Refactor / Architecture Work
 
-- Deduplicated disc text type declarations by importing shared types from `src/discText.ts`.
+- Deduplicated disc text type declarations by importing shared types from `src/discText/index.ts`.
 - Added shared byte/base64 and image-file helpers.
 - Extracted saved-project schema/type definitions into `src/project/projectTypes.ts`.
 - Added `src/project/normalizeProject.ts` and `src/project/restoreProjectState.ts` as project restoration/normalization owners.
@@ -33,7 +33,7 @@ Because they are now broad enough to be real product surface, future work should
 - Extracted PNG export rendering into `src/export/` modules.
 - Moved canvas/image helpers into `src/export/canvasImage.ts`.
 - Added focused export renderers for Steam banner, title artwork, additional artwork, logo assets, rating badges, media marks, technical marks, disc text, and guides.
-- Centralized visual layer order in `src/layerOrder.ts`.
+- Centralized visual layer order in `src/editor/layerOrder.ts`.
 - Extracted status toast state and helpers into `src/hooks/useStatusToasts.ts`.
 - Extracted sidebar panels into presentational components.
 - Extracted the preview area into focused preview components.

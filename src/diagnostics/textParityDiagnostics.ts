@@ -7,10 +7,10 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from '../discText'
-import { EXPORT_DPI, mmToPixels } from '../discGeometry'
-import { getStraightDiscTextRenderLayout, type TextMeasureFunction } from '../discTextRenderLayout'
-import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles'
+} from '../discText/index'
+import { EXPORT_DPI, mmToPixels } from '../disc/geometry'
+import { getStraightDiscTextRenderLayout, type TextMeasureFunction } from '../discText/renderLayout'
+import { DISC_TEXT_RENDER_STYLES } from '../discText/styles'
 import { resolveMetadataBoundDiscTextValues } from '../project/metadataDiscText'
 import type { ProjectMetadata } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'

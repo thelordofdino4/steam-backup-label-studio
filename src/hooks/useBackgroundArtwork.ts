@@ -15,7 +15,7 @@ import {
   updateBackgroundScale,
   type BackgroundOffsetField,
 } from '../image/backgroundImage'
-import type { SteamLogoPlacement } from '../discText'
+import type { SteamLogoPlacement } from '../discText/index'
 import { getBackgroundFitToSteamBannerOpenArea } from '../layout/backgroundArtworkFit'
 import type {
   BackgroundImageSize,

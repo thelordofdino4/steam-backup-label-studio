@@ -1,4 +1,4 @@
-import type { DiscTextAlignment, DiscTextArcSide, DiscTextKey, DiscTextLayout, DiscTextMode } from './discText'
+import type { DiscTextAlignment, DiscTextArcSide, DiscTextKey, DiscTextLayout, DiscTextMode } from '../discText/index'
 
 export type RatingBadgeLayoutPreset = {
   id: string

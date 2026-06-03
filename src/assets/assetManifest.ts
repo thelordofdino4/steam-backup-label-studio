@@ -7,7 +7,7 @@ import type {
   PlatformMarkValue,
   ProjectMetadata,
   TechnicalMarkValue,
-} from './project/projectTypes'
+} from '../project/projectTypes'
 import {
   normalizeEsrbRatingValue,
   normalizePegiRatingValue,
@@ -15,7 +15,7 @@ import {
   type EsrbRatingValue,
   type PegiRatingValue,
   type UskRatingValue,
-} from './project/projectMetadata.ts'
+} from '../project/projectMetadata.ts'
 
 type LogoPlaceholderKind = 'developer' | 'publisher'
 type RatingBadgePlaceholderKind = Exclude<GameRatingSystem, 'none'>
@@ -46,157 +46,157 @@ type StatusToastIconKind =
 // built-ins under domain folders; true temporary fallbacks stay in
 // `assets/placeholders/`.
 export const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = new URL(
-  './assets/steam-banner/steam-default-lockup.png',
+  './steam-banner/steam-default-lockup.png',
   import.meta.url,
 ).href
 
 export const LOGO_PLACEHOLDER_IMAGE_URLS: Record<LogoPlaceholderKind, string> = {
   developer: new URL(
-    './assets/placeholders/logos/developer-logo-placeholder.svg',
+    './placeholders/logos/developer-logo-placeholder.svg',
     import.meta.url,
   ).href,
   publisher: new URL(
-    './assets/placeholders/logos/publisher-logo-placeholder.svg',
+    './placeholders/logos/publisher-logo-placeholder.svg',
     import.meta.url,
   ).href,
 }
 
 const ESRB_RATING_BADGE_IMAGE_URLS: Record<EsrbRatingValue, string> = {
   E: new URL(
-    './assets/rating/esrb/rating-badge-esrb-e.svg',
+    './rating/esrb/rating-badge-esrb-e.svg',
     import.meta.url,
   ).href,
   'E10+': new URL(
-    './assets/rating/esrb/rating-badge-esrb-e10-plus.svg',
+    './rating/esrb/rating-badge-esrb-e10-plus.svg',
     import.meta.url,
   ).href,
   T: new URL(
-    './assets/rating/esrb/rating-badge-esrb-t.svg',
+    './rating/esrb/rating-badge-esrb-t.svg',
     import.meta.url,
   ).href,
   M: new URL(
-    './assets/rating/esrb/rating-badge-esrb-m.svg',
+    './rating/esrb/rating-badge-esrb-m.svg',
     import.meta.url,
   ).href,
   AO: new URL(
-    './assets/rating/esrb/rating-badge-esrb-ao.svg',
+    './rating/esrb/rating-badge-esrb-ao.svg',
     import.meta.url,
   ).href,
   RP: new URL(
-    './assets/rating/esrb/rating-badge-esrb-rp.svg',
+    './rating/esrb/rating-badge-esrb-rp.svg',
     import.meta.url,
   ).href,
   'RP17+': new URL(
-    './assets/rating/esrb/rating-badge-esrb-rp17-plus.svg',
+    './rating/esrb/rating-badge-esrb-rp17-plus.svg',
     import.meta.url,
   ).href,
 }
 
 const PEGI_RATING_BADGE_IMAGE_URLS: Record<PegiRatingValue, string> = {
   '3': new URL(
-    './assets/rating/pegi/rating-badge-pegi-3.png',
+    './rating/pegi/rating-badge-pegi-3.png',
     import.meta.url,
   ).href,
   '7': new URL(
-    './assets/rating/pegi/rating-badge-pegi-7.png',
+    './rating/pegi/rating-badge-pegi-7.png',
     import.meta.url,
   ).href,
   '12': new URL(
-    './assets/rating/pegi/rating-badge-pegi-12.png',
+    './rating/pegi/rating-badge-pegi-12.png',
     import.meta.url,
   ).href,
   '16': new URL(
-    './assets/rating/pegi/rating-badge-pegi-16.png',
+    './rating/pegi/rating-badge-pegi-16.png',
     import.meta.url,
   ).href,
   '18': new URL(
-    './assets/rating/pegi/rating-badge-pegi-18.png',
+    './rating/pegi/rating-badge-pegi-18.png',
     import.meta.url,
   ).href,
 }
 
 const USK_RATING_BADGE_IMAGE_URLS: Record<UskRatingValue, string> = {
   '0': new URL(
-    './assets/rating/usk/rating-badge-usk-0.svg',
+    './rating/usk/rating-badge-usk-0.svg',
     import.meta.url,
   ).href,
   '6': new URL(
-    './assets/rating/usk/rating-badge-usk-6.svg',
+    './rating/usk/rating-badge-usk-6.svg',
     import.meta.url,
   ).href,
   '12': new URL(
-    './assets/rating/usk/rating-badge-usk-12.svg',
+    './rating/usk/rating-badge-usk-12.svg',
     import.meta.url,
   ).href,
   '16': new URL(
-    './assets/rating/usk/rating-badge-usk-16.svg',
+    './rating/usk/rating-badge-usk-16.svg',
     import.meta.url,
   ).href,
   '18': new URL(
-    './assets/rating/usk/rating-badge-usk-18.svg',
+    './rating/usk/rating-badge-usk-18.svg',
     import.meta.url,
   ).href,
 }
 
 const RATING_BADGE_PLACEHOLDER_IMAGE_URLS: Record<Exclude<RatingBadgePlaceholderKind, 'ESRB' | 'PEGI' | 'USK'>, string> = {
   custom: new URL(
-    './assets/placeholders/rating/rating-badge-custom-placeholder.svg',
+    './placeholders/rating/rating-badge-custom-placeholder.svg',
     import.meta.url,
   ).href,
 }
 
 const MEDIA_MARK_PLACEHOLDER_IMAGE_URLS: Record<MediaMarkValue, MediaMarkPlaceholderImageUrls> = {
   bluRay: new URL(
-    './assets/media-format/blu-ray/media-mark-blu-ray.svg',
+    './media-format/blu-ray/media-mark-blu-ray.svg',
     import.meta.url,
   ).href,
   cdRom: {
     light: new URL(
-      './assets/media-format/cd-rom/media-mark-cd-rom-light.svg',
+      './media-format/cd-rom/media-mark-cd-rom-light.svg',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/media-format/cd-rom/media-mark-cd-rom-dark.svg',
+      './media-format/cd-rom/media-mark-cd-rom-dark.svg',
       import.meta.url,
     ).href,
   },
   dataDisc: {
     light: new URL(
-      './assets/media-format/data-disc/media-mark-data-disc-light.png',
+      './media-format/data-disc/media-mark-data-disc-light.png',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/media-format/data-disc/media-mark-data-disc-dark.png',
+      './media-format/data-disc/media-mark-data-disc-dark.png',
       import.meta.url,
     ).href,
   },
   dvd: {
     light: new URL(
-      './assets/media-format/dvd/media-mark-dvd-light.svg',
+      './media-format/dvd/media-mark-dvd-light.svg',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/media-format/dvd/media-mark-dvd-dark.svg',
+      './media-format/dvd/media-mark-dvd-dark.svg',
       import.meta.url,
     ).href,
   },
   dvdRom: {
     light: new URL(
-      './assets/media-format/dvd-rom/media-mark-dvd-rom-light.png',
+      './media-format/dvd-rom/media-mark-dvd-rom-light.png',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/media-format/dvd-rom/media-mark-dvd-rom-dark.png',
+      './media-format/dvd-rom/media-mark-dvd-rom-dark.png',
       import.meta.url,
     ).href,
   },
   installDisc: {
     light: new URL(
-      './assets/media-format/install-disc/media-mark-install-disc-light.png',
+      './media-format/install-disc/media-mark-install-disc-light.png',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/media-format/install-disc/media-mark-install-disc-dark.png',
+      './media-format/install-disc/media-mark-install-disc-dark.png',
       import.meta.url,
     ).href,
   },
@@ -205,99 +205,99 @@ const MEDIA_MARK_PLACEHOLDER_IMAGE_URLS: Record<MediaMarkValue, MediaMarkPlaceho
 const PLATFORM_MARK_PLACEHOLDER_IMAGE_URLS: Record<PlatformMarkValue, PlatformMarkPlaceholderImageUrls> = {
   linux: {
     color: new URL(
-      './assets/operating-system/linux/platform-mark-linux-color.svg',
+      './operating-system/linux/platform-mark-linux-color.svg',
       import.meta.url,
     ).href,
     light: new URL(
-      './assets/operating-system/linux/platform-mark-linux-light.svg',
+      './operating-system/linux/platform-mark-linux-light.svg',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/operating-system/linux/platform-mark-linux-dark.svg',
+      './operating-system/linux/platform-mark-linux-dark.svg',
       import.meta.url,
     ).href,
   },
   macos: {
     macos1988: new URL(
-      './assets/operating-system/macos/platform-mark-macos-1988.png',
+      './operating-system/macos/platform-mark-macos-1988.png',
       import.meta.url,
     ).href,
     macos1995: new URL(
-      './assets/operating-system/macos/platform-mark-macos-1995.png',
+      './operating-system/macos/platform-mark-macos-1995.png',
       import.meta.url,
     ).href,
     macos2001: new URL(
-      './assets/operating-system/macos/platform-mark-macos-2001.png',
+      './operating-system/macos/platform-mark-macos-2001.png',
       import.meta.url,
     ).href,
     macos2003: new URL(
-      './assets/operating-system/macos/platform-mark-macos-2003.png',
+      './operating-system/macos/platform-mark-macos-2003.png',
       import.meta.url,
     ).href,
     macos2012: new URL(
-      './assets/operating-system/macos/platform-mark-macos-2012.png',
+      './operating-system/macos/platform-mark-macos-2012.png',
       import.meta.url,
     ).href,
     macos2016: new URL(
-      './assets/operating-system/macos/platform-mark-macos-2016.png',
+      './operating-system/macos/platform-mark-macos-2016.png',
       import.meta.url,
     ).href,
     macos2017: new URL(
-      './assets/operating-system/macos/platform-mark-macos-2017.jpg',
+      './operating-system/macos/platform-mark-macos-2017.jpg',
       import.meta.url,
     ).href,
   },
   pc: {
     pcPlatform: new URL(
-      './assets/operating-system/pc/platform-mark-pc-platform.png',
+      './operating-system/pc/platform-mark-pc-platform.png',
       import.meta.url,
     ).href,
     pcSimplified: new URL(
-      './assets/operating-system/pc/platform-mark-pc-simplified.png',
+      './operating-system/pc/platform-mark-pc-simplified.png',
       import.meta.url,
     ).href,
     pcSimplifiedDark: new URL(
-      './assets/operating-system/pc/platform-mark-pc-simplified-dark.png',
+      './operating-system/pc/platform-mark-pc-simplified-dark.png',
       import.meta.url,
     ).href,
   },
   steamDeck: {
     color: new URL(
-      './assets/operating-system/steamos/platform-mark-steamos-color.svg',
+      './operating-system/steamos/platform-mark-steamos-color.svg',
       import.meta.url,
     ).href,
     light: new URL(
-      './assets/operating-system/steamos/platform-mark-steamos-light.svg',
+      './operating-system/steamos/platform-mark-steamos-light.svg',
       import.meta.url,
     ).href,
     dark: new URL(
-      './assets/operating-system/steamos/platform-mark-steamos-dark.svg',
+      './operating-system/steamos/platform-mark-steamos-dark.svg',
       import.meta.url,
     ).href,
   },
   windows: {
     retro: new URL(
-      './assets/operating-system/windows/platform-mark-windows-retro.svg',
+      './operating-system/windows/platform-mark-windows-retro.svg',
       import.meta.url,
     ).href,
     xp: new URL(
-      './assets/operating-system/windows/platform-mark-windows-xp.png',
+      './operating-system/windows/platform-mark-windows-xp.png',
       import.meta.url,
     ).href,
     vista: new URL(
-      './assets/operating-system/windows/platform-mark-windows-vista.png',
+      './operating-system/windows/platform-mark-windows-vista.png',
       import.meta.url,
     ).href,
     windows7: new URL(
-      './assets/operating-system/windows/platform-mark-windows-7.png',
+      './operating-system/windows/platform-mark-windows-7.png',
       import.meta.url,
     ).href,
     windows10: new URL(
-      './assets/operating-system/windows/platform-mark-windows-10.svg',
+      './operating-system/windows/platform-mark-windows-10.svg',
       import.meta.url,
     ).href,
     windows11: new URL(
-      './assets/operating-system/windows/platform-mark-windows-11.png',
+      './operating-system/windows/platform-mark-windows-11.png',
       import.meta.url,
     ).href,
   },
@@ -313,77 +313,77 @@ const DEFAULT_PLATFORM_MARK_PLACEHOLDER_THEME: Record<PlatformMarkValue, Platfor
 
 const TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS: Record<TechnicalMarkValue, string> = {
   audio: new URL(
-    './assets/placeholders/technical/technical-mark-audio-placeholder.svg',
+    './placeholders/technical/technical-mark-audio-placeholder.svg',
     import.meta.url,
   ).href,
   codec: new URL(
-    './assets/placeholders/technical/technical-mark-codec-placeholder.svg',
+    './placeholders/technical/technical-mark-codec-placeholder.svg',
     import.meta.url,
   ).href,
   middleware: new URL(
-    './assets/placeholders/technical/technical-mark-middleware-placeholder.svg',
+    './placeholders/technical/technical-mark-middleware-placeholder.svg',
     import.meta.url,
   ).href,
   surround: new URL(
-    './assets/placeholders/technical/technical-mark-surround-placeholder.svg',
+    './placeholders/technical/technical-mark-surround-placeholder.svg',
     import.meta.url,
   ).href,
   technology: new URL(
-    './assets/placeholders/technical/technical-mark-technology-placeholder.svg',
+    './placeholders/technical/technical-mark-technology-placeholder.svg',
     import.meta.url,
   ).href,
 }
 
 export const DISC_NUMBER_BADGE_IMAGE_URLS: Record<DiscNumberBadgeSet, string> = {
   starterRing: new URL(
-    './assets/disc-number-badges/starter-ring.svg',
+    './disc-number-badges/starter-ring.svg',
     import.meta.url,
   ).href,
 }
 
 export const STATUS_TOAST_ICON_URLS: Record<StatusToastIconKind, string> = {
   artwork: new URL(
-    './assets/toast-icons/toast-artwork.png',
+    './toast-icons/toast-artwork.png',
     import.meta.url,
   ).href,
   error: new URL(
-    './assets/toast-icons/toast-error.png',
+    './toast-icons/toast-error.png',
     import.meta.url,
   ).href,
   export: new URL(
-    './assets/toast-icons/toast-export.png',
+    './toast-icons/toast-export.png',
     import.meta.url,
   ).href,
   info: new URL(
-    './assets/toast-icons/toast-info.png',
+    './toast-icons/toast-info.png',
     import.meta.url,
   ).href,
   logo: new URL(
-    './assets/toast-icons/toast-logo.png',
+    './toast-icons/toast-logo.png',
     import.meta.url,
   ).href,
   project: new URL(
-    './assets/toast-icons/toast-project.png',
+    './toast-icons/toast-project.png',
     import.meta.url,
   ).href,
   steam: new URL(
-    './assets/toast-icons/toast-steam.png',
+    './toast-icons/toast-steam.png',
     import.meta.url,
   ).href,
   success: new URL(
-    './assets/toast-icons/toast-success.png',
+    './toast-icons/toast-success.png',
     import.meta.url,
   ).href,
   template: new URL(
-    './assets/toast-icons/toast-template.png',
+    './toast-icons/toast-template.png',
     import.meta.url,
   ).href,
   text: new URL(
-    './assets/toast-icons/toast-text.png',
+    './toast-icons/toast-text.png',
     import.meta.url,
   ).href,
   warning: new URL(
-    './assets/toast-icons/toast-warning.png',
+    './toast-icons/toast-warning.png',
     import.meta.url,
   ).href,
 }

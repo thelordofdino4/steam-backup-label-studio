@@ -17,7 +17,7 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from '../../discText'
+} from '../../discText/index'
 import {
   DISC_TEXT_CONTRAST_OPTIONS,
   DISC_TEXT_FONT_OPTIONS,
@@ -27,14 +27,14 @@ import {
   type DiscTextStyleField,
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
-} from '../../discTextStyles'
+} from '../../discText/styles'
 import {
   DISC_NUMBER_BADGE_SET_OPTIONS,
   type DiscNumberArtworkMode,
   type DiscNumberBadgeSet,
-} from '../../discNumberArtwork'
+} from '../../discText/discNumberArtwork'
 import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
-import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layoutPresets'
+import { getDiscTextLayoutPresetsForKey, type DiscTextLayoutPreset } from '../../layout/presets'
 import {
   getDiscTextInputState,
   isMetadataBoundDiscTextKey,

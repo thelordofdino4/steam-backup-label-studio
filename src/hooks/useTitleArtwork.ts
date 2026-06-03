@@ -1,5 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
-import type { SteamLogoPlacement } from '../discText'
+import type { SteamLogoPlacement } from '../discText/index'
 import {
   clampProjectTitleArtworkToSafeZone,
   clampTitleArtworkLayoutToSafeZone,

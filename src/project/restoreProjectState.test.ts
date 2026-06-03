@@ -15,8 +15,8 @@ import { getProjectTechnicalMarkAsset } from './projectTechnicalMarks.ts'
 import {
   applyDiscTextStylePreset,
   createDefaultDiscTextStyles,
-} from '../discTextStyles.ts'
-import { DEFAULT_STEAM_BANNER_FALLBACK_TEXT } from '../steamBannerDefaults.ts'
+} from '../discText/styles.ts'
+import { DEFAULT_STEAM_BANNER_FALLBACK_TEXT } from '../branding/steamBannerDefaults.ts'
 import type { SavedDiscProject } from './projectTypes.ts'
 
 const baseProject: SavedDiscProject = {

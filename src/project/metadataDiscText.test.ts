@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createDefaultDiscTextValues } from '../discText.ts'
+import { createDefaultDiscTextValues } from '../discText/index.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
 import {
   createDefaultDiscTextValueSources,

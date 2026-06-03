@@ -88,8 +88,8 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Disc-number graphic badge mode using a bundled generic starter badge.
 - Plain JSON project files, commonly named `.sbls.json`, with embedded data URLs for current visual assets and provenance/status metadata where supported.
 - Export preflight summary and warnings for guide marks, missing backgrounds, unusual custom dimensions, enabled-but-unavailable visuals, and generic/bundled assets.
-- Shared layer-order policy in `src/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
-- File-backed built-in assets route through `src/discPlaceholderAssets.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`.
+- Shared layer-order policy in `src/editor/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
+- File-backed built-in assets route through `src/assets/assetManifest.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`.
 
 ## Disc Editor Alpha Status
 

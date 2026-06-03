@@ -16,7 +16,7 @@ import {
   updateSteamBannerLockupLayoutField,
   type SteamBannerColorField,
   type SteamBannerLockupLayoutField,
-} from '../steamBanner'
+} from '../branding/steamBanner'
 import {
   isImageFile,
   readImportedImageAssetFromFile,

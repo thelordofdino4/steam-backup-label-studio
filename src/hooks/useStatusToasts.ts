@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { STATUS_TOAST_ICON_URLS } from '../discPlaceholderAssets'
+import { STATUS_TOAST_ICON_URLS } from '../assets/assetManifest'
 
 export type StatusToastKind =
   | 'info'

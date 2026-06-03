@@ -2,8 +2,8 @@ import {
   createDefaultDiscTextLayoutForTemplate,
   getDefaultCopyrightCurvedLayoutForTemplate,
   getDefaultCopyrightStraightLayoutForTemplate,
-} from './layout/discTemplateLayoutDefaults.ts'
-import type { DiscTemplate } from './types/template'
+} from '../layout/discTemplateLayoutDefaults.ts'
+import type { DiscTemplate } from '../types/template'
 
 export type SteamLogoPlacement = 'top' | 'bottom' | 'none'
 

@@ -1,4 +1,4 @@
-import type { DiscTextValues } from '../discText'
+import type { DiscTextValues } from '../discText/index'
 import type { DiscTextValueSources } from '../project/metadataDiscText'
 import { createProjectMetadataFromSteamGame } from '../project/projectMetadata'
 import type { ProjectMetadata } from '../project/projectTypes'

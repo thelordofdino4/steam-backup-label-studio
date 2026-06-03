@@ -27,12 +27,12 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
   type RenderBoundsPercent,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
-} from '../discTextRenderLayout.ts'
-import type { DiscTextLayout } from '../discText.ts'
+} from '../discText/renderLayout.ts'
+import type { DiscTextLayout } from '../discText/index.ts'
 import type {
   LogoAssetLayout,
   MediaMarkLayout,

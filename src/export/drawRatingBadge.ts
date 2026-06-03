@@ -7,10 +7,10 @@ import {
 import {
   RATING_BADGE_BASE_HEIGHT_RATIO,
   RATING_BADGE_BASE_WIDTH_RATIO,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   getRatingBadgePlaceholderRenderModel,
-} from '../discPlaceholderAssets.ts'
+} from '../assets/assetManifest.ts'
 import { loadCanvasSafeImage } from './canvasImage.ts'
 
 type DrawableRatingBadge = {

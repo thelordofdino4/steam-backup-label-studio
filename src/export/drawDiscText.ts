@@ -3,22 +3,22 @@ import type {
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
-} from '../discText'
-import type { DiscTextAvoidanceRegion } from '../discTextAvoidance'
+} from '../discText/index'
+import type { DiscTextAvoidanceRegion } from '../discText/avoidance'
 import {
   getDiscTextFontFamilyCanvas,
   type DiscTextStyleSettings,
-} from '../discTextStyles'
+} from '../discText/styles'
 import {
   createDiscNumberBadgeRenderModel,
   getEffectiveDiscTextSettingsForDiscNumberArtwork,
-} from '../discNumberArtwork'
+} from '../discText/discNumberArtwork'
 import type { ProjectDiscNumberArtwork } from '../project/projectTypes'
 import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
-} from '../discTextSvgLayer'
-import { createSvgDataUrl } from '../svgUtils'
+} from '../discText/svgLayer'
+import { createSvgDataUrl } from '../utils/svg'
 import { loadCanvasSafeImage, loadImage } from './canvasImage'
 
 export async function drawDiscTextElements(

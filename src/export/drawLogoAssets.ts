@@ -1,5 +1,5 @@
 import type { LogoAssetLayout, ProjectLogoAssets } from '../project/projectTypes'
-import { LOGO_BASE_WIDTH_RATIO, LOGO_MAX_HEIGHT_RATIO } from '../discGeometry'
+import { LOGO_BASE_WIDTH_RATIO, LOGO_MAX_HEIGHT_RATIO } from '../disc/geometry'
 import {
   createLogoAssetRenderItems,
   getLogoAssetRenderDataUrl,

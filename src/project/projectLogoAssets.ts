@@ -3,7 +3,7 @@ import {
   getDefaultLogoAssetLayoutForTemplate,
   getNextAdditionalLogoAssetLayoutForTemplate,
 } from '../layout/discTemplateLayoutDefaults.ts'
-import { LOGO_PLACEHOLDER_IMAGE_URLS } from '../discPlaceholderAssets.ts'
+import { LOGO_PLACEHOLDER_IMAGE_URLS } from '../assets/assetManifest.ts'
 import type { DiscTemplate } from '../types/template'
 import type {
   BackgroundImageSize,

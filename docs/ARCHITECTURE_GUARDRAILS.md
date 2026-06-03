@@ -28,7 +28,7 @@ Use targeted searches rather than broad archaeology. Look for:
 
 - matching domain names such as `discText`, `discTextStyles`, `discTextAvoidance`, `titleArtwork`, `additionalArtwork`, `discNumberArtwork`, `ratingBadge`, `mediaMark`, `platformMark`, `technicalMark`, `logoAsset`, `steamBanner`, `background`, `projectAssetStatus`, `metadataDiscText`, `project`, `exportPreflight`, or `export`
 - existing hooks under `src/hooks/`
-- existing layout helpers under `src/layout/` or geometry helpers under `src/discGeometry.ts`
+- existing layout helpers under `src/layout/` or geometry helpers under `src/disc/geometry.ts`
 - existing preview components under `src/components/preview/`
 - existing sidebar panels under `src/components/sidebar/`
 - existing export helpers under `src/export/`
@@ -119,7 +119,7 @@ Current real-disc-art owners include, at minimum:
 - Metadata-bound text: `src/project/metadataDiscText.ts`.
 - Export preflight: `src/export/exportPreflight.ts`.
 - Asset provenance/status: `src/project/projectAssetStatus.ts`.
-- Layer order: `src/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
+- Layer order: `src/editor/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
 
 ## Preview and Export Parity Rule
 
@@ -130,7 +130,7 @@ When a visual element appears in both preview and PNG export:
 - prefer one shared renderer/artifact used by both paths
 - avoid independent DOM/CSS preview renderers paired with canvas-only export renderers
 - do not duplicate placeholder layout logic in CSS and canvas
-- keep layer order shared and explicit through `src/layerOrder.ts`
+- keep layer order shared and explicit through `src/editor/layerOrder.ts`
 - keep coordinate systems shared and documented
 - avoid preview-only CSS effects that export cannot reproduce
 - avoid export-only raster/canvas effects that preview cannot reproduce
@@ -184,7 +184,7 @@ Safe-zone, bounds, and layout math must live in focused layout modules, not insi
 
 CSS must not override the shared rendering model by accident.
 
-- Avoid hardcoded z-index values that conflict with `src/layerOrder.ts`.
+- Avoid hardcoded z-index values that conflict with `src/editor/layerOrder.ts`.
 - Do not leave stale CSS selectors from older renderers after a refactor.
 - Do not use CSS as hidden business logic for layout, bounds, or feature state.
 - If CSS is part of a shared visual artifact, make sure export can use the same effective styling.

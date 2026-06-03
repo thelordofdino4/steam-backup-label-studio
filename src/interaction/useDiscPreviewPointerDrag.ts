@@ -4,7 +4,7 @@ import {
   updateDraggedDiscTextLayoutPosition,
   type DiscTextKey,
   type DiscTextLayoutSettings,
-} from '../discText'
+} from '../discText/index'
 import {
   createPercentDragState,
   createPixelDragState,

@@ -1,9 +1,9 @@
-import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './discText'
-import type { DiscTextAvoidanceRegion } from './discTextAvoidance.ts'
+import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './index'
+import type { DiscTextAvoidanceRegion } from './avoidance.ts'
 import {
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
-} from './discTextStyles.ts'
+} from './styles.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 

@@ -1,5 +1,5 @@
-import type { SteamLogoPlacement } from './discText'
-import type { SteamBannerLockupLayout } from './project/projectTypes'
+import type { SteamLogoPlacement } from '../discText/index'
+import type { SteamBannerLockupLayout } from '../project/projectTypes'
 
 export type SteamBannerRect = {
   x: number

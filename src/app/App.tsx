@@ -5,21 +5,21 @@ import {
   type SteamArtworkAsset,
   type SteamImportedGame,
   type SteamSearchResult,
-} from './steam/steamApi'
+} from '../steam/steamApi'
 import {
   openLocalFolder,
   type LocalSteamScreenshotAsset,
-} from './local/localArtwork'
-import { createLocalSteamScreenshotDiscovery } from './local/localSteamScreenshotDiscovery'
-import { loadMissingLocalSteamScreenshotThumbnails } from './local/localSteamScreenshotThumbnails'
+} from '../local/localArtwork'
+import { createLocalSteamScreenshotDiscovery } from '../local/localSteamScreenshotDiscovery'
+import { loadMissingLocalSteamScreenshotThumbnails } from '../local/localSteamScreenshotThumbnails'
 import {
   applySteamGameImportToDiscTextValues,
   applySteamGameImportToProjectMetadata,
   createSteamGameImport,
-} from './steam/steamGameImport'
-import { applySteamPlatformMarksImport } from './steam/steamPlatformMarks'
-import { discTemplates, discTemplateOptions } from './templates/discTemplates'
-import type { DiscTemplate } from './types/template'
+} from '../steam/steamGameImport'
+import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
+import { discTemplates, discTemplateOptions } from '../templates/discTemplates'
+import type { DiscTemplate } from '../types/template'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
@@ -27,55 +27,55 @@ import {
   getGuideInsetPercent,
   mmToPixels,
   normalizeCustomDiscTemplate,
-} from './discGeometry'
+} from '../disc/geometry'
 import {
   clampDiscTextLayoutToSafeZone,
   clampProjectRatingBadgeToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
-} from './layout/discElementSafeZone'
-import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeometryGuardrail'
-import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './export/exportGuides'
-import './App.css'
-import './layoutFix.css'
-import { CaseInsertEditorShell } from './components/caseInsert/CaseInsertEditorShell'
-import { HomeScreen } from './components/home/HomeScreen'
-import type { EditorWorkspace } from './editor/editorTypes'
-import { DiscPreview } from './components/preview/DiscPreview'
-import { ArtworkPanel } from './components/sidebar/ArtworkPanel'
-import { BrandingPanel } from './components/sidebar/BrandingPanel'
-import { ExportOptionsPanel } from './components/sidebar/ExportOptionsPanel'
-import { GamePanel } from './components/sidebar/GamePanel'
-import { GuideLegendPanel } from './components/sidebar/GuideLegendPanel'
-import { ProjectPanel } from './components/sidebar/ProjectPanel'
-import { TemplatePanel } from './components/sidebar/TemplatePanel'
-import { TextPanel } from './components/sidebar/TextPanel'
-import { useAdditionalArtwork } from './hooks/useAdditionalArtwork'
-import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
-import { useBackgroundArtwork } from './hooks/useBackgroundArtwork'
-import { useMediaMarkState } from './hooks/useMediaMarkState'
-import { usePlatformMarksState } from './hooks/usePlatformMarksState'
-import { useProjectLogoAssets } from './hooks/useProjectLogoAssets'
-import { useRatingBadgeState } from './hooks/useRatingBadgeState'
-import { useStatusToasts } from './hooks/useStatusToasts'
-import { useSteamMetadataAssistance } from './hooks/useSteamMetadataAssistance'
-import { useSteamBannerState } from './hooks/useSteamBannerState'
-import { useTechnicalMarks } from './hooks/useTechnicalMarks'
-import { useTitleArtwork } from './hooks/useTitleArtwork'
-import { useWebArtworkDiscovery } from './hooks/useWebArtworkDiscovery'
+} from '../layout/discElementSafeZone'
+import { validateDiscTemplateGeometryGuardrail } from '../layout/discTemplateGeometryGuardrail'
+import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from '../export/exportGuides'
+import '../styles/App.css'
+import '../styles/layoutFix.css'
+import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
+import { HomeScreen } from '../components/home/HomeScreen'
+import type { EditorWorkspace } from '../editor/editorTypes'
+import { DiscPreview } from '../components/preview/DiscPreview'
+import { ArtworkPanel } from '../components/sidebar/ArtworkPanel'
+import { BrandingPanel } from '../components/sidebar/BrandingPanel'
+import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
+import { GamePanel } from '../components/sidebar/GamePanel'
+import { GuideLegendPanel } from '../components/sidebar/GuideLegendPanel'
+import { ProjectPanel } from '../components/sidebar/ProjectPanel'
+import { TemplatePanel } from '../components/sidebar/TemplatePanel'
+import { TextPanel } from '../components/sidebar/TextPanel'
+import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
+import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
+import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
+import { useMediaMarkState } from '../hooks/useMediaMarkState'
+import { usePlatformMarksState } from '../hooks/usePlatformMarksState'
+import { useProjectLogoAssets } from '../hooks/useProjectLogoAssets'
+import { useRatingBadgeState } from '../hooks/useRatingBadgeState'
+import { useStatusToasts } from '../hooks/useStatusToasts'
+import { useSteamMetadataAssistance } from '../hooks/useSteamMetadataAssistance'
+import { useSteamBannerState } from '../hooks/useSteamBannerState'
+import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
+import { useTitleArtwork } from '../hooks/useTitleArtwork'
+import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
 import {
   createLocalSteamScreenshotBackgroundImport,
   createSteamArtworkBackgroundImport,
-} from './image/backgroundImageImport'
-import { createProjectSnapshot } from './project/createProjectSnapshot'
-import { resolveSavedProjectRouteFromContents } from './project/projectRouting'
-import { restoreProjectStateFromContents } from './project/restoreProjectState'
-import { createDefaultProjectMetadata } from './project/projectMetadata'
+} from '../image/backgroundImageImport'
+import { createProjectSnapshot } from '../project/createProjectSnapshot'
+import { resolveSavedProjectRouteFromContents } from '../project/projectRouting'
+import { restoreProjectStateFromContents } from '../project/restoreProjectState'
+import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   createCaseInsertProjectSnapshot,
   createDefaultProjectJewelCaseState,
   restoreCaseInsertProjectStateFromContents,
-} from './project/projectCaseInsert'
+} from '../project/projectCaseInsert'
 import {
   createDefaultDiscTextValueSources,
   getDiscTextKeysForProjectMetadataField,
@@ -85,38 +85,38 @@ import {
   updateDiscTextInputValue,
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
-} from './project/metadataDiscText'
+} from '../project/metadataDiscText'
 import {
   updateRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
-} from './project/projectRatingBadge'
-import type { ProjectMetadata, SelectedDiscTemplateId } from './project/projectTypes'
+} from '../project/projectRatingBadge'
+import type { ProjectMetadata, SelectedDiscTemplateId } from '../project/projectTypes'
 import {
   createDefaultProjectDiscNumberArtwork,
   updateDiscNumberArtworkBadgeSet,
   updateDiscNumberArtworkMode,
   type DiscNumberArtworkMode,
   type DiscNumberBadgeSet,
-} from './discNumberArtwork'
-import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
+} from '../discText/discNumberArtwork'
+import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
   type RatingBoardCandidate,
   type SteamMetadataCandidateDiscoveryResult,
-} from './steam/steamMetadataCandidates'
+} from '../steam/steamMetadataCandidates'
 import {
   getAutoApplyLegalCandidateForMetadata,
   getAutoApplyRatingCandidateForMetadata,
-} from './steam/steamMetadataAutoApply'
-import { loadImage } from './export/canvasImage'
-import { exportDiscLabelPngBytes } from './export/exportPng'
-import { buildExportPreflightSummary } from './export/exportPreflight'
-import { getNaturalImageSize } from './utils/imageFile'
+} from '../steam/steamMetadataAutoApply'
+import { loadImage } from '../export/canvasImage'
+import { exportDiscLabelPngBytes } from '../export/exportPng'
+import { buildExportPreflightSummary } from '../export/exportPreflight'
+import { getNaturalImageSize } from '../utils/imageFile'
 import {
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
-} from './steamBanner'
-import { useDiscPreviewPointerDrag } from './interaction/useDiscPreviewPointerDrag'
+} from '../branding/steamBanner'
+import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
 import {
   DISC_TEXT_KEYS,
   DEFAULT_DISC_TEXT_SETTINGS,
@@ -142,7 +142,7 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from './discText'
+} from '../discText/index'
 import {
   createDefaultDiscTextStyles,
   applyDiscTextStylePreset,
@@ -151,7 +151,7 @@ import {
   type DiscTextStyleField,
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
-} from './discTextStyles'
+} from '../discText/styles'
 
 type CustomDimensionKey =
   | 'outerDiameterMm'

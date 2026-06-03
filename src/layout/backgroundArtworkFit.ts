@@ -4,13 +4,13 @@ import {
   clampBackgroundOffsetToImageBounds,
   getBackgroundDrawSize,
 } from '../image/backgroundImage.ts'
-import { clampNumber } from '../discGeometry.ts'
-import type { SteamLogoPlacement } from '../discText.ts'
+import { clampNumber } from '../disc/geometry.ts'
+import type { SteamLogoPlacement } from '../discText/index.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
 } from '../project/projectTypes.ts'
-import { getSteamBannerBandLayout } from '../steamBannerLayout.ts'
+import { getSteamBannerBandLayout } from '../branding/steamBannerLayout.ts'
 
 export type BackgroundFitToSteamBannerResult = {
   scale: number

@@ -14,7 +14,7 @@ Current placeholder subfolders:
 - `rating/` - custom rating badge fallback artwork.
 - `technical/` - technical/audio/codec/middleware fallback mark artwork.
 
-Update `src/discPlaceholderAssets.ts` when changing filenames or extensions.
+Update `src/assets/assetManifest.ts` when changing filenames or extensions.
 The rest of the editor should reference built-in assets through that manifest
 instead of importing asset files directly.
 

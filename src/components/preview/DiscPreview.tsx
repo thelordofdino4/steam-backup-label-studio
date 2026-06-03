@@ -1,6 +1,6 @@
 import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
-import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText'
-import type { DiscTextStyleSettings } from '../../discTextStyles'
+import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
+import type { DiscTextStyleSettings } from '../../discText/styles'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
@@ -15,12 +15,12 @@ import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
-import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../layerOrder'
+import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
-import { measureDiscTextWithBrowserCanvas } from '../../discTextSvgLayer'
+import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>

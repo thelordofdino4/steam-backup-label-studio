@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   DEFAULT_STEAM_BANNER_COLORS,
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
-} from '../steamBannerDefaults.ts'
+} from '../branding/steamBannerDefaults.ts'
 import { drawSteamBrandBanner } from './drawSteamBanner.ts'
 
 type FillTextCall = [

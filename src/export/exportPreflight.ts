@@ -1,15 +1,15 @@
-import { EXPORT_DPI, mmToPixels } from '../discGeometry.ts'
+import { EXPORT_DPI, mmToPixels } from '../disc/geometry.ts'
 import {
   DISC_TEXT_KEYS,
   getDiscTextLabel,
   type DiscTextSettings,
   type SteamLogoPlacement,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import type { ExportGuideKey, ExportGuideSelection } from './exportGuides.ts'
 import {
   createMediaMarkRenderModel,
   createPlatformMarkRenderModels,
-} from '../mediaMarkRenderModel.ts'
+} from '../render/mediaMarkRenderModel.ts'
 import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import { canUseTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { createLogoAssetRenderItems } from '../project/projectLogoAssets.ts'
@@ -25,11 +25,11 @@ import type {
   SelectedDiscTemplateId,
 } from '../project/projectTypes.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
-import { createTechnicalMarkRenderModels } from '../technicalMarkRenderModel.ts'
+import { createTechnicalMarkRenderModels } from '../render/technicalMarkRenderModel.ts'
 import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
-} from '../steamBannerDefaults.ts'
+} from '../branding/steamBannerDefaults.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3

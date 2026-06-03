@@ -4,7 +4,7 @@ import {
   createDefaultDiscTextLayout,
   normalizeDiscTextLayout,
   updateDiscTextVisualAvoidance,
-} from './discText.ts'
+} from './index.ts'
 
 test('disc text visual avoidance defaults off and restores saved opt-in state', () => {
   const defaults = normalizeDiscTextLayout(undefined, 'top')

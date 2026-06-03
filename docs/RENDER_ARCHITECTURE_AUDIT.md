@@ -17,7 +17,7 @@ Related current source-of-truth docs:
 
 ## Current Layer Order
 
-Layer order is centralized in `src/layerOrder.ts`.
+Layer order is centralized in `src/editor/layerOrder.ts`.
 
 Preview uses `DISC_EDITOR_PREVIEW_LAYER_ORDER`.
 
@@ -78,7 +78,7 @@ Current user-visible order:
 
 - `App.tsx` still owns enough wiring and state transitions that future feature work should search for focused owners before adding more logic.
 - Some preview/export layers have separate DOM/canvas renderers. This is acceptable when documented, but changes must keep parity.
-- CSS can still create hidden layer-order or layout behavior. Keep `src/layerOrder.ts` semantic order authoritative.
+- CSS can still create hidden layer-order or layout behavior. Keep `src/editor/layerOrder.ts` semantic order authoritative.
 - Background artwork still uses preview offset/scaling state as source of truth and scales that for export.
 - Fixtures do not yet cover every recently added layer, especially title artwork, additional artwork, technical marks, and newer text/preflight behavior.
 

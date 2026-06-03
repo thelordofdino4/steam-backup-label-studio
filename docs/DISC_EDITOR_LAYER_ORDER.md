@@ -4,7 +4,7 @@ Last refreshed: 2026-05-31.
 
 This document records the intended visual stacking order for the current disc-label editor.
 
-The source of truth for code is `src/layerOrder.ts`. Preview rendering and PNG export should consult that shared policy when adding or moving visual layers.
+The source of truth for code is `src/editor/layerOrder.ts`. Preview rendering and PNG export should consult that shared policy when adding or moving visual layers.
 
 ## Shared Preview And Export Order
 
@@ -21,11 +21,11 @@ The current shared user-visible order is:
 9. Technical/audio/codec marks.
 10. Disc text, including disc-number badge mode.
 
-These layers should appear in the same relative order in the live preview and PNG export. When a new user-visible visual system is added, add it to `src/layerOrder.ts` first and then wire preview/export rendering through that policy.
+These layers should appear in the same relative order in the live preview and PNG export. When a new user-visible visual system is added, add it to `src/editor/layerOrder.ts` first and then wire preview/export rendering through that policy.
 
 ## Full Layer Policy
 
-`src/layerOrder.ts` currently includes these layer IDs:
+`src/editor/layerOrder.ts` currently includes these layer IDs:
 
 1. `disc-base-fill`
 2. `background-artwork`
@@ -63,8 +63,8 @@ The preview toast stack and sidebar/preview chrome are not disc-art layers and m
 ## Rules For Future Features
 
 - Do not rely on incidental JSX order or canvas draw order for new layers.
-- Add new user-visible visual layers to `src/layerOrder.ts` before rendering them.
-- Update this document when `src/layerOrder.ts` changes.
+- Add new user-visible visual layers to `src/editor/layerOrder.ts` before rendering them.
+- Update this document when `src/editor/layerOrder.ts` changes.
 - Preserve preview/export parity unless an intentional difference is documented here.
 - Keep editor-only helpers, such as preview guides and toast UI, separate from exported artwork unless the user explicitly enables an export guide option.
 - Do not treat this as a full arbitrary layer manager. It is the fixed baseline order for the current alpha-path editor.

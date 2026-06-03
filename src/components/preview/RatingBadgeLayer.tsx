@@ -2,10 +2,10 @@ import type { PointerEvent } from 'react'
 import {
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
-} from '../../discGeometry'
+} from '../../disc/geometry'
 import {
   getRatingBadgePlaceholderRenderModel,
-} from '../../discPlaceholderAssets'
+} from '../../assets/assetManifest'
 import {
   shouldRenderSupplementalUskRatingBadge,
   shouldRenderRatingBadge,

@@ -1,4 +1,4 @@
-import { createTechnicalMarkRenderModels } from '../technicalMarkRenderModel'
+import { createTechnicalMarkRenderModels } from '../render/technicalMarkRenderModel'
 import type { ProjectTechnicalMarks } from '../project/projectTypes'
 import { drawMarkImage } from './drawMarkImage'
 

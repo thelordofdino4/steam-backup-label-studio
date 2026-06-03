@@ -1,9 +1,9 @@
-import type { SteamLogoPlacement } from './discText'
+import type { SteamLogoPlacement } from '../discText/index'
 import type {
   BackgroundImageSize,
   SteamBannerColors,
   SteamBannerLockupLayout,
-} from './project/projectTypes'
+} from '../project/projectTypes'
 
 export type SteamBannerColorField = keyof SteamBannerColors
 export type SteamBannerLockupLayoutField = keyof SteamBannerLockupLayout

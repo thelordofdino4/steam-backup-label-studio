@@ -1,4 +1,4 @@
-import type { DiscTextKey } from './discText'
+import type { DiscTextKey } from './index'
 
 export type DiscTextRenderStyle = {
   fontSizePercent: number

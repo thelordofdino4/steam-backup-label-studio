@@ -1,4 +1,4 @@
-import { updateDiscTextValue, type DiscTextKey, type DiscTextValues } from '../discText.ts'
+import { updateDiscTextValue, type DiscTextKey, type DiscTextValues } from '../discText/index.ts'
 import type { ProjectMetadata } from './projectTypes'
 
 function normalizeText(value: string | undefined) {

@@ -17,6 +17,6 @@ Current domain folders:
 - `toast-icons/` - preview toast status icons.
 - `placeholders/` - true temporary or generic fallback files that still include `placeholder` in the filename.
 
-Update `src/discPlaceholderAssets.ts` when changing filenames or extensions.
+Update `src/assets/assetManifest.ts` when changing filenames or extensions.
 The rest of the editor should reference built-in assets through that manifest
 instead of importing asset files directly.

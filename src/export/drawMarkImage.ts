@@ -1,4 +1,4 @@
-import type { RenderBoundsPercent } from '../discGeometry'
+import type { RenderBoundsPercent } from '../disc/geometry'
 import { loadCanvasSafeImage } from './canvasImage.ts'
 
 type MarkImageRenderModel = {

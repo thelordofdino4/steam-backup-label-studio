@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties, type ReactNode, useMemo } from 'react'
 import {
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
   type CaseInsertEditorPreviewLayerId,
-} from '../../layerOrder'
+} from '../../editor/layerOrder'
 import {
   createJewelCasePreviewLayout,
   type CaseInsertPreviewLayout,

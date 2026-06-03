@@ -3,7 +3,7 @@ import {
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampNumber,
@@ -23,15 +23,15 @@ import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
   getTitleArtworkBoundsPercent,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   getDiscTextFontString,
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
-} from '../discTextRenderLayout.ts'
-import { DISC_TEXT_RENDER_STYLES } from '../discTextStyles.ts'
-import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer.ts'
+} from '../discText/renderLayout.ts'
+import { DISC_TEXT_RENDER_STYLES } from '../discText/styles.ts'
+import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark.ts'
 import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
 import type {

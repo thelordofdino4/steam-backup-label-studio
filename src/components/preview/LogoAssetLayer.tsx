@@ -1,5 +1,5 @@
 import type { PointerEvent } from 'react'
-import { getLogoAssetBoundsPercent } from '../../discGeometry'
+import { getLogoAssetBoundsPercent } from '../../disc/geometry'
 import {
   createLogoAssetRenderItems,
   getLogoAssetRenderDataUrl,

@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   CASE_INSERT_EDITOR_LAYER_LABELS,
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
-} from '../layerOrder.ts'
+} from '../editor/layerOrder.ts'
 import {
   JEWEL_CASE_BACK_PANEL_WIDTH_PX,
   JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,

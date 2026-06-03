@@ -1,4 +1,4 @@
-import { getAdditionalArtworkBoundsPercent, type RenderBoundsPercent } from '../discGeometry.ts'
+import { getAdditionalArtworkBoundsPercent, type RenderBoundsPercent } from '../disc/geometry.ts'
 import {
   getDefaultAdditionalArtworkLayoutForTemplate,
   getNextAdditionalArtworkLayoutForTemplate,

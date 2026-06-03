@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { DEFAULT_DISC_TEXT_SETTINGS, createDefaultDiscTextLayout, createDefaultDiscTextValues } from './discText.ts'
+import { DEFAULT_DISC_TEXT_SETTINGS, createDefaultDiscTextLayout, createDefaultDiscTextValues } from './index.ts'
 import {
   createDefaultProjectDiscNumberArtwork,
   createDiscNumberBadgeRenderModel,

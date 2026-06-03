@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createDefaultDiscTextLayout } from './discText.ts'
-import { getStraightDiscTextRenderLayout } from './discTextRenderLayout.ts'
+import { createDefaultDiscTextLayout } from './index.ts'
+import { getStraightDiscTextRenderLayout } from './renderLayout.ts'
 import {
   DISC_TEXT_RENDER_STYLES,
   DISC_TEXT_STYLE_PRESETS,
@@ -10,7 +10,7 @@ import {
   normalizeDiscTextStyles,
   resetDiscTextStyle,
   updateDiscTextStyleField,
-} from './discTextStyles.ts'
+} from './styles.ts'
 
 const measureText = (text: string, font: string) => {
   const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/)

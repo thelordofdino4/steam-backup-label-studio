@@ -1,7 +1,7 @@
 import {
   createMediaMarkRenderModel,
   createPlatformMarkRenderModels,
-} from '../mediaMarkRenderModel'
+} from '../render/mediaMarkRenderModel'
 import type { ProjectMediaMark, ProjectPlatformMarks } from '../project/projectTypes'
 import { drawMarkImage } from './drawMarkImage'
 

@@ -1,12 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { DiscTextLayout } from './discText.ts'
-import type { DiscTextAvoidanceRegion } from './discTextAvoidance.ts'
+import type { DiscTextLayout } from './index.ts'
+import type { DiscTextAvoidanceRegion } from './avoidance.ts'
 import {
   getStraightDiscTextRenderLayout,
   type StraightDiscTextLineLayout,
   type StraightDiscTextRenderLayout,
-} from './discTextRenderLayout.ts'
+} from './renderLayout.ts'
 
 function measureText(text: string) {
   return Array.from(text).length

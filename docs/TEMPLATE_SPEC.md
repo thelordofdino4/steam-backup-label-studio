@@ -57,7 +57,7 @@ Those helpers can:
 - Look up named rectangular regions and guides.
 - Validate that rectangular regions and guide lines stay inside the template canvas.
 
-Disc-specific circular geometry remains owned by `src/discGeometry.ts` and `src/layout/discElementSafeZone.ts`.
+Disc-specific circular geometry remains owned by `src/disc/geometry.ts` and `src/layout/discElementSafeZone.ts`.
 
 ## Current Disc Template Data
 

@@ -2,18 +2,18 @@ import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
   type RenderBoundsPercent,
-} from './discGeometry.ts'
-import { getTechnicalMarkPlaceholderImageUrl } from './discPlaceholderAssets.ts'
+} from '../disc/geometry.ts'
+import { getTechnicalMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
 import {
   getProjectTechnicalMarkAsset,
   getTechnicalMarkLabel,
-} from './project/projectTechnicalMarks.ts'
+} from '../project/projectTechnicalMarks.ts'
 import type {
   ProjectTechnicalMarkAsset,
   ProjectTechnicalMarks,
   TechnicalMarkLayout,
   TechnicalMarkValue,
-} from './project/projectTypes.ts'
+} from '../project/projectTypes.ts'
 
 export type TechnicalMarkRenderModel = {
   value: TechnicalMarkValue

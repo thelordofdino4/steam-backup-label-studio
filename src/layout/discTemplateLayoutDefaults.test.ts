@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildCustomDiscTemplate } from '../discGeometry.ts'
+import { buildCustomDiscTemplate } from '../disc/geometry.ts'
 import {
   createDefaultDiscTextLayoutForTemplate,
   getDefaultAdditionalLogoAssetLayoutForTemplate,

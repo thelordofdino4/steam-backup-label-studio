@@ -14,13 +14,13 @@ import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
   getTitleArtworkBoundsPercent,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import type {
   DiscTextKey,
   DiscTextLayout,
   DiscTextLayoutSettings,
   SteamLogoPlacement,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import type {
   AdditionalArtworkLayout,
   BackgroundImageSize,

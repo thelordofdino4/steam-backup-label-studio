@@ -6,7 +6,7 @@ import {
   updateTechnicalMarkLayoutField,
   updateTechnicalMarkSource,
   updateTechnicalMarkToggle,
-} from './project/projectTechnicalMarks.ts'
+} from '../project/projectTechnicalMarks.ts'
 import { createTechnicalMarkRenderModels } from './technicalMarkRenderModel.ts'
 
 test('disabled technical marks do not create render models', () => {

@@ -84,7 +84,7 @@ Follow-up expectations:
 
 - Treat #69 as closed and preserve the working disc-editor baseline.
 - Keep centralized, file-backed, replaceable built-in generic visuals and non-temporary user-facing terminology.
-- Preserve preview/export parity through `src/layerOrder.ts` and shared render artifacts where feasible.
+- Preserve preview/export parity through `src/editor/layerOrder.ts` and shared render artifacts where feasible.
 - Preserve optional visual disabled-state behavior: hide dependent controls, do not render/export, keep saved state.
 - Keep safe-zone compliance for text and movable visual elements.
 - Ensure export preflight stays current as visual systems evolve.

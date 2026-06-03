@@ -1,16 +1,16 @@
 import type { CSSProperties } from 'react'
-import type { SteamLogoPlacement } from '../../discText'
+import type { SteamLogoPlacement } from '../../discText/index'
 import type { BackgroundImageSize, SteamBannerColors, SteamBannerLockupLayout } from '../../project/projectTypes'
 import {
   getSteamBannerBandLayout,
   getSteamBannerLockupAspectRatio,
   getSteamBannerLockupRect,
   type SteamBannerRect,
-} from '../../steamBannerLayout'
+} from '../../branding/steamBannerLayout'
 import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
-} from '../../steamBannerDefaults'
+} from '../../branding/steamBannerDefaults'
 
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {

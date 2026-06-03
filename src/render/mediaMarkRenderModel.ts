@@ -4,16 +4,16 @@ import {
   getPlatformMarkBoundsPercent,
   getPlatformMarkPlaceholderBoundsPercent,
   type RenderBoundsPercent,
-} from './discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   getMediaMarkPlaceholderImageUrl,
   getPlatformMarkPlaceholderImageUrl,
-} from './discPlaceholderAssets.ts'
+} from '../assets/assetManifest.ts'
 import {
   getMediaMarkLabel,
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
-} from './project/projectMediaMark.ts'
+} from '../project/projectMediaMark.ts'
 import type {
   MediaMarkLayout,
   PlatformMarkLayout,
@@ -21,7 +21,7 @@ import type {
   ProjectMediaMark,
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
-} from './project/projectTypes.ts'
+} from '../project/projectTypes.ts'
 
 export type MediaMarkRenderModel = {
   imageDataUrl: string

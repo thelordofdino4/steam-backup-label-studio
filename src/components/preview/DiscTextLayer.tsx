@@ -7,24 +7,24 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from '../../discText'
+} from '../../discText/index'
 import {
   getDiscTextFontFamilyCss,
   type DiscTextStyleSettings,
-} from '../../discTextStyles'
+} from '../../discText/styles'
 import {
   createDiscNumberBadgeRenderModel,
   getEffectiveDiscTextSettingsForDiscNumberArtwork,
-} from '../../discNumberArtwork'
+} from '../../discText/discNumberArtwork'
 import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
-} from '../../discTextSvgLayer'
-import type { DiscTextAvoidanceRegion } from '../../discTextAvoidance'
+} from '../../discText/svgLayer'
+import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
 import type { ProjectDiscNumberArtwork, ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
-import { createSvgDataUrl } from '../../svgUtils'
+import { createSvgDataUrl } from '../../utils/svg'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings

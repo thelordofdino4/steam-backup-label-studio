@@ -2,10 +2,10 @@ import type {
   DiscTextLayoutSettings,
   DiscTextSettings,
   DiscTextValues,
-} from './discText.ts'
-import { getDiscTextContent } from './discText.ts'
-import { DISC_NUMBER_BADGE_IMAGE_URLS } from './discPlaceholderAssets.ts'
-import type { ProjectDiscNumberArtwork } from './project/projectTypes.ts'
+} from './index.ts'
+import { getDiscTextContent } from './index.ts'
+import { DISC_NUMBER_BADGE_IMAGE_URLS } from '../assets/assetManifest.ts'
+import type { ProjectDiscNumberArtwork } from '../project/projectTypes.ts'
 
 export type DiscNumberArtworkMode = ProjectDiscNumberArtwork['mode']
 export type DiscNumberBadgeSet = ProjectDiscNumberArtwork['badgeSet']

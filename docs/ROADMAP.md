@@ -114,7 +114,7 @@ Completed:
 
 Remaining:
 
-- Keep built-in/default/generic visual assets organized and routed through `src/discPlaceholderAssets.ts`.
+- Keep built-in/default/generic visual assets organized and routed through `src/assets/assetManifest.ts`.
 - Keep the optional-feature hierarchy and disabled-state preservation consistent across future visual systems.
 - Improve fixture/manual smoke coverage for newer systems.
 - Continue architecture cleanup where it directly supports alpha risk reduction.
@@ -155,7 +155,7 @@ Completed:
 - Hide editor-only guides by default.
 - Add optional guide export controls.
 - Export background, additional artwork, Steam banner, title artwork, logos, rating badge, media mark, operating-system marks, technical marks, disc text, and optional guide marks.
-- Centralize layer order through `src/layerOrder.ts`.
+- Centralize layer order through `src/editor/layerOrder.ts`.
 - Add export preflight summary and warnings.
 
 Future improvements:

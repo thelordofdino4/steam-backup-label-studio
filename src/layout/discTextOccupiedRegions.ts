@@ -2,7 +2,7 @@ import {
   getLogoAssetBoundsPercent,
   getRatingBadgeBoundsPercent,
   getRatingBadgePlaceholderBoundsPercent,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   DISC_TEXT_KEYS,
   getDiscTextContent,
@@ -11,19 +11,19 @@ import {
   type DiscTextLayoutSettings,
   type DiscTextSettings,
   type DiscTextValues,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import {
   createDiscTextAvoidanceRegionFromBounds,
   type DiscTextAvoidanceRegion,
-} from '../discTextAvoidance.ts'
+} from '../discText/avoidance.ts'
 import {
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
-} from '../discTextRenderLayout.ts'
-import type { DiscTextStyleSettings } from '../discTextStyles.ts'
-import { createDiscNumberBadgeRenderModel } from '../discNumberArtwork.ts'
-import { createMediaMarkRenderModel, createPlatformMarkRenderModels } from '../mediaMarkRenderModel.ts'
+} from '../discText/renderLayout.ts'
+import type { DiscTextStyleSettings } from '../discText/styles.ts'
+import { createDiscNumberBadgeRenderModel } from '../discText/discNumberArtwork.ts'
+import { createMediaMarkRenderModel, createPlatformMarkRenderModels } from '../render/mediaMarkRenderModel.ts'
 import { createAdditionalArtworkRenderItems } from '../project/projectAdditionalArtwork.ts'
 import { createLogoAssetRenderItems, getLogoAssetRenderSize } from '../project/projectLogoAssets.ts'
 import {
@@ -43,7 +43,7 @@ import type {
   ProjectTechnicalMarks,
   ProjectTitleArtwork,
 } from '../project/projectTypes.ts'
-import { createTechnicalMarkRenderModels } from '../technicalMarkRenderModel.ts'
+import { createTechnicalMarkRenderModels } from '../render/technicalMarkRenderModel.ts'
 
 const DISC_TEXT_TO_TEXT_AVOIDANCE_GAP_PERCENT = 0.8
 

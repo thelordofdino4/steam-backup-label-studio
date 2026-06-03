@@ -6,12 +6,12 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import {
   normalizeDiscTextStyles,
   type DiscTextStyleSettings,
-} from '../discTextStyles.ts'
-import { normalizeProjectDiscNumberArtwork } from '../discNumberArtwork.ts'
+} from '../discText/styles.ts'
+import { normalizeProjectDiscNumberArtwork } from '../discText/discNumberArtwork.ts'
 import { exportGuideModeToSelection, type ExportGuideSelection } from '../export/exportGuides.ts'
 import {
   clampDiscTextLayoutToSafeZone,
@@ -29,11 +29,11 @@ import {
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createSteamBannerLockupImageState,
   normalizeSteamBannerFallbackText,
-} from '../steamBannerDefaults.ts'
+} from '../branding/steamBannerDefaults.ts'
 import { discTemplates, type DiscTemplateId } from '../templates/discTemplates.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template'
-import { buildCustomDiscTemplate } from '../discGeometry.ts'
+import { buildCustomDiscTemplate } from '../disc/geometry.ts'
 import {
   createEmbeddedProjectImageAssetProvenance,
   createProjectImageAssetProvenance,

@@ -1,6 +1,6 @@
-import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
-import type { DiscTextStyleSettings } from '../discTextStyles'
-import { mmToPixels } from '../discGeometry'
+import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
+import type { DiscTextStyleSettings } from '../discText/styles'
+import { mmToPixels } from '../disc/geometry'
 import type { ExportGuideSelection } from './exportGuides'
 import type { ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
@@ -16,13 +16,13 @@ import { drawTechnicalMarks } from './drawTechnicalMarks'
 import { drawTitleArtwork } from './drawTitleArtwork'
 import { drawAdditionalArtwork } from './drawAdditionalArtwork'
 import { createDiscTextOccupiedRegions } from '../layout/discTextOccupiedRegions'
-import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer'
+import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
   type DiscEditorClippedExportLayerId,
   type DiscEditorPostClipExportLayerId,
-} from '../layerOrder'
+} from '../editor/layerOrder'
 
 type ClippedExportLayerRenderer = Record<
   DiscEditorClippedExportLayerId,

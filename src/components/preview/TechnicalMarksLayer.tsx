@@ -2,7 +2,7 @@ import type { PointerEvent } from 'react'
 import {
   createTechnicalMarkRenderModels,
   type TechnicalMarkRenderModel,
-} from '../../technicalMarkRenderModel'
+} from '../../render/technicalMarkRenderModel'
 import type { ProjectTechnicalMarks, TechnicalMarkValue } from '../../project/projectTypes'
 
 export type TechnicalMarksLayerProps = {

@@ -6,7 +6,7 @@ import {
   type DiscTextLayoutSettings,
   type DiscTextSettings,
   type DiscTextValues,
-} from '../discText.ts'
+} from '../discText/index.ts'
 import {
   canClampRectToTemplateSafeAnnulus,
   getLogoAssetBoundsPercent,
@@ -18,13 +18,13 @@ import {
   getRatingBadgePlaceholderBoundsPercent,
   type LayoutPoint,
   type RenderBoundsPercent,
-} from '../discGeometry.ts'
+} from '../disc/geometry.ts'
 import {
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
-} from '../discTextRenderLayout.ts'
-import { measureDiscTextWithBrowserCanvas } from '../discTextSvgLayer.ts'
+} from '../discText/renderLayout.ts'
+import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import {
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,

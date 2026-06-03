@@ -3,7 +3,7 @@ import test from 'node:test'
 import {
   getMediaMarkPlaceholderImageUrl,
   getPlatformMarkPlaceholderImageUrl,
-} from '../discPlaceholderAssets.ts'
+} from '../assets/assetManifest.ts'
 import {
   MEDIA_MARK_OPTIONS,
   MEDIA_MARK_THEME_OPTIONS,
