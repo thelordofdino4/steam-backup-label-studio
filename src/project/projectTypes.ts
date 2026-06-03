@@ -337,7 +337,7 @@ export type ProjectTechnicalMarksInput =
     assets?: Partial<Record<TechnicalMarkValue, Partial<ProjectTechnicalMarkAsset>>>
   }
 
-export type ProjectCaseInsertImageFit = 'cover' | 'contain'
+export type ProjectCaseInsertImageFit = 'cover' | 'contain' | 'scale' | 'crop'
 
 export type ProjectCaseInsertLayout = {
   scale: number

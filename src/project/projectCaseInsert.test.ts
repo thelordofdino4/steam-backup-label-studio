@@ -260,6 +260,29 @@ test('normalizes legacy jewelCase project shells', () => {
   })
 })
 
+test('case image fit normalization accepts scale and crop modes', () => {
+  const project = normalizeSavedCaseInsertProject({
+    title: 'Fit Modes',
+    caseInsert: {
+      front: {
+        background: {
+          fit: 'crop',
+        },
+      },
+      back: {
+        screenshots: [
+          {
+            fit: 'scale',
+          },
+        ],
+      },
+    },
+  })
+
+  assert.equal(project.caseInsert.front.background.fit, 'crop')
+  assert.equal(project.caseInsert.back.screenshotSlots[0]?.fit, 'scale')
+})
+
 test('case update helpers preserve optional state while toggling visibility', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 

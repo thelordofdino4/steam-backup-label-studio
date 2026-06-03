@@ -208,7 +208,12 @@ function normalizeCaseInsertImageFit(
   value: unknown,
   fallback: ProjectCaseInsertImageFit,
 ): ProjectCaseInsertImageFit {
-  return value === 'cover' || value === 'contain' ? value : fallback
+  return value === 'cover' ||
+    value === 'contain' ||
+    value === 'scale' ||
+    value === 'crop'
+    ? value
+    : fallback
 }
 
 function normalizeCaseInsertTextSource(
