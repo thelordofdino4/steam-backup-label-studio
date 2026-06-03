@@ -1,5 +1,5 @@
 import type { DiscTemplate } from '../types/template'
-import type { ExportGuideSelection } from '../exportGuides'
+import type { ExportGuideSelection } from './exportGuides'
 
 export function drawExportGuideCircle(
   context: CanvasRenderingContext2D,

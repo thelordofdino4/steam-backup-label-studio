@@ -1,4 +1,4 @@
-import type { ExportGuideKey, ExportGuideSelection } from '../../exportGuides'
+import type { ExportGuideKey, ExportGuideSelection } from '../../export/exportGuides'
 
 export type ExportOptionsPanelProps = {
   exportGuides: ExportGuideSelection

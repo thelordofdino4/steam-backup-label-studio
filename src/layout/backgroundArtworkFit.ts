@@ -3,7 +3,7 @@ import {
   BACKGROUND_SCALE_MIN,
   clampBackgroundOffsetToImageBounds,
   getBackgroundDrawSize,
-} from '../backgroundImage.ts'
+} from '../image/backgroundImage.ts'
 import { clampNumber } from '../discGeometry.ts'
 import type { SteamLogoPlacement } from '../discText.ts'
 import type {

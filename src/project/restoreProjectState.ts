@@ -12,7 +12,7 @@ import {
   type DiscTextStyleSettings,
 } from '../discTextStyles.ts'
 import { normalizeProjectDiscNumberArtwork } from '../discNumberArtwork.ts'
-import { exportGuideModeToSelection, type ExportGuideSelection } from '../exportGuides.ts'
+import { exportGuideModeToSelection, type ExportGuideSelection } from '../export/exportGuides.ts'
 import {
   clampDiscTextLayoutToSafeZone,
   clampMediaMarkLayoutToSafeZone,

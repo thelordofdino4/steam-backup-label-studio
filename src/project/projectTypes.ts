@@ -1,5 +1,5 @@
 import type { DiscTemplate } from '../types/template'
-import type { ExportGuideMode, ExportGuideSelection } from '../exportGuides'
+import type { ExportGuideMode, ExportGuideSelection } from '../export/exportGuides'
 import type {
   DiscTextKey,
   DiscTextLayout,

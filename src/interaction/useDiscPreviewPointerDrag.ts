@@ -71,7 +71,7 @@ import type {
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import { usePointerDrag } from './usePointerDrag'
-import { clampBackgroundOffsetToImageBounds } from '../backgroundImage'
+import { clampBackgroundOffsetToImageBounds } from '../image/backgroundImage'
 
 type TextDragState = {
   key: DiscTextKey

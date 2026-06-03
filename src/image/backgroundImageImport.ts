@@ -2,14 +2,14 @@ import {
   createSelectedBackgroundImageState,
   type BackgroundImageState,
 } from './backgroundImage'
-import { readLocalImageAsDataUrl, type LocalSteamScreenshotAsset } from './local/localArtwork'
-import { downloadSteamArtworkAsDataUrl, type SteamArtworkAsset } from './steam/steamApi'
+import { readLocalImageAsDataUrl, type LocalSteamScreenshotAsset } from '../local/localArtwork'
+import { downloadSteamArtworkAsDataUrl, type SteamArtworkAsset } from '../steam/steamApi'
 import {
   createImportedImageAssetFromDataUrl,
-} from './utils/importedImageAsset'
-import { readImageFileAsDataUrl } from './utils/imageFile'
-import { createProjectImageAssetProvenance } from './project/projectAssetStatus'
-import type { ProjectImageAssetProvenance } from './project/projectTypes'
+} from '../utils/importedImageAsset'
+import { readImageFileAsDataUrl } from '../utils/imageFile'
+import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
+import type { ProjectImageAssetProvenance } from '../project/projectTypes'
 
 export class BackgroundImageReadError extends Error {
   constructor() {

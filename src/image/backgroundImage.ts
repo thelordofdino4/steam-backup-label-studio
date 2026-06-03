@@ -1,5 +1,5 @@
-import { clampNumber } from './discGeometry.ts'
-import type { BackgroundImageSize, BackgroundOffset } from './project/projectTypes'
+import { clampNumber } from '../discGeometry.ts'
+import type { BackgroundImageSize, BackgroundOffset } from '../project/projectTypes'
 
 export const DEFAULT_BACKGROUND_SCALE = 1
 export const BACKGROUND_SCALE_MIN = 0.1

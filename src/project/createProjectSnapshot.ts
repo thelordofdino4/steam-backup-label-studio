@@ -5,7 +5,7 @@ import type {
   SteamLogoPlacement,
 } from '../discText'
 import type { DiscTextStyleSettings } from '../discTextStyles'
-import type { ExportGuideSelection } from '../exportGuides'
+import type { ExportGuideSelection } from '../export/exportGuides'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import type { DiscTextValueSources } from './metadataDiscText'

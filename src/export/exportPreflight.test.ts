@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_DISC_TEXT_SETTINGS } from '../discText.ts'
-import { DEFAULT_EXPORT_GUIDES } from '../exportGuides.ts'
+import { DEFAULT_EXPORT_GUIDES } from './exportGuides.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import { createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, updateMediaMarkLayoutField, updateMediaMarkSource, updatePlatformMarkSource, updatePlatformMarkToggle } from '../project/projectMediaMark.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'

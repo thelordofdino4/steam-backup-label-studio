@@ -2,7 +2,7 @@ import { useCallback, useState } from 'react'
 import {
   createBackgroundImageImportFromDataUrl,
   type BackgroundImageImportResult,
-} from '../backgroundImageImport'
+} from '../image/backgroundImageImport'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { ProjectMetadata } from '../project/projectTypes'
 import {

@@ -5,7 +5,7 @@ import {
   type DiscTextSettings,
   type SteamLogoPlacement,
 } from '../discText.ts'
-import type { ExportGuideKey, ExportGuideSelection } from '../exportGuides.ts'
+import type { ExportGuideKey, ExportGuideSelection } from './exportGuides.ts'
 import {
   createMediaMarkRenderModel,
   createPlatformMarkRenderModels,

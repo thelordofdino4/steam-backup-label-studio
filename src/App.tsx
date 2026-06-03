@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   searchSteamStore,
   type SteamArtworkAsset,
@@ -30,15 +30,11 @@ import {
 } from './discGeometry'
 import {
   clampDiscTextLayoutToSafeZone,
-  clampLogoAssetLayoutToSafeZone,
-  clampMediaMarkLayoutToSafeZone,
-  clampProjectLogoAssetsToSafeZone,
-  clampProjectPlatformMarksToSafeZone,
   clampProjectRatingBadgeToSafeZone,
   clampStraightDiscTextLayoutToSafeZone,
 } from './layout/discElementSafeZone'
 import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeometryGuardrail'
-import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
+import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './export/exportGuides'
 import './App.css'
 import './layoutFix.css'
 import { CaseInsertEditorShell } from './components/caseInsert/CaseInsertEditorShell'
@@ -55,20 +51,22 @@ import { TemplatePanel } from './components/sidebar/TemplatePanel'
 import { TextPanel } from './components/sidebar/TextPanel'
 import { useAdditionalArtwork } from './hooks/useAdditionalArtwork'
 import { useLogoAssetDiscovery } from './hooks/useLogoAssetDiscovery'
+import { useBackgroundArtwork } from './hooks/useBackgroundArtwork'
+import { useMediaMarkState } from './hooks/useMediaMarkState'
+import { usePlatformMarksState } from './hooks/usePlatformMarksState'
+import { useProjectLogoAssets } from './hooks/useProjectLogoAssets'
+import { useRatingBadgeState } from './hooks/useRatingBadgeState'
 import { useStatusToasts } from './hooks/useStatusToasts'
 import { useSteamMetadataAssistance } from './hooks/useSteamMetadataAssistance'
+import { useSteamBannerState } from './hooks/useSteamBannerState'
 import { useTechnicalMarks } from './hooks/useTechnicalMarks'
 import { useTitleArtwork } from './hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from './hooks/useWebArtworkDiscovery'
 import {
-  BackgroundImageLoadError,
   createLocalSteamScreenshotBackgroundImport,
   createSteamArtworkBackgroundImport,
-  createUploadedBackgroundImageImport,
-  type BackgroundImageImportResult,
-} from './backgroundImageImport'
+} from './image/backgroundImageImport'
 import { createProjectSnapshot } from './project/createProjectSnapshot'
-import { createProjectImageAssetProvenance } from './project/projectAssetStatus'
 import { resolveSavedProjectRouteFromContents } from './project/projectRouting'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata } from './project/projectMetadata'
@@ -88,16 +86,12 @@ import {
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
 } from './project/metadataDiscText'
-import { addAdditionalLogoAsset, clearLogoAsset, createDefaultProjectLogoAssets, getLogoAssetLayout, getLogoAssetSize, removeAdditionalLogoAsset, resetProjectLogoAssetLayout, setLogoAssetLayout, updateAdditionalLogoAssetLabel, updateLogoAssetLayoutField, type LogoAssetKey, type LogoAssetLayoutField } from './project/projectLogoAssets'
-import { clearMediaMarkImage, clearPlatformMarkImage, createDefaultProjectMediaMark, createDefaultProjectPlatformMarks, markProjectPlatformMarksManual, resetProjectMediaMarkLayout, resetProjectPlatformMarkLayout, updateMediaMarkLayoutField, updateMediaMarkSource, updateMediaMarkTheme, updateMediaMarkValue, updatePlatformMarkLayoutField, updatePlatformMarkSource, updatePlatformMarkTheme, updatePlatformMarkToggle, type MediaMarkLayoutField, type PlatformMarkLayoutField } from './project/projectMediaMark'
-import { clearRatingBadgeImage, createDefaultProjectRatingBadge, resetProjectRatingBadgeLayout, resetSupplementalUskRatingBadgeLayout, updateRatingBadgeEnabledState, updateRatingBadgeLayoutField, updateRatingBadgeSource, updateSupplementalUskRatingBadgeEnabledState, updateSupplementalUskRatingBadgeLayoutField, updateSupplementalUskRatingBadgeValue, type RatingBadgeLayoutField } from './project/projectRatingBadge'
 import {
-  applyImportedLogoAsset,
-  applyImportedMediaMark,
-  applyImportedPlatformMark,
-  applyImportedRatingBadge,
-} from './project/projectVisualAssetImport'
-import type { BackgroundImageSize, BackgroundOffset, MediaMarkSource, MediaMarkTheme, MediaMarkValue, PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue, ProjectImageAssetProvenance, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, RatingBadgeSource, SelectedDiscTemplateId, SteamBannerColors, SteamBannerLockupLayout } from './project/projectTypes'
+  updateRatingBadgeEnabledState,
+  updateSupplementalUskRatingBadgeEnabledState,
+  updateSupplementalUskRatingBadgeValue,
+} from './project/projectRatingBadge'
+import type { ProjectMetadata, SelectedDiscTemplateId } from './project/projectTypes'
 import {
   createDefaultProjectDiscNumberArtwork,
   updateDiscNumberArtworkBadgeSet,
@@ -107,41 +101,21 @@ import {
 } from './discNumberArtwork'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from './tauri/fileSystem'
 import {
-  getAutoApplyLegalTextCandidate,
-  getAutoApplyRatingCandidate,
   type LegalTextCandidate,
   type RatingBoardCandidate,
   type SteamMetadataCandidateDiscoveryResult,
 } from './steam/steamMetadataCandidates'
+import {
+  getAutoApplyLegalCandidateForMetadata,
+  getAutoApplyRatingCandidateForMetadata,
+} from './steam/steamMetadataAutoApply'
 import { loadImage } from './export/canvasImage'
 import { exportDiscLabelPngBytes } from './export/exportPng'
 import { buildExportPreflightSummary } from './export/exportPreflight'
 import { getNaturalImageSize } from './utils/imageFile'
 import {
-  DEFAULT_STEAM_BANNER_COLORS,
-  DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
-  DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
-  createCustomSteamBannerLockupImageState,
-  createDefaultSteamBannerLockupImageState,
-  updateSteamBannerColor,
-  updateSteamBannerLockupLayoutField,
-  type SteamBannerColorField,
-  type SteamBannerLockupLayoutField,
 } from './steamBanner'
-import {
-  DEFAULT_BACKGROUND_SCALE,
-  clampBackgroundOffsetToImageBounds,
-  createEmptyBackgroundImageState,
-  createDefaultBackgroundOffset,
-  getBackgroundOffsetSliderRanges,
-  getBackgroundPreviewSize,
-  updateBackgroundOffsetField,
-  updateBackgroundScale,
-  type BackgroundOffsetField,
-} from './backgroundImage'
-import { getBackgroundFitToSteamBannerOpenArea } from './layout/backgroundArtworkFit'
-import { isImageFile, readImportedImageAssetFromFile } from './utils/importedImageAsset'
 import { useDiscPreviewPointerDrag } from './interaction/useDiscPreviewPointerDrag'
 import {
   DISC_TEXT_KEYS,
@@ -196,41 +170,9 @@ function App() {
   )
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
-  const [steamBannerColors, setSteamBannerColors] = useState<SteamBannerColors>(
-    DEFAULT_STEAM_BANNER_COLORS,
-  )
-  const [steamBannerLockupImageUrl, setSteamBannerLockupImageUrl] = useState<
-    string | null
-  >(() => createDefaultSteamBannerLockupImageState().imageUrl)
-  const [steamBannerLockupImageSource, setSteamBannerLockupImageSource] =
-    useState<ProjectImageAssetProvenance | null>(() =>
-      createProjectImageAssetProvenance({
-        source: 'built-in',
-        sourceLabel: 'Default Steam banner lockup',
-      }),
-    )
-  const [steamBannerLockupImageSize, setSteamBannerLockupImageSize] =
-    useState<BackgroundImageSize | null>(null)
-  const [steamBannerLockupLayout, setSteamBannerLockupLayout] =
-    useState<SteamBannerLockupLayout>(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
-  const [steamBannerUseTextFallback, setSteamBannerUseTextFallback] =
-    useState(false)
-  const [steamBannerFallbackText, setSteamBannerFallbackText] = useState(
-    DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
-  )
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null)
-  const [backgroundImageSource, setBackgroundImageSource] =
-    useState<ProjectImageAssetProvenance | null>(null)
-  const [backgroundImageSize, setBackgroundImageSize] =
-    useState<BackgroundImageSize | null>(null)
-  const [backgroundScale, setBackgroundScale] = useState(DEFAULT_BACKGROUND_SCALE)
-  const [backgroundOffset, setBackgroundOffset] = useState<BackgroundOffset>({
-    ...createDefaultBackgroundOffset(),
-  })
-  const [isBackgroundArtworkEnabled, setIsBackgroundArtworkEnabled] = useState(true)
   const [discPreviewSize, setDiscPreviewSize] = useState(640)
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
@@ -241,23 +183,69 @@ function App() {
   const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
     createDefaultProjectMetadata(),
   )
-  const [projectLogoAssets, setProjectLogoAssets] = useState<ProjectLogoAssets>(() =>
-    createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
-  )
-  const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
-    createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
-  )
-  const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
-    createDefaultProjectMediaMark(discTemplates.standardPrintableDisc),
-  )
-  const [projectPlatformMarks, setProjectPlatformMarks] = useState<ProjectPlatformMarks>(() =>
-    createDefaultProjectPlatformMarks(),
-  )
   const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
   const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
   const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
   const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
   const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
+  const {
+    steamBannerColors,
+    setSteamBannerColors,
+    steamBannerLockupImageUrl,
+    setSteamBannerLockupImageUrl,
+    steamBannerLockupImageSource,
+    setSteamBannerLockupImageSource,
+    steamBannerLockupImageSize,
+    setSteamBannerLockupImageSize,
+    steamBannerLockupLayout,
+    setSteamBannerLockupLayout,
+    steamBannerUseTextFallback,
+    setSteamBannerUseTextFallback,
+    steamBannerFallbackText,
+    setSteamBannerFallbackText,
+    resetSteamBannerState,
+    handleSteamBannerLockupUpload,
+    handleClearSteamBannerLockup,
+    handleSteamBannerUseTextFallbackChange,
+    handleSteamBannerFallbackTextChange,
+    handleSteamBannerLockupLayoutChange,
+    handleResetSteamBannerLockupLayout,
+    handleSteamBannerColorChange,
+    handleResetSteamBannerColors,
+  } = useSteamBannerState({
+    announceStatus,
+  })
+  const {
+    backgroundImageUrl,
+    setBackgroundImageUrl,
+    backgroundImageSource,
+    setBackgroundImageSource,
+    backgroundImageSize,
+    setBackgroundImageSize,
+    backgroundScale,
+    setBackgroundScale,
+    backgroundOffset,
+    setBackgroundOffset,
+    isBackgroundArtworkEnabled,
+    setIsBackgroundArtworkEnabled,
+    backgroundPreviewSize,
+    backgroundOffsetSliderRanges,
+    effectiveBackgroundImageUrl,
+    effectiveBackgroundImageSize,
+    applyBackgroundImageImport,
+    resetBackgroundArtwork,
+    handleBackgroundUpload,
+    handleResetBackground,
+    handleBackgroundArtworkEnabledChange,
+    handleBackgroundScaleChange,
+    handleBackgroundOffsetChange,
+    handleFitBackgroundToSteamBannerOpenArea,
+  } = useBackgroundArtwork({
+    discPreviewSize,
+    steamLogoPlacement,
+    setSelectedArtworkId,
+    announceStatus,
+  })
   const [localSteamScreenshots, setLocalSteamScreenshots] = useState<
     LocalSteamScreenshotAsset[]
   >([])
@@ -295,6 +283,75 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
+  const {
+    projectLogoAssets,
+    setProjectLogoAssets,
+    clampProjectLogoAssetsToTemplate,
+    resetProjectLogoAssets,
+    handleLogoAssetUpload,
+    handleLogoAssetLayoutChange,
+    handleClearLogoAsset,
+    handleResetLogoAssetLayout,
+    handleAddAdditionalLogoAsset,
+    handleRemoveAdditionalLogoAsset,
+    handleAdditionalLogoAssetLabelChange,
+  } = useProjectLogoAssets({
+    selectedDiscTemplate,
+    announceStatus,
+  })
+  const {
+    projectRatingBadge,
+    setProjectRatingBadge,
+    clampProjectRatingBadgeToTemplate,
+    resetProjectRatingBadge,
+    setRatingBadgeEnabled,
+    setRatingBadgeEnabledForAppliedCandidate,
+    handleRatingBadgeUpload,
+    handleRatingBadgeSourceChange,
+    handleRatingBadgeLayoutChange,
+    handleSupplementalUskRatingBadgeEnabledChange,
+    handleSupplementalUskRatingBadgeValueChange,
+    handleSupplementalUskRatingBadgeLayoutChange,
+    handleClearRatingBadgeImage,
+    handleResetRatingBadgeLayout,
+    handleResetSupplementalUskRatingBadgeLayout,
+  } = useRatingBadgeState({
+    selectedDiscTemplate,
+    announceStatus,
+  })
+  const {
+    projectMediaMark,
+    setProjectMediaMark,
+    clampProjectMediaMarkToTemplate,
+    resetProjectMediaMark,
+    handleMediaMarkUpload,
+    handleMediaMarkValueChange,
+    handleMediaMarkSourceChange,
+    handleMediaMarkThemeChange,
+    handleMediaMarkLayoutChange,
+    handleClearMediaMarkImage,
+    handleResetMediaMarkLayout,
+  } = useMediaMarkState({
+    selectedDiscTemplate,
+    announceStatus,
+  })
+  const {
+    projectPlatformMarks,
+    setProjectPlatformMarks,
+    clampProjectPlatformMarksToTemplate,
+    resetProjectPlatformMarks,
+    handlePlatformMarkToggle,
+    handlePlatformMarkUpload,
+    handlePlatformMarkSourceChange,
+    handlePlatformMarkThemeChange,
+    handlePlatformMarkLayoutChange,
+    handleClearPlatformMarkImage,
+    handleResetPlatformMarkLayout,
+  } = usePlatformMarksState({
+    selectedDiscTemplate,
+    selectedSteamGame,
+    announceStatus,
+  })
   const {
     projectTechnicalMarks,
     setProjectTechnicalMarks,
@@ -379,25 +436,6 @@ function App() {
     applyBackgroundImageImport,
     announceStatus,
   })
-  const backgroundPreviewSize = useMemo(
-    () => getBackgroundPreviewSize(backgroundImageSize),
-    [backgroundImageSize],
-  )
-  const backgroundOffsetSliderRanges = useMemo(
-    () =>
-      getBackgroundOffsetSliderRanges(
-        backgroundImageSize,
-        backgroundScale,
-        discPreviewSize,
-      ),
-    [backgroundImageSize, backgroundScale, discPreviewSize],
-  )
-  const effectiveBackgroundImageUrl = isBackgroundArtworkEnabled
-    ? backgroundImageUrl
-    : null
-  const effectiveBackgroundImageSize = isBackgroundArtworkEnabled
-    ? backgroundImageSize
-    : null
   const metadataBoundDiscTextValues = useMemo(
     () =>
       resolveMetadataBoundDiscTextValues(
@@ -516,37 +554,12 @@ function App() {
     (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
-    setProjectLogoAssets((currentLogoAssets) =>
-      clampProjectLogoAssetsToSafeZone(currentLogoAssets, template),
-    )
-
+    clampProjectLogoAssetsToTemplate(template)
     clampProjectTitleArtworkToTemplate(template)
     clampProjectAdditionalArtworkToTemplate(template)
-
-    setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(currentBadge, template),
-    )
-
-    setProjectMediaMark((currentMark) => {
-      const layout = clampMediaMarkLayoutToSafeZone(currentMark, template)
-
-      if (
-        layout.x === currentMark.layout.x &&
-        layout.y === currentMark.layout.y
-      ) {
-        return currentMark
-      }
-
-      return {
-        ...currentMark,
-        layout,
-      }
-    })
-
-    setProjectPlatformMarks((currentMarks) =>
-      clampProjectPlatformMarksToSafeZone(currentMarks, template),
-    )
-
+    clampProjectRatingBadgeToTemplate(template)
+    clampProjectMediaMarkToTemplate(template)
+    clampProjectPlatformMarksToTemplate(template)
     clampProjectTechnicalMarksToTemplate(template)
 
     setDiscTextLayout((currentLayout) => {
@@ -591,272 +604,6 @@ function App() {
     }
   }, [localSteamScreenshots, localSteamScreenshotThumbnails])
 
-  function applyBackgroundImageImport(importedBackground: BackgroundImageImportResult) {
-    setBackgroundImageUrl(importedBackground.background.imageUrl)
-    setBackgroundImageSource(importedBackground.imageSource)
-    setBackgroundImageSize(importedBackground.background.imageSize)
-    setBackgroundScale(importedBackground.background.scale)
-    setBackgroundOffset(importedBackground.background.offset)
-    setIsBackgroundArtworkEnabled(true)
-    setSelectedArtworkId(importedBackground.selectedArtworkId)
-    announceStatus(importedBackground.statusMessage)
-  }
-
-  async function handleSteamBannerLockupUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the banner lockup.')
-      return
-    }
-
-    try {
-      const importedImage = await readImportedImageAssetFromFile(file)
-      const lockupImage = createCustomSteamBannerLockupImageState(
-        importedImage.imageDataUrl,
-        importedImage.imageSize,
-      )
-
-      setSteamBannerLockupImageUrl(lockupImage.imageUrl)
-      setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
-        source: 'uploaded',
-        sourceLabel: file.name,
-      }))
-      setSteamBannerLockupImageSize(lockupImage.imageSize)
-      setSteamBannerUseTextFallback(false)
-      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
-    } catch (error) {
-      announceStatus(`Banner lockup import failed: ${String(error)}`)
-    }
-  }
-
-  function handleClearSteamBannerLockup() {
-    const lockupImage = createDefaultSteamBannerLockupImageState()
-    setSteamBannerLockupImageUrl(lockupImage.imageUrl)
-    setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
-      source: 'built-in',
-      sourceLabel: 'Default Steam banner lockup',
-    }))
-    setSteamBannerLockupImageSize(lockupImage.imageSize)
-    announceStatus('Reset Steam banner lockup image to the default asset.')
-  }
-
-  function handleSteamBannerUseTextFallbackChange(useTextFallback: boolean) {
-    setSteamBannerUseTextFallback(useTextFallback)
-    announceStatus(
-      useTextFallback
-        ? 'Using saved text for the Steam banner lockup.'
-        : 'Using the Steam banner lockup image.',
-    )
-  }
-
-  function handleSteamBannerFallbackTextChange(fallbackText: string) {
-    setSteamBannerFallbackText(fallbackText)
-  }
-
-  function handleSteamBannerLockupLayoutChange(
-    field: SteamBannerLockupLayoutField,
-    value: number,
-  ) {
-    setSteamBannerLockupLayout((currentLayout) =>
-      updateSteamBannerLockupLayoutField(currentLayout, field, value),
-    )
-  }
-
-  function handleResetSteamBannerLockupLayout() {
-    setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
-    announceStatus('Reset Steam banner lockup layout to the default position.')
-  }
-
-  function handleSteamBannerColorChange(
-    field: SteamBannerColorField,
-    value: string,
-  ) {
-    setSteamBannerColors((currentColors) =>
-      updateSteamBannerColor(currentColors, field, value),
-    )
-  }
-
-  async function handleLogoAssetUpload(
-    logoKey: 'developer' | 'publisher',
-    event: ChangeEvent<HTMLInputElement>,
-    additionalLogoId?: string,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the logo asset.')
-      return
-    }
-
-    try {
-      const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectLogoAssets((currentLogoAssets) =>
-        applyImportedLogoAsset(
-          currentLogoAssets,
-          logoKey,
-          importedImage,
-          selectedDiscTemplate,
-          createProjectImageAssetProvenance({
-            source: 'uploaded',
-            sourceLabel: file.name,
-          }),
-          additionalLogoId,
-        ),
-      )
-
-      announceStatus(
-        `Using ${file.name} as the ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo.`,
-      )
-    } catch (error) {
-      announceStatus(`Logo import failed: ${String(error)}`)
-    }
-  }
-
-  function handleLogoAssetLayoutChange(
-    logoKey: LogoAssetKey,
-    field: LogoAssetLayoutField,
-    value: boolean | number,
-    additionalLogoId?: string,
-  ) {
-    setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = updateLogoAssetLayoutField(
-        currentLogoAssets,
-        logoKey,
-        field,
-        value,
-        additionalLogoId,
-      )
-      const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
-        selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
-      )
-
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
-    })
-  }
-
-  function handleClearLogoAsset(logoKey: LogoAssetKey, additionalLogoId?: string) {
-    setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = clearLogoAsset(
-        currentLogoAssets,
-        logoKey,
-        additionalLogoId,
-      )
-      const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
-        selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
-      )
-
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
-    })
-
-    announceStatus(`Cleared ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo asset.`)
-  }
-
-  function handleResetLogoAssetLayout(logoKey: LogoAssetKey, additionalLogoId?: string) {
-    setProjectLogoAssets((currentLogoAssets) => {
-      const nextLogoAssets = resetProjectLogoAssetLayout(
-        currentLogoAssets,
-        logoKey,
-        selectedDiscTemplate,
-        additionalLogoId,
-      )
-      const nextLayout = clampLogoAssetLayoutToSafeZone(
-        getLogoAssetLayout(nextLogoAssets, logoKey, additionalLogoId),
-        selectedDiscTemplate,
-        getLogoAssetSize(nextLogoAssets, logoKey, additionalLogoId),
-      )
-
-      return setLogoAssetLayout(nextLogoAssets, logoKey, nextLayout, additionalLogoId)
-    })
-
-    announceStatus(`Reset ${additionalLogoId ? `additional ${logoKey}` : logoKey} logo layout.`)
-  }
-
-  function handleAddAdditionalLogoAsset(logoKey: LogoAssetKey) {
-    setProjectLogoAssets((currentLogoAssets) =>
-      addAdditionalLogoAsset(currentLogoAssets, logoKey, selectedDiscTemplate),
-    )
-    announceStatus(`Added an additional ${logoKey} logo.`)
-  }
-
-  function handleRemoveAdditionalLogoAsset(
-    logoKey: LogoAssetKey,
-    additionalLogoId: string,
-  ) {
-    setProjectLogoAssets((currentLogoAssets) =>
-      removeAdditionalLogoAsset(currentLogoAssets, logoKey, additionalLogoId),
-    )
-    announceStatus(`Deleted an additional ${logoKey} logo.`)
-  }
-
-  function handleAdditionalLogoAssetLabelChange(
-    logoKey: LogoAssetKey,
-    additionalLogoId: string,
-    label: string,
-  ) {
-    setProjectLogoAssets((currentLogoAssets) =>
-      updateAdditionalLogoAssetLabel(
-        currentLogoAssets,
-        logoKey,
-        additionalLogoId,
-        label,
-      ),
-    )
-  }
-
-  async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the rating badge.')
-      return
-    }
-
-    try {
-      const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectRatingBadge((currentBadge) =>
-        applyImportedRatingBadge(
-          currentBadge,
-          importedImage,
-          selectedDiscTemplate,
-        ),
-      )
-
-      announceStatus(`Using ${file.name} as the rating badge.`)
-    } catch (error) {
-      announceStatus(`Rating badge import failed: ${String(error)}`)
-    }
-  }
-
-  function handleRatingBadgeSourceChange(source: RatingBadgeSource) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = updateRatingBadgeSource(currentBadge, source)
-
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
-    })
-  }
-
   function handleRatingBadgeEnabledChange(enabled: boolean) {
     const nextState = updateRatingBadgeEnabledState(
       projectMetadata,
@@ -890,299 +637,6 @@ function App() {
         nextResolvedTitle,
       )
     }
-  }
-
-  function handleRatingBadgeLayoutChange(
-    field: RatingBadgeLayoutField,
-    value: boolean | number,
-  ) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = updateRatingBadgeLayoutField(currentBadge, field, value)
-
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
-    })
-  }
-
-  function handleSupplementalUskRatingBadgeEnabledChange(enabled: boolean) {
-    setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(
-        updateSupplementalUskRatingBadgeEnabledState(currentBadge, enabled),
-        selectedDiscTemplate,
-      ),
-    )
-  }
-
-  function handleSupplementalUskRatingBadgeValueChange(ratingValue: string) {
-    setProjectRatingBadge((currentBadge) =>
-      updateSupplementalUskRatingBadgeValue(currentBadge, ratingValue),
-    )
-  }
-
-  function handleSupplementalUskRatingBadgeLayoutChange(
-    field: RatingBadgeLayoutField,
-    value: boolean | number,
-  ) {
-    setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(
-        updateSupplementalUskRatingBadgeLayoutField(currentBadge, field, value),
-        selectedDiscTemplate,
-      ),
-    )
-  }
-
-  function handleClearRatingBadgeImage() {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = clearRatingBadgeImage(currentBadge)
-
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
-    })
-
-    announceStatus('Cleared custom rating badge image.')
-  }
-
-  function handleResetRatingBadgeLayout() {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = resetProjectRatingBadgeLayout(
-        currentBadge,
-        selectedDiscTemplate,
-      )
-
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
-    })
-
-    announceStatus('Reset rating badge layout.')
-  }
-
-  function handleResetSupplementalUskRatingBadgeLayout() {
-    setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(
-        resetSupplementalUskRatingBadgeLayout(
-          currentBadge,
-          selectedDiscTemplate,
-        ),
-        selectedDiscTemplate,
-      ),
-    )
-
-    announceStatus('Reset additional USK badge layout.')
-  }
-
-  async function handleMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the media mark.')
-      return
-    }
-
-    try {
-      const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectMediaMark((currentMark) =>
-        applyImportedMediaMark(
-          currentMark,
-          importedImage,
-          selectedDiscTemplate,
-        ),
-      )
-
-      announceStatus(`Using ${file.name} as the media mark.`)
-    } catch (error) {
-      announceStatus(`Media mark import failed: ${String(error)}`)
-    }
-  }
-
-  function handleMediaMarkValueChange(value: MediaMarkValue) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkValue(currentMark, value),
-    )
-  }
-
-  function handleMediaMarkSourceChange(source: MediaMarkSource) {
-    setProjectMediaMark((currentMark) => {
-      const nextMark = updateMediaMarkSource(currentMark, source)
-
-      return {
-        ...nextMark,
-        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-      }
-    })
-  }
-
-  function handleMediaMarkThemeChange(theme: MediaMarkTheme) {
-    setProjectMediaMark((currentMark) =>
-      updateMediaMarkTheme(currentMark, theme),
-    )
-  }
-
-  function handleMediaMarkLayoutChange(
-    field: MediaMarkLayoutField,
-    value: boolean | number,
-  ) {
-    setProjectMediaMark((currentMark) => {
-      const nextMark = updateMediaMarkLayoutField(currentMark, field, value)
-
-      return {
-        ...nextMark,
-        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-      }
-    })
-  }
-
-  function handleClearMediaMarkImage() {
-    setProjectMediaMark((currentMark) => {
-      const nextMark = clearMediaMarkImage(currentMark)
-
-      return {
-        ...nextMark,
-        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-      }
-    })
-
-    announceStatus('Cleared custom media mark image.')
-  }
-
-  function handleResetMediaMarkLayout() {
-    setProjectMediaMark((currentMark) => {
-      const nextMark = resetProjectMediaMarkLayout(
-        currentMark,
-        selectedDiscTemplate,
-      )
-
-      return {
-        ...nextMark,
-        layout: clampMediaMarkLayoutToSafeZone(nextMark, selectedDiscTemplate),
-      }
-    })
-
-    announceStatus('Reset media mark layout.')
-  }
-
-  function handlePlatformMarkToggle(value: PlatformMarkValue, enabled: boolean) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkToggle(
-          currentMarks,
-          value,
-          enabled,
-          selectedDiscTemplate,
-        ),
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-  }
-
-  async function handlePlatformMarkUpload(
-    value: PlatformMarkValue,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the platform mark.')
-      return
-    }
-
-    try {
-      const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectPlatformMarks((currentMarks) => {
-        const nextMarks = applyImportedPlatformMark(
-          currentMarks,
-          value,
-          importedImage,
-          selectedDiscTemplate,
-        )
-
-        return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-      })
-
-      announceStatus(`Using ${file.name} as the platform mark.`)
-    } catch (error) {
-      announceStatus(`Platform mark import failed: ${String(error)}`)
-    }
-  }
-
-  function handlePlatformMarkSourceChange(value: PlatformMarkValue, source: PlatformMarkSource) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkSource(currentMarks, value, source),
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-  }
-
-  function handlePlatformMarkThemeChange(value: PlatformMarkValue, theme: PlatformMarkTheme) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = updatePlatformMarkTheme(
-        currentMarks,
-        value,
-        theme,
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-  }
-
-  function handlePlatformMarkLayoutChange(
-    platformValue: PlatformMarkValue,
-    field: PlatformMarkLayoutField,
-    layoutValue: boolean | number,
-  ) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        updatePlatformMarkLayoutField(currentMarks, platformValue, field, layoutValue),
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-  }
-
-  function handleClearPlatformMarkImage(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        clearPlatformMarkImage(currentMarks, value),
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-
-    announceStatus('Cleared custom platform mark image.')
-  }
-
-  function handleResetPlatformMarkLayout(value: PlatformMarkValue) {
-    setProjectPlatformMarks((currentMarks) => {
-      const nextMarks = clampProjectPlatformMarksToSafeZone(
-        resetProjectPlatformMarkLayout(currentMarks, value, selectedDiscTemplate),
-        selectedDiscTemplate,
-      )
-
-      return markProjectPlatformMarksManual(nextMarks, selectedSteamGame?.appId ?? null)
-    })
-
-    announceStatus('Reset platform mark layout.')
-  }
-
-  function handleResetSteamBannerColors() {
-    setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
-    announceStatus('Reset Steam banner colors to the default palette.')
   }
 
   function handleSteamLogoPlacementChange(placement: SteamLogoPlacement) {
@@ -1492,24 +946,6 @@ function App() {
     handleProjectMetadataFieldsChange({ [field]: value } as Partial<ProjectMetadata>)
   }
 
-  function setRatingBadgeEnabledForAppliedCandidate(candidate: RatingBoardCandidate) {
-    setRatingBadgeEnabled(candidate.applyKind !== 'none' && candidate.ratingSystem !== 'none')
-  }
-
-  function setRatingBadgeEnabled(enabled: boolean) {
-    setProjectRatingBadge((currentBadge) => {
-      const nextBadge = {
-        ...currentBadge,
-        layout: {
-          ...currentBadge.layout,
-          enabled,
-        },
-      }
-
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
-    })
-  }
-
   function enableCurvedCopyrightDiscText() {
     setDiscTextValueSources((currentSources) => ({
       ...currentSources,
@@ -1621,36 +1057,6 @@ function App() {
     }
   }
 
-  function isRatingMetadataDefault(metadata: ProjectMetadata) {
-    return metadata.ratingSystem === 'none' && metadata.ratingValue.trim() === ''
-  }
-
-  function getAutoApplyRatingCandidateForMetadata(
-    result: SteamMetadataCandidateDiscoveryResult,
-    metadata: ProjectMetadata,
-    allowReplaceExisting: boolean,
-  ) {
-    const candidate = getAutoApplyRatingCandidate(result.ratingCandidates)
-
-    if (!candidate) return null
-    if (allowReplaceExisting || isRatingMetadataDefault(metadata)) return candidate
-
-    return null
-  }
-
-  function getAutoApplyLegalCandidateForMetadata(
-    result: SteamMetadataCandidateDiscoveryResult,
-    metadata: ProjectMetadata,
-    allowReplaceExisting: boolean,
-  ) {
-    const candidate = getAutoApplyLegalTextCandidate(result.legalCandidates)
-
-    if (!candidate) return null
-    if (allowReplaceExisting || metadata.copyrightText.trim() === '') return candidate
-
-    return null
-  }
-
   function autoApplySteamMetadataCandidates(
     result: SteamMetadataCandidateDiscoveryResult,
   ) {
@@ -1727,41 +1133,19 @@ function App() {
     setSelectedDiscTemplateId('standardPrintableDisc')
     setCustomDiscTemplate(buildCustomDiscTemplate(discTemplates.standardPrintableDisc))
     setSteamLogoPlacement('top')
-    setSteamBannerColors(DEFAULT_STEAM_BANNER_COLORS)
-    const defaultLockupImage = createDefaultSteamBannerLockupImageState()
-    setSteamBannerLockupImageUrl(defaultLockupImage.imageUrl)
-    setSteamBannerLockupImageSource(createProjectImageAssetProvenance({
-      source: 'built-in',
-      sourceLabel: 'Default Steam banner lockup',
-    }))
-    setSteamBannerLockupImageSize(defaultLockupImage.imageSize)
-    setSteamBannerLockupLayout(DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT)
-    setSteamBannerUseTextFallback(false)
-    setSteamBannerFallbackText(DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
+    resetSteamBannerState()
     setExportGuides(DEFAULT_EXPORT_GUIDES)
-    const emptyBackground = createEmptyBackgroundImageState()
-    setBackgroundImageUrl(emptyBackground.imageUrl)
-    setBackgroundImageSource(null)
-    setBackgroundImageSize(emptyBackground.imageSize)
-    setBackgroundScale(emptyBackground.scale)
-    setBackgroundOffset(emptyBackground.offset)
-    setIsBackgroundArtworkEnabled(true)
+    resetBackgroundArtwork()
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
-    setProjectLogoAssets(
-      createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc),
-    )
+    resetProjectLogoAssets(discTemplates.standardPrintableDisc)
     resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
     setProjectDiscNumberArtwork(createDefaultProjectDiscNumberArtwork())
     resetProjectAdditionalArtwork()
-    setProjectRatingBadge(
-      createDefaultProjectRatingBadge(discTemplates.standardPrintableDisc),
-    )
-    setProjectMediaMark(
-      createDefaultProjectMediaMark(discTemplates.standardPrintableDisc),
-    )
-    setProjectPlatformMarks(createDefaultProjectPlatformMarks())
+    resetProjectRatingBadge(discTemplates.standardPrintableDisc)
+    resetProjectMediaMark(discTemplates.standardPrintableDisc)
+    resetProjectPlatformMarks()
     resetProjectTechnicalMarks()
     setSteamSearchResults([])
     setSelectedSteamGame(null)
@@ -2410,84 +1794,6 @@ function App() {
     } catch (error) {
       announceStatus(`Export failed: ${String(error)}`)
     }
-  }
-
-  async function handleBackgroundUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-
-    if (!file) {
-      return
-    }
-
-    try {
-      applyBackgroundImageImport(await createUploadedBackgroundImageImport(file))
-    } catch (error) {
-      announceStatus(
-        error instanceof BackgroundImageLoadError
-          ? 'Background image could not be loaded.'
-          : 'Background image could not be read.',
-      )
-    }
-  }
-
-  function handleResetBackground() {
-    setBackgroundScale(DEFAULT_BACKGROUND_SCALE)
-    setBackgroundOffset(createDefaultBackgroundOffset())
-  }
-
-  function handleBackgroundArtworkEnabledChange(enabled: boolean) {
-    setIsBackgroundArtworkEnabled(enabled)
-  }
-
-  function handleBackgroundScaleChange(value: number) {
-    const nextScale = updateBackgroundScale(value)
-
-    setBackgroundScale(nextScale)
-    setBackgroundOffset((currentOffset) =>
-      clampBackgroundOffsetToImageBounds(
-        currentOffset,
-        backgroundImageSize,
-        nextScale,
-        discPreviewSize,
-      ),
-    )
-  }
-
-  function handleBackgroundOffsetChange(
-    field: BackgroundOffsetField,
-    value: number,
-  ) {
-    setBackgroundOffset((currentOffset) =>
-      updateBackgroundOffsetField(
-        currentOffset,
-        field,
-        value,
-        backgroundImageSize,
-        backgroundScale,
-        discPreviewSize,
-      ),
-    )
-  }
-
-  function handleFitBackgroundToSteamBannerOpenArea() {
-    const fit = getBackgroundFitToSteamBannerOpenArea({
-      imageSize: backgroundImageSize,
-      previewSize: discPreviewSize,
-      steamLogoPlacement,
-    })
-
-    if (!fit) {
-      announceStatus('Choose a background image before fitting the background.')
-      return
-    }
-
-    setBackgroundScale(updateBackgroundScale(fit.scale))
-    setBackgroundOffset(fit.offset)
-    announceStatus(
-      steamLogoPlacement === 'none'
-        ? 'Fit background edge to edge.'
-        : 'Fit background between the Steam banner and disc edge.',
-    )
   }
 
   if (activeWorkspace === 'home') {

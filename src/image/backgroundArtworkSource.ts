@@ -62,6 +62,6 @@ export function canTuneBackgroundArtworkSource(
   activeSource: ActiveBackgroundArtworkSource,
   source: BackgroundArtworkSource,
   hasBackgroundImage: boolean,
-) {
+): boolean {
   return hasBackgroundImage && activeSource === source
 }

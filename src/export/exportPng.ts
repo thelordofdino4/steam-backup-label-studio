@@ -1,7 +1,7 @@
 import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText'
 import type { DiscTextStyleSettings } from '../discTextStyles'
 import { mmToPixels } from '../discGeometry'
-import type { ExportGuideSelection } from '../exportGuides'
+import type { ExportGuideSelection } from './exportGuides'
 import type { ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'

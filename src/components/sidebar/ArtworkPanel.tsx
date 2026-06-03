@@ -2,18 +2,18 @@ import type { ChangeEvent, ReactNode } from 'react'
 import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
-} from '../../backgroundImage'
+} from '../../image/backgroundImage'
 import type {
   BackgroundOffsetField,
   BackgroundOffsetSliderRanges,
-} from '../../backgroundImage'
+} from '../../image/backgroundImage'
 import {
   canTuneBackgroundArtworkSource,
   type ActiveBackgroundArtworkSource,
   type BackgroundArtworkSource,
   type PersistedBackgroundArtworkSource,
   resolveActiveBackgroundArtworkSource,
-} from '../../backgroundArtworkSource'
+} from '../../image/backgroundArtworkSource'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../discGeometry'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import {
