@@ -412,7 +412,8 @@ input:disabled {
 }
 
 .case-insert-surface-base-layer,
-.case-insert-guide-layer {
+.case-insert-guide-layer,
+.case-insert-content-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -421,7 +422,10 @@ input:disabled {
 .case-insert-surface,
 .case-insert-region-fill,
 .case-insert-guide-rect,
-.case-insert-guide-line {
+.case-insert-guide-line,
+.case-insert-front-background-clip,
+.case-insert-front-overlay-image,
+.case-insert-front-text-block {
   position: absolute;
 }
 
@@ -494,6 +498,71 @@ input:disabled {
 
 .case-insert-guide-line-horizontal {
   border-top-width: 2px;
+}
+
+.case-insert-front-background-clip {
+  overflow: hidden;
+}
+
+.case-insert-front-background-image {
+  position: absolute;
+  display: block;
+  max-width: none;
+  user-select: none;
+}
+
+.case-insert-front-overlay-image {
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 0.75cqw 1.1cqw rgba(0, 0, 0, 0.38));
+  user-select: none;
+}
+
+.case-insert-front-title-artwork {
+  z-index: 1;
+}
+
+.case-insert-front-logo,
+.case-insert-front-mark {
+  filter: drop-shadow(0 0.35cqw 0.6cqw rgba(0, 0, 0, 0.32));
+}
+
+.case-insert-front-text-block {
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 0.5cqw 1cqw;
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow:
+    0 0.15cqw 0.35cqw rgba(0, 0, 0, 0.75),
+    0 0 0.8cqw rgba(0, 0, 0, 0.5);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  text-transform: uppercase;
+}
+
+.case-insert-control-card {
+  border: 1px solid #2f3541;
+  background: #20242c;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+}
+
+.case-insert-file-input {
+  display: none;
+}
+
+.case-insert-image-status-card img {
+  width: 72px;
+  height: 48px;
+  object-fit: contain;
+  background: #111827;
+  border-radius: 6px;
 }
 
 .background-image-layer {

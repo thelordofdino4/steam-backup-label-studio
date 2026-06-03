@@ -48,6 +48,7 @@ import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
 import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
+import { useJewelCaseFrontEditor } from '../hooks/useJewelCaseFrontEditor'
 import { useMediaMarkState } from '../hooks/useMediaMarkState'
 import { usePlatformMarksState } from '../hooks/usePlatformMarksState'
 import { useProjectLogoAssets } from '../hooks/useProjectLogoAssets'
@@ -125,6 +126,10 @@ function App() {
   const [projectJewelCase, setProjectJewelCase] = useState(() =>
     createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
   )
+  const jewelCaseFrontEditor = useJewelCaseFrontEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
   const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
     createDefaultProjectMetadata(),
   )
@@ -1405,6 +1410,7 @@ function App() {
     return (
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
+        frontEditor={jewelCaseFrontEditor}
         projectStatus={projectStatus}
         manualGameTitle={manualGameTitle}
         statusToasts={statusToasts}

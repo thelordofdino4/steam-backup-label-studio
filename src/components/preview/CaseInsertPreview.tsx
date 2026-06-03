@@ -9,6 +9,14 @@ import {
 } from '../../layout/caseInsertPreviewLayout'
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
+import {
+  CaseInsertFrontBackgroundLayer,
+  CaseInsertFrontCalloutArtworkLayer,
+  CaseInsertFrontLogoLayer,
+  CaseInsertFrontMarkLayer,
+  CaseInsertFrontTextLayer,
+  CaseInsertFrontTitleArtworkLayer,
+} from './CaseInsertFrontPreviewLayers'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 
@@ -78,16 +86,34 @@ export function CaseInsertPreview({
   } as CSSProperties
   const previewLayers: PreviewLayerMap = {
     'case-surface-base': <CaseInsertSurfaceBaseLayer layout={layout} />,
-    'case-background-artwork': <EmptyCaseLayer />,
+    'case-background-artwork': (
+      <CaseInsertFrontBackgroundLayer front={caseInsert.front} layout={layout} />
+    ),
     'case-screenshot-artwork': <EmptyCaseLayer />,
-    'case-callout-artwork': <EmptyCaseLayer />,
-    'case-title-artwork': <EmptyCaseLayer />,
-    'case-logo-assets': <EmptyCaseLayer />,
-    'case-rating-badges': <EmptyCaseLayer />,
+    'case-callout-artwork': (
+      <CaseInsertFrontCalloutArtworkLayer
+        front={caseInsert.front}
+        layout={layout}
+      />
+    ),
+    'case-title-artwork': (
+      <CaseInsertFrontTitleArtworkLayer
+        front={caseInsert.front}
+        layout={layout}
+      />
+    ),
+    'case-logo-assets': (
+      <CaseInsertFrontLogoLayer front={caseInsert.front} layout={layout} />
+    ),
+    'case-rating-badges': (
+      <CaseInsertFrontMarkLayer front={caseInsert.front} layout={layout} />
+    ),
     'case-media-marks': <EmptyCaseLayer />,
     'case-platform-marks': <EmptyCaseLayer />,
     'case-technical-marks': <EmptyCaseLayer />,
-    'case-text': <EmptyCaseLayer />,
+    'case-text': (
+      <CaseInsertFrontTextLayer front={caseInsert.front} layout={layout} />
+    ),
     'case-spine-content': <EmptyCaseLayer />,
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
   }

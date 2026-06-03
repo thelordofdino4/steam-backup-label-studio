@@ -5,10 +5,13 @@ import {
 import { getTemplateSurfaceExportPixelSize } from '../../templates/templateModel'
 import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
+import type { JewelCaseFrontEditorActions } from '../../hooks/useJewelCaseFrontEditor'
+import { CaseInsertFrontPanel } from './CaseInsertFrontPanel'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
+  frontEditor: JewelCaseFrontEditorActions
   projectStatus: string
   manualGameTitle: string
   statusToasts: PreviewToast[]
@@ -52,7 +55,7 @@ function CaseInsertProjectPanel({
   onExportPng,
 }: Omit<
   CaseInsertEditorShellProps,
-  'caseInsert' | 'manualGameTitle' | 'statusToasts'
+  'caseInsert' | 'frontEditor' | 'manualGameTitle' | 'statusToasts'
 >) {
   return (
     <details className="panel collapsible-panel">
@@ -170,6 +173,7 @@ function CaseInsertGuideLegendPanel() {
 
 export function CaseInsertEditorShell({
   caseInsert,
+  frontEditor,
   projectStatus,
   manualGameTitle,
   statusToasts,
@@ -206,16 +210,21 @@ export function CaseInsertEditorShell({
 
         <CaseInsertTemplatePanel caseInsert={caseInsert} />
 
+        <CaseInsertFrontPanel
+          front={caseInsert.front}
+          actions={frontEditor}
+        />
+
         <CaseInsertSidebarNotePanel title="Artwork">
-          Front, back, screenshot, and title artwork slots are next.
+          Back cover artwork and screenshot slots are next.
         </CaseInsertSidebarNotePanel>
 
         <CaseInsertSidebarNotePanel title="Branding">
-          Case logos, marks, ratings, and spine branding are next.
+          Back cover marks and spine branding are next.
         </CaseInsertSidebarNotePanel>
 
         <CaseInsertSidebarNotePanel title="Text">
-          Front, back, legal, requirements, and spine text controls are next.
+          Back cover, legal, requirements, and spine text controls are next.
         </CaseInsertSidebarNotePanel>
 
         <CaseInsertGuideLegendPanel />

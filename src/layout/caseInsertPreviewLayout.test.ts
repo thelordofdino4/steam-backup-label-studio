@@ -16,6 +16,12 @@ import {
   JEWEL_CASE_PREVIEW_SURFACE_GAP_PX,
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
+import {
+  getJewelCaseFrontBackgroundFit,
+  getJewelCaseFrontImageSlotPreviewRect,
+  getJewelCaseFrontTextBlockPreviewLayout,
+} from './jewelCaseFrontLayout.ts'
+import { createDefaultProjectJewelCaseState } from '../caseInsert/defaults.ts'
 
 test('jewel case preview layout composes front and back tray surfaces together', () => {
   const layout = createJewelCasePreviewLayout()
@@ -101,4 +107,59 @@ test('case preview layer order has labels for every preview layer', () => {
   for (const layerId of CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER) {
     assert.equal(typeof CASE_INSERT_EDITOR_LAYER_LABELS[layerId], 'string')
   }
+})
+
+test('front cover preview helpers fit backgrounds and clamp front overlays', () => {
+  const layout = createJewelCasePreviewLayout()
+  const frontSafe = layout.regions.find(({ regionId }) => regionId === 'frontSafe')
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const front = {
+    ...state.front,
+    background: {
+      ...state.front.background,
+      imageDataUrl: 'data:image/png;base64,background',
+      imageSize: { width: 3200, height: 1800 },
+      fit: 'cover' as const,
+    },
+    titleArtwork: {
+      ...state.front.titleArtwork,
+      enabled: true,
+      imageDataUrl: 'data:image/png;base64,title',
+      imageSize: { width: 1200, height: 360 },
+      layout: { scale: 1, x: 50, y: 20, rotation: 0 },
+    },
+    calloutText: {
+      ...state.front.calloutText,
+      enabled: true,
+      value: 'Includes co-op',
+      layout: { scale: 1, x: 99, y: 99, rotation: 0 },
+    },
+  }
+  const backgroundFit = getJewelCaseFrontBackgroundFit(front.background, layout)
+  const titleRect = getJewelCaseFrontImageSlotPreviewRect(
+    front.titleArtwork,
+    layout,
+    'titleArtwork',
+  )
+  const calloutLayout = getJewelCaseFrontTextBlockPreviewLayout(
+    front.calloutText,
+    layout,
+  )
+
+  assert.ok(frontSafe)
+  assert.ok(backgroundFit)
+  assert.ok(titleRect)
+  assert.ok(calloutLayout)
+  assert.equal(backgroundFit.hasEmptySpace, false)
+  assert.equal(titleRect.x >= frontSafe.bounds.x, true)
+  assert.equal(titleRect.y >= frontSafe.bounds.y, true)
+  assert.equal(
+    titleRect.x + titleRect.width <= frontSafe.bounds.x + frontSafe.bounds.width,
+    true,
+  )
+  assert.equal(
+    calloutLayout.bounds.y + calloutLayout.bounds.height <=
+      frontSafe.bounds.y + frontSafe.bounds.height,
+    true,
+  )
 })

@@ -2,6 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_CASE_INSERT_TEMPLATE_TYPE } from '../editor/editorTypes.ts'
 import {
+  addJewelCaseFrontRepeatedImageSlot,
+  removeJewelCaseFrontRepeatedImageSlot,
+  renameJewelCaseFrontRepeatedImageSlot,
+  updateJewelCaseFrontRepeatedImageSlot,
+} from '../caseInsert/frontCoverTransitions.ts'
+import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   addCaseInsertTextListItem,
   addJewelCaseBackScreenshotSlot,
@@ -369,6 +375,57 @@ test('case helpers update screenshot slots and export settings', () => {
   assert.equal(state.back.screenshotSlots.length, 3)
   assert.deepEqual(state.export.surfaces, ['back'])
   assert.deepEqual(state.export.guideIds, ['backPanelBounds'])
+})
+
+test('front cover helpers add, update, preserve, and remove logo and mark slots', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = addJewelCaseFrontRepeatedImageSlot(state, 'logoSlots')
+  state = addJewelCaseFrontRepeatedImageSlot(state, 'markSlots')
+
+  assert.equal(state.front.logoSlots[0]?.id, 'front-logo-1')
+  assert.equal(state.front.markSlots[0]?.id, 'front-mark-1')
+  assert.equal(state.front.logoSlots[0]?.enabled, true)
+  assert.equal(state.front.markSlots[0]?.layout.x, 82)
+
+  state = updateJewelCaseFrontRepeatedImageSlot(
+    state,
+    'logoSlots',
+    'front-logo-1',
+    (slot) => setCaseInsertImageSlotEnabled(
+      setCaseInsertImageSlotImage(slot, {
+        imageDataUrl: 'data:image/png;base64,logo',
+        imageSize: { width: 400, height: 120 },
+        imageSource: {
+          source: 'uploaded',
+          sourceLabel: 'C:\\Users\\John\\Pictures\\dev-logo.png',
+        },
+      }),
+      false,
+    ),
+  )
+  state = updateProjectJewelCaseFront(state, (front) =>
+    renameJewelCaseFrontRepeatedImageSlot(
+      front,
+      'logoSlots',
+      'front-logo-1',
+      'Developer logo',
+    ),
+  )
+
+  assert.equal(state.front.logoSlots[0]?.enabled, false)
+  assert.equal(state.front.logoSlots[0]?.label, 'Developer logo')
+  assert.equal(state.front.logoSlots[0]?.imageDataUrl, 'data:image/png;base64,logo')
+  assert.equal(state.front.logoSlots[0]?.imageSource?.sourceLabel, 'dev-logo.png')
+
+  state = removeJewelCaseFrontRepeatedImageSlot(
+    state,
+    'logoSlots',
+    'front-logo-1',
+  )
+
+  assert.equal(state.front.logoSlots.length, 0)
+  assert.equal(state.front.markSlots.length, 1)
 })
 
 test('feature bullet helpers edit items without replacing feature state', () => {

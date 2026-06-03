@@ -129,16 +129,30 @@ export function createDefaultCaseInsertSurfaceState(
 }
 
 export function createDefaultJewelCaseFrontState(): ProjectJewelCaseFrontState {
+  const surfaceState = createDefaultCaseInsertSurfaceState('front', 'Front')
+
   return {
-    ...createDefaultCaseInsertSurfaceState('front', 'Front'),
+    ...surfaceState,
+    titleArtwork: createDefaultCaseInsertImageSlot(
+      'front-title-artwork',
+      'Front title artwork',
+      {
+        fit: 'contain',
+        layout: { scale: 1, x: 50, y: 24 },
+      },
+    ),
     calloutArtwork: createDefaultCaseInsertImageSlot(
       'front-callout-artwork',
       'Front callout artwork',
+      {
+        fit: 'contain',
+        layout: { scale: 1, x: 50, y: 62 },
+      },
     ),
     calloutText: createDefaultCaseInsertTextBlock(
       'front-callout-text',
       'Front callout text',
-      { align: 'center' },
+      { align: 'center', layout: { scale: 1, x: 50, y: 82 } },
     ),
   }
 }
