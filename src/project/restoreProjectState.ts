@@ -64,6 +64,7 @@ import type {
   ProjectRatingBadge,
   ProjectTechnicalMarks,
   ProjectTitleArtwork,
+  SavedDiscProject,
   SavedProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
@@ -119,11 +120,15 @@ export type RestoreProjectStateOptions = {
   ) => Promise<BackgroundImageSize | null>
 }
 
+function isSavedDiscProject(project: SavedProject): project is SavedDiscProject {
+  return project.template?.type === 'disc'
+}
+
 function isDiscTemplateId(value: SelectedDiscTemplateId): value is DiscTemplateId {
   return value in discTemplates
 }
 
-function restoreTemplateState(project: SavedProject): RestoredProjectTemplateState {
+function restoreTemplateState(project: SavedDiscProject): RestoredProjectTemplateState {
   const savedTemplateId = project.template.variant
   const loadedCustomDiscTemplate = project.template.customDimensions
     ? buildCustomDiscTemplate(project.template.customDimensions)
@@ -151,7 +156,7 @@ function restoreTemplateState(project: SavedProject): RestoredProjectTemplateSta
 }
 
 async function restoreBackgroundImageSize(
-  project: SavedProject,
+  project: SavedDiscProject,
   resolveBackgroundImageSize?: RestoreProjectStateOptions['resolveBackgroundImageSize'],
 ): Promise<BackgroundImageSize | null> {
   const savedImageSize = project.background.imageSize ?? null
@@ -171,7 +176,7 @@ function isDataImageUrl(value: string | null | undefined) {
   return Boolean(value?.startsWith('data:'))
 }
 
-function isSavedBuiltInSteamBannerLockup(project: SavedProject) {
+function isSavedBuiltInSteamBannerLockup(project: SavedDiscProject) {
   const savedLockupImageUrl = project.steamBackupLogo.lockupImageDataUrl
 
   if (!savedLockupImageUrl || isDataImageUrl(savedLockupImageUrl)) {
@@ -185,7 +190,7 @@ function isSavedBuiltInSteamBannerLockup(project: SavedProject) {
 }
 
 function restoreSteamBannerLockupImage(
-  project: SavedProject,
+  project: SavedDiscProject,
   defaultImageUrl: string | null,
 ) {
   if (isSavedBuiltInSteamBannerLockup(project)) {
@@ -200,7 +205,7 @@ function restoreSteamBannerLockupImage(
 }
 
 function restoreSteamBannerLockupImageSource(
-  project: SavedProject,
+  project: SavedDiscProject,
 ): ProjectImageAssetProvenance | null {
   const fallback = project.steamBackupLogo.lockupImageDataUrl
     ? isDataImageUrl(project.steamBackupLogo.lockupImageDataUrl)
@@ -218,7 +223,7 @@ function restoreSteamBannerLockupImageSource(
 }
 
 function restoreBackgroundImageSource(
-  project: SavedProject,
+  project: SavedDiscProject,
 ): ProjectImageAssetProvenance | null {
   return normalizeProjectImageAssetProvenance(
     project.background.imageSource,
@@ -229,7 +234,7 @@ function restoreBackgroundImageSource(
 }
 
 export async function restoreSavedProjectState(
-  project: SavedProject,
+  project: SavedDiscProject,
   options: RestoreProjectStateOptions = {},
 ): Promise<RestoredProjectState> {
   const template = restoreTemplateState(project)
@@ -373,5 +378,11 @@ export function restoreProjectStateFromContents(
   contents: string,
   options: RestoreProjectStateOptions = {},
 ): Promise<RestoredProjectState> {
-  return restoreSavedProjectState(normalizeParsedProject(contents), options)
+  const project = normalizeParsedProject(contents)
+
+  if (!isSavedDiscProject(project)) {
+    throw new Error('Case insert projects must be restored by the case insert editor.')
+  }
+
+  return restoreSavedProjectState(project, options)
 }

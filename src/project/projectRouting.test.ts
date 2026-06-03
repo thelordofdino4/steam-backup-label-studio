@@ -31,6 +31,19 @@ test('routes future case insert projects by explicit project type', () => {
   assert.deepEqual(
     resolveSavedProjectRoute({
       projectType: 'caseInsert',
+      template: { type: 'caseInsert', variant: 'jewelCase' },
+    }),
+    {
+      projectType: 'caseInsert',
+      workspace: 'caseInsert',
+    },
+  )
+})
+
+test('routes legacy case insert project shells by jewel case template type', () => {
+  assert.deepEqual(
+    resolveSavedProjectRoute({
+      projectType: 'caseInsert',
       template: { type: 'jewelCase' },
     }),
     {

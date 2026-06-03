@@ -17,9 +17,9 @@ import {
   createDefaultDiscTextStyles,
 } from '../discTextStyles.ts'
 import { DEFAULT_STEAM_BANNER_FALLBACK_TEXT } from '../steamBannerDefaults.ts'
-import type { SavedProject } from './projectTypes.ts'
+import type { SavedDiscProject } from './projectTypes.ts'
 
-const baseProject: SavedProject = {
+const baseProject: SavedDiscProject = {
   schemaVersion: '0.1.0',
   title: 'Saved Title',
   savedAt: '2026-01-01T00:00:00.000Z',
@@ -235,7 +235,7 @@ test('restores saved disc text visual avoidance and backfills legacy layouts', a
 
 test('restores custom template, clamps foreground layouts, and backfills old background image size', async () => {
   let resolveCount = 0
-  const project: SavedProject = {
+  const project: SavedDiscProject = {
     ...baseProject,
     template: {
       type: 'disc',

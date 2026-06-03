@@ -23,7 +23,7 @@ import type {
   ProjectRatingBadge,
   ProjectTechnicalMarks,
   ProjectTitleArtwork,
-  SavedProject,
+  SavedDiscProject,
   SelectedDiscTemplateId,
   SteamBannerColors,
   SteamBannerLockupLayout,
@@ -108,7 +108,7 @@ export function createProjectSnapshot({
   discTextTitleValue,
   discTextLayout,
   discTextStyles,
-}: CreateProjectSnapshotParams): SavedProject {
+}: CreateProjectSnapshotParams): SavedDiscProject {
   const shouldPersistLockupImage = shouldPersistSteamBannerLockupImage(
     steamBannerLockupImageUrl,
     steamBannerLockupImageSource,

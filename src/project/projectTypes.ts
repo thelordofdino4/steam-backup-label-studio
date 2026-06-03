@@ -10,8 +10,15 @@ import type {
 import type { DiscTextStyle } from '../discTextStyles'
 import type { DiscTextValueSources } from './metadataDiscText'
 import type { DiscTemplateId } from '../templates/discTemplates'
+import type {
+  JewelCaseGuideId,
+  JewelCaseSurfaceId,
+} from '../templates/caseInsertTemplates'
 import type { SteamImportedGame } from '../steam/steamApi'
-import type { EditorProjectType } from '../editor/editorTypes'
+import type {
+  EditorProjectType,
+  SupportedCaseInsertTemplateType,
+} from '../editor/editorTypes'
 
 export type SteamBannerColors = {
   gradientStart: string
@@ -330,7 +337,80 @@ export type ProjectTechnicalMarksInput =
     assets?: Partial<Record<TechnicalMarkValue, Partial<ProjectTechnicalMarkAsset>>>
   }
 
-export type SavedProject = {
+export type ProjectCaseInsertImageFit = 'cover' | 'contain'
+
+export type ProjectCaseInsertLayout = {
+  scale: number
+  x: number
+  y: number
+  rotation: number
+}
+
+export type ProjectCaseInsertImageSlot = {
+  id: string
+  label: string
+  enabled: boolean
+  imageDataUrl: string | null
+  imageSource?: ProjectImageAssetProvenance | null
+  imageSize: BackgroundImageSize | null
+  fit: ProjectCaseInsertImageFit
+  layout: ProjectCaseInsertLayout
+}
+
+export type ProjectCaseInsertTextSource = 'manual' | 'metadata' | 'steam'
+
+export type ProjectCaseInsertTextAlign = 'left' | 'center' | 'right'
+
+export type ProjectCaseInsertTextBlock = {
+  id: string
+  label: string
+  enabled: boolean
+  value: string
+  source: ProjectCaseInsertTextSource
+  align: ProjectCaseInsertTextAlign
+  layout: ProjectCaseInsertLayout
+}
+
+export type ProjectCaseInsertSurfaceState = {
+  background: ProjectCaseInsertImageSlot
+  titleArtwork: ProjectCaseInsertImageSlot
+  artworkSlots: ProjectCaseInsertImageSlot[]
+  logoSlots: ProjectCaseInsertImageSlot[]
+  markSlots: ProjectCaseInsertImageSlot[]
+  textBlocks: ProjectCaseInsertTextBlock[]
+}
+
+export type ProjectJewelCaseFrontState = ProjectCaseInsertSurfaceState
+
+export type ProjectJewelCaseBackState = ProjectCaseInsertSurfaceState & {
+  screenshotSlots: ProjectCaseInsertImageSlot[]
+}
+
+export type ProjectJewelCaseSpineSideState = {
+  background: ProjectCaseInsertImageSlot
+  title: ProjectCaseInsertTextBlock
+  logo: ProjectCaseInsertImageSlot
+}
+
+export type ProjectJewelCaseSpineState = {
+  left: ProjectJewelCaseSpineSideState
+  right: ProjectJewelCaseSpineSideState
+}
+
+export type ProjectJewelCaseExportSettings = {
+  surfaces: JewelCaseSurfaceId[]
+  guideIds: JewelCaseGuideId[]
+}
+
+export type ProjectJewelCaseState = {
+  templateType: SupportedCaseInsertTemplateType
+  front: ProjectJewelCaseFrontState
+  back: ProjectJewelCaseBackState
+  spine: ProjectJewelCaseSpineState
+  export: ProjectJewelCaseExportSettings
+}
+
+export type SavedProjectBase = {
   schemaVersion: '0.1.0'
   projectType?: EditorProjectType
   title: string
@@ -340,6 +420,10 @@ export type SavedProject = {
     selectedSteamGame: SteamImportedGame | null
   }
   metadata?: ProjectMetadata
+}
+
+export type SavedDiscProject = SavedProjectBase & {
+  projectType?: 'disc'
   logoAssets?: ProjectLogoAssetsInput
   titleArtwork?: Partial<ProjectTitleArtwork>
   discNumberArtwork?: Partial<ProjectDiscNumberArtwork>
@@ -385,3 +469,14 @@ export type SavedProject = {
     styles?: Partial<Record<DiscTextKey, Partial<DiscTextStyle>>>
   }
 }
+
+export type SavedCaseInsertProject = SavedProjectBase & {
+  projectType: 'caseInsert'
+  template: {
+    type: 'caseInsert'
+    variant: SupportedCaseInsertTemplateType
+  }
+  caseInsert: ProjectJewelCaseState
+}
+
+export type SavedProject = SavedDiscProject | SavedCaseInsertProject

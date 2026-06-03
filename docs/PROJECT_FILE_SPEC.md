@@ -1,18 +1,28 @@
 # Project File Specification
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-03.
 
 ## Purpose
 
-Project files let users save and reopen disc-label designs.
+Project files let users save and reopen disc-label designs. The same JSON
+project format now also has groundwork for future case insert projects, starting
+with jewel case inserts.
 
-A project file should store enough state to restore the current disc-label editor without depending on the original local files after reload when assets have been embedded.
+A project file should store enough state to restore the current editor state
+without depending on the original local files after reload when assets have been
+embedded.
 
 ## Current Format
 
 The current implementation saves plain JSON project files. User-facing filenames are commonly named `.sbls.json`.
 
-The current source-of-truth type is `SavedProject` in `src/project/projectTypes.ts`. Snapshot creation lives in `src/project/createProjectSnapshot.ts`, and restoration/normalization lives in `src/project/restoreProjectState.ts` plus related project modules.
+The current source-of-truth type is `SavedProject` in `src/project/projectTypes.ts`.
+It is a union of `SavedDiscProject` and `SavedCaseInsertProject`.
+
+Disc snapshot creation lives in `src/project/createProjectSnapshot.ts`, and disc
+restoration/normalization lives in `src/project/restoreProjectState.ts` plus
+related project modules. Case insert snapshot/default creation and normalization
+live in `src/project/projectCaseInsert.ts`.
 
 The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today.
 
@@ -20,7 +30,7 @@ The future package format should not block disc-editor alpha unless a specific s
 
 ## Current Saved State
 
-Current project files use schema version `0.1.0` and include:
+Current disc project files use schema version `0.1.0` and include:
 
 - top-level title and saved timestamp
 - selected Steam game data and manual title
@@ -52,12 +62,12 @@ Where supported, image assets also store provenance/status metadata:
 
 Local path details should not be stored as the durable identity for uploaded/local Steam screenshot assets. The project should be reloadable from embedded data without requiring the original local path.
 
-## Current Schema Sketch
+## Current Disc Schema Sketch
 
 This sketch is intentionally descriptive. `src/project/projectTypes.ts` remains the exact source of truth.
 
 ```ts
-type SavedProject = {
+type SavedDiscProject = {
   schemaVersion: '0.1.0'
   title: string
   savedAt: string
@@ -113,6 +123,52 @@ type SavedProject = {
 }
 ```
 
+## Case Insert Groundwork
+
+Issue #131 adds a normalized case insert branch to the same `0.1.0` JSON
+project family. This is background schema work for the future editor; it does
+not mean the full jewel case editor/export workflow is implemented.
+
+Current case insert project files use `projectType: 'caseInsert'` and normalize
+to `template.type: 'caseInsert'` plus `template.variant: 'jewelCase'`. Older
+or sparse shells that used `template.type: 'jewelCase'` are routed and
+normalized as jewel case projects.
+
+The jewel case state stores:
+
+- front surface background, title artwork, artwork slots, logo slots, mark slots, and text blocks
+- back surface background, title artwork, artwork slots, screenshots, logo slots, mark slots, and text blocks
+- left and right spine settings, including background, title text, and logo slot
+- case export settings, including selected surfaces and guide IDs
+- image asset data, image size, fit/layout settings, and provenance where present
+
+The current descriptive shape is:
+
+```ts
+type SavedCaseInsertProject = {
+  schemaVersion: '0.1.0'
+  projectType: 'caseInsert'
+  title: string
+  savedAt: string
+  game: {
+    manualTitle: string
+    selectedSteamGame: SteamImportedGame | null
+  }
+  metadata?: ProjectMetadata
+  template: {
+    type: 'caseInsert'
+    variant: 'jewelCase'
+  }
+  caseInsert: {
+    templateType: 'jewelCase'
+    front: ProjectJewelCaseFrontState
+    back: ProjectJewelCaseBackState
+    spine: ProjectJewelCaseSpineState
+    export: ProjectJewelCaseExportSettings
+  }
+}
+```
+
 ## Normalization Rules
 
 Loader normalization should:
@@ -123,6 +179,9 @@ Loader normalization should:
 - clamp visual element layouts to the selected template safe zone where required
 - infer legacy embedded asset provenance safely
 - avoid treating missing future fields as fatal
+- route case insert projects away from the disc restore path
+- normalize sparse jewel case data to safe front/back/spine defaults
+- preserve case image asset provenance and embedded data where present
 
 ## Future Format
 
@@ -144,4 +203,6 @@ This would make projects more portable between machines and may reduce large JSO
 - Add explicit project schema validation and migration support (#48).
 - Document migration behavior before changing schema semantics.
 - Keep backward compatibility for current fixed systems during any future flexible visual-element migration.
-- Avoid claiming case-template project support until case editors can save, load, and export usable files.
+- Keep user-facing documentation clear that case insert project schema groundwork
+  exists, while full case editor save/load/export workflows are still future
+  work until the editor modules land.
