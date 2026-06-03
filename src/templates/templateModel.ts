@@ -5,6 +5,7 @@ import type {
   TemplateGuide,
   TemplateRect,
   TemplateRegion,
+  TemplateSurface,
 } from '../types/template.ts'
 
 export type TemplatePhysicalSize = {
@@ -12,9 +13,32 @@ export type TemplatePhysicalSize = {
   heightMm: number
 }
 
+export type TemplateExportPixelSize = {
+  widthPx: number
+  heightPx: number
+  dpi: number
+}
+
 export type RectangularTemplateValidationResult = {
   valid: boolean
   errors: string[]
+}
+
+export const DEFAULT_TEMPLATE_EXPORT_DPI = 300
+export const TEMPLATE_MM_PER_INCH = 25.4
+
+export function mmToTemplatePixels(
+  mm: number,
+  dpi = DEFAULT_TEMPLATE_EXPORT_DPI,
+) {
+  return Math.round((mm / TEMPLATE_MM_PER_INCH) * dpi)
+}
+
+export function templatePixelsToMillimeters(
+  pixels: number,
+  dpi = DEFAULT_TEMPLATE_EXPORT_DPI,
+) {
+  return (pixels / dpi) * TEMPLATE_MM_PER_INCH
 }
 
 export function isDiscTemplate(template: PrintTemplate): template is DiscTemplate {
@@ -40,6 +64,44 @@ export function getTemplatePhysicalSize(
   return {
     widthMm: template.widthMm,
     heightMm: template.heightMm,
+  }
+}
+
+export function getTemplateExportPixelSize(
+  template: PrintTemplate,
+  dpi = DEFAULT_TEMPLATE_EXPORT_DPI,
+): TemplateExportPixelSize {
+  const physicalSize = getTemplatePhysicalSize(template)
+
+  return {
+    widthPx: mmToTemplatePixels(physicalSize.widthMm, dpi),
+    heightPx: mmToTemplatePixels(physicalSize.heightMm, dpi),
+    dpi,
+  }
+}
+
+export function getTemplateSurface(
+  template: RectangularPrintTemplate,
+  surfaceId: string,
+): TemplateSurface | null {
+  return template.surfaces?.find((surface) => surface.id === surfaceId) ?? null
+}
+
+export function getTemplateSurfaceExportPixelSize(
+  template: RectangularPrintTemplate,
+  surfaceId: string,
+  dpi = DEFAULT_TEMPLATE_EXPORT_DPI,
+): TemplateExportPixelSize | null {
+  const surface = getTemplateSurface(template, surfaceId)
+
+  if (!surface) {
+    return null
+  }
+
+  return {
+    widthPx: mmToTemplatePixels(surface.widthMm, dpi),
+    heightPx: mmToTemplatePixels(surface.heightMm, dpi),
+    dpi,
   }
 }
 
@@ -95,6 +157,12 @@ function validateRegion(
 ) {
   validatePositiveRect(`Region "${region.id}"`, region.bounds, errors)
 
+  if (region.surfaceId && !template.surfaces?.some(({ id }) => id === region.surfaceId)) {
+    errors.push(
+      `Region "${region.id}" references missing surface "${region.surfaceId}".`,
+    )
+  }
+
   if (!isTemplateRectInside(region.bounds, canvasBounds)) {
     errors.push(`Region "${region.id}" must stay inside the template canvas.`)
   }
@@ -109,11 +177,42 @@ function validateRegion(
   }
 }
 
+function getTemplateCanvasBounds(
+  template: RectangularPrintTemplate,
+  surfaceId?: string,
+): TemplateRect {
+  const surface = surfaceId ? getTemplateSurface(template, surfaceId) : null
+
+  return {
+    xMm: 0,
+    yMm: 0,
+    widthMm: surface?.widthMm ?? template.widthMm,
+    heightMm: surface?.heightMm ?? template.heightMm,
+  }
+}
+
 function validateGuide(
+  template: RectangularPrintTemplate,
   guide: TemplateGuide,
-  canvasBounds: TemplateRect,
+  regionIds: Set<string>,
   errors: string[],
 ) {
+  if (guide.surfaceId && !template.surfaces?.some(({ id }) => id === guide.surfaceId)) {
+    errors.push(
+      `Guide "${guide.id}" references missing surface "${guide.surfaceId}".`,
+    )
+  }
+
+  if (guide.regionId && !regionIds.has(guide.regionId)) {
+    errors.push(`Guide "${guide.id}" references missing region "${guide.regionId}".`)
+  }
+
+  const guideRegion = guide.regionId ? getTemplateRegion(template, guide.regionId) : null
+  const canvasBounds = getTemplateCanvasBounds(
+    template,
+    guide.surfaceId ?? guideRegion?.surfaceId,
+  )
+
   if (guide.bounds) {
     validatePositiveRect(`Guide "${guide.id}" bounds`, guide.bounds, errors)
 
@@ -150,16 +249,23 @@ export function validateRectangularPrintTemplate(
   template: RectangularPrintTemplate,
 ): RectangularTemplateValidationResult {
   const errors: string[] = []
-  const canvasBounds: TemplateRect = {
-    xMm: 0,
-    yMm: 0,
-    widthMm: template.widthMm,
-    heightMm: template.heightMm,
-  }
   const regionIds = new Set<string>()
+  const surfaceIds = new Set<string>()
 
   if (template.widthMm <= 0 || template.heightMm <= 0) {
     errors.push('Template must have positive width and height.')
+  }
+
+  for (const surface of template.surfaces ?? []) {
+    if (surfaceIds.has(surface.id)) {
+      errors.push(`Surface "${surface.id}" is duplicated.`)
+    }
+
+    surfaceIds.add(surface.id)
+
+    if (surface.widthMm <= 0 || surface.heightMm <= 0) {
+      errors.push(`Surface "${surface.id}" must have positive width and height.`)
+    }
   }
 
   for (const region of template.regions) {
@@ -168,15 +274,16 @@ export function validateRectangularPrintTemplate(
     }
 
     regionIds.add(region.id)
-    validateRegion(template, region, canvasBounds, errors)
+    validateRegion(
+      template,
+      region,
+      getTemplateCanvasBounds(template, region.surfaceId),
+      errors,
+    )
   }
 
   for (const guide of template.guides) {
-    if (guide.regionId && !regionIds.has(guide.regionId)) {
-      errors.push(`Guide "${guide.id}" references missing region "${guide.regionId}".`)
-    }
-
-    validateGuide(guide, canvasBounds, errors)
+    validateGuide(template, guide, regionIds, errors)
   }
 
   return {

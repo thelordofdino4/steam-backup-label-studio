@@ -35,6 +35,14 @@ export interface TemplateRect {
   heightMm: number
 }
 
+export interface TemplateSurface {
+  id: string
+  name: string
+  widthMm: number
+  heightMm: number
+  geometryNote?: string
+}
+
 export interface TemplateLine {
   orientation: TemplateLineOrientation
   offsetMm: number
@@ -77,6 +85,7 @@ export interface TemplateRegion {
   id: string
   name: string
   role: TemplateRegionRole
+  surfaceId?: string
   bounds: TemplateRect
   parentRegionId?: string
 }
@@ -86,6 +95,7 @@ export interface TemplateGuide {
   name: string
   type: TemplateGuideType
   visibleByDefault: boolean
+  surfaceId?: string
   regionId?: string
   bounds?: TemplateRect
   line?: TemplateLine
@@ -106,6 +116,7 @@ export interface RectangularPrintTemplate extends BaseTemplate {
   variant: CaseInsertTemplateType
   widthMm: number
   heightMm: number
+  surfaces?: TemplateSurface[]
   regions: TemplateRegion[]
   guides: TemplateGuide[]
   masks?: TemplateMask[]
