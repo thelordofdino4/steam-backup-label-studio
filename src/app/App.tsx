@@ -1,5 +1,5 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   searchSteamStore,
   type SteamArtworkAsset,
@@ -13,7 +13,6 @@ import {
 import { createLocalSteamScreenshotDiscovery } from '../local/localSteamScreenshotDiscovery'
 import { loadMissingLocalSteamScreenshotThumbnails } from '../local/localSteamScreenshotThumbnails'
 import {
-  applySteamGameImportToDiscTextValues,
   applySteamGameImportToProjectMetadata,
   createSteamGameImport,
 } from '../steam/steamGameImport'
@@ -28,11 +27,7 @@ import {
   mmToPixels,
   normalizeCustomDiscTemplate,
 } from '../disc/geometry'
-import {
-  clampDiscTextLayoutToSafeZone,
-  clampProjectRatingBadgeToSafeZone,
-  clampStraightDiscTextLayoutToSafeZone,
-} from '../layout/discElementSafeZone'
+import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import { validateDiscTemplateGeometryGuardrail } from '../layout/discTemplateGeometryGuardrail'
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from '../export/exportGuides'
 import '../styles/App.css'
@@ -50,6 +45,7 @@ import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { TextPanel } from '../components/sidebar/TextPanel'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
+import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
 import { useMediaMarkState } from '../hooks/useMediaMarkState'
@@ -77,28 +73,11 @@ import {
   restoreCaseInsertProjectStateFromContents,
 } from '../project/projectCaseInsert'
 import {
-  createDefaultDiscTextValueSources,
-  getDiscTextKeysForProjectMetadataField,
-  isMetadataBoundDiscTextKey,
-  resolveMetadataBoundDiscTextTitle,
-  resolveMetadataBoundDiscTextValues,
-  updateDiscTextInputValue,
-  type DiscTextValueSources,
-  type MetadataBoundDiscTextKey,
-} from '../project/metadataDiscText'
-import {
   updateRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
 } from '../project/projectRatingBadge'
 import type { ProjectMetadata, SelectedDiscTemplateId } from '../project/projectTypes'
-import {
-  createDefaultProjectDiscNumberArtwork,
-  updateDiscNumberArtworkBadgeSet,
-  updateDiscNumberArtworkMode,
-  type DiscNumberArtworkMode,
-  type DiscNumberBadgeSet,
-} from '../discText/discNumberArtwork'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -117,41 +96,7 @@ import {
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
 } from '../branding/steamBanner'
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
-import {
-  DISC_TEXT_KEYS,
-  DEFAULT_DISC_TEXT_SETTINGS,
-  createDefaultDiscTextLayout,
-  createDefaultDiscTextValues,
-  getDiscTextContent,
-  getDiscTextPreviewTransform,
-  resetDiscTextLayout,
-  isCurvedCopyrightDiscTextLayout,
-  updateDiscTextAlignment,
-  updateDiscTextArcSide,
-  updateDiscTextLayoutForSteamLogoPlacement,
-  updateDiscTextLayoutField,
-  updateDiscTextVisualAvoidance,
-  updateDiscTextMode,
-  updateDiscTextSetting,
-  type DiscTextAlignment,
-  type DiscTextArcSide,
-  type DiscTextKey,
-  type DiscTextLayoutNumericField,
-  type DiscTextLayoutSettings,
-  type DiscTextMode,
-  type DiscTextSettings,
-  type DiscTextValues,
-  type SteamLogoPlacement,
-} from '../discText/index'
-import {
-  createDefaultDiscTextStyles,
-  applyDiscTextStylePreset,
-  resetDiscTextStyle,
-  updateDiscTextStyleField,
-  type DiscTextStyleField,
-  type DiscTextStyleSettings,
-  type DiscTextStyleValue,
-} from '../discText/styles'
+import { getDiscTextPreviewTransform, type SteamLogoPlacement } from '../discText/index'
 
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -257,25 +202,6 @@ function App() {
   const [isLocalSteamScreenshotsLoading, setIsLocalSteamScreenshotsLoading] =
     useState(false)
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
-  const [discTextSettings, setDiscTextSettings] = useState<DiscTextSettings>(
-    DEFAULT_DISC_TEXT_SETTINGS,
-  )
-  const [discTextValues, setDiscTextValues] = useState<DiscTextValues>(() =>
-    createDefaultDiscTextValues(),
-  )
-  const [discTextValueSources, setDiscTextValueSources] = useState<DiscTextValueSources>(() =>
-    createDefaultDiscTextValueSources(),
-  )
-  const [discTextTitleValue, setDiscTextTitleValue] = useState('')
-  const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
-    createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
-  )
-  const [discTextStyles, setDiscTextStyles] = useState<DiscTextStyleSettings>(() =>
-    createDefaultDiscTextStyles(),
-  )
-  const [projectDiscNumberArtwork, setProjectDiscNumberArtwork] = useState(() =>
-    createDefaultProjectDiscNumberArtwork(),
-  )
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const selectedDiscTemplate =
@@ -283,6 +209,45 @@ function App() {
       ? customDiscTemplate
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
+  const {
+    projectDiscNumberArtwork,
+    discTextSettings,
+    discTextValues,
+    discTextValueSources,
+    discTextTitleValue,
+    discTextLayout,
+    discTextStyles,
+    metadataBoundDiscTextValues,
+    resolvedDiscTextTitle,
+    setDiscTextLayout,
+    resetDiscTextState,
+    restoreDiscTextState,
+    clampDiscTextLayoutToTemplate,
+    repositionDiscTextForSteamLogoPlacement,
+    clampDiscTextLayoutForContent,
+    clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
+    handleDiscTextToggle,
+    handleDiscTextContentChange,
+    handleUseMetadataDiscTextValue,
+    handleDiscTextLayoutChange,
+    handleDiscTextAlignmentChange,
+    handleDiscTextModeChange,
+    handleDiscTextArcSideChange,
+    handleDiscTextVisualAvoidanceChange,
+    handleResetDiscTextLayout,
+    handleDiscTextStyleChange,
+    handleResetDiscTextStyle,
+    handleApplyDiscTextStylePreset,
+    handleDiscNumberArtworkModeChange,
+    handleDiscNumberArtworkBadgeSetChange,
+    enableCurvedCopyrightDiscText,
+    setCopyrightDiscTextEnabled,
+    applySteamImportedDiscTextValues,
+  } = useDiscTextState({
+    projectMetadata,
+    selectedDiscTemplate,
+    steamLogoPlacement,
+  })
   const {
     projectLogoAssets,
     setProjectLogoAssets,
@@ -436,24 +401,6 @@ function App() {
     applyBackgroundImageImport,
     announceStatus,
   })
-  const metadataBoundDiscTextValues = useMemo(
-    () =>
-      resolveMetadataBoundDiscTextValues(
-        discTextValues,
-        projectMetadata,
-        discTextValueSources,
-      ),
-    [discTextValues, discTextValueSources, projectMetadata],
-  )
-  const resolvedDiscTextTitle = useMemo(
-    () =>
-      resolveMetadataBoundDiscTextTitle(
-        discTextTitleValue,
-        projectMetadata,
-        discTextValueSources,
-      ),
-    [discTextTitleValue, projectMetadata, discTextValueSources],
-  )
   useEffect(() => {
     if (activeWorkspace !== 'disc') {
       return
@@ -562,16 +509,7 @@ function App() {
     clampProjectPlatformMarksToTemplate(template)
     clampProjectTechnicalMarksToTemplate(template)
 
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = clampDiscTextLayoutToSafeZone(currentLayout, template)
-      const didChange = DISC_TEXT_KEYS.some(
-        (key) =>
-          nextLayout[key].x !== currentLayout[key].x ||
-          nextLayout[key].y !== currentLayout[key].y,
-      )
-
-      return didChange ? nextLayout : currentLayout
-    })
+    clampDiscTextLayoutToTemplate(template)
   }
 
   useEffect(() => {
@@ -617,24 +555,9 @@ function App() {
     )
 
     if (enabled) {
-      const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-        discTextValues,
+      clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
+        ['ratingSystem', 'ratingValue'],
         nextState.metadata,
-        discTextValueSources,
-      )
-      const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
-        discTextTitleValue,
-        nextState.metadata,
-        discTextValueSources,
-      )
-
-      clampMetadataBoundDiscTextLayoutsForContent(
-        [
-          ...getDiscTextKeysForProjectMetadataField('ratingSystem'),
-          ...getDiscTextKeysForProjectMetadataField('ratingValue'),
-        ],
-        nextMetadataBoundValues,
-        nextResolvedTitle,
       )
     }
   }
@@ -652,257 +575,8 @@ function App() {
       return
     }
 
-    setDiscTextLayout((currentLayout) => {
-      return clampDiscTextLayoutToSafeZone(
-        updateDiscTextLayoutForSteamLogoPlacement(
-          currentLayout,
-          placement,
-          selectedDiscTemplate,
-        ),
-        selectedDiscTemplate,
-      )
-    })
-
+    repositionDiscTextForSteamLogoPlacement(placement)
     resetTitleArtworkLayoutForPlacement(placement)
-  }
-
-  function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
-    setDiscTextSettings((currentSettings) =>
-      updateDiscTextSetting(currentSettings, key, checked),
-    )
-  }
-
-  function clampDiscTextLayoutForContent(key: DiscTextKey, renderedText: string) {
-    setDiscTextLayout((currentLayout) => {
-      const currentTextLayout = currentLayout[key]
-
-      if (isCurvedCopyrightDiscTextLayout(key, currentTextLayout)) {
-        return currentLayout
-      }
-
-      return {
-        ...currentLayout,
-        [key]: clampStraightDiscTextLayoutToSafeZone(
-          key,
-          currentTextLayout,
-          selectedDiscTemplate,
-          renderedText,
-        ),
-      }
-    })
-  }
-
-  function clampMetadataBoundDiscTextLayoutsForContent(
-    keys: MetadataBoundDiscTextKey[],
-    values: DiscTextValues,
-    title: string,
-    sources: DiscTextValueSources = discTextValueSources,
-  ) {
-    for (const key of keys) {
-      if (sources[key] === 'manual') {
-        continue
-      }
-
-      clampDiscTextLayoutForContent(
-        key,
-        getDiscTextContent(key, values, title),
-      )
-    }
-  }
-
-  function handleDiscTextContentChange(key: DiscTextKey, value: string) {
-    const nextInputUpdate = updateDiscTextInputValue(
-      discTextValues,
-      discTextValueSources,
-      key,
-      value,
-      discTextTitleValue,
-    )
-    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-      nextInputUpdate.values,
-      projectMetadata,
-      nextInputUpdate.sources,
-    )
-    const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
-      nextInputUpdate.titleValue,
-      projectMetadata,
-      nextInputUpdate.sources,
-    )
-
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(
-      key,
-      getDiscTextContent(key, nextMetadataBoundValues, nextResolvedTitle),
-    )
-  }
-
-  function handleUseMetadataDiscTextValue(key: MetadataBoundDiscTextKey) {
-    const nextInputUpdate = updateDiscTextInputValue(
-      discTextValues,
-      discTextValueSources,
-      key,
-      '',
-      discTextTitleValue,
-    )
-    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-      nextInputUpdate.values,
-      projectMetadata,
-      nextInputUpdate.sources,
-    )
-    const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
-      nextInputUpdate.titleValue,
-      projectMetadata,
-      nextInputUpdate.sources,
-    )
-
-    setDiscTextValueSources(nextInputUpdate.sources)
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(
-      key,
-      getDiscTextContent(key, nextMetadataBoundValues, nextResolvedTitle),
-    )
-  }
-
-  function getCurrentDiscTextContent(key: DiscTextKey) {
-    return getDiscTextContent(key, metadataBoundDiscTextValues, resolvedDiscTextTitle)
-  }
-
-  function handleDiscTextLayoutChange(
-    key: DiscTextKey,
-    field: DiscTextLayoutNumericField,
-    value: number,
-  ) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = updateDiscTextLayoutField(currentLayout, key, field, value)
-
-      return {
-        ...nextLayout,
-        [key]: clampStraightDiscTextLayoutToSafeZone(
-          key,
-          nextLayout[key],
-          selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
-        ),
-      }
-    })
-  }
-
-  function handleDiscTextAlignmentChange(key: DiscTextKey, align: DiscTextAlignment) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = updateDiscTextAlignment(currentLayout, key, align)
-      const nextTextLayout = nextLayout[key]
-
-      return {
-        ...nextLayout,
-        [key]: isCurvedCopyrightDiscTextLayout(key, nextTextLayout)
-          ? nextTextLayout
-          : clampStraightDiscTextLayoutToSafeZone(
-              key,
-              nextTextLayout,
-              selectedDiscTemplate,
-              getCurrentDiscTextContent(key),
-            ),
-      }
-    })
-  }
-
-  function handleDiscTextModeChange(key: DiscTextKey, mode: DiscTextMode) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = updateDiscTextMode(
-        currentLayout,
-        key,
-        mode,
-        steamLogoPlacement,
-        selectedDiscTemplate,
-      )
-
-      return {
-        ...nextLayout,
-        [key]: clampStraightDiscTextLayoutToSafeZone(
-          key,
-          nextLayout[key],
-          selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
-        ),
-      }
-    })
-  }
-
-  function handleDiscTextArcSideChange(key: DiscTextKey, arcSide: DiscTextArcSide) {
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextArcSide(currentLayout, key, arcSide),
-    )
-  }
-
-  function handleDiscTextVisualAvoidanceChange(
-    key: DiscTextKey,
-    avoidVisualElements: boolean,
-  ) {
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextVisualAvoidance(
-        currentLayout,
-        key,
-        avoidVisualElements,
-      ),
-    )
-  }
-
-  function handleResetDiscTextLayout(key: DiscTextKey) {
-    setDiscTextLayout((currentLayout) => {
-      const nextLayout = resetDiscTextLayout(
-        currentLayout,
-        key,
-        steamLogoPlacement,
-        selectedDiscTemplate,
-      )
-
-      return {
-        ...nextLayout,
-        [key]: clampStraightDiscTextLayoutToSafeZone(
-          key,
-          nextLayout[key],
-          selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
-        ),
-      }
-    })
-  }
-
-  function handleDiscTextStyleChange(
-    key: DiscTextKey,
-    field: DiscTextStyleField,
-    value: DiscTextStyleValue,
-  ) {
-    setDiscTextStyles((currentStyles) =>
-      updateDiscTextStyleField(currentStyles, key, field, value),
-    )
-  }
-
-  function handleResetDiscTextStyle(key: DiscTextKey) {
-    setDiscTextStyles((currentStyles) => resetDiscTextStyle(currentStyles, key))
-  }
-
-  function handleApplyDiscTextStylePreset(key: DiscTextKey, presetId: string) {
-    setDiscTextStyles((currentStyles) =>
-      applyDiscTextStylePreset(currentStyles, key, presetId),
-    )
-  }
-
-  function handleDiscNumberArtworkModeChange(mode: DiscNumberArtworkMode) {
-    setProjectDiscNumberArtwork((currentArtwork) =>
-      updateDiscNumberArtworkMode(currentArtwork, mode),
-    )
-  }
-
-  function handleDiscNumberArtworkBadgeSetChange(badgeSet: DiscNumberBadgeSet) {
-    setProjectDiscNumberArtwork((currentArtwork) =>
-      updateDiscNumberArtworkBadgeSet(currentArtwork, badgeSet),
-    )
   }
 
   function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
@@ -916,18 +590,7 @@ function App() {
       ...projectMetadata,
       ...fields,
     }
-    const affectedTextKeys = (Object.keys(fields) as Array<keyof ProjectMetadata>)
-      .flatMap((field) => getDiscTextKeysForProjectMetadataField(field))
-    const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-      discTextValues,
-      nextProjectMetadata,
-      discTextValueSources,
-    )
-    const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
-      discTextTitleValue,
-      nextProjectMetadata,
-      discTextValueSources,
-    )
+    const affectedMetadataFields = Object.keys(fields) as Array<keyof ProjectMetadata>
 
     setProjectMetadata(nextProjectMetadata)
 
@@ -935,40 +598,14 @@ function App() {
       setManualGameTitle(fields.title)
     }
 
-    clampMetadataBoundDiscTextLayoutsForContent(
-      affectedTextKeys,
-      nextMetadataBoundValues,
-      nextResolvedTitle,
+    clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
+      affectedMetadataFields,
+      nextProjectMetadata,
     )
   }
 
   function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
     handleProjectMetadataFieldsChange({ [field]: value } as Partial<ProjectMetadata>)
-  }
-
-  function enableCurvedCopyrightDiscText() {
-    setDiscTextValueSources((currentSources) => ({
-      ...currentSources,
-      copyright: 'metadata',
-    }))
-    setDiscTextSettings((currentSettings) =>
-      updateDiscTextSetting(currentSettings, 'copyright', true),
-    )
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextMode(
-        currentLayout,
-        'copyright',
-        'curved',
-        steamLogoPlacement,
-        selectedDiscTemplate,
-      ),
-    )
-  }
-
-  function setCopyrightDiscTextEnabled(enabled: boolean) {
-    setDiscTextSettings((currentSettings) =>
-      updateDiscTextSetting(currentSettings, 'copyright', enabled),
-    )
   }
 
   function applyRatingCandidateToProject(
@@ -1141,12 +778,12 @@ function App() {
     setProjectMetadata(createDefaultProjectMetadata())
     resetProjectLogoAssets(discTemplates.standardPrintableDisc)
     resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
-    setProjectDiscNumberArtwork(createDefaultProjectDiscNumberArtwork())
     resetProjectAdditionalArtwork()
     resetProjectRatingBadge(discTemplates.standardPrintableDisc)
     resetProjectMediaMark(discTemplates.standardPrintableDisc)
     resetProjectPlatformMarks()
     resetProjectTechnicalMarks()
+    resetDiscTextState(discTemplates.standardPrintableDisc, 'top')
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -1156,14 +793,6 @@ function App() {
     setHasCheckedLocalSteamScreenshots(false)
     setIsLocalSteamScreenshotsLoading(false)
     setIsArtworkLoading(false)
-    setDiscTextSettings(DEFAULT_DISC_TEXT_SETTINGS)
-    setDiscTextValues(createDefaultDiscTextValues())
-    setDiscTextValueSources(createDefaultDiscTextValueSources())
-    setDiscTextTitleValue('')
-    setDiscTextLayout(
-      createDefaultDiscTextLayout('top', discTemplates.standardPrintableDisc),
-    )
-    setDiscTextStyles(createDefaultDiscTextStyles())
   }
 
   function resetCaseInsertProjectState() {
@@ -1388,32 +1017,10 @@ function App() {
       }
       const shouldUpdateCopyrightDiscTextSource =
         Boolean(autoLegalCandidate) || shouldResetGameScopedLegal
-      const nextDiscTextValueSources = shouldUpdateCopyrightDiscTextSource
-        ? {
-            ...discTextValueSources,
-            copyright: 'metadata' as const,
-          }
-        : discTextValueSources
-      const nextDiscTextValuesBase = applySteamGameImportToDiscTextValues(
+      const nextDiscTextResolution = applySteamImportedDiscTextValues(
         importedState.importedGame,
-        discTextValues,
-        nextDiscTextValueSources,
-      )
-      const nextDiscTextValues = shouldUpdateCopyrightDiscTextSource
-        ? {
-            ...nextDiscTextValuesBase,
-            copyright: '',
-          }
-        : nextDiscTextValuesBase
-      const nextMetadataBoundValues = resolveMetadataBoundDiscTextValues(
-        nextDiscTextValues,
         nextProjectMetadataWithAutoApply,
-        nextDiscTextValueSources,
-      )
-      const nextResolvedTitle = resolveMetadataBoundDiscTextTitle(
-        discTextTitleValue,
-        nextProjectMetadataWithAutoApply,
-        nextDiscTextValueSources,
+        { useMetadataCopyright: shouldUpdateCopyrightDiscTextSource },
       )
       const titleArtworkImport = await applySteamTitleArtworkImport(
         importedState.importedGame,
@@ -1429,10 +1036,6 @@ function App() {
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadataWithAutoApply)
       setProjectPlatformMarks(platformMarkImport.platformMarks)
-      setDiscTextValues(nextDiscTextValues)
-      if (shouldUpdateCopyrightDiscTextSource) {
-        setDiscTextValueSources(nextDiscTextValueSources)
-      }
       if (autoLegalCandidate) {
         enableCurvedCopyrightDiscText()
       } else if (shouldResetGameScopedLegal) {
@@ -1443,17 +1046,11 @@ function App() {
       } else if (shouldResetGameScopedRating) {
         setRatingBadgeEnabled(false)
       }
-      clampDiscTextLayoutForContent('title', nextResolvedTitle)
-      clampMetadataBoundDiscTextLayoutsForContent(
-        [
-          ...getDiscTextKeysForProjectMetadataField('steamAppId'),
-          ...getDiscTextKeysForProjectMetadataField('developer'),
-          ...getDiscTextKeysForProjectMetadataField('publisher'),
-          ...getDiscTextKeysForProjectMetadataField('copyrightText'),
-        ],
-        nextMetadataBoundValues,
-        nextResolvedTitle,
-        nextDiscTextValueSources,
+      clampDiscTextLayoutForContent('title', nextDiscTextResolution.resolvedDiscTextTitle)
+      clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
+        ['steamAppId', 'developer', 'publisher', 'copyrightText'],
+        nextProjectMetadataWithAutoApply,
+        nextDiscTextResolution,
       )
       announceStatus(importedState.statusMessage)
       announceStatus(titleArtworkImport.statusMessage)
@@ -1648,7 +1245,6 @@ function App() {
       setProjectMetadata(restoredProject.projectMetadata)
       setProjectLogoAssets(restoredProject.projectLogoAssets)
       setProjectTitleArtwork(restoredProject.projectTitleArtwork)
-      setProjectDiscNumberArtwork(restoredProject.projectDiscNumberArtwork)
       setProjectAdditionalArtwork(restoredProject.projectAdditionalArtwork)
       setProjectRatingBadge(restoredProject.projectRatingBadge)
       setProjectMediaMark(restoredProject.projectMediaMark)
@@ -1673,12 +1269,15 @@ function App() {
       setSteamBannerUseTextFallback(restoredProject.steamBannerUseTextFallback)
       setSteamBannerFallbackText(restoredProject.steamBannerFallbackText)
       setExportGuides(restoredProject.exportGuides)
-      setDiscTextSettings(restoredProject.discTextSettings)
-      setDiscTextValues(restoredProject.discTextValues)
-      setDiscTextValueSources(restoredProject.discTextValueSources)
-      setDiscTextTitleValue(restoredProject.discTextTitleValue)
-      setDiscTextLayout(restoredProject.discTextLayout)
-      setDiscTextStyles(restoredProject.discTextStyles)
+      restoreDiscTextState({
+        projectDiscNumberArtwork: restoredProject.projectDiscNumberArtwork,
+        discTextSettings: restoredProject.discTextSettings,
+        discTextValues: restoredProject.discTextValues,
+        discTextValueSources: restoredProject.discTextValueSources,
+        discTextTitleValue: restoredProject.discTextTitleValue,
+        discTextLayout: restoredProject.discTextLayout,
+        discTextStyles: restoredProject.discTextStyles,
+      })
       setBackgroundScale(restoredProject.backgroundScale)
       setBackgroundOffset(restoredProject.backgroundOffset)
       setBackgroundImageUrl(restoredProject.backgroundImageUrl)
