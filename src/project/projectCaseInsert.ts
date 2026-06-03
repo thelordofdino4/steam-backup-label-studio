@@ -23,6 +23,7 @@ import type {
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
+  ProjectCaseInsertTextList,
   ProjectCaseInsertTextSource,
   ProjectImageAssetProvenance,
   ProjectJewelCaseBackState,
@@ -37,11 +38,101 @@ import type {
 
 type JsonRecord = Record<string, unknown>
 
+export type ProjectCaseInsertLayoutInput = Partial<ProjectCaseInsertLayout>
+
+export type ProjectCaseInsertImageSlotInput =
+  Partial<Omit<ProjectCaseInsertImageSlot, 'imageSource' | 'layout'>> & {
+    imageSource?: Partial<ProjectImageAssetProvenance> | null
+    layout?: ProjectCaseInsertLayoutInput
+  }
+
+export type ProjectCaseInsertTextBlockInput =
+  Partial<Omit<ProjectCaseInsertTextBlock, 'layout'>> & {
+    layout?: ProjectCaseInsertLayoutInput
+  }
+
+export type ProjectCaseInsertTextListInput =
+  Partial<Omit<ProjectCaseInsertTextList, 'layout'>> & {
+    layout?: ProjectCaseInsertLayoutInput
+  }
+
+export type ProjectCaseInsertSurfaceStateInput =
+  Partial<
+    Omit<
+      ProjectCaseInsertSurfaceState,
+      | 'background'
+      | 'titleArtwork'
+      | 'artworkSlots'
+      | 'logoSlots'
+      | 'markSlots'
+      | 'textBlocks'
+    >
+  > & {
+    background?: ProjectCaseInsertImageSlotInput
+    titleArtwork?: ProjectCaseInsertImageSlotInput
+    artworkSlots?: ProjectCaseInsertImageSlotInput[]
+    artwork?: ProjectCaseInsertImageSlotInput[]
+    logoSlots?: ProjectCaseInsertImageSlotInput[]
+    logos?: ProjectCaseInsertImageSlotInput[]
+    markSlots?: ProjectCaseInsertImageSlotInput[]
+    marks?: ProjectCaseInsertImageSlotInput[]
+    textBlocks?: ProjectCaseInsertTextBlockInput[]
+    text?: ProjectCaseInsertTextBlockInput[]
+  }
+
+export type ProjectJewelCaseFrontStateInput = ProjectCaseInsertSurfaceStateInput & {
+  calloutArtwork?: ProjectCaseInsertImageSlotInput
+  calloutText?: ProjectCaseInsertTextBlockInput
+  callout?: ProjectCaseInsertTextBlockInput
+}
+
+export type ProjectJewelCaseBackStateInput = ProjectCaseInsertSurfaceStateInput & {
+  screenshotSlots?: ProjectCaseInsertImageSlotInput[]
+  screenshots?: ProjectCaseInsertImageSlotInput[]
+  description?: ProjectCaseInsertTextBlockInput
+  featureBullets?: ProjectCaseInsertTextListInput
+  features?: ProjectCaseInsertTextListInput
+  minimumRequirements?: ProjectCaseInsertTextBlockInput
+  minimumSystemRequirements?: ProjectCaseInsertTextBlockInput
+  recommendedRequirements?: ProjectCaseInsertTextBlockInput
+  recommendedSystemRequirements?: ProjectCaseInsertTextBlockInput
+  legalText?: ProjectCaseInsertTextBlockInput
+  legal?: ProjectCaseInsertTextBlockInput
+}
+
+export type ProjectJewelCaseSpineSideStateInput = {
+  background?: ProjectCaseInsertImageSlotInput
+  title?: ProjectCaseInsertTextBlockInput
+  titleText?: ProjectCaseInsertTextBlockInput
+  steamBackupBranding?: ProjectCaseInsertImageSlotInput
+  steamBackupLogo?: ProjectCaseInsertImageSlotInput
+  logo?: ProjectCaseInsertImageSlotInput
+}
+
+export type ProjectJewelCaseSpineStateInput = {
+  left?: ProjectJewelCaseSpineSideStateInput
+  right?: ProjectJewelCaseSpineSideStateInput
+}
+
+export type ProjectJewelCaseExportSettingsInput = {
+  surfaces?: JewelCaseSurfaceId[]
+  guideIds?: JewelCaseGuideId[]
+  guides?: JewelCaseGuideId[] | Partial<Record<JewelCaseGuideId, boolean>>
+}
+
+export type ProjectJewelCaseStateInput = {
+  templateType?: SupportedCaseInsertTemplateType
+  front?: ProjectJewelCaseFrontStateInput
+  back?: ProjectJewelCaseBackStateInput
+  spine?: ProjectJewelCaseSpineStateInput
+  export?: ProjectJewelCaseExportSettingsInput
+}
+
 export type CreateCaseInsertProjectSnapshotParams = {
   manualGameTitle?: string
   selectedSteamGame?: SteamImportedGame | null
   projectMetadata?: Partial<ProjectMetadata>
-  caseInsert?: Partial<ProjectJewelCaseState>
+  caseInsert?: ProjectJewelCaseStateInput
   savedAt?: string
 }
 
@@ -61,6 +152,7 @@ export type RestoredCaseInsertProjectState = {
 export const DEFAULT_CASE_INSERT_PROJECT_TITLE = 'Untitled Jewel Case Insert'
 
 const DEFAULT_CASE_INSERT_SURFACES: JewelCaseSurfaceId[] = ['front', 'back']
+const DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT = 3
 const JEWEL_CASE_GUIDE_IDS = jewelCaseInsertTemplate.guides.map(
   ({ id }) => id as JewelCaseGuideId,
 )
@@ -80,6 +172,10 @@ function asArray(value: unknown): unknown[] | null {
 
 function normalizeString(value: unknown, fallback: string) {
   return typeof value === 'string' && value.trim() ? value : fallback
+}
+
+function normalizeTextValue(value: unknown, fallback: string) {
+  return typeof value === 'string' ? value : fallback
 }
 
 function normalizeNullableString(value: unknown) {
@@ -279,7 +375,7 @@ function normalizeCaseInsertTextBlock(
     id: normalizeString(record.id, defaults.id),
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
-    value: normalizeString(record.value ?? record.text, defaults.value),
+    value: normalizeTextValue(record.value ?? record.text, defaults.value),
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
     align: normalizeCaseInsertTextAlign(record.align, defaults.align),
     layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
@@ -300,6 +396,58 @@ function normalizeCaseInsertTextBlockArray(
       ),
     ),
   )
+}
+
+export function createDefaultCaseInsertTextList(
+  id: string,
+  label: string,
+  options: {
+    enabled?: boolean
+    items?: string[]
+    source?: ProjectCaseInsertTextSource
+    layout?: Partial<ProjectCaseInsertLayout>
+  } = {},
+): ProjectCaseInsertTextList {
+  return {
+    id,
+    label,
+    enabled: options.enabled ?? false,
+    items: options.items ?? [],
+    source: options.source ?? 'manual',
+    layout: createDefaultCaseInsertLayout(options.layout),
+  }
+}
+
+function normalizeTextListItems(value: unknown, fallbackItems: string[]) {
+  const items = asArray(value)
+
+  if (!items) {
+    return fallbackItems
+  }
+
+  return items.flatMap((item) =>
+    typeof item === 'string' && item.trim() ? [item.trim()] : [],
+  )
+}
+
+function normalizeCaseInsertTextList(
+  value: unknown,
+  defaults: ProjectCaseInsertTextList,
+): ProjectCaseInsertTextList {
+  const record = asRecord(value)
+
+  if (!record) {
+    return defaults
+  }
+
+  return {
+    id: normalizeString(record.id, defaults.id),
+    label: normalizeString(record.label, defaults.label),
+    enabled: normalizeBoolean(record.enabled, defaults.enabled),
+    items: normalizeTextListItems(record.items ?? record.values, defaults.items),
+    source: normalizeCaseInsertTextSource(record.source, defaults.source),
+    layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
+  }
 }
 
 function createDefaultCaseInsertSurfaceState(
@@ -364,10 +512,75 @@ function normalizeCaseInsertSurfaceState(
   }
 }
 
+function createDefaultJewelCaseFrontState(): ProjectJewelCaseFrontState {
+  return {
+    ...createDefaultCaseInsertSurfaceState('front', 'Front'),
+    calloutArtwork: createDefaultCaseInsertImageSlot(
+      'front-callout-artwork',
+      'Front callout artwork',
+    ),
+    calloutText: createDefaultCaseInsertTextBlock(
+      'front-callout-text',
+      'Front callout text',
+      { align: 'center' },
+    ),
+  }
+}
+
+function normalizeJewelCaseFrontState(value: unknown): ProjectJewelCaseFrontState {
+  const defaults = createDefaultJewelCaseFrontState()
+  const record = asRecord(value)
+  const surfaceState = normalizeCaseInsertSurfaceState(
+    record,
+    defaults,
+    'front',
+    'Front',
+  )
+
+  return {
+    ...surfaceState,
+    calloutArtwork: normalizeCaseInsertImageSlot(
+      record?.calloutArtwork,
+      defaults.calloutArtwork,
+    ),
+    calloutText: normalizeCaseInsertTextBlock(
+      record?.calloutText ?? record?.callout,
+      defaults.calloutText,
+    ),
+  }
+}
+
+function createDefaultJewelCaseScreenshotSlots() {
+  return Array.from({ length: DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT }, (_, index) =>
+    createDefaultCaseInsertImageSlot(
+      `back-screenshot-${index + 1}`,
+      `Back screenshot ${index + 1}`,
+      { fit: 'cover' },
+    ),
+  )
+}
+
 function createDefaultJewelCaseBackState(): ProjectJewelCaseBackState {
   return {
     ...createDefaultCaseInsertSurfaceState('back', 'Back'),
-    screenshotSlots: [],
+    screenshotSlots: createDefaultJewelCaseScreenshotSlots(),
+    description: createDefaultCaseInsertTextBlock(
+      'back-description',
+      'Back description',
+    ),
+    featureBullets: createDefaultCaseInsertTextList(
+      'back-feature-bullets',
+      'Back feature bullets',
+    ),
+    minimumRequirements: createDefaultCaseInsertTextBlock(
+      'back-minimum-requirements',
+      'Minimum requirements',
+    ),
+    recommendedRequirements: createDefaultCaseInsertTextBlock(
+      'back-recommended-requirements',
+      'Recommended requirements',
+    ),
+    legalText: createDefaultCaseInsertTextBlock('back-legal-text', 'Legal text'),
   }
 }
 
@@ -383,10 +596,32 @@ function normalizeJewelCaseBackState(value: unknown): ProjectJewelCaseBackState 
 
   return {
     ...surfaceState,
-    screenshotSlots: normalizeCaseInsertImageSlotArray(
-      record?.screenshotSlots ?? record?.screenshots,
-      'back-screenshot',
-      'Back screenshot',
+    screenshotSlots: record
+      ? normalizeCaseInsertImageSlotArray(
+          record.screenshotSlots ?? record.screenshots,
+          'back-screenshot',
+          'Back screenshot',
+        )
+      : defaults.screenshotSlots,
+    description: normalizeCaseInsertTextBlock(
+      record?.description,
+      defaults.description,
+    ),
+    featureBullets: normalizeCaseInsertTextList(
+      record?.featureBullets ?? record?.features,
+      defaults.featureBullets,
+    ),
+    minimumRequirements: normalizeCaseInsertTextBlock(
+      record?.minimumRequirements ?? record?.minimumSystemRequirements,
+      defaults.minimumRequirements,
+    ),
+    recommendedRequirements: normalizeCaseInsertTextBlock(
+      record?.recommendedRequirements ?? record?.recommendedSystemRequirements,
+      defaults.recommendedRequirements,
+    ),
+    legalText: normalizeCaseInsertTextBlock(
+      record?.legalText ?? record?.legal,
+      defaults.legalText,
     ),
   }
 }
@@ -408,6 +643,10 @@ function createDefaultJewelCaseSpineSideState(
       `${label} title`,
       { align: 'center', value: title },
     ),
+    steamBackupBranding: createDefaultCaseInsertImageSlot(
+      `${side}-spine-steam-backup-branding`,
+      `${label} Steam Backup branding`,
+    ),
     logo: createDefaultCaseInsertImageSlot(`${side}-spine-logo`, `${label} logo`),
   }
 }
@@ -425,6 +664,10 @@ function normalizeJewelCaseSpineSideState(
   return {
     background: normalizeCaseInsertImageSlot(record.background, defaults.background),
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
+    steamBackupBranding: normalizeCaseInsertImageSlot(
+      record.steamBackupBranding ?? record.steamBackupLogo,
+      defaults.steamBackupBranding,
+    ),
     logo: normalizeCaseInsertImageSlot(record.logo, defaults.logo),
   }
 }
@@ -509,7 +752,7 @@ export function createDefaultProjectJewelCaseState(
 ): ProjectJewelCaseState {
   return {
     templateType: DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
-    front: createDefaultCaseInsertSurfaceState('front', 'Front'),
+    front: createDefaultJewelCaseFrontState(),
     back: createDefaultJewelCaseBackState(),
     spine: createDefaultJewelCaseSpineState(title),
     export: {
@@ -524,7 +767,6 @@ export function normalizeProjectJewelCaseState(
   title = '',
   templateType: SupportedCaseInsertTemplateType = DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
 ): ProjectJewelCaseState {
-  const defaults = createDefaultProjectJewelCaseState(title)
   const record = asRecord(value)
   const normalizedTemplateType = normalizeCaseInsertTemplateType(
     record?.templateType ?? templateType,
@@ -532,15 +774,333 @@ export function normalizeProjectJewelCaseState(
 
   return {
     templateType: normalizedTemplateType,
-    front: normalizeCaseInsertSurfaceState(
-      record?.front,
-      defaults.front,
-      'front',
-      'Front',
-    ) as ProjectJewelCaseFrontState,
+    front: normalizeJewelCaseFrontState(record?.front),
     back: normalizeJewelCaseBackState(record?.back),
     spine: normalizeJewelCaseSpineState(record?.spine, title),
     export: normalizeJewelCaseExportSettings(record?.export),
+  }
+}
+
+export type CaseInsertImageSlotImageInput = {
+  imageDataUrl: string
+  imageSize: BackgroundImageSize
+  imageSource?: Partial<ProjectImageAssetProvenance> | null
+}
+
+export type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
+
+export type CaseInsertLayoutPoint = {
+  x: number
+  y: number
+}
+
+export type JewelCaseSpineSide = keyof ProjectJewelCaseSpineState
+
+export function setCaseInsertImageSlotEnabled(
+  slot: ProjectCaseInsertImageSlot,
+  enabled: boolean,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    enabled,
+  }
+}
+
+export function setCaseInsertImageSlotImage(
+  slot: ProjectCaseInsertImageSlot,
+  image: CaseInsertImageSlotImageInput,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    enabled: true,
+    imageDataUrl: image.imageDataUrl,
+    imageSize: image.imageSize,
+    imageSource: normalizeProjectImageAssetProvenance(
+      image.imageSource,
+      createEmbeddedProjectImageAssetProvenance(slot.label),
+    ),
+  }
+}
+
+export function clearCaseInsertImageSlotImage(
+  slot: ProjectCaseInsertImageSlot,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    enabled: false,
+    imageDataUrl: null,
+    imageSource: null,
+    imageSize: null,
+  }
+}
+
+export function updateCaseInsertImageSlotFit(
+  slot: ProjectCaseInsertImageSlot,
+  fit: ProjectCaseInsertImageFit,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    fit,
+  }
+}
+
+export function updateCaseInsertImageSlotLayout(
+  slot: ProjectCaseInsertImageSlot,
+  layout: ProjectCaseInsertLayout,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    layout,
+  }
+}
+
+export function updateCaseInsertImageSlotLayoutField(
+  slot: ProjectCaseInsertImageSlot,
+  field: CaseInsertLayoutField,
+  value: number,
+): ProjectCaseInsertImageSlot {
+  return updateCaseInsertImageSlotLayout(slot, {
+    ...slot.layout,
+    [field]: value,
+  })
+}
+
+export function updateCaseInsertImageSlotLayoutPosition(
+  slot: ProjectCaseInsertImageSlot,
+  point: CaseInsertLayoutPoint,
+): ProjectCaseInsertImageSlot {
+  return updateCaseInsertImageSlotLayout(slot, {
+    ...slot.layout,
+    x: point.x,
+    y: point.y,
+  })
+}
+
+export function setCaseInsertTextBlockEnabled(
+  textBlock: ProjectCaseInsertTextBlock,
+  enabled: boolean,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    enabled,
+  }
+}
+
+export function updateCaseInsertTextBlockValue(
+  textBlock: ProjectCaseInsertTextBlock,
+  value: string,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    value,
+  }
+}
+
+export function updateCaseInsertTextBlockLayout(
+  textBlock: ProjectCaseInsertTextBlock,
+  layout: ProjectCaseInsertLayout,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    layout,
+  }
+}
+
+export function updateCaseInsertTextBlockLayoutField(
+  textBlock: ProjectCaseInsertTextBlock,
+  field: CaseInsertLayoutField,
+  value: number,
+): ProjectCaseInsertTextBlock {
+  return updateCaseInsertTextBlockLayout(textBlock, {
+    ...textBlock.layout,
+    [field]: value,
+  })
+}
+
+export function setCaseInsertTextListEnabled(
+  textList: ProjectCaseInsertTextList,
+  enabled: boolean,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    enabled,
+  }
+}
+
+export function setCaseInsertTextListItems(
+  textList: ProjectCaseInsertTextList,
+  items: string[],
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    items: normalizeTextListItems(items, textList.items),
+  }
+}
+
+export function addCaseInsertTextListItem(
+  textList: ProjectCaseInsertTextList,
+  value = '',
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    enabled: true,
+    items: [...textList.items, value],
+  }
+}
+
+export function updateCaseInsertTextListItem(
+  textList: ProjectCaseInsertTextList,
+  index: number,
+  value: string,
+): ProjectCaseInsertTextList {
+  if (index < 0 || index >= textList.items.length) {
+    return textList
+  }
+
+  return {
+    ...textList,
+    items: textList.items.map((item, currentIndex) =>
+      currentIndex === index ? value : item,
+    ),
+  }
+}
+
+export function removeCaseInsertTextListItem(
+  textList: ProjectCaseInsertTextList,
+  index: number,
+): ProjectCaseInsertTextList {
+  if (index < 0 || index >= textList.items.length) {
+    return textList
+  }
+
+  return {
+    ...textList,
+    items: textList.items.filter((_, currentIndex) => currentIndex !== index),
+  }
+}
+
+export function updateProjectJewelCaseFront(
+  state: ProjectJewelCaseState,
+  updater: (front: ProjectJewelCaseFrontState) => ProjectJewelCaseFrontState,
+): ProjectJewelCaseState {
+  return {
+    ...state,
+    front: updater(state.front),
+  }
+}
+
+export function updateProjectJewelCaseBack(
+  state: ProjectJewelCaseState,
+  updater: (back: ProjectJewelCaseBackState) => ProjectJewelCaseBackState,
+): ProjectJewelCaseState {
+  return {
+    ...state,
+    back: updater(state.back),
+  }
+}
+
+export function updateProjectJewelCaseSpineSide(
+  state: ProjectJewelCaseState,
+  side: JewelCaseSpineSide,
+  updater: (
+    spineSide: ProjectJewelCaseSpineSideState,
+  ) => ProjectJewelCaseSpineSideState,
+): ProjectJewelCaseState {
+  return {
+    ...state,
+    spine: {
+      ...state.spine,
+      [side]: updater(state.spine[side]),
+    },
+  }
+}
+
+function updateCaseInsertImageSlotById(
+  slots: ProjectCaseInsertImageSlot[],
+  slotId: string,
+  updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
+) {
+  let didUpdate = false
+  const nextSlots = slots.map((slot) => {
+    if (slot.id !== slotId) {
+      return slot
+    }
+
+    didUpdate = true
+    return updater(slot)
+  })
+
+  return didUpdate ? nextSlots : slots
+}
+
+export function addJewelCaseBackScreenshotSlot(
+  state: ProjectJewelCaseState,
+): ProjectJewelCaseState {
+  return updateProjectJewelCaseBack(state, (back) => {
+    const nextIndex = back.screenshotSlots.length + 1
+
+    return {
+      ...back,
+      screenshotSlots: [
+        ...back.screenshotSlots,
+        createDefaultCaseInsertImageSlot(
+          `back-screenshot-${nextIndex}`,
+          `Back screenshot ${nextIndex}`,
+          { fit: 'cover' },
+        ),
+      ],
+    }
+  })
+}
+
+export function updateJewelCaseBackScreenshotSlot(
+  state: ProjectJewelCaseState,
+  slotId: string,
+  updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
+): ProjectJewelCaseState {
+  return updateProjectJewelCaseBack(state, (back) => ({
+    ...back,
+    screenshotSlots: updateCaseInsertImageSlotById(
+      back.screenshotSlots,
+      slotId,
+      updater,
+    ),
+  }))
+}
+
+export function removeJewelCaseBackScreenshotSlot(
+  state: ProjectJewelCaseState,
+  slotId: string,
+): ProjectJewelCaseState {
+  return updateProjectJewelCaseBack(state, (back) => ({
+    ...back,
+    screenshotSlots: back.screenshotSlots.filter((slot) => slot.id !== slotId),
+  }))
+}
+
+export function setProjectJewelCaseExportSurfaces(
+  state: ProjectJewelCaseState,
+  surfaces: JewelCaseSurfaceId[],
+): ProjectJewelCaseState {
+  return {
+    ...state,
+    export: {
+      ...state.export,
+      surfaces: normalizeCaseInsertSurfaceIds(surfaces),
+    },
+  }
+}
+
+export function setProjectJewelCaseExportGuideIds(
+  state: ProjectJewelCaseState,
+  guideIds: JewelCaseGuideId[],
+): ProjectJewelCaseState {
+  return {
+    ...state,
+    export: {
+      ...state.export,
+      guideIds: normalizeJewelCaseGuideIds(guideIds),
+    },
   }
 }
 

@@ -371,6 +371,15 @@ export type ProjectCaseInsertTextBlock = {
   layout: ProjectCaseInsertLayout
 }
 
+export type ProjectCaseInsertTextList = {
+  id: string
+  label: string
+  enabled: boolean
+  items: string[]
+  source: ProjectCaseInsertTextSource
+  layout: ProjectCaseInsertLayout
+}
+
 export type ProjectCaseInsertSurfaceState = {
   background: ProjectCaseInsertImageSlot
   titleArtwork: ProjectCaseInsertImageSlot
@@ -380,15 +389,24 @@ export type ProjectCaseInsertSurfaceState = {
   textBlocks: ProjectCaseInsertTextBlock[]
 }
 
-export type ProjectJewelCaseFrontState = ProjectCaseInsertSurfaceState
+export type ProjectJewelCaseFrontState = ProjectCaseInsertSurfaceState & {
+  calloutArtwork: ProjectCaseInsertImageSlot
+  calloutText: ProjectCaseInsertTextBlock
+}
 
 export type ProjectJewelCaseBackState = ProjectCaseInsertSurfaceState & {
   screenshotSlots: ProjectCaseInsertImageSlot[]
+  description: ProjectCaseInsertTextBlock
+  featureBullets: ProjectCaseInsertTextList
+  minimumRequirements: ProjectCaseInsertTextBlock
+  recommendedRequirements: ProjectCaseInsertTextBlock
+  legalText: ProjectCaseInsertTextBlock
 }
 
 export type ProjectJewelCaseSpineSideState = {
   background: ProjectCaseInsertImageSlot
   title: ProjectCaseInsertTextBlock
+  steamBackupBranding: ProjectCaseInsertImageSlot
   logo: ProjectCaseInsertImageSlot
 }
 

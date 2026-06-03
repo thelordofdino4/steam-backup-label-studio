@@ -125,9 +125,10 @@ type SavedDiscProject = {
 
 ## Case Insert Groundwork
 
-Issue #131 adds a normalized case insert branch to the same `0.1.0` JSON
-project family. This is background schema work for the future editor; it does
-not mean the full jewel case editor/export workflow is implemented.
+Issues #131 and #132 add a normalized case insert branch and focused jewel case
+domain state to the same `0.1.0` JSON project family. This is background schema
+and state-management work for the future editor; it does not mean the full jewel
+case editor/export workflow is implemented.
 
 Current case insert project files use `projectType: 'caseInsert'` and normalize
 to `template.type: 'caseInsert'` plus `template.variant: 'jewelCase'`. Older
@@ -136,11 +137,12 @@ normalized as jewel case projects.
 
 The jewel case state stores:
 
-- front surface background, title artwork, artwork slots, logo slots, mark slots, and text blocks
-- back surface background, title artwork, artwork slots, screenshots, logo slots, mark slots, and text blocks
-- left and right spine settings, including background, title text, and logo slot
+- front surface background, title artwork, callout artwork/text, extra artwork slots, logo slots, mark slots, and text blocks
+- back surface background, title artwork, screenshots, description, feature bullets, minimum/recommended requirements, legal text, extra artwork slots, logo slots, mark slots, and text blocks
+- left and right spine settings, including background, title text, Steam Backup branding slot, and logo slot
 - case export settings, including selected surfaces and guide IDs
 - image asset data, image size, fit/layout settings, and provenance where present
+- update helpers that can disable optional visual/text elements without dropping their remembered values or uploaded assets
 
 The current descriptive shape is:
 
@@ -182,6 +184,7 @@ Loader normalization should:
 - route case insert projects away from the disc restore path
 - normalize sparse jewel case data to safe front/back/spine defaults
 - preserve case image asset provenance and embedded data where present
+- preserve optional case image, text, screenshot, logo, mark, and export state when controls are toggled off
 
 ## Future Format
 
