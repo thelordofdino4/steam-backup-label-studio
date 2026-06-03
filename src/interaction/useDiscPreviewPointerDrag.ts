@@ -102,76 +102,43 @@ type TechnicalMarkDragState = {
   value: TechnicalMarkValue
 } & PercentDragState
 
-type UseDiscPreviewPointerDragOptions = {
-  discPreviewRef: RefObject<HTMLDivElement | null>
-  selectedDiscTemplate: DiscTemplate
-  backgroundImageUrl: string | null
-  backgroundImageSize: BackgroundImageSize | null
-  backgroundScale: number
-  backgroundOffset: BackgroundOffset
-  setBackgroundOffset: Dispatch<SetStateAction<BackgroundOffset>>
-  discTextLayout: DiscTextLayoutSettings
-  setDiscTextLayout: Dispatch<SetStateAction<DiscTextLayoutSettings>>
-  projectLogoAssets: ProjectLogoAssets
-  setProjectLogoAssets: Dispatch<SetStateAction<ProjectLogoAssets>>
-  projectTitleArtwork: ProjectTitleArtwork
-  setProjectTitleArtwork: Dispatch<SetStateAction<ProjectTitleArtwork>>
-  projectAdditionalArtwork: ProjectAdditionalArtwork
-  setProjectAdditionalArtwork: Dispatch<SetStateAction<ProjectAdditionalArtwork>>
-  projectRatingBadge: ProjectRatingBadge
-  setProjectRatingBadge: Dispatch<SetStateAction<ProjectRatingBadge>>
-  projectMediaMark: ProjectMediaMark
-  setProjectMediaMark: Dispatch<SetStateAction<ProjectMediaMark>>
-  projectPlatformMarks: ProjectPlatformMarks
-  setProjectPlatformMarks: Dispatch<SetStateAction<ProjectPlatformMarks>>
-  projectTechnicalMarks: ProjectTechnicalMarks
-  setProjectTechnicalMarks: Dispatch<SetStateAction<ProjectTechnicalMarks>>
+type PercentPoint = ReturnType<typeof getDraggedPercentPoint>
+
+type StateBinding<TValue> = {
+  value: TValue
+  setValue: Dispatch<SetStateAction<TValue>>
 }
 
-export function useDiscPreviewPointerDrag({
-  discPreviewRef,
-  selectedDiscTemplate,
-  backgroundImageUrl,
-  backgroundImageSize,
-  backgroundScale,
-  backgroundOffset,
-  setBackgroundOffset,
-  discTextLayout,
-  setDiscTextLayout,
-  projectLogoAssets,
-  setProjectLogoAssets,
-  projectTitleArtwork,
-  setProjectTitleArtwork,
-  projectAdditionalArtwork,
-  setProjectAdditionalArtwork,
-  projectRatingBadge,
-  setProjectRatingBadge,
-  projectMediaMark,
-  setProjectMediaMark,
-  projectPlatformMarks,
-  setProjectPlatformMarks,
-  projectTechnicalMarks,
-  setProjectTechnicalMarks,
-}: UseDiscPreviewPointerDragOptions) {
-  const backgroundPointerDrag = usePointerDrag<PixelDragState, HTMLDivElement>({
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-      const nextOffset = getDraggedPixelOffset(dragState, event.clientX, event.clientY)
+type UseDiscPreviewPointerDragOptions = {
+  preview: {
+    discPreviewRef: RefObject<HTMLDivElement | null>
+    selectedDiscTemplate: DiscTemplate
+  }
+  background: {
+    imageUrl: string | null
+    imageSize: BackgroundImageSize | null
+    scale: number
+    offset: BackgroundOffset
+    setOffset: Dispatch<SetStateAction<BackgroundOffset>>
+  }
+  discText: {
+    layout: DiscTextLayoutSettings
+    setLayout: Dispatch<SetStateAction<DiscTextLayoutSettings>>
+  }
+  logoAssets: StateBinding<ProjectLogoAssets>
+  titleArtwork: StateBinding<ProjectTitleArtwork>
+  additionalArtwork: StateBinding<ProjectAdditionalArtwork>
+  ratingBadge: StateBinding<ProjectRatingBadge>
+  mediaMark: StateBinding<ProjectMediaMark>
+  platformMarks: StateBinding<ProjectPlatformMarks>
+  technicalMarks: StateBinding<ProjectTechnicalMarks>
+}
 
-      setBackgroundOffset(
-        previewRect
-          ? clampBackgroundOffsetToImageBounds(
-              nextOffset,
-              backgroundImageSize,
-              backgroundScale,
-              previewRect.width,
-            )
-          : nextOffset,
-      )
-    },
-  })
-
-  const discTextPointerDrag = usePointerDrag<TextDragState>({
+function useDiscPreviewPercentDrag<TDragState extends PercentDragState>(
+  discPreviewRef: RefObject<HTMLDivElement | null>,
+  onDraggedPoint: (dragState: TDragState, draggedPoint: PercentPoint) => void,
+) {
+  return usePointerDrag<TDragState>({
     stopPropagation: true,
     onDragMove: (dragState, event) => {
       const previewRect = discPreviewRef.current?.getBoundingClientRect()
@@ -180,14 +147,72 @@ export function useDiscPreviewPointerDrag({
         return
       }
 
-      const draggedPoint = getDraggedPercentPoint(
+      onDraggedPoint(
         dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
+        getDraggedPercentPoint(
+          dragState,
+          event.clientX,
+          event.clientY,
+          previewRect,
+        ),
       )
+    },
+  })
+}
 
-      setDiscTextLayout((currentLayout) => {
+function createElementPercentDragState<TExtra extends object>(
+  event: PointerEvent<Element>,
+  startX: number,
+  startY: number,
+  extra: TExtra,
+): TExtra & PercentDragState {
+  return {
+    ...extra,
+    ...createPercentDragState(
+      event.pointerId,
+      event.clientX,
+      event.clientY,
+      startX,
+      startY,
+    ),
+  }
+}
+
+export function useDiscPreviewPointerDrag({
+  preview,
+  background,
+  discText,
+  logoAssets,
+  titleArtwork,
+  additionalArtwork,
+  ratingBadge,
+  mediaMark,
+  platformMarks,
+  technicalMarks,
+}: UseDiscPreviewPointerDragOptions) {
+  const { discPreviewRef, selectedDiscTemplate } = preview
+  const backgroundPointerDrag = usePointerDrag<PixelDragState, HTMLDivElement>({
+    onDragMove: (dragState, event) => {
+      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+      const nextOffset = getDraggedPixelOffset(dragState, event.clientX, event.clientY)
+
+      background.setOffset(
+        previewRect
+          ? clampBackgroundOffsetToImageBounds(
+              nextOffset,
+              background.imageSize,
+              background.scale,
+              previewRect.width,
+            )
+          : nextOffset,
+      )
+    },
+  })
+
+  const discTextPointerDrag = useDiscPreviewPercentDrag<TextDragState>(
+    discPreviewRef,
+    (dragState, draggedPoint) => {
+      discText.setLayout((currentLayout) => {
         const nextLayout = updateDraggedDiscTextLayoutPosition(
           currentLayout,
           dragState.key,
@@ -210,25 +235,12 @@ export function useDiscPreviewPointerDrag({
         }
       })
     },
-  })
+  )
 
-  const logoAssetPointerDrag = usePointerDrag<LogoDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectLogoAssets((currentLogoAssets) => {
+  const logoAssetPointerDrag = useDiscPreviewPercentDrag<LogoDragState>(
+    discPreviewRef,
+    (dragState, draggedPoint) => {
+      logoAssets.setValue((currentLogoAssets) => {
         const nextLogoAssets = updateLogoAssetLayoutPosition(
           currentLogoAssets,
           dragState.logoKey,
@@ -257,25 +269,12 @@ export function useDiscPreviewPointerDrag({
         )
       })
     },
-  })
+  )
 
-  const titleArtworkPointerDrag = usePointerDrag<TitleArtworkDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectTitleArtwork((currentTitleArtwork) => {
+  const titleArtworkPointerDrag = useDiscPreviewPercentDrag<TitleArtworkDragState>(
+    discPreviewRef,
+    (_dragState, draggedPoint) => {
+      titleArtwork.setValue((currentTitleArtwork) => {
         const nextTitleArtwork = updateTitleArtworkLayoutPosition(
           currentTitleArtwork,
           draggedPoint,
@@ -289,65 +288,43 @@ export function useDiscPreviewPointerDrag({
         return setTitleArtworkLayout(nextTitleArtwork, nextLayout)
       })
     },
-  })
+  )
 
-  const additionalArtworkPointerDrag = usePointerDrag<AdditionalArtworkDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+  const additionalArtworkPointerDrag =
+    useDiscPreviewPercentDrag<AdditionalArtworkDragState>(
+      discPreviewRef,
+      (dragState, draggedPoint) => {
+        additionalArtwork.setValue((currentAdditionalArtwork) => {
+          const nextAdditionalArtwork = updateAdditionalArtworkElementLayoutPosition(
+            currentAdditionalArtwork,
+            dragState.elementId,
+            draggedPoint,
+          )
+          const nextLayout = clampAdditionalArtworkElementLayoutToSafeZone(
+            getAdditionalArtworkElementLayout(
+              nextAdditionalArtwork,
+              dragState.elementId,
+            ),
+            selectedDiscTemplate,
+            getAdditionalArtworkElementImageSize(
+              nextAdditionalArtwork,
+              dragState.elementId,
+            ),
+          )
 
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectAdditionalArtwork((currentAdditionalArtwork) => {
-        const nextAdditionalArtwork = updateAdditionalArtworkElementLayoutPosition(
-          currentAdditionalArtwork,
-          dragState.elementId,
-          draggedPoint,
-        )
-        const nextLayout = clampAdditionalArtworkElementLayoutToSafeZone(
-          getAdditionalArtworkElementLayout(nextAdditionalArtwork, dragState.elementId),
-          selectedDiscTemplate,
-          getAdditionalArtworkElementImageSize(
+          return setAdditionalArtworkElementLayout(
             nextAdditionalArtwork,
             dragState.elementId,
-          ),
-        )
+            nextLayout,
+          )
+        })
+      },
+    )
 
-        return setAdditionalArtworkElementLayout(
-          nextAdditionalArtwork,
-          dragState.elementId,
-          nextLayout,
-        )
-      })
-    },
-  })
-
-  const ratingBadgePointerDrag = usePointerDrag<RatingBadgeDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectRatingBadge((currentBadge) => {
+  const ratingBadgePointerDrag = useDiscPreviewPercentDrag<RatingBadgeDragState>(
+    discPreviewRef,
+    (dragState, draggedPoint) => {
+      ratingBadge.setValue((currentBadge) => {
         const nextBadge = updateRatingBadgeElementLayoutPosition(
           currentBadge,
           dragState.badgeKey,
@@ -371,25 +348,12 @@ export function useDiscPreviewPointerDrag({
         )
       })
     },
-  })
+  )
 
-  const mediaMarkPointerDrag = usePointerDrag<MediaMarkDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectMediaMark((currentMark) => {
+  const mediaMarkPointerDrag = useDiscPreviewPercentDrag<MediaMarkDragState>(
+    discPreviewRef,
+    (_dragState, draggedPoint) => {
+      mediaMark.setValue((currentMark) => {
         const nextMark = updateMediaMarkLayoutPosition(currentMark, draggedPoint)
 
         return {
@@ -398,25 +362,12 @@ export function useDiscPreviewPointerDrag({
         }
       })
     },
-  })
+  )
 
-  const platformMarkPointerDrag = usePointerDrag<PlatformMarkDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectPlatformMarks((currentMarks) => {
+  const platformMarkPointerDrag = useDiscPreviewPercentDrag<PlatformMarkDragState>(
+    discPreviewRef,
+    (dragState, draggedPoint) => {
+      platformMarks.setValue((currentMarks) => {
         const nextMarks = updatePlatformMarkLayoutPosition(
           currentMarks,
           dragState.value,
@@ -428,39 +379,27 @@ export function useDiscPreviewPointerDrag({
         )
       })
     },
-  })
+  )
 
-  const technicalMarkPointerDrag = usePointerDrag<TechnicalMarkDragState>({
-    stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+  const technicalMarkPointerDrag =
+    useDiscPreviewPercentDrag<TechnicalMarkDragState>(
+      discPreviewRef,
+      (dragState, draggedPoint) => {
+        technicalMarks.setValue((currentMarks) => {
+          const nextMarks = updateTechnicalMarkLayoutPosition(
+            currentMarks,
+            dragState.value,
+            draggedPoint,
+          )
 
-      if (!previewRect) {
-        return
-      }
-
-      const draggedPoint = getDraggedPercentPoint(
-        dragState,
-        event.clientX,
-        event.clientY,
-        previewRect,
-      )
-
-      setProjectTechnicalMarks((currentMarks) => {
-        const nextMarks = updateTechnicalMarkLayoutPosition(
-          currentMarks,
-          dragState.value,
-          draggedPoint,
-        )
-
-        return clampProjectTechnicalMarksToSafeZone(nextMarks, selectedDiscTemplate)
-      })
-    },
-  })
+          return clampProjectTechnicalMarksToSafeZone(nextMarks, selectedDiscTemplate)
+        })
+      },
+    )
 
   const handleBackgroundPointerDown = useCallback(
     (event: PointerEvent<HTMLDivElement>) => {
-      if (!backgroundImageUrl) {
+      if (!background.imageUrl) {
         return
       }
 
@@ -470,27 +409,26 @@ export function useDiscPreviewPointerDrag({
           event.pointerId,
           event.clientX,
           event.clientY,
-          backgroundOffset,
+          background.offset,
         ),
       )
     },
-    [backgroundImageUrl, backgroundOffset, backgroundPointerDrag],
+    [background.imageUrl, background.offset, backgroundPointerDrag],
   )
 
   const handleDiscTextPointerDown = useCallback(
     (event: PointerEvent<Element>, key: DiscTextKey) => {
-      discTextPointerDrag.beginPointerDrag(event, {
-        key,
-        ...createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
-          discTextLayout[key].x,
-          discTextLayout[key].y,
+      discTextPointerDrag.beginPointerDrag(
+        event,
+        createElementPercentDragState(
+          event,
+          discText.layout[key].x,
+          discText.layout[key].y,
+          { key },
         ),
-      })
+      )
     },
-    [discTextLayout, discTextPointerDrag],
+    [discText.layout, discTextPointerDrag],
   )
 
   const handleLogoAssetPointerDown = useCallback(
@@ -499,21 +437,19 @@ export function useDiscPreviewPointerDrag({
       logoKey: LogoAssetKey,
       additionalLogoId?: string,
     ) => {
-      const layout = getLogoAssetLayout(projectLogoAssets, logoKey, additionalLogoId)
+      const layout = getLogoAssetLayout(logoAssets.value, logoKey, additionalLogoId)
 
-      logoAssetPointerDrag.beginPointerDrag(event, {
-        logoKey,
-        additionalLogoId,
-        ...createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
+      logoAssetPointerDrag.beginPointerDrag(
+        event,
+        createElementPercentDragState(
+          event,
           layout.x,
           layout.y,
+          { logoKey, additionalLogoId },
         ),
-      })
+      )
     },
-    [logoAssetPointerDrag, projectLogoAssets],
+    [logoAssetPointerDrag, logoAssets.value],
   )
 
   const handleTitleArtworkPointerDown = useCallback(
@@ -524,14 +460,14 @@ export function useDiscPreviewPointerDrag({
           event.pointerId,
           event.clientX,
           event.clientY,
-          projectTitleArtwork.layout.x,
-          projectTitleArtwork.layout.y,
+          titleArtwork.value.layout.x,
+          titleArtwork.value.layout.y,
         ),
       )
     },
     [
-      projectTitleArtwork.layout.x,
-      projectTitleArtwork.layout.y,
+      titleArtwork.value.layout.x,
+      titleArtwork.value.layout.y,
       titleArtworkPointerDrag,
     ],
   )
@@ -539,43 +475,38 @@ export function useDiscPreviewPointerDrag({
   const handleAdditionalArtworkPointerDown = useCallback(
     (event: PointerEvent<Element>, elementId: string) => {
       const layout = getAdditionalArtworkElementLayout(
-        projectAdditionalArtwork,
+        additionalArtwork.value,
         elementId,
       )
 
-      additionalArtworkPointerDrag.beginPointerDrag(event, {
-        elementId,
-        ...createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
+      additionalArtworkPointerDrag.beginPointerDrag(
+        event,
+        createElementPercentDragState(
+          event,
           layout.x,
           layout.y,
+          { elementId },
         ),
-      })
+      )
     },
-    [additionalArtworkPointerDrag, projectAdditionalArtwork],
+    [additionalArtworkPointerDrag, additionalArtwork.value],
   )
 
   const handleRatingBadgePointerDown = useCallback(
     (event: PointerEvent<Element>, badgeKey: RatingBadgeElementKey = 'primary') => {
-      const layout = getRatingBadgeElementLayout(projectRatingBadge, badgeKey)
+      const layout = getRatingBadgeElementLayout(ratingBadge.value, badgeKey)
 
       ratingBadgePointerDrag.beginPointerDrag(
         event,
-        {
-          badgeKey,
-          ...createPercentDragState(
-            event.pointerId,
-            event.clientX,
-            event.clientY,
-            layout.x,
-            layout.y,
-          ),
-        },
+        createElementPercentDragState(
+          event,
+          layout.x,
+          layout.y,
+          { badgeKey },
+        ),
       )
     },
-    [projectRatingBadge, ratingBadgePointerDrag],
+    [ratingBadge.value, ratingBadgePointerDrag],
   )
 
   const handleMediaMarkPointerDown = useCallback(
@@ -586,48 +517,46 @@ export function useDiscPreviewPointerDrag({
           event.pointerId,
           event.clientX,
           event.clientY,
-          projectMediaMark.layout.x,
-          projectMediaMark.layout.y,
+          mediaMark.value.layout.x,
+          mediaMark.value.layout.y,
         ),
       )
     },
-    [mediaMarkPointerDrag, projectMediaMark.layout.x, projectMediaMark.layout.y],
+    [mediaMarkPointerDrag, mediaMark.value.layout.x, mediaMark.value.layout.y],
   )
 
   const handlePlatformMarkPointerDown = useCallback(
     (event: PointerEvent<Element>, value: PlatformMarkValue) => {
-      const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
+      const asset = getProjectPlatformMarkAsset(platformMarks.value, value)
 
-      platformMarkPointerDrag.beginPointerDrag(event, {
-        value,
-        ...createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
+      platformMarkPointerDrag.beginPointerDrag(
+        event,
+        createElementPercentDragState(
+          event,
           asset.layout.x,
           asset.layout.y,
+          { value },
         ),
-      })
+      )
     },
-    [platformMarkPointerDrag, projectPlatformMarks],
+    [platformMarkPointerDrag, platformMarks.value],
   )
 
   const handleTechnicalMarkPointerDown = useCallback(
     (event: PointerEvent<Element>, value: TechnicalMarkValue) => {
-      const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
+      const asset = getProjectTechnicalMarkAsset(technicalMarks.value, value)
 
-      technicalMarkPointerDrag.beginPointerDrag(event, {
-        value,
-        ...createPercentDragState(
-          event.pointerId,
-          event.clientX,
-          event.clientY,
+      technicalMarkPointerDrag.beginPointerDrag(
+        event,
+        createElementPercentDragState(
+          event,
           asset.layout.x,
           asset.layout.y,
+          { value },
         ),
-      })
+      )
     },
-    [projectTechnicalMarks, technicalMarkPointerDrag],
+    [technicalMarks.value, technicalMarkPointerDrag],
   )
 
   const cancelPreviewPointerDrag = useCallback(() => {
@@ -654,32 +583,52 @@ export function useDiscPreviewPointerDrag({
 
   return {
     cancelPreviewPointerDrag,
-    handleBackgroundPointerDown,
-    handleBackgroundPointerMove: backgroundPointerDrag.handlePointerMove,
-    handleBackgroundPointerUp: backgroundPointerDrag.endPointerDrag,
-    handleDiscTextPointerDown,
-    handleDiscTextPointerMove: discTextPointerDrag.handlePointerMove,
-    handleDiscTextPointerUp: discTextPointerDrag.endPointerDrag,
-    handleLogoAssetPointerDown,
-    handleLogoAssetPointerMove: logoAssetPointerDrag.handlePointerMove,
-    handleLogoAssetPointerUp: logoAssetPointerDrag.endPointerDrag,
-    handleTitleArtworkPointerDown,
-    handleTitleArtworkPointerMove: titleArtworkPointerDrag.handlePointerMove,
-    handleTitleArtworkPointerUp: titleArtworkPointerDrag.endPointerDrag,
-    handleAdditionalArtworkPointerDown,
-    handleAdditionalArtworkPointerMove: additionalArtworkPointerDrag.handlePointerMove,
-    handleAdditionalArtworkPointerUp: additionalArtworkPointerDrag.endPointerDrag,
-    handleRatingBadgePointerDown,
-    handleRatingBadgePointerMove: ratingBadgePointerDrag.handlePointerMove,
-    handleRatingBadgePointerUp: ratingBadgePointerDrag.endPointerDrag,
-    handleMediaMarkPointerDown,
-    handleMediaMarkPointerMove: mediaMarkPointerDrag.handlePointerMove,
-    handleMediaMarkPointerUp: mediaMarkPointerDrag.endPointerDrag,
-    handlePlatformMarkPointerDown,
-    handlePlatformMarkPointerMove: platformMarkPointerDrag.handlePointerMove,
-    handlePlatformMarkPointerUp: platformMarkPointerDrag.endPointerDrag,
-    handleTechnicalMarkPointerDown,
-    handleTechnicalMarkPointerMove: technicalMarkPointerDrag.handlePointerMove,
-    handleTechnicalMarkPointerUp: technicalMarkPointerDrag.endPointerDrag,
+    previewPointerHandlers: {
+      background: {
+        handleBackgroundPointerDown,
+        handleBackgroundPointerMove: backgroundPointerDrag.handlePointerMove,
+        handleBackgroundPointerUp: backgroundPointerDrag.endPointerDrag,
+      },
+      discText: {
+        handleDiscTextPointerDown,
+        handleDiscTextPointerMove: discTextPointerDrag.handlePointerMove,
+        handleDiscTextPointerUp: discTextPointerDrag.endPointerDrag,
+      },
+      logoAssets: {
+        handleLogoAssetPointerDown,
+        handleLogoAssetPointerMove: logoAssetPointerDrag.handlePointerMove,
+        handleLogoAssetPointerUp: logoAssetPointerDrag.endPointerDrag,
+      },
+      titleArtwork: {
+        handleTitleArtworkPointerDown,
+        handleTitleArtworkPointerMove: titleArtworkPointerDrag.handlePointerMove,
+        handleTitleArtworkPointerUp: titleArtworkPointerDrag.endPointerDrag,
+      },
+      additionalArtwork: {
+        handleAdditionalArtworkPointerDown,
+        handleAdditionalArtworkPointerMove: additionalArtworkPointerDrag.handlePointerMove,
+        handleAdditionalArtworkPointerUp: additionalArtworkPointerDrag.endPointerDrag,
+      },
+      ratingBadge: {
+        handleRatingBadgePointerDown,
+        handleRatingBadgePointerMove: ratingBadgePointerDrag.handlePointerMove,
+        handleRatingBadgePointerUp: ratingBadgePointerDrag.endPointerDrag,
+      },
+      mediaMark: {
+        handleMediaMarkPointerDown,
+        handleMediaMarkPointerMove: mediaMarkPointerDrag.handlePointerMove,
+        handleMediaMarkPointerUp: mediaMarkPointerDrag.endPointerDrag,
+      },
+      platformMarks: {
+        handlePlatformMarkPointerDown,
+        handlePlatformMarkPointerMove: platformMarkPointerDrag.handlePointerMove,
+        handlePlatformMarkPointerUp: platformMarkPointerDrag.endPointerDrag,
+      },
+      technicalMarks: {
+        handleTechnicalMarkPointerDown,
+        handleTechnicalMarkPointerMove: technicalMarkPointerDrag.handlePointerMove,
+        handleTechnicalMarkPointerUp: technicalMarkPointerDrag.endPointerDrag,
+      },
+    },
   }
 }

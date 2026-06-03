@@ -434,57 +434,51 @@ function App() {
 
   const {
     cancelPreviewPointerDrag,
-    handleBackgroundPointerDown,
-    handleBackgroundPointerMove,
-    handleBackgroundPointerUp,
-    handleDiscTextPointerDown,
-    handleDiscTextPointerMove,
-    handleDiscTextPointerUp,
-    handleLogoAssetPointerDown,
-    handleLogoAssetPointerMove,
-    handleLogoAssetPointerUp,
-    handleTitleArtworkPointerDown,
-    handleTitleArtworkPointerMove,
-    handleTitleArtworkPointerUp,
-    handleAdditionalArtworkPointerDown,
-    handleAdditionalArtworkPointerMove,
-    handleAdditionalArtworkPointerUp,
-    handleRatingBadgePointerDown,
-    handleRatingBadgePointerMove,
-    handleRatingBadgePointerUp,
-    handleMediaMarkPointerDown,
-    handleMediaMarkPointerMove,
-    handleMediaMarkPointerUp,
-    handlePlatformMarkPointerDown,
-    handlePlatformMarkPointerMove,
-    handlePlatformMarkPointerUp,
-    handleTechnicalMarkPointerDown,
-    handleTechnicalMarkPointerMove,
-    handleTechnicalMarkPointerUp,
+    previewPointerHandlers,
   } = useDiscPreviewPointerDrag({
-    discPreviewRef,
-    selectedDiscTemplate,
-    backgroundImageUrl: effectiveBackgroundImageUrl,
-    backgroundImageSize,
-    backgroundScale,
-    backgroundOffset,
-    setBackgroundOffset,
-    discTextLayout,
-    setDiscTextLayout,
-    projectLogoAssets,
-    setProjectLogoAssets,
-    projectTitleArtwork,
-    setProjectTitleArtwork,
-    projectAdditionalArtwork,
-    setProjectAdditionalArtwork,
-    projectRatingBadge,
-    setProjectRatingBadge,
-    projectMediaMark,
-    setProjectMediaMark,
-    projectPlatformMarks,
-    setProjectPlatformMarks,
-    projectTechnicalMarks,
-    setProjectTechnicalMarks,
+    preview: {
+      discPreviewRef,
+      selectedDiscTemplate,
+    },
+    background: {
+      imageUrl: effectiveBackgroundImageUrl,
+      imageSize: backgroundImageSize,
+      scale: backgroundScale,
+      offset: backgroundOffset,
+      setOffset: setBackgroundOffset,
+    },
+    discText: {
+      layout: discTextLayout,
+      setLayout: setDiscTextLayout,
+    },
+    logoAssets: {
+      value: projectLogoAssets,
+      setValue: setProjectLogoAssets,
+    },
+    titleArtwork: {
+      value: projectTitleArtwork,
+      setValue: setProjectTitleArtwork,
+    },
+    additionalArtwork: {
+      value: projectAdditionalArtwork,
+      setValue: setProjectAdditionalArtwork,
+    },
+    ratingBadge: {
+      value: projectRatingBadge,
+      setValue: setProjectRatingBadge,
+    },
+    mediaMark: {
+      value: projectMediaMark,
+      setValue: setProjectMediaMark,
+    },
+    platformMarks: {
+      value: projectPlatformMarks,
+      setValue: setProjectPlatformMarks,
+    },
+    technicalMarks: {
+      value: projectTechnicalMarks,
+      setValue: setProjectTechnicalMarks,
+    },
   })
 
   const printableInsetPercent = getGuideInsetPercent(
@@ -1651,65 +1645,51 @@ function App() {
       <DiscPreview
         discPreviewRef={discPreviewRef}
         statusToasts={statusToasts}
-        backgroundImageUrl={effectiveBackgroundImageUrl}
-        backgroundPreviewSize={backgroundPreviewSize}
-        backgroundOffset={backgroundOffset}
-        backgroundScale={backgroundScale}
-        handleBackgroundPointerDown={handleBackgroundPointerDown}
-        handleBackgroundPointerMove={handleBackgroundPointerMove}
-        handleBackgroundPointerUp={handleBackgroundPointerUp}
-        steamLogoPlacement={steamLogoPlacement}
-        steamBannerColors={steamBannerColors}
-        steamBannerLockupImageUrl={steamBannerLockupImageUrl}
-        steamBannerLockupImageSize={steamBannerLockupImageSize}
-        steamBannerLockupLayout={steamBannerLockupLayout}
-        steamBannerUseTextFallback={steamBannerUseTextFallback}
-        steamBannerFallbackText={steamBannerFallbackText}
-        projectLogoAssets={projectLogoAssets}
-        projectTitleArtwork={projectTitleArtwork}
-        projectDiscNumberArtwork={projectDiscNumberArtwork}
-        projectAdditionalArtwork={projectAdditionalArtwork}
-        projectMetadata={projectMetadata}
-        projectRatingBadge={projectRatingBadge}
-        projectMediaMark={projectMediaMark}
-        projectPlatformMarks={projectPlatformMarks}
-        projectTechnicalMarks={projectTechnicalMarks}
-        handleRatingBadgePointerDown={handleRatingBadgePointerDown}
-        handleRatingBadgePointerMove={handleRatingBadgePointerMove}
-        handleRatingBadgePointerUp={handleRatingBadgePointerUp}
-        handleMediaMarkPointerDown={handleMediaMarkPointerDown}
-        handleMediaMarkPointerMove={handleMediaMarkPointerMove}
-        handleMediaMarkPointerUp={handleMediaMarkPointerUp}
-        handlePlatformMarkPointerDown={handlePlatformMarkPointerDown}
-        handlePlatformMarkPointerMove={handlePlatformMarkPointerMove}
-        handlePlatformMarkPointerUp={handlePlatformMarkPointerUp}
-        handleTechnicalMarkPointerDown={handleTechnicalMarkPointerDown}
-        handleTechnicalMarkPointerMove={handleTechnicalMarkPointerMove}
-        handleTechnicalMarkPointerUp={handleTechnicalMarkPointerUp}
-        handleLogoAssetPointerDown={handleLogoAssetPointerDown}
-        handleLogoAssetPointerMove={handleLogoAssetPointerMove}
-        handleLogoAssetPointerUp={handleLogoAssetPointerUp}
-        handleTitleArtworkPointerDown={handleTitleArtworkPointerDown}
-        handleTitleArtworkPointerMove={handleTitleArtworkPointerMove}
-        handleTitleArtworkPointerUp={handleTitleArtworkPointerUp}
-        handleAdditionalArtworkPointerDown={handleAdditionalArtworkPointerDown}
-        handleAdditionalArtworkPointerMove={handleAdditionalArtworkPointerMove}
-        handleAdditionalArtworkPointerUp={handleAdditionalArtworkPointerUp}
-        discTextSettings={discTextSettings}
-        discTextValues={discTextValues}
-        discTextValueSources={discTextValueSources}
-        discTextStyles={discTextStyles}
-        manualGameTitle={resolvedDiscTextTitle}
-        discTextLayout={discTextLayout}
-        selectedDiscTemplate={selectedDiscTemplate}
-        getDiscTextPreviewTransform={getDiscTextPreviewTransform}
-        handleDiscTextPointerDown={handleDiscTextPointerDown}
-        handleDiscTextPointerMove={handleDiscTextPointerMove}
-        handleDiscTextPointerUp={handleDiscTextPointerUp}
-        innerPrintableBoundaryPercent={innerPrintableBoundaryPercent}
-        printableInsetPercent={printableInsetPercent}
-        safeInsetPercent={safeInsetPercent}
-        physicalCenterHolePercent={physicalCenterHolePercent}
+        background={{
+          imageUrl: effectiveBackgroundImageUrl,
+          previewSize: backgroundPreviewSize,
+          offset: backgroundOffset,
+          scale: backgroundScale,
+        }}
+        steamBanner={{
+          logoPlacement: steamLogoPlacement,
+          colors: steamBannerColors,
+          lockupImageUrl: steamBannerLockupImageUrl,
+          lockupImageSize: steamBannerLockupImageSize,
+          lockupLayout: steamBannerLockupLayout,
+          useTextFallback: steamBannerUseTextFallback,
+          fallbackText: steamBannerFallbackText,
+        }}
+        artwork={{
+          logoAssets: projectLogoAssets,
+          titleArtwork: projectTitleArtwork,
+          additionalArtwork: projectAdditionalArtwork,
+        }}
+        metadata={projectMetadata}
+        marks={{
+          ratingBadge: projectRatingBadge,
+          mediaMark: projectMediaMark,
+          platformMarks: projectPlatformMarks,
+          technicalMarks: projectTechnicalMarks,
+        }}
+        discText={{
+          settings: discTextSettings,
+          values: discTextValues,
+          valueSources: discTextValueSources,
+          styles: discTextStyles,
+          manualGameTitle: resolvedDiscTextTitle,
+          layout: discTextLayout,
+          discNumberArtwork: projectDiscNumberArtwork,
+          selectedDiscTemplate,
+          getPreviewTransform: getDiscTextPreviewTransform,
+        }}
+        pointerHandlers={previewPointerHandlers}
+        guideOverlay={{
+          innerPrintableBoundaryPercent,
+          printableInsetPercent,
+          safeInsetPercent,
+          physicalCenterHolePercent,
+        }}
       />
     </main>
   )
