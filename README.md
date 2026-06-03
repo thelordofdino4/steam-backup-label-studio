@@ -171,6 +171,7 @@ See the `docs/` folder for:
 - `REFACTOR_STATUS.md` - historical refactor status and remaining architecture risks.
 - `PROJECT_FILE_SPEC.md` - current saved-project format notes.
 - `DISC_EDITOR_LAYER_ORDER.md` - preview/export layer order source-of-truth notes.
+- `CASE_INSERT_EDITOR_LAYER_ORDER.md` - jewel case preview/export layer order notes.
 - `METADATA_DISC_TEXT_BINDING.md` - metadata-to-rendered-text binding behavior.
 - `VISUAL_REGRESSION_WORKFLOW.md` - manual preview/export comparison workflow for fixture-based visual checks.
 

@@ -41,7 +41,7 @@ import { validateDiscTemplateGeometryGuardrail } from './layout/discTemplateGeom
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from './exportGuides'
 import './App.css'
 import './layoutFix.css'
-import { CaseInsertPlaceholder } from './components/caseInsert/CaseInsertPlaceholder'
+import { CaseInsertEditorShell } from './components/caseInsert/CaseInsertEditorShell'
 import { HomeScreen } from './components/home/HomeScreen'
 import type { EditorWorkspace } from './editor/editorTypes'
 import { DiscPreview } from './components/preview/DiscPreview'
@@ -72,6 +72,12 @@ import { createProjectImageAssetProvenance } from './project/projectAssetStatus'
 import { resolveSavedProjectRouteFromContents } from './project/projectRouting'
 import { restoreProjectStateFromContents } from './project/restoreProjectState'
 import { createDefaultProjectMetadata } from './project/projectMetadata'
+import {
+  DEFAULT_CASE_INSERT_PROJECT_TITLE,
+  createCaseInsertProjectSnapshot,
+  createDefaultProjectJewelCaseState,
+  restoreCaseInsertProjectStateFromContents,
+} from './project/projectCaseInsert'
 import {
   createDefaultDiscTextValueSources,
   getDiscTextKeysForProjectMetadataField,
@@ -229,6 +235,9 @@ function App() {
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
+  const [projectJewelCase, setProjectJewelCase] = useState(() =>
+    createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
+  )
   const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
     createDefaultProjectMetadata(),
   )
@@ -1773,6 +1782,18 @@ function App() {
     setDiscTextStyles(createDefaultDiscTextStyles())
   }
 
+  function resetCaseInsertProjectState() {
+    setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
+    setProjectMetadata({
+      ...createDefaultProjectMetadata(),
+      title: DEFAULT_CASE_INSERT_PROJECT_TITLE,
+    })
+    setSelectedSteamGame(null)
+    setProjectJewelCase(
+      createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
+    )
+  }
+
   async function handleNewProject() {
     const shouldReset = await confirm(
       'Start a new project? Unsaved changes will be lost.',
@@ -1800,9 +1821,10 @@ function App() {
   }
 
   function handleOpenCaseInsertEditor() {
+    resetCaseInsertProjectState()
     setActiveWorkspace('caseInsert')
     setHomeStatusMessage(null)
-    announceStatus('Case Insert Editor is ready for the jewel case foundation pass.')
+    announceStatus('Started a new blank case insert project.')
   }
 
   function handleWizardPlaceholder() {
@@ -2129,7 +2151,10 @@ function App() {
   async function handleSaveProject() {
     try {
       const path = await save({
-        defaultPath: 'steam-backup-label.sbls.json',
+        defaultPath:
+          activeWorkspace === 'caseInsert'
+            ? 'steam-backup-case-insert.sbls.json'
+            : 'steam-backup-label.sbls.json',
         filters: [
           {
             name: 'Steam Backup Label Studio Project',
@@ -2143,42 +2168,49 @@ function App() {
         return
       }
 
-      const project = createProjectSnapshot({
-        manualGameTitle,
-        selectedSteamGame,
-        projectMetadata,
-        projectLogoAssets,
-        projectTitleArtwork,
-        projectDiscNumberArtwork,
-        projectAdditionalArtwork,
-        projectRatingBadge,
-        projectMediaMark,
-        projectPlatformMarks,
-        projectTechnicalMarks,
-        selectedDiscTemplateId,
-        customDiscTemplate,
-        steamLogoPlacement,
-        steamBannerColors,
-        steamBannerLockupImageUrl,
-        steamBannerLockupImageSource,
-        steamBannerLockupImageSize,
-        steamBannerLockupLayout,
-        steamBannerUseTextFallback,
-        steamBannerFallbackText,
-        exportGuides,
-        backgroundScale,
-        backgroundOffset,
-        backgroundImageUrl,
-        backgroundImageSource,
-        backgroundImageSize,
-        isBackgroundArtworkEnabled,
-        discTextSettings,
-        discTextValues,
-        discTextValueSources,
-        discTextTitleValue,
-        discTextLayout,
-        discTextStyles,
-      })
+      const project = activeWorkspace === 'caseInsert'
+        ? createCaseInsertProjectSnapshot({
+            manualGameTitle,
+            selectedSteamGame,
+            projectMetadata,
+            caseInsert: projectJewelCase,
+          })
+        : createProjectSnapshot({
+            manualGameTitle,
+            selectedSteamGame,
+            projectMetadata,
+            projectLogoAssets,
+            projectTitleArtwork,
+            projectDiscNumberArtwork,
+            projectAdditionalArtwork,
+            projectRatingBadge,
+            projectMediaMark,
+            projectPlatformMarks,
+            projectTechnicalMarks,
+            selectedDiscTemplateId,
+            customDiscTemplate,
+            steamLogoPlacement,
+            steamBannerColors,
+            steamBannerLockupImageUrl,
+            steamBannerLockupImageSource,
+            steamBannerLockupImageSize,
+            steamBannerLockupLayout,
+            steamBannerUseTextFallback,
+            steamBannerFallbackText,
+            exportGuides,
+            backgroundScale,
+            backgroundOffset,
+            backgroundImageUrl,
+            backgroundImageSource,
+            backgroundImageSize,
+            isBackgroundArtworkEnabled,
+            discTextSettings,
+            discTextValues,
+            discTextValueSources,
+            discTextTitleValue,
+            discTextLayout,
+            discTextStyles,
+          })
       await writeProjectFile(path, JSON.stringify(project, null, 2))
 
       announceStatus(`Saved project to ${path}`)
@@ -2208,10 +2240,16 @@ function App() {
       const projectRoute = resolveSavedProjectRouteFromContents(contents)
 
       if (projectRoute.projectType === 'caseInsert') {
+        const restoredCaseProject = restoreCaseInsertProjectStateFromContents(contents)
+
+        setManualGameTitle(restoredCaseProject.manualGameTitle)
+        setProjectMetadata(restoredCaseProject.projectMetadata)
+        setSelectedSteamGame(restoredCaseProject.selectedSteamGame)
+        setProjectJewelCase(restoredCaseProject.caseInsert)
         setActiveWorkspace('caseInsert')
         setHomeStatusMessage(null)
         announceStatus(
-          'Loaded a case insert project shell. Jewel case editing is not implemented yet.',
+          'Loaded case insert project template, metadata, and preview geometry.',
         )
         return
       }
@@ -2277,6 +2315,11 @@ function App() {
   }
 
   async function handleExportPng() {
+    if (activeWorkspace === 'caseInsert') {
+      announceStatus('Case insert PNG export is planned for the export pass.')
+      return
+    }
+
     try {
       const path = await save({
         defaultPath: 'steam-backup-label.png',
@@ -2461,9 +2504,17 @@ function App() {
 
   if (activeWorkspace === 'caseInsert') {
     return (
-      <CaseInsertPlaceholder
+      <CaseInsertEditorShell
+        caseInsert={projectJewelCase}
+        projectStatus={projectStatus}
+        manualGameTitle={manualGameTitle}
+        statusToasts={statusToasts}
         onMainMenu={handleReturnToHome}
+        onNewCaseInsert={handleOpenCaseInsertEditor}
         onNewDisc={handleStartNewDiscProject}
+        onSaveProject={handleSaveProject}
+        onLoadProject={handleLoadProject}
+        onExportPng={handleExportPng}
       />
     )
   }
