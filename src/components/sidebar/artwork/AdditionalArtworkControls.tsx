@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import { getAdditionalArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
@@ -8,6 +9,7 @@ import {
   shouldRenderAdditionalArtworkElement,
 } from '../../../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtworkElement } from '../../../project/projectTypes'
+import type { SteamArtworkAsset } from '../../../steam/steamApi'
 import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
@@ -18,6 +20,8 @@ import {
   getNumericInputValue,
 } from './helpers'
 import type { ArtworkPanelProps } from './types'
+
+const EMPTY_STEAM_ARTWORK: SteamArtworkAsset[] = []
 
 function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
   return (
@@ -92,13 +96,19 @@ function AdditionalArtworkElementControls({
     hasImage ? element.sourceLabel : 'no image',
     element.frame.enabled ? `${element.frame.shape} frame` : 'no frame',
   ].join(' · ')
-  const steamArtwork = selectedSteamGame?.artwork ?? []
-  const steamArtworkPickerItems = createSteamArtworkPickerItems(steamArtwork)
-  const localScreenshotPickerItems = createLocalSteamScreenshotPickerItems(
-    localSteamScreenshots,
-    localSteamScreenshotThumbnails,
+  const steamArtwork = selectedSteamGame?.artwork ?? EMPTY_STEAM_ARTWORK
+  const steamArtworkPickerItems = useMemo(
+    () => createSteamArtworkPickerItems(steamArtwork),
+    [steamArtwork],
   )
-  const selectSteamArtworkForElement = (itemId: string) => {
+  const localScreenshotPickerItems = useMemo(
+    () => createLocalSteamScreenshotPickerItems(
+      localSteamScreenshots,
+      localSteamScreenshotThumbnails,
+    ),
+    [localSteamScreenshotThumbnails, localSteamScreenshots],
+  )
+  const selectSteamArtworkForElement = useCallback((itemId: string) => {
     const asset = steamArtwork.find(
       (currentAsset) => currentAsset.id === itemId,
     )
@@ -109,8 +119,8 @@ function AdditionalArtworkElementControls({
         asset,
       )
     }
-  }
-  const selectLocalSteamScreenshotForElement = (itemId: string) => {
+  }, [element.id, handleUseSteamArtworkAsAdditionalArtwork, steamArtwork])
+  const selectLocalSteamScreenshotForElement = useCallback((itemId: string) => {
     const asset = localSteamScreenshots.find(
       (currentAsset) => currentAsset.id === itemId,
     )
@@ -121,7 +131,11 @@ function AdditionalArtworkElementControls({
         asset,
       )
     }
-  }
+  }, [
+    element.id,
+    handleUseLocalSteamScreenshotAsAdditionalArtwork,
+    localSteamScreenshots,
+  ])
 
   return (
     <>

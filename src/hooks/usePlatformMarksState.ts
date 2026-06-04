@@ -10,7 +10,7 @@ import {
   updatePlatformMarkTheme,
   updatePlatformMarkToggle,
   type PlatformMarkLayoutField,
-} from '../project/projectMediaMark'
+} from '../project/projectPlatformMarks'
 import { applyImportedPlatformMark } from '../project/projectVisualAssetImport'
 import type {
   PlatformMarkSource,

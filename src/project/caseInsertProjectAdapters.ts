@@ -20,6 +20,7 @@ import type {
   ProjectMetadata,
   SavedCaseInsertProject,
 } from './projectTypes.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 
 export function createCaseInsertProjectSnapshot(
   params: CreateCaseInsertProjectSnapshotParams = {},
@@ -41,7 +42,7 @@ export function createCaseInsertProjectSnapshot(
   )
 
   return {
-    schemaVersion: '0.1.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'caseInsert',
     title: manualGameTitle,
     savedAt: params.savedAt ?? new Date().toISOString(),
@@ -88,7 +89,7 @@ export function normalizeSavedCaseInsertProject(
   )
 
   return {
-    schemaVersion: '0.1.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'caseInsert',
     title: savedTitle,
     savedAt: normalizeString(record?.savedAt, new Date().toISOString()),

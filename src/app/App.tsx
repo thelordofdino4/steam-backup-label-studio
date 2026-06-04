@@ -22,13 +22,9 @@ import type { DiscTemplate } from '../types/template'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
   EXPORT_DPI,
-  buildCustomDiscTemplate,
-  getGuideInsetPercent,
   mmToPixels,
-  normalizeCustomDiscTemplate,
 } from '../disc/geometry'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
-import { validateDiscTemplateGeometryGuardrail } from '../layout/discTemplateGeometryGuardrail'
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from '../export/exportGuides'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
@@ -45,6 +41,8 @@ import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { TextPanel } from '../components/sidebar/TextPanel'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
+import { useDiscPreviewSize } from '../hooks/useDiscPreviewSize'
+import { useDiscTemplateState } from '../hooks/useDiscTemplateState'
 import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
@@ -78,7 +76,7 @@ import {
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
 } from '../project/projectRatingBadge'
-import type { ProjectMetadata, SelectedDiscTemplateId } from '../project/projectTypes'
+import type { ProjectMetadata } from '../project/projectTypes'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -99,28 +97,31 @@ import {
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
 import { getDiscTextPreviewTransform, type SteamLogoPlacement } from '../discText/index'
 
-type CustomDimensionKey =
-  | 'outerDiameterMm'
-  | 'physicalCenterHoleDiameterMm'
-  | 'innerHoleDiameterMm'
-  | 'printableDiameterMm'
-  | 'safeDiameterMm'
-
 function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
-  const [selectedDiscTemplateId, setSelectedDiscTemplateId] =
-    useState<SelectedDiscTemplateId>('standardPrintableDisc')
-  const [customDiscTemplate, setCustomDiscTemplate] = useState<DiscTemplate>(() =>
-    buildCustomDiscTemplate(discTemplates.standardPrintableDisc),
-  )
+  const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
+  const {
+    selectedDiscTemplateId,
+    customDiscTemplate,
+    selectedDiscTemplate,
+    isCustomDiscTemplate,
+    guideOverlay,
+    resetDiscTemplateState,
+    restoreDiscTemplateState,
+    handleTemplateChange,
+    handleCustomDimensionChange,
+  } = useDiscTemplateState({
+    announceStatus,
+    clampForegroundElementLayoutsToTemplate,
+    getGeometryGuardrailState,
+  })
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
   const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
     DEFAULT_EXPORT_GUIDES,
   )
   const [discPreviewSize, setDiscPreviewSize] = useState(640)
-  const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const [gameSearchQuery, setGameSearchQuery] = useState('')
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [projectJewelCase, setProjectJewelCase] = useState(() =>
@@ -209,11 +210,6 @@ function App() {
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
-  const selectedDiscTemplate =
-    selectedDiscTemplateId === 'custom'
-      ? customDiscTemplate
-      : discTemplates[selectedDiscTemplateId]
-  const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -406,36 +402,11 @@ function App() {
     applyBackgroundImageImport,
     announceStatus,
   })
-  useEffect(() => {
-    if (activeWorkspace !== 'disc') {
-      return
-    }
-
-    const previewElement = discPreviewRef.current
-
-    if (!previewElement) {
-      return
-    }
-
-    const updatePreviewSize = () => {
-      const nextSize = previewElement.getBoundingClientRect().width
-
-      if (Number.isFinite(nextSize) && nextSize > 0) {
-        setDiscPreviewSize(nextSize)
-      }
-    }
-
-    updatePreviewSize()
-
-    if (typeof ResizeObserver === 'undefined') {
-      return
-    }
-
-    const resizeObserver = new ResizeObserver(updatePreviewSize)
-    resizeObserver.observe(previewElement)
-
-    return () => resizeObserver.disconnect()
-  }, [activeWorkspace])
+  useDiscPreviewSize({
+    activeWorkspace,
+    discPreviewRef,
+    setDiscPreviewSize,
+  })
 
   const {
     cancelPreviewPointerDrag,
@@ -486,19 +457,6 @@ function App() {
     },
   })
 
-  const printableInsetPercent = getGuideInsetPercent(
-    selectedDiscTemplate.outerDiameterMm,
-    selectedDiscTemplate.printableDiameterMm,
-  )
-  const safeInsetPercent = getGuideInsetPercent(
-    selectedDiscTemplate.outerDiameterMm,
-    selectedDiscTemplate.safeDiameterMm,
-  )
-  const physicalCenterHolePercent =
-    (selectedDiscTemplate.physicalCenterHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
-  const innerPrintableBoundaryPercent =
-    (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100
-
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
     clampProjectTitleArtworkToTemplate(template)
@@ -509,6 +467,20 @@ function App() {
     clampProjectTechnicalMarksToTemplate(template)
 
     clampDiscTextLayoutToTemplate(template)
+  }
+
+  function getGeometryGuardrailState() {
+    return {
+      discTextSettings,
+      discTextValues: metadataBoundDiscTextValues,
+      discTextTitle: resolvedDiscTextTitle,
+      discTextLayout,
+      projectLogoAssets,
+      projectMetadata,
+      projectRatingBadge,
+      projectMediaMark,
+      projectPlatformMarks,
+    }
   }
 
   useEffect(() => {
@@ -766,8 +738,7 @@ function App() {
   function resetDiscProjectState() {
     cancelPreviewPointerDrag()
 
-    setSelectedDiscTemplateId('standardPrintableDisc')
-    setCustomDiscTemplate(buildCustomDiscTemplate(discTemplates.standardPrintableDisc))
+    resetDiscTemplateState()
     setSteamLogoPlacement('top')
     resetSteamBannerState()
     setExportGuides(DEFAULT_EXPORT_GUIDES)
@@ -875,62 +846,6 @@ function App() {
     }
 
     handleOpenCaseInsertEditor()
-  }
-
-  function handleTemplateChange(templateId: SelectedDiscTemplateId) {
-    setSelectedDiscTemplateId(templateId)
-
-    if (templateId === 'custom') {
-      clampForegroundElementLayoutsToTemplate(customDiscTemplate)
-      announceStatus('Custom disc dimensions enabled. Edit the numeric fields below.')
-      return
-    }
-
-    clampForegroundElementLayoutsToTemplate(discTemplates[templateId])
-    announceStatus(`Selected ${discTemplates[templateId].name}.`)
-  }
-
-  function handleCustomDimensionChange(field: CustomDimensionKey, value: string) {
-    const numericValue = Number(value)
-
-    if (!Number.isFinite(numericValue) || numericValue <= 0) {
-      return
-    }
-
-    const nextTemplate = normalizeCustomDiscTemplate({
-      ...customDiscTemplate,
-      [field]: numericValue,
-    })
-    const geometryGuardrail = validateDiscTemplateGeometryGuardrail(
-      nextTemplate,
-      {
-        discTextSettings,
-        discTextValues: metadataBoundDiscTextValues,
-        discTextTitle: resolvedDiscTextTitle,
-        discTextLayout,
-        projectLogoAssets,
-        projectMetadata,
-        projectRatingBadge,
-        projectMediaMark,
-        projectPlatformMarks,
-      },
-    )
-
-    if (!geometryGuardrail.allowed) {
-      const [firstBlockingElement] = geometryGuardrail.blockingElementLabels
-      const extraCount = geometryGuardrail.blockingElementLabels.length - 1
-
-      announceStatus(
-        `Custom geometry needs more printable space for ${firstBlockingElement}${extraCount > 0 ? ` and ${extraCount} more` : ''}.`,
-      )
-      return
-    }
-
-    setCustomDiscTemplate(nextTemplate)
-
-    if (selectedDiscTemplateId === 'custom') {
-      clampForegroundElementLayoutsToTemplate(nextTemplate)
-    }
   }
 
   async function handleSteamSearch() {
@@ -1255,10 +1170,7 @@ function App() {
       setLocalSteamScreenshotThumbnails({})
       setHasCheckedLocalSteamScreenshots(false)
 
-      if (restoredProject.template.customDiscTemplate) {
-        setCustomDiscTemplate(restoredProject.template.customDiscTemplate)
-      }
-      setSelectedDiscTemplateId(restoredProject.template.selectedDiscTemplateId)
+      restoreDiscTemplateState(restoredProject.template)
       setSteamLogoPlacement(restoredProject.steamLogoPlacement)
       setSteamBannerColors(restoredProject.steamBannerColors)
       setSteamBannerLockupImageUrl(restoredProject.steamBannerLockupImageUrl)
@@ -1695,12 +1607,7 @@ function App() {
           getPreviewTransform: getDiscTextPreviewTransform,
         }}
         pointerHandlers={previewPointerHandlers}
-        guideOverlay={{
-          innerPrintableBoundaryPercent,
-          printableInsetPercent,
-          safeInsetPercent,
-          physicalCenterHolePercent,
-        }}
+        guideOverlay={guideOverlay}
       />
     </main>
   )

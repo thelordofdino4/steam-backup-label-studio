@@ -174,6 +174,8 @@ See the `docs/` folder for:
 - `CASE_INSERT_EDITOR_LAYER_ORDER.md` - jewel case preview/export layer order notes.
 - `METADATA_DISC_TEXT_BINDING.md` - metadata-to-rendered-text binding behavior.
 - `VISUAL_REGRESSION_WORKFLOW.md` - manual preview/export comparison workflow for fixture-based visual checks.
+- `MANUAL_SMOKE_CHECKLISTS.md` - manual runtime smoke checklists for editor, artwork, branding, preview, save/load/export, and case insert flows.
+- `CSS_STYLE_OWNERSHIP.md` - current stylesheet ownership, import order, and manual CSS smoke checklist.
 
 ## Disclaimer
 

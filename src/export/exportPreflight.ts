@@ -8,8 +8,8 @@ import {
 import type { ExportGuideKey, ExportGuideSelection } from './exportGuides.ts'
 import {
   createMediaMarkRenderModel,
-  createPlatformMarkRenderModels,
 } from '../render/mediaMarkRenderModel.ts'
+import { createPlatformMarkRenderModels } from '../render/platformMarkRenderModel.ts'
 import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import { canUseTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { createLogoAssetRenderItems } from '../project/projectLogoAssets.ts'

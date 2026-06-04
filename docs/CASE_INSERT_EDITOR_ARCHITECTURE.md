@@ -1,6 +1,8 @@
 # Case Insert Editor Architecture
 
-Issue context: #126, #127, and #128.
+Last refreshed: 2026-06-03.
+
+Issue context: #126 and active jewel case follow-up issues #136-#144.
 
 This note records the architecture decision for the jewel case editor foundation. It is intentionally small and should stay close to the first implementation pass. The goal is to keep the working disc-label editor stable while adding a separate case insert editor surface.
 
@@ -44,6 +46,12 @@ Case insert work should reuse existing systems when the existing system owns the
 
 Shared does not mean the disc editor owns case behavior. Shared systems should remain lower-level helpers or be extracted into focused modules when case work exposes a broader responsibility.
 
+Shared utilities must stay neutral. A helper can live in shared template,
+asset-import, image-file, or project-status code only when it does not encode
+disc-only or case-only policy. If the helper needs to know which case region,
+disc layer, Steam source, saved-project compatibility path, or visual feature it
+belongs to, keep it in the owning domain.
+
 ## Editor-Owned Systems
 
 Case insert behavior should live in focused case modules instead of disc-specific owners:
@@ -59,6 +67,47 @@ Case insert behavior should live in focused case modules instead of disc-specifi
 
 Disc-specific circular geometry, disc text layout, disc export drawing, and disc preview behavior should remain disc-owned.
 
+## Current Implementation Snapshot
+
+The current code has moved beyond the earliest foundation notes. Future work
+should preserve these owners instead of adding parallel case behavior elsewhere.
+
+- Workspace routing still happens in `src/app/App.tsx`, but `App.tsx` should
+  remain orchestration only.
+- Shared physical template concepts live in `src/types/template.ts` and
+  `src/templates/templateModel.ts`.
+- Built-in rectangular case insert template data lives in
+  `src/templates/caseInsertTemplates.ts`.
+- Jewel case defaults, normalization, image-slot transitions, text transitions,
+  front-cover transitions, source import helpers, and case export settings live
+  under `src/caseInsert/`.
+- Saved case insert project snapshot, normalization, restoration, and routing
+  live in `src/project/caseInsertProjectAdapters.ts` and
+  `src/project/projectRouting.ts`.
+- `src/project/projectCaseInsert.ts` is currently a compatibility barrel and
+  adapter export surface for existing imports. Do not add new case state,
+  transition, layout, import, or export behavior there.
+- The jewel case front editor action hook is
+  `src/hooks/useJewelCaseFrontEditor.ts`.
+- Case insert UI composition and front-cover controls live in
+  `src/components/caseInsert/`.
+- Case insert preview layers and guides live in
+  `src/components/preview/CaseInsertPreview.tsx`,
+  `src/components/preview/CaseInsertFrontPreviewLayers.tsx`, and
+  `src/components/preview/CaseInsertGuideOverlay.tsx`.
+- Case insert preview/export layer order lives beside the disc policy in
+  `src/editor/layerOrder.ts` and is documented in
+  `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`.
+- Rectangular layout helpers live under `src/layout/`, including jewel case and
+  case insert preview layout helpers. Do not reuse disc safe-zone or circular
+  geometry modules for rectangular case math.
+
+Large case panels should follow the same composition-shell rule as the disc
+sidebar. `CaseInsertEditorShell` may assemble panels and pass actions; detailed
+source decisions, image import behavior, layout transitions, save/load
+normalization, and future export/preflight rules belong in focused case modules
+or hooks.
+
 ## Implementation Guardrails
 
 - Keep `App.tsx` as orchestration for workspace routing and top-level wiring.
@@ -71,8 +120,19 @@ Disc-specific circular geometry, disc text layout, disc export drawing, and disc
 
 ## Next Implementation Path
 
-1. Finish the home/workspace entry point in #128.
-2. Generalize the template model for rectangular case layouts in #129.
-3. Add the physical jewel case template and guides in #130.
-4. Add case project save/load schema and normalization in #131.
-5. Continue into focused case state, layout, preview, editor surface, export, and preflight issues.
+The home/workspace entry point, rectangular template model, physical jewel case
+template, case project schema/normalization, and first front-cover editing path
+now have implementation in the current worktree. Continue the active jewel case
+sequence without destabilizing the disc editor:
+
+1. Complete back-cover editing in focused case modules (#136).
+2. Complete spine editing in focused case modules (#137).
+3. Reuse Steam artwork and asset sources through the existing case image-source
+   import helpers instead of duplicating upload/download logic (#138).
+4. Adapt marks, logos, ratings, and text to case regions using case-owned layout
+   helpers, not disc safe-zone helpers (#139 and #140).
+5. Add case PNG export and case-specific preflight through focused case export
+   modules (#141 and #142).
+6. Keep sidebar panels and workflow tabs as composition shells (#143).
+7. Run an honest case insert alpha validation and manual smoke pass only when
+   the implemented case flows can be exercised (#144).

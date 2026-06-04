@@ -28,7 +28,7 @@ import {
 } from '../discText/renderLayout.ts'
 import { DISC_TEXT_RENDER_STYLES } from '../discText/styles.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
-import { createDefaultProjectPlatformMarkAsset } from '../project/projectMediaMark.ts'
+import { createDefaultProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
 import type {
   AdditionalArtworkLayout,

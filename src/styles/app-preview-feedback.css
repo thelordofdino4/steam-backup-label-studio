@@ -1,0 +1,125 @@
+.preview-pane-label {
+  position: absolute;
+  top: 18px;
+  left: 22px;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  pointer-events: none;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+.preview-pane-label span {
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.preview-pane-label strong {
+  color: #f9fafb;
+  font-size: 18px;
+  line-height: 1.1;
+}
+
+.preview-toast-stack {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  width: min(340px, calc(100% - 44px));
+  pointer-events: none;
+}
+
+.preview-toast {
+  display: grid;
+  grid-template-columns: auto 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 3px;
+  background: #f1e9cb;
+  color: #211f1a;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+  animation:
+    preview-toast-pop 140ms ease-out,
+    preview-toast-fade 3600ms ease-in forwards;
+}
+
+.preview-toast-action,
+.preview-toast-description {
+  overflow: hidden;
+  color: #211f1a;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.preview-toast-action {
+  color: #11100d;
+  text-transform: uppercase;
+}
+
+.preview-toast-icon {
+  display: block;
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  opacity: 0.86;
+}
+
+@keyframes preview-toast-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes preview-toast-fade {
+  0%,
+  76% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 1000px) {
+  .preview-pane-label {
+    top: 12px;
+    left: 14px;
+  }
+
+  .preview-toast-stack {
+    top: 12px;
+    right: 14px;
+    width: min(300px, calc(100% - 28px));
+  }
+
+  .preview-toast {
+    min-height: 32px;
+    padding: 7px 9px;
+  }
+
+  .preview-toast-action,
+  .preview-toast-description {
+    font-size: 11px;
+  }
+}

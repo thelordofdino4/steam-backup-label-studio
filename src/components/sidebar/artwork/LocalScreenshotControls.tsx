@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
 import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { createLocalSteamScreenshotPickerItems } from './helpers'
 import type { ArtworkPanelProps } from './types'
@@ -28,18 +28,25 @@ export function LocalScreenshotControls({
 > & {
   fineTuneControls: ReactNode
 }) {
-  const pickerItems = createLocalSteamScreenshotPickerItems(
-    localSteamScreenshots,
-    localSteamScreenshotThumbnails,
-    selectedArtworkId,
+  const pickerItems = useMemo(
+    () => createLocalSteamScreenshotPickerItems(
+      localSteamScreenshots,
+      localSteamScreenshotThumbnails,
+      selectedArtworkId,
+    ),
+    [
+      localSteamScreenshotThumbnails,
+      localSteamScreenshots,
+      selectedArtworkId,
+    ],
   )
-  const selectLocalSteamScreenshot = (itemId: string) => {
+  const selectLocalSteamScreenshot = useCallback((itemId: string) => {
     const asset = localSteamScreenshots.find(
       (currentAsset) => currentAsset.id === itemId,
     )
 
     if (asset) return handleUseLocalSteamScreenshot(asset)
-  }
+  }, [handleUseLocalSteamScreenshot, localSteamScreenshots])
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">

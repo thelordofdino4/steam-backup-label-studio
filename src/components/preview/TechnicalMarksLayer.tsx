@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react'
+import { useMemo, type PointerEvent } from 'react'
 import {
   createTechnicalMarkRenderModels,
   type TechnicalMarkRenderModel,
@@ -21,6 +21,11 @@ export function TechnicalMarksLayer({
   handleTechnicalMarkPointerMove,
   handleTechnicalMarkPointerUp,
 }: TechnicalMarksLayerProps) {
+  const renderModels = useMemo(
+    () => createTechnicalMarkRenderModels(projectTechnicalMarks),
+    [projectTechnicalMarks],
+  )
+
   const renderTechnicalMark = (model: TechnicalMarkRenderModel) => {
     const layerSize = {
       width: `${model.unscaledBounds.halfWidth * 2}%`,
@@ -53,5 +58,5 @@ export function TechnicalMarksLayer({
     )
   }
 
-  return <>{createTechnicalMarkRenderModels(projectTechnicalMarks).map(renderTechnicalMark)}</>
+  return <>{renderModels.map(renderTechnicalMark)}</>
 }

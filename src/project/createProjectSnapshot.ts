@@ -10,6 +10,7 @@ import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
 import type { DiscTextValueSources } from './metadataDiscTextTypes'
 import { normalizeSteamBannerFallbackText } from '../branding/steamBannerDefaults'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -115,7 +116,7 @@ export function createProjectSnapshot({
   )
 
   return {
-    schemaVersion: '0.1.0',
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
     title: manualGameTitle,
     savedAt: new Date().toISOString(),

@@ -41,8 +41,11 @@ function CaseInsertSurfaceBaseLayer({
 }: {
   layout: CaseInsertPreviewLayout
 }) {
-  const visibleRegions = layout.regions.filter(({ role }) =>
-    role === 'front' || role === 'printable' || role === 'spine',
+  const visibleRegions = useMemo(
+    () => layout.regions.filter(({ role }) =>
+      role === 'front' || role === 'printable' || role === 'spine',
+    ),
+    [layout.regions],
   )
 
   return (
@@ -81,9 +84,12 @@ export function CaseInsertPreview({
     () => createJewelCasePreviewLayout(caseInsert.templateType),
     [caseInsert.templateType],
   )
-  const previewStyle = {
-    '--case-insert-preview-aspect': `${layout.width} / ${layout.height}`,
-  } as CSSProperties
+  const previewStyle = useMemo(
+    () => ({
+      '--case-insert-preview-aspect': `${layout.width} / ${layout.height}`,
+    }) as CSSProperties,
+    [layout.height, layout.width],
+  )
   const previewLayers: PreviewLayerMap = {
     'case-surface-base': <CaseInsertSurfaceBaseLayer layout={layout} />,
     'case-background-artwork': (

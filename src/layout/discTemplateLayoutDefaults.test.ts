@@ -19,11 +19,13 @@ import {
 } from '../project/projectLogoAssets.ts'
 import {
   createDefaultProjectMediaMark,
-  createDefaultProjectPlatformMarks,
   resetProjectMediaMarkLayout,
+} from '../project/projectMediaMark.ts'
+import {
+  createDefaultProjectPlatformMarks,
   resetProjectPlatformMarkLayout,
   updatePlatformMarkToggle,
-} from '../project/projectMediaMark.ts'
+} from '../project/projectPlatformMarks.ts'
 import {
   createDefaultProjectRatingBadge,
   resetProjectRatingBadgeLayout,

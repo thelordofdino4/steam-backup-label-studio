@@ -10,7 +10,7 @@ import { createDefaultProjectMetadata } from './projectMetadata.ts'
 import {
   getProjectPlatformMarkAsset,
   getProjectPlatformMarkInference,
-} from './projectMediaMark.ts'
+} from './projectPlatformMarks.ts'
 import { getProjectTechnicalMarkAsset } from './projectTechnicalMarks.ts'
 import {
   applyDiscTextStylePreset,

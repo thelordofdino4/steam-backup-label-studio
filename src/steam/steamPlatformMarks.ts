@@ -4,7 +4,7 @@ import {
   getPlatformMarkLabel,
   getProjectPlatformMarkInference,
   setProjectPlatformMarkValues,
-} from '../project/projectMediaMark.ts'
+} from '../project/projectPlatformMarks.ts'
 import type {
   PlatformMarkValue,
   ProjectPlatformMarks,

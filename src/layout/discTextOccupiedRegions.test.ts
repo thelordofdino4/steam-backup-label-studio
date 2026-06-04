@@ -14,8 +14,10 @@ import { createDefaultProjectAdditionalArtwork } from '../project/projectAdditio
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import {
   createDefaultProjectMediaMark,
-  createDefaultProjectPlatformMarks,
 } from '../project/projectMediaMark.ts'
+import {
+  createDefaultProjectPlatformMarks,
+} from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectTechnicalMarks } from '../project/projectTechnicalMarks.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import { createDiscTextOccupiedRegions } from './discTextOccupiedRegions.ts'

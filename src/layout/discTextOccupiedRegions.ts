@@ -25,7 +25,8 @@ import {
 } from '../discText/renderLayout.ts'
 import type { DiscTextStyleSettings } from '../discText/styles.ts'
 import { createDiscNumberBadgeRenderModel } from '../discText/discNumberArtwork.ts'
-import { createMediaMarkRenderModel, createPlatformMarkRenderModels } from '../render/mediaMarkRenderModel.ts'
+import { createMediaMarkRenderModel } from '../render/mediaMarkRenderModel.ts'
+import { createPlatformMarkRenderModels } from '../render/platformMarkRenderModel.ts'
 import { createAdditionalArtworkRenderItems } from '../project/projectAdditionalArtwork.ts'
 import { createLogoAssetRenderItems, getLogoAssetRenderSize } from '../project/projectLogoAssets.ts'
 import {

@@ -1,8 +1,5 @@
-import {
-  createMediaMarkRenderModel,
-  createPlatformMarkRenderModels,
-} from '../render/mediaMarkRenderModel'
-import type { ProjectMediaMark, ProjectPlatformMarks } from '../project/projectTypes'
+import { createMediaMarkRenderModel } from '../render/mediaMarkRenderModel'
+import type { ProjectMediaMark } from '../project/projectTypes'
 import { drawMarkImage } from './drawMarkImage'
 
 export async function drawMediaMark(
@@ -18,15 +15,4 @@ export async function drawMediaMark(
   }
 
   await drawMarkImage(context, discContentSize, discOrigin, model)
-}
-
-export async function drawPlatformMarks(
-  context: CanvasRenderingContext2D,
-  discContentSize: number,
-  discOrigin: number,
-  platformMarks: ProjectPlatformMarks,
-) {
-  for (const model of createPlatformMarkRenderModels(platformMarks)) {
-    await drawMarkImage(context, discContentSize, discOrigin, model)
-  }
 }

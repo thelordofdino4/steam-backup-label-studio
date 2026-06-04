@@ -1,7 +1,10 @@
-import type { ReactNode } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
+import type { SteamArtworkAsset } from '../../../steam/steamApi'
 import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { createSteamArtworkPickerItems } from './helpers'
 import type { ArtworkPanelProps } from './types'
+
+const EMPTY_STEAM_ARTWORK: SteamArtworkAsset[] = []
 
 export function SteamArtworkControls({
   selectedSteamGame,
@@ -18,13 +21,16 @@ export function SteamArtworkControls({
 > & {
   fineTuneControls: ReactNode
 }) {
-  const artwork = selectedSteamGame?.artwork ?? []
-  const pickerItems = createSteamArtworkPickerItems(artwork, selectedArtworkId)
-  const selectSteamArtwork = (itemId: string) => {
+  const artwork = selectedSteamGame?.artwork ?? EMPTY_STEAM_ARTWORK
+  const pickerItems = useMemo(
+    () => createSteamArtworkPickerItems(artwork, selectedArtworkId),
+    [artwork, selectedArtworkId],
+  )
+  const selectSteamArtwork = useCallback((itemId: string) => {
     const asset = artwork.find((currentAsset) => currentAsset.id === itemId)
 
     if (asset) return handleUseSteamArtwork(asset)
-  }
+  }, [artwork, handleUseSteamArtwork])
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">

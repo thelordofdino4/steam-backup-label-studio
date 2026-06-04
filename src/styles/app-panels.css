@@ -1,0 +1,160 @@
+.collapsible-panel {
+  padding: 0;
+  overflow: hidden;
+}
+
+.panel-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  color: #f9fafb;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+}
+
+.panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.panel-summary::after {
+  content: "";
+  flex: 0 0 auto;
+  width: 34px;
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  background-image: url("./assets/app-shell/crowbar-toggle.png");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  opacity: 0.9;
+  transform: scaleX(-1) rotate(-35deg);
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease;
+}
+
+.collapsible-panel[open] > .panel-summary::after {
+  transform: scaleX(-1) rotate(-145deg);
+  opacity: 1;
+}
+
+.panel-content {
+  padding: 0 16px 16px;
+}
+
+.collapsible-panel:not([open]) {
+  background: #141720;
+}
+
+.collapsible-panel:not([open]) .panel-summary {
+  color: #d1d5db;
+}
+
+.guide-legend {
+  display: grid;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.guide-legend-item {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  align-items: start;
+  gap: 10px;
+}
+
+.guide-legend-item strong {
+  display: block;
+  color: #f9fafb;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.guide-legend-item p {
+  margin-top: 3px;
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.guide-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.guide-swatch-outer {
+  border: 2px dashed rgba(239, 68, 68, 0.95);
+}
+
+.guide-swatch-print {
+  border: 2px dotted rgba(34, 197, 94, 0.95);
+}
+
+.guide-swatch-hub {
+  border: 2px dotted rgba(34, 197, 94, 0.95);
+  background:
+    repeating-linear-gradient(
+      45deg,
+      rgba(17, 24, 39, 0.7) 0,
+      rgba(17, 24, 39, 0.7) 4px,
+      rgba(107, 114, 128, 0.7) 4px,
+      rgba(107, 114, 128, 0.7) 8px
+    );
+}
+
+.guide-swatch-hole {
+  border: 2px solid rgba(17, 24, 39, 0.95);
+  background: #20242d;
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6);
+}
+
+.guide-swatch-safe {
+  border: 2px dashed rgba(37, 99, 235, 0.95);
+}
+
+.case-guide-swatch-trim {
+  border: 2px solid rgba(245, 158, 11, 0.95);
+  border-radius: 4px;
+}
+
+.case-guide-swatch-safe {
+  border: 2px dashed rgba(37, 99, 235, 0.95);
+  border-radius: 4px;
+}
+
+.case-guide-swatch-spine {
+  border: 2px solid rgba(236, 72, 153, 0.95);
+  border-radius: 2px;
+}
+
+/* Crowbar panel toggle icon override */
+.panel-summary::after {
+  content: "" !important;
+  flex: 0 0 auto !important;
+  width: 34px !important;
+  height: 24px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background-image: url("./assets/app-shell/crowbar-toggle.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: contain !important;
+  opacity: 0.9 !important;
+  transform: scaleX(-1) rotate(-35deg) !important;
+  transition:
+    transform 140ms ease,
+    opacity 140ms ease !important;
+}
+
+.collapsible-panel[open] > .panel-summary::after {
+  transform: scaleX(-1) rotate(-145deg) !important;
+  opacity: 1 !important;
+}

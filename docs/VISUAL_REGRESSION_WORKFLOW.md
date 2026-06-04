@@ -2,7 +2,7 @@
 
 This workflow is the manual process for checking live preview and PNG export parity across saved project fixtures. It supports the closed issue #65 workflow and is intentionally documentation-only unless a separate issue asks for fixture or rendering fixes. Do not treat a mismatch found here as part of an unrelated docs task.
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-03.
 
 ## Purpose
 
@@ -25,6 +25,12 @@ The workflow checks:
 - Export preflight warnings.
 - Optional exported guide marks.
 - Standard and custom disc dimensions.
+
+Use `docs/MANUAL_SMOKE_CHECKLISTS.md` beside this fixture workflow when the
+change also affects editor interaction, artwork controls, branding controls,
+save/load/export flows, or case insert flows. This document focuses on
+preview/export fixture comparison; the smoke checklist covers broader runtime
+behavior.
 
 ## Preparation
 

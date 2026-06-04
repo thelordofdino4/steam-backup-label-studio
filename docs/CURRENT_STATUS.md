@@ -161,6 +161,7 @@ Still limited or intentionally incomplete:
 - Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format is not implemented.
 - Project schema validation/migrations are still limited (#48).
 - Existing fixtures do not yet cover every recently added real-disc-art system; title artwork, additional artwork, technical marks, metadata-bound text, and export preflight need better fixture/manual smoke coverage.
+- Manual runtime smoke checklist coverage now lives in `docs/MANUAL_SMOKE_CHECKLISTS.md`; use it to record editor, artwork, branding, preview, save/load/export, and case insert checks.
 - Manual native/Tauri smoke is still required before claiming current live editor behavior is verified for a release package.
 - Guided Start remains deferred (#17).
 

@@ -37,11 +37,13 @@ import {
   type LogoAssetKey,
 } from '../project/projectLogoAssets'
 import {
+  updateMediaMarkLayoutPosition,
+} from '../project/projectMediaMark'
+import {
   getProjectPlatformMarkAsset,
   markProjectPlatformMarksManual,
-  updateMediaMarkLayoutPosition,
   updatePlatformMarkLayoutPosition,
-} from '../project/projectMediaMark'
+} from '../project/projectPlatformMarks'
 import {
   getProjectTechnicalMarkAsset,
   updateTechnicalMarkLayoutPosition,

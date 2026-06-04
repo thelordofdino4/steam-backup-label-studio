@@ -1,4 +1,4 @@
-import { Fragment, type PointerEvent, type ReactNode, type RefObject } from 'react'
+import { Fragment, useMemo, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleSettings } from '../../discText/styles'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
@@ -10,7 +10,8 @@ import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { SteamBannerPreview } from './SteamBannerPreview'
 import { LogoAssetLayer } from './LogoAssetLayer'
 import { RatingBadgeLayer } from './RatingBadgeLayer'
-import { MediaMarkLayer, PlatformMarksLayer } from './MediaMarkLayer'
+import { MediaMarkLayer } from './MediaMarkLayer'
+import { PlatformMarksLayer } from './PlatformMarksLayer'
 import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
@@ -148,28 +149,49 @@ export function DiscPreview({
   pointerHandlers,
   guideOverlay,
 }: DiscPreviewProps) {
-  const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
-    discText.values,
-    metadata,
-    discText.valueSources,
+  const metadataBoundDiscTextValues = useMemo(
+    () => resolveMetadataBoundDiscTextValues(
+      discText.values,
+      metadata,
+      discText.valueSources,
+    ),
+    [discText.valueSources, discText.values, metadata],
   )
-  const discTextOccupiedRegions = createDiscTextOccupiedRegions({
-    projectTitleArtwork: artwork.titleArtwork,
-    projectLogoAssets: artwork.logoAssets,
-    projectAdditionalArtwork: artwork.additionalArtwork,
-    projectMetadata: metadata,
-    projectRatingBadge: marks.ratingBadge,
-    projectMediaMark: marks.mediaMark,
-    projectPlatformMarks: marks.platformMarks,
-    projectTechnicalMarks: marks.technicalMarks,
-    projectDiscNumberArtwork: discText.discNumberArtwork,
-    discTextSettings: discText.settings,
-    discTextValues: metadataBoundDiscTextValues,
-    discTextLayout: discText.layout,
-    discTextStyles: discText.styles,
-    discTextTitle: discText.manualGameTitle,
-    measureText: measureDiscTextWithBrowserCanvas,
-  })
+  const discTextOccupiedRegions = useMemo(
+    () => createDiscTextOccupiedRegions({
+      projectTitleArtwork: artwork.titleArtwork,
+      projectLogoAssets: artwork.logoAssets,
+      projectAdditionalArtwork: artwork.additionalArtwork,
+      projectMetadata: metadata,
+      projectRatingBadge: marks.ratingBadge,
+      projectMediaMark: marks.mediaMark,
+      projectPlatformMarks: marks.platformMarks,
+      projectTechnicalMarks: marks.technicalMarks,
+      projectDiscNumberArtwork: discText.discNumberArtwork,
+      discTextSettings: discText.settings,
+      discTextValues: metadataBoundDiscTextValues,
+      discTextLayout: discText.layout,
+      discTextStyles: discText.styles,
+      discTextTitle: discText.manualGameTitle,
+      measureText: measureDiscTextWithBrowserCanvas,
+    }),
+    [
+      artwork.additionalArtwork,
+      artwork.logoAssets,
+      artwork.titleArtwork,
+      discText.discNumberArtwork,
+      discText.layout,
+      discText.manualGameTitle,
+      discText.settings,
+      discText.styles,
+      marks.mediaMark,
+      marks.platformMarks,
+      marks.ratingBadge,
+      marks.technicalMarks,
+      metadata,
+      metadataBoundDiscTextValues,
+    ],
+  )
   const previewLayers: PreviewLayerMap = {
     'background-artwork': (
       <BackgroundLayer

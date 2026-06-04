@@ -1,6 +1,6 @@
 # Preview/Export Rendering Architecture Audit
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-03.
 
 This document began as the issue #82 ownership audit. Issue #82 and related regressions #83, #84, and #85 are now closed. Keep this document as the current preview/export ownership map, not as evidence that those closed issues are still active.
 
@@ -14,6 +14,8 @@ Related current source-of-truth docs:
 - `docs/DISC_EDITOR_LAYER_ORDER.md`
 - `docs/METADATA_DISC_TEXT_BINDING.md`
 - `docs/PROJECT_FILE_SPEC.md`
+- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`
+- `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
 
 ## Current Layer Order
 
@@ -39,6 +41,12 @@ Current user-visible order:
 9. Technical/audio/codec marks.
 10. Disc text.
 
+Case insert preview/export layer order is also centralized in
+`src/editor/layerOrder.ts`. The current case insert policy is documented in
+`docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`. Case export is still planned; do not
+claim case preview/export parity for print-ready PNG output until focused case
+export work lands.
+
 ## Preview/Export Render Paths
 
 | Layer | Preview path | Export path | Notes |
@@ -51,7 +59,7 @@ Current user-visible order:
 | Logo assets | `LogoAssetLayer` | `drawLogoAssets.ts` | Covers primary and additional developer/publisher logos. |
 | Rating badge | `RatingBadgeLayer` | `drawRatingBadge.ts` | Generic/custom image behavior must stay matched. |
 | Media mark | `MediaMarkLayer` | `drawMediaMark.ts` | Generic/custom image behavior must stay matched. |
-| Operating-system marks | `PlatformMarksLayer` | `drawPlatformMarks` in `drawMediaMark.ts` | Per-mark assets/layouts. |
+| Operating-system marks | `PlatformMarksLayer` | `drawPlatformMarks.ts` | Per-mark assets/layouts. |
 | Technical marks | `TechnicalMarksLayer` | `drawTechnicalMarks.ts` | Per-mark assets/layouts. |
 | Disc text | `DiscTextLayer` and `discTextSvgLayer.ts` | `drawDiscText.ts` and `discTextSvgLayer.ts` | Shared SVG/data and metadata-bound value resolution. |
 | Editor guide overlay | `DiscGuideOverlay` | not exported unless export guide options are enabled | Preview-only guide layer. |
@@ -68,11 +76,29 @@ Current user-visible order:
 | Steam banner | `steamBanner`, `steamBannerDefaults`, `App.tsx` wiring | banner layout helpers | `SteamBannerPreview` | `drawSteamBanner` | project snapshot/restoration |
 | Logos | `projectLogoAssets`, `useLogoAssetDiscovery` | `discElementSafeZone` | `LogoAssetLayer` | `drawLogoAssets` | `normalizeProjectLogoAssets` |
 | Rating badge | `projectRatingBadge`, `projectMetadata` | `discElementSafeZone` | `RatingBadgeLayer` | `drawRatingBadge` | `normalizeProjectRatingBadge` |
-| Media/OS marks | `projectMediaMark`, `steamPlatformMarks` | `discElementSafeZone` | `MediaMarkLayer`, `PlatformMarksLayer` | `drawMediaMark` | normalization helpers |
+| Media marks | `projectMediaMark` | `discElementSafeZone` | `MediaMarkLayer` | `drawMediaMark` | `normalizeProjectMediaMark` |
+| Operating-system marks | `projectPlatformMarks`, `steamPlatformMarks` | `discElementSafeZone` | `PlatformMarksLayer` | `drawPlatformMarks` | `normalizeProjectPlatformMarks` |
 | Technical marks | `useTechnicalMarks`, `projectTechnicalMarks` | `discElementSafeZone` | `TechnicalMarksLayer` | `drawTechnicalMarks` | `normalizeProjectTechnicalMarks` |
 | Disc text | `discText`, `discTextStyles`, `metadataDiscText` | `discElementSafeZone`, `discTextRenderLayout`, `discTextOccupiedRegions` | `DiscTextLayer` | `drawDiscText` | project schema/restoration |
 | Export preflight | `exportPreflight` | validation helpers | none | pre-export dialog | none |
 | Asset provenance/status | `projectAssetStatus` | none | sidebar/status copy | preflight/status copy | project schema/restoration |
+
+## Case Insert Rendering Path
+
+The case insert editor uses a separate rectangular rendering path.
+
+| Domain | State/defaults | Layout | Preview artifact | Export artifact | Save/load |
+| --- | --- | --- | --- | --- | --- |
+| Case insert template | `caseInsertTemplates` | `templateModel`, `jewelCaseLayout`, `caseInsertPreviewLayout` | `CaseInsertGuideOverlay` | planned case export owner | case project adapters |
+| Case front background | `caseInsert/defaults`, `frontCoverTransitions` | case image-slot layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
+| Case front title/callout/logo/mark slots | `caseInsert/defaults`, `frontCoverTransitions`, `imageSlotTransitions` | case image-slot layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
+| Case front callout text | `caseInsert/textTransitions` | case text layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
+| Case image source import | `caseInsert/imageSlotSourceImport` | none | `CaseInsertImageSourceControls` status and selected images | planned case export owner | embedded project assets |
+
+Case render work must not reuse disc circular safe-zone helpers or disc export
+drawing modules. If back cover, spine, case export, or case preflight work needs
+new rendering artifacts, create focused case insert owners and keep shared
+helpers neutral.
 
 ## Remaining Risks
 

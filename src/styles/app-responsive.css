@@ -1,0 +1,51 @@
+@media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
+  .home-menu-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-menu-card {
+    grid-template-columns: 48px minmax(0, 1fr);
+  }
+
+  .home-menu-card {
+    min-height: 148px;
+  }
+
+  .home-menu-card-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 13px;
+  }
+
+  .app-shell {
+    height: auto;
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .sidebar {
+    height: auto;
+    overflow: visible;
+    border-right: 0;
+    border-bottom: 1px solid #2a2e38;
+  }
+
+  .preview-area {
+    height: auto;
+    min-height: 60vh;
+    position: static;
+  }
+
+  .disc-preview {
+    width: min(calc(100vw - 32px), calc(60vh - 32px), 640px);
+  }
+
+  .case-insert-preview {
+    width: min(calc(100vw - 32px), 1080px);
+  }
+}

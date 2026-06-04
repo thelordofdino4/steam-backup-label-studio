@@ -1,3 +1,4 @@
+import { useCallback, useMemo } from 'react'
 import { getLogoAssetLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import { getProjectImageAssetStatus } from '../../../project/projectAssetStatus'
 import { getLogoAssetSource } from '../../../project/projectLogoAssets'
@@ -108,14 +109,17 @@ function LogoCandidateList({
   handleFindLogoCandidates: (logoKey: LogoKey) => void | Promise<void>
   handleApplyLogoCandidate: (candidate: RemoteLogoCandidate) => void | Promise<void>
 }) {
-  const pickerItems = createLogoCandidatePickerItems(discovery.candidates)
-  const selectLogoCandidate = (itemId: string) => {
+  const pickerItems = useMemo(
+    () => createLogoCandidatePickerItems(discovery.candidates),
+    [discovery.candidates],
+  )
+  const selectLogoCandidate = useCallback((itemId: string) => {
     const candidate = discovery.candidates.find(
       (currentCandidate) => currentCandidate.id === itemId,
     )
 
     if (candidate) return handleApplyLogoCandidate(candidate)
-  }
+  }, [discovery.candidates, handleApplyLogoCandidate])
 
   return (
     <div className="logo-candidate-discovery">

@@ -10,9 +10,11 @@ import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import {
   createDefaultProjectMediaMark,
+} from '../project/projectMediaMark.ts'
+import {
   createDefaultProjectPlatformMarks,
   updatePlatformMarkToggle,
-} from '../project/projectMediaMark.ts'
+} from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {

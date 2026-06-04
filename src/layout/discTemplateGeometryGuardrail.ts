@@ -30,7 +30,7 @@ import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import {
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
-} from '../project/projectMediaMark.ts'
+} from '../project/projectPlatformMarks.ts'
 import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import type {
   LogoAssetLayout,

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useCallback, useMemo, type ReactNode } from 'react'
 import type { RemoteLogoCandidate } from '../../../steam/steamLogoCandidates'
 import {
   ImageCandidatePreviewPicker,
@@ -46,23 +46,26 @@ export function WebArtworkCandidateControls({
 > & {
   fineTuneControls: ReactNode
 }) {
-  const pickerItems: ImageCandidatePickerItem[] = webArtworkDiscovery.candidates.map(
-    (candidate) => ({
-      id: candidate.id,
-      title: candidate.label,
-      subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatCandidateDimensions(candidate)}`,
-      details: candidate.reasons.slice(0, 3),
-      imageUrl: candidate.previewUrl ?? candidate.url,
-      imageFit: 'cover',
-    }),
+  const pickerItems: ImageCandidatePickerItem[] = useMemo(
+    () => webArtworkDiscovery.candidates.map(
+      (candidate) => ({
+        id: candidate.id,
+        title: candidate.label,
+        subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatCandidateDimensions(candidate)}`,
+        details: candidate.reasons.slice(0, 3),
+        imageUrl: candidate.previewUrl ?? candidate.url,
+        imageFit: 'cover',
+      }),
+    ),
+    [webArtworkDiscovery.candidates],
   )
-  const selectWebArtworkCandidate = (itemId: string) => {
+  const selectWebArtworkCandidate = useCallback((itemId: string) => {
     const candidate = webArtworkDiscovery.candidates.find(
       (currentCandidate) => currentCandidate.id === itemId,
     )
 
     if (candidate) return handleUseWebArtworkCandidate(candidate)
-  }
+  }, [handleUseWebArtworkCandidate, webArtworkDiscovery.candidates])
 
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">

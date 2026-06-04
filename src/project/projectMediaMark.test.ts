@@ -7,25 +7,27 @@ import {
 import {
   MEDIA_MARK_OPTIONS,
   MEDIA_MARK_THEME_OPTIONS,
+  createDefaultProjectMediaMark,
+  getMediaMarkLabel,
+  mediaMarkSupportsTheme,
+  normalizeProjectMediaMark,
+  updateMediaMarkTheme,
+} from './projectMediaMark.ts'
+import {
   PLATFORM_MARK_OPTIONS,
   PLATFORM_MARK_THEME_OPTIONS,
-  createDefaultProjectMediaMark,
   createDefaultProjectPlatformMarkAsset,
   createDefaultProjectPlatformMarks,
   getDefaultPlatformMarkTheme,
-  getMediaMarkLabel,
   getPlatformMarkLabel,
   getPlatformMarkThemeOptions,
   getProjectPlatformMarkAsset,
   getProjectPlatformMarkInference,
-  mediaMarkSupportsTheme,
-  normalizeProjectMediaMark,
   normalizeProjectPlatformMarks,
   platformMarkSupportsTheme,
   setPlatformMarkCustomImage,
-  updateMediaMarkTheme,
   updatePlatformMarkTheme,
-} from './projectMediaMark.ts'
+} from './projectPlatformMarks.ts'
 import type { ProjectPlatformMarks } from './projectTypes.ts'
 
 test('media mark options include a Blu-ray built-in generic mark', () => {

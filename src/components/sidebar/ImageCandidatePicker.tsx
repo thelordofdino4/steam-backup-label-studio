@@ -1,4 +1,4 @@
-import { useId, useState, type CSSProperties } from 'react'
+import { useId, useMemo, useState, type CSSProperties } from 'react'
 
 export type ImageCandidatePickerItem = {
   id: string
@@ -155,12 +155,18 @@ export function ImageCandidatePreviewPicker({
   const titleId = useId()
   const [isOpen, setIsOpen] = useState(false)
   const [selectingItemId, setSelectingItemId] = useState<string | null>(null)
-  const loopingPreviewItems = getLoopingPreviewItems(items)
+  const loopingPreviewItems = useMemo(
+    () => getLoopingPreviewItems(items),
+    [items],
+  )
   const previewPageCount = Math.max(1, loopingPreviewItems.length / 8)
-  const previewStyle = {
-    '--image-candidate-preview-duration': `${previewPageCount * 7}s`,
-    '--image-candidate-preview-translate': `${previewPageCount * -100}%`,
-  } as CSSProperties
+  const previewStyle = useMemo(
+    () => ({
+      '--image-candidate-preview-duration': `${previewPageCount * 7}s`,
+      '--image-candidate-preview-translate': `${previewPageCount * -100}%`,
+    }) as CSSProperties,
+    [previewPageCount],
+  )
   const canAnimatePreview = items.length > 4
 
   const closePicker = () => {

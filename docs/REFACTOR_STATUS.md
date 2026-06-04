@@ -1,6 +1,6 @@
 # Refactor Status
 
-Last refreshed: 2026-05-31.
+Last refreshed: 2026-06-03.
 
 This document tracks controlled refactor history and current architecture expectations for the disc artwork editor.
 
@@ -16,6 +16,12 @@ The standing rule remains documented in `docs/ARCHITECTURE_GUARDRAILS.md`:
 - If an update grows into a new feature or responsibility, extract it.
 - `App.tsx` must keep moving toward orchestration, not feature ownership.
 - Preview/export parity must be protected by shared render artifacts where feasible, shared layer order, and shared coordinate systems.
+- Relative import cycles under `src` must remain at zero.
+- Disc editor, case insert editor, and neutral template modules must stay
+  separate.
+- Large panels should remain composition shells over smaller controls, hooks,
+  and domain modules.
+- Shared utilities should contain only neutral reusable logic.
 
 ## Why This Matters
 
@@ -42,6 +48,26 @@ Because they are now broad enough to be real product surface, future work should
 - Moved safe-zone clamp/range helpers into `src/layout/discElementSafeZone.ts`.
 - Added occupied-region helpers for text visual avoidance.
 - Added export preflight in `src/export/exportPreflight.ts`.
+- Extracted disc template/custom-dimension state, derived guide overlay metrics,
+  template reset/restore, and custom-geometry guardrail transitions into
+  `src/hooks/useDiscTemplateState.ts`.
+- Split media-mark and operating-system/platform-mark project, render, preview,
+  export, and Steam inference ownership so platform behavior no longer routes
+  through `src/project/projectMediaMark.ts`.
+- Split the Artwork, Branding, and Text sidebar panels toward composition
+  shells, with denser controls moved into focused child components and type
+  files.
+- Split CSS ownership into an ordered `src/styles/App.css` import manifest and
+  focused `src/styles/app-*.css` files, with the current order documented in
+  `docs/CSS_STYLE_OWNERSHIP.md`.
+- Added the dependency-cycle guard script and local command
+  `npm run check:cycles`.
+- Added case insert project/schema groundwork under `src/caseInsert/*`,
+  `src/project/caseInsertProjectAdapters.ts`, `src/project/projectRouting.ts`,
+  and the compatibility barrel `src/project/projectCaseInsert.ts`.
+- Added current case insert front-editor ownership through
+  `src/hooks/useJewelCaseFrontEditor.ts`, `src/components/caseInsert/*`, and
+  case insert preview components.
 
 ## Current Validation Status
 
@@ -68,12 +94,16 @@ The following risks remain worth attention:
 4. CSS can still become hidden layout/business logic if stale renderer rules remain.
 5. Project schema validation and migrations remain limited (#48).
 6. Built-in asset routing is centralized, but future assets still need to follow the manifest and folder hierarchy.
+7. Case insert export and preflight are not implemented yet; the current Export
+   PNG button intentionally reports that case export is planned.
+8. `src/project/projectCaseInsert.ts` must remain a compatibility barrel unless
+   an explicit migration changes import sites; new case behavior belongs in
+   `src/caseInsert/*` or focused adapters.
 
 ## Follow-Up Work
 
 Continue extracting focused hooks/domain modules where doing so supports alpha work:
 
-- Disc template state and custom dimension transitions.
 - Background image state and upload behavior.
 - Steam search/import and local Steam screenshot behavior.
 - Steam banner state/upload/layout transitions.
@@ -84,6 +114,23 @@ Continue extracting focused hooks/domain modules where doing so supports alpha w
 - Project schema validation/migrations (#48).
 - CSS organization (#46).
 - Rust command organization only if it becomes a maintenance issue (#47).
+
+## Current Guardrail Checklist
+
+Before future cleanup/refactor work is considered ready:
+
+- `npm run check:cycles` still reports zero relative import cycles under `src`.
+- `App.tsx` has not gained unrelated state transition, layout, import, render,
+  export, or serialization ownership.
+- Disc-only circular geometry and text behavior remain out of case insert
+  modules.
+- Case insert rectangular state, layout, preview, project adapters, and future
+  export/preflight behavior remain out of disc-specific modules.
+- Template helpers remain neutral physical-template utilities.
+- Large panel components stay composition shells over smaller controls.
+- Shared utilities stay neutral; feature policy belongs to feature owners.
+- Manual smoke coverage follows `docs/MANUAL_SMOKE_CHECKLISTS.md` when a visual
+  or editor-facing change needs runtime verification.
 
 ## Close Criteria For Architecture Stabilization
 

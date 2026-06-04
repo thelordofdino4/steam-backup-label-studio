@@ -2,7 +2,7 @@
 
 These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor has reached its alpha feature boundary, and future disc polish or jewel case work must preserve that baseline instead of adding logic to unrelated structures.
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-03.
 
 This document is mandatory reading for agents and contributors before implementing features, fixes, or refactors.
 
@@ -41,6 +41,39 @@ Decision rule:
 - If an owner almost exists but is missing a clear boundary, extract or rename toward the right owner before expanding behavior.
 - If no owner exists, create a focused module with a clear name and narrow responsibility.
 - Do not create a parallel helper, renderer, or state path that duplicates an existing concept under a different name.
+
+## Post-Cleanup Ownership Invariants
+
+The current cleanup/refactor work created several boundaries that future tasks
+must preserve.
+
+- Relative import cycles under `src` must stay at zero. `npm run check:cycles`
+  is a required guardrail after file moves, ownership cleanup, module splits,
+  or import changes.
+- `App.tsx` may coordinate workspaces, hooks, save/load/export orchestration,
+  dialogs, and status messages, but it must not regain unrelated feature
+  ownership. Do not add new layout math, upload/import interpretation,
+  renderer construction, state transition rules, project normalization, or
+  export drawing there.
+- Disc editor modules and case insert modules must stay separate. Circular disc
+  geometry, disc safe-zone logic, disc text layout, disc preview, and disc PNG
+  export remain disc-owned. Rectangular case insert state, layout, preview, and
+  future export/preflight behavior belong in case insert owners.
+- Template modules must stay neutral. `src/templates/templateModel.ts` and
+  `src/types/template.ts` may describe shared physical template concepts, but
+  should not absorb disc-only or case-only editing rules.
+- `src/project/projectCaseInsert.ts` is currently a compatibility barrel and
+  adapter surface. New case behavior should go into `src/caseInsert/*`,
+  `src/project/caseInsertProjectAdapters.ts`, or another focused case owner,
+  not into the barrel.
+- Large sidebar panels such as `ArtworkPanel`, `BrandingPanel`, and `TextPanel`
+  should stay composition shells. Their children may render controls, but
+  source decisions, upload/import rules, layout clamps, state transitions, and
+  serialization must live in hooks or domain modules.
+- Shared utilities should contain only neutral reusable logic. If a helper needs
+  to know about Steam artwork policy, disc geometry, case regions, saved-project
+  compatibility, or visual feature semantics, it belongs in that domain instead
+  of `src/utils/` or another broad shared folder.
 
 ## App.tsx Boundary
 
@@ -114,12 +147,36 @@ Current real-disc-art owners include, at minimum:
 - Additional artwork: `src/hooks/useAdditionalArtwork.ts`, `src/project/projectAdditionalArtwork.ts`, `AdditionalArtworkLayer`, and `drawAdditionalArtwork`.
 - Developer/publisher/additional logos: `src/project/projectLogoAssets.ts`, logo discovery hooks, `LogoAssetLayer`, and `drawLogoAssets`.
 - Rating badge: `src/project/projectRatingBadge.ts`, `RatingBadgeLayer`, and `drawRatingBadge`.
-- Media and operating-system marks: `src/project/projectMediaMark.ts`, `src/steam/steamPlatformMarks.ts`, `MediaMarkLayer`, and `drawMediaMark`.
+- Media marks: `src/project/projectMediaMark.ts`, `MediaMarkLayer`, `createMediaMarkRenderModel`, and `drawMediaMark`.
+- Operating-system marks: `src/project/projectPlatformMarks.ts`, `src/steam/steamPlatformMarks.ts`, `PlatformMarksLayer`, `createPlatformMarkRenderModels`, and `drawPlatformMarks`.
 - Technical marks: `src/hooks/useTechnicalMarks.ts`, `src/project/projectTechnicalMarks.ts`, `TechnicalMarksLayer`, and `drawTechnicalMarks`.
 - Metadata-bound text: `src/project/metadataDiscText.ts`.
 - Export preflight: `src/export/exportPreflight.ts`.
 - Asset provenance/status: `src/project/projectAssetStatus.ts`.
 - Layer order: `src/editor/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
+
+Current case insert owners include, at minimum:
+
+- Rectangular template model and validation: `src/types/template.ts` and
+  `src/templates/templateModel.ts`.
+- Built-in case insert template data: `src/templates/caseInsertTemplates.ts`.
+- Case insert defaults, normalization, image-slot transitions, text
+  transitions, front-cover transitions, image-source import, and export settings:
+  `src/caseInsert/*`.
+- Saved case insert project snapshot, normalization, restoration, and routing
+  adapters: `src/project/caseInsertProjectAdapters.ts`,
+  `src/project/projectCaseInsert.ts`, and `src/project/projectRouting.ts`.
+- Jewel case front editor actions: `src/hooks/useJewelCaseFrontEditor.ts`.
+- Case insert UI shell and front controls: `src/components/caseInsert/*`.
+- Case insert preview and guides: `src/components/preview/CaseInsertPreview.tsx`,
+  `src/components/preview/CaseInsertFrontPreviewLayers.tsx`, and
+  `src/components/preview/CaseInsertGuideOverlay.tsx`.
+- Case insert layer order: `src/editor/layerOrder.ts` and
+  `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`.
+
+If a future back-cover, spine, export, or preflight feature does not fit one of
+these owners, create a focused case insert module instead of adding the behavior
+to disc-specific modules or broad shared utilities.
 
 ## Preview and Export Parity Rule
 
@@ -248,6 +305,11 @@ For visual/editor changes, validation should include:
 - upload/custom image behavior where applicable
 
 For documentation-only freshness work, do not claim these manual/runtime checks were performed unless they actually were. Non-interactive validation can show the source still builds; it does not prove live Tauri/editor behavior.
+
+Manual smoke checklists for editor, artwork, branding, preview, save/load/export,
+and case insert flows live in `docs/MANUAL_SMOKE_CHECKLISTS.md`. Use them when a
+visual/editor change needs human verification, and record which checklist items
+were actually checked.
 
 For user-visible fixes, final reports must also include:
 

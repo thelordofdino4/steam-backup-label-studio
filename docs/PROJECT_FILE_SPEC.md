@@ -19,6 +19,11 @@ The current implementation saves plain JSON project files. User-facing filenames
 The current source-of-truth type is `SavedProject` in `src/project/projectTypes.ts`.
 It is a union of `SavedDiscProject` and `SavedCaseInsertProject`.
 
+Schema/version constants and JSON parsing live in
+`src/project/projectSchema.ts`. The older `src/project/normalizeProject.ts`
+entry point remains as a compatibility adapter for callers that already import
+`normalizeParsedProject`.
+
 Disc snapshot creation lives in `src/project/createProjectSnapshot.ts`, and disc
 restoration/normalization lives in `src/project/restoreProjectState.ts` plus
 related project modules. Case insert saved-project adapters remain available
@@ -208,5 +213,5 @@ This would make projects more portable between machines and may reduce large JSO
 - Document migration behavior before changing schema semantics.
 - Keep backward compatibility for current fixed systems during any future flexible visual-element migration.
 - Keep user-facing documentation clear that case insert project schema groundwork
-  exists, while full case editor save/load/export workflows are still future
-  work until the editor modules land.
+  exists, while full case editor coverage is still incomplete until focused
+  back-cover, spine, export, and preflight modules land.

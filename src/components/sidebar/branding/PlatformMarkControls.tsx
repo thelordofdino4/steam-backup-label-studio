@@ -10,7 +10,7 @@ import {
   getProjectPlatformMarkAsset,
   getProjectPlatformMarkInference,
   platformMarkSupportsTheme,
-} from '../../../project/projectMediaMark'
+} from '../../../project/projectPlatformMarks'
 import type { PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue } from '../../../project/projectTypes'
 import { formatLogoSize, getNumericInputValue } from './helpers'
 import type { BrandingPanelProps } from './types'

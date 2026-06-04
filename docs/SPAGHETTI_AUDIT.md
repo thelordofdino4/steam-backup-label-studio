@@ -1,308 +1,590 @@
-# Codebase Spaghetti Audit
+# Cleanup Readiness Plan
 
 Date: 2026-06-03
 
-Scope: planning-only audit after the conservative cleanup pass. No runtime behavior changes were made.
+Scope: professional stabilization, cleanup-readiness, and behavior-preserving
+ownership cleanup for the primary checkout. The current cleanup work separates
+media-mark and operating-system-mark owners, splits the dense disc text panel
+into a small coordinator plus one per-element control component, and moves disc
+preview size measurement plus disc template/custom-dimension state out of
+`App.tsx` without changing app behavior, UI flow, saved project schema,
+preview/export semantics, or runtime feature scope.
+
+Primary checkout: `C:\Users\John Paul Keller\steam-backup-label-studio`
+
+## Current Baseline
+
+Required docs reviewed before this pass:
+
+- `README.md`
+- `docs/CURRENT_STATUS.md`
+- `docs/ROADMAP.md`
+- `docs/MILESTONES.md`
+- `docs/ARCHITECTURE_GUARDRAILS.md`
+- `docs/REFACTOR_STATUS.md`
+- `docs/PRD.md`
+
+Repository state reviewed:
+
+- Branch: `main`
+- Primary checkout SHA: `9ad3bb91035098264530f415dcc00d10ff764338`
+- `origin/main` SHA after `git fetch origin`: `9ad3bb91035098264530f415dcc00d10ff764338`
+- The working tree contains in-flight cleanup edits from the current
+  stabilization work. No unrelated user work was observed in the reviewed dirty
+  set.
+- Recent commits show active jewel-case and cleanup work, including case front
+  image source reuse, jewel case front cover editor work, case insert project
+  module splits, preview/drag prop grouping, artwork/branding panel splits,
+  disc text state extraction, dependency-cycle cleanup, and source-folder
+  organization.
+
+Open issue context reviewed:
+
+- Cleanup/refactor/reliability: #44, #46, #47, #48, #56.
+- Active jewel case work: #126 and #136-#144, with #138 recently active.
+- Disc/editor polish and future work: #124, #125, #17.
+
+Do not create duplicate cleanup issues for #44, #46, #47, #48, or #56 unless the
+new work is narrower than those trackers and is intentionally linked back.
+
+## Validation Status
+
+Current source-level safety net is clean:
+
+- `npm run check:cycles` passed. The cycle checker scanned 206 `.ts` and `.tsx`
+  files under `src` and found no relative import cycles.
+- `npm run lint` passed.
+- `npm run test` passed. Node test runner reported 222 passing tests.
+- `npm run build` passed.
+
+Build warnings to track:
+
+- Vite/Rolldown reported `dist/assets/index-*.js` at 574.05 kB minified, above
+  the 500 kB chunk warning threshold.
+- Vite left `./assets/app-shell/crowbar-toggle.png` unresolved from CSS. The
+  string appears in `src/styles/App.css` and should be handled in a focused CSS
+  or asset-routing pass instead of opportunistically changed during feature work.
+
+Manual runtime status:
+
+- `npm run tauri dev` was not run, per agent instructions.
+- Live editor behavior, drag behavior, upload behavior, save/load behavior,
+  preview/export parity, and desktop-window behavior still require manual
+  verification after any visual/editor cleanup.
+
+## Current Cleanup Signals
+
+### Dependency cycles
+
+Current status: clean.
+
+`npm run check:cycles` found no cycles. This is a major improvement over older
+audit notes. Keep this as a hard guardrail for future ownership moves.
+
+Recommended action:
+
+- Keep `npm run check:cycles` in every cleanup validation set.
+- If a cycle appears, extract neutral types/constants rather than importing
+  through broad feature modules.
+
+### Oversized files
+
+Largest current source files by line count:
+
+| File | Lines | Risk |
+| --- | ---: | --- |
+| `src/styles/App.css` | 1714 | CSS ownership, stale selectors, z-index and asset URL risk. |
+| `src/app/App.tsx` | 1501 | Top-level orchestration still owns many reset/save/load/import paths. |
+| `src/steam/steamLogoCandidates.ts` | 1277 | Dense parsing/filtering heuristics; behavior-sensitive despite good tests. |
+| `src/layout/discElementSafeZone.ts` | 809 | Critical disc clamp/range owner knows many feature shapes. |
+| `src/steam/steamMetadataCandidates.ts` | 702 | Metadata candidate parsing remains dense and behavior-sensitive. |
+| `src/components/caseInsert/CaseInsertFrontPanel.tsx` | 667 | New case UI surface already has repeated image/text controls. |
+| `src/project/projectPlatformMarks.ts` | 667 | Newly extracted platform-mark owner contains save/load compatibility and Steam inference-sensitive transitions. |
+| `src/project/projectLogoAssets.ts` | 638 | Logo state/default/import/layout owner still has repeated per-logo-family transitions. |
+| `src/interaction/useDiscPreviewPointerDrag.ts` | 586 | Repeats per-feature drag setup and clamp calls. |
+| `src-tauri/src/lib.rs` | 583 | Rust commands remain concentrated in one backend file. |
+| `src/layout/discTemplateLayoutDefaults.ts` | 582 | Template-aware default placement keeps growing as visual systems are added. |
+| `src/components/sidebar/DiscTextControl.tsx` | 580 | Disc text per-element UI is now isolated, but still control-dense. |
+| `src/layout/jewelCaseLayout.ts` | 568 | Rectangular layout logic is growing with case work. |
+| `src/assets/assetManifest.ts` | 473 | Useful manifest, but a future asset-rule dumping ground risk. |
+| `src/project/projectTypes.ts` | 433 | High fan-in saved/project type hub across disc and case systems. |
+
+Notable improvement:
+
+- `src/components/sidebar/ArtworkPanel.tsx` and
+  `src/components/sidebar/BrandingPanel.tsx` are now thin composition files
+  after recent splits. Their broad prop surfaces still live in
+  `src/components/sidebar/artwork/types.ts` and
+  `src/components/sidebar/branding/types.ts`.
+- `src/project/projectCaseInsert.ts` is now an adapter/re-export surface over
+  `src/caseInsert/*` and `src/project/caseInsertProjectAdapters.ts`, not the
+  large mixed owner described in older audit text.
+- `src/project/projectMediaMark.ts` is now media-mark-only behavior. Platform
+  mark project defaults, transitions, normalization, render models, preview
+  layer, and PNG drawing moved to platform-named owners.
+- `src/components/sidebar/TextPanel.tsx` is now a small coordinator that keeps
+  the top-level Text panel flow and delegates the repeated per-disc-text-element
+  controls to `src/components/sidebar/DiscTextControl.tsx`.
+- `src/hooks/useDiscPreviewSize.ts` now owns the disc preview `ResizeObserver`
+  wiring that previously lived inside `src/app/App.tsx`.
+- `src/hooks/useDiscTemplateState.ts` now owns selected/custom disc template
+  state, derived guide overlay percentages, template reset/restore, and the
+  custom-dimension geometry guardrail transition that previously lived inside
+  `src/app/App.tsx`.
+
+### Large prop and parameter surfaces
+
+Current broad surfaces:
+
+- `ArtworkPanelProps` in `src/components/sidebar/artwork/types.ts`: 47 top-level
+  fields.
+- `BrandingPanelProps` in `src/components/sidebar/branding/types.ts`: 67
+  top-level fields.
+- `TextPanelProps` in `src/components/sidebar/textPanelTypes.ts`: 26 top-level
+  fields.
+- `UseDiscPreviewPointerDragOptions` in
+  `src/interaction/useDiscPreviewPointerDrag.ts`: still broad, with many nested
+  feature bindings.
+- `CreateProjectSnapshotParams` in `src/project/createProjectSnapshot.ts`: 36
+  top-level fields.
+
+Notable improvement:
+
+- `DiscPreviewProps` in `src/components/preview/DiscPreview.tsx` has been
+  grouped into 11 top-level objects. Continue that grouping pattern instead of
+  adding new flat props.
+
+### Duplicate and repeated code
+
+No automated clone detector was added or run. Heuristic scans show repeated
+control patterns worth cleaning only after ownership is clear:
+
+- Range/slider triples for `scale`, `x`, and `y` recur across
+  `src/components/sidebar/artwork/*`,
+  `src/components/sidebar/branding/*`,
+  `src/components/sidebar/DiscTextControl.tsx`,
+  and `src/components/caseInsert/CaseInsertFrontPanel.tsx`.
+- Selected-image status cards recur across artwork, branding, and case insert
+  controls with similar markup and source/status wording.
+- Reset-layout button patterns recur across background, title artwork,
+  additional artwork, logo, rating, media, platform, technical, disc text, and
+  case front controls.
+- `CaseInsertFrontPanel.tsx` has local helpers such as `RangeField`,
+  `FitSelect`, and `ImageSlotStatus`. Those are reasonable for the first case
+  surface, but they should not be copied into back/spine panels without a small
+  case-owned control helper.
+
+Recommended action:
+
+- Extract UI helpers only when they are presentation-only.
+- Keep layout/clamp math, upload/import interpretation, source decisions, and
+  project normalization out of shared control components.
+
+### Dead code and stale assets
+
+Current TypeScript dead-code safety is strong:
+
+- `tsconfig.app.json` enables `noUnusedLocals` and `noUnusedParameters`.
+- Lint and build passed, so obvious TypeScript-level dead code is not currently
+  visible.
+
+Remaining dead/stale-code risks are outside TypeScript's reach:
+
+- `src/styles/App.css` references `./assets/app-shell/crowbar-toggle.png` as a
+  string URL, causing the build-time unresolved asset warning.
+- `src/styles/layoutFix.css` is imported in both `src/main.tsx` and
+  `src/app/App.tsx`. This should be reviewed during #46 CSS cleanup so import
+  order and override intent are explicit.
+- `src/assets/scaffold/` is documented as retained scaffold/source assets and
+  should not be deleted casually. Revisit only during an asset inventory.
+- This audit was refreshed after the media/platform split, but generated build
+  output and CSS assets remain outside TypeScript dead-code guarantees.
+
+### Folder ownership
+
+Current ownership is mostly clear enough to continue planning, but these areas
+need discipline:
+
+- `src/app/App.tsx` should stay orchestration. Do not add new feature-specific
+  state transitions, upload/import logic, layout math, or export logic there.
+- `src/caseInsert/` is the correct home for case defaults, normalization,
+  transitions, image-slot helpers, text transitions, and case export settings.
+- `src/project/projectCaseInsert.ts` should remain a compatibility adapter and
+  re-export surface; do not grow new case behavior there.
+- `src/project/projectTypes.ts` is a necessary type hub today. Avoid adding
+  behavior there, and consider narrower type modules only when a concrete
+  ownership move requires it.
+- Media marks and operating-system marks now have separate project, render,
+  preview, and export owners. Do not reintroduce platform exports through
+  `src/project/projectMediaMark.ts`.
+- `src/layout/discElementSafeZone.ts` should remain disc-specific. Do not reuse
+  it for rectangular case layouts.
+- `src/assets/assetManifest.ts` should remain a manifest for built-in assets,
+  not a home for case-specific source rules or package-format policy.
+
+### Tangled state
+
+Most feature state has moved into hooks, but `App.tsx` still coordinates a wide
+state graph:
+
+- Workspace routing and home status.
+- Disc preview measurement now lives in `src/hooks/useDiscPreviewSize.ts`.
+- Disc template/custom dimensions now live in `src/hooks/useDiscTemplateState.ts`.
+- Steam search/import and selected game state.
+- Metadata and metadata-assistance state.
+- Local Steam screenshot discovery state.
+- Background, title artwork, additional artwork, logo, rating, media, platform,
+  technical, disc text, banner, and case insert hook wiring.
+- New project, reset, save, load, and export handlers.
+
+Risk:
+
+- Save/load/import/reset paths can miss a related state cluster when new case or
+  disc systems are added.
+- Persistent project state and transient UI/loading state still sit close
+  together in the top-level component.
+
+Recommended action:
+
+- Continue #44 in small stages. Do not attempt a single App rewrite.
+- Prefer one focused extraction per pass with all validation commands green.
+
+### State ownership snapshot
+
+Current state/data-flow categories after this pass:
+
+- Persistent project state:
+  - Disc template selection/custom dimensions now live in
+    `src/hooks/useDiscTemplateState.ts`.
+  - Feature-owned visual state mostly lives in hooks such as
+    `useBackgroundArtwork`, `useSteamBannerState`, `useTitleArtwork`,
+    `useAdditionalArtwork`, `useProjectLogoAssets`, `useRatingBadgeState`,
+    `useMediaMarkState`, `usePlatformMarksState`, `useTechnicalMarks`, and
+    `useDiscTextState`.
+  - Project metadata and selected Steam game state still live in `App.tsx`
+    because save/load, Steam import, metadata-bound text, rating/legal
+    candidates, and case metadata all share them.
+- Temporary UI state:
+  - Workspace routing and home-screen status still live in `App.tsx`.
+  - Toast/status state lives in `src/hooks/useStatusToasts.ts`.
+  - Selected artwork, local screenshot check flags, and loading booleans still
+    live near Steam/artwork orchestration in `App.tsx`.
+- Derived state:
+  - Disc template guide overlay percentages now live in
+    `useDiscTemplateState`.
+  - Background preview size/ranges/effective background image state live in
+    `useBackgroundArtwork`.
+  - Metadata-bound text values and resolved title state live in
+    `useDiscTextState`.
+- Import/search/loading state:
+  - Steam search/import and local Steam screenshot orchestration still live in
+    `App.tsx`; these are the next best #44 extraction once the selected game,
+    metadata, artwork, and platform-mark side effects can move together.
+  - Metadata assistance, web artwork discovery, and logo discovery already have
+    focused hooks.
+- Preview interaction state:
+  - Pointer drag bindings live in `src/interaction/useDiscPreviewPointerDrag.ts`.
+  - Disc preview measurement lives in `src/hooks/useDiscPreviewSize.ts`.
+- Save/load/export orchestration:
+  - Save/load/export handlers remain in `App.tsx` because they coordinate many
+    state owners.
+  - Serialization/restoration/export details remain in focused owners:
+    `createProjectSnapshot`, `restoreProjectState`, `exportPreflight`, and
+    `exportPng`.
+
+### Stale docs
+
+Fresh enough:
+
+- `docs/PROJECT_FILE_SPEC.md` and `docs/TEMPLATE_SPEC.md` were refreshed on
+  2026-06-03 and reflect current case insert groundwork.
+- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md` was refreshed on 2026-06-03 and
+  now records the current `src/caseInsert/*` owners,
+  `src/project/caseInsertProjectAdapters.ts`, and the
+  `src/project/projectCaseInsert.ts` compatibility barrel.
+- `docs/MANUAL_SMOKE_CHECKLISTS.md` records manual runtime smoke coverage for
+  editor, artwork, branding, preview, save/load/export, and case insert flows.
+
+Needs follow-up:
+
+- `docs/RENDER_ARCHITECTURE_AUDIT.md` was last refreshed on 2026-05-31 and may
+  not fully describe the current case preview/front-cover paths.
+- This plan should be kept current after the next major case editor issue closes
+  or after #46/#44 cleanup changes land.
+
+## Recommended Cleanup Order
+
+### 1. Preserve the safety net
+
+Goal: keep the current clean validation baseline visible.
+
+Targets:
+
+- `scripts/check-cycles.mjs`
+- `package.json`
+- CI or local validation docs if a dedicated cleanup workflow is later added.
+
+Actions:
+
+- Keep dependency cycles at zero.
+- Run `npm run check:cycles`, `npm run lint`, `npm run test`, and
+  `npm run build` after cleanup changes.
+- Do not add new dependencies for cleanup analysis without an explicit reason.
+
+Risk:
+
+- Low. This is mostly process discipline.
+
+### 2. Fix the current build warnings in a focused pass
+
+Goal: remove existing warnings without changing app behavior.
+
+Targets:
+
+- `src/styles/App.css`
+- `src/styles/layoutFix.css`
+- `src/main.tsx`
+- `src/app/App.tsx`
+- `src/assets/app-shell/crowbar-toggle.png`
+- `src/assets/assetManifest.ts` only if the asset route should move through the
+  manifest instead of CSS string URLs.
+
+Actions:
+
+- Resolve the `crowbar-toggle.png` CSS path or route the toggle asset through an
+  explicit import/manifest-backed path.
+- Review why `layoutFix.css` is imported twice and make the import order
+  intentional.
+- Record whether the 573 kB chunk warning is acceptable for alpha or should be
+  deferred until real route/code-splitting exists.
+
+Risk:
+
+- Medium. CSS ordering and asset URLs affect live visuals. Run build and ask for
+  manual `npm run tauri dev` visual verification.
+
+Related issue: #46.
+
+### 3. Organize CSS without changing selectors
+
+Goal: reduce `App.css` risk while preserving layout and visuals.
+
+Targets:
+
+- `src/styles/App.css`
+- `src/styles/layoutFix.css`
+- Optional new style files under `src/styles/`.
+
+Actions:
+
+- Split by ownership: app shell/home, sidebar panels, preview/layers, disc text,
+  artwork/branding controls, case insert preview/editor, toasts, candidate
+  picker.
+- Move selectors first. Avoid changing values in the same pass.
+- Keep import order explicit and documented in the importing file or stylesheet
+  barrel.
+
+Risk:
 
-Issue context reviewed: #44, #46, #47, #48, #56, #124, #125, #126, #135-#144, #17.
+- Medium-high. CSS can create hidden layout behavior. This should be a focused
+  #46 pass with manual visual checks.
 
-## 1. Highest-risk spaghetti areas
+Related issue: #46.
 
-### `src/app/App.tsx`
+### 4. Continue App state extraction in small #44 stages
 
-Risk: highest.
+Goal: reduce `App.tsx` orchestration risk without behavior changes.
 
-Current signals:
+Targets:
 
-- 2,120 lines.
-- 58 internal imports.
-- Owns workspace routing, template/custom dimension state, Steam search/import, metadata candidate application, local screenshot discovery, save/load/export orchestration, disc text updates, and reset flows.
-- Still has many state setters that must stay in sync during new project, Steam import, load project, and export paths.
+- `src/app/App.tsx`
+- Existing hooks under `src/hooks/`
+- New focused hooks only where no owner exists.
 
-Why risky:
+Recommended order:
 
-- A future case-editor or project-file change can accidentally miss one of the manual set-state paths.
-- Persistent project state and temporary UI/search/loading state are adjacent, which makes it harder to tell what must be serialized.
-- `handleSaveProject`, `handleLoadProject`, and `handleExportPng` require wide knowledge of nearly every feature.
+1. Steam search/import plus local screenshot discovery orchestration.
+2. Save/load/export orchestration after the relevant state groups have owners.
+3. Reset orchestration once save/load/export dependencies are clearer.
 
-Do not rewrite this file wholesale. Prefer extracting one focused hook or action group at a time.
+Risk:
 
-### `src/components/sidebar/ArtworkPanel.tsx`
+- High if done broadly. Keep each pass small and run the full validation set.
 
-Risk: high.
+Related issue: #44.
 
-Current signals:
+### 5. Protect active jewel-case feature work
 
-- 1,372 lines.
-- `ArtworkPanelProps` has 47 top-level fields.
-- Contains background controls, web candidates, imported Steam artwork, local screenshot controls, title artwork controls, additional artwork controls, formatting helpers, picker item construction, and repeated slider/input patterns.
+Goal: avoid cleanup churn across files that are still actively expanding for
+#126 and #136-#144.
 
-Why risky:
+Targets to avoid refactoring casually:
 
-- It is nominally presentational, but it owns enough view-model construction that behavior can hide in UI code.
-- Adding case artwork slots or shared asset-library behavior here would make the panel a second asset-management owner.
+- `src/components/caseInsert/CaseInsertFrontPanel.tsx`
+- `src/components/caseInsert/CaseInsertEditorShell.tsx`
+- `src/components/preview/CaseInsertPreview.tsx`
+- `src/components/preview/CaseInsertFrontPreviewLayers.tsx`
+- `src/hooks/useJewelCaseFrontEditor.ts`
+- `src/caseInsert/*`
 
-### `src/components/sidebar/BrandingPanel.tsx`
+Actions:
 
-Risk: high.
+- Do not reorganize these files while a focused case issue is in progress unless
+  the cleanup is required by that issue.
+- When back/spine panels begin, extract small case-owned controls before copying
+  `RangeField`, image-slot status, fit selection, or reset-layout patterns.
+- Keep case behavior in `src/caseInsert/`, preview in case preview components,
+  and project adapters in `src/project/caseInsertProjectAdapters.ts`.
 
-Current signals:
+Risk:
 
-- 1,036 lines.
-- `BrandingPanelProps` has 67 top-level fields.
-- Contains Steam banner controls, logo candidate controls, rating badge controls, media mark controls, platform mark controls, technical mark controls, formatting helpers, and local UI memory (`lastPlacement`, `rememberedValues`).
+- Medium-high. Cleanup here can easily conflict with active feature work.
 
-Why risky:
+Related issues: #126, #136-#144, especially #138.
 
-- Branding contains several distinct feature families that are likely to be reused or adapted for case regions.
-- Panel-local remembered state for platform/technical mark restoration is behavior-adjacent; it is easy to lose or duplicate when splitting panels.
+### 6. Reduce repeated control markup after ownership is stable
 
-### `src/components/preview/DiscPreview.tsx` and `src/interaction/useDiscPreviewPointerDrag.ts`
+Goal: lower duplicate UI code without moving domain decisions into presentation.
 
-Risk: high.
+Targets:
 
-Current signals:
+- `src/components/sidebar/artwork/*`
+- `src/components/sidebar/branding/*`
+- `src/components/sidebar/DiscTextControl.tsx`
+- `src/components/caseInsert/CaseInsertFrontPanel.tsx`
 
-- `DiscPreviewProps` has 61 top-level fields.
-- `useDiscPreviewPointerDrag` is 686 lines and its options object has 23 fields.
-- The drag hook repeats the same pattern for background, disc text, logos, title artwork, additional artwork, rating badges, media marks, platform marks, and technical marks.
+Actions:
 
-Why risky:
+- Extract presentation-only range field, image status card, upload row, and
+  reset-action helpers where repeated.
+- Do not centralize feature-specific source labels, layout clamp math, or
+  upload/import behavior in generic controls.
 
-- Adding another movable visual system means touching a wide hook and a wide preview prop surface.
-- Preview, interaction, layout clamping, and feature-specific project transitions are close enough that a small drag fix can affect unrelated layers.
+Risk:
 
-### `src/project/projectCaseInsert.ts`
+- Medium. Good cleanup if scoped; risky if it turns into a hidden domain layer.
 
-Risk: high for the next phase.
+### 7. Keep the media/platform split honest
 
-Current signals:
+Goal: preserve the completed media/platform ownership split as nearby case and
+branding work continues.
 
-- 1,228 lines.
-- Mixes case insert defaults, normalization, image slot transitions, text block/list transitions, export settings, snapshot creation, blank project creation, and restore logic.
+Targets:
 
-Why risky:
+- `src/project/projectMediaMark.ts`
+- `src/project/projectPlatformMarks.ts`
+- Platform imports in hooks, Steam inference, layout guards, render models,
+  preview layers, export helpers, and tests.
 
-- Jewel case issues #135-#144 will likely expand this file quickly if it is not split first.
-- Case insert behavior currently lives under `src/project/`, but much of it is case-editor domain behavior rather than project-file-only behavior.
+Actions:
 
-### `src/project/projectMediaMark.ts`
+- Keep media-mark helpers in `projectMediaMark.ts`.
+- Keep operating-system/platform helpers in `projectPlatformMarks.ts`.
+- Preserve Steam platform inference and saved-project legacy normalization when
+  changing platform marks.
 
-Risk: medium-high.
+Risk:
 
-Current signals:
+- Low-medium. The main risk is accidentally weakening Steam inference or legacy
+  save/load coverage.
 
-- 964 lines.
-- Owns media mark options/state and platform mark options/state, including legacy normalization and Steam inference state handling.
-- 18 inbound imports.
+### 8. Refine disc safe-zone and drag ownership
 
-Why risky:
+Goal: reduce shared disc interaction risk while keeping preview/export parity.
 
-- Media marks and platform marks are separate user-visible feature families.
-- Future case adaptation may need region-specific mark behavior and can accidentally expand this combined module further.
+Targets:
 
-### `src/layout/discElementSafeZone.ts`
+- `src/layout/discElementSafeZone.ts`
+- `src/interaction/useDiscPreviewPointerDrag.ts`
+- `src/interaction/dragGeometry.ts`
+- Feature hooks for title artwork, additional artwork, logos, marks, and disc
+  text.
 
-Risk: medium-high.
+Actions:
 
-Current signals:
+- Keep rectangular case layout separate from disc safe-zone helpers.
+- Extract repeated per-feature drag setup only around existing `dragGeometry`
+  primitives.
+- Avoid changing clamp math and drag plumbing in the same pass unless tests are
+  added for the affected feature.
 
-- 906 lines.
-- 17 inbound imports.
-- Handles slider ranges and clamps for text, logos, title artwork, additional artwork, rating badges, media marks, platform marks, and technical marks.
-- Imports `measureDiscTextWithBrowserCanvas` from `src/discText/svgLayer.ts`, which pulls layout toward rendering.
+Risk:
 
-Why risky:
+- High. This touches direct manipulation and must be manually verified.
 
-- It is a critical shared safety owner, but it knows many project feature shapes.
-- Reusing this for case regions would be the wrong direction; case safety should stay rectangular/case-owned.
+### 9. Review Rust command organization
 
-### `src/styles/App.css`
+Goal: reduce backend file concentration when frontend feature churn is quiet.
 
-Risk: medium-high.
+Targets:
 
-Current signals:
+- `src-tauri/src/lib.rs`
+- Potential modules listed in #47, such as file, Steam, local image, local Steam,
+  and platform folder-opening commands.
 
-- 1,933 lines.
-- Contains app shell, sidebar panels, case preview, disc preview, toast, text controls, image candidate picker, branding controls, and layer selectors.
-- Has many absolute positioning, pointer-events, and hardcoded z-index selectors.
+Actions:
 
-Why risky:
+- Preserve Tauri command names and registration.
+- Split by command family only if it makes the file easier to maintain.
 
-- CSS can override the shared layer-order model or preview/export assumptions without TypeScript catching it.
-- Issue #46 is still open and should remain a focused CSS organization task.
+Risk:
 
-### `src/steam/steamLogoCandidates.ts`
+- Medium. Command names are frontend contracts.
 
-Risk: medium.
+Related issue: #47.
 
-Current signals:
+### 10. Defer schema/package decisions until case save/load pressure is clearer
 
-- 1,477 lines.
-- Contains scraping/parsing/filtering heuristics for Steam and official-site logo candidates.
-- Test coverage is strong, but the file is still dense.
+Goal: keep reliability work planned without destabilizing current JSON projects.
 
-Why risky:
+Targets:
 
-- Regex and HTML extraction changes can easily broaden or narrow candidate results unexpectedly.
-- This should be split only around tested classifier/parser boundaries, not style preference.
+- `src/project/projectTypes.ts`
+- `src/project/restoreProjectState.ts`
+- `src/project/createProjectSnapshot.ts`
+- `src/project/caseInsertProjectAdapters.ts`
+- `docs/PROJECT_FILE_SPEC.md`
 
-## 2. Ownership problems
+Actions:
 
-- `src/discText/index.ts` mixes shared disc text types/constants with default layout creation by importing `src/layout/discTemplateLayoutDefaults.ts`. This contributes to circular dependencies and makes the disc text module less neutral.
-- `src/project/projectTypes.ts` is a high-fan-in type hub with 83 inbound imports. It contains disc feature shapes, case insert shapes, saved project shapes, and asset provenance types. This is understandable today, but future case work will make it harder to change safely.
-- `src/project/projectCaseInsert.ts` contains case-editor domain state transitions, not only project-file normalization/snapshot behavior. Future case-specific logic should move toward `src/caseInsert/` or another case-owned folder while keeping save/load adapters in `src/project/`.
-- `src/project/projectMediaMark.ts` combines media marks and platform marks. These are related but not identical feature owners.
-- `src/layout/discElementSafeZone.ts` imports many project feature types and render-related text measurement. It should remain disc-owned; do not generalize it for case layouts.
-- `src/components/sidebar/*Panel.tsx` files contain formatting and picker view-model helpers. Some of these helpers are neutral UI helpers, but feature-specific source/restore decisions should stay in project/domain modules or hooks.
-- `src/assets/assetManifest.ts` is currently a useful manifest, not a junk drawer. It will become one if case-specific asset rules, source labels, or replacement behavior are added there without a narrower asset-domain owner.
+- Add schema validation/migration only as focused #48 work.
+- Keep `.sbls` package/container design under #56 until a concrete limitation
+  appears.
+- Preserve existing `0.1.0` projects.
 
-## 3. State-management problems
+Risk:
 
-- `App.tsx` mixes persistent state (`projectMetadata`, visual feature state, disc text state, case insert state) with transient state (`activeWorkspace`, `homeStatusMessage`, search queries/loading flags, artwork loading flags, selected artwork UI state, screenshot discovery/loading state).
-- Project save/load currently depends on wide parameter collection in `createProjectSnapshot` and many manual setter calls in `handleLoadProject`. This is functional but fragile.
-- Disc text has multiple related sources of truth: `discTextValues`, `discTextValueSources`, `discTextTitleValue`, `projectMetadata`, and `selectedSteamGame`. The metadata-bound helpers are good, but the state still lives across App handlers and panel inputs.
-- Steam import updates multiple systems at once: selected game, manual title, metadata, artwork, title artwork, platform marks, disc text values, and metadata candidate auto-apply. That behavior should stay grouped behind a focused import orchestration hook before more import features are added.
-- `BrandingPanel.tsx` owns UI memory for restoring the last Steam banner placement and remembered platform/technical mark selections. That may be acceptable temporary UI state, but it should be documented or moved to a small hook before panel splitting.
-- Case insert state is currently one `projectJewelCase` object in `App.tsx`, while shared metadata and selected game state live separately. Future case save/load and editor tabs will need a clearer case editor state owner.
+- High if mixed with feature work. Keep separate from active case UI/export
+  implementation.
 
-## 4. Dependency problems
+Related issues: #48, #56.
 
-A read-only relative import graph scan found these cycles:
+### 11. Leave `steamLogoCandidates.ts` alone unless a focused issue needs it
 
-- `src/discText/index.ts` -> `src/layout/discTemplateLayoutDefaults.ts` -> `src/disc/geometry.ts` -> `src/discText/index.ts`
-- `src/discText/index.ts` -> `src/layout/discTemplateLayoutDefaults.ts` -> `src/disc/geometry.ts` -> `src/discText/styles.ts` -> `src/discText/index.ts`
-- `src/discText/index.ts` -> `src/layout/discTemplateLayoutDefaults.ts` -> `src/discText/index.ts`
-- `src/discText/index.ts` -> `src/layout/discTemplateLayoutDefaults.ts` -> `src/project/projectTypes.ts` -> `src/discText/index.ts`
-- `src/project/projectTypes.ts` -> `src/project/metadataDiscText.ts` -> `src/project/projectTypes.ts`
+Goal: avoid behavior churn in parsing/filtering heuristics.
 
-Notes:
+Target:
 
-- Some edges are type-only and the app still builds, so this is not an emergency runtime bug.
-- The cycles are still harmful because they hide ownership and make future moves riskier.
-- The safest fix is likely type/constants extraction, not module merging.
+- `src/steam/steamLogoCandidates.ts`
 
-Other dependency signals:
+Actions:
 
-- `components -> project`: 36 relative imports.
-- `layout -> project`: 30 relative imports.
-- `export -> project`: 26 relative imports.
-- `layout -> discText`: 21 relative imports.
-- `App.tsx`: 58 internal imports.
+- If changed, split only along tested parser/classifier boundaries.
+- Add tests before changing filtering rules.
 
-These are not all wrong. They show where ownership boundaries need to stay explicit.
+Risk:
 
-## 5. Complexity problems
+- Medium. The file is large but test-covered and behavior-sensitive.
 
-Oversized files and prop surfaces:
+## Intentionally Left Alone
 
-- `src/app/App.tsx`: 2,120 lines.
-- `src/steam/steamLogoCandidates.ts`: 1,477 lines.
-- `src/components/sidebar/ArtworkPanel.tsx`: 1,372 lines, 47 props.
-- `src/project/projectCaseInsert.ts`: 1,228 lines.
-- `src/components/sidebar/BrandingPanel.tsx`: 1,036 lines, 67 props.
-- `src/project/projectMediaMark.ts`: 964 lines.
-- `src/layout/discElementSafeZone.ts`: 906 lines.
-- `src/components/sidebar/TextPanel.tsx`: 681 lines, 25 props.
-- `src/components/preview/DiscPreview.tsx`: 61 props.
-- `src/interaction/useDiscPreviewPointerDrag.ts`: 23 option fields.
-- `src/project/createProjectSnapshot.ts`: 34 parameter fields.
-
-Specific complexity clusters:
-
-- `App.tsx` handlers around disc text updates, metadata candidate auto-apply, Steam import, save/load, and export are each understandable alone but risky together.
-- `BrandingPanel.tsx` repeats similar slider/source/upload/reset UI for rating, media, platform, and technical marks.
-- `ArtworkPanel.tsx` repeats picker/source/slider patterns for background, title artwork, and additional artwork.
-- `discElementSafeZone.ts` mixes slider-range calculation and clamp behavior for many feature families.
-- `useDiscPreviewPointerDrag.ts` repeats feature-specific drag setup and handler creation.
-- `projectCaseInsert.ts` is already large before the case editor is fully implemented.
-
-## 6. Optimization opportunities
-
-### Safe quick wins
-
-- Break the disc text/project type cycles by extracting type-only definitions and constants. Preserve public exports from current modules to keep imports stable.
-- Memoize or extract DiscPreview derived view-model creation where practical, especially `createDiscTextOccupiedRegions` in `src/components/preview/DiscPreview.tsx`.
-- Extract repeated numeric slider/input handlers from `ArtworkPanel.tsx` and `BrandingPanel.tsx` into small panel-local helpers or focused controls. Keep this presentation-only.
-- Split CSS by ownership while preserving import order: app shell, sidebar panels, preview/layers, disc text controls, candidate picker, case preview.
-- Add a small dependency-cycle check script or documented audit command once the known cycles are fixed.
-
-### Needs deeper refactor
-
-- App-level state grouping. Do not change all state at once; start with one feature hook.
-- Project snapshot/load parameter reduction. This should follow state ownership cleanup, not precede it.
-- Shared preview/export render models for layers that still have separate DOM and canvas logic.
-- Case insert module split. Do this before implementing the next large case editor issues.
-- Project schema validation and migrations (#48). This is important but should remain a planned project-file task.
-
-## 7. Recommended follow-up tasks
-
-Priority 1: Break current circular imports safely.
-
-- Extract disc text types and stable constants from `src/discText/index.ts` into `src/discText/types.ts` and/or `src/discText/constants.ts`.
-- Update `src/layout/discTemplateLayoutDefaults.ts`, `src/disc/geometry.ts`, `src/discText/styles.ts`, `src/project/projectTypes.ts`, and `src/project/metadataDiscText.ts` to import from the neutral files where possible.
-- Keep re-exports from `src/discText/index.ts` to avoid a broad import churn.
-- Run `npm run lint`, `npm run test`, and `npm run build`.
-
-Priority 2: Extract disc text App handlers into a focused hook.
-
-- Target only `App.tsx` disc text state and handlers around `discTextSettings`, `discTextValues`, `discTextValueSources`, `discTextTitleValue`, `discTextLayout`, `discTextStyles`, and disc-number artwork.
-- Keep current state shape and props unchanged initially.
-- Do not change text behavior or UI.
-- Run existing disc text, layout, project restore, lint, and build checks.
-
-Priority 3: Split `BrandingPanel.tsx` by feature sections.
-
-- Move `SteamBannerControls`, logo controls, rating controls, media/platform controls, and technical controls into sibling files under `src/components/sidebar/branding/`.
-- Keep `BrandingPanel.tsx` as composition only.
-- Preserve prop names during the first split.
-- Do not move domain behavior into UI files.
-
-Priority 4: Split `ArtworkPanel.tsx` by feature sections.
-
-- Move background artwork controls, imported artwork sections, title artwork controls, and additional artwork controls into sibling files under `src/components/sidebar/artwork/`.
-- Keep helper extraction local unless a helper is clearly neutral and reused.
-- Preserve current props and event flow in the first pass.
-
-Priority 5: Reduce `DiscPreview` and pointer-drag prop surfaces.
-
-- Create small grouped prop objects for preview feature families: background, artwork, logos, marks, text, and pointer handlers.
-- Alternatively split the drag hook into per-feature hooks that share a small drag math helper.
-- Keep preview/export layer order unchanged.
-
-Priority 6: Split case insert project ownership before expanding case UI.
-
-- Move case insert defaults, normalization, transitions, and snapshot/restore adapters into separate case-owned modules.
-- Keep project-file adapter exports stable through `src/project/projectCaseInsert.ts` during the migration.
-- This should happen before broad work on #135-#144.
-
-Priority 7: Split media marks from platform marks.
-
-- Extract platform mark options, defaults, transitions, and normalization into `src/project/projectPlatformMarks.ts`.
-- Keep compatibility re-exports from `projectMediaMark.ts` for one commit if needed.
-- Add focused tests if any imports move.
-
-Priority 8: Organize CSS under #46.
-
-- Split `src/styles/App.css` into feature-owned CSS files with explicit import order from `src/main.tsx` or a stylesheet barrel.
-- Start with low-risk groups: app shell/sidebar, preview/layers, disc text controls, case preview, candidate picker.
-- Do not change selectors and values in the same pass as moving them.
-
-Priority 9: Project snapshot/load state grouping.
-
-- After feature hooks exist, introduce a small project-state adapter that builds save/export/restore inputs from grouped state.
-- This should reduce the 34-field `CreateProjectSnapshotParams` surface without changing the saved schema.
-
-Priority 10: Keep `steamLogoCandidates.ts` stable unless a focused issue requires it.
-
-- If modified, split only tested parser/classifier sections.
-- Add tests before changing candidate filtering rules.
-
-## Intentionally left alone
-
-- No code changes were made during this audit.
-- No UI redesign was attempted.
-- No App.tsx behavior was extracted in this pass because the request was for audit/planning, not implementation.
-- The disc and case/template modules were kept separate.
-- `steamLogoCandidates.ts` was not split despite its size because it is test-covered and changes there are behavior-sensitive.
-- CSS was not reorganized because selector ordering and z-index interactions need their own focused #46 pass.
+- Source changes were limited to behavior-preserving ownership extraction for
+  media marks, operating-system marks, disc preview sizing, disc template state,
+  and disc text sidebar composition.
+- No UI flow was changed.
+- No broad refactor was started.
+- No new dependency was added.
+- No Tauri runtime/manual smoke was claimed.
+- No stale dev-server process was stopped.
+- No generated or ignored output was manually edited, though `npm run build`
+  rebuilt `dist/` as part of validation.

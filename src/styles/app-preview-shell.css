@@ -1,0 +1,43 @@
+.preview-area {
+  position: relative;
+  z-index: 1;
+  height: 100vh;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3vw, 32px);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 45%),
+    #20242d;
+}
+
+.disc-preview {
+  width: min(calc(100vw - 320px - 64px), calc(100vh - 64px), 640px);
+  min-width: 180px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  position: relative;
+  overflow: hidden;
+  border-radius: 50%;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02)),
+    #e5e7eb;
+  border: 0;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.case-insert-preview {
+  width: min(
+    calc(100vw - 320px - 64px),
+    calc((100vh - 64px) * 2.32),
+    1080px
+  );
+  min-width: 240px;
+  max-width: 100%;
+  aspect-ratio: var(--case-insert-preview-aspect, 2.32 / 1);
+  position: relative;
+  overflow: visible;
+  container-type: inline-size;
+}

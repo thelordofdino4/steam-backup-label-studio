@@ -1,0 +1,130 @@
+.home-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 5vw, 56px);
+  overflow: auto;
+  background:
+    radial-gradient(circle at top left, rgba(49, 130, 206, 0.16), transparent 34%),
+    linear-gradient(135deg, #101218 0%, #1b1f29 58%, #141720 100%);
+}
+
+.home-panel {
+  width: min(920px, 100%);
+  border: 1px solid #2a2e38;
+  border-radius: 18px;
+  background: rgba(16, 18, 24, 0.96);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+.home-panel {
+  padding: clamp(20px, 4vw, 34px);
+}
+
+.home-heading {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.home-kicker {
+  margin: 0;
+  color: #9ca3af;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.home-heading h1 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: clamp(28px, 4vw, 40px);
+  line-height: 1.08;
+}
+
+.home-menu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.home-menu-card {
+  min-height: 168px;
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr);
+  align-items: start;
+  gap: 16px;
+  border: 1px solid #2f3645;
+  border-radius: 16px;
+  background: #181b22;
+  color: #f9fafb;
+  padding: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-menu-card:hover,
+.home-menu-card:focus-visible {
+  border-color: #64748b;
+  background: #1e2430;
+}
+
+.home-menu-card:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
+.home-menu-card-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid #465165;
+  border-radius: 14px;
+  background: #111827;
+  color: #dbeafe;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.home-menu-card-copy {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.home-menu-card-title {
+  color: #f9fafb;
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.16;
+}
+
+.home-menu-card-description {
+  color: #d1d5db;
+  font-size: 14px;
+  line-height: 1.42;
+}
+
+.home-menu-card-status {
+  align-self: end;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid rgba(147, 197, 253, 0.28);
+  border-radius: 999px;
+  background: rgba(30, 58, 138, 0.22);
+  color: #bfdbfe;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.home-status {
+  margin: 18px 0 0;
+  color: #d1d5db;
+  font-size: 14px;
+  line-height: 1.4;
+}

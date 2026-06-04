@@ -20,7 +20,8 @@ import {
   setLogoAssetLayout,
   type LogoAssetKey,
 } from './projectLogoAssets.ts'
-import { setMediaMarkCustomImage, setPlatformMarkCustomImage } from './projectMediaMark.ts'
+import { setMediaMarkCustomImage } from './projectMediaMark.ts'
+import { setPlatformMarkCustomImage } from './projectPlatformMarks.ts'
 import { setRatingBadgeCustomImage } from './projectRatingBadge.ts'
 import { setTechnicalMarkCustomImage } from './projectTechnicalMarks.ts'
 import type {

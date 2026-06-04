@@ -1,4 +1,4 @@
-import type { PointerEvent } from 'react'
+import { useMemo, type PointerEvent } from 'react'
 import { getLogoAssetBoundsPercent } from '../../disc/geometry'
 import {
   createLogoAssetRenderItems,
@@ -74,9 +74,14 @@ export function LogoAssetLayer({
   handleLogoAssetPointerMove,
   handleLogoAssetPointerUp,
 }: LogoAssetLayerProps) {
+  const logoAssetRenderItems = useMemo(
+    () => createLogoAssetRenderItems(projectLogoAssets),
+    [projectLogoAssets],
+  )
+
   return (
     <div className="disc-logo-asset-layer" aria-label="Developer and publisher logo layer">
-      {createLogoAssetRenderItems(projectLogoAssets).map((logoAsset) => (
+      {logoAssetRenderItems.map((logoAsset) => (
         <LogoAssetPreview
           key={logoAsset.additionalLogoId ?? logoAsset.logoKey}
           {...logoAsset}

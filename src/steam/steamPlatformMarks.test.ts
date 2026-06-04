@@ -7,7 +7,7 @@ import {
   getProjectPlatformMarkInference,
   markProjectPlatformMarksManual,
   updatePlatformMarkToggle,
-} from '../project/projectMediaMark.ts'
+} from '../project/projectPlatformMarks.ts'
 import type { SteamImportedGame, SteamPlatformSupport } from './steamApi.ts'
 import {
   applySteamPlatformMarksImport,
