@@ -2,23 +2,18 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_CASE_INSERT_TEMPLATE_TYPE } from '../editor/editorTypes.ts'
 import {
-  addJewelCaseFrontRepeatedImageSlot,
-  removeJewelCaseFrontRepeatedImageSlot,
-  renameJewelCaseFrontRepeatedImageSlot,
-  updateJewelCaseFrontRepeatedImageSlot,
-} from '../caseInsert/frontCoverTransitions.ts'
-import {
   createCaseInsertImageSlotImageFromImportedAsset,
 } from '../caseInsert/imageSlotSourceImport.ts'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
+  addCaseInsertTemplateImageSlot,
   addCaseInsertTextListItem,
-  addJewelCaseBackScreenshotSlot,
   createBlankJewelCaseSavedProject,
   createCaseInsertProjectSnapshot,
   createDefaultProjectJewelCaseState,
+  removeCaseInsertTemplateImageSlot,
   removeCaseInsertTextListItem,
-  removeJewelCaseBackScreenshotSlot,
+  renameCaseInsertTemplateImageSlot,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   setCaseInsertTextBlockEnabled,
@@ -27,12 +22,12 @@ import {
   setProjectJewelCaseExportSurfaces,
   updateCaseInsertImageSlotFit,
   updateCaseInsertImageSlotLayoutField,
+  updateCaseInsertTemplateImageSlot,
+  updateCaseInsertTemplateImageSlotInGroup,
+  updateProjectCaseInsertTemplate,
+  updateProjectJewelCaseSpineSide,
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListItem,
-  updateJewelCaseBackScreenshotSlot,
-  updateProjectJewelCaseBack,
-  updateProjectJewelCaseFront,
-  updateProjectJewelCaseSpineSide,
   normalizeSavedCaseInsertProject,
   restoreCaseInsertProjectState,
   restoreCaseInsertProjectStateFromContents,
@@ -53,8 +48,10 @@ const steamGame = {
   artwork: [],
 }
 
-test('creates blank jewel case saved project data', () => {
+test('creates blank jewel case saved project data with generic template panes', () => {
   const project = createBlankJewelCaseSavedProject('Archive Case')
+  const cover = project.caseInsert.templates.cover
+  const tray = project.caseInsert.templates.tray
 
   assert.equal(project.schemaVersion, '0.1.0')
   assert.equal(project.projectType, 'caseInsert')
@@ -63,16 +60,16 @@ test('creates blank jewel case saved project data', () => {
   assert.equal(project.template.type, 'caseInsert')
   assert.equal(project.template.variant, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
   assert.equal(project.caseInsert.templateType, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
-  assert.equal(project.caseInsert.front.background.enabled, true)
-  assert.equal(project.caseInsert.back.background.enabled, true)
-  assert.equal(project.caseInsert.front.calloutArtwork.enabled, false)
-  assert.equal(project.caseInsert.front.calloutText.value, '')
-  assert.equal(project.caseInsert.back.description.value, '')
-  assert.deepEqual(project.caseInsert.back.featureBullets.items, [])
-  assert.equal(project.caseInsert.back.minimumRequirements.enabled, false)
-  assert.equal(project.caseInsert.back.recommendedRequirements.enabled, false)
-  assert.equal(project.caseInsert.back.legalText.enabled, false)
-  assert.equal(project.caseInsert.back.screenshotSlots.length, 3)
+  assert.equal(cover.background.enabled, true)
+  assert.equal(tray.background.enabled, true)
+  assert.equal(cover.artworkSlots[0]?.enabled, false)
+  assert.equal(cover.textBlocks[0]?.value, '')
+  assert.equal(tray.textBlocks[0]?.value, '')
+  assert.deepEqual(tray.textLists[0]?.items, [])
+  assert.equal(tray.textBlocks[1]?.enabled, false)
+  assert.equal(tray.textBlocks[2]?.enabled, false)
+  assert.equal(tray.textBlocks[3]?.enabled, false)
+  assert.equal(tray.artworkSlots.length, 3)
   assert.equal(project.caseInsert.spine.left.title.value, 'Archive Case')
   assert.equal(project.caseInsert.spine.left.steamBackupBranding.enabled, false)
   assert.deepEqual(project.caseInsert.export.surfaces, ['front', 'back'])
@@ -83,7 +80,7 @@ test('creates blank jewel case saved project data', () => {
   })
 })
 
-test('creates case insert snapshots with normalized metadata and state', () => {
+test('creates case insert snapshots from generic template state', () => {
   const project = createCaseInsertProjectSnapshot({
     manualGameTitle: 'Portal 2 Case',
     selectedSteamGame: steamGame,
@@ -93,37 +90,57 @@ test('creates case insert snapshots with normalized metadata and state', () => {
     },
     savedAt: '2026-06-03T12:00:00.000Z',
     caseInsert: {
-      front: {
-        calloutText: {
-          enabled: true,
-          value: 'Co-op edition',
-          align: 'center',
-        },
-        textBlocks: [
-          {
-            id: 'front-tagline',
-            label: 'Front tagline',
-            enabled: true,
-            value: 'Now thinking with portals',
-            source: 'manual',
-            align: 'center',
-            layout: {
-              scale: 1,
-              x: 10,
-              y: 20,
-              rotation: 0,
+      templates: {
+        cover: {
+          textBlocks: [
+            {
+              id: 'cover-callout-text',
+              label: 'Callout text',
+              enabled: true,
+              value: 'Co-op edition',
+              source: 'manual',
+              align: 'center',
+              layout: {
+                scale: 1,
+                x: 50,
+                y: 82,
+                rotation: 0,
+              },
             },
-          },
-        ],
-      },
-      back: {
-        description: {
-          enabled: true,
-          value: 'A test chamber classic.',
+          ],
         },
-        featureBullets: {
-          enabled: true,
-          items: ['Single-player', 'Co-op puzzles'],
+        tray: {
+          textBlocks: [
+            {
+              id: 'tray-description',
+              label: 'Description',
+              enabled: true,
+              value: 'A test chamber classic.',
+              source: 'manual',
+              align: 'left',
+              layout: {
+                scale: 1,
+                x: 50,
+                y: 50,
+                rotation: 0,
+              },
+            },
+          ],
+          textLists: [
+            {
+              id: 'tray-feature-bullets',
+              label: 'Feature bullets',
+              enabled: true,
+              items: ['Single-player', 'Co-op puzzles'],
+              source: 'manual',
+              layout: {
+                scale: 1,
+                x: 28,
+                y: 31,
+                rotation: 0,
+              },
+            },
+          ],
         },
       },
     },
@@ -133,16 +150,18 @@ test('creates case insert snapshots with normalized metadata and state', () => {
   assert.equal(project.metadata?.title, 'Portal 2 Case')
   assert.equal(project.metadata?.steamAppId, '620')
   assert.equal(project.metadata?.ratingSystem, 'none')
-  assert.equal(project.caseInsert.front.calloutText.value, 'Co-op edition')
-  assert.equal(project.caseInsert.front.textBlocks[0]?.value, 'Now thinking with portals')
-  assert.equal(project.caseInsert.back.description.value, 'A test chamber classic.')
-  assert.deepEqual(project.caseInsert.back.featureBullets.items, [
+  assert.equal(project.caseInsert.templates.cover.textBlocks[0]?.value, 'Co-op edition')
+  assert.equal(
+    project.caseInsert.templates.tray.textBlocks[0]?.value,
+    'A test chamber classic.',
+  )
+  assert.deepEqual(project.caseInsert.templates.tray.textLists[0]?.items, [
     'Single-player',
     'Co-op puzzles',
   ])
 })
 
-test('restores sparse jewel case projects to safe defaults', () => {
+test('restores sparse legacy jewel case projects to safe defaults', () => {
   const restored = restoreCaseInsertProjectState({
     schemaVersion: '0.1.0',
     projectType: 'caseInsert',
@@ -215,28 +234,26 @@ test('restores sparse jewel case projects to safe defaults', () => {
       },
     },
   })
-
-  const screenshot = restored.caseInsert.back.screenshotSlots[0]
+  const cover = restored.caseInsert.templates.cover
+  const tray = restored.caseInsert.templates.tray
+  const screenshot = tray.artworkSlots[0]
 
   assert.equal(restored.manualGameTitle, 'Sparse Manual')
   assert.equal(restored.projectMetadata.steamAppId, '620')
   assert.equal(restored.template.selectedCaseInsertTemplateId, 'jewelCase')
-  assert.equal(restored.caseInsert.front.background.enabled, true)
-  assert.equal(screenshot?.id, 'back-screenshot-1')
+  assert.equal(cover.background.enabled, true)
+  assert.equal(screenshot?.id, 'tray-screenshot-1')
   assert.equal(screenshot?.imageDataUrl, 'data:image/png;base64,shot')
   assert.deepEqual(screenshot?.imageSize, { width: 1280, height: 720 })
   assert.equal(screenshot?.imageSource?.source, 'uploaded')
   assert.equal(screenshot?.imageSource?.sourceLabel, 'shot.png')
   assert.equal(screenshot?.imageSource?.sourceUrl, null)
-  assert.equal(restored.caseInsert.back.description.enabled, true)
-  assert.equal(restored.caseInsert.back.description.value, '')
-  assert.deepEqual(restored.caseInsert.back.featureBullets.items, [
-    'Portals',
-    'Robots',
-  ])
-  assert.equal(restored.caseInsert.back.minimumRequirements.value, 'Windows XP')
-  assert.equal(restored.caseInsert.back.recommendedRequirements.value, 'Windows 7')
-  assert.equal(restored.caseInsert.back.legalText.value, 'Valve terms apply.')
+  assert.equal(tray.textBlocks[0]?.enabled, true)
+  assert.equal(tray.textBlocks[0]?.value, '')
+  assert.deepEqual(tray.textLists[0]?.items, ['Portals', 'Robots'])
+  assert.equal(tray.textBlocks[1]?.value, 'Windows XP')
+  assert.equal(tray.textBlocks[2]?.value, 'Windows 7')
+  assert.equal(tray.textBlocks[3]?.value, 'Valve terms apply.')
   assert.equal(restored.caseInsert.spine.left.title.enabled, true)
   assert.equal(restored.caseInsert.spine.left.title.value, 'SPARSE')
   assert.equal(restored.caseInsert.spine.left.title.layout.rotation, 90)
@@ -253,7 +270,7 @@ test('normalizes legacy jewelCase project shells', () => {
     jewelCase: {
       front: {
         background: {
-          imageDataUrl: 'data:image/png;base64,front',
+          imageDataUrl: 'data:image/png;base64,cover',
         },
       },
     },
@@ -263,7 +280,10 @@ test('normalizes legacy jewelCase project shells', () => {
   assert.equal(project.game.manualTitle, 'Legacy Jewel Case')
   assert.equal(project.template.type, 'caseInsert')
   assert.equal(project.template.variant, 'jewelCase')
-  assert.equal(project.caseInsert.front.background.imageSource?.source, 'embedded')
+  assert.equal(
+    project.caseInsert.templates.cover.background.imageSource?.source,
+    'embedded',
+  )
   assert.deepEqual(resolveSavedProjectRoute({ template: { type: 'jewelCase' } }), {
     projectType: 'caseInsert',
     workspace: 'caseInsert',
@@ -289,36 +309,48 @@ test('case image fit normalization accepts scale and crop modes', () => {
     },
   })
 
-  assert.equal(project.caseInsert.front.background.fit, 'crop')
-  assert.equal(project.caseInsert.back.screenshotSlots[0]?.fit, 'scale')
+  assert.equal(project.caseInsert.templates.cover.background.fit, 'crop')
+  assert.equal(project.caseInsert.templates.tray.artworkSlots[0]?.fit, 'scale')
 })
 
 test('case update helpers preserve optional state while toggling visibility', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
-  state = updateProjectJewelCaseFront(state, (front) => ({
-    ...front,
-    calloutArtwork: setCaseInsertImageSlotEnabled(
-      setCaseInsertImageSlotImage(front.calloutArtwork, {
-        imageDataUrl: 'data:image/png;base64,callout',
-        imageSize: { width: 640, height: 320 },
-        imageSource: {
-          source: 'uploaded',
-          sourceLabel: 'C:\\Users\\John\\Pictures\\callout.png',
-        },
-      }),
-      false,
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
+    ...cover,
+    artworkSlots: cover.artworkSlots.map((slot, index) =>
+      index === 0
+        ? setCaseInsertImageSlotEnabled(
+            setCaseInsertImageSlotImage(slot, {
+              imageDataUrl: 'data:image/png;base64,callout',
+              imageSize: { width: 640, height: 320 },
+              imageSource: {
+                source: 'uploaded',
+                sourceLabel: 'C:\\Users\\John\\Pictures\\callout.png',
+              },
+            }),
+            false,
+          )
+        : slot,
     ),
-    calloutText: setCaseInsertTextBlockEnabled(
-      updateCaseInsertTextBlockValue(front.calloutText, 'Includes co-op'),
-      false,
+    textBlocks: cover.textBlocks.map((textBlock, index) =>
+      index === 0
+        ? setCaseInsertTextBlockEnabled(
+            updateCaseInsertTextBlockValue(textBlock, 'Includes co-op'),
+            false,
+          )
+        : textBlock,
     ),
   }))
-  state = updateProjectJewelCaseBack(state, (back) => ({
-    ...back,
-    featureBullets: setCaseInsertTextListEnabled(
-      addCaseInsertTextListItem(back.featureBullets, 'Two-player puzzles'),
-      false,
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) => ({
+    ...tray,
+    textLists: tray.textLists.map((textList, index) =>
+      index === 0
+        ? setCaseInsertTextListEnabled(
+            addCaseInsertTextListItem(textList, 'Two-player puzzles'),
+            false,
+          )
+        : textList,
     ),
   }))
   state = updateProjectJewelCaseSpineSide(state, 'left', (spineSide) => ({
@@ -329,15 +361,18 @@ test('case update helpers preserve optional state while toggling visibility', ()
     ),
   }))
 
-  assert.equal(state.front.calloutArtwork.enabled, false)
-  assert.equal(state.front.calloutArtwork.imageDataUrl, 'data:image/png;base64,callout')
-  assert.deepEqual(state.front.calloutArtwork.imageSize, { width: 640, height: 320 })
-  assert.equal(state.front.calloutArtwork.imageSource?.source, 'uploaded')
-  assert.equal(state.front.calloutArtwork.imageSource?.sourceLabel, 'callout.png')
-  assert.equal(state.front.calloutText.enabled, false)
-  assert.equal(state.front.calloutText.value, 'Includes co-op')
-  assert.equal(state.back.featureBullets.enabled, false)
-  assert.deepEqual(state.back.featureBullets.items, ['Two-player puzzles'])
+  const cover = state.templates.cover
+  const tray = state.templates.tray
+
+  assert.equal(cover.artworkSlots[0]?.enabled, false)
+  assert.equal(cover.artworkSlots[0]?.imageDataUrl, 'data:image/png;base64,callout')
+  assert.deepEqual(cover.artworkSlots[0]?.imageSize, { width: 640, height: 320 })
+  assert.equal(cover.artworkSlots[0]?.imageSource?.source, 'uploaded')
+  assert.equal(cover.artworkSlots[0]?.imageSource?.sourceLabel, 'callout.png')
+  assert.equal(cover.textBlocks[0]?.enabled, false)
+  assert.equal(cover.textBlocks[0]?.value, 'Includes co-op')
+  assert.equal(tray.textLists[0]?.enabled, false)
+  assert.deepEqual(tray.textLists[0]?.items, ['Two-player puzzles'])
   assert.equal(state.spine.left.title.enabled, false)
   assert.equal(state.spine.left.title.value, '')
 })
@@ -358,36 +393,42 @@ test('case image slot source import keeps reusable provenance and size metadata'
     }),
   )
 
-  state = updateProjectJewelCaseFront(state, (front) => ({
-    ...front,
-    background: setCaseInsertImageSlotEnabled(
-      setCaseInsertImageSlotImage(front.background, slotImage),
+  state = updateCaseInsertTemplateImageSlot(
+    state,
+    'cover',
+    'background',
+    (slot) => setCaseInsertImageSlotEnabled(
+      setCaseInsertImageSlotImage(slot, slotImage),
       false,
     ),
-  }))
+  )
 
-  assert.equal(state.front.background.enabled, false)
-  assert.equal(state.front.background.imageDataUrl, 'data:image/png;base64,library')
-  assert.deepEqual(state.front.background.imageSize, { width: 600, height: 900 })
-  assert.equal(state.front.background.imageSource?.source, 'steam-artwork')
-  assert.equal(state.front.background.imageSource?.sourceId, 'cdn-library-capsule')
-  assert.equal(state.front.background.imageSource?.sourceLabel, 'Steam library capsule')
+  const background = state.templates.cover.background
+
+  assert.equal(background.enabled, false)
+  assert.equal(background.imageDataUrl, 'data:image/png;base64,library')
+  assert.deepEqual(background.imageSize, { width: 600, height: 900 })
+  assert.equal(background.imageSource?.source, 'steam-artwork')
+  assert.equal(background.imageSource?.sourceId, 'cdn-library-capsule')
+  assert.equal(background.imageSource?.sourceLabel, 'Steam library capsule')
   assert.equal(
-    state.front.background.imageSource?.sourceUrl,
+    background.imageSource?.sourceUrl,
     'https://cdn.akamai.steamstatic.com/steam/apps/620/library_600x900.jpg',
   )
 })
 
-test('case helpers update screenshot slots and export settings', () => {
+test('case helpers update artwork slots and export settings', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
-  state = addJewelCaseBackScreenshotSlot(state)
-  assert.equal(state.back.screenshotSlots.length, 4)
-  assert.equal(state.back.screenshotSlots[3]?.id, 'back-screenshot-4')
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
+  assert.equal(state.templates.tray.artworkSlots.length, 4)
+  assert.equal(state.templates.tray.artworkSlots[3]?.id, 'tray-screenshot-4')
 
-  state = updateJewelCaseBackScreenshotSlot(
+  state = updateCaseInsertTemplateImageSlotInGroup(
     state,
-    'back-screenshot-4',
+    'tray',
+    'artworkSlots',
+    'tray-screenshot-4',
     (slot) => updateCaseInsertImageSlotFit(
       updateCaseInsertImageSlotLayoutField(
         setCaseInsertImageSlotImage(slot, {
@@ -401,37 +442,47 @@ test('case helpers update screenshot slots and export settings', () => {
     ),
   )
 
-  const updatedScreenshot = state.back.screenshotSlots[3]
+  const updatedScreenshot = state.templates.tray.artworkSlots[3]
 
   assert.equal(updatedScreenshot?.enabled, true)
   assert.equal(updatedScreenshot?.imageSource?.source, 'embedded')
   assert.equal(updatedScreenshot?.fit, 'contain')
   assert.equal(updatedScreenshot?.layout.x, 24)
 
-  state = removeJewelCaseBackScreenshotSlot(state, 'back-screenshot-4')
+  state = removeCaseInsertTemplateImageSlot(
+    state,
+    'tray',
+    'artworkSlots',
+    'tray-screenshot-4',
+  )
   state = setProjectJewelCaseExportSurfaces(state, ['back'])
   state = setProjectJewelCaseExportGuideIds(state, ['backPanelBounds'])
 
-  assert.equal(state.back.screenshotSlots.length, 3)
+  assert.equal(state.templates.tray.artworkSlots.length, 3)
   assert.deepEqual(state.export.surfaces, ['back'])
   assert.deepEqual(state.export.guideIds, ['backPanelBounds'])
 })
 
-test('front cover helpers add, update, preserve, and remove logo and mark slots', () => {
+test('template helpers add, update, preserve, and remove logo and mark slots', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
-  state = addJewelCaseFrontRepeatedImageSlot(state, 'logoSlots')
-  state = addJewelCaseFrontRepeatedImageSlot(state, 'markSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'cover', 'logoSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'cover', 'markSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'logoSlots')
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'markSlots')
 
-  assert.equal(state.front.logoSlots[0]?.id, 'front-logo-1')
-  assert.equal(state.front.markSlots[0]?.id, 'front-mark-1')
-  assert.equal(state.front.logoSlots[0]?.enabled, true)
-  assert.equal(state.front.markSlots[0]?.layout.x, 82)
+  assert.equal(state.templates.cover.logoSlots[0]?.id, 'cover-logo-1')
+  assert.equal(state.templates.cover.markSlots[0]?.id, 'cover-mark-1')
+  assert.equal(state.templates.tray.logoSlots[0]?.id, 'tray-logo-1')
+  assert.equal(state.templates.tray.markSlots[0]?.id, 'tray-mark-1')
+  assert.equal(state.templates.cover.markSlots[0]?.layout.x, 82)
+  assert.equal(state.templates.tray.markSlots[0]?.layout.x, 84)
 
-  state = updateJewelCaseFrontRepeatedImageSlot(
+  state = updateCaseInsertTemplateImageSlotInGroup(
     state,
+    'cover',
     'logoSlots',
-    'front-logo-1',
+    'cover-logo-1',
     (slot) => setCaseInsertImageSlotEnabled(
       setCaseInsertImageSlotImage(slot, {
         imageDataUrl: 'data:image/png;base64,logo',
@@ -444,32 +495,41 @@ test('front cover helpers add, update, preserve, and remove logo and mark slots'
       false,
     ),
   )
-  state = updateProjectJewelCaseFront(state, (front) =>
-    renameJewelCaseFrontRepeatedImageSlot(
-      front,
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    renameCaseInsertTemplateImageSlot(
+      cover,
       'logoSlots',
-      'front-logo-1',
+      'cover-logo-1',
       'Developer logo',
     ),
   )
 
-  assert.equal(state.front.logoSlots[0]?.enabled, false)
-  assert.equal(state.front.logoSlots[0]?.label, 'Developer logo')
-  assert.equal(state.front.logoSlots[0]?.imageDataUrl, 'data:image/png;base64,logo')
-  assert.equal(state.front.logoSlots[0]?.imageSource?.sourceLabel, 'dev-logo.png')
-
-  state = removeJewelCaseFrontRepeatedImageSlot(
-    state,
-    'logoSlots',
-    'front-logo-1',
+  assert.equal(state.templates.cover.logoSlots[0]?.enabled, false)
+  assert.equal(state.templates.cover.logoSlots[0]?.label, 'Developer logo')
+  assert.equal(
+    state.templates.cover.logoSlots[0]?.imageDataUrl,
+    'data:image/png;base64,logo',
+  )
+  assert.equal(
+    state.templates.cover.logoSlots[0]?.imageSource?.sourceLabel,
+    'dev-logo.png',
   )
 
-  assert.equal(state.front.logoSlots.length, 0)
-  assert.equal(state.front.markSlots.length, 1)
+  state = removeCaseInsertTemplateImageSlot(
+    state,
+    'cover',
+    'logoSlots',
+    'cover-logo-1',
+  )
+
+  assert.equal(state.templates.cover.logoSlots.length, 0)
+  assert.equal(state.templates.cover.markSlots.length, 1)
+  assert.equal(state.templates.tray.logoSlots.length, 1)
+  assert.equal(state.templates.tray.markSlots.length, 1)
 })
 
 test('feature bullet helpers edit items without replacing feature state', () => {
-  let textList = createDefaultProjectJewelCaseState().back.featureBullets
+  let textList = createDefaultProjectJewelCaseState().templates.tray.textLists[0]!
 
   textList = addCaseInsertTextListItem(textList, 'First bullet')
   textList = addCaseInsertTextListItem(textList, 'Second bullet')

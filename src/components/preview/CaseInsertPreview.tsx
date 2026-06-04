@@ -10,18 +10,22 @@ import {
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import {
-  CaseInsertFrontBackgroundLayer,
-  CaseInsertFrontCalloutArtworkLayer,
-  CaseInsertFrontLogoLayer,
-  CaseInsertFrontMarkLayer,
-  CaseInsertFrontTextLayer,
-  CaseInsertFrontTitleArtworkLayer,
-} from './CaseInsertFrontPreviewLayers'
+  getCaseInsertTemplatePaneConfig,
+  type CaseInsertTemplatePaneId,
+} from '../../caseInsert/templateSurfaces'
+import {
+  CaseInsertTemplateArtworkLayer,
+  CaseInsertTemplateBackgroundLayer,
+  CaseInsertTemplateLogoLayer,
+  CaseInsertTemplateMarkLayer,
+  CaseInsertTemplateTextLayer,
+} from './CaseInsertTemplatePreviewLayers'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
+  activeTemplatePane: CaseInsertTemplatePaneId
   statusToasts: PreviewToast[]
 }
 
@@ -78,47 +82,66 @@ function EmptyCaseLayer() {
 
 export function CaseInsertPreview({
   caseInsert,
+  activeTemplatePane,
   statusToasts,
 }: CaseInsertPreviewProps) {
+  const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
+  const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const layout = useMemo(
-    () => createJewelCasePreviewLayout(caseInsert.templateType),
-    [caseInsert.templateType],
+    () => createJewelCasePreviewLayout(
+      caseInsert.templateType,
+      activePaneConfig.surfaceId,
+    ),
+    [activePaneConfig.surfaceId, caseInsert.templateType],
   )
   const previewStyle = useMemo(
     () => ({
       '--case-insert-preview-aspect': `${layout.width} / ${layout.height}`,
+      '--case-insert-preview-width-ratio': `${layout.width / layout.height}`,
     }) as CSSProperties,
     [layout.height, layout.width],
   )
   const previewLayers: PreviewLayerMap = {
     'case-surface-base': <CaseInsertSurfaceBaseLayer layout={layout} />,
     'case-background-artwork': (
-      <CaseInsertFrontBackgroundLayer front={caseInsert.front} layout={layout} />
-    ),
-    'case-screenshot-artwork': <EmptyCaseLayer />,
-    'case-callout-artwork': (
-      <CaseInsertFrontCalloutArtworkLayer
-        front={caseInsert.front}
+      <CaseInsertTemplateBackgroundLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
         layout={layout}
       />
     ),
-    'case-title-artwork': (
-      <CaseInsertFrontTitleArtworkLayer
-        front={caseInsert.front}
+    'case-screenshot-artwork': (
+      <CaseInsertTemplateArtworkLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
         layout={layout}
       />
     ),
+    'case-callout-artwork': <EmptyCaseLayer />,
+    'case-title-artwork': <EmptyCaseLayer />,
     'case-logo-assets': (
-      <CaseInsertFrontLogoLayer front={caseInsert.front} layout={layout} />
+      <CaseInsertTemplateLogoLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+      />
     ),
     'case-rating-badges': (
-      <CaseInsertFrontMarkLayer front={caseInsert.front} layout={layout} />
+      <CaseInsertTemplateMarkLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+      />
     ),
     'case-media-marks': <EmptyCaseLayer />,
     'case-platform-marks': <EmptyCaseLayer />,
     'case-technical-marks': <EmptyCaseLayer />,
     'case-text': (
-      <CaseInsertFrontTextLayer front={caseInsert.front} layout={layout} />
+      <CaseInsertTemplateTextLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+      />
     ),
     'case-spine-content': <EmptyCaseLayer />,
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
@@ -128,7 +151,9 @@ export function CaseInsertPreview({
     <section className="preview-area" aria-labelledby="case-insert-preview-title">
       <div className="preview-pane-label">
         <span>Live Preview</span>
-        <strong id="case-insert-preview-title">Jewel Case Preview</strong>
+        <strong id="case-insert-preview-title">
+          {activePaneConfig.label} Preview
+        </strong>
       </div>
 
       <PreviewToastStack statusToasts={statusToasts} />
@@ -136,7 +161,7 @@ export function CaseInsertPreview({
       <div
         className="case-insert-preview"
         style={previewStyle}
-        aria-label="Jewel case front, spine, and back live preview"
+        aria-label={`${activePaneConfig.label} live preview`}
       >
         {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
           <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>

@@ -18,6 +18,7 @@ import {
 } from '../steam/steamGameImport'
 import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
 import { discTemplates, discTemplateOptions } from '../templates/discTemplates'
+import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces'
 import type { DiscTemplate } from '../types/template'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
@@ -46,7 +47,7 @@ import { useDiscTemplateState } from '../hooks/useDiscTemplateState'
 import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
-import { useJewelCaseFrontEditor } from '../hooks/useJewelCaseFrontEditor'
+import { useCaseInsertTemplateEditor } from '../hooks/useCaseInsertTemplateEditor'
 import { useMediaMarkState } from '../hooks/useMediaMarkState'
 import { usePlatformMarksState } from '../hooks/usePlatformMarksState'
 import { useProjectLogoAssets } from '../hooks/useProjectLogoAssets'
@@ -127,7 +128,9 @@ function App() {
   const [projectJewelCase, setProjectJewelCase] = useState(() =>
     createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
   )
-  const jewelCaseFrontEditor = useJewelCaseFrontEditor({
+  const [activeCaseInsertTemplatePane, setActiveCaseInsertTemplatePane] =
+    useState<CaseInsertTemplatePaneId>('cover')
+  const caseInsertTemplateEditor = useCaseInsertTemplateEditor({
     setProjectJewelCase,
     announceStatus,
   })
@@ -775,6 +778,7 @@ function App() {
     setProjectJewelCase(
       createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
     )
+    setActiveCaseInsertTemplatePane('cover')
   }
 
   async function handleNewProject() {
@@ -1141,6 +1145,7 @@ function App() {
         setProjectMetadata(restoredCaseProject.projectMetadata)
         setSelectedSteamGame(restoredCaseProject.selectedSteamGame)
         setProjectJewelCase(restoredCaseProject.caseInsert)
+        setActiveCaseInsertTemplatePane('cover')
         setActiveWorkspace('caseInsert')
         setHomeStatusMessage(null)
         announceStatus(
@@ -1322,7 +1327,8 @@ function App() {
     return (
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
-        frontEditor={jewelCaseFrontEditor}
+        activeTemplatePane={activeCaseInsertTemplatePane}
+        editor={caseInsertTemplateEditor}
         imageSources={{
           selectedSteamGame,
           localSteamScreenshots,
@@ -1337,6 +1343,7 @@ function App() {
         onSaveProject={handleSaveProject}
         onLoadProject={handleLoadProject}
         onExportPng={handleExportPng}
+        onActiveTemplatePaneChange={setActiveCaseInsertTemplatePane}
       />
     )
   }

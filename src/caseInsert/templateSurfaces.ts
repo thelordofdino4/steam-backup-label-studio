@@ -1,0 +1,89 @@
+import type {
+  JewelCaseRegionId,
+  JewelCaseSurfaceId,
+} from '../templates/caseInsertTemplates.ts'
+
+export type CaseInsertTemplatePaneId = 'cover' | 'tray'
+
+export type CaseInsertImageSlotGroupKey =
+  | 'artworkSlots'
+  | 'logoSlots'
+  | 'markSlots'
+
+export type CaseInsertImagePlacementRole =
+  | 'titleArtwork'
+  | 'calloutArtwork'
+  | 'screenshot'
+  | 'logo'
+  | 'mark'
+
+export type CaseInsertTextPlacementRole =
+  | 'callout'
+  | 'description'
+  | 'minimumRequirements'
+  | 'recommendedRequirements'
+  | 'legalText'
+
+export type CaseInsertTextListPlacementRole = 'featureBullets'
+
+export type CaseInsertTemplatePaneConfig = {
+  id: CaseInsertTemplatePaneId
+  label: string
+  surfaceId: JewelCaseSurfaceId
+  printRegionId: JewelCaseRegionId
+  safeRegionId: JewelCaseRegionId
+  panelRegionId: JewelCaseRegionId
+}
+
+export const CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneConfig[] = [
+  {
+    id: 'cover',
+    label: 'Cover Sheet',
+    surfaceId: 'front',
+    printRegionId: 'front',
+    safeRegionId: 'frontSafe',
+    panelRegionId: 'front',
+  },
+  {
+    id: 'tray',
+    label: 'Tray Card',
+    surfaceId: 'back',
+    printRegionId: 'back',
+    safeRegionId: 'backSafe',
+    panelRegionId: 'backPanelSafe',
+  },
+]
+
+export const DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID: CaseInsertTemplatePaneId =
+  'cover'
+
+export const CASE_INSERT_TEMPLATE_PANE_IDS = CASE_INSERT_TEMPLATE_PANES.map(
+  ({ id }) => id,
+)
+
+export function isCaseInsertTemplatePaneId(
+  value: unknown,
+): value is CaseInsertTemplatePaneId {
+  return value === 'cover' || value === 'tray'
+}
+
+export function getCaseInsertTemplatePaneConfig(
+  paneId: CaseInsertTemplatePaneId,
+): CaseInsertTemplatePaneConfig {
+  return CASE_INSERT_TEMPLATE_PANES.find(({ id }) => id === paneId) ??
+    CASE_INSERT_TEMPLATE_PANES[0]
+}
+
+export function getCaseInsertTemplatePaneForSurface(
+  surfaceId: JewelCaseSurfaceId,
+) {
+  return CASE_INSERT_TEMPLATE_PANES.find(
+    (pane) => pane.surfaceId === surfaceId,
+  ) ?? CASE_INSERT_TEMPLATE_PANES[0]
+}
+
+export function getCaseInsertTemplatePaneLabel(
+  paneId: CaseInsertTemplatePaneId,
+) {
+  return getCaseInsertTemplatePaneConfig(paneId).label
+}

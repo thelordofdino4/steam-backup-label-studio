@@ -1,18 +1,28 @@
+import type { ReactNode } from 'react'
+import {
+  CASE_INSERT_TEMPLATE_PANES,
+  getCaseInsertTemplatePaneConfig,
+  type CaseInsertTemplatePaneId,
+} from '../../caseInsert/templateSurfaces'
 import {
   getCaseInsertTemplate,
-  type JewelCaseSurfaceId,
 } from '../../templates/caseInsertTemplates'
 import { getTemplateSurfaceExportPixelSize } from '../../templates/templateModel'
 import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
-import type { JewelCaseFrontEditorActions } from '../../hooks/useJewelCaseFrontEditor'
-import { CaseInsertFrontPanel } from './CaseInsertFrontPanel'
+import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
+import {
+  CaseInsertTemplateArtworkControls,
+  CaseInsertTemplateBrandingControls,
+  CaseInsertTemplateTextControls,
+} from './CaseInsertTemplateControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
-  frontEditor: JewelCaseFrontEditorActions
+  activeTemplatePane: CaseInsertTemplatePaneId
+  editor: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
   projectStatus: string
   manualGameTitle: string
@@ -23,22 +33,25 @@ export type CaseInsertEditorShellProps = {
   onSaveProject: () => void
   onLoadProject: () => void
   onExportPng: () => void
+  onActiveTemplatePaneChange: (paneId: CaseInsertTemplatePaneId) => void
 }
 
 function getSurfaceMetrics(
-  surfaceId: JewelCaseSurfaceId,
+  paneId: CaseInsertTemplatePaneId,
   caseInsert: ProjectJewelCaseState,
 ) {
   const template = getCaseInsertTemplate(caseInsert.templateType)
-  const surface = template.surfaces?.find(({ id }) => id === surfaceId)
+  const pane = getCaseInsertTemplatePaneConfig(paneId)
+  const surface = template.surfaces?.find(({ id }) => id === pane.surfaceId)
   const exportSize = getTemplateSurfaceExportPixelSize(
     template,
-    surfaceId,
+    pane.surfaceId,
   )
 
   return surface && exportSize
     ? {
         name: surface.name,
+        label: pane.label,
         widthMm: surface.widthMm,
         heightMm: surface.heightMm,
         widthPx: exportSize.widthPx,
@@ -58,10 +71,12 @@ function CaseInsertProjectPanel({
 }: Omit<
   CaseInsertEditorShellProps,
   | 'caseInsert'
-  | 'frontEditor'
+  | 'activeTemplatePane'
+  | 'editor'
   | 'imageSources'
   | 'manualGameTitle'
   | 'statusToasts'
+  | 'onActiveTemplatePaneChange'
 >) {
   return (
     <details className="panel collapsible-panel">
@@ -98,7 +113,7 @@ function CaseInsertSidebarNotePanel({
   children,
 }: {
   title: string
-  children: string
+  children: ReactNode
 }) {
   return (
     <details className="panel collapsible-panel">
@@ -110,35 +125,68 @@ function CaseInsertSidebarNotePanel({
   )
 }
 
+function CaseInsertWorkflowPanel({
+  title,
+  open = false,
+  children,
+}: {
+  title: string
+  open?: boolean
+  children: ReactNode
+}) {
+  return (
+    <details className="panel collapsible-panel" open={open}>
+      <summary className="panel-summary">{title}</summary>
+      <div className="panel-content">{children}</div>
+    </details>
+  )
+}
+
 function CaseInsertTemplatePanel({
   caseInsert,
+  activeTemplatePane,
+  onActiveTemplatePaneChange,
 }: {
   caseInsert: ProjectJewelCaseState
+  activeTemplatePane: CaseInsertTemplatePaneId
+  onActiveTemplatePaneChange: (paneId: CaseInsertTemplatePaneId) => void
 }) {
-  const front = getSurfaceMetrics('front', caseInsert)
-  const back = getSurfaceMetrics('back', caseInsert)
+  const activeTemplate = getSurfaceMetrics(activeTemplatePane, caseInsert)
 
   return (
-    <details className="panel collapsible-panel">
+    <details className="panel collapsible-panel" open>
       <summary className="panel-summary">Template</summary>
       <div className="panel-content">
-        <p className="hint">Jewel case insert set</p>
-        <dl className="template-metrics">
-          {[front, back].flatMap((surface) =>
-            surface
-              ? [
-                  <div key={`${surface.name}-physical`}>
-                    <dt>{surface.name}</dt>
-                    <dd>{surface.widthMm.toFixed(1)} × {surface.heightMm.toFixed(1)} mm</dd>
-                  </div>,
-                  <div key={`${surface.name}-export`}>
-                    <dt>Export size</dt>
-                    <dd>{surface.widthPx} × {surface.heightPx} px</dd>
-                  </div>,
-                ]
-              : [],
-          )}
-        </dl>
+        <label className="field-label" htmlFor="case-insert-active-template">
+          Case insert template
+        </label>
+        <select
+          id="case-insert-active-template"
+          value={activeTemplatePane}
+          onChange={(event) =>
+            onActiveTemplatePaneChange(
+              event.target.value as CaseInsertTemplatePaneId,
+            )}
+        >
+          {CASE_INSERT_TEMPLATE_PANES.map((pane) => (
+            <option key={pane.id} value={pane.id}>{pane.label}</option>
+          ))}
+        </select>
+        {activeTemplate ? (
+          <dl className="template-metrics">
+            <div>
+              <dt>{activeTemplate.label}</dt>
+              <dd>
+                {activeTemplate.widthMm.toFixed(1)} ×{' '}
+                {activeTemplate.heightMm.toFixed(1)} mm
+              </dd>
+            </div>
+            <div>
+              <dt>Export size</dt>
+              <dd>{activeTemplate.widthPx} × {activeTemplate.heightPx} px</dd>
+            </div>
+          </dl>
+        ) : null}
       </div>
     </details>
   )
@@ -168,7 +216,7 @@ function CaseInsertGuideLegendPanel() {
             <span className="guide-swatch case-guide-swatch-spine" aria-hidden="true" />
             <div>
               <strong>Spine Fold</strong>
-              <p>Back-tray fold lines for the two spine strips.</p>
+              <p>Tray-card fold lines for the two spine strips.</p>
             </div>
           </div>
         </div>
@@ -179,7 +227,8 @@ function CaseInsertGuideLegendPanel() {
 
 export function CaseInsertEditorShell({
   caseInsert,
-  frontEditor,
+  activeTemplatePane,
+  editor,
   imageSources,
   projectStatus,
   manualGameTitle,
@@ -190,7 +239,10 @@ export function CaseInsertEditorShell({
   onSaveProject,
   onLoadProject,
   onExportPng,
+  onActiveTemplatePaneChange,
 }: CaseInsertEditorShellProps) {
+  const activeTemplateState = caseInsert.templates[activeTemplatePane]
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -215,31 +267,45 @@ export function CaseInsertEditorShell({
           {manualGameTitle}
         </CaseInsertSidebarNotePanel>
 
-        <CaseInsertTemplatePanel caseInsert={caseInsert} />
-
-        <CaseInsertFrontPanel
-          front={caseInsert.front}
-          actions={frontEditor}
-          imageSources={imageSources}
+        <CaseInsertTemplatePanel
+          caseInsert={caseInsert}
+          activeTemplatePane={activeTemplatePane}
+          onActiveTemplatePaneChange={onActiveTemplatePaneChange}
         />
 
-        <CaseInsertSidebarNotePanel title="Artwork">
-          Back cover artwork and screenshot slots are next.
-        </CaseInsertSidebarNotePanel>
+        <CaseInsertWorkflowPanel title="Artwork" open>
+          <CaseInsertTemplateArtworkControls
+            paneId={activeTemplatePane}
+            templateState={activeTemplateState}
+            actions={editor}
+            imageSources={imageSources}
+          />
+        </CaseInsertWorkflowPanel>
 
-        <CaseInsertSidebarNotePanel title="Branding">
-          Back cover marks and spine branding are next.
-        </CaseInsertSidebarNotePanel>
+        <CaseInsertWorkflowPanel title="Branding">
+          <CaseInsertTemplateBrandingControls
+            paneId={activeTemplatePane}
+            templateState={activeTemplateState}
+            actions={editor}
+            imageSources={imageSources}
+          />
+        </CaseInsertWorkflowPanel>
 
-        <CaseInsertSidebarNotePanel title="Text">
-          Back cover, legal, requirements, and spine text controls are next.
-        </CaseInsertSidebarNotePanel>
+        <CaseInsertWorkflowPanel title="Text">
+          <CaseInsertTemplateTextControls
+            paneId={activeTemplatePane}
+            templateState={activeTemplateState}
+            actions={editor}
+            imageSources={imageSources}
+          />
+        </CaseInsertWorkflowPanel>
 
         <CaseInsertGuideLegendPanel />
       </aside>
 
       <CaseInsertPreview
         caseInsert={caseInsert}
+        activeTemplatePane={activeTemplatePane}
         statusToasts={statusToasts}
       />
     </main>

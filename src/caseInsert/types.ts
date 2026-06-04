@@ -17,6 +17,7 @@ import type {
   JewelCaseSurfaceId,
 } from '../templates/caseInsertTemplates.ts'
 import type { RectangularPrintTemplate } from '../types/template.ts'
+import type { CaseInsertTemplatePaneId } from './templateSurfaces.ts'
 
 export type ProjectCaseInsertLayoutInput = Partial<ProjectCaseInsertLayout>
 
@@ -46,6 +47,7 @@ export type ProjectCaseInsertSurfaceStateInput =
       | 'logoSlots'
       | 'markSlots'
       | 'textBlocks'
+      | 'textLists'
     >
   > & {
     background?: ProjectCaseInsertImageSlotInput
@@ -58,28 +60,8 @@ export type ProjectCaseInsertSurfaceStateInput =
     marks?: ProjectCaseInsertImageSlotInput[]
     textBlocks?: ProjectCaseInsertTextBlockInput[]
     text?: ProjectCaseInsertTextBlockInput[]
-  }
-
-export type ProjectJewelCaseFrontStateInput =
-  ProjectCaseInsertSurfaceStateInput & {
-    calloutArtwork?: ProjectCaseInsertImageSlotInput
-    calloutText?: ProjectCaseInsertTextBlockInput
-    callout?: ProjectCaseInsertTextBlockInput
-  }
-
-export type ProjectJewelCaseBackStateInput =
-  ProjectCaseInsertSurfaceStateInput & {
-    screenshotSlots?: ProjectCaseInsertImageSlotInput[]
-    screenshots?: ProjectCaseInsertImageSlotInput[]
-    description?: ProjectCaseInsertTextBlockInput
-    featureBullets?: ProjectCaseInsertTextListInput
-    features?: ProjectCaseInsertTextListInput
-    minimumRequirements?: ProjectCaseInsertTextBlockInput
-    minimumSystemRequirements?: ProjectCaseInsertTextBlockInput
-    recommendedRequirements?: ProjectCaseInsertTextBlockInput
-    recommendedSystemRequirements?: ProjectCaseInsertTextBlockInput
-    legalText?: ProjectCaseInsertTextBlockInput
-    legal?: ProjectCaseInsertTextBlockInput
+    textLists?: ProjectCaseInsertTextListInput[]
+    lists?: ProjectCaseInsertTextListInput[]
   }
 
 export type ProjectJewelCaseSpineSideStateInput = {
@@ -104,8 +86,9 @@ export type ProjectJewelCaseExportSettingsInput = {
 
 export type ProjectJewelCaseStateInput = {
   templateType?: SupportedCaseInsertTemplateType
-  front?: ProjectJewelCaseFrontStateInput
-  back?: ProjectJewelCaseBackStateInput
+  templates?: Partial<Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceStateInput>>
+  front?: ProjectCaseInsertSurfaceStateInput
+  back?: ProjectCaseInsertSurfaceStateInput
   spine?: ProjectJewelCaseSpineStateInput
   export?: ProjectJewelCaseExportSettingsInput
 }

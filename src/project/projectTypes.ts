@@ -14,6 +14,7 @@ import type {
   JewelCaseGuideId,
   JewelCaseSurfaceId,
 } from '../templates/caseInsertTemplates'
+import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type {
   EditorProjectType,
@@ -387,20 +388,7 @@ export type ProjectCaseInsertSurfaceState = {
   logoSlots: ProjectCaseInsertImageSlot[]
   markSlots: ProjectCaseInsertImageSlot[]
   textBlocks: ProjectCaseInsertTextBlock[]
-}
-
-export type ProjectJewelCaseFrontState = ProjectCaseInsertSurfaceState & {
-  calloutArtwork: ProjectCaseInsertImageSlot
-  calloutText: ProjectCaseInsertTextBlock
-}
-
-export type ProjectJewelCaseBackState = ProjectCaseInsertSurfaceState & {
-  screenshotSlots: ProjectCaseInsertImageSlot[]
-  description: ProjectCaseInsertTextBlock
-  featureBullets: ProjectCaseInsertTextList
-  minimumRequirements: ProjectCaseInsertTextBlock
-  recommendedRequirements: ProjectCaseInsertTextBlock
-  legalText: ProjectCaseInsertTextBlock
+  textLists: ProjectCaseInsertTextList[]
 }
 
 export type ProjectJewelCaseSpineSideState = {
@@ -422,8 +410,7 @@ export type ProjectJewelCaseExportSettings = {
 
 export type ProjectJewelCaseState = {
   templateType: SupportedCaseInsertTemplateType
-  front: ProjectJewelCaseFrontState
-  back: ProjectJewelCaseBackState
+  templates: Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState>
   spine: ProjectJewelCaseSpineState
   export: ProjectJewelCaseExportSettings
 }

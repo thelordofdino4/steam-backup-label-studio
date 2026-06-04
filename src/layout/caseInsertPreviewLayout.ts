@@ -115,35 +115,24 @@ function createGuideLine(
 
 export function createJewelCasePreviewLayout(
   templateId: SupportedCaseInsertTemplateType = DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+  printSurfaceId: JewelCaseSurfaceId = 'front',
 ): CaseInsertPreviewLayout {
   const template = getCaseInsertTemplate(templateId)
-  const frontSize = getJewelCaseSurfaceExportSize('front', { templateId })
-  const backSize = getJewelCaseSurfaceExportSize('back', { templateId })
+  const surfaceSize = getJewelCaseSurfaceExportSize(printSurfaceId, { templateId })
 
-  if (!frontSize || !backSize) {
-    throw new Error(`Could not resolve preview surfaces for ${templateId}.`)
+  if (!surfaceSize) {
+    throw new Error(`Could not resolve ${printSurfaceId} preview surface for ${templateId}.`)
   }
 
-  const height = Math.max(frontSize.height, backSize.height)
   const surfaces: CaseInsertPreviewSurfaceLayout[] = [
     {
-      surfaceId: 'front',
-      name: 'Front cover',
+      surfaceId: printSurfaceId,
+      name: printSurfaceId === 'front' ? 'Cover Sheet' : 'Tray Card',
       bounds: {
         x: 0,
-        y: (height - frontSize.height) / 2,
-        width: frontSize.width,
-        height: frontSize.height,
-      },
-    },
-    {
-      surfaceId: 'back',
-      name: 'Back tray',
-      bounds: {
-        x: frontSize.width + JEWEL_CASE_PREVIEW_SURFACE_GAP_PX,
-        y: (height - backSize.height) / 2,
-        width: backSize.width,
-        height: backSize.height,
+        y: 0,
+        width: surfaceSize.width,
+        height: surfaceSize.height,
       },
     },
   ]
@@ -216,9 +205,9 @@ export function createJewelCasePreviewLayout(
 
   return {
     templateId,
-    width: frontSize.width + JEWEL_CASE_PREVIEW_SURFACE_GAP_PX + backSize.width,
-    height,
-    gap: JEWEL_CASE_PREVIEW_SURFACE_GAP_PX,
+    width: surfaceSize.width,
+    height: surfaceSize.height,
+    gap: 0,
     surfaces,
     regions,
     guides,

@@ -13,7 +13,6 @@ import {
   JEWEL_CASE_SPINE_WIDTH_PX,
 } from '../templates/caseInsertTemplates.ts'
 import {
-  JEWEL_CASE_PREVIEW_SURFACE_GAP_PX,
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
 import {
@@ -23,18 +22,18 @@ import {
 } from './jewelCaseFrontLayout.ts'
 import { createDefaultProjectJewelCaseState } from '../caseInsert/defaults.ts'
 
-test('jewel case preview layout composes front and back tray surfaces together', () => {
-  const layout = createJewelCasePreviewLayout()
-  const front = layout.surfaces.find(({ surfaceId }) => surfaceId === 'front')
-  const back = layout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
+test('jewel case preview layout creates separate front and back templates', () => {
+  const frontLayout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const backLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const front = frontLayout.surfaces.find(({ surfaceId }) => surfaceId === 'front')
+  const back = backLayout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
 
-  assert.equal(
-    layout.width,
-    JEWEL_CASE_FRONT_SURFACE_WIDTH_PX +
-      JEWEL_CASE_PREVIEW_SURFACE_GAP_PX +
-      JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
-  )
-  assert.equal(layout.height, JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX)
+  assert.equal(frontLayout.width, JEWEL_CASE_FRONT_SURFACE_WIDTH_PX)
+  assert.equal(frontLayout.height, JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX)
+  assert.equal(backLayout.width, JEWEL_CASE_BACK_SURFACE_WIDTH_PX)
+  assert.equal(backLayout.height, JEWEL_CASE_BACK_SURFACE_HEIGHT_PX)
+  assert.equal(frontLayout.surfaces.length, 1)
+  assert.equal(backLayout.surfaces.length, 1)
   assert.deepEqual(front?.bounds, {
     x: 0,
     y: 0,
@@ -42,15 +41,15 @@ test('jewel case preview layout composes front and back tray surfaces together',
     height: JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX,
   })
   assert.deepEqual(back?.bounds, {
-    x: JEWEL_CASE_FRONT_SURFACE_WIDTH_PX + JEWEL_CASE_PREVIEW_SURFACE_GAP_PX,
-    y: (JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX - JEWEL_CASE_BACK_SURFACE_HEIGHT_PX) / 2,
+    x: 0,
+    y: 0,
     width: JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
     height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
   })
 })
 
 test('preview regions are derived from the jewel case template surfaces', () => {
-  const layout = createJewelCasePreviewLayout()
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
   const back = layout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
   const backPanel = layout.regions.find(({ regionId }) => regionId === 'backPanel')
   const leftSpine = layout.regions.find(({ regionId }) => regionId === 'leftSpine')
@@ -78,11 +77,14 @@ test('preview regions are derived from the jewel case template surfaces', () => 
 })
 
 test('preview guides use template region and fold-line data', () => {
-  const layout = createJewelCasePreviewLayout()
-  const back = layout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
-  const frontSafe = layout.guides.find(({ guideId }) => guideId === 'frontSafeBounds')
-  const leftFold = layout.guides.find(({ guideId }) => guideId === 'leftSpineFold')
-  const rightFold = layout.guides.find(({ guideId }) => guideId === 'rightSpineFold')
+  const frontLayout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const backLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const back = backLayout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
+  const frontSafe = frontLayout.guides.find(
+    ({ guideId }) => guideId === 'frontSafeBounds',
+  )
+  const leftFold = backLayout.guides.find(({ guideId }) => guideId === 'leftSpineFold')
+  const rightFold = backLayout.guides.find(({ guideId }) => guideId === 'rightSpineFold')
 
   assert.ok(back)
   assert.equal(frontSafe?.regionRole, 'safe')
@@ -109,32 +111,38 @@ test('case preview layer order has labels for every preview layer', () => {
   }
 })
 
-test('front cover preview helpers fit backgrounds and clamp front overlays', () => {
+test('cover sheet preview helpers fit backgrounds and clamp overlays', () => {
   const layout = createJewelCasePreviewLayout()
   const frontSafe = layout.regions.find(({ regionId }) => regionId === 'frontSafe')
   const state = createDefaultProjectJewelCaseState('Portal 2')
   const front = {
-    ...state.front,
+    ...state.templates.cover,
     background: {
-      ...state.front.background,
+      ...state.templates.cover.background,
       imageDataUrl: 'data:image/png;base64,background',
       imageSize: { width: 3200, height: 1800 },
       fit: 'cover' as const,
     },
     titleArtwork: {
-      ...state.front.titleArtwork,
+      ...state.templates.cover.titleArtwork,
       enabled: true,
       imageDataUrl: 'data:image/png;base64,title',
       imageSize: { width: 1200, height: 360 },
       layout: { scale: 1, x: 50, y: 20, rotation: 0 },
     },
-    calloutText: {
-      ...state.front.calloutText,
-      enabled: true,
-      value: 'Includes co-op',
-      layout: { scale: 1, x: 99, y: 99, rotation: 0 },
-    },
+    textBlocks: state.templates.cover.textBlocks.map((textBlock, index) =>
+      index === 0
+        ? {
+            ...textBlock,
+            enabled: true,
+            value: 'Includes co-op',
+            layout: { scale: 1, x: 99, y: 99, rotation: 0 },
+          }
+        : textBlock,
+    ),
   }
+  const calloutText = front.textBlocks[0]!
+
   const backgroundFit = getJewelCaseFrontBackgroundFit(front.background, layout)
   const titleRect = getJewelCaseFrontImageSlotPreviewRect(
     front.titleArtwork,
@@ -142,7 +150,7 @@ test('front cover preview helpers fit backgrounds and clamp front overlays', () 
     'titleArtwork',
   )
   const calloutLayout = getJewelCaseFrontTextBlockPreviewLayout(
-    front.calloutText,
+    calloutText,
     layout,
   )
 

@@ -1,6 +1,7 @@
 export {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   createDefaultCaseInsertImageSlot,
+  createDefaultCaseInsertTemplateStates,
   createDefaultCaseInsertTextBlock,
   createDefaultCaseInsertTextList,
   createDefaultProjectJewelCaseState,
@@ -15,11 +16,18 @@ export {
   updateCaseInsertImageSlotLayoutPosition,
 } from '../caseInsert/imageSlotTransitions.ts'
 export {
-  addJewelCaseBackScreenshotSlot,
-  removeJewelCaseBackScreenshotSlot,
-  updateJewelCaseBackScreenshotSlot,
-  updateProjectJewelCaseBack,
-  updateProjectJewelCaseFront,
+  addCaseInsertTemplateImageSlot,
+  createCaseInsertTemplateImageSlot,
+  getCaseInsertImageSlotGroupConfig,
+  removeCaseInsertTemplateImageSlot,
+  renameCaseInsertTemplateImageSlot,
+  updateCaseInsertTemplateImageSlot,
+  updateCaseInsertTemplateImageSlotInGroup,
+  updateCaseInsertTemplateTextBlock,
+  updateCaseInsertTemplateTextList,
+  updateProjectCaseInsertTemplate,
+} from '../caseInsert/templateSurfaceTransitions.ts'
+export {
   updateProjectJewelCaseSpineSide,
 } from '../caseInsert/jewelCaseTransitions.ts'
 export {
@@ -51,9 +59,7 @@ export type {
   ProjectCaseInsertSurfaceStateInput,
   ProjectCaseInsertTextBlockInput,
   ProjectCaseInsertTextListInput,
-  ProjectJewelCaseBackStateInput,
   ProjectJewelCaseExportSettingsInput,
-  ProjectJewelCaseFrontStateInput,
   ProjectJewelCaseSpineSideStateInput,
   ProjectJewelCaseSpineStateInput,
   ProjectJewelCaseStateInput,

@@ -11,8 +11,18 @@
 .case-insert-guide-rect,
 .case-insert-guide-line,
 .case-insert-front-background-clip,
+.case-insert-back-background-clip,
+.case-insert-template-background-clip,
+.case-insert-back-screenshot-clip,
+.case-insert-template-screenshot-clip,
 .case-insert-front-overlay-image,
-.case-insert-front-text-block {
+.case-insert-back-overlay-image,
+.case-insert-template-overlay-image,
+.case-insert-front-text-block,
+.case-insert-back-text-block,
+.case-insert-template-text-block,
+.case-insert-back-feature-list,
+.case-insert-template-feature-list {
   position: absolute;
 }
 
@@ -87,34 +97,60 @@
   border-top-width: 2px;
 }
 
-.case-insert-front-background-clip {
+.case-insert-front-background-clip,
+.case-insert-template-background-clip {
   overflow: hidden;
 }
 
-.case-insert-front-background-image {
+.case-insert-back-background-clip,
+.case-insert-back-screenshot-clip,
+.case-insert-template-screenshot-clip {
+  overflow: hidden;
+}
+
+.case-insert-back-screenshot-clip,
+.case-insert-template-screenshot-clip {
+  background: rgba(15, 23, 42, 0.54);
+  border: 1px solid rgba(255, 255, 255, 0.64);
+  box-shadow: 0 0.7cqw 1.2cqw rgba(0, 0, 0, 0.28);
+}
+
+.case-insert-front-background-image,
+.case-insert-back-background-image,
+.case-insert-template-background-image,
+.case-insert-back-screenshot-image,
+.case-insert-template-screenshot-image {
   position: absolute;
   display: block;
   max-width: none;
   user-select: none;
 }
 
-.case-insert-front-overlay-image {
+.case-insert-front-overlay-image,
+.case-insert-back-overlay-image,
+.case-insert-template-overlay-image {
   display: block;
   object-fit: contain;
   filter: drop-shadow(0 0.75cqw 1.1cqw rgba(0, 0, 0, 0.38));
   user-select: none;
 }
 
-.case-insert-front-title-artwork {
+.case-insert-front-title-artwork,
+.case-insert-template-titleArtwork {
   z-index: 1;
 }
 
 .case-insert-front-logo,
-.case-insert-front-mark {
+.case-insert-front-mark,
+.case-insert-back-logo,
+.case-insert-back-mark,
+.case-insert-template-logo,
+.case-insert-template-mark {
   filter: drop-shadow(0 0.35cqw 0.6cqw rgba(0, 0, 0, 0.32));
 }
 
-.case-insert-front-text-block {
+.case-insert-front-text-block,
+.case-insert-template-text-block-cover {
   z-index: 1;
   display: flex;
   align-items: center;
@@ -130,6 +166,55 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   text-transform: uppercase;
+}
+
+.case-insert-back-text-block,
+.case-insert-template-text-block-tray,
+.case-insert-back-feature-list,
+.case-insert-template-feature-list {
+  z-index: 1;
+  overflow: hidden;
+  margin: 0;
+  padding: 0.45cqw 0.65cqw;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 0.45cqw;
+  text-shadow: 0 0.14cqw 0.28cqw rgba(0, 0, 0, 0.8);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.case-insert-back-text-block,
+.case-insert-template-text-block-tray {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.case-insert-back-feature-list,
+.case-insert-template-feature-list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.18cqw;
+  list-style-position: outside;
+  padding-left: 1.8cqw;
+}
+
+.case-insert-back-text-description {
+  font-weight: 500;
+}
+
+.case-insert-back-text-minimumRequirements,
+.case-insert-back-text-recommendedRequirements,
+.case-insert-back-text-legalText {
+  background: rgba(15, 23, 42, 0.68);
+}
+
+.case-insert-back-text-legalText {
+  font-weight: 500;
+  letter-spacing: 0;
 }
 
 .case-insert-control-card {
@@ -150,4 +235,11 @@
   object-fit: contain;
   background: #111827;
   border-radius: 6px;
+}
+
+.case-insert-list-item-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-top: 10px;
 }

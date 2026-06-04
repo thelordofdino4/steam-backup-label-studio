@@ -1,0 +1,999 @@
+import type {
+  CaseInsertImageSlotGroupKey,
+  CaseInsertTemplatePaneId,
+} from '../../caseInsert/templateSurfaces'
+import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
+import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
+import type {
+  ProjectCaseInsertImageFit,
+  ProjectCaseInsertImageSlot,
+  ProjectCaseInsertLayout,
+  ProjectCaseInsertSurfaceState,
+  ProjectCaseInsertTextAlign,
+  ProjectCaseInsertTextBlock,
+  ProjectCaseInsertTextList,
+} from '../../project/projectTypes'
+import { PlusIcon } from '../sidebar/PanelIcons'
+import {
+  CaseInsertImageSourceControls,
+  type CaseInsertImageSourceCatalog,
+} from './CaseInsertImageSourceControls'
+
+export type CaseInsertTemplateControlsProps = {
+  paneId: CaseInsertTemplatePaneId
+  templateState: ProjectCaseInsertSurfaceState
+  actions: CaseInsertTemplateEditorActions
+  imageSources: CaseInsertImageSourceCatalog
+}
+
+const IMAGE_FIT_OPTIONS: Array<{
+  value: ProjectCaseInsertImageFit
+  label: string
+}> = [
+  { value: 'cover', label: 'Cover region' },
+  { value: 'contain', label: 'Contain full image' },
+  { value: 'crop', label: 'Crop with offset' },
+  { value: 'scale', label: 'Manual scale' },
+]
+
+const COVER_POSITION_PRESETS = [
+  { label: 'Top left', x: 20, y: 18 },
+  { label: 'Top center', x: 50, y: 18 },
+  { label: 'Top right', x: 80, y: 18 },
+  { label: 'Center', x: 50, y: 50 },
+  { label: 'Bottom left', x: 20, y: 84 },
+  { label: 'Bottom center', x: 50, y: 84 },
+  { label: 'Bottom right', x: 80, y: 84 },
+] as const
+
+const TRAY_POSITION_PRESETS = [
+  { label: 'Top left', x: 18, y: 16 },
+  { label: 'Top center', x: 50, y: 16 },
+  { label: 'Top right', x: 82, y: 16 },
+  { label: 'Center', x: 50, y: 50 },
+  { label: 'Bottom left', x: 18, y: 88 },
+  { label: 'Bottom center', x: 50, y: 88 },
+  { label: 'Bottom right', x: 82, y: 88 },
+] as const
+
+function formatImageSize(size: ProjectCaseInsertImageSlot['imageSize']) {
+  return size ? ` · ${size.width} x ${size.height}px` : ''
+}
+
+function getImageStatus(slot: ProjectCaseInsertImageSlot) {
+  return getProjectImageAssetStatus({
+    imageDataUrl: slot.imageDataUrl,
+    provenance: slot.imageSource,
+    fallbackLabel: slot.label,
+  })
+}
+
+function getPositionPresets(paneId: CaseInsertTemplatePaneId) {
+  return paneId === 'cover' ? COVER_POSITION_PRESETS : TRAY_POSITION_PRESETS
+}
+
+function getTextBlockRows(textBlock: ProjectCaseInsertTextBlock) {
+  if (textBlock.id.includes('description')) return 5
+  if (textBlock.id.includes('requirements')) return 4
+
+  return 3
+}
+
+function ImageSlotStatus({ slot }: { slot: ProjectCaseInsertImageSlot }) {
+  if (!slot.imageDataUrl) {
+    return <p className="hint">No image selected yet.</p>
+  }
+
+  const imageStatus = getImageStatus(slot)
+
+  return (
+    <div className="selected-lockup-card case-insert-image-status-card">
+      <img src={slot.imageDataUrl} alt="" draggable={false} />
+      <span>{imageStatus.summary}{formatImageSize(slot.imageSize)}</span>
+    </div>
+  )
+}
+
+function FitSelect({
+  id,
+  fit,
+  onFitChange,
+}: {
+  id: string
+  fit: ProjectCaseInsertImageFit
+  onFitChange: (fit: ProjectCaseInsertImageFit) => void
+}) {
+  return (
+    <>
+      <label className="field-label spacing-top" htmlFor={id}>Image fit</label>
+      <select
+        id={id}
+        value={fit}
+        onChange={(event) =>
+          onFitChange(event.target.value as ProjectCaseInsertImageFit)}
+      >
+        {IMAGE_FIT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </>
+  )
+}
+
+function RangeField({
+  id,
+  label,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  id: string
+  label: string
+  min: number
+  max: number
+  step: number
+  value: number
+  onChange: (value: number) => void
+}) {
+  return (
+    <>
+      <label className="field-label spacing-top" htmlFor={id}>
+        {label}
+        <span>{Number(value).toFixed(step < 1 ? 2 : 0)}</span>
+      </label>
+      <input
+        id={id}
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </>
+  )
+}
+
+function OverlayPositionPreset({
+  id,
+  paneId,
+  onLayoutChange,
+}: {
+  id: string
+  paneId: CaseInsertTemplatePaneId
+  onLayoutChange: (field: keyof ProjectCaseInsertLayout, value: number) => void
+}) {
+  const presets = getPositionPresets(paneId)
+
+  return (
+    <>
+      <label className="field-label spacing-top" htmlFor={id}>Placement</label>
+      <select
+        id={id}
+        defaultValue=""
+        onChange={(event) => {
+          const preset = presets.find(
+            (candidate) => candidate.label === event.target.value,
+          )
+
+          if (!preset) {
+            return
+          }
+
+          onLayoutChange('x', preset.x)
+          onLayoutChange('y', preset.y)
+          event.currentTarget.value = ''
+        }}
+      >
+        <option value="">Choose preset...</option>
+        {presets.map((preset) => (
+          <option key={preset.label} value={preset.label}>
+            {preset.label}
+          </option>
+        ))}
+      </select>
+    </>
+  )
+}
+
+function PrimaryImageSlotControls({
+  paneId,
+  slotKey,
+  slot,
+  title,
+  enableLabel,
+  uploadId,
+  isBackground = false,
+  imageSources,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  slotKey: 'background' | 'titleArtwork'
+  slot: ProjectCaseInsertImageSlot
+  title: string
+  enableLabel: string
+  uploadId: string
+  isBackground?: boolean
+  imageSources: CaseInsertImageSourceCatalog
+  actions: CaseInsertTemplateEditorActions
+}) {
+  const onLayoutChange = (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => actions.handleImageSlotLayoutChange(paneId, slotKey, field, value)
+
+  return (
+    <div className="case-insert-control-card">
+      <label className="field-label">
+        <input
+          type="checkbox"
+          checked={slot.enabled}
+          onChange={(event) =>
+            actions.handleImageSlotEnabledChange(
+              paneId,
+              slotKey,
+              event.target.checked,
+            )}
+        />
+        {enableLabel}
+      </label>
+
+      {!slot.enabled ? null : (
+        <>
+          <CaseInsertImageSourceControls
+            {...imageSources}
+            uploadId={uploadId}
+            title={title}
+            hasImage={Boolean(slot.imageDataUrl)}
+            imageSource={slot.imageSource}
+            onUpload={(event) =>
+              actions.handleImageSlotUpload(paneId, slotKey, slot.label, event)}
+            onUseSteamArtwork={(asset) =>
+              actions.handleUseImageSlotSteamArtwork(
+                paneId,
+                slotKey,
+                slot.label,
+                asset,
+              )}
+            onUseLocalSteamScreenshot={(asset) =>
+              actions.handleUseImageSlotLocalSteamScreenshot(
+                paneId,
+                slotKey,
+                slot.label,
+                asset,
+              )}
+          />
+
+          <ImageSlotStatus slot={slot} />
+
+          {isBackground ? (
+            <>
+              <FitSelect
+                id={`${uploadId}-fit`}
+                fit={slot.fit}
+                onFitChange={(fit) =>
+                  actions.handleImageSlotFitChange(paneId, slotKey, fit)}
+              />
+              {slot.fit === 'crop' || slot.fit === 'scale' ? (
+                <RangeField
+                  id={`${uploadId}-scale`}
+                  label="Scale"
+                  min={0.5}
+                  max={2.5}
+                  step={0.01}
+                  value={slot.layout.scale}
+                  onChange={(value) => onLayoutChange('scale', value)}
+                />
+              ) : null}
+              {slot.fit === 'crop' ? (
+                <>
+                  <RangeField
+                    id={`${uploadId}-crop-x`}
+                    label="Crop X"
+                    min={-100}
+                    max={100}
+                    step={1}
+                    value={slot.layout.x}
+                    onChange={(value) => onLayoutChange('x', value)}
+                  />
+                  <RangeField
+                    id={`${uploadId}-crop-y`}
+                    label="Crop Y"
+                    min={-100}
+                    max={100}
+                    step={1}
+                    value={slot.layout.y}
+                    onChange={(value) => onLayoutChange('y', value)}
+                  />
+                </>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <OverlayPositionPreset
+                id={`${uploadId}-placement`}
+                paneId={paneId}
+                onLayoutChange={onLayoutChange}
+              />
+              <RangeField
+                id={`${uploadId}-scale`}
+                label="Scale"
+                min={0.25}
+                max={2.5}
+                step={0.01}
+                value={slot.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${uploadId}-x`}
+                label="X position"
+                min={0}
+                max={100}
+                step={1}
+                value={slot.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${uploadId}-y`}
+                label="Y position"
+                min={0}
+                max={100}
+                step={1}
+                value={slot.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+            </>
+          )}
+
+          <div className="button-row spacing-top">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => actions.handleResetImageSlotLayout(paneId, slotKey)}
+            >
+              Reset layout
+            </button>
+            {slot.imageDataUrl ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() =>
+                  actions.handleClearImageSlot(paneId, slotKey, slot.label)}
+              >
+                Clear image
+              </button>
+            ) : null}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function GroupedImageSlotControls({
+  paneId,
+  slotKey,
+  slot,
+  uploadId,
+  imageSources,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  slotKey: CaseInsertImageSlotGroupKey
+  slot: ProjectCaseInsertImageSlot
+  uploadId: string
+  imageSources: CaseInsertImageSourceCatalog
+  actions: CaseInsertTemplateEditorActions
+}) {
+  const onLayoutChange = (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => actions.handleGroupedImageSlotLayoutChange(
+    paneId,
+    slotKey,
+    slot.id,
+    field,
+    value,
+  )
+
+  return (
+    <div className="case-insert-control-card">
+      <label className="field-label">
+        <input
+          type="checkbox"
+          checked={slot.enabled}
+          onChange={(event) =>
+            actions.handleGroupedImageSlotEnabledChange(
+              paneId,
+              slotKey,
+              slot.id,
+              event.target.checked,
+            )}
+        />
+        Show {slot.label}
+      </label>
+
+      {!slot.enabled ? null : (
+        <>
+          <label className="field-label spacing-top" htmlFor={`${uploadId}-label`}>
+            Label
+          </label>
+          <input
+            id={`${uploadId}-label`}
+            type="text"
+            value={slot.label}
+            onChange={(event) =>
+              actions.handleGroupedImageSlotLabelChange(
+                paneId,
+                slotKey,
+                slot.id,
+                event.target.value,
+              )}
+          />
+
+          <CaseInsertImageSourceControls
+            {...imageSources}
+            uploadId={uploadId}
+            title={slot.label}
+            hasImage={Boolean(slot.imageDataUrl)}
+            imageSource={slot.imageSource}
+            onUpload={(event) =>
+              actions.handleGroupedImageSlotUpload(
+                paneId,
+                slotKey,
+                slot.id,
+                slot.label,
+                event,
+              )}
+            onUseSteamArtwork={(asset) =>
+              actions.handleUseGroupedImageSlotSteamArtwork(
+                paneId,
+                slotKey,
+                slot.id,
+                slot.label,
+                asset,
+              )}
+            onUseLocalSteamScreenshot={(asset) =>
+              actions.handleUseGroupedImageSlotLocalSteamScreenshot(
+                paneId,
+                slotKey,
+                slot.id,
+                slot.label,
+                asset,
+              )}
+          />
+
+          <ImageSlotStatus slot={slot} />
+
+          <FitSelect
+            id={`${uploadId}-fit`}
+            fit={slot.fit}
+            onFitChange={(fit) =>
+              actions.handleGroupedImageSlotFitChange(
+                paneId,
+                slotKey,
+                slot.id,
+                fit,
+              )}
+          />
+          {slot.fit === 'crop' || slot.fit === 'scale' ? (
+            <RangeField
+              id={`${uploadId}-scale`}
+              label="Scale"
+              min={0.5}
+              max={2.5}
+              step={0.01}
+              value={slot.layout.scale}
+              onChange={(value) => onLayoutChange('scale', value)}
+            />
+          ) : null}
+          {slot.fit === 'crop' ? (
+            <>
+              <RangeField
+                id={`${uploadId}-crop-x`}
+                label="Crop X"
+                min={-100}
+                max={100}
+                step={1}
+                value={slot.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${uploadId}-crop-y`}
+                label="Crop Y"
+                min={-100}
+                max={100}
+                step={1}
+                value={slot.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+            </>
+          ) : null}
+          {slot.fit === 'contain' ? (
+            <>
+              <OverlayPositionPreset
+                id={`${uploadId}-placement`}
+                paneId={paneId}
+                onLayoutChange={onLayoutChange}
+              />
+              <RangeField
+                id={`${uploadId}-contain-scale`}
+                label="Scale"
+                min={0.25}
+                max={2.5}
+                step={0.01}
+                value={slot.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${uploadId}-x`}
+                label="X position"
+                min={0}
+                max={100}
+                step={1}
+                value={slot.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${uploadId}-y`}
+                label="Y position"
+                min={0}
+                max={100}
+                step={1}
+                value={slot.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+            </>
+          ) : null}
+
+          <div className="button-row spacing-top">
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() =>
+                actions.handleResetGroupedImageSlotLayout(
+                  paneId,
+                  slotKey,
+                  slot.id,
+                )}
+            >
+              Reset layout
+            </button>
+            {slot.imageDataUrl ? (
+              <button
+                className="secondary-button"
+                type="button"
+                onClick={() =>
+                  actions.handleClearGroupedImageSlot(
+                    paneId,
+                    slotKey,
+                    slot.id,
+                    slot.label,
+                  )}
+              >
+                Clear image
+              </button>
+            ) : null}
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() =>
+                actions.handleRemoveGroupedImageSlot(paneId, slotKey, slot.id)}
+            >
+              Delete slot
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function GroupedImageSlotSection({
+  paneId,
+  title,
+  emptyHint,
+  addLabel,
+  slotKey,
+  slots,
+  imageSources,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  title: string
+  emptyHint: string
+  addLabel: string
+  slotKey: CaseInsertImageSlotGroupKey
+  slots: ProjectCaseInsertImageSlot[]
+  imageSources: CaseInsertImageSourceCatalog
+  actions: CaseInsertTemplateEditorActions
+}) {
+  return (
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">{title}</summary>
+      <div className="panel-content">
+        {slots.length === 0 ? <p className="hint">{emptyHint}</p> : null}
+        {slots.map((slot, index) => (
+          <GroupedImageSlotControls
+            key={slot.id}
+            paneId={paneId}
+            slotKey={slotKey}
+            slot={slot}
+            uploadId={`${paneId}-${slotKey}-${index + 1}-upload`}
+            imageSources={imageSources}
+            actions={actions}
+          />
+        ))}
+        <button
+          className="secondary-button icon-text-button spacing-top"
+          type="button"
+          onClick={() => actions.handleAddGroupedImageSlot(paneId, slotKey)}
+        >
+          <PlusIcon />
+          <span>{addLabel}</span>
+        </button>
+      </div>
+    </details>
+  )
+}
+
+function TextBlockControls({
+  paneId,
+  textBlock,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  textBlock: ProjectCaseInsertTextBlock
+  actions: CaseInsertTemplateEditorActions
+}) {
+  const onLayoutChange = (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => actions.handleTextBlockLayoutChange(
+    paneId,
+    textBlock.id,
+    field,
+    value,
+  )
+
+  return (
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">{textBlock.label}</summary>
+      <div className="panel-content">
+        <div className="case-insert-control-card">
+          <label className="field-label">
+            <input
+              type="checkbox"
+              checked={textBlock.enabled}
+              onChange={(event) =>
+                actions.handleTextBlockEnabledChange(
+                  paneId,
+                  textBlock.id,
+                  event.target.checked,
+                )}
+            />
+            Show {textBlock.label.toLocaleLowerCase()}
+          </label>
+
+          {!textBlock.enabled ? null : (
+            <>
+              <label className="field-label spacing-top" htmlFor={`${textBlock.id}-value`}>
+                {textBlock.label}
+              </label>
+              <textarea
+                id={`${textBlock.id}-value`}
+                rows={getTextBlockRows(textBlock)}
+                value={textBlock.value}
+                onChange={(event) =>
+                  actions.handleTextBlockValueChange(
+                    paneId,
+                    textBlock.id,
+                    event.target.value,
+                  )}
+              />
+
+              <label className="field-label spacing-top" htmlFor={`${textBlock.id}-align`}>
+                Alignment
+              </label>
+              <select
+                id={`${textBlock.id}-align`}
+                value={textBlock.align}
+                onChange={(event) =>
+                  actions.handleTextBlockAlignChange(
+                    paneId,
+                    textBlock.id,
+                    event.target.value as ProjectCaseInsertTextAlign,
+                  )}
+              >
+                <option value="left">Left</option>
+                <option value="center">Center</option>
+                <option value="right">Right</option>
+              </select>
+
+              <OverlayPositionPreset
+                id={`${textBlock.id}-placement`}
+                paneId={paneId}
+                onLayoutChange={onLayoutChange}
+              />
+              <RangeField
+                id={`${textBlock.id}-scale`}
+                label="Scale"
+                min={0.7}
+                max={1.8}
+                step={0.01}
+                value={textBlock.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${textBlock.id}-x`}
+                label="X position"
+                min={0}
+                max={100}
+                step={1}
+                value={textBlock.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${textBlock.id}-y`}
+                label="Y position"
+                min={0}
+                max={100}
+                step={1}
+                value={textBlock.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+
+              <button
+                className="secondary-button spacing-top"
+                type="button"
+                onClick={() =>
+                  actions.handleResetTextBlockLayout(paneId, textBlock.id)}
+              >
+                Reset layout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </details>
+  )
+}
+
+function TextListControls({
+  paneId,
+  textList,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  textList: ProjectCaseInsertTextList
+  actions: CaseInsertTemplateEditorActions
+}) {
+  const onLayoutChange = (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => actions.handleTextListLayoutChange(paneId, textList.id, field, value)
+
+  return (
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">{textList.label}</summary>
+      <div className="panel-content">
+        <div className="case-insert-control-card">
+          <label className="field-label">
+            <input
+              type="checkbox"
+              checked={textList.enabled}
+              onChange={(event) =>
+                actions.handleTextListEnabledChange(
+                  paneId,
+                  textList.id,
+                  event.target.checked,
+                )}
+            />
+            Show {textList.label.toLocaleLowerCase()}
+          </label>
+
+          {!textList.enabled ? null : (
+            <>
+              {textList.items.map((item, index) => (
+                <div className="case-insert-list-item-row" key={index}>
+                  <label
+                    className="field-label"
+                    htmlFor={`${textList.id}-${index + 1}`}
+                  >
+                    Item {index + 1}
+                  </label>
+                  <input
+                    id={`${textList.id}-${index + 1}`}
+                    type="text"
+                    value={item}
+                    onChange={(event) =>
+                      actions.handleTextListItemValueChange(
+                        paneId,
+                        textList.id,
+                        index,
+                        event.target.value,
+                      )}
+                  />
+                  <button
+                    className="secondary-button"
+                    type="button"
+                    onClick={() =>
+                      actions.handleRemoveTextListItem(
+                        paneId,
+                        textList.id,
+                        index,
+                      )}
+                  >
+                    Delete
+                  </button>
+                </div>
+              ))}
+
+              <button
+                className="secondary-button icon-text-button spacing-top"
+                type="button"
+                onClick={() => actions.handleAddTextListItem(paneId, textList.id)}
+              >
+                <PlusIcon />
+                <span>Add item</span>
+              </button>
+
+              <OverlayPositionPreset
+                id={`${textList.id}-placement`}
+                paneId={paneId}
+                onLayoutChange={onLayoutChange}
+              />
+              <RangeField
+                id={`${textList.id}-scale`}
+                label="Scale"
+                min={0.7}
+                max={1.8}
+                step={0.01}
+                value={textList.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${textList.id}-x`}
+                label="X position"
+                min={0}
+                max={100}
+                step={1}
+                value={textList.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${textList.id}-y`}
+                label="Y position"
+                min={0}
+                max={100}
+                step={1}
+                value={textList.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+
+              <button
+                className="secondary-button spacing-top"
+                type="button"
+                onClick={() =>
+                  actions.handleResetTextListLayout(paneId, textList.id)}
+              >
+                Reset layout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </details>
+  )
+}
+
+export function CaseInsertTemplateArtworkControls({
+  paneId,
+  templateState,
+  actions,
+  imageSources,
+}: CaseInsertTemplateControlsProps) {
+  return (
+    <>
+      <PrimaryImageSlotControls
+        paneId={paneId}
+        slotKey="background"
+        slot={templateState.background}
+        title="background"
+        enableLabel="Show background artwork"
+        uploadId={`${paneId}-background-upload`}
+        isBackground
+        imageSources={imageSources}
+        actions={actions}
+      />
+
+      {paneId === 'cover' ? (
+        <PrimaryImageSlotControls
+          paneId={paneId}
+          slotKey="titleArtwork"
+          slot={templateState.titleArtwork}
+          title="title/logo artwork"
+          enableLabel="Show title/logo artwork"
+          uploadId={`${paneId}-title-artwork-upload`}
+          imageSources={imageSources}
+          actions={actions}
+        />
+      ) : null}
+
+      <GroupedImageSlotSection
+        paneId={paneId}
+        title={paneId === 'cover' ? 'Artwork' : 'Screenshots'}
+        emptyHint={paneId === 'cover' ? 'No artwork slots.' : 'No screenshots.'}
+        addLabel={paneId === 'cover' ? 'Add artwork slot' : 'Add screenshot slot'}
+        slotKey="artworkSlots"
+        slots={templateState.artworkSlots}
+        imageSources={imageSources}
+        actions={actions}
+      />
+    </>
+  )
+}
+
+export function CaseInsertTemplateBrandingControls({
+  paneId,
+  templateState,
+  actions,
+  imageSources,
+}: CaseInsertTemplateControlsProps) {
+  return (
+    <>
+      <GroupedImageSlotSection
+        paneId={paneId}
+        title="Logos"
+        emptyHint="No logos."
+        addLabel="Add logo"
+        slotKey="logoSlots"
+        slots={templateState.logoSlots}
+        imageSources={imageSources}
+        actions={actions}
+      />
+
+      <GroupedImageSlotSection
+        paneId={paneId}
+        title="Marks"
+        emptyHint="No marks."
+        addLabel="Add mark"
+        slotKey="markSlots"
+        slots={templateState.markSlots}
+        imageSources={imageSources}
+        actions={actions}
+      />
+    </>
+  )
+}
+
+export function CaseInsertTemplateTextControls({
+  paneId,
+  templateState,
+  actions,
+}: CaseInsertTemplateControlsProps) {
+  return (
+    <>
+      {templateState.textBlocks.map((textBlock) => (
+        <TextBlockControls
+          key={textBlock.id}
+          paneId={paneId}
+          textBlock={textBlock}
+          actions={actions}
+        />
+      ))}
+      {templateState.textLists.map((textList) => (
+        <TextListControls
+          key={textList.id}
+          paneId={paneId}
+          textList={textList}
+          actions={actions}
+        />
+      ))}
+    </>
+  )
+}

@@ -2,6 +2,10 @@ import {
   DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
 } from '../editor/editorTypes.ts'
 import {
+  DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
+  type CaseInsertTemplatePaneId,
+} from './templateSurfaces.ts'
+import {
   jewelCaseInsertTemplate,
   type JewelCaseGuideId,
   type JewelCaseSurfaceId,
@@ -15,8 +19,6 @@ import type {
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
   ProjectCaseInsertTextSource,
-  ProjectJewelCaseBackState,
-  ProjectJewelCaseFrontState,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
@@ -25,6 +27,10 @@ import type {
 export const DEFAULT_CASE_INSERT_PROJECT_TITLE = 'Untitled Jewel Case Insert'
 
 export const DEFAULT_CASE_INSERT_SURFACES: JewelCaseSurfaceId[] = ['front', 'back']
+export const DEFAULT_CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneId[] = [
+  DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
+  'tray',
+]
 export const DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT = 3
 export const JEWEL_CASE_GUIDE_IDS = jewelCaseInsertTemplate.guides.map(
   ({ id }) => id as JewelCaseGuideId,
@@ -108,86 +114,113 @@ export function createDefaultCaseInsertTextList(
 }
 
 export function createDefaultCaseInsertSurfaceState(
-  surfaceId: JewelCaseSurfaceId,
+  paneId: CaseInsertTemplatePaneId,
   label: string,
 ): ProjectCaseInsertSurfaceState {
   return {
     background: createDefaultCaseInsertImageSlot(
-      `${surfaceId}-background`,
+      `${paneId}-background`,
       `${label} background`,
       { enabled: true, fit: 'cover' },
     ),
     titleArtwork: createDefaultCaseInsertImageSlot(
-      `${surfaceId}-title-artwork`,
+      `${paneId}-title-artwork`,
       `${label} title artwork`,
     ),
     artworkSlots: [],
     logoSlots: [],
     markSlots: [],
     textBlocks: [],
+    textLists: [],
   }
 }
 
-export function createDefaultJewelCaseFrontState(): ProjectJewelCaseFrontState {
-  const surfaceState = createDefaultCaseInsertSurfaceState('front', 'Front')
+export function createDefaultCaseInsertCoverTemplateState():
+ProjectCaseInsertSurfaceState {
+  const surfaceState = createDefaultCaseInsertSurfaceState('cover', 'Cover sheet')
 
   return {
     ...surfaceState,
     titleArtwork: createDefaultCaseInsertImageSlot(
-      'front-title-artwork',
-      'Front title artwork',
+      'cover-title-artwork',
+      'Title/logo artwork',
       {
         fit: 'contain',
         layout: { scale: 1, x: 50, y: 24 },
       },
     ),
-    calloutArtwork: createDefaultCaseInsertImageSlot(
-      'front-callout-artwork',
-      'Front callout artwork',
-      {
-        fit: 'contain',
-        layout: { scale: 1, x: 50, y: 62 },
-      },
-    ),
-    calloutText: createDefaultCaseInsertTextBlock(
-      'front-callout-text',
-      'Front callout text',
-      { align: 'center', layout: { scale: 1, x: 50, y: 82 } },
-    ),
+    artworkSlots: [
+      createDefaultCaseInsertImageSlot(
+        'cover-callout-artwork',
+        'Callout artwork',
+        {
+          fit: 'contain',
+          layout: { scale: 1, x: 50, y: 62 },
+        },
+      ),
+    ],
+    textBlocks: [
+      createDefaultCaseInsertTextBlock(
+        'cover-callout-text',
+        'Callout text',
+        { align: 'center', layout: { scale: 1, x: 50, y: 82 } },
+      ),
+    ],
   }
 }
 
 export function createDefaultJewelCaseScreenshotSlots() {
   return Array.from({ length: DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT }, (_, index) =>
     createDefaultCaseInsertImageSlot(
-      `back-screenshot-${index + 1}`,
-      `Back screenshot ${index + 1}`,
+      `tray-screenshot-${index + 1}`,
+      `Screenshot ${index + 1}`,
       { fit: 'cover' },
     ),
   )
 }
 
-export function createDefaultJewelCaseBackState(): ProjectJewelCaseBackState {
+export function createDefaultCaseInsertTrayTemplateState():
+ProjectCaseInsertSurfaceState {
   return {
-    ...createDefaultCaseInsertSurfaceState('back', 'Back'),
-    screenshotSlots: createDefaultJewelCaseScreenshotSlots(),
-    description: createDefaultCaseInsertTextBlock(
-      'back-description',
-      'Back description',
-    ),
-    featureBullets: createDefaultCaseInsertTextList(
-      'back-feature-bullets',
-      'Back feature bullets',
-    ),
-    minimumRequirements: createDefaultCaseInsertTextBlock(
-      'back-minimum-requirements',
-      'Minimum requirements',
-    ),
-    recommendedRequirements: createDefaultCaseInsertTextBlock(
-      'back-recommended-requirements',
-      'Recommended requirements',
-    ),
-    legalText: createDefaultCaseInsertTextBlock('back-legal-text', 'Legal text'),
+    ...createDefaultCaseInsertSurfaceState('tray', 'Tray card'),
+    artworkSlots: createDefaultJewelCaseScreenshotSlots(),
+    textBlocks: [
+      createDefaultCaseInsertTextBlock(
+        'tray-description',
+        'Description',
+        { layout: { scale: 1, x: 50, y: 50 } },
+      ),
+      createDefaultCaseInsertTextBlock(
+        'tray-minimum-requirements',
+        'Minimum requirements',
+        { layout: { scale: 1, x: 28, y: 81 } },
+      ),
+      createDefaultCaseInsertTextBlock(
+        'tray-recommended-requirements',
+        'Recommended requirements',
+        { layout: { scale: 1, x: 72, y: 81 } },
+      ),
+      createDefaultCaseInsertTextBlock(
+        'tray-legal-text',
+        'Legal text',
+        { align: 'center', layout: { scale: 1, x: 50, y: 93 } },
+      ),
+    ],
+    textLists: [
+      createDefaultCaseInsertTextList(
+        'tray-feature-bullets',
+        'Feature bullets',
+        { layout: { scale: 1, x: 28, y: 31 } },
+      ),
+    ],
+  }
+}
+
+export function createDefaultCaseInsertTemplateStates():
+Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
+  return {
+    cover: createDefaultCaseInsertCoverTemplateState(),
+    tray: createDefaultCaseInsertTrayTemplateState(),
   }
 }
 
@@ -230,8 +263,7 @@ export function createDefaultProjectJewelCaseState(
 ): ProjectJewelCaseState {
   return {
     templateType: DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
-    front: createDefaultJewelCaseFrontState(),
-    back: createDefaultJewelCaseBackState(),
+    templates: createDefaultCaseInsertTemplateStates(),
     spine: createDefaultJewelCaseSpineState(title),
     export: {
       surfaces: [...DEFAULT_CASE_INSERT_SURFACES],

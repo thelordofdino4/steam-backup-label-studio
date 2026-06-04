@@ -73,7 +73,7 @@
   .case-insert-preview {
     width: min(
       calc(100vw - 320px - 64px),
-      calc((100vh - 64px) * 2.32),
+      calc((100vh - 64px) * var(--case-insert-preview-width-ratio, 1)),
       1080px
     ) !important;
     min-width: 220px !important;

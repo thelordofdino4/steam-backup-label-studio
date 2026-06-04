@@ -17,13 +17,14 @@ import type {
   ProjectCaseInsertTextList,
   ProjectCaseInsertTextSource,
   ProjectImageAssetProvenance,
-  ProjectJewelCaseBackState,
   ProjectJewelCaseExportSettings,
-  ProjectJewelCaseFrontState,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import {
+  type CaseInsertTemplatePaneId,
+} from './templateSurfaces.ts'
 import type {
   JewelCaseGuideId,
   JewelCaseSurfaceId,
@@ -34,8 +35,9 @@ import {
   JEWEL_CASE_GUIDE_IDS,
   createDefaultCaseInsertImageSlot,
   createDefaultCaseInsertTextBlock,
-  createDefaultJewelCaseBackState,
-  createDefaultJewelCaseFrontState,
+  createDefaultCaseInsertTextList,
+  createDefaultCaseInsertCoverTemplateState,
+  createDefaultCaseInsertTrayTemplateState,
   createDefaultJewelCaseSpineState,
 } from './defaults.ts'
 
@@ -181,14 +183,22 @@ function normalizeCaseInsertImageSlotArray(
   value: unknown,
   idPrefix: string,
   labelPrefix: string,
+  defaults: ProjectCaseInsertImageSlot[] = [],
 ) {
-  return (asArray(value) ?? []).map((slot, index) =>
+  const slots = asArray(value)
+
+  if (!slots) {
+    return defaults
+  }
+
+  return slots.map((slot, index) =>
     normalizeCaseInsertImageSlot(
       slot,
-      createDefaultCaseInsertImageSlot(
-        `${idPrefix}-${index + 1}`,
-        `${labelPrefix} ${index + 1}`,
-      ),
+      defaults[index] ??
+        createDefaultCaseInsertImageSlot(
+          `${idPrefix}-${index + 1}`,
+          `${labelPrefix} ${index + 1}`,
+        ),
     ),
   )
 }
@@ -218,14 +228,22 @@ function normalizeCaseInsertTextBlockArray(
   value: unknown,
   idPrefix: string,
   labelPrefix: string,
+  defaults: ProjectCaseInsertTextBlock[] = [],
 ) {
-  return (asArray(value) ?? []).map((textBlock, index) =>
+  const textBlocks = asArray(value)
+
+  if (!textBlocks) {
+    return defaults
+  }
+
+  return textBlocks.map((textBlock, index) =>
     normalizeCaseInsertTextBlock(
       textBlock,
-      createDefaultCaseInsertTextBlock(
-        `${idPrefix}-${index + 1}`,
-        `${labelPrefix} ${index + 1}`,
-      ),
+      defaults[index] ??
+        createDefaultCaseInsertTextBlock(
+          `${idPrefix}-${index + 1}`,
+          `${labelPrefix} ${index + 1}`,
+        ),
     ),
   )
 }
@@ -262,6 +280,30 @@ function normalizeCaseInsertTextList(
   }
 }
 
+function normalizeCaseInsertTextListArray(
+  value: unknown,
+  idPrefix: string,
+  labelPrefix: string,
+  defaults: ProjectCaseInsertTextList[] = [],
+) {
+  const textLists = asArray(value)
+
+  if (!textLists) {
+    return defaults
+  }
+
+  return textLists.map((textList, index) =>
+    normalizeCaseInsertTextList(
+      textList,
+      defaults[index] ??
+        createDefaultCaseInsertTextList(
+          `${idPrefix}-${index + 1}`,
+          `${labelPrefix} ${index + 1}`,
+        ),
+    ),
+  )
+}
+
 function normalizeCaseInsertSurfaceState(
   value: unknown,
   defaults: ProjectCaseInsertSurfaceState,
@@ -284,87 +326,108 @@ function normalizeCaseInsertSurfaceState(
       record.artworkSlots ?? record.artwork,
       `${idPrefix}-artwork`,
       `${labelPrefix} artwork`,
+      defaults.artworkSlots,
     ),
     logoSlots: normalizeCaseInsertImageSlotArray(
       record.logoSlots ?? record.logos,
       `${idPrefix}-logo`,
       `${labelPrefix} logo`,
+      defaults.logoSlots,
     ),
     markSlots: normalizeCaseInsertImageSlotArray(
       record.markSlots ?? record.marks,
       `${idPrefix}-mark`,
       `${labelPrefix} mark`,
+      defaults.markSlots,
     ),
     textBlocks: normalizeCaseInsertTextBlockArray(
       record.textBlocks ?? record.text,
       `${idPrefix}-text`,
       `${labelPrefix} text`,
+      defaults.textBlocks,
+    ),
+    textLists: normalizeCaseInsertTextListArray(
+      record.textLists ?? record.lists,
+      `${idPrefix}-list`,
+      `${labelPrefix} list`,
+      defaults.textLists,
     ),
   }
 }
 
-function normalizeJewelCaseFrontState(value: unknown): ProjectJewelCaseFrontState {
-  const defaults = createDefaultJewelCaseFrontState()
+function normalizeCaseInsertCoverTemplateState(value: unknown):
+ProjectCaseInsertSurfaceState {
+  const defaults = createDefaultCaseInsertCoverTemplateState()
   const record = asRecord(value)
-  const surfaceState = normalizeCaseInsertSurfaceState(
-    record,
-    defaults,
-    'front',
-    'Front',
-  )
+  const artworkSlotsValue = record?.artworkSlots ??
+    record?.artwork ??
+    (record?.calloutArtwork ? [record.calloutArtwork] : undefined)
+  const textBlocksValue = record?.textBlocks ??
+    record?.text ??
+    (record?.calloutText || record?.callout
+      ? [record.calloutText ?? record.callout]
+      : undefined)
 
-  return {
-    ...surfaceState,
-    calloutArtwork: normalizeCaseInsertImageSlot(
-      record?.calloutArtwork,
-      defaults.calloutArtwork,
-    ),
-    calloutText: normalizeCaseInsertTextBlock(
-      record?.calloutText ?? record?.callout,
-      defaults.calloutText,
-    ),
-  }
+  return normalizeCaseInsertSurfaceState(
+    record
+      ? {
+          ...record,
+          artworkSlots: artworkSlotsValue,
+          textBlocks: textBlocksValue,
+        }
+      : record,
+    defaults,
+    'cover',
+    'Cover sheet',
+  )
 }
 
-function normalizeJewelCaseBackState(value: unknown): ProjectJewelCaseBackState {
-  const defaults = createDefaultJewelCaseBackState()
+function normalizeCaseInsertTrayTemplateState(value: unknown):
+ProjectCaseInsertSurfaceState {
+  const defaults = createDefaultCaseInsertTrayTemplateState()
   const record = asRecord(value)
-  const surfaceState = normalizeCaseInsertSurfaceState(
-    record,
+  const textBlockAliases = record
+    ? [
+        record.description,
+        record.minimumRequirements ?? record.minimumSystemRequirements,
+        record.recommendedRequirements ?? record.recommendedSystemRequirements,
+        record.legalText ?? record.legal,
+      ]
+    : []
+  const textBlocksValue = record?.textBlocks ??
+    record?.text ??
+    (textBlockAliases.some(Boolean) ? textBlockAliases : undefined)
+  const textListsValue = record?.textLists ??
+    record?.lists ??
+    (record?.featureBullets || record?.features
+      ? [record.featureBullets ?? record.features]
+      : undefined)
+
+  return normalizeCaseInsertSurfaceState(
+    record
+      ? {
+          ...record,
+          artworkSlots: record.artworkSlots ??
+            record.artwork ??
+            record.screenshotSlots ??
+            record.screenshots,
+          textBlocks: textBlocksValue,
+          textLists: textListsValue,
+        }
+      : record,
     defaults,
-    'back',
-    'Back',
+    'tray',
+    'Tray card',
   )
+}
+
+function normalizeCaseInsertTemplateStates(value: unknown):
+Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
+  const record = asRecord(value)
 
   return {
-    ...surfaceState,
-    screenshotSlots: record
-      ? normalizeCaseInsertImageSlotArray(
-          record.screenshotSlots ?? record.screenshots,
-          'back-screenshot',
-          'Back screenshot',
-        )
-      : defaults.screenshotSlots,
-    description: normalizeCaseInsertTextBlock(
-      record?.description,
-      defaults.description,
-    ),
-    featureBullets: normalizeCaseInsertTextList(
-      record?.featureBullets ?? record?.features,
-      defaults.featureBullets,
-    ),
-    minimumRequirements: normalizeCaseInsertTextBlock(
-      record?.minimumRequirements ?? record?.minimumSystemRequirements,
-      defaults.minimumRequirements,
-    ),
-    recommendedRequirements: normalizeCaseInsertTextBlock(
-      record?.recommendedRequirements ?? record?.recommendedSystemRequirements,
-      defaults.recommendedRequirements,
-    ),
-    legalText: normalizeCaseInsertTextBlock(
-      record?.legalText ?? record?.legal,
-      defaults.legalText,
-    ),
+    cover: normalizeCaseInsertCoverTemplateState(record?.cover),
+    tray: normalizeCaseInsertTrayTemplateState(record?.tray),
   }
 }
 
@@ -466,11 +529,17 @@ export function normalizeProjectJewelCaseState(
   const normalizedTemplateType = normalizeCaseInsertTemplateType(
     record?.templateType ?? templateType,
   )
+  const templateRecord = asRecord(record?.templates)
+  const templates = templateRecord
+    ? normalizeCaseInsertTemplateStates(templateRecord)
+    : {
+        cover: normalizeCaseInsertCoverTemplateState(record?.front),
+        tray: normalizeCaseInsertTrayTemplateState(record?.back),
+      }
 
   return {
     templateType: normalizedTemplateType,
-    front: normalizeJewelCaseFrontState(record?.front),
-    back: normalizeJewelCaseBackState(record?.back),
+    templates,
     spine: normalizeJewelCaseSpineState(record?.spine, title),
     export: normalizeJewelCaseExportSettings(record?.export),
   }
