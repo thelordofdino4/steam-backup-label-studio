@@ -5,6 +5,9 @@ import {
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
 } from '../editor/layerOrder.ts'
 import {
+  caseInsertTemplatePaneHasSpine,
+} from '../caseInsert/templateSurfaces.ts'
+import {
   JEWEL_CASE_BACK_PANEL_WIDTH_PX,
   JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
   JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
@@ -109,6 +112,11 @@ test('case preview layer order has labels for every preview layer', () => {
   for (const layerId of CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER) {
     assert.equal(typeof CASE_INSERT_EDITOR_LAYER_LABELS[layerId], 'string')
   }
+})
+
+test('case template panes expose whether spine controls are available', () => {
+  assert.equal(caseInsertTemplatePaneHasSpine('cover'), false)
+  assert.equal(caseInsertTemplatePaneHasSpine('tray'), true)
 })
 
 test('cover sheet preview helpers fit backgrounds and clamp overlays', () => {

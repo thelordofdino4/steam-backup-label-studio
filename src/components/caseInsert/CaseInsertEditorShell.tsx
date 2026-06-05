@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
+  caseInsertTemplatePaneHasSpine,
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
@@ -11,11 +12,17 @@ import { getTemplateSurfaceExportPixelSize } from '../../templates/templateModel
 import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
+import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
 import {
   CaseInsertTemplateArtworkControls,
   CaseInsertTemplateBrandingControls,
   CaseInsertTemplateTextControls,
 } from './CaseInsertTemplateControls'
+import {
+  CaseInsertSpineArtworkControls,
+  CaseInsertSpineBrandingControls,
+  CaseInsertSpineTextControls,
+} from './CaseInsertSpineControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 
@@ -23,6 +30,7 @@ export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
   editor: CaseInsertTemplateEditorActions
+  spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
   projectStatus: string
   manualGameTitle: string
@@ -73,6 +81,7 @@ function CaseInsertProjectPanel({
   | 'caseInsert'
   | 'activeTemplatePane'
   | 'editor'
+  | 'spineEditor'
   | 'imageSources'
   | 'manualGameTitle'
   | 'statusToasts'
@@ -229,6 +238,7 @@ export function CaseInsertEditorShell({
   caseInsert,
   activeTemplatePane,
   editor,
+  spineEditor,
   imageSources,
   projectStatus,
   manualGameTitle,
@@ -242,6 +252,19 @@ export function CaseInsertEditorShell({
   onActiveTemplatePaneChange,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
+  const activeTemplateLabel =
+    getCaseInsertTemplatePaneConfig(activeTemplatePane).label
+  const activeTemplateHasSpine =
+    caseInsertTemplatePaneHasSpine(activeTemplatePane)
+  const artworkPanelTitle = activeTemplateHasSpine
+    ? `${activeTemplateLabel} Artwork`
+    : 'Artwork'
+  const brandingPanelTitle = activeTemplateHasSpine
+    ? `${activeTemplateLabel} Branding`
+    : 'Branding'
+  const textPanelTitle = activeTemplateHasSpine
+    ? `${activeTemplateLabel} Text`
+    : 'Text'
 
   return (
     <main className="app-shell">
@@ -273,7 +296,7 @@ export function CaseInsertEditorShell({
           onActiveTemplatePaneChange={onActiveTemplatePaneChange}
         />
 
-        <CaseInsertWorkflowPanel title="Artwork" open>
+        <CaseInsertWorkflowPanel title={artworkPanelTitle} open>
           <CaseInsertTemplateArtworkControls
             paneId={activeTemplatePane}
             templateState={activeTemplateState}
@@ -282,7 +305,17 @@ export function CaseInsertEditorShell({
           />
         </CaseInsertWorkflowPanel>
 
-        <CaseInsertWorkflowPanel title="Branding">
+        {activeTemplateHasSpine ? (
+          <CaseInsertWorkflowPanel title="Spine Artwork">
+            <CaseInsertSpineArtworkControls
+              spine={caseInsert.spine}
+              actions={spineEditor}
+              imageSources={imageSources}
+            />
+          </CaseInsertWorkflowPanel>
+        ) : null}
+
+        <CaseInsertWorkflowPanel title={brandingPanelTitle}>
           <CaseInsertTemplateBrandingControls
             paneId={activeTemplatePane}
             templateState={activeTemplateState}
@@ -291,7 +324,17 @@ export function CaseInsertEditorShell({
           />
         </CaseInsertWorkflowPanel>
 
-        <CaseInsertWorkflowPanel title="Text">
+        {activeTemplateHasSpine ? (
+          <CaseInsertWorkflowPanel title="Spine Branding">
+            <CaseInsertSpineBrandingControls
+              spine={caseInsert.spine}
+              actions={spineEditor}
+              imageSources={imageSources}
+            />
+          </CaseInsertWorkflowPanel>
+        ) : null}
+
+        <CaseInsertWorkflowPanel title={textPanelTitle}>
           <CaseInsertTemplateTextControls
             paneId={activeTemplatePane}
             templateState={activeTemplateState}
@@ -299,6 +342,16 @@ export function CaseInsertEditorShell({
             imageSources={imageSources}
           />
         </CaseInsertWorkflowPanel>
+
+        {activeTemplateHasSpine ? (
+          <CaseInsertWorkflowPanel title="Spine Text">
+            <CaseInsertSpineTextControls
+              spine={caseInsert.spine}
+              actions={spineEditor}
+              imageSources={imageSources}
+            />
+          </CaseInsertWorkflowPanel>
+        ) : null}
 
         <CaseInsertGuideLegendPanel />
       </aside>

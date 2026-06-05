@@ -239,13 +239,40 @@ export function createDefaultJewelCaseSpineSideState(
     title: createDefaultCaseInsertTextBlock(
       `${side}-spine-title`,
       `${label} title`,
-      { align: 'center', value: title },
+      {
+        align: 'center',
+        enabled: true,
+        value: title,
+        layout: {
+          scale: 1,
+          x: 50,
+          y: 50,
+          rotation: side === 'left' ? -90 : 90,
+        },
+      },
     ),
     steamBackupBranding: createDefaultCaseInsertImageSlot(
       `${side}-spine-steam-backup-branding`,
       `${label} Steam Backup branding`,
+      {
+        fit: 'contain',
+        layout: {
+          scale: 1,
+          x: 50,
+          y: 14,
+          rotation: side === 'left' ? -90 : 90,
+        },
+      },
     ),
-    logo: createDefaultCaseInsertImageSlot(`${side}-spine-logo`, `${label} logo`),
+    logo: createDefaultCaseInsertImageSlot(`${side}-spine-logo`, `${label} logo`, {
+      fit: 'contain',
+      layout: {
+        scale: 1,
+        x: 50,
+        y: 88,
+        rotation: 0,
+      },
+    }),
   }
 }
 

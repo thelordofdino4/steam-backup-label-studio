@@ -33,6 +33,7 @@ export type CaseInsertTemplatePaneConfig = {
   printRegionId: JewelCaseRegionId
   safeRegionId: JewelCaseRegionId
   panelRegionId: JewelCaseRegionId
+  hasSpine: boolean
 }
 
 export const CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneConfig[] = [
@@ -43,6 +44,7 @@ export const CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneConfig[] = [
     printRegionId: 'front',
     safeRegionId: 'frontSafe',
     panelRegionId: 'front',
+    hasSpine: false,
   },
   {
     id: 'tray',
@@ -51,6 +53,7 @@ export const CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneConfig[] = [
     printRegionId: 'back',
     safeRegionId: 'backSafe',
     panelRegionId: 'backPanelSafe',
+    hasSpine: true,
   },
 ]
 
@@ -86,4 +89,10 @@ export function getCaseInsertTemplatePaneLabel(
   paneId: CaseInsertTemplatePaneId,
 ) {
   return getCaseInsertTemplatePaneConfig(paneId).label
+}
+
+export function caseInsertTemplatePaneHasSpine(
+  paneId: CaseInsertTemplatePaneId,
+) {
+  return getCaseInsertTemplatePaneConfig(paneId).hasSpine
 }

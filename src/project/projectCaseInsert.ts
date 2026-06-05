@@ -28,7 +28,12 @@ export {
   updateProjectCaseInsertTemplate,
 } from '../caseInsert/templateSurfaceTransitions.ts'
 export {
+  updateJewelCaseSpineImageSlot,
+  updateJewelCaseSpineTitle,
   updateProjectJewelCaseSpineSide,
+} from '../caseInsert/jewelCaseTransitions.ts'
+export type {
+  JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions.ts'
 export {
   normalizeProjectJewelCaseState,

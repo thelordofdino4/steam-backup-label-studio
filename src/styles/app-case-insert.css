@@ -15,9 +15,12 @@
 .case-insert-template-background-clip,
 .case-insert-back-screenshot-clip,
 .case-insert-template-screenshot-clip,
+.case-insert-spine-background-clip,
 .case-insert-front-overlay-image,
 .case-insert-back-overlay-image,
 .case-insert-template-overlay-image,
+.case-insert-spine-title,
+.case-insert-spine-overlay-box,
 .case-insert-front-text-block,
 .case-insert-back-text-block,
 .case-insert-template-text-block,
@@ -104,7 +107,8 @@
 
 .case-insert-back-background-clip,
 .case-insert-back-screenshot-clip,
-.case-insert-template-screenshot-clip {
+.case-insert-template-screenshot-clip,
+.case-insert-spine-background-clip {
   overflow: hidden;
 }
 
@@ -119,7 +123,8 @@
 .case-insert-back-background-image,
 .case-insert-template-background-image,
 .case-insert-back-screenshot-image,
-.case-insert-template-screenshot-image {
+.case-insert-template-screenshot-image,
+.case-insert-spine-background-image {
   position: absolute;
   display: block;
   max-width: none;
@@ -145,8 +150,50 @@
 .case-insert-back-logo,
 .case-insert-back-mark,
 .case-insert-template-logo,
-.case-insert-template-mark {
+.case-insert-template-mark,
+.case-insert-spine-overlay-box {
   filter: drop-shadow(0 0.35cqw 0.6cqw rgba(0, 0, 0, 0.32));
+}
+
+.case-insert-spine-title {
+  z-index: 2;
+  display: block;
+  overflow: hidden;
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-shadow:
+    0 0.16cqw 0.32cqw rgba(0, 0, 0, 0.82),
+    0 0 0.72cqw rgba(0, 0, 0, 0.5);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.case-insert-spine-overlay-box {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case-insert-spine-overlay-box img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+
+.case-insert-spine-branding-fallback {
+  color: #f8fafc;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 1.25cqw;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .case-insert-front-text-block,

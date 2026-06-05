@@ -20,6 +20,7 @@ import {
   CaseInsertTemplateMarkLayer,
   CaseInsertTemplateTextLayer,
 } from './CaseInsertTemplatePreviewLayers'
+import { CaseInsertSpinePreviewLayer } from './CaseInsertSpinePreviewLayer'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 
@@ -143,7 +144,12 @@ export function CaseInsertPreview({
         layout={layout}
       />
     ),
-    'case-spine-content': <EmptyCaseLayer />,
+    'case-spine-content': (
+      <CaseInsertSpinePreviewLayer
+        spine={caseInsert.spine}
+        layout={layout}
+      />
+    ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
   }
 

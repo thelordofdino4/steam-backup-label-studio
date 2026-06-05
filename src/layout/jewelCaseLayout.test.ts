@@ -1,5 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { createDefaultProjectJewelCaseState } from '../caseInsert/defaults.ts'
+import {
+  setCaseInsertImageSlotImage,
+} from '../caseInsert/imageSlotTransitions.ts'
+import {
+  setCaseInsertTextBlockEnabled,
+  updateCaseInsertTextBlockValue,
+} from '../caseInsert/textTransitions.ts'
+import {
+  createJewelCasePreviewLayout,
+} from './caseInsertPreviewLayout.ts'
 import {
   estimateJewelCaseRegionMinimumImageResolution,
   evaluateJewelCaseSafePlacement,
@@ -16,6 +27,11 @@ import {
   isPixelRectInsideBounds,
   type JewelCasePixelRect,
 } from './jewelCaseLayout.ts'
+import {
+  getJewelCaseSpineBackgroundFit,
+  getJewelCaseSpineImageSlotPreviewLayout,
+  getJewelCaseSpineTitlePreviewLayout,
+} from './jewelCaseSpineLayout.ts'
 import {
   JEWEL_CASE_BACK_PANEL_WIDTH_PX,
   JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
@@ -225,6 +241,86 @@ test('spine text layout uses mirrored safe rotations and readable sizing', () =>
   assert.equal(right.recommendedFontSizePx <= right.maxFontSizePx, true)
   assert.equal(left.maxLineWidthPx, left.bounds.height)
   assert.equal(right.maxLineWidthPx, right.bounds.height)
+})
+
+test('spine preview layouts stay inside safe strips', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'leftSpineSafe',
+  )
+  const rightSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'rightSpineSafe',
+  )
+  const leftTitle = setCaseInsertTextBlockEnabled(
+    updateCaseInsertTextBlockValue(state.spine.left.title, 'Portal 2'),
+    true,
+  )
+  const leftBranding = {
+    ...state.spine.left.steamBackupBranding,
+    enabled: true,
+    layout: {
+      ...state.spine.left.steamBackupBranding.layout,
+      y: 0,
+    },
+  }
+  const rightLogo = setCaseInsertImageSlotImage(
+    {
+      ...state.spine.right.logo,
+      enabled: true,
+    },
+    {
+      imageDataUrl: 'data:image/png;base64,logo',
+      imageSize: { width: 320, height: 160 },
+    },
+  )
+  const rightBackground = setCaseInsertImageSlotImage(
+    {
+      ...state.spine.right.background,
+      enabled: true,
+      fit: 'cover',
+    },
+    {
+      imageDataUrl: 'data:image/png;base64,spine',
+      imageSize: { width: 1200, height: 1200 },
+    },
+  )
+  const titleLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    leftTitle,
+    layout,
+  )
+  const brandingLayout = getJewelCaseSpineImageSlotPreviewLayout(
+    'left',
+    leftBranding,
+    layout,
+    'branding',
+  )
+  const logoLayout = getJewelCaseSpineImageSlotPreviewLayout(
+    'right',
+    rightLogo,
+    layout,
+    'logo',
+  )
+  const backgroundFit = getJewelCaseSpineBackgroundFit(
+    'right',
+    rightBackground,
+    layout,
+  )
+
+  assert.ok(leftSafe)
+  assert.ok(rightSafe)
+  assert.ok(titleLayout)
+  assert.ok(brandingLayout)
+  assert.ok(logoLayout)
+  assert.ok(backgroundFit)
+  assert.equal(isPixelRectInsideBounds(titleLayout.boundingRect, leftSafe.bounds), true)
+  assert.equal(
+    isPixelRectInsideBounds(brandingLayout.boundingRect, leftSafe.bounds),
+    true,
+  )
+  assert.equal(isPixelRectInsideBounds(logoLayout.boundingRect, rightSafe.bounds), true)
+  assert.equal(backgroundFit.hasEmptySpace, false)
 })
 
 test('minimum image resolution estimates match export pixel regions', () => {

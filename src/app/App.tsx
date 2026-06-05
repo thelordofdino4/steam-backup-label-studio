@@ -48,6 +48,7 @@ import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
 import { useCaseInsertTemplateEditor } from '../hooks/useCaseInsertTemplateEditor'
+import { useJewelCaseSpineEditor } from '../hooks/useJewelCaseSpineEditor'
 import { useMediaMarkState } from '../hooks/useMediaMarkState'
 import { usePlatformMarksState } from '../hooks/usePlatformMarksState'
 import { useProjectLogoAssets } from '../hooks/useProjectLogoAssets'
@@ -131,6 +132,10 @@ function App() {
   const [activeCaseInsertTemplatePane, setActiveCaseInsertTemplatePane] =
     useState<CaseInsertTemplatePaneId>('cover')
   const caseInsertTemplateEditor = useCaseInsertTemplateEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
+  const jewelCaseSpineEditor = useJewelCaseSpineEditor({
     setProjectJewelCase,
     announceStatus,
   })
@@ -1329,6 +1334,7 @@ function App() {
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
         editor={caseInsertTemplateEditor}
+        spineEditor={jewelCaseSpineEditor}
         imageSources={{
           selectedSteamGame,
           localSteamScreenshots,
