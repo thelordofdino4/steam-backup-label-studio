@@ -20,11 +20,13 @@ import type {
   ProjectCaseInsertTextList,
 } from '../../project/projectTypes'
 import { PlusIcon } from '../sidebar/PanelIcons'
+import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
   CaseInsertImageSourceControls,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertTemplateControlsProps = {
   paneId: CaseInsertTemplatePaneId
@@ -451,206 +453,195 @@ function GroupedImageSlotControls({
     field,
     value,
   )
+  const slotTitle = slot.label.trim() || 'Visual slot'
+  const slotImageStatus = getImageStatus(slot)
+  const summary = [
+    slot.enabled ? 'shown' : 'hidden',
+    slot.imageDataUrl ? slotImageStatus.summary : 'no image',
+    `fit ${slot.fit}`,
+    `scale ${slot.layout.scale.toFixed(2)}`,
+  ].join(' · ')
 
   return (
-    <div className="case-insert-control-card">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={slot.enabled}
-          onChange={(event) =>
-            actions.handleGroupedImageSlotEnabledChange(
+    <RepeatedVisualElementCard
+      title={slotTitle}
+      label={slot.label}
+      labelInputId={`${uploadId}-label`}
+      enabled={slot.enabled}
+      enableLabel={`Show ${slotTitle.toLocaleLowerCase()}`}
+      summary={summary}
+      deleteLabel={`Delete ${slotTitle.toLocaleLowerCase()}`}
+      onEnabledChange={(enabled) =>
+        actions.handleGroupedImageSlotEnabledChange(
+          paneId,
+          slotKey,
+          slot.id,
+          enabled,
+        )}
+      onLabelChange={(label) =>
+        actions.handleGroupedImageSlotLabelChange(
+          paneId,
+          slotKey,
+          slot.id,
+          label,
+        )}
+      onDelete={() =>
+        actions.handleRemoveGroupedImageSlot(paneId, slotKey, slot.id)}
+    >
+      <CaseInsertImageSourceControls
+        {...imageSources}
+        uploadId={uploadId}
+        title={slotTitle}
+        hasImage={Boolean(slot.imageDataUrl)}
+        imageSource={slot.imageSource}
+        onUpload={(event) =>
+          actions.handleGroupedImageSlotUpload(
+            paneId,
+            slotKey,
+            slot.id,
+            slotTitle,
+            event,
+          )}
+        onUseSteamArtwork={(asset) =>
+          actions.handleUseGroupedImageSlotSteamArtwork(
+            paneId,
+            slotKey,
+            slot.id,
+            slotTitle,
+            asset,
+          )}
+        onUseLocalSteamScreenshot={(asset) =>
+          actions.handleUseGroupedImageSlotLocalSteamScreenshot(
+            paneId,
+            slotKey,
+            slot.id,
+            slotTitle,
+            asset,
+          )}
+        onUseWebArtworkCandidate={(candidate) =>
+          actions.handleUseGroupedImageSlotWebArtwork(
+            paneId,
+            slotKey,
+            slot.id,
+            slotTitle,
+            candidate,
+          )}
+        allowWebArtwork={slotKey === 'artworkSlots'}
+      />
+
+      <ImageSlotStatus slot={slot} />
+
+      <FitSelect
+        id={`${uploadId}-fit`}
+        fit={slot.fit}
+        onFitChange={(fit) =>
+          actions.handleGroupedImageSlotFitChange(
+            paneId,
+            slotKey,
+            slot.id,
+            fit,
+          )}
+      />
+      {slot.fit === 'crop' || slot.fit === 'scale' ? (
+        <RangeField
+          id={`${uploadId}-scale`}
+          label="Scale"
+          min={0.5}
+          max={2.5}
+          step={0.01}
+          value={slot.layout.scale}
+          onChange={(value) => onLayoutChange('scale', value)}
+        />
+      ) : null}
+      {slot.fit === 'crop' ? (
+        <>
+          <RangeField
+            id={`${uploadId}-crop-x`}
+            label="Crop X"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-crop-y`}
+            label="Crop Y"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+        </>
+      ) : null}
+      {slot.fit === 'contain' ? (
+        <>
+          <OverlayPositionPreset
+            id={`${uploadId}-placement`}
+            paneId={paneId}
+            onLayoutChange={onLayoutChange}
+          />
+          <RangeField
+            id={`${uploadId}-contain-scale`}
+            label="Scale"
+            min={0.25}
+            max={2.5}
+            step={0.01}
+            value={slot.layout.scale}
+            onChange={(value) => onLayoutChange('scale', value)}
+          />
+          <RangeField
+            id={`${uploadId}-x`}
+            label="X position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-y`}
+            label="Y position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+        </>
+      ) : null}
+
+      <div className="button-row spacing-top">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() =>
+            actions.handleResetGroupedImageSlotLayout(
               paneId,
               slotKey,
               slot.id,
-              event.target.checked,
             )}
-        />
-        Show {slot.label}
-      </label>
-
-      {!slot.enabled ? null : (
-        <>
-          <label className="field-label spacing-top" htmlFor={`${uploadId}-label`}>
-            Label
-          </label>
-          <input
-            id={`${uploadId}-label`}
-            type="text"
-            value={slot.label}
-            onChange={(event) =>
-              actions.handleGroupedImageSlotLabelChange(
+        >
+          Reset layout
+        </button>
+        {slot.imageDataUrl ? (
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() =>
+              actions.handleClearGroupedImageSlot(
                 paneId,
                 slotKey,
                 slot.id,
-                event.target.value,
+                slotTitle,
               )}
-          />
-
-          <CaseInsertImageSourceControls
-            {...imageSources}
-            uploadId={uploadId}
-            title={slot.label}
-            hasImage={Boolean(slot.imageDataUrl)}
-            imageSource={slot.imageSource}
-            onUpload={(event) =>
-              actions.handleGroupedImageSlotUpload(
-                paneId,
-                slotKey,
-                slot.id,
-                slot.label,
-                event,
-              )}
-            onUseSteamArtwork={(asset) =>
-              actions.handleUseGroupedImageSlotSteamArtwork(
-                paneId,
-                slotKey,
-                slot.id,
-                slot.label,
-                asset,
-              )}
-            onUseLocalSteamScreenshot={(asset) =>
-              actions.handleUseGroupedImageSlotLocalSteamScreenshot(
-                paneId,
-                slotKey,
-                slot.id,
-                slot.label,
-                asset,
-              )}
-            onUseWebArtworkCandidate={(candidate) =>
-              actions.handleUseGroupedImageSlotWebArtwork(
-                paneId,
-                slotKey,
-                slot.id,
-                slot.label,
-                candidate,
-              )}
-            allowWebArtwork={slotKey === 'artworkSlots'}
-          />
-
-          <ImageSlotStatus slot={slot} />
-
-          <FitSelect
-            id={`${uploadId}-fit`}
-            fit={slot.fit}
-            onFitChange={(fit) =>
-              actions.handleGroupedImageSlotFitChange(
-                paneId,
-                slotKey,
-                slot.id,
-                fit,
-              )}
-          />
-          {slot.fit === 'crop' || slot.fit === 'scale' ? (
-            <RangeField
-              id={`${uploadId}-scale`}
-              label="Scale"
-              min={0.5}
-              max={2.5}
-              step={0.01}
-              value={slot.layout.scale}
-              onChange={(value) => onLayoutChange('scale', value)}
-            />
-          ) : null}
-          {slot.fit === 'crop' ? (
-            <>
-              <RangeField
-                id={`${uploadId}-crop-x`}
-                label="Crop X"
-                min={-100}
-                max={100}
-                step={1}
-                value={slot.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${uploadId}-crop-y`}
-                label="Crop Y"
-                min={-100}
-                max={100}
-                step={1}
-                value={slot.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-            </>
-          ) : null}
-          {slot.fit === 'contain' ? (
-            <>
-              <OverlayPositionPreset
-                id={`${uploadId}-placement`}
-                paneId={paneId}
-                onLayoutChange={onLayoutChange}
-              />
-              <RangeField
-                id={`${uploadId}-contain-scale`}
-                label="Scale"
-                min={0.25}
-                max={2.5}
-                step={0.01}
-                value={slot.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <RangeField
-                id={`${uploadId}-x`}
-                label="X position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${uploadId}-y`}
-                label="Y position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-            </>
-          ) : null}
-
-          <div className="button-row spacing-top">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetGroupedImageSlotLayout(
-                  paneId,
-                  slotKey,
-                  slot.id,
-                )}
-            >
-              Reset layout
-            </button>
-            {slot.imageDataUrl ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() =>
-                  actions.handleClearGroupedImageSlot(
-                    paneId,
-                    slotKey,
-                    slot.id,
-                    slot.label,
-                  )}
-              >
-                Clear image
-              </button>
-            ) : null}
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() =>
-                actions.handleRemoveGroupedImageSlot(paneId, slotKey, slot.id)}
-            >
-              Delete slot
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+          >
+            Clear image
+          </button>
+        ) : null}
+      </div>
+    </RepeatedVisualElementCard>
   )
 }
 
@@ -738,105 +729,108 @@ function TextBlockControls({
   )
 
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{textBlock.label}</summary>
-      <div className="panel-content">
-        <div className="case-insert-control-card">
-          <label className="field-label">
-            <input
-              type="checkbox"
-              checked={textBlock.enabled}
+    <div className="disc-text-control">
+      <label className="checkbox-row disc-text-enable-row">
+        <input
+          type="checkbox"
+          checked={textBlock.enabled}
+          onChange={(event) =>
+            actions.handleTextBlockEnabledChange(
+              paneId,
+              textBlock.id,
+              event.target.checked,
+            )}
+        />
+        <span>{textBlock.label}</span>
+      </label>
+
+      {!textBlock.enabled ? null : (
+        <div className="disc-text-control-body">
+          <div className="disc-text-control-group">
+            <label className="field-label" htmlFor={`${textBlock.id}-value`}>
+              Text value
+            </label>
+            <textarea
+              id={`${textBlock.id}-value`}
+              rows={getTextBlockRows(textBlock)}
+              value={textBlock.value}
               onChange={(event) =>
-                actions.handleTextBlockEnabledChange(
+                actions.handleTextBlockValueChange(
                   paneId,
                   textBlock.id,
-                  event.target.checked,
+                  event.target.value,
                 )}
             />
-            Show {textBlock.label.toLocaleLowerCase()}
-          </label>
+          </div>
 
-          {!textBlock.enabled ? null : (
-            <>
-              <label className="field-label spacing-top" htmlFor={`${textBlock.id}-value`}>
-                {textBlock.label}
-              </label>
-              <textarea
-                id={`${textBlock.id}-value`}
-                rows={getTextBlockRows(textBlock)}
-                value={textBlock.value}
-                onChange={(event) =>
-                  actions.handleTextBlockValueChange(
-                    paneId,
-                    textBlock.id,
-                    event.target.value,
-                  )}
-              />
+          <div className="disc-text-control-group">
+            <label className="field-label" htmlFor={`${textBlock.id}-align`}>
+              Alignment
+            </label>
+            <select
+              id={`${textBlock.id}-align`}
+              value={textBlock.align}
+              onChange={(event) =>
+                actions.handleTextBlockAlignChange(
+                  paneId,
+                  textBlock.id,
+                  event.target.value as ProjectCaseInsertTextAlign,
+                )}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
 
-              <label className="field-label spacing-top" htmlFor={`${textBlock.id}-align`}>
-                Alignment
-              </label>
-              <select
-                id={`${textBlock.id}-align`}
-                value={textBlock.align}
-                onChange={(event) =>
-                  actions.handleTextBlockAlignChange(
-                    paneId,
-                    textBlock.id,
-                    event.target.value as ProjectCaseInsertTextAlign,
-                  )}
-              >
-                <option value="left">Left</option>
-                <option value="center">Center</option>
-                <option value="right">Right</option>
-              </select>
+          <div className="disc-text-control-group">
+            <OverlayPositionPreset
+              id={`${textBlock.id}-placement`}
+              paneId={paneId}
+              onLayoutChange={onLayoutChange}
+            />
+            <RangeField
+              id={`${textBlock.id}-scale`}
+              label="Scale"
+              min={0.7}
+              max={1.8}
+              step={0.01}
+              value={textBlock.layout.scale}
+              onChange={(value) => onLayoutChange('scale', value)}
+            />
+            <RangeField
+              id={`${textBlock.id}-x`}
+              label="X position"
+              min={0}
+              max={100}
+              step={1}
+              value={textBlock.layout.x}
+              onChange={(value) => onLayoutChange('x', value)}
+            />
+            <RangeField
+              id={`${textBlock.id}-y`}
+              label="Y position"
+              min={0}
+              max={100}
+              step={1}
+              value={textBlock.layout.y}
+              onChange={(value) => onLayoutChange('y', value)}
+            />
+          </div>
 
-              <OverlayPositionPreset
-                id={`${textBlock.id}-placement`}
-                paneId={paneId}
-                onLayoutChange={onLayoutChange}
-              />
-              <RangeField
-                id={`${textBlock.id}-scale`}
-                label="Scale"
-                min={0.7}
-                max={1.8}
-                step={0.01}
-                value={textBlock.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <RangeField
-                id={`${textBlock.id}-x`}
-                label="X position"
-                min={0}
-                max={100}
-                step={1}
-                value={textBlock.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${textBlock.id}-y`}
-                label="Y position"
-                min={0}
-                max={100}
-                step={1}
-                value={textBlock.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-
-              <button
-                className="secondary-button spacing-top"
-                type="button"
-                onClick={() =>
-                  actions.handleResetTextBlockLayout(paneId, textBlock.id)}
-              >
-                Reset layout
-              </button>
-            </>
-          )}
+          <div className="disc-text-control-group disc-text-action-group">
+            <button
+              className="secondary-button disc-text-reset-button"
+              type="button"
+              onClick={() =>
+                actions.handleResetTextBlockLayout(paneId, textBlock.id)}
+            >
+              Reset {textBlock.label.toLocaleLowerCase()} layout
+            </button>
+          </div>
         </div>
-      </div>
-    </details>
+      )}
+    </div>
   )
 }
 
@@ -855,116 +849,117 @@ function TextListControls({
   ) => actions.handleTextListLayoutChange(paneId, textList.id, field, value)
 
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{textList.label}</summary>
-      <div className="panel-content">
-        <div className="case-insert-control-card">
-          <label className="field-label">
-            <input
-              type="checkbox"
-              checked={textList.enabled}
-              onChange={(event) =>
-                actions.handleTextListEnabledChange(
-                  paneId,
-                  textList.id,
-                  event.target.checked,
-                )}
+    <div className="disc-text-control">
+      <label className="checkbox-row disc-text-enable-row">
+        <input
+          type="checkbox"
+          checked={textList.enabled}
+          onChange={(event) =>
+            actions.handleTextListEnabledChange(
+              paneId,
+              textList.id,
+              event.target.checked,
+            )}
+        />
+        <span>{textList.label}</span>
+      </label>
+
+      {!textList.enabled ? null : (
+        <div className="disc-text-control-body">
+          <div className="disc-text-control-group">
+            {textList.items.map((item, index) => (
+              <div className="case-insert-list-item-row" key={index}>
+                <label
+                  className="field-label"
+                  htmlFor={`${textList.id}-${index + 1}`}
+                >
+                  Item {index + 1}
+                </label>
+                <input
+                  id={`${textList.id}-${index + 1}`}
+                  type="text"
+                  value={item}
+                  onChange={(event) =>
+                    actions.handleTextListItemValueChange(
+                      paneId,
+                      textList.id,
+                      index,
+                      event.target.value,
+                    )}
+                />
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={() =>
+                    actions.handleRemoveTextListItem(
+                      paneId,
+                      textList.id,
+                      index,
+                    )}
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+
+            <button
+              className="secondary-button icon-text-button spacing-top"
+              type="button"
+              onClick={() => actions.handleAddTextListItem(paneId, textList.id)}
+            >
+              <PlusIcon />
+              <span>Add item</span>
+            </button>
+          </div>
+
+          <div className="disc-text-control-group">
+            <OverlayPositionPreset
+              id={`${textList.id}-placement`}
+              paneId={paneId}
+              onLayoutChange={onLayoutChange}
             />
-            Show {textList.label.toLocaleLowerCase()}
-          </label>
+            <RangeField
+              id={`${textList.id}-scale`}
+              label="Scale"
+              min={0.7}
+              max={1.8}
+              step={0.01}
+              value={textList.layout.scale}
+              onChange={(value) => onLayoutChange('scale', value)}
+            />
+            <RangeField
+              id={`${textList.id}-x`}
+              label="X position"
+              min={0}
+              max={100}
+              step={1}
+              value={textList.layout.x}
+              onChange={(value) => onLayoutChange('x', value)}
+            />
+            <RangeField
+              id={`${textList.id}-y`}
+              label="Y position"
+              min={0}
+              max={100}
+              step={1}
+              value={textList.layout.y}
+              onChange={(value) => onLayoutChange('y', value)}
+            />
+          </div>
 
-          {!textList.enabled ? null : (
-            <>
-              {textList.items.map((item, index) => (
-                <div className="case-insert-list-item-row" key={index}>
-                  <label
-                    className="field-label"
-                    htmlFor={`${textList.id}-${index + 1}`}
-                  >
-                    Item {index + 1}
-                  </label>
-                  <input
-                    id={`${textList.id}-${index + 1}`}
-                    type="text"
-                    value={item}
-                    onChange={(event) =>
-                      actions.handleTextListItemValueChange(
-                        paneId,
-                        textList.id,
-                        index,
-                        event.target.value,
-                      )}
-                  />
-                  <button
-                    className="secondary-button"
-                    type="button"
-                    onClick={() =>
-                      actions.handleRemoveTextListItem(
-                        paneId,
-                        textList.id,
-                        index,
-                      )}
-                  >
-                    Delete
-                  </button>
-                </div>
-              ))}
-
-              <button
-                className="secondary-button icon-text-button spacing-top"
-                type="button"
-                onClick={() => actions.handleAddTextListItem(paneId, textList.id)}
-              >
-                <PlusIcon />
-                <span>Add item</span>
-              </button>
-
-              <OverlayPositionPreset
-                id={`${textList.id}-placement`}
-                paneId={paneId}
-                onLayoutChange={onLayoutChange}
-              />
-              <RangeField
-                id={`${textList.id}-scale`}
-                label="Scale"
-                min={0.7}
-                max={1.8}
-                step={0.01}
-                value={textList.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <RangeField
-                id={`${textList.id}-x`}
-                label="X position"
-                min={0}
-                max={100}
-                step={1}
-                value={textList.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${textList.id}-y`}
-                label="Y position"
-                min={0}
-                max={100}
-                step={1}
-                value={textList.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-
-              <button
-                className="secondary-button spacing-top"
-                type="button"
-                onClick={() =>
-                  actions.handleResetTextListLayout(paneId, textList.id)}
-              >
-                Reset layout
-              </button>
-            </>
-          )}
+          <div className="disc-text-control-group disc-text-action-group">
+            <button
+              className="secondary-button disc-text-reset-button"
+              type="button"
+              onClick={() =>
+                actions.handleResetTextListLayout(paneId, textList.id)}
+            >
+              Reset {textList.label.toLocaleLowerCase()} layout
+            </button>
+          </div>
         </div>
-      </div>
-    </details>
+      )}
+    </div>
   )
 }
 
@@ -1099,7 +1094,7 @@ export function CaseInsertTemplateTextControls({
   actions,
 }: CaseInsertTemplateControlsProps) {
   return (
-    <>
+    <div className="disc-text-control-list">
       {templateState.textBlocks.map((textBlock) => (
         <TextBlockControls
           key={textBlock.id}
@@ -1116,6 +1111,24 @@ export function CaseInsertTemplateTextControls({
           actions={actions}
         />
       ))}
+    </div>
+  )
+}
+
+export function CaseInsertTemplateWorkflowControls(
+  props: CaseInsertTemplateControlsProps,
+) {
+  return (
+    <>
+      <CaseInsertWorkflowSection title="Artwork" spacingTop={false}>
+        <CaseInsertTemplateArtworkControls {...props} />
+      </CaseInsertWorkflowSection>
+      <CaseInsertWorkflowSection title="Branding" variant="branding">
+        <CaseInsertTemplateBrandingControls {...props} />
+      </CaseInsertWorkflowSection>
+      <CaseInsertWorkflowSection title="Text">
+        <CaseInsertTemplateTextControls {...props} />
+      </CaseInsertWorkflowSection>
     </>
   )
 }

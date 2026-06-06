@@ -20,6 +20,7 @@ import {
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertSpineControlsProps = {
   spine: ProjectJewelCaseSpineState
@@ -161,108 +162,116 @@ function SpineTitleControls({
   ) => actions.handleSpineTitleLayoutChange(side, field, value)
 
   return (
-    <div className="case-insert-control-card">
-      <label className="field-label">
+    <div className="disc-text-control">
+      <label className="checkbox-row disc-text-enable-row">
         <input
           type="checkbox"
           checked={title.enabled}
           onChange={(event) =>
             actions.handleSpineTitleEnabledChange(side, event.target.checked)}
         />
-        Show title text
+        <span>Title text</span>
       </label>
 
       {!title.enabled ? null : (
-        <>
-          <label className="field-label spacing-top" htmlFor={`${side}-spine-title`}>
-            Title text
-          </label>
-          <input
-            id={`${side}-spine-title`}
-            type="text"
-            value={title.value}
-            onChange={(event) =>
-              actions.handleSpineTitleValueChange(side, event.target.value)}
-          />
+        <div className="disc-text-control-body">
+          <div className="disc-text-control-group">
+            <label className="field-label" htmlFor={`${side}-spine-title`}>
+              Text value
+            </label>
+            <input
+              id={`${side}-spine-title`}
+              type="text"
+              value={title.value}
+              onChange={(event) =>
+                actions.handleSpineTitleValueChange(side, event.target.value)}
+            />
+          </div>
 
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${side}-spine-title-align`}
-          >
-            Alignment
-          </label>
-          <select
-            id={`${side}-spine-title-align`}
-            value={title.align}
-            onChange={(event) =>
-              actions.handleSpineTitleAlignChange(
-                side,
-                event.target.value as ProjectCaseInsertTextAlign,
-              )}
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
+          <div className="disc-text-control-group">
+            <label
+              className="field-label"
+              htmlFor={`${side}-spine-title-align`}
+            >
+              Alignment
+            </label>
+            <select
+              id={`${side}-spine-title-align`}
+              value={title.align}
+              onChange={(event) =>
+                actions.handleSpineTitleAlignChange(
+                  side,
+                  event.target.value as ProjectCaseInsertTextAlign,
+                )}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
 
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${side}-spine-title-orientation`}
-          >
-            Orientation
-          </label>
-          <select
-            id={`${side}-spine-title-orientation`}
-            value={getTitleOrientationValue(title)}
-            onChange={(event) =>
-              actions.handleSpineTitleOrientationChange(
-                side,
-                Number(event.target.value),
-              )}
-          >
-            {TITLE_ORIENTATION_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
+            <label
+              className="field-label spacing-top"
+              htmlFor={`${side}-spine-title-orientation`}
+            >
+              Orientation
+            </label>
+            <select
+              id={`${side}-spine-title-orientation`}
+              value={getTitleOrientationValue(title)}
+              onChange={(event) =>
+                actions.handleSpineTitleOrientationChange(
+                  side,
+                  Number(event.target.value),
+                )}
+            >
+              {TITLE_ORIENTATION_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <RangeField
-            id={`${side}-spine-title-scale`}
-            label="Scale"
-            min={0.7}
-            max={1.6}
-            step={0.01}
-            value={title.layout.scale}
-            onChange={(value) => onLayoutChange('scale', value)}
-          />
-          <RangeField
-            id={`${side}-spine-title-x`}
-            label="Cross position"
-            min={0}
-            max={100}
-            step={1}
-            value={title.layout.x}
-            onChange={(value) => onLayoutChange('x', value)}
-          />
-          <RangeField
-            id={`${side}-spine-title-y`}
-            label="Length position"
-            min={0}
-            max={100}
-            step={1}
-            value={title.layout.y}
-            onChange={(value) => onLayoutChange('y', value)}
-          />
+          <div className="disc-text-control-group">
+            <RangeField
+              id={`${side}-spine-title-scale`}
+              label="Scale"
+              min={0.7}
+              max={1.6}
+              step={0.01}
+              value={title.layout.scale}
+              onChange={(value) => onLayoutChange('scale', value)}
+            />
+            <RangeField
+              id={`${side}-spine-title-x`}
+              label="Cross position"
+              min={0}
+              max={100}
+              step={1}
+              value={title.layout.x}
+              onChange={(value) => onLayoutChange('x', value)}
+            />
+            <RangeField
+              id={`${side}-spine-title-y`}
+              label="Length position"
+              min={0}
+              max={100}
+              step={1}
+              value={title.layout.y}
+              onChange={(value) => onLayoutChange('y', value)}
+            />
+          </div>
 
-          <button
-            className="secondary-button spacing-top"
-            type="button"
-            onClick={() => actions.handleResetSpineTitleLayout(side)}
-          >
-            Reset layout
-          </button>
-        </>
+          <div className="disc-text-control-group disc-text-action-group">
+            <button
+              className="secondary-button disc-text-reset-button"
+              type="button"
+              onClick={() => actions.handleResetSpineTitleLayout(side)}
+            >
+              Reset title text layout
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
@@ -577,6 +586,24 @@ export function CaseInsertSpineTextControls({
           </SpineSideSection>
         )
       })}
+    </>
+  )
+}
+
+export function CaseInsertSpineWorkflowControls(
+  props: CaseInsertSpineControlsProps,
+) {
+  return (
+    <>
+      <CaseInsertWorkflowSection title="Artwork" spacingTop={false}>
+        <CaseInsertSpineArtworkControls {...props} />
+      </CaseInsertWorkflowSection>
+      <CaseInsertWorkflowSection title="Branding" variant="branding">
+        <CaseInsertSpineBrandingControls {...props} />
+      </CaseInsertWorkflowSection>
+      <CaseInsertWorkflowSection title="Text">
+        <CaseInsertSpineTextControls {...props} />
+      </CaseInsertWorkflowSection>
     </>
   )
 }

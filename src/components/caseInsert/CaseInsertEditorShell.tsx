@@ -1,10 +1,14 @@
 import type { ReactNode } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
-  caseInsertTemplatePaneHasSpine,
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
+import {
+  getCaseInsertSidebarStatusLabel,
+  getCaseInsertSidebarWorkflow,
+  type CaseInsertSidebarPanel,
+} from '../../caseInsert/sidebarWorkflow'
 import {
   countSelectedCaseInsertExportGuideOptions,
   getCaseInsertExportGuideOptions,
@@ -21,14 +25,10 @@ import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertT
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
 import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
 import {
-  CaseInsertTemplateArtworkControls,
-  CaseInsertTemplateBrandingControls,
-  CaseInsertTemplateTextControls,
+  CaseInsertTemplateWorkflowControls,
 } from './CaseInsertTemplateControls'
 import {
-  CaseInsertSpineArtworkControls,
-  CaseInsertSpineBrandingControls,
-  CaseInsertSpineTextControls,
+  CaseInsertSpineWorkflowControls,
 } from './CaseInsertSpineControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
@@ -304,114 +304,88 @@ export function CaseInsertEditorShell({
   onActiveTemplatePaneChange,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
-  const activeTemplateLabel =
-    getCaseInsertTemplatePaneConfig(activeTemplatePane).label
-  const activeTemplateHasSpine =
-    caseInsertTemplatePaneHasSpine(activeTemplatePane)
-  const artworkPanelTitle = activeTemplateHasSpine
-    ? `${activeTemplateLabel} Artwork`
-    : 'Artwork'
-  const brandingPanelTitle = activeTemplateHasSpine
-    ? `${activeTemplateLabel} Branding`
-    : 'Branding'
-  const textPanelTitle = activeTemplateHasSpine
-    ? `${activeTemplateLabel} Text`
-    : 'Text'
+  const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
+
+  function renderCaseInsertSidebarPanel(panel: CaseInsertSidebarPanel) {
+    switch (panel.id) {
+      case 'projectFile':
+        return (
+          <CaseInsertProjectPanel
+            key={panel.id}
+            projectStatus={projectStatus}
+            onMainMenu={onMainMenu}
+            onNewCaseInsert={onNewCaseInsert}
+            onNewDisc={onNewDisc}
+            onSaveProject={onSaveProject}
+            onLoadProject={onLoadProject}
+            onExportPng={onExportPng}
+          />
+        )
+      case 'exportOptions':
+        return (
+          <CaseInsertExportOptionsPanel
+            key={panel.id}
+            caseInsert={caseInsert}
+            activeTemplatePane={activeTemplatePane}
+            onExportGuideToggle={onExportGuideToggle}
+          />
+        )
+      case 'game':
+        return <GamePanel key={panel.id} {...gamePanelProps} />
+      case 'template':
+        return (
+          <CaseInsertTemplatePanel
+            key={panel.id}
+            caseInsert={caseInsert}
+            activeTemplatePane={activeTemplatePane}
+            onActiveTemplatePaneChange={onActiveTemplatePaneChange}
+          />
+        )
+      case 'surface':
+        return (
+          <CaseInsertWorkflowPanel
+            key={panel.id}
+            title={panel.label}
+            open={panel.openByDefault}
+          >
+            <CaseInsertTemplateWorkflowControls
+              paneId={activeTemplatePane}
+              templateState={activeTemplateState}
+              actions={editor}
+              imageSources={imageSources}
+              brandingSources={brandingSources}
+            />
+          </CaseInsertWorkflowPanel>
+        )
+      case 'spine':
+        return (
+          <CaseInsertWorkflowPanel
+            key={panel.id}
+            title={panel.label}
+            open={panel.openByDefault}
+          >
+            <CaseInsertSpineWorkflowControls
+              spine={caseInsert.spine}
+              actions={spineEditor}
+              imageSources={imageSources}
+              brandingSources={brandingSources}
+            />
+          </CaseInsertWorkflowPanel>
+        )
+      case 'guideLegend':
+        return <CaseInsertGuideLegendPanel key={panel.id} />
+      default:
+        return null
+    }
+  }
 
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
-        <p className="muted">Alpha jewel case editor</p>
+        <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>
 
-        <CaseInsertProjectPanel
-          projectStatus={projectStatus}
-          onMainMenu={onMainMenu}
-          onNewCaseInsert={onNewCaseInsert}
-          onNewDisc={onNewDisc}
-          onSaveProject={onSaveProject}
-          onLoadProject={onLoadProject}
-          onExportPng={onExportPng}
-        />
-
-        <CaseInsertExportOptionsPanel
-          caseInsert={caseInsert}
-          activeTemplatePane={activeTemplatePane}
-          onExportGuideToggle={onExportGuideToggle}
-        />
-
-        <GamePanel {...gamePanelProps} />
-
-        <CaseInsertTemplatePanel
-          caseInsert={caseInsert}
-          activeTemplatePane={activeTemplatePane}
-          onActiveTemplatePaneChange={onActiveTemplatePaneChange}
-        />
-
-        <CaseInsertWorkflowPanel title={artworkPanelTitle} open>
-          <CaseInsertTemplateArtworkControls
-            paneId={activeTemplatePane}
-            templateState={activeTemplateState}
-            actions={editor}
-            imageSources={imageSources}
-            brandingSources={brandingSources}
-          />
-        </CaseInsertWorkflowPanel>
-
-        {activeTemplateHasSpine ? (
-          <CaseInsertWorkflowPanel title="Spine Artwork">
-            <CaseInsertSpineArtworkControls
-              spine={caseInsert.spine}
-              actions={spineEditor}
-              imageSources={imageSources}
-              brandingSources={brandingSources}
-            />
-          </CaseInsertWorkflowPanel>
-        ) : null}
-
-        <CaseInsertWorkflowPanel title={brandingPanelTitle}>
-          <CaseInsertTemplateBrandingControls
-            paneId={activeTemplatePane}
-            templateState={activeTemplateState}
-            actions={editor}
-            imageSources={imageSources}
-            brandingSources={brandingSources}
-          />
-        </CaseInsertWorkflowPanel>
-
-        {activeTemplateHasSpine ? (
-          <CaseInsertWorkflowPanel title="Spine Branding">
-            <CaseInsertSpineBrandingControls
-              spine={caseInsert.spine}
-              actions={spineEditor}
-              imageSources={imageSources}
-              brandingSources={brandingSources}
-            />
-          </CaseInsertWorkflowPanel>
-        ) : null}
-
-        <CaseInsertWorkflowPanel title={textPanelTitle}>
-          <CaseInsertTemplateTextControls
-            paneId={activeTemplatePane}
-            templateState={activeTemplateState}
-            actions={editor}
-            imageSources={imageSources}
-            brandingSources={brandingSources}
-          />
-        </CaseInsertWorkflowPanel>
-
-        {activeTemplateHasSpine ? (
-          <CaseInsertWorkflowPanel title="Spine Text">
-            <CaseInsertSpineTextControls
-              spine={caseInsert.spine}
-              actions={spineEditor}
-              imageSources={imageSources}
-              brandingSources={brandingSources}
-            />
-          </CaseInsertWorkflowPanel>
-        ) : null}
-
-        <CaseInsertGuideLegendPanel />
+        {sidebarWorkflow.map(renderCaseInsertSidebarPanel)}
       </aside>
 
       <CaseInsertPreview
