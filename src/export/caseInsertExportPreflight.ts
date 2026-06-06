@@ -5,6 +5,13 @@ import {
   getCaseInsertMarkLayerKind,
 } from '../caseInsert/brandingSlotSources.ts'
 import {
+  getCaseInsertBackTextBlockReadabilityRole,
+  getCaseInsertBackTextBlockRole,
+  getCaseInsertTextReadabilityWarnings,
+  type CaseInsertTextLayout,
+  type CaseInsertTextReadabilityRole,
+} from '../caseInsert/textReadability.ts'
+import {
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces.ts'
@@ -14,7 +21,6 @@ import {
   getJewelCaseBackScreenshotFit,
   getJewelCaseBackTextBlockPreviewLayout,
   getJewelCaseBackTextListPreviewLayout,
-  type JewelCaseBackTextBlockRole,
 } from '../layout/jewelCaseBackLayout.ts'
 import {
   getJewelCaseFrontBackgroundFit,
@@ -50,17 +56,6 @@ import {
 } from '../templates/caseInsertTemplates.ts'
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel.ts'
 
-type TextLayout = {
-  bounds: JewelCasePixelRect
-  fontSizePx: number
-  lineHeightPx: number
-}
-
-type TextWarningOptions = {
-  minReadableFontSizePx: number
-  textKind: string
-}
-
 type EdgeWarningOptions = {
   regionLabel: string
 }
@@ -76,20 +71,7 @@ const TEMPLATE_SAFE_REGION_BY_PANE: Record<CaseInsertTemplatePaneId, JewelCaseRe
   tray: 'backPanelSafe',
 }
 
-const TEXT_WARNING_OPTIONS_BY_ROLE: Record<
-  'callout' | 'description' | 'features' | 'requirements' | 'legal' | 'spine',
-  TextWarningOptions
-> = {
-  callout: { minReadableFontSizePx: 24, textKind: 'callout text' },
-  description: { minReadableFontSizePx: 18, textKind: 'description text' },
-  features: { minReadableFontSizePx: 18, textKind: 'feature text' },
-  requirements: { minReadableFontSizePx: 14, textKind: 'requirements text' },
-  legal: { minReadableFontSizePx: 10, textKind: 'legal text' },
-  spine: { minReadableFontSizePx: 18, textKind: 'spine title text' },
-}
-
 const IMAGE_UPSCALE_WARNING_THRESHOLD = 1.05
-const TEXT_CROWDING_THRESHOLD = 0.9
 const SAFE_EDGE_WARNING_MIN_PX = 8
 const SAFE_EDGE_WARNING_RATIO = 0.015
 
@@ -354,7 +336,7 @@ function getCoverTextWarnings(
       label: textBlock.label,
       textLayout: getJewelCaseFrontTextBlockPreviewLayout(textBlock, layout),
       safeBounds: getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.cover),
-      options: TEXT_WARNING_OPTIONS_BY_ROLE.callout,
+      readabilityRole: 'callout',
       edge: { regionLabel: 'cover safe zone' },
     }))
 }
@@ -365,13 +347,7 @@ function getTrayTextWarnings(
 ) {
   const safeBounds = getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.tray)
   const textBlockWarnings = templateState.textBlocks.flatMap((textBlock) => {
-    const role = getTrayTextRole(textBlock)
-    const roleOptions =
-      role === 'description'
-        ? TEXT_WARNING_OPTIONS_BY_ROLE.description
-        : role === 'legalText'
-          ? TEXT_WARNING_OPTIONS_BY_ROLE.legal
-          : TEXT_WARNING_OPTIONS_BY_ROLE.requirements
+    const role = getCaseInsertBackTextBlockRole(textBlock)
 
     return getTextBlockWarnings({
       textBlock,
@@ -382,7 +358,7 @@ function getTrayTextWarnings(
         role,
       ),
       safeBounds,
-      options: roleOptions,
+      readabilityRole: getCaseInsertBackTextBlockReadabilityRole(role),
       edge: { regionLabel: 'back panel safe zone' },
     })
   })
@@ -392,7 +368,7 @@ function getTrayTextWarnings(
       label: textList.label,
       textLayout: getJewelCaseBackTextListPreviewLayout(textList, layout),
       safeBounds,
-      options: TEXT_WARNING_OPTIONS_BY_ROLE.features,
+      readabilityRole: 'features',
       edge: { regionLabel: 'back panel safe zone' },
     }))
 
@@ -471,7 +447,7 @@ function getSpineSideWarnings(
           }
         : null,
       safeBounds: null,
-      options: TEXT_WARNING_OPTIONS_BY_ROLE.spine,
+      readabilityRole: 'spine',
     }),
     ...getSpineImageSlotWarnings({
       slot: spineSide.steamBackupBranding,
@@ -704,9 +680,9 @@ function escapeRegExp(value: string) {
 function getTextBlockWarnings(params: {
   textBlock: ProjectCaseInsertTextBlock
   label: string
-  textLayout: TextLayout | null
+  textLayout: CaseInsertTextLayout | null
   safeBounds: JewelCasePixelRect | null
-  options: TextWarningOptions
+  readabilityRole: CaseInsertTextReadabilityRole
   edge?: EdgeWarningOptions
 }) {
   const { textBlock, label } = params
@@ -729,12 +705,12 @@ function getTextBlockWarnings(params: {
   }
 
   warnings.push(
-    ...getTextReadabilityWarnings(
+    ...getCaseInsertTextReadabilityWarnings({
       label,
-      textBlock.value,
-      params.textLayout,
-      params.options,
-    ),
+      text: textBlock.value,
+      layout: params.textLayout,
+      role: params.readabilityRole,
+    }),
   )
 
   if (params.safeBounds && params.edge) {
@@ -754,9 +730,9 @@ function getTextBlockWarnings(params: {
 function getTextListWarnings(params: {
   textList: ProjectCaseInsertTextList
   label: string
-  textLayout: (TextLayout & { items: string[] }) | null
+  textLayout: (CaseInsertTextLayout & { items: string[] }) | null
   safeBounds: JewelCasePixelRect | null
-  options: TextWarningOptions
+  readabilityRole: CaseInsertTextReadabilityRole
   edge?: EdgeWarningOptions
 }) {
   const { textList, label } = params
@@ -780,12 +756,12 @@ function getTextListWarnings(params: {
   }
 
   warnings.push(
-    ...getTextReadabilityWarnings(
+    ...getCaseInsertTextReadabilityWarnings({
       label,
-      items.map((item) => `- ${item}`).join('\n'),
-      params.textLayout,
-      params.options,
-    ),
+      text: items.map((item) => `- ${item}`).join('\n'),
+      layout: params.textLayout,
+      role: params.readabilityRole,
+    }),
   )
 
   if (params.safeBounds && params.edge) {
@@ -800,94 +776,6 @@ function getTextListWarnings(params: {
   }
 
   return warnings
-}
-
-function getTextReadabilityWarnings(
-  label: string,
-  text: string,
-  layout: TextLayout,
-  options: TextWarningOptions,
-) {
-  const warnings: string[] = []
-
-  if (layout.fontSizePx < options.minReadableFontSizePx) {
-    warnings.push(
-      `${label} uses ${formatPixels(layout.fontSizePx)}px ${options.textKind}, which may be too small to read at print size.`,
-    )
-  }
-
-  const textFit = estimateTextFit(text, layout)
-
-  if (textFit.requiredLines > textFit.maxLines) {
-    warnings.push(
-      `${label} may overflow its text box (${textFit.requiredLines} estimated lines for ${textFit.maxLines} visible lines) and can be clipped.`,
-    )
-  } else if (textFit.requiredLines / textFit.maxLines >= TEXT_CROWDING_THRESHOLD) {
-    warnings.push(`${label} nearly fills its text box and may look crowded in print.`)
-  }
-
-  return warnings
-}
-
-function estimateTextFit(text: string, layout: TextLayout) {
-  const padding = Math.max(2, Math.round(layout.fontSizePx * 0.55))
-  const innerWidth = Math.max(1, layout.bounds.width - padding * 2)
-  const innerHeight = Math.max(1, layout.bounds.height - padding * 2)
-  const maxLines = Math.max(1, Math.floor(innerHeight / layout.lineHeightPx))
-  const averageCharacterWidth = Math.max(1, layout.fontSizePx * 0.56)
-  const maxCharactersPerLine = Math.max(
-    1,
-    Math.floor(innerWidth / averageCharacterWidth),
-  )
-  const requiredLines = text
-    .replace(/\r\n/g, '\n')
-    .split('\n')
-    .reduce(
-      (lineCount, line) =>
-        lineCount + estimateLineCount(line, maxCharactersPerLine),
-      0,
-    )
-
-  return {
-    maxLines,
-    requiredLines: Math.max(1, requiredLines),
-  }
-}
-
-function estimateLineCount(line: string, maxCharactersPerLine: number) {
-  const words = line.split(/\s+/).filter(Boolean)
-
-  if (words.length === 0) {
-    return 1
-  }
-
-  let lines = 1
-  let currentLineLength = 0
-
-  for (const word of words) {
-    if (word.length > maxCharactersPerLine) {
-      if (currentLineLength > 0) {
-        lines += 1
-      }
-
-      const segmentCount = Math.max(1, Math.ceil(word.length / maxCharactersPerLine))
-      lines += segmentCount - 1
-      currentLineLength = word.length % maxCharactersPerLine || maxCharactersPerLine
-    } else {
-      const candidateLength = currentLineLength === 0
-        ? word.length
-        : currentLineLength + 1 + word.length
-
-      if (candidateLength > maxCharactersPerLine) {
-        lines += 1
-        currentLineLength = word.length
-      } else {
-        currentLineLength = candidateLength
-      }
-    }
-  }
-
-  return lines
 }
 
 function getLayoutValueWarnings(label: string, layout: ProjectCaseInsertLayout) {
@@ -934,14 +822,6 @@ function getSafeEdgeWarnings(
   return [
     `${label} is very close to the ${closeEdges.join('/')} edge of the ${options.regionLabel}; inspect trim and fold clearance before printing.`,
   ]
-}
-
-function getTrayTextRole(textBlock: ProjectCaseInsertTextBlock): JewelCaseBackTextBlockRole {
-  if (textBlock.id.includes('minimum')) return 'minimumRequirements'
-  if (textBlock.id.includes('recommended')) return 'recommendedRequirements'
-  if (textBlock.id.includes('legal')) return 'legalText'
-
-  return 'description'
 }
 
 function getRegionBounds(

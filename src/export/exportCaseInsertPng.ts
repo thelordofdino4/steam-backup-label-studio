@@ -1,6 +1,9 @@
 import {
   getCaseInsertMarkLayerKind,
 } from '../caseInsert/brandingSlotSources'
+import {
+  getCaseInsertBackTextBlockRole,
+} from '../caseInsert/textReadability'
 import type {
   CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
@@ -20,7 +23,6 @@ import {
   getJewelCaseBackScreenshotFit,
   getJewelCaseBackTextBlockPreviewLayout,
   getJewelCaseBackTextListPreviewLayout,
-  type JewelCaseBackTextBlockRole,
 } from '../layout/jewelCaseBackLayout'
 import {
   getJewelCaseFrontBackgroundFit,
@@ -61,15 +63,6 @@ function getTemplateState(
   paneId: CaseInsertTemplatePaneId,
 ) {
   return caseInsert.templates[paneId]
-}
-
-function getTrayTextRole(textBlock: ProjectCaseInsertTextBlock):
-JewelCaseBackTextBlockRole {
-  if (textBlock.id.includes('minimum')) return 'minimumRequirements'
-  if (textBlock.id.includes('recommended')) return 'recommendedRequirements'
-  if (textBlock.id.includes('legal')) return 'legalText'
-
-  return 'description'
 }
 
 function drawSurfaceBase(
@@ -503,7 +496,7 @@ function drawTemplateTextBlock(
     : getJewelCaseBackTextBlockPreviewLayout(
         textBlock,
         layout,
-        getTrayTextRole(textBlock),
+        getCaseInsertBackTextBlockRole(textBlock),
       )
 
   if (!textLayout) return

@@ -5,6 +5,9 @@ import type {
 import {
   getCaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
+import {
+  getCaseInsertBackTextBlockRole,
+} from '../../caseInsert/textReadability'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
 import {
   getJewelCaseBackBackgroundFit,
@@ -62,14 +65,6 @@ function getImageStyle(
   }
 }
 
-function getTrayTextRole(textBlock: ProjectCaseInsertTextBlock) {
-  if (textBlock.id.includes('minimum')) return 'minimumRequirements'
-  if (textBlock.id.includes('recommended')) return 'recommendedRequirements'
-  if (textBlock.id.includes('legal')) return 'legalText'
-
-  return 'description'
-}
-
 function CaseInsertTemplateImageSlot({
   paneId,
   slot,
@@ -123,7 +118,7 @@ function CaseInsertTemplateTextBlock({
     : getJewelCaseBackTextBlockPreviewLayout(
         textBlock,
         layout,
-        getTrayTextRole(textBlock),
+        getCaseInsertBackTextBlockRole(textBlock),
       )
 
   if (!textLayout) {
