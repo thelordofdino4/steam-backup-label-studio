@@ -266,6 +266,13 @@ function PrimaryImageSlotControls({
                 slot.label,
                 asset,
               )}
+            onUseWebArtworkCandidate={(candidate) =>
+              actions.handleUseImageSlotWebArtwork(
+                paneId,
+                slotKey,
+                slot.label,
+                candidate,
+              )}
           />
 
           <ImageSlotStatus slot={slot} />
@@ -465,6 +472,15 @@ function GroupedImageSlotControls({
                 slot.label,
                 asset,
               )}
+            onUseWebArtworkCandidate={(candidate) =>
+              actions.handleUseGroupedImageSlotWebArtwork(
+                paneId,
+                slotKey,
+                slot.id,
+                slot.label,
+                candidate,
+              )}
+            allowWebArtwork={slotKey === 'artworkSlots'}
           />
 
           <ImageSlotStatus slot={slot} />

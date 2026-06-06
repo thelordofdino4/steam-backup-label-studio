@@ -1,37 +1,9 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
-import type { RemoteLogoCandidate } from '../../../steam/steamLogoCandidates'
 import {
   ImageCandidatePreviewPicker,
-  type ImageCandidatePickerItem,
 } from '../ImageCandidatePicker'
 import type { ArtworkPanelProps } from './types'
-
-function formatWebArtworkSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
-  switch (sourceKind) {
-    case 'official-img':
-      return 'Official site image'
-    case 'official-srcset':
-      return 'Official srcset'
-    case 'official-css-background':
-      return 'Official CSS image'
-    case 'official-meta-image':
-      return 'Official metadata image'
-    case 'steam-meta-image':
-      return 'Steam metadata image'
-    case 'steam-img':
-      return 'Steam page image'
-    case 'steam-avatar':
-      return 'Steam creator image'
-    case 'favicon':
-      return 'Site icon'
-    default:
-      return sourceKind
-  }
-}
-
-function formatCandidateDimensions(candidate: RemoteLogoCandidate) {
-  return candidate.width && candidate.height ? ` · ${candidate.width} x ${candidate.height}px` : ''
-}
+import { createWebArtworkPickerItems } from './helpers'
 
 export function WebArtworkCandidateControls({
   webArtworkDiscovery,
@@ -46,17 +18,8 @@ export function WebArtworkCandidateControls({
 > & {
   fineTuneControls: ReactNode
 }) {
-  const pickerItems: ImageCandidatePickerItem[] = useMemo(
-    () => webArtworkDiscovery.candidates.map(
-      (candidate) => ({
-        id: candidate.id,
-        title: candidate.label,
-        subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatCandidateDimensions(candidate)}`,
-        details: candidate.reasons.slice(0, 3),
-        imageUrl: candidate.previewUrl ?? candidate.url,
-        imageFit: 'cover',
-      }),
-    ),
+  const pickerItems = useMemo(
+    () => createWebArtworkPickerItems(webArtworkDiscovery.candidates),
     [webArtworkDiscovery.candidates],
   )
   const selectWebArtworkCandidate = useCallback((itemId: string) => {

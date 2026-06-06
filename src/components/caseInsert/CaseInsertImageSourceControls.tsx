@@ -1,5 +1,6 @@
 import type { ChangeEvent } from 'react'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
+import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import type {
   ProjectCaseInsertImageSlot,
 } from '../../project/projectTypes'
@@ -7,16 +8,23 @@ import type {
   SteamArtworkAsset,
   SteamImportedGame,
 } from '../../steam/steamApi'
+import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { ImageCandidatePreviewPicker } from '../sidebar/ImageCandidatePicker'
 import {
   createLocalSteamScreenshotPickerItems,
   createSteamArtworkPickerItems,
+  createWebArtworkPickerItems,
 } from '../sidebar/artwork/helpers'
 
 export type CaseInsertImageSourceCatalog = {
   selectedSteamGame: SteamImportedGame | null
   localSteamScreenshots: LocalSteamScreenshotAsset[]
   localSteamScreenshotThumbnails: Record<string, string>
+  hasCheckedLocalSteamScreenshots: boolean
+  isLocalSteamScreenshotsLoading: boolean
+  onFindLocalSteamScreenshots: () => void | Promise<void>
+  webArtworkDiscovery: WebArtworkDiscoveryState
+  onFindWebArtworkCandidates: () => void | Promise<void>
 }
 
 export type CaseInsertImageSourceControlsProps = CaseInsertImageSourceCatalog & {
@@ -24,10 +32,14 @@ export type CaseInsertImageSourceControlsProps = CaseInsertImageSourceCatalog & 
   title: string
   hasImage: boolean
   imageSource: ProjectCaseInsertImageSlot['imageSource']
+  allowWebArtwork?: boolean
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   onUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
   onUseLocalSteamScreenshot: (
     asset: LocalSteamScreenshotAsset,
+  ) => void | Promise<void>
+  onUseWebArtworkCandidate: (
+    candidate: RemoteLogoCandidate,
   ) => void | Promise<void>
 }
 
@@ -36,12 +48,19 @@ export function CaseInsertImageSourceControls({
   title,
   hasImage,
   imageSource,
+  allowWebArtwork = true,
   selectedSteamGame,
   localSteamScreenshots,
   localSteamScreenshotThumbnails,
+  hasCheckedLocalSteamScreenshots,
+  isLocalSteamScreenshotsLoading,
+  onFindLocalSteamScreenshots,
+  webArtworkDiscovery,
+  onFindWebArtworkCandidates,
   onUpload,
   onUseSteamArtwork,
   onUseLocalSteamScreenshot,
+  onUseWebArtworkCandidate,
 }: CaseInsertImageSourceControlsProps) {
   const steamArtwork = selectedSteamGame?.artwork ?? []
   const selectedSteamArtworkId =
@@ -50,6 +69,8 @@ export function CaseInsertImageSourceControls({
     imageSource?.source === 'local-steam-screenshot'
       ? imageSource.sourceId
       : null
+  const selectedWebArtworkId =
+    imageSource?.source === 'web-artwork' ? imageSource.sourceId : null
   const steamArtworkPickerItems = createSteamArtworkPickerItems(
     steamArtwork,
     selectedSteamArtworkId,
@@ -58,6 +79,10 @@ export function CaseInsertImageSourceControls({
     localSteamScreenshots,
     localSteamScreenshotThumbnails,
     selectedLocalSteamScreenshotId,
+  )
+  const webArtworkPickerItems = createWebArtworkPickerItems(
+    webArtworkDiscovery.candidates,
+    selectedWebArtworkId,
   )
 
   const selectSteamArtwork = (itemId: string) => {
@@ -77,6 +102,16 @@ export function CaseInsertImageSourceControls({
 
     if (asset) {
       return onUseLocalSteamScreenshot(asset)
+    }
+  }
+
+  const selectWebArtworkCandidate = (itemId: string) => {
+    const candidate = webArtworkDiscovery.candidates.find(
+      (currentCandidate) => currentCandidate.id === itemId,
+    )
+
+    if (candidate) {
+      return onUseWebArtworkCandidate(candidate)
     }
   }
 
@@ -109,17 +144,78 @@ export function CaseInsertImageSourceControls({
         </details>
       ) : null}
 
-      {localSteamScreenshots.length > 0 ? (
+      {allowWebArtwork ? (
+        <details className="metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Use web artwork candidate</summary>
+          <div className="panel-content">
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={webArtworkDiscovery.isLoading}
+              onClick={() => void onFindWebArtworkCandidates()}
+            >
+              {webArtworkDiscovery.isLoading
+                ? 'Finding web artwork...'
+                : 'Find web artwork candidates'}
+            </button>
+
+            {webArtworkDiscovery.error ? (
+              <p className="hint logo-candidate-error">{webArtworkDiscovery.error}</p>
+            ) : null}
+
+            {webArtworkDiscovery.hasSearched &&
+              !webArtworkDiscovery.isLoading &&
+              webArtworkDiscovery.candidates.length === 0 &&
+              !webArtworkDiscovery.error ? (
+                <p className="hint">No web artwork candidates found.</p>
+              ) : null}
+
+            {webArtworkPickerItems.length > 0 ? (
+              <ImageCandidatePreviewPicker
+                ariaLabel={`${title} web artwork candidate previews`}
+                title={`${title} Web Artwork`}
+                items={webArtworkPickerItems}
+                disabled={webArtworkDiscovery.isLoading}
+                selectLabel={`Use for ${title}`}
+                onSelect={selectWebArtworkCandidate}
+              />
+            ) : null}
+          </div>
+        </details>
+      ) : null}
+
+      {localSteamScreenshots.length > 0 || selectedSteamGame ? (
         <details className="metadata-details collapsible-panel spacing-top">
           <summary className="panel-summary">Use local Steam screenshot</summary>
           <div className="panel-content">
-            <ImageCandidatePreviewPicker
-              ariaLabel={`${title} local Steam screenshot previews`}
-              title={`${title} Local Steam Screenshots`}
-              items={localScreenshotPickerItems}
-              selectLabel={`Use for ${title}`}
-              onSelect={selectLocalSteamScreenshot}
-            />
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={isLocalSteamScreenshotsLoading}
+              onClick={() => void onFindLocalSteamScreenshots()}
+            >
+              {isLocalSteamScreenshotsLoading
+                ? 'Checking local screenshots...'
+                : hasCheckedLocalSteamScreenshots
+                  ? 'Refresh local screenshots'
+                  : 'Find local screenshots'}
+            </button>
+
+            {hasCheckedLocalSteamScreenshots &&
+              !isLocalSteamScreenshotsLoading &&
+              localSteamScreenshots.length === 0 ? (
+                <p className="hint">No local Steam screenshots found.</p>
+              ) : null}
+
+            {localScreenshotPickerItems.length > 0 ? (
+              <ImageCandidatePreviewPicker
+                ariaLabel={`${title} local Steam screenshot previews`}
+                title={`${title} Local Steam Screenshots`}
+                items={localScreenshotPickerItems}
+                selectLabel={`Use for ${title}`}
+                onSelect={selectLocalSteamScreenshot}
+              />
+            ) : null}
           </div>
         </details>
       ) : null}

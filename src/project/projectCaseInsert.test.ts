@@ -420,6 +420,65 @@ test('case image slot source import keeps reusable provenance and size metadata'
   )
 })
 
+test('case insert source provenance survives save/load for tray slots', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateCaseInsertTemplateImageSlot(
+    state,
+    'tray',
+    'background',
+    (slot) => setCaseInsertImageSlotImage(slot, {
+      imageDataUrl: 'data:image/png;base64,web',
+      imageSize: { width: 1920, height: 1080 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'web-artwork',
+        sourceId: 'official-hero',
+        sourceLabel: 'Official hero artwork',
+        sourceUrl: 'https://example.test/portal-2/hero.jpg',
+      }),
+    }),
+  )
+  state = updateCaseInsertTemplateImageSlotInGroup(
+    state,
+    'tray',
+    'artworkSlots',
+    'tray-screenshot-1',
+    (slot) => setCaseInsertImageSlotImage(slot, {
+      imageDataUrl: 'data:image/png;base64,shot',
+      imageSize: { width: 1280, height: 720 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'local-steam-screenshot',
+        sourceId: '620-shot-1',
+        sourceLabel: 'Screenshot 1',
+      }),
+    }),
+  )
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    selectedSteamGame: steamGame,
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const tray = restored.templates.tray
+
+  assert.equal(tray.background.imageSource?.source, 'web-artwork')
+  assert.equal(tray.background.imageSource?.sourceId, 'official-hero')
+  assert.equal(tray.background.imageSource?.sourceLabel, 'Official hero artwork')
+  assert.equal(
+    tray.background.imageSource?.sourceUrl,
+    'https://example.test/portal-2/hero.jpg',
+  )
+  assert.deepEqual(tray.background.imageSize, { width: 1920, height: 1080 })
+  assert.equal(
+    tray.artworkSlots[0]?.imageSource?.source,
+    'local-steam-screenshot',
+  )
+  assert.equal(tray.artworkSlots[0]?.imageSource?.sourceId, '620-shot-1')
+  assert.equal(tray.artworkSlots[0]?.imageSource?.sourceLabel, 'Screenshot 1')
+  assert.deepEqual(tray.artworkSlots[0]?.imageSize, { width: 1280, height: 720 })
+})
+
 test('case helpers update artwork slots and export settings', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 

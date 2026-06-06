@@ -25,6 +25,7 @@ import {
 } from './CaseInsertSpineControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
+import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
@@ -32,8 +33,8 @@ export type CaseInsertEditorShellProps = {
   editor: CaseInsertTemplateEditorActions
   spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
+  gamePanelProps: GamePanelProps
   projectStatus: string
-  manualGameTitle: string
   statusToasts: PreviewToast[]
   onMainMenu: () => void
   onNewCaseInsert: () => void
@@ -83,7 +84,7 @@ function CaseInsertProjectPanel({
   | 'editor'
   | 'spineEditor'
   | 'imageSources'
-  | 'manualGameTitle'
+  | 'gamePanelProps'
   | 'statusToasts'
   | 'onActiveTemplatePaneChange'
 >) {
@@ -240,8 +241,8 @@ export function CaseInsertEditorShell({
   editor,
   spineEditor,
   imageSources,
+  gamePanelProps,
   projectStatus,
-  manualGameTitle,
   statusToasts,
   onMainMenu,
   onNewCaseInsert,
@@ -286,9 +287,7 @@ export function CaseInsertEditorShell({
           Case export options will use the jewel case guide model.
         </CaseInsertSidebarNotePanel>
 
-        <CaseInsertSidebarNotePanel title="Game">
-          {manualGameTitle}
-        </CaseInsertSidebarNotePanel>
+        <GamePanel {...gamePanelProps} />
 
         <CaseInsertTemplatePanel
           caseInsert={caseInsert}

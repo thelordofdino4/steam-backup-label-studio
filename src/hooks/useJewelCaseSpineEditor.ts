@@ -19,6 +19,7 @@ import {
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
   createUploadedCaseInsertImageSlotImage,
+  createWebArtworkCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotSourceImport'
 import {
   setCaseInsertTextBlockEnabled,
@@ -34,6 +35,7 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes'
 import type { SteamArtworkAsset } from '../steam/steamApi'
+import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
 
 type UseJewelCaseSpineEditorOptions = {
@@ -219,6 +221,27 @@ export function useJewelCaseSpineEditor({
     }
   }
 
+  async function handleUseSpineImageSlotWebArtwork(
+    side: JewelCaseSpineSide,
+    slotKey: JewelCaseSpineImageSlotKey,
+    label: string,
+    candidate: RemoteLogoCandidate,
+  ) {
+    const statusLabel = normalizeLabel(label)
+    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
+
+    try {
+      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
+
+      updateSpineImageSlot(side, slotKey, (slot) =>
+        setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
+    } catch (error) {
+      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
+    }
+  }
+
   function handleSpineImageSlotEnabledChange(
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
@@ -284,6 +307,7 @@ export function useJewelCaseSpineEditor({
     handleSpineImageSlotUpload,
     handleUseSpineImageSlotSteamArtwork,
     handleUseSpineImageSlotLocalSteamScreenshot,
+    handleUseSpineImageSlotWebArtwork,
     handleSpineImageSlotEnabledChange,
     handleSpineImageSlotFitChange,
     handleSpineImageSlotLayoutChange,

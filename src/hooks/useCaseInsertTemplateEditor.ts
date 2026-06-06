@@ -26,6 +26,7 @@ import {
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
   createUploadedCaseInsertImageSlotImage,
+  createWebArtworkCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotSourceImport'
 import {
   addCaseInsertTextListItem,
@@ -48,6 +49,7 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes'
 import type { SteamArtworkAsset } from '../steam/steamApi'
+import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
 
 type UseCaseInsertTemplateEditorOptions = {
@@ -208,6 +210,27 @@ export function useCaseInsertTemplateEditor({
       announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
     } catch (error) {
       announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
+    }
+  }
+
+  async function handleUseImageSlotWebArtwork(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertPrimaryImageSlotKey,
+    label: string,
+    candidate: RemoteLogoCandidate,
+  ) {
+    const statusLabel = normalizeLabel(label)
+    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
+
+    try {
+      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
+
+      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
+        setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
+    } catch (error) {
+      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
     }
   }
 
@@ -398,6 +421,28 @@ export function useCaseInsertTemplateEditor({
       announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
     } catch (error) {
       announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
+    }
+  }
+
+  async function handleUseGroupedImageSlotWebArtwork(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertImageSlotGroupKey,
+    slotId: string,
+    label: string,
+    candidate: RemoteLogoCandidate,
+  ) {
+    const statusLabel = normalizeLabel(label)
+    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
+
+    try {
+      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
+
+      updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
+        setCaseInsertImageSlotImage(slot, image),
+      )
+      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
+    } catch (error) {
+      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
     }
   }
 
@@ -647,6 +692,7 @@ export function useCaseInsertTemplateEditor({
     handleImageSlotUpload,
     handleUseImageSlotSteamArtwork,
     handleUseImageSlotLocalSteamScreenshot,
+    handleUseImageSlotWebArtwork,
     handleImageSlotEnabledChange,
     handleImageSlotFitChange,
     handleImageSlotLayoutChange,
@@ -659,6 +705,7 @@ export function useCaseInsertTemplateEditor({
     handleGroupedImageSlotUpload,
     handleUseGroupedImageSlotSteamArtwork,
     handleUseGroupedImageSlotLocalSteamScreenshot,
+    handleUseGroupedImageSlotWebArtwork,
     handleGroupedImageSlotFitChange,
     handleGroupedImageSlotLayoutChange,
     handleResetGroupedImageSlotLayout,

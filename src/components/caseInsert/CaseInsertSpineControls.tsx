@@ -336,6 +336,14 @@ function SpineImageSlotControls({
                 slot.label,
                 asset,
               )}
+            onUseWebArtworkCandidate={(candidate) =>
+              actions.handleUseSpineImageSlotWebArtwork(
+                side,
+                slotKey,
+                slot.label,
+                candidate,
+              )}
+            allowWebArtwork={isBackground}
           />
 
           <ImageSlotStatus slot={slot} />

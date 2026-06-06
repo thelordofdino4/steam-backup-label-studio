@@ -4,6 +4,7 @@ import type {
   ProjectTitleArtwork,
 } from '../../../project/projectTypes'
 import type { SteamArtworkAsset } from '../../../steam/steamApi'
+import type { RemoteLogoCandidate } from '../../../steam/steamLogoCandidates'
 import type { ImageCandidatePickerItem } from '../ImageCandidatePicker'
 
 export function formatArtworkKind(kind: SteamArtworkAsset['kind']) {
@@ -76,6 +77,50 @@ export function createLocalSteamScreenshotPickerItems(
       isSelected: selectedArtworkId === asset.id,
     }
   })
+}
+
+export function formatWebArtworkSourceKind(sourceKind: RemoteLogoCandidate['sourceKind']) {
+  switch (sourceKind) {
+    case 'official-img':
+      return 'Official site image'
+    case 'official-srcset':
+      return 'Official srcset'
+    case 'official-css-background':
+      return 'Official CSS image'
+    case 'official-meta-image':
+      return 'Official metadata image'
+    case 'steam-meta-image':
+      return 'Steam metadata image'
+    case 'steam-img':
+      return 'Steam page image'
+    case 'steam-avatar':
+      return 'Steam creator image'
+    case 'favicon':
+      return 'Site icon'
+    default:
+      return sourceKind
+  }
+}
+
+function formatWebArtworkCandidateDimensions(candidate: RemoteLogoCandidate) {
+  return candidate.width && candidate.height
+    ? ` · ${candidate.width} x ${candidate.height}px`
+    : ''
+}
+
+export function createWebArtworkPickerItems(
+  candidates: RemoteLogoCandidate[],
+  selectedArtworkId?: string | null,
+): ImageCandidatePickerItem[] {
+  return candidates.map((candidate) => ({
+    id: candidate.id,
+    title: candidate.label,
+    subtitle: `Source: ${formatWebArtworkSourceKind(candidate.sourceKind)}${formatWebArtworkCandidateDimensions(candidate)}`,
+    details: candidate.reasons.slice(0, 3),
+    imageUrl: candidate.previewUrl ?? candidate.url,
+    imageFit: 'cover',
+    isSelected: selectedArtworkId === candidate.id,
+  }))
 }
 
 export function getNumericInputValue(event: { currentTarget: HTMLInputElement }) {
