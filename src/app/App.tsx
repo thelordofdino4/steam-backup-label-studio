@@ -95,6 +95,7 @@ import {
   getAutoApplyRatingCandidateForMetadata,
 } from '../steam/steamMetadataAutoApply'
 import { loadImage } from '../export/canvasImage'
+import { buildCaseInsertExportPreflightSummary } from '../export/caseInsertExportPreflight'
 import { exportCaseInsertPngBytes } from '../export/exportCaseInsertPng'
 import { exportDiscLabelPngBytes } from '../export/exportPng'
 import { buildExportPreflightSummary } from '../export/exportPreflight'
@@ -1350,6 +1351,23 @@ function App() {
 
         if (!path) {
           announceStatus('Export cancelled.')
+          return
+        }
+
+        const preflight = buildCaseInsertExportPreflightSummary({
+          caseInsert: projectJewelCase,
+          activeTemplatePane: activeCaseInsertTemplatePane,
+          dpi: EXPORT_DPI,
+        })
+        const shouldExport = await confirm(preflight.message, {
+          title: 'Export PNG preflight',
+          kind: preflight.hasWarnings ? 'warning' : 'info',
+          okLabel: 'Export PNG',
+          cancelLabel: 'Cancel',
+        })
+
+        if (!shouldExport) {
+          announceStatus('Export cancelled after preflight.')
           return
         }
 

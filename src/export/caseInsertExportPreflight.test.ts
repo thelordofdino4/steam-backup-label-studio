@@ -1,0 +1,216 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
+import { createDefaultProjectJewelCaseState } from '../project/projectCaseInsert.ts'
+import type {
+  BackgroundImageSize,
+  ProjectCaseInsertImageSlot,
+  ProjectImageAssetProvenance,
+  ProjectJewelCaseState,
+} from '../project/projectTypes.ts'
+import { buildCaseInsertExportPreflightSummary } from './caseInsertExportPreflight.ts'
+
+function createImageSlot(
+  slot: ProjectCaseInsertImageSlot,
+  size: BackgroundImageSize,
+  imageSource: ProjectImageAssetProvenance | null = null,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    enabled: true,
+    imageDataUrl: `data:image/png;base64,${slot.id}`,
+    imageSize: size,
+    imageSource,
+  }
+}
+
+function createBundledSlot(
+  id: string,
+  label: string,
+  sourceId: string,
+): ProjectCaseInsertImageSlot {
+  return createImageSlot(
+    createDefaultCaseInsertImageSlot(id, label, { enabled: true }),
+    { width: 1000, height: 1000 },
+    {
+      source: 'placeholder',
+      sourceId,
+      sourceLabel: `${label} bundled generic`,
+    },
+  )
+}
+
+function createCleanCoverProject(): ProjectJewelCaseState {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+
+  return {
+    ...project,
+    templates: {
+      ...project.templates,
+      cover: {
+        ...project.templates.cover,
+        background: createImageSlot(
+          project.templates.cover.background,
+          { width: 1414, height: 1414 },
+        ),
+      },
+    },
+  }
+}
+
+test('clean cover sheet case preflight has no warnings', () => {
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert: createCleanCoverProject(),
+    activeTemplatePane: 'cover',
+    dpi: 300,
+  })
+
+  assert.equal(summary.hasWarnings, false)
+  assert.deepEqual(summary.warnings, [])
+  assert.match(summary.message, /Template: Cover Sheet/)
+  assert.match(summary.message, /PNG output: 1414 x 1414 px at 300 DPI/)
+  assert.match(summary.message, /Spine regions: Not applicable/)
+})
+
+test('cover sheet preflight warns about guides and blank cover without spine warnings', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      export: {
+        ...project.export,
+        guideIds: ['frontSafeBounds'],
+      },
+    },
+    activeTemplatePane: 'cover',
+    dpi: 300,
+  })
+
+  assert.equal(summary.hasWarnings, true)
+  assert.ok(summary.warnings.includes(
+    'Guide marks are enabled and will appear in the exported PNG.',
+  ))
+  assert.ok(summary.warnings.includes(
+    'Cover Sheet has no background image; uncovered areas will export as blank white.',
+  ))
+  assert.ok(summary.warnings.every((warning) => !/spine/i.test(warning)))
+  assert.match(summary.message, /Continue with export\?/)
+})
+
+test('tray card preflight catches guide, image, text, and spine risks', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const trayLogo = createDefaultCaseInsertImageSlot(
+    'tray-logo-1',
+    'Tray logo',
+    { enabled: true },
+  )
+  const longDescription = Array.from(
+    { length: 18 },
+    (_, index) => `Long description sentence ${index + 1} with print-risk detail.`,
+  ).join(' ')
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        tray: {
+          ...project.templates.tray,
+          background: createImageSlot(
+            project.templates.tray.background,
+            { width: 100, height: 100 },
+          ),
+          logoSlots: [trayLogo],
+          textBlocks: project.templates.tray.textBlocks.map((textBlock) =>
+            textBlock.id === 'tray-description'
+              ? {
+                  ...textBlock,
+                  enabled: true,
+                  value: longDescription,
+                }
+              : textBlock),
+        },
+      },
+      spine: {
+        ...project.spine,
+        left: {
+          ...project.spine.left,
+          title: {
+            ...project.spine.left.title,
+            layout: {
+              ...project.spine.left.title.layout,
+              scale: 0.2,
+            },
+          },
+        },
+      },
+      export: {
+        ...project.export,
+        guideIds: ['leftSpineBounds'],
+      },
+    },
+    activeTemplatePane: 'tray',
+    dpi: 300,
+  })
+
+  assert.equal(summary.hasWarnings, true)
+  assert.ok(summary.warnings.includes(
+    'Guide marks are enabled and will appear in the exported PNG.',
+  ))
+  assert.ok(summary.warnings.some((warning) =>
+    /Tray Card background is 100 x 100px/.test(warning)))
+  assert.ok(summary.warnings.includes(
+    'Tray logo is enabled, but no image is selected; it will not render.',
+  ))
+  assert.ok(summary.warnings.some((warning) =>
+    /Description may overflow its text box/.test(warning)))
+  assert.ok(summary.warnings.some((warning) =>
+    /Left spine title uses 10px spine title text/.test(warning)))
+  assert.match(summary.message, /Spine regions: Included/)
+})
+
+test('case preflight matches disc warnings for bundled generic visual assets', () => {
+  const project = createCleanCoverProject()
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        cover: {
+          ...project.templates.cover,
+          logoSlots: [
+            createBundledSlot('cover-logo-1', 'Developer logo', 'case-logo:developer'),
+          ],
+          markSlots: [
+            createBundledSlot('cover-rating-1', 'ESRB E', 'case-rating:ESRB:E'),
+            createBundledSlot('cover-media-1', 'DVD', 'case-media:dvd:light'),
+            createBundledSlot(
+              'cover-platform-1',
+              'Windows',
+              'case-platform:windows:color',
+            ),
+            createBundledSlot('cover-technical-1', 'Audio', 'case-technical:audio'),
+          ],
+        },
+      },
+    },
+    activeTemplatePane: 'cover',
+    dpi: 300,
+  })
+
+  assert.equal(summary.hasWarnings, true)
+  assert.ok(summary.warnings.includes(
+    'Developer logo uses bundled generic logo artwork.',
+  ))
+  assert.ok(summary.warnings.includes(
+    'ESRB E rating badge uses bundled rating artwork.',
+  ))
+  assert.ok(summary.warnings.includes(
+    'DVD media mark uses bundled generic artwork.',
+  ))
+  assert.ok(summary.warnings.includes(
+    'Windows operating-system mark uses bundled generic artwork.',
+  ))
+  assert.ok(summary.warnings.includes(
+    'Audio technical mark uses bundled generic artwork.',
+  ))
+})
