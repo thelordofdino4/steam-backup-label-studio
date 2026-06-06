@@ -132,11 +132,33 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        kind="rating"
       />
     ),
-    'case-media-marks': <EmptyCaseLayer />,
-    'case-platform-marks': <EmptyCaseLayer />,
-    'case-technical-marks': <EmptyCaseLayer />,
+    'case-media-marks': (
+      <CaseInsertTemplateMarkLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+        kind="media"
+      />
+    ),
+    'case-platform-marks': (
+      <CaseInsertTemplateMarkLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+        kind="platform"
+      />
+    ),
+    'case-technical-marks': (
+      <CaseInsertTemplateMarkLayer
+        paneId={activeTemplatePane}
+        templateState={activeTemplateState}
+        layout={layout}
+        kind="technical"
+      />
+    ),
     'case-text': (
       <CaseInsertTemplateTextLayer
         paneId={activeTemplatePane}

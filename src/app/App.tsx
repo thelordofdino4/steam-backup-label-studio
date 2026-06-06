@@ -1462,6 +1462,14 @@ function App() {
           webArtworkDiscovery,
           onFindWebArtworkCandidates: findWebArtworkCandidates,
         }}
+        brandingSources={{
+          projectMetadata,
+          projectLogoAssets,
+          projectRatingBadge,
+          projectMediaMark,
+          projectPlatformMarks,
+          projectTechnicalMarks,
+        }}
         gamePanelProps={caseInsertGamePanelProps}
         projectStatus={projectStatus}
         statusToasts={statusToasts}

@@ -9,6 +9,9 @@ import {
   updateJewelCaseSpineTitle,
   type JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions'
+import type {
+  CaseInsertBrandingSlotSourceItem,
+} from '../caseInsert/brandingSlotSources'
 import {
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
@@ -297,6 +300,31 @@ export function useJewelCaseSpineEditor({
     announceStatus(`Cleared ${normalizeLabel(label)} image.`)
   }
 
+  async function handleUseSpineBrandingSource(
+    side: JewelCaseSpineSide,
+    source: CaseInsertBrandingSlotSourceItem,
+  ) {
+    announceStatus(`Adding ${source.label} to the ${side} spine...`)
+
+    try {
+      const image = await source.resolveImage()
+
+      updateSpineImageSlot(side, 'logo', (slot) =>
+        setCaseInsertImageSlotImage(
+          {
+            ...slot,
+            label: source.label,
+            fit: 'contain',
+          },
+          image,
+        ),
+      )
+      announceStatus(`Added ${source.label} to the ${side} spine.`)
+    } catch (error) {
+      announceStatus(`Spine branding source failed: ${String(error)}`)
+    }
+  }
+
   return {
     handleSpineTitleEnabledChange,
     handleSpineTitleValueChange,
@@ -313,6 +341,7 @@ export function useJewelCaseSpineEditor({
     handleSpineImageSlotLayoutChange,
     handleResetSpineImageSlotLayout,
     handleClearSpineImageSlot,
+    handleUseSpineBrandingSource,
   }
 }
 

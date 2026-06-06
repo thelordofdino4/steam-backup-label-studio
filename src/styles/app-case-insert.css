@@ -272,6 +272,17 @@
   margin-top: 12px;
 }
 
+.case-insert-branding-source-group {
+  display: grid;
+  gap: 12px;
+}
+
+.case-insert-source-section + .case-insert-source-section {
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+
 .case-insert-file-input {
   display: none;
 }

@@ -2,6 +2,9 @@ import type { CSSProperties } from 'react'
 import type {
   CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
+import {
+  getCaseInsertMarkLayerKind,
+} from '../../caseInsert/brandingSlotSources'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
 import {
   getJewelCaseBackBackgroundFit,
@@ -27,6 +30,12 @@ export type CaseInsertTemplateLayerProps = {
   templateState: ProjectCaseInsertSurfaceState
   layout: CaseInsertPreviewLayout
 }
+
+export type CaseInsertTemplateMarkLayerKind =
+  | 'rating'
+  | 'media'
+  | 'platform'
+  | 'technical'
 
 function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout) {
   return {
@@ -253,18 +262,24 @@ export function CaseInsertTemplateMarkLayer({
   paneId,
   templateState,
   layout,
-}: CaseInsertTemplateLayerProps) {
+  kind,
+}: CaseInsertTemplateLayerProps & {
+  kind: CaseInsertTemplateMarkLayerKind
+}) {
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
-      {templateState.markSlots.map((slot) => (
-        <CaseInsertTemplateImageSlot
-          key={slot.id}
-          paneId={paneId}
-          slot={slot}
-          layout={layout}
-          group="mark"
-        />
-      ))}
+      {templateState.markSlots
+        .filter((slot) =>
+          getCaseInsertMarkLayerKind(slot.imageSource?.sourceId) === kind)
+        .map((slot) => (
+          <CaseInsertTemplateImageSlot
+            key={slot.id}
+            paneId={paneId}
+            slot={slot}
+            layout={layout}
+            group="mark"
+          />
+        ))}
     </div>
   )
 }

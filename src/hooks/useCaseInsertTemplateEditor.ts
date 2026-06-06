@@ -6,6 +6,7 @@ import {
 } from 'react'
 import {
   addCaseInsertTemplateImageSlot,
+  createCaseInsertTemplateImageSlot,
   getCaseInsertImageSlotGroupConfig,
   removeCaseInsertTemplateImageSlot,
   renameCaseInsertTemplateImageSlot,
@@ -16,6 +17,13 @@ import {
   updateProjectCaseInsertTemplate,
   type CaseInsertPrimaryImageSlotKey,
 } from '../caseInsert/templateSurfaceTransitions'
+import type {
+  CaseInsertMarkLayerKind,
+  CaseInsertBrandingSlotSourceItem,
+} from '../caseInsert/brandingSlotSources'
+import {
+  getCaseInsertManualMarkSourceId,
+} from '../caseInsert/brandingSlotSources'
 import {
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
@@ -37,6 +45,7 @@ import {
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListItem,
 } from '../caseInsert/textTransitions'
+import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
@@ -98,6 +107,21 @@ function getGroupDefaultLayout(
     rotation: 0,
     ...getCaseInsertImageSlotGroupConfig(paneId, slotKey).defaultLayout,
   }
+}
+
+function getNextGroupedSlotIndex(
+  paneId: CaseInsertTemplatePaneId,
+  slotKey: CaseInsertImageSlotGroupKey,
+  slots: Array<{ id: string }>,
+) {
+  const config = getCaseInsertImageSlotGroupConfig(paneId, slotKey)
+  let index = slots.length + 1
+
+  while (slots.some(({ id }) => id === `${config.idPrefix}-${index}`)) {
+    index += 1
+  }
+
+  return index
 }
 
 export function useCaseInsertTemplateEditor({
@@ -323,6 +347,51 @@ export function useCaseInsertTemplateEditor({
     announceStatus(`Removed ${label} slot.`)
   }
 
+  function handleAddBrandingMarkSlot(
+    paneId: CaseInsertTemplatePaneId,
+    kind: CaseInsertMarkLayerKind,
+  ) {
+    const kindLabel = kind === 'platform'
+      ? 'operating-system'
+      : kind
+
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(
+        currentCaseInsert,
+        paneId,
+        (templateState) => {
+          const index = getNextGroupedSlotIndex(
+            paneId,
+            'markSlots',
+            templateState.markSlots,
+          )
+          const slot = createCaseInsertTemplateImageSlot(
+            paneId,
+            'markSlots',
+            index,
+          )
+
+          return {
+            ...templateState,
+            markSlots: [
+              ...templateState.markSlots,
+              {
+                ...slot,
+                label: `${kindLabel} mark ${index}`,
+                imageSource: createProjectImageAssetProvenance({
+                  source: 'placeholder',
+                  sourceId: getCaseInsertManualMarkSourceId(kind, slot.id),
+                  sourceLabel: `${kindLabel} mark`,
+                }),
+              },
+            ],
+          }
+        },
+      ),
+    )
+    announceStatus(`Added ${kindLabel} mark slot.`)
+  }
+
   function handleGroupedImageSlotEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertImageSlotGroupKey,
@@ -493,6 +562,62 @@ export function useCaseInsertTemplateEditor({
       imageSource: null,
     }))
     announceStatus(`Cleared ${normalizeLabel(label)} image.`)
+  }
+
+  async function handleUseBrandingSlotSource(
+    paneId: CaseInsertTemplatePaneId,
+    source: CaseInsertBrandingSlotSourceItem,
+  ) {
+    announceStatus(`Adding ${source.label} to case branding...`)
+
+    try {
+      const image = await source.resolveImage()
+
+      setProjectJewelCase((currentCaseInsert) =>
+        updateProjectCaseInsertTemplate(
+          currentCaseInsert,
+          paneId,
+          (templateState) => {
+            const slots = templateState[source.slotKey]
+            const existingIndex = slots.findIndex(
+              (slot) => slot.imageSource?.sourceId === source.sourceId,
+            )
+            const baseSlot = existingIndex >= 0
+              ? slots[existingIndex]
+              : createCaseInsertTemplateImageSlot(
+                  paneId,
+                  source.slotKey,
+                  getNextGroupedSlotIndex(paneId, source.slotKey, slots),
+                )
+
+            if (!baseSlot) {
+              return templateState
+            }
+
+            const updatedSlot = setCaseInsertImageSlotImage(
+              {
+                ...baseSlot,
+                label: source.label,
+                fit: 'contain',
+              },
+              image,
+            )
+            const nextSlots = existingIndex >= 0
+              ? slots.map((slot, index) =>
+                  index === existingIndex ? updatedSlot : slot)
+              : [...slots, updatedSlot]
+
+            return {
+              ...templateState,
+              [source.slotKey]: nextSlots,
+            }
+          },
+        ),
+      )
+      announceStatus(`Added ${source.label} to case branding.`)
+    } catch (error) {
+      announceStatus(`Case branding source failed: ${String(error)}`)
+    }
   }
 
   function handleTextBlockEnabledChange(
@@ -699,6 +824,7 @@ export function useCaseInsertTemplateEditor({
     handleResetImageSlotLayout,
     handleClearImageSlot,
     handleAddGroupedImageSlot,
+    handleAddBrandingMarkSlot,
     handleRemoveGroupedImageSlot,
     handleGroupedImageSlotEnabledChange,
     handleGroupedImageSlotLabelChange,
@@ -710,6 +836,7 @@ export function useCaseInsertTemplateEditor({
     handleGroupedImageSlotLayoutChange,
     handleResetGroupedImageSlotLayout,
     handleClearGroupedImageSlot,
+    handleUseBrandingSlotSource,
     handleTextBlockEnabledChange,
     handleTextBlockValueChange,
     handleTextBlockAlignChange,

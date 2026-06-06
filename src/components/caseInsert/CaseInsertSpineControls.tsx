@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type {
   JewelCaseSpineImageSlotKey,
 } from '../../caseInsert/jewelCaseTransitions'
+import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
 import type { JewelCaseSpineSide } from '../../caseInsert/types'
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
@@ -18,11 +19,13 @@ import {
   CaseInsertImageSourceControls,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
+import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
 
 export type CaseInsertSpineControlsProps = {
   spine: ProjectJewelCaseSpineState
   actions: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
+  brandingSources: CaseInsertBrandingSourceCatalog
 }
 
 const SPINE_SIDES: Array<{
@@ -513,6 +516,7 @@ export function CaseInsertSpineBrandingControls({
   spine,
   actions,
   imageSources,
+  brandingSources,
 }: CaseInsertSpineControlsProps) {
   return (
     <>
@@ -521,6 +525,12 @@ export function CaseInsertSpineBrandingControls({
 
         return (
           <SpineSideSection key={side} label={label}>
+            <CaseInsertBrandingSourceControls
+              brandingSources={brandingSources}
+              allowedSlotKeys={['logoSlots']}
+              onUseSource={(source) =>
+                actions.handleUseSpineBrandingSource(side, source)}
+            />
             <SpineImageSlotControls
               side={side}
               slotKey="steamBackupBranding"

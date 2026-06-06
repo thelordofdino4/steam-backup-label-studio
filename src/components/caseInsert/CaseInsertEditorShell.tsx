@@ -13,6 +13,7 @@ import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
+import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
 import {
   CaseInsertTemplateArtworkControls,
   CaseInsertTemplateBrandingControls,
@@ -33,6 +34,7 @@ export type CaseInsertEditorShellProps = {
   editor: CaseInsertTemplateEditorActions
   spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
+  brandingSources: CaseInsertBrandingSourceCatalog
   gamePanelProps: GamePanelProps
   projectStatus: string
   statusToasts: PreviewToast[]
@@ -84,6 +86,7 @@ function CaseInsertProjectPanel({
   | 'editor'
   | 'spineEditor'
   | 'imageSources'
+  | 'brandingSources'
   | 'gamePanelProps'
   | 'statusToasts'
   | 'onActiveTemplatePaneChange'
@@ -241,6 +244,7 @@ export function CaseInsertEditorShell({
   editor,
   spineEditor,
   imageSources,
+  brandingSources,
   gamePanelProps,
   projectStatus,
   statusToasts,
@@ -301,6 +305,7 @@ export function CaseInsertEditorShell({
             templateState={activeTemplateState}
             actions={editor}
             imageSources={imageSources}
+            brandingSources={brandingSources}
           />
         </CaseInsertWorkflowPanel>
 
@@ -310,6 +315,7 @@ export function CaseInsertEditorShell({
               spine={caseInsert.spine}
               actions={spineEditor}
               imageSources={imageSources}
+              brandingSources={brandingSources}
             />
           </CaseInsertWorkflowPanel>
         ) : null}
@@ -320,6 +326,7 @@ export function CaseInsertEditorShell({
             templateState={activeTemplateState}
             actions={editor}
             imageSources={imageSources}
+            brandingSources={brandingSources}
           />
         </CaseInsertWorkflowPanel>
 
@@ -329,6 +336,7 @@ export function CaseInsertEditorShell({
               spine={caseInsert.spine}
               actions={spineEditor}
               imageSources={imageSources}
+              brandingSources={brandingSources}
             />
           </CaseInsertWorkflowPanel>
         ) : null}
@@ -339,6 +347,7 @@ export function CaseInsertEditorShell({
             templateState={activeTemplateState}
             actions={editor}
             imageSources={imageSources}
+            brandingSources={brandingSources}
           />
         </CaseInsertWorkflowPanel>
 
@@ -348,6 +357,7 @@ export function CaseInsertEditorShell({
               spine={caseInsert.spine}
               actions={spineEditor}
               imageSources={imageSources}
+              brandingSources={brandingSources}
             />
           </CaseInsertWorkflowPanel>
         ) : null}

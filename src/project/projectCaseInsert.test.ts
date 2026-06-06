@@ -5,6 +5,10 @@ import {
   createCaseInsertImageSlotImageFromImportedAsset,
 } from '../caseInsert/imageSlotSourceImport.ts'
 import {
+  createCaseInsertBrandingSourceSections,
+  getCaseInsertMarkLayerKind,
+} from '../caseInsert/brandingSlotSources.ts'
+import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   addCaseInsertTemplateImageSlot,
   addCaseInsertTextListItem,
@@ -33,6 +37,12 @@ import {
   restoreCaseInsertProjectStateFromContents,
 } from './projectCaseInsert.ts'
 import { createProjectImageAssetProvenance } from './projectAssetStatus.ts'
+import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
+import { createDefaultProjectMediaMark } from './projectMediaMark.ts'
+import { createDefaultProjectMetadata } from './projectMetadata.ts'
+import { createDefaultProjectPlatformMarks } from './projectPlatformMarks.ts'
+import { createDefaultProjectRatingBadge } from './projectRatingBadge.ts'
+import { createDefaultProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import { resolveSavedProjectRoute } from './projectRouting.ts'
 import { restoreProjectStateFromContents } from './restoreProjectState.ts'
 
@@ -588,6 +598,42 @@ test('template helpers add, update, preserve, and remove logo and mark slots', (
   assert.equal(state.templates.cover.markSlots.length, 1)
   assert.equal(state.templates.tray.logoSlots.length, 1)
   assert.equal(state.templates.tray.markSlots.length, 1)
+})
+
+test('case branding source catalog exposes shared mark and logo sources', () => {
+  const sections = createCaseInsertBrandingSourceSections({
+    projectMetadata: {
+      ...createDefaultProjectMetadata(),
+      ratingSystem: 'ESRB',
+      ratingValue: 'M',
+    },
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    projectMediaMark: createDefaultProjectMediaMark(),
+    projectPlatformMarks: createDefaultProjectPlatformMarks(),
+    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
+  })
+  const logos = sections.find((section) => section.id === 'logos')
+  const rating = sections.find((section) => section.id === 'rating')
+  const media = sections.find((section) => section.id === 'media')
+  const platform = sections.find((section) => section.id === 'platform')
+  const technical = sections.find((section) => section.id === 'technical')
+
+  assert.ok(logos?.items.some((item) => item.sourceId === 'case-logo:developer'))
+  assert.ok(logos?.items.some((item) => item.sourceId === 'case-logo:publisher'))
+  assert.equal(rating?.items[0]?.sourceId, 'case-rating:ESRB:M')
+  assert.ok(media?.items.some((item) =>
+    item.sourceId === 'case-media:dataDisc:light'))
+  assert.ok(platform?.items.some((item) =>
+    item.sourceId === 'case-platform:windows:windows11'))
+  assert.ok(technical?.items.some((item) =>
+    item.sourceId === 'case-technical:audio'))
+
+  assert.equal(getCaseInsertMarkLayerKind('case-rating:ESRB:M'), 'rating')
+  assert.equal(getCaseInsertMarkLayerKind('case-media:dataDisc:light'), 'media')
+  assert.equal(getCaseInsertMarkLayerKind('case-platform:windows:windows11'), 'platform')
+  assert.equal(getCaseInsertMarkLayerKind('case-technical:audio'), 'technical')
+  assert.equal(getCaseInsertMarkLayerKind(null), 'rating')
 })
 
 test('feature bullet helpers edit items without replacing feature state', () => {

@@ -1,9 +1,15 @@
+import type { ReactNode } from 'react'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
 import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
+import {
+  getCaseInsertMarkLayerKind,
+  type CaseInsertBrandingSourceCatalog,
+  type CaseInsertMarkLayerKind,
+} from '../../caseInsert/brandingSlotSources'
 import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
@@ -18,12 +24,14 @@ import {
   CaseInsertImageSourceControls,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
+import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
 
 export type CaseInsertTemplateControlsProps = {
   paneId: CaseInsertTemplatePaneId
   templateState: ProjectCaseInsertSurfaceState
   actions: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
+  brandingSources: CaseInsertBrandingSourceCatalog
 }
 
 const IMAGE_FIT_OPTIONS: Array<{
@@ -55,6 +63,43 @@ const TRAY_POSITION_PRESETS = [
   { label: 'Bottom center', x: 50, y: 88 },
   { label: 'Bottom right', x: 82, y: 88 },
 ] as const
+
+const CASE_INSERT_MARK_BRANDING_SECTIONS: Array<{
+  title: string
+  emptyHint: string
+  addLabel: string
+  markKind: CaseInsertMarkLayerKind
+  sourceSectionIds: readonly string[]
+}> = [
+  {
+    title: 'Rating badge',
+    emptyHint: 'No rating badges.',
+    addLabel: 'Add rating badge',
+    markKind: 'rating',
+    sourceSectionIds: ['rating'],
+  },
+  {
+    title: 'Media format mark',
+    emptyHint: 'No media format marks.',
+    addLabel: 'Add media format mark',
+    markKind: 'media',
+    sourceSectionIds: ['media'],
+  },
+  {
+    title: 'Operating system marks',
+    emptyHint: 'No operating system marks.',
+    addLabel: 'Add operating system mark',
+    markKind: 'platform',
+    sourceSectionIds: ['platform'],
+  },
+  {
+    title: 'Technical marks',
+    emptyHint: 'No technical marks.',
+    addLabel: 'Add technical mark',
+    markKind: 'technical',
+    sourceSectionIds: ['technical'],
+  },
+]
 
 function formatImageSize(size: ProjectCaseInsertImageSlot['imageSize']) {
   return size ? ` · ${size.width} x ${size.height}px` : ''
@@ -609,49 +654,65 @@ function GroupedImageSlotControls({
   )
 }
 
-function GroupedImageSlotSection({
-  paneId,
-  title,
-  emptyHint,
-  addLabel,
-  slotKey,
-  slots,
-  imageSources,
-  actions,
-}: {
+type GroupedImageSlotListProps = {
   paneId: CaseInsertTemplatePaneId
-  title: string
   emptyHint: string
   addLabel: string
   slotKey: CaseInsertImageSlotGroupKey
   slots: ProjectCaseInsertImageSlot[]
   imageSources: CaseInsertImageSourceCatalog
   actions: CaseInsertTemplateEditorActions
+  onAddSlot?: () => void
+}
+
+function GroupedImageSlotList({
+  paneId,
+  emptyHint,
+  addLabel,
+  slotKey,
+  slots,
+  imageSources,
+  actions,
+  onAddSlot,
+}: GroupedImageSlotListProps) {
+  return (
+    <>
+      {slots.length === 0 ? <p className="hint">{emptyHint}</p> : null}
+      {slots.map((slot, index) => (
+        <GroupedImageSlotControls
+          key={slot.id}
+          paneId={paneId}
+          slotKey={slotKey}
+          slot={slot}
+          uploadId={`${paneId}-${slotKey}-${slot.id}-${index + 1}-upload`}
+          imageSources={imageSources}
+          actions={actions}
+        />
+      ))}
+      <button
+        className="secondary-button icon-text-button spacing-top"
+        type="button"
+        onClick={onAddSlot ?? (() =>
+          actions.handleAddGroupedImageSlot(paneId, slotKey))}
+      >
+        <PlusIcon />
+        <span>{addLabel}</span>
+      </button>
+    </>
+  )
+}
+
+function GroupedImageSlotSection({
+  title,
+  ...slotListProps
+}: GroupedImageSlotListProps & {
+  title: string
 }) {
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">{title}</summary>
       <div className="panel-content">
-        {slots.length === 0 ? <p className="hint">{emptyHint}</p> : null}
-        {slots.map((slot, index) => (
-          <GroupedImageSlotControls
-            key={slot.id}
-            paneId={paneId}
-            slotKey={slotKey}
-            slot={slot}
-            uploadId={`${paneId}-${slotKey}-${index + 1}-upload`}
-            imageSources={imageSources}
-            actions={actions}
-          />
-        ))}
-        <button
-          className="secondary-button icon-text-button spacing-top"
-          type="button"
-          onClick={() => actions.handleAddGroupedImageSlot(paneId, slotKey)}
-        >
-          <PlusIcon />
-          <span>{addLabel}</span>
-        </button>
+        <GroupedImageSlotList {...slotListProps} />
       </div>
     </details>
   )
@@ -954,35 +1015,80 @@ export function CaseInsertTemplateArtworkControls({
   )
 }
 
+function CaseInsertBrandingFeatureSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">{title}</summary>
+      <div className="panel-content">{children}</div>
+    </details>
+  )
+}
+
 export function CaseInsertTemplateBrandingControls({
   paneId,
   templateState,
   actions,
   imageSources,
+  brandingSources,
 }: CaseInsertTemplateControlsProps) {
   return (
     <>
-      <GroupedImageSlotSection
-        paneId={paneId}
-        title="Logos"
-        emptyHint="No logos."
-        addLabel="Add logo"
-        slotKey="logoSlots"
-        slots={templateState.logoSlots}
-        imageSources={imageSources}
-        actions={actions}
-      />
+      <CaseInsertBrandingFeatureSection title="Developer / publisher logos">
+        <CaseInsertBrandingSourceControls
+          brandingSources={brandingSources}
+          sectionIds={['logos']}
+          showSectionTitles={false}
+          onUseSource={(source) =>
+            actions.handleUseBrandingSlotSource(paneId, source)}
+        />
+        <GroupedImageSlotList
+          paneId={paneId}
+          emptyHint="No logos."
+          addLabel="Add logo"
+          slotKey="logoSlots"
+          slots={templateState.logoSlots}
+          imageSources={imageSources}
+          actions={actions}
+        />
+      </CaseInsertBrandingFeatureSection>
 
-      <GroupedImageSlotSection
-        paneId={paneId}
-        title="Marks"
-        emptyHint="No marks."
-        addLabel="Add mark"
-        slotKey="markSlots"
-        slots={templateState.markSlots}
-        imageSources={imageSources}
-        actions={actions}
-      />
+      {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {
+        const visibleMarkSlots = templateState.markSlots.filter((slot) =>
+          getCaseInsertMarkLayerKind(slot.imageSource?.sourceId) ===
+            section.markKind)
+
+        return (
+          <CaseInsertBrandingFeatureSection
+            key={section.markKind}
+            title={section.title}
+          >
+            <CaseInsertBrandingSourceControls
+              brandingSources={brandingSources}
+              sectionIds={section.sourceSectionIds}
+              showSectionTitles={false}
+              onUseSource={(source) =>
+                actions.handleUseBrandingSlotSource(paneId, source)}
+            />
+            <GroupedImageSlotList
+              paneId={paneId}
+              emptyHint={section.emptyHint}
+              addLabel={section.addLabel}
+              slotKey="markSlots"
+              slots={visibleMarkSlots}
+              imageSources={imageSources}
+              actions={actions}
+              onAddSlot={() =>
+                actions.handleAddBrandingMarkSlot(paneId, section.markKind)}
+            />
+          </CaseInsertBrandingFeatureSection>
+        )
+      })}
     </>
   )
 }
