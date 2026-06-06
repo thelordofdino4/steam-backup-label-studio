@@ -6,7 +6,13 @@ import {
   type CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
 import {
+  countSelectedCaseInsertExportGuideOptions,
+  getCaseInsertExportGuideOptions,
+  isCaseInsertExportGuideOptionSelected,
+} from '../../caseInsert/exportGuideOptions'
+import {
   getCaseInsertTemplate,
+  type JewelCaseGuideId,
 } from '../../templates/caseInsertTemplates'
 import { getTemplateSurfaceExportPixelSize } from '../../templates/templateModel'
 import type { PreviewToast } from '../preview/PreviewToastStack'
@@ -44,6 +50,10 @@ export type CaseInsertEditorShellProps = {
   onSaveProject: () => void
   onLoadProject: () => void
   onExportPng: () => void
+  onExportGuideToggle: (
+    guideIds: readonly JewelCaseGuideId[],
+    checked: boolean,
+  ) => void
   onActiveTemplatePaneChange: (paneId: CaseInsertTemplatePaneId) => void
 }
 
@@ -90,6 +100,7 @@ function CaseInsertProjectPanel({
   | 'gamePanelProps'
   | 'statusToasts'
   | 'onActiveTemplatePaneChange'
+  | 'onExportGuideToggle'
 >) {
   return (
     <details className="panel collapsible-panel">
@@ -121,18 +132,53 @@ function CaseInsertProjectPanel({
   )
 }
 
-function CaseInsertSidebarNotePanel({
-  title,
-  children,
+function CaseInsertExportOptionsPanel({
+  caseInsert,
+  activeTemplatePane,
+  onExportGuideToggle,
 }: {
-  title: string
-  children: ReactNode
+  caseInsert: ProjectJewelCaseState
+  activeTemplatePane: CaseInsertTemplatePaneId
+  onExportGuideToggle: (
+    guideIds: readonly JewelCaseGuideId[],
+    checked: boolean,
+  ) => void
 }) {
+  const selectedGuideIds = new Set(caseInsert.export.guideIds)
+  const guideOptions = getCaseInsertExportGuideOptions(
+    caseInsert.templateType,
+    activeTemplatePane,
+  )
+  const enabledGuideCount = countSelectedCaseInsertExportGuideOptions(
+    guideOptions,
+    caseInsert.export.guideIds,
+  )
+
   return (
     <details className="panel collapsible-panel">
-      <summary className="panel-summary">{title}</summary>
+      <summary className="panel-summary">Export Options</summary>
       <div className="panel-content">
-        <p className="hint">{children}</p>
+        <p className="hint">
+          {enabledGuideCount > 0
+            ? `${enabledGuideCount} guide ${enabledGuideCount === 1 ? 'option is' : 'options are'} on.`
+            : 'Export guides are off.'}
+        </p>
+        <div className="disc-mark-checkbox-list">
+          {guideOptions.map((option) => (
+            <label className="checkbox-row" key={option.id}>
+              <input
+                type="checkbox"
+                checked={isCaseInsertExportGuideOptionSelected(
+                  option,
+                  selectedGuideIds,
+                )}
+                onChange={(event) =>
+                  onExportGuideToggle(option.guideIds, event.target.checked)}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
       </div>
     </details>
   )
@@ -254,6 +300,7 @@ export function CaseInsertEditorShell({
   onSaveProject,
   onLoadProject,
   onExportPng,
+  onExportGuideToggle,
   onActiveTemplatePaneChange,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
@@ -287,9 +334,11 @@ export function CaseInsertEditorShell({
           onExportPng={onExportPng}
         />
 
-        <CaseInsertSidebarNotePanel title="Export Options">
-          Case export options will use the jewel case guide model.
-        </CaseInsertSidebarNotePanel>
+        <CaseInsertExportOptionsPanel
+          caseInsert={caseInsert}
+          activeTemplatePane={activeTemplatePane}
+          onExportGuideToggle={onExportGuideToggle}
+        />
 
         <GamePanel {...gamePanelProps} />
 

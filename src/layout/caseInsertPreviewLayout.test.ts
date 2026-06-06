@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   CASE_INSERT_EDITOR_LAYER_LABELS,
+  CASE_INSERT_EDITOR_EXPORT_LAYER_ORDER,
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
 } from '../editor/layerOrder.ts'
 import {
@@ -16,8 +17,13 @@ import {
   JEWEL_CASE_SPINE_WIDTH_PX,
 } from '../templates/caseInsertTemplates.ts'
 import {
+  createJewelCaseFullInsertExportLayout,
   createJewelCasePreviewLayout,
+  JEWEL_CASE_FULL_INSERT_EXPORT_GAP_PX,
 } from './caseInsertPreviewLayout.ts'
+import {
+  createCaseInsertPngExportLayout,
+} from '../caseInsert/exportLayout.ts'
 import {
   getJewelCaseFrontBackgroundFit,
   getJewelCaseFrontImageSlotPreviewRect,
@@ -112,6 +118,71 @@ test('case preview layer order has labels for every preview layer', () => {
   for (const layerId of CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER) {
     assert.equal(typeof CASE_INSERT_EDITOR_LAYER_LABELS[layerId], 'string')
   }
+})
+
+test('case export layer order has labels for every export layer', () => {
+  for (const layerId of CASE_INSERT_EDITOR_EXPORT_LAYER_ORDER) {
+    assert.equal(typeof CASE_INSERT_EDITOR_LAYER_LABELS[layerId], 'string')
+  }
+})
+
+test('full insert export layout includes front sheet and tray card with spines', () => {
+  const layout = createJewelCaseFullInsertExportLayout('jewelCase')
+  const front = layout.surfaces.find(({ surfaceId }) => surfaceId === 'front')
+  const back = layout.surfaces.find(({ surfaceId }) => surfaceId === 'back')
+  const leftSpine = layout.regions.find(({ regionId }) => regionId === 'leftSpine')
+  const rightSpine = layout.regions.find(({ regionId }) => regionId === 'rightSpine')
+
+  assert.equal(
+    layout.width,
+    JEWEL_CASE_FRONT_SURFACE_WIDTH_PX +
+      JEWEL_CASE_FULL_INSERT_EXPORT_GAP_PX +
+      JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
+  )
+  assert.equal(layout.height, JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX)
+  assert.deepEqual(front?.bounds, {
+    x: 0,
+    y: 0,
+    width: JEWEL_CASE_FRONT_SURFACE_WIDTH_PX,
+    height: JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX,
+  })
+  assert.deepEqual(back?.bounds, {
+    x: JEWEL_CASE_FRONT_SURFACE_WIDTH_PX +
+      JEWEL_CASE_FULL_INSERT_EXPORT_GAP_PX,
+    y: Math.round(
+      (JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX -
+        JEWEL_CASE_BACK_SURFACE_HEIGHT_PX) / 2,
+    ),
+    width: JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
+  })
+  assert.equal(leftSpine?.bounds.x, back?.bounds.x)
+  assert.equal(rightSpine?.bounds.x, (back?.bounds.x ?? 0) +
+    JEWEL_CASE_SPINE_WIDTH_PX +
+    JEWEL_CASE_BACK_PANEL_WIDTH_PX)
+})
+
+test('case insert PNG export layout matches the active template preview surface', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverLayout = createCaseInsertPngExportLayout(state, 'cover')
+  const trayLayout = createCaseInsertPngExportLayout(state, 'tray')
+
+  assert.equal(coverLayout.width, JEWEL_CASE_FRONT_SURFACE_WIDTH_PX)
+  assert.equal(coverLayout.height, JEWEL_CASE_FRONT_SURFACE_HEIGHT_PX)
+  assert.deepEqual(
+    coverLayout.surfaces.map(({ surfaceId }) => surfaceId),
+    ['front'],
+  )
+  assert.equal(coverLayout.regions.some(({ surfaceId }) => surfaceId === 'back'), false)
+
+  assert.equal(trayLayout.width, JEWEL_CASE_BACK_SURFACE_WIDTH_PX)
+  assert.equal(trayLayout.height, JEWEL_CASE_BACK_SURFACE_HEIGHT_PX)
+  assert.deepEqual(
+    trayLayout.surfaces.map(({ surfaceId }) => surfaceId),
+    ['back'],
+  )
+  assert.equal(trayLayout.gap, 0)
+  assert.equal(trayLayout.regions.some(({ surfaceId }) => surfaceId === 'front'), false)
 })
 
 test('case template panes expose whether spine controls are available', () => {

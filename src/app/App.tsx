@@ -18,7 +18,11 @@ import {
 } from '../steam/steamGameImport'
 import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
 import { discTemplates, discTemplateOptions } from '../templates/discTemplates'
-import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces'
+import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
+import {
+  getCaseInsertTemplatePaneConfig,
+  type CaseInsertTemplatePaneId,
+} from '../caseInsert/templateSurfaces'
 import type { DiscTemplate } from '../types/template'
 import {
   CUSTOM_OUTER_DIAMETER_MAX_MM,
@@ -72,6 +76,7 @@ import {
   createCaseInsertProjectSnapshot,
   createDefaultProjectJewelCaseState,
   restoreCaseInsertProjectStateFromContents,
+  setProjectJewelCaseExportGuideIds,
 } from '../project/projectCaseInsert'
 import {
   updateRatingBadgeEnabledState,
@@ -90,6 +95,7 @@ import {
   getAutoApplyRatingCandidateForMetadata,
 } from '../steam/steamMetadataAutoApply'
 import { loadImage } from '../export/canvasImage'
+import { exportCaseInsertPngBytes } from '../export/exportCaseInsertPng'
 import { exportDiscLabelPngBytes } from '../export/exportPng'
 import { buildExportPreflightSummary } from '../export/exportPreflight'
 import { getNaturalImageSize } from '../utils/imageFile'
@@ -572,6 +578,28 @@ function App() {
     setExportGuides((currentGuides) =>
       setExportGuideSelection(currentGuides, guide, checked),
     )
+  }
+
+  function handleCaseInsertExportGuideToggle(
+    guideIds: readonly JewelCaseGuideId[],
+    checked: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) => {
+      const nextGuideIds = new Set(currentCaseInsert.export.guideIds)
+
+      for (const guideId of guideIds) {
+        if (checked) {
+          nextGuideIds.add(guideId)
+        } else {
+          nextGuideIds.delete(guideId)
+        }
+      }
+
+      return setProjectJewelCaseExportGuideIds(
+        currentCaseInsert,
+        Array.from(nextGuideIds),
+      )
+    })
   }
 
   function handleProjectMetadataFieldsChange(fields: Partial<ProjectMetadata>) {
@@ -1304,7 +1332,41 @@ function App() {
 
   async function handleExportPng() {
     if (activeWorkspace === 'caseInsert') {
-      announceStatus('Case insert PNG export is planned for the export pass.')
+      try {
+        const activePaneLabel =
+          getCaseInsertTemplatePaneConfig(activeCaseInsertTemplatePane).label
+        const activePaneFileSlug = activeCaseInsertTemplatePane === 'tray'
+          ? 'tray-card'
+          : 'cover-sheet'
+        const path = await save({
+          defaultPath: `steam-backup-${activePaneFileSlug}.png`,
+          filters: [
+            {
+              name: 'PNG Image',
+              extensions: ['png'],
+            },
+          ],
+        })
+
+        if (!path) {
+          announceStatus('Export cancelled.')
+          return
+        }
+
+        const result = await exportCaseInsertPngBytes({
+          caseInsert: projectJewelCase,
+          activeTemplatePane: activeCaseInsertTemplatePane,
+          dpi: EXPORT_DPI,
+        })
+
+        await writeBinaryFile(path, result.bytes)
+
+        announceStatus(
+          `Exported ${activePaneLabel} ${result.width} × ${result.height}px PNG at ${result.dpi} DPI.`,
+        )
+      } catch (error) {
+        announceStatus(`Export failed: ${String(error)}`)
+      }
       return
     }
 
@@ -1479,6 +1541,7 @@ function App() {
         onSaveProject={handleSaveProject}
         onLoadProject={handleLoadProject}
         onExportPng={handleExportPng}
+        onExportGuideToggle={handleCaseInsertExportGuideToggle}
         onActiveTemplatePaneChange={setActiveCaseInsertTemplatePane}
       />
     )

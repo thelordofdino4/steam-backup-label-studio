@@ -86,7 +86,7 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.spine.right.title.layout.rotation, 90)
   assert.equal(project.caseInsert.spine.left.steamBackupBranding.enabled, false)
   assert.deepEqual(project.caseInsert.export.surfaces, ['front', 'back'])
-  assert.equal(project.caseInsert.export.guideIds.includes('leftSpineFold'), true)
+  assert.deepEqual(project.caseInsert.export.guideIds, [])
   assert.deepEqual(resolveSavedProjectRoute(project), {
     projectType: 'caseInsert',
     workspace: 'caseInsert',

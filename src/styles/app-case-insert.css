@@ -30,33 +30,25 @@
 }
 
 .case-insert-surface {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.18)),
-    #e8e3d8;
+  background: #ffffff;
   border: 1px solid rgba(15, 23, 42, 0.42);
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
 }
 
 .case-insert-region-fill {
-  border: 1px solid rgba(15, 23, 42, 0.12);
+  border: 0;
 }
 
 .case-insert-region-fill-front {
-  background:
-    linear-gradient(135deg, rgba(96, 165, 250, 0.18), rgba(244, 244, 245, 0.16)),
-    rgba(248, 250, 252, 0.2);
+  background: transparent;
 }
 
 .case-insert-region-fill-printable {
-  background:
-    linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(255, 255, 255, 0.08)),
-    rgba(226, 232, 240, 0.18);
+  background: transparent;
 }
 
 .case-insert-region-fill-spine {
-  background:
-    linear-gradient(90deg, rgba(15, 23, 42, 0.18), rgba(255, 255, 255, 0.14)),
-    rgba(148, 163, 184, 0.24);
+  background: transparent;
 }
 
 .case-insert-guide-layer {

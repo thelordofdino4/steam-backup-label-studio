@@ -38,6 +38,7 @@ export const JEWEL_CASE_GUIDE_IDS = jewelCaseInsertTemplate.guides.map(
 export const DEFAULT_JEWEL_CASE_GUIDE_IDS = jewelCaseInsertTemplate.guides
   .filter(({ visibleByDefault }) => visibleByDefault)
   .map(({ id }) => id as JewelCaseGuideId)
+export const DEFAULT_JEWEL_CASE_EXPORT_GUIDE_IDS: JewelCaseGuideId[] = []
 
 export function createDefaultCaseInsertLayout(
   layout: Partial<ProjectCaseInsertLayout> = {},
@@ -294,7 +295,7 @@ export function createDefaultProjectJewelCaseState(
     spine: createDefaultJewelCaseSpineState(title),
     export: {
       surfaces: [...DEFAULT_CASE_INSERT_SURFACES],
-      guideIds: [...DEFAULT_JEWEL_CASE_GUIDE_IDS],
+      guideIds: [...DEFAULT_JEWEL_CASE_EXPORT_GUIDE_IDS],
     },
   }
 }

@@ -31,7 +31,7 @@ import type {
 } from '../templates/caseInsertTemplates.ts'
 import {
   DEFAULT_CASE_INSERT_SURFACES,
-  DEFAULT_JEWEL_CASE_GUIDE_IDS,
+  DEFAULT_JEWEL_CASE_EXPORT_GUIDE_IDS,
   JEWEL_CASE_GUIDE_IDS,
   createDefaultCaseInsertImageSlot,
   createDefaultCaseInsertTextBlock,
@@ -499,7 +499,7 @@ export function normalizeJewelCaseGuideIds(value: unknown): JewelCaseGuideId[] {
     return Array.from(new Set(guideIds.filter(isJewelCaseGuideId)))
   }
 
-  return [...DEFAULT_JEWEL_CASE_GUIDE_IDS]
+  return [...DEFAULT_JEWEL_CASE_EXPORT_GUIDE_IDS]
 }
 
 function normalizeJewelCaseExportSettings(
@@ -510,7 +510,7 @@ function normalizeJewelCaseExportSettings(
   if (!record) {
     return {
       surfaces: [...DEFAULT_CASE_INSERT_SURFACES],
-      guideIds: [...DEFAULT_JEWEL_CASE_GUIDE_IDS],
+      guideIds: [...DEFAULT_JEWEL_CASE_EXPORT_GUIDE_IDS],
     }
   }
 
