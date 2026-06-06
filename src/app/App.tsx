@@ -79,6 +79,10 @@ import {
   setProjectJewelCaseExportGuideIds,
 } from '../project/projectCaseInsert'
 import {
+  applyCaseInsertBackCoverLegalText,
+  applySteamBackCoverImportToCaseInsert,
+} from '../caseInsert/steamBackCoverImport'
+import {
   updateRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
@@ -114,6 +118,7 @@ type SteamMetadataApplyOptions = {
 
 type SteamImportOptions = {
   applyDiscVisualDefaults?: boolean
+  applyCaseInsertBackCoverDefaults?: boolean
 }
 
 function App() {
@@ -812,7 +817,12 @@ function App() {
   function handleApplyCaseInsertLegalCandidate(candidate: LegalTextCandidate) {
     applyLegalCandidateToProject(candidate, {
       applyDiscVisualDefaults: false,
+      announce: false,
     })
+    setProjectJewelCase((currentCaseInsert) =>
+      applyCaseInsertBackCoverLegalText(currentCaseInsert, candidate.text),
+    )
+    announceStatus('Applied suggested legal text to metadata and tray card.')
   }
 
   async function handleCopyLegalCandidate(candidate: LegalTextCandidate) {
@@ -1063,6 +1073,20 @@ function App() {
       setProjectMetadata(nextProjectMetadataWithAutoApply)
 
       announceStatus(importedState.statusMessage)
+
+      if (options.applyCaseInsertBackCoverDefaults) {
+        setProjectJewelCase((currentCaseInsert) =>
+          applySteamBackCoverImportToCaseInsert(
+            currentCaseInsert,
+            importedState.importedGame,
+            {
+              legalText: nextProjectMetadataWithAutoApply.copyrightText,
+              replaceExisting: isDifferentSelectedSteamGame,
+            },
+          ),
+        )
+        announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+      }
 
       if (discVisualImport) {
         setProjectPlatformMarks(discVisualImport.platformMarks)
@@ -1504,7 +1528,10 @@ function App() {
   const caseInsertGamePanelProps: GamePanelProps = {
     ...gamePanelProps,
     handleSteamImport: (appId) =>
-      handleSteamImport(appId, { applyDiscVisualDefaults: false }),
+      handleSteamImport(appId, {
+        applyDiscVisualDefaults: false,
+        applyCaseInsertBackCoverDefaults: true,
+      }),
     handleFindMetadataCandidates: () =>
       handleFindAndApplySteamMetadataCandidates({
         applyDiscVisualDefaults: false,
