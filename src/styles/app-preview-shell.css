@@ -1,5 +1,5 @@
 .preview-area {
-  --preview-chrome-space: 112px;
+  --preview-chrome-space: clamp(136px, 16vh, 172px);
   position: relative;
   z-index: 1;
   height: 100vh;
@@ -10,11 +10,17 @@
   align-items: center;
   justify-items: center;
   gap: 18px;
-  padding: clamp(12px, 3vw, 32px);
+  padding: clamp(16px, 3vw, 32px);
   overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 45%),
     #20242d;
+}
+
+.disc-preview,
+.case-insert-preview {
+  align-self: center;
+  justify-self: center;
 }
 
 .disc-preview {

@@ -55,7 +55,7 @@
   }
 
   .preview-area {
-    --preview-chrome-space: 112px !important;
+    --preview-chrome-space: clamp(136px, 16vh, 172px) !important;
     height: 100vh !important;
     min-height: 0 !important;
     min-width: 0 !important;

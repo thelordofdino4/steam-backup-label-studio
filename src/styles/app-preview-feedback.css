@@ -5,6 +5,8 @@
   justify-self: start;
   display: grid;
   gap: 2px;
+  min-height: 42px;
+  padding-bottom: 8px;
   pointer-events: none;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
 }

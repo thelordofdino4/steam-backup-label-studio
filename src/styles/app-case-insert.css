@@ -260,8 +260,9 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   background: rgba(15, 23, 42, 0.42);
   border-radius: 8px;
-  padding: 12px;
+  padding: 10px;
   margin-top: 12px;
+  min-width: 0;
 }
 
 .case-insert-workflow-section > .panel-summary {
@@ -269,7 +270,8 @@
 }
 
 .case-insert-workflow-section > .panel-content {
-  padding: 0 8px 10px;
+  padding: 0 6px 10px;
+  min-width: 0;
 }
 
 .case-insert-primary-slot-control > .field-label {
@@ -296,7 +298,8 @@
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 8px;
   background: rgba(15, 23, 42, 0.38);
-  padding: 12px;
+  padding: 10px;
+  min-width: 0;
 }
 
 .case-insert-source-section + .case-insert-source-section {
@@ -304,21 +307,72 @@
 }
 
 .case-insert-control-card .feature-section-card,
-.case-insert-background-control .feature-section-card,
+.case-insert-background-control .feature-section-card {
+  margin-inline: -8px;
+}
+
 .repeated-visual-card .feature-section-card {
   margin-inline: -2px;
 }
 
+.case-insert-workflow-section .repeated-visual-card .feature-section-card {
+  margin-inline: -8px;
+}
+
+.case-insert-workflow-section .feature-section-card > .panel-content {
+  padding: 0 8px 12px;
+  min-width: 0;
+}
+
 .case-insert-control-card .feature-section-card .panel-summary,
-.case-insert-background-control .feature-section-card .panel-summary,
+.case-insert-background-control .feature-section-card .panel-summary {
+  padding: 12px 8px;
+}
+
 .repeated-visual-card .feature-section-card .panel-summary {
   padding: 12px 10px;
 }
 
+.case-insert-workflow-section .repeated-visual-card .feature-section-card .panel-summary {
+  padding: 12px 8px;
+}
+
 .case-insert-control-card .feature-section-card .panel-content,
-.case-insert-background-control .feature-section-card .panel-content,
+.case-insert-background-control .feature-section-card .panel-content {
+  padding: 0 8px 12px;
+  min-width: 0;
+}
+
 .repeated-visual-card .feature-section-card .panel-content {
   padding: 0 10px 12px;
+}
+
+.case-insert-workflow-section .repeated-visual-card .feature-section-card .panel-content {
+  padding: 0 8px 12px;
+  min-width: 0;
+}
+
+.case-insert-workflow-section .repeated-visual-card-content {
+  padding-inline: 10px;
+  min-width: 0;
+}
+
+.case-insert-workflow-section .repeated-visual-card-summary {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.case-insert-workflow-section .repeated-visual-card-meta {
+  grid-column: 1 / -1;
+  text-align: left;
+}
+
+.case-insert-workflow-section input,
+.case-insert-workflow-section select,
+.case-insert-workflow-section textarea,
+.case-insert-workflow-section button,
+.case-insert-workflow-section .selected-lockup-card {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .case-insert-source-layout-controls {
@@ -344,6 +398,19 @@
 
 .case-insert-source-layout-controls .selected-lockup-card {
   margin-top: 0;
+}
+
+.case-insert-source-layout-controls .field-label {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.case-insert-source-layout-controls .field-label span {
+  color: rgba(203, 213, 225, 0.78);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .case-insert-file-input {
