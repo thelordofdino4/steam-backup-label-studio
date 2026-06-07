@@ -20,11 +20,19 @@ import type {
 import type {
   CaseInsertSpinePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
+import type {
+  CaseInsertBrandingSourceCatalog,
+  CaseInsertMarkLayerKind,
+} from '../../caseInsert/brandingSlotSources'
+import {
+  isCaseInsertMarkSlotVisible,
+} from '../../caseInsert/brandingVisibility'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 
 export type CaseInsertSpinePreviewLayerProps = {
   spine: ProjectJewelCaseSpineState
   layout: CaseInsertPreviewLayout
+  brandingSources: CaseInsertBrandingSourceCatalog
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }
 
@@ -238,16 +246,22 @@ function CaseInsertSpineSidePreview({
   side,
   state,
   layout,
+  brandingSources,
   pointerHandlers,
 }: {
   side: 'left' | 'right'
   state: ProjectJewelCaseSpineSideState
   layout: CaseInsertPreviewLayout
+  brandingSources: CaseInsertBrandingSourceCatalog
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
   const artworkSlots = state.additionalArtworkEnabled
     ? state.artworkSlots
     : []
+  const markSlotsByKind = (
+    kind: CaseInsertMarkLayerKind,
+  ) => state.markSlots.filter((slot) =>
+    isCaseInsertMarkSlotVisible(slot, kind, brandingSources))
 
   return (
     <>
@@ -298,6 +312,23 @@ function CaseInsertSpineSidePreview({
         dragTarget={{ kind: 'primary', slotKey: 'logo' }}
         pointerHandlers={pointerHandlers}
       />
+      {(['rating', 'media', 'platform', 'technical'] as const).flatMap(
+        (kind) => markSlotsByKind(kind).map((slot) => (
+          <CaseInsertSpineOverlaySlot
+            key={`${kind}-${slot.id}`}
+            side={side}
+            slot={slot}
+            role="mark"
+            layout={layout}
+            dragTarget={{
+              kind: 'group',
+              slotKey: 'markSlots',
+              slotId: slot.id,
+            }}
+            pointerHandlers={pointerHandlers}
+          />
+        )),
+      )}
     </>
   )
 }
@@ -305,6 +336,7 @@ function CaseInsertSpineSidePreview({
 export function CaseInsertSpinePreviewLayer({
   spine,
   layout,
+  brandingSources,
   pointerHandlers,
 }: CaseInsertSpinePreviewLayerProps) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
@@ -317,12 +349,14 @@ export function CaseInsertSpinePreviewLayer({
         side="left"
         state={spine.left}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers}
       />
       <CaseInsertSpineSidePreview
         side="right"
         state={spine.right}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers}
       />
     </div>

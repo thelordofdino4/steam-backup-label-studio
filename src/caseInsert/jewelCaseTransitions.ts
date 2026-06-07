@@ -12,7 +12,7 @@ export type JewelCaseSpineImageSlotKey =
   | 'steamBackupBranding'
   | 'logo'
 
-export type JewelCaseSpineImageSlotGroupKey = 'artworkSlots'
+export type JewelCaseSpineImageSlotGroupKey = 'artworkSlots' | 'markSlots'
 
 export function updateProjectJewelCaseSpineSide(
   state: ProjectJewelCaseState,

@@ -614,6 +614,7 @@ async function drawSpineSide(
   side: 'left' | 'right',
   state: ProjectJewelCaseSpineSideState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   await drawImageFit(
     context,
@@ -696,6 +697,12 @@ async function drawSpineSide(
   for (const [slot, role] of [
     [state.steamBackupBranding, 'branding'],
     [state.logo, 'logo'],
+    ...(['rating', 'media', 'platform', 'technical'] as const).flatMap(
+      (kind) => state.markSlots
+        .filter((slot) =>
+          isCaseInsertMarkSlotVisible(slot, kind, brandingSources))
+        .map((slot) => [slot, 'mark'] as const),
+    ),
   ] as const) {
     const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
       side,
@@ -749,13 +756,26 @@ async function drawSpineContent(
   context: CanvasRenderingContext2D,
   caseInsert: ProjectJewelCaseState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
     return
   }
 
-  await drawSpineSide(context, 'left', caseInsert.spine.left, layout)
-  await drawSpineSide(context, 'right', caseInsert.spine.right, layout)
+  await drawSpineSide(
+    context,
+    'left',
+    caseInsert.spine.left,
+    layout,
+    brandingSources,
+  )
+  await drawSpineSide(
+    context,
+    'right',
+    caseInsert.spine.right,
+    layout,
+    brandingSources,
+  )
 }
 
 export async function exportCaseInsertPngBytes(params: {
@@ -856,7 +876,12 @@ export async function exportCaseInsertPngBytes(params: {
         layout,
       ),
     'case-spine-content': () =>
-      drawSpineContent(context, params.caseInsert, layout),
+      drawSpineContent(
+        context,
+        params.caseInsert,
+        layout,
+        params.brandingSources,
+      ),
     'case-export-guides': () =>
       drawCaseInsertExportGuides(
         context,

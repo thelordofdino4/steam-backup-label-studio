@@ -168,6 +168,7 @@ function buildCaseInsertExportWarnings(params: {
       ...getSpineWarnings(
         params.caseInsert,
         params.layout,
+        params.brandingSources,
         slotWillRender(templateState.background),
       ),
     )
@@ -408,6 +409,7 @@ function getTrayTextWarnings(
 function getSpineWarnings(
   caseInsert: ProjectJewelCaseState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
   trayBackgroundRenders: boolean,
 ) {
   return (['left', 'right'] as const).flatMap((side) =>
@@ -416,6 +418,7 @@ function getSpineWarnings(
       side,
       caseInsert.spine[side],
       layout,
+      brandingSources,
       trayBackgroundRenders,
     ))
 }
@@ -425,6 +428,7 @@ function getSpineSideWarnings(
   side: JewelCaseSpineSideId,
   spineSide: ProjectJewelCaseSpineSideState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
   trayBackgroundRenders: boolean,
 ) {
   const warnings: string[] = []
@@ -459,11 +463,15 @@ function getSpineSideWarnings(
   const artworkSlots = spineSide.additionalArtworkEnabled
     ? spineSide.artworkSlots
     : []
+  const visibleMarkSlots = getVisibleSpineMarkSlots(
+    spineSide,
+    brandingSources,
+  )
 
   if (
     !trayBackgroundRenders &&
     !slotWillRender(spineSide.background) &&
-    !spineSideHasVisibleContent(spineSide)
+    !spineSideHasVisibleContent(spineSide, brandingSources)
   ) {
     warnings.push(`${label} has no visible spine content and may export blank white.`)
   }
@@ -518,6 +526,18 @@ function getSpineSideWarnings(
       layout: logoLayout,
       hasTextFallback: false,
     }),
+    ...visibleMarkSlots.flatMap((slot) =>
+      getSpineImageSlotWarnings({
+        slot,
+        label: `${label} ${slot.label}`,
+        layout: getJewelCaseSpineImageSlotPreviewLayout(
+          side,
+          slot,
+          layout,
+          'mark',
+        ),
+        hasTextFallback: false,
+      })),
   )
 
   return warnings
@@ -953,7 +973,21 @@ function surfaceHasVisibleContent(
   )
 }
 
-function spineSideHasVisibleContent(spineSide: ProjectJewelCaseSpineSideState) {
+function getVisibleSpineMarkSlots(
+  spineSide: ProjectJewelCaseSpineSideState,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
+  return spineSide.markSlots.filter((slot) => {
+    const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
+
+    return isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
+  })
+}
+
+function spineSideHasVisibleContent(
+  spineSide: ProjectJewelCaseSpineSideState,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
   return (
     slotWillRender(spineSide.background) ||
     slotWillRender(spineSide.titleArtwork) ||
@@ -963,7 +997,11 @@ function spineSideHasVisibleContent(spineSide: ProjectJewelCaseSpineSideState) {
     ) ||
     textBlockWillRender(spineSide.title) ||
     Boolean(spineSide.steamBackupBranding.enabled) ||
-    slotWillRender(spineSide.logo)
+    slotWillRender(spineSide.logo) ||
+    getVisibleSpineMarkSlots(
+      spineSide,
+      brandingSources,
+    ).some(slotWillRender)
   )
 }
 
@@ -986,7 +1024,11 @@ function formatVisibleElementStatus(
     (spine
       ? (['left', 'right'] as const).reduce(
           (count, side) =>
-            count + (spineSideHasVisibleContent(spine[side]) ? 1 : 0),
+            count + (
+              spineSideHasVisibleContent(spine[side], brandingSources)
+                ? 1
+                : 0
+            ),
           0,
         )
       : 0)

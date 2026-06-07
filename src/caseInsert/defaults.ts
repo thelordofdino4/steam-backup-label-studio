@@ -216,6 +216,21 @@ export function createDefaultJewelCaseSpineArtworkSlot(
   )
 }
 
+export function createDefaultJewelCaseSpineMarkSlot(
+  side: 'left' | 'right',
+  index: number,
+): ProjectCaseInsertImageSlot {
+  return createDefaultCaseInsertImageSlot(
+    `${side}-spine-mark-${index}`,
+    `Mark ${index}`,
+    {
+      enabled: true,
+      fit: 'contain',
+      layout: { scale: 1, x: 50, y: 82, rotation: 0 },
+    },
+  )
+}
+
 export function createDefaultCaseInsertTemplateStates():
 Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
   return {
@@ -251,6 +266,7 @@ export function createDefaultJewelCaseSpineSideState(
     ),
     additionalArtworkEnabled: false,
     artworkSlots: [],
+    markSlots: [],
     title: createDefaultCaseInsertTextBlock(
       `${side}-spine-title`,
       `${label} title`,

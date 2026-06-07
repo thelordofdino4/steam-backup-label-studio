@@ -16,6 +16,7 @@ import {
   createBlankJewelCaseSavedProject,
   createCaseInsertProjectSnapshot,
   createDefaultCaseInsertImageSlot,
+  createDefaultJewelCaseSpineMarkSlot,
   createDefaultProjectJewelCaseState,
   fitCaseInsertImageSlotToRegionHeight,
   removeCaseInsertTemplateImageSlot,
@@ -108,6 +109,8 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.spine.right.additionalArtworkEnabled, false)
   assert.deepEqual(project.caseInsert.spine.left.artworkSlots, [])
   assert.deepEqual(project.caseInsert.spine.right.artworkSlots, [])
+  assert.deepEqual(project.caseInsert.spine.left.markSlots, [])
+  assert.deepEqual(project.caseInsert.spine.right.markSlots, [])
   assert.equal(project.caseInsert.spine.left.steamBackupBranding.enabled, false)
   assert.deepEqual(project.caseInsert.export.surfaces, ['front', 'back'])
   assert.deepEqual(project.caseInsert.export.guideIds, [])
@@ -263,6 +266,23 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
               rotation: 90,
             },
           },
+          marks: [
+            {
+              id: 'legacy-left-spine-platform',
+              label: 'Legacy Windows mark',
+              enabled: true,
+              imageDataUrl: 'data:image/png;base64,legacy-windows',
+              imageSource: {
+                source: 'placeholder',
+                sourceId: 'case-platform:windows:windows11',
+                sourceLabel: 'Windows operating-system mark',
+              },
+              imageSize: {
+                width: 256,
+                height: 128,
+              },
+            },
+          ],
         },
       },
       export: {
@@ -295,6 +315,13 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
   assert.equal(restored.caseInsert.spine.left.title.enabled, true)
   assert.equal(restored.caseInsert.spine.left.title.value, 'SPARSE')
   assert.equal(restored.caseInsert.spine.left.title.layout.rotation, 90)
+  assert.equal(restored.caseInsert.spine.left.markSlots[0]?.id, 'legacy-left-spine-platform')
+  assert.equal(restored.caseInsert.spine.left.markSlots[0]?.label, 'Legacy Windows mark')
+  assert.equal(
+    restored.caseInsert.spine.left.markSlots[0]?.imageSource?.sourceId,
+    'case-platform:windows:windows11',
+  )
+  assert.deepEqual(restored.caseInsert.spine.right.markSlots, [])
   assert.deepEqual(restored.caseInsert.export.surfaces, ['back'])
   assert.deepEqual(restored.caseInsert.export.guideIds, ['backPanelBounds'])
 })
@@ -878,6 +905,52 @@ test('template helpers add, update, preserve, and remove logo and mark slots', (
   assert.equal(state.templates.cover.markSlots.length, 1)
   assert.equal(state.templates.tray.logoSlots.length, 1)
   assert.equal(state.templates.tray.markSlots.length, 1)
+})
+
+test('spine helpers add and persist mark slots independently from artwork slots', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+  const markSlot = setCaseInsertImageSlotImage(
+    {
+      ...createDefaultJewelCaseSpineMarkSlot('left', 1),
+      label: 'Windows mark',
+    },
+    {
+      imageDataUrl: 'data:image/png;base64,windows-mark',
+      imageSize: { width: 256, height: 128 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'placeholder',
+        sourceId: 'case-platform:windows:windows11',
+        sourceLabel: 'Windows operating-system mark',
+      }),
+    },
+  )
+
+  state = addJewelCaseSpineImageSlot(
+    state,
+    'left',
+    'markSlots',
+    markSlot,
+  )
+  state = addJewelCaseSpineImageSlot(
+    state,
+    'left',
+    'artworkSlots',
+    createDefaultCaseInsertImageSlot('left-spine-artwork-1', 'Artwork 1'),
+  )
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const restoredMark = restored.spine.left.markSlots[0]
+
+  assert.equal(state.spine.left.markSlots[0]?.id, 'left-spine-mark-1')
+  assert.equal(state.spine.left.artworkSlots.length, 1)
+  assert.equal(restoredMark?.label, 'Windows mark')
+  assert.equal(restoredMark?.imageDataUrl, 'data:image/png;base64,windows-mark')
+  assert.equal(restoredMark?.imageSource?.sourceId, 'case-platform:windows:windows11')
+  assert.equal(restored.spine.right.markSlots.length, 0)
 })
 
 test('case branding source catalog only exposes saved logo sources', () => {

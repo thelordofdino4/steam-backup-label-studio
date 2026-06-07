@@ -8,8 +8,10 @@ import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscov
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import {
   type CaseInsertBrandingSourceCatalog,
-  type CaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
+import {
+  CASE_INSERT_MARK_BRANDING_SECTIONS,
+} from '../../caseInsert/brandingPanelSections'
 import {
   getCaseInsertAdditionalLogoSlots,
   getCaseInsertPrimaryLogoSlot,
@@ -102,43 +104,6 @@ const TRAY_POSITION_PRESETS = [
   { label: 'Bottom center', x: 50, y: 88 },
   { label: 'Bottom right', x: 82, y: 88 },
 ] as const
-
-const CASE_INSERT_MARK_BRANDING_SECTIONS: Array<{
-  title: string
-  emptyHint: string
-  addLabel: string
-  markKind: CaseInsertMarkLayerKind
-  sourceSectionIds: readonly string[]
-}> = [
-  {
-    title: 'Rating badge',
-    emptyHint: 'No rating badges.',
-    addLabel: 'Add rating badge',
-    markKind: 'rating',
-    sourceSectionIds: ['rating'],
-  },
-  {
-    title: 'Media format mark',
-    emptyHint: 'No media format marks.',
-    addLabel: 'Add media format mark',
-    markKind: 'media',
-    sourceSectionIds: ['media'],
-  },
-  {
-    title: 'Operating system marks',
-    emptyHint: 'No operating system marks.',
-    addLabel: 'Add operating system mark',
-    markKind: 'platform',
-    sourceSectionIds: ['platform'],
-  },
-  {
-    title: 'Technical marks',
-    emptyHint: 'No technical marks.',
-    addLabel: 'Add technical mark',
-    markKind: 'technical',
-    sourceSectionIds: ['technical'],
-  },
-]
 
 const BACKGROUND_PLACEMENT_FIELDS: CaseInsertImageSlotPlacementField[] = [
   { field: 'scale', label: 'Scale', min: 0.01, max: 4, step: 0.01 },

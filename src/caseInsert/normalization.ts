@@ -543,6 +543,12 @@ function normalizeJewelCaseSpineSideState(
       inferredAdditionalArtworkEnabled,
     ),
     artworkSlots,
+    markSlots: normalizeCaseInsertImageSlotArray(
+      record.markSlots ?? record.marks,
+      `${defaults.background.id.replace('-background', '')}-mark`,
+      'Mark',
+      defaults.markSlots,
+    ),
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
     steamBackupBranding: normalizeCaseInsertImageSlot(
       record.steamBackupBranding ?? record.steamBackupLogo,

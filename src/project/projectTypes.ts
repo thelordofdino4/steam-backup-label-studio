@@ -408,6 +408,7 @@ export type ProjectJewelCaseSpineSideState = {
   titleArtwork: ProjectCaseInsertImageSlot
   additionalArtworkEnabled: boolean
   artworkSlots: ProjectCaseInsertImageSlot[]
+  markSlots: ProjectCaseInsertImageSlot[]
   title: ProjectCaseInsertTextBlock
   steamBackupBranding: ProjectCaseInsertImageSlot
   logo: ProjectCaseInsertImageSlot

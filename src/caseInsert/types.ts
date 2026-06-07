@@ -75,6 +75,8 @@ export type ProjectJewelCaseSpineSideStateInput = {
   artworkEnabled?: boolean
   artworkSlots?: ProjectCaseInsertImageSlotInput[]
   artwork?: ProjectCaseInsertImageSlotInput[]
+  markSlots?: ProjectCaseInsertImageSlotInput[]
+  marks?: ProjectCaseInsertImageSlotInput[]
   title?: ProjectCaseInsertTextBlockInput
   titleText?: ProjectCaseInsertTextBlockInput
   steamBackupBranding?: ProjectCaseInsertImageSlotInput

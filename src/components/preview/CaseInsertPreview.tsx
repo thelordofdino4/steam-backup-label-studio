@@ -204,6 +204,7 @@ export function CaseInsertPreview({
       <CaseInsertSpinePreviewLayer
         spine={caseInsert.spine}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.spine}
       />
     ),

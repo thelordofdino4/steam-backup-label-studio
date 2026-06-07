@@ -24,6 +24,7 @@ export type JewelCaseSpineOverlayRole =
   | 'titleArtwork'
   | 'artwork'
   | 'logo'
+  | 'mark'
 
 export type JewelCaseSpineBoxLayout = {
   center: {
@@ -71,6 +72,12 @@ const spineOverlayConfig = {
     widthRatio: 0.82,
     heightRatio: 0.82,
     defaultCenter: { x: 50, y: 88 },
+  },
+  mark: {
+    widthBasis: 'width',
+    widthRatio: 0.82,
+    heightRatio: 0.82,
+    defaultCenter: { x: 50, y: 82 },
   },
 } as const satisfies Record<
   JewelCaseSpineOverlayRole,
