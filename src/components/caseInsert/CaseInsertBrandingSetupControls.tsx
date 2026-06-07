@@ -37,7 +37,9 @@ export type CaseInsertBrandingSetupControlsProps = Pick<
   | 'handleTechnicalMarkLayoutChange'
   | 'handleTechnicalMarkLabelChange'
   | 'handleClearTechnicalMarkImage'
->
+> & {
+  idPrefix?: string
+}
 
 export function CaseInsertRatingBadgeSetupControls(
   props: CaseInsertBrandingSetupControlsProps,

@@ -21,6 +21,7 @@ type MediaMarkSetupControlsProps = Pick<
   | 'handleClearMediaMarkImage'
 > & {
   children?: ReactNode
+  idPrefix?: string
 }
 
 export function MediaMarkSetupControls({
@@ -32,7 +33,9 @@ export function MediaMarkSetupControls({
   handleMediaMarkLayoutChange,
   handleClearMediaMarkImage,
   children,
+  idPrefix,
 }: MediaMarkSetupControlsProps) {
+  const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
   const isEnabled = projectMediaMark.layout.enabled
   const isCustomMediaMarkSource = projectMediaMark.source === 'custom'
   const showsThemeControl = !isCustomMediaMarkSource &&
@@ -43,19 +46,19 @@ export function MediaMarkSetupControls({
       <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => handleMediaMarkLayoutChange('enabled', event.target.checked)} /> Show media format mark</label>
       {!isEnabled ? null : (
         <>
-          <label className="field-label spacing-top" htmlFor="media-mark-value">Format</label>
-          <select id="media-mark-value" value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
+          <label className="field-label spacing-top" htmlFor={fieldId('media-mark-value')}>Format</label>
+          <select id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
             {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          <label className="field-label spacing-top" htmlFor="media-mark-source">Mark source</label>
-          <select id="media-mark-source" value={projectMediaMark.source} onChange={(event) => handleMediaMarkSourceChange(event.target.value as MediaMarkSource)}>
+          <label className="field-label spacing-top" htmlFor={fieldId('media-mark-source')}>Mark source</label>
+          <select id={fieldId('media-mark-source')} value={projectMediaMark.source} onChange={(event) => handleMediaMarkSourceChange(event.target.value as MediaMarkSource)}>
             <option value="placeholder">Built-in generic</option>
             <option value="custom">Custom image</option>
           </select>
           {showsThemeControl ? (
             <>
-              <label className="field-label spacing-top" htmlFor="media-mark-theme">Mark theme</label>
-              <select id="media-mark-theme" value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
+              <label className="field-label spacing-top" htmlFor={fieldId('media-mark-theme')}>Mark theme</label>
+              <select id={fieldId('media-mark-theme')} value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
                 {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </>
@@ -64,8 +67,8 @@ export function MediaMarkSetupControls({
           {isCustomMediaMarkSource ? (
             <>
               <span className="field-label spacing-top">Custom mark image</span>
-              <label className="secondary-button logo-upload-button" htmlFor="media-mark-upload">Choose custom mark</label>
-              <input id="media-mark-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
+              <label className="secondary-button logo-upload-button" htmlFor={fieldId('media-mark-upload')}>Choose custom mark</label>
+              <input id={fieldId('media-mark-upload')} className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
               {projectMediaMark.customImageDataUrl ? (
                 <div className="selected-lockup-card logo-asset-status-card">
                   <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />

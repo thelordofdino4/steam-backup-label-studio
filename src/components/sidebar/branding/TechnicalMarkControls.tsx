@@ -33,6 +33,7 @@ type TechnicalMarkSetupControlsProps = Pick<
     label: string,
     asset: ProjectTechnicalMarkAsset,
   ) => ReactNode
+  idPrefix?: string
 }
 
 export function TechnicalMarkSetupControls({
@@ -44,7 +45,9 @@ export function TechnicalMarkSetupControls({
   handleTechnicalMarkLabelChange,
   handleClearTechnicalMarkImage,
   renderLayoutControls,
+  idPrefix,
 }: TechnicalMarkSetupControlsProps) {
+  const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
   const [rememberedValues, setRememberedValues] = useState<TechnicalMarkValue[]>([])
   const enabledValues = getEnabledTechnicalMarkValues(projectTechnicalMarks)
   const isEnabled = enabledValues.length > 0
@@ -77,7 +80,7 @@ export function TechnicalMarkSetupControls({
           {projectTechnicalMarks.values.map((value) => {
             const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
             const label = getTechnicalMarkLabel(value)
-            const uploadId = `technical-mark-upload-${value}`
+            const uploadId = fieldId(`technical-mark-upload-${value}`)
             const isCustomTechnicalMarkSource = asset.source === 'custom'
             const summary = [
               asset.layout.enabled ? 'shown' : 'hidden',
@@ -91,7 +94,7 @@ export function TechnicalMarkSetupControls({
                 key={value}
                 title={`${label} technical mark`}
                 label={asset.label}
-                labelInputId={`technical-mark-label-${value}`}
+                labelInputId={fieldId(`technical-mark-label-${value}`)}
                 enabled={asset.layout.enabled}
                 enableLabel={`Show ${label.toLowerCase()} technical mark`}
                 summary={summary}
@@ -102,8 +105,8 @@ export function TechnicalMarkSetupControls({
                   handleTechnicalMarkLabelChange(value, nextLabel)}
                 onDelete={() => handleTechnicalMarkToggle(value, false)}
               >
-                <label className="field-label spacing-top" htmlFor={`technical-mark-source-${value}`}>Mark source</label>
-                <select id={`technical-mark-source-${value}`} value={asset.source} onChange={(event) => handleTechnicalMarkSourceChange(value, event.target.value as TechnicalMarkSource)}>
+                <label className="field-label spacing-top" htmlFor={fieldId(`technical-mark-source-${value}`)}>Mark source</label>
+                <select id={fieldId(`technical-mark-source-${value}`)} value={asset.source} onChange={(event) => handleTechnicalMarkSourceChange(value, event.target.value as TechnicalMarkSource)}>
                   <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>

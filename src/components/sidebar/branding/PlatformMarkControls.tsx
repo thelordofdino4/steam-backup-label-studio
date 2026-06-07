@@ -36,6 +36,7 @@ type PlatformMarkSetupControlsProps = Pick<
     label: string,
     asset: ProjectPlatformMarkAsset,
   ) => ReactNode
+  idPrefix?: string
 }
 
 export function PlatformMarkSetupControls({
@@ -47,7 +48,9 @@ export function PlatformMarkSetupControls({
   handlePlatformMarkLayoutChange,
   handleClearPlatformMarkImage,
   renderLayoutControls,
+  idPrefix,
 }: PlatformMarkSetupControlsProps) {
+  const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
@@ -83,7 +86,7 @@ export function PlatformMarkSetupControls({
           {projectPlatformMarks.values.map((value) => {
             const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
             const label = getPlatformMarkLabel(value)
-            const uploadId = `platform-mark-upload-${value}`
+            const uploadId = fieldId(`platform-mark-upload-${value}`)
             const isCustomPlatformMarkSource = asset.source === 'custom'
             const themeOptions = getPlatformMarkThemeOptions(value)
             const showsThemeControl =
@@ -92,15 +95,15 @@ export function PlatformMarkSetupControls({
             return (
               <div key={value} className="logo-asset-card spacing-top">
                 <span className="field-label">{label} operating system mark</span>
-                <label className="field-label spacing-top" htmlFor={`platform-mark-source-${value}`}>Mark source</label>
-                <select id={`platform-mark-source-${value}`} value={asset.source} onChange={(event) => handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)}>
+                <label className="field-label spacing-top" htmlFor={fieldId(`platform-mark-source-${value}`)}>Mark source</label>
+                <select id={fieldId(`platform-mark-source-${value}`)} value={asset.source} onChange={(event) => handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)}>
                   <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>
                 {showsThemeControl ? (
                   <>
-                    <label className="field-label spacing-top" htmlFor={`platform-mark-theme-${value}`}>Mark style</label>
-                    <select id={`platform-mark-theme-${value}`} value={asset.theme} onChange={(event) => handlePlatformMarkThemeChange(value, event.target.value as PlatformMarkTheme)}>
+                    <label className="field-label spacing-top" htmlFor={fieldId(`platform-mark-theme-${value}`)}>Mark style</label>
+                    <select id={fieldId(`platform-mark-theme-${value}`)} value={asset.theme} onChange={(event) => handlePlatformMarkThemeChange(value, event.target.value as PlatformMarkTheme)}>
                       {themeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
                     </select>
                   </>

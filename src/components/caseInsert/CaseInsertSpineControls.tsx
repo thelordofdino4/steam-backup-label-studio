@@ -745,23 +745,30 @@ function SpineBrandingFeatureSection({
 function SpineMarkSetupControls({
   markKind,
   brandingControls,
+  idPrefix,
 }: {
   markKind: CaseInsertMarkLayerKind
   brandingControls: CaseInsertBrandingSetupControlsProps
+  idPrefix: string
 }) {
+  const setupProps = {
+    ...brandingControls,
+    idPrefix,
+  }
+
   if (markKind === 'rating') {
-    return <CaseInsertRatingBadgeSetupControls {...brandingControls} />
+    return <CaseInsertRatingBadgeSetupControls {...setupProps} />
   }
 
   if (markKind === 'media') {
-    return <CaseInsertMediaMarkSetupControls {...brandingControls} />
+    return <CaseInsertMediaMarkSetupControls {...setupProps} />
   }
 
   if (markKind === 'platform') {
-    return <CaseInsertPlatformMarkSetupControls {...brandingControls} />
+    return <CaseInsertPlatformMarkSetupControls {...setupProps} />
   }
 
-  return <CaseInsertTechnicalMarkSetupControls {...brandingControls} />
+  return <CaseInsertTechnicalMarkSetupControls {...setupProps} />
 }
 
 function SpineMarkSlotList({
@@ -968,6 +975,7 @@ export function CaseInsertSpineBrandingControls({
                   <SpineMarkSetupControls
                     markKind={section.markKind}
                     brandingControls={brandingControls}
+                    idPrefix={`${side}-spine-${section.markKind}`}
                   />
                   {isFeatureEnabled ? (
                     <>

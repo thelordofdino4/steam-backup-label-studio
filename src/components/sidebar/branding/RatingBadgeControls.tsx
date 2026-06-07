@@ -26,6 +26,7 @@ type RatingBadgeSetupControlsProps = Pick<
 > & {
   children?: ReactNode
   renderSupplementalUskLayoutControls?: () => ReactNode
+  idPrefix?: string
 }
 
 export function RatingBadgeSetupControls({
@@ -41,7 +42,9 @@ export function RatingBadgeSetupControls({
   handleClearRatingBadgeImage,
   children,
   renderSupplementalUskLayoutControls,
+  idPrefix,
 }: RatingBadgeSetupControlsProps) {
+  const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
   const isBadgeEnabled = projectRatingBadge.layout.enabled
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
@@ -55,8 +58,8 @@ export function RatingBadgeSetupControls({
       <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleRatingBadgeEnabledChange(event.target.checked)} /> Show rating badge</label>
       {!isBadgeEnabled ? null : (
         <>
-          <label className="field-label spacing-top" htmlFor="branding-rating-system">Rating system</label>
-          <select id="branding-rating-system" value={activeRatingSystem} onChange={(event) => {
+          <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-system')}>Rating system</label>
+          <select id={fieldId('branding-rating-system')} value={activeRatingSystem} onChange={(event) => {
             const nextSystem = event.target.value as GameRatingSystem
             const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
             handleProjectMetadataFieldsChange(nextMetadata)
@@ -67,11 +70,11 @@ export function RatingBadgeSetupControls({
             <option value="custom">Custom</option>
           </select>
 
-          <label className="field-label spacing-top" htmlFor="branding-rating-value">Rating value</label>
+          <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-value')}>Rating value</label>
           {activeRatingSystem === 'custom' ? (
-            <input id="branding-rating-value" type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
+            <input id={fieldId('branding-rating-value')} type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
           ) : (
-            <select id="branding-rating-value" value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
+            <select id={fieldId('branding-rating-value')} value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
               {getRatingValuesForSystem(activeRatingSystem).map((value) => (
                 <option key={value} value={value}>
                   {formatRatingValueForSystem(activeRatingSystem, value)}
@@ -89,8 +92,8 @@ export function RatingBadgeSetupControls({
 
               {!isSupplementalUskBadgeEnabled ? null : (
                 <>
-                  <label className="field-label spacing-top" htmlFor="branding-usk-rating-value">USK rating value</label>
-                  <select id="branding-usk-rating-value" value={projectRatingBadge.uskBadge.ratingValue} onChange={(event) => handleSupplementalUskRatingBadgeValueChange(event.target.value)}>
+                  <label className="field-label spacing-top" htmlFor={fieldId('branding-usk-rating-value')}>USK rating value</label>
+                  <select id={fieldId('branding-usk-rating-value')} value={projectRatingBadge.uskBadge.ratingValue} onChange={(event) => handleSupplementalUskRatingBadgeValueChange(event.target.value)}>
                     {getRatingValuesForSystem('USK').map((value) => (
                       <option key={value} value={value}>
                         {formatRatingValueForSystem('USK', value)}
@@ -111,8 +114,8 @@ export function RatingBadgeSetupControls({
             <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>
           )}
 
-          <label className="field-label spacing-top" htmlFor="rating-badge-source">Badge source</label>
-          <select id="rating-badge-source" value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
+          <label className="field-label spacing-top" htmlFor={fieldId('rating-badge-source')}>Badge source</label>
+          <select id={fieldId('rating-badge-source')} value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
             <option value="placeholder">Built-in artwork</option>
             <option value="custom">Custom image</option>
           </select>
@@ -120,8 +123,8 @@ export function RatingBadgeSetupControls({
           {isCustomBadgeSource ? (
             <>
               <span className="field-label spacing-top">Custom badge image</span>
-              <label className="secondary-button logo-upload-button" htmlFor="rating-badge-upload">Choose custom badge</label>
-              <input id="rating-badge-upload" className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
+              <label className="secondary-button logo-upload-button" htmlFor={fieldId('rating-badge-upload')}>Choose custom badge</label>
+              <input id={fieldId('rating-badge-upload')} className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
 
               {projectRatingBadge.customImageDataUrl ? (
                 <div className="selected-lockup-card logo-asset-status-card">
