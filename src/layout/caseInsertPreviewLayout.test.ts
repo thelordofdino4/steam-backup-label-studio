@@ -9,6 +9,10 @@ import {
   caseInsertTemplatePaneHasSpine,
 } from '../caseInsert/templateSurfaces.ts'
 import {
+  formatCaseInsertGuideDash,
+  getCaseInsertGuideStyle,
+} from '../caseInsert/guideStyles.ts'
+import {
   JEWEL_CASE_BACK_PANEL_WIDTH_PX,
   JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
   JEWEL_CASE_BACK_SURFACE_WIDTH_PX,
@@ -183,6 +187,73 @@ test('case insert PNG export layout matches the active template preview surface'
   )
   assert.equal(trayLayout.gap, 0)
   assert.equal(trayLayout.regions.some(({ surfaceId }) => surfaceId === 'front'), false)
+})
+
+test('case insert export guide geometry matches active preview surfaces', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverPreviewLayout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const coverExportLayout = createCaseInsertPngExportLayout(state, 'cover')
+  const trayPreviewLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const trayExportLayout = createCaseInsertPngExportLayout(state, 'tray')
+
+  for (const guideId of ['frontTrimBounds', 'frontSafeBounds'] as const) {
+    assert.deepEqual(
+      coverExportLayout.guides.find((guide) => guide.guideId === guideId),
+      coverPreviewLayout.guides.find((guide) => guide.guideId === guideId),
+    )
+  }
+
+  for (const guideId of [
+    'backTrimBounds',
+    'backPanelBounds',
+    'backSafeBounds',
+    'backPanelSafeBounds',
+    'leftSpineBounds',
+    'rightSpineBounds',
+    'leftSpineSafeBounds',
+    'rightSpineSafeBounds',
+    'leftSpineFold',
+    'rightSpineFold',
+  ] as const) {
+    assert.deepEqual(
+      trayExportLayout.guides.find((guide) => guide.guideId === guideId),
+      trayPreviewLayout.guides.find((guide) => guide.guideId === guideId),
+    )
+  }
+})
+
+test('case insert guide stroke and dash styles are layout-scaled', () => {
+  const coverLayout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const trayLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const coverSafe = coverLayout.guides.find(
+    ({ guideId }) => guideId === 'frontSafeBounds',
+  )
+  const trayTrim = trayLayout.guides.find(
+    ({ guideId }) => guideId === 'backTrimBounds',
+  )
+  const leftSpine = trayLayout.guides.find(
+    ({ guideId }) => guideId === 'leftSpineBounds',
+  )
+
+  assert.ok(coverSafe)
+  assert.ok(trayTrim)
+  assert.ok(leftSpine)
+
+  const safeStyle = getCaseInsertGuideStyle(coverSafe, coverLayout)
+  const trimStyle = getCaseInsertGuideStyle(trayTrim, trayLayout)
+  const spineStyle = getCaseInsertGuideStyle(leftSpine, trayLayout)
+
+  assert.equal(safeStyle.lineWidth, 4)
+  assert.equal(trimStyle.lineWidth, 4)
+  assert.equal(spineStyle.lineWidth, 4)
+  assert.equal(safeStyle.strokeColor, 'rgba(37, 99, 235, 0.95)')
+  assert.equal(trimStyle.strokeColor, 'rgba(245, 158, 11, 0.94)')
+  assert.equal(spineStyle.strokeColor, 'rgba(236, 72, 153, 0.95)')
+  assert.deepEqual(safeStyle.dash, [8, 6])
+  assert.deepEqual(trimStyle.dash, [])
+  assert.deepEqual(spineStyle.dash, [5.6, 5.6])
+  assert.equal(formatCaseInsertGuideDash(safeStyle.dash), '8 6')
+  assert.equal(formatCaseInsertGuideDash(trimStyle.dash), undefined)
 })
 
 test('case template panes expose whether spine controls are available', () => {

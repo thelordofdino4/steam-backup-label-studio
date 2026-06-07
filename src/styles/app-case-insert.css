@@ -8,8 +8,6 @@
 
 .case-insert-surface,
 .case-insert-region-fill,
-.case-insert-guide-rect,
-.case-insert-guide-line,
 .case-insert-front-background-clip,
 .case-insert-back-background-clip,
 .case-insert-template-background-clip,
@@ -55,41 +53,11 @@
   z-index: 12;
 }
 
-.case-insert-guide-rect {
-  border: 1px solid rgba(148, 163, 184, 0.58);
-}
-
-.case-insert-guide-role-bleed {
-  border: 1px dashed rgba(239, 68, 68, 0.9);
-}
-
-.case-insert-guide-role-trim,
-.case-insert-guide-role-front,
-.case-insert-guide-role-back,
-.case-insert-guide-role-printable {
-  border: 1px solid rgba(245, 158, 11, 0.86);
-}
-
-.case-insert-guide-role-safe {
-  border: 2px dashed rgba(37, 99, 235, 0.82);
-}
-
-.case-insert-guide-role-spine {
-  border: 1px dotted rgba(236, 72, 153, 0.9);
-}
-
-.case-insert-guide-line {
-  border-color: rgba(236, 72, 153, 0.96);
-  border-style: solid;
-  border-width: 0;
-}
-
-.case-insert-guide-line-vertical {
-  border-left-width: 2px;
-}
-
-.case-insert-guide-line-horizontal {
-  border-top-width: 2px;
+.case-insert-guide-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
 .case-insert-front-background-clip,
