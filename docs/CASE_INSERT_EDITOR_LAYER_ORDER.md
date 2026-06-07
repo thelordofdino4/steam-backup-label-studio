@@ -8,8 +8,8 @@ Preview layers currently render in this order:
 
 1. Case insert surface base.
 2. Case background artwork.
-3. Back cover screenshots.
-4. Case callout artwork.
+3. Case additional artwork.
+4. Case artwork.
 5. Case title artwork.
 6. Case logos.
 7. Case rating badges.

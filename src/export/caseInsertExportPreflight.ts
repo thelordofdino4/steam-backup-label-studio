@@ -18,7 +18,6 @@ import {
 import {
   getJewelCaseBackBackgroundFit,
   getJewelCaseBackImageSlotPreviewRect,
-  getJewelCaseBackScreenshotFit,
   getJewelCaseBackTextBlockPreviewLayout,
   getJewelCaseBackTextListPreviewLayout,
 } from '../layout/jewelCaseBackLayout.ts'
@@ -232,20 +231,22 @@ function getCoverSlotWarnings(
     }),
   )
 
-  for (const slot of templateState.artworkSlots) {
-    warnings.push(
-      ...getRenderedImageSlotWarnings({
-        slot,
-        label: slot.label,
-        rect: getJewelCaseFrontImageSlotPreviewRect(
+  if (templateState.additionalArtworkEnabled) {
+    for (const slot of templateState.artworkSlots) {
+      warnings.push(
+        ...getRenderedImageSlotWarnings({
           slot,
-          layout,
-          'calloutArtwork',
-        ),
-        safeBounds,
-        edge: { regionLabel: 'cover safe zone' },
-      }),
-    )
+          label: slot.label,
+          rect: getJewelCaseFrontImageSlotPreviewRect(
+            slot,
+            layout,
+            'calloutArtwork',
+          ),
+          safeBounds,
+          edge: { regionLabel: 'cover safe zone' },
+        }),
+      )
+    }
   }
 
   for (const slot of templateState.logoSlots) {
@@ -282,22 +283,39 @@ function getTraySlotWarnings(
   const warnings: string[] = []
   const safeBounds = getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.tray)
 
-  templateState.artworkSlots.forEach((slot, index) => {
+  warnings.push(
+    ...getRenderedImageSlotWarnings({
+      slot: templateState.titleArtwork,
+      label: 'Game logo',
+      rect: getJewelCaseBackImageSlotPreviewRect(
+        templateState.titleArtwork,
+        layout,
+        'logo',
+      ),
+      safeBounds,
+      edge: { regionLabel: 'back panel safe zone' },
+    }),
+  )
+
+  const artworkSlots = templateState.additionalArtworkEnabled
+    ? templateState.artworkSlots
+    : []
+
+  for (const slot of artworkSlots) {
     warnings.push(
-      ...getImageFitWarnings(
-        slot.label,
+      ...getRenderedImageSlotWarnings({
         slot,
-        getJewelCaseBackScreenshotFit(
+        label: slot.label,
+        rect: getJewelCaseBackImageSlotPreviewRect(
           slot,
           layout,
-          index,
-          templateState.artworkSlots.length,
+          'artwork',
         ),
-        { allowEmptySpaceWarning: slot.fit === 'contain' || slot.fit === 'scale' },
-      ),
-      ...getLayoutValueWarnings(slot.label, slot.layout),
+        safeBounds,
+        edge: { regionLabel: 'back panel safe zone' },
+      }),
     )
-  })
+  }
 
   for (const slot of templateState.logoSlots) {
     warnings.push(
@@ -414,12 +432,21 @@ function getSpineSideWarnings(
     layout,
     'branding',
   )
+  const titleArtworkLayout = getJewelCaseSpineImageSlotPreviewLayout(
+    side,
+    spineSide.titleArtwork,
+    layout,
+    'titleArtwork',
+  )
   const logoLayout = getJewelCaseSpineImageSlotPreviewLayout(
     side,
     spineSide.logo,
     layout,
     'logo',
   )
+  const artworkSlots = spineSide.additionalArtworkEnabled
+    ? spineSide.artworkSlots
+    : []
 
   if (
     !trayBackgroundRenders &&
@@ -449,6 +476,24 @@ function getSpineSideWarnings(
       safeBounds: null,
       readabilityRole: 'spine',
     }),
+    ...getSpineImageSlotWarnings({
+      slot: spineSide.titleArtwork,
+      label: `${label} game logo`,
+      layout: titleArtworkLayout,
+      hasTextFallback: false,
+    }),
+    ...artworkSlots.flatMap((slot) =>
+      getSpineImageSlotWarnings({
+        slot,
+        label: `${label} ${slot.label}`,
+        layout: getJewelCaseSpineImageSlotPreviewLayout(
+          side,
+          slot,
+          layout,
+          'artwork',
+        ),
+        hasTextFallback: false,
+      })),
     ...getSpineImageSlotWarnings({
       slot: spineSide.steamBackupBranding,
       label: `${label} Steam Backup branding`,
@@ -861,7 +906,10 @@ function surfaceHasVisibleContent(surface: ProjectCaseInsertSurfaceState) {
   return (
     slotWillRender(surface.background) ||
     slotWillRender(surface.titleArtwork) ||
-    surface.artworkSlots.some(slotWillRender) ||
+    (
+      surface.additionalArtworkEnabled &&
+      surface.artworkSlots.some(slotWillRender)
+    ) ||
     surface.logoSlots.some(slotWillRender) ||
     surface.markSlots.some(slotWillRender) ||
     surface.textBlocks.some(textBlockWillRender) ||
@@ -872,6 +920,11 @@ function surfaceHasVisibleContent(surface: ProjectCaseInsertSurfaceState) {
 function spineSideHasVisibleContent(spineSide: ProjectJewelCaseSpineSideState) {
   return (
     slotWillRender(spineSide.background) ||
+    slotWillRender(spineSide.titleArtwork) ||
+    (
+      spineSide.additionalArtworkEnabled &&
+      spineSide.artworkSlots.some(slotWillRender)
+    ) ||
     textBlockWillRender(spineSide.title) ||
     Boolean(spineSide.steamBackupBranding.enabled) ||
     slotWillRender(spineSide.logo)
@@ -885,7 +938,9 @@ function formatVisibleElementStatus(
   const visibleCount =
     Number(slotWillRender(surface.background)) +
     Number(slotWillRender(surface.titleArtwork)) +
-    surface.artworkSlots.filter(slotWillRender).length +
+    (surface.additionalArtworkEnabled
+      ? surface.artworkSlots.filter(slotWillRender).length
+      : 0) +
     surface.logoSlots.filter(slotWillRender).length +
     surface.markSlots.filter(slotWillRender).length +
     surface.textBlocks.filter(textBlockWillRender).length +

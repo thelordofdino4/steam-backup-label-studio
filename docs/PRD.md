@@ -132,7 +132,8 @@ The jewel case back should support:
 - Background/promotional artwork or designed backdrop.
 - Game description.
 - Feature bullets or short feature callouts.
-- Screenshot slots, with a practical default around three screenshots.
+- Optional additional artwork slots that can use screenshots, key art, or other
+  user-selected imagery.
 - Rating, media, platform, and technical marks where useful.
 - Developer, publisher, company, and technology logos.
 - Minimum and recommended system requirements.

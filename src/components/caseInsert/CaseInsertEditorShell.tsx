@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
   getCaseInsertTemplatePaneConfig,
@@ -33,10 +33,15 @@ import {
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
+import type {
+  CaseInsertPreviewPointerHandlers,
+} from '../../interaction/useCaseInsertPreviewPointerDrag'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  caseInsertPreviewRef: RefObject<HTMLDivElement | null>
+  pointerHandlers: CaseInsertPreviewPointerHandlers
   editor: CaseInsertTemplateEditorActions
   spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
@@ -93,6 +98,8 @@ function CaseInsertProjectPanel({
   CaseInsertEditorShellProps,
   | 'caseInsert'
   | 'activeTemplatePane'
+  | 'caseInsertPreviewRef'
+  | 'pointerHandlers'
   | 'editor'
   | 'spineEditor'
   | 'imageSources'
@@ -287,6 +294,8 @@ function CaseInsertGuideLegendPanel() {
 export function CaseInsertEditorShell({
   caseInsert,
   activeTemplatePane,
+  caseInsertPreviewRef,
+  pointerHandlers,
   editor,
   spineEditor,
   imageSources,
@@ -380,8 +389,8 @@ export function CaseInsertEditorShell({
   }
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
+    <main className="app-shell case-insert-app-shell">
+      <aside className="sidebar case-insert-sidebar">
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>
 
@@ -391,6 +400,8 @@ export function CaseInsertEditorShell({
       <CaseInsertPreview
         caseInsert={caseInsert}
         activeTemplatePane={activeTemplatePane}
+        caseInsertPreviewRef={caseInsertPreviewRef}
+        pointerHandlers={pointerHandlers}
         statusToasts={statusToasts}
       />
     </main>

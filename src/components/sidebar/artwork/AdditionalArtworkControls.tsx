@@ -1,4 +1,3 @@
-import { useCallback, useMemo } from 'react'
 import { getAdditionalArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
@@ -9,19 +8,14 @@ import {
   shouldRenderAdditionalArtworkElement,
 } from '../../../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtworkElement } from '../../../project/projectTypes'
-import type { SteamArtworkAsset } from '../../../steam/steamApi'
-import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
+import { ArtworkImageSourceControls } from './ArtworkImageSourceControls'
 import {
-  createLocalSteamScreenshotPickerItems,
-  createSteamArtworkPickerItems,
   formatAdditionalArtworkSize,
   getNumericInputValue,
 } from './helpers'
 import type { ArtworkPanelProps } from './types'
-
-const EMPTY_STEAM_ARTWORK: SteamArtworkAsset[] = []
 
 function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
   return (
@@ -40,12 +34,19 @@ function AdditionalArtworkElementControls({
   element,
   elementIndex,
   selectedSteamGame,
+  webArtworkDiscovery,
   localSteamScreenshots,
   localSteamScreenshotThumbnails,
+  hasCheckedLocalSteamScreenshots,
+  isLocalSteamScreenshotsLoading,
   selectedDiscTemplate,
   projectAdditionalArtwork,
+  handleFindWebArtworkCandidates,
   handleAdditionalArtworkUpload,
   handleUseSteamArtworkAsAdditionalArtwork,
+  handleUseWebArtworkCandidateAsAdditionalArtwork,
+  handleFindLocalSteamScreenshots,
+  handleOpenLocalSteamScreenshotFolder,
   handleUseLocalSteamScreenshotAsAdditionalArtwork,
   handleAdditionalArtworkLayoutChange,
   handleAdditionalArtworkLabelChange,
@@ -59,12 +60,19 @@ function AdditionalArtworkElementControls({
 }: Pick<
   ArtworkPanelProps,
   | 'selectedSteamGame'
+  | 'webArtworkDiscovery'
   | 'localSteamScreenshots'
   | 'localSteamScreenshotThumbnails'
+  | 'hasCheckedLocalSteamScreenshots'
+  | 'isLocalSteamScreenshotsLoading'
   | 'selectedDiscTemplate'
   | 'projectAdditionalArtwork'
+  | 'handleFindWebArtworkCandidates'
   | 'handleAdditionalArtworkUpload'
   | 'handleUseSteamArtworkAsAdditionalArtwork'
+  | 'handleUseWebArtworkCandidateAsAdditionalArtwork'
+  | 'handleFindLocalSteamScreenshots'
+  | 'handleOpenLocalSteamScreenshotFolder'
   | 'handleUseLocalSteamScreenshotAsAdditionalArtwork'
   | 'handleAdditionalArtworkLayoutChange'
   | 'handleAdditionalArtworkLabelChange'
@@ -91,51 +99,15 @@ function AdditionalArtworkElementControls({
   const uploadId = `additional-artwork-upload-${element.id}`
   const title = `Artwork ${elementIndex + 1}`
   const deleteLabel = `Delete ${title.toLowerCase()}`
+  const imageSource = {
+    source: element.source,
+    sourceId: element.sourceId,
+  }
   const summary = [
     element.layout.enabled ? 'shown' : 'hidden',
     hasImage ? element.sourceLabel : 'no image',
     element.frame.enabled ? `${element.frame.shape} frame` : 'no frame',
   ].join(' · ')
-  const steamArtwork = selectedSteamGame?.artwork ?? EMPTY_STEAM_ARTWORK
-  const steamArtworkPickerItems = useMemo(
-    () => createSteamArtworkPickerItems(steamArtwork),
-    [steamArtwork],
-  )
-  const localScreenshotPickerItems = useMemo(
-    () => createLocalSteamScreenshotPickerItems(
-      localSteamScreenshots,
-      localSteamScreenshotThumbnails,
-    ),
-    [localSteamScreenshotThumbnails, localSteamScreenshots],
-  )
-  const selectSteamArtworkForElement = useCallback((itemId: string) => {
-    const asset = steamArtwork.find(
-      (currentAsset) => currentAsset.id === itemId,
-    )
-
-    if (asset) {
-      return handleUseSteamArtworkAsAdditionalArtwork(
-        element.id,
-        asset,
-      )
-    }
-  }, [element.id, handleUseSteamArtworkAsAdditionalArtwork, steamArtwork])
-  const selectLocalSteamScreenshotForElement = useCallback((itemId: string) => {
-    const asset = localSteamScreenshots.find(
-      (currentAsset) => currentAsset.id === itemId,
-    )
-
-    if (asset) {
-      return handleUseLocalSteamScreenshotAsAdditionalArtwork(
-        element.id,
-        asset,
-      )
-    }
-  }, [
-    element.id,
-    handleUseLocalSteamScreenshotAsAdditionalArtwork,
-    localSteamScreenshots,
-  ])
 
   return (
     <>
@@ -155,50 +127,41 @@ function AdditionalArtworkElementControls({
       >
         <>
           <span className="field-label spacing-top">Image source</span>
-          <label
-            className="secondary-button logo-upload-button"
-            htmlFor={uploadId}
-          >
-            {hasImage ? 'Replace with local image' : 'Choose local image'}
-          </label>
-          <input
-            id={uploadId}
-            className="logo-file-input"
-            type="file"
-            accept="image/*"
-            onChange={(event) =>
-              void handleAdditionalArtworkUpload(element.id, event)}
+          <ArtworkImageSourceControls
+            selectedSteamGame={selectedSteamGame}
+            localSteamScreenshots={localSteamScreenshots}
+            localSteamScreenshotThumbnails={localSteamScreenshotThumbnails}
+            hasCheckedLocalSteamScreenshots={hasCheckedLocalSteamScreenshots}
+            isLocalSteamScreenshotsLoading={isLocalSteamScreenshotsLoading}
+            onFindLocalSteamScreenshots={handleFindLocalSteamScreenshots}
+            onOpenLocalSteamScreenshotFolder={
+              handleOpenLocalSteamScreenshotFolder
+            }
+            webArtworkDiscovery={webArtworkDiscovery}
+            onFindWebArtworkCandidates={handleFindWebArtworkCandidates}
+            uploadId={uploadId}
+            title={title}
+            hasImage={hasImage}
+            imageSource={imageSource}
+            localFileActionLabel={
+              hasImage ? 'Replace with local image' : 'Choose local image'
+            }
+            localFileHint="Choose a local image from this computer when Steam, web, or screenshot sources do not have the artwork you want."
+            onUpload={(event) =>
+              handleAdditionalArtworkUpload(element.id, event)}
+            onUseSteamArtwork={(asset) =>
+              handleUseSteamArtworkAsAdditionalArtwork(element.id, asset)}
+            onUseLocalSteamScreenshot={(asset) =>
+              handleUseLocalSteamScreenshotAsAdditionalArtwork(
+                element.id,
+                asset,
+              )}
+            onUseWebArtworkCandidate={(candidate) =>
+              handleUseWebArtworkCandidateAsAdditionalArtwork(
+                element.id,
+                candidate,
+              )}
           />
-
-          {selectedSteamGame?.artwork.length ? (
-            <details className="metadata-details collapsible-panel spacing-top">
-              <summary className="panel-summary">Use imported Steam artwork</summary>
-              <div className="panel-content">
-                <ImageCandidatePreviewPicker
-                  ariaLabel={`${title} imported Steam artwork previews`}
-                  title={`${title} Steam Artwork`}
-                  items={steamArtworkPickerItems}
-                  selectLabel={`Use for ${title.toLowerCase()}`}
-                  onSelect={selectSteamArtworkForElement}
-                />
-              </div>
-            </details>
-          ) : null}
-
-          {localSteamScreenshots.length > 0 ? (
-            <details className="metadata-details collapsible-panel spacing-top">
-              <summary className="panel-summary">Use local Steam screenshot</summary>
-              <div className="panel-content">
-                <ImageCandidatePreviewPicker
-                  ariaLabel={`${title} local Steam screenshot previews`}
-                  title={`${title} Local Steam Screenshots`}
-                  items={localScreenshotPickerItems}
-                  selectLabel={`Use for ${title.toLowerCase()}`}
-                  onSelect={selectLocalSteamScreenshotForElement}
-                />
-              </div>
-            </details>
-          ) : null}
 
           {hasImage ? (
             <div className="selected-lockup-card logo-asset-status-card">

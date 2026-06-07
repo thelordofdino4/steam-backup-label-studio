@@ -155,6 +155,7 @@ export type ProjectDiscNumberArtwork = {
 export type AdditionalArtworkSource =
   | 'custom'
   | 'steam-artwork'
+  | 'web-artwork'
   | 'local-steam-screenshot'
 
 export type AdditionalArtworkLayout = {
@@ -347,6 +348,14 @@ export type ProjectCaseInsertLayout = {
   rotation: number
 }
 
+export type ProjectCaseInsertTitleArtworkDefaultAsset = {
+  steamArtworkAssetId: string
+  sourceLabel: string
+  sourceUrl: string | null
+  imageDataUrl: string
+  imageSize: BackgroundImageSize
+}
+
 export type ProjectCaseInsertImageSlot = {
   id: string
   label: string
@@ -354,8 +363,10 @@ export type ProjectCaseInsertImageSlot = {
   imageDataUrl: string | null
   imageSource?: ProjectImageAssetProvenance | null
   imageSize: BackgroundImageSize | null
+  defaultSteamLogo: ProjectCaseInsertTitleArtworkDefaultAsset | null
   fit: ProjectCaseInsertImageFit
   layout: ProjectCaseInsertLayout
+  frame: AdditionalArtworkFrame
 }
 
 export type ProjectCaseInsertTextSource = 'manual' | 'metadata' | 'steam'
@@ -384,6 +395,7 @@ export type ProjectCaseInsertTextList = {
 export type ProjectCaseInsertSurfaceState = {
   background: ProjectCaseInsertImageSlot
   titleArtwork: ProjectCaseInsertImageSlot
+  additionalArtworkEnabled: boolean
   artworkSlots: ProjectCaseInsertImageSlot[]
   logoSlots: ProjectCaseInsertImageSlot[]
   markSlots: ProjectCaseInsertImageSlot[]
@@ -393,6 +405,9 @@ export type ProjectCaseInsertSurfaceState = {
 
 export type ProjectJewelCaseSpineSideState = {
   background: ProjectCaseInsertImageSlot
+  titleArtwork: ProjectCaseInsertImageSlot
+  additionalArtworkEnabled: boolean
+  artworkSlots: ProjectCaseInsertImageSlot[]
   title: ProjectCaseInsertTextBlock
   steamBackupBranding: ProjectCaseInsertImageSlot
   logo: ProjectCaseInsertImageSlot

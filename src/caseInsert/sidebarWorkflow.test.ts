@@ -4,6 +4,10 @@ import {
   getCaseInsertSidebarStatusLabel,
   getCaseInsertSidebarWorkflow,
 } from './sidebarWorkflow.ts'
+import {
+  CASE_INSERT_ARTWORK_SOURCE_PANEL_LABELS,
+  getCaseInsertArtworkPanelSectionLabels,
+} from './artworkPanelSections.ts'
 
 test('cover sheet case sidebar mirrors the core editor flow', () => {
   assert.deepEqual(
@@ -53,5 +57,32 @@ test('case sidebar status label makes the active template clear', () => {
   assert.equal(
     getCaseInsertSidebarStatusLabel('tray'),
     'Alpha jewel case editor - Tray Card',
+  )
+})
+
+test('case insert artwork panels mirror disc artwork section hierarchy', () => {
+  assert.deepEqual(
+    getCaseInsertArtworkPanelSectionLabels('cover'),
+    ['Background', 'Game Logo', 'Additional Artwork'],
+  )
+  assert.deepEqual(
+    getCaseInsertArtworkPanelSectionLabels('tray'),
+    ['Background', 'Game Logo', 'Additional Artwork'],
+  )
+  assert.deepEqual(
+    getCaseInsertArtworkPanelSectionLabels('spine'),
+    ['Background', 'Game Logo', 'Additional Artwork'],
+  )
+})
+
+test('case insert artwork source panels keep disc source group labels', () => {
+  assert.deepEqual(
+    Object.values(CASE_INSERT_ARTWORK_SOURCE_PANEL_LABELS),
+    [
+      'Imported Steam artwork',
+      'Web artwork',
+      'Local Steam screenshots',
+      'Local file',
+    ],
   )
 })

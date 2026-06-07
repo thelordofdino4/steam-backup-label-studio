@@ -97,6 +97,52 @@ test('cover sheet preflight warns about guides and blank cover without spine war
   assert.match(summary.message, /Continue with export\?/)
 })
 
+test('case preflight ignores additional artwork slots when globally hidden', () => {
+  const project = createCleanCoverProject()
+  const enabledEmptySlot = createDefaultCaseInsertImageSlot(
+    'cover-artwork-1',
+    'Artwork 1',
+    { enabled: true },
+  )
+  const hiddenSummary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        cover: {
+          ...project.templates.cover,
+          additionalArtworkEnabled: false,
+          artworkSlots: [enabledEmptySlot],
+        },
+      },
+    },
+    activeTemplatePane: 'cover',
+    dpi: 300,
+  })
+  const visibleSummary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      templates: {
+        ...project.templates,
+        cover: {
+          ...project.templates.cover,
+          additionalArtworkEnabled: true,
+          artworkSlots: [enabledEmptySlot],
+        },
+      },
+    },
+    activeTemplatePane: 'cover',
+    dpi: 300,
+  })
+
+  assert.equal(hiddenSummary.hasWarnings, false)
+  assert.ok(!hiddenSummary.warnings.some((warning) =>
+    /^Artwork /.test(warning)))
+  assert.ok(visibleSummary.warnings.includes(
+    'Artwork 1 is enabled, but no image is selected; it will not render.',
+  ))
+})
+
 test('tray card preflight catches guide, image, text, and spine risks', () => {
   const project = createDefaultProjectJewelCaseState('Test Game')
   const trayLogo = createDefaultCaseInsertImageSlot(

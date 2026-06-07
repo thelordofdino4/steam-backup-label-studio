@@ -1,6 +1,7 @@
 import type { SupportedCaseInsertTemplateType } from '../editor/editorTypes.ts'
 import type {
   BackgroundImageSize,
+  AdditionalArtworkFrame,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertSurfaceState,
@@ -22,9 +23,10 @@ import type { CaseInsertTemplatePaneId } from './templateSurfaces.ts'
 export type ProjectCaseInsertLayoutInput = Partial<ProjectCaseInsertLayout>
 
 export type ProjectCaseInsertImageSlotInput =
-  Partial<Omit<ProjectCaseInsertImageSlot, 'imageSource' | 'layout'>> & {
+  Partial<Omit<ProjectCaseInsertImageSlot, 'imageSource' | 'layout' | 'frame'>> & {
     imageSource?: Partial<ProjectImageAssetProvenance> | null
     layout?: ProjectCaseInsertLayoutInput
+    frame?: Partial<AdditionalArtworkFrame>
   }
 
 export type ProjectCaseInsertTextBlockInput =
@@ -54,6 +56,8 @@ export type ProjectCaseInsertSurfaceStateInput =
     titleArtwork?: ProjectCaseInsertImageSlotInput
     artworkSlots?: ProjectCaseInsertImageSlotInput[]
     artwork?: ProjectCaseInsertImageSlotInput[]
+    additionalArtworkEnabled?: boolean
+    artworkEnabled?: boolean
     logoSlots?: ProjectCaseInsertImageSlotInput[]
     logos?: ProjectCaseInsertImageSlotInput[]
     markSlots?: ProjectCaseInsertImageSlotInput[]
@@ -66,6 +70,11 @@ export type ProjectCaseInsertSurfaceStateInput =
 
 export type ProjectJewelCaseSpineSideStateInput = {
   background?: ProjectCaseInsertImageSlotInput
+  titleArtwork?: ProjectCaseInsertImageSlotInput
+  additionalArtworkEnabled?: boolean
+  artworkEnabled?: boolean
+  artworkSlots?: ProjectCaseInsertImageSlotInput[]
+  artwork?: ProjectCaseInsertImageSlotInput[]
   title?: ProjectCaseInsertTextBlockInput
   titleText?: ProjectCaseInsertTextBlockInput
   steamBackupBranding?: ProjectCaseInsertImageSlotInput

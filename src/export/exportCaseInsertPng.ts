@@ -20,7 +20,6 @@ import type {
 import {
   getJewelCaseBackBackgroundFit,
   getJewelCaseBackImageSlotPreviewRect,
-  getJewelCaseBackScreenshotFit,
   getJewelCaseBackTextBlockPreviewLayout,
   getJewelCaseBackTextListPreviewLayout,
 } from '../layout/jewelCaseBackLayout'
@@ -132,6 +131,82 @@ async function drawImageInRect(
   const image = await loadCanvasSafeImage(imageDataUrl, description)
 
   context.drawImage(image, rect.x, rect.y, rect.width, rect.height)
+}
+
+function createImageSlotFramePath(
+  context: CanvasRenderingContext2D,
+  slot: ProjectCaseInsertImageSlot,
+  rect: JewelCasePixelRect,
+  strokeWidth = 0,
+) {
+  const inset = strokeWidth / 2
+
+  context.beginPath()
+
+  if (slot.frame.shape === 'circle') {
+    context.ellipse(
+      rect.x + rect.width / 2,
+      rect.y + rect.height / 2,
+      Math.max(0, (rect.width - strokeWidth) / 2),
+      Math.max(0, (rect.height - strokeWidth) / 2),
+      0,
+      0,
+      Math.PI * 2,
+    )
+    return
+  }
+
+  context.rect(
+    rect.x + inset,
+    rect.y + inset,
+    Math.max(0, rect.width - strokeWidth),
+    Math.max(0, rect.height - strokeWidth),
+  )
+}
+
+function drawImageSlotFrame(
+  context: CanvasRenderingContext2D,
+  slot: ProjectCaseInsertImageSlot,
+  rect: JewelCasePixelRect,
+) {
+  if (!slot.frame.enabled) {
+    return
+  }
+
+  const strokeWidth = Math.max(
+    1,
+    Math.min(rect.width, rect.height) * (slot.frame.width / 100),
+  )
+
+  context.save()
+  context.strokeStyle = slot.frame.color
+  context.lineWidth = strokeWidth
+  createImageSlotFramePath(context, slot, rect, strokeWidth)
+  context.stroke()
+  context.restore()
+}
+
+async function drawImageSlotInRect(
+  context: CanvasRenderingContext2D,
+  slot: ProjectCaseInsertImageSlot,
+  rect: JewelCasePixelRect | null,
+  description: string,
+) {
+  if (!rect || !slot.imageDataUrl) {
+    return
+  }
+
+  const image = await loadCanvasSafeImage(slot.imageDataUrl, description)
+
+  context.save()
+  if (slot.frame.enabled && slot.frame.shape === 'circle') {
+    createImageSlotFramePath(context, slot, rect)
+    context.clip()
+  }
+  context.drawImage(image, rect.x, rect.y, rect.width, rect.height)
+  context.restore()
+
+  drawImageSlotFrame(context, slot, rect)
 }
 
 async function drawContainImageInLocalBox(
@@ -347,7 +422,7 @@ function getTemplateImageSlotRect(
     : getJewelCaseBackImageSlotPreviewRect(
         slot,
         layout,
-        group === 'mark' ? 'mark' : 'logo',
+        group === 'artwork' ? 'artwork' : group === 'mark' ? 'mark' : 'logo',
       )
 }
 
@@ -358,6 +433,16 @@ async function drawTemplateImageSlot(
   layout: CaseInsertPreviewLayout,
   group: 'titleArtwork' | 'artwork' | 'logo' | 'mark',
 ) {
+  if (group === 'artwork') {
+    await drawImageSlotInRect(
+      context,
+      slot,
+      getTemplateImageSlotRect(paneId, slot, layout, group),
+      slot.label,
+    )
+    return
+  }
+
   await drawImageInRect(
     context,
     slot.imageDataUrl,
@@ -400,64 +485,20 @@ async function drawTemplateArtwork(
 ) {
   const templateState = getTemplateState(caseInsert, paneId)
 
-  if (paneId === 'cover') {
-    await drawTemplateImageSlot(
-      context,
-      'cover',
-      templateState.titleArtwork,
-      layout,
-      'titleArtwork',
-    )
+  await drawTemplateImageSlot(
+    context,
+    paneId,
+    templateState.titleArtwork,
+    layout,
+    'titleArtwork',
+  )
 
-    for (const slot of templateState.artworkSlots) {
-      await drawTemplateImageSlot(context, 'cover', slot, layout, 'artwork')
-    }
+  if (!templateState.additionalArtworkEnabled) {
     return
   }
 
-  for (const [index, slot] of templateState.artworkSlots.entries()) {
-    const screenshotFit = getJewelCaseBackScreenshotFit(
-      slot,
-      layout,
-      index,
-      templateState.artworkSlots.length,
-    )
-
-    await drawImageFit(
-      context,
-      screenshotFit,
-      slot.imageDataUrl,
-      slot.label,
-      () => {
-        if (!screenshotFit) return
-        context.fillStyle = 'rgba(15, 23, 42, 0.54)'
-        context.fillRect(
-          screenshotFit.region.x,
-          screenshotFit.region.y,
-          screenshotFit.region.width,
-          screenshotFit.region.height,
-        )
-        context.strokeStyle = 'rgba(255, 255, 255, 0.64)'
-        context.lineWidth = 2
-        context.strokeRect(
-          screenshotFit.region.x + 1,
-          screenshotFit.region.y + 1,
-          Math.max(0, screenshotFit.region.width - 2),
-          Math.max(0, screenshotFit.region.height - 2),
-        )
-      },
-      () => {
-        if (!screenshotFit) return
-        context.strokeStyle = 'rgba(255, 255, 255, 0.64)'
-        context.lineWidth = 2
-        context.strokeRect(
-          screenshotFit.region.x + 1,
-          screenshotFit.region.y + 1,
-          Math.max(0, screenshotFit.region.width - 2),
-          Math.max(0, screenshotFit.region.height - 2),
-        )
-      },
-    )
+  for (const slot of templateState.artworkSlots) {
+    await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
   }
 }
 
@@ -576,6 +617,47 @@ async function drawSpineSide(
     state.background.imageDataUrl,
     state.background.label,
   )
+  const artworkSlots = state.additionalArtworkEnabled ? state.artworkSlots : []
+
+  for (const [slot, role] of [
+    [state.titleArtwork, 'titleArtwork'],
+    ...artworkSlots.map((slot) => [slot, 'artwork'] as const),
+  ] as const) {
+    const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
+      side,
+      slot,
+      layout,
+      role,
+    )
+
+    const imageDataUrl = slot.imageDataUrl
+
+    if (!slotLayout || !imageDataUrl) continue
+
+    await drawWithTransformedBox(context, slotLayout, async () => {
+      const localRect = {
+        x: -slotLayout.width / 2,
+        y: -slotLayout.height / 2,
+        width: slotLayout.width,
+        height: slotLayout.height,
+      }
+
+      if (role === 'artwork' && slot.frame.enabled && slot.frame.shape === 'circle') {
+        createImageSlotFramePath(context, slot, localRect)
+        context.clip()
+      }
+      await drawContainImageInLocalBox(
+        context,
+        imageDataUrl,
+        slotLayout.width,
+        slotLayout.height,
+        slot.label,
+      )
+      if (role === 'artwork') {
+        drawImageSlotFrame(context, slot, localRect)
+      }
+    })
+  }
 
   const titleLayout = getJewelCaseSpineTitlePreviewLayout(
     side,
@@ -710,7 +792,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
       ),
-    'case-callout-artwork': () => undefined,
+    'case-artwork': () => undefined,
     'case-title-artwork': () => undefined,
     'case-logo-assets': () =>
       drawTemplateSlotGroup(

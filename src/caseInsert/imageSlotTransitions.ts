@@ -3,6 +3,10 @@ import {
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
 import { getJewelCaseImageRegionHeightFitScale } from '../layout/jewelCaseLayout.ts'
+import {
+  DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+  type AdditionalArtworkFrameField,
+} from '../project/additionalArtworkFrame.ts'
 import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
@@ -92,6 +96,29 @@ export function updateCaseInsertImageSlotLayoutPosition(
     x: point.x,
     y: point.y,
   })
+}
+
+export function updateCaseInsertImageSlotFrameField(
+  slot: ProjectCaseInsertImageSlot,
+  field: AdditionalArtworkFrameField,
+  value: boolean | number | string,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    frame: {
+      ...slot.frame,
+      [field]: value,
+    },
+  }
+}
+
+export function resetCaseInsertImageSlotFrame(
+  slot: ProjectCaseInsertImageSlot,
+): ProjectCaseInsertImageSlot {
+  return {
+    ...slot,
+    frame: DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+  }
 }
 
 export function fitCaseInsertImageSlotToRegionHeight(

@@ -1,4 +1,10 @@
-import { Fragment, type CSSProperties, type ReactNode, useMemo } from 'react'
+import {
+  Fragment,
+  type CSSProperties,
+  type ReactNode,
+  type RefObject,
+  useMemo,
+} from 'react'
 import {
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
   type CaseInsertEditorPreviewLayerId,
@@ -23,10 +29,15 @@ import {
 import { CaseInsertSpinePreviewLayer } from './CaseInsertSpinePreviewLayer'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
+import type {
+  CaseInsertPreviewPointerHandlers,
+} from '../../interaction/useCaseInsertPreviewPointerDrag'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  caseInsertPreviewRef: RefObject<HTMLDivElement | null>
+  pointerHandlers: CaseInsertPreviewPointerHandlers
   statusToasts: PreviewToast[]
 }
 
@@ -84,6 +95,8 @@ function EmptyCaseLayer() {
 export function CaseInsertPreview({
   caseInsert,
   activeTemplatePane,
+  caseInsertPreviewRef,
+  pointerHandlers,
   statusToasts,
 }: CaseInsertPreviewProps) {
   const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
@@ -109,6 +122,7 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-screenshot-artwork': (
@@ -116,15 +130,17 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        pointerHandlers={pointerHandlers.template}
       />
     ),
-    'case-callout-artwork': <EmptyCaseLayer />,
+    'case-artwork': <EmptyCaseLayer />,
     'case-title-artwork': <EmptyCaseLayer />,
     'case-logo-assets': (
       <CaseInsertTemplateLogoLayer
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-rating-badges': (
@@ -133,6 +149,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="rating"
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-media-marks': (
@@ -141,6 +158,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="media"
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-platform-marks': (
@@ -149,6 +167,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="platform"
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-technical-marks': (
@@ -157,6 +176,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="technical"
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-text': (
@@ -164,12 +184,14 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        pointerHandlers={pointerHandlers.template}
       />
     ),
     'case-spine-content': (
       <CaseInsertSpinePreviewLayer
         spine={caseInsert.spine}
         layout={layout}
+        pointerHandlers={pointerHandlers.spine}
       />
     ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
@@ -187,6 +209,7 @@ export function CaseInsertPreview({
       <PreviewToastStack statusToasts={statusToasts} />
 
       <div
+        ref={caseInsertPreviewRef}
         className="case-insert-preview"
         style={previewStyle}
         aria-label={`${activePaneConfig.label} live preview`}

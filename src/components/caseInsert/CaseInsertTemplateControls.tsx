@@ -10,8 +10,24 @@ import {
   type CaseInsertBrandingSourceCatalog,
   type CaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
+import {
+  CASE_INSERT_ARTWORK_SECTION_LABELS,
+} from '../../caseInsert/artworkPanelSections'
+import {
+  createJewelCasePreviewLayout,
+} from '../../layout/caseInsertPreviewLayout'
 import type {
-  ProjectCaseInsertImageFit,
+  CaseInsertLayoutSliderRanges,
+} from '../../layout/caseInsertElementSafeZone'
+import {
+  getJewelCaseBackBackgroundLayoutSliderRanges,
+  getJewelCaseBackImageSlotLayoutSliderRanges,
+} from '../../layout/jewelCaseBackLayout'
+import {
+  getJewelCaseFrontBackgroundLayoutSliderRanges,
+  getJewelCaseFrontImageSlotLayoutSliderRanges,
+} from '../../layout/jewelCaseFrontLayout'
+import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertSurfaceState,
@@ -26,6 +42,16 @@ import {
   type CaseInsertImageSourceControlSource,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
+import {
+  CaseInsertImageSlotPlacementControls,
+  type CaseInsertImageSlotPlacementField,
+} from './CaseInsertImageSlotPlacementControls'
+import { CaseInsertImageSlotFrameControls } from './CaseInsertImageSlotFrameControls'
+import { CaseInsertImageSlotStatusCard } from './CaseInsertImageSlotStatusCard'
+import {
+  CaseInsertTitleArtworkControls,
+  type CaseInsertTitleArtworkPlacementField,
+} from './CaseInsertTitleArtworkControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
@@ -36,16 +62,6 @@ export type CaseInsertTemplateControlsProps = {
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
 }
-
-const IMAGE_FIT_OPTIONS: Array<{
-  value: ProjectCaseInsertImageFit
-  label: string
-}> = [
-  { value: 'cover', label: 'Cover region' },
-  { value: 'contain', label: 'Contain full image' },
-  { value: 'crop', label: 'Crop with offset' },
-  { value: 'scale', label: 'Manual scale' },
-]
 
 const COVER_POSITION_PRESETS = [
   { label: 'Top left', x: 20, y: 18 },
@@ -104,8 +120,100 @@ const CASE_INSERT_MARK_BRANDING_SECTIONS: Array<{
   },
 ]
 
-function formatImageSize(size: ProjectCaseInsertImageSlot['imageSize']) {
-  return size ? ` · ${size.width} x ${size.height}px` : ''
+const BACKGROUND_PLACEMENT_FIELDS: CaseInsertImageSlotPlacementField[] = [
+  { field: 'scale', label: 'Scale', min: 0.01, max: 4, step: 0.01 },
+  { field: 'x', label: 'X', min: -100, max: 100, step: 0.1 },
+  { field: 'y', label: 'Y', min: -100, max: 100, step: 0.1 },
+]
+
+const TEMPLATE_OVERLAY_PLACEMENT_FIELDS: CaseInsertImageSlotPlacementField[] = [
+  { field: 'scale', label: 'Scale', min: 0.25, max: 2.5, step: 0.01 },
+  { field: 'x', label: 'X', min: 0, max: 100, step: 0.1 },
+  { field: 'y', label: 'Y', min: 0, max: 100, step: 0.1 },
+]
+
+const TEMPLATE_TITLE_ARTWORK_PLACEMENT_FIELDS:
+CaseInsertTitleArtworkPlacementField[] = [
+  { field: 'scale', label: 'Scale', min: 0.35, max: 5, step: 0.01 },
+  { field: 'x', label: 'X', min: 0, max: 100, step: 0.1 },
+  { field: 'y', label: 'Y', min: 0, max: 100, step: 0.1 },
+]
+
+function applyLayoutSliderRanges<
+  T extends {
+    field: keyof ProjectCaseInsertLayout
+    max: number
+    min: number
+  },
+>(fields: T[], ranges: CaseInsertLayoutSliderRanges): T[] {
+  return fields.map((field) => {
+    if (field.field !== 'x' && field.field !== 'y') {
+      return field
+    }
+
+    return {
+      ...field,
+      min: ranges[field.field].min,
+      max: ranges[field.field].max,
+    }
+  })
+}
+
+function getTemplatePreviewLayout(paneId: CaseInsertTemplatePaneId) {
+  return createJewelCasePreviewLayout(
+    'jewelCase',
+    paneId === 'cover' ? 'front' : 'back',
+  )
+}
+
+function getTemplatePrimaryImagePlacementFields(
+  paneId: CaseInsertTemplatePaneId,
+  slotKey: 'background' | 'titleArtwork',
+  slot: ProjectCaseInsertImageSlot,
+) {
+  const layout = getTemplatePreviewLayout(paneId)
+  const fields = slotKey === 'background'
+    ? BACKGROUND_PLACEMENT_FIELDS
+    : TEMPLATE_TITLE_ARTWORK_PLACEMENT_FIELDS
+  const ranges = paneId === 'cover'
+    ? slotKey === 'background'
+      ? getJewelCaseFrontBackgroundLayoutSliderRanges(slot, layout)
+      : getJewelCaseFrontImageSlotLayoutSliderRanges(
+          slot,
+          layout,
+          'titleArtwork',
+        )
+    : slotKey === 'background'
+      ? getJewelCaseBackBackgroundLayoutSliderRanges(slot, layout)
+      : getJewelCaseBackImageSlotLayoutSliderRanges(slot, layout, 'logo')
+
+  return applyLayoutSliderRanges(fields, ranges)
+}
+
+function getTemplateGroupedImagePlacementFields(
+  paneId: CaseInsertTemplatePaneId,
+  slotKey: CaseInsertImageSlotGroupKey,
+  slot: ProjectCaseInsertImageSlot,
+) {
+  const layout = getTemplatePreviewLayout(paneId)
+
+  const ranges = paneId === 'cover'
+    ? getJewelCaseFrontImageSlotLayoutSliderRanges(
+        slot,
+        layout,
+        slotKey === 'artworkSlots'
+          ? 'calloutArtwork'
+          : slotKey === 'logoSlots' ? 'logo' : 'mark',
+      )
+    : getJewelCaseBackImageSlotLayoutSliderRanges(
+        slot,
+        layout,
+        slotKey === 'artworkSlots'
+          ? 'artwork'
+          : slotKey === 'markSlots' ? 'mark' : 'logo',
+      )
+
+  return applyLayoutSliderRanges(TEMPLATE_OVERLAY_PLACEMENT_FIELDS, ranges)
 }
 
 function getImageStatus(slot: ProjectCaseInsertImageSlot) {
@@ -125,49 +233,6 @@ function getTextBlockRows(textBlock: ProjectCaseInsertTextBlock) {
   if (textBlock.id.includes('requirements')) return 4
 
   return 3
-}
-
-function ImageSlotStatus({ slot }: { slot: ProjectCaseInsertImageSlot }) {
-  if (!slot.imageDataUrl) {
-    return <p className="hint">No image selected yet.</p>
-  }
-
-  const imageStatus = getImageStatus(slot)
-
-  return (
-    <div className="selected-lockup-card case-insert-image-status-card">
-      <img src={slot.imageDataUrl} alt="" draggable={false} />
-      <span>{imageStatus.summary}{formatImageSize(slot.imageSize)}</span>
-    </div>
-  )
-}
-
-function FitSelect({
-  id,
-  fit,
-  onFitChange,
-}: {
-  id: string
-  fit: ProjectCaseInsertImageFit
-  onFitChange: (fit: ProjectCaseInsertImageFit) => void
-}) {
-  return (
-    <>
-      <label className="field-label spacing-top" htmlFor={id}>Image fit</label>
-      <select
-        id={id}
-        value={fit}
-        onChange={(event) =>
-          onFitChange(event.target.value as ProjectCaseInsertImageFit)}
-      >
-        {IMAGE_FIT_OPTIONS.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </>
-  )
 }
 
 function RangeField({
@@ -206,183 +271,6 @@ function RangeField({
   )
 }
 
-function isCaseInsertImageSourceControlActive(
-  imageSource: ProjectCaseInsertImageSlot['imageSource'],
-  source: CaseInsertImageSourceControlSource,
-) {
-  if (!imageSource) return source === 'local-file'
-
-  switch (source) {
-    case 'steam-artwork':
-    case 'web-artwork':
-    case 'local-steam-screenshot':
-      return imageSource.source === source
-    case 'local-file':
-      return ![
-        'steam-artwork',
-        'web-artwork',
-        'local-steam-screenshot',
-      ].includes(imageSource.source)
-  }
-}
-
-function CaseInsertImageSlotFineTuneControls({
-  paneId,
-  uploadId,
-  slot,
-  source,
-  sectionLabel,
-  isBackground,
-  onFitChange,
-  onFitToRegion,
-  onLayoutChange,
-  onResetLayout,
-  onClearImage,
-  featureEnabled,
-}: {
-  paneId: CaseInsertTemplatePaneId
-  uploadId: string
-  slot: ProjectCaseInsertImageSlot
-  source: CaseInsertImageSourceControlSource
-  sectionLabel: string
-  isBackground: boolean
-  onFitChange: (fit: ProjectCaseInsertImageFit) => void
-  onFitToRegion?: () => void
-  onLayoutChange: (
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) => void
-  onResetLayout: () => void
-  onClearImage: () => void
-  featureEnabled: boolean
-}) {
-  if (!featureEnabled) {
-    return null
-  }
-
-  const isActiveSource = isCaseInsertImageSourceControlActive(
-    slot.imageSource,
-    source,
-  )
-  const controlsDisabled = !slot.imageDataUrl || !isActiveSource
-  const sourceName = sectionLabel.toLocaleLowerCase()
-  const statusMessage = !slot.imageDataUrl
-    ? `Choose ${sourceName} to unlock fit, scale, position, reset, and clear controls here.`
-    : isActiveSource
-      ? `These controls adjust the current image from ${sourceName}.`
-      : `Inactive while another image source controls this slot.`
-
-  return (
-    <fieldset
-      className="case-insert-source-layout-controls"
-      disabled={controlsDisabled}
-      aria-label={`${sectionLabel} placement controls`}
-    >
-      <legend>Placement</legend>
-      <p className="hint">{statusMessage}</p>
-      <ImageSlotStatus slot={slot} />
-
-      {isBackground ? (
-        <>
-          <button
-            className="secondary-button spacing-top"
-            type="button"
-            onClick={onFitToRegion}
-          >
-            Fit image
-          </button>
-          <RangeField
-            id={`${uploadId}-${source}-scale`}
-            label="Scale"
-            min={0.01}
-            max={4}
-            step={0.01}
-            value={slot.layout.scale}
-            onChange={(value) => onLayoutChange('scale', value)}
-          />
-          <RangeField
-            id={`${uploadId}-${source}-x`}
-            label="X position"
-            min={-100}
-            max={100}
-            step={1}
-            value={slot.layout.x}
-            onChange={(value) => onLayoutChange('x', value)}
-          />
-          <RangeField
-            id={`${uploadId}-${source}-y`}
-            label="Y position"
-            min={-100}
-            max={100}
-            step={1}
-            value={slot.layout.y}
-            onChange={(value) => onLayoutChange('y', value)}
-          />
-        </>
-      ) : (
-        <>
-          <FitSelect
-            id={`${uploadId}-${source}-fit`}
-            fit={slot.fit}
-            onFitChange={onFitChange}
-          />
-          <OverlayPositionPreset
-            id={`${uploadId}-${source}-placement`}
-            paneId={paneId}
-            onLayoutChange={onLayoutChange}
-          />
-          <RangeField
-            id={`${uploadId}-${source}-scale`}
-            label="Scale"
-            min={0.25}
-            max={2.5}
-            step={0.01}
-            value={slot.layout.scale}
-            onChange={(value) => onLayoutChange('scale', value)}
-          />
-          <RangeField
-            id={`${uploadId}-${source}-x`}
-            label="X position"
-            min={0}
-            max={100}
-            step={1}
-            value={slot.layout.x}
-            onChange={(value) => onLayoutChange('x', value)}
-          />
-          <RangeField
-            id={`${uploadId}-${source}-y`}
-            label="Y position"
-            min={0}
-            max={100}
-            step={1}
-            value={slot.layout.y}
-            onChange={(value) => onLayoutChange('y', value)}
-          />
-        </>
-      )}
-
-      <div className="button-row spacing-top">
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={onResetLayout}
-        >
-          Reset layout
-        </button>
-        {slot.imageDataUrl ? (
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={onClearImage}
-          >
-            Clear image
-          </button>
-        ) : null}
-      </div>
-    </fieldset>
-  )
-}
-
 function OverlayPositionPreset({
   id,
   paneId,
@@ -395,8 +283,8 @@ function OverlayPositionPreset({
   const presets = getPositionPresets(paneId)
 
   return (
-    <>
-      <label className="field-label spacing-top" htmlFor={id}>Placement</label>
+    <label>
+      <span>Preset</span>
       <select
         id={id}
         defaultValue=""
@@ -421,7 +309,7 @@ function OverlayPositionPreset({
           </option>
         ))}
       </select>
-    </>
+    </label>
   )
 }
 
@@ -454,29 +342,35 @@ function PrimaryImageSlotControls({
     source: CaseInsertImageSourceControlSource,
     sectionLabel: string,
   ) => (
-    <CaseInsertImageSlotFineTuneControls
-      paneId={paneId}
-      uploadId={uploadId}
-      slot={slot}
-      source={source}
-      sectionLabel={sectionLabel}
-      isBackground={isBackground}
-      onFitChange={(fit) =>
-        actions.handleImageSlotFitChange(paneId, slotKey, fit)}
+    <CaseInsertImageSlotPlacementControls
+      beforeRangeControls={!isBackground ? (
+        <OverlayPositionPreset
+          id={`${uploadId}-${source}-placement`}
+          paneId={paneId}
+          onLayoutChange={onLayoutChange}
+        />
+      ) : null}
+      featureEnabled={slot.enabled}
+      fields={getTemplatePrimaryImagePlacementFields(paneId, slotKey, slot)}
       onFitToRegion={() =>
         actions.handleFitImageSlotToRegion(paneId, slotKey, slot.label)}
       onLayoutChange={onLayoutChange}
       onResetLayout={() => actions.handleResetImageSlotLayout(paneId, slotKey)}
       onClearImage={() =>
         actions.handleClearImageSlot(paneId, slotKey, slot.label)}
-      featureEnabled={slot.enabled}
+      sectionLabel={sectionLabel}
+      showFitButton={isBackground}
+      uploadId={uploadId}
+      slot={slot}
+      source={source}
     />
   )
 
   const shouldShowSources = isBackground || slot.enabled
   const className = isBackground
-    ? 'case-insert-primary-slot-control case-insert-background-control'
-    : 'case-insert-control-card case-insert-primary-slot-control'
+    ? 'logo-asset-card artwork-feature-card case-insert-primary-slot-control case-insert-background-control'
+    : 'feature-control-body case-insert-primary-slot-control'
+  const imageStatus = getImageStatus(slot)
 
   return (
     <div className={className}>
@@ -494,38 +388,45 @@ function PrimaryImageSlotControls({
         {enableLabel}
       </label>
 
+      {isBackground ? (
+        <p className="hint">
+          Current background: {imageStatus.summary}. {imageStatus.availabilityLabel}
+          {!slot.enabled ? ' Background art is hidden from preview and export.' : ''}
+        </p>
+      ) : null}
+
       {shouldShowSources ? (
-          <CaseInsertImageSourceControls
-            {...imageSources}
-            uploadId={uploadId}
-            title={title}
-            hasImage={Boolean(slot.imageDataUrl)}
-            imageSource={slot.imageSource}
-            onUpload={(event) =>
-              actions.handleImageSlotUpload(paneId, slotKey, slot.label, event)}
-            onUseSteamArtwork={(asset) =>
-              actions.handleUseImageSlotSteamArtwork(
-                paneId,
-                slotKey,
-                slot.label,
-                asset,
-              )}
-            onUseLocalSteamScreenshot={(asset) =>
-              actions.handleUseImageSlotLocalSteamScreenshot(
-                paneId,
-                slotKey,
-                slot.label,
-                asset,
-              )}
-            onUseWebArtworkCandidate={(candidate) =>
-              actions.handleUseImageSlotWebArtwork(
-                paneId,
-                slotKey,
-                slot.label,
-                candidate,
-              )}
-            renderFineTuneControls={renderFineTuneControls}
-          />
+        <CaseInsertImageSourceControls
+          {...imageSources}
+          uploadId={uploadId}
+          title={title}
+          hasImage={Boolean(slot.imageDataUrl)}
+          imageSource={slot.imageSource}
+          onUpload={(event) =>
+            actions.handleImageSlotUpload(paneId, slotKey, slot.label, event)}
+          onUseSteamArtwork={(asset) =>
+            actions.handleUseImageSlotSteamArtwork(
+              paneId,
+              slotKey,
+              slot.label,
+              asset,
+            )}
+          onUseLocalSteamScreenshot={(asset) =>
+            actions.handleUseImageSlotLocalSteamScreenshot(
+              paneId,
+              slotKey,
+              slot.label,
+              asset,
+            )}
+          onUseWebArtworkCandidate={(candidate) =>
+            actions.handleUseImageSlotWebArtwork(
+              paneId,
+              slotKey,
+              slot.label,
+              candidate,
+            )}
+          renderFineTuneControls={renderFineTuneControls}
+        />
       ) : null}
     </div>
   )
@@ -560,20 +461,20 @@ function GroupedImageSlotControls({
     source: CaseInsertImageSourceControlSource,
     sectionLabel: string,
   ) => (
-    <CaseInsertImageSlotFineTuneControls
-      paneId={paneId}
-      uploadId={uploadId}
-      slot={slot}
-      source={source}
-      sectionLabel={sectionLabel}
-      isBackground={false}
-      onFitChange={(fit) =>
-        actions.handleGroupedImageSlotFitChange(
-          paneId,
-          slotKey,
-          slot.id,
-          fit,
-        )}
+    <CaseInsertImageSlotPlacementControls
+      beforeRangeControls={
+        <OverlayPositionPreset
+          id={`${uploadId}-${source}-placement`}
+          paneId={paneId}
+          onLayoutChange={onLayoutChange}
+        />
+      }
+      featureEnabled={slot.enabled}
+      fields={getTemplateGroupedImagePlacementFields(
+        paneId,
+        slotKey,
+        slot,
+      )}
       onLayoutChange={onLayoutChange}
       onResetLayout={() =>
         actions.handleResetGroupedImageSlotLayout(
@@ -588,7 +489,10 @@ function GroupedImageSlotControls({
           slot.id,
           slotTitle,
         )}
-      featureEnabled={slot.enabled}
+      sectionLabel={sectionLabel}
+      uploadId={uploadId}
+      slot={slot}
+      source={source}
     />
   )
   const slotTitle = slot.label.trim() || 'Visual slot'
@@ -596,9 +500,12 @@ function GroupedImageSlotControls({
   const summary = [
     slot.enabled ? 'shown' : 'hidden',
     slot.imageDataUrl ? slotImageStatus.summary : 'no image',
+    slotKey === 'artworkSlots'
+      ? slot.frame.enabled ? `${slot.frame.shape} frame` : 'no frame'
+      : null,
     `fit ${slot.fit}`,
     `scale ${slot.layout.scale.toFixed(2)}`,
-  ].join(' · ')
+  ].filter(Boolean).join(' · ')
 
   return (
     <RepeatedVisualElementCard
@@ -669,6 +576,32 @@ function GroupedImageSlotControls({
         allowLocalSteamScreenshots={slotKey === 'artworkSlots'}
         renderFineTuneControls={renderFineTuneControls}
       />
+      {slotKey === 'artworkSlots' ? (
+        <>
+          <CaseInsertImageSlotStatusCard
+            slot={slot}
+            emptyHint="No image is selected yet. Upload a local image or use an imported artwork source."
+          />
+          <CaseInsertImageSlotFrameControls
+            idPrefix={uploadId}
+            slot={slot}
+            onFrameChange={(field, value) =>
+              actions.handleGroupedImageSlotFrameChange(
+                paneId,
+                slotKey,
+                slot.id,
+                field,
+                value,
+              )}
+            onResetFrame={() =>
+              actions.handleResetGroupedImageSlotFrame(
+                paneId,
+                slotKey,
+                slot.id,
+              )}
+          />
+        </>
+      ) : null}
     </RepeatedVisualElementCard>
   )
 }
@@ -723,16 +656,53 @@ function GroupedImageSlotList({
 
 function GroupedImageSlotSection({
   title,
+  featureEnabled,
+  onFeatureEnabledChange,
   ...slotListProps
 }: GroupedImageSlotListProps & {
   title: string
+  featureEnabled?: boolean
+  onFeatureEnabledChange?: (enabled: boolean) => void
 }) {
   return (
     <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">{title}</summary>
       <div className="panel-content">
-        <GroupedImageSlotList {...slotListProps} />
+        {onFeatureEnabledChange ? (
+          <div className="feature-control-body additional-artwork-control">
+            <label className="field-label">
+              <input
+                type="checkbox"
+                checked={Boolean(featureEnabled)}
+                onChange={(event) =>
+                  onFeatureEnabledChange(event.target.checked)}
+              />
+              Show additional artwork
+            </label>
+
+            {featureEnabled ? (
+              <GroupedImageSlotList {...slotListProps} />
+            ) : null}
+          </div>
+        ) : (
+          <GroupedImageSlotList {...slotListProps} />
+        )}
       </div>
+    </details>
+  )
+}
+
+function CaseInsertArtworkFeatureSection({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+      <summary className="panel-summary">{title}</summary>
+      <div className="panel-content">{children}</div>
     </details>
   )
 }
@@ -1011,24 +981,53 @@ export function CaseInsertTemplateArtworkControls({
         actions={actions}
       />
 
-      {paneId === 'cover' ? (
-        <PrimaryImageSlotControls
-          paneId={paneId}
-          slotKey="titleArtwork"
+      <CaseInsertArtworkFeatureSection
+        title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}
+      >
+        <CaseInsertTitleArtworkControls
           slot={templateState.titleArtwork}
-          title="title/logo artwork"
-          enableLabel="Show title/logo artwork"
           uploadId={`${paneId}-title-artwork-upload`}
-          imageSources={imageSources}
-          actions={actions}
+          fields={getTemplatePrimaryImagePlacementFields(
+            paneId,
+            'titleArtwork',
+            templateState.titleArtwork,
+          )}
+          helpText="This is the game title/logo artwork on the case insert. Steam import can seed the Steam CDN logo when available; template text stays independently available in the Text tab."
+          onEnabledChange={(enabled) =>
+            actions.handleImageSlotEnabledChange(
+              paneId,
+              'titleArtwork',
+              enabled,
+            )}
+          onUpload={(event) =>
+            actions.handleImageSlotUpload(
+              paneId,
+              'titleArtwork',
+              templateState.titleArtwork.label,
+              event,
+            )}
+          onLayoutChange={(field, value) =>
+            actions.handleImageSlotLayoutChange(
+              paneId,
+              'titleArtwork',
+              field,
+              value,
+            )}
+          onResetLayout={() =>
+            actions.handleResetImageSlotLayout(paneId, 'titleArtwork')}
+          onRestoreDefault={() =>
+            actions.handleRestoreTitleArtworkDefault(paneId)}
         />
-      ) : null}
+      </CaseInsertArtworkFeatureSection>
 
       <GroupedImageSlotSection
         paneId={paneId}
-        title={paneId === 'cover' ? 'Artwork' : 'Screenshots'}
-        emptyHint={paneId === 'cover' ? 'No artwork slots.' : 'No screenshots.'}
-        addLabel={paneId === 'cover' ? 'Add artwork slot' : 'Add screenshot slot'}
+        title={CASE_INSERT_ARTWORK_SECTION_LABELS.additionalArtwork}
+        featureEnabled={templateState.additionalArtworkEnabled}
+        onFeatureEnabledChange={(enabled) =>
+          actions.handleAdditionalArtworkEnabledChange(paneId, enabled)}
+        emptyHint="No additional artwork slots."
+        addLabel="Add artwork slot"
         slotKey="artworkSlots"
         slots={templateState.artworkSlots}
         imageSources={imageSources}

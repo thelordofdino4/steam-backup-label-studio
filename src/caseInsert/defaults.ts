@@ -23,6 +23,9 @@ import type {
   ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import {
+  DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+} from '../project/additionalArtworkFrame.ts'
 
 export const DEFAULT_CASE_INSERT_PROJECT_TITLE = 'Untitled Jewel Case Insert'
 
@@ -31,7 +34,6 @@ export const DEFAULT_CASE_INSERT_TEMPLATE_PANES: CaseInsertTemplatePaneId[] = [
   DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
   'tray',
 ]
-export const DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT = 3
 export const JEWEL_CASE_GUIDE_IDS = jewelCaseInsertTemplate.guides.map(
   ({ id }) => id as JewelCaseGuideId,
 )
@@ -67,8 +69,10 @@ export function createDefaultCaseInsertImageSlot(
     imageDataUrl: null,
     imageSource: null,
     imageSize: null,
+    defaultSteamLogo: null,
     fit: options.fit ?? 'contain',
     layout: createDefaultCaseInsertLayout(options.layout),
+    frame: DEFAULT_ADDITIONAL_ARTWORK_FRAME,
   }
 }
 
@@ -128,6 +132,7 @@ export function createDefaultCaseInsertSurfaceState(
       `${paneId}-title-artwork`,
       `${label} title artwork`,
     ),
+    additionalArtworkEnabled: false,
     artworkSlots: [],
     logoSlots: [],
     markSlots: [],
@@ -150,16 +155,6 @@ ProjectCaseInsertSurfaceState {
         layout: { scale: 1, x: 50, y: 24 },
       },
     ),
-    artworkSlots: [
-      createDefaultCaseInsertImageSlot(
-        'cover-callout-artwork',
-        'Callout artwork',
-        {
-          fit: 'contain',
-          layout: { scale: 1, x: 50, y: 62 },
-        },
-      ),
-    ],
     textBlocks: [
       createDefaultCaseInsertTextBlock(
         'cover-callout-text',
@@ -170,21 +165,10 @@ ProjectCaseInsertSurfaceState {
   }
 }
 
-export function createDefaultJewelCaseScreenshotSlots() {
-  return Array.from({ length: DEFAULT_JEWEL_CASE_SCREENSHOT_SLOT_COUNT }, (_, index) =>
-    createDefaultCaseInsertImageSlot(
-      `tray-screenshot-${index + 1}`,
-      `Screenshot ${index + 1}`,
-      { fit: 'cover' },
-    ),
-  )
-}
-
 export function createDefaultCaseInsertTrayTemplateState():
 ProjectCaseInsertSurfaceState {
   return {
     ...createDefaultCaseInsertSurfaceState('tray', 'Tray card'),
-    artworkSlots: createDefaultJewelCaseScreenshotSlots(),
     textBlocks: [
       createDefaultCaseInsertTextBlock(
         'tray-description',
@@ -217,6 +201,21 @@ ProjectCaseInsertSurfaceState {
   }
 }
 
+export function createDefaultJewelCaseSpineArtworkSlot(
+  side: 'left' | 'right',
+  index: number,
+): ProjectCaseInsertImageSlot {
+  return createDefaultCaseInsertImageSlot(
+    `${side}-spine-artwork-${index}`,
+    `Artwork ${index}`,
+    {
+      enabled: true,
+      fit: 'contain',
+      layout: { scale: 1, x: 50, y: 72, rotation: 0 },
+    },
+  )
+}
+
 export function createDefaultCaseInsertTemplateStates():
 Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
   return {
@@ -235,8 +234,23 @@ export function createDefaultJewelCaseSpineSideState(
     background: createDefaultCaseInsertImageSlot(
       `${side}-spine-background`,
       `${label} background`,
-      { fit: 'cover' },
+      { enabled: true, fit: 'cover' },
     ),
+    titleArtwork: createDefaultCaseInsertImageSlot(
+      `${side}-spine-title-artwork`,
+      `${label} game logo`,
+      {
+        fit: 'contain',
+        layout: {
+          scale: 1,
+          x: 50,
+          y: 28,
+          rotation: side === 'left' ? -90 : 90,
+        },
+      },
+    ),
+    additionalArtworkEnabled: false,
+    artworkSlots: [],
     title: createDefaultCaseInsertTextBlock(
       `${side}-spine-title`,
       `${label} title`,

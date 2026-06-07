@@ -5,6 +5,13 @@ import type {
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
+  CASE_INSERT_OFFSET_LAYOUT_RANGES,
+  CASE_INSERT_PERCENT_LAYOUT_RANGES,
+  getCenteredRectLayoutSliderRanges,
+  getImageFitOffsetLayoutSliderRanges,
+  type CaseInsertLayoutSliderRanges,
+} from './caseInsertElementSafeZone.ts'
+import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
   type JewelCaseImageFitResult,
@@ -12,7 +19,11 @@ import {
   type JewelCaseSpineSideId,
 } from './jewelCaseLayout.ts'
 
-export type JewelCaseSpineOverlayRole = 'branding' | 'logo'
+export type JewelCaseSpineOverlayRole =
+  | 'branding'
+  | 'titleArtwork'
+  | 'artwork'
+  | 'logo'
 
 export type JewelCaseSpineBoxLayout = {
   center: {
@@ -38,11 +49,25 @@ const SPINE_TITLE_FONT_FILL_RATIO = 0.68
 
 const spineOverlayConfig = {
   branding: {
+    widthBasis: 'length',
     widthRatio: 0.24,
     heightRatio: 0.74,
     defaultCenter: { x: 50, y: 14 },
   },
+  titleArtwork: {
+    widthBasis: 'length',
+    widthRatio: 0.42,
+    heightRatio: 0.82,
+    defaultCenter: { x: 50, y: 28 },
+  },
+  artwork: {
+    widthBasis: 'width',
+    widthRatio: 0.82,
+    heightRatio: 0.82,
+    defaultCenter: { x: 50, y: 72 },
+  },
   logo: {
+    widthBasis: 'width',
     widthRatio: 0.82,
     heightRatio: 0.82,
     defaultCenter: { x: 50, y: 88 },
@@ -50,6 +75,7 @@ const spineOverlayConfig = {
 } as const satisfies Record<
   JewelCaseSpineOverlayRole,
   {
+    widthBasis: 'length' | 'width'
     widthRatio: number
     heightRatio: number
     defaultCenter: { x: number; y: number }
@@ -76,10 +102,36 @@ function getDefaultSpineRotation(side: JewelCaseSpineSideId) {
   return side === 'left' ? -90 : 90
 }
 
+function getDefaultSpineOverlayRotation(
+  side: JewelCaseSpineSideId,
+  role: JewelCaseSpineOverlayRole,
+) {
+  return role === 'branding' || role === 'titleArtwork'
+    ? getDefaultSpineRotation(side)
+    : 0
+}
+
 function rotationSwapsAxes(rotationDegrees: number) {
   const normalized = Math.abs(((rotationDegrees % 180) + 180) % 180)
 
   return normalized > 45 && normalized < 135
+}
+
+function getTransformedBoundingSize({
+  height,
+  rotationDegrees,
+  width,
+}: {
+  height: number
+  rotationDegrees: number
+  width: number
+}) {
+  const swapsAxes = rotationSwapsAxes(rotationDegrees)
+
+  return {
+    width: swapsAxes ? height : width,
+    height: swapsAxes ? width : height,
+  }
 }
 
 function getRegionBounds(
@@ -120,18 +172,20 @@ function getClampedTransformedBoxLayout({
   rotationDegrees: number
   centerPercent: { x: number; y: number }
 }): JewelCaseSpineBoxLayout {
-  const swapsAxes = rotationSwapsAxes(rotationDegrees)
-  const boundingWidth = swapsAxes ? height : width
-  const boundingHeight = swapsAxes ? width : height
+  const boundingSize = getTransformedBoundingSize({
+    height,
+    rotationDegrees,
+    width,
+  })
   const requestedCenter = {
     x: safeBounds.x + safeBounds.width * centerPercent.x / 100,
     y: safeBounds.y + safeBounds.height * centerPercent.y / 100,
   }
   const boundingRect = {
-    x: requestedCenter.x - boundingWidth / 2,
-    y: requestedCenter.y - boundingHeight / 2,
-    width: boundingWidth,
-    height: boundingHeight,
+    x: requestedCenter.x - boundingSize.width / 2,
+    y: requestedCenter.y - boundingSize.height / 2,
+    width: boundingSize.width,
+    height: boundingSize.height,
   }
   const clampedBoundingRect = clampPixelRectToBounds(boundingRect, safeBounds)
 
@@ -168,6 +222,18 @@ export function getJewelCaseSpineBackgroundFit(
       y: slot.layout.y / 100,
     },
   })
+}
+
+export function getJewelCaseSpineBackgroundLayoutSliderRanges(
+  side: JewelCaseSpineSideId,
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+): CaseInsertLayoutSliderRanges {
+  const fit = getJewelCaseSpineBackgroundFit(side, slot, layout)
+
+  return fit
+    ? getImageFitOffsetLayoutSliderRanges(fit)
+    : CASE_INSERT_OFFSET_LAYOUT_RANGES
 }
 
 export function getJewelCaseSpineTitlePreviewLayout(
@@ -209,6 +275,43 @@ export function getJewelCaseSpineTitlePreviewLayout(
   }
 }
 
+function getSpineImageSlotRenderSize(
+  side: JewelCaseSpineSideId,
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+  role: JewelCaseSpineOverlayRole,
+) {
+  const safeBounds = getSpineSafeBounds(side, layout)
+  const config = spineOverlayConfig[role]
+
+  if (!safeBounds) {
+    return null
+  }
+
+  const scale = normalizePositiveNumber(slot.layout.scale, 1)
+  const rotationDegrees = normalizeRotationDegrees(
+    slot.layout.rotation,
+    getDefaultSpineOverlayRotation(side, role),
+  )
+  const widthBasis = config.widthBasis === 'length'
+    ? safeBounds.height
+    : safeBounds.width
+  const width = widthBasis * config.widthRatio * scale
+  const height = safeBounds.width * config.heightRatio * scale
+
+  return {
+    safeBounds,
+    width,
+    height,
+    rotationDegrees,
+    boundingSize: getTransformedBoundingSize({
+      height,
+      rotationDegrees,
+      width,
+    }),
+  }
+}
+
 export function getJewelCaseSpineImageSlotPreviewLayout(
   side: JewelCaseSpineSideId,
   slot: ProjectCaseInsertImageSlot,
@@ -223,22 +326,36 @@ export function getJewelCaseSpineImageSlotPreviewLayout(
     return null
   }
 
-  const scale = normalizePositiveNumber(slot.layout.scale, 1)
-  const rotationDegrees = normalizeRotationDegrees(
-    slot.layout.rotation,
-    role === 'branding' ? getDefaultSpineRotation(side) : 0,
-  )
+  const renderSize = getSpineImageSlotRenderSize(side, slot, layout, role)
+
+  if (!renderSize) {
+    return null
+  }
 
   return getClampedTransformedBoxLayout({
     safeBounds,
-    width: (role === 'logo' ? safeBounds.width : safeBounds.height) *
-      config.widthRatio *
-      scale,
-    height: safeBounds.width * config.heightRatio * scale,
-    rotationDegrees,
+    width: renderSize.width,
+    height: renderSize.height,
+    rotationDegrees: renderSize.rotationDegrees,
     centerPercent: {
       x: normalizePercent(slot.layout.x, config.defaultCenter.x),
       y: normalizePercent(slot.layout.y, config.defaultCenter.y),
     },
   })
+}
+
+export function getJewelCaseSpineImageSlotLayoutSliderRanges(
+  side: JewelCaseSpineSideId,
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+  role: JewelCaseSpineOverlayRole,
+): CaseInsertLayoutSliderRanges {
+  const renderSize = getSpineImageSlotRenderSize(side, slot, layout, role)
+
+  return renderSize
+    ? getCenteredRectLayoutSliderRanges(
+        renderSize.safeBounds,
+        renderSize.boundingSize,
+      )
+    : CASE_INSERT_PERCENT_LAYOUT_RANGES
 }

@@ -9,9 +9,11 @@ export {
 export {
   clearCaseInsertImageSlotImage,
   fitCaseInsertImageSlotToRegionHeight,
+  resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotFit,
+  updateCaseInsertImageSlotFrameField,
   updateCaseInsertImageSlotLayout,
   updateCaseInsertImageSlotLayoutField,
   updateCaseInsertImageSlotLayoutPosition,
@@ -22,6 +24,7 @@ export {
   getCaseInsertImageSlotGroupConfig,
   removeCaseInsertTemplateImageSlot,
   renameCaseInsertTemplateImageSlot,
+  setCaseInsertTemplateAdditionalArtworkEnabled,
   updateCaseInsertTemplateImageSlot,
   updateCaseInsertTemplateImageSlotInGroup,
   updateCaseInsertTemplateTextBlock,
@@ -29,11 +32,17 @@ export {
   updateProjectCaseInsertTemplate,
 } from '../caseInsert/templateSurfaceTransitions.ts'
 export {
+  addJewelCaseSpineImageSlot,
+  removeJewelCaseSpineImageSlot,
+  renameJewelCaseSpineImageSlot,
+  setJewelCaseSpineAdditionalArtworkEnabled,
   updateJewelCaseSpineImageSlot,
+  updateJewelCaseSpineImageSlotInGroup,
   updateJewelCaseSpineTitle,
   updateProjectJewelCaseSpineSide,
 } from '../caseInsert/jewelCaseTransitions.ts'
 export type {
+  JewelCaseSpineImageSlotGroupKey,
   JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions.ts'
 export {

@@ -10,6 +10,7 @@ import {
   getCaseInsertImageSlotGroupConfig,
   removeCaseInsertTemplateImageSlot,
   renameCaseInsertTemplateImageSlot,
+  setCaseInsertTemplateAdditionalArtworkEnabled,
   updateCaseInsertTemplateImageSlot,
   updateCaseInsertTemplateImageSlotInGroup,
   updateCaseInsertTemplateTextBlock,
@@ -26,11 +27,17 @@ import {
 } from '../caseInsert/brandingSlotSources'
 import {
   fitCaseInsertImageSlotToRegionHeight,
+  resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotFit,
+  updateCaseInsertImageSlotFrameField,
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
+import {
+  restoreCaseInsertTitleArtworkDefaultSteamLogo,
+  setCustomCaseInsertTitleArtworkImage,
+} from '../caseInsert/titleArtwork'
 import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
   createLocalSteamScreenshotCaseInsertImageSlotImage,
@@ -53,6 +60,9 @@ import type {
   CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
 import type { LocalSteamScreenshotAsset } from '../local/localArtwork'
+import type {
+  AdditionalArtworkFrameField,
+} from '../project/additionalArtworkFrame.ts'
 import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertLayout,
@@ -161,16 +171,27 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
     updater: Parameters<typeof updateCaseInsertTemplateImageSlotInGroup>[4],
+    options: {
+      enableAdditionalArtwork?: boolean
+    } = {},
   ) => {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateImageSlotInGroup(
+    setProjectJewelCase((currentCaseInsert) => {
+      const nextCaseInsert = updateCaseInsertTemplateImageSlotInGroup(
         currentCaseInsert,
         paneId,
         slotKey,
         slotId,
         updater,
-      ),
-    )
+      )
+
+      return slotKey === 'artworkSlots' && options.enableAdditionalArtwork
+        ? setCaseInsertTemplateAdditionalArtworkEnabled(
+            nextCaseInsert,
+            paneId,
+            true,
+          )
+        : nextCaseInsert
+    })
   }, [setProjectJewelCase])
 
   async function handleImageSlotUpload(
@@ -200,7 +221,9 @@ export function useCaseInsertTemplateEditor({
       )
 
       updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
+        slotKey === 'titleArtwork'
+          ? setCustomCaseInsertTitleArtworkImage(slot, image)
+          : setCaseInsertImageSlotImage(slot, image),
       )
       announceStatus(`Selected ${statusLabel} image.`)
     } catch {
@@ -312,6 +335,13 @@ export function useCaseInsertTemplateEditor({
     }))
   }
 
+  function handleRestoreTitleArtworkDefault(paneId: CaseInsertTemplatePaneId) {
+    updatePrimaryImageSlot(paneId, 'titleArtwork', (slot) =>
+      restoreCaseInsertTitleArtworkDefaultSteamLogo(slot),
+    )
+    announceStatus('Restored game logo to the Steam default logo.')
+  }
+
   function handleFitImageSlotToRegion(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
@@ -355,6 +385,19 @@ export function useCaseInsertTemplateEditor({
       addCaseInsertTemplateImageSlot(currentCaseInsert, paneId, slotKey),
     )
     announceStatus(`Added ${label} slot.`)
+  }
+
+  function handleAdditionalArtworkEnabledChange(
+    paneId: CaseInsertTemplatePaneId,
+    enabled: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      setCaseInsertTemplateAdditionalArtworkEnabled(
+        currentCaseInsert,
+        paneId,
+        enabled,
+      ),
+    )
   }
 
   function handleRemoveGroupedImageSlot(
@@ -428,8 +471,14 @@ export function useCaseInsertTemplateEditor({
     slotId: string,
     enabled: boolean,
   ) {
-    updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
-      setCaseInsertImageSlotEnabled(slot, enabled),
+    updateGroupedImageSlot(
+      paneId,
+      slotKey,
+      slotId,
+      (slot) => setCaseInsertImageSlotEnabled(slot, enabled),
+      {
+        enableAdditionalArtwork: enabled,
+      },
     )
   }
 
@@ -470,8 +519,14 @@ export function useCaseInsertTemplateEditor({
     try {
       const image = await createUploadedCaseInsertImageSlotImage(file, statusLabel)
 
-      updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
+      updateGroupedImageSlot(
+        paneId,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(slot, image),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
       )
       announceStatus(`Selected ${statusLabel} image.`)
     } catch {
@@ -492,8 +547,14 @@ export function useCaseInsertTemplateEditor({
     try {
       const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
 
-      updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
+      updateGroupedImageSlot(
+        paneId,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(slot, image),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
       )
       announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
     } catch (error) {
@@ -514,8 +575,14 @@ export function useCaseInsertTemplateEditor({
     try {
       const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
 
-      updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
+      updateGroupedImageSlot(
+        paneId,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(slot, image),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
       )
       announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
     } catch (error) {
@@ -536,8 +603,14 @@ export function useCaseInsertTemplateEditor({
     try {
       const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
 
-      updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
+      updateGroupedImageSlot(
+        paneId,
+        slotKey,
+        slotId,
+        (slot) => setCaseInsertImageSlotImage(slot, image),
+        {
+          enableAdditionalArtwork: slotKey === 'artworkSlots',
+        },
       )
       announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
     } catch (error) {
@@ -568,6 +641,18 @@ export function useCaseInsertTemplateEditor({
     )
   }
 
+  function handleGroupedImageSlotFrameChange(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertImageSlotGroupKey,
+    slotId: string,
+    field: AdditionalArtworkFrameField,
+    value: boolean | number | string,
+  ) {
+    updateGroupedImageSlot(paneId, slotKey, slotId, (slot) =>
+      updateCaseInsertImageSlotFrameField(slot, field, value),
+    )
+  }
+
   function handleResetGroupedImageSlotLayout(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertImageSlotGroupKey,
@@ -577,6 +662,14 @@ export function useCaseInsertTemplateEditor({
       ...slot,
       layout: getGroupDefaultLayout(paneId, slotKey),
     }))
+  }
+
+  function handleResetGroupedImageSlotFrame(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertImageSlotGroupKey,
+    slotId: string,
+  ) {
+    updateGroupedImageSlot(paneId, slotKey, slotId, resetCaseInsertImageSlotFrame)
   }
 
   function handleClearGroupedImageSlot(
@@ -852,8 +945,10 @@ export function useCaseInsertTemplateEditor({
     handleImageSlotFitChange,
     handleImageSlotLayoutChange,
     handleResetImageSlotLayout,
+    handleRestoreTitleArtworkDefault,
     handleFitImageSlotToRegion,
     handleClearImageSlot,
+    handleAdditionalArtworkEnabledChange,
     handleAddGroupedImageSlot,
     handleAddBrandingMarkSlot,
     handleRemoveGroupedImageSlot,
@@ -865,7 +960,9 @@ export function useCaseInsertTemplateEditor({
     handleUseGroupedImageSlotWebArtwork,
     handleGroupedImageSlotFitChange,
     handleGroupedImageSlotLayoutChange,
+    handleGroupedImageSlotFrameChange,
     handleResetGroupedImageSlotLayout,
+    handleResetGroupedImageSlotFrame,
     handleClearGroupedImageSlot,
     handleUseBrandingSlotSource,
     handleTextBlockEnabledChange,

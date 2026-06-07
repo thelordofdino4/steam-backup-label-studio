@@ -17,6 +17,7 @@
 .case-insert-front-overlay-image,
 .case-insert-back-overlay-image,
 .case-insert-template-overlay-image,
+.case-insert-template-framed-artwork,
 .case-insert-spine-title,
 .case-insert-spine-overlay-box,
 .case-insert-front-text-block,
@@ -25,6 +26,32 @@
 .case-insert-back-feature-list,
 .case-insert-template-feature-list {
   position: absolute;
+}
+
+.case-insert-template-background-clip,
+.case-insert-template-screenshot-clip,
+.case-insert-template-overlay-image,
+.case-insert-template-framed-artwork,
+.case-insert-template-text-block,
+.case-insert-template-feature-list,
+.case-insert-spine-background-clip,
+.case-insert-spine-title,
+.case-insert-spine-overlay-box {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+}
+
+.case-insert-template-background-clip:active,
+.case-insert-template-screenshot-clip:active,
+.case-insert-template-overlay-image:active,
+.case-insert-template-framed-artwork:active,
+.case-insert-template-text-block:active,
+.case-insert-template-feature-list:active,
+.case-insert-spine-background-clip:active,
+.case-insert-spine-title:active,
+.case-insert-spine-overlay-box:active {
+  cursor: grabbing;
 }
 
 .case-insert-surface {
@@ -79,6 +106,10 @@
   box-shadow: 0 0.7cqw 1.2cqw rgba(0, 0, 0, 0.28);
 }
 
+.case-insert-template-screenshot-clip--framed {
+  border: 0;
+}
+
 .case-insert-front-background-image,
 .case-insert-back-background-image,
 .case-insert-template-background-image,
@@ -88,6 +119,7 @@
   position: absolute;
   display: block;
   max-width: none;
+  pointer-events: none;
   user-select: none;
 }
 
@@ -98,6 +130,35 @@
   object-fit: contain;
   filter: drop-shadow(0 0.75cqw 1.1cqw rgba(0, 0, 0, 0.38));
   user-select: none;
+}
+
+.case-insert-template-framed-artwork {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 0.75cqw 1.1cqw rgba(0, 0, 0, 0.38));
+  user-select: none;
+}
+
+.case-insert-template-framed-artwork-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.case-insert-image-slot-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.case-insert-image-slot-frame-host--circle {
+  overflow: hidden;
+  border-radius: 999px;
 }
 
 .case-insert-front-title-artwork,
@@ -142,6 +203,7 @@
   width: 100%;
   height: 100%;
   object-fit: contain;
+  pointer-events: none;
   user-select: none;
 }
 
@@ -233,6 +295,11 @@
   min-width: 0;
 }
 
+.case-insert-sidebar {
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
 .case-insert-workflow-section > .panel-summary {
   padding: 14px 10px;
 }
@@ -274,27 +341,33 @@
   margin-top: 0;
 }
 
-.case-insert-control-card .feature-section-card,
-.case-insert-background-control .feature-section-card {
-  margin-inline: -8px;
-}
-
-.repeated-visual-card .feature-section-card {
-  margin-inline: -2px;
-}
-
-.case-insert-workflow-section .repeated-visual-card .feature-section-card {
-  margin-inline: -8px;
+.case-insert-workflow-section .feature-section-card {
+  min-width: 0;
 }
 
 .case-insert-workflow-section .feature-section-card > .panel-content {
-  padding: 0 8px 12px;
+  padding: 0 12px 12px;
   min-width: 0;
+}
+
+.case-insert-spine-side-section > .panel-content {
+  padding-right: 2px;
+  padding-left: 2px;
+}
+
+.case-insert-spine-side-section .feature-section-card > .panel-content {
+  padding-right: 2px;
+  padding-left: 2px;
+}
+
+.case-insert-spine-side-section .repeated-visual-card-content {
+  padding-right: 2px;
+  padding-left: 2px;
 }
 
 .case-insert-control-card .feature-section-card .panel-summary,
 .case-insert-background-control .feature-section-card .panel-summary {
-  padding: 12px 8px;
+  padding: 12px;
 }
 
 .repeated-visual-card .feature-section-card .panel-summary {
@@ -302,12 +375,12 @@
 }
 
 .case-insert-workflow-section .repeated-visual-card .feature-section-card .panel-summary {
-  padding: 12px 8px;
+  padding: 12px;
 }
 
 .case-insert-control-card .feature-section-card .panel-content,
 .case-insert-background-control .feature-section-card .panel-content {
-  padding: 0 8px 12px;
+  padding: 0 12px 12px;
   min-width: 0;
 }
 
@@ -316,7 +389,7 @@
 }
 
 .case-insert-workflow-section .repeated-visual-card .feature-section-card .panel-content {
-  padding: 0 8px 12px;
+  padding: 0 12px 12px;
   min-width: 0;
 }
 
@@ -343,54 +416,20 @@
   min-width: 0;
 }
 
-.case-insert-source-layout-controls {
-  border: 0;
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
-  display: grid;
-  gap: 10px;
-  margin: 12px 0 0;
-  min-inline-size: 0;
-  padding: 12px 0 0;
+.case-insert-title-artwork-control .disc-text-layout-grid label {
+  grid-template-columns: minmax(48px, max-content) minmax(0, 1fr);
 }
 
-.case-insert-source-layout-controls:disabled {
-  opacity: 0.52;
+.case-insert-title-artwork-control .secondary-button {
+  width: 100%;
 }
 
-.case-insert-source-layout-controls legend {
-  color: #e5e7eb;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0 6px 0 0;
-}
-
-.case-insert-source-layout-controls .selected-lockup-card {
-  margin-top: 0;
-}
-
-.case-insert-source-layout-controls .field-label {
-  align-items: baseline;
-  display: flex;
-  gap: 8px;
-  justify-content: space-between;
-}
-
-.case-insert-source-layout-controls .field-label span {
-  color: rgba(203, 213, 225, 0.78);
-  font-size: 0.78rem;
-  font-variant-numeric: tabular-nums;
+.case-insert-title-artwork-control .selected-lockup-card {
+  min-width: 0;
 }
 
 .case-insert-file-input {
   display: none;
-}
-
-.case-insert-image-status-card img {
-  width: 72px;
-  height: 48px;
-  object-fit: contain;
-  background: #111827;
-  border-radius: 6px;
 }
 
 .case-insert-list-item-row {

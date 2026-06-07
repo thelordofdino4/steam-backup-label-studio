@@ -48,10 +48,10 @@ const imageSlotGroupConfig: Record<
   },
   tray: {
     artworkSlots: {
-      idPrefix: 'tray-screenshot',
-      labelPrefix: 'Screenshot',
-      fit: 'cover',
-      defaultLayout: { scale: 1, x: 0, y: 0 },
+      idPrefix: 'tray-artwork',
+      labelPrefix: 'Artwork',
+      fit: 'contain',
+      defaultLayout: { scale: 1, x: 50, y: 62 },
     },
     logoSlots: {
       idPrefix: 'tray-logo',
@@ -188,6 +188,17 @@ export function updateCaseInsertTemplateImageSlot(
   }))
 }
 
+export function setCaseInsertTemplateAdditionalArtworkEnabled(
+  state: ProjectJewelCaseState,
+  paneId: CaseInsertTemplatePaneId,
+  enabled: boolean,
+): ProjectJewelCaseState {
+  return updateProjectCaseInsertTemplate(state, paneId, (templateState) => ({
+    ...templateState,
+    additionalArtworkEnabled: enabled,
+  }))
+}
+
 export function addCaseInsertTemplateImageSlot(
   state: ProjectJewelCaseState,
   paneId: CaseInsertTemplatePaneId,
@@ -199,6 +210,9 @@ export function addCaseInsertTemplateImageSlot(
 
     return {
       ...templateState,
+      additionalArtworkEnabled: slotKey === 'artworkSlots'
+        ? true
+        : templateState.additionalArtworkEnabled,
       [slotKey]: [
         ...templateState[slotKey],
         createCaseInsertTemplateImageSlot(paneId, slotKey, index),

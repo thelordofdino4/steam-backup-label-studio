@@ -2,7 +2,7 @@
 
 These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor has reached its alpha feature boundary, and future disc polish or jewel case work must preserve that baseline instead of adding logic to unrelated structures.
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-07.
 
 This document is mandatory reading for agents and contributors before implementing features, fixes, or refactors.
 
@@ -177,6 +177,43 @@ Current case insert owners include, at minimum:
 If a future back-cover, spine, export, or preflight feature does not fit one of
 these owners, create a focused case insert module instead of adding the behavior
 to disc-specific modules or broad shared utilities.
+
+## Cross-Surface Parity Migration Rule
+
+When a case insert feature is intended to match a disc editor feature, the disc
+feature is the source of truth until a deliberate divergence is documented.
+Parity work is not complete when the visible panel shape looks similar. Audit
+and preserve the whole feature chain before implementation is called done:
+
+- defaults for new blank projects
+- add, remove, rename, show/hide, reset, clear, and update transitions
+- source picker behavior, source labels, upload/import rules, and empty states
+- panel hierarchy, nested panel styling, spacing, and enabled-state visibility
+- drag behavior and slider/manual positioning behavior
+- preview rendering, PNG export rendering, and layer-order labels
+- export preflight warnings and disabled-feature omission rules
+- save/load, sparse restore, legacy normalization, and project-file labels
+- tests and manual smoke checklist wording
+
+New projects should use the shared current behavior and vocabulary. Legacy
+aliases such as old screenshot or callout names may be accepted only in
+normalization or restore adapters, and should normalize into the current feature
+shape rather than leaking into new UI cards, layer labels, defaults, or export
+warnings.
+
+For branding and text parity work, do the source-of-truth audit before writing
+new controls:
+
+- identify the disc owner modules, hooks, renderers, export helpers, project
+  helpers, and tests that define the behavior
+- map every matching case insert responsibility to an existing case owner or a
+  focused new case module
+- record any intentional case-specific differences before implementation
+- add focused tests that prove blank defaults, add behavior, disabled-state
+  preservation, preview/export participation, and save/load behavior match the
+  intended parity contract
+- ask for manual runtime verification of nested panels, drag, upload/source
+  controls, preview, export, and save/load before closing the issue
 
 ## Preview and Export Parity Rule
 

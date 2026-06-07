@@ -1,7 +1,11 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, PointerEvent } from 'react'
 import type {
+  CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
+import type {
+  CaseInsertPrimaryImageSlotKey,
+} from '../../caseInsert/templateSurfaceTransitions'
 import {
   getCaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
@@ -12,7 +16,6 @@ import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayo
 import {
   getJewelCaseBackBackgroundFit,
   getJewelCaseBackImageSlotPreviewRect,
-  getJewelCaseBackScreenshotFit,
   getJewelCaseBackTextBlockPreviewLayout,
   getJewelCaseBackTextListPreviewLayout,
 } from '../../layout/jewelCaseBackLayout'
@@ -27,11 +30,16 @@ import type {
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
 } from '../../project/projectTypes'
+import type {
+  CaseInsertTemplatePreviewPointerHandlers,
+} from '../../interaction/useCaseInsertPreviewPointerDrag'
+import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 
 export type CaseInsertTemplateLayerProps = {
   paneId: CaseInsertTemplatePaneId
   templateState: ProjectCaseInsertSurfaceState
   layout: CaseInsertPreviewLayout
+  pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
 }
 
 export type CaseInsertTemplateMarkLayerKind =
@@ -70,11 +78,24 @@ function CaseInsertTemplateImageSlot({
   slot,
   layout,
   group,
+  dragTarget,
+  pointerHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
   slot: ProjectCaseInsertImageSlot
   layout: CaseInsertPreviewLayout
   group: 'titleArtwork' | 'artwork' | 'logo' | 'mark'
+  dragTarget:
+    | {
+        kind: 'primary'
+        slotKey: CaseInsertPrimaryImageSlotKey
+      }
+    | {
+        kind: 'group'
+        slotKey: CaseInsertImageSlotGroupKey
+        slotId: string
+      }
+  pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
 }) {
   const rect = paneId === 'cover'
     ? getJewelCaseFrontImageSlotPreviewRect(
@@ -86,11 +107,54 @@ function CaseInsertTemplateImageSlot({
     : getJewelCaseBackImageSlotPreviewRect(
         slot,
         layout,
-        group === 'mark' ? 'mark' : 'logo',
+        group === 'artwork' ? 'artwork' : group === 'mark' ? 'mark' : 'logo',
       )
 
   if (!rect || !slot.imageDataUrl) {
     return null
+  }
+
+  const pointerProps = {
+    onPointerDown: (event: PointerEvent<Element>) =>
+      dragTarget.kind === 'primary'
+        ? pointerHandlers.handleTemplatePrimaryImageSlotPointerDown(
+            event,
+            paneId,
+            dragTarget.slotKey,
+          )
+        : pointerHandlers.handleTemplateGroupedImageSlotPointerDown(
+            event,
+            paneId,
+            dragTarget.slotKey,
+            dragTarget.slotId,
+          ),
+    onPointerMove: pointerHandlers.handleTemplatePointerMove,
+    onPointerUp: pointerHandlers.handleTemplatePointerUp,
+  }
+
+  if (group === 'artwork') {
+    const className = [
+      'case-insert-template-framed-artwork',
+      slot.frame.enabled && slot.frame.shape === 'circle'
+        ? 'case-insert-image-slot-frame-host--circle'
+        : '',
+    ].filter(Boolean).join(' ')
+
+    return (
+      <div
+        className={className}
+        {...pointerProps}
+        style={getRectStyle(rect, layout)}
+      >
+        <img
+          alt=""
+          className="case-insert-template-framed-artwork-image"
+          draggable={false}
+          src={slot.imageDataUrl}
+        />
+        <CaseInsertImageSlotFrame slot={slot} />
+      </div>
+    )
   }
 
   return (
@@ -98,6 +162,7 @@ function CaseInsertTemplateImageSlot({
       alt=""
       className={`case-insert-template-overlay-image case-insert-template-${group}`}
       draggable={false}
+      {...pointerProps}
       src={slot.imageDataUrl}
       style={getRectStyle(rect, layout)}
     />
@@ -108,10 +173,12 @@ function CaseInsertTemplateTextBlock({
   paneId,
   textBlock,
   layout,
+  pointerHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
   layout: CaseInsertPreviewLayout
+  pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
 }) {
   const textLayout = paneId === 'cover'
     ? getJewelCaseFrontTextBlockPreviewLayout(textBlock, layout)
@@ -135,6 +202,14 @@ function CaseInsertTemplateTextBlock({
   return (
     <div
       className={`case-insert-template-text-block case-insert-template-text-block-${paneId}`}
+      onPointerDown={(event) =>
+        pointerHandlers.handleTemplateTextBlockPointerDown(
+          event,
+          paneId,
+          textBlock.id,
+        )}
+      onPointerMove={pointerHandlers.handleTemplatePointerMove}
+      onPointerUp={pointerHandlers.handleTemplatePointerUp}
       style={style}
     >
       {textBlock.value}
@@ -146,6 +221,7 @@ export function CaseInsertTemplateBackgroundLayer({
   paneId,
   templateState,
   layout,
+  pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
   const backgroundFit = paneId === 'cover'
     ? getJewelCaseFrontBackgroundFit(templateState.background, layout)
@@ -158,6 +234,14 @@ export function CaseInsertTemplateBackgroundLayer({
   return (
     <div
       className="case-insert-template-background-clip"
+      onPointerDown={(event) =>
+        pointerHandlers.handleTemplatePrimaryImageSlotPointerDown(
+          event,
+          paneId,
+          'background',
+        )}
+      onPointerMove={pointerHandlers.handleTemplatePointerMove}
+      onPointerUp={pointerHandlers.handleTemplatePointerUp}
       style={getRectStyle(backgroundFit.region, layout)}
     >
       <img
@@ -175,60 +259,37 @@ export function CaseInsertTemplateArtworkLayer({
   paneId,
   templateState,
   layout,
+  pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
+  const artworkSlots = templateState.additionalArtworkEnabled
+    ? templateState.artworkSlots
+    : []
+
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
-      {paneId === 'cover' ? (
+      <CaseInsertTemplateImageSlot
+        paneId={paneId}
+        slot={templateState.titleArtwork}
+        layout={layout}
+        group="titleArtwork"
+        dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
+        pointerHandlers={pointerHandlers}
+      />
+      {artworkSlots.map((slot) => (
         <CaseInsertTemplateImageSlot
+          key={slot.id}
           paneId={paneId}
-          slot={templateState.titleArtwork}
+          slot={slot}
           layout={layout}
-          group="titleArtwork"
+          group="artwork"
+          dragTarget={{
+            kind: 'group',
+            slotKey: 'artworkSlots',
+            slotId: slot.id,
+          }}
+          pointerHandlers={pointerHandlers}
         />
-      ) : null}
-      {templateState.artworkSlots.map((slot, index) => {
-        if (paneId === 'tray') {
-          const screenshotFit = getJewelCaseBackScreenshotFit(
-            slot,
-            layout,
-            index,
-            templateState.artworkSlots.length,
-          )
-
-          if (!screenshotFit || !slot.imageDataUrl) {
-            return null
-          }
-
-          return (
-            <div
-              className="case-insert-template-screenshot-clip"
-              key={slot.id}
-              style={getRectStyle(screenshotFit.region, layout)}
-            >
-              <img
-                alt=""
-                className="case-insert-template-screenshot-image"
-                draggable={false}
-                src={slot.imageDataUrl}
-                style={getImageStyle(
-                  screenshotFit.imageRect,
-                  screenshotFit.region,
-                )}
-              />
-            </div>
-          )
-        }
-
-        return (
-          <CaseInsertTemplateImageSlot
-            key={slot.id}
-            paneId={paneId}
-            slot={slot}
-            layout={layout}
-            group="artwork"
-          />
-        )
-      })}
+      ))}
     </div>
   )
 }
@@ -237,6 +298,7 @@ export function CaseInsertTemplateLogoLayer({
   paneId,
   templateState,
   layout,
+  pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
@@ -247,6 +309,8 @@ export function CaseInsertTemplateLogoLayer({
           slot={slot}
           layout={layout}
           group="logo"
+          dragTarget={{ kind: 'group', slotKey: 'logoSlots', slotId: slot.id }}
+          pointerHandlers={pointerHandlers}
         />
       ))}
     </div>
@@ -258,6 +322,7 @@ export function CaseInsertTemplateMarkLayer({
   templateState,
   layout,
   kind,
+  pointerHandlers,
 }: CaseInsertTemplateLayerProps & {
   kind: CaseInsertTemplateMarkLayerKind
 }) {
@@ -273,6 +338,12 @@ export function CaseInsertTemplateMarkLayer({
             slot={slot}
             layout={layout}
             group="mark"
+            dragTarget={{
+              kind: 'group',
+              slotKey: 'markSlots',
+              slotId: slot.id,
+            }}
+            pointerHandlers={pointerHandlers}
           />
         ))}
     </div>
@@ -283,6 +354,7 @@ export function CaseInsertTemplateTextLayer({
   paneId,
   templateState,
   layout,
+  pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
@@ -292,6 +364,7 @@ export function CaseInsertTemplateTextLayer({
           paneId={paneId}
           textBlock={textBlock}
           layout={layout}
+          pointerHandlers={pointerHandlers}
         />
       ))}
       {templateState.textLists.map((textList) => {
@@ -314,6 +387,14 @@ export function CaseInsertTemplateTextLayer({
           <ul
             className="case-insert-template-feature-list"
             key={textList.id}
+            onPointerDown={(event) =>
+              pointerHandlers.handleTemplateTextListPointerDown(
+                event,
+                paneId,
+                textList.id,
+              )}
+            onPointerMove={pointerHandlers.handleTemplatePointerMove}
+            onPointerUp={pointerHandlers.handleTemplatePointerUp}
             style={textListStyle}
           >
             {textListLayout.items.map((item, index) => (

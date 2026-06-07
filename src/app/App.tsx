@@ -83,6 +83,10 @@ import {
   applySteamBackCoverImportToCaseInsert,
 } from '../caseInsert/steamBackCoverImport'
 import {
+  applySteamCaseInsertTitleArtworkSeedToProject,
+  createSteamCaseInsertTitleArtworkSeed,
+} from '../caseInsert/titleArtwork'
+import {
   updateRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
@@ -107,6 +111,7 @@ import { getNaturalImageSize } from '../utils/imageFile'
 import {
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
 } from '../branding/steamBanner'
+import { useCaseInsertPreviewPointerDrag } from '../interaction/useCaseInsertPreviewPointerDrag'
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
 import { getDiscTextPreviewTransform, type SteamLogoPlacement } from '../discText/index'
 
@@ -240,6 +245,7 @@ function App() {
   const [isArtworkLoading, setIsArtworkLoading] = useState(false)
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
+  const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -389,6 +395,7 @@ function App() {
     handleAddAdditionalArtworkElement,
     handleAdditionalArtworkUpload,
     handleUseSteamArtworkAsAdditionalArtwork,
+    handleUseWebArtworkCandidateAsAdditionalArtwork,
     handleUseLocalSteamScreenshotAsAdditionalArtwork,
     handleAdditionalArtworkLayoutChange,
     handleAdditionalArtworkLabelChange,
@@ -485,6 +492,17 @@ function App() {
       value: projectTechnicalMarks,
       setValue: setProjectTechnicalMarks,
     },
+  })
+  const {
+    cancelCaseInsertPreviewPointerDrag,
+    caseInsertPreviewPointerHandlers,
+  } = useCaseInsertPreviewPointerDrag({
+    preview: {
+      caseInsertPreviewRef,
+      activeTemplatePane: activeCaseInsertTemplatePane,
+    },
+    caseInsert: projectJewelCase,
+    setProjectJewelCase,
   })
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
@@ -841,6 +859,7 @@ function App() {
 
   function resetDiscProjectState() {
     cancelPreviewPointerDrag()
+    cancelCaseInsertPreviewPointerDrag()
 
     resetDiscTemplateState()
     setSteamLogoPlacement('top')
@@ -870,6 +889,8 @@ function App() {
   }
 
   function resetCaseInsertProjectState() {
+    cancelCaseInsertPreviewPointerDrag()
+
     setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
     setProjectMetadata({
       ...createDefaultProjectMetadata(),
@@ -933,6 +954,7 @@ function App() {
     }
 
     cancelPreviewPointerDrag()
+    cancelCaseInsertPreviewPointerDrag()
     setActiveWorkspace('home')
     setHomeStatusMessage(null)
   }
@@ -1066,6 +1088,9 @@ function App() {
             }
           })()
         : null
+      const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
+        ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
+        : null
 
       setSelectedSteamGame(importedState.importedGame)
       setSteamSearchResults([])
@@ -1075,17 +1100,27 @@ function App() {
       announceStatus(importedState.statusMessage)
 
       if (options.applyCaseInsertBackCoverDefaults) {
-        setProjectJewelCase((currentCaseInsert) =>
-          applySteamBackCoverImportToCaseInsert(
+        setProjectJewelCase((currentCaseInsert) => {
+          const caseInsertWithSteamText = applySteamBackCoverImportToCaseInsert(
             currentCaseInsert,
             importedState.importedGame,
             {
               legalText: nextProjectMetadataWithAutoApply.copyrightText,
               replaceExisting: isDifferentSelectedSteamGame,
             },
-          ),
-        )
+          )
+
+          return caseInsertTitleArtworkSeed
+            ? applySteamCaseInsertTitleArtworkSeedToProject(
+                caseInsertWithSteamText,
+                caseInsertTitleArtworkSeed,
+              )
+            : caseInsertWithSteamText
+        })
         announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+        if (caseInsertTitleArtworkSeed) {
+          announceStatus(caseInsertTitleArtworkSeed.statusMessage)
+        }
       }
 
       if (discVisualImport) {
@@ -1557,6 +1592,8 @@ function App() {
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
+        caseInsertPreviewRef={caseInsertPreviewRef}
+        pointerHandlers={caseInsertPreviewPointerHandlers}
         editor={caseInsertTemplateEditor}
         spineEditor={jewelCaseSpineEditor}
         imageSources={{
@@ -1566,6 +1603,7 @@ function App() {
           hasCheckedLocalSteamScreenshots,
           isLocalSteamScreenshotsLoading,
           onFindLocalSteamScreenshots: handleFindLocalSteamScreenshots,
+          onOpenLocalSteamScreenshotFolder: handleOpenLocalSteamScreenshotFolder,
           webArtworkDiscovery,
           onFindWebArtworkCandidates: findWebArtworkCandidates,
         }}
@@ -1673,6 +1711,9 @@ function App() {
           handleAdditionalArtworkUpload={handleAdditionalArtworkUpload}
           handleUseSteamArtworkAsAdditionalArtwork={
             handleUseSteamArtworkAsAdditionalArtwork
+          }
+          handleUseWebArtworkCandidateAsAdditionalArtwork={
+            handleUseWebArtworkCandidateAsAdditionalArtwork
           }
           handleUseLocalSteamScreenshotAsAdditionalArtwork={
             handleUseLocalSteamScreenshotAsAdditionalArtwork

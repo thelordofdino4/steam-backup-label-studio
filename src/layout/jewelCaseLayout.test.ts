@@ -30,6 +30,7 @@ import {
 } from './jewelCaseLayout.ts'
 import {
   getJewelCaseSpineBackgroundFit,
+  getJewelCaseSpineImageSlotLayoutSliderRanges,
   getJewelCaseSpineImageSlotPreviewLayout,
   getJewelCaseSpineTitlePreviewLayout,
 } from './jewelCaseSpineLayout.ts'
@@ -399,6 +400,67 @@ test('spine preview layouts stay inside safe strips', () => {
   )
   assert.equal(isPixelRectInsideBounds(logoLayout.boundingRect, rightSafe.bounds), true)
   assert.equal(backgroundFit.hasEmptySpace, false)
+})
+
+test('spine image slider ranges shrink to rotated safe strip bounds', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'leftSpineSafe',
+  )
+  const titleArtwork = setCaseInsertImageSlotImage(
+    {
+      ...state.spine.left.titleArtwork,
+      enabled: true,
+      layout: {
+        ...state.spine.left.titleArtwork.layout,
+        scale: 1,
+        rotation: -90,
+      },
+    },
+    {
+      imageDataUrl: 'data:image/png;base64,title',
+      imageSize: { width: 900, height: 300 },
+    },
+  )
+  const smallRanges = getJewelCaseSpineImageSlotLayoutSliderRanges(
+    'left',
+    titleArtwork,
+    layout,
+    'titleArtwork',
+  )
+  const largeRanges = getJewelCaseSpineImageSlotLayoutSliderRanges(
+    'left',
+    {
+      ...titleArtwork,
+      layout: { ...titleArtwork.layout, scale: 1.6 },
+    },
+    layout,
+    'titleArtwork',
+  )
+  const maxLengthLayout = getJewelCaseSpineImageSlotPreviewLayout(
+    'left',
+    {
+      ...titleArtwork,
+      layout: { ...titleArtwork.layout, y: smallRanges.y.max },
+    },
+    layout,
+    'titleArtwork',
+  )
+
+  assert.ok(leftSafe)
+  assert.ok(maxLengthLayout)
+  assert.equal(smallRanges.x.min > 0, true)
+  assert.equal(smallRanges.y.max < 100, true)
+  assert.equal(
+    largeRanges.y.max - largeRanges.y.min <
+      smallRanges.y.max - smallRanges.y.min,
+    true,
+  )
+  assert.equal(
+    isPixelRectInsideBounds(maxLengthLayout.boundingRect, leftSafe.bounds),
+    true,
+  )
 })
 
 test('minimum image resolution estimates match export pixel regions', () => {

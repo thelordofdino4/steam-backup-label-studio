@@ -149,7 +149,7 @@ Source-of-truth guides:
 Jewel case editor baseline:
 
 - Front cover with background artwork, title/logo artwork, game-info marks, company logos, and optional short callout text.
-- Back cover with background artwork, description, feature bullets, screenshots, game-info marks, company/technology logos, system requirements, and legal/attribution text.
+- Back cover with background artwork, description, feature bullets, optional additional artwork such as screenshots or key art, game-info marks, company/technology logos, system requirements, and legal/attribution text.
 - Spine with title/logo behavior, optional Steam Backup/system branding, and optional company mark.
 - Template geometry with front, back, spine, bleed/trim, safe zones, and export dimensions.
 - Print-quality safeguards that preserve template dimensions, avoid distorted artwork, warn about low-resolution assets, and keep text readable.

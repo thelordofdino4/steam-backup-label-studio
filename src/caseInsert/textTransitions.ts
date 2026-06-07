@@ -4,7 +4,7 @@ import type {
   ProjectCaseInsertTextList,
 } from '../project/projectTypes.ts'
 import { normalizeTextListItems } from './normalization.ts'
-import type { CaseInsertLayoutField } from './types.ts'
+import type { CaseInsertLayoutField, CaseInsertLayoutPoint } from './types.ts'
 
 export function setCaseInsertTextBlockEnabled(
   textBlock: ProjectCaseInsertTextBlock,
@@ -47,6 +47,17 @@ export function updateCaseInsertTextBlockLayoutField(
   })
 }
 
+export function updateCaseInsertTextBlockLayoutPosition(
+  textBlock: ProjectCaseInsertTextBlock,
+  point: CaseInsertLayoutPoint,
+): ProjectCaseInsertTextBlock {
+  return updateCaseInsertTextBlockLayout(textBlock, {
+    ...textBlock.layout,
+    x: point.x,
+    y: point.y,
+  })
+}
+
 export function setCaseInsertTextListEnabled(
   textList: ProjectCaseInsertTextList,
   enabled: boolean,
@@ -65,6 +76,27 @@ export function setCaseInsertTextListItems(
     ...textList,
     items: normalizeTextListItems(items, textList.items),
   }
+}
+
+export function updateCaseInsertTextListLayout(
+  textList: ProjectCaseInsertTextList,
+  layout: ProjectCaseInsertLayout,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    layout,
+  }
+}
+
+export function updateCaseInsertTextListLayoutPosition(
+  textList: ProjectCaseInsertTextList,
+  point: CaseInsertLayoutPoint,
+): ProjectCaseInsertTextList {
+  return updateCaseInsertTextListLayout(textList, {
+    ...textList.layout,
+    x: point.x,
+    y: point.y,
+  })
 }
 
 export function addCaseInsertTextListItem(

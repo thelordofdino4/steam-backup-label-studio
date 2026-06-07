@@ -30,6 +30,7 @@ import {
 } from '../caseInsert/exportLayout.ts'
 import {
   getJewelCaseFrontBackgroundFit,
+  getJewelCaseFrontImageSlotLayoutSliderRanges,
   getJewelCaseFrontImageSlotPreviewRect,
   getJewelCaseFrontTextBlockPreviewLayout,
 } from './jewelCaseFrontLayout.ts'
@@ -318,6 +319,56 @@ test('cover sheet preview helpers fit backgrounds and clamp overlays', () => {
   assert.equal(
     calloutLayout.bounds.y + calloutLayout.bounds.height <=
       frontSafe.bounds.y + frontSafe.bounds.height,
+    true,
+  )
+})
+
+test('cover artwork slider ranges shrink to the front safe area', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const frontSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'frontSafe',
+  )
+  const baseSlot = {
+    ...state.templates.cover.titleArtwork,
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,title',
+    imageSize: { width: 1200, height: 360 },
+    layout: { scale: 1, x: 50, y: 24, rotation: 0 },
+  }
+  const smallRanges = getJewelCaseFrontImageSlotLayoutSliderRanges(
+    baseSlot,
+    layout,
+    'titleArtwork',
+  )
+  const largeRanges = getJewelCaseFrontImageSlotLayoutSliderRanges(
+    {
+      ...baseSlot,
+      layout: { ...baseSlot.layout, scale: 1.8 },
+    },
+    layout,
+    'titleArtwork',
+  )
+  const maxXRect = getJewelCaseFrontImageSlotPreviewRect(
+    {
+      ...baseSlot,
+      layout: { ...baseSlot.layout, x: smallRanges.x.max },
+    },
+    layout,
+    'titleArtwork',
+  )
+
+  assert.ok(frontSafe)
+  assert.ok(maxXRect)
+  assert.equal(smallRanges.x.min > 0, true)
+  assert.equal(smallRanges.x.max < 100, true)
+  assert.equal(
+    largeRanges.x.max - largeRanges.x.min <
+      smallRanges.x.max - smallRanges.x.min,
+    true,
+  )
+  assert.equal(
+    maxXRect.x + maxXRect.width <= frontSafe.bounds.x + frontSafe.bounds.width,
     true,
   )
 })

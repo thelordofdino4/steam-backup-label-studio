@@ -43,7 +43,8 @@ The back cover should support the common back-cover stack:
 - Big background/promotional artwork or designed backdrop.
 - Game description text.
 - Feature bullets or short feature callouts.
-- Screenshots, with a practical default around three slots but not a hard limit forever.
+- Optional additional artwork that can use screenshots, key art, or other
+  user-selected imagery, added through the shared artwork slot behavior.
 - Game info marks such as rating, media format, operating-system/platform, or technical marks.
 - Company/technology logos.
 - System requirements, including minimum and recommended requirements where available.
@@ -73,7 +74,8 @@ The spine must be part of the printable/exported case layout rather than an unre
 ## Artwork And Asset Requirements
 
 - Reuse Steam-imported artwork, Steam screenshots, local Steam screenshots, web candidates, and local uploads where they fit the case workflow.
-- Support separate artwork choices for front background, back background, screenshots, and optional callout/artwork elements.
+- Support separate artwork choices for front background, back background,
+  game-logo/title art, and optional additional artwork elements.
 - Do not stretch images non-proportionally to fit a region. Prefer cover/contain/crop controls.
 - Warn when an image is likely too low resolution for the chosen print region.
 - Preserve custom uploads and asset provenance through save/load.

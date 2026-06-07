@@ -74,6 +74,10 @@ export type ArtworkPanelProps = {
     elementId: string,
     asset: SteamArtworkAsset,
   ) => void | Promise<void>
+  handleUseWebArtworkCandidateAsAdditionalArtwork: (
+    elementId: string,
+    candidate: RemoteLogoCandidate,
+  ) => void | Promise<void>
   handleUseLocalSteamScreenshotAsAdditionalArtwork: (
     elementId: string,
     asset: LocalSteamScreenshotAsset,

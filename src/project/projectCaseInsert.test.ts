@@ -11,21 +11,27 @@ import {
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   addCaseInsertTemplateImageSlot,
+  addJewelCaseSpineImageSlot,
   addCaseInsertTextListItem,
   createBlankJewelCaseSavedProject,
   createCaseInsertProjectSnapshot,
+  createDefaultCaseInsertImageSlot,
   createDefaultProjectJewelCaseState,
   fitCaseInsertImageSlotToRegionHeight,
   removeCaseInsertTemplateImageSlot,
   removeCaseInsertTextListItem,
   renameCaseInsertTemplateImageSlot,
+  resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
+  setCaseInsertTemplateAdditionalArtworkEnabled,
+  setJewelCaseSpineAdditionalArtworkEnabled,
   setCaseInsertTextBlockEnabled,
   setCaseInsertTextListEnabled,
   setProjectJewelCaseExportGuideIds,
   setProjectJewelCaseExportSurfaces,
   updateCaseInsertImageSlotFit,
+  updateCaseInsertImageSlotFrameField,
   updateCaseInsertImageSlotLayoutField,
   updateCaseInsertTemplateImageSlot,
   updateCaseInsertTemplateImageSlotInGroup,
@@ -37,6 +43,9 @@ import {
   restoreCaseInsertProjectState,
   restoreCaseInsertProjectStateFromContents,
 } from './projectCaseInsert.ts'
+import {
+  DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+} from './additionalArtworkFrame.ts'
 import { createProjectImageAssetProvenance } from './projectAssetStatus.ts'
 import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark } from './projectMediaMark.ts'
@@ -73,18 +82,26 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.templateType, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
   assert.equal(cover.background.enabled, true)
   assert.equal(tray.background.enabled, true)
-  assert.equal(cover.artworkSlots[0]?.enabled, false)
+  assert.equal(cover.additionalArtworkEnabled, false)
+  assert.equal(tray.additionalArtworkEnabled, false)
+  assert.deepEqual(cover.artworkSlots, [])
+  assert.deepEqual(tray.artworkSlots, [])
   assert.equal(cover.textBlocks[0]?.value, '')
   assert.equal(tray.textBlocks[0]?.value, '')
   assert.deepEqual(tray.textLists[0]?.items, [])
   assert.equal(tray.textBlocks[1]?.enabled, false)
   assert.equal(tray.textBlocks[2]?.enabled, false)
   assert.equal(tray.textBlocks[3]?.enabled, false)
-  assert.equal(tray.artworkSlots.length, 3)
   assert.equal(project.caseInsert.spine.left.title.enabled, true)
   assert.equal(project.caseInsert.spine.left.title.value, 'Archive Case')
   assert.equal(project.caseInsert.spine.left.title.layout.rotation, -90)
   assert.equal(project.caseInsert.spine.right.title.layout.rotation, 90)
+  assert.equal(project.caseInsert.spine.left.background.enabled, true)
+  assert.equal(project.caseInsert.spine.right.background.enabled, true)
+  assert.equal(project.caseInsert.spine.left.additionalArtworkEnabled, false)
+  assert.equal(project.caseInsert.spine.right.additionalArtworkEnabled, false)
+  assert.deepEqual(project.caseInsert.spine.left.artworkSlots, [])
+  assert.deepEqual(project.caseInsert.spine.right.artworkSlots, [])
   assert.equal(project.caseInsert.spine.left.steamBackupBranding.enabled, false)
   assert.deepEqual(project.caseInsert.export.surfaces, ['front', 'back'])
   assert.deepEqual(project.caseInsert.export.guideIds, [])
@@ -250,18 +267,19 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
   })
   const cover = restored.caseInsert.templates.cover
   const tray = restored.caseInsert.templates.tray
-  const screenshot = tray.artworkSlots[0]
+  const artwork = tray.artworkSlots[0]
 
   assert.equal(restored.manualGameTitle, 'Sparse Manual')
   assert.equal(restored.projectMetadata.steamAppId, '620')
   assert.equal(restored.template.selectedCaseInsertTemplateId, 'jewelCase')
   assert.equal(cover.background.enabled, true)
-  assert.equal(screenshot?.id, 'tray-screenshot-1')
-  assert.equal(screenshot?.imageDataUrl, 'data:image/png;base64,shot')
-  assert.deepEqual(screenshot?.imageSize, { width: 1280, height: 720 })
-  assert.equal(screenshot?.imageSource?.source, 'uploaded')
-  assert.equal(screenshot?.imageSource?.sourceLabel, 'shot.png')
-  assert.equal(screenshot?.imageSource?.sourceUrl, null)
+  assert.equal(artwork?.id, 'tray-artwork-1')
+  assert.equal(artwork?.label, 'Artwork 1')
+  assert.equal(artwork?.imageDataUrl, 'data:image/png;base64,shot')
+  assert.deepEqual(artwork?.imageSize, { width: 1280, height: 720 })
+  assert.equal(artwork?.imageSource?.source, 'uploaded')
+  assert.equal(artwork?.imageSource?.sourceLabel, 'shot.png')
+  assert.equal(artwork?.imageSource?.sourceUrl, null)
   assert.equal(tray.textBlocks[0]?.enabled, true)
   assert.equal(tray.textBlocks[0]?.value, '')
   assert.deepEqual(tray.textLists[0]?.items, ['Portals', 'Robots'])
@@ -330,6 +348,7 @@ test('case image fit normalization accepts scale and crop modes', () => {
 test('case update helpers preserve optional state while toggling visibility', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
+  state = addCaseInsertTemplateImageSlot(state, 'cover', 'artworkSlots')
   state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
     ...cover,
     artworkSlots: cover.artworkSlots.map((slot, index) =>
@@ -431,9 +450,105 @@ test('case image slot source import keeps reusable provenance and size metadata'
   )
 })
 
+test('case artwork visibility preserves fit and manual placement state', () => {
+  let slot = setCaseInsertImageSlotImage(
+    createDefaultProjectJewelCaseState('Portal 2').templates.cover.background,
+    {
+      imageDataUrl: 'data:image/png;base64,cover',
+      imageSize: { width: 1600, height: 2400 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'uploaded',
+        sourceLabel: 'C:\\Users\\John\\Pictures\\cover.png',
+      }),
+    },
+  )
+
+  slot = updateCaseInsertImageSlotFit(slot, 'scale')
+  slot = updateCaseInsertImageSlotLayoutField(slot, 'scale', 1.8)
+  slot = updateCaseInsertImageSlotLayoutField(slot, 'x', 24)
+  slot = updateCaseInsertImageSlotLayoutField(slot, 'y', -18)
+
+  const hiddenSlot = setCaseInsertImageSlotEnabled(slot, false)
+  const restoredSlot = setCaseInsertImageSlotEnabled(hiddenSlot, true)
+
+  assert.equal(hiddenSlot.enabled, false)
+  assert.equal(hiddenSlot.imageDataUrl, 'data:image/png;base64,cover')
+  assert.equal(hiddenSlot.imageSource?.source, 'uploaded')
+  assert.equal(hiddenSlot.imageSource?.sourceLabel, 'cover.png')
+  assert.equal(hiddenSlot.fit, 'scale')
+  assert.deepEqual(hiddenSlot.layout, {
+    scale: 1.8,
+    x: 24,
+    y: -18,
+    rotation: 0,
+  })
+  assert.deepEqual(restoredSlot.layout, hiddenSlot.layout)
+  assert.equal(restoredSlot.imageDataUrl, hiddenSlot.imageDataUrl)
+})
+
+test('case insert additional artwork frame helpers match disc defaults', () => {
+  let slot = createDefaultCaseInsertImageSlot('case-art-1', 'Case art 1')
+
+  assert.deepEqual(slot.frame, DEFAULT_ADDITIONAL_ARTWORK_FRAME)
+
+  slot = updateCaseInsertImageSlotFrameField(slot, 'enabled', true)
+  slot = updateCaseInsertImageSlotFrameField(slot, 'shape', 'circle')
+  slot = updateCaseInsertImageSlotFrameField(slot, 'color', '#ff00aa')
+  slot = updateCaseInsertImageSlotFrameField(slot, 'width', 6)
+
+  assert.deepEqual(slot.frame, {
+    enabled: true,
+    shape: 'circle',
+    color: '#ff00aa',
+    width: 6,
+  })
+  assert.deepEqual(
+    resetCaseInsertImageSlotFrame(slot).frame,
+    DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+  )
+
+  const restored = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Frame Case',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Frame Case',
+      selectedSteamGame: null,
+    },
+    caseInsert: {
+      templates: {
+        cover: {
+          artworkSlots: [
+            {
+              id: 'frame-slot',
+              label: 'Frame slot',
+              enabled: true,
+              frame: {
+                enabled: true,
+                shape: 'circle',
+                color: '#0f172a',
+                width: 999,
+              },
+            },
+          ],
+        },
+      },
+    },
+  }).caseInsert
+
+  assert.deepEqual(restored.templates.cover.artworkSlots[0]?.frame, {
+    enabled: true,
+    shape: 'circle',
+    color: '#0f172a',
+    width: 8,
+  })
+})
+
 test('case insert source provenance survives save/load for tray slots', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
   state = updateCaseInsertTemplateImageSlot(
     state,
     'tray',
@@ -453,7 +568,7 @@ test('case insert source provenance survives save/load for tray slots', () => {
     state,
     'tray',
     'artworkSlots',
-    'tray-screenshot-1',
+    'tray-artwork-1',
     (slot) => setCaseInsertImageSlotImage(slot, {
       imageDataUrl: 'data:image/png;base64,shot',
       imageSize: { width: 1280, height: 720 },
@@ -490,18 +605,157 @@ test('case insert source provenance survives save/load for tray slots', () => {
   assert.deepEqual(tray.artworkSlots[0]?.imageSize, { width: 1280, height: 720 })
 })
 
-test('case helpers update artwork slots and export settings', () => {
+test('case insert additional artwork global visibility preserves slot state', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
   state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
-  assert.equal(state.templates.tray.artworkSlots.length, 4)
-  assert.equal(state.templates.tray.artworkSlots[3]?.id, 'tray-screenshot-4')
+  state = updateCaseInsertTemplateImageSlotInGroup(
+    state,
+    'tray',
+    'artworkSlots',
+    'tray-artwork-1',
+    (slot) =>
+      updateCaseInsertImageSlotFrameField(
+        updateCaseInsertImageSlotFrameField(
+          updateCaseInsertImageSlotFrameField(
+            setCaseInsertImageSlotImage(slot, {
+              imageDataUrl: 'data:image/png;base64,hidden-screenshot',
+              imageSize: { width: 1280, height: 720 },
+            }),
+            'enabled',
+            true,
+          ),
+          'shape',
+          'circle',
+        ),
+        'width',
+        4,
+      ),
+  )
+  state = setCaseInsertTemplateAdditionalArtworkEnabled(state, 'tray', false)
+  state = addJewelCaseSpineImageSlot(
+    state,
+    'left',
+    'artworkSlots',
+    createDefaultCaseInsertImageSlot(
+      'left-spine-artwork-1',
+      'Artwork 1',
+      { enabled: true },
+    ),
+  )
+  state = setJewelCaseSpineAdditionalArtworkEnabled(state, 'left', false)
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    selectedSteamGame: steamGame,
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const trayArtwork = restored.templates.tray.artworkSlots[0]
+
+  assert.equal(restored.templates.tray.additionalArtworkEnabled, false)
+  assert.equal(
+    trayArtwork?.imageDataUrl,
+    'data:image/png;base64,hidden-screenshot',
+  )
+  assert.deepEqual(trayArtwork?.imageSize, { width: 1280, height: 720 })
+  assert.deepEqual(trayArtwork?.frame, {
+    ...DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+    enabled: true,
+    shape: 'circle',
+    width: 4,
+  })
+  assert.equal(restored.spine.left.additionalArtworkEnabled, false)
+  assert.equal(restored.spine.left.artworkSlots[0]?.id, 'left-spine-artwork-1')
+  assert.equal(restored.spine.left.artworkSlots[0]?.label, 'Artwork 1')
+  assert.deepEqual(
+    restored.spine.left.artworkSlots[0]?.frame,
+    DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+  )
+})
+
+test('legacy case insert projects infer additional artwork visibility from slots', () => {
+  const restored = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Legacy Artwork Case',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Legacy Artwork Case',
+      selectedSteamGame: null,
+    },
+    template: {
+      type: 'caseInsert',
+      variant: DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+    },
+    caseInsert: {
+      templates: {
+        cover: {
+          artworkSlots: [
+            {
+              id: 'legacy-cover-art',
+              label: 'Legacy cover art',
+              enabled: true,
+              imageDataUrl: 'data:image/png;base64,legacy-cover',
+              imageSize: { width: 800, height: 800 },
+            },
+          ],
+        },
+        tray: {
+          artworkSlots: [
+            {
+              id: 'legacy-tray-art',
+              label: 'Legacy tray art',
+              enabled: true,
+              imageDataUrl: 'data:image/png;base64,legacy-tray',
+              imageSize: { width: 1280, height: 720 },
+            },
+          ],
+        },
+      },
+      spine: {
+        left: {
+          artworkSlots: [
+            {
+              id: 'legacy-left-spine-art',
+              label: 'Legacy left spine art',
+              enabled: true,
+              imageDataUrl: 'data:image/png;base64,legacy-spine',
+              imageSize: { width: 512, height: 512 },
+            },
+          ],
+        },
+      },
+    },
+  }).caseInsert
+
+  assert.equal(restored.templates.cover.additionalArtworkEnabled, true)
+  assert.equal(restored.templates.tray.additionalArtworkEnabled, true)
+  assert.equal(restored.spine.left.additionalArtworkEnabled, true)
+  assert.equal(restored.spine.right.additionalArtworkEnabled, false)
+})
+
+test('case helpers update artwork slots and export settings', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = addCaseInsertTemplateImageSlot(state, 'cover', 'artworkSlots')
+  assert.equal(state.templates.cover.additionalArtworkEnabled, true)
+  assert.equal(state.templates.cover.artworkSlots.length, 1)
+  assert.equal(state.templates.cover.artworkSlots[0]?.id, 'cover-artwork-1')
+  assert.equal(state.templates.cover.artworkSlots[0]?.label, 'Artwork 1')
+
+  assert.equal(state.templates.tray.additionalArtworkEnabled, false)
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'artworkSlots')
+  assert.equal(state.templates.tray.additionalArtworkEnabled, true)
+  assert.equal(state.templates.tray.artworkSlots.length, 1)
+  assert.equal(state.templates.tray.artworkSlots[0]?.id, 'tray-artwork-1')
+  assert.equal(state.templates.tray.artworkSlots[0]?.label, 'Artwork 1')
 
   state = updateCaseInsertTemplateImageSlotInGroup(
     state,
     'tray',
     'artworkSlots',
-    'tray-screenshot-4',
+    'tray-artwork-1',
     (slot) => updateCaseInsertImageSlotFit(
       updateCaseInsertImageSlotLayoutField(
         setCaseInsertImageSlotImage(slot, {
@@ -515,23 +769,23 @@ test('case helpers update artwork slots and export settings', () => {
     ),
   )
 
-  const updatedScreenshot = state.templates.tray.artworkSlots[3]
+  const updatedArtwork = state.templates.tray.artworkSlots[0]
 
-  assert.equal(updatedScreenshot?.enabled, true)
-  assert.equal(updatedScreenshot?.imageSource?.source, 'embedded')
-  assert.equal(updatedScreenshot?.fit, 'contain')
-  assert.equal(updatedScreenshot?.layout.x, 24)
+  assert.equal(updatedArtwork?.enabled, true)
+  assert.equal(updatedArtwork?.imageSource?.source, 'embedded')
+  assert.equal(updatedArtwork?.fit, 'contain')
+  assert.equal(updatedArtwork?.layout.x, 24)
 
   state = removeCaseInsertTemplateImageSlot(
     state,
     'tray',
     'artworkSlots',
-    'tray-screenshot-4',
+    'tray-artwork-1',
   )
   state = setProjectJewelCaseExportSurfaces(state, ['back'])
   state = setProjectJewelCaseExportGuideIds(state, ['backPanelBounds'])
 
-  assert.equal(state.templates.tray.artworkSlots.length, 3)
+  assert.equal(state.templates.tray.artworkSlots.length, 0)
   assert.deepEqual(state.export.surfaces, ['back'])
   assert.deepEqual(state.export.guideIds, ['backPanelBounds'])
 })

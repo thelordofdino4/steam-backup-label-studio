@@ -127,7 +127,7 @@ npm run tauri dev
   Load Project, and Export PNG buttons remain available.
 - Case insert panels preserve the disc editor's nested panel behavior where
   shared Artwork, Branding, Text, and export controls are used.
-- Cover Sheet background, title artwork, callout artwork, logo slots, and mark
+- Cover Sheet background, title artwork, artwork slots, logo slots, and mark
   slots can be enabled/disabled without losing remembered image/layout state.
 - Cover Sheet image slots support uploaded images, Steam artwork, and local Steam
   screenshots through the shared case image-source controls when sources are
@@ -138,7 +138,7 @@ npm run tauri dev
   position, rotation, and reset behavior.
 - Cover Sheet preview shows rectangular trim/safe/guide geometry without using
   disc circular safe-zone rules.
-- Tray Card background, description/features, screenshots, requirements, legal
+- Tray Card background, description/features, additional artwork, requirements, legal
   text, logos, rating badges, media marks, platform marks, technical marks, and
   Steam Backup branding controls update preview/export and preserve disabled
   state.

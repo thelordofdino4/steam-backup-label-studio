@@ -6,14 +6,22 @@ import type {
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
+  CASE_INSERT_OFFSET_LAYOUT_RANGES,
+  CASE_INSERT_PERCENT_LAYOUT_RANGES,
+  getCenteredRectLayoutSliderRanges,
+  getImageFitOffsetLayoutSliderRanges,
+  type CaseInsertLayoutSliderRanges,
+} from './caseInsertElementSafeZone.ts'
+import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
   getDefaultJewelCaseBackScreenshotSlotLayouts,
   type JewelCaseImageFitResult,
   type JewelCasePixelRect,
+  type JewelCasePixelSize,
 } from './jewelCaseLayout.ts'
 
-export type JewelCaseBackImageSlotRole = 'logo' | 'mark'
+export type JewelCaseBackImageSlotRole = 'artwork' | 'logo' | 'mark'
 
 export type JewelCaseBackTextBlockRole =
   | 'description'
@@ -32,6 +40,7 @@ export type JewelCaseBackTextListLayout = JewelCaseBackTextBlockLayout & {
 }
 
 const imageSlotWidthRatioByRole: Record<JewelCaseBackImageSlotRole, number> = {
+  artwork: 0.24,
   logo: 0.16,
   mark: 0.13,
 }
@@ -40,6 +49,7 @@ const imageSlotFallbackCenterByRole: Record<
   JewelCaseBackImageSlotRole,
   { x: number; y: number }
 > = {
+  artwork: { x: 50, y: 62 },
   logo: { x: 18, y: 88 },
   mark: { x: 84, y: 88 },
 }
@@ -150,6 +160,29 @@ function getCenteredRect(
   }
 }
 
+function getBackImageSlotPreviewSize(
+  slot: ProjectCaseInsertImageSlot,
+  safeBounds: JewelCasePixelRect,
+  role: JewelCaseBackImageSlotRole,
+): JewelCasePixelSize | null {
+  if (!slot.imageSize) {
+    return null
+  }
+
+  const scale = normalizePositiveNumber(slot.layout.scale, 1)
+  const aspectRatio = slot.imageSize.width / slot.imageSize.height
+  const maxWidth = safeBounds.width * imageSlotWidthRatioByRole[role] * scale
+  const width = Math.min(maxWidth, safeBounds.width)
+  const height = width / aspectRatio
+
+  return height > safeBounds.height
+    ? {
+        width: safeBounds.height * aspectRatio,
+        height: safeBounds.height,
+      }
+    : { width, height }
+}
+
 function getTextLayoutFromConfig(
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
@@ -214,6 +247,15 @@ export function getJewelCaseBackBackgroundFit(
   })
 }
 
+export function getJewelCaseBackBackgroundLayoutSliderRanges(
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+): CaseInsertLayoutSliderRanges {
+  return getImageFitOffsetLayoutSliderRanges(
+    getJewelCaseBackBackgroundFit(slot, layout),
+  )
+}
+
 export function getJewelCaseBackScreenshotFrameRect(
   layout: CaseInsertPreviewLayout,
   index: number,
@@ -264,6 +306,29 @@ export function getJewelCaseBackScreenshotFit(
   })
 }
 
+export function getJewelCaseBackScreenshotLayoutSliderRanges(
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+  index: number,
+  count: number,
+): CaseInsertLayoutSliderRanges {
+  const frame = getJewelCaseBackScreenshotFrameRect(layout, index, count)
+
+  if (!frame || !slot.enabled || !slot.imageDataUrl) {
+    return CASE_INSERT_OFFSET_LAYOUT_RANGES
+  }
+
+  return getImageFitOffsetLayoutSliderRanges(
+    fitImageToJewelCaseRegion({
+      imageSize: slot.imageSize,
+      region: frame,
+      fit: slot.fit,
+      scale: slot.layout.scale,
+      offset: { x: 0, y: 0 },
+    }),
+  )
+}
+
 export function getJewelCaseBackImageSlotPreviewRect(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
@@ -280,17 +345,11 @@ export function getJewelCaseBackImageSlotPreviewRect(
     x: normalizePercent(slot.layout.x, fallbackCenter.x),
     y: normalizePercent(slot.layout.y, fallbackCenter.y),
   }
-  const scale = normalizePositiveNumber(slot.layout.scale, 1)
-  const aspectRatio = slot.imageSize.width / slot.imageSize.height
-  const maxWidth = safeBounds.width * imageSlotWidthRatioByRole[role] * scale
-  const width = Math.min(maxWidth, safeBounds.width)
-  const height = width / aspectRatio
-  const fittedRect = height > safeBounds.height
-    ? {
-        width: safeBounds.height * aspectRatio,
-        height: safeBounds.height,
-      }
-    : { width, height }
+  const fittedRect = getBackImageSlotPreviewSize(slot, safeBounds, role)
+
+  if (!fittedRect) {
+    return null
+  }
 
   return clampPixelRectToBounds(
     getCenteredRect(
@@ -301,6 +360,21 @@ export function getJewelCaseBackImageSlotPreviewRect(
     ),
     safeBounds,
   )
+}
+
+export function getJewelCaseBackImageSlotLayoutSliderRanges(
+  slot: ProjectCaseInsertImageSlot,
+  layout: CaseInsertPreviewLayout,
+  role: JewelCaseBackImageSlotRole,
+): CaseInsertLayoutSliderRanges {
+  const safeBounds = getJewelCaseBackPreviewRegionBounds(layout, 'backPanelSafe')
+  const renderedSize = safeBounds
+    ? getBackImageSlotPreviewSize(slot, safeBounds, role)
+    : null
+
+  return safeBounds && renderedSize
+    ? getCenteredRectLayoutSliderRanges(safeBounds, renderedSize)
+    : CASE_INSERT_PERCENT_LAYOUT_RANGES
 }
 
 export function getJewelCaseBackTextBlockPreviewLayout(

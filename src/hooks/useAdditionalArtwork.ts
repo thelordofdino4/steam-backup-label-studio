@@ -24,6 +24,10 @@ import {
 import { applyImportedAdditionalArtwork } from '../project/projectVisualAssetImport'
 import type { ProjectAdditionalArtwork } from '../project/projectTypes'
 import { downloadSteamArtworkAsDataUrl, type SteamArtworkAsset } from '../steam/steamApi'
+import {
+  downloadRemoteLogoCandidateAsDataUrl,
+  type RemoteLogoCandidate,
+} from '../steam/steamLogoCandidates'
 import type { DiscTemplate } from '../types/template'
 import {
   createImportedImageAssetFromDataUrl,
@@ -166,6 +170,36 @@ export function useAdditionalArtwork({
     }
   }
 
+  async function handleUseWebArtworkCandidateAsAdditionalArtwork(
+    elementId: string,
+    candidate: RemoteLogoCandidate,
+  ) {
+    try {
+      const importedImage = await createImportedImageAssetFromDataUrl(
+        await downloadRemoteLogoCandidateAsDataUrl(candidate),
+        candidate.label,
+      )
+
+      setProjectAdditionalArtwork((currentAdditionalArtwork) =>
+        applyImportedAdditionalArtwork(
+          currentAdditionalArtwork,
+          elementId,
+          importedImage,
+          selectedDiscTemplate,
+          {
+            source: 'web-artwork',
+            sourceId: candidate.id,
+            sourceLabel: candidate.label,
+          },
+        ),
+      )
+
+      announceStatus(`Using ${candidate.label} as additional artwork.`)
+    } catch (error) {
+      announceStatus(`Web artwork import failed: ${String(error)}`)
+    }
+  }
+
   function handleAdditionalArtworkLayoutChange(
     elementId: string,
     field: AdditionalArtworkLayoutField,
@@ -261,6 +295,7 @@ export function useAdditionalArtwork({
     handleAddAdditionalArtworkElement,
     handleAdditionalArtworkUpload,
     handleUseSteamArtworkAsAdditionalArtwork,
+    handleUseWebArtworkCandidateAsAdditionalArtwork,
     handleUseLocalSteamScreenshotAsAdditionalArtwork,
     handleAdditionalArtworkLayoutChange,
     handleAdditionalArtworkLabelChange,

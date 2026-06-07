@@ -6,12 +6,16 @@ import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import {
+  normalizeAdditionalArtworkFrame,
+} from '../project/additionalArtworkFrame.ts'
 import type {
   BackgroundImageSize,
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertSurfaceState,
+  ProjectCaseInsertTitleArtworkDefaultAsset,
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
@@ -130,6 +134,57 @@ function normalizeImageSize(value: unknown): BackgroundImageSize | null {
   return width > 0 && height > 0 ? { width, height } : null
 }
 
+function normalizeCaseInsertTitleArtworkDefaultSteamLogo(
+  value: unknown,
+): ProjectCaseInsertTitleArtworkDefaultAsset | null {
+  const record = asRecord(value)
+
+  if (!record) {
+    return null
+  }
+
+  const steamArtworkAssetId = normalizeNullableString(
+    record.steamArtworkAssetId,
+  )
+  const imageDataUrl = normalizeNullableString(record.imageDataUrl)
+  const imageSize = normalizeImageSize(record.imageSize)
+
+  if (!steamArtworkAssetId || !imageDataUrl || !imageSize) {
+    return null
+  }
+
+  return {
+    steamArtworkAssetId,
+    sourceLabel: normalizeString(record.sourceLabel, 'Steam CDN logo'),
+    sourceUrl: normalizeNullableString(record.sourceUrl),
+    imageDataUrl,
+    imageSize,
+  }
+}
+
+function inferCaseInsertTitleArtworkDefaultSteamLogo(
+  imageDataUrl: string | null,
+  imageSize: BackgroundImageSize | null,
+  imageSource: ProjectImageAssetProvenance | null,
+): ProjectCaseInsertTitleArtworkDefaultAsset | null {
+  if (
+    !imageDataUrl ||
+    !imageSize ||
+    imageSource?.source !== 'steam-artwork' ||
+    !imageSource.sourceId
+  ) {
+    return null
+  }
+
+  return {
+    steamArtworkAssetId: imageSource.sourceId,
+    sourceLabel: imageSource.sourceLabel,
+    sourceUrl: imageSource.sourceUrl ?? null,
+    imageDataUrl,
+    imageSize,
+  }
+}
+
 function normalizeCaseInsertLayout(
   value: unknown,
   defaults: ProjectCaseInsertLayout,
@@ -151,6 +206,7 @@ function normalizeCaseInsertLayout(
 function normalizeCaseInsertImageSlot(
   value: unknown,
   defaults: ProjectCaseInsertImageSlot,
+  options: { supportsSteamDefaultLogo?: boolean } = {},
 ): ProjectCaseInsertImageSlot {
   const record = asRecord(value)
 
@@ -163,19 +219,31 @@ function normalizeCaseInsertImageSlot(
   const fallbackImageSource = imageDataUrl
     ? createEmbeddedProjectImageAssetProvenance(defaults.label)
     : defaults.imageSource ?? null
+  const imageSource = normalizeProjectImageAssetProvenance(
+    rawImageSource as Partial<ProjectImageAssetProvenance> | null,
+    fallbackImageSource,
+  )
+  const defaultSteamLogo = options.supportsSteamDefaultLogo
+    ? normalizeCaseInsertTitleArtworkDefaultSteamLogo(record.defaultSteamLogo) ??
+      inferCaseInsertTitleArtworkDefaultSteamLogo(
+        imageDataUrl,
+        normalizeImageSize(record.imageSize) ?? defaults.imageSize,
+        imageSource,
+      ) ??
+      defaults.defaultSteamLogo
+    : null
 
   return {
     id: normalizeString(record.id, defaults.id),
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     imageDataUrl,
-    imageSource: normalizeProjectImageAssetProvenance(
-      rawImageSource as Partial<ProjectImageAssetProvenance> | null,
-      fallbackImageSource,
-    ),
+    imageSource,
     imageSize: normalizeImageSize(record.imageSize) ?? defaults.imageSize,
+    defaultSteamLogo,
     fit: normalizeCaseInsertImageFit(record.fit, defaults.fit),
     layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
+    frame: normalizeAdditionalArtworkFrame(record.frame, defaults.frame),
   }
 }
 
@@ -315,19 +383,30 @@ function normalizeCaseInsertSurfaceState(
   if (!record) {
     return defaults
   }
+  const rawArtworkSlots = record.artworkSlots ?? record.artwork
+  const artworkSlots = normalizeCaseInsertImageSlotArray(
+    rawArtworkSlots,
+    `${idPrefix}-artwork`,
+    'Artwork',
+    defaults.artworkSlots,
+  )
+  const savedArtworkSlots = asArray(rawArtworkSlots)
+  const inferredAdditionalArtworkEnabled = savedArtworkSlots
+    ? artworkSlots.length > 0
+    : defaults.additionalArtworkEnabled
 
   return {
     background: normalizeCaseInsertImageSlot(record.background, defaults.background),
     titleArtwork: normalizeCaseInsertImageSlot(
       record.titleArtwork,
       defaults.titleArtwork,
+      { supportsSteamDefaultLogo: true },
     ),
-    artworkSlots: normalizeCaseInsertImageSlotArray(
-      record.artworkSlots ?? record.artwork,
-      `${idPrefix}-artwork`,
-      `${labelPrefix} artwork`,
-      defaults.artworkSlots,
+    additionalArtworkEnabled: normalizeBoolean(
+      record.additionalArtworkEnabled ?? record.artworkEnabled,
+      inferredAdditionalArtworkEnabled,
     ),
+    artworkSlots,
     logoSlots: normalizeCaseInsertImageSlotArray(
       record.logoSlots ?? record.logos,
       `${idPrefix}-logo`,
@@ -440,9 +519,30 @@ function normalizeJewelCaseSpineSideState(
   if (!record) {
     return defaults
   }
+  const rawArtworkSlots = record.artworkSlots ?? record.artwork
+  const artworkSlots = normalizeCaseInsertImageSlotArray(
+    rawArtworkSlots,
+    `${defaults.background.id.replace('-background', '')}-artwork`,
+    'Artwork',
+    defaults.artworkSlots,
+  )
+  const savedArtworkSlots = asArray(rawArtworkSlots)
+  const inferredAdditionalArtworkEnabled = savedArtworkSlots
+    ? artworkSlots.length > 0
+    : defaults.additionalArtworkEnabled
 
   return {
     background: normalizeCaseInsertImageSlot(record.background, defaults.background),
+    titleArtwork: normalizeCaseInsertImageSlot(
+      record.titleArtwork,
+      defaults.titleArtwork,
+      { supportsSteamDefaultLogo: true },
+    ),
+    additionalArtworkEnabled: normalizeBoolean(
+      record.additionalArtworkEnabled ?? record.artworkEnabled,
+      inferredAdditionalArtworkEnabled,
+    ),
+    artworkSlots,
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
     steamBackupBranding: normalizeCaseInsertImageSlot(
       record.steamBackupBranding ?? record.steamBackupLogo,

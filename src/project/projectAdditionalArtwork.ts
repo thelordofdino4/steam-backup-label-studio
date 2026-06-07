@@ -8,7 +8,6 @@ import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
 import type {
   AdditionalArtworkLayout,
   AdditionalArtworkFrame,
-  AdditionalArtworkFrameShape,
   AdditionalArtworkSource,
   BackgroundImageSize,
   ProjectAdditionalArtwork,
@@ -16,9 +15,21 @@ import type {
   ProjectAdditionalArtworkInput,
 } from './projectTypes'
 import { sanitizeProjectImageAssetSourceLabel } from './projectAssetStatus.ts'
+import {
+  DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+  normalizeAdditionalArtworkFrame,
+  type AdditionalArtworkFrameField,
+} from './additionalArtworkFrame.ts'
+export {
+  ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
+  ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN,
+  DEFAULT_ADDITIONAL_ARTWORK_FRAME,
+} from './additionalArtworkFrame.ts'
+export type {
+  AdditionalArtworkFrameField,
+} from './additionalArtworkFrame.ts'
 
 export type AdditionalArtworkLayoutField = keyof AdditionalArtworkLayout
-export type AdditionalArtworkFrameField = keyof AdditionalArtworkFrame
 
 export type AdditionalArtworkImportSource = {
   source: AdditionalArtworkSource
@@ -62,16 +73,6 @@ export const DEFAULT_ADDITIONAL_ARTWORK_LAYOUT: AdditionalArtworkLayout = {
   scale: 1,
   x: 68,
   y: 42,
-}
-
-export const ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN = 0.25
-export const ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX = 8
-
-export const DEFAULT_ADDITIONAL_ARTWORK_FRAME: AdditionalArtworkFrame = {
-  enabled: false,
-  color: '#f9fafb',
-  width: 2,
-  shape: 'rectangle',
 }
 
 function createAdditionalArtworkElementId() {
@@ -475,38 +476,9 @@ function isAdditionalArtworkSource(value: unknown): value is AdditionalArtworkSo
   return (
     value === 'custom' ||
     value === 'steam-artwork' ||
+    value === 'web-artwork' ||
     value === 'local-steam-screenshot'
   )
-}
-
-function isAdditionalArtworkFrameShape(
-  value: unknown,
-): value is AdditionalArtworkFrameShape {
-  return value === 'rectangle' || value === 'circle'
-}
-
-function normalizeAdditionalArtworkFrame(
-  frame: Partial<AdditionalArtworkFrame> | undefined,
-): AdditionalArtworkFrame {
-  const width =
-    typeof frame?.width === 'number' && Number.isFinite(frame.width)
-      ? Math.min(
-          ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
-          Math.max(ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN, frame.width),
-        )
-      : DEFAULT_ADDITIONAL_ARTWORK_FRAME.width
-
-  return {
-    enabled: frame?.enabled ?? DEFAULT_ADDITIONAL_ARTWORK_FRAME.enabled,
-    color:
-      typeof frame?.color === 'string' && frame.color.trim()
-        ? frame.color
-        : DEFAULT_ADDITIONAL_ARTWORK_FRAME.color,
-    width,
-    shape: isAdditionalArtworkFrameShape(frame?.shape)
-      ? frame.shape
-      : DEFAULT_ADDITIONAL_ARTWORK_FRAME.shape,
-  }
 }
 
 function normalizeAdditionalArtworkLayout(

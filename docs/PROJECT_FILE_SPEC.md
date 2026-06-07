@@ -143,8 +143,8 @@ normalized as jewel case projects.
 
 The jewel case state stores:
 
-- front surface background, title artwork, callout artwork/text, extra artwork slots, logo slots, mark slots, and text blocks
-- back surface background, title artwork, screenshots, description, feature bullets, minimum/recommended requirements, legal text, extra artwork slots, logo slots, mark slots, and text blocks
+- front surface background, title artwork, artwork slots, callout text, logo slots, mark slots, and text blocks
+- back surface background, title artwork, additional artwork slots, description, feature bullets, minimum/recommended requirements, legal text, logo slots, mark slots, and text blocks
 - left and right spine settings, including background, title text, Steam Backup branding slot, and logo slot
 - case export settings, including selected surfaces and guide IDs
 - image asset data, image size, fit/layout settings, and provenance where present
@@ -190,7 +190,7 @@ Loader normalization should:
 - route case insert projects away from the disc restore path
 - normalize sparse jewel case data to safe front/back/spine defaults
 - preserve case image asset provenance and embedded data where present
-- preserve optional case image, text, screenshot, logo, mark, and export state when controls are toggled off
+- preserve optional case image, text, artwork, logo, mark, and export state when controls are toggled off
 
 ## Future Format
 

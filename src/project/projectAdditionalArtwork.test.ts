@@ -187,3 +187,25 @@ test('normalizes missing and saved additional artwork state safely', () => {
   assert.equal(restored.elements[0]!.frame.width, 8)
   assert.equal(restored.elements[0]!.frame.shape, 'circle')
 })
+
+test('normalizes web artwork as a saved additional artwork source', () => {
+  const restored = normalizeProjectAdditionalArtwork(
+    {
+      enabled: true,
+      elements: [
+        {
+          source: 'web-artwork',
+          sourceId: 'remote-key-art',
+          sourceLabel: 'Remote key art',
+          imageDataUrl: importedImage.imageDataUrl,
+          imageSize: importedImage.imageSize,
+        },
+      ],
+    },
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.equal(restored.elements[0]!.source, 'web-artwork')
+  assert.equal(restored.elements[0]!.sourceId, 'remote-key-art')
+  assert.equal(restored.elements[0]!.sourceLabel, 'Remote key art')
+})
