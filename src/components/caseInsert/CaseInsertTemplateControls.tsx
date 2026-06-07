@@ -4,6 +4,7 @@ import type {
   CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
 import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
+import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import {
   getCaseInsertMarkLayerKind,
@@ -35,6 +36,7 @@ import type {
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
 } from '../../project/projectTypes'
+import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
@@ -53,6 +55,7 @@ import {
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertTemplateControlsProps = {
@@ -61,6 +64,8 @@ export type CaseInsertTemplateControlsProps = {
   actions: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  logoCandidateDiscovery: LogoCandidateDiscoveryState
+  handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }
 
 const COVER_POSITION_PRESETS = [
@@ -1058,14 +1063,21 @@ export function CaseInsertTemplateBrandingControls({
   actions,
   imageSources,
   brandingSources,
+  logoCandidateDiscovery,
+  handleFindLogoCandidates,
 }: CaseInsertTemplateControlsProps) {
   return (
     <>
       <CaseInsertBrandingFeatureSection title="Developer / publisher logos">
+        <CaseInsertLogoCandidateControls
+          logoCandidateDiscovery={logoCandidateDiscovery}
+          handleFindLogoCandidates={handleFindLogoCandidates}
+          onUseLogoCandidate={(logoKey, candidate) =>
+            actions.handleUseLogoCandidate(paneId, logoKey, candidate)}
+        />
         <CaseInsertBrandingSourceControls
           brandingSources={brandingSources}
           sectionIds={['logos']}
-          showSectionTitles={false}
           onUseSource={(source) =>
             actions.handleUseBrandingSlotSource(paneId, source)}
         />

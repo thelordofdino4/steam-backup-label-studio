@@ -36,6 +36,7 @@ import {
 } from '../caseInsert/titleArtwork'
 import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
+  createLogoCandidateCaseInsertImageSlotImage,
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
   createUploadedCaseInsertImageSlotImage,
@@ -58,6 +59,7 @@ import type {
   ProjectCaseInsertTextAlign,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
+import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
@@ -104,6 +106,10 @@ const defaultSpineGroupedImageSlotLayouts: Record<
 
 function normalizeLabel(label: string) {
   return label.trim().toLocaleLowerCase()
+}
+
+function getLogoSlotLabel(logoKey: LogoAssetKey) {
+  return logoKey === 'developer' ? 'Developer logo' : 'Publisher logo'
 }
 
 function getSpineBackgroundFitRegion(side: JewelCaseSpineSide) {
@@ -712,6 +718,33 @@ export function useJewelCaseSpineEditor({
     }
   }
 
+  async function handleUseSpineLogoCandidate(
+    side: JewelCaseSpineSide,
+    logoKey: LogoAssetKey,
+    candidate: RemoteLogoCandidate,
+  ) {
+    const label = getLogoSlotLabel(logoKey)
+    announceStatus(`Adding ${candidate.label} to the ${side} spine...`)
+
+    try {
+      const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
+
+      updateSpineImageSlot(side, 'logo', (slot) =>
+        setCaseInsertImageSlotImage(
+          {
+            ...slot,
+            label,
+            fit: 'contain',
+          },
+          image,
+        ),
+      )
+      announceStatus(`Added ${candidate.label} as the ${side} spine ${normalizeLabel(label)}.`)
+    } catch (error) {
+      announceStatus(`Logo candidate import failed for ${side} spine ${normalizeLabel(label)}: ${String(error)}`)
+    }
+  }
+
   return {
     handleSpineTitleEnabledChange,
     handleSpineTitleValueChange,
@@ -746,6 +779,7 @@ export function useJewelCaseSpineEditor({
     handleResetSpineGroupedImageSlotFrame,
     handleClearSpineGroupedImageSlot,
     handleUseSpineBrandingSource,
+    handleUseSpineLogoCandidate,
   }
 }
 

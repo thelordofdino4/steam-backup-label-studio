@@ -40,6 +40,7 @@ import {
 } from '../caseInsert/titleArtwork'
 import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
+  createLogoCandidateCaseInsertImageSlotImage,
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
   createUploadedCaseInsertImageSlotImage,
@@ -69,6 +70,7 @@ import type {
   ProjectCaseInsertTextAlign,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
+import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
@@ -106,6 +108,10 @@ const defaultTextListLayouts: Record<string, ProjectCaseInsertLayout> = {
 
 function normalizeLabel(label: string) {
   return label.trim().toLocaleLowerCase()
+}
+
+function getLogoSlotLabel(logoKey: LogoAssetKey) {
+  return logoKey === 'developer' ? 'Developer logo' : 'Publisher logo'
 }
 
 function getGroupDefaultLayout(
@@ -743,6 +749,59 @@ export function useCaseInsertTemplateEditor({
     }
   }
 
+  async function handleUseLogoCandidate(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+    candidate: RemoteLogoCandidate,
+  ) {
+    const label = getLogoSlotLabel(logoKey)
+    announceStatus(`Adding ${candidate.label} to ${normalizeLabel(label)}...`)
+
+    try {
+      const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
+
+      setProjectJewelCase((currentCaseInsert) =>
+        updateProjectCaseInsertTemplate(
+          currentCaseInsert,
+          paneId,
+          (templateState) => {
+            const slots = templateState.logoSlots
+            const sourceId = image.imageSource?.sourceId ?? candidate.id
+            const existingIndex = slots.findIndex((slot) =>
+              slot.imageSource?.sourceId === sourceId || slot.label === label)
+            const baseSlot = existingIndex >= 0
+              ? slots[existingIndex]
+              : createCaseInsertTemplateImageSlot(
+                  paneId,
+                  'logoSlots',
+                  getNextGroupedSlotIndex(paneId, 'logoSlots', slots),
+                )
+            const updatedSlot = setCaseInsertImageSlotImage(
+              {
+                ...baseSlot,
+                label,
+                fit: 'contain',
+              },
+              image,
+            )
+            const nextSlots = existingIndex >= 0
+              ? slots.map((slot, index) =>
+                  index === existingIndex ? updatedSlot : slot)
+              : [...slots, updatedSlot]
+
+            return {
+              ...templateState,
+              logoSlots: nextSlots,
+            }
+          },
+        ),
+      )
+      announceStatus(`Added ${candidate.label} as the ${normalizeLabel(label)}.`)
+    } catch (error) {
+      announceStatus(`Logo candidate import failed for ${normalizeLabel(label)}: ${String(error)}`)
+    }
+  }
+
   function handleTextBlockEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
@@ -965,6 +1024,7 @@ export function useCaseInsertTemplateEditor({
     handleResetGroupedImageSlotFrame,
     handleClearGroupedImageSlot,
     handleUseBrandingSlotSource,
+    handleUseLogoCandidate,
     handleTextBlockEnabledChange,
     handleTextBlockValueChange,
     handleTextBlockAlignChange,

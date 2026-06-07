@@ -23,6 +23,8 @@ import type { PreviewToast } from '../preview/PreviewToastStack'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertTemplateEditor'
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
+import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
+import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
 import {
   CaseInsertTemplateWorkflowControls,
@@ -46,6 +48,8 @@ export type CaseInsertEditorShellProps = {
   spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  logoCandidateDiscovery: LogoCandidateDiscoveryState
+  handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
   gamePanelProps: GamePanelProps
   projectStatus: string
   statusToasts: PreviewToast[]
@@ -104,6 +108,8 @@ function CaseInsertProjectPanel({
   | 'spineEditor'
   | 'imageSources'
   | 'brandingSources'
+  | 'logoCandidateDiscovery'
+  | 'handleFindLogoCandidates'
   | 'gamePanelProps'
   | 'statusToasts'
   | 'onActiveTemplatePaneChange'
@@ -300,6 +306,8 @@ export function CaseInsertEditorShell({
   spineEditor,
   imageSources,
   brandingSources,
+  logoCandidateDiscovery,
+  handleFindLogoCandidates,
   gamePanelProps,
   projectStatus,
   statusToasts,
@@ -363,6 +371,8 @@ export function CaseInsertEditorShell({
               actions={editor}
               imageSources={imageSources}
               brandingSources={brandingSources}
+              logoCandidateDiscovery={logoCandidateDiscovery}
+              handleFindLogoCandidates={handleFindLogoCandidates}
             />
           </CaseInsertWorkflowPanel>
         )
@@ -378,6 +388,8 @@ export function CaseInsertEditorShell({
               actions={spineEditor}
               imageSources={imageSources}
               brandingSources={brandingSources}
+              logoCandidateDiscovery={logoCandidateDiscovery}
+              handleFindLogoCandidates={handleFindLogoCandidates}
             />
           </CaseInsertWorkflowPanel>
         )

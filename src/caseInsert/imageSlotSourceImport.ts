@@ -10,6 +10,7 @@ import {
   downloadRemoteLogoCandidateAsDataUrl,
   type RemoteLogoCandidate,
 } from '../steam/steamLogoCandidates.ts'
+import { importRemoteLogoCandidateAsset } from '../steam/steamLogoCandidateImport.ts'
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
 import type { ProjectImageAssetProvenance } from '../project/projectTypes.ts'
 import {
@@ -96,5 +97,17 @@ export async function createWebArtworkCaseInsertImageSlotImage(
       sourceLabel: candidate.label,
       sourceUrl: candidate.url,
     }),
+  )
+}
+
+export async function createLogoCandidateCaseInsertImageSlotImage(
+  candidate: RemoteLogoCandidate,
+): Promise<CaseInsertImageSlotImageInput> {
+  const { importedImage, imageSource } =
+    await importRemoteLogoCandidateAsset(candidate)
+
+  return createCaseInsertImageSlotImageFromImportedAsset(
+    importedImage,
+    imageSource,
   )
 }

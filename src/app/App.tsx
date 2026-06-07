@@ -1615,6 +1615,8 @@ function App() {
           projectPlatformMarks,
           projectTechnicalMarks,
         }}
+        logoCandidateDiscovery={logoCandidateDiscovery}
+        handleFindLogoCandidates={findLogoCandidates}
         gamePanelProps={caseInsertGamePanelProps}
         projectStatus={projectStatus}
         statusToasts={statusToasts}

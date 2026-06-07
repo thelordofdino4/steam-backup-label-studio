@@ -6,10 +6,7 @@ import {
 } from '../assets/assetManifest.ts'
 import { loadImage } from '../export/canvasImage.ts'
 import {
-  getLogoAssetRenderDataUrl,
-  getLogoAssetRenderSize,
   getAdditionalLogoAssets,
-  type LogoAssetKey,
 } from '../project/projectLogoAssets.ts'
 import {
   MEDIA_MARK_OPTIONS,
@@ -133,34 +130,29 @@ function createBrandingSourceItem({
 }
 
 function createLogoSourceItem({
-  logoKey,
   label,
   imageDataUrl,
   imageSize,
   imageSource,
   sourceId,
 }: {
-  logoKey: LogoAssetKey
   label: string
   imageDataUrl: string | null
   imageSize: BackgroundImageSize | null
   imageSource: ProjectImageAssetProvenance | null | undefined
   sourceId: string
 }) {
-  const renderDataUrl = getLogoAssetRenderDataUrl(logoKey, imageDataUrl)
-  const renderSize = getLogoAssetRenderSize(imageSize)
-
   return createBrandingSourceItem({
     id: sourceId,
     slotKey: 'logoSlots',
     label,
     sourceTypeLabel: 'Logo',
-    imageDataUrl: renderDataUrl,
-    imageSize: renderSize,
+    imageDataUrl,
+    imageSize,
     imageSource: imageSource ?? createSourceProvenance(
-      'placeholder',
+      'embedded',
       sourceId,
-      `${label} generic logo`,
+      label,
     ),
   })
 }
@@ -169,7 +161,6 @@ function createLogoSourceItems(projectLogoAssets: ProjectLogoAssets) {
   const items: CaseInsertBrandingSlotSourceItem[] = []
 
   const developerLogo = createLogoSourceItem({
-    logoKey: 'developer',
     label: 'Developer logo',
     imageDataUrl: projectLogoAssets.developerLogoDataUrl,
     imageSize: projectLogoAssets.developerLogoSize,
@@ -177,7 +168,6 @@ function createLogoSourceItems(projectLogoAssets: ProjectLogoAssets) {
     sourceId: 'case-logo:developer',
   })
   const publisherLogo = createLogoSourceItem({
-    logoKey: 'publisher',
     label: 'Publisher logo',
     imageDataUrl: projectLogoAssets.publisherLogoDataUrl,
     imageSize: projectLogoAssets.publisherLogoSize,

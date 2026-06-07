@@ -1,17 +1,15 @@
 import { useCallback, useState, type Dispatch, type SetStateAction } from 'react'
 import { applyImportedLogoAsset } from '../project/projectVisualAssetImport'
-import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { ProjectLogoAssets, ProjectMetadata } from '../project/projectTypes'
 import {
   discoverLogoCandidates,
-  downloadRemoteLogoCandidateAsDataUrl,
   type LogoCandidateSourceStatus,
   type RemoteLogoCandidate,
 } from '../steam/steamLogoCandidates'
+import { importRemoteLogoCandidateAsset } from '../steam/steamLogoCandidateImport'
 import type { SteamImportedGame } from '../steam/steamApi'
 import type { DiscTemplate } from '../types/template'
-import { createImportedImageAssetFromDataUrl } from '../utils/importedImageAsset'
 
 export type LogoCandidateDiscoverySlot = {
   candidates: RemoteLogoCandidate[]
@@ -70,17 +68,6 @@ function getLogoEntityLabel(
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
-}
-
-function getLogoCandidateAssetSource(candidate: RemoteLogoCandidate) {
-  return createProjectImageAssetProvenance({
-    source: candidate.sourceKind.startsWith('steam-')
-      ? 'steam-logo-candidate'
-      : 'official-logo-candidate',
-    sourceId: candidate.id,
-    sourceLabel: candidate.label,
-    sourceUrl: candidate.url,
-  })
 }
 
 export function useLogoAssetDiscovery({
@@ -166,11 +153,8 @@ export function useLogoAssetDiscovery({
     }))
 
     try {
-      const imageDataUrl = await downloadRemoteLogoCandidateAsDataUrl(candidate)
-      const importedImage = await createImportedImageAssetFromDataUrl(
-        imageDataUrl,
-        candidate.label,
-      )
+      const { importedImage, imageSource } =
+        await importRemoteLogoCandidateAsset(candidate)
 
       setProjectLogoAssets((currentLogoAssets) =>
         applyImportedLogoAsset(
@@ -178,7 +162,7 @@ export function useLogoAssetDiscovery({
           logoKey,
           importedImage,
           selectedDiscTemplate,
-          getLogoCandidateAssetSource(candidate),
+          imageSource,
           additionalLogoId,
         ),
       )

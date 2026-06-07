@@ -5,7 +5,44 @@ import {
   parseOfficialLogoCandidatesFromCss,
   parseOfficialLogoCandidatesFromHtml,
   parseSteamLogoCandidatesFromHtml,
+  type RemoteLogoCandidate,
 } from './steamLogoCandidates.ts'
+import {
+  createLogoCandidateAssetProvenance,
+} from './steamLogoCandidateImport.ts'
+
+function createTestLogoCandidate(
+  sourceKind: RemoteLogoCandidate['sourceKind'],
+): RemoteLogoCandidate {
+  return {
+    id: `${sourceKind}-candidate`,
+    url: `https://example.test/${sourceKind}.png`,
+    sourcePageUrl: 'https://example.test/',
+    label: `${sourceKind} candidate`,
+    sourceKind,
+    fileType: 'png',
+    transparencyHint: true,
+    score: 100,
+    targetWorkflow: 'branding-logo',
+    contentKind: 'logo',
+    routingReasons: ['test route'],
+    reasons: ['test reason'],
+  }
+}
+
+test('logo candidate provenance preserves branding-logo source routing', () => {
+  const steamProvenance = createLogoCandidateAssetProvenance(
+    createTestLogoCandidate('steam-img'),
+  )
+  const officialProvenance = createLogoCandidateAssetProvenance(
+    createTestLogoCandidate('official-img'),
+  )
+
+  assert.equal(steamProvenance.source, 'steam-logo-candidate')
+  assert.equal(steamProvenance.sourceId, 'steam-img-candidate')
+  assert.equal(officialProvenance.source, 'official-logo-candidate')
+  assert.equal(officialProvenance.sourceId, 'official-img-candidate')
+})
 
 test('extracts Steam curator avatar candidates', () => {
   const candidates = parseSteamLogoCandidatesFromHtml(

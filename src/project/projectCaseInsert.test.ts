@@ -874,14 +874,47 @@ test('template helpers add, update, preserve, and remove logo and mark slots', (
   assert.equal(state.templates.tray.markSlots.length, 1)
 })
 
-test('case branding source catalog exposes shared mark and logo sources', () => {
+test('case branding source catalog only exposes saved logo sources', () => {
+  const sections = createCaseInsertBrandingSourceSections({
+    projectMetadata: createDefaultProjectMetadata(),
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    projectMediaMark: createDefaultProjectMediaMark(),
+    projectPlatformMarks: createDefaultProjectPlatformMarks(),
+    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
+  })
+  const logos = sections.find((section) => section.id === 'logos')
+
+  assert.equal(logos?.items.length, 0)
+})
+
+test('case branding source catalog exposes shared mark and real logo sources', () => {
+  const projectLogoAssets = {
+    ...createDefaultProjectLogoAssets(),
+    developerLogoDataUrl: 'data:image/png;base64,developer-logo',
+    developerLogoSize: { width: 512, height: 128 },
+    developerLogoSource: createProjectImageAssetProvenance({
+      source: 'steam-logo-candidate',
+      sourceId: 'steam-dev-logo-candidate',
+      sourceLabel: 'Steam developer logo candidate',
+      sourceUrl: 'https://cdn.example.test/dev-logo.png',
+    }),
+    publisherLogoDataUrl: 'data:image/png;base64,publisher-logo',
+    publisherLogoSize: { width: 512, height: 128 },
+    publisherLogoSource: createProjectImageAssetProvenance({
+      source: 'official-logo-candidate',
+      sourceId: 'official-pub-logo-candidate',
+      sourceLabel: 'Official publisher logo candidate',
+      sourceUrl: 'https://example.test/pub-logo.png',
+    }),
+  }
   const sections = createCaseInsertBrandingSourceSections({
     projectMetadata: {
       ...createDefaultProjectMetadata(),
       ratingSystem: 'ESRB',
       ratingValue: 'M',
     },
-    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectLogoAssets,
     projectRatingBadge: createDefaultProjectRatingBadge(),
     projectMediaMark: createDefaultProjectMediaMark(),
     projectPlatformMarks: createDefaultProjectPlatformMarks(),
@@ -893,8 +926,12 @@ test('case branding source catalog exposes shared mark and logo sources', () => 
   const platform = sections.find((section) => section.id === 'platform')
   const technical = sections.find((section) => section.id === 'technical')
 
-  assert.ok(logos?.items.some((item) => item.sourceId === 'case-logo:developer'))
-  assert.ok(logos?.items.some((item) => item.sourceId === 'case-logo:publisher'))
+  assert.ok(logos?.items.some((item) =>
+    item.id === 'case-logo:developer' &&
+    item.sourceId === 'steam-dev-logo-candidate'))
+  assert.ok(logos?.items.some((item) =>
+    item.id === 'case-logo:publisher' &&
+    item.sourceId === 'official-pub-logo-candidate'))
   assert.equal(rating?.items[0]?.sourceId, 'case-rating:ESRB:M')
   assert.ok(media?.items.some((item) =>
     item.sourceId === 'case-media:dataDisc:light'))

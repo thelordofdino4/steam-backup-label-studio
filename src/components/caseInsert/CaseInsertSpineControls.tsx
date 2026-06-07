@@ -20,6 +20,7 @@ import {
 import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
 import type { JewelCaseSpineSide } from '../../caseInsert/types'
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
+import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type {
   ProjectCaseInsertImageSlot,
@@ -29,6 +30,7 @@ import type {
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
 } from '../../project/projectTypes'
+import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
   CaseInsertImageSourceControls,
   type CaseInsertImageSourceControlSource,
@@ -45,6 +47,7 @@ import {
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
@@ -54,6 +57,8 @@ export type CaseInsertSpineControlsProps = {
   actions: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  logoCandidateDiscovery: LogoCandidateDiscoveryState
+  handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }
 
 const SPINE_SIDES: Array<{
@@ -775,6 +780,8 @@ export function CaseInsertSpineBrandingControls({
   actions,
   imageSources,
   brandingSources,
+  logoCandidateDiscovery,
+  handleFindLogoCandidates,
 }: CaseInsertSpineControlsProps) {
   return (
     <>
@@ -783,6 +790,12 @@ export function CaseInsertSpineBrandingControls({
 
         return (
           <SpineSideSection key={side} label={label}>
+            <CaseInsertLogoCandidateControls
+              logoCandidateDiscovery={logoCandidateDiscovery}
+              handleFindLogoCandidates={handleFindLogoCandidates}
+              onUseLogoCandidate={(logoKey, candidate) =>
+                actions.handleUseSpineLogoCandidate(side, logoKey, candidate)}
+            />
             <CaseInsertBrandingSourceControls
               brandingSources={brandingSources}
               allowedSlotKeys={['logoSlots']}
