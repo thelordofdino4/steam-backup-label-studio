@@ -11,6 +11,10 @@ import {
   type CaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
 import {
+  getCaseInsertAdditionalLogoSlots,
+  getCaseInsertPrimaryLogoSlot,
+} from '../../caseInsert/brandingLogoSlots'
+import {
   isCaseInsertMarkKindEnabled,
   isCaseInsertMarkSlotVisible,
 } from '../../caseInsert/brandingVisibility'
@@ -65,7 +69,7 @@ import {
   CaseInsertTechnicalMarkSetupControls,
   type CaseInsertBrandingSetupControlsProps,
 } from './CaseInsertBrandingSetupControls'
-import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
+import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertTemplateControlsProps = {
@@ -1078,30 +1082,115 @@ export function CaseInsertTemplateBrandingControls({
   logoCandidateDiscovery,
   handleFindLogoCandidates,
 }: CaseInsertTemplateControlsProps) {
+  const developerLogoSlot = getCaseInsertPrimaryLogoSlot(
+    templateState,
+    'developer',
+  )
+  const publisherLogoSlot = getCaseInsertPrimaryLogoSlot(
+    templateState,
+    'publisher',
+  )
+  const additionalLogoSlots = getCaseInsertAdditionalLogoSlots(templateState)
+
   return (
     <>
       <CaseInsertBrandingFeatureSection title="Developer / publisher logos">
-        <CaseInsertLogoCandidateControls
+        <CaseInsertLogoSlotControls
+          paneId={paneId}
+          logoKey="developer"
+          slot={developerLogoSlot}
+          uploadId={`${paneId}-developer-logo-upload`}
+          fields={developerLogoSlot
+            ? getTemplateGroupedImagePlacementFields(
+                paneId,
+                'logoSlots',
+                developerLogoSlot,
+              )
+            : TEMPLATE_OVERLAY_PLACEMENT_FIELDS}
           logoCandidateDiscovery={logoCandidateDiscovery}
           handleFindLogoCandidates={handleFindLogoCandidates}
           onUseLogoCandidate={(logoKey, candidate) =>
             actions.handleUseLogoCandidate(paneId, logoKey, candidate)}
+          onEnabledChange={(enabled) =>
+            actions.handlePrimaryLogoSlotEnabledChange(
+              paneId,
+              'developer',
+              enabled,
+            )}
+          onUpload={(event) =>
+            actions.handlePrimaryLogoSlotUpload(
+              paneId,
+              'developer',
+              event,
+            )}
+          onLayoutChange={(field, value) =>
+            actions.handlePrimaryLogoSlotLayoutChange(
+              paneId,
+              'developer',
+              field,
+              value,
+            )}
+          onResetLayout={() =>
+            actions.handleResetPrimaryLogoSlotLayout(paneId, 'developer')}
+          onClearImage={() =>
+            actions.handleClearPrimaryLogoSlot(paneId, 'developer')}
         />
-        <CaseInsertBrandingSourceControls
-          brandingSources={brandingSources}
-          sectionIds={['logos']}
-          onUseSource={(source) =>
-            actions.handleUseBrandingSlotSource(paneId, source)}
-        />
-        <GroupedImageSlotList
+
+        <CaseInsertLogoSlotControls
           paneId={paneId}
-          emptyHint="No logos."
-          addLabel="Add logo"
-          slotKey="logoSlots"
-          slots={templateState.logoSlots}
-          imageSources={imageSources}
-          actions={actions}
+          logoKey="publisher"
+          slot={publisherLogoSlot}
+          uploadId={`${paneId}-publisher-logo-upload`}
+          fields={publisherLogoSlot
+            ? getTemplateGroupedImagePlacementFields(
+                paneId,
+                'logoSlots',
+                publisherLogoSlot,
+              )
+            : TEMPLATE_OVERLAY_PLACEMENT_FIELDS}
+          logoCandidateDiscovery={logoCandidateDiscovery}
+          handleFindLogoCandidates={handleFindLogoCandidates}
+          onUseLogoCandidate={(logoKey, candidate) =>
+            actions.handleUseLogoCandidate(paneId, logoKey, candidate)}
+          onEnabledChange={(enabled) =>
+            actions.handlePrimaryLogoSlotEnabledChange(
+              paneId,
+              'publisher',
+              enabled,
+            )}
+          onUpload={(event) =>
+            actions.handlePrimaryLogoSlotUpload(
+              paneId,
+              'publisher',
+              event,
+            )}
+          onLayoutChange={(field, value) =>
+            actions.handlePrimaryLogoSlotLayoutChange(
+              paneId,
+              'publisher',
+              field,
+              value,
+            )}
+          onResetLayout={() =>
+            actions.handleResetPrimaryLogoSlotLayout(paneId, 'publisher')}
+          onClearImage={() =>
+            actions.handleClearPrimaryLogoSlot(paneId, 'publisher')}
         />
+
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Additional logos</summary>
+          <div className="panel-content">
+            <GroupedImageSlotList
+              paneId={paneId}
+              emptyHint="No additional logos."
+              addLabel="Add additional logo"
+              slotKey="logoSlots"
+              slots={additionalLogoSlots}
+              imageSources={imageSources}
+              actions={actions}
+            />
+          </div>
+        </details>
       </CaseInsertBrandingFeatureSection>
 
       {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {

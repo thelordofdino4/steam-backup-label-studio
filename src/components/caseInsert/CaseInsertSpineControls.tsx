@@ -341,6 +341,7 @@ function SpineImageSlotControls({
   title,
   enableLabel,
   uploadId,
+  beforeSourceControls,
   isBackground = false,
   imageSources,
   actions,
@@ -351,6 +352,7 @@ function SpineImageSlotControls({
   title: string
   enableLabel: string
   uploadId: string
+  beforeSourceControls?: ReactNode
   isBackground?: boolean
   imageSources: CaseInsertImageSourceCatalog
   actions: JewelCaseSpineEditorActions
@@ -415,45 +417,48 @@ function SpineImageSlotControls({
       ) : null}
 
       {shouldShowSources ? (
-        <CaseInsertImageSourceControls
-          {...imageSources}
-          uploadId={uploadId}
-          title={title}
-          hasImage={Boolean(slot.imageDataUrl)}
-          imageSource={slot.imageSource}
-          allowSteamArtwork={allowSharedArtworkSources}
-          onUpload={(event) =>
-            actions.handleSpineImageSlotUpload(
-              side,
-              slotKey,
-              slot.label,
-              event,
-            )}
-          onUseSteamArtwork={(asset) =>
-            actions.handleUseSpineImageSlotSteamArtwork(
-              side,
-              slotKey,
-              slot.label,
-              asset,
-            )}
-          onUseLocalSteamScreenshot={(asset) =>
-            actions.handleUseSpineImageSlotLocalSteamScreenshot(
-              side,
-              slotKey,
-              slot.label,
-              asset,
-            )}
-          onUseWebArtworkCandidate={(candidate) =>
-            actions.handleUseSpineImageSlotWebArtwork(
-              side,
-              slotKey,
-              slot.label,
-              candidate,
-            )}
-          allowWebArtwork={allowSharedArtworkSources}
-          allowLocalSteamScreenshots={allowSharedArtworkSources}
-          renderFineTuneControls={renderFineTuneControls}
-        />
+        <>
+          {beforeSourceControls}
+          <CaseInsertImageSourceControls
+            {...imageSources}
+            uploadId={uploadId}
+            title={title}
+            hasImage={Boolean(slot.imageDataUrl)}
+            imageSource={slot.imageSource}
+            allowSteamArtwork={allowSharedArtworkSources}
+            onUpload={(event) =>
+              actions.handleSpineImageSlotUpload(
+                side,
+                slotKey,
+                slot.label,
+                event,
+              )}
+            onUseSteamArtwork={(asset) =>
+              actions.handleUseSpineImageSlotSteamArtwork(
+                side,
+                slotKey,
+                slot.label,
+                asset,
+              )}
+            onUseLocalSteamScreenshot={(asset) =>
+              actions.handleUseSpineImageSlotLocalSteamScreenshot(
+                side,
+                slotKey,
+                slot.label,
+                asset,
+              )}
+            onUseWebArtworkCandidate={(candidate) =>
+              actions.handleUseSpineImageSlotWebArtwork(
+                side,
+                slotKey,
+                slot.label,
+                candidate,
+              )}
+            allowWebArtwork={allowSharedArtworkSources}
+            allowLocalSteamScreenshots={allowSharedArtworkSources}
+            renderFineTuneControls={renderFineTuneControls}
+          />
+        </>
       ) : null}
     </div>
   )
@@ -794,18 +799,6 @@ export function CaseInsertSpineBrandingControls({
 
         return (
           <SpineSideSection key={side} label={label}>
-            <CaseInsertLogoCandidateControls
-              logoCandidateDiscovery={logoCandidateDiscovery}
-              handleFindLogoCandidates={handleFindLogoCandidates}
-              onUseLogoCandidate={(logoKey, candidate) =>
-                actions.handleUseSpineLogoCandidate(side, logoKey, candidate)}
-            />
-            <CaseInsertBrandingSourceControls
-              brandingSources={brandingSources}
-              allowedSlotKeys={['logoSlots']}
-              onUseSource={(source) =>
-                actions.handleUseSpineBrandingSource(side, source)}
-            />
             <SpineImageSlotControls
               side={side}
               slotKey="steamBackupBranding"
@@ -823,6 +816,26 @@ export function CaseInsertSpineBrandingControls({
               title={`${label} company mark`}
               enableLabel="Show company mark"
               uploadId={`${side}-spine-logo-upload`}
+              beforeSourceControls={
+                <>
+                  <CaseInsertLogoCandidateControls
+                    logoCandidateDiscovery={logoCandidateDiscovery}
+                    handleFindLogoCandidates={handleFindLogoCandidates}
+                    onUseLogoCandidate={(logoKey, candidate) =>
+                      actions.handleUseSpineLogoCandidate(
+                        side,
+                        logoKey,
+                        candidate,
+                      )}
+                  />
+                  <CaseInsertBrandingSourceControls
+                    brandingSources={brandingSources}
+                    allowedSlotKeys={['logoSlots']}
+                    onUseSource={(source) =>
+                      actions.handleUseSpineBrandingSource(side, source)}
+                  />
+                </>
+              }
               imageSources={imageSources}
               actions={actions}
             />

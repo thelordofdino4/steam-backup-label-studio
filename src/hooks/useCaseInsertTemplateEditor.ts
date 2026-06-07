@@ -26,6 +26,14 @@ import {
   getCaseInsertManualMarkSourceId,
 } from '../caseInsert/brandingSlotSources'
 import {
+  clearCaseInsertPrimaryLogoSlotImage,
+  getCaseInsertPrimaryLogoLabel,
+  resetCaseInsertPrimaryLogoSlotLayout,
+  setCaseInsertPrimaryLogoSlotEnabled,
+  setCaseInsertPrimaryLogoSlotImage,
+  updateCaseInsertPrimaryLogoSlotLayoutField,
+} from '../caseInsert/brandingLogoSlots'
+import {
   fitCaseInsertImageSlotToRegionHeight,
   resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
@@ -110,10 +118,6 @@ const defaultTextListLayouts: Record<string, ProjectCaseInsertLayout> = {
 
 function normalizeLabel(label: string) {
   return label.trim().toLocaleLowerCase()
-}
-
-function getLogoSlotLabel(logoKey: LogoAssetKey) {
-  return logoKey === 'developer' ? 'Developer logo' : 'Publisher logo'
 }
 
 function getGroupDefaultLayout(
@@ -398,6 +402,119 @@ export function useCaseInsertTemplateEditor({
       imageSource: null,
     }))
     announceStatus(`Cleared ${normalizeLabel(label)} image.`)
+  }
+
+  function handlePrimaryLogoSlotEnabledChange(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+    enabled: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
+        setCaseInsertPrimaryLogoSlotEnabled(
+          templateState,
+          paneId,
+          logoKey,
+          enabled,
+        ),
+      ),
+    )
+  }
+
+  async function handlePrimaryLogoSlotUpload(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    const label = getCaseInsertPrimaryLogoLabel(logoKey)
+    const statusLabel = normalizeLabel(label)
+
+    if (!isImageFile(file)) {
+      announceStatus(`Choose an image file for the ${statusLabel}.`)
+      return
+    }
+
+    try {
+      const image = await createUploadedCaseInsertImageSlotImage(
+        file,
+        statusLabel,
+      )
+
+      setProjectJewelCase((currentCaseInsert) =>
+        updateProjectCaseInsertTemplate(
+          currentCaseInsert,
+          paneId,
+          (templateState) =>
+            setCaseInsertPrimaryLogoSlotImage(
+              templateState,
+              paneId,
+              logoKey,
+              image,
+            ),
+        ),
+      )
+      announceStatus(`Selected ${statusLabel} image.`)
+    } catch {
+      announceStatus(`The ${statusLabel} image could not be read.`)
+    }
+  }
+
+  function handlePrimaryLogoSlotLayoutChange(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
+        updateCaseInsertPrimaryLogoSlotLayoutField(
+          templateState,
+          paneId,
+          logoKey,
+          field,
+          value,
+        ),
+      ),
+    )
+  }
+
+  function handleResetPrimaryLogoSlotLayout(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
+        resetCaseInsertPrimaryLogoSlotLayout(
+          templateState,
+          paneId,
+          logoKey,
+        ),
+      ),
+    )
+    announceStatus(`Reset ${normalizeLabel(getCaseInsertPrimaryLogoLabel(logoKey))} layout.`)
+  }
+
+  function handleClearPrimaryLogoSlot(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
+        clearCaseInsertPrimaryLogoSlotImage(
+          templateState,
+          paneId,
+          logoKey,
+        ),
+      ),
+    )
+    announceStatus(`Cleared ${normalizeLabel(getCaseInsertPrimaryLogoLabel(logoKey))} image.`)
   }
 
   function handleAddGroupedImageSlot(
@@ -778,7 +895,7 @@ export function useCaseInsertTemplateEditor({
     logoKey: LogoAssetKey,
     candidate: RemoteLogoCandidate,
   ) {
-    const label = getLogoSlotLabel(logoKey)
+    const label = getCaseInsertPrimaryLogoLabel(logoKey)
     announceStatus(`Adding ${candidate.label} to ${normalizeLabel(label)}...`)
 
     try {
@@ -788,36 +905,13 @@ export function useCaseInsertTemplateEditor({
         updateProjectCaseInsertTemplate(
           currentCaseInsert,
           paneId,
-          (templateState) => {
-            const slots = templateState.logoSlots
-            const sourceId = image.imageSource?.sourceId ?? candidate.id
-            const existingIndex = slots.findIndex((slot) =>
-              slot.imageSource?.sourceId === sourceId || slot.label === label)
-            const baseSlot = existingIndex >= 0
-              ? slots[existingIndex]
-              : createCaseInsertTemplateImageSlot(
-                  paneId,
-                  'logoSlots',
-                  getNextGroupedSlotIndex(paneId, 'logoSlots', slots),
-                )
-            const updatedSlot = setCaseInsertImageSlotImage(
-              {
-                ...baseSlot,
-                label,
-                fit: 'contain',
-              },
+          (templateState) =>
+            setCaseInsertPrimaryLogoSlotImage(
+              templateState,
+              paneId,
+              logoKey,
               image,
-            )
-            const nextSlots = existingIndex >= 0
-              ? slots.map((slot, index) =>
-                  index === existingIndex ? updatedSlot : slot)
-              : [...slots, updatedSlot]
-
-            return {
-              ...templateState,
-              logoSlots: nextSlots,
-            }
-          },
+            ),
         ),
       )
       announceStatus(`Added ${candidate.label} as the ${normalizeLabel(label)}.`)
@@ -1031,6 +1125,11 @@ export function useCaseInsertTemplateEditor({
     handleRestoreTitleArtworkDefault,
     handleFitImageSlotToRegion,
     handleClearImageSlot,
+    handlePrimaryLogoSlotEnabledChange,
+    handlePrimaryLogoSlotUpload,
+    handlePrimaryLogoSlotLayoutChange,
+    handleResetPrimaryLogoSlotLayout,
+    handleClearPrimaryLogoSlot,
     handleAdditionalArtworkEnabledChange,
     handleAddGroupedImageSlot,
     handleAddBrandingMarkSlot,
