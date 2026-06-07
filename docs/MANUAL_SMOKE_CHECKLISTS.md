@@ -1,6 +1,6 @@
 # Manual Smoke Checklists
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-06.
 
 These checklists are for human verification after visual/editor changes. They
 do not replace `npm run check:cycles`, lint, tests, or build, and agents should
@@ -108,26 +108,45 @@ npm run tauri dev
   center-hole cutout.
 - Guide-enabled disc PNG export draws selected guide marks last.
 - Exported PNG layer order and relative placement match the live preview.
-- Case insert Export PNG currently reports that case export is planned; do not
-  claim print-ready case export until focused case export work lands.
+- Case insert export preflight lists output dimensions, guide state, missing
+  artwork, generic placeholders, and template-specific warnings accurately.
+- Clean case insert PNG export omits editor-only guides, uses a pure white paper
+  background when no image is selected, and contains no preview-page chrome.
+- Guide-enabled case insert PNG export draws selected trim, safe-zone, and spine
+  guides last, with spine guide options shown only for templates that have a
+  spine.
+- Exported case insert dimensions, layer order, and relative placement match the
+  selected print template and live preview.
 
 ## Case Insert Flow
 
-- New Case Insert opens the jewel case editor with front/back surface metrics
-  and guide legend information.
+- New Case Insert opens the jewel case editor with Cover Sheet and Tray Card
+  template options and guide legend information.
 - Loading a case insert project routes to the case insert workspace.
 - The case project status, Main Menu, New Case Insert, New Disc, Save Project,
   Load Project, and Export PNG buttons remain available.
-- Front background, title artwork, callout artwork, logo slots, and mark slots
-  can be enabled/disabled without losing remembered image/layout state.
-- Front image slots support uploaded images, Steam artwork, and local Steam
+- Case insert panels preserve the disc editor's nested panel behavior where
+  shared Artwork, Branding, Text, and export controls are used.
+- Cover Sheet background, title artwork, callout artwork, logo slots, and mark
+  slots can be enabled/disabled without losing remembered image/layout state.
+- Cover Sheet image slots support uploaded images, Steam artwork, and local Steam
   screenshots through the shared case image-source controls when sources are
   available.
-- Front image fit, scale, X/Y position, rotation, placement presets, reset, and
-  clear controls update the preview.
-- Front callout text supports enable/disable, value, alignment, scale, X/Y
+- Cover Sheet image fit, scale, X/Y position, rotation, placement presets,
+  reset, and clear controls update the preview.
+- Cover Sheet callout text supports enable/disable, value, alignment, scale, X/Y
   position, rotation, and reset behavior.
-- The front preview shows rectangular trim/safe/guide geometry without using
+- Cover Sheet preview shows rectangular trim/safe/guide geometry without using
   disc circular safe-zone rules.
-- Back cover, spine, case export, and case preflight controls should remain
-  honest about what is planned until their focused issues land.
+- Tray Card background, description/features, screenshots, requirements, legal
+  text, logos, rating badges, media marks, platform marks, technical marks, and
+  Steam Backup branding controls update preview/export and preserve disabled
+  state.
+- Tray Card templates with spines clearly identify whether a nested control
+  affects the cover area or spine area.
+- Spine title, spine background, spine Steam Backup branding, spine logo, and
+  spine-specific placement controls update only the spine area and remain
+  independent of cover-area controls.
+- Save/load preserves case insert template choice, shared Steam metadata,
+  surface-specific artwork/branding/text settings, export guide settings, and
+  disabled optional feature state.

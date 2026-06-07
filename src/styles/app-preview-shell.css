@@ -1,11 +1,15 @@
 .preview-area {
+  --preview-chrome-space: 112px;
   position: relative;
   z-index: 1;
   height: 100vh;
   min-width: 0;
   min-height: 0;
   display: grid;
-  place-items: center;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: 18px;
   padding: clamp(12px, 3vw, 32px);
   overflow: hidden;
   background:
@@ -14,7 +18,11 @@
 }
 
 .disc-preview {
-  width: min(calc(100vw - 320px - 64px), calc(100vh - 64px), 640px);
+  width: min(
+    calc(100vw - 320px - 64px),
+    calc(100vh - var(--preview-chrome-space)),
+    640px
+  );
   min-width: 180px;
   max-width: 100%;
   aspect-ratio: 1;
@@ -31,7 +39,7 @@
 .case-insert-preview {
   width: min(
     calc(100vw - 320px - 64px),
-    calc((100vh - 64px) * var(--case-insert-preview-width-ratio, 1)),
+    calc((100vh - var(--preview-chrome-space)) * var(--case-insert-preview-width-ratio, 1)),
     1080px
   );
   min-width: 240px;

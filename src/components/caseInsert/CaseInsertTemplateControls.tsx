@@ -23,6 +23,7 @@ import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
   CaseInsertImageSourceControls,
+  type CaseInsertImageSourceControlSource,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
@@ -205,6 +206,183 @@ function RangeField({
   )
 }
 
+function isCaseInsertImageSourceControlActive(
+  imageSource: ProjectCaseInsertImageSlot['imageSource'],
+  source: CaseInsertImageSourceControlSource,
+) {
+  if (!imageSource) return source === 'local-file'
+
+  switch (source) {
+    case 'steam-artwork':
+    case 'web-artwork':
+    case 'local-steam-screenshot':
+      return imageSource.source === source
+    case 'local-file':
+      return ![
+        'steam-artwork',
+        'web-artwork',
+        'local-steam-screenshot',
+      ].includes(imageSource.source)
+  }
+}
+
+function CaseInsertImageSlotFineTuneControls({
+  paneId,
+  uploadId,
+  slot,
+  source,
+  sectionLabel,
+  isBackground,
+  onFitChange,
+  onFitToRegion,
+  onLayoutChange,
+  onResetLayout,
+  onClearImage,
+  featureEnabled,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  uploadId: string
+  slot: ProjectCaseInsertImageSlot
+  source: CaseInsertImageSourceControlSource
+  sectionLabel: string
+  isBackground: boolean
+  onFitChange: (fit: ProjectCaseInsertImageFit) => void
+  onFitToRegion?: () => void
+  onLayoutChange: (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => void
+  onResetLayout: () => void
+  onClearImage: () => void
+  featureEnabled: boolean
+}) {
+  if (!featureEnabled) {
+    return null
+  }
+
+  const isActiveSource = isCaseInsertImageSourceControlActive(
+    slot.imageSource,
+    source,
+  )
+  const controlsDisabled = !slot.imageDataUrl || !isActiveSource
+  const sourceName = sectionLabel.toLocaleLowerCase()
+  const statusMessage = !slot.imageDataUrl
+    ? `Choose ${sourceName} to unlock fit, scale, position, reset, and clear controls here.`
+    : isActiveSource
+      ? `These controls adjust the current image from ${sourceName}.`
+      : `Inactive while another image source controls this slot.`
+
+  return (
+    <fieldset
+      className="case-insert-source-layout-controls"
+      disabled={controlsDisabled}
+      aria-label={`${sectionLabel} placement controls`}
+    >
+      <legend>Placement</legend>
+      <p className="hint">{statusMessage}</p>
+      <ImageSlotStatus slot={slot} />
+
+      {isBackground ? (
+        <>
+          <button
+            className="secondary-button spacing-top"
+            type="button"
+            onClick={onFitToRegion}
+          >
+            Fit image
+          </button>
+          <RangeField
+            id={`${uploadId}-${source}-scale`}
+            label="Scale"
+            min={0.01}
+            max={4}
+            step={0.01}
+            value={slot.layout.scale}
+            onChange={(value) => onLayoutChange('scale', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-x`}
+            label="X position"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-y`}
+            label="Y position"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+        </>
+      ) : (
+        <>
+          <FitSelect
+            id={`${uploadId}-${source}-fit`}
+            fit={slot.fit}
+            onFitChange={onFitChange}
+          />
+          <OverlayPositionPreset
+            id={`${uploadId}-${source}-placement`}
+            paneId={paneId}
+            onLayoutChange={onLayoutChange}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-scale`}
+            label="Scale"
+            min={0.25}
+            max={2.5}
+            step={0.01}
+            value={slot.layout.scale}
+            onChange={(value) => onLayoutChange('scale', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-x`}
+            label="X position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-y`}
+            label="Y position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+        </>
+      )}
+
+      <div className="button-row spacing-top">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={onResetLayout}
+        >
+          Reset layout
+        </button>
+        {slot.imageDataUrl ? (
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onClearImage}
+          >
+            Clear image
+          </button>
+        ) : null}
+      </div>
+    </fieldset>
+  )
+}
+
 function OverlayPositionPreset({
   id,
   paneId,
@@ -272,9 +450,36 @@ function PrimaryImageSlotControls({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) => actions.handleImageSlotLayoutChange(paneId, slotKey, field, value)
+  const renderFineTuneControls = (
+    source: CaseInsertImageSourceControlSource,
+    sectionLabel: string,
+  ) => (
+    <CaseInsertImageSlotFineTuneControls
+      paneId={paneId}
+      uploadId={uploadId}
+      slot={slot}
+      source={source}
+      sectionLabel={sectionLabel}
+      isBackground={isBackground}
+      onFitChange={(fit) =>
+        actions.handleImageSlotFitChange(paneId, slotKey, fit)}
+      onFitToRegion={() =>
+        actions.handleFitImageSlotToRegion(paneId, slotKey, slot.label)}
+      onLayoutChange={onLayoutChange}
+      onResetLayout={() => actions.handleResetImageSlotLayout(paneId, slotKey)}
+      onClearImage={() =>
+        actions.handleClearImageSlot(paneId, slotKey, slot.label)}
+      featureEnabled={slot.enabled}
+    />
+  )
+
+  const shouldShowSources = isBackground || slot.enabled
+  const className = isBackground
+    ? 'case-insert-primary-slot-control case-insert-background-control'
+    : 'case-insert-control-card case-insert-primary-slot-control'
 
   return (
-    <div className="case-insert-control-card">
+    <div className={className}>
       <label className="field-label">
         <input
           type="checkbox"
@@ -289,8 +494,7 @@ function PrimaryImageSlotControls({
         {enableLabel}
       </label>
 
-      {!slot.enabled ? null : (
-        <>
+      {shouldShowSources ? (
           <CaseInsertImageSourceControls
             {...imageSources}
             uploadId={uploadId}
@@ -320,110 +524,9 @@ function PrimaryImageSlotControls({
                 slot.label,
                 candidate,
               )}
+            renderFineTuneControls={renderFineTuneControls}
           />
-
-          <ImageSlotStatus slot={slot} />
-
-          {isBackground ? (
-            <>
-              <FitSelect
-                id={`${uploadId}-fit`}
-                fit={slot.fit}
-                onFitChange={(fit) =>
-                  actions.handleImageSlotFitChange(paneId, slotKey, fit)}
-              />
-              {slot.fit === 'crop' || slot.fit === 'scale' ? (
-                <RangeField
-                  id={`${uploadId}-scale`}
-                  label="Scale"
-                  min={0.5}
-                  max={2.5}
-                  step={0.01}
-                  value={slot.layout.scale}
-                  onChange={(value) => onLayoutChange('scale', value)}
-                />
-              ) : null}
-              {slot.fit === 'crop' ? (
-                <>
-                  <RangeField
-                    id={`${uploadId}-crop-x`}
-                    label="Crop X"
-                    min={-100}
-                    max={100}
-                    step={1}
-                    value={slot.layout.x}
-                    onChange={(value) => onLayoutChange('x', value)}
-                  />
-                  <RangeField
-                    id={`${uploadId}-crop-y`}
-                    label="Crop Y"
-                    min={-100}
-                    max={100}
-                    step={1}
-                    value={slot.layout.y}
-                    onChange={(value) => onLayoutChange('y', value)}
-                  />
-                </>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <OverlayPositionPreset
-                id={`${uploadId}-placement`}
-                paneId={paneId}
-                onLayoutChange={onLayoutChange}
-              />
-              <RangeField
-                id={`${uploadId}-scale`}
-                label="Scale"
-                min={0.25}
-                max={2.5}
-                step={0.01}
-                value={slot.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <RangeField
-                id={`${uploadId}-x`}
-                label="X position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${uploadId}-y`}
-                label="Y position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-            </>
-          )}
-
-          <div className="button-row spacing-top">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() => actions.handleResetImageSlotLayout(paneId, slotKey)}
-            >
-              Reset layout
-            </button>
-            {slot.imageDataUrl ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() =>
-                  actions.handleClearImageSlot(paneId, slotKey, slot.label)}
-              >
-                Clear image
-              </button>
-            ) : null}
-          </div>
-        </>
-      )}
+      ) : null}
     </div>
   )
 }
@@ -452,6 +555,41 @@ function GroupedImageSlotControls({
     slot.id,
     field,
     value,
+  )
+  const renderFineTuneControls = (
+    source: CaseInsertImageSourceControlSource,
+    sectionLabel: string,
+  ) => (
+    <CaseInsertImageSlotFineTuneControls
+      paneId={paneId}
+      uploadId={uploadId}
+      slot={slot}
+      source={source}
+      sectionLabel={sectionLabel}
+      isBackground={false}
+      onFitChange={(fit) =>
+        actions.handleGroupedImageSlotFitChange(
+          paneId,
+          slotKey,
+          slot.id,
+          fit,
+        )}
+      onLayoutChange={onLayoutChange}
+      onResetLayout={() =>
+        actions.handleResetGroupedImageSlotLayout(
+          paneId,
+          slotKey,
+          slot.id,
+        )}
+      onClearImage={() =>
+        actions.handleClearGroupedImageSlot(
+          paneId,
+          slotKey,
+          slot.id,
+          slotTitle,
+        )}
+      featureEnabled={slot.enabled}
+    />
   )
   const slotTitle = slot.label.trim() || 'Visual slot'
   const slotImageStatus = getImageStatus(slot)
@@ -494,6 +632,7 @@ function GroupedImageSlotControls({
         title={slotTitle}
         hasImage={Boolean(slot.imageDataUrl)}
         imageSource={slot.imageSource}
+        allowSteamArtwork={slotKey === 'artworkSlots'}
         onUpload={(event) =>
           actions.handleGroupedImageSlotUpload(
             paneId,
@@ -527,120 +666,9 @@ function GroupedImageSlotControls({
             candidate,
           )}
         allowWebArtwork={slotKey === 'artworkSlots'}
+        allowLocalSteamScreenshots={slotKey === 'artworkSlots'}
+        renderFineTuneControls={renderFineTuneControls}
       />
-
-      <ImageSlotStatus slot={slot} />
-
-      <FitSelect
-        id={`${uploadId}-fit`}
-        fit={slot.fit}
-        onFitChange={(fit) =>
-          actions.handleGroupedImageSlotFitChange(
-            paneId,
-            slotKey,
-            slot.id,
-            fit,
-          )}
-      />
-      {slot.fit === 'crop' || slot.fit === 'scale' ? (
-        <RangeField
-          id={`${uploadId}-scale`}
-          label="Scale"
-          min={0.5}
-          max={2.5}
-          step={0.01}
-          value={slot.layout.scale}
-          onChange={(value) => onLayoutChange('scale', value)}
-        />
-      ) : null}
-      {slot.fit === 'crop' ? (
-        <>
-          <RangeField
-            id={`${uploadId}-crop-x`}
-            label="Crop X"
-            min={-100}
-            max={100}
-            step={1}
-            value={slot.layout.x}
-            onChange={(value) => onLayoutChange('x', value)}
-          />
-          <RangeField
-            id={`${uploadId}-crop-y`}
-            label="Crop Y"
-            min={-100}
-            max={100}
-            step={1}
-            value={slot.layout.y}
-            onChange={(value) => onLayoutChange('y', value)}
-          />
-        </>
-      ) : null}
-      {slot.fit === 'contain' ? (
-        <>
-          <OverlayPositionPreset
-            id={`${uploadId}-placement`}
-            paneId={paneId}
-            onLayoutChange={onLayoutChange}
-          />
-          <RangeField
-            id={`${uploadId}-contain-scale`}
-            label="Scale"
-            min={0.25}
-            max={2.5}
-            step={0.01}
-            value={slot.layout.scale}
-            onChange={(value) => onLayoutChange('scale', value)}
-          />
-          <RangeField
-            id={`${uploadId}-x`}
-            label="X position"
-            min={0}
-            max={100}
-            step={1}
-            value={slot.layout.x}
-            onChange={(value) => onLayoutChange('x', value)}
-          />
-          <RangeField
-            id={`${uploadId}-y`}
-            label="Y position"
-            min={0}
-            max={100}
-            step={1}
-            value={slot.layout.y}
-            onChange={(value) => onLayoutChange('y', value)}
-          />
-        </>
-      ) : null}
-
-      <div className="button-row spacing-top">
-        <button
-          className="secondary-button"
-          type="button"
-          onClick={() =>
-            actions.handleResetGroupedImageSlotLayout(
-              paneId,
-              slotKey,
-              slot.id,
-            )}
-        >
-          Reset layout
-        </button>
-        {slot.imageDataUrl ? (
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={() =>
-              actions.handleClearGroupedImageSlot(
-                paneId,
-                slotKey,
-                slot.id,
-                slotTitle,
-              )}
-          >
-            Clear image
-          </button>
-        ) : null}
-      </div>
     </RepeatedVisualElementCard>
   )
 }
@@ -976,7 +1004,7 @@ export function CaseInsertTemplateArtworkControls({
         slotKey="background"
         slot={templateState.background}
         title="background"
-        enableLabel="Show background artwork"
+        enableLabel="Show background art"
         uploadId={`${paneId}-background-upload`}
         isBackground
         imageSources={imageSources}

@@ -20,7 +20,7 @@ export function CaseInsertWorkflowSection({
 
   return (
     <details
-      className={`${cardClassName} metadata-details collapsible-panel${spacingTop ? ' spacing-top' : ''}`}
+      className={`${cardClassName} case-insert-workflow-section metadata-details collapsible-panel${spacingTop ? ' spacing-top' : ''}`}
     >
       <summary className="panel-summary">{title}</summary>
       <div className="panel-content">{children}</div>

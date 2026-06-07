@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import { useRef, type ChangeEvent, type ReactNode } from 'react'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import type {
@@ -27,12 +27,20 @@ export type CaseInsertImageSourceCatalog = {
   onFindWebArtworkCandidates: () => void | Promise<void>
 }
 
+export type CaseInsertImageSourceControlSource =
+  | 'steam-artwork'
+  | 'web-artwork'
+  | 'local-steam-screenshot'
+  | 'local-file'
+
 export type CaseInsertImageSourceControlsProps = CaseInsertImageSourceCatalog & {
   uploadId: string
   title: string
   hasImage: boolean
   imageSource: ProjectCaseInsertImageSlot['imageSource']
+  allowSteamArtwork?: boolean
   allowWebArtwork?: boolean
+  allowLocalSteamScreenshots?: boolean
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   onUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
   onUseLocalSteamScreenshot: (
@@ -41,6 +49,10 @@ export type CaseInsertImageSourceControlsProps = CaseInsertImageSourceCatalog & 
   onUseWebArtworkCandidate: (
     candidate: RemoteLogoCandidate,
   ) => void | Promise<void>
+  renderFineTuneControls?: (
+    source: CaseInsertImageSourceControlSource,
+    sectionLabel: string,
+  ) => ReactNode
 }
 
 export function CaseInsertImageSourceControls({
@@ -48,7 +60,9 @@ export function CaseInsertImageSourceControls({
   title,
   hasImage,
   imageSource,
+  allowSteamArtwork = true,
   allowWebArtwork = true,
+  allowLocalSteamScreenshots = true,
   selectedSteamGame,
   localSteamScreenshots,
   localSteamScreenshotThumbnails,
@@ -61,8 +75,10 @@ export function CaseInsertImageSourceControls({
   onUseSteamArtwork,
   onUseLocalSteamScreenshot,
   onUseWebArtworkCandidate,
+  renderFineTuneControls,
 }: CaseInsertImageSourceControlsProps) {
-  const steamArtwork = selectedSteamGame?.artwork ?? []
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
+  const steamArtwork = allowSteamArtwork ? selectedSteamGame?.artwork ?? [] : []
   const selectedSteamArtworkId =
     imageSource?.source === 'steam-artwork' ? imageSource.sourceId : null
   const selectedLocalSteamScreenshotId =
@@ -84,6 +100,9 @@ export function CaseInsertImageSourceControls({
     webArtworkDiscovery.candidates,
     selectedWebArtworkId,
   )
+  const localFileActionLabel = title === 'background'
+    ? hasImage ? 'Replace local image' : 'Choose local image'
+    : hasImage ? `Replace ${title}` : `Choose ${title}`
 
   const selectSteamArtwork = (itemId: string) => {
     const asset = steamArtwork.find(
@@ -117,36 +136,36 @@ export function CaseInsertImageSourceControls({
 
   return (
     <>
-      <span className="field-label spacing-top">Image source</span>
-      <label className="secondary-button spacing-top" htmlFor={uploadId}>
-        {hasImage ? `Replace ${title}` : `Choose ${title}`}
-      </label>
-      <input
-        id={uploadId}
-        className="case-insert-file-input"
-        type="file"
-        accept="image/*"
-        onChange={(event) => void onUpload(event)}
-      />
-
-      {steamArtwork.length > 0 ? (
-        <details className="metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Use imported Steam artwork</summary>
+      {allowSteamArtwork ? (
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Imported Steam artwork</summary>
           <div className="panel-content">
-            <ImageCandidatePreviewPicker
-              ariaLabel={`${title} imported Steam artwork previews`}
-              title={`${title} Steam Artwork`}
-              items={steamArtworkPickerItems}
-              selectLabel={`Use for ${title}`}
-              onSelect={selectSteamArtwork}
-            />
+            {steamArtwork.length > 0 ? (
+              <div className="artwork-import-section">
+                <p className="hint">
+                  Choose one of the imported Steam assets for {title}.
+                </p>
+                <ImageCandidatePreviewPicker
+                  ariaLabel={`${title} imported Steam artwork previews`}
+                  title={`${title} Steam Artwork`}
+                  items={steamArtworkPickerItems}
+                  selectLabel={`Use for ${title}`}
+                  onSelect={selectSteamArtwork}
+                />
+              </div>
+            ) : (
+              <p className="hint">
+                Import a Steam game to see Steam artwork here.
+              </p>
+            )}
+            {renderFineTuneControls?.('steam-artwork', 'Imported Steam artwork')}
           </div>
         </details>
       ) : null}
 
       {allowWebArtwork ? (
-        <details className="metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Use web artwork candidate</summary>
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Web artwork</summary>
           <div className="panel-content">
             <button
               className="secondary-button"
@@ -180,26 +199,34 @@ export function CaseInsertImageSourceControls({
                 onSelect={selectWebArtworkCandidate}
               />
             ) : null}
+            {renderFineTuneControls?.('web-artwork', 'Web artwork')}
           </div>
         </details>
       ) : null}
 
-      {localSteamScreenshots.length > 0 || selectedSteamGame ? (
-        <details className="metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Use local Steam screenshot</summary>
+      {allowLocalSteamScreenshots ? (
+        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+          <summary className="panel-summary">Local Steam screenshots</summary>
           <div className="panel-content">
-            <button
-              className="secondary-button"
-              type="button"
-              disabled={isLocalSteamScreenshotsLoading}
-              onClick={() => void onFindLocalSteamScreenshots()}
-            >
-              {isLocalSteamScreenshotsLoading
-                ? 'Checking local screenshots...'
-                : hasCheckedLocalSteamScreenshots
-                  ? 'Refresh local screenshots'
-                  : 'Find local screenshots'}
-            </button>
+            {!selectedSteamGame ? (
+              <p className="hint">
+                Select or import a Steam game first. If Steam screenshots are
+                found for that game, they will appear here.
+              </p>
+            ) : (
+              <button
+                className="secondary-button"
+                type="button"
+                disabled={isLocalSteamScreenshotsLoading}
+                onClick={() => void onFindLocalSteamScreenshots()}
+              >
+                {isLocalSteamScreenshotsLoading
+                  ? 'Checking local screenshots...'
+                  : hasCheckedLocalSteamScreenshots
+                    ? 'Refresh local screenshots'
+                    : 'Find local screenshots'}
+              </button>
+            )}
 
             {hasCheckedLocalSteamScreenshots &&
               !isLocalSteamScreenshotsLoading &&
@@ -216,9 +243,39 @@ export function CaseInsertImageSourceControls({
                 onSelect={selectLocalSteamScreenshot}
               />
             ) : null}
+            {renderFineTuneControls?.(
+              'local-steam-screenshot',
+              'Local Steam screenshots',
+            )}
           </div>
         </details>
       ) : null}
+
+      <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+        <summary className="panel-summary">Local file</summary>
+        <div className="panel-content">
+          <p className="hint">
+            Choose an image from this computer when Steam, web, or screenshot
+            sources do not have the artwork you want.
+          </p>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => uploadInputRef.current?.click()}
+          >
+            {localFileActionLabel}
+          </button>
+          <input
+            id={uploadId}
+            ref={uploadInputRef}
+            className="case-insert-file-input"
+            type="file"
+            accept="image/*"
+            onChange={(event) => void onUpload(event)}
+          />
+          {renderFineTuneControls?.('local-file', 'Local file')}
+        </div>
+      </details>
     </>
   )
 }

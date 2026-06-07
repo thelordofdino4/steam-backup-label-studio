@@ -15,6 +15,7 @@ import {
   createBlankJewelCaseSavedProject,
   createCaseInsertProjectSnapshot,
   createDefaultProjectJewelCaseState,
+  fitCaseInsertImageSlotToRegionHeight,
   removeCaseInsertTemplateImageSlot,
   removeCaseInsertTextListItem,
   renameCaseInsertTemplateImageSlot,
@@ -533,6 +534,25 @@ test('case helpers update artwork slots and export settings', () => {
   assert.equal(state.templates.tray.artworkSlots.length, 3)
   assert.deepEqual(state.export.surfaces, ['back'])
   assert.deepEqual(state.export.guideIds, ['backPanelBounds'])
+})
+
+test('case image slot height fit keeps the full image vertical span visible', () => {
+  const slot = setCaseInsertImageSlotImage(
+    createDefaultProjectJewelCaseState('Portal 2').templates.cover.background,
+    {
+      imageDataUrl: 'data:image/png;base64,tall-cover',
+      imageSize: { width: 1000, height: 4000 },
+    },
+  )
+  const fittedSlot = fitCaseInsertImageSlotToRegionHeight(slot, {
+    width: 1000,
+    height: 1000,
+  })
+
+  assert.equal(fittedSlot.fit, 'cover')
+  assert.equal(fittedSlot.layout.scale, 0.25)
+  assert.equal(fittedSlot.layout.x, 0)
+  assert.equal(fittedSlot.layout.y, 0)
 })
 
 test('template helpers add, update, preserve, and remove logo and mark slots', () => {

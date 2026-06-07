@@ -8,6 +8,7 @@ export {
 } from '../caseInsert/defaults.ts'
 export {
   clearCaseInsertImageSlotImage,
+  fitCaseInsertImageSlotToRegionHeight,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotFit,

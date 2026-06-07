@@ -59,7 +59,7 @@ test('Steam import seeds tray card back-cover text fields', () => {
     getTrayTextBlock(state, 'tray-description').value,
     'The sequel to the acclaimed puzzle game.',
   )
-  assert.equal(getTrayTextBlock(state, 'tray-description').enabled, true)
+  assert.equal(getTrayTextBlock(state, 'tray-description').enabled, false)
   assert.equal(getTrayTextBlock(state, 'tray-description').source, 'steam')
   assert.equal(
     getTrayTextBlock(state, 'tray-minimum-requirements').value,
@@ -80,8 +80,36 @@ test('Steam import seeds tray card back-cover text fields', () => {
     'Puzzle',
     'Action',
   ])
-  assert.equal(tray.textLists[0]?.enabled, true)
+  assert.equal(tray.textLists[0]?.enabled, false)
   assert.equal(tray.textLists[0]?.source, 'steam')
+})
+
+test('Steam import preserves enabled tray text fields while updating game text', () => {
+  const state = createDefaultProjectJewelCaseState()
+  const enabledDescription = state.templates.tray.textBlocks.map((textBlock) =>
+    textBlock.id === 'tray-description'
+      ? { ...textBlock, enabled: true, value: '', source: 'steam' as const }
+      : textBlock,
+  )
+  const updated = applySteamBackCoverImportToCaseInsert(
+    {
+      ...state,
+      templates: {
+        ...state.templates,
+        tray: {
+          ...state.templates.tray,
+          textBlocks: enabledDescription,
+        },
+      },
+    },
+    createSteamGame({ shortDescription: 'Updated Steam copy.' }),
+  )
+
+  assert.equal(getTrayTextBlock(updated, 'tray-description').enabled, true)
+  assert.equal(
+    getTrayTextBlock(updated, 'tray-description').value,
+    'Updated Steam copy.',
+  )
 })
 
 test('Steam import preserves user-edited tray card text by default', () => {

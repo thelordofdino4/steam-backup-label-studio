@@ -34,6 +34,17 @@ test('tray card case sidebar gives each editable surface a main panel', () => {
   )
 })
 
+test('case sidebar panels start closed by default', () => {
+  assert.deepEqual(
+    getCaseInsertSidebarWorkflow('cover').map((panel) => panel.openByDefault),
+    [undefined, undefined, undefined, undefined, undefined, undefined],
+  )
+  assert.deepEqual(
+    getCaseInsertSidebarWorkflow('tray').map((panel) => panel.openByDefault),
+    [undefined, undefined, undefined, undefined, undefined, undefined, undefined],
+  )
+})
+
 test('case sidebar status label makes the active template clear', () => {
   assert.equal(
     getCaseInsertSidebarStatusLabel('cover'),

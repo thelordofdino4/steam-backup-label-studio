@@ -13,11 +13,13 @@ import type {
   CaseInsertBrandingSlotSourceItem,
 } from '../caseInsert/brandingSlotSources'
 import {
+  fitCaseInsertImageSlotToRegionHeight,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotFit,
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
+import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
@@ -69,6 +71,12 @@ const defaultSpineImageSlotLayouts: Record<
 
 function normalizeLabel(label: string) {
   return label.trim().toLocaleLowerCase()
+}
+
+function getSpineBackgroundFitRegion(side: JewelCaseSpineSide) {
+  return getJewelCaseRegionExportBounds(
+    side === 'left' ? 'leftSpine' : 'rightSpine',
+  )
 }
 
 export function useJewelCaseSpineEditor({
@@ -286,6 +294,27 @@ export function useJewelCaseSpineEditor({
     }))
   }
 
+  function handleFitSpineImageSlotToRegion(
+    side: JewelCaseSpineSide,
+    slotKey: JewelCaseSpineImageSlotKey,
+    label: string,
+  ) {
+    if (slotKey !== 'background') {
+      return
+    }
+
+    const region = getSpineBackgroundFitRegion(side)
+
+    if (!region) {
+      return
+    }
+
+    updateSpineImageSlot(side, slotKey, (slot) =>
+      fitCaseInsertImageSlotToRegionHeight(slot, region),
+    )
+    announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
+  }
+
   function handleClearSpineImageSlot(
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
@@ -340,6 +369,7 @@ export function useJewelCaseSpineEditor({
     handleSpineImageSlotFitChange,
     handleSpineImageSlotLayoutChange,
     handleResetSpineImageSlotLayout,
+    handleFitSpineImageSlotToRegion,
     handleClearSpineImageSlot,
     handleUseSpineBrandingSource,
   }

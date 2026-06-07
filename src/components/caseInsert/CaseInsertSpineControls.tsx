@@ -17,6 +17,7 @@ import type {
 } from '../../project/projectTypes'
 import {
   CaseInsertImageSourceControls,
+  type CaseInsertImageSourceControlSource,
   type CaseInsertImageSourceCatalog,
 } from './CaseInsertImageSourceControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
@@ -144,6 +145,179 @@ function FitSelect({
         ))}
       </select>
     </>
+  )
+}
+
+function isCaseInsertImageSourceControlActive(
+  imageSource: ProjectCaseInsertImageSlot['imageSource'],
+  source: CaseInsertImageSourceControlSource,
+) {
+  if (!imageSource) return source === 'local-file'
+
+  switch (source) {
+    case 'steam-artwork':
+    case 'web-artwork':
+    case 'local-steam-screenshot':
+      return imageSource.source === source
+    case 'local-file':
+      return ![
+        'steam-artwork',
+        'web-artwork',
+        'local-steam-screenshot',
+      ].includes(imageSource.source)
+  }
+}
+
+function SpineImageSlotFineTuneControls({
+  uploadId,
+  slot,
+  source,
+  sectionLabel,
+  isBackground,
+  onFitChange,
+  onFitToRegion,
+  onLayoutChange,
+  onResetLayout,
+  onClearImage,
+}: {
+  uploadId: string
+  slot: ProjectCaseInsertImageSlot
+  source: CaseInsertImageSourceControlSource
+  sectionLabel: string
+  isBackground: boolean
+  onFitChange: (fit: ProjectCaseInsertImageFit) => void
+  onFitToRegion?: () => void
+  onLayoutChange: (
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) => void
+  onResetLayout: () => void
+  onClearImage: () => void
+}) {
+  const isActiveSource = isCaseInsertImageSourceControlActive(
+    slot.imageSource,
+    source,
+  )
+  const controlsDisabled = !slot.imageDataUrl || !isActiveSource
+  const sourceName = sectionLabel.toLocaleLowerCase()
+  const statusMessage = !slot.imageDataUrl
+    ? `Choose ${sourceName} to unlock fit, scale, position, reset, and clear controls here.`
+    : isActiveSource
+      ? `These controls adjust the current image from ${sourceName}.`
+      : `Inactive while another image source controls this slot.`
+
+  return (
+    <fieldset
+      className="case-insert-source-layout-controls"
+      disabled={controlsDisabled}
+      aria-label={`${sectionLabel} placement controls`}
+    >
+      <legend>Placement</legend>
+      <p className="hint">{statusMessage}</p>
+      <ImageSlotStatus slot={slot} />
+
+      {isBackground ? (
+        <>
+          <button
+            className="secondary-button spacing-top"
+            type="button"
+            onClick={onFitToRegion}
+          >
+            Fit image
+          </button>
+          <RangeField
+            id={`${uploadId}-${source}-scale`}
+            label="Scale"
+            min={0.01}
+            max={4}
+            step={0.01}
+            value={slot.layout.scale}
+            onChange={(value) => onLayoutChange('scale', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-x`}
+            label="X position"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-y`}
+            label="Y position"
+            min={-100}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+        </>
+      ) : (
+        <>
+          <FitSelect
+            id={`${uploadId}-${source}-fit`}
+            fit={slot.fit}
+            onFitChange={onFitChange}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-scale`}
+            label="Scale"
+            min={0.35}
+            max={2}
+            step={0.01}
+            value={slot.layout.scale}
+            onChange={(value) => onLayoutChange('scale', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-x`}
+            label="Cross position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.x}
+            onChange={(value) => onLayoutChange('x', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-y`}
+            label="Length position"
+            min={0}
+            max={100}
+            step={1}
+            value={slot.layout.y}
+            onChange={(value) => onLayoutChange('y', value)}
+          />
+          <RangeField
+            id={`${uploadId}-${source}-rotation`}
+            label="Rotation"
+            min={-180}
+            max={180}
+            step={1}
+            value={slot.layout.rotation}
+            onChange={(value) => onLayoutChange('rotation', value)}
+          />
+        </>
+      )}
+
+      <div className="button-row spacing-top">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={onResetLayout}
+        >
+          Reset layout
+        </button>
+        {slot.imageDataUrl ? (
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={onClearImage}
+          >
+            Clear image
+          </button>
+        ) : null}
+      </div>
+    </fieldset>
   )
 }
 
@@ -302,6 +476,27 @@ function SpineImageSlotControls({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) => actions.handleSpineImageSlotLayoutChange(side, slotKey, field, value)
+  const renderFineTuneControls = (
+    source: CaseInsertImageSourceControlSource,
+    sectionLabel: string,
+  ) => (
+    <SpineImageSlotFineTuneControls
+      uploadId={uploadId}
+      slot={slot}
+      source={source}
+      sectionLabel={sectionLabel}
+      isBackground={isBackground}
+      onFitChange={(fit) =>
+        actions.handleSpineImageSlotFitChange(side, slotKey, fit)}
+      onFitToRegion={() =>
+        actions.handleFitSpineImageSlotToRegion(side, slotKey, slot.label)}
+      onLayoutChange={onLayoutChange}
+      onResetLayout={() =>
+        actions.handleResetSpineImageSlotLayout(side, slotKey)}
+      onClearImage={() =>
+        actions.handleClearSpineImageSlot(side, slotKey, slot.label)}
+    />
+  )
 
   return (
     <div className="case-insert-control-card">
@@ -327,6 +522,7 @@ function SpineImageSlotControls({
             title={title}
             hasImage={Boolean(slot.imageDataUrl)}
             imageSource={slot.imageSource}
+            allowSteamArtwork={isBackground}
             onUpload={(event) =>
               actions.handleSpineImageSlotUpload(
                 side,
@@ -354,115 +550,11 @@ function SpineImageSlotControls({
                 slotKey,
                 slot.label,
                 candidate,
-              )}
+            )}
             allowWebArtwork={isBackground}
+            allowLocalSteamScreenshots={isBackground}
+            renderFineTuneControls={renderFineTuneControls}
           />
-
-          <ImageSlotStatus slot={slot} />
-
-          {isBackground ? (
-            <>
-              <FitSelect
-                id={`${uploadId}-fit`}
-                fit={slot.fit}
-                onFitChange={(fit) =>
-                  actions.handleSpineImageSlotFitChange(side, slotKey, fit)}
-              />
-              {slot.fit === 'crop' || slot.fit === 'scale' ? (
-                <RangeField
-                  id={`${uploadId}-scale`}
-                  label="Scale"
-                  min={0.5}
-                  max={2.5}
-                  step={0.01}
-                  value={slot.layout.scale}
-                  onChange={(value) => onLayoutChange('scale', value)}
-                />
-              ) : null}
-              {slot.fit === 'crop' ? (
-                <>
-                  <RangeField
-                    id={`${uploadId}-crop-x`}
-                    label="Crop X"
-                    min={-100}
-                    max={100}
-                    step={1}
-                    value={slot.layout.x}
-                    onChange={(value) => onLayoutChange('x', value)}
-                  />
-                  <RangeField
-                    id={`${uploadId}-crop-y`}
-                    label="Crop Y"
-                    min={-100}
-                    max={100}
-                    step={1}
-                    value={slot.layout.y}
-                    onChange={(value) => onLayoutChange('y', value)}
-                  />
-                </>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <RangeField
-                id={`${uploadId}-scale`}
-                label="Scale"
-                min={0.35}
-                max={2}
-                step={0.01}
-                value={slot.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <RangeField
-                id={`${uploadId}-x`}
-                label="Cross position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <RangeField
-                id={`${uploadId}-y`}
-                label="Length position"
-                min={0}
-                max={100}
-                step={1}
-                value={slot.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-              <RangeField
-                id={`${uploadId}-rotation`}
-                label="Rotation"
-                min={-180}
-                max={180}
-                step={1}
-                value={slot.layout.rotation}
-                onChange={(value) => onLayoutChange('rotation', value)}
-              />
-            </>
-          )}
-
-          <div className="button-row spacing-top">
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetSpineImageSlotLayout(side, slotKey)}
-            >
-              Reset layout
-            </button>
-            {slot.imageDataUrl ? (
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={() =>
-                  actions.handleClearSpineImageSlot(side, slotKey, slot.label)}
-              >
-                Clear image
-              </button>
-            ) : null}
-          </div>
         </>
       )}
     </div>
@@ -477,7 +569,7 @@ function SpineSideSection({
   children: ReactNode
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top" open>
+    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
       <summary className="panel-summary">{label}</summary>
       <div className="panel-content">{children}</div>
     </details>

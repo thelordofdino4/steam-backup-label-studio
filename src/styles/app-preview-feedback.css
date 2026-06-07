@@ -1,8 +1,8 @@
 .preview-pane-label {
-  position: absolute;
-  top: 18px;
-  left: 22px;
+  position: relative;
   z-index: 20;
+  align-self: start;
+  justify-self: start;
   display: grid;
   gap: 2px;
   pointer-events: none;
@@ -103,8 +103,7 @@
 
 @media (max-width: 1000px) {
   .preview-pane-label {
-    top: 12px;
-    left: 14px;
+    justify-self: start;
   }
 
   .preview-toast-stack {

@@ -147,7 +147,7 @@ export function GamePanel({
       )}
 
 
-      <details className="metadata-details spacing-top">
+      <details className="feature-section-card metadata-details collapsible-panel spacing-top">
         <summary className="panel-summary">Additional metadata</summary>
         <div className="panel-content">
       <label className="field-label" htmlFor="game-title">

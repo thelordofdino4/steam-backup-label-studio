@@ -25,11 +25,13 @@ import {
   getCaseInsertManualMarkSourceId,
 } from '../caseInsert/brandingSlotSources'
 import {
+  fitCaseInsertImageSlotToRegionHeight,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotFit,
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
+import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
   createLocalSteamScreenshotCaseInsertImageSlotImage,
   createSteamArtworkCaseInsertImageSlotImage,
@@ -122,6 +124,17 @@ function getNextGroupedSlotIndex(
   }
 
   return index
+}
+
+function getPrimaryImageSlotFitRegion(
+  paneId: CaseInsertTemplatePaneId,
+  slotKey: CaseInsertPrimaryImageSlotKey,
+) {
+  if (slotKey !== 'background') {
+    return null
+  }
+
+  return getJewelCaseRegionExportBounds(paneId === 'cover' ? 'front' : 'back')
 }
 
 export function useCaseInsertTemplateEditor({
@@ -297,6 +310,23 @@ export function useCaseInsertTemplateEditor({
       ...slot,
       layout: defaultPrimarySlotLayouts[paneId][slotKey],
     }))
+  }
+
+  function handleFitImageSlotToRegion(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertPrimaryImageSlotKey,
+    label: string,
+  ) {
+    const region = getPrimaryImageSlotFitRegion(paneId, slotKey)
+
+    if (!region) {
+      return
+    }
+
+    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
+      fitCaseInsertImageSlotToRegionHeight(slot, region),
+    )
+    announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
   }
 
   function handleClearImageSlot(
@@ -822,6 +852,7 @@ export function useCaseInsertTemplateEditor({
     handleImageSlotFitChange,
     handleImageSlotLayoutChange,
     handleResetImageSlotLayout,
+    handleFitImageSlotToRegion,
     handleClearImageSlot,
     handleAddGroupedImageSlot,
     handleAddBrandingMarkSlot,

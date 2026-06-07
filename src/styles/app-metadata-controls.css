@@ -24,8 +24,10 @@
 
 .repeated-visual-card-summary {
   align-items: center;
-  display: flex;
+  display: grid;
   gap: 10px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.55fr) auto;
+  justify-content: stretch;
 }
 
 .repeated-visual-card-title {
@@ -37,7 +39,7 @@
   color: rgba(203, 213, 225, 0.72);
   font-size: 0.76rem;
   line-height: 1.25;
-  margin-left: auto;
+  margin-left: 0;
   overflow-wrap: anywhere;
   text-align: right;
 }
@@ -50,7 +52,15 @@
 }
 
 .repeated-visual-card-toolbar .field-label {
+  align-items: center;
+  display: flex;
+  gap: 8px;
   margin-bottom: 0;
+  min-width: 0;
+}
+
+.repeated-visual-card-toolbar .field-label input {
+  flex: 0 0 auto;
 }
 
 .repeated-visual-card-label-input {

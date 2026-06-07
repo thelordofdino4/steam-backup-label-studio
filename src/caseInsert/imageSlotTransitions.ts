@@ -2,6 +2,7 @@ import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import { getJewelCaseImageRegionHeightFitScale } from '../layout/jewelCaseLayout.ts'
 import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
@@ -91,4 +92,30 @@ export function updateCaseInsertImageSlotLayoutPosition(
     x: point.x,
     y: point.y,
   })
+}
+
+export function fitCaseInsertImageSlotToRegionHeight(
+  slot: ProjectCaseInsertImageSlot,
+  region: { width: number; height: number },
+): ProjectCaseInsertImageSlot {
+  const scale = getJewelCaseImageRegionHeightFitScale({
+    imageSize: slot.imageSize,
+    region,
+    fit: 'cover',
+  })
+
+  if (scale === null) {
+    return slot
+  }
+
+  return {
+    ...slot,
+    fit: 'cover',
+    layout: {
+      ...slot.layout,
+      scale,
+      x: 0,
+      y: 0,
+    },
+  }
 }

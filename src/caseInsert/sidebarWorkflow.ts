@@ -34,8 +34,8 @@ export function getCaseInsertSidebarWorkflow(
     { id: 'projectFile', label: 'Project File' },
     { id: 'exportOptions', label: 'Export Options' },
     { id: 'game', label: 'Game' },
-    { id: 'template', label: 'Template', openByDefault: true },
-    { id: 'surface', label: paneConfig.label, openByDefault: true },
+    { id: 'template', label: 'Template' },
+    { id: 'surface', label: paneConfig.label },
   ]
 
   if (paneConfig.hasSpine) {

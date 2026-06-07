@@ -8,6 +8,7 @@ import type { SteamImportedGame } from '../steam/steamApi.ts'
 type SteamBackCoverImportOptions = {
   legalText?: string
   replaceExisting?: boolean
+  enableImportedText?: boolean
 }
 
 const TRAY_DESCRIPTION_ID = 'tray-description'
@@ -62,6 +63,7 @@ function updateSteamTextBlock(
   textBlock: ProjectCaseInsertTextBlock,
   value: string,
   replaceExisting: boolean,
+  enableImportedText: boolean,
 ): ProjectCaseInsertTextBlock {
   if (!shouldApplySteamValue(textBlock, replaceExisting)) {
     return textBlock
@@ -69,7 +71,7 @@ function updateSteamTextBlock(
 
   return {
     ...textBlock,
-    enabled: value.trim().length > 0,
+    enabled: enableImportedText ? value.trim().length > 0 : textBlock.enabled,
     value,
     source: 'steam',
   }
@@ -79,6 +81,7 @@ function updateSteamTextList(
   textList: ProjectCaseInsertTextList,
   items: string[],
   replaceExisting: boolean,
+  enableImportedText: boolean,
 ): ProjectCaseInsertTextList {
   if (!shouldApplySteamValue(textList, replaceExisting)) {
     return textList
@@ -86,7 +89,7 @@ function updateSteamTextList(
 
   return {
     ...textList,
-    enabled: items.length > 0,
+    enabled: enableImportedText ? items.length > 0 : textList.enabled,
     items,
     source: 'steam',
   }
@@ -124,6 +127,7 @@ export function applySteamBackCoverImportToCaseInsert(
   options: SteamBackCoverImportOptions = {},
 ): ProjectJewelCaseState {
   const replaceExisting = options.replaceExisting ?? false
+  const enableImportedText = options.enableImportedText ?? false
   const description = normalizeSteamText(
     importedGame.shortDescription ?? importedGame.detailedDescription,
   )
@@ -148,28 +152,41 @@ export function applySteamBackCoverImportToCaseInsert(
                 textBlock,
                 description,
                 replaceExisting,
+                enableImportedText,
               )
             case TRAY_MINIMUM_REQUIREMENTS_ID:
               return updateSteamTextBlock(
                 textBlock,
                 minimumRequirements,
                 replaceExisting,
+                enableImportedText,
               )
             case TRAY_RECOMMENDED_REQUIREMENTS_ID:
               return updateSteamTextBlock(
                 textBlock,
                 recommendedRequirements,
                 replaceExisting,
+                enableImportedText,
               )
             case TRAY_LEGAL_TEXT_ID:
-              return updateSteamTextBlock(textBlock, legalText, replaceExisting)
+              return updateSteamTextBlock(
+                textBlock,
+                legalText,
+                replaceExisting,
+                enableImportedText,
+              )
             default:
               return textBlock
           }
         }),
         textLists: tray.textLists.map((textList) =>
           textList.id === TRAY_FEATURE_BULLETS_ID
-            ? updateSteamTextList(textList, featureBullets, replaceExisting)
+            ? updateSteamTextList(
+                textList,
+                featureBullets,
+                replaceExisting,
+                enableImportedText,
+              )
             : textList,
         ),
       },
@@ -197,6 +214,7 @@ export function applyCaseInsertBackCoverLegalText(
                 textBlock,
                 normalizedLegalText,
                 options.replaceExisting ?? true,
+                true,
               )
             : textBlock,
         ),

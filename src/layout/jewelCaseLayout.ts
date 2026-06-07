@@ -447,6 +447,36 @@ function normalizeCropOffset(offset?: Partial<JewelCaseCropOffset>) {
   }
 }
 
+export function getJewelCaseImageRegionHeightFitScale({
+  imageSize,
+  region,
+  fit = 'cover',
+}: {
+  imageSize: JewelCasePixelSize | null
+  region: JewelCasePixelSize
+  fit?: JewelCaseImageFitMode
+}) {
+  if (!hasPositiveSize(imageSize) || !hasPositiveSize(region)) {
+    return null
+  }
+
+  const sourceSize = imageSize as JewelCasePixelSize
+  const containScale = Math.min(
+    region.width / sourceSize.width,
+    region.height / sourceSize.height,
+  )
+  const coverScale = Math.max(
+    region.width / sourceSize.width,
+    region.height / sourceSize.height,
+  )
+  const baseScale = fit === 'cover' || fit === 'crop'
+    ? coverScale
+    : containScale
+  const heightScale = region.height / sourceSize.height
+
+  return heightScale / baseScale
+}
+
 export function fitImageToJewelCaseRegion({
   imageSize,
   region,
@@ -470,20 +500,16 @@ export function fitImageToJewelCaseRegion({
   const baseScale = fit === 'cover' || fit === 'crop'
     ? coverScale
     : containScale
-  const manualScale = fit === 'scale' || fit === 'crop'
-    ? normalizePositiveNumber(scale, 1)
-    : 1
+  const manualScale = normalizePositiveNumber(scale, 1)
   const fittedScale = baseScale * manualScale
   const width = sourceSize.width * fittedScale
   const height = sourceSize.height * fittedScale
-  const cropOffset = fit === 'crop'
-    ? normalizeCropOffset(offset)
-    : { x: 0, y: 0 }
-  const overflowX = Math.max(0, width - region.width)
-  const overflowY = Math.max(0, height - region.height)
+  const cropOffset = normalizeCropOffset(offset)
+  const travelX = (region.width + width) / 2
+  const travelY = (region.height + height) / 2
   const imageRect = {
-    x: region.x + (region.width - width) / 2 - cropOffset.x * overflowX / 2,
-    y: region.y + (region.height - height) / 2 - cropOffset.y * overflowY / 2,
+    x: region.x + (region.width - width) / 2 + cropOffset.x * travelX,
+    y: region.y + (region.height - height) / 2 + cropOffset.y * travelY,
     width,
     height,
   }

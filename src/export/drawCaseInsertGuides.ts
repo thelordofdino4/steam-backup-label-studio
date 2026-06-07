@@ -72,7 +72,10 @@ export function drawCaseInsertExportGuides(
     return
   }
 
-  const lineWidth = Math.max(2, Math.round(layout.width * 0.0012))
+  const lineWidth = Math.max(
+    4,
+    Math.round(Math.min(layout.width, layout.height) * 0.003),
+  )
 
   context.save()
   context.lineWidth = lineWidth

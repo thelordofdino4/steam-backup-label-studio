@@ -16,6 +16,7 @@ import {
   evaluateJewelCaseSafePlacement,
   fitImageToJewelCaseRegion,
   getDefaultJewelCaseBackScreenshotSlotLayouts,
+  getJewelCaseImageRegionHeightFitScale,
   getJewelCaseBackPanelLayout,
   getJewelCaseFrontLayout,
   getJewelCaseRegionExportBounds,
@@ -148,6 +149,20 @@ test('image fitting preserves aspect ratio for contain, cover, scale, and crop m
     region,
     fit: 'cover',
   })
+  const adjustedContain = fitImageToJewelCaseRegion({
+    imageSize,
+    region,
+    fit: 'contain',
+    scale: 1.5,
+    offset: { x: 0.2, y: -0.1 },
+  })
+  const adjustedCover = fitImageToJewelCaseRegion({
+    imageSize,
+    region,
+    fit: 'cover',
+    scale: 0.5,
+    offset: { x: 0.4, y: -0.4 },
+  })
   const scaled = fitImageToJewelCaseRegion({
     imageSize,
     region,
@@ -158,7 +173,7 @@ test('image fitting preserves aspect ratio for contain, cover, scale, and crop m
     imageSize,
     region,
     fit: 'crop',
-    offset: { x: 1, y: 0 },
+    offset: { x: 0.2, y: 0 },
   })
 
   assertRectApproximatelyEqual(contain?.imageRect ?? null, {
@@ -184,6 +199,26 @@ test('image fitting preserves aspect ratio for contain, cover, scale, and crop m
   })
   assert.equal(cover?.isCropped, true)
 
+  assertRectApproximatelyEqual(adjustedContain?.imageRect ?? null, {
+    x: 0,
+    y: 37.5,
+    width: 1500,
+    height: 750,
+  })
+  assert.equal(adjustedContain?.scale, 0.75)
+  assert.equal(adjustedContain?.cropOffset.x, 0.2)
+  assert.equal(adjustedContain?.cropOffset.y, -0.1)
+
+  assertRectApproximatelyEqual(adjustedCover?.imageRect ?? null, {
+    x: 400,
+    y: -50,
+    width: 1000,
+    height: 500,
+  })
+  assert.equal(adjustedCover?.scale, 0.5)
+  assert.equal(adjustedCover?.cropOffset.x, 0.4)
+  assert.equal(adjustedCover?.cropOffset.y, -0.4)
+
   assertRectApproximatelyEqual(scaled?.imageRect ?? null, {
     x: 250,
     y: 375,
@@ -193,18 +228,61 @@ test('image fitting preserves aspect ratio for contain, cover, scale, and crop m
   assert.equal(scaled?.scale, 0.25)
 
   assertRectApproximatelyEqual(cropped?.imageRect ?? null, {
-    x: -1000,
+    x: -200,
     y: 0,
     width: 2000,
     height: 1000,
   })
   assertRectApproximatelyEqual(cropped?.sourceRect ?? null, {
-    x: 1000,
+    x: 200,
     y: 0,
     width: 1000,
     height: 1000,
   })
-  assert.equal(cropped?.cropOffset.x, 1)
+  assert.equal(cropped?.cropOffset.x, 0.2)
+})
+
+test('region height fit scale aligns image top and bottom pixels', () => {
+  const region = { x: 0, y: 0, width: 1000, height: 1000 }
+  const wideImageSize = { width: 4000, height: 1000 }
+  const tallImageSize = { width: 1000, height: 4000 }
+  const wideScale = getJewelCaseImageRegionHeightFitScale({
+    imageSize: wideImageSize,
+    region,
+    fit: 'cover',
+  })
+  const tallScale = getJewelCaseImageRegionHeightFitScale({
+    imageSize: tallImageSize,
+    region,
+    fit: 'cover',
+  })
+  const wideFit = fitImageToJewelCaseRegion({
+    imageSize: wideImageSize,
+    region,
+    fit: 'cover',
+    scale: wideScale ?? undefined,
+  })
+  const tallFit = fitImageToJewelCaseRegion({
+    imageSize: tallImageSize,
+    region,
+    fit: 'cover',
+    scale: tallScale ?? undefined,
+  })
+
+  assert.equal(wideScale, 1)
+  assert.equal(tallScale, 0.25)
+  assertRectApproximatelyEqual(wideFit?.imageRect ?? null, {
+    x: -1500,
+    y: 0,
+    width: 4000,
+    height: 1000,
+  })
+  assertRectApproximatelyEqual(tallFit?.imageRect ?? null, {
+    x: 375,
+    y: 0,
+    width: 250,
+    height: 1000,
+  })
 })
 
 test('default back screenshot slots sit inside the back panel safe area', () => {
