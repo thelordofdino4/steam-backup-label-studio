@@ -66,10 +66,12 @@ import type {
 } from '../project/additionalArtworkFrame.ts'
 import type {
   ProjectCaseInsertImageFit,
+  ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
+import type { CaseInsertImageSlotImageInput } from '../caseInsert/types'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
@@ -151,6 +153,25 @@ function getPrimaryImageSlotFitRegion(
   }
 
   return getJewelCaseRegionExportBounds(paneId === 'cover' ? 'front' : 'back')
+}
+
+function preserveCaseInsertMarkSource(
+  slotKey: CaseInsertImageSlotGroupKey,
+  slot: Pick<ProjectCaseInsertImageSlot, 'imageSource'>,
+  image: CaseInsertImageSlotImageInput,
+): CaseInsertImageSlotImageInput {
+  if (slotKey !== 'markSlots' || !slot.imageSource?.sourceId?.startsWith('case-')) {
+    return image
+  }
+
+  return {
+    ...image,
+    imageSource: {
+      ...image.imageSource,
+      sourceId: slot.imageSource.sourceId,
+      sourceLabel: image.imageSource?.sourceLabel ?? slot.imageSource.sourceLabel,
+    },
+  }
 }
 
 export function useCaseInsertTemplateEditor({
@@ -529,7 +550,10 @@ export function useCaseInsertTemplateEditor({
         paneId,
         slotKey,
         slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
+        (slot) => setCaseInsertImageSlotImage(
+          slot,
+          preserveCaseInsertMarkSource(slotKey, slot, image),
+        ),
         {
           enableAdditionalArtwork: slotKey === 'artworkSlots',
         },

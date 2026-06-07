@@ -1,6 +1,9 @@
 import {
-  getCaseInsertMarkLayerKind,
+  type CaseInsertBrandingSourceCatalog,
 } from '../caseInsert/brandingSlotSources'
+import {
+  isCaseInsertMarkSlotVisible,
+} from '../caseInsert/brandingVisibility'
 import {
   getCaseInsertBackTextBlockRole,
 } from '../caseInsert/textReadability'
@@ -508,12 +511,13 @@ async function drawTemplateSlotGroup(
   paneId: CaseInsertTemplatePaneId,
   layout: CaseInsertPreviewLayout,
   slotKey: 'logoSlots' | 'markSlots',
+  brandingSources: CaseInsertBrandingSourceCatalog,
   kind?: CaseInsertMarkLayerKind,
 ) {
   const templateState = getTemplateState(caseInsert, paneId)
   const slots = templateState[slotKey].filter((slot) =>
     slotKey === 'logoSlots' ||
-    getCaseInsertMarkLayerKind(slot.imageSource?.sourceId) === kind)
+    Boolean(kind && isCaseInsertMarkSlotVisible(slot, kind, brandingSources)))
 
   for (const slot of slots) {
     await drawTemplateImageSlot(
@@ -757,6 +761,7 @@ async function drawSpineContent(
 export async function exportCaseInsertPngBytes(params: {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  brandingSources: CaseInsertBrandingSourceCatalog
   dpi?: number
 }) {
   const dpi = params.dpi ?? DEFAULT_TEMPLATE_EXPORT_DPI
@@ -801,6 +806,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
         'logoSlots',
+        params.brandingSources,
       ),
     'case-rating-badges': () =>
       drawTemplateSlotGroup(
@@ -809,6 +815,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
         'markSlots',
+        params.brandingSources,
         'rating',
       ),
     'case-media-marks': () =>
@@ -818,6 +825,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
         'markSlots',
+        params.brandingSources,
         'media',
       ),
     'case-platform-marks': () =>
@@ -827,6 +835,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
         'markSlots',
+        params.brandingSources,
         'platform',
       ),
     'case-technical-marks': () =>
@@ -836,6 +845,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.activeTemplatePane,
         layout,
         'markSlots',
+        params.brandingSources,
         'technical',
       ),
     'case-text': () =>

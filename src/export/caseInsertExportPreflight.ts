@@ -3,7 +3,11 @@ import {
 } from '../caseInsert/exportLayout.ts'
 import {
   getCaseInsertMarkLayerKind,
+  type CaseInsertBrandingSourceCatalog,
 } from '../caseInsert/brandingSlotSources.ts'
+import {
+  isCaseInsertMarkSlotVisible,
+} from '../caseInsert/brandingVisibility.ts'
 import {
   getCaseInsertBackTextBlockReadabilityRole,
   getCaseInsertBackTextBlockRole,
@@ -77,6 +81,7 @@ const SAFE_EDGE_WARNING_RATIO = 0.015
 export function buildCaseInsertExportPreflightSummary(params: {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  brandingSources: CaseInsertBrandingSourceCatalog
   dpi?: number
 }): CaseInsertExportPreflightSummary {
   const dpi = params.dpi ?? DEFAULT_TEMPLATE_EXPORT_DPI
@@ -96,6 +101,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
   const warnings = buildCaseInsertExportWarnings({
     caseInsert: params.caseInsert,
     activeTemplatePane: params.activeTemplatePane,
+    brandingSources: params.brandingSources,
     layout,
     enabledGuideNames,
   })
@@ -112,6 +118,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
     `Visible elements: ${formatVisibleElementStatus(
       templateState,
       paneConfig.hasSpine ? params.caseInsert.spine : null,
+      params.brandingSources,
     )}`,
   ]
 
@@ -134,6 +141,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
 function buildCaseInsertExportWarnings(params: {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  brandingSources: CaseInsertBrandingSourceCatalog
   layout: CaseInsertPreviewLayout
   enabledGuideNames: string[]
 }) {
@@ -151,6 +159,7 @@ function buildCaseInsertExportWarnings(params: {
       params.activeTemplatePane,
       templateState,
       params.layout,
+      params.brandingSources,
     ),
   )
 
@@ -172,6 +181,7 @@ function getTemplateSurfaceWarnings(
   paneId: CaseInsertTemplatePaneId,
   templateState: ProjectCaseInsertSurfaceState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const warnings: string[] = []
   const backgroundFit = paneId === 'cover'
@@ -184,7 +194,7 @@ function getTemplateSurfaceWarnings(
     )
   }
 
-  if (!surfaceHasVisibleContent(templateState)) {
+  if (!surfaceHasVisibleContent(templateState, brandingSources)) {
     warnings.push(
       `${paneLabel} has no visible artwork, logos, marks, or text; this export may be blank white.`,
     )
@@ -200,10 +210,10 @@ function getTemplateSurfaceWarnings(
   )
 
   if (paneId === 'cover') {
-    warnings.push(...getCoverSlotWarnings(templateState, layout))
+    warnings.push(...getCoverSlotWarnings(templateState, layout, brandingSources))
     warnings.push(...getCoverTextWarnings(templateState, layout))
   } else {
-    warnings.push(...getTraySlotWarnings(templateState, layout))
+    warnings.push(...getTraySlotWarnings(templateState, layout, brandingSources))
     warnings.push(...getTrayTextWarnings(templateState, layout))
   }
 
@@ -213,6 +223,7 @@ function getTemplateSurfaceWarnings(
 function getCoverSlotWarnings(
   templateState: ProjectCaseInsertSurfaceState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const warnings: string[] = []
   const safeBounds = getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.cover)
@@ -261,7 +272,7 @@ function getCoverSlotWarnings(
     )
   }
 
-  for (const slot of templateState.markSlots) {
+  for (const slot of getVisibleMarkSlots(templateState, brandingSources)) {
     warnings.push(
       ...getRenderedImageSlotWarnings({
         slot,
@@ -279,6 +290,7 @@ function getCoverSlotWarnings(
 function getTraySlotWarnings(
   templateState: ProjectCaseInsertSurfaceState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const warnings: string[] = []
   const safeBounds = getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.tray)
@@ -329,7 +341,7 @@ function getTraySlotWarnings(
     )
   }
 
-  for (const slot of templateState.markSlots) {
+  for (const slot of getVisibleMarkSlots(templateState, brandingSources)) {
     warnings.push(
       ...getRenderedImageSlotWarnings({
         slot,
@@ -891,6 +903,27 @@ function slotWillRender(slot: ProjectCaseInsertImageSlot) {
   return Boolean(slot.enabled && slot.imageDataUrl && slot.imageSize)
 }
 
+function getVisibleMarkSlots(
+  surface: ProjectCaseInsertSurfaceState,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
+  return surface.markSlots.filter((slot) => {
+    const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
+
+    return isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
+  })
+}
+
+function markSlotWillRender(
+  slot: ProjectCaseInsertImageSlot,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
+  const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
+
+  return slotWillRender(slot) &&
+    isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
+}
+
 function textBlockWillRender(textBlock: ProjectCaseInsertTextBlock) {
   return Boolean(textBlock.enabled && textBlock.value.trim())
 }
@@ -902,7 +935,10 @@ function textListWillRender(textList: ProjectCaseInsertTextList) {
   )
 }
 
-function surfaceHasVisibleContent(surface: ProjectCaseInsertSurfaceState) {
+function surfaceHasVisibleContent(
+  surface: ProjectCaseInsertSurfaceState,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
   return (
     slotWillRender(surface.background) ||
     slotWillRender(surface.titleArtwork) ||
@@ -911,7 +947,7 @@ function surfaceHasVisibleContent(surface: ProjectCaseInsertSurfaceState) {
       surface.artworkSlots.some(slotWillRender)
     ) ||
     surface.logoSlots.some(slotWillRender) ||
-    surface.markSlots.some(slotWillRender) ||
+    surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
     surface.textBlocks.some(textBlockWillRender) ||
     surface.textLists.some(textListWillRender)
   )
@@ -934,6 +970,7 @@ function spineSideHasVisibleContent(spineSide: ProjectJewelCaseSpineSideState) {
 function formatVisibleElementStatus(
   surface: ProjectCaseInsertSurfaceState,
   spine: ProjectJewelCaseState['spine'] | null,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const visibleCount =
     Number(slotWillRender(surface.background)) +
@@ -942,7 +979,8 @@ function formatVisibleElementStatus(
       ? surface.artworkSlots.filter(slotWillRender).length
       : 0) +
     surface.logoSlots.filter(slotWillRender).length +
-    surface.markSlots.filter(slotWillRender).length +
+    surface.markSlots.filter((slot) =>
+      markSlotWillRender(slot, brandingSources)).length +
     surface.textBlocks.filter(textBlockWillRender).length +
     surface.textLists.filter(textListWillRender).length +
     (spine

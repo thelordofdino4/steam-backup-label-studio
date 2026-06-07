@@ -7,10 +7,13 @@ import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertT
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import {
-  getCaseInsertMarkLayerKind,
   type CaseInsertBrandingSourceCatalog,
   type CaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
+import {
+  isCaseInsertMarkKindEnabled,
+  isCaseInsertMarkSlotVisible,
+} from '../../caseInsert/brandingVisibility'
 import {
   CASE_INSERT_ARTWORK_SECTION_LABELS,
 } from '../../caseInsert/artworkPanelSections'
@@ -55,6 +58,13 @@ import {
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import {
+  CaseInsertMediaMarkSetupControls,
+  CaseInsertPlatformMarkSetupControls,
+  CaseInsertRatingBadgeSetupControls,
+  CaseInsertTechnicalMarkSetupControls,
+  type CaseInsertBrandingSetupControlsProps,
+} from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
@@ -64,6 +74,7 @@ export type CaseInsertTemplateControlsProps = {
   actions: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  brandingControls: CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }
@@ -1063,6 +1074,7 @@ export function CaseInsertTemplateBrandingControls({
   actions,
   imageSources,
   brandingSources,
+  brandingControls,
   logoCandidateDiscovery,
   handleFindLogoCandidates,
 }: CaseInsertTemplateControlsProps) {
@@ -1093,33 +1105,56 @@ export function CaseInsertTemplateBrandingControls({
       </CaseInsertBrandingFeatureSection>
 
       {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {
+        const isFeatureEnabled = isCaseInsertMarkKindEnabled(
+          section.markKind,
+          brandingSources,
+        )
         const visibleMarkSlots = templateState.markSlots.filter((slot) =>
-          getCaseInsertMarkLayerKind(slot.imageSource?.sourceId) ===
-            section.markKind)
+          isCaseInsertMarkSlotVisible(
+            slot,
+            section.markKind,
+            brandingSources,
+          ))
 
         return (
           <CaseInsertBrandingFeatureSection
             key={section.markKind}
             title={section.title}
           >
-            <CaseInsertBrandingSourceControls
-              brandingSources={brandingSources}
-              sectionIds={section.sourceSectionIds}
-              showSectionTitles={false}
-              onUseSource={(source) =>
-                actions.handleUseBrandingSlotSource(paneId, source)}
-            />
-            <GroupedImageSlotList
-              paneId={paneId}
-              emptyHint={section.emptyHint}
-              addLabel={section.addLabel}
-              slotKey="markSlots"
-              slots={visibleMarkSlots}
-              imageSources={imageSources}
-              actions={actions}
-              onAddSlot={() =>
-                actions.handleAddBrandingMarkSlot(paneId, section.markKind)}
-            />
+            {section.markKind === 'rating' ? (
+              <CaseInsertRatingBadgeSetupControls {...brandingControls} />
+            ) : null}
+            {section.markKind === 'media' ? (
+              <CaseInsertMediaMarkSetupControls {...brandingControls} />
+            ) : null}
+            {section.markKind === 'platform' ? (
+              <CaseInsertPlatformMarkSetupControls {...brandingControls} />
+            ) : null}
+            {section.markKind === 'technical' ? (
+              <CaseInsertTechnicalMarkSetupControls {...brandingControls} />
+            ) : null}
+            {isFeatureEnabled ? (
+              <>
+                <CaseInsertBrandingSourceControls
+                  brandingSources={brandingSources}
+                  sectionIds={section.sourceSectionIds}
+                  showSectionTitles={false}
+                  onUseSource={(source) =>
+                    actions.handleUseBrandingSlotSource(paneId, source)}
+                />
+                <GroupedImageSlotList
+                  paneId={paneId}
+                  emptyHint={section.emptyHint}
+                  addLabel={section.addLabel}
+                  slotKey="markSlots"
+                  slots={visibleMarkSlots}
+                  imageSources={imageSources}
+                  actions={actions}
+                  onAddSlot={() =>
+                    actions.handleAddBrandingMarkSlot(paneId, section.markKind)}
+                />
+              </>
+            ) : null}
           </CaseInsertBrandingFeatureSection>
         )
       })}

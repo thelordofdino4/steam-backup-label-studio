@@ -1416,6 +1416,14 @@ function App() {
         const preflight = buildCaseInsertExportPreflightSummary({
           caseInsert: projectJewelCase,
           activeTemplatePane: activeCaseInsertTemplatePane,
+          brandingSources: {
+            projectMetadata,
+            projectLogoAssets,
+            projectRatingBadge,
+            projectMediaMark,
+            projectPlatformMarks,
+            projectTechnicalMarks,
+          },
           dpi: EXPORT_DPI,
         })
         const shouldExport = await confirm(preflight.message, {
@@ -1433,6 +1441,14 @@ function App() {
         const result = await exportCaseInsertPngBytes({
           caseInsert: projectJewelCase,
           activeTemplatePane: activeCaseInsertTemplatePane,
+          brandingSources: {
+            projectMetadata,
+            projectLogoAssets,
+            projectRatingBadge,
+            projectMediaMark,
+            projectPlatformMarks,
+            projectTechnicalMarks,
+          },
           dpi: EXPORT_DPI,
         })
 
@@ -1614,6 +1630,39 @@ function App() {
           projectMediaMark,
           projectPlatformMarks,
           projectTechnicalMarks,
+        }}
+        brandingControls={{
+          projectMetadata,
+          projectRatingBadge,
+          projectMediaMark,
+          projectPlatformMarks,
+          projectTechnicalMarks,
+          handleProjectMetadataChange,
+          handleProjectMetadataFieldsChange,
+          handleRatingBadgeUpload,
+          handleRatingBadgeSourceChange,
+          handleRatingBadgeEnabledChange,
+          handleSupplementalUskRatingBadgeEnabledChange,
+          handleSupplementalUskRatingBadgeValueChange,
+          handleClearRatingBadgeImage,
+          handleMediaMarkUpload,
+          handleMediaMarkValueChange,
+          handleMediaMarkSourceChange,
+          handleMediaMarkThemeChange,
+          handleMediaMarkLayoutChange,
+          handleClearMediaMarkImage,
+          handlePlatformMarkToggle,
+          handlePlatformMarkUpload,
+          handlePlatformMarkSourceChange,
+          handlePlatformMarkThemeChange,
+          handlePlatformMarkLayoutChange,
+          handleClearPlatformMarkImage,
+          handleTechnicalMarkToggle,
+          handleTechnicalMarkUpload,
+          handleTechnicalMarkSourceChange,
+          handleTechnicalMarkLayoutChange,
+          handleTechnicalMarkLabelChange,
+          handleClearTechnicalMarkImage,
         }}
         logoCandidateDiscovery={logoCandidateDiscovery}
         handleFindLogoCandidates={findLogoCandidates}

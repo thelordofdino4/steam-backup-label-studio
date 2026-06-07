@@ -50,9 +50,15 @@ import { createProjectImageAssetProvenance } from './projectAssetStatus.ts'
 import { createDefaultProjectLogoAssets } from './projectLogoAssets.ts'
 import { createDefaultProjectMediaMark } from './projectMediaMark.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
-import { createDefaultProjectPlatformMarks } from './projectPlatformMarks.ts'
+import {
+  createDefaultProjectPlatformMarks,
+  updatePlatformMarkToggle,
+} from './projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from './projectRatingBadge.ts'
-import { createDefaultProjectTechnicalMarks } from './projectTechnicalMarks.ts'
+import {
+  createDefaultProjectTechnicalMarks,
+  updateTechnicalMarkToggle,
+} from './projectTechnicalMarks.ts'
 import { resolveSavedProjectRoute } from './projectRouting.ts'
 import { restoreProjectStateFromContents } from './restoreProjectState.ts'
 
@@ -884,11 +890,35 @@ test('case branding source catalog only exposes saved logo sources', () => {
     projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
   })
   const logos = sections.find((section) => section.id === 'logos')
+  const rating = sections.find((section) => section.id === 'rating')
+  const media = sections.find((section) => section.id === 'media')
+  const platform = sections.find((section) => section.id === 'platform')
+  const technical = sections.find((section) => section.id === 'technical')
 
   assert.equal(logos?.items.length, 0)
+  assert.equal(rating?.items.length, 0)
+  assert.equal(media?.items.length, 0)
+  assert.equal(platform?.items.length, 0)
+  assert.equal(technical?.items.length, 0)
 })
 
 test('case branding source catalog exposes shared mark and real logo sources', () => {
+  const defaultRatingBadge = createDefaultProjectRatingBadge()
+  const defaultMediaMark = createDefaultProjectMediaMark()
+  const projectRatingBadge = {
+    ...defaultRatingBadge,
+    layout: {
+      ...defaultRatingBadge.layout,
+      enabled: true,
+    },
+  }
+  const projectMediaMark = {
+    ...defaultMediaMark,
+    layout: {
+      ...defaultMediaMark.layout,
+      enabled: true,
+    },
+  }
   const projectLogoAssets = {
     ...createDefaultProjectLogoAssets(),
     developerLogoDataUrl: 'data:image/png;base64,developer-logo',
@@ -908,6 +938,16 @@ test('case branding source catalog exposes shared mark and real logo sources', (
       sourceUrl: 'https://example.test/pub-logo.png',
     }),
   }
+  const projectPlatformMarks = updatePlatformMarkToggle(
+    createDefaultProjectPlatformMarks(),
+    'windows',
+    true,
+  )
+  const projectTechnicalMarks = updateTechnicalMarkToggle(
+    createDefaultProjectTechnicalMarks(),
+    'audio',
+    true,
+  )
   const sections = createCaseInsertBrandingSourceSections({
     projectMetadata: {
       ...createDefaultProjectMetadata(),
@@ -915,10 +955,10 @@ test('case branding source catalog exposes shared mark and real logo sources', (
       ratingValue: 'M',
     },
     projectLogoAssets,
-    projectRatingBadge: createDefaultProjectRatingBadge(),
-    projectMediaMark: createDefaultProjectMediaMark(),
-    projectPlatformMarks: createDefaultProjectPlatformMarks(),
-    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
+    projectRatingBadge,
+    projectMediaMark,
+    projectPlatformMarks,
+    projectTechnicalMarks,
   })
   const logos = sections.find((section) => section.id === 'logos')
   const rating = sections.find((section) => section.id === 'rating')

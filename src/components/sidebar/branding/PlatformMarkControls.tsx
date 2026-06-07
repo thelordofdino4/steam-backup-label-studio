@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { getPlatformMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
@@ -11,32 +12,42 @@ import {
   getProjectPlatformMarkInference,
   platformMarkSupportsTheme,
 } from '../../../project/projectPlatformMarks'
-import type { PlatformMarkSource, PlatformMarkTheme, PlatformMarkValue } from '../../../project/projectTypes'
+import type {
+  PlatformMarkSource,
+  PlatformMarkTheme,
+  PlatformMarkValue,
+  ProjectPlatformMarkAsset,
+} from '../../../project/projectTypes'
 import { formatLogoSize, getNumericInputValue } from './helpers'
 import type { BrandingPanelProps } from './types'
 
-export function PlatformMarkControls({
-  projectPlatformMarks,
-  selectedDiscTemplate,
-  handlePlatformMarkToggle,
-  handlePlatformMarkUpload,
-  handlePlatformMarkSourceChange,
-  handlePlatformMarkThemeChange,
-  handlePlatformMarkLayoutChange,
-  handleClearPlatformMarkImage,
-  handleResetPlatformMarkLayout,
-}: Pick<
+type PlatformMarkSetupControlsProps = Pick<
   BrandingPanelProps,
   | 'projectPlatformMarks'
-  | 'selectedDiscTemplate'
   | 'handlePlatformMarkToggle'
   | 'handlePlatformMarkUpload'
   | 'handlePlatformMarkSourceChange'
   | 'handlePlatformMarkThemeChange'
   | 'handlePlatformMarkLayoutChange'
   | 'handleClearPlatformMarkImage'
-  | 'handleResetPlatformMarkLayout'
->) {
+> & {
+  renderLayoutControls?: (
+    value: PlatformMarkValue,
+    label: string,
+    asset: ProjectPlatformMarkAsset,
+  ) => ReactNode
+}
+
+export function PlatformMarkSetupControls({
+  projectPlatformMarks,
+  handlePlatformMarkToggle,
+  handlePlatformMarkUpload,
+  handlePlatformMarkSourceChange,
+  handlePlatformMarkThemeChange,
+  handlePlatformMarkLayoutChange,
+  handleClearPlatformMarkImage,
+  renderLayoutControls,
+}: PlatformMarkSetupControlsProps) {
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
@@ -78,10 +89,6 @@ export function PlatformMarkControls({
             const showsThemeControl =
               !isCustomPlatformMarkSource &&
               platformMarkSupportsTheme(value)
-            const sliderRanges = getPlatformMarkLayoutSliderRanges(
-              asset,
-              selectedDiscTemplate,
-            )
             return (
               <div key={value} className="logo-asset-card spacing-top">
                 <span className="field-label">{label} operating system mark</span>
@@ -111,13 +118,7 @@ export function PlatformMarkControls({
                     ) : <p className="hint">No custom {label} operating system image is selected yet. The bundled generic mark remains visible until you upload an image.</p>}
                   </>
                 ) : <p className="hint">Using a bundled generic mark.</p>}
-                <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
-                <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
-                <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
-                <input id={`platform-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
-                <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
-                <input id={`platform-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
-                <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
+                {renderLayoutControls?.(value, label, asset)}
                 {isCustomPlatformMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>}
               </div>
             )
@@ -125,5 +126,50 @@ export function PlatformMarkControls({
         </>
       )}
     </div>
+  )
+}
+
+export function PlatformMarkControls({
+  projectPlatformMarks,
+  selectedDiscTemplate,
+  handlePlatformMarkLayoutChange,
+  handleResetPlatformMarkLayout,
+  ...props
+}: Pick<
+  BrandingPanelProps,
+  | 'projectPlatformMarks'
+  | 'selectedDiscTemplate'
+  | 'handlePlatformMarkToggle'
+  | 'handlePlatformMarkUpload'
+  | 'handlePlatformMarkSourceChange'
+  | 'handlePlatformMarkThemeChange'
+  | 'handlePlatformMarkLayoutChange'
+  | 'handleClearPlatformMarkImage'
+  | 'handleResetPlatformMarkLayout'
+>) {
+  return (
+    <PlatformMarkSetupControls
+      {...props}
+      projectPlatformMarks={projectPlatformMarks}
+      handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
+      renderLayoutControls={(value, label, asset) => {
+        const sliderRanges = getPlatformMarkLayoutSliderRanges(
+          asset,
+          selectedDiscTemplate,
+        )
+
+        return (
+          <>
+            <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
+            <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
+            <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
+            <input id={`platform-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
+            <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
+            <input id={`platform-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
+            <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
+          </>
+        )
+      }}
+    />
   )
 }

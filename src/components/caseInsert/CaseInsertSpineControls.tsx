@@ -47,6 +47,9 @@ import {
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
 import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
+import type {
+  CaseInsertBrandingSetupControlsProps,
+} from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { PlusIcon } from '../sidebar/PanelIcons'
@@ -57,6 +60,7 @@ export type CaseInsertSpineControlsProps = {
   actions: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  brandingControls: CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }

@@ -7,8 +7,11 @@ import type {
   CaseInsertPrimaryImageSlotKey,
 } from '../../caseInsert/templateSurfaceTransitions'
 import {
-  getCaseInsertMarkLayerKind,
+  type CaseInsertBrandingSourceCatalog,
 } from '../../caseInsert/brandingSlotSources'
+import {
+  isCaseInsertMarkSlotVisible,
+} from '../../caseInsert/brandingVisibility'
 import {
   getCaseInsertBackTextBlockRole,
 } from '../../caseInsert/textReadability'
@@ -40,6 +43,7 @@ export type CaseInsertTemplateLayerProps = {
   templateState: ProjectCaseInsertSurfaceState
   layout: CaseInsertPreviewLayout
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
+  brandingSources: CaseInsertBrandingSourceCatalog
 }
 
 export type CaseInsertTemplateMarkLayerKind =
@@ -323,6 +327,7 @@ export function CaseInsertTemplateMarkLayer({
   layout,
   kind,
   pointerHandlers,
+  brandingSources,
 }: CaseInsertTemplateLayerProps & {
   kind: CaseInsertTemplateMarkLayerKind
 }) {
@@ -330,7 +335,7 @@ export function CaseInsertTemplateMarkLayer({
     <div className="case-insert-content-layer" aria-hidden="true">
       {templateState.markSlots
         .filter((slot) =>
-          getCaseInsertMarkLayerKind(slot.imageSource?.sourceId) === kind)
+          isCaseInsertMarkSlotVisible(slot, kind, brandingSources))
         .map((slot) => (
           <CaseInsertTemplateImageSlot
             key={slot.id}

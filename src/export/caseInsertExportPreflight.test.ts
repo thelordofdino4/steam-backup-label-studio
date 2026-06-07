@@ -1,6 +1,25 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import type {
+  CaseInsertBrandingSourceCatalog,
+} from '../caseInsert/brandingSlotSources.ts'
 import { createDefaultCaseInsertImageSlot } from '../caseInsert/defaults.ts'
+import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import {
+  createDefaultProjectMediaMark,
+  updateMediaMarkLayoutField,
+  updateMediaMarkValue,
+} from '../project/projectMediaMark.ts'
+import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
+import {
+  createDefaultProjectPlatformMarks,
+  updatePlatformMarkToggle,
+} from '../project/projectPlatformMarks.ts'
+import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
+import {
+  createDefaultProjectTechnicalMarks,
+  updateTechnicalMarkToggle,
+} from '../project/projectTechnicalMarks.ts'
 import { createDefaultProjectJewelCaseState } from '../project/projectCaseInsert.ts'
 import type {
   BackgroundImageSize,
@@ -9,6 +28,52 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import { buildCaseInsertExportPreflightSummary } from './caseInsertExportPreflight.ts'
+
+function createDefaultBrandingSources(): CaseInsertBrandingSourceCatalog {
+  return {
+    projectMetadata: createDefaultProjectMetadata(),
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    projectMediaMark: createDefaultProjectMediaMark(),
+    projectPlatformMarks: createDefaultProjectPlatformMarks(),
+    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
+  }
+}
+
+function createEnabledBundledMarkBrandingSources(): CaseInsertBrandingSourceCatalog {
+  const ratingBadge = createDefaultProjectRatingBadge()
+  const mediaMark = updateMediaMarkValue(
+    updateMediaMarkLayoutField(createDefaultProjectMediaMark(), 'enabled', true),
+    'dvd',
+  )
+
+  return {
+    projectMetadata: {
+      ...createDefaultProjectMetadata(),
+      ratingSystem: 'ESRB',
+      ratingValue: 'E',
+    },
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge: {
+      ...ratingBadge,
+      layout: {
+        ...ratingBadge.layout,
+        enabled: true,
+      },
+    },
+    projectMediaMark: mediaMark,
+    projectPlatformMarks: updatePlatformMarkToggle(
+      createDefaultProjectPlatformMarks(),
+      'windows',
+      true,
+    ),
+    projectTechnicalMarks: updateTechnicalMarkToggle(
+      createDefaultProjectTechnicalMarks(),
+      'audio',
+      true,
+    ),
+  }
+}
 
 function createImageSlot(
   slot: ProjectCaseInsertImageSlot,
@@ -62,6 +127,7 @@ test('clean cover sheet case preflight has no warnings', () => {
   const summary = buildCaseInsertExportPreflightSummary({
     caseInsert: createCleanCoverProject(),
     activeTemplatePane: 'cover',
+    brandingSources: createDefaultBrandingSources(),
     dpi: 300,
   })
 
@@ -83,6 +149,7 @@ test('cover sheet preflight warns about guides and blank cover without spine war
       },
     },
     activeTemplatePane: 'cover',
+    brandingSources: createDefaultBrandingSources(),
     dpi: 300,
   })
 
@@ -117,6 +184,7 @@ test('case preflight ignores additional artwork slots when globally hidden', () 
       },
     },
     activeTemplatePane: 'cover',
+    brandingSources: createDefaultBrandingSources(),
     dpi: 300,
   })
   const visibleSummary = buildCaseInsertExportPreflightSummary({
@@ -132,6 +200,7 @@ test('case preflight ignores additional artwork slots when globally hidden', () 
       },
     },
     activeTemplatePane: 'cover',
+    brandingSources: createDefaultBrandingSources(),
     dpi: 300,
   })
 
@@ -195,6 +264,7 @@ test('tray card preflight catches guide, image, text, and spine risks', () => {
       },
     },
     activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
     dpi: 300,
   })
 
@@ -240,6 +310,7 @@ test('case preflight matches disc warnings for bundled generic visual assets', (
       },
     },
     activeTemplatePane: 'cover',
+    brandingSources: createEnabledBundledMarkBrandingSources(),
     dpi: 300,
   })
 

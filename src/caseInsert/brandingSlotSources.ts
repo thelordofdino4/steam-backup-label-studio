@@ -9,16 +9,15 @@ import {
   getAdditionalLogoAssets,
 } from '../project/projectLogoAssets.ts'
 import {
-  MEDIA_MARK_OPTIONS,
   getMediaMarkLabel,
 } from '../project/projectMediaMark.ts'
 import {
-  PLATFORM_MARK_OPTIONS,
+  getEnabledPlatformMarkValues,
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
 import {
-  TECHNICAL_MARK_OPTIONS,
+  getEnabledTechnicalMarkValues,
   getProjectTechnicalMarkAsset,
   getTechnicalMarkLabel,
 } from '../project/projectTechnicalMarks.ts'
@@ -205,7 +204,7 @@ function createRatingSourceItems(
   projectMetadata: ProjectMetadata,
   projectRatingBadge: ProjectRatingBadge,
 ) {
-  if (projectMetadata.ratingSystem === 'none') {
+  if (projectMetadata.ratingSystem === 'none' || !projectRatingBadge.layout.enabled) {
     return []
   }
 
@@ -234,41 +233,41 @@ function createRatingSourceItems(
 }
 
 function createMediaMarkSourceItems(projectMediaMark: ProjectMediaMark) {
-  return MEDIA_MARK_OPTIONS.flatMap((option) => {
-    const isSelected = projectMediaMark.value === option.value
-    const isCustom =
-      isSelected &&
-      projectMediaMark.source === 'custom' &&
-      Boolean(projectMediaMark.customImageDataUrl)
-    const theme = isSelected ? projectMediaMark.theme : 'light'
-    const sourceId = `case-media:${option.value}:${theme}`
-    const label = getMediaMarkLabel(option.value)
-    const item = createBrandingSourceItem({
-      id: sourceId,
-      slotKey: 'markSlots',
-      label,
-      sourceTypeLabel: 'Media mark',
-      imageDataUrl: isCustom
-        ? projectMediaMark.customImageDataUrl
-        : getMediaMarkPlaceholderImageUrl(option.value, theme),
-      imageSize: isCustom ? projectMediaMark.customImageSize : null,
-      imageSource: createSourceProvenance(
-        isCustom ? 'custom' : 'placeholder',
-        sourceId,
-        `${label}${isCustom ? '' : ` ${theme}`} media mark`,
-      ),
-    })
+  if (!projectMediaMark.layout.enabled) {
+    return []
+  }
 
-    return item ? [item] : []
+  const isCustom =
+    projectMediaMark.source === 'custom' &&
+    Boolean(projectMediaMark.customImageDataUrl)
+  const theme = projectMediaMark.theme
+  const sourceId = `case-media:${projectMediaMark.value}:${theme}`
+  const label = getMediaMarkLabel(projectMediaMark.value)
+  const item = createBrandingSourceItem({
+    id: sourceId,
+    slotKey: 'markSlots',
+    label,
+    sourceTypeLabel: 'Media mark',
+    imageDataUrl: isCustom
+      ? projectMediaMark.customImageDataUrl
+      : getMediaMarkPlaceholderImageUrl(projectMediaMark.value, theme),
+    imageSize: isCustom ? projectMediaMark.customImageSize : null,
+    imageSource: createSourceProvenance(
+      isCustom ? 'custom' : 'placeholder',
+      sourceId,
+      `${label}${isCustom ? '' : ` ${theme}`} media mark`,
+    ),
   })
+
+  return item ? [item] : []
 }
 
 function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMarks) {
-  return PLATFORM_MARK_OPTIONS.flatMap((option) => {
-    const asset = getProjectPlatformMarkAsset(projectPlatformMarks, option.value)
+  return getEnabledPlatformMarkValues(projectPlatformMarks).flatMap((value) => {
+    const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
     const isCustom = asset.source === 'custom' && Boolean(asset.customImageDataUrl)
-    const label = getPlatformMarkLabel(option.value)
-    const sourceId = `case-platform:${option.value}:${asset.theme}`
+    const label = getPlatformMarkLabel(value)
+    const sourceId = `case-platform:${value}:${asset.theme}`
     const item = createBrandingSourceItem({
       id: sourceId,
       slotKey: 'markSlots',
@@ -276,7 +275,7 @@ function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMark
       sourceTypeLabel: 'Operating-system mark',
       imageDataUrl: isCustom
         ? asset.customImageDataUrl
-        : getPlatformMarkPlaceholderImageUrl(option.value, asset.theme),
+        : getPlatformMarkPlaceholderImageUrl(value, asset.theme),
       imageSize: isCustom ? asset.customImageSize : null,
       imageSource: createSourceProvenance(
         isCustom ? 'custom' : 'placeholder',
@@ -290,12 +289,12 @@ function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMark
 }
 
 function createTechnicalMarkSourceItems(projectTechnicalMarks: ProjectTechnicalMarks) {
-  return TECHNICAL_MARK_OPTIONS.flatMap((option) => {
-    const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, option.value)
-    const defaultLabel = getTechnicalMarkLabel(option.value)
+  return getEnabledTechnicalMarkValues(projectTechnicalMarks).flatMap((value) => {
+    const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
+    const defaultLabel = getTechnicalMarkLabel(value)
     const label = asset.label.trim() || defaultLabel
     const isCustom = asset.source === 'custom' && Boolean(asset.customImageDataUrl)
-    const sourceId = `case-technical:${option.value}`
+    const sourceId = `case-technical:${value}`
     const item = createBrandingSourceItem({
       id: sourceId,
       slotKey: 'markSlots',
@@ -303,7 +302,7 @@ function createTechnicalMarkSourceItems(projectTechnicalMarks: ProjectTechnicalM
       sourceTypeLabel: 'Technical mark',
       imageDataUrl: isCustom
         ? asset.customImageDataUrl
-        : getTechnicalMarkPlaceholderImageUrl(option.value),
+        : getTechnicalMarkPlaceholderImageUrl(value),
       imageSize: isCustom ? asset.customImageSize : null,
       imageSource: createSourceProvenance(
         isCustom ? 'custom' : 'placeholder',

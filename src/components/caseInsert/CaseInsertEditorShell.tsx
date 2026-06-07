@@ -26,6 +26,9 @@ import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineE
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type { CaseInsertBrandingSourceCatalog } from '../../caseInsert/brandingSlotSources'
+import type {
+  CaseInsertBrandingSetupControlsProps,
+} from './CaseInsertBrandingSetupControls'
 import {
   CaseInsertTemplateWorkflowControls,
 } from './CaseInsertTemplateControls'
@@ -48,6 +51,7 @@ export type CaseInsertEditorShellProps = {
   spineEditor: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
   brandingSources: CaseInsertBrandingSourceCatalog
+  brandingControls: CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
   gamePanelProps: GamePanelProps
@@ -108,6 +112,7 @@ function CaseInsertProjectPanel({
   | 'spineEditor'
   | 'imageSources'
   | 'brandingSources'
+  | 'brandingControls'
   | 'logoCandidateDiscovery'
   | 'handleFindLogoCandidates'
   | 'gamePanelProps'
@@ -306,6 +311,7 @@ export function CaseInsertEditorShell({
   spineEditor,
   imageSources,
   brandingSources,
+  brandingControls,
   logoCandidateDiscovery,
   handleFindLogoCandidates,
   gamePanelProps,
@@ -371,6 +377,7 @@ export function CaseInsertEditorShell({
               actions={editor}
               imageSources={imageSources}
               brandingSources={brandingSources}
+              brandingControls={brandingControls}
               logoCandidateDiscovery={logoCandidateDiscovery}
               handleFindLogoCandidates={handleFindLogoCandidates}
             />
@@ -388,6 +395,7 @@ export function CaseInsertEditorShell({
               actions={spineEditor}
               imageSources={imageSources}
               brandingSources={brandingSources}
+              brandingControls={brandingControls}
               logoCandidateDiscovery={logoCandidateDiscovery}
               handleFindLogoCandidates={handleFindLogoCandidates}
             />
@@ -412,6 +420,7 @@ export function CaseInsertEditorShell({
       <CaseInsertPreview
         caseInsert={caseInsert}
         activeTemplatePane={activeTemplatePane}
+        brandingSources={brandingSources}
         caseInsertPreviewRef={caseInsertPreviewRef}
         pointerHandlers={pointerHandlers}
         statusToasts={statusToasts}

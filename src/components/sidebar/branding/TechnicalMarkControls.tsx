@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { getTechnicalMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
@@ -8,33 +9,42 @@ import {
   getTechnicalMarkValuesForRemember,
   getTechnicalMarkValuesForRestore,
 } from '../../../project/projectTechnicalMarks'
-import type { TechnicalMarkSource, TechnicalMarkValue } from '../../../project/projectTypes'
+import type {
+  ProjectTechnicalMarkAsset,
+  TechnicalMarkSource,
+  TechnicalMarkValue,
+} from '../../../project/projectTypes'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
 import { formatLogoSize, getNumericInputValue } from './helpers'
 import type { BrandingPanelProps } from './types'
 
-export function TechnicalMarkControls({
-  projectTechnicalMarks,
-  selectedDiscTemplate,
-  handleTechnicalMarkToggle,
-  handleTechnicalMarkUpload,
-  handleTechnicalMarkSourceChange,
-  handleTechnicalMarkLayoutChange,
-  handleTechnicalMarkLabelChange,
-  handleClearTechnicalMarkImage,
-  handleResetTechnicalMarkLayout,
-}: Pick<
+type TechnicalMarkSetupControlsProps = Pick<
   BrandingPanelProps,
   | 'projectTechnicalMarks'
-  | 'selectedDiscTemplate'
   | 'handleTechnicalMarkToggle'
   | 'handleTechnicalMarkUpload'
   | 'handleTechnicalMarkSourceChange'
   | 'handleTechnicalMarkLayoutChange'
   | 'handleTechnicalMarkLabelChange'
   | 'handleClearTechnicalMarkImage'
-  | 'handleResetTechnicalMarkLayout'
->) {
+> & {
+  renderLayoutControls?: (
+    value: TechnicalMarkValue,
+    label: string,
+    asset: ProjectTechnicalMarkAsset,
+  ) => ReactNode
+}
+
+export function TechnicalMarkSetupControls({
+  projectTechnicalMarks,
+  handleTechnicalMarkToggle,
+  handleTechnicalMarkUpload,
+  handleTechnicalMarkSourceChange,
+  handleTechnicalMarkLayoutChange,
+  handleTechnicalMarkLabelChange,
+  handleClearTechnicalMarkImage,
+  renderLayoutControls,
+}: TechnicalMarkSetupControlsProps) {
   const [rememberedValues, setRememberedValues] = useState<TechnicalMarkValue[]>([])
   const enabledValues = getEnabledTechnicalMarkValues(projectTechnicalMarks)
   const isEnabled = enabledValues.length > 0
@@ -69,10 +79,6 @@ export function TechnicalMarkControls({
             const label = getTechnicalMarkLabel(value)
             const uploadId = `technical-mark-upload-${value}`
             const isCustomTechnicalMarkSource = asset.source === 'custom'
-            const sliderRanges = getTechnicalMarkLayoutSliderRanges(
-              asset,
-              selectedDiscTemplate,
-            )
             const summary = [
               asset.layout.enabled ? 'shown' : 'hidden',
               isCustomTechnicalMarkSource && asset.customImageDataUrl
@@ -114,13 +120,7 @@ export function TechnicalMarkControls({
                     ) : <p className="hint">No custom {label.toLowerCase()} technical image is selected yet. The bundled generic technical mark remains visible until you upload an image.</p>}
                   </>
                 ) : <p className="hint">Using a bundled generic mark.</p>}
-                <label className="field-label spacing-top" htmlFor={`technical-mark-scale-${value}`}>Scale</label>
-                <input id={`technical-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
-                <label className="field-label spacing-top" htmlFor={`technical-mark-x-${value}`}>X position</label>
-                <input id={`technical-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
-                <label className="field-label spacing-top" htmlFor={`technical-mark-y-${value}`}>Y position</label>
-                <input id={`technical-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
-                <button className="secondary-button" type="button" onClick={() => handleResetTechnicalMarkLayout(value)}>Reset {label} layout</button>
+                {renderLayoutControls?.(value, label, asset)}
                 {isCustomTechnicalMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearTechnicalMarkImage(value)}>Clear custom {label}</button>}
               </RepeatedVisualElementCard>
             )
@@ -128,5 +128,50 @@ export function TechnicalMarkControls({
         </>
       )}
     </div>
+  )
+}
+
+export function TechnicalMarkControls({
+  projectTechnicalMarks,
+  selectedDiscTemplate,
+  handleTechnicalMarkLayoutChange,
+  handleResetTechnicalMarkLayout,
+  ...props
+}: Pick<
+  BrandingPanelProps,
+  | 'projectTechnicalMarks'
+  | 'selectedDiscTemplate'
+  | 'handleTechnicalMarkToggle'
+  | 'handleTechnicalMarkUpload'
+  | 'handleTechnicalMarkSourceChange'
+  | 'handleTechnicalMarkLayoutChange'
+  | 'handleTechnicalMarkLabelChange'
+  | 'handleClearTechnicalMarkImage'
+  | 'handleResetTechnicalMarkLayout'
+>) {
+  return (
+    <TechnicalMarkSetupControls
+      {...props}
+      projectTechnicalMarks={projectTechnicalMarks}
+      handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
+      renderLayoutControls={(value, label, asset) => {
+        const sliderRanges = getTechnicalMarkLayoutSliderRanges(
+          asset,
+          selectedDiscTemplate,
+        )
+
+        return (
+          <>
+            <label className="field-label spacing-top" htmlFor={`technical-mark-scale-${value}`}>Scale</label>
+            <input id={`technical-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
+            <label className="field-label spacing-top" htmlFor={`technical-mark-x-${value}`}>X position</label>
+            <input id={`technical-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
+            <label className="field-label spacing-top" htmlFor={`technical-mark-y-${value}`}>Y position</label>
+            <input id={`technical-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
+            <button className="secondary-button" type="button" onClick={() => handleResetTechnicalMarkLayout(value)}>Reset {label} layout</button>
+          </>
+        )
+      }}
+    />
   )
 }

@@ -15,6 +15,9 @@ import {
 } from '../../layout/caseInsertPreviewLayout'
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
+import type {
+  CaseInsertBrandingSourceCatalog,
+} from '../../caseInsert/brandingSlotSources'
 import {
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
@@ -36,6 +39,7 @@ import type {
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  brandingSources: CaseInsertBrandingSourceCatalog
   caseInsertPreviewRef: RefObject<HTMLDivElement | null>
   pointerHandlers: CaseInsertPreviewPointerHandlers
   statusToasts: PreviewToast[]
@@ -95,6 +99,7 @@ function EmptyCaseLayer() {
 export function CaseInsertPreview({
   caseInsert,
   activeTemplatePane,
+  brandingSources,
   caseInsertPreviewRef,
   pointerHandlers,
   statusToasts,
@@ -122,6 +127,7 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -130,6 +136,7 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -140,6 +147,7 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -149,6 +157,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="rating"
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -158,6 +167,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="media"
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -167,6 +177,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="platform"
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -176,6 +187,7 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         kind="technical"
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -184,6 +196,7 @@ export function CaseInsertPreview({
         paneId={activeTemplatePane}
         templateState={activeTemplateState}
         layout={layout}
+        brandingSources={brandingSources}
         pointerHandlers={pointerHandlers.template}
       />
     ),
