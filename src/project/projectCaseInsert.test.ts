@@ -953,6 +953,108 @@ test('spine helpers add and persist mark slots independently from artwork slots'
   assert.equal(restored.spine.right.markSlots.length, 0)
 })
 
+test('spine mark slots can use shared rating media platform and technical sources', () => {
+  const defaultRatingBadge = createDefaultProjectRatingBadge()
+  const defaultMediaMark = createDefaultProjectMediaMark()
+  const projectRatingBadge = {
+    ...defaultRatingBadge,
+    layout: {
+      ...defaultRatingBadge.layout,
+      enabled: true,
+    },
+  }
+  const projectMediaMark = {
+    ...defaultMediaMark,
+    layout: {
+      ...defaultMediaMark.layout,
+      enabled: true,
+    },
+  }
+  const sections = createCaseInsertBrandingSourceSections({
+    projectMetadata: {
+      ...createDefaultProjectMetadata(),
+      ratingSystem: 'ESRB',
+      ratingValue: 'M',
+    },
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge,
+    projectMediaMark,
+    projectPlatformMarks: updatePlatformMarkToggle(
+      createDefaultProjectPlatformMarks(),
+      'windows',
+      true,
+    ),
+    projectTechnicalMarks: updateTechnicalMarkToggle(
+      createDefaultProjectTechnicalMarks(),
+      'audio',
+      true,
+    ),
+  })
+  const sourceIds = [
+    'case-rating:ESRB:M',
+    'case-media:dataDisc:light',
+    'case-platform:windows:windows11',
+    'case-technical:audio',
+  ]
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  sourceIds.forEach((sourceId, index) => {
+    const source = sections
+      .flatMap((section) => section.items)
+      .find((item) => item.sourceId === sourceId)
+
+    assert.ok(source)
+    assert.equal(source.slotKey, 'markSlots')
+    assert.equal(getCaseInsertMarkLayerKind(source.sourceId), (
+      sourceId.startsWith('case-media:')
+        ? 'media'
+        : sourceId.startsWith('case-platform:')
+          ? 'platform'
+          : sourceId.startsWith('case-technical:')
+            ? 'technical'
+            : 'rating'
+    ))
+
+    state = addJewelCaseSpineImageSlot(
+      state,
+      'right',
+      'markSlots',
+      setCaseInsertImageSlotImage(
+        {
+          ...createDefaultJewelCaseSpineMarkSlot('right', index + 1),
+          label: source.label,
+        },
+        {
+          imageDataUrl: `data:image/png;base64,spine-mark-${index + 1}`,
+          imageSize: { width: 256, height: 128 },
+          imageSource: createProjectImageAssetProvenance({
+            source: 'placeholder',
+            sourceId: source.sourceId,
+            sourceLabel: source.label,
+          }),
+        },
+      ),
+    )
+  })
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+
+  assert.deepEqual(
+    restored.spine.right.markSlots.map((slot) => slot.imageSource?.sourceId),
+    sourceIds,
+  )
+  assert.deepEqual(
+    restored.spine.right.markSlots.map((slot) =>
+      getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)),
+    ['rating', 'media', 'platform', 'technical'],
+  )
+  assert.equal(restored.spine.left.markSlots.length, 0)
+})
+
 test('case branding source catalog only exposes saved logo sources', () => {
   const sections = createCaseInsertBrandingSourceSections({
     projectMetadata: createDefaultProjectMetadata(),
