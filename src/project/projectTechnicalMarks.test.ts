@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   addTechnicalMarkAsset,
   createDefaultProjectTechnicalMarks,
+  getEnabledTechnicalMarkValues,
   getProjectTechnicalMarkAssetEntries,
   getProjectTechnicalMarkAsset,
   normalizeProjectTechnicalMarks,
@@ -10,6 +11,7 @@ import {
   setTechnicalMarkCustomImage,
   updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
+  updateTechnicalMarkToggle,
 } from './projectTechnicalMarks.ts'
 import type { ProjectTechnicalMarks } from './projectTypes.ts'
 
@@ -151,6 +153,29 @@ test('disabling a technical mark preserves selected value and custom asset state
   assert.equal(asset.layout.enabled, false)
   assert.equal(asset.source, 'custom')
   assert.equal(asset.customImageDataUrl, imageDataUrl)
+})
+
+test('preserved disabled technical mark values can be re-enabled', () => {
+  const technicalMarks = updateTechnicalMarkToggle(
+    createDefaultProjectTechnicalMarks(),
+    'audio',
+    true,
+  )
+  const disabledMarks = updateTechnicalMarkLayoutField(
+    technicalMarks,
+    'audio',
+    'enabled',
+    false,
+  )
+  const reenabledMarks = updateTechnicalMarkToggle(
+    disabledMarks,
+    'audio',
+    true,
+  )
+
+  assert.deepEqual(disabledMarks.values, ['audio'])
+  assert.deepEqual(getEnabledTechnicalMarkValues(disabledMarks), [])
+  assert.deepEqual(getEnabledTechnicalMarkValues(reenabledMarks), ['audio'])
 })
 
 test('normalizes saved technical mark values and default assets', () => {

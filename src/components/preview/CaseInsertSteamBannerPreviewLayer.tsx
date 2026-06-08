@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react'
 import {
+  getSteamBannerFallbackTextFontSizeForHeight,
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../../branding/steamBannerDefaults'
@@ -51,10 +52,12 @@ function getTextLockupStyle(
   rect: JewelCasePixelRect,
   layout: CaseInsertPreviewLayout,
 ): CSSProperties {
-  const scale = Math.min(1, 7 / Math.max(text.length, 1))
-
   return {
-    fontSize: `${rect.height / layout.width * 100 * 0.74 * scale}cqw`,
+    fontSize: `${getSteamBannerFallbackTextFontSizeForHeight(
+      text,
+      rect.height / layout.width * 100,
+      1,
+    )}cqw`,
   }
 }
 

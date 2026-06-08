@@ -8,6 +8,7 @@ import {
   type SteamBannerRect,
 } from '../../branding/steamBannerLayout'
 import {
+  getSteamBannerFallbackTextFontSizeForHeight,
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../../branding/steamBannerDefaults'
@@ -42,11 +43,13 @@ function getLockupRectStyle(rect: SteamBannerRect): CSSProperties {
   }
 }
 
-function getTextLockupStyle(text: string): CSSProperties {
-  const scale = Math.min(1, 7 / Math.max(text.length, 1))
-
+function getTextLockupStyle(text: string, rect: SteamBannerRect | null): CSSProperties {
   return {
-    fontSize: `${Math.max(0.22, scale)}em`,
+    fontSize: `${getSteamBannerFallbackTextFontSizeForHeight(
+      text,
+      (rect?.height ?? 0) * 100,
+      1,
+    )}cqw`,
   }
 }
 
@@ -114,7 +117,7 @@ export function SteamBannerPreview({
             ) : (
               <span
                 className="steam-brand-lockup-text"
-                style={getTextLockupStyle(fallbackText)}
+                style={getTextLockupStyle(fallbackText, lockupRect)}
               >
                 {fallbackText}
               </span>

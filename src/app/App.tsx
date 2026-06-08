@@ -945,6 +945,12 @@ function App() {
     setProjectJewelCase(
       createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
     )
+    resetProjectLogoAssets(discTemplates.standardPrintableDisc)
+    resetProjectRatingBadge(discTemplates.standardPrintableDisc)
+    resetProjectMediaMark(discTemplates.standardPrintableDisc)
+    resetProjectPlatformMarks()
+    resetProjectTechnicalMarks()
+    resetProjectAdditionalArtwork()
     setActiveCaseInsertTemplatePane('cover')
   }
 
@@ -978,7 +984,6 @@ function App() {
     resetCaseInsertProjectState()
     setActiveWorkspace('caseInsert')
     setHomeStatusMessage(null)
-    caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     announceStatus('Started a new blank case insert project.')
   }
 

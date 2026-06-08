@@ -4,6 +4,8 @@ import {
   DEFAULT_STEAM_BANNER_COLORS,
   getCustomSteamBannerLockupSourceLabel,
   getDefaultSteamBannerLockupSourceLabel,
+  getSteamBannerFallbackTextFontSizeForHeight,
+  getSteamBannerFallbackTextLengthScale,
   isCustomSteamBannerLockupSource,
   updateSteamBannerColor,
 } from './steamBannerDefaults.ts'
@@ -45,4 +47,22 @@ test('Steam banner helpers keep color updates and custom-source detection neutra
     true,
   )
   assert.equal(isCustomSteamBannerLockupSource(null), true)
+})
+
+test('Steam banner fallback text scales from the lockup height', () => {
+  const smallLockupFontSize = getSteamBannerFallbackTextFontSizeForHeight(
+    'STEAM',
+    100,
+  )
+  const largeLockupFontSize = getSteamBannerFallbackTextFontSizeForHeight(
+    'STEAM',
+    200,
+  )
+
+  assert.ok(largeLockupFontSize > smallLockupFontSize)
+  assert.equal(largeLockupFontSize, smallLockupFontSize * 2)
+  assert.ok(
+    getSteamBannerFallbackTextLengthScale('STEAM BACKUP') <
+      getSteamBannerFallbackTextLengthScale('STEAM'),
+  )
 })

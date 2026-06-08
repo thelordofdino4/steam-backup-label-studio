@@ -78,7 +78,7 @@ export function TechnicalMarkSetupControls({
   const [rememberedValues, setRememberedValues] = useState<TechnicalMarkValue[]>([])
   const enabledValues = getEnabledTechnicalMarkValues(projectTechnicalMarks)
   const isEnabled = enabledValues.length > 0
-  const currentLabel = projectTechnicalMarks.values.length > 0 ? projectTechnicalMarks.values.map(getTechnicalMarkLabel).join(', ') : 'None selected'
+  const currentLabel = enabledValues.length > 0 ? enabledValues.map(getTechnicalMarkLabel).join(', ') : 'None selected'
 
   const toggleEnabled = (enabled: boolean) => {
     if (enabled) {
@@ -87,7 +87,11 @@ export function TechnicalMarkSetupControls({
       return
     }
     setRememberedValues(getTechnicalMarkValuesForRemember(projectTechnicalMarks))
-    projectTechnicalMarks.values.forEach((value) => handleTechnicalMarkLayoutChange(value, 'enabled', false))
+    projectTechnicalMarks.values.forEach((value) => {
+      getProjectTechnicalMarkAssetEntries(projectTechnicalMarks, value)
+        .forEach(({ assetId }) =>
+          handleTechnicalMarkLayoutChange(value, 'enabled', false, assetId))
+    })
   }
 
   return (
@@ -99,7 +103,7 @@ export function TechnicalMarkSetupControls({
             <span className="field-label">Technical mark types</span>
             <div className="disc-mark-checkbox-list">
               {TECHNICAL_MARK_OPTIONS.map((option) => (
-                <label key={option.value} className="field-label"><input type="checkbox" checked={projectTechnicalMarks.values.includes(option.value)} onChange={(event) => handleTechnicalMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
+                <label key={option.value} className="field-label"><input type="checkbox" checked={enabledValues.includes(option.value)} onChange={(event) => handleTechnicalMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
               ))}
             </div>
           </div>

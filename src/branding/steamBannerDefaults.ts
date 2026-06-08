@@ -24,6 +24,8 @@ export const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
 
 // Taihazu's Steam lockup text fallback idea lives here so preview, export, and saved projects share one behavior.
 export const DEFAULT_STEAM_BANNER_FALLBACK_TEXT = 'STEAM'
+export const STEAM_BANNER_FALLBACK_TEXT_HEIGHT_RATIO = 0.72
+const STEAM_BANNER_FALLBACK_TEXT_PREFERRED_CHARACTERS = 7
 
 export const DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT: SteamLogoPlacement = 'bottom'
 
@@ -69,6 +71,33 @@ export function normalizeSteamBannerFallbackText(value: unknown): string {
   return typeof value === 'string' && value.trim()
     ? value.trim()
     : DEFAULT_STEAM_BANNER_FALLBACK_TEXT
+}
+
+export function getSteamBannerFallbackTextLengthScale(value: unknown): number {
+  const text = normalizeSteamBannerFallbackText(value)
+
+  return Math.min(
+    1,
+    STEAM_BANNER_FALLBACK_TEXT_PREFERRED_CHARACTERS /
+      Math.max(text.length, 1),
+  )
+}
+
+export function getSteamBannerFallbackTextFontSizeForHeight(
+  value: unknown,
+  targetHeight: number,
+  minFontSize = 0,
+): number {
+  const height = Number.isFinite(targetHeight) && targetHeight > 0
+    ? targetHeight
+    : 0
+
+  return Math.max(
+    minFontSize,
+    height *
+      STEAM_BANNER_FALLBACK_TEXT_HEIGHT_RATIO *
+      getSteamBannerFallbackTextLengthScale(value),
+  )
 }
 
 export function shouldRenderSteamBannerTextFallback(

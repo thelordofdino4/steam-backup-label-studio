@@ -1,4 +1,5 @@
 import {
+  getSteamBannerFallbackTextFontSizeForHeight,
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../branding/steamBannerDefaults.ts'
@@ -202,7 +203,9 @@ function drawTextLockup(
 
   const maxWidth = rect.width * 0.96
   const maxHeight = rect.height * 0.72
-  const baseFontSize = Math.max(8, Math.round(rect.height * 0.72))
+  const baseFontSize = Math.round(
+    getSteamBannerFallbackTextFontSizeForHeight(text, rect.height, 8),
+  )
   context.font = `900 ${baseFontSize}px Arial`
 
   const measuredWidth = Math.max(context.measureText(text).width, 1)
