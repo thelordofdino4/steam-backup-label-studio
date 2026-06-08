@@ -75,7 +75,18 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Apply this pattern especially to branding/artwork systems such as developer logo, publisher logo, rating badge, media mark, platform marks, and future optional metadata text elements.
    - For rating badges, the top-level show/enable checkbox is the user-facing “no rating badge” control. Do not expose a redundant visible “none” rating system option inside enabled rating controls unless explicitly requested for backward-compatibility UI.
 
-10. Follow the primary checkout and runtime verification rule for user-visible fixes.
+10. Follow the parity implementation protocol for cross-editor parity work.
+   - Treat parity as a contract, not a visual impression. A matching panel shape is not enough.
+   - Before implementing parity work, audit the source-of-truth editor feature, usually the disc editor. Record the owner components, hooks, domain modules, renderers, export helpers, project/schema helpers, tests, UI hierarchy, disabled behavior, reset/clear behavior, preview behavior, export behavior, and save/load behavior.
+   - Identify which existing functions, hooks, renderers, and project helpers should be reused or adapted before creating new code. Prefer thin target-specific adapters over cloned feature logic.
+   - Cover every applicable target surface before calling parity implemented. For case inserts this usually means cover sheet, tray card, left spine, and right spine when the template exposes them.
+   - Do not introduce editor-specific duplicate concepts such as insert-only image source logic, hidden built-in-art toggles, one-off mark visibility state, or local slot defaults when a shared source-of-truth behavior already exists.
+   - A visual feature is not parity-complete until its menu/control behavior, source switching, custom upload behavior, drag behavior, slider/manual placement, reset/clear actions, disabled-state preservation, preview rendering, PNG export rendering, save/load behavior, and relevant preflight behavior all match the intended source-of-truth contract.
+   - When target-specific state is necessary, verify that global/shared feature state and target-slot state are both wired into preview, export, save/load, and UI visibility. Do not let a shared checkbox render nothing because a target-specific selector filters it out.
+   - Add or update focused tests for the parity contract where practical. For visual/editor behavior that needs runtime confirmation, ask the user for manual Tauri verification and do not claim it was manually verified unless it actually was.
+   - If known parity gaps remain, create or reference follow-up issues before closing the current issue. Do not call a parity sweep done while relying on memory of chat feedback alone.
+
+11. Follow the primary checkout and runtime verification rule for user-visible fixes.
    - Primary checkout: `C:\Users\John Paul Keller\steam-backup-label-studio`.
    - Pushing a fix to `origin/main` is not enough when the user is testing from the primary checkout. The primary checkout must either be synced to the fixed commit or reported as blocked with exact dirty/conflicting files.
    - When the user reports that the app still behaves incorrectly after a claimed fix, do not immediately make another code change. First verify the actual checkout and runtime state:
@@ -94,7 +105,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - If the primary checkout is dirty, do not overwrite user work. Inspect dirty files and incoming files. If they do not overlap, safely stash/reapply or report the exact safe action. If they overlap, stop and report exact conflicting files. Do not leave the primary checkout stale without a concrete blocker.
    - Final reports for user-visible fixes must include: `origin/main` SHA, primary checkout SHA, whether the primary checkout is clean or dirty, whether it is synced to the fix, whether stale dev processes were found or stopped, whether `dist/` or other generated runtime output was rebuilt, validation commands run, what was actually verified in the running app, and what remains for the user to verify.
 
-11. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
+12. For Codex or other agent-driven validation, do not run `npm run tauri dev` unless the user explicitly asks.
    - Run `npm run lint` and `npm run build` after code changes.
    - Leave interactive UI, drag, preview/export parity, and desktop-window checks for the user to verify manually.
    - The primary checkout/runtime verification rule does not grant blanket permission to run Tauri; it requires stale runtime and build-output state to be detected and reported instead of repeatedly patching source code blindly.

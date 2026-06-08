@@ -10,10 +10,28 @@ import {
   type JewelCaseSpineBoxLayout,
   type JewelCaseSpineOverlayRole,
 } from '../../layout/jewelCaseSpineLayout'
+import {
+  createCaseInsertSpineTextAvoidanceRegions,
+  type CaseInsertTextAvoidanceRegion,
+} from '../../layout/caseInsertTextOccupiedRegions'
+import {
+  getCaseInsertTextBackgroundColor,
+  getCaseInsertTextBorderCss,
+  getCaseInsertTextBorderRadiusCss,
+  getCaseInsertTextShadowCss,
+  getCaseInsertTextStrokeCss,
+} from '../../caseInsert/textRenderStyles'
+import {
+  getCaseInsertTextFontFamilyCss,
+} from '../../caseInsert/textStyles'
+import {
+  getRenderedCaseInsertTextBlock,
+} from '../../caseInsert/textContent'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type {
   ProjectCaseInsertImageSlot,
+  ProjectCaseInsertTextBlock,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
 } from '../../project/projectTypes'
@@ -51,6 +69,53 @@ function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout)
 
 function getLayerFontSize(value: number, layout: CaseInsertPreviewLayout) {
   return `${value / layout.width * 100}cqw`
+}
+
+function getSpineTitleTextStyle(
+  style: ProjectJewelCaseSpineSideState['title']['style'],
+): CSSProperties {
+  return {
+    color: style.color,
+    fontFamily: getCaseInsertTextFontFamilyCss(style.fontFamily),
+    textShadow: getCaseInsertTextShadowCss(style),
+    WebkitTextStroke: getCaseInsertTextStrokeCss(style),
+  }
+}
+
+function getSpineTextBackplateStyle(
+  style: ProjectJewelCaseSpineSideState['title']['style'],
+): CSSProperties {
+  return {
+    backgroundColor: getCaseInsertTextBackgroundColor(style),
+    border: getCaseInsertTextBorderCss(style),
+    borderRadius: getCaseInsertTextBorderRadiusCss(style),
+    boxSizing: 'border-box',
+    display: 'block',
+    height: '100%',
+    overflow: 'hidden',
+    padding: 0,
+    position: 'relative',
+    width: '100%',
+  }
+}
+
+function getSpineTextLineStyle(
+  line: { left: number; y: number; width: number },
+  textBounds: JewelCasePixelRect,
+  lineHeightPx: number,
+): CSSProperties {
+  return {
+    display: 'block',
+    height: `${lineHeightPx / textBounds.height * 100}%`,
+    left: `${(line.left - textBounds.x) / textBounds.width * 100}%`,
+    lineHeight: 'inherit',
+    overflow: 'visible',
+    position: 'absolute',
+    textAlign: 'left',
+    top: `${(line.y - textBounds.y) / textBounds.height * 100}%`,
+    whiteSpace: 'pre',
+    width: `${line.width / textBounds.width * 100}%`,
+  }
 }
 
 function getImageStyle(
@@ -119,21 +184,34 @@ function CaseInsertSpineBackground({
   )
 }
 
-function CaseInsertSpineTitle({
+function CaseInsertSpineTextBlock({
   side,
-  state,
+  textBlock,
   layout,
+  brandingSources,
+  avoidanceRegions,
+  dragKind,
   pointerHandlers,
 }: {
   side: 'left' | 'right'
-  state: ProjectJewelCaseSpineSideState
+  textBlock: ProjectCaseInsertTextBlock
   layout: CaseInsertPreviewLayout
+  brandingSources: CaseInsertBrandingSourceCatalog
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  dragKind:
+    | { kind: 'title' }
+    | { kind: 'textBlock'; textBlockId: string }
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(
+    textBlock,
+    brandingSources.projectMetadata,
+  )
   const titleLayout = getJewelCaseSpineTitlePreviewLayout(
     side,
-    state.title,
+    renderedTextBlock,
     layout,
+    avoidanceRegions,
   )
 
   if (!titleLayout) {
@@ -142,21 +220,47 @@ function CaseInsertSpineTitle({
 
   const style = {
     ...getTransformedBoxStyle(titleLayout, layout),
+    ...getSpineTitleTextStyle(renderedTextBlock.style),
+    backgroundColor: 'transparent',
+    border: 0,
+    display: 'block',
     fontSize: getLayerFontSize(titleLayout.fontSizePx, layout),
     lineHeight: getLayerFontSize(titleLayout.lineHeightPx, layout),
-    textAlign: state.title.align,
+    padding: 0,
+    textTransform: dragKind.kind === 'title' ? 'uppercase' : 'none',
   } as CSSProperties
 
   return (
     <div
-      className="case-insert-spine-title"
+      className={dragKind.kind === 'title'
+        ? 'case-insert-spine-title'
+        : 'case-insert-spine-text-block'}
       onPointerDown={(event) =>
-        pointerHandlers.handleSpineTitlePointerDown(event, side)}
+        dragKind.kind === 'title'
+          ? pointerHandlers.handleSpineTitlePointerDown(event, side)
+          : pointerHandlers.handleSpineTextBlockPointerDown(
+              event,
+              side,
+              dragKind.textBlockId,
+            )}
       onPointerMove={pointerHandlers.handleSpinePointerMove}
       onPointerUp={pointerHandlers.handleSpinePointerUp}
       style={style}
     >
-      {state.title.value}
+      <span style={getSpineTextBackplateStyle(renderedTextBlock.style)}>
+        {titleLayout.lines.map((line, index) => (
+          <span
+            key={`${index}-${line.text}`}
+            style={getSpineTextLineStyle(
+              line,
+              titleLayout.textBounds,
+              titleLayout.lineHeightPx,
+            )}
+          >
+            {line.text}
+          </span>
+        ))}
+      </span>
     </div>
   )
 }
@@ -258,6 +362,12 @@ function CaseInsertSpineSidePreview({
     kind: CaseInsertMarkLayerKind,
   ) => state.markSlots.filter((slot) =>
     isCaseInsertMarkSlotVisible(slot, kind, brandingSources))
+  const avoidanceRegions = createCaseInsertSpineTextAvoidanceRegions({
+    side,
+    spineSide: state,
+    layout,
+    brandingSources,
+  })
 
   return (
     <>
@@ -291,12 +401,27 @@ function CaseInsertSpineSidePreview({
           pointerHandlers={pointerHandlers}
         />
       ))}
-      <CaseInsertSpineTitle
+      <CaseInsertSpineTextBlock
         side={side}
-        state={state}
+        textBlock={state.title}
         layout={layout}
+        brandingSources={brandingSources}
+        avoidanceRegions={avoidanceRegions}
+        dragKind={{ kind: 'title' }}
         pointerHandlers={pointerHandlers}
       />
+      {state.textBlocks.map((textBlock) => (
+        <CaseInsertSpineTextBlock
+          key={textBlock.id}
+          side={side}
+          textBlock={textBlock}
+          layout={layout}
+          brandingSources={brandingSources}
+          avoidanceRegions={avoidanceRegions}
+          dragKind={{ kind: 'textBlock', textBlockId: textBlock.id }}
+          pointerHandlers={pointerHandlers}
+        />
+      ))}
       {state.logoSlots.map((slot) => (
         <CaseInsertSpineOverlaySlot
           key={slot.id}

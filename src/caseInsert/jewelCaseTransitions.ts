@@ -42,6 +42,40 @@ export function updateJewelCaseSpineTitle(
   }))
 }
 
+function updateTextBlockById(
+  textBlocks: ProjectCaseInsertTextBlock[],
+  textBlockId: string,
+  updater: (textBlock: ProjectCaseInsertTextBlock) => ProjectCaseInsertTextBlock,
+) {
+  let didUpdate = false
+  const nextTextBlocks = textBlocks.map((textBlock) => {
+    if (textBlock.id !== textBlockId) {
+      return textBlock
+    }
+
+    didUpdate = true
+    return updater(textBlock)
+  })
+
+  return didUpdate ? nextTextBlocks : textBlocks
+}
+
+export function updateJewelCaseSpineTextBlock(
+  state: ProjectJewelCaseState,
+  side: JewelCaseSpineSide,
+  textBlockId: string,
+  updater: (textBlock: ProjectCaseInsertTextBlock) => ProjectCaseInsertTextBlock,
+): ProjectJewelCaseState {
+  return updateProjectJewelCaseSpineSide(state, side, (spineSide) => ({
+    ...spineSide,
+    textBlocks: updateTextBlockById(
+      spineSide.textBlocks,
+      textBlockId,
+      updater,
+    ),
+  }))
+}
+
 export function updateJewelCaseSpineImageSlot(
   state: ProjectJewelCaseState,
   side: JewelCaseSpineSide,

@@ -8,12 +8,16 @@ import {
   setCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotTransitions.ts'
 import {
+  setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
   updateCaseInsertTextBlockValue,
 } from '../caseInsert/textTransitions.ts'
 import {
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
+import {
+  createCaseInsertTextAvoidanceRegionFromRect,
+} from './caseInsertTextAvoidance.ts'
 import {
   estimateJewelCaseRegionMinimumImageResolution,
   evaluateJewelCaseSafePlacement,
@@ -63,6 +67,66 @@ function assertRectApproximatelyEqual(
   assertApproximatelyEqual(actual.y, expected.y)
   assertApproximatelyEqual(actual.width, expected.width)
   assertApproximatelyEqual(actual.height, expected.height)
+}
+
+function rectsOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number },
+) {
+  return a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+}
+
+function rotatePoint(
+  point: { x: number; y: number },
+  rotationDegrees: number,
+) {
+  const rotationRadians = rotationDegrees * Math.PI / 180
+
+  return {
+    x: point.x * Math.cos(rotationRadians) - point.y * Math.sin(rotationRadians),
+    y: point.x * Math.sin(rotationRadians) + point.y * Math.cos(rotationRadians),
+  }
+}
+
+function getBoundingRectFromPoints(points: Array<{ x: number; y: number }>) {
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const left = Math.min(...xs)
+  const right = Math.max(...xs)
+  const top = Math.min(...ys)
+  const bottom = Math.max(...ys)
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  }
+}
+
+function getSpineTextLineGlobalRects(
+  layout: NonNullable<ReturnType<typeof getJewelCaseSpineTitlePreviewLayout>>,
+) {
+  return layout.lines.map((line) => {
+    const corners = [
+      { x: line.left, y: line.y },
+      { x: line.left + line.width, y: line.y },
+      { x: line.left + line.width, y: line.y + layout.lineHeightPx },
+      { x: line.left, y: line.y + layout.lineHeightPx },
+    ].map((corner) => {
+      const rotated = rotatePoint(corner, layout.rotationDegrees)
+
+      return {
+        x: layout.center.x + rotated.x,
+        y: layout.center.y + rotated.y,
+      }
+    })
+
+    return getBoundingRectFromPoints(corners)
+  })
 }
 
 test('resolves jewel case export and preview bounds from template geometry', () => {
@@ -387,6 +451,121 @@ test('spine preview layouts stay inside safe strips', () => {
   assert.equal(isPixelRectInsideBounds(titleLayout.boundingRect, leftSafe.bounds), true)
   assert.equal(isPixelRectInsideBounds(logoLayout.boundingRect, rightSafe.bounds), true)
   assert.equal(backgroundFit.hasEmptySpace, false)
+})
+
+test('spine text avoidance wraps opted-in visible text around occupied visuals', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftSafe = layout.regions.find(
+    ({ regionId }) => regionId === 'leftSpineSafe',
+  )
+  const leftTitle = setCaseInsertTextBlockAvoidVisualElements(
+    setCaseInsertTextBlockEnabled(
+      updateCaseInsertTextBlockValue(
+        state.spine.left.title,
+        'Portal 2 Cooperative Archive Edition',
+      ),
+      true,
+    ),
+    true,
+  )
+  const baseLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    leftTitle,
+    layout,
+  )
+
+  assert.ok(leftSafe)
+  assert.ok(baseLayout)
+
+  const gameLogoRegion = createCaseInsertTextAvoidanceRegionFromRect(
+    'left-spine-game-logo',
+    'Game logo',
+    {
+      x: baseLayout.boundingRect.x,
+      y: baseLayout.boundingRect.y + baseLayout.boundingRect.height * 0.42,
+      width: baseLayout.boundingRect.width,
+      height: baseLayout.boundingRect.height * 0.18,
+    },
+  )
+  const adjustedLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    leftTitle,
+    layout,
+    [gameLogoRegion],
+  )
+
+  assert.ok(adjustedLayout)
+  assert.equal(
+    isPixelRectInsideBounds(adjustedLayout.boundingRect, leftSafe.bounds),
+    true,
+  )
+  assert.equal(
+    adjustedLayout.lines.length > baseLayout.lines.length,
+    true,
+  )
+  assert.deepEqual(
+    adjustedLayout.reservedBoundingRect,
+    baseLayout.reservedBoundingRect,
+  )
+  assert.equal(
+    getSpineTextLineGlobalRects(adjustedLayout).some((lineRect) =>
+      rectsOverlap(lineRect, gameLogoRegion.bounds)),
+    false,
+  )
+})
+
+test('spine text avoidance ignores reserved text box dead space', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftTitle = setCaseInsertTextBlockAvoidVisualElements(
+    setCaseInsertTextBlockEnabled(
+      updateCaseInsertTextBlockValue(state.spine.left.title, 'Portal 2'),
+      true,
+    ),
+    true,
+  )
+  const baseLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    leftTitle,
+    layout,
+  )
+
+  assert.ok(baseLayout)
+  assert.equal(
+    baseLayout.reservedBoundingRect.height > baseLayout.boundingRect.height * 3,
+    true,
+  )
+
+  const reservedOnlyRegion = createCaseInsertTextAvoidanceRegionFromRect(
+    'left-spine-reserved-only',
+    'Reserved dead space',
+    {
+      x: baseLayout.reservedBoundingRect.x,
+      y: baseLayout.reservedBoundingRect.y + 10,
+      width: baseLayout.reservedBoundingRect.width,
+      height: Math.max(12, baseLayout.boundingRect.height * 0.1),
+    },
+  )
+
+  assert.equal(
+    rectsOverlap(baseLayout.boundingRect, reservedOnlyRegion.bounds),
+    false,
+  )
+
+  const adjustedLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    leftTitle,
+    layout,
+    [reservedOnlyRegion],
+  )
+
+  assert.ok(adjustedLayout)
+  assert.deepEqual(adjustedLayout.boundingRect, baseLayout.boundingRect)
+  assert.deepEqual(
+    adjustedLayout.reservedBoundingRect,
+    baseLayout.reservedBoundingRect,
+  )
 })
 
 test('spine image slider ranges shrink to rotated safe strip bounds', () => {

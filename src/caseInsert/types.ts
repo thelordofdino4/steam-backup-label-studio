@@ -100,6 +100,8 @@ export type ProjectJewelCaseSpineSideStateInput = {
   marks?: ProjectCaseInsertImageSlotInput[]
   title?: ProjectCaseInsertTextBlockInput
   titleText?: ProjectCaseInsertTextBlockInput
+  textBlocks?: ProjectCaseInsertTextBlockInput[]
+  text?: ProjectCaseInsertTextBlockInput[]
   logo?: ProjectCaseInsertImageSlotInput
 }
 

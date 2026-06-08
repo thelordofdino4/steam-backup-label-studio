@@ -70,7 +70,7 @@ test('Steam import seeds tray card back-cover text fields', () => {
     'Recommended:\nOS: Windows 7\nMemory: 2 GB RAM',
   )
   assert.equal(
-    getTrayTextBlock(state, 'tray-legal-text').value,
+    getTrayTextBlock(state, 'tray-copyright-text').value,
     '(c) Valve Corporation. All rights reserved.',
   )
   assert.deepEqual(tray.textLists[0]?.items, [
@@ -181,7 +181,7 @@ test('case insert legal candidate applies to the tray card legal text', () => {
     createDefaultProjectJewelCaseState(),
     '<p>&copy; Example Studio. All rights reserved.</p>',
   )
-  const legalText = getTrayTextBlock(state, 'tray-legal-text')
+  const legalText = getTrayTextBlock(state, 'tray-copyright-text')
 
   assert.equal(legalText.enabled, true)
   assert.equal(legalText.source, 'steam')

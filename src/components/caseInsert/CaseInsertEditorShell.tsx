@@ -381,6 +381,7 @@ export function CaseInsertEditorShell({
             <CaseInsertTemplateWorkflowControls
               paneId={activeTemplatePane}
               templateState={activeTemplateState}
+              projectMetadata={brandingSources.projectMetadata}
               actions={editor}
               imageSources={imageSources}
               getBrandingControls={getBrandingControls}
@@ -398,6 +399,7 @@ export function CaseInsertEditorShell({
           >
             <CaseInsertSpineWorkflowControls
               spine={caseInsert.spine}
+              projectMetadata={brandingSources.projectMetadata}
               actions={spineEditor}
               imageSources={imageSources}
               getBrandingControls={getBrandingControls}

@@ -2,7 +2,7 @@
 
 These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor has reached its alpha feature boundary, and future disc polish or jewel case work must preserve that baseline instead of adding logic to unrelated structures.
 
-Last refreshed: 2026-06-07.
+Last refreshed: 2026-06-08.
 
 This document is mandatory reading for agents and contributors before implementing features, fixes, or refactors.
 
@@ -182,8 +182,29 @@ to disc-specific modules or broad shared utilities.
 
 When a case insert feature is intended to match a disc editor feature, the disc
 feature is the source of truth until a deliberate divergence is documented.
-Parity work is not complete when the visible panel shape looks similar. Audit
-and preserve the whole feature chain before implementation is called done:
+Parity work is contract work, not visual resemblance work. Audit and preserve
+the whole feature chain before implementation is called done.
+
+Before writing parity code, name the contract:
+
+- the source-of-truth disc components, hooks, domain modules, renderers, export
+  helpers, project/schema helpers, and tests
+- the target adapter boundaries that will consume or translate the shared
+  behavior
+- every target surface that must participate, such as cover sheet, tray card,
+  left spine, and right spine
+- any intentional target-specific differences and why they are product behavior
+  instead of missing parity
+- the tests and manual smoke checklist items that prove the contract
+
+Do not create local clones or target-only concepts when a source-of-truth
+feature already exists. A case insert feature may need rectangular/spine
+adapters, but source selection, upload/custom-image behavior, visibility rules,
+reset/clear transitions, save/load normalization, preview participation, and
+export participation should come from shared behavior or focused adapters unless
+a divergence is explicitly planned.
+
+The audit must include:
 
 - defaults for new blank projects
 - add, remove, rename, show/hide, reset, clear, and update transitions
@@ -195,14 +216,20 @@ and preserve the whole feature chain before implementation is called done:
 - save/load, sparse restore, legacy normalization, and project-file labels
 - tests and manual smoke checklist wording
 
+A visual feature is not parity-complete until the user-facing control, source
+switching, custom upload, drag, slider/manual placement, reset/clear,
+disabled-state preservation, preview rendering, PNG export rendering,
+save/load, and relevant preflight behavior all match the source-of-truth
+contract on every applicable target surface.
+
 New projects should use the shared current behavior and vocabulary. Legacy
 aliases such as old screenshot or callout names may be accepted only in
 normalization or restore adapters, and should normalize into the current feature
 shape rather than leaking into new UI cards, layer labels, defaults, or export
 warnings.
 
-For branding and text parity work, do the source-of-truth audit before writing
-new controls:
+For artwork, branding, and text parity work, do the source-of-truth audit before
+writing new controls:
 
 - identify the disc owner modules, hooks, renderers, export helpers, project
   helpers, and tests that define the behavior
@@ -214,6 +241,23 @@ new controls:
   intended parity contract
 - ask for manual runtime verification of nested panels, drag, upload/source
   controls, preview, export, and save/load before closing the issue
+
+When shared feature state and target-slot state both exist, verify both paths.
+The UI checkbox, selected source, built-in/custom asset, placement state, preview
+artifact, export artifact, and saved project data must all agree. A feature that
+shows as enabled in a panel but renders nothing in preview/export is a parity
+failure, even if the control itself appears correct.
+
+A parity issue cannot be closed until one of these is true:
+
+- all known parity gaps from audit and manual feedback are fixed and validated
+- remaining gaps are explicitly intentional and documented as product behavior
+- remaining gaps have concrete follow-up issues linked from the work summary
+
+No future parity issue should be called implemented until the summary can answer:
+which source-of-truth functions, hooks, and components were used; which target
+adapters consume them; which target surfaces were covered; and what tests or
+manual checks prove the behavior.
 
 ## Preview and Export Parity Rule
 

@@ -2,8 +2,23 @@ import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
+  ProjectCaseInsertTextSource,
 } from '../project/projectTypes.ts'
 import { normalizeTextListItems } from './normalization.ts'
+import {
+  applyCaseInsertTextBlockLayoutPreset,
+  applyCaseInsertTextListLayoutPreset,
+  type CaseInsertTextLayoutSurface,
+} from './textLayout.ts'
+import {
+  applyCaseInsertTextStylePreset,
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextListStyleRole,
+  resetCaseInsertTextStyle,
+  updateCaseInsertTextStyleField,
+  type CaseInsertTextStyleField,
+  type CaseInsertTextStyleValue,
+} from './textStyles.ts'
 import type { CaseInsertLayoutField, CaseInsertLayoutPoint } from './types.ts'
 
 export function setCaseInsertTextBlockEnabled(
@@ -19,10 +34,22 @@ export function setCaseInsertTextBlockEnabled(
 export function updateCaseInsertTextBlockValue(
   textBlock: ProjectCaseInsertTextBlock,
   value: string,
+  source: ProjectCaseInsertTextSource = textBlock.source,
 ): ProjectCaseInsertTextBlock {
   return {
     ...textBlock,
     value,
+    source,
+  }
+}
+
+export function setCaseInsertTextBlockAvoidVisualElements(
+  textBlock: ProjectCaseInsertTextBlock,
+  avoidVisualElements: boolean,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    avoidVisualElements,
   }
 }
 
@@ -58,6 +85,55 @@ export function updateCaseInsertTextBlockLayoutPosition(
   })
 }
 
+export function applyCaseInsertTextBlockPresetLayout(
+  surface: CaseInsertTextLayoutSurface,
+  textBlock: ProjectCaseInsertTextBlock,
+  presetId: string,
+): ProjectCaseInsertTextBlock {
+  return applyCaseInsertTextBlockLayoutPreset(surface, textBlock, presetId)
+}
+
+export function updateCaseInsertTextBlockStyleField(
+  textBlock: ProjectCaseInsertTextBlock,
+  field: CaseInsertTextStyleField,
+  value: CaseInsertTextStyleValue,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    style: updateCaseInsertTextStyleField(
+      getCaseInsertTextBlockStyleRole(textBlock),
+      textBlock.style,
+      field,
+      value,
+    ),
+  }
+}
+
+export function applyCaseInsertTextBlockStylePreset(
+  textBlock: ProjectCaseInsertTextBlock,
+  presetId: string,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    style: applyCaseInsertTextStylePreset(
+      getCaseInsertTextBlockStyleRole(textBlock),
+      textBlock.style,
+      presetId,
+    ),
+  }
+}
+
+export function resetCaseInsertTextBlockStyle(
+  textBlock: ProjectCaseInsertTextBlock,
+): ProjectCaseInsertTextBlock {
+  return {
+    ...textBlock,
+    style: resetCaseInsertTextStyle(
+      getCaseInsertTextBlockStyleRole(textBlock),
+    ),
+  }
+}
+
 export function setCaseInsertTextListEnabled(
   textList: ProjectCaseInsertTextList,
   enabled: boolean,
@@ -75,6 +151,16 @@ export function setCaseInsertTextListItems(
   return {
     ...textList,
     items: normalizeTextListItems(items, textList.items),
+  }
+}
+
+export function setCaseInsertTextListAvoidVisualElements(
+  textList: ProjectCaseInsertTextList,
+  avoidVisualElements: boolean,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    avoidVisualElements,
   }
 }
 
@@ -97,6 +183,14 @@ export function updateCaseInsertTextListLayoutPosition(
     x: point.x,
     y: point.y,
   })
+}
+
+export function applyCaseInsertTextListPresetLayout(
+  surface: Extract<CaseInsertTextLayoutSurface, 'cover' | 'tray'>,
+  textList: ProjectCaseInsertTextList,
+  presetId: string,
+): ProjectCaseInsertTextList {
+  return applyCaseInsertTextListLayoutPreset(surface, textList, presetId)
 }
 
 export function addCaseInsertTextListItem(
@@ -138,5 +232,46 @@ export function removeCaseInsertTextListItem(
   return {
     ...textList,
     items: textList.items.filter((_, currentIndex) => currentIndex !== index),
+  }
+}
+
+export function updateCaseInsertTextListStyleField(
+  textList: ProjectCaseInsertTextList,
+  field: CaseInsertTextStyleField,
+  value: CaseInsertTextStyleValue,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    style: updateCaseInsertTextStyleField(
+      getCaseInsertTextListStyleRole(textList),
+      textList.style,
+      field,
+      value,
+    ),
+  }
+}
+
+export function applyCaseInsertTextListStylePreset(
+  textList: ProjectCaseInsertTextList,
+  presetId: string,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    style: applyCaseInsertTextStylePreset(
+      getCaseInsertTextListStyleRole(textList),
+      textList.style,
+      presetId,
+    ),
+  }
+}
+
+export function resetCaseInsertTextListStyle(
+  textList: ProjectCaseInsertTextList,
+): ProjectCaseInsertTextList {
+  return {
+    ...textList,
+    style: resetCaseInsertTextStyle(
+      getCaseInsertTextListStyleRole(textList),
+    ),
   }
 }

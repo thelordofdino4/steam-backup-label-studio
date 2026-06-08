@@ -8,7 +8,7 @@ import type {
 } from './CaseInsertImageSourceControls'
 
 export type CaseInsertImageSlotPlacementField = {
-  field: keyof ProjectCaseInsertLayout
+  field: Exclude<keyof ProjectCaseInsertLayout, 'width'>
   label: string
   max: number
   min: number
@@ -22,7 +22,7 @@ export type CaseInsertImageSlotPlacementControlsProps = {
   onClearImage: () => void
   onFitToRegion?: () => void
   onLayoutChange: (
-    field: keyof ProjectCaseInsertLayout,
+    field: Exclude<keyof ProjectCaseInsertLayout, 'width'>,
     value: number,
   ) => void
   onResetLayout: () => void

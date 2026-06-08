@@ -3,6 +3,18 @@ import type {
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
 } from '../project/projectTypes.ts'
+import {
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextListStyleRole,
+  getCaseInsertTextStyleRoleMaxLines,
+} from '../caseInsert/textStyles.ts'
+import {
+  getCaseInsertTextLayoutPaddingRatio,
+} from '../caseInsert/textRenderStyles.ts'
+import {
+  getCaseInsertTextLayoutWidth,
+} from '../caseInsert/textLayout.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -12,6 +24,13 @@ import {
   getImageFitOffsetLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
+import {
+  type CaseInsertTextAvoidanceRegion,
+} from './caseInsertTextAvoidance.ts'
+import {
+  getCaseInsertTextVisualLayout,
+  type CaseInsertTextVisualLine,
+} from './caseInsertTextVisualLayout.ts'
 import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
@@ -31,6 +50,8 @@ export type JewelCaseBackTextBlockRole =
 
 export type JewelCaseBackTextBlockLayout = {
   bounds: JewelCasePixelRect
+  reservedBounds: JewelCasePixelRect
+  lines: CaseInsertTextVisualLine[]
   fontSizePx: number
   lineHeightPx: number
 }
@@ -187,6 +208,7 @@ function getTextLayoutFromConfig(
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
   config: typeof textBlockConfigByRole[JewelCaseBackTextBlockRole],
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseBackTextBlockLayout | null {
   const safeBounds = getJewelCaseBackPreviewRegionBounds(layout, 'backPanelSafe')
 
@@ -199,22 +221,50 @@ function getTextLayoutFromConfig(
     x: normalizePercent(textBlock.layout.x, config.defaultCenter.x),
     y: normalizePercent(textBlock.layout.y, config.defaultCenter.y),
   }
-  const width = safeBounds.width * config.widthRatio
+  const width = safeBounds.width *
+    getCaseInsertTextLayoutWidth(textBlock.layout, config.widthRatio * 100) /
+    100
   const height = safeBounds.height * config.heightRatio * scale
   const fontSizePx = clampNumber(
     safeBounds.width * config.targetFontRatio * scale,
     safeBounds.width * config.minFontRatio,
     safeBounds.width * config.maxFontRatio,
   )
-  const bounds = clampPixelRectToBounds(
+  const clampedBounds = clampPixelRectToBounds(
     getCenteredRect(safeBounds, width, height, centerPercent),
     safeBounds,
   )
+  const lineHeightPx = fontSizePx * 1.22
+  const visualLayout = getCaseInsertTextVisualLayout(
+    clampedBounds,
+    {
+      align: textBlock.align,
+      avoidanceRegions: textBlock.avoidVisualElements
+        ? avoidanceRegions
+        : [],
+      boundsLimit: safeBounds,
+      fontFamily: getCaseInsertTextFontFamilyCanvas(textBlock.style.fontFamily),
+      fontSizePx,
+      fontWeight: textBlock.id.includes('legal') ||
+          textBlock.id.includes('copyright')
+        ? 500
+        : 600,
+      lineHeightPx,
+      maxLines: getCaseInsertTextStyleRoleMaxLines(
+        getCaseInsertTextBlockStyleRole(textBlock),
+      ),
+      paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
+      text: textBlock.value,
+      verticalAlign: 'center',
+    },
+  )
 
   return {
-    bounds,
+    bounds: visualLayout.bounds,
+    reservedBounds: clampedBounds,
+    lines: visualLayout.lines,
     fontSizePx,
-    lineHeightPx: fontSizePx * 1.22,
+    lineHeightPx,
   }
 }
 
@@ -381,13 +431,20 @@ export function getJewelCaseBackTextBlockPreviewLayout(
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
   role: JewelCaseBackTextBlockRole,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseBackTextBlockLayout | null {
-  return getTextLayoutFromConfig(textBlock, layout, textBlockConfigByRole[role])
+  return getTextLayoutFromConfig(
+    textBlock,
+    layout,
+    textBlockConfigByRole[role],
+    avoidanceRegions,
+  )
 }
 
 export function getJewelCaseBackTextListPreviewLayout(
   textList: ProjectCaseInsertTextList,
   layout: CaseInsertPreviewLayout,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseBackTextListLayout | null {
   const safeBounds = getJewelCaseBackPreviewRegionBounds(layout, 'backPanelSafe')
   const items = textList.items.map((item) => item.trim()).filter(Boolean)
@@ -401,22 +458,50 @@ export function getJewelCaseBackTextListPreviewLayout(
     x: normalizePercent(textList.layout.x, featureBulletsConfig.defaultCenter.x),
     y: normalizePercent(textList.layout.y, featureBulletsConfig.defaultCenter.y),
   }
-  const width = safeBounds.width * featureBulletsConfig.widthRatio
+  const width = safeBounds.width *
+    getCaseInsertTextLayoutWidth(
+      textList.layout,
+      featureBulletsConfig.widthRatio * 100,
+    ) /
+    100
   const height = safeBounds.height * featureBulletsConfig.heightRatio * scale
   const fontSizePx = clampNumber(
     safeBounds.width * featureBulletsConfig.targetFontRatio * scale,
     safeBounds.width * featureBulletsConfig.minFontRatio,
     safeBounds.width * featureBulletsConfig.maxFontRatio,
   )
-  const bounds = clampPixelRectToBounds(
+  const clampedBounds = clampPixelRectToBounds(
     getCenteredRect(safeBounds, width, height, centerPercent),
     safeBounds,
   )
+  const lineHeightPx = fontSizePx * 1.24
+  const visualLayout = getCaseInsertTextVisualLayout(
+    clampedBounds,
+    {
+      align: 'left',
+      avoidanceRegions: textList.avoidVisualElements
+        ? avoidanceRegions
+        : [],
+      boundsLimit: safeBounds,
+      fontFamily: getCaseInsertTextFontFamilyCanvas(textList.style.fontFamily),
+      fontSizePx,
+      fontWeight: 600,
+      lineHeightPx,
+      maxLines: getCaseInsertTextStyleRoleMaxLines(
+        getCaseInsertTextListStyleRole(textList),
+      ),
+      paddingRatio: getCaseInsertTextLayoutPaddingRatio(textList.style),
+      text: items.map((item) => `• ${item}`).join('\n'),
+      verticalAlign: 'center',
+    },
+  )
 
   return {
-    bounds,
+    bounds: visualLayout.bounds,
+    reservedBounds: clampedBounds,
+    lines: visualLayout.lines,
     fontSizePx,
-    lineHeightPx: fontSizePx * 1.24,
+    lineHeightPx,
     items,
   }
 }

@@ -18,7 +18,26 @@ import {
 import {
   getCaseInsertBackTextBlockRole,
 } from '../../caseInsert/textReadability'
+import {
+  getCaseInsertTextBackgroundColor,
+  getCaseInsertTextBorderCss,
+  getCaseInsertTextBorderRadiusCss,
+  getCaseInsertTextShadowCss,
+  getCaseInsertTextStrokeCss,
+} from '../../caseInsert/textRenderStyles'
+import {
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextFontFamilyCss,
+  getCaseInsertTextListStyleRole,
+} from '../../caseInsert/textStyles'
+import {
+  getRenderedCaseInsertTextBlock,
+} from '../../caseInsert/textContent'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
+import {
+  createCaseInsertTemplateTextAvoidanceRegions,
+  type CaseInsertTextAvoidanceRegion,
+} from '../../layout/caseInsertTextOccupiedRegions'
 import {
   getJewelCaseBackBackgroundFit,
   getJewelCaseBackImageSlotPreviewRect,
@@ -66,6 +85,66 @@ function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout)
 
 function getLayerFontSize(value: number, layout: CaseInsertPreviewLayout) {
   return `${value / layout.width * 100}cqw`
+}
+
+function getCaseInsertTextCssStyle(
+  textStyle: ProjectCaseInsertTextBlock['style'],
+): CSSProperties {
+  return {
+    color: textStyle.color,
+    fontFamily: getCaseInsertTextFontFamilyCss(textStyle.fontFamily),
+    textShadow: getCaseInsertTextShadowCss(textStyle),
+    WebkitTextStroke: getCaseInsertTextStrokeCss(textStyle),
+  }
+}
+
+function getCaseInsertTextBackplateCssStyle(
+  textStyle: ProjectCaseInsertTextBlock['style'],
+): CSSProperties {
+  return {
+    backgroundColor: getCaseInsertTextBackgroundColor(textStyle),
+    border: getCaseInsertTextBorderCss(textStyle),
+    borderRadius: getCaseInsertTextBorderRadiusCss(textStyle),
+    boxSizing: 'border-box',
+    display: 'block',
+    height: '100%',
+    overflow: 'hidden',
+    padding: 0,
+    position: 'relative',
+    width: '100%',
+  }
+}
+
+function getTemplateTextTransform(
+  paneId: CaseInsertTemplatePaneId,
+  textBlock: ProjectCaseInsertTextBlock,
+) {
+  if (paneId !== 'cover') {
+    return undefined
+  }
+
+  const role = getCaseInsertTextBlockStyleRole(textBlock)
+
+  return role === 'title' ? 'uppercase' : 'none'
+}
+
+function getCaseInsertTextLineStyle(
+  line: { left: number; y: number; width: number },
+  textBounds: JewelCasePixelRect,
+  lineHeightPx: number,
+): CSSProperties {
+  return {
+    display: 'block',
+    height: `${lineHeightPx / textBounds.height * 100}%`,
+    left: `${(line.left - textBounds.x) / textBounds.width * 100}%`,
+    lineHeight: 'inherit',
+    overflow: 'visible',
+    position: 'absolute',
+    textAlign: 'left',
+    top: `${(line.y - textBounds.y) / textBounds.height * 100}%`,
+    whiteSpace: 'pre',
+    width: `${line.width / textBounds.width * 100}%`,
+  }
 }
 
 function getImageStyle(
@@ -185,19 +264,35 @@ function CaseInsertTemplateTextBlock({
   paneId,
   textBlock,
   layout,
+  brandingSources,
+  avoidanceRegions,
   pointerHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
   layout: CaseInsertPreviewLayout
+  brandingSources: CaseInsertBrandingSourceCatalog
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
 }) {
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(
+    textBlock,
+    brandingSources.projectMetadata,
+  )
+  const textAvoidanceRegions = avoidanceRegions.filter(
+    (region) => region.sourceTextBlockId !== renderedTextBlock.id,
+  )
   const textLayout = paneId === 'cover'
-    ? getJewelCaseFrontTextBlockPreviewLayout(textBlock, layout)
-    : getJewelCaseBackTextBlockPreviewLayout(
-        textBlock,
+    ? getJewelCaseFrontTextBlockPreviewLayout(
+        renderedTextBlock,
         layout,
-        getCaseInsertBackTextBlockRole(textBlock),
+        textAvoidanceRegions,
+      )
+    : getJewelCaseBackTextBlockPreviewLayout(
+        renderedTextBlock,
+        layout,
+        getCaseInsertBackTextBlockRole(renderedTextBlock),
+        textAvoidanceRegions,
       )
 
   if (!textLayout) {
@@ -206,9 +301,14 @@ function CaseInsertTemplateTextBlock({
 
   const style = {
     ...getRectStyle(textLayout.bounds, layout),
+    ...getCaseInsertTextCssStyle(renderedTextBlock.style),
+    backgroundColor: 'transparent',
+    border: 0,
+    display: 'block',
     fontSize: getLayerFontSize(textLayout.fontSizePx, layout),
     lineHeight: getLayerFontSize(textLayout.lineHeightPx, layout),
-    textAlign: textBlock.align,
+    padding: 0,
+    textTransform: getTemplateTextTransform(paneId, renderedTextBlock),
   } as CSSProperties
 
   return (
@@ -218,13 +318,26 @@ function CaseInsertTemplateTextBlock({
         pointerHandlers.handleTemplateTextBlockPointerDown(
           event,
           paneId,
-          textBlock.id,
+          renderedTextBlock.id,
         )}
       onPointerMove={pointerHandlers.handleTemplatePointerMove}
       onPointerUp={pointerHandlers.handleTemplatePointerUp}
       style={style}
     >
-      {textBlock.value}
+      <span style={getCaseInsertTextBackplateCssStyle(renderedTextBlock.style)}>
+        {textLayout.lines.map((line, index) => (
+          <span
+            key={`${index}-${line.text}`}
+            style={getCaseInsertTextLineStyle(
+              line,
+              textLayout.bounds,
+              textLayout.lineHeightPx,
+            )}
+          >
+            {line.text}
+          </span>
+        ))}
+      </span>
     </div>
   )
 }
@@ -368,7 +481,15 @@ export function CaseInsertTemplateTextLayer({
   templateState,
   layout,
   pointerHandlers,
+  brandingSources,
 }: CaseInsertTemplateLayerProps) {
+  const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
+    paneId,
+    templateState,
+    layout,
+    brandingSources,
+  })
+
   return (
     <div className="case-insert-content-layer" aria-hidden="true">
       {templateState.textBlocks.map((textBlock) => (
@@ -377,27 +498,42 @@ export function CaseInsertTemplateTextLayer({
           paneId={paneId}
           textBlock={textBlock}
           layout={layout}
+          brandingSources={brandingSources}
+          avoidanceRegions={avoidanceRegions}
           pointerHandlers={pointerHandlers}
         />
       ))}
       {templateState.textLists.map((textList) => {
+        const textAvoidanceRegions = avoidanceRegions.filter(
+          (region) => region.sourceTextListId !== textList.id,
+        )
         const textListLayout = getJewelCaseBackTextListPreviewLayout(
           textList,
           layout,
+          textAvoidanceRegions,
         )
         const textListStyle = textListLayout
           ? {
               ...getRectStyle(textListLayout.bounds, layout),
+              ...getCaseInsertTextCssStyle(textList.style),
+              backgroundColor: 'transparent',
+              border: 0,
+              display: 'block',
               fontSize: getLayerFontSize(textListLayout.fontSizePx, layout),
               lineHeight: getLayerFontSize(
                 textListLayout.lineHeightPx,
                 layout,
               ),
+              padding: 0,
+              textTransform:
+                getCaseInsertTextListStyleRole(textList) === 'features'
+                  ? 'none'
+                  : undefined,
             } as CSSProperties
           : null
 
         return textListLayout && textListStyle ? (
-          <ul
+          <div
             className="case-insert-template-feature-list"
             key={textList.id}
             onPointerDown={(event) =>
@@ -410,10 +546,21 @@ export function CaseInsertTemplateTextLayer({
             onPointerUp={pointerHandlers.handleTemplatePointerUp}
             style={textListStyle}
           >
-            {textListLayout.items.map((item, index) => (
-              <li key={`${index}-${item}`}>{item}</li>
-            ))}
-          </ul>
+            <span style={getCaseInsertTextBackplateCssStyle(textList.style)}>
+              {textListLayout.lines.map((line, index) => (
+                <span
+                  key={`${index}-${line.text}`}
+                  style={getCaseInsertTextLineStyle(
+                    line,
+                    textListLayout.bounds,
+                    textListLayout.lineHeightPx,
+                  )}
+                >
+                  {line.text}
+                </span>
+              ))}
+            </span>
+          </div>
         ) : null
       })}
     </div>

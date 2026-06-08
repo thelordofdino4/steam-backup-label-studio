@@ -346,6 +346,7 @@ export type ProjectCaseInsertImageFit = 'cover' | 'contain' | 'scale' | 'crop'
 
 export type ProjectCaseInsertLayout = {
   scale: number
+  width?: number
   x: number
   y: number
   rotation: number
@@ -393,8 +394,10 @@ export type ProjectCaseInsertTextBlock = {
   enabled: boolean
   value: string
   source: ProjectCaseInsertTextSource
+  avoidVisualElements: boolean
   align: ProjectCaseInsertTextAlign
   layout: ProjectCaseInsertLayout
+  style: DiscTextStyle
 }
 
 export type ProjectCaseInsertTextList = {
@@ -403,7 +406,9 @@ export type ProjectCaseInsertTextList = {
   enabled: boolean
   items: string[]
   source: ProjectCaseInsertTextSource
+  avoidVisualElements: boolean
   layout: ProjectCaseInsertLayout
+  style: DiscTextStyle
 }
 
 export type ProjectCaseInsertSurfaceState = {
@@ -427,6 +432,7 @@ export type ProjectJewelCaseSpineSideState = {
   logoSlots: ProjectCaseInsertImageSlot[]
   markSlots: ProjectCaseInsertImageSlot[]
   title: ProjectCaseInsertTextBlock
+  textBlocks: ProjectCaseInsertTextBlock[]
 }
 
 export type ProjectJewelCaseSpineState = {

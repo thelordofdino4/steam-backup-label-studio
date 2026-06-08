@@ -2,6 +2,17 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
+import {
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextStyleRoleMaxLines,
+} from '../caseInsert/textStyles.ts'
+import {
+  getCaseInsertTextLayoutPaddingRatio,
+} from '../caseInsert/textRenderStyles.ts'
+import {
+  getCaseInsertTextLayoutWidth,
+} from '../caseInsert/textLayout.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -10,6 +21,13 @@ import {
   getImageFitOffsetLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
+import {
+  type CaseInsertTextAvoidanceRegion,
+} from './caseInsertTextAvoidance.ts'
+import {
+  getCaseInsertTextVisualLayout,
+  type CaseInsertTextVisualLine,
+} from './caseInsertTextVisualLayout.ts'
 import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
@@ -26,9 +44,17 @@ export type JewelCaseFrontImageSlotRole =
 
 export type JewelCaseFrontTextBlockLayout = {
   bounds: JewelCasePixelRect
+  reservedBounds: JewelCasePixelRect
+  lines: CaseInsertTextVisualLine[]
   fontSizePx: number
   lineHeightPx: number
 }
+
+export type JewelCaseFrontTextBlockRole =
+  | 'title'
+  | 'subtitle'
+  | 'callout'
+  | 'legalText'
 
 const imageSlotWidthRatioByRole: Record<JewelCaseFrontImageSlotRole, number> = {
   titleArtwork: 0.72,
@@ -47,12 +73,50 @@ const imageSlotFallbackCenterByRole: Record<
   mark: { x: 82, y: 84 },
 }
 
-const CALLOUT_TEXT_WIDTH_RATIO = 0.74
-const CALLOUT_TEXT_HEIGHT_RATIO = 0.12
-const CALLOUT_TEXT_MIN_FONT_RATIO = 0.022
-const CALLOUT_TEXT_TARGET_FONT_RATIO = 0.034
-const CALLOUT_TEXT_MAX_FONT_RATIO = 0.056
-const CALLOUT_TEXT_DEFAULT_CENTER = { x: 50, y: 82 }
+const textBlockConfigByRole: Record<
+  JewelCaseFrontTextBlockRole,
+  {
+    widthRatio: number
+    heightRatio: number
+    minFontRatio: number
+    targetFontRatio: number
+    maxFontRatio: number
+    defaultCenter: { x: number; y: number }
+  }
+> = {
+  title: {
+    widthRatio: 0.8,
+    heightRatio: 0.14,
+    minFontRatio: 0.028,
+    targetFontRatio: 0.052,
+    maxFontRatio: 0.078,
+    defaultCenter: { x: 50, y: 34 },
+  },
+  subtitle: {
+    widthRatio: 0.72,
+    heightRatio: 0.08,
+    minFontRatio: 0.018,
+    targetFontRatio: 0.028,
+    maxFontRatio: 0.044,
+    defaultCenter: { x: 50, y: 45 },
+  },
+  callout: {
+    widthRatio: 0.74,
+    heightRatio: 0.12,
+    minFontRatio: 0.022,
+    targetFontRatio: 0.034,
+    maxFontRatio: 0.056,
+    defaultCenter: { x: 50, y: 82 },
+  },
+  legalText: {
+    widthRatio: 0.86,
+    heightRatio: 0.07,
+    minFontRatio: 0.007,
+    targetFontRatio: 0.011,
+    maxFontRatio: 0.018,
+    defaultCenter: { x: 50, y: 93 },
+  },
+}
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
@@ -199,9 +263,22 @@ export function getJewelCaseFrontImageSlotLayoutSliderRanges(
     : CASE_INSERT_PERCENT_LAYOUT_RANGES
 }
 
+export function getJewelCaseFrontTextBlockRole(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+): JewelCaseFrontTextBlockRole {
+  if (textBlock.id.endsWith('-subtitle-text')) return 'subtitle'
+  if (textBlock.id.includes('legal') || textBlock.id.includes('copyright')) {
+    return 'legalText'
+  }
+  if (textBlock.id.endsWith('-title-text')) return 'title'
+
+  return 'callout'
+}
+
 export function getJewelCaseFrontTextBlockPreviewLayout(
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseFrontTextBlockLayout | null {
   const safeBounds = getJewelCaseFrontPreviewRegionBounds(layout, 'frontSafe')
 
@@ -210,24 +287,51 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
   }
 
   const scale = normalizePositiveNumber(textBlock.layout.scale, 1)
+  const config = textBlockConfigByRole[getJewelCaseFrontTextBlockRole(textBlock)]
   const centerPercent = {
-    x: normalizePercent(textBlock.layout.x, CALLOUT_TEXT_DEFAULT_CENTER.x),
-    y: normalizePercent(textBlock.layout.y, CALLOUT_TEXT_DEFAULT_CENTER.y),
+    x: normalizePercent(textBlock.layout.x, config.defaultCenter.x),
+    y: normalizePercent(textBlock.layout.y, config.defaultCenter.y),
   }
-  const width = safeBounds.width * CALLOUT_TEXT_WIDTH_RATIO
-  const height = safeBounds.height * CALLOUT_TEXT_HEIGHT_RATIO * scale
+  const width = safeBounds.width *
+    getCaseInsertTextLayoutWidth(textBlock.layout, config.widthRatio * 100) /
+    100
+  const height = safeBounds.height * config.heightRatio * scale
   const fontSizePx = clampNumber(
-    safeBounds.width * CALLOUT_TEXT_TARGET_FONT_RATIO * scale,
-    safeBounds.width * CALLOUT_TEXT_MIN_FONT_RATIO,
-    safeBounds.width * CALLOUT_TEXT_MAX_FONT_RATIO,
+    safeBounds.width * config.targetFontRatio * scale,
+    safeBounds.width * config.minFontRatio,
+    safeBounds.width * config.maxFontRatio,
   )
-  const bounds = clampPixelRectToBounds(
+  const role = getJewelCaseFrontTextBlockRole(textBlock)
+  const clampedBounds = clampPixelRectToBounds(
     getCenteredRect(safeBounds, width, height, centerPercent),
     safeBounds,
   )
+  const visualLayout = getCaseInsertTextVisualLayout(
+    clampedBounds,
+    {
+      align: textBlock.align,
+      avoidanceRegions: textBlock.avoidVisualElements
+        ? avoidanceRegions
+        : [],
+      boundsLimit: safeBounds,
+      fontFamily: getCaseInsertTextFontFamilyCanvas(textBlock.style.fontFamily),
+      fontSizePx,
+      fontWeight: 800,
+      lineHeightPx: fontSizePx * 1.14,
+      maxLines: getCaseInsertTextStyleRoleMaxLines(
+        getCaseInsertTextBlockStyleRole(textBlock),
+      ),
+      paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
+      text: textBlock.value,
+      uppercase: role === 'title',
+      verticalAlign: 'center',
+    },
+  )
 
   return {
-    bounds,
+    bounds: visualLayout.bounds,
+    reservedBounds: clampedBounds,
+    lines: visualLayout.lines,
     fontSizePx,
     lineHeightPx: fontSizePx * 1.14,
   }

@@ -2,6 +2,17 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
+import {
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextStyleRoleMaxLines,
+} from '../caseInsert/textStyles.ts'
+import {
+  getCaseInsertTextLayoutPaddingRatio,
+} from '../caseInsert/textRenderStyles.ts'
+import {
+  getCaseInsertTextLayoutWidth,
+} from '../caseInsert/textLayout.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -11,6 +22,11 @@ import {
   getImageFitOffsetLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
+import type { CaseInsertTextAvoidanceRegion } from './caseInsertTextAvoidance.ts'
+import {
+  getCaseInsertTextVisualLayout,
+  type CaseInsertTextVisualLine,
+} from './caseInsertTextVisualLayout.ts'
 import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
@@ -39,6 +55,9 @@ export type JewelCaseSpineBoxLayout = {
 export type JewelCaseSpineTitlePreviewLayout = JewelCaseSpineBoxLayout & {
   fontSizePx: number
   lineHeightPx: number
+  lines: CaseInsertTextVisualLine[]
+  reservedBoundingRect: JewelCasePixelRect
+  textBounds: JewelCasePixelRect
 }
 
 const SPINE_TITLE_WIDTH_RATIO = 0.92
@@ -109,6 +128,88 @@ function getDefaultSpineOverlayRotation(
   return role === 'titleArtwork'
     ? getDefaultSpineRotation(side)
     : 0
+}
+
+function rotatePoint(
+  point: { x: number; y: number },
+  rotationDegrees: number,
+) {
+  const rotationRadians = rotationDegrees * Math.PI / 180
+
+  return {
+    x: point.x * Math.cos(rotationRadians) - point.y * Math.sin(rotationRadians),
+    y: point.x * Math.sin(rotationRadians) + point.y * Math.cos(rotationRadians),
+  }
+}
+
+function getRectCorners(rect: JewelCasePixelRect) {
+  return [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ]
+}
+
+function getBoundingRectFromPoints(points: Array<{ x: number; y: number }>) {
+  const xs = points.map((point) => point.x)
+  const ys = points.map((point) => point.y)
+  const left = Math.min(...xs)
+  const right = Math.max(...xs)
+  const top = Math.min(...ys)
+  const bottom = Math.max(...ys)
+
+  return {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  }
+}
+
+function transformGlobalRectToLocal(
+  rect: JewelCasePixelRect,
+  center: { x: number; y: number },
+  rotationDegrees: number,
+): JewelCasePixelRect {
+  return getBoundingRectFromPoints(
+    getRectCorners(rect).map((corner) =>
+      rotatePoint(
+        {
+          x: corner.x - center.x,
+          y: corner.y - center.y,
+        },
+        -rotationDegrees,
+      )),
+  )
+}
+
+function transformAvoidanceRegionsToLocal(
+  regions: CaseInsertTextAvoidanceRegion[],
+  center: { x: number; y: number },
+  rotationDegrees: number,
+): CaseInsertTextAvoidanceRegion[] {
+  return regions.map((region) => ({
+    ...region,
+    bounds: transformGlobalRectToLocal(
+      region.bounds,
+      center,
+      rotationDegrees,
+    ),
+  }))
+}
+
+function offsetTextVisualLines(
+  lines: CaseInsertTextVisualLine[],
+  offset: { x: number; y: number },
+): CaseInsertTextVisualLine[] {
+  return lines.map((line) => ({
+    ...line,
+    left: line.left - offset.x,
+    right: line.right - offset.x,
+    x: line.x - offset.x,
+    y: line.y - offset.y,
+  }))
 }
 
 function rotationSwapsAxes(rotationDegrees: number) {
@@ -240,6 +341,7 @@ export function getJewelCaseSpineTitlePreviewLayout(
   side: JewelCaseSpineSideId,
   title: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseSpineTitlePreviewLayout | null {
   const safeBounds = getSpineSafeBounds(side, layout)
 
@@ -259,7 +361,12 @@ export function getJewelCaseSpineTitlePreviewLayout(
   )
   const box = getClampedTransformedBoxLayout({
     safeBounds,
-    width: safeBounds.height * SPINE_TITLE_WIDTH_RATIO,
+    width: safeBounds.height *
+      getCaseInsertTextLayoutWidth(
+        title.layout,
+        SPINE_TITLE_WIDTH_RATIO * 100,
+      ) /
+      100,
     height: safeBounds.width * SPINE_TITLE_HEIGHT_RATIO,
     rotationDegrees,
     centerPercent: {
@@ -267,11 +374,83 @@ export function getJewelCaseSpineTitlePreviewLayout(
       y: normalizePercent(title.layout.y, 50),
     },
   })
+  const isTitleText = title.id.endsWith('-title-text')
+  const localReservedBounds = {
+    x: -box.width / 2,
+    y: -box.height / 2,
+    width: box.width,
+    height: box.height,
+  }
+  const localVisualLayout = getCaseInsertTextVisualLayout(
+    localReservedBounds,
+    {
+      align: title.align,
+      avoidanceRegions: title.avoidVisualElements
+        ? transformAvoidanceRegionsToLocal(
+            avoidanceRegions,
+            box.center,
+            box.rotationDegrees,
+          )
+        : [],
+      boundsLimit: localReservedBounds,
+      fontFamily: getCaseInsertTextFontFamilyCanvas(title.style.fontFamily),
+      fontSizePx,
+      fontWeight: isTitleText ? 800 : 600,
+      lineHeightPx: fontSizePx * 1.1,
+      maxLines: getCaseInsertTextStyleRoleMaxLines(
+        getCaseInsertTextBlockStyleRole(title),
+      ),
+      paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),
+      text: title.value,
+      uppercase: isTitleText,
+      verticalAlign: 'center',
+    },
+  )
+  const localVisualBounds = localVisualLayout.bounds
+  const localVisualCenter = {
+    x: localVisualBounds.x + localVisualBounds.width / 2,
+    y: localVisualBounds.y + localVisualBounds.height / 2,
+  }
+  const rotationRadians = box.rotationDegrees * Math.PI / 180
+  const visualCenter = {
+    x: box.center.x +
+      localVisualCenter.x * Math.cos(rotationRadians) -
+      localVisualCenter.y * Math.sin(rotationRadians),
+    y: box.center.y +
+      localVisualCenter.x * Math.sin(rotationRadians) +
+      localVisualCenter.y * Math.cos(rotationRadians),
+  }
+  const visualBoundingSize = getTransformedBoundingSize({
+    height: localVisualBounds.height,
+    rotationDegrees: box.rotationDegrees,
+    width: localVisualBounds.width,
+  })
+  const visualBox = {
+    ...box,
+    center: visualCenter,
+    width: localVisualBounds.width,
+    height: localVisualBounds.height,
+    boundingRect: {
+      x: visualCenter.x - visualBoundingSize.width / 2,
+      y: visualCenter.y - visualBoundingSize.height / 2,
+      width: visualBoundingSize.width,
+      height: visualBoundingSize.height,
+    },
+  }
+  const textBounds = {
+    x: -localVisualBounds.width / 2,
+    y: -localVisualBounds.height / 2,
+    width: localVisualBounds.width,
+    height: localVisualBounds.height,
+  }
 
   return {
-    ...box,
+    ...visualBox,
     fontSizePx,
     lineHeightPx: fontSizePx * 1.1,
+    lines: offsetTextVisualLines(localVisualLayout.lines, localVisualCenter),
+    reservedBoundingRect: box.boundingRect,
+    textBounds,
   }
 }
 

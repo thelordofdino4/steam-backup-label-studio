@@ -14,7 +14,10 @@ type SteamBackCoverImportOptions = {
 const TRAY_DESCRIPTION_ID = 'tray-description'
 const TRAY_MINIMUM_REQUIREMENTS_ID = 'tray-minimum-requirements'
 const TRAY_RECOMMENDED_REQUIREMENTS_ID = 'tray-recommended-requirements'
-const TRAY_LEGAL_TEXT_ID = 'tray-legal-text'
+const TRAY_COPYRIGHT_TEXT_IDS = new Set([
+  'tray-copyright-text',
+  'tray-legal-text',
+])
 const TRAY_FEATURE_BULLETS_ID = 'tray-feature-bullets'
 const MAX_STEAM_FEATURE_BULLETS = 5
 
@@ -168,7 +171,8 @@ export function applySteamBackCoverImportToCaseInsert(
                 replaceExisting,
                 enableImportedText,
               )
-            case TRAY_LEGAL_TEXT_ID:
+            case 'tray-copyright-text':
+            case 'tray-legal-text':
               return updateSteamTextBlock(
                 textBlock,
                 legalText,
@@ -209,7 +213,7 @@ export function applyCaseInsertBackCoverLegalText(
       tray: {
         ...tray,
         textBlocks: tray.textBlocks.map((textBlock) =>
-          textBlock.id === TRAY_LEGAL_TEXT_ID
+          TRAY_COPYRIGHT_TEXT_IDS.has(textBlock.id)
             ? updateSteamTextBlock(
                 textBlock,
                 normalizedLegalText,

@@ -56,8 +56,21 @@ import type {
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
+  ProjectMetadata,
 } from '../../project/projectTypes'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
+import {
+  getCaseInsertTextBlockInputState,
+  getCaseInsertTextBlockPriority,
+  getNextCaseInsertTextSource,
+} from '../../caseInsert/textContent'
+import {
+  CASE_INSERT_TEXT_WIDTH_MAX,
+  CASE_INSERT_TEXT_WIDTH_MIN,
+  getCaseInsertTextBlockLayoutPresets,
+  getCaseInsertTextLayoutWidth,
+  getCaseInsertTextListLayoutPresets,
+} from '../../caseInsert/textLayout'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
@@ -85,11 +98,18 @@ import {
 } from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
+import {
+  CaseInsertTextBackgroundFineTuneControls,
+  CaseInsertTextOptionalStyleControls,
+  CaseInsertTextSourceControls,
+  CaseInsertTextStyleControls,
+} from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertTemplateControlsProps = {
   paneId: CaseInsertTemplatePaneId
   templateState: ProjectCaseInsertSurfaceState
+  projectMetadata: ProjectMetadata
   actions: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
   getBrandingControls: (
@@ -224,15 +244,19 @@ function getImageStatus(slot: ProjectCaseInsertImageSlot) {
   })
 }
 
-function getPositionPresets(paneId: CaseInsertTemplatePaneId) {
-  return paneId === 'cover' ? COVER_POSITION_PRESETS : TRAY_POSITION_PRESETS
+function getTextBlockControlPriority(textBlock: ProjectCaseInsertTextBlock) {
+  return getCaseInsertTextBlockPriority(textBlock)
 }
 
-function getTextBlockRows(textBlock: ProjectCaseInsertTextBlock) {
-  if (textBlock.id.includes('description')) return 5
-  if (textBlock.id.includes('requirements')) return 4
+function sortTextBlocksForControls(textBlocks: ProjectCaseInsertTextBlock[]) {
+  return [...textBlocks].sort(
+    (left, right) =>
+      getTextBlockControlPriority(left) - getTextBlockControlPriority(right),
+  )
+}
 
-  return 3
+function getPositionPresets(paneId: CaseInsertTemplatePaneId) {
+  return paneId === 'cover' ? COVER_POSITION_PRESETS : TRAY_POSITION_PRESETS
 }
 
 function RangeField({
@@ -253,11 +277,8 @@ function RangeField({
   onChange: (value: number) => void
 }) {
   return (
-    <>
-      <label className="field-label spacing-top" htmlFor={id}>
-        {label}
-        <span>{Number(value).toFixed(step < 1 ? 2 : 0)}</span>
-      </label>
+    <label htmlFor={id}>
+      <span>{label}</span>
       <input
         id={id}
         type="range"
@@ -267,7 +288,7 @@ function RangeField({
         value={value}
         onChange={(event) => onChange(Number(event.target.value))}
       />
-    </>
+    </label>
   )
 }
 
@@ -305,6 +326,37 @@ function OverlayPositionPreset({
         <option value="">Choose preset...</option>
         {presets.map((preset) => (
           <option key={preset.label} value={preset.label}>
+            {preset.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function TextLayoutPresetControl({
+  id,
+  presets,
+  onApplyPreset,
+}: {
+  id: string
+  presets: ReturnType<typeof getCaseInsertTextBlockLayoutPresets>
+  onApplyPreset: (presetId: string) => void
+}) {
+  return (
+    <label>
+      <span>Layout preset</span>
+      <select
+        id={id}
+        defaultValue=""
+        onChange={(event) => {
+          if (event.target.value) onApplyPreset(event.target.value)
+          event.currentTarget.value = ''
+        }}
+      >
+        <option value="">Choose preset...</option>
+        {presets.map((preset) => (
+          <option key={preset.id} value={preset.id}>
             {preset.label}
           </option>
         ))}
@@ -718,10 +770,12 @@ function CaseInsertArtworkFeatureSection({
 function TextBlockControls({
   paneId,
   textBlock,
+  projectMetadata,
   actions,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
+  projectMetadata: ProjectMetadata
   actions: CaseInsertTemplateEditorActions
 }) {
   const onLayoutChange = (
@@ -733,6 +787,11 @@ function TextBlockControls({
     field,
     value,
   )
+  const inputState = getCaseInsertTextBlockInputState(
+    textBlock,
+    projectMetadata,
+  )
+  const layoutPresets = getCaseInsertTextBlockLayoutPresets(paneId, textBlock)
 
   return (
     <div className="disc-text-control">
@@ -752,76 +811,175 @@ function TextBlockControls({
 
       {!textBlock.enabled ? null : (
         <div className="disc-text-control-body">
-          <div className="disc-text-control-group">
+          <CaseInsertTextOptionalStyleControls
+            idPrefix={textBlock.id}
+            label={textBlock.label}
+            style={textBlock.style}
+            avoidVisualElements={textBlock.avoidVisualElements}
+            onAvoidVisualElementsChange={(avoidVisualElements) =>
+              actions.handleTextBlockAvoidVisualElementsChange(
+                paneId,
+                textBlock.id,
+                avoidVisualElements,
+              )}
+            onStyleChange={(field, value) =>
+              actions.handleTextBlockStyleChange(
+                paneId,
+                textBlock.id,
+                field,
+                value,
+              )}
+          />
+
+          <CaseInsertTextSourceControls
+            label={textBlock.label}
+            source={textBlock.source}
+            isMetadataBacked={inputState.isMetadataBacked}
+            isManualOverride={inputState.isManualOverride}
+            onUseMetadataValue={() =>
+              actions.handleTextBlockValueChange(
+                paneId,
+                textBlock.id,
+                '',
+                'metadata',
+              )}
+          />
+
+          <CaseInsertTextStyleControls
+            idPrefix={textBlock.id}
+            label={textBlock.label}
+            style={textBlock.style}
+            source={textBlock.source}
+            onStyleChange={(field, value) =>
+              actions.handleTextBlockStyleChange(
+                paneId,
+                textBlock.id,
+                field,
+                value,
+              )}
+            onApplyStylePreset={(presetId) =>
+              actions.handleApplyTextBlockStylePreset(
+                paneId,
+                textBlock.id,
+                presetId,
+              )}
+          />
+
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textBlock.label} text controls`}
+          >
             <label className="field-label" htmlFor={`${textBlock.id}-value`}>
               Text value
             </label>
-            <textarea
+            <input
               id={`${textBlock.id}-value`}
-              rows={getTextBlockRows(textBlock)}
-              value={textBlock.value}
-              onChange={(event) =>
+              className="disc-text-input"
+              type="text"
+              value={inputState.value}
+              placeholder={inputState.placeholder}
+              onChange={(event) => {
+                const value = event.target.value
+
                 actions.handleTextBlockValueChange(
                   paneId,
                   textBlock.id,
-                  event.target.value,
-                )}
+                  value,
+                  getNextCaseInsertTextSource(textBlock, value),
+                )
+              }}
             />
           </div>
 
-          <div className="disc-text-control-group">
-            <label className="field-label" htmlFor={`${textBlock.id}-align`}>
-              Alignment
-            </label>
-            <select
-              id={`${textBlock.id}-align`}
-              value={textBlock.align}
-              onChange={(event) =>
-                actions.handleTextBlockAlignChange(
-                  paneId,
-                  textBlock.id,
-                  event.target.value as ProjectCaseInsertTextAlign,
-                )}
-            >
-              <option value="left">Left</option>
-              <option value="center">Center</option>
-              <option value="right">Right</option>
-            </select>
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textBlock.label} placement controls`}
+          >
+            <div className="disc-text-layout-grid">
+              <label htmlFor={`${textBlock.id}-align`}>
+                <span>Align</span>
+                <select
+                  id={`${textBlock.id}-align`}
+                  value={textBlock.align}
+                  onChange={(event) =>
+                    actions.handleTextBlockAlignChange(
+                      paneId,
+                      textBlock.id,
+                      event.target.value as ProjectCaseInsertTextAlign,
+                    )}
+                >
+                  <option value="left">Left</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </label>
+
+              <TextLayoutPresetControl
+                id={`${textBlock.id}-placement`}
+                presets={layoutPresets}
+                onApplyPreset={(presetId) =>
+                  actions.handleApplyTextBlockLayoutPreset(
+                    paneId,
+                    textBlock.id,
+                    presetId,
+                  )}
+              />
+            </div>
           </div>
 
-          <div className="disc-text-control-group">
-            <OverlayPositionPreset
-              id={`${textBlock.id}-placement`}
-              paneId={paneId}
-              onLayoutChange={onLayoutChange}
-            />
-            <RangeField
-              id={`${textBlock.id}-scale`}
-              label="Scale"
-              min={0.7}
-              max={1.8}
-              step={0.01}
-              value={textBlock.layout.scale}
-              onChange={(value) => onLayoutChange('scale', value)}
-            />
-            <RangeField
-              id={`${textBlock.id}-x`}
-              label="X position"
-              min={0}
-              max={100}
-              step={1}
-              value={textBlock.layout.x}
-              onChange={(value) => onLayoutChange('x', value)}
-            />
-            <RangeField
-              id={`${textBlock.id}-y`}
-              label="Y position"
-              min={0}
-              max={100}
-              step={1}
-              value={textBlock.layout.y}
-              onChange={(value) => onLayoutChange('y', value)}
-            />
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textBlock.label} fine tuning controls`}
+          >
+            <div className="disc-text-layout-grid">
+              <RangeField
+                id={`${textBlock.id}-scale`}
+                label="Scale"
+                min={0.7}
+                max={1.8}
+                step={0.01}
+                value={textBlock.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${textBlock.id}-width`}
+                label="Width"
+                min={CASE_INSERT_TEXT_WIDTH_MIN}
+                max={CASE_INSERT_TEXT_WIDTH_MAX}
+                step={1}
+                value={getCaseInsertTextLayoutWidth(textBlock.layout)}
+                onChange={(value) => onLayoutChange('width', value)}
+              />
+              <RangeField
+                id={`${textBlock.id}-x`}
+                label="X"
+                min={0}
+                max={100}
+                step={1}
+                value={textBlock.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${textBlock.id}-y`}
+                label="Y"
+                min={0}
+                max={100}
+                step={1}
+                value={textBlock.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+              <CaseInsertTextBackgroundFineTuneControls
+                idPrefix={textBlock.id}
+                style={textBlock.style}
+                onStyleChange={(field, value) =>
+                  actions.handleTextBlockStyleChange(
+                    paneId,
+                    textBlock.id,
+                    field,
+                    value,
+                  )}
+              />
+            </div>
           </div>
 
           <div className="disc-text-control-group disc-text-action-group">
@@ -832,6 +990,14 @@ function TextBlockControls({
                 actions.handleResetTextBlockLayout(paneId, textBlock.id)}
             >
               Reset {textBlock.label.toLocaleLowerCase()} layout
+            </button>
+            <button
+              className="secondary-button disc-text-reset-button"
+              type="button"
+              onClick={() =>
+                actions.handleResetTextBlockStyle(paneId, textBlock.id)}
+            >
+              Reset {textBlock.label.toLocaleLowerCase()} style
             </button>
           </div>
         </div>
@@ -853,6 +1019,7 @@ function TextListControls({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) => actions.handleTextListLayoutChange(paneId, textList.id, field, value)
+  const layoutPresets = getCaseInsertTextListLayoutPresets(paneId)
 
   return (
     <div className="disc-text-control">
@@ -872,7 +1039,58 @@ function TextListControls({
 
       {!textList.enabled ? null : (
         <div className="disc-text-control-body">
-          <div className="disc-text-control-group">
+          <CaseInsertTextOptionalStyleControls
+            idPrefix={textList.id}
+            label={textList.label}
+            style={textList.style}
+            avoidVisualElements={textList.avoidVisualElements}
+            onAvoidVisualElementsChange={(avoidVisualElements) =>
+              actions.handleTextListAvoidVisualElementsChange(
+                paneId,
+                textList.id,
+                avoidVisualElements,
+              )}
+            onStyleChange={(field, value) =>
+              actions.handleTextListStyleChange(
+                paneId,
+                textList.id,
+                field,
+                value,
+              )}
+          />
+
+          <CaseInsertTextSourceControls
+            label={textList.label}
+            source={textList.source}
+          />
+
+          <CaseInsertTextStyleControls
+            idPrefix={textList.id}
+            label={textList.label}
+            style={textList.style}
+            source={textList.source}
+            onStyleChange={(field, value) =>
+              actions.handleTextListStyleChange(
+                paneId,
+                textList.id,
+                field,
+                value,
+              )}
+            onApplyStylePreset={(presetId) =>
+              actions.handleApplyTextListStylePreset(
+                paneId,
+                textList.id,
+                presetId,
+              )}
+          />
+
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textList.label} text controls`}
+          >
+            {textList.items.length === 0 ? (
+              <p className="hint">No list items yet.</p>
+            ) : null}
             {textList.items.map((item, index) => (
               <div className="case-insert-list-item-row" key={index}>
                 <label
@@ -918,39 +1136,77 @@ function TextListControls({
             </button>
           </div>
 
-          <div className="disc-text-control-group">
-            <OverlayPositionPreset
-              id={`${textList.id}-placement`}
-              paneId={paneId}
-              onLayoutChange={onLayoutChange}
-            />
-            <RangeField
-              id={`${textList.id}-scale`}
-              label="Scale"
-              min={0.7}
-              max={1.8}
-              step={0.01}
-              value={textList.layout.scale}
-              onChange={(value) => onLayoutChange('scale', value)}
-            />
-            <RangeField
-              id={`${textList.id}-x`}
-              label="X position"
-              min={0}
-              max={100}
-              step={1}
-              value={textList.layout.x}
-              onChange={(value) => onLayoutChange('x', value)}
-            />
-            <RangeField
-              id={`${textList.id}-y`}
-              label="Y position"
-              min={0}
-              max={100}
-              step={1}
-              value={textList.layout.y}
-              onChange={(value) => onLayoutChange('y', value)}
-            />
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textList.label} placement controls`}
+          >
+            <div className="disc-text-layout-grid">
+              <TextLayoutPresetControl
+                id={`${textList.id}-placement`}
+                presets={layoutPresets}
+                onApplyPreset={(presetId) =>
+                  actions.handleApplyTextListLayoutPreset(
+                    paneId,
+                    textList.id,
+                    presetId,
+                  )}
+              />
+            </div>
+          </div>
+
+          <div
+            className="disc-text-control-group"
+            aria-label={`${textList.label} fine tuning controls`}
+          >
+            <div className="disc-text-layout-grid">
+              <RangeField
+                id={`${textList.id}-scale`}
+                label="Scale"
+                min={0.7}
+                max={1.8}
+                step={0.01}
+                value={textList.layout.scale}
+                onChange={(value) => onLayoutChange('scale', value)}
+              />
+              <RangeField
+                id={`${textList.id}-width`}
+                label="Width"
+                min={CASE_INSERT_TEXT_WIDTH_MIN}
+                max={CASE_INSERT_TEXT_WIDTH_MAX}
+                step={1}
+                value={getCaseInsertTextLayoutWidth(textList.layout)}
+                onChange={(value) => onLayoutChange('width', value)}
+              />
+              <RangeField
+                id={`${textList.id}-x`}
+                label="X"
+                min={0}
+                max={100}
+                step={1}
+                value={textList.layout.x}
+                onChange={(value) => onLayoutChange('x', value)}
+              />
+              <RangeField
+                id={`${textList.id}-y`}
+                label="Y"
+                min={0}
+                max={100}
+                step={1}
+                value={textList.layout.y}
+                onChange={(value) => onLayoutChange('y', value)}
+              />
+              <CaseInsertTextBackgroundFineTuneControls
+                idPrefix={textList.id}
+                style={textList.style}
+                onStyleChange={(field, value) =>
+                  actions.handleTextListStyleChange(
+                    paneId,
+                    textList.id,
+                    field,
+                    value,
+                  )}
+              />
+            </div>
           </div>
 
           <div className="disc-text-control-group disc-text-action-group">
@@ -961,6 +1217,14 @@ function TextListControls({
                 actions.handleResetTextListLayout(paneId, textList.id)}
             >
               Reset {textList.label.toLocaleLowerCase()} layout
+            </button>
+            <button
+              className="secondary-button disc-text-reset-button"
+              type="button"
+              onClick={() =>
+                actions.handleResetTextListStyle(paneId, textList.id)}
+            >
+              Reset {textList.label.toLocaleLowerCase()} style
             </button>
           </div>
         </div>
@@ -1420,15 +1684,27 @@ export function CaseInsertTemplateBrandingControls({
 export function CaseInsertTemplateTextControls({
   paneId,
   templateState,
+  projectMetadata,
   actions,
 }: CaseInsertTemplateControlsProps) {
+  const textBlocks = sortTextBlocksForControls(templateState.textBlocks)
+  const leadingTextBlocks = paneId === 'tray'
+    ? textBlocks.filter((textBlock) =>
+        getTextBlockControlPriority(textBlock) <= 90)
+    : textBlocks
+  const trailingTextBlocks = paneId === 'tray'
+    ? textBlocks.filter((textBlock) =>
+        getTextBlockControlPriority(textBlock) > 90)
+    : []
+
   return (
     <div className="disc-text-control-list">
-      {templateState.textBlocks.map((textBlock) => (
+      {leadingTextBlocks.map((textBlock) => (
         <TextBlockControls
           key={textBlock.id}
           paneId={paneId}
           textBlock={textBlock}
+          projectMetadata={projectMetadata}
           actions={actions}
         />
       ))}
@@ -1437,6 +1713,15 @@ export function CaseInsertTemplateTextControls({
           key={textList.id}
           paneId={paneId}
           textList={textList}
+          actions={actions}
+        />
+      ))}
+      {trailingTextBlocks.map((textBlock) => (
+        <TextBlockControls
+          key={textBlock.id}
+          paneId={paneId}
+          textBlock={textBlock}
+          projectMetadata={projectMetadata}
           actions={actions}
         />
       ))}

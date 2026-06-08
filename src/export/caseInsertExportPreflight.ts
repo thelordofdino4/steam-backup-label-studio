@@ -19,9 +19,16 @@ import {
   type CaseInsertTextReadabilityRole,
 } from '../caseInsert/textReadability.ts'
 import {
+  getRenderedCaseInsertTextBlock,
+} from '../caseInsert/textContent.ts'
+import {
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces.ts'
+import {
+  createCaseInsertSpineTextAvoidanceRegions,
+  createCaseInsertTemplateTextAvoidanceRegions,
+} from '../layout/caseInsertTextOccupiedRegions.ts'
 import {
   getJewelCaseBackBackgroundFit,
   getJewelCaseBackImageSlotPreviewRect,
@@ -53,6 +60,7 @@ import type {
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
+  ProjectMetadata,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
@@ -216,10 +224,22 @@ function getTemplateSurfaceWarnings(
 
   if (paneId === 'cover') {
     warnings.push(...getCoverSlotWarnings(templateState, layout, brandingSources))
-    warnings.push(...getCoverTextWarnings(templateState, layout))
+    warnings.push(
+      ...getCoverTextWarnings(
+        templateState,
+        layout,
+        brandingSources,
+      ),
+    )
   } else {
     warnings.push(...getTraySlotWarnings(templateState, layout, brandingSources))
-    warnings.push(...getTrayTextWarnings(templateState, layout))
+    warnings.push(
+      ...getTrayTextWarnings(
+        templateState,
+        layout,
+        brandingSources,
+      ),
+    )
   }
 
   return warnings
@@ -364,33 +384,63 @@ function getTraySlotWarnings(
 function getCoverTextWarnings(
   templateState: ProjectCaseInsertSurfaceState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
-  return templateState.textBlocks.flatMap((textBlock) =>
-    getTextBlockWarnings({
+  const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
+    paneId: 'cover',
+    templateState,
+    layout,
+    brandingSources,
+  })
+
+  return templateState.textBlocks.flatMap((textBlock) => {
+    const renderedTextBlock = getRenderedCaseInsertTextBlock(
       textBlock,
-      label: textBlock.label,
-      textLayout: getJewelCaseFrontTextBlockPreviewLayout(textBlock, layout),
+      brandingSources.projectMetadata,
+    )
+
+    return getTextBlockWarnings({
+      textBlock: renderedTextBlock,
+      label: renderedTextBlock.label,
+      textLayout: getJewelCaseFrontTextBlockPreviewLayout(
+        renderedTextBlock,
+        layout,
+        avoidanceRegions,
+      ),
       safeBounds: getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.cover),
       readabilityRole: 'callout',
       edge: { regionLabel: 'cover safe zone' },
-    }))
+    })
+  })
 }
 
 function getTrayTextWarnings(
   templateState: ProjectCaseInsertSurfaceState,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const safeBounds = getRegionBounds(layout, TEMPLATE_SAFE_REGION_BY_PANE.tray)
+  const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
+    paneId: 'tray',
+    templateState,
+    layout,
+    brandingSources,
+  })
   const textBlockWarnings = templateState.textBlocks.flatMap((textBlock) => {
-    const role = getCaseInsertBackTextBlockRole(textBlock)
+    const renderedTextBlock = getRenderedCaseInsertTextBlock(
+      textBlock,
+      brandingSources.projectMetadata,
+    )
+    const role = getCaseInsertBackTextBlockRole(renderedTextBlock)
 
     return getTextBlockWarnings({
-      textBlock,
-      label: textBlock.label,
+      textBlock: renderedTextBlock,
+      label: renderedTextBlock.label,
       textLayout: getJewelCaseBackTextBlockPreviewLayout(
-        textBlock,
+        renderedTextBlock,
         layout,
         role,
+        avoidanceRegions,
       ),
       safeBounds,
       readabilityRole: getCaseInsertBackTextBlockReadabilityRole(role),
@@ -401,7 +451,11 @@ function getTrayTextWarnings(
     getTextListWarnings({
       textList,
       label: textList.label,
-      textLayout: getJewelCaseBackTextListPreviewLayout(textList, layout),
+      textLayout: getJewelCaseBackTextListPreviewLayout(
+        textList,
+        layout,
+        avoidanceRegions,
+      ),
       safeBounds,
       readabilityRole: 'features',
       edge: { regionLabel: 'back panel safe zone' },
@@ -441,10 +495,21 @@ function getSpineSideWarnings(
     spineSide.background,
     layout,
   )
+  const renderedTitle = getRenderedCaseInsertTextBlock(
+    spineSide.title,
+    brandingSources.projectMetadata,
+  )
+  const avoidanceRegions = createCaseInsertSpineTextAvoidanceRegions({
+    side,
+    spineSide,
+    layout,
+    brandingSources,
+  })
   const titleLayout = getJewelCaseSpineTitlePreviewLayout(
     side,
-    spineSide.title,
+    renderedTitle,
     layout,
+    avoidanceRegions,
   )
   const titleArtworkLayout = getJewelCaseSpineImageSlotPreviewLayout(
     side,
@@ -476,17 +541,45 @@ function getSpineSideWarnings(
       { allowEmptySpaceWarning: true },
     ),
     ...getTextBlockWarnings({
-      textBlock: spineSide.title,
+      textBlock: renderedTitle,
       label: `${label} title`,
       textLayout: titleLayout
         ? {
             bounds: titleLayout.boundingRect,
+            reservedBounds: titleLayout.reservedBoundingRect,
             fontSizePx: titleLayout.fontSizePx,
             lineHeightPx: titleLayout.lineHeightPx,
           }
         : null,
       safeBounds: null,
       readabilityRole: 'spine',
+    }),
+    ...spineSide.textBlocks.flatMap((textBlock) => {
+      const renderedTextBlock = getRenderedCaseInsertTextBlock(
+        textBlock,
+        brandingSources.projectMetadata,
+      )
+      const textLayout = getJewelCaseSpineTitlePreviewLayout(
+        side,
+        renderedTextBlock,
+        layout,
+        avoidanceRegions,
+      )
+
+      return getTextBlockWarnings({
+        textBlock: renderedTextBlock,
+        label: `${label} ${renderedTextBlock.label.toLocaleLowerCase()}`,
+        textLayout: textLayout
+          ? {
+              bounds: textLayout.boundingRect,
+              reservedBounds: textLayout.reservedBoundingRect,
+              fontSizePx: textLayout.fontSizePx,
+              lineHeightPx: textLayout.lineHeightPx,
+            }
+          : null,
+        safeBounds: null,
+        readabilityRole: 'spine',
+      })
     }),
     ...getSpineImageSlotWarnings({
       slot: spineSide.titleArtwork,
@@ -865,7 +958,10 @@ function getTextBlockWarnings(params: {
     ...getCaseInsertTextReadabilityWarnings({
       label,
       text: textBlock.value,
-      layout: params.textLayout,
+      layout: {
+        ...params.textLayout,
+        bounds: params.textLayout.reservedBounds ?? params.textLayout.bounds,
+      },
       role: params.readabilityRole,
     }),
   )
@@ -916,7 +1012,10 @@ function getTextListWarnings(params: {
     ...getCaseInsertTextReadabilityWarnings({
       label,
       text: items.map((item) => `- ${item}`).join('\n'),
-      layout: params.textLayout,
+      layout: {
+        ...params.textLayout,
+        bounds: params.textLayout.reservedBounds ?? params.textLayout.bounds,
+      },
       role: params.readabilityRole,
     }),
   )
@@ -1035,8 +1134,14 @@ function markSlotWillRender(
     isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
 }
 
-function textBlockWillRender(textBlock: ProjectCaseInsertTextBlock) {
-  return Boolean(textBlock.enabled && textBlock.value.trim())
+function textBlockWillRender(
+  textBlock: ProjectCaseInsertTextBlock,
+  metadata: ProjectMetadata,
+) {
+  return Boolean(
+    textBlock.enabled &&
+      getRenderedCaseInsertTextBlock(textBlock, metadata).value.trim(),
+  )
 }
 
 function textListWillRender(textList: ProjectCaseInsertTextList) {
@@ -1060,7 +1165,8 @@ function surfaceHasVisibleContent(
     ) ||
     surface.logoSlots.some(logoSlotWillRender) ||
     surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
-    surface.textBlocks.some(textBlockWillRender) ||
+    surface.textBlocks.some((textBlock) =>
+      textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
     surface.textLists.some(textListWillRender)
   )
 }
@@ -1088,7 +1194,9 @@ function spineSideHasVisibleContent(
       spineSide.additionalArtworkEnabled &&
       spineSide.artworkSlots.some(slotWillRender)
     ) ||
-    textBlockWillRender(spineSide.title) ||
+    textBlockWillRender(spineSide.title, brandingSources.projectMetadata) ||
+    spineSide.textBlocks.some((textBlock) =>
+      textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
     spineSide.logoSlots.some(logoSlotWillRender) ||
     getVisibleSpineMarkSlots(
       spineSide,
@@ -1112,7 +1220,8 @@ function formatVisibleElementStatus(
     surface.logoSlots.filter(logoSlotWillRender).length +
     surface.markSlots.filter((slot) =>
       markSlotWillRender(slot, brandingSources)).length +
-    surface.textBlocks.filter(textBlockWillRender).length +
+    surface.textBlocks.filter((textBlock) =>
+      textBlockWillRender(textBlock, brandingSources.projectMetadata)).length +
     surface.textLists.filter(textListWillRender).length +
     (spine
       ? (['left', 'right'] as const).reduce(

@@ -48,7 +48,7 @@ test('case insert readability warns for print text below role threshold', () => 
   })
 
   assert.ok(warnings.some((warning) =>
-    /Left spine title uses 10px spine title text/.test(warning)))
+    /Left spine title uses 10px game title text/.test(warning)))
 })
 
 test('case insert readability warns when text overflows its box', () => {
@@ -106,7 +106,7 @@ test('case insert back text ids map to layout and readability roles', () => {
     'recommendedRequirements',
   )
   assert.equal(
-    getCaseInsertBackTextBlockRole({ id: 'tray-legal-text' }),
+    getCaseInsertBackTextBlockRole({ id: 'tray-copyright-text' }),
     'legalText',
   )
   assert.equal(

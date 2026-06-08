@@ -17,6 +17,8 @@ import {
   addCaseInsertTemplateImageSlot,
   addJewelCaseSpineImageSlot,
   addCaseInsertTextListItem,
+  applyCaseInsertTextBlockPresetLayout,
+  applyCaseInsertTextListPresetLayout,
   createBlankJewelCaseSavedProject,
   createCaseInsertProjectSnapshot,
   createDefaultCaseInsertImageSlot,
@@ -31,7 +33,9 @@ import {
   setCaseInsertImageSlotImage,
   setCaseInsertTemplateAdditionalArtworkEnabled,
   setJewelCaseSpineAdditionalArtworkEnabled,
+  setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
+  setCaseInsertTextListAvoidVisualElements,
   setCaseInsertTextListEnabled,
   setProjectJewelCaseExportGuideIds,
   setProjectJewelCaseExportSurfaces,
@@ -40,6 +44,7 @@ import {
   updateCaseInsertImageSlotLayoutField,
   updateCaseInsertTemplateImageSlot,
   updateCaseInsertTemplateImageSlotInGroup,
+  updateCaseInsertTextBlockStyleField,
   updateProjectCaseInsertTemplate,
   updateProjectJewelCaseSpineSide,
   updateCaseInsertTextBlockValue,
@@ -79,6 +84,47 @@ const steamGame = {
   artwork: [],
 }
 
+const COVER_DISC_TEXT_BLOCK_IDS = [
+  'cover-title-text',
+  'cover-subtitle-text',
+  'cover-disc-number',
+  'cover-backup-date',
+  'cover-steam-app-id',
+  'cover-developer-text',
+  'cover-publisher-text',
+  'cover-install-notes',
+  'cover-custom-note',
+  'cover-copyright-text',
+]
+
+const TRAY_TEXT_BLOCK_IDS = [
+  'tray-title-text',
+  'tray-subtitle-text',
+  'tray-disc-number',
+  'tray-backup-date',
+  'tray-steam-app-id',
+  'tray-developer-text',
+  'tray-publisher-text',
+  'tray-install-notes',
+  'tray-custom-note',
+  'tray-copyright-text',
+  'tray-description',
+  'tray-minimum-requirements',
+  'tray-recommended-requirements',
+]
+
+const SPINE_TEXT_BLOCK_IDS = [
+  'subtitle-text',
+  'disc-number',
+  'backup-date',
+  'steam-app-id',
+  'developer-text',
+  'publisher-text',
+  'install-notes',
+  'custom-note',
+  'copyright-text',
+]
+
 test('creates blank jewel case saved project data with generic template panes', () => {
   const project = createBlankJewelCaseSavedProject('Archive Case')
   const cover = project.caseInsert.templates.cover
@@ -102,16 +148,37 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(tray.additionalArtworkEnabled, false)
   assert.deepEqual(cover.artworkSlots, [])
   assert.deepEqual(tray.artworkSlots, [])
-  assert.equal(cover.textBlocks[0]?.value, '')
+  assert.deepEqual(cover.textBlocks.map(({ id }) => id), COVER_DISC_TEXT_BLOCK_IDS)
+  assert.equal(cover.textBlocks[0]?.value, 'Archive Case')
+  assert.equal(cover.textBlocks[0]?.source, 'metadata')
+  assert.equal(cover.textBlocks[0]?.layout.width, 80)
+  assert.equal(cover.textBlocks[8]?.value, '')
+  assert.equal(cover.textBlocks[8]?.style.backgroundEnabled, false)
+  assert.deepEqual(tray.textBlocks.map(({ id }) => id), TRAY_TEXT_BLOCK_IDS)
   assert.equal(tray.textBlocks[0]?.value, '')
+  assert.equal(tray.textBlocks[0]?.source, 'metadata')
+  assert.equal(tray.textLists[0]?.style.backgroundEnabled, true)
+  assert.equal(tray.textLists[0]?.layout.width, 42)
   assert.deepEqual(tray.textLists[0]?.items, [])
-  assert.equal(tray.textBlocks[1]?.enabled, false)
-  assert.equal(tray.textBlocks[2]?.enabled, false)
-  assert.equal(tray.textBlocks[3]?.enabled, false)
+  assert.equal(tray.textBlocks[10]?.enabled, false)
+  assert.equal(tray.textBlocks[11]?.enabled, false)
+  assert.equal(tray.textBlocks[12]?.enabled, false)
   assert.equal(project.caseInsert.spine.left.title.enabled, true)
   assert.equal(project.caseInsert.spine.left.title.value, 'Archive Case')
+  assert.equal(project.caseInsert.spine.left.title.style.color, '#ffffff')
+  assert.equal(project.caseInsert.spine.left.title.layout.width, 90)
   assert.equal(project.caseInsert.spine.left.title.layout.rotation, -90)
   assert.equal(project.caseInsert.spine.right.title.layout.rotation, 90)
+  assert.deepEqual(
+    project.caseInsert.spine.left.textBlocks.map(({ id }) =>
+      id.replace('left-spine-', '')),
+    SPINE_TEXT_BLOCK_IDS,
+  )
+  assert.deepEqual(
+    project.caseInsert.spine.right.textBlocks.map(({ id }) =>
+      id.replace('right-spine-', '')),
+    SPINE_TEXT_BLOCK_IDS,
+  )
   assert.equal(project.caseInsert.spine.left.background.enabled, true)
   assert.equal(project.caseInsert.spine.right.background.enabled, true)
   assert.equal(project.caseInsert.spine.left.steamBanner.enabled, true)
@@ -204,15 +271,214 @@ test('creates case insert snapshots from generic template state', () => {
   assert.equal(project.metadata?.title, 'Portal 2 Case')
   assert.equal(project.metadata?.steamAppId, '620')
   assert.equal(project.metadata?.ratingSystem, 'none')
-  assert.equal(project.caseInsert.templates.cover.textBlocks[0]?.value, 'Co-op edition')
+  assert.deepEqual(
+    project.caseInsert.templates.cover.textBlocks.map(({ id }) => id),
+    COVER_DISC_TEXT_BLOCK_IDS,
+  )
   assert.equal(
-    project.caseInsert.templates.tray.textBlocks[0]?.value,
+    project.caseInsert.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.value,
+    'Co-op edition',
+  )
+  assert.equal(
+    project.caseInsert.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.layout.width,
+    74,
+  )
+  assert.equal(project.caseInsert.templates.cover.textBlocks[0]?.value, 'Portal 2 Case')
+  assert.equal(
+    project.caseInsert.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.value,
     'A test chamber classic.',
+  )
+  assert.equal(
+    project.caseInsert.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.layout.width,
+    82,
+  )
+  assert.deepEqual(
+    project.caseInsert.templates.tray.textBlocks.map(({ id }) => id),
+    TRAY_TEXT_BLOCK_IDS,
   )
   assert.deepEqual(project.caseInsert.templates.tray.textLists[0]?.items, [
     'Single-player',
     'Co-op puzzles',
   ])
+  assert.equal(project.caseInsert.templates.tray.textLists[0]?.layout.width, 42)
+})
+
+test('case insert text groups and styles survive sparse save/load data', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
+    ...cover,
+    textBlocks: cover.textBlocks.map((textBlock) =>
+      textBlock.id === 'cover-custom-note'
+        ? {
+            ...updateCaseInsertTextBlockStyleField(
+              setCaseInsertTextBlockAvoidVisualElements(
+                updateCaseInsertTextBlockValue(textBlock, 'Includes co-op'),
+                true,
+              ),
+              'backgroundEnabled',
+              true,
+            ),
+            layout: { ...textBlock.layout, width: 44 },
+          }
+        : textBlock,
+    ),
+  }))
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) => ({
+    ...tray,
+    textLists: tray.textLists.map((textList) =>
+      textList.id === 'tray-feature-bullets'
+        ? {
+            ...setCaseInsertTextListAvoidVisualElements(textList, true),
+            layout: { ...textList.layout, width: 36 },
+          }
+        : textList,
+    ),
+  }))
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    selectedSteamGame: steamGame,
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const customNote = restored.templates.cover.textBlocks.find(({ id }) =>
+    id === 'cover-custom-note')
+
+  assert.equal(customNote?.value, 'Includes co-op')
+  assert.equal(customNote?.style.backgroundEnabled, true)
+  assert.equal(customNote?.avoidVisualElements, true)
+  assert.equal(customNote?.layout.x, 50)
+  assert.equal(customNote?.layout.width, 44)
+  assert.equal(restored.templates.tray.textLists[0]?.avoidVisualElements, true)
+  assert.equal(restored.templates.tray.textLists[0]?.layout.width, 36)
+
+  const sparse = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Sparse Text Case',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Sparse Text Case',
+      selectedSteamGame: steamGame,
+    },
+    template: {
+      type: 'caseInsert',
+      variant: DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+    },
+    caseInsert: {
+      templates: {
+        cover: {
+          textBlocks: [
+            {
+              id: 'cover-callout-text',
+              label: 'Callout text',
+              enabled: true,
+              value: 'Legacy callout',
+              source: 'manual',
+              align: 'center',
+              layout: {
+                scale: 1,
+                x: 50,
+                y: 82,
+                rotation: 0,
+              },
+            },
+          ],
+        },
+        tray: {
+          textBlocks: [
+            {
+              id: 'tray-description',
+              label: 'Description',
+              enabled: true,
+              value: 'Legacy tray text',
+              source: 'manual',
+              align: 'left',
+              layout: {
+                scale: 1,
+                x: 50,
+                y: 50,
+                rotation: 0,
+              },
+            },
+          ],
+          textLists: [],
+        },
+      },
+    },
+  }).caseInsert
+
+  assert.deepEqual(
+    sparse.templates.cover.textBlocks.map(({ id }) => id),
+    COVER_DISC_TEXT_BLOCK_IDS,
+  )
+  assert.equal(
+    sparse.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.value,
+    'Legacy callout',
+  )
+  assert.equal(
+    sparse.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.layout.width,
+    74,
+  )
+  assert.equal(sparse.templates.cover.textBlocks[0]?.value, 'Sparse Text Case')
+  assert.equal(
+    sparse.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.value,
+    'Legacy tray text',
+  )
+  assert.equal(
+    sparse.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.layout.width,
+    82,
+  )
+  assert.deepEqual(
+    sparse.templates.tray.textBlocks.map(({ id }) => id),
+    TRAY_TEXT_BLOCK_IDS,
+  )
+  assert.deepEqual(sparse.templates.tray.textLists.map(({ id }) => id), [
+    'tray-feature-bullets',
+  ])
+  assert.equal(sparse.templates.tray.textLists[0]?.avoidVisualElements, false)
+  assert.equal(sparse.templates.tray.textLists[0]?.layout.width, 42)
+})
+
+test('case insert text layout presets update width and alignment without changing spine orientation', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const customNote = state.templates.cover.textBlocks.find(({ id }) =>
+    id === 'cover-custom-note')
+  const featureList = state.templates.tray.textLists[0]
+  const leftBlock = applyCaseInsertTextBlockPresetLayout(
+    'cover',
+    customNote!,
+    'cover-left-block',
+  )
+  const wideList = applyCaseInsertTextListPresetLayout(
+    'tray',
+    featureList!,
+    'tray-wide-center',
+  )
+  const spineTitle = applyCaseInsertTextBlockPresetLayout(
+    'spine',
+    state.spine.left.title,
+    'spine-narrow',
+  )
+
+  assert.ok(customNote)
+  assert.ok(featureList)
+  assert.equal(leftBlock.align, 'left')
+  assert.equal(leftBlock.layout.x, 22)
+  assert.equal(leftBlock.layout.width, 42)
+  assert.equal(wideList.layout.x, 50)
+  assert.equal(wideList.layout.width, 90)
+  assert.equal(spineTitle.layout.width, 46)
+  assert.equal(spineTitle.layout.rotation, -90)
 })
 
 test('restores sparse legacy jewel case projects to safe defaults', () => {
@@ -322,12 +588,29 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
   assert.equal(artwork?.imageSource?.source, 'uploaded')
   assert.equal(artwork?.imageSource?.sourceLabel, 'shot.png')
   assert.equal(artwork?.imageSource?.sourceUrl, null)
-  assert.equal(tray.textBlocks[0]?.enabled, true)
-  assert.equal(tray.textBlocks[0]?.value, '')
+  assert.equal(
+    tray.textBlocks.find(({ id }) => id === 'tray-description')?.enabled,
+    true,
+  )
+  assert.equal(
+    tray.textBlocks.find(({ id }) => id === 'tray-description')?.value,
+    '',
+  )
   assert.deepEqual(tray.textLists[0]?.items, ['Portals', 'Robots'])
-  assert.equal(tray.textBlocks[1]?.value, 'Windows XP')
-  assert.equal(tray.textBlocks[2]?.value, 'Windows 7')
-  assert.equal(tray.textBlocks[3]?.value, 'Valve terms apply.')
+  assert.equal(
+    tray.textBlocks.find(({ id }) =>
+      id === 'tray-minimum-requirements')?.value,
+    'Windows XP',
+  )
+  assert.equal(
+    tray.textBlocks.find(({ id }) =>
+      id === 'tray-recommended-requirements')?.value,
+    'Windows 7',
+  )
+  assert.equal(
+    tray.textBlocks.find(({ id }) => id === 'tray-copyright-text')?.value,
+    'Valve terms apply.',
+  )
   assert.equal(restored.caseInsert.spine.left.title.enabled, true)
   assert.equal(restored.caseInsert.spine.left.steamBanner.enabled, true)
   assert.equal(restored.caseInsert.spine.left.title.value, 'SPARSE')
@@ -416,8 +699,8 @@ test('case update helpers preserve optional state while toggling visibility', ()
           )
         : slot,
     ),
-    textBlocks: cover.textBlocks.map((textBlock, index) =>
-      index === 0
+    textBlocks: cover.textBlocks.map((textBlock) =>
+      textBlock.id === 'cover-custom-note'
         ? setCaseInsertTextBlockEnabled(
             updateCaseInsertTextBlockValue(textBlock, 'Includes co-op'),
             false,
@@ -452,8 +735,14 @@ test('case update helpers preserve optional state while toggling visibility', ()
   assert.deepEqual(cover.artworkSlots[0]?.imageSize, { width: 640, height: 320 })
   assert.equal(cover.artworkSlots[0]?.imageSource?.source, 'uploaded')
   assert.equal(cover.artworkSlots[0]?.imageSource?.sourceLabel, 'callout.png')
-  assert.equal(cover.textBlocks[0]?.enabled, false)
-  assert.equal(cover.textBlocks[0]?.value, 'Includes co-op')
+  assert.equal(
+    cover.textBlocks.find(({ id }) => id === 'cover-custom-note')?.enabled,
+    false,
+  )
+  assert.equal(
+    cover.textBlocks.find(({ id }) => id === 'cover-custom-note')?.value,
+    'Includes co-op',
+  )
   assert.equal(tray.textLists[0]?.enabled, false)
   assert.deepEqual(tray.textLists[0]?.items, ['Two-player puzzles'])
   assert.equal(state.spine.left.title.enabled, false)

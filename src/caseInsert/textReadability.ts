@@ -19,6 +19,7 @@ export type CaseInsertTextReadabilityRole =
 
 export type CaseInsertTextLayout = {
   bounds: JewelCasePixelRect
+  reservedBounds?: JewelCasePixelRect
   fontSizePx: number
   lineHeightPx: number
 }
@@ -39,12 +40,12 @@ const TEXT_WARNING_OPTIONS_BY_ROLE: Record<
   CaseInsertTextReadabilityRole,
   TextWarningOptions
 > = {
-  callout: { minReadableFontSizePx: 24, textKind: 'callout text' },
+  callout: { minReadableFontSizePx: 24, textKind: 'custom note text' },
   description: { minReadableFontSizePx: 18, textKind: 'description text' },
   features: { minReadableFontSizePx: 18, textKind: 'feature text' },
   requirements: { minReadableFontSizePx: 14, textKind: 'requirements text' },
   legal: { minReadableFontSizePx: 10, textKind: 'legal text' },
-  spine: { minReadableFontSizePx: 18, textKind: 'spine title text' },
+  spine: { minReadableFontSizePx: 18, textKind: 'game title text' },
 }
 
 const TEXT_CROWDING_THRESHOLD = 0.9
@@ -54,7 +55,9 @@ export function getCaseInsertBackTextBlockRole(
 ): CaseInsertBackTextBlockRole {
   if (textBlock.id.includes('minimum')) return 'minimumRequirements'
   if (textBlock.id.includes('recommended')) return 'recommendedRequirements'
-  if (textBlock.id.includes('legal')) return 'legalText'
+  if (textBlock.id.includes('legal') || textBlock.id.includes('copyright')) {
+    return 'legalText'
+  }
 
   return 'description'
 }

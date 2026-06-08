@@ -12,6 +12,7 @@ import {
 import {
   updateJewelCaseSpineImageSlot,
   updateJewelCaseSpineImageSlotInGroup,
+  updateJewelCaseSpineTextBlock,
   updateJewelCaseSpineTitle,
   type JewelCaseSpineImageSlotGroupKey,
   type JewelCaseSpineImageSlotKey,
@@ -109,6 +110,12 @@ type SpineTitleDragTarget = {
   side: JewelCaseSpineSide
 }
 
+type SpineTextBlockDragTarget = {
+  scope: 'spineTextBlock'
+  side: JewelCaseSpineSide
+  textBlockId: string
+}
+
 type CaseInsertDragTarget =
   | TemplatePrimaryImageDragTarget
   | TemplateGroupedImageDragTarget
@@ -117,6 +124,7 @@ type CaseInsertDragTarget =
   | SpinePrimaryImageDragTarget
   | SpineGroupedImageDragTarget
   | SpineTitleDragTarget
+  | SpineTextBlockDragTarget
 
 type CaseInsertDragState = PercentDragState & {
   bounds: DragBounds
@@ -165,6 +173,11 @@ export type CaseInsertSpinePreviewPointerHandlers = {
   handleSpineTitlePointerDown: (
     event: PointerEvent<Element>,
     side: JewelCaseSpineSide,
+  ) => void
+  handleSpineTextBlockPointerDown: (
+    event: PointerEvent<Element>,
+    side: JewelCaseSpineSide,
+    textBlockId: string,
   ) => void
   handleSpinePointerMove: (event: PointerEvent<Element>) => void
   handleSpinePointerUp: (event: PointerEvent<Element>) => void
@@ -383,6 +396,13 @@ function updateCaseInsertDragTargetPosition(
         target.side,
         (title) => updateCaseInsertTextBlockLayoutPosition(title, point),
       )
+    case 'spineTextBlock':
+      return updateJewelCaseSpineTextBlock(
+        state,
+        target.side,
+        target.textBlockId,
+        (textBlock) => updateCaseInsertTextBlockLayoutPosition(textBlock, point),
+      )
     default:
       return state
   }
@@ -437,6 +457,16 @@ function findSpineGroupedImageSlot(
 ): ProjectCaseInsertImageSlot | null {
   return caseInsert.spine[side][slotKey].find((slot) => slot.id === slotId) ??
     null
+}
+
+function findSpineTextBlock(
+  caseInsert: ProjectJewelCaseState,
+  side: JewelCaseSpineSide,
+  textBlockId: string,
+): ProjectCaseInsertTextBlock | null {
+  return caseInsert.spine[side].textBlocks.find(
+    (textBlock) => textBlock.id === textBlockId,
+  ) ?? null
 }
 
 export function useCaseInsertPreviewPointerDrag({
@@ -684,6 +714,33 @@ export function useCaseInsertPreviewPointerDrag({
     [beginDrag, caseInsert.spine, layout],
   )
 
+  const handleSpineTextBlockPointerDown = useCallback(
+    (
+      event: PointerEvent<Element>,
+      side: JewelCaseSpineSide,
+      textBlockId: string,
+    ) => {
+      const textBlock = findSpineTextBlock(caseInsert, side, textBlockId)
+
+      if (!textBlock) {
+        return
+      }
+
+      beginDrag(
+        event,
+        getSpineOverlayDragRegion(side, layout),
+        textBlock.layout,
+        'percent',
+        {
+          scope: 'spineTextBlock',
+          side,
+          textBlockId,
+        },
+      )
+    },
+    [beginDrag, caseInsert, layout],
+  )
+
   const cancelCaseInsertPreviewPointerDrag = useCallback(() => {
     caseInsertPointerDrag.cancelPointerDrag()
   }, [caseInsertPointerDrag])
@@ -703,6 +760,7 @@ export function useCaseInsertPreviewPointerDrag({
         handleSpinePrimaryImageSlotPointerDown,
         handleSpineGroupedImageSlotPointerDown,
         handleSpineTitlePointerDown,
+        handleSpineTextBlockPointerDown,
         handleSpinePointerMove: caseInsertPointerDrag.handlePointerMove,
         handleSpinePointerUp: caseInsertPointerDrag.endPointerDrag,
       },

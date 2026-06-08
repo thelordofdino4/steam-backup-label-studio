@@ -65,13 +65,27 @@ import {
 } from '../caseInsert/imageSlotSourceImport'
 import {
   addCaseInsertTextListItem,
+  applyCaseInsertTextBlockPresetLayout,
+  applyCaseInsertTextBlockStylePreset,
+  applyCaseInsertTextListPresetLayout,
+  applyCaseInsertTextListStylePreset,
   removeCaseInsertTextListItem,
+  resetCaseInsertTextBlockStyle,
+  resetCaseInsertTextListStyle,
+  setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
+  setCaseInsertTextListAvoidVisualElements,
   setCaseInsertTextListEnabled,
+  updateCaseInsertTextBlockStyleField,
   updateCaseInsertTextBlockLayoutField,
   updateCaseInsertTextBlockValue,
+  updateCaseInsertTextListStyleField,
   updateCaseInsertTextListItem,
 } from '../caseInsert/textTransitions'
+import type {
+  CaseInsertTextStyleField,
+  CaseInsertTextStyleValue,
+} from '../caseInsert/textStyles'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
@@ -85,9 +99,13 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
+  ProjectCaseInsertTextSource,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
 import type { CaseInsertImageSlotImageInput } from '../caseInsert/types'
+import {
+  getCanonicalCaseInsertTextBlockId,
+} from '../caseInsert/textContent'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
@@ -113,15 +131,33 @@ const defaultPrimarySlotLayouts: Record<
 }
 
 const defaultTextBlockLayouts: Record<string, ProjectCaseInsertLayout> = {
-  'cover-callout-text': { scale: 1, x: 50, y: 82, rotation: 0 },
-  'tray-description': { scale: 1, x: 50, y: 50, rotation: 0 },
-  'tray-minimum-requirements': { scale: 1, x: 28, y: 81, rotation: 0 },
-  'tray-recommended-requirements': { scale: 1, x: 72, y: 81, rotation: 0 },
-  'tray-legal-text': { scale: 1, x: 50, y: 93, rotation: 0 },
+  'cover-title-text': { scale: 1, width: 80, x: 50, y: 34, rotation: 0 },
+  'cover-subtitle-text': { scale: 1, width: 72, x: 50, y: 45, rotation: 0 },
+  'cover-disc-number': { scale: 0.9, width: 42, x: 18, y: 82, rotation: 0 },
+  'cover-backup-date': { scale: 0.86, width: 48, x: 50, y: 86, rotation: 0 },
+  'cover-steam-app-id': { scale: 0.82, width: 48, x: 82, y: 82, rotation: 0 },
+  'cover-developer-text': { scale: 0.84, width: 48, x: 22, y: 88, rotation: 0 },
+  'cover-publisher-text': { scale: 0.84, width: 48, x: 78, y: 88, rotation: 0 },
+  'cover-install-notes': { scale: 0.9, width: 58, x: 50, y: 74, rotation: 0 },
+  'cover-custom-note': { scale: 1, width: 74, x: 50, y: 82, rotation: 0 },
+  'cover-copyright-text': { scale: 1, width: 86, x: 50, y: 93, rotation: 0 },
+  'tray-title-text': { scale: 1, width: 80, x: 50, y: 15, rotation: 0 },
+  'tray-subtitle-text': { scale: 0.9, width: 72, x: 50, y: 22, rotation: 0 },
+  'tray-disc-number': { scale: 0.78, width: 42, x: 18, y: 88, rotation: 0 },
+  'tray-backup-date': { scale: 0.78, width: 48, x: 50, y: 88, rotation: 0 },
+  'tray-steam-app-id': { scale: 0.78, width: 48, x: 82, y: 88, rotation: 0 },
+  'tray-developer-text': { scale: 0.78, width: 48, x: 22, y: 76, rotation: 0 },
+  'tray-publisher-text': { scale: 0.78, width: 48, x: 78, y: 76, rotation: 0 },
+  'tray-install-notes': { scale: 0.86, width: 58, x: 50, y: 70, rotation: 0 },
+  'tray-custom-note': { scale: 0.9, width: 74, x: 50, y: 64, rotation: 0 },
+  'tray-copyright-text': { scale: 1, width: 88, x: 50, y: 93, rotation: 0 },
+  'tray-description': { scale: 1, width: 82, x: 50, y: 50, rotation: 0 },
+  'tray-minimum-requirements': { scale: 1, width: 40, x: 28, y: 81, rotation: 0 },
+  'tray-recommended-requirements': { scale: 1, width: 40, x: 72, y: 81, rotation: 0 },
 }
 
 const defaultTextListLayouts: Record<string, ProjectCaseInsertLayout> = {
-  'tray-feature-bullets': { scale: 1, x: 28, y: 31, rotation: 0 },
+  'tray-feature-bullets': { scale: 1, width: 42, x: 28, y: 31, rotation: 0 },
 }
 
 function normalizeLabel(label: string) {
@@ -975,13 +1011,18 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
     value: string,
+    source?: ProjectCaseInsertTextSource,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
       updateCaseInsertTemplateTextBlock(
         currentCaseInsert,
         paneId,
         textBlockId,
-        (textBlock) => updateCaseInsertTextBlockValue(textBlock, value),
+        (textBlock) => updateCaseInsertTextBlockValue(
+          textBlock,
+          value,
+          source,
+        ),
       ),
     )
   }
@@ -1004,6 +1045,24 @@ export function useCaseInsertTemplateEditor({
     )
   }
 
+  function handleTextBlockAvoidVisualElementsChange(
+    paneId: CaseInsertTemplatePaneId,
+    textBlockId: string,
+    avoidVisualElements: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        (textBlock) => setCaseInsertTextBlockAvoidVisualElements(
+          textBlock,
+          avoidVisualElements,
+        ),
+      ),
+    )
+  }
+
   function handleTextBlockLayoutChange(
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
@@ -1021,11 +1080,29 @@ export function useCaseInsertTemplateEditor({
     )
   }
 
+  function handleApplyTextBlockLayoutPreset(
+    paneId: CaseInsertTemplatePaneId,
+    textBlockId: string,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        (textBlock) =>
+          applyCaseInsertTextBlockPresetLayout(paneId, textBlock, presetId),
+      ),
+    )
+  }
+
   function handleResetTextBlockLayout(
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
   ) {
-    const layout = defaultTextBlockLayouts[textBlockId]
+    const layout = defaultTextBlockLayouts[
+      getCanonicalCaseInsertTextBlockId(textBlockId)
+    ]
 
     if (!layout) {
       return
@@ -1040,6 +1117,53 @@ export function useCaseInsertTemplateEditor({
           ...textBlock,
           layout,
         }),
+      ),
+    )
+  }
+
+  function handleTextBlockStyleChange(
+    paneId: CaseInsertTemplatePaneId,
+    textBlockId: string,
+    field: CaseInsertTextStyleField,
+    value: CaseInsertTextStyleValue,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        (textBlock) =>
+          updateCaseInsertTextBlockStyleField(textBlock, field, value),
+      ),
+    )
+  }
+
+  function handleApplyTextBlockStylePreset(
+    paneId: CaseInsertTemplatePaneId,
+    textBlockId: string,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        (textBlock) =>
+          applyCaseInsertTextBlockStylePreset(textBlock, presetId),
+      ),
+    )
+  }
+
+  function handleResetTextBlockStyle(
+    paneId: CaseInsertTemplatePaneId,
+    textBlockId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        resetCaseInsertTextBlockStyle,
       ),
     )
   }
@@ -1089,6 +1213,24 @@ export function useCaseInsertTemplateEditor({
     )
   }
 
+  function handleTextListAvoidVisualElementsChange(
+    paneId: CaseInsertTemplatePaneId,
+    textListId: string,
+    avoidVisualElements: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextList(
+        currentCaseInsert,
+        paneId,
+        textListId,
+        (textList) => setCaseInsertTextListAvoidVisualElements(
+          textList,
+          avoidVisualElements,
+        ),
+      ),
+    )
+  }
+
   function handleRemoveTextListItem(
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
@@ -1126,6 +1268,22 @@ export function useCaseInsertTemplateEditor({
     )
   }
 
+  function handleApplyTextListLayoutPreset(
+    paneId: CaseInsertTemplatePaneId,
+    textListId: string,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextList(
+        currentCaseInsert,
+        paneId,
+        textListId,
+        (textList) =>
+          applyCaseInsertTextListPresetLayout(paneId, textList, presetId),
+      ),
+    )
+  }
+
   function handleResetTextListLayout(
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
@@ -1145,6 +1303,53 @@ export function useCaseInsertTemplateEditor({
           ...textList,
           layout,
         }),
+      ),
+    )
+  }
+
+  function handleTextListStyleChange(
+    paneId: CaseInsertTemplatePaneId,
+    textListId: string,
+    field: CaseInsertTextStyleField,
+    value: CaseInsertTextStyleValue,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextList(
+        currentCaseInsert,
+        paneId,
+        textListId,
+        (textList) =>
+          updateCaseInsertTextListStyleField(textList, field, value),
+      ),
+    )
+  }
+
+  function handleApplyTextListStylePreset(
+    paneId: CaseInsertTemplatePaneId,
+    textListId: string,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextList(
+        currentCaseInsert,
+        paneId,
+        textListId,
+        (textList) =>
+          applyCaseInsertTextListStylePreset(textList, presetId),
+      ),
+    )
+  }
+
+  function handleResetTextListStyle(
+    paneId: CaseInsertTemplatePaneId,
+    textListId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateTextList(
+        currentCaseInsert,
+        paneId,
+        textListId,
+        resetCaseInsertTextListStyle,
       ),
     )
   }
@@ -1195,14 +1400,24 @@ export function useCaseInsertTemplateEditor({
     handleTextBlockEnabledChange,
     handleTextBlockValueChange,
     handleTextBlockAlignChange,
+    handleTextBlockAvoidVisualElementsChange,
     handleTextBlockLayoutChange,
+    handleApplyTextBlockLayoutPreset,
     handleResetTextBlockLayout,
+    handleTextBlockStyleChange,
+    handleApplyTextBlockStylePreset,
+    handleResetTextBlockStyle,
     handleTextListEnabledChange,
     handleAddTextListItem,
     handleTextListItemValueChange,
+    handleTextListAvoidVisualElementsChange,
     handleRemoveTextListItem,
     handleTextListLayoutChange,
+    handleApplyTextListLayoutPreset,
     handleResetTextListLayout,
+    handleTextListStyleChange,
+    handleApplyTextListStylePreset,
+    handleResetTextListStyle,
   }
 }
 

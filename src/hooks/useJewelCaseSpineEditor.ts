@@ -12,6 +12,7 @@ import {
   updateProjectJewelCaseSpineSide,
   updateJewelCaseSpineImageSlot,
   updateJewelCaseSpineImageSlotInGroup,
+  updateJewelCaseSpineTextBlock,
   updateJewelCaseSpineTitle,
   type JewelCaseSpineImageSlotGroupKey,
   type JewelCaseSpineImageSlotKey,
@@ -71,10 +72,19 @@ import type {
   CaseInsertImageSlotImageInput,
 } from '../caseInsert/types'
 import {
+  applyCaseInsertTextBlockPresetLayout,
+  applyCaseInsertTextBlockStylePreset,
+  resetCaseInsertTextBlockStyle,
+  setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
+  updateCaseInsertTextBlockStyleField,
   updateCaseInsertTextBlockLayoutField,
   updateCaseInsertTextBlockValue,
 } from '../caseInsert/textTransitions'
+import type {
+  CaseInsertTextStyleField,
+  CaseInsertTextStyleValue,
+} from '../caseInsert/textStyles'
 import type { JewelCaseSpineSide } from '../caseInsert/types'
 import type { LocalSteamScreenshotAsset } from '../local/localArtwork'
 import type {
@@ -85,6 +95,7 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
+  ProjectCaseInsertTextSource,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
@@ -98,8 +109,36 @@ type UseJewelCaseSpineEditorOptions = {
 }
 
 const defaultSpineTitleLayouts: Record<JewelCaseSpineSide, ProjectCaseInsertLayout> = {
-  left: { scale: 1, x: 50, y: 50, rotation: -90 },
-  right: { scale: 1, x: 50, y: 50, rotation: 90 },
+  left: { scale: 1, width: 90, x: 50, y: 50, rotation: -90 },
+  right: { scale: 1, width: 90, x: 50, y: 50, rotation: 90 },
+}
+
+const defaultSpineTextBlockLayouts: Record<
+  JewelCaseSpineSide,
+  Record<string, ProjectCaseInsertLayout>
+> = {
+  left: {
+    'subtitle-text': { scale: 0.78, width: 74, x: 50, y: 42, rotation: -90 },
+    'disc-number': { scale: 0.7, width: 46, x: 50, y: 60, rotation: -90 },
+    'backup-date': { scale: 0.68, width: 48, x: 50, y: 68, rotation: -90 },
+    'steam-app-id': { scale: 0.66, width: 48, x: 50, y: 76, rotation: -90 },
+    'developer-text': { scale: 0.68, width: 48, x: 50, y: 84, rotation: -90 },
+    'publisher-text': { scale: 0.68, width: 48, x: 50, y: 88, rotation: -90 },
+    'install-notes': { scale: 0.66, width: 58, x: 50, y: 72, rotation: -90 },
+    'custom-note': { scale: 0.72, width: 58, x: 50, y: 78, rotation: -90 },
+    'copyright-text': { scale: 0.62, width: 68, x: 50, y: 92, rotation: -90 },
+  },
+  right: {
+    'subtitle-text': { scale: 0.78, width: 74, x: 50, y: 42, rotation: 90 },
+    'disc-number': { scale: 0.7, width: 46, x: 50, y: 60, rotation: 90 },
+    'backup-date': { scale: 0.68, width: 48, x: 50, y: 68, rotation: 90 },
+    'steam-app-id': { scale: 0.66, width: 48, x: 50, y: 76, rotation: 90 },
+    'developer-text': { scale: 0.68, width: 48, x: 50, y: 84, rotation: 90 },
+    'publisher-text': { scale: 0.68, width: 48, x: 50, y: 88, rotation: 90 },
+    'install-notes': { scale: 0.66, width: 58, x: 50, y: 72, rotation: 90 },
+    'custom-note': { scale: 0.72, width: 58, x: 50, y: 78, rotation: 90 },
+    'copyright-text': { scale: 0.62, width: 68, x: 50, y: 92, rotation: 90 },
+  },
 }
 
 const defaultSpineImageSlotLayouts: Record<
@@ -144,6 +183,18 @@ function getSpineBackgroundFitRegion(side: JewelCaseSpineSide) {
   return getJewelCaseRegionExportBounds(
     side === 'left' ? 'leftSpine' : 'rightSpine',
   )
+}
+
+function getDefaultSpineTextBlockLayout(
+  side: JewelCaseSpineSide,
+  textBlockId: string,
+) {
+  const prefix = `${side}-spine-`
+  const suffix = textBlockId.startsWith(prefix)
+    ? textBlockId.slice(prefix.length)
+    : textBlockId
+
+  return defaultSpineTextBlockLayouts[side][suffix]
 }
 
 function getNextSpineArtworkSlotIndex(
@@ -271,6 +322,21 @@ export function useJewelCaseSpineEditor({
     )
   }, [setProjectJewelCase])
 
+  const updateSpineTextBlock = useCallback((
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    updater: Parameters<typeof updateJewelCaseSpineTextBlock>[3],
+  ) => {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateJewelCaseSpineTextBlock(
+        currentCaseInsert,
+        side,
+        textBlockId,
+        updater,
+      ),
+    )
+  }, [setProjectJewelCase])
+
   const updateSpineImageSlot = useCallback((
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
@@ -333,8 +399,10 @@ export function useJewelCaseSpineEditor({
   function handleSpineTitleValueChange(
     side: JewelCaseSpineSide,
     value: string,
+    source?: ProjectCaseInsertTextSource,
   ) {
-    updateSpineTitle(side, (title) => updateCaseInsertTextBlockValue(title, value))
+    updateSpineTitle(side, (title) =>
+      updateCaseInsertTextBlockValue(title, value, source))
   }
 
   function handleSpineTitleAlignChange(
@@ -347,6 +415,17 @@ export function useJewelCaseSpineEditor({
     }))
   }
 
+  function handleSpineTitleAvoidVisualElementsChange(
+    side: JewelCaseSpineSide,
+    avoidVisualElements: boolean,
+  ) {
+    updateSpineTitle(side, (title) =>
+      setCaseInsertTextBlockAvoidVisualElements(
+        title,
+        avoidVisualElements,
+      ))
+  }
+
   function handleSpineTitleLayoutChange(
     side: JewelCaseSpineSide,
     field: keyof ProjectCaseInsertLayout,
@@ -354,6 +433,15 @@ export function useJewelCaseSpineEditor({
   ) {
     updateSpineTitle(side, (title) =>
       updateCaseInsertTextBlockLayoutField(title, field, value),
+    )
+  }
+
+  function handleApplySpineTitleLayoutPreset(
+    side: JewelCaseSpineSide,
+    presetId: string,
+  ) {
+    updateSpineTitle(side, (title) =>
+      applyCaseInsertTextBlockPresetLayout('spine', title, presetId),
     )
   }
 
@@ -369,6 +457,143 @@ export function useJewelCaseSpineEditor({
       ...title,
       layout: defaultSpineTitleLayouts[side],
     }))
+  }
+
+  function handleSpineTextBlockEnabledChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    enabled: boolean,
+  ) {
+    updateSpineTextBlock(
+      side,
+      textBlockId,
+      (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
+    )
+  }
+
+  function handleSpineTextBlockValueChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    value: string,
+    source?: ProjectCaseInsertTextSource,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      updateCaseInsertTextBlockValue(textBlock, value, source))
+  }
+
+  function handleSpineTextBlockAlignChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    align: ProjectCaseInsertTextAlign,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) => ({
+      ...textBlock,
+      align,
+    }))
+  }
+
+  function handleSpineTextBlockAvoidVisualElementsChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    avoidVisualElements: boolean,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      setCaseInsertTextBlockAvoidVisualElements(
+        textBlock,
+        avoidVisualElements,
+      ))
+  }
+
+  function handleSpineTextBlockLayoutChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      updateCaseInsertTextBlockLayoutField(textBlock, field, value))
+  }
+
+  function handleApplySpineTextBlockLayoutPreset(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    presetId: string,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      applyCaseInsertTextBlockPresetLayout('spine', textBlock, presetId))
+  }
+
+  function handleSpineTextBlockOrientationChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    rotation: number,
+  ) {
+    handleSpineTextBlockLayoutChange(side, textBlockId, 'rotation', rotation)
+  }
+
+  function handleResetSpineTextBlockLayout(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+  ) {
+    const layout = getDefaultSpineTextBlockLayout(side, textBlockId)
+
+    if (!layout) {
+      return
+    }
+
+    updateSpineTextBlock(side, textBlockId, (textBlock) => ({
+      ...textBlock,
+      layout,
+    }))
+  }
+
+  function handleSpineTitleStyleChange(
+    side: JewelCaseSpineSide,
+    field: CaseInsertTextStyleField,
+    value: CaseInsertTextStyleValue,
+  ) {
+    updateSpineTitle(side, (title) =>
+      updateCaseInsertTextBlockStyleField(title, field, value),
+    )
+  }
+
+  function handleApplySpineTitleStylePreset(
+    side: JewelCaseSpineSide,
+    presetId: string,
+  ) {
+    updateSpineTitle(side, (title) =>
+      applyCaseInsertTextBlockStylePreset(title, presetId),
+    )
+  }
+
+  function handleResetSpineTitleStyle(side: JewelCaseSpineSide) {
+    updateSpineTitle(side, resetCaseInsertTextBlockStyle)
+  }
+
+  function handleSpineTextBlockStyleChange(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    field: CaseInsertTextStyleField,
+    value: CaseInsertTextStyleValue,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      updateCaseInsertTextBlockStyleField(textBlock, field, value))
+  }
+
+  function handleApplySpineTextBlockStylePreset(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+    presetId: string,
+  ) {
+    updateSpineTextBlock(side, textBlockId, (textBlock) =>
+      applyCaseInsertTextBlockStylePreset(textBlock, presetId))
+  }
+
+  function handleResetSpineTextBlockStyle(
+    side: JewelCaseSpineSide,
+    textBlockId: string,
+  ) {
+    updateSpineTextBlock(side, textBlockId, resetCaseInsertTextBlockStyle)
   }
 
   async function handleSpineImageSlotUpload(
@@ -1139,9 +1364,25 @@ export function useJewelCaseSpineEditor({
     handleSpineTitleEnabledChange,
     handleSpineTitleValueChange,
     handleSpineTitleAlignChange,
+    handleSpineTitleAvoidVisualElementsChange,
     handleSpineTitleLayoutChange,
+    handleApplySpineTitleLayoutPreset,
     handleSpineTitleOrientationChange,
     handleResetSpineTitleLayout,
+    handleSpineTitleStyleChange,
+    handleApplySpineTitleStylePreset,
+    handleResetSpineTitleStyle,
+    handleSpineTextBlockEnabledChange,
+    handleSpineTextBlockValueChange,
+    handleSpineTextBlockAlignChange,
+    handleSpineTextBlockAvoidVisualElementsChange,
+    handleSpineTextBlockLayoutChange,
+    handleApplySpineTextBlockLayoutPreset,
+    handleSpineTextBlockOrientationChange,
+    handleResetSpineTextBlockLayout,
+    handleSpineTextBlockStyleChange,
+    handleApplySpineTextBlockStylePreset,
+    handleResetSpineTextBlockStyle,
     handleSpineImageSlotUpload,
     handleUseSpineImageSlotSteamArtwork,
     handleUseSpineImageSlotLocalSteamScreenshot,

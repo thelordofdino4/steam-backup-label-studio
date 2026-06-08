@@ -10,12 +10,32 @@ import {
 import {
   getCaseInsertBackTextBlockRole,
 } from '../caseInsert/textReadability'
+import {
+  CASE_INSERT_TEXT_STROKE_COLOR,
+  caseInsertTextUsesShadow,
+  caseInsertTextUsesStroke,
+  getCaseInsertTextBackgroundColor,
+  getCaseInsertTextBorderColor,
+  getCaseInsertTextLayoutPaddingRatio,
+} from '../caseInsert/textRenderStyles'
+import {
+  getCaseInsertTextFontFamilyCanvas,
+  type CaseInsertTextStyle,
+} from '../caseInsert/textStyles'
+import {
+  getRenderedCaseInsertTextBlock,
+} from '../caseInsert/textContent'
 import type {
   CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
 import {
   createCaseInsertPngExportLayout,
 } from '../caseInsert/exportLayout'
+import {
+  createCaseInsertSpineTextAvoidanceRegions,
+  createCaseInsertTemplateTextAvoidanceRegions,
+  type CaseInsertTextAvoidanceRegion,
+} from '../layout/caseInsertTextOccupiedRegions'
 import {
   CASE_INSERT_EDITOR_EXPORT_LAYER_ORDER,
   type CaseInsertEditorExportLayerId,
@@ -41,12 +61,16 @@ import {
   getJewelCaseSpineTitlePreviewLayout,
   type JewelCaseSpineBoxLayout,
 } from '../layout/jewelCaseSpineLayout'
+import {
+  getCanvasTextAlign,
+} from '../layout/caseInsertTextVisualLayout'
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
+  ProjectMetadata,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
@@ -259,158 +283,103 @@ function drawWithTransformedBox(
   return undefined
 }
 
-function getTextAlignX(
-  rect: JewelCasePixelRect,
-  align: ProjectCaseInsertTextAlign,
-  padding: number,
-) {
-  if (align === 'right') return rect.x + rect.width - padding
-  if (align === 'center') return rect.x + rect.width / 2
-
-  return rect.x + padding
-}
-
-function getCanvasTextAlign(align: ProjectCaseInsertTextAlign): CanvasTextAlign {
-  if (align === 'right') return 'right'
-  if (align === 'center') return 'center'
-
-  return 'left'
-}
-
-function wrapLine(
-  context: CanvasRenderingContext2D,
-  line: string,
-  maxWidth: number,
-) {
-  const words = line.split(/\s+/).filter(Boolean)
-  const lines: string[] = []
-  let currentLine = ''
-
-  for (const word of words) {
-    const candidate = currentLine ? `${currentLine} ${word}` : word
-
-    if (
-      currentLine &&
-      context.measureText(candidate).width > maxWidth
-    ) {
-      lines.push(currentLine)
-      currentLine = word
-    } else {
-      currentLine = candidate
-    }
+function getCaseInsertTextCanvasOptions(style: CaseInsertTextStyle) {
+  return {
+    color: style.color,
+    fontFamily: getCaseInsertTextFontFamilyCanvas(style.fontFamily),
+    background: style.backgroundEnabled
+      ? getCaseInsertTextBackgroundColor(style)
+      : undefined,
+    border: style.backgroundEnabled && style.borderEnabled
+      ? getCaseInsertTextBorderColor(style)
+      : undefined,
+    shadow: caseInsertTextUsesShadow(style),
+    stroke: caseInsertTextUsesStroke(style),
+    paddingRatio: getCaseInsertTextLayoutPaddingRatio(style),
   }
-
-  if (currentLine) {
-    lines.push(currentLine)
-  }
-
-  return lines.length > 0 ? lines : ['']
 }
 
-function wrapText(
+function drawComputedTextLayout(
   context: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-) {
-  return text
-    .replace(/\r\n/g, '\n')
-    .split('\n')
-    .flatMap((line) => wrapLine(context, line, maxWidth))
-}
-
-function drawWrappedTextBox(
-  context: CanvasRenderingContext2D,
-  rect: JewelCasePixelRect,
-  text: string,
-  options: {
-    align: ProjectCaseInsertTextAlign
+  textLayout: {
+    bounds: JewelCasePixelRect
     fontSizePx: number
     lineHeightPx: number
+    lines: Array<{
+      text: string
+      x: number
+      y: number
+    }>
+  },
+  options: {
+    align: ProjectCaseInsertTextAlign
     weight?: number
     color?: string
-    uppercase?: boolean
-    paddingRatio?: number
+    fontFamily?: string
     background?: string
     border?: string
     shadow?: boolean
-    verticalAlign?: 'center' | 'top'
+    stroke?: boolean
   },
 ) {
-  const padding = Math.max(
-    2,
-    Math.round(options.fontSizePx * (options.paddingRatio ?? 0.55)),
-  )
-  const innerWidth = Math.max(1, rect.width - padding * 2)
-  const innerHeight = Math.max(1, rect.height - padding * 2)
-  const fontWeight = options.weight ?? 600
-  const renderedText = options.uppercase ? textValueToUppercase(text) : text
-
   context.save()
-  if (options.background) {
-    context.fillStyle = options.background
-    context.fillRect(rect.x, rect.y, rect.width, rect.height)
-  }
-  if (options.border) {
-    context.strokeStyle = options.border
-    context.lineWidth = Math.max(1, Math.round(options.fontSizePx * 0.08))
-    context.strokeRect(rect.x, rect.y, rect.width, rect.height)
-  }
-
-  context.beginPath()
-  context.rect(rect.x, rect.y, rect.width, rect.height)
-  context.clip()
-  context.font = `${fontWeight} ${options.fontSizePx}px ${FONT_STACK}`
-  context.fillStyle = options.color ?? '#f8fafc'
+  context.font = `${options.weight ?? 600} ${textLayout.fontSizePx}px ${
+    options.fontFamily ?? FONT_STACK
+  }`
   context.textAlign = getCanvasTextAlign(options.align)
   context.textBaseline = 'top'
 
-  if (options.shadow) {
-    context.shadowColor = 'rgba(0, 0, 0, 0.8)'
-    context.shadowBlur = Math.max(3, options.fontSizePx * 0.18)
-    context.shadowOffsetY = Math.max(1, options.fontSizePx * 0.04)
+  if (options.background) {
+    context.fillStyle = options.background
+    context.fillRect(
+      textLayout.bounds.x,
+      textLayout.bounds.y,
+      textLayout.bounds.width,
+      textLayout.bounds.height,
+    )
   }
 
-  const lines = wrapText(context, renderedText, innerWidth)
-  const maxLineCount = Math.max(1, Math.floor(innerHeight / options.lineHeightPx))
-  const visibleLines = lines.slice(0, maxLineCount)
-  const contentHeight = visibleLines.length * options.lineHeightPx
-  const startY = options.verticalAlign === 'top'
-    ? rect.y + padding
-    : rect.y + padding + Math.max(0, (innerHeight - contentHeight) / 2)
-  const x = getTextAlignX(rect, options.align, padding)
+  if (options.border) {
+    context.strokeStyle = options.border
+    context.lineWidth = Math.max(1, Math.round(textLayout.fontSizePx * 0.08))
+    context.strokeRect(
+      textLayout.bounds.x,
+      textLayout.bounds.y,
+      textLayout.bounds.width,
+      textLayout.bounds.height,
+    )
+  }
 
-  visibleLines.forEach((line, index) => {
-    context.fillText(line, x, startY + index * options.lineHeightPx)
+  context.beginPath()
+  context.rect(
+    textLayout.bounds.x,
+    textLayout.bounds.y,
+    textLayout.bounds.width,
+    textLayout.bounds.height,
+  )
+  context.clip()
+  context.fillStyle = options.color ?? '#f8fafc'
+
+  if (options.shadow) {
+    context.shadowColor = 'rgba(0, 0, 0, 0.8)'
+    context.shadowBlur = Math.max(3, textLayout.fontSizePx * 0.18)
+    context.shadowOffsetY = Math.max(1, textLayout.fontSizePx * 0.04)
+  }
+
+  textLayout.lines.forEach((line) => {
+    if (options.stroke) {
+      context.save()
+      context.shadowColor = 'transparent'
+      context.strokeStyle = CASE_INSERT_TEXT_STROKE_COLOR
+      context.lineJoin = 'round'
+      context.lineWidth = Math.max(1, textLayout.fontSizePx * 0.08)
+      context.strokeText(line.text, line.x, line.y)
+      context.restore()
+    }
+
+    context.fillText(line.text, line.x, line.y)
   })
   context.restore()
-}
-
-function textValueToUppercase(value: string) {
-  return value.toLocaleUpperCase()
-}
-
-function drawListTextBox(
-  context: CanvasRenderingContext2D,
-  rect: JewelCasePixelRect,
-  items: string[],
-  fontSizePx: number,
-  lineHeightPx: number,
-) {
-  drawWrappedTextBox(
-    context,
-    rect,
-    items.map((item) => `• ${item}`).join('\n'),
-    {
-      align: 'left',
-      fontSizePx,
-      lineHeightPx,
-      weight: 600,
-      color: '#f8fafc',
-      background: 'rgba(15, 23, 42, 0.58)',
-      border: 'rgba(255, 255, 255, 0.18)',
-      verticalAlign: 'center',
-    },
-  )
 }
 
 function getTemplateImageSlotRect(
@@ -561,43 +530,44 @@ function drawTemplateTextBlock(
   paneId: CaseInsertTemplatePaneId,
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
+  metadata: ProjectMetadata,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[],
 ) {
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(textBlock, metadata)
+  const textAvoidanceRegions = avoidanceRegions.filter(
+    (region) => region.sourceTextBlockId !== renderedTextBlock.id,
+  )
   const textLayout = paneId === 'cover'
-    ? getJewelCaseFrontTextBlockPreviewLayout(textBlock, layout)
-    : getJewelCaseBackTextBlockPreviewLayout(
-        textBlock,
+    ? getJewelCaseFrontTextBlockPreviewLayout(
+        renderedTextBlock,
         layout,
-        getCaseInsertBackTextBlockRole(textBlock),
+        textAvoidanceRegions,
+      )
+    : getJewelCaseBackTextBlockPreviewLayout(
+        renderedTextBlock,
+        layout,
+        getCaseInsertBackTextBlockRole(renderedTextBlock),
+        textAvoidanceRegions,
       )
 
   if (!textLayout) return
 
   if (paneId === 'cover') {
-    drawWrappedTextBox(context, textLayout.bounds, textBlock.value, {
-      align: textBlock.align,
-      fontSizePx: textLayout.fontSizePx,
-      lineHeightPx: textLayout.lineHeightPx,
+    drawComputedTextLayout(context, textLayout, {
+      align: renderedTextBlock.align,
       weight: 800,
-      color: '#ffffff',
-      uppercase: true,
-      shadow: true,
-      verticalAlign: 'center',
+      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
     })
     return
   }
 
-  drawWrappedTextBox(context, textLayout.bounds, textBlock.value, {
-    align: textBlock.align,
-    fontSizePx: textLayout.fontSizePx,
-    lineHeightPx: textLayout.lineHeightPx,
-    weight: textBlock.id.includes('legal') ? 500 : 600,
-    color: '#f8fafc',
-    background: textBlock.id.includes('legal') ||
-      textBlock.id.includes('requirements')
-      ? 'rgba(15, 23, 42, 0.68)'
-      : 'rgba(15, 23, 42, 0.58)',
-    border: 'rgba(255, 255, 255, 0.18)',
-    verticalAlign: 'center',
+  drawComputedTextLayout(context, textLayout, {
+    align: renderedTextBlock.align,
+    weight: renderedTextBlock.id.includes('legal') ||
+        renderedTextBlock.id.includes('copyright')
+      ? 500
+      : 600,
+    ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
   })
 }
 
@@ -605,18 +575,24 @@ function drawTemplateTextList(
   context: CanvasRenderingContext2D,
   textList: ProjectCaseInsertTextList,
   layout: CaseInsertPreviewLayout,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[],
 ) {
-  const textListLayout = getJewelCaseBackTextListPreviewLayout(textList, layout)
+  const textAvoidanceRegions = avoidanceRegions.filter(
+    (region) => region.sourceTextListId !== textList.id,
+  )
+  const textListLayout = getJewelCaseBackTextListPreviewLayout(
+    textList,
+    layout,
+    textAvoidanceRegions,
+  )
 
   if (!textListLayout) return
 
-  drawListTextBox(
-    context,
-    textListLayout.bounds,
-    textListLayout.items,
-    textListLayout.fontSizePx,
-    textListLayout.lineHeightPx,
-  )
+  drawComputedTextLayout(context, textListLayout, {
+    align: 'left',
+    weight: 600,
+    ...getCaseInsertTextCanvasOptions(textList.style),
+  })
 }
 
 function drawTemplateText(
@@ -624,15 +600,65 @@ function drawTemplateText(
   templateState: ProjectCaseInsertSurfaceState,
   paneId: CaseInsertTemplatePaneId,
   layout: CaseInsertPreviewLayout,
+  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
+  const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
+    paneId,
+    templateState,
+    layout,
+    brandingSources,
+  })
+
   for (const textBlock of templateState.textBlocks) {
-    drawTemplateTextBlock(context, paneId, textBlock, layout)
+    drawTemplateTextBlock(
+      context,
+      paneId,
+      textBlock,
+      layout,
+      brandingSources.projectMetadata,
+      avoidanceRegions,
+    )
   }
   if (paneId === 'tray') {
     for (const textList of templateState.textLists) {
-      drawTemplateTextList(context, textList, layout)
+      drawTemplateTextList(context, textList, layout, avoidanceRegions)
     }
   }
+}
+
+function drawSpineTextBlock(
+  context: CanvasRenderingContext2D,
+  side: 'left' | 'right',
+  textBlock: ProjectCaseInsertTextBlock,
+  layout: CaseInsertPreviewLayout,
+  metadata: ProjectMetadata,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[],
+  options: { uppercase?: boolean } = {},
+) {
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(textBlock, metadata)
+  const textLayout = getJewelCaseSpineTitlePreviewLayout(
+    side,
+    renderedTextBlock,
+    layout,
+    avoidanceRegions,
+  )
+
+  if (!textLayout) {
+    return
+  }
+
+  drawWithTransformedBox(context, textLayout, () => {
+    drawComputedTextLayout(context, {
+      bounds: textLayout.textBounds,
+      fontSizePx: textLayout.fontSizePx,
+      lineHeightPx: textLayout.lineHeightPx,
+      lines: textLayout.lines,
+    }, {
+      align: renderedTextBlock.align,
+      weight: options.uppercase ? 800 : 600,
+      ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
+    })
+  })
 }
 
 async function drawSpineSide(
@@ -655,6 +681,12 @@ async function drawSpineSide(
     layout,
   )
   const artworkSlots = state.additionalArtworkEnabled ? state.artworkSlots : []
+  const avoidanceRegions = createCaseInsertSpineTextAvoidanceRegions({
+    side,
+    spineSide: state,
+    layout,
+    brandingSources,
+  })
 
   for (const [slot, role] of [
     [state.titleArtwork, 'titleArtwork'],
@@ -696,34 +728,25 @@ async function drawSpineSide(
     })
   }
 
-  const titleLayout = getJewelCaseSpineTitlePreviewLayout(
+  drawSpineTextBlock(
+    context,
     side,
     state.title,
     layout,
+    brandingSources.projectMetadata,
+    avoidanceRegions,
+    { uppercase: true },
   )
-  if (titleLayout) {
-    drawWithTransformedBox(context, titleLayout, () => {
-      drawWrappedTextBox(
-        context,
-        {
-          x: -titleLayout.width / 2,
-          y: -titleLayout.height / 2,
-          width: titleLayout.width,
-          height: titleLayout.height,
-        },
-        state.title.value,
-        {
-          align: state.title.align,
-          fontSizePx: titleLayout.fontSizePx,
-          lineHeightPx: titleLayout.lineHeightPx,
-          weight: 800,
-          color: '#ffffff',
-          uppercase: true,
-          shadow: true,
-          verticalAlign: 'center',
-        },
-      )
-    })
+
+  for (const textBlock of state.textBlocks) {
+    drawSpineTextBlock(
+      context,
+      side,
+      textBlock,
+      layout,
+      brandingSources.projectMetadata,
+      avoidanceRegions,
+    )
   }
 
   for (const [slot, role] of [
@@ -892,6 +915,7 @@ export async function exportCaseInsertPngBytes(params: {
         activeTemplateState,
         params.activeTemplatePane,
         layout,
+        params.brandingSources,
       ),
     'case-spine-content': () =>
       drawSpineContent(

@@ -32,6 +32,18 @@ import {
 import {
   normalizeCaseInsertSteamBanner,
 } from './steamBanner.ts'
+import {
+  getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextListStyleRole,
+  normalizeCaseInsertTextStyle,
+  type CaseInsertTextStyle,
+} from './textStyles.ts'
+import {
+  getCanonicalCaseInsertTextBlockId,
+} from './textContent.ts'
+import {
+  normalizeCaseInsertTextWidth,
+} from './textLayout.ts'
 import type {
   JewelCaseGuideId,
   JewelCaseSurfaceId,
@@ -198,8 +210,17 @@ function normalizeCaseInsertLayout(
     return defaults
   }
 
+  const rawWidth = record.width
+  const hasWidth = defaults.width !== undefined ||
+    (typeof rawWidth === 'number' && Number.isFinite(rawWidth))
+
   return {
     scale: normalizePositiveNumber(record.scale, defaults.scale),
+    ...(hasWidth
+      ? {
+          width: normalizeCaseInsertTextWidth(rawWidth, defaults.width),
+        }
+      : {}),
     x: normalizeFiniteNumber(record.x, defaults.x),
     y: normalizeFiniteNumber(record.y, defaults.y),
     rotation: normalizeFiniteNumber(record.rotation, defaults.rotation),
@@ -237,7 +258,10 @@ function normalizeCaseInsertImageSlot(
     : null
 
   return {
-    id: normalizeString(record.id, defaults.id),
+    id: getCanonicalCaseInsertTextBlockId(
+      normalizeString(record.id, defaults.id),
+      defaults.id,
+    ),
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     imageDataUrl,
@@ -283,15 +307,30 @@ function normalizeCaseInsertTextBlock(
   if (!record) {
     return defaults
   }
+  const id = getCanonicalCaseInsertTextBlockId(
+    normalizeString(record.id, defaults.id),
+    defaults.id,
+  )
 
   return {
-    id: normalizeString(record.id, defaults.id),
+    id,
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     value: normalizeTextValue(record.value ?? record.text, defaults.value),
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
+    avoidVisualElements: normalizeBoolean(
+      record.avoidVisualElements,
+      defaults.avoidVisualElements,
+    ),
     align: normalizeCaseInsertTextAlign(record.align, defaults.align),
     layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
+    style: normalizeCaseInsertTextStyle(
+      getCaseInsertTextBlockStyleRole({
+        id,
+      }),
+      (asRecord(record.style) as Partial<CaseInsertTextStyle> | null) ??
+        defaults.style,
+    ),
   }
 }
 
@@ -300,23 +339,48 @@ function normalizeCaseInsertTextBlockArray(
   idPrefix: string,
   labelPrefix: string,
   defaults: ProjectCaseInsertTextBlock[] = [],
-) {
+): ProjectCaseInsertTextBlock[] {
   const textBlocks = asArray(value)
 
   if (!textBlocks) {
     return defaults
   }
 
-  return textBlocks.map((textBlock, index) =>
+  const defaultsById = new Map(defaults.map((defaultTextBlock) => [
+    defaultTextBlock.id,
+    defaultTextBlock,
+  ]))
+  const savedById = new Map<string, unknown>()
+  const unknownTextBlocks: Array<{ value: unknown; index: number }> = []
+
+  textBlocks.forEach((textBlock, index) => {
+    const record = asRecord(textBlock)
+    const savedId = typeof record?.id === 'string' && record.id.trim()
+      ? getCanonicalCaseInsertTextBlockId(record.id.trim())
+      : null
+
+    if (savedId && defaultsById.has(savedId)) {
+      savedById.set(savedId, textBlock)
+      return
+    }
+
+    unknownTextBlocks.push({ value: textBlock, index })
+  })
+  const normalizedTextBlocks = defaults.map((defaultTextBlock) =>
     normalizeCaseInsertTextBlock(
-      textBlock,
-      defaults[index] ??
-        createDefaultCaseInsertTextBlock(
-          `${idPrefix}-${index + 1}`,
-          `${labelPrefix} ${index + 1}`,
-        ),
-    ),
-  )
+      savedById.get(defaultTextBlock.id),
+      defaultTextBlock,
+    ))
+  const normalizedUnknownTextBlocks = unknownTextBlocks.map(({ value, index }) =>
+    normalizeCaseInsertTextBlock(
+      value,
+      createDefaultCaseInsertTextBlock(
+        `${idPrefix}-${index + 1}`,
+        `${labelPrefix} ${index + 1}`,
+      ),
+    ))
+
+  return [...normalizedTextBlocks, ...normalizedUnknownTextBlocks]
 }
 
 export function normalizeTextListItems(value: unknown, fallbackItems: string[]) {
@@ -347,7 +411,18 @@ function normalizeCaseInsertTextList(
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     items: normalizeTextListItems(record.items ?? record.values, defaults.items),
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
+    avoidVisualElements: normalizeBoolean(
+      record.avoidVisualElements,
+      defaults.avoidVisualElements,
+    ),
     layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
+    style: normalizeCaseInsertTextStyle(
+      getCaseInsertTextListStyleRole({
+        id: normalizeString(record.id, defaults.id),
+      }),
+      (asRecord(record.style) as Partial<CaseInsertTextStyle> | null) ??
+        defaults.style,
+    ),
   }
 }
 
@@ -356,23 +431,45 @@ function normalizeCaseInsertTextListArray(
   idPrefix: string,
   labelPrefix: string,
   defaults: ProjectCaseInsertTextList[] = [],
-) {
+): ProjectCaseInsertTextList[] {
   const textLists = asArray(value)
 
   if (!textLists) {
     return defaults
   }
 
-  return textLists.map((textList, index) =>
-    normalizeCaseInsertTextList(
+  const defaultsById = new Map(defaults.map((defaultTextList) => [
+    defaultTextList.id,
+    defaultTextList,
+  ]))
+  const normalizedTextLists = textLists.map((textList, index) => {
+    const record = asRecord(textList)
+    const savedId = typeof record?.id === 'string' && record.id.trim()
+      ? record.id.trim()
+      : null
+    const defaultTextList = savedId
+      ? defaultsById.get(savedId) ?? defaults[index]
+      : defaults[index]
+
+    return normalizeCaseInsertTextList(
       textList,
-      defaults[index] ??
+      defaultTextList ??
         createDefaultCaseInsertTextList(
           `${idPrefix}-${index + 1}`,
           `${labelPrefix} ${index + 1}`,
         ),
-    ),
-  )
+    )
+  })
+  const normalizedIds = new Set(normalizedTextLists.map(({ id }) => id))
+  const missingDefaults = defaults.filter(({ id }) => !normalizedIds.has(id))
+
+  return [...normalizedTextLists, ...missingDefaults]
+}
+
+function withTextBlockAliasId(value: unknown, id: string) {
+  const record = asRecord(value)
+
+  return record ? { id, ...record } : value
 }
 
 function normalizeCaseInsertSurfaceState(
@@ -442,9 +539,12 @@ function normalizeCaseInsertSurfaceState(
   }
 }
 
-function normalizeCaseInsertCoverTemplateState(value: unknown):
+function normalizeCaseInsertCoverTemplateState(
+  value: unknown,
+  title = '',
+):
 ProjectCaseInsertSurfaceState {
-  const defaults = createDefaultCaseInsertCoverTemplateState()
+  const defaults = createDefaultCaseInsertCoverTemplateState(title)
   const record = asRecord(value)
   const artworkSlotsValue = record?.artworkSlots ??
     record?.artwork ??
@@ -452,7 +552,12 @@ ProjectCaseInsertSurfaceState {
   const textBlocksValue = record?.textBlocks ??
     record?.text ??
     (record?.calloutText || record?.callout
-      ? [record.calloutText ?? record.callout]
+      ? [
+          withTextBlockAliasId(
+            record.calloutText ?? record.callout,
+            'cover-custom-note',
+          ),
+        ]
       : undefined)
 
   return normalizeCaseInsertSurfaceState(
@@ -475,10 +580,19 @@ ProjectCaseInsertSurfaceState {
   const record = asRecord(value)
   const textBlockAliases = record
     ? [
-        record.description,
-        record.minimumRequirements ?? record.minimumSystemRequirements,
-        record.recommendedRequirements ?? record.recommendedSystemRequirements,
-        record.legalText ?? record.legal,
+        withTextBlockAliasId(record.description, 'tray-description'),
+        withTextBlockAliasId(
+          record.minimumRequirements ?? record.minimumSystemRequirements,
+          'tray-minimum-requirements',
+        ),
+        withTextBlockAliasId(
+          record.recommendedRequirements ?? record.recommendedSystemRequirements,
+          'tray-recommended-requirements',
+        ),
+        withTextBlockAliasId(
+          record.legalText ?? record.legal,
+          'tray-copyright-text',
+        ),
       ]
     : []
   const textBlocksValue = record?.textBlocks ??
@@ -508,12 +622,15 @@ ProjectCaseInsertSurfaceState {
   )
 }
 
-function normalizeCaseInsertTemplateStates(value: unknown):
+function normalizeCaseInsertTemplateStates(
+  value: unknown,
+  title = '',
+):
 Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
   const record = asRecord(value)
 
   return {
-    cover: normalizeCaseInsertCoverTemplateState(record?.cover),
+    cover: normalizeCaseInsertCoverTemplateState(record?.cover, title),
     tray: normalizeCaseInsertTrayTemplateState(record?.tray),
   }
 }
@@ -572,6 +689,12 @@ function normalizeJewelCaseSpineSideState(
       defaults.markSlots,
     ),
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
+    textBlocks: normalizeCaseInsertTextBlockArray(
+      record.textBlocks ?? record.text,
+      `${defaults.background.id.replace('-background', '')}-text`,
+      'Spine text',
+      defaults.textBlocks,
+    ),
   }
 }
 
@@ -654,9 +777,9 @@ export function normalizeProjectJewelCaseState(
   )
   const templateRecord = asRecord(record?.templates)
   const templates = templateRecord
-    ? normalizeCaseInsertTemplateStates(templateRecord)
+    ? normalizeCaseInsertTemplateStates(templateRecord, title)
     : {
-        cover: normalizeCaseInsertCoverTemplateState(record?.front),
+        cover: normalizeCaseInsertCoverTemplateState(record?.front, title),
         tray: normalizeCaseInsertTrayTemplateState(record?.back),
       }
 

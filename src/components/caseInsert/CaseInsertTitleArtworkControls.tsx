@@ -23,7 +23,7 @@ export type CaseInsertTitleArtworkControlsProps = {
   helpText: string
   onEnabledChange: (enabled: boolean) => void
   onLayoutChange: (
-    field: keyof ProjectCaseInsertLayout,
+    field: Exclude<keyof ProjectCaseInsertLayout, 'width'>,
     value: number,
   ) => void
   onResetLayout: () => void

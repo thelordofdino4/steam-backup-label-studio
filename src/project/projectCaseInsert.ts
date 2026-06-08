@@ -39,6 +39,7 @@ export {
   setJewelCaseSpineAdditionalArtworkEnabled,
   updateJewelCaseSpineImageSlot,
   updateJewelCaseSpineImageSlotInGroup,
+  updateJewelCaseSpineTextBlock,
   updateJewelCaseSpineTitle,
   updateProjectJewelCaseSpineSide,
 } from '../caseInsert/jewelCaseTransitions.ts'
@@ -71,14 +72,24 @@ export type {
 } from '../caseInsert/steamBanner.ts'
 export {
   addCaseInsertTextListItem,
+  applyCaseInsertTextBlockPresetLayout,
+  applyCaseInsertTextBlockStylePreset,
+  applyCaseInsertTextListPresetLayout,
+  applyCaseInsertTextListStylePreset,
   removeCaseInsertTextListItem,
+  resetCaseInsertTextBlockStyle,
+  resetCaseInsertTextListStyle,
+  setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
+  setCaseInsertTextListAvoidVisualElements,
   setCaseInsertTextListEnabled,
   setCaseInsertTextListItems,
   updateCaseInsertTextBlockLayout,
   updateCaseInsertTextBlockLayoutField,
+  updateCaseInsertTextBlockStyleField,
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListItem,
+  updateCaseInsertTextListStyleField,
 } from '../caseInsert/textTransitions.ts'
 export {
   setProjectJewelCaseExportGuideIds,
