@@ -34,7 +34,7 @@ export function EditorArtworkFrameControls({
       </label>
 
       {frame.enabled ? (
-        <div className="disc-text-layout-grid">
+        <div className="editor-control-grid">
           <label>
             <span>Shape</span>
             <select

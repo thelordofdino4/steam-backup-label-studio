@@ -77,6 +77,17 @@ import {
   type JewelCaseRegionId,
 } from '../templates/caseInsertTemplates.ts'
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel.ts'
+import {
+  buildGuideExportWarnings,
+  buildLayoutValueWarnings,
+  buildUpscaleWarnings,
+  createBundledAssetWarning,
+  createMissingBackgroundWarning,
+  createMissingImageSizeWarning,
+  createMissingImageWarning,
+  createUnresolvedFitWarning,
+  createUnresolvedPlacementWarning,
+} from './preflightWarnings.ts'
 
 type EdgeWarningOptions = {
   regionLabel: string
@@ -93,7 +104,6 @@ const TEMPLATE_SAFE_REGION_BY_PANE: Record<CaseInsertTemplatePaneId, JewelCaseRe
   tray: 'backPanelSafe',
 }
 
-const IMAGE_UPSCALE_WARNING_THRESHOLD = 1.05
 const SAFE_EDGE_WARNING_MIN_PX = 8
 const SAFE_EDGE_WARNING_RATIO = 0.015
 
@@ -168,9 +178,7 @@ function buildCaseInsertExportWarnings(params: {
   const paneConfig = getCaseInsertTemplatePaneConfig(params.activeTemplatePane)
   const templateState = params.caseInsert.templates[params.activeTemplatePane]
 
-  if (params.enabledGuideNames.length > 0) {
-    warnings.push('Guide marks are enabled and will appear in the exported PNG.')
-  }
+  warnings.push(...buildGuideExportWarnings(params.enabledGuideNames.length > 0))
 
   warnings.push(
     ...getTemplateSurfaceWarnings(
@@ -210,7 +218,10 @@ function getTemplateSurfaceWarnings(
 
   if (!slotWillRender(templateState.background)) {
     warnings.push(
-      `${paneLabel} has no background image; uncovered areas will export as blank white.`,
+      createMissingBackgroundWarning(
+        paneLabel,
+        'uncovered areas will export as blank white',
+      ),
     )
   }
 
@@ -655,11 +666,11 @@ function getRenderedLogoSlotWarnings(params: {
   }
 
   if (!rect) {
-    warnings.push(`${label} is enabled, but export could not resolve its print placement.`)
+    warnings.push(createUnresolvedPlacementWarning(label))
     return warnings
   }
 
-  warnings.push(...getUpscaleWarnings(label, renderInfo.imageSize, rect))
+  warnings.push(...buildUpscaleWarnings(label, renderInfo.imageSize, rect))
 
   if (params.safeBounds && params.edge) {
     warnings.push(
@@ -694,11 +705,11 @@ function getRenderedImageSlotWarnings(params: {
   }
 
   if (!rect) {
-    warnings.push(`${label} is enabled, but export could not resolve its print placement.`)
+    warnings.push(createUnresolvedPlacementWarning(label))
     return warnings
   }
 
-  warnings.push(...getUpscaleWarnings(label, imageSize, rect))
+  warnings.push(...buildUpscaleWarnings(label, imageSize, rect))
 
   if (params.safeBounds && params.edge) {
     warnings.push(
@@ -732,7 +743,7 @@ function getSpineLogoSlotWarnings(params: {
   }
 
   warnings.push(
-    ...getUpscaleWarnings(params.label, renderInfo.imageSize, {
+    ...buildUpscaleWarnings(params.label, renderInfo.imageSize, {
       width: params.layout.width,
       height: params.layout.height,
     }),
@@ -765,7 +776,7 @@ function getSpineImageSlotWarnings(params: {
   }
 
   warnings.push(
-    ...getUpscaleWarnings(params.label, params.slot.imageSize, {
+    ...buildUpscaleWarnings(params.label, params.slot.imageSize, {
       width: params.layout.width,
       height: params.layout.height,
     }),
@@ -784,19 +795,15 @@ function getLogoSlotDataWarnings(
   }
 
   if (!renderInfo) {
-    return [`${label} is enabled, but no image is selected; it will not render.`]
+    return [createMissingImageWarning(label)]
   }
 
   if (renderInfo.isBundledFallback) {
-    return [
-      `${ensureLabelDescriptor(label, 'logo')} uses bundled generic logo artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'logo')]
   }
 
   if (!slot.imageSize) {
-    return [
-      `${label} has image data but no size metadata; export may skip placement or resolution checks.`,
-    ]
+    return [createMissingImageSizeWarning(label)]
   }
 
   return getBundledAssetWarnings(label, slot)
@@ -821,13 +828,11 @@ function getImageSlotDataWarnings(
 
     return hasTextFallback
       ? [`${label} has no image selected; text fallback will export instead.`]
-      : [`${label} is enabled, but no image is selected; it will not render.`]
+      : [createMissingImageWarning(label)]
   }
 
   if (!slot.imageSize) {
-    return [
-      `${label} has image data but no size metadata; export may skip placement or resolution checks.`,
-    ]
+    return [createMissingImageSizeWarning(label)]
   }
 
   return getBundledAssetWarnings(label, slot)
@@ -863,15 +868,11 @@ function getImageFitWarnings(
   }
 
   if (!fit) {
-    warnings.push(`${label} is enabled, but export could not resolve its print fit.`)
+    warnings.push(createUnresolvedFitWarning(label))
     return warnings
   }
 
-  if (fit.scale > IMAGE_UPSCALE_WARNING_THRESHOLD) {
-    warnings.push(
-      `${label} is ${imageSize.width} x ${imageSize.height}px, but exports around ${formatPixels(fit.visibleRect.width)} x ${formatPixels(fit.visibleRect.height)}px; it may look soft in print.`,
-    )
-  }
+  warnings.push(...buildUpscaleWarnings(label, imageSize, fit.visibleRect))
 
   if (options.allowEmptySpaceWarning && fit.hasEmptySpace) {
     warnings.push(
@@ -880,22 +881,6 @@ function getImageFitWarnings(
   }
 
   return warnings
-}
-
-function getUpscaleWarnings(
-  label: string,
-  imageSize: { width: number; height: number },
-  rect: Pick<JewelCasePixelRect, 'width' | 'height'>,
-) {
-  const scale = Math.max(rect.width / imageSize.width, rect.height / imageSize.height)
-
-  if (scale <= IMAGE_UPSCALE_WARNING_THRESHOLD) {
-    return []
-  }
-
-  return [
-    `${label} is ${imageSize.width} x ${imageSize.height}px, but exports around ${formatPixels(rect.width)} x ${formatPixels(rect.height)}px; it may look soft in print.`,
-  ]
 }
 
 function getBundledAssetWarnings(
@@ -911,48 +896,28 @@ function getBundledAssetWarnings(
   const sourceId = slot.imageSource?.sourceId
 
   if (sourceId?.startsWith('case-logo:') || /\blogo\b/i.test(label)) {
-    return [
-      `${ensureLabelDescriptor(label, 'logo')} uses bundled generic logo artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'logo')]
   }
 
   if (sourceId?.startsWith('case-rating:')) {
-    return [
-      `${ensureLabelDescriptor(label, 'rating badge')} uses bundled rating artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'ratingBadge')]
   }
 
   const markKind = getCaseInsertMarkLayerKind(sourceId)
 
   if (markKind === 'media') {
-    return [
-      `${ensureLabelDescriptor(label, 'media mark')} uses bundled generic artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'mediaMark')]
   }
 
   if (markKind === 'platform') {
-    return [
-      `${ensureLabelDescriptor(label, 'operating-system mark')} uses bundled generic artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'operatingSystemMark')]
   }
 
   if (markKind === 'technical') {
-    return [
-      `${ensureLabelDescriptor(label, 'technical mark')} uses bundled generic artwork.`,
-    ]
+    return [createBundledAssetWarning(label, 'technicalMark')]
   }
 
-  return [`${label} uses bundled generic artwork.`]
-}
-
-function ensureLabelDescriptor(label: string, descriptor: string) {
-  const descriptorPattern = new RegExp(`\\b${escapeRegExp(descriptor)}\\b`, 'i')
-
-  return descriptorPattern.test(label) ? label : `${label} ${descriptor}`
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return [createBundledAssetWarning(label, 'genericArtwork')]
 }
 
 function getTextBlockWarnings(params: {
@@ -1063,19 +1028,7 @@ function getTextListWarnings(params: {
 }
 
 function getLayoutValueWarnings(label: string, layout: ProjectCaseInsertLayout) {
-  const warnings: string[] = []
-
-  if (layout.x < 0 || layout.x > 100 || layout.y < 0 || layout.y > 100) {
-    warnings.push(
-      `${label} placement is outside the safe control range and will be clamped during export.`,
-    )
-  }
-
-  if (!Number.isFinite(layout.scale) || layout.scale <= 0) {
-    warnings.push(`${label} scale is invalid and will use a fallback size.`)
-  }
-
-  return warnings
+  return buildLayoutValueWarnings(label, layout)
 }
 
 function getSafeEdgeWarnings(
@@ -1284,8 +1237,4 @@ function getSpineSideLabel(side: JewelCaseSpineSideId) {
 
 function formatMm(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1)
-}
-
-function formatPixels(value: number) {
-  return String(Math.round(value))
 }

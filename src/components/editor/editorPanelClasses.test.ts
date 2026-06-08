@@ -12,7 +12,7 @@ test('workflow panel shell uses the top-level sidebar classes', () => {
 test('feature panel shell keeps nested card classes and spacing', () => {
   assert.equal(
     getEditorPanelClassName({ kind: 'feature', spacingTop: true }),
-    'feature-section-card metadata-details collapsible-panel spacing-top',
+    'feature-section-card editor-nested-panel collapsible-panel spacing-top',
   )
 })
 
@@ -23,6 +23,6 @@ test('branding panel shell keeps branding card classes and extra adapters', () =
       spacingTop: true,
       className: 'case-insert-workflow-section',
     }),
-    'branding-feature-card metadata-details collapsible-panel spacing-top case-insert-workflow-section',
+    'branding-feature-card editor-nested-panel collapsible-panel spacing-top case-insert-workflow-section',
   )
 })

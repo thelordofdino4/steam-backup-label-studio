@@ -11,6 +11,10 @@ import { createDefaultProjectTechnicalMarks, updateTechnicalMarkSource, updateTe
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import { buildExportPreflightSummary } from './exportPreflight.ts'
+import {
+  GUIDE_MARKS_EXPORT_WARNING,
+  createBundledAssetWarning,
+} from './preflightWarnings.ts'
 
 function createDefaultPreflightParams(): Parameters<typeof buildExportPreflightSummary>[0] {
   return {
@@ -79,6 +83,46 @@ test('missing background is advisory and still lets the user continue export', (
     /No background image is selected; the export will use the default blank disc fill\./,
   )
   assert.match(summary.message, /Continue with export\?/)
+})
+
+test('disc preflight uses shared guide and bundled mark warning wording', () => {
+  const params = createDefaultPreflightParams()
+  const projectMediaMark = updateMediaMarkLayoutField(
+    params.projectMediaMark,
+    'enabled',
+    true,
+  )
+  const projectPlatformMarks = updatePlatformMarkToggle(
+    params.projectPlatformMarks,
+    'pc',
+    true,
+  )
+  const projectTechnicalMarks = updateTechnicalMarkToggle(
+    params.projectTechnicalMarks,
+    'audio',
+    true,
+  )
+  const summary = buildExportPreflightSummary({
+    ...params,
+    projectMediaMark,
+    projectPlatformMarks,
+    projectTechnicalMarks,
+    exportGuides: {
+      ...params.exportGuides,
+      safeZone: true,
+    },
+  })
+
+  assert.ok(summary.warnings.includes(GUIDE_MARKS_EXPORT_WARNING))
+  assert.ok(summary.warnings.includes(
+    createBundledAssetWarning('Data Disc', 'mediaMark'),
+  ))
+  assert.ok(summary.warnings.includes(
+    createBundledAssetWarning('PC', 'operatingSystemMark'),
+  ))
+  assert.ok(summary.warnings.includes(
+    createBundledAssetWarning('audio', 'technicalMark'),
+  ))
 })
 
 test('preflight warns about enabled visual elements that will be missing or generic-asset-backed', () => {

@@ -99,8 +99,8 @@ export function DiscTextControl({
   const controlLabel = getDiscTextLabel(key)
 
   return (
-    <div className="disc-text-control">
-      <label className="checkbox-row disc-text-enable-row">
+    <div className="editor-text-control">
+      <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
           checked={isTextEnabled}
@@ -110,10 +110,10 @@ export function DiscTextControl({
       </label>
 
       {!isTextEnabled ? null : (
-        <div className="disc-text-control-body">
+        <div className="editor-text-control-body">
           {!isCurvedCopyright && (
             <div
-              className="disc-text-control-group disc-text-optional-checkboxes"
+              className="editor-control-group editor-optional-checkboxes"
               aria-label={`${controlLabel} optional controls`}
             >
               <label className="checkbox-row">
@@ -146,7 +146,7 @@ export function DiscTextControl({
               </label>
 
               {textStyle.backgroundEnabled && (
-                <label className="checkbox-row disc-text-nested-checkbox">
+                <label className="checkbox-row editor-nested-checkbox">
                   <input
                     type="checkbox"
                     checked={textStyle.borderEnabled}
@@ -166,10 +166,10 @@ export function DiscTextControl({
 
           {inputState.isMetadataBacked && (
             <div
-              className="disc-text-control-group"
+              className="editor-control-group"
               aria-label={`${controlLabel} source controls`}
             >
-              <div className="disc-text-source-row">
+              <div className="editor-source-row">
                 <span>
                   {inputState.isManualOverride
                     ? 'Manual override'
@@ -177,7 +177,7 @@ export function DiscTextControl({
                 </span>
                 {inputState.isManualOverride && (
                   <button
-                    className="secondary-button disc-text-source-button"
+                    className="secondary-button editor-source-button"
                     type="button"
                     onClick={() => {
                       if (isMetadataBoundDiscTextKey(key)) {
@@ -193,7 +193,7 @@ export function DiscTextControl({
           )}
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${controlLabel} type and style controls`}
           >
             {key === 'discNumber' && (
@@ -238,7 +238,7 @@ export function DiscTextControl({
               </div>
             )}
 
-            <div className="disc-text-style-grid">
+            <div className="editor-style-grid">
               {isCopyright && (
                 <label>
                   <span>Mode</span>
@@ -359,7 +359,7 @@ export function DiscTextControl({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${controlLabel} text controls`}
           >
             <label className="field-label" htmlFor={`disc-text-value-${key}`}>
@@ -367,7 +367,7 @@ export function DiscTextControl({
             </label>
             <input
               id={`disc-text-value-${key}`}
-              className="disc-text-input"
+              className="editor-text-input"
               type="text"
               value={inputState.value}
               placeholder={inputState.placeholder}
@@ -376,10 +376,10 @@ export function DiscTextControl({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${controlLabel} placement controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <label>
                 <span>Align</span>
                 <select
@@ -440,10 +440,10 @@ export function DiscTextControl({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${controlLabel} fine tuning controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <EditorRangeField
                 id={`disc-text-${key}-scale`}
                 label="Scale"
@@ -545,11 +545,11 @@ export function DiscTextControl({
           </div>
 
           <div
-            className="disc-text-control-group disc-text-action-group"
+            className="editor-control-group editor-action-group"
             aria-label={`${controlLabel} reset actions`}
           >
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() => handleResetDiscTextLayout(key)}
             >
@@ -557,7 +557,7 @@ export function DiscTextControl({
             </button>
 
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() => handleResetDiscTextStyle(key)}
             >

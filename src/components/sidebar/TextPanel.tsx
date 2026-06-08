@@ -36,7 +36,7 @@ export function TextPanel(props: TextPanelProps) {
           Metadata-backed text shows the Game metadata/default as input hint text until edited here. Clearing the override returns to the Game metadata/default value.
         </p>
 
-        <div className="disc-text-control-list">
+        <div className="editor-text-control-list">
           {DISC_TEXT_KEYS.map((key) => (
             <DiscTextControl
               key={key}

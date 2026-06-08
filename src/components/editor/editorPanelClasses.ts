@@ -25,7 +25,7 @@ export function getEditorPanelClassName({
       ? ['panel', 'collapsible-panel']
       : [
           kind === 'branding' ? 'branding-feature-card' : 'feature-section-card',
-          'metadata-details',
+          'editor-nested-panel',
           'collapsible-panel',
         ]
 

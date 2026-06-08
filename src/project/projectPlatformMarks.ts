@@ -14,6 +14,13 @@ import type {
   ProjectPlatformMarkInference,
   ProjectPlatformMarks,
 } from './projectTypes'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from './savedProjectNormalization.ts'
 
 export type PlatformMarkLayoutField = keyof PlatformMarkLayout
 
@@ -510,10 +517,10 @@ function normalizePlatformMarkLayout(
   defaultLayout: PlatformMarkLayout = DEFAULT_PLATFORM_MARK_LAYOUT,
 ): PlatformMarkLayout {
   return {
-    enabled: layout?.enabled ?? defaultLayout.enabled,
-    scale: layout?.scale ?? defaultLayout.scale,
-    x: layout?.x ?? defaultLayout.x,
-    y: layout?.y ?? defaultLayout.y,
+    enabled: normalizeBoolean(layout?.enabled, defaultLayout.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaultLayout.scale),
+    x: normalizeFiniteNumber(layout?.x, defaultLayout.x),
+    y: normalizeFiniteNumber(layout?.y, defaultLayout.y),
   }
 }
 
@@ -526,7 +533,7 @@ function normalizePlatformMarkAsset(
   const theme = isPlatformMarkTheme(asset?.theme)
     ? normalizePlatformMarkTheme(value, asset.theme)
     : getDefaultPlatformMarkTheme(value)
-  const customImageSize = asset?.customImageSize ?? null
+  const customImageSize = normalizeImageSize(asset?.customImageSize)
   const defaults = createDefaultProjectPlatformMarkAsset(value, selectedDiscTemplate)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value, {
@@ -538,7 +545,7 @@ function normalizePlatformMarkAsset(
   return {
     source,
     theme,
-    customImageDataUrl: asset?.customImageDataUrl ?? null,
+    customImageDataUrl: normalizeNullableString(asset?.customImageDataUrl),
     customImageSize,
     layout: normalizePlatformMarkLayout(asset?.layout, defaultLayout),
   }
@@ -691,9 +698,13 @@ export function normalizeProjectPlatformMarks(
                 : 'placeholder',
             theme: getDefaultPlatformMarkTheme(value),
             customImageDataUrl:
-              index === 0 ? rawPlatformMarks.customImageDataUrl ?? null : null,
+              index === 0
+                ? normalizeNullableString(rawPlatformMarks.customImageDataUrl)
+                : null,
             customImageSize:
-              index === 0 ? rawPlatformMarks.customImageSize ?? null : null,
+              index === 0
+                ? normalizeImageSize(rawPlatformMarks.customImageSize)
+                : null,
             layout: getLegacyPlatformMarkLayout(
               value,
               index,
@@ -737,8 +748,10 @@ export function normalizeProjectPlatformMarks(
       [legacyValue]: {
         source: legacyMediaMark?.source === 'custom' ? 'custom' : 'placeholder',
         theme: getDefaultPlatformMarkTheme(legacyValue),
-        customImageDataUrl: legacyMediaMark?.customImageDataUrl ?? null,
-        customImageSize: legacyMediaMark?.customImageSize ?? null,
+        customImageDataUrl: normalizeNullableString(
+          legacyMediaMark?.customImageDataUrl,
+        ),
+        customImageSize: normalizeImageSize(legacyMediaMark?.customImageSize),
         layout: legacyLayout,
       },
     },

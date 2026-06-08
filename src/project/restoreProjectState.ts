@@ -43,6 +43,10 @@ import {
   normalizeDiscTextValueSources,
   type DiscTextValueSources,
 } from './metadataDiscText.ts'
+import {
+  normalizeImageSize,
+  normalizeNullableString,
+} from './savedProjectNormalization.ts'
 import { normalizeParsedProject } from './normalizeProject.ts'
 import { normalizeProjectAdditionalArtwork } from './projectAdditionalArtwork.ts'
 import { normalizeProjectLogoAssets } from './projectLogoAssets.ts'
@@ -160,14 +164,15 @@ async function restoreBackgroundImageSize(
   project: SavedDiscProject,
   resolveBackgroundImageSize?: RestoreProjectStateOptions['resolveBackgroundImageSize'],
 ): Promise<BackgroundImageSize | null> {
-  const savedImageSize = project.background.imageSize ?? null
+  const savedImageSize = normalizeImageSize(project.background.imageSize)
+  const savedImageDataUrl = normalizeNullableString(project.background.imageDataUrl)
 
-  if (savedImageSize || !project.background.imageDataUrl || !resolveBackgroundImageSize) {
+  if (savedImageSize || !savedImageDataUrl || !resolveBackgroundImageSize) {
     return savedImageSize
   }
 
   try {
-    return await resolveBackgroundImageSize(project.background.imageDataUrl)
+    return await resolveBackgroundImageSize(savedImageDataUrl)
   } catch {
     return null
   }
@@ -178,7 +183,9 @@ function isDataImageUrl(value: string | null | undefined) {
 }
 
 function isSavedBuiltInSteamBannerLockup(project: SavedDiscProject) {
-  const savedLockupImageUrl = project.steamBackupLogo.lockupImageDataUrl
+  const savedLockupImageUrl = normalizeNullableString(
+    project.steamBackupLogo.lockupImageDataUrl,
+  )
 
   if (!savedLockupImageUrl || isDataImageUrl(savedLockupImageUrl)) {
     return false
@@ -199,8 +206,8 @@ function restoreSteamBannerLockupImage(
   }
 
   return createSteamBannerLockupImageState(
-    project.steamBackupLogo.lockupImageDataUrl,
-    project.steamBackupLogo.lockupImageSize,
+    normalizeNullableString(project.steamBackupLogo.lockupImageDataUrl),
+    normalizeImageSize(project.steamBackupLogo.lockupImageSize),
     defaultImageUrl,
   )
 }
@@ -208,8 +215,11 @@ function restoreSteamBannerLockupImage(
 function restoreSteamBannerLockupImageSource(
   project: SavedDiscProject,
 ): ProjectImageAssetProvenance | null {
-  const fallback = project.steamBackupLogo.lockupImageDataUrl
-    ? isDataImageUrl(project.steamBackupLogo.lockupImageDataUrl)
+  const lockupImageDataUrl = normalizeNullableString(
+    project.steamBackupLogo.lockupImageDataUrl,
+  )
+  const fallback = lockupImageDataUrl
+    ? isDataImageUrl(lockupImageDataUrl)
       ? createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup')
       : createProjectImageAssetProvenance({
           source: 'built-in',
@@ -226,9 +236,13 @@ function restoreSteamBannerLockupImageSource(
 function restoreBackgroundImageSource(
   project: SavedDiscProject,
 ): ProjectImageAssetProvenance | null {
+  const backgroundImageDataUrl = normalizeNullableString(
+    project.background.imageDataUrl,
+  )
+
   return normalizeProjectImageAssetProvenance(
     project.background.imageSource,
-    project.background.imageDataUrl
+    backgroundImageDataUrl
       ? createEmbeddedProjectImageAssetProvenance('Embedded background image')
       : null,
   )
@@ -365,7 +379,7 @@ export async function restoreSavedProjectState(
     discTextStyles: normalizeDiscTextStyles(project.discText?.styles),
     backgroundScale: project.background.scale,
     backgroundOffset: project.background.offset,
-    backgroundImageUrl: project.background.imageDataUrl,
+    backgroundImageUrl: normalizeNullableString(project.background.imageDataUrl),
     backgroundImageSource: restoreBackgroundImageSource(project),
     backgroundImageSize: await restoreBackgroundImageSize(
       project,

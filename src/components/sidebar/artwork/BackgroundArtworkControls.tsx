@@ -100,7 +100,7 @@ function BackgroundArtworkFineTuneControls({
       <legend>Placement</legend>
       <p className="hint">{statusMessage}</p>
 
-      <div className="disc-text-layout-grid">
+      <div className="editor-control-grid">
         <EditorRangeField
           id={`${idPrefix}-background-scale`}
           label="Scale"

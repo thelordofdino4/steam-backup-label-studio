@@ -18,6 +18,10 @@ import {
   normalizeProjectImageAssetProvenance,
 } from './projectAssetStatus.ts'
 import {
+  clearEditorImageAssetSourceContent,
+  setEditorImageAssetSourceContent,
+} from '../editor/imageAssetTransitions.ts'
+import {
   isOptionalVisualFeatureEnabled,
   setOptionalVisualFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
@@ -29,6 +33,13 @@ import {
   normalizeLogoAssetLabel,
   type LogoAssetKind,
 } from '../editor/logoAsset.ts'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from './savedProjectNormalization.ts'
 
 export type LogoAssetKey = LogoAssetKind
 export type LogoAssetLayoutField = keyof LogoAssetLayout
@@ -347,10 +358,11 @@ export function setLogoAssetImage(
       logoKey,
       additionalLogoId,
       (logoAsset) => ({
-        ...logoAsset,
-        imageDataUrl,
-        imageSource,
-        imageSize,
+        ...setEditorImageAssetSourceContent(logoAsset, {
+          imageDataUrl,
+          imageSource,
+          imageSize,
+        }),
         layout: nextLayout,
       }),
     )
@@ -385,12 +397,7 @@ export function clearLogoAsset(
       logoAssets,
       logoKey,
       additionalLogoId,
-      (logoAsset) => ({
-        ...logoAsset,
-        imageDataUrl: null,
-        imageSource: null,
-        imageSize: null,
-      }),
+      clearEditorImageAssetSourceContent,
     )
   }
 
@@ -586,10 +593,10 @@ function normalizeLogoAssetLayout(
   defaults: LogoAssetLayout,
 ): LogoAssetLayout {
   return {
-    enabled: layout?.enabled ?? defaults.enabled,
-    scale: layout?.scale ?? defaults.scale,
-    x: layout?.x ?? defaults.x,
-    y: layout?.y ?? defaults.y,
+    enabled: normalizeBoolean(layout?.enabled, defaults.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaults.scale),
+    x: normalizeFiniteNumber(layout?.x, defaults.x),
+    y: normalizeFiniteNumber(layout?.y, defaults.y),
   }
 }
 
@@ -603,7 +610,7 @@ function normalizeAdditionalLogoAsset(
     return null
   }
 
-  const imageSize = logoAsset.imageSize ?? null
+  const imageSize = normalizeImageSize(logoAsset.imageSize)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultAdditionalLogoAssetLayoutForTemplate(
         selectedDiscTemplate,
@@ -621,10 +628,10 @@ function normalizeAdditionalLogoAsset(
       logoAsset.label,
       createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex),
     ),
-    imageDataUrl: logoAsset.imageDataUrl ?? null,
+    imageDataUrl: normalizeNullableString(logoAsset.imageDataUrl),
     imageSource: normalizeProjectImageAssetProvenance(
       logoAsset.imageSource,
-      logoAsset.imageDataUrl
+      normalizeNullableString(logoAsset.imageDataUrl)
         ? createEmbeddedProjectImageAssetProvenance(
             `${createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)} image`,
           )
@@ -665,16 +672,18 @@ export function normalizeProjectLogoAssets(
   const defaults = createDefaultProjectLogoAssets(selectedDiscTemplate)
 
   return {
-    developerLogoDataUrl: logoAssets?.developerLogoDataUrl ?? null,
+    developerLogoDataUrl: normalizeNullableString(
+      logoAssets?.developerLogoDataUrl,
+    ),
     developerLogoSource: normalizeProjectImageAssetProvenance(
       logoAssets?.developerLogoSource,
-      logoAssets?.developerLogoDataUrl
+      normalizeNullableString(logoAssets?.developerLogoDataUrl)
         ? createEmbeddedProjectImageAssetProvenance(
             getLegacyEmbeddedLogoLabel('developer'),
           )
         : null,
     ),
-    developerLogoSize: logoAssets?.developerLogoSize ?? null,
+    developerLogoSize: normalizeImageSize(logoAssets?.developerLogoSize),
     developerLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.developerLogoLayout,
       defaults.developerLogoLayout,
@@ -684,16 +693,18 @@ export function normalizeProjectLogoAssets(
       'developer',
       selectedDiscTemplate,
     ),
-    publisherLogoDataUrl: logoAssets?.publisherLogoDataUrl ?? null,
+    publisherLogoDataUrl: normalizeNullableString(
+      logoAssets?.publisherLogoDataUrl,
+    ),
     publisherLogoSource: normalizeProjectImageAssetProvenance(
       logoAssets?.publisherLogoSource,
-      logoAssets?.publisherLogoDataUrl
+      normalizeNullableString(logoAssets?.publisherLogoDataUrl)
         ? createEmbeddedProjectImageAssetProvenance(
             getLegacyEmbeddedLogoLabel('publisher'),
           )
         : null,
     ),
-    publisherLogoSize: logoAssets?.publisherLogoSize ?? null,
+    publisherLogoSize: normalizeImageSize(logoAssets?.publisherLogoSize),
     publisherLogoLayout: normalizeLogoAssetLayout(
       logoAssets?.publisherLogoLayout,
       defaults.publisherLogoLayout,

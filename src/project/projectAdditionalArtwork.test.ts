@@ -16,6 +16,7 @@ import {
   updateAdditionalArtworkElementLayoutField,
 } from './projectAdditionalArtwork.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
+import type { ProjectAdditionalArtworkInput } from './projectTypes.ts'
 
 const importedImage: ImportedImageAsset = {
   imageDataUrl: 'data:image/png;base64,additional',
@@ -289,4 +290,36 @@ test('normalizes web artwork as a saved additional artwork source', () => {
   assert.equal(restored.elements[0]!.source, 'web-artwork')
   assert.equal(restored.elements[0]!.sourceId, 'remote-key-art')
   assert.equal(restored.elements[0]!.sourceLabel, 'Remote key art')
+})
+
+test('disc additional artwork uses shared saved image field normalization', () => {
+  const restored = normalizeProjectAdditionalArtwork(
+    {
+      enabled: 'yes',
+      elements: [
+        {
+          id: 'invalid-image',
+          sourceId: '   ',
+          imageDataUrl: 42,
+          imageSize: { width: 'wide', height: 600 },
+          layout: {
+            enabled: 'true',
+            scale: Number.NaN,
+            x: 'left',
+            y: 75,
+          },
+        },
+      ],
+    } as unknown as ProjectAdditionalArtworkInput,
+  )
+  const element = restored.elements[0]!
+
+  assert.equal(restored.enabled, true)
+  assert.equal(element.sourceId, null)
+  assert.equal(element.imageDataUrl, null)
+  assert.equal(element.imageSize, null)
+  assert.equal(element.layout.enabled, true)
+  assert.equal(element.layout.scale, 1)
+  assert.equal(element.layout.x, 68)
+  assert.equal(element.layout.y, 75)
 })

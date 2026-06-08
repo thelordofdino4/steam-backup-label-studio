@@ -42,7 +42,7 @@ export function EditorImageAssetStatusCard({
 
   return (
     <div
-      className={`selected-lockup-card logo-asset-status-card ${cardClassName}`.trim()}
+      className={`editor-asset-status-card logo-asset-status-card ${cardClassName}`.trim()}
     >
       <img
         className={`logo-asset-preview ${previewClassName}`.trim()}

@@ -11,6 +11,17 @@ import {
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
 import {
+  asArray,
+  asRecord,
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+  normalizeString,
+  normalizeTextValue,
+} from '../project/savedProjectNormalization.ts'
+import {
   normalizeAdditionalArtworkFrame,
 } from '../project/additionalArtworkFrame.ts'
 import type {
@@ -64,43 +75,11 @@ import {
   createDefaultJewelCaseSpineState,
 } from './defaults.ts'
 
-export type JsonRecord = Record<string, unknown>
-
-export function asRecord(value: unknown): JsonRecord | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? value as JsonRecord
-    : null
-}
-
-function asArray(value: unknown): unknown[] | null {
-  return Array.isArray(value) ? value : null
-}
-
-export function normalizeString(value: unknown, fallback: string) {
-  return typeof value === 'string' && value.trim() ? value : fallback
-}
-
-function normalizeTextValue(value: unknown, fallback: string) {
-  return typeof value === 'string' ? value : fallback
-}
-
-function normalizeNullableString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function normalizeBoolean(value: unknown, fallback: boolean) {
-  return typeof value === 'boolean' ? value : fallback
-}
-
-function normalizeFiniteNumber(value: unknown, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function normalizePositiveNumber(value: unknown, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? value
-    : fallback
-}
+export {
+  asRecord,
+  normalizeString,
+  type JsonRecord,
+} from '../project/savedProjectNormalization.ts'
 
 export function normalizeCaseInsertTemplateType(
   value: unknown,
@@ -138,19 +117,6 @@ function normalizeCaseInsertTextAlign(
   return value === 'left' || value === 'center' || value === 'right'
     ? value
     : fallback
-}
-
-function normalizeImageSize(value: unknown): BackgroundImageSize | null {
-  const record = asRecord(value)
-
-  if (!record) {
-    return null
-  }
-
-  const width = normalizePositiveNumber(record.width, 0)
-  const height = normalizePositiveNumber(record.height, 0)
-
-  return width > 0 && height > 0 ? { width, height } : null
 }
 
 function normalizeCaseInsertTitleArtworkDefaultSteamLogo(

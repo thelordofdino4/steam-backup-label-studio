@@ -6,11 +6,13 @@ import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
 } from '../caseInsert/defaults.ts'
 import {
-  asRecord,
   normalizeCaseInsertTemplateType,
   normalizeProjectJewelCaseState,
-  normalizeString,
 } from '../caseInsert/normalization.ts'
+import {
+  asRecord,
+  normalizeString,
+} from './savedProjectNormalization.ts'
 import type {
   CreateCaseInsertProjectSnapshotParams,
   RestoredCaseInsertProjectState,

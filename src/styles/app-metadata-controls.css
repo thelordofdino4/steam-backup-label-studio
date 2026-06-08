@@ -78,11 +78,6 @@
   object-fit: cover;
 }
 
-.metadata-details[open] > .panel-summary::after {
-  transform: scaleX(-1) rotate(-145deg) !important;
-  opacity: 1 !important;
-}
-
 .logo-file-input {
   position: absolute;
   width: 1px !important;

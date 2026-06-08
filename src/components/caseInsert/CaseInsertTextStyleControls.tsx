@@ -38,7 +38,7 @@ export function CaseInsertTextOptionalStyleControls({
 }: Omit<CaseInsertTextStyleControlsProps, 'onApplyStylePreset' | 'source'>) {
   return (
     <div
-      className="disc-text-control-group disc-text-optional-checkboxes"
+      className="editor-control-group editor-optional-checkboxes"
       aria-label={`${label} optional controls`}
     >
       {onAvoidVisualElementsChange ? (
@@ -66,7 +66,7 @@ export function CaseInsertTextOptionalStyleControls({
       </label>
 
       {style.backgroundEnabled ? (
-        <label className="checkbox-row disc-text-nested-checkbox">
+        <label className="checkbox-row editor-nested-checkbox">
           <input
             id={`${idPrefix}-border-enabled`}
             type="checkbox"
@@ -104,14 +104,14 @@ export function CaseInsertTextSourceControls({
 
   return (
     <div
-      className="disc-text-control-group"
+      className="editor-control-group"
       aria-label={`${label} source controls`}
     >
-      <div className="disc-text-source-row">
+      <div className="editor-source-row">
         <span>{sourceLabel}</span>
         {isManualOverride && onUseMetadataValue ? (
           <button
-            className="secondary-button disc-text-source-button"
+            className="secondary-button editor-source-button"
             type="button"
             onClick={onUseMetadataValue}
           >
@@ -132,10 +132,10 @@ export function CaseInsertTextStyleControls({
 }: CaseInsertTextStyleControlsProps) {
   return (
     <div
-      className="disc-text-control-group"
+      className="editor-control-group"
       aria-label={`${label} type and style controls`}
     >
-      <div className="disc-text-style-grid">
+      <div className="editor-style-grid">
         <label>
           <span>Style preset</span>
           <select

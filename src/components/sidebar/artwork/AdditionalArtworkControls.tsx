@@ -164,7 +164,7 @@ function AdditionalArtworkElementControls({
           />
 
           {hasImage ? (
-            <div className="selected-lockup-card logo-asset-status-card">
+            <div className="editor-asset-status-card logo-asset-status-card">
               <img
                 className="logo-asset-preview additional-artwork-preview"
                 src={element.imageDataUrl ?? undefined}
@@ -192,7 +192,7 @@ function AdditionalArtworkElementControls({
           />
 
           <div
-            className="disc-text-layout-grid"
+            className="editor-control-grid"
             aria-label={`${title} fine tuning controls`}
           >
             <EditorRangeField

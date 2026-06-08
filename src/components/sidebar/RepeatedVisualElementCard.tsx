@@ -31,7 +31,7 @@ export function RepeatedVisualElementCard({
   const displayLabel = label.trim() || title
 
   return (
-    <details className="repeated-visual-card metadata-details collapsible-panel spacing-top" open>
+    <details className="repeated-visual-card editor-nested-panel collapsible-panel spacing-top" open>
       <summary className="panel-summary repeated-visual-card-summary">
         <span className="repeated-visual-card-title">{displayLabel}</span>
         <span className="repeated-visual-card-meta">{summary}</span>

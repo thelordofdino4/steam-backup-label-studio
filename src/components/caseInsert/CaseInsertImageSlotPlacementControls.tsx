@@ -96,7 +96,7 @@ export function CaseInsertImageSlotPlacementControls({
       <legend>Placement</legend>
       <p className="hint">{statusMessage}</p>
 
-      <div className="disc-text-layout-grid">
+      <div className="editor-control-grid">
         {beforeRangeControls}
         {fields.map((field) => (
           <EditorRangeField

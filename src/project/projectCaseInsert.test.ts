@@ -1237,6 +1237,50 @@ test('legacy case insert projects infer additional artwork visibility from slots
   assert.equal(restored.spine.right.additionalArtworkEnabled, false)
 })
 
+test('case insert slots use shared saved image field normalization', () => {
+  const restored = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Sparse Image Case',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Sparse Image Case',
+      selectedSteamGame: null,
+    },
+    template: {
+      type: 'caseInsert',
+      variant: DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+    },
+    caseInsert: {
+      templates: {
+        cover: {
+          artworkSlots: [
+            {
+              id: 'bad-cover-artwork',
+              enabled: true,
+              imageDataUrl: 42,
+              imageSize: { width: 'wide', height: 720 },
+              layout: {
+                enabled: 'true',
+                scale: Number.NaN,
+                x: 'left',
+                y: 24,
+              },
+            },
+          ],
+        },
+      },
+    },
+  }).caseInsert
+  const slot = restored.templates.cover.artworkSlots[0]!
+
+  assert.equal(slot.imageDataUrl, null)
+  assert.equal(slot.imageSize, null)
+  assert.equal(slot.layout.scale, 1)
+  assert.equal(slot.layout.x, 0)
+  assert.equal(slot.layout.y, 24)
+})
+
 test('case helpers update artwork slots and export settings', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 

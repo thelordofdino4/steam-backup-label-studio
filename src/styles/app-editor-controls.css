@@ -1,0 +1,136 @@
+.editor-asset-status-card {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid #2a2e38;
+  border-radius: 12px;
+  background: #111827;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.editor-asset-status-card .secondary-button {
+  margin-top: 10px;
+}
+
+.editor-source-row {
+  display: grid;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.editor-source-button {
+  margin-top: 0;
+  padding: 8px 10px;
+}
+
+.editor-text-control-list {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+
+.editor-text-control {
+  padding: 10px;
+  border: 1px solid #2a2e38;
+  border-radius: 12px;
+  background: #111827;
+}
+
+.editor-text-enable-row {
+  margin-top: 0;
+}
+
+.editor-text-control-body {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.editor-text-input {
+  margin-top: 8px;
+  direction: ltr;
+  text-align: left;
+}
+
+.editor-text-reset-button {
+  margin-top: 0;
+}
+
+.editor-control-group {
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.editor-control-group:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.editor-control-group > .editor-control-grid:first-child,
+.editor-control-group > .editor-style-grid:first-child {
+  margin-top: 0;
+}
+
+.editor-action-group {
+  display: grid;
+  gap: 8px;
+}
+
+.editor-optional-checkboxes {
+  display: grid;
+  gap: 8px;
+}
+
+.editor-optional-checkboxes .checkbox-row {
+  margin-top: 0;
+}
+
+.editor-nested-checkbox {
+  margin-left: 24px;
+}
+
+.title-artwork-status-card {
+  margin-top: 10px;
+}
+
+.title-artwork-preview {
+  object-fit: contain;
+}
+
+.editor-control-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.editor-control-grid label,
+.editor-style-grid label {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+.editor-style-grid {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.editor-style-grid input[type="color"] {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0f1117;
+  padding: 4px;
+}
+
+.editor-control-grid select,
+.editor-style-grid select {
+  width: 100%;
+  padding: 7px 9px;
+}

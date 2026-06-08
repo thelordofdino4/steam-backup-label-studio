@@ -13,6 +13,14 @@ import type {
   TechnicalMarkSource,
   TechnicalMarkValue,
 } from './projectTypes'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+  normalizeString,
+} from './savedProjectNormalization.ts'
 
 export type TechnicalMarkLayoutField = keyof TechnicalMarkLayout
 
@@ -78,9 +86,7 @@ function createTechnicalMarkAssetId(value: TechnicalMarkValue) {
 }
 
 function normalizeElementLabel(label: unknown, fallbackLabel: string) {
-  return typeof label === 'string' && label.trim()
-    ? label
-    : fallbackLabel
+  return normalizeString(label, fallbackLabel)
 }
 
 export function createDefaultProjectTechnicalMarks(): ProjectTechnicalMarks {
@@ -574,10 +580,10 @@ function normalizeTechnicalMarkLayout(
   defaultLayout: TechnicalMarkLayout = DEFAULT_TECHNICAL_MARK_LAYOUT,
 ): TechnicalMarkLayout {
   return {
-    enabled: layout?.enabled ?? defaultLayout.enabled,
-    scale: layout?.scale ?? defaultLayout.scale,
-    x: layout?.x ?? defaultLayout.x,
-    y: layout?.y ?? defaultLayout.y,
+    enabled: normalizeBoolean(layout?.enabled, defaultLayout.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaultLayout.scale),
+    x: normalizeFiniteNumber(layout?.x, defaultLayout.x),
+    y: normalizeFiniteNumber(layout?.y, defaultLayout.y),
   }
 }
 
@@ -588,7 +594,7 @@ function normalizeTechnicalMarkAsset(
   fallbackId?: string,
 ): ProjectTechnicalMarkAsset {
   const source = asset?.source === 'custom' ? 'custom' : 'placeholder'
-  const customImageSize = asset?.customImageSize ?? null
+  const customImageSize = normalizeImageSize(asset?.customImageSize)
   const defaults = createDefaultProjectTechnicalMarkAsset(value, selectedDiscTemplate)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultTechnicalMarkLayoutForTemplate(selectedDiscTemplate, value, {
@@ -608,7 +614,7 @@ function normalizeTechnicalMarkAsset(
       getDefaultTechnicalMarkAssetLabel(value),
     ),
     source,
-    customImageDataUrl: asset?.customImageDataUrl ?? null,
+    customImageDataUrl: normalizeNullableString(asset?.customImageDataUrl),
     customImageSize,
     layout: normalizeTechnicalMarkLayout(asset?.layout, defaultLayout),
   }

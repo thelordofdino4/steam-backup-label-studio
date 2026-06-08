@@ -332,15 +332,6 @@
   letter-spacing: 0;
 }
 
-.case-insert-control-card {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  background: rgba(15, 23, 42, 0.42);
-  border-radius: 8px;
-  padding: 10px;
-  margin-top: 12px;
-  min-width: 0;
-}
-
 .case-insert-sidebar {
   padding-right: 12px;
   padding-left: 12px;
@@ -394,7 +385,6 @@
   padding-left: 2px;
 }
 
-.case-insert-control-card .feature-section-card .panel-summary,
 .case-insert-background-control .feature-section-card .panel-summary {
   padding: 12px;
 }
@@ -407,7 +397,6 @@
   padding: 12px;
 }
 
-.case-insert-control-card .feature-section-card .panel-content,
 .case-insert-background-control .feature-section-card .panel-content {
   padding: 0 12px 12px;
   min-width: 0;
@@ -440,12 +429,12 @@
 .case-insert-workflow-section select,
 .case-insert-workflow-section textarea,
 .case-insert-workflow-section button,
-.case-insert-workflow-section .selected-lockup-card {
+.case-insert-workflow-section .editor-asset-status-card {
   max-width: 100%;
   min-width: 0;
 }
 
-.case-insert-title-artwork-control .disc-text-layout-grid label {
+.case-insert-title-artwork-control .editor-control-grid label {
   grid-template-columns: minmax(48px, max-content) minmax(0, 1fr);
 }
 
@@ -453,12 +442,8 @@
   width: 100%;
 }
 
-.case-insert-title-artwork-control .selected-lockup-card {
+.case-insert-title-artwork-control .editor-asset-status-card {
   min-width: 0;
-}
-
-.case-insert-file-input {
-  display: none;
 }
 
 .case-insert-list-item-row {

@@ -99,7 +99,7 @@ export function EditorMarkImageSourceControls({
           />
 
           {sourceStatus.hasCustomImage ? (
-            <div className="selected-lockup-card logo-asset-status-card">
+            <div className="editor-asset-status-card logo-asset-status-card">
               <img
                 className="logo-asset-preview"
                 src={customImageDataUrl ?? ''}

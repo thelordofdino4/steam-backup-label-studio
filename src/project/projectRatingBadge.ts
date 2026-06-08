@@ -20,6 +20,13 @@ import type {
   RatingBadgeLayout,
   RatingBadgeSource,
 } from './projectTypes'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from './savedProjectNormalization.ts'
 
 export type RatingBadgeLayoutField = keyof RatingBadgeLayout
 export type RatingBadgeElementKey = 'primary' | 'usk'
@@ -312,10 +319,10 @@ function normalizeRatingBadgeLayout(
   defaults: RatingBadgeLayout = DEFAULT_RATING_BADGE_LAYOUT,
 ): RatingBadgeLayout {
   return {
-    enabled: layout?.enabled ?? defaults.enabled,
-    scale: layout?.scale ?? defaults.scale,
-    x: layout?.x ?? defaults.x,
-    y: layout?.y ?? defaults.y,
+    enabled: normalizeBoolean(layout?.enabled, defaults.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaults.scale),
+    x: normalizeFiniteNumber(layout?.x, defaults.x),
+    y: normalizeFiniteNumber(layout?.y, defaults.y),
   }
 }
 
@@ -338,8 +345,8 @@ export function normalizeProjectRatingBadge(
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectRatingBadge {
   const defaults = createDefaultProjectRatingBadge(selectedDiscTemplate)
-  const source = ratingBadge?.source ?? 'placeholder'
-  const customImageSize = ratingBadge?.customImageSize ?? null
+  const source = ratingBadge?.source === 'custom' ? 'custom' : 'placeholder'
+  const customImageSize = normalizeImageSize(ratingBadge?.customImageSize)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultRatingBadgeLayoutForTemplate(selectedDiscTemplate, {
         source,
@@ -349,7 +356,9 @@ export function normalizeProjectRatingBadge(
 
   return {
     source,
-    customImageDataUrl: ratingBadge?.customImageDataUrl ?? null,
+    customImageDataUrl: normalizeNullableString(
+      ratingBadge?.customImageDataUrl,
+    ),
     customImageSize,
     layout: normalizeRatingBadgeLayout(ratingBadge?.layout, defaultLayout),
     uskBadge: normalizeSupplementalUskRatingBadge(

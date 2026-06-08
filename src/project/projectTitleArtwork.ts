@@ -8,6 +8,10 @@ import {
   shouldRenderOptionalLayoutFeature,
   setOptionalLayoutFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
+import {
+  clearEditorImageAssetContent,
+  setEditorImageAssetContent,
+} from '../editor/imageAssetTransitions.ts'
 import { getDefaultTitleArtworkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'
@@ -18,6 +22,14 @@ import type {
   ProjectTitleArtworkDefaultAsset,
   TitleArtworkLayout,
 } from './projectTypes.ts'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+  normalizeString,
+} from './savedProjectNormalization.ts'
 
 export type TitleArtworkLayoutField = keyof TitleArtworkLayout
 
@@ -53,9 +65,7 @@ export const DEFAULT_TITLE_ARTWORK_SIZE: BackgroundImageSize = {
 }
 
 function normalizeTitleArtworkLabel(label: unknown, fallbackLabel: string) {
-  return typeof label === 'string' && label.trim()
-    ? label
-    : fallbackLabel
+  return normalizeString(label, fallbackLabel)
 }
 
 function createDefaultTitleArtworkLayout(
@@ -210,15 +220,13 @@ export function setTitleArtworkImage(
     ? titleArtwork.layout
     : defaultLayout
 
-  const nextTitleArtwork: ProjectTitleArtwork = {
+  const nextTitleArtwork: ProjectTitleArtwork = setEditorImageAssetContent({
     ...titleArtwork,
-    source: 'steam',
+    source: 'steam' as const,
     steamArtworkAssetId: steamAsset.id,
     sourceLabel: steamAsset.label,
-    imageDataUrl: importedImage.imageDataUrl,
-    imageSize: importedImage.imageSize,
     layout: nextLayout,
-  }
+  }, importedImage)
 
   const enabledTitleArtwork =
     setOptionalLayoutFeatureEnabled(nextTitleArtwork, true)
@@ -275,14 +283,12 @@ export function restoreTitleArtworkDefaultSteamLogo(
     return titleArtwork
   }
 
-  return {
+  return setEditorImageAssetContent({
     ...setOptionalLayoutFeatureEnabled(titleArtwork, true),
-    source: 'steam',
+    source: 'steam' as const,
     steamArtworkAssetId: defaultSteamLogo.steamArtworkAssetId,
     sourceLabel: defaultSteamLogo.sourceLabel,
-    imageDataUrl: defaultSteamLogo.imageDataUrl,
-    imageSize: defaultSteamLogo.imageSize,
-  }
+  }, defaultSteamLogo)
 }
 
 export function setCustomTitleArtworkImage(
@@ -300,15 +306,13 @@ export function setCustomTitleArtworkImage(
     ? titleArtwork.layout
     : defaultLayout
 
-  return setOptionalLayoutFeatureEnabled({
+  return setOptionalLayoutFeatureEnabled(setEditorImageAssetContent({
     ...titleArtwork,
-    source: 'custom',
+    source: 'custom' as const,
     steamArtworkAssetId: null,
     sourceLabel: CUSTOM_TITLE_ARTWORK_SOURCE_LABEL,
-    imageDataUrl: importedImage.imageDataUrl,
-    imageSize: importedImage.imageSize,
     layout: nextLayout,
-  }, true)
+  }, importedImage), true)
 }
 
 export function clearTitleArtworkImage(
@@ -317,11 +321,9 @@ export function clearTitleArtworkImage(
   steamLogoPlacement: SteamLogoPlacement = 'top',
 ): ProjectTitleArtwork {
   return {
-    ...titleArtwork,
+    ...clearEditorImageAssetContent(titleArtwork),
     steamArtworkAssetId: null,
     sourceLabel: DEFAULT_TITLE_ARTWORK_SOURCE_LABEL,
-    imageDataUrl: null,
-    imageSize: null,
     layout: {
       ...createDefaultTitleArtworkLayout(selectedDiscTemplate, steamLogoPlacement),
       enabled: false,
@@ -352,35 +354,39 @@ function normalizeTitleArtworkLayout(
   defaults: TitleArtworkLayout,
 ): TitleArtworkLayout {
   return {
-    enabled: layout?.enabled ?? defaults.enabled,
-    scale: layout?.scale ?? defaults.scale,
-    x: layout?.x ?? defaults.x,
-    y: layout?.y ?? defaults.y,
+    enabled: normalizeBoolean(layout?.enabled, defaults.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaults.scale),
+    x: normalizeFiniteNumber(layout?.x, defaults.x),
+    y: normalizeFiniteNumber(layout?.y, defaults.y),
   }
 }
 
 function normalizeTitleArtworkDefaultSteamLogo(
   defaultSteamLogo: Partial<ProjectTitleArtworkDefaultAsset> | null | undefined,
 ): ProjectTitleArtworkDefaultAsset | null {
+  const steamArtworkAssetId = normalizeNullableString(
+    defaultSteamLogo?.steamArtworkAssetId,
+  )
+  const imageDataUrl = normalizeNullableString(defaultSteamLogo?.imageDataUrl)
+  const imageSize = normalizeImageSize(defaultSteamLogo?.imageSize)
+
   if (
     !defaultSteamLogo ||
-    typeof defaultSteamLogo.imageDataUrl !== 'string' ||
-    !defaultSteamLogo.imageDataUrl ||
-    !defaultSteamLogo.imageSize ||
-    typeof defaultSteamLogo.steamArtworkAssetId !== 'string' ||
-    !defaultSteamLogo.steamArtworkAssetId
+    !steamArtworkAssetId ||
+    !imageDataUrl ||
+    !imageSize
   ) {
     return null
   }
 
   return {
-    steamArtworkAssetId: defaultSteamLogo.steamArtworkAssetId,
+    steamArtworkAssetId,
     sourceLabel: normalizeTitleArtworkLabel(
       defaultSteamLogo.sourceLabel,
       DEFAULT_TITLE_ARTWORK_SOURCE_LABEL,
     ),
-    imageDataUrl: defaultSteamLogo.imageDataUrl,
-    imageSize: defaultSteamLogo.imageSize,
+    imageDataUrl,
+    imageSize,
   }
 }
 
@@ -389,10 +395,12 @@ export function normalizeProjectTitleArtwork(
   selectedDiscTemplate?: DiscTemplate,
   steamLogoPlacement: SteamLogoPlacement = 'top',
 ): ProjectTitleArtwork {
-  const imageSize = titleArtwork?.imageSize ?? null
+  const imageSize = normalizeImageSize(titleArtwork?.imageSize)
   const source = titleArtwork?.source === 'custom' ? 'custom' : 'steam'
-  const steamArtworkAssetId = titleArtwork?.steamArtworkAssetId ?? null
-  const imageDataUrl = titleArtwork?.imageDataUrl ?? null
+  const steamArtworkAssetId = normalizeNullableString(
+    titleArtwork?.steamArtworkAssetId,
+  )
+  const imageDataUrl = normalizeNullableString(titleArtwork?.imageDataUrl)
   const defaultSteamLogo = normalizeTitleArtworkDefaultSteamLogo(
     titleArtwork?.defaultSteamLogo,
   )

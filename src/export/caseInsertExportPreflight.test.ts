@@ -28,6 +28,10 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import { buildCaseInsertExportPreflightSummary } from './caseInsertExportPreflight.ts'
+import {
+  GUIDE_MARKS_EXPORT_WARNING,
+  createBundledAssetWarning,
+} from './preflightWarnings.ts'
 
 function createDefaultBrandingSources(): CaseInsertBrandingSourceCatalog {
   return {
@@ -154,9 +158,7 @@ test('cover sheet preflight warns about guides and blank cover without spine war
   })
 
   assert.equal(summary.hasWarnings, true)
-  assert.ok(summary.warnings.includes(
-    'Guide marks are enabled and will appear in the exported PNG.',
-  ))
+  assert.ok(summary.warnings.includes(GUIDE_MARKS_EXPORT_WARNING))
   assert.ok(summary.warnings.includes(
     'Cover Sheet has no background image; uncovered areas will export as blank white.',
   ))
@@ -297,9 +299,7 @@ test('tray card preflight catches guide, image, text, and spine risks', () => {
   })
 
   assert.equal(summary.hasWarnings, true)
-  assert.ok(summary.warnings.includes(
-    'Guide marks are enabled and will appear in the exported PNG.',
-  ))
+  assert.ok(summary.warnings.includes(GUIDE_MARKS_EXPORT_WARNING))
   assert.ok(summary.warnings.some((warning) =>
     /Tray Card background is 100 x 100px/.test(warning)))
   assert.ok(summary.warnings.includes(
@@ -344,18 +344,18 @@ test('case preflight matches disc warnings for bundled generic visual assets', (
 
   assert.equal(summary.hasWarnings, true)
   assert.ok(summary.warnings.includes(
-    'Developer logo uses bundled generic logo artwork.',
+    createBundledAssetWarning('Developer logo', 'logo'),
   ))
   assert.ok(summary.warnings.includes(
-    'ESRB E rating badge uses bundled rating artwork.',
+    createBundledAssetWarning('ESRB E', 'ratingBadge'),
   ))
   assert.ok(summary.warnings.includes(
-    'DVD media mark uses bundled generic artwork.',
+    createBundledAssetWarning('DVD', 'mediaMark'),
   ))
   assert.ok(summary.warnings.includes(
-    'Windows operating-system mark uses bundled generic artwork.',
+    createBundledAssetWarning('Windows', 'operatingSystemMark'),
   ))
   assert.ok(summary.warnings.includes(
-    'Audio technical mark uses bundled generic artwork.',
+    createBundledAssetWarning('Audio', 'technicalMark'),
   ))
 })

@@ -9,6 +9,13 @@ import type {
   MediaMarkValue,
   ProjectMediaMark,
 } from './projectTypes'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from './savedProjectNormalization.ts'
 
 export type MediaMarkLayoutField = keyof MediaMarkLayout
 
@@ -181,10 +188,10 @@ function normalizeMediaMarkLayout(
   defaults: MediaMarkLayout = DEFAULT_MEDIA_MARK_LAYOUT,
 ): MediaMarkLayout {
   return {
-    enabled: layout?.enabled ?? defaults.enabled,
-    scale: layout?.scale ?? defaults.scale,
-    x: layout?.x ?? defaults.x,
-    y: layout?.y ?? defaults.y,
+    enabled: normalizeBoolean(layout?.enabled, defaults.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaults.scale),
+    x: normalizeFiniteNumber(layout?.x, defaults.x),
+    y: normalizeFiniteNumber(layout?.y, defaults.y),
   }
 }
 
@@ -203,7 +210,7 @@ export function normalizeProjectMediaMark(
   const theme = isMediaMarkTheme(rawTheme)
     ? rawTheme
     : DEFAULT_MEDIA_MARK_THEME
-  const customImageSize = mediaMark?.customImageSize ?? null
+  const customImageSize = normalizeImageSize(mediaMark?.customImageSize)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, {
         source,
@@ -215,7 +222,7 @@ export function normalizeProjectMediaMark(
     value: rawValue,
     source,
     theme,
-    customImageDataUrl: mediaMark?.customImageDataUrl ?? null,
+    customImageDataUrl: normalizeNullableString(mediaMark?.customImageDataUrl),
     customImageSize,
     layout: normalizeMediaMarkLayout(mediaMark?.layout, defaultLayout),
   }

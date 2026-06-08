@@ -757,8 +757,8 @@ function TextBlockControls({
   const layoutPresets = getCaseInsertTextBlockLayoutPresets(paneId, textBlock)
 
   return (
-    <div className="disc-text-control">
-      <label className="checkbox-row disc-text-enable-row">
+    <div className="editor-text-control">
+      <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
           checked={textBlock.enabled}
@@ -773,7 +773,7 @@ function TextBlockControls({
       </label>
 
       {!textBlock.enabled ? null : (
-        <div className="disc-text-control-body">
+        <div className="editor-text-control-body">
           <CaseInsertTextOptionalStyleControls
             idPrefix={textBlock.id}
             label={textBlock.label}
@@ -829,7 +829,7 @@ function TextBlockControls({
           />
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
             <label className="field-label" htmlFor={`${textBlock.id}-value`}>
@@ -837,7 +837,7 @@ function TextBlockControls({
             </label>
             <input
               id={`${textBlock.id}-value`}
-              className="disc-text-input"
+              className="editor-text-input"
               type="text"
               value={inputState.value}
               placeholder={inputState.placeholder}
@@ -855,10 +855,10 @@ function TextBlockControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} placement controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <label htmlFor={`${textBlock.id}-align`}>
                 <span>Align</span>
                 <select
@@ -891,10 +891,10 @@ function TextBlockControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} fine tuning controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <EditorRangeField
                 id={`${textBlock.id}-scale`}
                 label="Scale"
@@ -945,9 +945,9 @@ function TextBlockControls({
             </div>
           </div>
 
-          <div className="disc-text-control-group disc-text-action-group">
+          <div className="editor-control-group editor-action-group">
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetTextBlockLayout(paneId, textBlock.id)}
@@ -955,7 +955,7 @@ function TextBlockControls({
               Reset {textBlock.label.toLocaleLowerCase()} layout
             </button>
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetTextBlockStyle(paneId, textBlock.id)}
@@ -985,8 +985,8 @@ function TextListControls({
   const layoutPresets = getCaseInsertTextListLayoutPresets(paneId)
 
   return (
-    <div className="disc-text-control">
-      <label className="checkbox-row disc-text-enable-row">
+    <div className="editor-text-control">
+      <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
           checked={textList.enabled}
@@ -1001,7 +1001,7 @@ function TextListControls({
       </label>
 
       {!textList.enabled ? null : (
-        <div className="disc-text-control-body">
+        <div className="editor-text-control-body">
           <CaseInsertTextOptionalStyleControls
             idPrefix={textList.id}
             label={textList.label}
@@ -1048,7 +1048,7 @@ function TextListControls({
           />
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textList.label} text controls`}
           >
             {textList.items.length === 0 ? (
@@ -1100,10 +1100,10 @@ function TextListControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textList.label} placement controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <TextLayoutPresetControl
                 id={`${textList.id}-placement`}
                 presets={layoutPresets}
@@ -1118,10 +1118,10 @@ function TextListControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textList.label} fine tuning controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <EditorRangeField
                 id={`${textList.id}-scale`}
                 label="Scale"
@@ -1172,9 +1172,9 @@ function TextListControls({
             </div>
           </div>
 
-          <div className="disc-text-control-group disc-text-action-group">
+          <div className="editor-control-group editor-action-group">
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetTextListLayout(paneId, textList.id)}
@@ -1182,7 +1182,7 @@ function TextListControls({
               Reset {textList.label.toLocaleLowerCase()} layout
             </button>
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetTextListStyle(paneId, textList.id)}
@@ -1651,7 +1651,7 @@ export function CaseInsertTemplateTextControls({
     : []
 
   return (
-    <div className="disc-text-control-list">
+    <div className="editor-text-control-list">
       {leadingTextBlocks.map((textBlock) => (
         <TextBlockControls
           key={textBlock.id}

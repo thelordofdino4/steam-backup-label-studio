@@ -2,6 +2,10 @@ import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import {
+  clearEditorImageAssetSourceContent,
+  setEditorImageAssetSourceContent,
+} from '../editor/imageAssetTransitions.ts'
 import { setOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import { getJewelCaseImageRegionHeightFitScale } from '../layout/jewelCaseLayout.ts'
 import {
@@ -31,14 +35,15 @@ export function setCaseInsertImageSlotImage(
   image: CaseInsertImageSlotImageInput,
 ): ProjectCaseInsertImageSlot {
   return {
-    ...slot,
+    ...setEditorImageAssetSourceContent(slot, {
+      imageDataUrl: image.imageDataUrl,
+      imageSize: image.imageSize,
+      imageSource: normalizeProjectImageAssetProvenance(
+        image.imageSource,
+        createEmbeddedProjectImageAssetProvenance(slot.label),
+      ),
+    }),
     enabled: true,
-    imageDataUrl: image.imageDataUrl,
-    imageSize: image.imageSize,
-    imageSource: normalizeProjectImageAssetProvenance(
-      image.imageSource,
-      createEmbeddedProjectImageAssetProvenance(slot.label),
-    ),
   }
 }
 
@@ -46,11 +51,8 @@ export function clearCaseInsertImageSlotImage(
   slot: ProjectCaseInsertImageSlot,
 ): ProjectCaseInsertImageSlot {
   return {
-    ...slot,
+    ...clearEditorImageAssetSourceContent(slot),
     enabled: false,
-    imageDataUrl: null,
-    imageSource: null,
-    imageSize: null,
   }
 }
 

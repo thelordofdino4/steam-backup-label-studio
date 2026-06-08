@@ -37,6 +37,14 @@ import {
   getMarkImageSourceStatus,
 } from '../editor/markImageSource.ts'
 import type { DiscTemplate } from '../types/template.ts'
+import {
+  buildGuideExportWarnings,
+  createBundledAssetWarning,
+  createCustomMarkMissingImageWarning,
+  createMissingBackgroundWarning,
+  createMissingImageFallbackWarning,
+  createMissingImageWarning,
+} from './preflightWarnings.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3
 
@@ -172,12 +180,15 @@ function buildExportWarnings(
 ) {
   const warnings: string[] = []
 
-  if (enabledGuideLabels.length > 0) {
-    warnings.push('Guide marks are enabled and will appear in the exported PNG.')
-  }
+  warnings.push(...buildGuideExportWarnings(enabledGuideLabels.length > 0))
 
   if (!backgroundImageUrl) {
-    warnings.push('No background image is selected; the export will use the default blank disc fill.')
+    warnings.push(
+      createMissingBackgroundWarning(
+        null,
+        'the export will use the default blank disc fill',
+      ),
+    )
   }
 
   if (selectedDiscTemplateId === 'custom') {
@@ -204,7 +215,10 @@ function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
         : `${logoAsset.label} logo`
 
       warnings.push(
-        `${logoLabel} is enabled, but no image is uploaded; the bundled generic logo will export.`,
+        createMissingImageFallbackWarning(logoLabel, {
+          imageAction: 'uploaded',
+          fallbackDescription: 'the bundled generic logo will export',
+        }),
       )
     }
   }
@@ -221,7 +235,10 @@ function getTitleArtworkWarnings(titleArtwork: ProjectTitleArtwork) {
   }
 
   return [
-    'Title/logo artwork is enabled, but no Steam or custom title artwork image is selected; it will not render in the exported PNG.',
+    createMissingImageWarning('Title/logo artwork', {
+      imageDescription: 'Steam or custom title artwork image',
+      exportTarget: 'exported PNG',
+    }),
   ]
 }
 
@@ -244,7 +261,9 @@ function getRatingBadgeWarnings(
   const sourceStatus = getMarkImageSourceStatus(ratingBadge)
 
   if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
-    warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled rating artwork will export when rating metadata is renderable.')
+    warnings.push(
+      createCustomMarkMissingImageWarning('rating badge', 'ratingBadge'),
+    )
   }
 
   if (
@@ -252,11 +271,13 @@ function getRatingBadgeWarnings(
     metadata.ratingSystem !== 'none' &&
     metadata.ratingValue.trim()
   ) {
-    warnings.push('Rating badge uses bundled rating artwork.')
+    warnings.push(createBundledAssetWarning('Rating badge', 'ratingBadge'))
   }
 
   if (shouldRenderSupplementalUskRatingBadge(metadata, ratingBadge)) {
-    warnings.push('Additional USK rating badge uses bundled rating artwork.')
+    warnings.push(
+      createBundledAssetWarning('Additional USK rating badge', 'ratingBadge'),
+    )
   }
 
   return warnings
@@ -273,12 +294,12 @@ function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
 
   if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
     return [
-      `Custom ${model.label} media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
+      createCustomMarkMissingImageWarning(model.label, 'mediaMark'),
     ]
   }
 
   if (model.isPlaceholderImage) {
-    return [`${model.label} media mark uses bundled generic artwork.`]
+    return [createBundledAssetWarning(model.label, 'mediaMark')]
   }
 
   return []
@@ -290,12 +311,15 @@ function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
 
     if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
       return [
-        `Custom ${model.label} operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
+        createCustomMarkMissingImageWarning(
+          model.label,
+          'operatingSystemMark',
+        ),
       ]
     }
 
     if (model.isPlaceholderImage) {
-      return [`${model.label} operating system mark uses bundled generic artwork.`]
+      return [createBundledAssetWarning(model.label, 'operatingSystemMark')]
     }
 
     return []
@@ -308,12 +332,12 @@ function getTechnicalMarkWarnings(technicalMarks: ProjectTechnicalMarks) {
 
     if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
       return [
-        `Custom ${model.label} technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
+        createCustomMarkMissingImageWarning(model.label, 'technicalMark'),
       ]
     }
 
     if (model.isPlaceholderImage) {
-      return [`${model.label} technical mark uses bundled generic artwork.`]
+      return [createBundledAssetWarning(model.label, 'technicalMark')]
     }
 
     return []

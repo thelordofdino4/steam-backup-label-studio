@@ -5,6 +5,10 @@ import {
   setOptionalLayoutFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
 import {
+  clearEditorImageAssetContent,
+  setEditorImageAssetContent,
+} from '../editor/imageAssetTransitions.ts'
+import {
   createRepeatedArtworkLabel,
   createRepeatedArtworkLabelForIndex,
   getNextRepeatedArtworkLabelNumber,
@@ -32,6 +36,13 @@ import {
   normalizeAdditionalArtworkFrame,
   type AdditionalArtworkFrameField,
 } from './additionalArtworkFrame.ts'
+import {
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from './savedProjectNormalization.ts'
 import {
   createPercentPositionedImageRenderArtifact,
   type PercentPositionedImageRenderArtifact,
@@ -367,15 +378,13 @@ export function setAdditionalArtworkElementImage(
     additionalArtwork,
     elementId,
     (element) => ({
-      ...element,
+      ...setEditorImageAssetContent(element, importedImage),
       source: importSource.source,
       sourceId: importSource.sourceId,
       sourceLabel: sanitizeProjectImageAssetSourceLabel(
         importSource.sourceLabel,
         DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
       ),
-      imageDataUrl: importedImage.imageDataUrl,
-      imageSize: importedImage.imageSize,
       layout: setOptionalLayoutFeatureEnabled(element, true).layout,
     }),
   )
@@ -389,12 +398,10 @@ export function clearAdditionalArtworkElementImage(
     additionalArtwork,
     elementId,
     (element) => ({
-      ...element,
+      ...clearEditorImageAssetContent(element),
       source: 'custom',
       sourceId: null,
       sourceLabel: DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
-      imageDataUrl: null,
-      imageSize: null,
     }),
   )
 }
@@ -492,10 +499,10 @@ function normalizeAdditionalArtworkLayout(
   defaults: AdditionalArtworkLayout,
 ): AdditionalArtworkLayout {
   return {
-    enabled: layout?.enabled ?? defaults.enabled,
-    scale: layout?.scale ?? defaults.scale,
-    x: layout?.x ?? defaults.x,
-    y: layout?.y ?? defaults.y,
+    enabled: normalizeBoolean(layout?.enabled, defaults.enabled),
+    scale: normalizePositiveNumber(layout?.scale, defaults.scale),
+    x: normalizeFiniteNumber(layout?.x, defaults.x),
+    y: normalizeFiniteNumber(layout?.y, defaults.y),
   }
 }
 
@@ -508,7 +515,7 @@ function normalizeAdditionalArtworkElement(
     return null
   }
 
-  const imageSize = element.imageSize ?? null
+  const imageSize = normalizeImageSize(element.imageSize)
   const defaultLayout = createDefaultAdditionalArtworkLayout(
     additionalArtworkIndex,
     selectedDiscTemplate,
@@ -524,13 +531,13 @@ function normalizeAdditionalArtworkElement(
       additionalArtworkIndex + 1,
     ),
     source: isAdditionalArtworkSource(element.source) ? element.source : 'custom',
-    sourceId: typeof element.sourceId === 'string' ? element.sourceId : null,
+    sourceId: normalizeNullableString(element.sourceId),
     sourceLabel:
       sanitizeProjectImageAssetSourceLabel(
         element.sourceLabel,
         DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
       ),
-    imageDataUrl: element.imageDataUrl ?? null,
+    imageDataUrl: normalizeNullableString(element.imageDataUrl),
     imageSize,
     layout: normalizeAdditionalArtworkLayout(element.layout, defaultLayout),
     frame: normalizeAdditionalArtworkFrame(element.frame),
@@ -556,7 +563,10 @@ export function normalizeProjectAdditionalArtwork(
   })
 
   return {
-    enabled: additionalArtwork?.enabled ?? (elements.length > 0 ? true : defaults.enabled),
+    enabled: normalizeBoolean(
+      additionalArtwork?.enabled,
+      elements.length > 0 ? true : defaults.enabled,
+    ),
     elements,
   }
 }

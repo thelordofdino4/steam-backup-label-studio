@@ -148,17 +148,3 @@
   user-select: none;
   pointer-events: none;
 }
-
-.selected-lockup-card {
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid #2a2e38;
-  border-radius: 12px;
-  background: #111827;
-  color: #d1d5db;
-  font-size: 13px;
-}
-
-.selected-lockup-card .secondary-button {
-  margin-top: 10px;
-}

@@ -113,7 +113,7 @@ export function CaseInsertTitleArtworkControls({
           <p className="hint">{helpText}</p>
 
           <div
-            className="disc-text-layout-grid"
+            className="editor-control-grid"
             aria-label="Game logo fine tuning controls"
           >
             {fields.map((field) => (

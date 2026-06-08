@@ -293,8 +293,8 @@ function SpineTitleControls({
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', title)
 
   return (
-    <div className="disc-text-control">
-      <label className="checkbox-row disc-text-enable-row">
+    <div className="editor-text-control">
+      <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
           checked={title.enabled}
@@ -305,7 +305,7 @@ function SpineTitleControls({
       </label>
 
       {!title.enabled ? null : (
-        <div className="disc-text-control-body">
+        <div className="editor-text-control-body">
           <CaseInsertTextOptionalStyleControls
             idPrefix={`${side}-spine-title`}
             label={title.label}
@@ -341,7 +341,7 @@ function SpineTitleControls({
           />
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${title.label} text controls`}
           >
             <label className="field-label" htmlFor={`${side}-spine-title`}>
@@ -349,7 +349,7 @@ function SpineTitleControls({
             </label>
             <input
               id={`${side}-spine-title`}
-              className="disc-text-input"
+              className="editor-text-input"
               type="text"
               value={inputState.value}
               placeholder={inputState.placeholder}
@@ -366,10 +366,10 @@ function SpineTitleControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${title.label} placement controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <label htmlFor={`${side}-spine-title-align`}>
                 <span>Align</span>
                 <select
@@ -416,10 +416,10 @@ function SpineTitleControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${title.label} fine tuning controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <EditorRangeField
                 id={`${side}-spine-title-scale`}
                 label="Scale"
@@ -465,16 +465,16 @@ function SpineTitleControls({
             </div>
           </div>
 
-          <div className="disc-text-control-group disc-text-action-group">
+          <div className="editor-control-group editor-action-group">
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() => actions.handleResetSpineTitleLayout(side)}
             >
               Reset game title layout
             </button>
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() => actions.handleResetSpineTitleStyle(side)}
             >
@@ -532,8 +532,8 @@ function SpineTextBlockControls({
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', textBlock)
 
   return (
-    <div className="disc-text-control">
-      <label className="checkbox-row disc-text-enable-row">
+    <div className="editor-text-control">
+      <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
           checked={textBlock.enabled}
@@ -548,7 +548,7 @@ function SpineTextBlockControls({
       </label>
 
       {!textBlock.enabled ? null : (
-        <div className="disc-text-control-body">
+        <div className="editor-text-control-body">
           <CaseInsertTextOptionalStyleControls
             idPrefix={textBlock.id}
             label={textBlock.label}
@@ -586,7 +586,7 @@ function SpineTextBlockControls({
           />
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
             <label className="field-label" htmlFor={`${textBlock.id}-value`}>
@@ -594,7 +594,7 @@ function SpineTextBlockControls({
             </label>
             <input
               id={`${textBlock.id}-value`}
-              className="disc-text-input"
+              className="editor-text-input"
               type="text"
               value={inputState.value}
               placeholder={inputState.placeholder}
@@ -610,10 +610,10 @@ function SpineTextBlockControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} placement controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <label htmlFor={`${textBlock.id}-align`}>
                 <span>Align</span>
                 <select
@@ -666,10 +666,10 @@ function SpineTextBlockControls({
           </div>
 
           <div
-            className="disc-text-control-group"
+            className="editor-control-group"
             aria-label={`${textBlock.label} fine tuning controls`}
           >
-            <div className="disc-text-layout-grid">
+            <div className="editor-control-grid">
               <EditorRangeField
                 id={`${textBlock.id}-scale`}
                 label="Scale"
@@ -714,9 +714,9 @@ function SpineTextBlockControls({
             </div>
           </div>
 
-          <div className="disc-text-control-group disc-text-action-group">
+          <div className="editor-control-group editor-action-group">
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetSpineTextBlockLayout(side, textBlock.id)}
@@ -724,7 +724,7 @@ function SpineTextBlockControls({
               Reset {textBlock.label.toLocaleLowerCase()} layout
             </button>
             <button
-              className="secondary-button disc-text-reset-button"
+              className="secondary-button editor-text-reset-button"
               type="button"
               onClick={() =>
                 actions.handleResetSpineTextBlockStyle(side, textBlock.id)}

@@ -14,6 +14,14 @@ import {
   createProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import {
+  asRecord,
+  normalizeBoolean,
+  normalizeFiniteNumber,
+  normalizeImageSize,
+  normalizeNullableString,
+  normalizePositiveNumber,
+} from '../project/savedProjectNormalization.ts'
 import { setOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import type {
   BackgroundImageSize,
@@ -69,47 +77,10 @@ ProjectCaseInsertLayout = {
   rotation: 90,
 }
 
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null
-}
-
-function normalizeBoolean(value: unknown, fallback: boolean) {
-  return typeof value === 'boolean' ? value : fallback
-}
-
-function normalizeFiniteNumber(value: unknown, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
-}
-
-function normalizePositiveNumber(value: unknown, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? value
-    : fallback
-}
-
-function normalizeNullableString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
 function normalizeColor(value: unknown, fallback: string) {
   return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)
     ? value
     : fallback
-}
-
-function normalizeImageSize(value: unknown): BackgroundImageSize | null {
-  const record = asRecord(value)
-
-  if (!record) {
-    return null
-  }
-
-  const width = normalizePositiveNumber(record.width, 0)
-  const height = normalizePositiveNumber(record.height, 0)
-
-  return width > 0 && height > 0 ? { width, height } : null
 }
 
 function createBuiltInCaseInsertSteamBannerSource(
