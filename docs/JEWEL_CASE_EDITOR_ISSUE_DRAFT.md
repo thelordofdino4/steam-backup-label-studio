@@ -57,8 +57,8 @@ The editor should treat jewel case space as constrained. When content does not f
 The jewel case spine should support:
 
 - Game title or title/logo artwork, centered or otherwise placed along the spine.
-- Optional Steam Backup/system branding.
-- Optional company logo or publisher mark near one end.
+- Developer/publisher logo support near one end.
+- Standard branding marks where the selected spine has enough usable space.
 - Spine-safe text behavior, including orientation and readable sizing.
 
 The spine must be part of the printable/exported case layout rather than an unrelated afterthought.

@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import {
   clearRatingBadgeImage,
@@ -36,6 +36,11 @@ export function useRatingBadgeState({
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
     createDefaultProjectRatingBadge(selectedDiscTemplate),
   )
+  const projectRatingBadgeRef = useRef(projectRatingBadge)
+
+  useEffect(() => {
+    projectRatingBadgeRef.current = projectRatingBadge
+  }, [projectRatingBadge])
 
   function clampProjectRatingBadgeToTemplate(template: DiscTemplate) {
     setProjectRatingBadge((currentBadge) =>
@@ -80,16 +85,17 @@ export function useRatingBadgeState({
 
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectRatingBadge((currentBadge) =>
-        applyImportedRatingBadge(
-          currentBadge,
-          importedImage,
-          selectedDiscTemplate,
-        ),
+      const nextBadge = applyImportedRatingBadge(
+        projectRatingBadgeRef.current,
+        importedImage,
+        selectedDiscTemplate,
       )
 
+      projectRatingBadgeRef.current = nextBadge
+      setProjectRatingBadge(nextBadge)
+
       announceStatus(`Using ${file.name} as the rating badge.`)
+      return nextBadge
     } catch (error) {
       announceStatus(`Rating badge import failed: ${String(error)}`)
     }

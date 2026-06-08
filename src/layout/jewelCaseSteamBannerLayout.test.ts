@@ -1,0 +1,122 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {
+  createDefaultProjectJewelCaseState,
+} from '../caseInsert/defaults.ts'
+import {
+  createJewelCasePreviewLayout,
+} from './caseInsertPreviewLayout.ts'
+import {
+  getJewelCaseSteamBannerVisualLayout,
+} from './jewelCaseSteamBannerLayout.ts'
+
+function roundedRect(rect: {
+  x: number
+  y: number
+  width: number
+  height: number
+}) {
+  return {
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    width: Math.round(rect.width),
+    height: Math.round(rect.height),
+  }
+}
+
+test('cover sheet Steam banner uses the requested SGC pixel geometry', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const bannerLayout = getJewelCaseSteamBannerVisualLayout(
+    caseInsert.templates.cover.steamBanner,
+    { kind: 'cover' },
+    layout,
+  )
+
+  assert.ok(bannerLayout)
+  assert.deepEqual(roundedRect(bannerLayout.mainBand), {
+    x: 0,
+    y: 0,
+    width: 1414,
+    height: 155,
+  })
+  assert.deepEqual(roundedRect(bannerLayout.accentBand), {
+    x: 0,
+    y: 155,
+    width: 1414,
+    height: 21,
+  })
+  assert.deepEqual(roundedRect(bannerLayout.lockupRect), {
+    x: 54,
+    y: 20,
+    width: 378,
+    height: 116,
+  })
+})
+
+test('tray-card spine Steam banners use independent left and right spine geometry', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftBannerLayout = getJewelCaseSteamBannerVisualLayout(
+    caseInsert.spine.left.steamBanner,
+    { kind: 'spine', side: 'left' },
+    layout,
+  )
+  const rightBannerLayout = getJewelCaseSteamBannerVisualLayout(
+    caseInsert.spine.right.steamBanner,
+    { kind: 'spine', side: 'right' },
+    layout,
+  )
+
+  assert.ok(leftBannerLayout)
+  assert.ok(rightBannerLayout)
+  assert.deepEqual(roundedRect(leftBannerLayout.mainBand), {
+    x: 0,
+    y: 0,
+    width: 75,
+    height: 156,
+  })
+  assert.deepEqual(roundedRect(leftBannerLayout.accentBand), {
+    x: 0,
+    y: 156,
+    width: 75,
+    height: 20,
+  })
+  assert.deepEqual(roundedRect(leftBannerLayout.lockupRect), {
+    x: 9,
+    y: 49,
+    width: 57,
+    height: 57,
+  })
+  assert.equal(leftBannerLayout.lockupRotationDegrees, 90)
+  assert.deepEqual(roundedRect(rightBannerLayout.mainBand), {
+    x: 1705,
+    y: 0,
+    width: 75,
+    height: 156,
+  })
+  assert.deepEqual(roundedRect(rightBannerLayout.lockupRect), {
+    x: 1714,
+    y: 49,
+    width: 57,
+    height: 57,
+  })
+  assert.equal(rightBannerLayout.lockupRotationDegrees, 90)
+})
+
+test('disabled case insert Steam banners do not produce visual layout', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+
+  assert.equal(
+    getJewelCaseSteamBannerVisualLayout(
+      {
+        ...caseInsert.templates.cover.steamBanner,
+        enabled: false,
+      },
+      { kind: 'cover' },
+      layout,
+    ),
+    null,
+  )
+})

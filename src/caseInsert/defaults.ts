@@ -26,6 +26,9 @@ import type {
 import {
   DEFAULT_ADDITIONAL_ARTWORK_FRAME,
 } from '../project/additionalArtworkFrame.ts'
+import {
+  createDefaultCaseInsertSteamBanner,
+} from './steamBanner.ts'
 
 export const DEFAULT_CASE_INSERT_PROJECT_TITLE = 'Untitled Jewel Case Insert'
 
@@ -123,6 +126,9 @@ export function createDefaultCaseInsertSurfaceState(
   label: string,
 ): ProjectCaseInsertSurfaceState {
   return {
+    steamBanner: createDefaultCaseInsertSteamBanner('cover', {
+      enabled: paneId === 'cover',
+    }),
     background: createDefaultCaseInsertImageSlot(
       `${paneId}-background`,
       `${label} background`,
@@ -246,6 +252,7 @@ export function createDefaultJewelCaseSpineSideState(
   const label = side === 'left' ? 'Left spine' : 'Right spine'
 
   return {
+    steamBanner: createDefaultCaseInsertSteamBanner('spine'),
     background: createDefaultCaseInsertImageSlot(
       `${side}-spine-background`,
       `${label} background`,
@@ -266,6 +273,7 @@ export function createDefaultJewelCaseSpineSideState(
     ),
     additionalArtworkEnabled: false,
     artworkSlots: [],
+    logoSlots: [],
     markSlots: [],
     title: createDefaultCaseInsertTextBlock(
       `${side}-spine-title`,
@@ -282,28 +290,6 @@ export function createDefaultJewelCaseSpineSideState(
         },
       },
     ),
-    steamBackupBranding: createDefaultCaseInsertImageSlot(
-      `${side}-spine-steam-backup-branding`,
-      `${label} Steam Backup branding`,
-      {
-        fit: 'contain',
-        layout: {
-          scale: 1,
-          x: 50,
-          y: 14,
-          rotation: side === 'left' ? -90 : 90,
-        },
-      },
-    ),
-    logo: createDefaultCaseInsertImageSlot(`${side}-spine-logo`, `${label} logo`, {
-      fit: 'contain',
-      layout: {
-        scale: 1,
-        x: 50,
-        y: 88,
-        rotation: 0,
-      },
-    }),
   }
 }
 

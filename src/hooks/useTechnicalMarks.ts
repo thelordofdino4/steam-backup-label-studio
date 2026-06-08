@@ -1,8 +1,17 @@
-import { useState, type ChangeEvent } from 'react'
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type Dispatch,
+  type SetStateAction,
+} from 'react'
 import { clampProjectTechnicalMarksToSafeZone } from '../layout/discElementSafeZone'
 import {
+  addTechnicalMarkAsset,
   clearTechnicalMarkImage,
   createDefaultProjectTechnicalMarks,
+  removeTechnicalMarkAsset,
   resetProjectTechnicalMarkLayout,
   updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
@@ -28,8 +37,29 @@ export function useTechnicalMarks({
   selectedDiscTemplate,
   announceStatus,
 }: UseTechnicalMarksOptions) {
-  const [projectTechnicalMarks, setProjectTechnicalMarks] =
+  const [projectTechnicalMarks, setProjectTechnicalMarksState] =
     useState<ProjectTechnicalMarks>(() => createDefaultProjectTechnicalMarks())
+  const projectTechnicalMarksRef = useRef<ProjectTechnicalMarks>(
+    projectTechnicalMarks,
+  )
+  const setProjectTechnicalMarks: Dispatch<
+    SetStateAction<ProjectTechnicalMarks>
+  > = (action) => {
+    setProjectTechnicalMarksState((currentMarks) => {
+      const nextMarks = typeof action === 'function'
+        ? (action as (marks: ProjectTechnicalMarks) => ProjectTechnicalMarks)(
+            currentMarks,
+          )
+        : action
+
+      projectTechnicalMarksRef.current = nextMarks
+      return nextMarks
+    })
+  }
+
+  useEffect(() => {
+    projectTechnicalMarksRef.current = projectTechnicalMarks
+  }, [projectTechnicalMarks])
 
   function clampProjectTechnicalMarksToTemplate(template: DiscTemplate) {
     setProjectTechnicalMarks((currentMarks) =>
@@ -58,6 +88,7 @@ export function useTechnicalMarks({
   async function handleTechnicalMarkUpload(
     value: TechnicalMarkValue,
     event: ChangeEvent<HTMLInputElement>,
+    assetId?: string | null,
   ) {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -74,16 +105,18 @@ export function useTechnicalMarks({
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
 
-      setProjectTechnicalMarks((currentMarks) =>
-        applyImportedTechnicalMark(
-          currentMarks,
-          value,
-          importedImage,
-          selectedDiscTemplate,
-        ),
+      const nextMarks = applyImportedTechnicalMark(
+        projectTechnicalMarksRef.current,
+        value,
+        importedImage,
+        selectedDiscTemplate,
+        assetId,
       )
 
+      setProjectTechnicalMarks(nextMarks)
       announceStatus(`Using ${file.name} as the technical mark.`)
+
+      return nextMarks
     } catch (error) {
       announceStatus(`Technical mark import failed: ${String(error)}`)
     }
@@ -92,10 +125,11 @@ export function useTechnicalMarks({
   function handleTechnicalMarkSourceChange(
     value: TechnicalMarkValue,
     source: TechnicalMarkSource,
+    assetId?: string | null,
   ) {
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
-        updateTechnicalMarkSource(currentMarks, value, source),
+        updateTechnicalMarkSource(currentMarks, value, source, assetId),
         selectedDiscTemplate,
       ),
     )
@@ -105,25 +139,39 @@ export function useTechnicalMarks({
     technicalValue: TechnicalMarkValue,
     field: TechnicalMarkLayoutField,
     layoutValue: boolean | number,
+    assetId?: string | null,
   ) {
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
-        updateTechnicalMarkLayoutField(currentMarks, technicalValue, field, layoutValue),
+        updateTechnicalMarkLayoutField(
+          currentMarks,
+          technicalValue,
+          field,
+          layoutValue,
+          assetId,
+        ),
         selectedDiscTemplate,
       ),
     )
   }
 
-  function handleTechnicalMarkLabelChange(value: TechnicalMarkValue, label: string) {
+  function handleTechnicalMarkLabelChange(
+    value: TechnicalMarkValue,
+    label: string,
+    assetId?: string | null,
+  ) {
     setProjectTechnicalMarks((currentMarks) =>
-      updateTechnicalMarkLabel(currentMarks, value, label),
+      updateTechnicalMarkLabel(currentMarks, value, label, assetId),
     )
   }
 
-  function handleClearTechnicalMarkImage(value: TechnicalMarkValue) {
+  function handleClearTechnicalMarkImage(
+    value: TechnicalMarkValue,
+    assetId?: string | null,
+  ) {
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
-        clearTechnicalMarkImage(currentMarks, value),
+        clearTechnicalMarkImage(currentMarks, value, assetId),
         selectedDiscTemplate,
       ),
     )
@@ -131,15 +179,51 @@ export function useTechnicalMarks({
     announceStatus('Cleared custom technical mark image.')
   }
 
-  function handleResetTechnicalMarkLayout(value: TechnicalMarkValue) {
+  function handleResetTechnicalMarkLayout(
+    value: TechnicalMarkValue,
+    assetId?: string | null,
+  ) {
     setProjectTechnicalMarks((currentMarks) =>
       clampProjectTechnicalMarksToSafeZone(
-        resetProjectTechnicalMarkLayout(currentMarks, value, selectedDiscTemplate),
+        resetProjectTechnicalMarkLayout(
+          currentMarks,
+          value,
+          selectedDiscTemplate,
+          assetId,
+        ),
         selectedDiscTemplate,
       ),
     )
 
     announceStatus('Reset technical mark layout.')
+  }
+
+  function handleAddTechnicalMarkAsset(value: TechnicalMarkValue) {
+    const nextMarks = clampProjectTechnicalMarksToSafeZone(
+      addTechnicalMarkAsset(
+        projectTechnicalMarksRef.current,
+        value,
+        selectedDiscTemplate,
+      ),
+      selectedDiscTemplate,
+    )
+
+    setProjectTechnicalMarks(nextMarks)
+    return nextMarks
+  }
+
+  function handleRemoveTechnicalMarkAsset(
+    value: TechnicalMarkValue,
+    assetId: string,
+  ) {
+    const nextMarks = removeTechnicalMarkAsset(
+      projectTechnicalMarksRef.current,
+      value,
+      assetId,
+    )
+
+    setProjectTechnicalMarks(nextMarks)
+    return nextMarks
   }
 
   return {
@@ -154,5 +238,7 @@ export function useTechnicalMarks({
     handleTechnicalMarkLabelChange,
     handleClearTechnicalMarkImage,
     handleResetTechnicalMarkLayout,
+    handleAddTechnicalMarkAsset,
+    handleRemoveTechnicalMarkAsset,
   }
 }

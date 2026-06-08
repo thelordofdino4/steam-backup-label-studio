@@ -9,10 +9,11 @@ import {
 import {
   getEnabledTechnicalMarkValues,
 } from '../project/projectTechnicalMarks.ts'
+import {
+  normalizeUskRatingValue,
+} from '../project/projectMetadata.ts'
 import type {
-  PlatformMarkValue,
   ProjectCaseInsertImageSlot,
-  TechnicalMarkValue,
 } from '../project/projectTypes.ts'
 
 function getSourceIdPart(
@@ -38,6 +39,15 @@ function isRatingSourceCurrent(
     return true
   }
 
+  if (sourceId.startsWith('case-rating:USK:') && sourceId.endsWith(':supplemental')) {
+    const ratingValue = brandingSources.projectRatingBadge.uskBadge.ratingValue
+
+    return brandingSources.projectMetadata.ratingSystem === 'PEGI' &&
+      brandingSources.projectRatingBadge.uskBadge.layout.enabled &&
+      Boolean(normalizeUskRatingValue(ratingValue)) &&
+      sourceId === `case-rating:USK:${ratingValue}:supplemental`
+  }
+
   const ratingValue = brandingSources.projectMetadata.ratingValue.trim() ||
     'default'
 
@@ -61,7 +71,6 @@ function isMediaSourceCurrent(
 
 function isPlatformSourceCurrent(
   sourceId: string | null | undefined,
-  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const value = getSourceIdPart(sourceId, 'case-platform:')
 
@@ -69,14 +78,11 @@ function isPlatformSourceCurrent(
     return true
   }
 
-  return getEnabledPlatformMarkValues(
-    brandingSources.projectPlatformMarks,
-  ).includes(value as PlatformMarkValue)
+  return true
 }
 
 function isTechnicalSourceCurrent(
   sourceId: string | null | undefined,
-  brandingSources: CaseInsertBrandingSourceCatalog,
 ) {
   const value = getSourceIdPart(sourceId, 'case-technical:')
 
@@ -84,9 +90,7 @@ function isTechnicalSourceCurrent(
     return true
   }
 
-  return getEnabledTechnicalMarkValues(
-    brandingSources.projectTechnicalMarks,
-  ).includes(value as TechnicalMarkValue)
+  return true
 }
 
 export function isCaseInsertMarkKindEnabled(
@@ -117,11 +121,11 @@ export function isCaseInsertMarkSlotVisible(
 ) {
   const sourceId = slot.imageSource?.sourceId
 
-  if (getCaseInsertMarkLayerKind(sourceId) !== kind) {
+  if (!slot.enabled) {
     return false
   }
 
-  if (!isCaseInsertMarkKindEnabled(kind, brandingSources)) {
+  if (getCaseInsertMarkLayerKind(sourceId) !== kind) {
     return false
   }
 
@@ -131,8 +135,8 @@ export function isCaseInsertMarkSlotVisible(
     case 'media':
       return isMediaSourceCurrent(sourceId, brandingSources)
     case 'platform':
-      return isPlatformSourceCurrent(sourceId, brandingSources)
+      return isPlatformSourceCurrent(sourceId)
     case 'technical':
-      return isTechnicalSourceCurrent(sourceId, brandingSources)
+      return isTechnicalSourceCurrent(sourceId)
   }
 }

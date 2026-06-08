@@ -102,6 +102,7 @@ type PlatformMarkDragState = {
 
 type TechnicalMarkDragState = {
   value: TechnicalMarkValue
+  assetId?: string | null
 } & PercentDragState
 
 type PercentPoint = ReturnType<typeof getDraggedPercentPoint>
@@ -392,6 +393,7 @@ export function useDiscPreviewPointerDrag({
             currentMarks,
             dragState.value,
             draggedPoint,
+            dragState.assetId,
           )
 
           return clampProjectTechnicalMarksToSafeZone(nextMarks, selectedDiscTemplate)
@@ -545,8 +547,17 @@ export function useDiscPreviewPointerDrag({
   )
 
   const handleTechnicalMarkPointerDown = useCallback(
-    (event: PointerEvent<Element>, value: TechnicalMarkValue) => {
-      const asset = getProjectTechnicalMarkAsset(technicalMarks.value, value)
+    (
+      event: PointerEvent<Element>,
+      value: TechnicalMarkValue,
+      assetId?: string | null,
+    ) => {
+      const asset = getProjectTechnicalMarkAsset(
+        technicalMarks.value,
+        value,
+        undefined,
+        assetId,
+      )
 
       technicalMarkPointerDrag.beginPointerDrag(
         event,
@@ -554,7 +565,7 @@ export function useDiscPreviewPointerDrag({
           event,
           asset.layout.x,
           asset.layout.y,
-          { value },
+          { value, assetId },
         ),
       )
     },

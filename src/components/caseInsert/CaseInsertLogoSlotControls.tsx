@@ -1,9 +1,9 @@
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, ReactNode } from 'react'
 import {
+  type CaseInsertLogoSurfaceId,
   getCaseInsertPrimaryLogoLabel,
   getDefaultCaseInsertPrimaryLogoLayout,
 } from '../../caseInsert/brandingLogoSlots'
-import type { CaseInsertTemplatePaneId } from '../../caseInsert/templateSurfaces'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
@@ -28,6 +28,10 @@ const CASE_INSERT_LOGO_ALIGNMENT_PRESETS = [
   { label: 'Bottom left', x: 20, y: 84 },
   { label: 'Bottom center', x: 50, y: 84 },
   { label: 'Bottom right', x: 80, y: 84 },
+  { label: 'Stacked left upper', x: 20, y: 72 },
+  { label: 'Stacked left lower', x: 20, y: 84 },
+  { label: 'Stacked right upper', x: 80, y: 72 },
+  { label: 'Stacked right lower', x: 80, y: 84 },
 ] as const
 
 function RangeField({
@@ -75,8 +79,9 @@ export function CaseInsertLogoSlotControls({
   onLayoutChange,
   onResetLayout,
   onClearImage,
+  children,
 }: {
-  paneId: CaseInsertTemplatePaneId
+  paneId: CaseInsertLogoSurfaceId
   logoKey: LogoAssetKey
   slot: ProjectCaseInsertImageSlot | null
   uploadId: string
@@ -95,6 +100,7 @@ export function CaseInsertLogoSlotControls({
   ) => void
   onResetLayout: () => void
   onClearImage: () => void
+  children?: ReactNode
 }) {
   const label = getCaseInsertPrimaryLogoLabel(logoKey)
   const enabled = slot?.enabled ?? false
@@ -155,8 +161,9 @@ export function CaseInsertLogoSlotControls({
             </div>
           ) : (
             <p className="hint">
-              No {label.toLocaleLowerCase()} image is selected yet. Search logo
-              candidates or upload a custom logo here.
+              No {label.toLocaleLowerCase()} image is selected yet. A bundled
+              generic logo is shown for placement; search logo candidates or
+              upload a custom logo here.
             </p>
           )}
 
@@ -204,6 +211,7 @@ export function CaseInsertLogoSlotControls({
               Clear logo
             </button>
           ) : null}
+          {children}
         </>
       )}
     </div>

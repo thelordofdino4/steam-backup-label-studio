@@ -86,7 +86,9 @@ export type BrandingPanelProps = {
     label: string,
   ) => void
   handleRemoveAdditionalLogoAsset: (logoKey: LogoKey, additionalLogoId: string) => void
-  handleRatingBadgeUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleRatingBadgeUpload: (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => ProjectRatingBadge | null | void | Promise<ProjectRatingBadge | null | void>
   handleRatingBadgeSourceChange: (source: RatingBadgeSource) => void
   handleRatingBadgeEnabledChange: (enabled: boolean) => void
   handleRatingBadgeLayoutChange: (field: keyof RatingBadgeLayout, value: boolean | number) => void
@@ -99,7 +101,9 @@ export type BrandingPanelProps = {
   handleClearRatingBadgeImage: () => void
   handleResetRatingBadgeLayout: () => void
   handleResetSupplementalUskRatingBadgeLayout: () => void
-  handleMediaMarkUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
+  handleMediaMarkUpload: (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => ProjectMediaMark | null | void | Promise<ProjectMediaMark | null | void>
   handleMediaMarkValueChange: (value: MediaMarkValue) => void
   handleMediaMarkSourceChange: (source: MediaMarkSource) => void
   handleMediaMarkThemeChange: (theme: MediaMarkTheme) => void
@@ -110,7 +114,7 @@ export type BrandingPanelProps = {
   handlePlatformMarkUpload: (
     value: PlatformMarkValue,
     event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
+  ) => ProjectPlatformMarks | null | void | Promise<ProjectPlatformMarks | null | void>
   handlePlatformMarkSourceChange: (value: PlatformMarkValue, source: PlatformMarkSource) => void
   handlePlatformMarkThemeChange: (value: PlatformMarkValue, theme: PlatformMarkTheme) => void
   handlePlatformMarkLayoutChange: (
@@ -124,14 +128,37 @@ export type BrandingPanelProps = {
   handleTechnicalMarkUpload: (
     value: TechnicalMarkValue,
     event: ChangeEvent<HTMLInputElement>,
-  ) => void | Promise<void>
-  handleTechnicalMarkSourceChange: (value: TechnicalMarkValue, source: TechnicalMarkSource) => void
+    assetId?: string | null,
+  ) => ProjectTechnicalMarks | null | void | Promise<ProjectTechnicalMarks | null | void>
+  handleTechnicalMarkSourceChange: (
+    value: TechnicalMarkValue,
+    source: TechnicalMarkSource,
+    assetId?: string | null,
+  ) => void
   handleTechnicalMarkLayoutChange: (
     technicalValue: TechnicalMarkValue,
     field: keyof TechnicalMarkLayout,
     layoutValue: boolean | number,
+    assetId?: string | null,
   ) => void
-  handleTechnicalMarkLabelChange: (value: TechnicalMarkValue, label: string) => void
-  handleClearTechnicalMarkImage: (value: TechnicalMarkValue) => void
-  handleResetTechnicalMarkLayout: (value: TechnicalMarkValue) => void
+  handleTechnicalMarkLabelChange: (
+    value: TechnicalMarkValue,
+    label: string,
+    assetId?: string | null,
+  ) => void
+  handleClearTechnicalMarkImage: (
+    value: TechnicalMarkValue,
+    assetId?: string | null,
+  ) => void
+  handleResetTechnicalMarkLayout: (
+    value: TechnicalMarkValue,
+    assetId?: string | null,
+  ) => void
+  handleAddTechnicalMarkAsset: (
+    value: TechnicalMarkValue,
+  ) => ProjectTechnicalMarks | null | void
+  handleRemoveTechnicalMarkAsset: (
+    value: TechnicalMarkValue,
+    assetId: string,
+  ) => ProjectTechnicalMarks | null | void
 }

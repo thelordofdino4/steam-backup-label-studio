@@ -9,10 +9,11 @@ import type { JewelCaseSpineSide } from './types.ts'
 export type JewelCaseSpineImageSlotKey =
   | 'background'
   | 'titleArtwork'
-  | 'steamBackupBranding'
-  | 'logo'
 
-export type JewelCaseSpineImageSlotGroupKey = 'artworkSlots' | 'markSlots'
+export type JewelCaseSpineImageSlotGroupKey =
+  | 'artworkSlots'
+  | 'logoSlots'
+  | 'markSlots'
 
 export function updateProjectJewelCaseSpineSide(
   state: ProjectJewelCaseState,

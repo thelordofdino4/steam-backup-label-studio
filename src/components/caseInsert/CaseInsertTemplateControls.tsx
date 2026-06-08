@@ -7,25 +7,37 @@ import type { CaseInsertTemplateEditorActions } from '../../hooks/useCaseInsertT
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import {
-  type CaseInsertBrandingSourceCatalog,
-} from '../../caseInsert/brandingSlotSources'
-import {
   CASE_INSERT_MARK_BRANDING_SECTIONS,
 } from '../../caseInsert/brandingPanelSections'
 import {
-  getCaseInsertAdditionalLogoSlots,
-  getCaseInsertPrimaryLogoSlot,
-} from '../../caseInsert/brandingLogoSlots'
+  getEnabledCaseInsertMarkSlotForKind,
+  getEnabledCaseInsertMarkSlotForSourcePrefix,
+} from '../../caseInsert/brandingMarkPlacement'
 import {
-  isCaseInsertMarkKindEnabled,
-  isCaseInsertMarkSlotVisible,
-} from '../../caseInsert/brandingVisibility'
+  getCaseInsertTemplateMarkPlacementFields,
+} from '../../caseInsert/brandingMarkPlacementFields'
+import type {
+  CaseInsertBrandingMarkTarget,
+  CaseInsertBrandingMarkTargetState,
+} from '../../caseInsert/brandingMarkSlots'
+import type {
+  CaseInsertMarkLayerKind,
+} from '../../caseInsert/brandingSlotSources'
+import {
+  getCaseInsertAdditionalLogoKey,
+  getCaseInsertAdditionalLogoSlotsForKey,
+  getCaseInsertPrimaryLogoSlot,
+  getCaseInsertUnassignedAdditionalLogoSlots,
+} from '../../caseInsert/brandingLogoSlots'
 import {
   CASE_INSERT_ARTWORK_SECTION_LABELS,
 } from '../../caseInsert/artworkPanelSections'
 import {
   createJewelCasePreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
+import {
+  RATING_BADGE_LAYOUT_PRESETS,
+} from '../../layout/presets'
 import type {
   CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
@@ -57,13 +69,13 @@ import {
   CaseInsertImageSlotPlacementControls,
   type CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
+import { CaseInsertMarkPlacementControls } from './CaseInsertMarkPlacementControls'
 import { CaseInsertImageSlotFrameControls } from './CaseInsertImageSlotFrameControls'
 import { CaseInsertImageSlotStatusCard } from './CaseInsertImageSlotStatusCard'
 import {
   CaseInsertTitleArtworkControls,
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
-import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
 import {
   CaseInsertMediaMarkSetupControls,
   CaseInsertPlatformMarkSetupControls,
@@ -72,6 +84,7 @@ import {
   type CaseInsertBrandingSetupControlsProps,
 } from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
+import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 
 export type CaseInsertTemplateControlsProps = {
@@ -79,8 +92,10 @@ export type CaseInsertTemplateControlsProps = {
   templateState: ProjectCaseInsertSurfaceState
   actions: CaseInsertTemplateEditorActions
   imageSources: CaseInsertImageSourceCatalog
-  brandingSources: CaseInsertBrandingSourceCatalog
-  brandingControls: CaseInsertBrandingSetupControlsProps
+  getBrandingControls: (
+    target: CaseInsertBrandingMarkTarget,
+    targetState: CaseInsertBrandingMarkTargetState,
+  ) => CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }
@@ -482,9 +497,13 @@ function GroupedImageSlotControls({
   )
   const slotTitle = slot.label.trim() || 'Visual slot'
   const slotImageStatus = getImageStatus(slot)
+  const emptyImageSummary =
+    slotKey === 'logoSlots' && getCaseInsertAdditionalLogoKey(slot)
+      ? 'bundled generic'
+      : 'no image'
   const summary = [
     slot.enabled ? 'shown' : 'hidden',
-    slot.imageDataUrl ? slotImageStatus.summary : 'no image',
+    slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
     slotKey === 'artworkSlots'
       ? slot.frame.enabled ? `${slot.frame.shape} frame` : 'no frame'
       : null,
@@ -600,6 +619,7 @@ type GroupedImageSlotListProps = {
   imageSources: CaseInsertImageSourceCatalog
   actions: CaseInsertTemplateEditorActions
   onAddSlot?: () => void
+  showAddButton?: boolean
 }
 
 function GroupedImageSlotList({
@@ -611,6 +631,7 @@ function GroupedImageSlotList({
   imageSources,
   actions,
   onAddSlot,
+  showAddButton = true,
 }: GroupedImageSlotListProps) {
   return (
     <>
@@ -626,15 +647,17 @@ function GroupedImageSlotList({
           actions={actions}
         />
       ))}
-      <button
-        className="secondary-button icon-text-button spacing-top"
-        type="button"
-        onClick={onAddSlot ?? (() =>
-          actions.handleAddGroupedImageSlot(paneId, slotKey))}
-      >
-        <PlusIcon />
-        <span>{addLabel}</span>
-      </button>
+      {showAddButton ? (
+        <button
+          className="secondary-button icon-text-button spacing-top"
+          type="button"
+          onClick={onAddSlot ?? (() =>
+            actions.handleAddGroupedImageSlot(paneId, slotKey))}
+        >
+          <PlusIcon />
+          <span>{addLabel}</span>
+        </button>
+      ) : null}
     </>
   )
 }
@@ -1037,16 +1060,73 @@ function CaseInsertBrandingFeatureSection({
   )
 }
 
+function TemplateMarkPlacementControls({
+  paneId,
+  slot,
+  idPrefix,
+  layoutPresets,
+  presetLabel,
+  resetLabel,
+  actions,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  slot: ProjectCaseInsertImageSlot | null
+  idPrefix: string
+  layoutPresets?: typeof RATING_BADGE_LAYOUT_PRESETS
+  presetLabel?: string
+  resetLabel: string
+  actions: CaseInsertTemplateEditorActions
+}) {
+  return (
+    <CaseInsertMarkPlacementControls
+      fields={slot ? getCaseInsertTemplateMarkPlacementFields(paneId, slot) : []}
+      idPrefix={idPrefix}
+      layoutPresets={layoutPresets}
+      slot={slot}
+      presetLabel={presetLabel}
+      resetLabel={resetLabel}
+      onLayoutChange={(field, value) => {
+        if (!slot) return
+        actions.handleGroupedImageSlotLayoutChange(
+          paneId,
+          'markSlots',
+          slot.id,
+          field,
+          value,
+        )
+      }}
+      onResetLayout={() => {
+        if (!slot) return
+        actions.handleResetGroupedImageSlotLayout(
+          paneId,
+          'markSlots',
+          slot.id,
+        )
+      }}
+    />
+  )
+}
+
+function getTemplateMarkSlotForSection(
+  markSlots: ProjectCaseInsertImageSlot[],
+  markKind: CaseInsertMarkLayerKind,
+) {
+  return getEnabledCaseInsertMarkSlotForKind(markSlots, markKind)
+}
+
 export function CaseInsertTemplateBrandingControls({
   paneId,
   templateState,
   actions,
   imageSources,
-  brandingSources,
-  brandingControls,
+  getBrandingControls,
   logoCandidateDiscovery,
   handleFindLogoCandidates,
 }: CaseInsertTemplateControlsProps) {
+  const brandingControls = getBrandingControls(
+    { type: 'template', paneId },
+    templateState,
+  )
   const developerLogoSlot = getCaseInsertPrimaryLogoSlot(
     templateState,
     'developer',
@@ -1055,10 +1135,53 @@ export function CaseInsertTemplateBrandingControls({
     templateState,
     'publisher',
   )
-  const additionalLogoSlots = getCaseInsertAdditionalLogoSlots(templateState)
+  const additionalDeveloperLogoSlots =
+    getCaseInsertAdditionalLogoSlotsForKey(templateState, 'developer')
+  const additionalPublisherLogoSlots =
+    getCaseInsertAdditionalLogoSlotsForKey(templateState, 'publisher')
+  const unassignedAdditionalLogoSlots =
+    getCaseInsertUnassignedAdditionalLogoSlots(templateState)
 
   return (
     <>
+      {paneId === 'cover' ? (
+        <CaseInsertBrandingFeatureSection title="Steam banner">
+          <CaseInsertSteamBannerControls
+            banner={templateState.steamBanner}
+            idPrefix={`${paneId}-steam-banner`}
+            targetKind="cover"
+            onEnabledChange={(enabled) =>
+              actions.handleSteamBannerEnabledChange(paneId, enabled)}
+            onLockupUpload={(event) =>
+              actions.handleSteamBannerLockupUpload(paneId, event)}
+            onClearLockup={() =>
+              actions.handleClearSteamBannerLockup(paneId)}
+            onLayoutChange={(field, value) =>
+              actions.handleSteamBannerLockupLayoutChange(
+                paneId,
+                field,
+                value,
+              )}
+            onResetLayout={() =>
+              actions.handleResetSteamBannerLockupLayout(paneId)}
+            onUseTextFallbackChange={(useTextFallback) =>
+              actions.handleSteamBannerUseTextFallbackChange(
+                paneId,
+                useTextFallback,
+              )}
+            onFallbackTextChange={(fallbackText) =>
+              actions.handleSteamBannerFallbackTextChange(
+                paneId,
+                fallbackText,
+              )}
+            onColorChange={(field, value) =>
+              actions.handleSteamBannerColorChange(paneId, field, value)}
+            onResetColors={() =>
+              actions.handleResetSteamBannerColors(paneId)}
+          />
+        </CaseInsertBrandingFeatureSection>
+      ) : null}
+
       <CaseInsertBrandingFeatureSection title="Developer / publisher logos">
         <CaseInsertLogoSlotControls
           paneId={paneId}
@@ -1099,7 +1222,24 @@ export function CaseInsertTemplateBrandingControls({
             actions.handleResetPrimaryLogoSlotLayout(paneId, 'developer')}
           onClearImage={() =>
             actions.handleClearPrimaryLogoSlot(paneId, 'developer')}
-        />
+        >
+          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+            <summary className="panel-summary">Additional developer logos</summary>
+            <div className="panel-content">
+              <GroupedImageSlotList
+                paneId={paneId}
+                emptyHint="No additional developer logos."
+                addLabel="Add additional logo"
+                slotKey="logoSlots"
+                slots={additionalDeveloperLogoSlots}
+                imageSources={imageSources}
+                actions={actions}
+                onAddSlot={() =>
+                  actions.handleAddAdditionalLogoSlot(paneId, 'developer')}
+              />
+            </div>
+          </details>
+        </CaseInsertLogoSlotControls>
 
         <CaseInsertLogoSlotControls
           paneId={paneId}
@@ -1140,78 +1280,139 @@ export function CaseInsertTemplateBrandingControls({
             actions.handleResetPrimaryLogoSlotLayout(paneId, 'publisher')}
           onClearImage={() =>
             actions.handleClearPrimaryLogoSlot(paneId, 'publisher')}
-        />
+        >
+          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+            <summary className="panel-summary">Additional publisher logos</summary>
+            <div className="panel-content">
+              <GroupedImageSlotList
+                paneId={paneId}
+                emptyHint="No additional publisher logos."
+                addLabel="Add additional logo"
+                slotKey="logoSlots"
+                slots={additionalPublisherLogoSlots}
+                imageSources={imageSources}
+                actions={actions}
+                onAddSlot={() =>
+                  actions.handleAddAdditionalLogoSlot(paneId, 'publisher')}
+              />
+            </div>
+          </details>
+        </CaseInsertLogoSlotControls>
 
-        <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Additional logos</summary>
-          <div className="panel-content">
-            <GroupedImageSlotList
-              paneId={paneId}
-              emptyHint="No additional logos."
-              addLabel="Add additional logo"
-              slotKey="logoSlots"
-              slots={additionalLogoSlots}
-              imageSources={imageSources}
-              actions={actions}
-            />
-          </div>
-        </details>
+        {unassignedAdditionalLogoSlots.length > 0 ? (
+          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+            <summary className="panel-summary">Unassigned additional logos</summary>
+            <div className="panel-content">
+              <GroupedImageSlotList
+                paneId={paneId}
+                emptyHint="No unassigned additional logos."
+                addLabel="Add additional logo"
+                slotKey="logoSlots"
+                slots={unassignedAdditionalLogoSlots}
+                imageSources={imageSources}
+                actions={actions}
+                showAddButton={false}
+              />
+            </div>
+          </details>
+        ) : null}
       </CaseInsertBrandingFeatureSection>
 
-      {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {
-        const isFeatureEnabled = isCaseInsertMarkKindEnabled(
-          section.markKind,
-          brandingSources,
-        )
-        const visibleMarkSlots = templateState.markSlots.filter((slot) =>
-          isCaseInsertMarkSlotVisible(
-            slot,
-            section.markKind,
-            brandingSources,
-          ))
-
-        return (
-          <CaseInsertBrandingFeatureSection
-            key={section.markKind}
-            title={section.title}
-          >
-            {section.markKind === 'rating' ? (
-              <CaseInsertRatingBadgeSetupControls {...brandingControls} />
-            ) : null}
-            {section.markKind === 'media' ? (
-              <CaseInsertMediaMarkSetupControls {...brandingControls} />
-            ) : null}
-            {section.markKind === 'platform' ? (
-              <CaseInsertPlatformMarkSetupControls {...brandingControls} />
-            ) : null}
-            {section.markKind === 'technical' ? (
-              <CaseInsertTechnicalMarkSetupControls {...brandingControls} />
-            ) : null}
-            {isFeatureEnabled ? (
-              <>
-                <CaseInsertBrandingSourceControls
-                  brandingSources={brandingSources}
-                  sectionIds={section.sourceSectionIds}
-                  showSectionTitles={false}
-                  onUseSource={(source) =>
-                    actions.handleUseBrandingSlotSource(paneId, source)}
-                />
-                <GroupedImageSlotList
+      {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => (
+        <CaseInsertBrandingFeatureSection
+          key={section.markKind}
+          title={section.title}
+        >
+          {section.markKind === 'rating' ? (
+            <CaseInsertRatingBadgeSetupControls
+              {...brandingControls}
+              idPrefix={`${paneId}-${section.markKind}`}
+              renderSupplementalUskLayoutControls={() => (
+                <TemplateMarkPlacementControls
                   paneId={paneId}
-                  emptyHint={section.emptyHint}
-                  addLabel={section.addLabel}
-                  slotKey="markSlots"
-                  slots={visibleMarkSlots}
-                  imageSources={imageSources}
+                  slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                    templateState.markSlots,
+                    'rating',
+                    'case-rating:USK:',
+                  )}
+                  idPrefix={`${paneId}-usk-rating-badge`}
+                  layoutPresets={RATING_BADGE_LAYOUT_PRESETS}
+                  presetLabel="USK layout preset"
+                  resetLabel="Reset USK badge layout"
                   actions={actions}
-                  onAddSlot={() =>
-                    actions.handleAddBrandingMarkSlot(paneId, section.markKind)}
                 />
-              </>
-            ) : null}
-          </CaseInsertBrandingFeatureSection>
-        )
-      })}
+              )}
+            >
+              <TemplateMarkPlacementControls
+                paneId={paneId}
+                slot={getTemplateMarkSlotForSection(
+                  templateState.markSlots,
+                  'rating',
+                )}
+                idPrefix={`${paneId}-rating-badge`}
+                layoutPresets={RATING_BADGE_LAYOUT_PRESETS}
+                resetLabel="Reset rating badge layout"
+                actions={actions}
+              />
+            </CaseInsertRatingBadgeSetupControls>
+          ) : null}
+          {section.markKind === 'media' ? (
+            <CaseInsertMediaMarkSetupControls
+              {...brandingControls}
+              idPrefix={`${paneId}-${section.markKind}`}
+            >
+              <TemplateMarkPlacementControls
+                paneId={paneId}
+                slot={getTemplateMarkSlotForSection(
+                  templateState.markSlots,
+                  'media',
+                )}
+                idPrefix={`${paneId}-media-mark`}
+                resetLabel="Reset media mark layout"
+                actions={actions}
+              />
+            </CaseInsertMediaMarkSetupControls>
+          ) : null}
+          {section.markKind === 'platform' ? (
+            <CaseInsertPlatformMarkSetupControls
+              {...brandingControls}
+              idPrefix={`${paneId}-${section.markKind}`}
+              renderLayoutControls={(value, label) => (
+                <TemplateMarkPlacementControls
+                  paneId={paneId}
+                  slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                    templateState.markSlots,
+                    'platform',
+                    `case-platform:${value}:`,
+                  )}
+                  idPrefix={`${paneId}-platform-mark-${value}`}
+                  resetLabel={`Reset ${label} layout`}
+                  actions={actions}
+                />
+              )}
+            />
+          ) : null}
+          {section.markKind === 'technical' ? (
+            <CaseInsertTechnicalMarkSetupControls
+              {...brandingControls}
+              idPrefix={`${paneId}-${section.markKind}`}
+              renderLayoutControls={(value, label, _asset, assetId) => (
+                <TemplateMarkPlacementControls
+                  paneId={paneId}
+                  slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                    templateState.markSlots,
+                    'technical',
+                    `case-technical:${value}:${assetId ?? 'primary'}`,
+                  )}
+                  idPrefix={`${paneId}-technical-mark-${value}-${assetId ?? 'primary'}`}
+                  resetLabel={`Reset ${label} layout`}
+                  actions={actions}
+                />
+              )}
+            />
+          ) : null}
+        </CaseInsertBrandingFeatureSection>
+      ))}
     </>
   )
 }

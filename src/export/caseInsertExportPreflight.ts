@@ -9,6 +9,9 @@ import {
   isCaseInsertMarkSlotVisible,
 } from '../caseInsert/brandingVisibility.ts'
 import {
+  getCaseInsertLogoSlotRenderInfo,
+} from '../caseInsert/brandingLogoSlots.ts'
+import {
   getCaseInsertBackTextBlockReadabilityRole,
   getCaseInsertBackTextBlockRole,
   getCaseInsertTextReadabilityWarnings,
@@ -46,6 +49,7 @@ import type {
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
@@ -263,7 +267,7 @@ function getCoverSlotWarnings(
 
   for (const slot of templateState.logoSlots) {
     warnings.push(
-      ...getRenderedImageSlotWarnings({
+      ...getRenderedLogoSlotWarnings({
         slot,
         label: slot.label,
         rect: getJewelCaseFrontImageSlotPreviewRect(slot, layout, 'logo'),
@@ -332,7 +336,7 @@ function getTraySlotWarnings(
 
   for (const slot of templateState.logoSlots) {
     warnings.push(
-      ...getRenderedImageSlotWarnings({
+      ...getRenderedLogoSlotWarnings({
         slot,
         label: slot.label,
         rect: getJewelCaseBackImageSlotPreviewRect(slot, layout, 'logo'),
@@ -442,23 +446,11 @@ function getSpineSideWarnings(
     spineSide.title,
     layout,
   )
-  const brandingLayout = getJewelCaseSpineImageSlotPreviewLayout(
-    side,
-    spineSide.steamBackupBranding,
-    layout,
-    'branding',
-  )
   const titleArtworkLayout = getJewelCaseSpineImageSlotPreviewLayout(
     side,
     spineSide.titleArtwork,
     layout,
     'titleArtwork',
-  )
-  const logoLayout = getJewelCaseSpineImageSlotPreviewLayout(
-    side,
-    spineSide.logo,
-    layout,
-    'logo',
   )
   const artworkSlots = spineSide.additionalArtworkEnabled
     ? spineSide.artworkSlots
@@ -514,18 +506,17 @@ function getSpineSideWarnings(
         ),
         hasTextFallback: false,
       })),
-    ...getSpineImageSlotWarnings({
-      slot: spineSide.steamBackupBranding,
-      label: `${label} Steam Backup branding`,
-      layout: brandingLayout,
-      hasTextFallback: true,
-    }),
-    ...getSpineImageSlotWarnings({
-      slot: spineSide.logo,
-      label: `${label} logo`,
-      layout: logoLayout,
-      hasTextFallback: false,
-    }),
+    ...spineSide.logoSlots.flatMap((slot) =>
+      getSpineLogoSlotWarnings({
+        slot,
+        label: `${label} ${slot.label}`,
+        layout: getJewelCaseSpineImageSlotPreviewLayout(
+          side,
+          slot,
+          layout,
+          'logo',
+        ),
+      })),
     ...visibleMarkSlots.flatMap((slot) =>
       getSpineImageSlotWarnings({
         slot,
@@ -539,6 +530,39 @@ function getSpineSideWarnings(
         hasTextFallback: false,
       })),
   )
+
+  return warnings
+}
+
+function getRenderedLogoSlotWarnings(params: {
+  slot: ProjectCaseInsertImageSlot
+  label: string
+  rect: JewelCasePixelRect | null
+  safeBounds: JewelCasePixelRect | null
+  edge?: EdgeWarningOptions
+}) {
+  const { slot, label, rect } = params
+  const renderInfo = getCaseInsertLogoSlotRenderInfo(slot)
+  const warnings = getLogoSlotDataWarnings(label, slot, renderInfo)
+
+  warnings.push(...getLayoutValueWarnings(label, slot.layout))
+
+  if (!slot.enabled || !renderInfo) {
+    return warnings
+  }
+
+  if (!rect) {
+    warnings.push(`${label} is enabled, but export could not resolve its print placement.`)
+    return warnings
+  }
+
+  warnings.push(...getUpscaleWarnings(label, renderInfo.imageSize, rect))
+
+  if (params.safeBounds && params.edge) {
+    warnings.push(
+      ...getSafeEdgeWarnings(label, rect, params.safeBounds, params.edge),
+    )
+  }
 
   return warnings
 }
@@ -575,6 +599,34 @@ function getRenderedImageSlotWarnings(params: {
   return warnings
 }
 
+function getSpineLogoSlotWarnings(params: {
+  slot: ProjectCaseInsertImageSlot
+  label: string
+  layout: { width: number; height: number } | null
+}) {
+  const renderInfo = getCaseInsertLogoSlotRenderInfo(params.slot)
+  const warnings = getLogoSlotDataWarnings(
+    params.label,
+    params.slot,
+    renderInfo,
+  )
+
+  warnings.push(...getLayoutValueWarnings(params.label, params.slot.layout))
+
+  if (!params.slot.enabled || !renderInfo || !params.layout) {
+    return warnings
+  }
+
+  warnings.push(
+    ...getUpscaleWarnings(params.label, renderInfo.imageSize, {
+      width: params.layout.width,
+      height: params.layout.height,
+    }),
+  )
+
+  return warnings
+}
+
 function getSpineImageSlotWarnings(params: {
   slot: ProjectCaseInsertImageSlot
   label: string
@@ -606,6 +658,34 @@ function getSpineImageSlotWarnings(params: {
   )
 
   return warnings
+}
+
+function getLogoSlotDataWarnings(
+  label: string,
+  slot: ProjectCaseInsertImageSlot,
+  renderInfo: ReturnType<typeof getCaseInsertLogoSlotRenderInfo>,
+) {
+  if (!slot.enabled) {
+    return []
+  }
+
+  if (!renderInfo) {
+    return [`${label} is enabled, but no image is selected; it will not render.`]
+  }
+
+  if (renderInfo.isBundledFallback) {
+    return [
+      `${ensureLabelDescriptor(label, 'logo')} uses bundled generic logo artwork.`,
+    ]
+  }
+
+  if (!slot.imageSize) {
+    return [
+      `${label} has image data but no size metadata; export may skip placement or resolution checks.`,
+    ]
+  }
+
+  return getBundledAssetWarnings(label, slot)
 }
 
 function getImageSlotDataWarnings(
@@ -923,6 +1003,17 @@ function slotWillRender(slot: ProjectCaseInsertImageSlot) {
   return Boolean(slot.enabled && slot.imageDataUrl && slot.imageSize)
 }
 
+function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
+  return Boolean(getCaseInsertLogoSlotRenderInfo(slot))
+}
+
+function steamBannerWillRender(banner: ProjectCaseInsertSteamBanner) {
+  return Boolean(
+    banner.enabled &&
+      (banner.useTextFallback || banner.lockupImageDataUrl),
+  )
+}
+
 function getVisibleMarkSlots(
   surface: ProjectCaseInsertSurfaceState,
   brandingSources: CaseInsertBrandingSourceCatalog,
@@ -961,12 +1052,13 @@ function surfaceHasVisibleContent(
 ) {
   return (
     slotWillRender(surface.background) ||
+    steamBannerWillRender(surface.steamBanner) ||
     slotWillRender(surface.titleArtwork) ||
     (
       surface.additionalArtworkEnabled &&
       surface.artworkSlots.some(slotWillRender)
     ) ||
-    surface.logoSlots.some(slotWillRender) ||
+    surface.logoSlots.some(logoSlotWillRender) ||
     surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
     surface.textBlocks.some(textBlockWillRender) ||
     surface.textLists.some(textListWillRender)
@@ -990,14 +1082,14 @@ function spineSideHasVisibleContent(
 ) {
   return (
     slotWillRender(spineSide.background) ||
+    steamBannerWillRender(spineSide.steamBanner) ||
     slotWillRender(spineSide.titleArtwork) ||
     (
       spineSide.additionalArtworkEnabled &&
       spineSide.artworkSlots.some(slotWillRender)
     ) ||
     textBlockWillRender(spineSide.title) ||
-    Boolean(spineSide.steamBackupBranding.enabled) ||
-    slotWillRender(spineSide.logo) ||
+    spineSide.logoSlots.some(logoSlotWillRender) ||
     getVisibleSpineMarkSlots(
       spineSide,
       brandingSources,
@@ -1012,11 +1104,12 @@ function formatVisibleElementStatus(
 ) {
   const visibleCount =
     Number(slotWillRender(surface.background)) +
+    Number(steamBannerWillRender(surface.steamBanner)) +
     Number(slotWillRender(surface.titleArtwork)) +
     (surface.additionalArtworkEnabled
       ? surface.artworkSlots.filter(slotWillRender).length
       : 0) +
-    surface.logoSlots.filter(slotWillRender).length +
+    surface.logoSlots.filter(logoSlotWillRender).length +
     surface.markSlots.filter((slot) =>
       markSlotWillRender(slot, brandingSources)).length +
     surface.textBlocks.filter(textBlockWillRender).length +

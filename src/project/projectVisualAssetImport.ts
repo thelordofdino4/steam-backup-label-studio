@@ -149,6 +149,7 @@ export function applyImportedTechnicalMark(
   value: TechnicalMarkValue,
   importedImage: ImportedImageAsset,
   selectedDiscTemplate: DiscTemplate,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
   return clampProjectTechnicalMarksToSafeZone(
     setTechnicalMarkCustomImage(
@@ -157,6 +158,7 @@ export function applyImportedTechnicalMark(
       importedImage.imageDataUrl,
       importedImage.imageSize,
       selectedDiscTemplate,
+      assetId,
     ),
     selectedDiscTemplate,
   )

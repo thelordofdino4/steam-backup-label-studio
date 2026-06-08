@@ -10,6 +10,7 @@ export type TechnicalMarksLayerProps = {
   handleTechnicalMarkPointerDown?: (
     event: PointerEvent<Element>,
     value: TechnicalMarkValue,
+    assetId?: string | null,
   ) => void
   handleTechnicalMarkPointerMove?: (event: PointerEvent<Element>) => void
   handleTechnicalMarkPointerUp?: (event: PointerEvent<Element>) => void
@@ -34,7 +35,7 @@ export function TechnicalMarksLayer({
 
     return (
       <div
-        key={model.value}
+        key={model.key}
         className="disc-media-mark-layer disc-technical-mark-layer"
         aria-label={`${model.label} technical mark layer`}
         style={{
@@ -43,7 +44,8 @@ export function TechnicalMarksLayer({
           ...layerSize,
           transform: `translate(-50%, -50%) scale(${model.layout.scale})`,
         }}
-        onPointerDown={(event) => handleTechnicalMarkPointerDown?.(event, model.value)}
+        onPointerDown={(event) =>
+          handleTechnicalMarkPointerDown?.(event, model.value, model.assetId)}
         onPointerMove={handleTechnicalMarkPointerMove}
         onPointerUp={handleTechnicalMarkPointerUp}
         onPointerCancel={handleTechnicalMarkPointerUp}

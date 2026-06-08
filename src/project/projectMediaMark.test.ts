@@ -19,14 +19,18 @@ import {
   createDefaultProjectPlatformMarkAsset,
   createDefaultProjectPlatformMarks,
   getDefaultPlatformMarkTheme,
+  getEnabledPlatformMarkValues,
   getPlatformMarkLabel,
   getPlatformMarkThemeOptions,
+  getPlatformMarkValuesForRestore,
   getProjectPlatformMarkAsset,
   getProjectPlatformMarkInference,
   normalizeProjectPlatformMarks,
   platformMarkSupportsTheme,
   setPlatformMarkCustomImage,
+  updatePlatformMarkLayoutField,
   updatePlatformMarkTheme,
+  updatePlatformMarkToggle,
 } from './projectPlatformMarks.ts'
 import type { ProjectPlatformMarks } from './projectTypes.ts'
 
@@ -175,6 +179,37 @@ test('selected platform marks materialize default assets when assets are missing
   assert.equal(asset.layout.enabled, true)
   assert.equal(asset.layout.x, 24)
   assert.equal(asset.layout.y, 70)
+})
+
+test('disabled platform mark layouts stop rendering without losing restore state', () => {
+  const selectedMarks = updatePlatformMarkToggle(
+    createDefaultProjectPlatformMarks(),
+    'windows',
+    true,
+  )
+  const hiddenMarks = updatePlatformMarkLayoutField(
+    selectedMarks,
+    'windows',
+    'enabled',
+    false,
+  )
+
+  assert.deepEqual(hiddenMarks.values, ['windows'])
+  assert.deepEqual(getEnabledPlatformMarkValues(hiddenMarks), [])
+  assert.deepEqual(getPlatformMarkValuesForRestore(hiddenMarks, []), ['windows'])
+
+  const restoredMarks = updatePlatformMarkLayoutField(
+    hiddenMarks,
+    'windows',
+    'enabled',
+    true,
+  )
+
+  assert.deepEqual(getEnabledPlatformMarkValues(restoredMarks), ['windows'])
+  assert.equal(
+    getProjectPlatformMarkAsset(restoredMarks, 'windows').layout.enabled,
+    true,
+  )
 })
 
 test('PC platform mark supports persisted built-in styles', () => {

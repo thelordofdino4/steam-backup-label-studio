@@ -25,8 +25,8 @@ test('custom technical source without an image falls back to bundled generic ren
 
   assert.equal(models.length, 1)
   assert.equal(models[0].isPlaceholderImage, true)
-  assert.equal(models[0].label, 'Audio')
-  assert.equal(models[0].alt, 'Audio generic technical mark')
+  assert.equal(models[0].label, 'audio')
+  assert.equal(models[0].alt, 'audio generic technical mark')
 })
 
 test('custom technical image render model uses custom artwork bounds', () => {

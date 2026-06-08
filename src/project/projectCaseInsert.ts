@@ -50,6 +50,26 @@ export {
   normalizeProjectJewelCaseState,
 } from '../caseInsert/normalization.ts'
 export {
+  createDefaultCaseInsertSteamBanner,
+  normalizeCaseInsertSteamBanner,
+  resetCaseInsertSteamBannerColors,
+  resetCaseInsertSteamBannerLockupImage,
+  resetCaseInsertSteamBannerLockupLayout,
+  setCaseInsertSteamBannerEnabled,
+  setCaseInsertSteamBannerUseTextFallback,
+  setCustomCaseInsertSteamBannerLockupImage,
+  updateCaseInsertSteamBannerColor,
+  updateCaseInsertSteamBannerFallbackText,
+  updateCaseInsertSteamBannerLockupLayoutField,
+  updateCaseInsertTemplateSteamBanner,
+  updateJewelCaseSpineSteamBanner,
+} from '../caseInsert/steamBanner.ts'
+export type {
+  CaseInsertSteamBannerColorField,
+  CaseInsertSteamBannerLayoutField,
+  CaseInsertSteamBannerTargetKind,
+} from '../caseInsert/steamBanner.ts'
+export {
   addCaseInsertTextListItem,
   removeCaseInsertTextListItem,
   setCaseInsertTextBlockEnabled,

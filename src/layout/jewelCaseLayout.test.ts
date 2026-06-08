@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { createDefaultProjectJewelCaseState } from '../caseInsert/defaults.ts'
+import {
+  createDefaultCaseInsertImageSlot,
+  createDefaultProjectJewelCaseState,
+} from '../caseInsert/defaults.ts'
 import {
   setCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotTransitions.ts'
@@ -335,18 +338,13 @@ test('spine preview layouts stay inside safe strips', () => {
     updateCaseInsertTextBlockValue(state.spine.left.title, 'Portal 2'),
     true,
   )
-  const leftBranding = {
-    ...state.spine.left.steamBackupBranding,
-    enabled: true,
-    layout: {
-      ...state.spine.left.steamBackupBranding.layout,
-      y: 0,
-    },
-  }
   const rightLogo = setCaseInsertImageSlotImage(
     {
-      ...state.spine.right.logo,
-      enabled: true,
+      ...createDefaultCaseInsertImageSlot('right-spine-logo-test', 'Right logo', {
+        enabled: true,
+        fit: 'contain',
+        layout: { scale: 1, x: 50, y: 88, rotation: 0 },
+      }),
     },
     {
       imageDataUrl: 'data:image/png;base64,logo',
@@ -369,12 +367,6 @@ test('spine preview layouts stay inside safe strips', () => {
     leftTitle,
     layout,
   )
-  const brandingLayout = getJewelCaseSpineImageSlotPreviewLayout(
-    'left',
-    leftBranding,
-    layout,
-    'branding',
-  )
   const logoLayout = getJewelCaseSpineImageSlotPreviewLayout(
     'right',
     rightLogo,
@@ -390,14 +382,9 @@ test('spine preview layouts stay inside safe strips', () => {
   assert.ok(leftSafe)
   assert.ok(rightSafe)
   assert.ok(titleLayout)
-  assert.ok(brandingLayout)
   assert.ok(logoLayout)
   assert.ok(backgroundFit)
   assert.equal(isPixelRectInsideBounds(titleLayout.boundingRect, leftSafe.bounds), true)
-  assert.equal(
-    isPixelRectInsideBounds(brandingLayout.boundingRect, leftSafe.bounds),
-    true,
-  )
   assert.equal(isPixelRectInsideBounds(logoLayout.boundingRect, rightSafe.bounds), true)
   assert.equal(backgroundFit.hasEmptySpace, false)
 })

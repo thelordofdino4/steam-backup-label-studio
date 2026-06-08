@@ -1,10 +1,14 @@
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
-import type { LogoAssetKey } from '../project/projectLogoAssets.ts'
 import type {
+  BackgroundImageSize,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
-  ProjectCaseInsertSurfaceState,
 } from '../project/projectTypes.ts'
+import {
+  getLogoAssetRenderDataUrl,
+  getLogoAssetRenderSize,
+  type LogoAssetKey,
+} from '../project/projectLogoAssets.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
 import {
   setCaseInsertImageSlotEnabled,
@@ -20,8 +24,21 @@ import type {
   CaseInsertLayoutField,
 } from './types.ts'
 
+export type CaseInsertLogoSurfaceId = CaseInsertTemplatePaneId | 'spine'
+
+type CaseInsertLogoSlotState = {
+  logoSlots: ProjectCaseInsertImageSlot[]
+}
+
+export type CaseInsertLogoSlotRenderInfo = {
+  imageDataUrl: string
+  imageSize: BackgroundImageSize
+  isBundledFallback: boolean
+  logoKey: LogoAssetKey
+}
+
 const CASE_INSERT_PRIMARY_LOGO_LAYOUTS:
-Record<CaseInsertTemplatePaneId, Record<LogoAssetKey, ProjectCaseInsertLayout>> = {
+Record<CaseInsertLogoSurfaceId, Record<LogoAssetKey, ProjectCaseInsertLayout>> = {
   cover: {
     developer: { scale: 1, x: 20, y: 84, rotation: 0 },
     publisher: { scale: 1, x: 80, y: 84, rotation: 0 },
@@ -29,6 +46,10 @@ Record<CaseInsertTemplatePaneId, Record<LogoAssetKey, ProjectCaseInsertLayout>> 
   tray: {
     developer: { scale: 1, x: 18, y: 88, rotation: 0 },
     publisher: { scale: 1, x: 82, y: 88, rotation: 0 },
+  },
+  spine: {
+    developer: { scale: 1, x: 50, y: 78, rotation: 0 },
+    publisher: { scale: 1, x: 50, y: 90, rotation: 0 },
   },
 }
 
@@ -40,15 +61,33 @@ export function getCaseInsertPrimaryLogoSourceId(logoKey: LogoAssetKey) {
   return `case-logo:${logoKey}`
 }
 
+export function getCaseInsertAdditionalLogoSourceId(
+  logoKey: LogoAssetKey,
+  slotId: string,
+) {
+  return `case-logo:${logoKey}:additional:${slotId}`
+}
+
 export function getDefaultCaseInsertPrimaryLogoLayout(
-  paneId: CaseInsertTemplatePaneId,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
 ) {
-  return CASE_INSERT_PRIMARY_LOGO_LAYOUTS[paneId][logoKey]
+  return CASE_INSERT_PRIMARY_LOGO_LAYOUTS[surfaceId][logoKey]
+}
+
+function getDefaultCaseInsertAdditionalLogoLabel(
+  logoKey: LogoAssetKey,
+  additionalLogoIndex: number,
+) {
+  return `Additional ${logoKey} ${additionalLogoIndex + 1}`
 }
 
 function normalizeLabel(value: string) {
   return value.trim().toLocaleLowerCase()
+}
+
+function clampPercent(value: number) {
+  return Math.max(0, Math.min(100, value))
 }
 
 export function getCaseInsertPrimaryLogoKey(
@@ -75,8 +114,38 @@ export function getCaseInsertPrimaryLogoKey(
   return null
 }
 
+export function getCaseInsertAdditionalLogoKey(
+  slot: ProjectCaseInsertImageSlot,
+): LogoAssetKey | null {
+  const sourceId = slot.imageSource?.sourceId
+
+  if (
+    sourceId?.startsWith(`${getCaseInsertPrimaryLogoSourceId('developer')}:`)
+  ) {
+    return 'developer'
+  }
+
+  if (
+    sourceId?.startsWith(`${getCaseInsertPrimaryLogoSourceId('publisher')}:`)
+  ) {
+    return 'publisher'
+  }
+
+  const label = normalizeLabel(slot.label)
+
+  if (label.startsWith('additional developer')) {
+    return 'developer'
+  }
+
+  if (label.startsWith('additional publisher')) {
+    return 'publisher'
+  }
+
+  return null
+}
+
 export function getCaseInsertPrimaryLogoSlot(
-  templateState: ProjectCaseInsertSurfaceState,
+  templateState: CaseInsertLogoSlotState,
   logoKey: LogoAssetKey,
 ) {
   return templateState.logoSlots.find(
@@ -85,18 +154,34 @@ export function getCaseInsertPrimaryLogoSlot(
 }
 
 export function getCaseInsertAdditionalLogoSlots(
-  templateState: ProjectCaseInsertSurfaceState,
+  templateState: CaseInsertLogoSlotState,
 ) {
   return templateState.logoSlots.filter(
     (slot) => getCaseInsertPrimaryLogoKey(slot) === null,
   )
 }
 
+export function getCaseInsertAdditionalLogoSlotsForKey(
+  templateState: CaseInsertLogoSlotState,
+  logoKey: LogoAssetKey,
+) {
+  return getCaseInsertAdditionalLogoSlots(templateState).filter(
+    (slot) => getCaseInsertAdditionalLogoKey(slot) === logoKey,
+  )
+}
+
+export function getCaseInsertUnassignedAdditionalLogoSlots(
+  templateState: CaseInsertLogoSlotState,
+) {
+  return getCaseInsertAdditionalLogoSlots(templateState).filter(
+    (slot) => getCaseInsertAdditionalLogoKey(slot) === null,
+  )
+}
+
 function getNextCaseInsertLogoSlotIndex(
-  paneId: CaseInsertTemplatePaneId,
+  idPrefix: string,
   slots: ProjectCaseInsertImageSlot[],
 ) {
-  const { idPrefix } = getCaseInsertImageSlotGroupConfig(paneId, 'logoSlots')
   let index = slots.length + 1
 
   while (slots.some(({ id }) => id === `${idPrefix}-${index}`)) {
@@ -107,25 +192,89 @@ function getNextCaseInsertLogoSlotIndex(
 }
 
 function createCaseInsertPrimaryLogoSlot(
-  paneId: CaseInsertTemplatePaneId,
+  surfaceId: CaseInsertLogoSurfaceId,
+  idPrefix: string,
   logoKey: LogoAssetKey,
   index: number,
 ) {
-  const { idPrefix } = getCaseInsertImageSlotGroupConfig(paneId, 'logoSlots')
-
   return createDefaultCaseInsertImageSlot(
     `${idPrefix}-${index}`,
     getCaseInsertPrimaryLogoLabel(logoKey),
     {
       fit: 'contain',
-      layout: getDefaultCaseInsertPrimaryLogoLayout(paneId, logoKey),
+      layout: getDefaultCaseInsertPrimaryLogoLayout(surfaceId, logoKey),
     },
   )
 }
 
+function getDefaultCaseInsertAdditionalLogoLayout(
+  templateState: CaseInsertLogoSlotState,
+  surfaceId: CaseInsertLogoSurfaceId,
+  logoKey: LogoAssetKey,
+  additionalLogoIndex: number,
+): ProjectCaseInsertLayout {
+  const primaryLayout = getCaseInsertPrimaryLogoSlot(
+    templateState,
+    logoKey,
+  )?.layout ?? getDefaultCaseInsertPrimaryLogoLayout(surfaceId, logoKey)
+  const offset = additionalLogoIndex + 1
+
+  if (surfaceId === 'spine') {
+    return {
+      ...primaryLayout,
+      y: clampPercent(primaryLayout.y + 8 * offset),
+    }
+  }
+
+  return {
+    ...primaryLayout,
+    x: clampPercent(
+      primaryLayout.x + (logoKey === 'developer' ? 12 : -12) * offset,
+    ),
+  }
+}
+
+function createCaseInsertAdditionalLogoSlot(
+  templateState: CaseInsertLogoSlotState,
+  surfaceId: CaseInsertLogoSurfaceId,
+  idPrefix: string,
+  logoKey: LogoAssetKey,
+  index: number,
+) {
+  const additionalLogoIndex =
+    getCaseInsertAdditionalLogoSlotsForKey(templateState, logoKey).length
+  const label = getDefaultCaseInsertAdditionalLogoLabel(
+    logoKey,
+    additionalLogoIndex,
+  )
+  const id = `${idPrefix}-${index}`
+
+  return {
+    ...createDefaultCaseInsertImageSlot(
+      id,
+      label,
+      {
+        enabled: true,
+        fit: 'contain',
+        layout: getDefaultCaseInsertAdditionalLogoLayout(
+          templateState,
+          surfaceId,
+          logoKey,
+          additionalLogoIndex,
+        ),
+      },
+    ),
+    imageSource: createProjectImageAssetProvenance({
+      source: 'embedded',
+      sourceId: getCaseInsertAdditionalLogoSourceId(logoKey, id),
+      sourceLabel: label,
+    }),
+  }
+}
+
 function normalizeCaseInsertPrimaryLogoSlot(
   slot: ProjectCaseInsertImageSlot,
-  paneId: CaseInsertTemplatePaneId,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
 ): ProjectCaseInsertImageSlot {
   return {
@@ -133,7 +282,7 @@ function normalizeCaseInsertPrimaryLogoSlot(
     label: getCaseInsertPrimaryLogoLabel(logoKey),
     fit: 'contain',
     layout: {
-      ...getDefaultCaseInsertPrimaryLogoLayout(paneId, logoKey),
+      ...getDefaultCaseInsertPrimaryLogoLayout(surfaceId, logoKey),
       ...slot.layout,
     },
     imageSource: slot.imageSource
@@ -145,12 +294,45 @@ function normalizeCaseInsertPrimaryLogoSlot(
   }
 }
 
-function updateCaseInsertPrimaryLogoSlot(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
+function normalizeCaseInsertAdditionalLogoSlot(
+  slot: ProjectCaseInsertImageSlot,
+  logoKey: LogoAssetKey,
+): ProjectCaseInsertImageSlot {
+  const sourceId = slot.imageSource?.sourceId ??
+    getCaseInsertAdditionalLogoSourceId(logoKey, slot.id)
+
+  return {
+    ...slot,
+    imageSource: createProjectImageAssetProvenance({
+      ...slot.imageSource,
+      source: slot.imageSource?.source ?? 'embedded',
+      sourceId,
+      sourceLabel: slot.imageSource?.sourceLabel ?? slot.label,
+    }),
+  }
+}
+
+function getCaseInsertLogoSlotIdPrefix(
+  surfaceId: CaseInsertLogoSurfaceId,
+  idPrefix?: string,
+) {
+  if (idPrefix) {
+    return idPrefix
+  }
+
+  return surfaceId === 'spine'
+    ? 'spine-logo'
+    : getCaseInsertImageSlotGroupConfig(surfaceId, 'logoSlots').idPrefix
+}
+
+function updateCaseInsertPrimaryLogoSlot<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
   updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
-): ProjectCaseInsertSurfaceState {
+  idPrefix?: string,
+): T {
+  const resolvedIdPrefix = getCaseInsertLogoSlotIdPrefix(surfaceId, idPrefix)
   const existingIndex = templateState.logoSlots.findIndex(
     (slot) => getCaseInsertPrimaryLogoKey(slot) === logoKey,
   )
@@ -162,26 +344,51 @@ function updateCaseInsertPrimaryLogoSlot(
         index === existingIndex
           ? normalizeCaseInsertPrimaryLogoSlot(
               updater(slot),
-              paneId,
+              surfaceId,
               logoKey,
             )
           : slot),
-    }
+    } as T
   }
 
   const slot = createCaseInsertPrimaryLogoSlot(
-    paneId,
+    surfaceId,
+    resolvedIdPrefix,
     logoKey,
-    getNextCaseInsertLogoSlotIndex(paneId, templateState.logoSlots),
+    getNextCaseInsertLogoSlotIndex(resolvedIdPrefix, templateState.logoSlots),
   )
 
   return {
     ...templateState,
     logoSlots: [
       ...templateState.logoSlots,
-      normalizeCaseInsertPrimaryLogoSlot(updater(slot), paneId, logoKey),
+      normalizeCaseInsertPrimaryLogoSlot(updater(slot), surfaceId, logoKey),
     ],
-  }
+  } as T
+}
+
+export function addCaseInsertAdditionalLogoSlot<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
+  logoKey: LogoAssetKey,
+  idPrefix?: string,
+) {
+  const resolvedIdPrefix = `${getCaseInsertLogoSlotIdPrefix(
+    surfaceId,
+    idPrefix,
+  )}-${logoKey}`
+  const slot = createCaseInsertAdditionalLogoSlot(
+    templateState,
+    surfaceId,
+    resolvedIdPrefix,
+    logoKey,
+    getNextCaseInsertLogoSlotIndex(resolvedIdPrefix, templateState.logoSlots),
+  )
+
+  return {
+    ...templateState,
+    logoSlots: [...templateState.logoSlots, slot],
+  } as T
 }
 
 function withPrimaryLogoImageSource(
@@ -205,76 +412,170 @@ function withPrimaryLogoImageSource(
   }
 }
 
-export function setCaseInsertPrimaryLogoSlotEnabled(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
-  logoKey: LogoAssetKey,
-  enabled: boolean,
-) {
-  return updateCaseInsertPrimaryLogoSlot(
-    templateState,
-    paneId,
+export function withCaseInsertAdditionalLogoImageSource(
+  slot: ProjectCaseInsertImageSlot,
+  image: CaseInsertImageSlotImageInput,
+): CaseInsertImageSlotImageInput {
+  const logoKey = getCaseInsertAdditionalLogoKey(slot)
+
+  if (!logoKey) {
+    return image
+  }
+
+  const sourceId = slot.imageSource?.sourceId ??
+    getCaseInsertAdditionalLogoSourceId(logoKey, slot.id)
+
+  return {
+    ...image,
+    imageSource: {
+      ...image.imageSource,
+      sourceId,
+      sourceLabel: image.imageSource?.sourceLabel ??
+        slot.imageSource?.sourceLabel ??
+        slot.label,
+    },
+  }
+}
+
+export function clearCaseInsertAdditionalLogoSlotImage(
+  slot: ProjectCaseInsertImageSlot,
+): ProjectCaseInsertImageSlot {
+  const logoKey = getCaseInsertAdditionalLogoKey(slot)
+
+  if (!logoKey) {
+    return {
+      ...slot,
+      imageDataUrl: null,
+      imageSize: null,
+      imageSource: null,
+    }
+  }
+
+  return normalizeCaseInsertAdditionalLogoSlot(
+    {
+      ...slot,
+      imageDataUrl: null,
+      imageSize: null,
+      imageSource: createProjectImageAssetProvenance({
+        source: 'embedded',
+        sourceId: slot.imageSource?.sourceId ??
+          getCaseInsertAdditionalLogoSourceId(logoKey, slot.id),
+        sourceLabel: slot.label,
+      }),
+    },
     logoKey,
-    (slot) => setCaseInsertImageSlotEnabled(slot, enabled),
   )
 }
 
-export function setCaseInsertPrimaryLogoSlotImage(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
+export function getCaseInsertLogoSlotRenderInfo(
+  slot: ProjectCaseInsertImageSlot,
+): CaseInsertLogoSlotRenderInfo | null {
+  if (!slot.enabled) {
+    return null
+  }
+
+  const logoKey =
+    getCaseInsertPrimaryLogoKey(slot) ??
+    getCaseInsertAdditionalLogoKey(slot)
+
+  if (!logoKey) {
+    return slot.imageDataUrl
+      ? {
+          imageDataUrl: slot.imageDataUrl,
+          imageSize: getLogoAssetRenderSize(slot.imageSize),
+          isBundledFallback: false,
+          logoKey: 'developer',
+        }
+      : null
+  }
+
+  return {
+    imageDataUrl: getLogoAssetRenderDataUrl(logoKey, slot.imageDataUrl),
+    imageSize: getLogoAssetRenderSize(slot.imageSize),
+    isBundledFallback: !slot.imageDataUrl,
+    logoKey,
+  }
+}
+
+export function setCaseInsertPrimaryLogoSlotEnabled<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
-  image: CaseInsertImageSlotImageInput,
+  enabled: boolean,
+  idPrefix?: string,
 ) {
   return updateCaseInsertPrimaryLogoSlot(
     templateState,
-    paneId,
+    surfaceId,
+    logoKey,
+    (slot) => setCaseInsertImageSlotEnabled(slot, enabled),
+    idPrefix,
+  )
+}
+
+export function setCaseInsertPrimaryLogoSlotImage<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
+  logoKey: LogoAssetKey,
+  image: CaseInsertImageSlotImageInput,
+  idPrefix?: string,
+) {
+  return updateCaseInsertPrimaryLogoSlot(
+    templateState,
+    surfaceId,
     logoKey,
     (slot) => setCaseInsertImageSlotImage(
       slot,
       withPrimaryLogoImageSource(logoKey, image),
     ),
+    idPrefix,
   )
 }
 
-export function updateCaseInsertPrimaryLogoSlotLayoutField(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
+export function updateCaseInsertPrimaryLogoSlotLayoutField<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
   field: CaseInsertLayoutField,
   value: number,
+  idPrefix?: string,
 ) {
   return updateCaseInsertPrimaryLogoSlot(
     templateState,
-    paneId,
+    surfaceId,
     logoKey,
     (slot) => updateCaseInsertImageSlotLayoutField(slot, field, value),
+    idPrefix,
   )
 }
 
-export function resetCaseInsertPrimaryLogoSlotLayout(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
+export function resetCaseInsertPrimaryLogoSlotLayout<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
+  idPrefix?: string,
 ) {
   return updateCaseInsertPrimaryLogoSlot(
     templateState,
-    paneId,
+    surfaceId,
     logoKey,
     (slot) => ({
       ...slot,
-      layout: getDefaultCaseInsertPrimaryLogoLayout(paneId, logoKey),
+      layout: getDefaultCaseInsertPrimaryLogoLayout(surfaceId, logoKey),
     }),
+    idPrefix,
   )
 }
 
-export function clearCaseInsertPrimaryLogoSlotImage(
-  templateState: ProjectCaseInsertSurfaceState,
-  paneId: CaseInsertTemplatePaneId,
+export function clearCaseInsertPrimaryLogoSlotImage<T extends CaseInsertLogoSlotState>(
+  templateState: T,
+  surfaceId: CaseInsertLogoSurfaceId,
   logoKey: LogoAssetKey,
+  idPrefix?: string,
 ) {
   return updateCaseInsertPrimaryLogoSlot(
     templateState,
-    paneId,
+    surfaceId,
     logoKey,
     (slot) => ({
       ...slot,
@@ -282,5 +583,6 @@ export function clearCaseInsertPrimaryLogoSlotImage(
       imageSize: null,
       imageSource: null,
     }),
+    idPrefix,
   )
 }

@@ -12,10 +12,23 @@ import type {
 
 export type TechnicalMarkLayoutField = keyof TechnicalMarkLayout
 
+export type ProjectTechnicalMarkAssetEntry = {
+  value: TechnicalMarkValue
+  asset: ProjectTechnicalMarkAsset
+  assetId: string | null
+  index: number
+  isPrimary: boolean
+}
+
 type MarkLayoutPoint = {
   x: number
   y: number
 }
+
+let technicalMarkAssetIdCounter = 0
+
+const FALLBACK_ADDITIONAL_TECHNICAL_MARK_X_OFFSET_PERCENT = 8
+const FALLBACK_ADDITIONAL_TECHNICAL_MARK_Y_OFFSET_PERCENT = 6
 
 export const TECHNICAL_MARK_OPTIONS: Array<{ value: TechnicalMarkValue; label: string }> = [
   { value: 'audio', label: 'Audio' },
@@ -45,7 +58,19 @@ export function getTechnicalMarkLabel(value: TechnicalMarkValue) {
 }
 
 function getDefaultTechnicalMarkAssetLabel(value: TechnicalMarkValue) {
-  return getTechnicalMarkLabel(value)
+  return value
+}
+
+function createTechnicalMarkAssetId(value: TechnicalMarkValue) {
+  const randomId = globalThis.crypto?.randomUUID?.()
+
+  if (randomId) {
+    return `technical-${value}-${randomId}`
+  }
+
+  technicalMarkAssetIdCounter += 1
+
+  return `technical-${value}-${Date.now().toString(36)}-${technicalMarkAssetIdCounter}`
 }
 
 function normalizeElementLabel(label: unknown, fallbackLabel: string) {
@@ -58,6 +83,7 @@ export function createDefaultProjectTechnicalMarks(): ProjectTechnicalMarks {
   return {
     values: [],
     assets: {},
+    additionalAssets: {},
   }
 }
 
@@ -76,11 +102,112 @@ export function createDefaultProjectTechnicalMarkAsset(
   }
 }
 
+function createAdditionalProjectTechnicalMarkAsset(
+  value: TechnicalMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
+  referenceLayout?: TechnicalMarkLayout,
+): ProjectTechnicalMarkAsset {
+  const defaultAsset = createDefaultProjectTechnicalMarkAsset(
+    value,
+    selectedDiscTemplate,
+  )
+  const layout = referenceLayout
+    ? {
+        ...referenceLayout,
+        enabled: true,
+        x: referenceLayout.x +
+          FALLBACK_ADDITIONAL_TECHNICAL_MARK_X_OFFSET_PERCENT,
+        y: referenceLayout.y +
+          FALLBACK_ADDITIONAL_TECHNICAL_MARK_Y_OFFSET_PERCENT,
+      }
+    : defaultAsset.layout
+
+  return {
+    ...defaultAsset,
+    id: createTechnicalMarkAssetId(value),
+    label: getDefaultTechnicalMarkAssetLabel(value),
+    layout: {
+      ...layout,
+      enabled: true,
+      x: Math.max(0, Math.min(100, layout.x)),
+      y: Math.max(0, Math.min(100, layout.y)),
+    },
+  }
+}
+
+function getProjectTechnicalMarkAdditionalAssets(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+) {
+  return technicalMarks.additionalAssets?.[value] ?? []
+}
+
+export function getProjectTechnicalMarkAssetEntries(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectTechnicalMarkAssetEntry[] {
+  if (!technicalMarks.values.includes(value)) {
+    return []
+  }
+
+  const primaryAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    selectedDiscTemplate,
+  )
+  const additionalAssets = getProjectTechnicalMarkAdditionalAssets(
+    technicalMarks,
+    value,
+  )
+
+  return [
+    {
+      value,
+      asset: primaryAsset,
+      assetId: null,
+      index: 0,
+      isPrimary: true,
+    },
+    ...additionalAssets.map((asset, index) => ({
+      value,
+      asset,
+      assetId: asset.id ?? null,
+      index: index + 1,
+      isPrimary: false,
+    })),
+  ]
+}
+
+export function getAllProjectTechnicalMarkAssetEntries(
+  technicalMarks: ProjectTechnicalMarks,
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectTechnicalMarkAssetEntry[] {
+  return technicalMarks.values.flatMap((value) =>
+    getProjectTechnicalMarkAssetEntries(
+      technicalMarks,
+      value,
+      selectedDiscTemplate,
+    ))
+}
+
 export function getProjectTechnicalMarkAsset(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   selectedDiscTemplate?: DiscTemplate,
+  assetId?: string | null,
 ) {
+  if (assetId) {
+    const additionalAsset = getProjectTechnicalMarkAdditionalAssets(
+      technicalMarks,
+      value,
+    ).find((asset) => asset.id === assetId)
+
+    if (additionalAsset) {
+      return additionalAsset
+    }
+  }
+
   return technicalMarks.assets[value] ??
     createDefaultProjectTechnicalMarkAsset(value, selectedDiscTemplate)
 }
@@ -89,7 +216,33 @@ function setProjectTechnicalMarkAsset(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   asset: ProjectTechnicalMarkAsset,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
+  if (assetId) {
+    const additionalAssets = getProjectTechnicalMarkAdditionalAssets(
+      technicalMarks,
+      value,
+    )
+    const nextAssets = additionalAssets.some((currentAsset) =>
+      currentAsset.id === assetId)
+      ? additionalAssets.map((currentAsset) =>
+          currentAsset.id === assetId
+            ? { ...asset, id: assetId }
+            : currentAsset)
+      : [
+          ...additionalAssets,
+          { ...asset, id: assetId },
+        ]
+
+    return {
+      ...technicalMarks,
+      additionalAssets: {
+        ...technicalMarks.additionalAssets,
+        [value]: nextAssets,
+      },
+    }
+  }
+
   return {
     ...technicalMarks,
     assets: {
@@ -114,7 +267,7 @@ export function updateTechnicalMarkToggle(
     selectedDiscTemplate,
   )
 
-  return setProjectTechnicalMarkAsset(
+  const nextTechnicalMarks = setProjectTechnicalMarkAsset(
     {
       ...technicalMarks,
       values,
@@ -128,13 +281,49 @@ export function updateTechnicalMarkToggle(
       },
     },
   )
+
+  if (enabled) {
+    return nextTechnicalMarks
+  }
+
+  const additionalAssets = getProjectTechnicalMarkAdditionalAssets(
+    nextTechnicalMarks,
+    value,
+  )
+
+  if (additionalAssets.length === 0) {
+    return nextTechnicalMarks
+  }
+
+  return {
+    ...nextTechnicalMarks,
+    additionalAssets: {
+      ...nextTechnicalMarks.additionalAssets,
+      [value]: additionalAssets.map((asset) => ({
+        ...asset,
+        layout: {
+          ...asset.layout,
+          enabled: false,
+        },
+      })),
+    },
+  }
 }
 
 export function getEnabledTechnicalMarkValues(
   technicalMarks: ProjectTechnicalMarks,
 ): TechnicalMarkValue[] {
   return technicalMarks.values.filter(
-    (value) => getProjectTechnicalMarkAsset(technicalMarks, value).layout.enabled,
+    (value) => {
+      const primaryEnabled =
+        getProjectTechnicalMarkAsset(technicalMarks, value).layout.enabled
+      const additionalEnabled = getProjectTechnicalMarkAdditionalAssets(
+        technicalMarks,
+        value,
+      ).some((asset) => asset.layout.enabled)
+
+      return primaryEnabled || additionalEnabled
+    },
   )
 }
 
@@ -165,11 +354,13 @@ export function setTechnicalMarkCustomImage(
   imageDataUrl: string,
   imageSize: BackgroundImageSize,
   selectedDiscTemplate?: DiscTemplate,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
   const currentAsset = getProjectTechnicalMarkAsset(
     technicalMarks,
     value,
     selectedDiscTemplate,
+    assetId,
   )
 
   return setProjectTechnicalMarkAsset(
@@ -188,6 +379,7 @@ export function setTechnicalMarkCustomImage(
         enabled: true,
       },
     },
+    assetId,
   )
 }
 
@@ -195,26 +387,38 @@ export function updateTechnicalMarkSource(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   source: TechnicalMarkSource,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    undefined,
+    assetId,
+  )
 
   return setProjectTechnicalMarkAsset(technicalMarks, value, {
     ...currentAsset,
     source,
-  })
+  }, assetId)
 }
 
 export function updateTechnicalMarkLabel(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   label: string,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    undefined,
+    assetId,
+  )
 
   return setProjectTechnicalMarkAsset(technicalMarks, value, {
     ...currentAsset,
     label,
-  })
+  }, assetId)
 }
 
 export function updateTechnicalMarkLayoutField(
@@ -222,8 +426,14 @@ export function updateTechnicalMarkLayoutField(
   value: TechnicalMarkValue,
   field: TechnicalMarkLayoutField,
   layoutValue: boolean | number,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    undefined,
+    assetId,
+  )
 
   return setProjectTechnicalMarkAsset(technicalMarks, value, {
     ...currentAsset,
@@ -231,15 +441,21 @@ export function updateTechnicalMarkLayoutField(
       ...currentAsset.layout,
       [field]: layoutValue,
     },
-  })
+  }, assetId)
 }
 
 export function updateTechnicalMarkLayoutPosition(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   point: MarkLayoutPoint,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    undefined,
+    assetId,
+  )
 
   return setProjectTechnicalMarkAsset(technicalMarks, value, {
     ...currentAsset,
@@ -248,29 +464,41 @@ export function updateTechnicalMarkLayoutPosition(
       x: point.x,
       y: point.y,
     },
-  })
+  }, assetId)
 }
 
 export function clearTechnicalMarkImage(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    undefined,
+    assetId,
+  )
 
   return setProjectTechnicalMarkAsset(technicalMarks, value, {
     ...currentAsset,
     source: 'placeholder',
     customImageDataUrl: null,
     customImageSize: null,
-  })
+  }, assetId)
 }
 
 export function resetProjectTechnicalMarkLayout(
   technicalMarks: ProjectTechnicalMarks,
   value: TechnicalMarkValue,
   selectedDiscTemplate?: DiscTemplate,
+  assetId?: string | null,
 ): ProjectTechnicalMarks {
-  const currentAsset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  const currentAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    selectedDiscTemplate,
+    assetId,
+  )
   const defaultLayout = selectedDiscTemplate
     ? getDefaultTechnicalMarkLayoutForTemplate(
         selectedDiscTemplate,
@@ -285,7 +513,59 @@ export function resetProjectTechnicalMarkLayout(
       ...defaultLayout,
       enabled: currentAsset.layout.enabled,
     },
-  })
+  }, assetId)
+}
+
+export function addTechnicalMarkAsset(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+  selectedDiscTemplate?: DiscTemplate,
+): ProjectTechnicalMarks {
+  const additionalAssets = getProjectTechnicalMarkAdditionalAssets(
+    technicalMarks,
+    value,
+  )
+  const primaryAsset = getProjectTechnicalMarkAsset(
+    technicalMarks,
+    value,
+    selectedDiscTemplate,
+  )
+  const previousAsset = additionalAssets[additionalAssets.length - 1] ??
+    primaryAsset
+  const nextAsset = createAdditionalProjectTechnicalMarkAsset(
+    value,
+    selectedDiscTemplate,
+    previousAsset.layout,
+  )
+
+  return {
+    ...technicalMarks,
+    values: Array.from(new Set([...technicalMarks.values, value])),
+    additionalAssets: {
+      ...technicalMarks.additionalAssets,
+      [value]: [...additionalAssets, nextAsset],
+    },
+  }
+}
+
+export function removeTechnicalMarkAsset(
+  technicalMarks: ProjectTechnicalMarks,
+  value: TechnicalMarkValue,
+  assetId: string,
+): ProjectTechnicalMarks {
+  const additionalAssets = getProjectTechnicalMarkAdditionalAssets(
+    technicalMarks,
+    value,
+  )
+  const nextAssets = additionalAssets.filter((asset) => asset.id !== assetId)
+
+  return {
+    ...technicalMarks,
+    additionalAssets: {
+      ...technicalMarks.additionalAssets,
+      [value]: nextAssets,
+    },
+  }
 }
 
 function isTechnicalMarkValue(value: unknown): value is TechnicalMarkValue {
@@ -308,6 +588,7 @@ function normalizeTechnicalMarkAsset(
   value: TechnicalMarkValue,
   asset: Partial<ProjectTechnicalMarkAsset> | undefined,
   selectedDiscTemplate?: DiscTemplate,
+  fallbackId?: string,
 ): ProjectTechnicalMarkAsset {
   const source = asset?.source === 'custom' ? 'custom' : 'placeholder'
   const customImageSize = asset?.customImageSize ?? null
@@ -320,6 +601,11 @@ function normalizeTechnicalMarkAsset(
     : defaults.layout
 
   return {
+    ...(fallbackId || asset?.id ? {
+      id: typeof asset?.id === 'string' && asset.id.trim()
+        ? asset.id
+        : fallbackId,
+    } : {}),
     label: normalizeElementLabel(
       asset?.label,
       getDefaultTechnicalMarkAssetLabel(value),
@@ -329,6 +615,24 @@ function normalizeTechnicalMarkAsset(
     customImageSize,
     layout: normalizeTechnicalMarkLayout(asset?.layout, defaultLayout),
   }
+}
+
+function normalizeAdditionalTechnicalMarkAssets(
+  value: TechnicalMarkValue,
+  assets: Array<Partial<ProjectTechnicalMarkAsset>> | undefined,
+  selectedDiscTemplate?: DiscTemplate,
+) {
+  if (!Array.isArray(assets)) {
+    return []
+  }
+
+  return assets.map((asset) =>
+    normalizeTechnicalMarkAsset(
+      value,
+      asset,
+      selectedDiscTemplate,
+      createTechnicalMarkAssetId(value),
+    ))
 }
 
 export function normalizeProjectTechnicalMarks(
@@ -341,6 +645,7 @@ export function normalizeProjectTechnicalMarks(
     ? Array.from(new Set(rawValues.filter(isTechnicalMarkValue)))
     : defaults.values
   const rawAssets = technicalMarks?.assets
+  const rawAdditionalAssets = technicalMarks?.additionalAssets
 
   if (!technicalMarks) {
     return defaults
@@ -358,5 +663,17 @@ export function normalizeProjectTechnicalMarks(
         ),
       ]),
     ) as ProjectTechnicalMarks['assets'],
+    additionalAssets: Object.fromEntries(
+      TECHNICAL_MARK_OPTIONS.map(({ value }) => [
+        value,
+        normalizeAdditionalTechnicalMarkAssets(
+          value,
+          rawAdditionalAssets && typeof rawAdditionalAssets === 'object'
+            ? rawAdditionalAssets[value]
+            : undefined,
+          selectedDiscTemplate,
+        ),
+      ]).filter(([, assets]) => assets.length > 0),
+    ) as ProjectTechnicalMarks['additionalAssets'],
   }
 }

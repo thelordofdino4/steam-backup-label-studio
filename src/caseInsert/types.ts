@@ -4,6 +4,7 @@ import type {
   AdditionalArtworkFrame,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
@@ -21,6 +22,21 @@ import type { RectangularPrintTemplate } from '../types/template.ts'
 import type { CaseInsertTemplatePaneId } from './templateSurfaces.ts'
 
 export type ProjectCaseInsertLayoutInput = Partial<ProjectCaseInsertLayout>
+
+export type ProjectCaseInsertSteamBannerInput =
+  Partial<
+    Omit<
+      ProjectCaseInsertSteamBanner,
+      'colors' | 'lockupImageSource' | 'lockupImageSize' | 'lockupLayout'
+    >
+  > & {
+    colors?: Partial<ProjectCaseInsertSteamBanner['colors']>
+    bannerColors?: Partial<ProjectCaseInsertSteamBanner['colors']>
+    lockupImageSource?: Partial<ProjectImageAssetProvenance> | null
+    lockupImageSize?: Partial<BackgroundImageSize> | null
+    lockupLayout?: ProjectCaseInsertLayoutInput
+    layout?: ProjectCaseInsertLayoutInput
+  }
 
 export type ProjectCaseInsertImageSlotInput =
   Partial<Omit<ProjectCaseInsertImageSlot, 'imageSource' | 'layout' | 'frame'>> & {
@@ -43,6 +59,7 @@ export type ProjectCaseInsertSurfaceStateInput =
   Partial<
     Omit<
       ProjectCaseInsertSurfaceState,
+      | 'steamBanner'
       | 'background'
       | 'titleArtwork'
       | 'artworkSlots'
@@ -52,6 +69,7 @@ export type ProjectCaseInsertSurfaceStateInput =
       | 'textLists'
     >
   > & {
+    steamBanner?: ProjectCaseInsertSteamBannerInput
     background?: ProjectCaseInsertImageSlotInput
     titleArtwork?: ProjectCaseInsertImageSlotInput
     artworkSlots?: ProjectCaseInsertImageSlotInput[]
@@ -69,18 +87,19 @@ export type ProjectCaseInsertSurfaceStateInput =
   }
 
 export type ProjectJewelCaseSpineSideStateInput = {
+  steamBanner?: ProjectCaseInsertSteamBannerInput
   background?: ProjectCaseInsertImageSlotInput
   titleArtwork?: ProjectCaseInsertImageSlotInput
   additionalArtworkEnabled?: boolean
   artworkEnabled?: boolean
   artworkSlots?: ProjectCaseInsertImageSlotInput[]
   artwork?: ProjectCaseInsertImageSlotInput[]
+  logoSlots?: ProjectCaseInsertImageSlotInput[]
+  logos?: ProjectCaseInsertImageSlotInput[]
   markSlots?: ProjectCaseInsertImageSlotInput[]
   marks?: ProjectCaseInsertImageSlotInput[]
   title?: ProjectCaseInsertTextBlockInput
   titleText?: ProjectCaseInsertTextBlockInput
-  steamBackupBranding?: ProjectCaseInsertImageSlotInput
-  steamBackupLogo?: ProjectCaseInsertImageSlotInput
   logo?: ProjectCaseInsertImageSlotInput
 }
 

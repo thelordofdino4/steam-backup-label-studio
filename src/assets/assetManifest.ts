@@ -46,7 +46,12 @@ type StatusToastIconKind =
 // built-ins under domain folders; true temporary fallbacks stay in
 // `assets/placeholders/`.
 export const DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL = new URL(
-  './steam-banner/steam-default-lockup.png',
+  './steam-banner/steam-default-logo.png',
+  import.meta.url,
+).href
+
+export const DEFAULT_STEAM_BANNER_SPINE_ICON_IMAGE_URL = new URL(
+  './toast-icons/toast-steam.png',
   import.meta.url,
 ).href
 

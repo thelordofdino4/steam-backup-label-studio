@@ -145,7 +145,7 @@ The jewel case state stores:
 
 - front surface background, title artwork, artwork slots, callout text, logo slots, mark slots, and text blocks
 - back surface background, title artwork, additional artwork slots, description, feature bullets, minimum/recommended requirements, legal text, logo slots, mark slots, and text blocks
-- left and right spine settings, including background, title text, Steam Backup branding slot, and logo slot
+- left and right spine settings, including background, title text, logo slots, and mark slots
 - case export settings, including selected surfaces and guide IDs
 - image asset data, image size, fit/layout settings, and provenance where present
 - update helpers that can disable optional visual/text elements without dropping their remembered values or uploaded assets

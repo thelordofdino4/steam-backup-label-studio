@@ -820,6 +820,19 @@ export function clampProjectTechnicalMarksToSafeZone(
   technicalMarks: ProjectTechnicalMarks,
   selectedDiscTemplate: DiscTemplate,
 ): ProjectTechnicalMarks {
+  const additionalAssets = Object.fromEntries(
+    Object.entries(technicalMarks.additionalAssets ?? {}).map(([value, assets]) => [
+      value,
+      assets.map((asset) => ({
+        ...asset,
+        layout: clampTechnicalMarkLayoutToSafeZone(
+          asset,
+          selectedDiscTemplate,
+        ),
+      })),
+    ]),
+  ) as ProjectTechnicalMarks['additionalAssets']
+
   return {
     ...technicalMarks,
     assets: {
@@ -839,6 +852,7 @@ export function clampProjectTechnicalMarksToSafeZone(
         }),
       ),
     } as ProjectTechnicalMarks['assets'],
+    additionalAssets,
   }
 }
 

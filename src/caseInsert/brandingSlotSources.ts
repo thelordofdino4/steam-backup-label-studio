@@ -2,7 +2,6 @@ import {
   getMediaMarkPlaceholderImageUrl,
   getPlatformMarkPlaceholderImageUrl,
   getRatingBadgePlaceholderRenderModel,
-  getTechnicalMarkPlaceholderImageUrl,
 } from '../assets/assetManifest.ts'
 import { loadImage } from '../export/canvasImage.ts'
 import {
@@ -17,10 +16,15 @@ import {
   getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
 import {
-  getEnabledTechnicalMarkValues,
-  getProjectTechnicalMarkAsset,
   getTechnicalMarkLabel,
 } from '../project/projectTechnicalMarks.ts'
+import {
+  createTechnicalMarkRenderModels,
+} from '../render/technicalMarkRenderModel.ts'
+import {
+  shouldRenderRatingBadge,
+  shouldRenderSupplementalUskRatingBadge,
+} from '../project/projectRatingBadge.ts'
 import type {
   BackgroundImageSize,
   ProjectImageAssetProvenance,
@@ -51,6 +55,9 @@ export type CaseInsertBrandingSlotSourceItem = {
   label: string
   sourceTypeLabel: string
   sourceId: string
+  imageDataUrl: string
+  imageSize: BackgroundImageSize | null
+  imageSource: Partial<ProjectImageAssetProvenance>
   resolveImage: () => Promise<CaseInsertImageSlotImageInput>
 }
 
@@ -120,6 +127,9 @@ function createBrandingSourceItem({
     label,
     sourceTypeLabel,
     sourceId: imageSource.sourceId ?? id,
+    imageDataUrl,
+    imageSize,
+    imageSource,
     resolveImage: async () => ({
       imageDataUrl,
       imageSize: await resolveImageSize(imageDataUrl, imageSize, label),
@@ -204,7 +214,7 @@ function createRatingSourceItems(
   projectMetadata: ProjectMetadata,
   projectRatingBadge: ProjectRatingBadge,
 ) {
-  if (projectMetadata.ratingSystem === 'none' || !projectRatingBadge.layout.enabled) {
+  if (!shouldRenderRatingBadge(projectMetadata, projectRatingBadge)) {
     return []
   }
 
@@ -229,7 +239,35 @@ function createRatingSourceItems(
     ),
   })
 
-  return item ? [item] : []
+  const supplementalUskItem =
+    shouldRenderSupplementalUskRatingBadge(projectMetadata, projectRatingBadge)
+      ? createBrandingSourceItem({
+          id: `case-rating:USK:${projectRatingBadge.uskBadge.ratingValue}:supplemental`,
+          slotKey: 'markSlots',
+          label: getRatingBadgePlaceholderRenderModel({
+            ratingSystem: 'USK',
+            ratingValue: projectRatingBadge.uskBadge.ratingValue,
+          }).altLabel,
+          sourceTypeLabel: 'Rating badge',
+          imageDataUrl: getRatingBadgePlaceholderRenderModel({
+            ratingSystem: 'USK',
+            ratingValue: projectRatingBadge.uskBadge.ratingValue,
+          }).imageUrl,
+          imageSize: null,
+          imageSource: createSourceProvenance(
+            'placeholder',
+            `case-rating:USK:${projectRatingBadge.uskBadge.ratingValue}:supplemental`,
+            getRatingBadgePlaceholderRenderModel({
+              ratingSystem: 'USK',
+              ratingValue: projectRatingBadge.uskBadge.ratingValue,
+            }).altLabel,
+          ),
+        })
+      : null
+
+  return [item, supplementalUskItem].filter(
+    (source): source is CaseInsertBrandingSlotSourceItem => Boolean(source),
+  )
 }
 
 function createMediaMarkSourceItems(projectMediaMark: ProjectMediaMark) {
@@ -289,23 +327,19 @@ function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMark
 }
 
 function createTechnicalMarkSourceItems(projectTechnicalMarks: ProjectTechnicalMarks) {
-  return getEnabledTechnicalMarkValues(projectTechnicalMarks).flatMap((value) => {
-    const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
-    const defaultLabel = getTechnicalMarkLabel(value)
-    const label = asset.label.trim() || defaultLabel
-    const isCustom = asset.source === 'custom' && Boolean(asset.customImageDataUrl)
-    const sourceId = `case-technical:${value}`
+  return createTechnicalMarkRenderModels(projectTechnicalMarks).flatMap((model) => {
+    const defaultLabel = getTechnicalMarkLabel(model.value)
+    const label = model.label.trim() || defaultLabel
+    const sourceId = `case-technical:${model.value}:${model.assetId ?? 'primary'}`
     const item = createBrandingSourceItem({
       id: sourceId,
       slotKey: 'markSlots',
       label,
       sourceTypeLabel: 'Technical mark',
-      imageDataUrl: isCustom
-        ? asset.customImageDataUrl
-        : getTechnicalMarkPlaceholderImageUrl(value),
-      imageSize: isCustom ? asset.customImageSize : null,
+      imageDataUrl: model.imageDataUrl,
+      imageSize: model.isPlaceholderImage ? null : model.asset.customImageSize,
       imageSource: createSourceProvenance(
-        isCustom ? 'custom' : 'placeholder',
+        model.isPlaceholderImage ? 'placeholder' : 'custom',
         sourceId,
         `${label} technical mark`,
       ),

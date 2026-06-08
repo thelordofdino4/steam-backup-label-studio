@@ -13,6 +13,9 @@ import {
   isCaseInsertMarkSlotVisible,
 } from '../../caseInsert/brandingVisibility'
 import {
+  getCaseInsertLogoSlotRenderInfo,
+} from '../../caseInsert/brandingLogoSlots'
+import {
   getCaseInsertBackTextBlockRole,
 } from '../../caseInsert/textReadability'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -114,7 +117,12 @@ function CaseInsertTemplateImageSlot({
         group === 'artwork' ? 'artwork' : group === 'mark' ? 'mark' : 'logo',
       )
 
-  if (!rect || !slot.imageDataUrl) {
+  const logoRenderInfo = group === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+
+  if (!rect || !imageDataUrl) {
     return null
   }
 
@@ -154,7 +162,7 @@ function CaseInsertTemplateImageSlot({
           alt=""
           className="case-insert-template-framed-artwork-image"
           draggable={false}
-          src={slot.imageDataUrl}
+          src={imageDataUrl}
         />
         <CaseInsertImageSlotFrame slot={slot} />
       </div>
@@ -167,7 +175,7 @@ function CaseInsertTemplateImageSlot({
       className={`case-insert-template-overlay-image case-insert-template-${group}`}
       draggable={false}
       {...pointerProps}
-      src={slot.imageDataUrl}
+      src={imageDataUrl}
       style={getRectStyle(rect, layout)}
     />
   )

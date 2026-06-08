@@ -27,7 +27,11 @@ import type {
 import {
   isCaseInsertMarkSlotVisible,
 } from '../../caseInsert/brandingVisibility'
+import {
+  getCaseInsertLogoSlotRenderInfo,
+} from '../../caseInsert/brandingLogoSlots'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
+import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 
 export type CaseInsertSpinePreviewLayerProps = {
   spine: ProjectJewelCaseSpineState
@@ -200,6 +204,10 @@ function CaseInsertSpineOverlaySlot({
       : '',
   ].join(' ')
   const style = getTransformedBoxStyle(slotLayout, layout)
+  const logoRenderInfo = role === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
   const pointerProps = {
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
@@ -218,28 +226,16 @@ function CaseInsertSpineOverlaySlot({
     onPointerUp: pointerHandlers.handleSpinePointerUp,
   }
 
-  if (slot.imageDataUrl) {
+  if (imageDataUrl) {
     return (
       <div className={className} {...pointerProps} style={style}>
-        <img src={slot.imageDataUrl} alt="" draggable={false} />
+        <img src={imageDataUrl} alt="" draggable={false} />
         {role === 'artwork' ? <CaseInsertImageSlotFrame slot={slot} /> : null}
       </div>
     )
   }
 
-  if (role !== 'branding') {
-    return null
-  }
-
-  return (
-    <div
-      className={`${className} case-insert-spine-branding-fallback`}
-      {...pointerProps}
-      style={style}
-    >
-      Steam Backup
-    </div>
-  )
+  return null
 }
 
 function CaseInsertSpineSidePreview({
@@ -271,6 +267,11 @@ function CaseInsertSpineSidePreview({
         layout={layout}
         pointerHandlers={pointerHandlers}
       />
+      <CaseInsertSteamBannerPreviewLayer
+        banner={state.steamBanner}
+        layout={layout}
+        target={{ kind: 'spine', side }}
+      />
       <CaseInsertSpineOverlaySlot
         side={side}
         slot={state.titleArtwork}
@@ -296,22 +297,17 @@ function CaseInsertSpineSidePreview({
         layout={layout}
         pointerHandlers={pointerHandlers}
       />
-      <CaseInsertSpineOverlaySlot
-        side={side}
-        slot={state.steamBackupBranding}
-        role="branding"
-        layout={layout}
-        dragTarget={{ kind: 'primary', slotKey: 'steamBackupBranding' }}
-        pointerHandlers={pointerHandlers}
-      />
-      <CaseInsertSpineOverlaySlot
-        side={side}
-        slot={state.logo}
-        role="logo"
-        layout={layout}
-        dragTarget={{ kind: 'primary', slotKey: 'logo' }}
-        pointerHandlers={pointerHandlers}
-      />
+      {state.logoSlots.map((slot) => (
+        <CaseInsertSpineOverlaySlot
+          key={slot.id}
+          side={side}
+          slot={slot}
+          role="logo"
+          layout={layout}
+          dragTarget={{ kind: 'group', slotKey: 'logoSlots', slotId: slot.id }}
+          pointerHandlers={pointerHandlers}
+        />
+      ))}
       {(['rating', 'media', 'platform', 'technical'] as const).flatMap(
         (kind) => markSlotsByKind(kind).map((slot) => (
           <CaseInsertSpineOverlaySlot

@@ -18,6 +18,9 @@
 .case-insert-back-overlay-image,
 .case-insert-template-overlay-image,
 .case-insert-template-framed-artwork,
+.case-insert-steam-banner-main,
+.case-insert-steam-banner-accent,
+.case-insert-steam-banner-lockup,
 .case-insert-spine-title,
 .case-insert-spine-overlay-box,
 .case-insert-front-text-block,
@@ -148,6 +151,56 @@
   user-select: none;
 }
 
+.case-insert-steam-banner-main {
+  background: linear-gradient(
+    180deg,
+    var(--case-insert-steam-banner-gradient-start, #2a475f) 0%,
+    var(--case-insert-steam-banner-gradient-end, #1a2838) 100%
+  );
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.case-insert-steam-banner-accent {
+  background: var(--case-insert-steam-banner-accent, #2aabe2);
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.case-insert-steam-banner-lockup {
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  font-weight: 900;
+  letter-spacing: 0;
+  line-height: 1;
+  pointer-events: none;
+  text-align: center;
+  text-shadow: 0 0.22cqw 0.52cqw rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.case-insert-steam-banner-lockup img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.case-insert-steam-banner-lockup-image--white {
+  filter: brightness(0) invert(1);
+}
+
+.case-insert-steam-banner-lockup-text {
+  display: block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .case-insert-image-slot-frame {
   position: absolute;
   inset: 0;
@@ -205,17 +258,6 @@
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-}
-
-.case-insert-spine-branding-fallback {
-  color: #f8fafc;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: 1.25cqw;
-  font-weight: 800;
-  letter-spacing: 0;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .case-insert-front-text-block,
@@ -321,23 +363,6 @@
 }
 
 .case-insert-background-control {
-  margin-top: 0;
-}
-
-.case-insert-branding-source-group {
-  display: grid;
-  gap: 12px;
-}
-
-.case-insert-source-section {
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 8px;
-  background: rgba(15, 23, 42, 0.38);
-  padding: 10px;
-  min-width: 0;
-}
-
-.case-insert-source-section + .case-insert-source-section {
   margin-top: 0;
 }
 

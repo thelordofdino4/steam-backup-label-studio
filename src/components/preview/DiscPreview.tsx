@@ -95,6 +95,7 @@ export type DiscPreviewProps = {
       handleTechnicalMarkPointerDown: (
         event: PointerEvent<Element>,
         value: TechnicalMarkValue,
+        assetId?: string | null,
       ) => void
       handleTechnicalMarkPointerMove: (event: PointerEvent<Element>) => void
       handleTechnicalMarkPointerUp: (event: PointerEvent<Element>) => void

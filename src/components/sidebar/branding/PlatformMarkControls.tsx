@@ -54,7 +54,9 @@ export function PlatformMarkSetupControls({
   const [rememberedValues, setRememberedValues] = useState<PlatformMarkValue[]>([])
   const enabledValues = getEnabledPlatformMarkValues(projectPlatformMarks)
   const isEnabled = enabledValues.length > 0
-  const currentLabel = projectPlatformMarks.values.length > 0 ? projectPlatformMarks.values.map(getPlatformMarkLabel).join(', ') : 'None selected'
+  const currentLabel = enabledValues.length > 0
+    ? enabledValues.map(getPlatformMarkLabel).join(', ')
+    : 'None selected'
   const inference = getProjectPlatformMarkInference(projectPlatformMarks)
   const shouldShowInferenceHint = inference.source !== 'none'
 
@@ -77,13 +79,17 @@ export function PlatformMarkSetupControls({
           <div className="platform-mark-selection-group spacing-top">
             <span className="field-label">Operating systems</span>
             <div className="disc-mark-checkbox-list">
-              {PLATFORM_MARK_OPTIONS.map((option) => (
-                <label key={option.value} className="field-label"><input type="checkbox" checked={projectPlatformMarks.values.includes(option.value)} onChange={(event) => handlePlatformMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
-              ))}
+              {PLATFORM_MARK_OPTIONS.map((option) => {
+                const checked = enabledValues.includes(option.value)
+
+                return (
+                  <label key={option.value} className="field-label"><input type="checkbox" checked={checked} onChange={(event) => handlePlatformMarkToggle(option.value, event.target.checked)} /> {option.label}</label>
+                )
+              })}
             </div>
           </div>
           <p className="hint">Current operating system marks: {currentLabel}. Each selected operating system mark has its own image and layout.</p>
-          {projectPlatformMarks.values.map((value) => {
+          {enabledValues.map((value) => {
             const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
             const label = getPlatformMarkLabel(value)
             const uploadId = fieldId(`platform-mark-upload-${value}`)

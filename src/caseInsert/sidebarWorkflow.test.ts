@@ -8,6 +8,9 @@ import {
   CASE_INSERT_ARTWORK_SOURCE_PANEL_LABELS,
   getCaseInsertArtworkPanelSectionLabels,
 } from './artworkPanelSections.ts'
+import {
+  CASE_INSERT_MARK_BRANDING_SECTIONS,
+} from './brandingPanelSections.ts'
 
 test('cover sheet case sidebar mirrors the core editor flow', () => {
   assert.deepEqual(
@@ -85,4 +88,25 @@ test('case insert artwork source panels keep disc source group labels', () => {
       'Local file',
     ],
   )
+})
+
+test('case insert mark branding panels do not expose artwork slot controls', () => {
+  assert.deepEqual(
+    CASE_INSERT_MARK_BRANDING_SECTIONS.map(({ title, markKind }) => ({
+      title,
+      markKind,
+    })),
+    [
+      { title: 'Rating badge', markKind: 'rating' },
+      { title: 'Media format mark', markKind: 'media' },
+      { title: 'Operating system marks', markKind: 'platform' },
+      { title: 'Technical marks', markKind: 'technical' },
+    ],
+  )
+
+  for (const section of CASE_INSERT_MARK_BRANDING_SECTIONS) {
+    assert.equal('addLabel' in section, false)
+    assert.equal('emptyHint' in section, false)
+    assert.equal('sourceSectionIds' in section, false)
+  }
 })

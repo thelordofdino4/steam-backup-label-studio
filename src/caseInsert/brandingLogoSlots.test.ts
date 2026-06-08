@@ -1,14 +1,20 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  addCaseInsertAdditionalLogoSlot,
   clearCaseInsertPrimaryLogoSlotImage,
+  clearCaseInsertAdditionalLogoSlotImage,
+  getCaseInsertAdditionalLogoSlotsForKey,
   getCaseInsertAdditionalLogoSlots,
+  getCaseInsertLogoSlotRenderInfo,
   getCaseInsertPrimaryLogoSlot,
   getCaseInsertPrimaryLogoSourceId,
+  getCaseInsertUnassignedAdditionalLogoSlots,
   resetCaseInsertPrimaryLogoSlotLayout,
   setCaseInsertPrimaryLogoSlotEnabled,
   setCaseInsertPrimaryLogoSlotImage,
   updateCaseInsertPrimaryLogoSlotLayoutField,
+  withCaseInsertAdditionalLogoImageSource,
 } from './brandingLogoSlots.ts'
 import {
   createDefaultProjectJewelCaseState,
@@ -128,6 +134,101 @@ test('case insert primary logo reset and clear preserve enabled state and saved 
   assert.equal(developerLogo?.enabled, true)
   assert.equal(developerLogo?.layout.x, 20)
   assert.equal(developerLogo?.layout.y, 84)
+})
+
+test('case insert logo render info uses bundled generic artwork for enabled empty logo slots', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'developer', true))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    addCaseInsertAdditionalLogoSlot(cover, 'cover', 'developer'))
+
+  const developerLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'developer',
+  )
+  const additionalDeveloperLogo =
+    getCaseInsertAdditionalLogoSlotsForKey(
+      state.templates.cover,
+      'developer',
+    )[0]
+
+  assert.ok(developerLogo)
+  assert.ok(additionalDeveloperLogo)
+
+  const developerRenderInfo = getCaseInsertLogoSlotRenderInfo(developerLogo)
+  const additionalRenderInfo =
+    getCaseInsertLogoSlotRenderInfo(additionalDeveloperLogo)
+
+  assert.equal(developerRenderInfo?.isBundledFallback, true)
+  assert.equal(developerRenderInfo?.logoKey, 'developer')
+  assert.equal(developerRenderInfo?.imageSize.width, 480)
+  assert.equal(additionalRenderInfo?.isBundledFallback, true)
+  assert.equal(additionalRenderInfo?.logoKey, 'developer')
+})
+
+test('case insert additional logos are grouped by developer or publisher without losing legacy slots', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) =>
+    addCaseInsertAdditionalLogoSlot(tray, 'tray', 'developer'))
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) =>
+    addCaseInsertAdditionalLogoSlot(tray, 'tray', 'publisher'))
+  state = addCaseInsertTemplateImageSlot(state, 'tray', 'logoSlots')
+
+  const tray = state.templates.tray
+
+  assert.equal(getCaseInsertAdditionalLogoSlots(tray).length, 3)
+  assert.equal(getCaseInsertAdditionalLogoSlotsForKey(tray, 'developer').length, 1)
+  assert.equal(getCaseInsertAdditionalLogoSlotsForKey(tray, 'publisher').length, 1)
+  assert.equal(getCaseInsertUnassignedAdditionalLogoSlots(tray).length, 1)
+})
+
+test('case insert additional logo upload and clear preserve developer/publisher grouping', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    addCaseInsertAdditionalLogoSlot(cover, 'cover', 'publisher'))
+
+  let additionalLogo = getCaseInsertAdditionalLogoSlotsForKey(
+    state.templates.cover,
+    'publisher',
+  )[0]
+
+  assert.ok(additionalLogo)
+
+  const image = withCaseInsertAdditionalLogoImageSource(additionalLogo, {
+    imageDataUrl: 'data:image/png;base64,publisher-extra',
+    imageSize: { width: 400, height: 120 },
+    imageSource: createProjectImageAssetProvenance({
+      source: 'uploaded',
+      sourceLabel: 'publisher-extra.png',
+    }),
+  })
+
+  assert.equal(image.imageSource?.sourceId, additionalLogo.imageSource?.sourceId)
+
+  additionalLogo = clearCaseInsertAdditionalLogoSlotImage({
+    ...additionalLogo,
+    imageDataUrl: image.imageDataUrl,
+    imageSize: image.imageSize,
+    imageSource: createProjectImageAssetProvenance({
+      source: 'uploaded',
+      sourceId: image.imageSource?.sourceId,
+      sourceLabel: 'publisher-extra.png',
+    }),
+  })
+
+  assert.equal(additionalLogo.imageDataUrl, null)
+  assert.equal(additionalLogo.imageSource?.sourceId, image.imageSource?.sourceId)
+  assert.equal(
+    getCaseInsertAdditionalLogoSlotsForKey(
+      { logoSlots: [additionalLogo] },
+      'publisher',
+    ).length,
+    1,
+  )
 })
 
 test('case insert primary logo candidate routing survives save and load', () => {

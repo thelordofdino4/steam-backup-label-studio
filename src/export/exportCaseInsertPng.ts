@@ -5,6 +5,9 @@ import {
   isCaseInsertMarkSlotVisible,
 } from '../caseInsert/brandingVisibility'
 import {
+  getCaseInsertLogoSlotRenderInfo,
+} from '../caseInsert/brandingLogoSlots'
+import {
   getCaseInsertBackTextBlockRole,
 } from '../caseInsert/textReadability'
 import type {
@@ -50,6 +53,7 @@ import type {
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel'
 import { canvasToPngBytes, loadCanvasSafeImage } from './canvasImage'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
+import { drawCaseInsertSteamBanner } from './drawCaseInsertSteamBanner'
 
 type CaseInsertExportLayerRenderer = Record<
   CaseInsertEditorExportLayerId,
@@ -446,9 +450,13 @@ async function drawTemplateImageSlot(
     return
   }
 
+  const logoRenderInfo = group === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+
   await drawImageInRect(
     context,
-    slot.imageDataUrl,
+    logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
     getTemplateImageSlotRect(paneId, slot, layout, group),
     slot.label,
   )
@@ -503,6 +511,24 @@ async function drawTemplateArtwork(
   for (const slot of templateState.artworkSlots) {
     await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
   }
+}
+
+async function drawTemplateSteamBanner(
+  context: CanvasRenderingContext2D,
+  caseInsert: ProjectJewelCaseState,
+  paneId: CaseInsertTemplatePaneId,
+  layout: CaseInsertPreviewLayout,
+) {
+  if (paneId !== 'cover') {
+    return
+  }
+
+  await drawCaseInsertSteamBanner(
+    context,
+    getTemplateState(caseInsert, paneId).steamBanner,
+    { kind: 'cover' },
+    layout,
+  )
 }
 
 async function drawTemplateSlotGroup(
@@ -622,6 +648,12 @@ async function drawSpineSide(
     state.background.imageDataUrl,
     state.background.label,
   )
+  await drawCaseInsertSteamBanner(
+    context,
+    state.steamBanner,
+    { kind: 'spine', side },
+    layout,
+  )
   const artworkSlots = state.additionalArtworkEnabled ? state.artworkSlots : []
 
   for (const [slot, role] of [
@@ -695,8 +727,7 @@ async function drawSpineSide(
   }
 
   for (const [slot, role] of [
-    [state.steamBackupBranding, 'branding'],
-    [state.logo, 'logo'],
+    ...state.logoSlots.map((slot) => [slot, 'logo'] as const),
     ...(['rating', 'media', 'platform', 'technical'] as const).flatMap(
       (kind) => state.markSlots
         .filter((slot) =>
@@ -713,39 +744,19 @@ async function drawSpineSide(
 
     if (!slotLayout) continue
 
+    const logoRenderInfo = role === 'logo'
+      ? getCaseInsertLogoSlotRenderInfo(slot)
+      : null
+    const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+
     await drawWithTransformedBox(context, slotLayout, async () => {
-      if (slot.imageDataUrl) {
+      if (imageDataUrl) {
         await drawContainImageInLocalBox(
           context,
-          slot.imageDataUrl,
+          imageDataUrl,
           slotLayout.width,
           slotLayout.height,
           slot.label,
-        )
-        return
-      }
-
-      if (role === 'branding') {
-        drawWrappedTextBox(
-          context,
-          {
-            x: -slotLayout.width / 2,
-            y: -slotLayout.height / 2,
-            width: slotLayout.width,
-            height: slotLayout.height,
-          },
-          'Steam Backup',
-          {
-            align: 'center',
-            fontSizePx: Math.max(8, slotLayout.height * 0.38),
-            lineHeightPx: Math.max(9, slotLayout.height * 0.44),
-            weight: 800,
-            color: '#f8fafc',
-            background: 'rgba(15, 23, 42, 0.72)',
-            border: 'rgba(255, 255, 255, 0.28)',
-            uppercase: true,
-            verticalAlign: 'center',
-          },
         )
       }
     })
@@ -812,6 +823,13 @@ export async function exportCaseInsertPngBytes(params: {
       ),
     'case-screenshot-artwork': () =>
       drawTemplateArtwork(
+        context,
+        params.caseInsert,
+        params.activeTemplatePane,
+        layout,
+      ),
+    'case-steam-banner': () =>
+      drawTemplateSteamBanner(
         context,
         params.caseInsert,
         params.activeTemplatePane,

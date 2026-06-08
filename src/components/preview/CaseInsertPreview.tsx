@@ -29,6 +29,7 @@ import {
   CaseInsertTemplateMarkLayer,
   CaseInsertTemplateTextLayer,
 } from './CaseInsertTemplatePreviewLayers'
+import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 import { CaseInsertSpinePreviewLayer } from './CaseInsertSpinePreviewLayer'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
@@ -140,6 +141,13 @@ export function CaseInsertPreview({
         pointerHandlers={pointerHandlers.template}
       />
     ),
+    'case-steam-banner': activeTemplatePane === 'cover' ? (
+      <CaseInsertSteamBannerPreviewLayer
+        banner={activeTemplateState.steamBanner}
+        layout={layout}
+        target={{ kind: 'cover' }}
+      />
+    ) : <EmptyCaseLayer />,
     'case-artwork': <EmptyCaseLayer />,
     'case-title-artwork': <EmptyCaseLayer />,
     'case-logo-assets': (

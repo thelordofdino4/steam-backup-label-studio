@@ -9,6 +9,10 @@ import {
   getCaseInsertMarkLayerKind,
 } from '../caseInsert/brandingSlotSources.ts'
 import {
+  addCaseInsertAdditionalLogoSlot,
+  getCaseInsertAdditionalLogoSlotsForKey,
+} from '../caseInsert/brandingLogoSlots.ts'
+import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
   addCaseInsertTemplateImageSlot,
   addJewelCaseSpineImageSlot,
@@ -89,6 +93,11 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.templateType, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
   assert.equal(cover.background.enabled, true)
   assert.equal(tray.background.enabled, true)
+  assert.equal(cover.steamBanner.enabled, true)
+  assert.equal(cover.steamBanner.colors.gradientStart, '#2a475f')
+  assert.equal(cover.steamBanner.colors.gradientEnd, '#1a2838')
+  assert.equal(cover.steamBanner.colors.accent, '#2aabe2')
+  assert.equal(tray.steamBanner.enabled, false)
   assert.equal(cover.additionalArtworkEnabled, false)
   assert.equal(tray.additionalArtworkEnabled, false)
   assert.deepEqual(cover.artworkSlots, [])
@@ -105,13 +114,18 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.spine.right.title.layout.rotation, 90)
   assert.equal(project.caseInsert.spine.left.background.enabled, true)
   assert.equal(project.caseInsert.spine.right.background.enabled, true)
+  assert.equal(project.caseInsert.spine.left.steamBanner.enabled, true)
+  assert.equal(project.caseInsert.spine.right.steamBanner.enabled, true)
+  assert.equal(project.caseInsert.spine.left.steamBanner.lockupLayout.rotation, 90)
+  assert.equal(project.caseInsert.spine.right.steamBanner.lockupLayout.rotation, 90)
   assert.equal(project.caseInsert.spine.left.additionalArtworkEnabled, false)
   assert.equal(project.caseInsert.spine.right.additionalArtworkEnabled, false)
   assert.deepEqual(project.caseInsert.spine.left.artworkSlots, [])
   assert.deepEqual(project.caseInsert.spine.right.artworkSlots, [])
+  assert.deepEqual(project.caseInsert.spine.left.logoSlots, [])
+  assert.deepEqual(project.caseInsert.spine.right.logoSlots, [])
   assert.deepEqual(project.caseInsert.spine.left.markSlots, [])
   assert.deepEqual(project.caseInsert.spine.right.markSlots, [])
-  assert.equal(project.caseInsert.spine.left.steamBackupBranding.enabled, false)
   assert.deepEqual(project.caseInsert.export.surfaces, ['front', 'back'])
   assert.deepEqual(project.caseInsert.export.guideIds, [])
   assert.deepEqual(resolveSavedProjectRoute(project), {
@@ -299,6 +313,8 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
   assert.equal(restored.projectMetadata.steamAppId, '620')
   assert.equal(restored.template.selectedCaseInsertTemplateId, 'jewelCase')
   assert.equal(cover.background.enabled, true)
+  assert.equal(cover.steamBanner.enabled, true)
+  assert.equal(tray.steamBanner.enabled, false)
   assert.equal(artwork?.id, 'tray-artwork-1')
   assert.equal(artwork?.label, 'Artwork 1')
   assert.equal(artwork?.imageDataUrl, 'data:image/png;base64,shot')
@@ -313,6 +329,7 @@ test('restores sparse legacy jewel case projects to safe defaults', () => {
   assert.equal(tray.textBlocks[2]?.value, 'Windows 7')
   assert.equal(tray.textBlocks[3]?.value, 'Valve terms apply.')
   assert.equal(restored.caseInsert.spine.left.title.enabled, true)
+  assert.equal(restored.caseInsert.spine.left.steamBanner.enabled, true)
   assert.equal(restored.caseInsert.spine.left.title.value, 'SPARSE')
   assert.equal(restored.caseInsert.spine.left.title.layout.rotation, 90)
   assert.equal(restored.caseInsert.spine.left.markSlots[0]?.id, 'legacy-left-spine-platform')
@@ -636,6 +653,168 @@ test('case insert source provenance survives save/load for tray slots', () => {
   assert.equal(tray.artworkSlots[0]?.imageSource?.sourceId, '620-shot-1')
   assert.equal(tray.artworkSlots[0]?.imageSource?.sourceLabel, 'Screenshot 1')
   assert.deepEqual(tray.artworkSlots[0]?.imageSize, { width: 1280, height: 720 })
+})
+
+test('case insert branding state survives save/load for cover, tray, and spines', () => {
+  const createMarkSlot = (
+    id: string,
+    label: string,
+    sourceId: string,
+  ) => ({
+    ...createDefaultCaseInsertImageSlot(id, label, { enabled: true }),
+    imageDataUrl: `data:image/png;base64,${id}`,
+    imageSize: { width: 256, height: 128 },
+    imageSource: createProjectImageAssetProvenance({
+      source: 'placeholder',
+      sourceId,
+      sourceLabel: label,
+    }),
+  })
+
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => {
+    const nextCover = addCaseInsertAdditionalLogoSlot(
+      cover,
+      'cover',
+      'developer',
+    )
+
+    return {
+      ...nextCover,
+      steamBanner: {
+        ...nextCover.steamBanner,
+        colors: {
+          ...nextCover.steamBanner.colors,
+          gradientStart: '#123456',
+        },
+      },
+      markSlots: [
+        ...nextCover.markSlots,
+        createMarkSlot('cover-rating', 'ESRB M', 'case-rating:ESRB:M'),
+      ],
+    }
+  })
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) => {
+    const nextTray = addCaseInsertAdditionalLogoSlot(
+      tray,
+      'tray',
+      'publisher',
+    )
+
+    return {
+      ...nextTray,
+      markSlots: [
+        ...nextTray.markSlots,
+        createMarkSlot('tray-media', 'DVD', 'case-media:dvd:light'),
+      ],
+    }
+  })
+  state = updateProjectJewelCaseSpineSide(state, 'left', (spineSide) => {
+    const nextSpine = addCaseInsertAdditionalLogoSlot(
+      spineSide,
+      'spine',
+      'developer',
+      'left-spine',
+    )
+
+    return {
+      ...nextSpine,
+      steamBanner: {
+        ...nextSpine.steamBanner,
+        lockupLayout: {
+          ...nextSpine.steamBanner.lockupLayout,
+          y: 12,
+        },
+      },
+      markSlots: [
+        ...nextSpine.markSlots,
+        createMarkSlot(
+          'left-platform',
+          'Windows',
+          'case-platform:windows:windows11',
+        ),
+      ],
+    }
+  })
+  state = updateProjectJewelCaseSpineSide(state, 'right', (spineSide) => {
+    const nextSpine = addCaseInsertAdditionalLogoSlot(
+      spineSide,
+      'spine',
+      'publisher',
+      'right-spine',
+    )
+
+    return {
+      ...nextSpine,
+      markSlots: [
+        ...nextSpine.markSlots,
+        createMarkSlot(
+          'right-technical',
+          'Audio',
+          'case-technical:audio:primary',
+        ),
+      ],
+    }
+  })
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    selectedSteamGame: steamGame,
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+
+  assert.equal(
+    getCaseInsertAdditionalLogoSlotsForKey(
+      restored.templates.cover,
+      'developer',
+    ).length,
+    1,
+  )
+  assert.equal(
+    getCaseInsertAdditionalLogoSlotsForKey(
+      restored.templates.tray,
+      'publisher',
+    ).length,
+    1,
+  )
+  assert.equal(
+    getCaseInsertAdditionalLogoSlotsForKey(
+      restored.spine.left,
+      'developer',
+    ).length,
+    1,
+  )
+  assert.equal(
+    getCaseInsertAdditionalLogoSlotsForKey(
+      restored.spine.right,
+      'publisher',
+    ).length,
+    1,
+  )
+  assert.equal(restored.templates.cover.steamBanner.colors.gradientStart, '#123456')
+  assert.equal(restored.spine.left.steamBanner.lockupLayout.y, 12)
+  assert.equal(
+    restored.templates.cover.markSlots[0]?.imageSource?.sourceId,
+    'case-rating:ESRB:M',
+  )
+  assert.equal(
+    restored.templates.tray.markSlots[0]?.imageSource?.sourceId,
+    'case-media:dvd:light',
+  )
+  assert.equal(
+    restored.spine.left.markSlots[0]?.imageSource?.sourceId,
+    'case-platform:windows:windows11',
+  )
+  assert.equal(
+    restored.spine.right.markSlots[0]?.imageSource?.sourceId,
+    'case-technical:audio:primary',
+  )
+  assert.deepEqual(restored.spine.right.markSlots[0]?.imageSize, {
+    width: 256,
+    height: 128,
+  })
 })
 
 test('case insert additional artwork global visibility preserves slot state', () => {
@@ -994,7 +1173,7 @@ test('spine mark slots can use shared rating media platform and technical source
     'case-rating:ESRB:M',
     'case-media:dataDisc:light',
     'case-platform:windows:windows11',
-    'case-technical:audio',
+    'case-technical:audio:primary',
   ]
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
@@ -1153,7 +1332,7 @@ test('case branding source catalog exposes shared mark and real logo sources', (
   assert.ok(platform?.items.some((item) =>
     item.sourceId === 'case-platform:windows:windows11'))
   assert.ok(technical?.items.some((item) =>
-    item.sourceId === 'case-technical:audio'))
+    item.sourceId === 'case-technical:audio:primary'))
 
   assert.equal(getCaseInsertMarkLayerKind('case-rating:ESRB:M'), 'rating')
   assert.equal(getCaseInsertMarkLayerKind('case-media:dataDisc:light'), 'media')

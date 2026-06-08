@@ -159,6 +159,6 @@ test('preflight warns about enabled visual elements that will be missing or gene
     'Custom PC operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom Audio technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
+    'Custom audio technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
   ))
 })

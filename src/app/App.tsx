@@ -51,6 +51,7 @@ import { useDiscTemplateState } from '../hooks/useDiscTemplateState'
 import { useDiscTextState } from '../hooks/useDiscTextState'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
 import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
+import { useCaseInsertBrandingMarkSync } from '../hooks/useCaseInsertBrandingMarkSync'
 import { useCaseInsertTemplateEditor } from '../hooks/useCaseInsertTemplateEditor'
 import { useJewelCaseSpineEditor } from '../hooks/useJewelCaseSpineEditor'
 import { useMediaMarkState } from '../hooks/useMediaMarkState'
@@ -366,6 +367,8 @@ function App() {
     handleTechnicalMarkLabelChange,
     handleClearTechnicalMarkImage,
     handleResetTechnicalMarkLayout,
+    handleAddTechnicalMarkAsset,
+    handleRemoveTechnicalMarkAsset,
   } = useTechnicalMarks({
     selectedDiscTemplate,
     announceStatus,
@@ -443,6 +446,47 @@ function App() {
     activeWorkspace,
     discPreviewRef,
     setDiscPreviewSize,
+  })
+
+  const caseInsertBrandingSources = {
+    projectMetadata,
+    projectLogoAssets,
+    projectRatingBadge,
+    projectMediaMark,
+    projectPlatformMarks,
+    projectTechnicalMarks,
+  }
+  const caseInsertBrandingMarkSync = useCaseInsertBrandingMarkSync({
+    setProjectJewelCase,
+    selectedDiscTemplate,
+    brandingSources: caseInsertBrandingSources,
+    handleProjectMetadataFieldsChange,
+    handleRatingBadgeUpload,
+    handleRatingBadgeSourceChange,
+    handleRatingBadgeEnabledChange,
+    handleSupplementalUskRatingBadgeEnabledChange,
+    handleSupplementalUskRatingBadgeValueChange,
+    handleClearRatingBadgeImage,
+    handleMediaMarkUpload,
+    handleMediaMarkValueChange,
+    handleMediaMarkSourceChange,
+    handleMediaMarkThemeChange,
+    handleMediaMarkLayoutChange,
+    handleClearMediaMarkImage,
+    handlePlatformMarkToggle,
+    handlePlatformMarkUpload,
+    handlePlatformMarkSourceChange,
+    handlePlatformMarkThemeChange,
+    handlePlatformMarkLayoutChange,
+    handleClearPlatformMarkImage,
+    handleTechnicalMarkToggle,
+    handleTechnicalMarkUpload,
+    handleTechnicalMarkSourceChange,
+    handleTechnicalMarkLayoutChange,
+    handleTechnicalMarkLabelChange,
+    handleClearTechnicalMarkImage,
+    handleAddTechnicalMarkAsset,
+    handleRemoveTechnicalMarkAsset,
   })
 
   const {
@@ -826,6 +870,7 @@ function App() {
       ...options,
       applyDiscVisualDefaults: false,
     })
+    caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
   }
 
   function handleApplyLegalCandidate(candidate: LegalTextCandidate) {
@@ -933,6 +978,7 @@ function App() {
     resetCaseInsertProjectState()
     setActiveWorkspace('caseInsert')
     setHomeStatusMessage(null)
+    caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
     announceStatus('Started a new blank case insert project.')
   }
 
@@ -1325,6 +1371,9 @@ function App() {
         setActiveCaseInsertTemplatePane('cover')
         setActiveWorkspace('caseInsert')
         setHomeStatusMessage(null)
+        caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync({
+          projectMetadata: restoredCaseProject.projectMetadata,
+        })
         announceStatus(
           'Loaded case insert project template, metadata, and preview geometry.',
         )
@@ -1578,15 +1627,23 @@ function App() {
   }
   const caseInsertGamePanelProps: GamePanelProps = {
     ...gamePanelProps,
-    handleSteamImport: (appId) =>
-      handleSteamImport(appId, {
+    handleProjectMetadataChange:
+      caseInsertBrandingMarkSync.handleCaseInsertProjectMetadataChange,
+    handleProjectMetadataFieldsChange:
+      caseInsertBrandingMarkSync.handleCaseInsertProjectMetadataFieldsChange,
+    handleSteamImport: async (appId) => {
+      await handleSteamImport(appId, {
         applyDiscVisualDefaults: false,
         applyCaseInsertBackCoverDefaults: true,
-      }),
-    handleFindMetadataCandidates: () =>
-      handleFindAndApplySteamMetadataCandidates({
+      })
+      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
+    },
+    handleFindMetadataCandidates: async () => {
+      await handleFindAndApplySteamMetadataCandidates({
         applyDiscVisualDefaults: false,
-      }),
+      })
+      caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync()
+    },
     handleApplyRatingCandidate: handleApplyCaseInsertRatingCandidate,
     handleApplyLegalCandidate: handleApplyCaseInsertLegalCandidate,
   }
@@ -1631,39 +1688,9 @@ function App() {
           projectPlatformMarks,
           projectTechnicalMarks,
         }}
-        brandingControls={{
-          projectMetadata,
-          projectRatingBadge,
-          projectMediaMark,
-          projectPlatformMarks,
-          projectTechnicalMarks,
-          handleProjectMetadataChange,
-          handleProjectMetadataFieldsChange,
-          handleRatingBadgeUpload,
-          handleRatingBadgeSourceChange,
-          handleRatingBadgeEnabledChange,
-          handleSupplementalUskRatingBadgeEnabledChange,
-          handleSupplementalUskRatingBadgeValueChange,
-          handleClearRatingBadgeImage,
-          handleMediaMarkUpload,
-          handleMediaMarkValueChange,
-          handleMediaMarkSourceChange,
-          handleMediaMarkThemeChange,
-          handleMediaMarkLayoutChange,
-          handleClearMediaMarkImage,
-          handlePlatformMarkToggle,
-          handlePlatformMarkUpload,
-          handlePlatformMarkSourceChange,
-          handlePlatformMarkThemeChange,
-          handlePlatformMarkLayoutChange,
-          handleClearPlatformMarkImage,
-          handleTechnicalMarkToggle,
-          handleTechnicalMarkUpload,
-          handleTechnicalMarkSourceChange,
-          handleTechnicalMarkLayoutChange,
-          handleTechnicalMarkLabelChange,
-          handleClearTechnicalMarkImage,
-        }}
+        getBrandingControls={
+          caseInsertBrandingMarkSync.getCaseInsertBrandingControlsForTarget
+        }
         logoCandidateDiscovery={logoCandidateDiscovery}
         handleFindLogoCandidates={findLogoCandidates}
         gamePanelProps={caseInsertGamePanelProps}
@@ -1854,6 +1881,8 @@ function App() {
           handleTechnicalMarkLabelChange={handleTechnicalMarkLabelChange}
           handleClearTechnicalMarkImage={handleClearTechnicalMarkImage}
           handleResetTechnicalMarkLayout={handleResetTechnicalMarkLayout}
+          handleAddTechnicalMarkAsset={handleAddTechnicalMarkAsset}
+          handleRemoveTechnicalMarkAsset={handleRemoveTechnicalMarkAsset}
         />
 
 

@@ -142,8 +142,8 @@ The jewel case back should support:
 The jewel case spine should support:
 
 - Game title or title/logo behavior.
-- Optional Steam Backup/system branding.
-- Optional company or publisher mark.
+- Developer/publisher logo support and standard branding marks.
+- Additional logo slots where a spine layout has enough usable space.
 - Readable spine text orientation and safe sizing.
 
 The case editor should preserve template dimensions, avoid distorted image fitting, warn about low-resolution artwork and unreadable text, and prefer cropping or content reduction over shrinking everything until it becomes unusable.

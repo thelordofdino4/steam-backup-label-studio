@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampProjectPlatformMarksToSafeZone } from '../layout/discElementSafeZone'
 import {
   clearPlatformMarkImage,
@@ -38,6 +38,11 @@ export function usePlatformMarksState({
 }: UsePlatformMarksStateOptions) {
   const [projectPlatformMarks, setProjectPlatformMarks] =
     useState<ProjectPlatformMarks>(() => createDefaultProjectPlatformMarks())
+  const projectPlatformMarksRef = useRef(projectPlatformMarks)
+
+  useEffect(() => {
+    projectPlatformMarksRef.current = projectPlatformMarks
+  }, [projectPlatformMarks])
 
   function markCurrentProjectPlatformMarksManual(marks: ProjectPlatformMarks) {
     return markProjectPlatformMarksManual(marks, selectedSteamGame?.appId ?? null)
@@ -87,19 +92,20 @@ export function usePlatformMarksState({
 
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectPlatformMarks((currentMarks) => {
-        const nextMarks = applyImportedPlatformMark(
-          currentMarks,
+      const nextMarks = markCurrentProjectPlatformMarksManual(
+        applyImportedPlatformMark(
+          projectPlatformMarksRef.current,
           value,
           importedImage,
           selectedDiscTemplate,
-        )
+        ),
+      )
 
-        return markCurrentProjectPlatformMarksManual(nextMarks)
-      })
+      projectPlatformMarksRef.current = nextMarks
+      setProjectPlatformMarks(nextMarks)
 
       announceStatus(`Using ${file.name} as the platform mark.`)
+      return nextMarks
     } catch (error) {
       announceStatus(`Platform mark import failed: ${String(error)}`)
     }

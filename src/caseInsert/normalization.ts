@@ -29,6 +29,9 @@ import type {
 import {
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
+import {
+  normalizeCaseInsertSteamBanner,
+} from './steamBanner.ts'
 import type {
   JewelCaseGuideId,
   JewelCaseSurfaceId,
@@ -396,6 +399,11 @@ function normalizeCaseInsertSurfaceState(
     : defaults.additionalArtworkEnabled
 
   return {
+    steamBanner: normalizeCaseInsertSteamBanner(
+      record.steamBanner,
+      'cover',
+      { enabled: defaults.steamBanner.enabled },
+    ),
     background: normalizeCaseInsertImageSlot(record.background, defaults.background),
     titleArtwork: normalizeCaseInsertImageSlot(
       record.titleArtwork,
@@ -530,8 +538,16 @@ function normalizeJewelCaseSpineSideState(
   const inferredAdditionalArtworkEnabled = savedArtworkSlots
     ? artworkSlots.length > 0
     : defaults.additionalArtworkEnabled
+  const logoSlotsValue = record.logoSlots ??
+    record.logos ??
+    (record.logo ? [record.logo] : undefined)
 
   return {
+    steamBanner: normalizeCaseInsertSteamBanner(
+      record.steamBanner,
+      'spine',
+      { enabled: defaults.steamBanner.enabled },
+    ),
     background: normalizeCaseInsertImageSlot(record.background, defaults.background),
     titleArtwork: normalizeCaseInsertImageSlot(
       record.titleArtwork,
@@ -543,6 +559,12 @@ function normalizeJewelCaseSpineSideState(
       inferredAdditionalArtworkEnabled,
     ),
     artworkSlots,
+    logoSlots: normalizeCaseInsertImageSlotArray(
+      logoSlotsValue,
+      `${defaults.background.id.replace('-background', '')}-logo`,
+      'Logo',
+      defaults.logoSlots,
+    ),
     markSlots: normalizeCaseInsertImageSlotArray(
       record.markSlots ?? record.marks,
       `${defaults.background.id.replace('-background', '')}-mark`,
@@ -550,11 +572,6 @@ function normalizeJewelCaseSpineSideState(
       defaults.markSlots,
     ),
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
-    steamBackupBranding: normalizeCaseInsertImageSlot(
-      record.steamBackupBranding ?? record.steamBackupLogo,
-      defaults.steamBackupBranding,
-    ),
-    logo: normalizeCaseInsertImageSlot(record.logo, defaults.logo),
   }
 }
 

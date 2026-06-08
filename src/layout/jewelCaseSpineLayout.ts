@@ -20,7 +20,6 @@ import {
 } from './jewelCaseLayout.ts'
 
 export type JewelCaseSpineOverlayRole =
-  | 'branding'
   | 'titleArtwork'
   | 'artwork'
   | 'logo'
@@ -49,12 +48,6 @@ const SPINE_TITLE_FONT_TARGET_PX = 32
 const SPINE_TITLE_FONT_FILL_RATIO = 0.68
 
 const spineOverlayConfig = {
-  branding: {
-    widthBasis: 'length',
-    widthRatio: 0.24,
-    heightRatio: 0.74,
-    defaultCenter: { x: 50, y: 14 },
-  },
   titleArtwork: {
     widthBasis: 'length',
     widthRatio: 0.42,
@@ -113,7 +106,7 @@ function getDefaultSpineOverlayRotation(
   side: JewelCaseSpineSideId,
   role: JewelCaseSpineOverlayRole,
 ) {
-  return role === 'branding' || role === 'titleArtwork'
+  return role === 'titleArtwork'
     ? getDefaultSpineRotation(side)
     : 0
 }
@@ -327,9 +320,8 @@ export function getJewelCaseSpineImageSlotPreviewLayout(
 ): JewelCaseSpineBoxLayout | null {
   const safeBounds = getSpineSafeBounds(side, layout)
   const config = spineOverlayConfig[role]
-  const canRenderFallback = role === 'branding'
 
-  if (!safeBounds || !slot.enabled || (!canRenderFallback && !slot.imageDataUrl)) {
+  if (!safeBounds || !slot.enabled || !slot.imageDataUrl) {
     return null
   }
 

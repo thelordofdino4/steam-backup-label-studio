@@ -10,12 +10,24 @@ import {
   CASE_INSERT_MARK_BRANDING_SECTIONS,
 } from '../../caseInsert/brandingPanelSections'
 import {
-  isCaseInsertMarkKindEnabled,
-  isCaseInsertMarkSlotVisible,
-} from '../../caseInsert/brandingVisibility'
+  getEnabledCaseInsertMarkSlotForKind,
+  getEnabledCaseInsertMarkSlotForSourcePrefix,
+} from '../../caseInsert/brandingMarkPlacement'
+import {
+  getCaseInsertSpineMarkPlacementFields,
+} from '../../caseInsert/brandingMarkPlacementFields'
+import {
+  getCaseInsertAdditionalLogoKey,
+  getCaseInsertAdditionalLogoSlotsForKey,
+  getCaseInsertPrimaryLogoSlot,
+  getCaseInsertUnassignedAdditionalLogoSlots,
+} from '../../caseInsert/brandingLogoSlots'
 import {
   createJewelCasePreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
+import {
+  RATING_BADGE_LAYOUT_PRESETS,
+} from '../../layout/presets'
 import type {
   CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
@@ -25,20 +37,27 @@ import {
   type JewelCaseSpineOverlayRole,
 } from '../../layout/jewelCaseSpineLayout'
 import type {
-  CaseInsertBrandingSourceCatalog,
   CaseInsertMarkLayerKind,
 } from '../../caseInsert/brandingSlotSources'
+import type {
+  CaseInsertBrandingMarkTarget,
+  CaseInsertBrandingMarkTargetState,
+} from '../../caseInsert/brandingMarkSlots'
 import type { JewelCaseSpineSide } from '../../caseInsert/types'
 import type { JewelCaseSpineEditorActions } from '../../hooks/useJewelCaseSpineEditor'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
 import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type {
+  PlatformMarkValue,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
+  ProjectPlatformMarkAsset,
+  ProjectTechnicalMarkAsset,
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
+  TechnicalMarkValue,
 } from '../../project/projectTypes'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
@@ -50,13 +69,13 @@ import {
   CaseInsertImageSlotPlacementControls,
   type CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
+import { CaseInsertMarkPlacementControls } from './CaseInsertMarkPlacementControls'
 import { CaseInsertImageSlotFrameControls } from './CaseInsertImageSlotFrameControls'
 import { CaseInsertImageSlotStatusCard } from './CaseInsertImageSlotStatusCard'
 import {
   CaseInsertTitleArtworkControls,
   type CaseInsertTitleArtworkPlacementField,
 } from './CaseInsertTitleArtworkControls'
-import { CaseInsertBrandingSourceControls } from './CaseInsertBrandingSourceControls'
 import {
   CaseInsertMediaMarkSetupControls,
   CaseInsertPlatformMarkSetupControls,
@@ -66,7 +85,8 @@ import {
 import type {
   CaseInsertBrandingSetupControlsProps,
 } from './CaseInsertBrandingSetupControls'
-import { CaseInsertLogoCandidateControls } from './CaseInsertLogoCandidateControls'
+import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
+import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
@@ -75,8 +95,10 @@ export type CaseInsertSpineControlsProps = {
   spine: ProjectJewelCaseSpineState
   actions: JewelCaseSpineEditorActions
   imageSources: CaseInsertImageSourceCatalog
-  brandingSources: CaseInsertBrandingSourceCatalog
-  brandingControls: CaseInsertBrandingSetupControlsProps
+  getBrandingControls: (
+    target: CaseInsertBrandingMarkTarget,
+    targetState: CaseInsertBrandingMarkTargetState,
+  ) => CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
 }
@@ -165,10 +187,6 @@ function getSpinePrimaryImageSlotRole(
       return 'background'
     case 'titleArtwork':
       return 'titleArtwork'
-    case 'steamBackupBranding':
-      return 'branding'
-    case 'logo':
-      return 'logo'
   }
 }
 
@@ -357,7 +375,6 @@ function SpineImageSlotControls({
   title,
   enableLabel,
   uploadId,
-  beforeSourceControls,
   isBackground = false,
   imageSources,
   actions,
@@ -368,7 +385,6 @@ function SpineImageSlotControls({
   title: string
   enableLabel: string
   uploadId: string
-  beforeSourceControls?: ReactNode
   isBackground?: boolean
   imageSources: CaseInsertImageSourceCatalog
   actions: JewelCaseSpineEditorActions
@@ -434,7 +450,6 @@ function SpineImageSlotControls({
 
       {shouldShowSources ? (
         <>
-          {beforeSourceControls}
           <CaseInsertImageSourceControls
             {...imageSources}
             uploadId={uploadId}
@@ -507,7 +522,7 @@ function SpineGroupedImageSlotControls({
   )
   const role: JewelCaseSpineOverlayRole = slotKey === 'artworkSlots'
     ? 'artwork'
-    : 'mark'
+    : slotKey === 'logoSlots' ? 'logo' : 'mark'
   const renderFineTuneControls = (
     source: CaseInsertImageSourceControlSource,
     sectionLabel: string,
@@ -535,11 +550,16 @@ function SpineGroupedImageSlotControls({
       source={source}
     />
   )
-  const slotTitle = slot.label.trim() || 'Spine artwork'
+  const slotTitle = slot.label.trim() ||
+    (slotKey === 'logoSlots' ? 'Spine logo' : 'Spine artwork')
   const slotImageStatus = getImageStatus(slot)
+  const emptyImageSummary =
+    slotKey === 'logoSlots' && getCaseInsertAdditionalLogoKey(slot)
+      ? 'bundled generic'
+      : 'no image'
   const summary = [
     slot.enabled ? 'shown' : 'hidden',
-    slot.imageDataUrl ? slotImageStatus.summary : 'no image',
+    slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
     slotKey === 'artworkSlots'
       ? slot.frame.enabled ? `${slot.frame.shape} frame` : 'no frame'
       : null,
@@ -611,9 +631,9 @@ function SpineGroupedImageSlotControls({
             slotTitle,
             candidate,
           )}
-        allowSteamArtwork={slotKey === 'artworkSlots'}
-        allowWebArtwork={slotKey === 'artworkSlots'}
-        allowLocalSteamScreenshots={slotKey === 'artworkSlots'}
+        allowSteamArtwork={slotKey !== 'markSlots'}
+        allowWebArtwork={slotKey !== 'markSlots'}
+        allowLocalSteamScreenshots={slotKey !== 'markSlots'}
         renderFineTuneControls={renderFineTuneControls}
       />
       {slotKey === 'artworkSlots' ? (
@@ -746,10 +766,21 @@ function SpineMarkSetupControls({
   markKind,
   brandingControls,
   idPrefix,
+  children,
+  renderSupplementalUskLayoutControls,
+  renderLayoutControls,
 }: {
   markKind: CaseInsertMarkLayerKind
   brandingControls: CaseInsertBrandingSetupControlsProps
   idPrefix: string
+  children?: ReactNode
+  renderSupplementalUskLayoutControls?: () => ReactNode
+  renderLayoutControls?: (
+    value: PlatformMarkValue | TechnicalMarkValue,
+    label: string,
+    asset: ProjectPlatformMarkAsset | ProjectTechnicalMarkAsset,
+    assetId?: string | null,
+  ) => ReactNode
 }) {
   const setupProps = {
     ...brandingControls,
@@ -757,60 +788,98 @@ function SpineMarkSetupControls({
   }
 
   if (markKind === 'rating') {
-    return <CaseInsertRatingBadgeSetupControls {...setupProps} />
+    return (
+      <CaseInsertRatingBadgeSetupControls
+        {...setupProps}
+        renderSupplementalUskLayoutControls={renderSupplementalUskLayoutControls}
+      >
+        {children}
+      </CaseInsertRatingBadgeSetupControls>
+    )
   }
 
   if (markKind === 'media') {
-    return <CaseInsertMediaMarkSetupControls {...setupProps} />
+    return (
+      <CaseInsertMediaMarkSetupControls {...setupProps}>
+        {children}
+      </CaseInsertMediaMarkSetupControls>
+    )
   }
 
   if (markKind === 'platform') {
-    return <CaseInsertPlatformMarkSetupControls {...setupProps} />
+    return (
+      <CaseInsertPlatformMarkSetupControls
+        {...setupProps}
+        renderLayoutControls={
+          renderLayoutControls as (
+            value: PlatformMarkValue,
+            label: string,
+            asset: ProjectPlatformMarkAsset,
+          ) => ReactNode
+        }
+      />
+    )
   }
 
-  return <CaseInsertTechnicalMarkSetupControls {...setupProps} />
+  return (
+    <CaseInsertTechnicalMarkSetupControls
+      {...setupProps}
+      renderLayoutControls={
+        renderLayoutControls as (
+          value: TechnicalMarkValue,
+          label: string,
+          asset: ProjectTechnicalMarkAsset,
+          assetId?: string | null,
+        ) => ReactNode
+      }
+    />
+  )
 }
 
-function SpineMarkSlotList({
+function SpineMarkPlacementControls({
   side,
-  emptyHint,
-  addLabel,
-  slots,
-  imageSources,
+  slot,
+  idPrefix,
+  layoutPresets,
+  presetLabel,
+  resetLabel,
   actions,
-  onAddSlot,
 }: {
   side: JewelCaseSpineSide
-  emptyHint: string
-  addLabel: string
-  slots: ProjectCaseInsertImageSlot[]
-  imageSources: CaseInsertImageSourceCatalog
+  slot: ProjectCaseInsertImageSlot | null
+  idPrefix: string
+  layoutPresets?: typeof RATING_BADGE_LAYOUT_PRESETS
+  presetLabel?: string
+  resetLabel: string
   actions: JewelCaseSpineEditorActions
-  onAddSlot: () => void
 }) {
   return (
-    <>
-      {slots.length === 0 ? <p className="hint">{emptyHint}</p> : null}
-      {slots.map((slot, index) => (
-        <SpineGroupedImageSlotControls
-          key={slot.id}
-          side={side}
-          slotKey="markSlots"
-          slot={slot}
-          uploadId={`${side}-spine-mark-${slot.id}-${index + 1}-upload`}
-          imageSources={imageSources}
-          actions={actions}
-        />
-      ))}
-      <button
-        className="secondary-button icon-text-button spacing-top"
-        type="button"
-        onClick={onAddSlot}
-      >
-        <PlusIcon />
-        <span>{addLabel}</span>
-      </button>
-    </>
+    <CaseInsertMarkPlacementControls
+      fields={slot ? getCaseInsertSpineMarkPlacementFields(side, slot) : []}
+      idPrefix={idPrefix}
+      layoutPresets={layoutPresets}
+      presetLabel={presetLabel}
+      slot={slot}
+      resetLabel={resetLabel}
+      onLayoutChange={(field, value) => {
+        if (!slot) return
+        actions.handleSpineGroupedImageSlotLayoutChange(
+          side,
+          'markSlots',
+          slot.id,
+          field,
+          value,
+        )
+      }}
+      onResetLayout={() => {
+        if (!slot) return
+        actions.handleResetSpineGroupedImageSlotLayout(
+          side,
+          'markSlots',
+          slot.id,
+        )
+      }}
+    />
   )
 }
 
@@ -903,8 +972,7 @@ export function CaseInsertSpineBrandingControls({
   spine,
   actions,
   imageSources,
-  brandingSources,
-  brandingControls,
+  getBrandingControls,
   logoCandidateDiscovery,
   handleFindLogoCandidates,
 }: CaseInsertSpineControlsProps) {
@@ -912,61 +980,247 @@ export function CaseInsertSpineBrandingControls({
     <>
       {SPINE_SIDES.map(({ side, label }) => {
         const state = getSpineSideState(spine, side)
+        const developerLogoSlot = getCaseInsertPrimaryLogoSlot(
+          state,
+          'developer',
+        )
+        const publisherLogoSlot = getCaseInsertPrimaryLogoSlot(
+          state,
+          'publisher',
+        )
+        const additionalDeveloperLogoSlots =
+          getCaseInsertAdditionalLogoSlotsForKey(state, 'developer')
+        const additionalPublisherLogoSlots =
+          getCaseInsertAdditionalLogoSlotsForKey(state, 'publisher')
+        const unassignedAdditionalLogoSlots =
+          getCaseInsertUnassignedAdditionalLogoSlots(state)
+        const brandingControls = getBrandingControls(
+          { type: 'spine', side },
+          state,
+        )
 
         return (
           <SpineSideSection key={side} label={label}>
-            <SpineImageSlotControls
-              side={side}
-              slotKey="steamBackupBranding"
-              slot={state.steamBackupBranding}
-              title={`${label} Steam Backup branding`}
-              enableLabel="Show Steam Backup branding"
-              uploadId={`${side}-spine-steam-backup-branding-upload`}
-              imageSources={imageSources}
-              actions={actions}
-            />
-            <SpineImageSlotControls
-              side={side}
-              slotKey="logo"
-              slot={state.logo}
-              title={`${label} company mark`}
-              enableLabel="Show company mark"
-              uploadId={`${side}-spine-logo-upload`}
-              beforeSourceControls={
-                <>
-                  <CaseInsertLogoCandidateControls
-                    logoCandidateDiscovery={logoCandidateDiscovery}
-                    handleFindLogoCandidates={handleFindLogoCandidates}
-                    onUseLogoCandidate={(logoKey, candidate) =>
-                      actions.handleUseSpineLogoCandidate(
-                        side,
-                        logoKey,
-                        candidate,
-                      )}
-                  />
-                  <CaseInsertBrandingSourceControls
-                    brandingSources={brandingSources}
-                    allowedSlotKeys={['logoSlots']}
-                    onUseSource={(source) =>
-                      actions.handleUseSpineBrandingSource(side, source)}
-                  />
-                </>
-              }
-              imageSources={imageSources}
-              actions={actions}
-            />
-            {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {
-              const isFeatureEnabled = isCaseInsertMarkKindEnabled(
-                section.markKind,
-                brandingSources,
-              )
-              const visibleMarkSlots = state.markSlots.filter((slot) =>
-                isCaseInsertMarkSlotVisible(
-                  slot,
-                  section.markKind,
-                  brandingSources,
-                ))
+            <SpineBrandingFeatureSection title="Steam banner">
+              <CaseInsertSteamBannerControls
+                banner={state.steamBanner}
+                idPrefix={`${side}-spine-steam-banner`}
+                targetKind="spine"
+                onEnabledChange={(enabled) =>
+                  actions.handleSpineSteamBannerEnabledChange(side, enabled)}
+                onLockupUpload={(event) =>
+                  actions.handleSpineSteamBannerLockupUpload(side, event)}
+                onClearLockup={() =>
+                  actions.handleClearSpineSteamBannerLockup(side)}
+                onLayoutChange={(field, value) =>
+                  actions.handleSpineSteamBannerLockupLayoutChange(
+                    side,
+                    field,
+                    value,
+                  )}
+                onResetLayout={() =>
+                  actions.handleResetSpineSteamBannerLockupLayout(side)}
+                onUseTextFallbackChange={(useTextFallback) =>
+                  actions.handleSpineSteamBannerUseTextFallbackChange(
+                    side,
+                    useTextFallback,
+                  )}
+                onFallbackTextChange={(fallbackText) =>
+                  actions.handleSpineSteamBannerFallbackTextChange(
+                    side,
+                    fallbackText,
+                  )}
+                onColorChange={(field, value) =>
+                  actions.handleSpineSteamBannerColorChange(
+                    side,
+                    field,
+                    value,
+                  )}
+                onResetColors={() =>
+                  actions.handleResetSpineSteamBannerColors(side)}
+              />
+            </SpineBrandingFeatureSection>
+            <SpineBrandingFeatureSection title="Developer / publisher logos">
+              <CaseInsertLogoSlotControls
+                paneId="spine"
+                logoKey="developer"
+                slot={developerLogoSlot}
+                uploadId={`${side}-spine-developer-logo-upload`}
+                fields={developerLogoSlot
+                  ? getSpineImageSlotPlacementFields(
+                      side,
+                      developerLogoSlot,
+                      'logo',
+                    )
+                  : SPINE_OVERLAY_PLACEMENT_FIELDS}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onUseLogoCandidate={(logoKey, candidate) =>
+                  actions.handleUseSpineLogoCandidate(
+                    side,
+                    logoKey,
+                    candidate,
+                  )}
+                onEnabledChange={(enabled) =>
+                  actions.handleSpinePrimaryLogoSlotEnabledChange(
+                    side,
+                    'developer',
+                    enabled,
+                  )}
+                onUpload={(event) =>
+                  actions.handleSpinePrimaryLogoSlotUpload(
+                    side,
+                    'developer',
+                    event,
+                  )}
+                onLayoutChange={(field, value) =>
+                  actions.handleSpinePrimaryLogoSlotLayoutChange(
+                    side,
+                    'developer',
+                    field,
+                    value,
+                  )}
+                onResetLayout={() =>
+                  actions.handleResetSpinePrimaryLogoSlotLayout(
+                    side,
+                    'developer',
+                  )}
+                onClearImage={() =>
+                  actions.handleClearSpinePrimaryLogoSlot(side, 'developer')}
+              >
+                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+                  <summary className="panel-summary">Additional developer logos</summary>
+                  <div className="panel-content">
+                    {additionalDeveloperLogoSlots.length === 0 ? (
+                      <p className="hint">No additional developer logos.</p>
+                    ) : null}
+                    {additionalDeveloperLogoSlots.map((slot, index) => (
+                      <SpineGroupedImageSlotControls
+                        key={slot.id}
+                        side={side}
+                        slotKey="logoSlots"
+                        slot={slot}
+                        uploadId={`${side}-spine-developer-logo-${slot.id}-${index + 1}-upload`}
+                        imageSources={imageSources}
+                        actions={actions}
+                      />
+                    ))}
+                    <button
+                      className="secondary-button icon-text-button spacing-top"
+                      type="button"
+                      onClick={() =>
+                        actions.handleAddSpineAdditionalLogoSlot(
+                          side,
+                          'developer',
+                        )}
+                    >
+                      <PlusIcon />
+                      <span>Add additional logo</span>
+                    </button>
+                  </div>
+                </details>
+              </CaseInsertLogoSlotControls>
 
+              <CaseInsertLogoSlotControls
+                paneId="spine"
+                logoKey="publisher"
+                slot={publisherLogoSlot}
+                uploadId={`${side}-spine-publisher-logo-upload`}
+                fields={publisherLogoSlot
+                  ? getSpineImageSlotPlacementFields(
+                      side,
+                      publisherLogoSlot,
+                      'logo',
+                    )
+                  : SPINE_OVERLAY_PLACEMENT_FIELDS}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onUseLogoCandidate={(logoKey, candidate) =>
+                  actions.handleUseSpineLogoCandidate(
+                    side,
+                    logoKey,
+                    candidate,
+                  )}
+                onEnabledChange={(enabled) =>
+                  actions.handleSpinePrimaryLogoSlotEnabledChange(
+                    side,
+                    'publisher',
+                    enabled,
+                  )}
+                onUpload={(event) =>
+                  actions.handleSpinePrimaryLogoSlotUpload(
+                    side,
+                    'publisher',
+                    event,
+                  )}
+                onLayoutChange={(field, value) =>
+                  actions.handleSpinePrimaryLogoSlotLayoutChange(
+                    side,
+                    'publisher',
+                    field,
+                    value,
+                  )}
+                onResetLayout={() =>
+                  actions.handleResetSpinePrimaryLogoSlotLayout(
+                    side,
+                    'publisher',
+                  )}
+                onClearImage={() =>
+                  actions.handleClearSpinePrimaryLogoSlot(side, 'publisher')}
+              >
+                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+                  <summary className="panel-summary">Additional publisher logos</summary>
+                  <div className="panel-content">
+                    {additionalPublisherLogoSlots.length === 0 ? (
+                      <p className="hint">No additional publisher logos.</p>
+                    ) : null}
+                    {additionalPublisherLogoSlots.map((slot, index) => (
+                      <SpineGroupedImageSlotControls
+                        key={slot.id}
+                        side={side}
+                        slotKey="logoSlots"
+                        slot={slot}
+                        uploadId={`${side}-spine-publisher-logo-${slot.id}-${index + 1}-upload`}
+                        imageSources={imageSources}
+                        actions={actions}
+                      />
+                    ))}
+                    <button
+                      className="secondary-button icon-text-button spacing-top"
+                      type="button"
+                      onClick={() =>
+                        actions.handleAddSpineAdditionalLogoSlot(
+                          side,
+                          'publisher',
+                        )}
+                    >
+                      <PlusIcon />
+                      <span>Add additional logo</span>
+                    </button>
+                  </div>
+                </details>
+              </CaseInsertLogoSlotControls>
+
+              {unassignedAdditionalLogoSlots.length > 0 ? (
+                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
+                  <summary className="panel-summary">Unassigned additional logos</summary>
+                  <div className="panel-content">
+                    {unassignedAdditionalLogoSlots.map((slot, index) => (
+                      <SpineGroupedImageSlotControls
+                        key={slot.id}
+                        side={side}
+                        slotKey="logoSlots"
+                        slot={slot}
+                        uploadId={`${side}-spine-logo-${slot.id}-${index + 1}-upload`}
+                        imageSources={imageSources}
+                        actions={actions}
+                      />
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+            </SpineBrandingFeatureSection>
+            {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {
               return (
                 <SpineBrandingFeatureSection
                   key={section.markKind}
@@ -976,31 +1230,85 @@ export function CaseInsertSpineBrandingControls({
                     markKind={section.markKind}
                     brandingControls={brandingControls}
                     idPrefix={`${side}-spine-${section.markKind}`}
-                  />
-                  {isFeatureEnabled ? (
-                    <>
-                      <CaseInsertBrandingSourceControls
-                        brandingSources={brandingSources}
-                        sectionIds={section.sourceSectionIds}
-                        showSectionTitles={false}
-                        onUseSource={(source) =>
-                          actions.handleUseSpineBrandingSource(side, source)}
-                      />
-                      <SpineMarkSlotList
+                    renderSupplementalUskLayoutControls={section.markKind === 'rating'
+                      ? () => (
+                          <SpineMarkPlacementControls
+                            side={side}
+                            slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                              state.markSlots,
+                              'rating',
+                              'case-rating:USK:',
+                            )}
+                            idPrefix={`${side}-spine-usk-rating-badge`}
+                            layoutPresets={RATING_BADGE_LAYOUT_PRESETS}
+                            presetLabel="USK layout preset"
+                            resetLabel="Reset USK badge layout"
+                            actions={actions}
+                          />
+                        )
+                      : undefined}
+                    renderLayoutControls={(value, markLabel, _asset, assetId) => {
+                      if (section.markKind === 'platform') {
+                        return (
+                          <SpineMarkPlacementControls
+                            side={side}
+                            slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                              state.markSlots,
+                              'platform',
+                              `case-platform:${value}:`,
+                            )}
+                            idPrefix={`${side}-spine-platform-mark-${value}`}
+                            resetLabel={`Reset ${markLabel} layout`}
+                            actions={actions}
+                          />
+                        )
+                      }
+
+                      if (section.markKind === 'technical') {
+                        return (
+                          <SpineMarkPlacementControls
+                            side={side}
+                            slot={getEnabledCaseInsertMarkSlotForSourcePrefix(
+                              state.markSlots,
+                              'technical',
+                              `case-technical:${value}:${assetId ?? 'primary'}`,
+                            )}
+                            idPrefix={`${side}-spine-technical-mark-${value}-${assetId ?? 'primary'}`}
+                            resetLabel={`Reset ${markLabel} layout`}
+                            actions={actions}
+                          />
+                        )
+                      }
+
+                      return null
+                    }}
+                  >
+                    {section.markKind === 'rating' ? (
+                      <SpineMarkPlacementControls
                         side={side}
-                        emptyHint={section.emptyHint}
-                        addLabel={section.addLabel}
-                        slots={visibleMarkSlots}
-                        imageSources={imageSources}
+                        slot={getEnabledCaseInsertMarkSlotForKind(
+                          state.markSlots,
+                          'rating',
+                        )}
+                        idPrefix={`${side}-spine-rating-badge`}
+                        layoutPresets={RATING_BADGE_LAYOUT_PRESETS}
+                        resetLabel="Reset rating badge layout"
                         actions={actions}
-                        onAddSlot={() =>
-                          actions.handleAddSpineBrandingMarkSlot(
-                            side,
-                            section.markKind,
-                          )}
                       />
-                    </>
-                  ) : null}
+                    ) : null}
+                    {section.markKind === 'media' ? (
+                      <SpineMarkPlacementControls
+                        side={side}
+                        slot={getEnabledCaseInsertMarkSlotForKind(
+                          state.markSlots,
+                          'media',
+                        )}
+                        idPrefix={`${side}-spine-media-mark`}
+                        resetLabel="Reset media mark layout"
+                        actions={actions}
+                      />
+                    ) : null}
+                  </SpineMarkSetupControls>
                 </SpineBrandingFeatureSection>
               )
             })}

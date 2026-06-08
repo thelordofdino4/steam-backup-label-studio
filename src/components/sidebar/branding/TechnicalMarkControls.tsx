@@ -4,7 +4,7 @@ import { getTechnicalMarkLayoutSliderRanges } from '../../../layout/discElementS
 import {
   TECHNICAL_MARK_OPTIONS,
   getEnabledTechnicalMarkValues,
-  getProjectTechnicalMarkAsset,
+  getProjectTechnicalMarkAssetEntries,
   getTechnicalMarkLabel,
   getTechnicalMarkValuesForRemember,
   getTechnicalMarkValuesForRestore,
@@ -15,6 +15,7 @@ import type {
   TechnicalMarkValue,
 } from '../../../project/projectTypes'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
+import { PlusIcon } from '../PanelIcons'
 import { formatLogoSize, getNumericInputValue } from './helpers'
 import type { BrandingPanelProps } from './types'
 
@@ -27,13 +28,35 @@ type TechnicalMarkSetupControlsProps = Pick<
   | 'handleTechnicalMarkLayoutChange'
   | 'handleTechnicalMarkLabelChange'
   | 'handleClearTechnicalMarkImage'
+  | 'handleAddTechnicalMarkAsset'
+  | 'handleRemoveTechnicalMarkAsset'
 > & {
   renderLayoutControls?: (
     value: TechnicalMarkValue,
     label: string,
     asset: ProjectTechnicalMarkAsset,
+    assetId?: string | null,
   ) => ReactNode
   idPrefix?: string
+}
+
+function AddTechnicalMarkAssetButton({
+  label,
+  onClick,
+}: {
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      className="secondary-button icon-text-button spacing-top"
+      type="button"
+      onClick={onClick}
+    >
+      <PlusIcon />
+      <span>Add another {label.toLowerCase()} technical mark</span>
+    </button>
+  )
 }
 
 export function TechnicalMarkSetupControls({
@@ -44,6 +67,8 @@ export function TechnicalMarkSetupControls({
   handleTechnicalMarkLayoutChange,
   handleTechnicalMarkLabelChange,
   handleClearTechnicalMarkImage,
+  handleAddTechnicalMarkAsset,
+  handleRemoveTechnicalMarkAsset,
   renderLayoutControls,
   idPrefix,
 }: TechnicalMarkSetupControlsProps) {
@@ -77,11 +102,21 @@ export function TechnicalMarkSetupControls({
             </div>
           </div>
           <p className="hint">Current technical marks: {currentLabel}. Each selected technical mark has its own image and layout.</p>
-          {projectTechnicalMarks.values.map((value) => {
-            const asset = getProjectTechnicalMarkAsset(projectTechnicalMarks, value)
+          {projectTechnicalMarks.values.flatMap((value) => {
             const label = getTechnicalMarkLabel(value)
-            const uploadId = fieldId(`technical-mark-upload-${value}`)
+            const entries = getProjectTechnicalMarkAssetEntries(
+              projectTechnicalMarks,
+              value,
+            )
+
+            return entries.map((entry, entryIndex) => {
+            const { asset, assetId } = entry
+            const elementId = assetId ?? value
+            const uploadId = fieldId(`technical-mark-upload-${elementId}`)
             const isCustomTechnicalMarkSource = asset.source === 'custom'
+            const title = entry.isPrimary
+              ? `${label} technical mark`
+              : `${label} technical mark ${entry.index + 1}`
             const summary = [
               asset.layout.enabled ? 'shown' : 'hidden',
               isCustomTechnicalMarkSource && asset.customImageDataUrl
@@ -91,22 +126,31 @@ export function TechnicalMarkSetupControls({
             ].join(' · ')
             return (
               <RepeatedVisualElementCard
-                key={value}
-                title={`${label} technical mark`}
+                key={elementId}
+                title={title}
                 label={asset.label}
-                labelInputId={fieldId(`technical-mark-label-${value}`)}
+                labelInputId={fieldId(`technical-mark-label-${elementId}`)}
                 enabled={asset.layout.enabled}
-                enableLabel={`Show ${label.toLowerCase()} technical mark`}
+                enableLabel={`Show ${title.toLowerCase()}`}
                 summary={summary}
-                deleteLabel={`Remove ${label.toLowerCase()} technical mark`}
+                deleteLabel={entry.isPrimary
+                  ? `Remove ${label.toLowerCase()} technical mark`
+                  : `Delete ${title.toLowerCase()}`}
                 onEnabledChange={(enabled) =>
-                  handleTechnicalMarkLayoutChange(value, 'enabled', enabled)}
+                  handleTechnicalMarkLayoutChange(value, 'enabled', enabled, assetId)}
                 onLabelChange={(nextLabel) =>
-                  handleTechnicalMarkLabelChange(value, nextLabel)}
-                onDelete={() => handleTechnicalMarkToggle(value, false)}
+                  handleTechnicalMarkLabelChange(value, nextLabel, assetId)}
+                onDelete={() => {
+                  if (entry.isPrimary || !assetId) {
+                    handleTechnicalMarkToggle(value, false)
+                    return
+                  }
+
+                  handleRemoveTechnicalMarkAsset(value, assetId)
+                }}
               >
-                <label className="field-label spacing-top" htmlFor={fieldId(`technical-mark-source-${value}`)}>Mark source</label>
-                <select id={fieldId(`technical-mark-source-${value}`)} value={asset.source} onChange={(event) => handleTechnicalMarkSourceChange(value, event.target.value as TechnicalMarkSource)}>
+                <label className="field-label spacing-top" htmlFor={fieldId(`technical-mark-source-${elementId}`)}>Mark source</label>
+                <select id={fieldId(`technical-mark-source-${elementId}`)} value={asset.source} onChange={(event) => handleTechnicalMarkSourceChange(value, event.target.value as TechnicalMarkSource, assetId)}>
                   <option value="placeholder">Built-in generic</option>
                   <option value="custom">Custom image</option>
                 </select>
@@ -114,7 +158,7 @@ export function TechnicalMarkSetupControls({
                   <>
                     <span className="field-label spacing-top">Custom technical image</span>
                     <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
-                    <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleTechnicalMarkUpload(value, event)} />
+                    <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleTechnicalMarkUpload(value, event, assetId)} />
                     {asset.customImageDataUrl ? (
                       <div className="selected-lockup-card logo-asset-status-card">
                         <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
@@ -123,10 +167,17 @@ export function TechnicalMarkSetupControls({
                     ) : <p className="hint">No custom {label.toLowerCase()} technical image is selected yet. The bundled generic technical mark remains visible until you upload an image.</p>}
                   </>
                 ) : <p className="hint">Using a bundled generic mark.</p>}
-                {renderLayoutControls?.(value, label, asset)}
-                {isCustomTechnicalMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearTechnicalMarkImage(value)}>Clear custom {label}</button>}
+                {renderLayoutControls?.(value, label, asset, assetId)}
+                {entryIndex === entries.length - 1 ? (
+                  <AddTechnicalMarkAssetButton
+                    label={label}
+                    onClick={() => handleAddTechnicalMarkAsset(value)}
+                  />
+                ) : null}
+                {isCustomTechnicalMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearTechnicalMarkImage(value, assetId)}>Clear custom {label}</button>}
               </RepeatedVisualElementCard>
             )
+            })
           })}
         </>
       )}
@@ -151,27 +202,30 @@ export function TechnicalMarkControls({
   | 'handleTechnicalMarkLabelChange'
   | 'handleClearTechnicalMarkImage'
   | 'handleResetTechnicalMarkLayout'
+  | 'handleAddTechnicalMarkAsset'
+  | 'handleRemoveTechnicalMarkAsset'
 >) {
   return (
     <TechnicalMarkSetupControls
       {...props}
       projectTechnicalMarks={projectTechnicalMarks}
       handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
-      renderLayoutControls={(value, label, asset) => {
+      renderLayoutControls={(value, label, asset, assetId) => {
         const sliderRanges = getTechnicalMarkLayoutSliderRanges(
           asset,
           selectedDiscTemplate,
         )
+        const elementId = assetId ?? value
 
         return (
           <>
-            <label className="field-label spacing-top" htmlFor={`technical-mark-scale-${value}`}>Scale</label>
-            <input id={`technical-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
-            <label className="field-label spacing-top" htmlFor={`technical-mark-x-${value}`}>X position</label>
-            <input id={`technical-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
-            <label className="field-label spacing-top" htmlFor={`technical-mark-y-${value}`}>Y position</label>
-            <input id={`technical-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
-            <button className="secondary-button" type="button" onClick={() => handleResetTechnicalMarkLayout(value)}>Reset {label} layout</button>
+            <label className="field-label spacing-top" htmlFor={`technical-mark-scale-${elementId}`}>Scale</label>
+            <input id={`technical-mark-scale-${elementId}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event), assetId)} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'scale', getNumericInputValue(event), assetId)} />
+            <label className="field-label spacing-top" htmlFor={`technical-mark-x-${elementId}`}>X position</label>
+            <input id={`technical-mark-x-${elementId}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event), assetId)} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'x', getNumericInputValue(event), assetId)} />
+            <label className="field-label spacing-top" htmlFor={`technical-mark-y-${elementId}`}>Y position</label>
+            <input id={`technical-mark-y-${elementId}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event), assetId)} onChange={(event) => handleTechnicalMarkLayoutChange(value, 'y', getNumericInputValue(event), assetId)} />
+            <button className="secondary-button" type="button" onClick={() => handleResetTechnicalMarkLayout(value, assetId)}>Reset {label} layout</button>
           </>
         )
       }}

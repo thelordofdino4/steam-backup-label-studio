@@ -5,7 +5,7 @@ import {
 } from '../disc/geometry.ts'
 import { getTechnicalMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
 import {
-  getProjectTechnicalMarkAsset,
+  getAllProjectTechnicalMarkAssetEntries,
   getTechnicalMarkLabel,
 } from '../project/projectTechnicalMarks.ts'
 import type {
@@ -16,7 +16,9 @@ import type {
 } from '../project/projectTypes.ts'
 
 export type TechnicalMarkRenderModel = {
+  key: string
   value: TechnicalMarkValue
+  assetId: string | null
   asset: ProjectTechnicalMarkAsset
   imageDataUrl: string
   isPlaceholderImage: boolean
@@ -37,8 +39,8 @@ function hasCustomImage(
 export function createTechnicalMarkRenderModels(
   technicalMarks: ProjectTechnicalMarks,
 ): TechnicalMarkRenderModel[] {
-  return technicalMarks.values.flatMap((value) => {
-    const asset = getProjectTechnicalMarkAsset(technicalMarks, value)
+  return getAllProjectTechnicalMarkAssetEntries(technicalMarks).flatMap((entry) => {
+    const { value, asset, assetId } = entry
 
     if (!asset.layout.enabled) {
       return []
@@ -54,7 +56,9 @@ export function createTechnicalMarkRenderModels(
         : getTechnicalMarkPlaceholderBoundsPercent(scale)
 
     return [{
+      key: assetId ?? value,
       value,
+      assetId,
       asset,
       imageDataUrl: isCustomImage
         ? customImageDataUrl

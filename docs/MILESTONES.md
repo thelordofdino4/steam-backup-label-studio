@@ -150,7 +150,7 @@ Jewel case editor baseline:
 
 - Front cover with background artwork, title/logo artwork, game-info marks, company logos, and optional short callout text.
 - Back cover with background artwork, description, feature bullets, optional additional artwork such as screenshots or key art, game-info marks, company/technology logos, system requirements, and legal/attribution text.
-- Spine with title/logo behavior, optional Steam Backup/system branding, and optional company mark.
+- Spine with title/logo behavior, developer/publisher logos, and standard branding marks.
 - Template geometry with front, back, spine, bleed/trim, safe zones, and export dimensions.
 - Print-quality safeguards that preserve template dimensions, avoid distorted artwork, warn about low-resolution assets, and keep text readable.
 - Save/load, preview/export parity, export preflight, and blank-project support.
@@ -185,7 +185,7 @@ Guided Start:
 - Asks what template type the user wants: disc, jewel case, DVD/Amaray, or Blu-ray.
 - Asks what disc or case dimensions/template they are using.
 - Asks what artwork/background they want.
-- Asks whether to use Steam Backup branding, title/logo artwork, additional artwork, media marks, operating-system marks, technical marks, rating badges, developer/publisher logos, and copyright text.
+- Asks whether to use disc Steam Backup banner branding, title/logo artwork, additional artwork, media marks, operating-system marks, technical marks, rating badges, developer/publisher logos, and copyright text.
 - Sends the user into the editor with the selected setup already prepared.
 
 ## Milestone: Alpha UI Polish

@@ -6,7 +6,6 @@ import {
 } from 'react'
 import {
   addCaseInsertTemplateImageSlot,
-  createCaseInsertTemplateImageSlot,
   getCaseInsertImageSlotGroupConfig,
   removeCaseInsertTemplateImageSlot,
   renameCaseInsertTemplateImageSlot,
@@ -18,20 +17,16 @@ import {
   updateProjectCaseInsertTemplate,
   type CaseInsertPrimaryImageSlotKey,
 } from '../caseInsert/templateSurfaceTransitions'
-import type {
-  CaseInsertMarkLayerKind,
-  CaseInsertBrandingSlotSourceItem,
-} from '../caseInsert/brandingSlotSources'
 import {
-  getCaseInsertManualMarkSourceId,
-} from '../caseInsert/brandingSlotSources'
-import {
+  addCaseInsertAdditionalLogoSlot,
+  clearCaseInsertAdditionalLogoSlotImage,
   clearCaseInsertPrimaryLogoSlotImage,
   getCaseInsertPrimaryLogoLabel,
   resetCaseInsertPrimaryLogoSlotLayout,
   setCaseInsertPrimaryLogoSlotEnabled,
   setCaseInsertPrimaryLogoSlotImage,
   updateCaseInsertPrimaryLogoSlotLayoutField,
+  withCaseInsertAdditionalLogoImageSource,
 } from '../caseInsert/brandingLogoSlots'
 import {
   fitCaseInsertImageSlotToRegionHeight,
@@ -46,6 +41,20 @@ import {
   restoreCaseInsertTitleArtworkDefaultSteamLogo,
   setCustomCaseInsertTitleArtworkImage,
 } from '../caseInsert/titleArtwork'
+import {
+  resetCaseInsertSteamBannerColors,
+  resetCaseInsertSteamBannerLockupImage,
+  resetCaseInsertSteamBannerLockupLayout,
+  setCaseInsertSteamBannerEnabled,
+  setCaseInsertSteamBannerUseTextFallback,
+  setCustomCaseInsertSteamBannerLockupImage,
+  updateCaseInsertSteamBannerColor,
+  updateCaseInsertSteamBannerFallbackText,
+  updateCaseInsertSteamBannerLockupLayoutField,
+  updateCaseInsertTemplateSteamBanner,
+  type CaseInsertSteamBannerColorField,
+  type CaseInsertSteamBannerLayoutField,
+} from '../caseInsert/steamBanner'
 import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
 import {
   createLogoCandidateCaseInsertImageSlotImage,
@@ -63,7 +72,6 @@ import {
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListItem,
 } from '../caseInsert/textTransitions'
-import { createProjectImageAssetProvenance } from '../project/projectAssetStatus'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
@@ -133,21 +141,6 @@ function getGroupDefaultLayout(
   }
 }
 
-function getNextGroupedSlotIndex(
-  paneId: CaseInsertTemplatePaneId,
-  slotKey: CaseInsertImageSlotGroupKey,
-  slots: Array<{ id: string }>,
-) {
-  const config = getCaseInsertImageSlotGroupConfig(paneId, slotKey)
-  let index = slots.length + 1
-
-  while (slots.some(({ id }) => id === `${config.idPrefix}-${index}`)) {
-    index += 1
-  }
-
-  return index
-}
-
 function getPrimaryImageSlotFitRegion(
   paneId: CaseInsertTemplatePaneId,
   slotKey: CaseInsertPrimaryImageSlotKey,
@@ -176,6 +169,18 @@ function preserveCaseInsertMarkSource(
       sourceLabel: image.imageSource?.sourceLabel ?? slot.imageSource.sourceLabel,
     },
   }
+}
+
+function preserveCaseInsertGroupedSlotSource(
+  slotKey: CaseInsertImageSlotGroupKey,
+  slot: ProjectCaseInsertImageSlot,
+  image: CaseInsertImageSlotImageInput,
+): CaseInsertImageSlotImageInput {
+  if (slotKey === 'logoSlots') {
+    return withCaseInsertAdditionalLogoImageSource(slot, image)
+  }
+
+  return preserveCaseInsertMarkSource(slotKey, slot, image)
 }
 
 export function useCaseInsertTemplateEditor({
@@ -223,6 +228,15 @@ export function useCaseInsertTemplateEditor({
           )
         : nextCaseInsert
     })
+  }, [setProjectJewelCase])
+
+  const updateSteamBanner = useCallback((
+    paneId: CaseInsertTemplatePaneId,
+    updater: Parameters<typeof updateCaseInsertTemplateSteamBanner>[2],
+  ) => {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertTemplateSteamBanner(currentCaseInsert, paneId, updater),
+    )
   }, [setProjectJewelCase])
 
   async function handleImageSlotUpload(
@@ -404,6 +418,110 @@ export function useCaseInsertTemplateEditor({
     announceStatus(`Cleared ${normalizeLabel(label)} image.`)
   }
 
+  function handleSteamBannerEnabledChange(
+    paneId: CaseInsertTemplatePaneId,
+    enabled: boolean,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      setCaseInsertSteamBannerEnabled(banner, enabled),
+    )
+  }
+
+  async function handleSteamBannerLockupUpload(
+    paneId: CaseInsertTemplatePaneId,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!file) {
+      return
+    }
+
+    if (!isImageFile(file)) {
+      announceStatus('Choose an image file for the Steam banner lockup.')
+      return
+    }
+
+    try {
+      const image = await createUploadedCaseInsertImageSlotImage(
+        file,
+        'Steam banner lockup',
+      )
+
+      updateSteamBanner(paneId, (banner) =>
+        setCustomCaseInsertSteamBannerLockupImage(banner, image),
+      )
+      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
+    } catch {
+      announceStatus('The Steam banner lockup image could not be read.')
+    }
+  }
+
+  function handleClearSteamBannerLockup(paneId: CaseInsertTemplatePaneId) {
+    updateSteamBanner(paneId, (banner) =>
+      resetCaseInsertSteamBannerLockupImage(banner, 'cover'),
+    )
+    announceStatus('Reset Steam banner lockup image to the default asset.')
+  }
+
+  function handleSteamBannerLockupLayoutChange(
+    paneId: CaseInsertTemplatePaneId,
+    field: CaseInsertSteamBannerLayoutField,
+    value: number,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      updateCaseInsertSteamBannerLockupLayoutField(banner, field, value),
+    )
+  }
+
+  function handleResetSteamBannerLockupLayout(
+    paneId: CaseInsertTemplatePaneId,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      resetCaseInsertSteamBannerLockupLayout(banner, 'cover'),
+    )
+    announceStatus('Reset Steam banner lockup layout to the default position.')
+  }
+
+  function handleSteamBannerUseTextFallbackChange(
+    paneId: CaseInsertTemplatePaneId,
+    useTextFallback: boolean,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      setCaseInsertSteamBannerUseTextFallback(banner, useTextFallback),
+    )
+    announceStatus(
+      useTextFallback
+        ? 'Using saved text for the Steam banner lockup.'
+        : 'Using the Steam banner lockup image.',
+    )
+  }
+
+  function handleSteamBannerFallbackTextChange(
+    paneId: CaseInsertTemplatePaneId,
+    fallbackText: string,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      updateCaseInsertSteamBannerFallbackText(banner, fallbackText),
+    )
+  }
+
+  function handleSteamBannerColorChange(
+    paneId: CaseInsertTemplatePaneId,
+    field: CaseInsertSteamBannerColorField,
+    value: string,
+  ) {
+    updateSteamBanner(paneId, (banner) =>
+      updateCaseInsertSteamBannerColor(banner, field, value),
+    )
+  }
+
+  function handleResetSteamBannerColors(paneId: CaseInsertTemplatePaneId) {
+    updateSteamBanner(paneId, resetCaseInsertSteamBannerColors)
+    announceStatus('Reset Steam banner colors to the default palette.')
+  }
+
   function handlePrimaryLogoSlotEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     logoKey: LogoAssetKey,
@@ -531,6 +649,18 @@ export function useCaseInsertTemplateEditor({
     announceStatus(`Added ${label} slot.`)
   }
 
+  function handleAddAdditionalLogoSlot(
+    paneId: CaseInsertTemplatePaneId,
+    logoKey: LogoAssetKey,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
+        addCaseInsertAdditionalLogoSlot(templateState, paneId, logoKey),
+      ),
+    )
+    announceStatus(`Added additional ${logoKey} logo.`)
+  }
+
   function handleAdditionalArtworkEnabledChange(
     paneId: CaseInsertTemplatePaneId,
     enabled: boolean,
@@ -562,51 +692,6 @@ export function useCaseInsertTemplateEditor({
       ),
     )
     announceStatus(`Removed ${label} slot.`)
-  }
-
-  function handleAddBrandingMarkSlot(
-    paneId: CaseInsertTemplatePaneId,
-    kind: CaseInsertMarkLayerKind,
-  ) {
-    const kindLabel = kind === 'platform'
-      ? 'operating-system'
-      : kind
-
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(
-        currentCaseInsert,
-        paneId,
-        (templateState) => {
-          const index = getNextGroupedSlotIndex(
-            paneId,
-            'markSlots',
-            templateState.markSlots,
-          )
-          const slot = createCaseInsertTemplateImageSlot(
-            paneId,
-            'markSlots',
-            index,
-          )
-
-          return {
-            ...templateState,
-            markSlots: [
-              ...templateState.markSlots,
-              {
-                ...slot,
-                label: `${kindLabel} mark ${index}`,
-                imageSource: createProjectImageAssetProvenance({
-                  source: 'placeholder',
-                  sourceId: getCaseInsertManualMarkSourceId(kind, slot.id),
-                  sourceLabel: `${kindLabel} mark`,
-                }),
-              },
-            ],
-          }
-        },
-      ),
-    )
-    announceStatus(`Added ${kindLabel} mark slot.`)
   }
 
   function handleGroupedImageSlotEnabledChange(
@@ -669,7 +754,7 @@ export function useCaseInsertTemplateEditor({
         slotId,
         (slot) => setCaseInsertImageSlotImage(
           slot,
-          preserveCaseInsertMarkSource(slotKey, slot, image),
+          preserveCaseInsertGroupedSlotSource(slotKey, slot, image),
         ),
         {
           enableAdditionalArtwork: slotKey === 'artworkSlots',
@@ -825,69 +910,20 @@ export function useCaseInsertTemplateEditor({
     slotId: string,
     label: string,
   ) {
-    updateGroupedImageSlot(paneId, slotKey, slotId, (slot) => ({
-      ...slot,
-      imageDataUrl: null,
-      imageSize: null,
-      imageSource: null,
-    }))
-    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
-  }
-
-  async function handleUseBrandingSlotSource(
-    paneId: CaseInsertTemplatePaneId,
-    source: CaseInsertBrandingSlotSourceItem,
-  ) {
-    announceStatus(`Adding ${source.label} to case branding...`)
-
-    try {
-      const image = await source.resolveImage()
-
-      setProjectJewelCase((currentCaseInsert) =>
-        updateProjectCaseInsertTemplate(
-          currentCaseInsert,
-          paneId,
-          (templateState) => {
-            const slots = templateState[source.slotKey]
-            const existingIndex = slots.findIndex(
-              (slot) => slot.imageSource?.sourceId === source.sourceId,
-            )
-            const baseSlot = existingIndex >= 0
-              ? slots[existingIndex]
-              : createCaseInsertTemplateImageSlot(
-                  paneId,
-                  source.slotKey,
-                  getNextGroupedSlotIndex(paneId, source.slotKey, slots),
-                )
-
-            if (!baseSlot) {
-              return templateState
-            }
-
-            const updatedSlot = setCaseInsertImageSlotImage(
-              {
-                ...baseSlot,
-                label: source.label,
-                fit: 'contain',
-              },
-              image,
-            )
-            const nextSlots = existingIndex >= 0
-              ? slots.map((slot, index) =>
-                  index === existingIndex ? updatedSlot : slot)
-              : [...slots, updatedSlot]
-
-            return {
-              ...templateState,
-              [source.slotKey]: nextSlots,
-            }
+    updateGroupedImageSlot(
+      paneId,
+      slotKey,
+      slotId,
+      (slot) => slotKey === 'logoSlots'
+        ? clearCaseInsertAdditionalLogoSlotImage(slot)
+        : {
+            ...slot,
+            imageDataUrl: null,
+            imageSize: null,
+            imageSource: null,
           },
-        ),
-      )
-      announceStatus(`Added ${source.label} to case branding.`)
-    } catch (error) {
-      announceStatus(`Case branding source failed: ${String(error)}`)
-    }
+    )
+    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
   }
 
   async function handleUseLogoCandidate(
@@ -1125,6 +1161,15 @@ export function useCaseInsertTemplateEditor({
     handleRestoreTitleArtworkDefault,
     handleFitImageSlotToRegion,
     handleClearImageSlot,
+    handleSteamBannerEnabledChange,
+    handleSteamBannerLockupUpload,
+    handleClearSteamBannerLockup,
+    handleSteamBannerLockupLayoutChange,
+    handleResetSteamBannerLockupLayout,
+    handleSteamBannerUseTextFallbackChange,
+    handleSteamBannerFallbackTextChange,
+    handleSteamBannerColorChange,
+    handleResetSteamBannerColors,
     handlePrimaryLogoSlotEnabledChange,
     handlePrimaryLogoSlotUpload,
     handlePrimaryLogoSlotLayoutChange,
@@ -1132,7 +1177,7 @@ export function useCaseInsertTemplateEditor({
     handleClearPrimaryLogoSlot,
     handleAdditionalArtworkEnabledChange,
     handleAddGroupedImageSlot,
-    handleAddBrandingMarkSlot,
+    handleAddAdditionalLogoSlot,
     handleRemoveGroupedImageSlot,
     handleGroupedImageSlotEnabledChange,
     handleGroupedImageSlotLabelChange,
@@ -1146,7 +1191,6 @@ export function useCaseInsertTemplateEditor({
     handleResetGroupedImageSlotLayout,
     handleResetGroupedImageSlotFrame,
     handleClearGroupedImageSlot,
-    handleUseBrandingSlotSource,
     handleUseLogoCandidate,
     handleTextBlockEnabledChange,
     handleTextBlockValueChange,

@@ -138,15 +138,14 @@ npm run tauri dev
   position, rotation, and reset behavior.
 - Cover Sheet preview shows rectangular trim/safe/guide geometry without using
   disc circular safe-zone rules.
-- Tray Card background, description/features, additional artwork, requirements, legal
-  text, logos, rating badges, media marks, platform marks, technical marks, and
-  Steam Backup branding controls update preview/export and preserve disabled
-  state.
+- Tray Card background, description/features, additional artwork, requirements,
+  legal text, logos, rating badges, media marks, platform marks, and technical
+  marks update preview/export and preserve disabled state.
 - Tray Card templates with spines clearly identify whether a nested control
   affects the cover area or spine area.
-- Spine title, spine background, spine Steam Backup branding, spine logo, and
-  spine-specific placement controls update only the spine area and remain
-  independent of cover-area controls.
+- Spine title, spine background, developer/publisher logos, standard branding
+  marks, and spine-specific placement controls update only the spine area and
+  remain independent of cover-area controls.
 - Save/load preserves case insert template choice, shared Steam metadata,
   surface-specific artwork/branding/text settings, export guide settings, and
   disabled optional feature state.

@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { clampMediaMarkLayoutToSafeZone } from '../layout/discElementSafeZone'
 import {
   clearMediaMarkImage,
@@ -45,6 +45,11 @@ export function useMediaMarkState({
   const [projectMediaMark, setProjectMediaMark] = useState<ProjectMediaMark>(() =>
     createDefaultProjectMediaMark(selectedDiscTemplate),
   )
+  const projectMediaMarkRef = useRef(projectMediaMark)
+
+  useEffect(() => {
+    projectMediaMarkRef.current = projectMediaMark
+  }, [projectMediaMark])
 
   function clampProjectMediaMarkToTemplate(template: DiscTemplate) {
     setProjectMediaMark((currentMark) => {
@@ -83,16 +88,17 @@ export function useMediaMarkState({
 
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-
-      setProjectMediaMark((currentMark) =>
-        applyImportedMediaMark(
-          currentMark,
-          importedImage,
-          selectedDiscTemplate,
-        ),
+      const nextMark = applyImportedMediaMark(
+        projectMediaMarkRef.current,
+        importedImage,
+        selectedDiscTemplate,
       )
 
+      projectMediaMarkRef.current = nextMark
+      setProjectMediaMark(nextMark)
+
       announceStatus(`Using ${file.name} as the media mark.`)
+      return nextMark
     } catch (error) {
       announceStatus(`Media mark import failed: ${String(error)}`)
     }

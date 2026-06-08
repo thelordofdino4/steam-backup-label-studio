@@ -322,6 +322,7 @@ export type TechnicalMarkLayout = {
 }
 
 export type ProjectTechnicalMarkAsset = {
+  id?: string
   label: string
   source: TechnicalMarkSource
   customImageDataUrl: string | null
@@ -332,11 +333,13 @@ export type ProjectTechnicalMarkAsset = {
 export type ProjectTechnicalMarks = {
   values: TechnicalMarkValue[]
   assets: Partial<Record<TechnicalMarkValue, ProjectTechnicalMarkAsset>>
+  additionalAssets?: Partial<Record<TechnicalMarkValue, ProjectTechnicalMarkAsset[]>>
 }
 
 export type ProjectTechnicalMarksInput =
-  Partial<Omit<ProjectTechnicalMarks, 'assets'>> & {
+  Partial<Omit<ProjectTechnicalMarks, 'assets' | 'additionalAssets'>> & {
     assets?: Partial<Record<TechnicalMarkValue, Partial<ProjectTechnicalMarkAsset>>>
+    additionalAssets?: Partial<Record<TechnicalMarkValue, Array<Partial<ProjectTechnicalMarkAsset>>>>
   }
 
 export type ProjectCaseInsertImageFit = 'cover' | 'contain' | 'scale' | 'crop'
@@ -346,6 +349,17 @@ export type ProjectCaseInsertLayout = {
   x: number
   y: number
   rotation: number
+}
+
+export type ProjectCaseInsertSteamBanner = {
+  enabled: boolean
+  colors: SteamBannerColors
+  lockupImageDataUrl: string | null
+  lockupImageSource?: ProjectImageAssetProvenance | null
+  lockupImageSize: BackgroundImageSize | null
+  lockupLayout: ProjectCaseInsertLayout
+  useTextFallback: boolean
+  fallbackText: string
 }
 
 export type ProjectCaseInsertTitleArtworkDefaultAsset = {
@@ -393,6 +407,7 @@ export type ProjectCaseInsertTextList = {
 }
 
 export type ProjectCaseInsertSurfaceState = {
+  steamBanner: ProjectCaseInsertSteamBanner
   background: ProjectCaseInsertImageSlot
   titleArtwork: ProjectCaseInsertImageSlot
   additionalArtworkEnabled: boolean
@@ -404,14 +419,14 @@ export type ProjectCaseInsertSurfaceState = {
 }
 
 export type ProjectJewelCaseSpineSideState = {
+  steamBanner: ProjectCaseInsertSteamBanner
   background: ProjectCaseInsertImageSlot
   titleArtwork: ProjectCaseInsertImageSlot
   additionalArtworkEnabled: boolean
   artworkSlots: ProjectCaseInsertImageSlot[]
+  logoSlots: ProjectCaseInsertImageSlot[]
   markSlots: ProjectCaseInsertImageSlot[]
   title: ProjectCaseInsertTextBlock
-  steamBackupBranding: ProjectCaseInsertImageSlot
-  logo: ProjectCaseInsertImageSlot
 }
 
 export type ProjectJewelCaseSpineState = {
