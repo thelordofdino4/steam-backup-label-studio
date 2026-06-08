@@ -57,6 +57,45 @@ to manually verify runtime UI, drag, upload, save/load, preview, and export
 behavior.
 ```
 
+## Canonical Work Order
+
+Work the unification passes in this order unless the user explicitly changes
+the priority or a live regression needs an emergency fix. Do not pull work from
+later stages into earlier stages just because the same file is open.
+
+1. Create the no-code unification map.
+2. Unify shared panel shells and primitive controls.
+3. Establish the shared optional visual feature contract.
+4. Unify image source UI, upload, status, clear, and restore behavior.
+5. Unify repeated artwork element behavior.
+6. Unify branding mark behavior for rating, media, platform, and technical
+   marks.
+7. Unify logo asset controls for developer, publisher, and additional logos.
+8. Unify Steam banner controls while keeping editor/template layout adapters
+   separate.
+9. Unify straight text source, style, width, preset, and avoidance behavior.
+10. Unify drag target contracts and pointer plumbing.
+11. Unify preview/export render models and shared drawing helpers.
+12. Unify preflight warning builders.
+13. Unify project defaults, normalization, and schema contracts, coordinating
+    with #48 before persisted field names or migration behavior change.
+14. Clean shared CSS only after the shared component boundaries exist,
+    coordinating with #46.
+15. Continue shared hook/state-transition cleanup and layer-order/surface
+    capability cleanup only after the earlier behavior contracts are stable.
+16. Perform naming migration and dead alias cleanup only after the shared owner
+    is real and consumed by both editors.
+17. Add the shared contract test suite.
+18. Work structured tray/spine layouts separately under #149 after shared
+    controls are stable.
+19. Perform the final audit and documentation update.
+
+The ordering is intentional. Panels and primitive controls reduce presentation
+duplication first. Source and visual-feature contracts then prevent the artwork,
+branding, and text passes from recreating editor-specific behavior. Project
+normalization, CSS, and naming migration come late because doing them too early
+creates churn before the shared source of truth is proven.
+
 ## Naming Policy
 
 Use this policy in every unification pass:
@@ -273,21 +312,20 @@ Validation:
   preview/export visibility, and save/load in both editors.
 ```
 
-## Prompt 06: Shared Branding And Mark System
+## Prompt 06A: Shared Branding Mark System
 
 ```text
-Unify branding and mark behavior across disc and case insert where features are
+Unify branding mark behavior across disc and case insert where features are
 equivalent.
 
 Scope:
-- Audit Steam banner, developer logo, publisher logo, additional logos, rating
-  badges, media marks, operating-system marks, and technical marks in both
-  editors.
-- Identify shared mark source behavior, custom upload behavior, built-in
-  generic fallback behavior, layout controls, add/remove behavior, preview,
-  export, preflight, and save/load.
-- Extract neutral mark/logo/badge components and domain helpers where both
-  editors use the same contract.
+- Audit rating badges, media marks, operating-system marks, and technical
+  marks in both editors.
+- Identify shared source behavior, custom upload behavior, built-in generic
+  fallback behavior, layout controls, add/remove behavior, preview, export,
+  preflight, and save/load.
+- Extract neutral mark/badge components and domain helpers where both editors
+  use the same contract.
 - Keep target adapters for disc geometry, cover/tray rectangular geometry, and
   spine geometry.
 
@@ -301,9 +339,69 @@ Constraints:
 
 Validation:
 - Contract tests for built-in vs custom image, enable/disable preservation,
-  additional mark add/remove, preview/export, and save/load.
+  additional technical mark add/remove, preview/export, and save/load.
 - Manual smoke for rating, media, platform, and technical marks in disc, cover,
   tray, and spine.
+```
+
+## Prompt 06B: Shared Logo Asset Controls
+
+```text
+Unify developer, publisher, and additional logo asset behavior across disc and
+case insert where features are equivalent.
+
+Scope:
+- Audit developer logo, publisher logo, and additional logo controls in both
+  editors.
+- Identify shared candidate discovery, source switching, upload, clear,
+  alignment presets, add/remove/rename behavior, layout controls, preview,
+  export, preflight, and save/load.
+- Extract neutral logo asset controls and domain helpers where both editors use
+  the same contract.
+- Keep target adapters for disc geometry, cover/tray rectangular geometry, and
+  spine geometry.
+
+Constraints:
+- Do not mix company logo behavior into rating/media/platform/technical mark
+  behavior when their product rules differ.
+- Do not bundle official third-party logo assets unless licensing is clearly
+  safe.
+- Keep case insert surface and spine slot mapping in case insert adapters.
+
+Validation:
+- Contract tests for candidate/custom source switching, enable/disable
+  preservation, additional logo add/remove, preview/export, and save/load.
+- Manual smoke for developer, publisher, and additional logos in disc, cover,
+  tray, and spine.
+```
+
+## Prompt 06C: Shared Steam Banner Controls
+
+```text
+Unify Steam banner controls where behavior is equivalent while preserving
+editor/template-specific layout.
+
+Scope:
+- Audit disc Steam banner controls and case insert Steam banner controls.
+- Identify shared color controls, gradient controls, fallback text controls,
+  lockup image upload, reset colors, reset layout, preview, export, preflight,
+  and save/load.
+- Extract neutral Steam banner controls/domain helpers where both editors use
+  the same contract.
+- Keep disc, cover sheet, tray card, left spine, and right spine layout math in
+  adapters.
+
+Constraints:
+- Shared Steam banner code must not know circular disc geometry, rectangular
+  cover/tray dimensions, or rotated spine coordinates.
+- Preserve each template's existing default Steam banner geometry and controls.
+- Do not add unfinished Steam Backup branding options to targets that do not
+  render/export them.
+
+Validation:
+- Tests for color reset, lockup source switching, enabled-state preservation,
+  preview/export participation, and save/load.
+- Manual smoke for disc banner, cover banner, and both tray-card spine banners.
 ```
 
 ## Prompt 07: Shared Text Source, Style, And Layout Controls
@@ -613,7 +711,9 @@ Validation:
 
 ## Recommended Issue Sequence
 
-Use this order unless a live bug or user priority changes it:
+Use this exact order unless a live bug or explicit user priority changes it.
+Each issue should finish its validation and manual-verification request before
+the next issue begins.
 
 1. Prompt 00: Create The Unification Map.
 2. Prompt 01: Shared Panel And Nested Panel Shells.
@@ -621,22 +721,31 @@ Use this order unless a live bug or user priority changes it:
 4. Prompt 03: Shared Optional Visual Feature Contract.
 5. Prompt 04: Shared Image Source And Upload System.
 6. Prompt 05: Shared Artwork Element Model.
-7. Prompt 06: Shared Branding And Mark System.
-8. Prompt 07: Shared Text Source, Style, And Layout Controls.
-9. Prompt 08: Shared Drag And Pointer Interaction Infrastructure.
-10. Prompt 09 and Prompt 10 together only if the render artifact boundary is
-    small enough; otherwise split preview and export.
-11. Prompt 11: Shared Save, Load, Defaults, And Normalization Contracts.
-12. Prompt 12: Shared Export Preflight Framework.
-13. Prompt 13: Shared CSS And Visual Style Ownership.
-14. Prompt 14: Shared Hook And State Transition Boundaries.
-15. Prompt 15: Shared Layer Order And Surface Capabilities.
-16. Prompt 16: Naming Migration And Dead Alias Cleanup.
-17. Prompt 17: Shared Contract Test Suite.
-18. Prompt 18: Final Unification Audit And Documentation Update.
+7. Prompt 06A: Shared Branding Mark System.
+8. Prompt 06B: Shared Logo Asset Controls.
+9. Prompt 06C: Shared Steam Banner Controls.
+10. Prompt 07: Shared Text Source, Style, And Layout Controls.
+11. Prompt 08: Shared Drag And Pointer Interaction Infrastructure.
+12. Prompt 09: Shared Preview Render Artifact Boundary.
+13. Prompt 10: Shared PNG Export Drawing Boundary.
+14. Prompt 12: Shared Export Preflight Framework.
+15. Prompt 11: Shared Save, Load, Defaults, And Normalization Contracts.
+16. Prompt 13: Shared CSS And Visual Style Ownership.
+17. Prompt 14: Shared Hook And State Transition Boundaries.
+18. Prompt 15: Shared Layer Order And Surface Capabilities.
+19. Prompt 16: Naming Migration And Dead Alias Cleanup.
+20. Prompt 17: Shared Contract Test Suite.
+21. Issue #149: Structured tray/spine layouts, only after shared controls and
+    visual behavior contracts are stable.
+22. Prompt 18: Final Unification Audit And Documentation Update.
 
 The naming migration should happen late. Renaming too early creates churn
 without proving that a module is genuinely shared.
+
+Prompt 09 and Prompt 10 may be worked together only if the render artifact
+boundary is small enough for one reviewable patch. If either pass starts
+touching unrelated feature state, split preview and export into separate
+issues.
 
 ## Stop Conditions
 
