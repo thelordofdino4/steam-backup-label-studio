@@ -48,6 +48,9 @@ import {
 import {
   getCaseInsertLogoSlotRenderInfo,
 } from '../../caseInsert/brandingLogoSlots'
+import {
+  createBoxPositionedImageRenderArtifact,
+} from '../../render/imageRenderArtifact'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 
@@ -296,7 +299,18 @@ function CaseInsertSpineOverlaySlot({
     role,
   )
 
-  if (!slotLayout) {
+  const logoRenderInfo = role === 'logo'
+    ? getCaseInsertLogoSlotRenderInfo(slot)
+    : null
+  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const artifact = createBoxPositionedImageRenderArtifact({
+    imageDataUrl,
+    label: slot.label,
+    alt: '',
+    box: slotLayout,
+  })
+
+  if (!artifact) {
     return null
   }
 
@@ -307,11 +321,7 @@ function CaseInsertSpineOverlaySlot({
       ? 'case-insert-image-slot-frame-host--circle'
       : '',
   ].join(' ')
-  const style = getTransformedBoxStyle(slotLayout, layout)
-  const logoRenderInfo = role === 'logo'
-    ? getCaseInsertLogoSlotRenderInfo(slot)
-    : null
-  const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const style = getTransformedBoxStyle(artifact.box, layout)
   const pointerProps = {
     onPointerDown: (event: PointerEvent<Element>) =>
       dragTarget.kind === 'primary'
@@ -330,16 +340,12 @@ function CaseInsertSpineOverlaySlot({
     onPointerUp: pointerHandlers.handleSpinePointerUp,
   }
 
-  if (imageDataUrl) {
-    return (
-      <div className={className} {...pointerProps} style={style}>
-        <img src={imageDataUrl} alt="" draggable={false} />
-        {role === 'artwork' ? <CaseInsertImageSlotFrame slot={slot} /> : null}
-      </div>
-    )
-  }
-
-  return null
+  return (
+    <div className={className} {...pointerProps} style={style}>
+      <img src={artifact.imageDataUrl} alt={artifact.alt} draggable={false} />
+      {role === 'artwork' ? <CaseInsertImageSlotFrame slot={slot} /> : null}
+    </div>
+  )
 }
 
 function CaseInsertSpineSidePreview({

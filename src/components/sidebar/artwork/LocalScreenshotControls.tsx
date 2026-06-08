@@ -1,4 +1,5 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
+import { EditorFeaturePanel } from '../../editor/EditorPanel'
 import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { createLocalSteamScreenshotPickerItems } from './helpers'
 import type { ArtworkPanelProps } from './types'
@@ -49,9 +50,7 @@ export function LocalScreenshotControls({
   }, [handleUseLocalSteamScreenshot, localSteamScreenshots])
 
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">Local Steam screenshots</summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title="Local Steam screenshots">
         {!selectedSteamGame ? (
           <p className="hint">
             Select or import a Steam game first. If Steam screenshots are found for that game, they will appear here.
@@ -103,7 +102,6 @@ export function LocalScreenshotControls({
           </>
         )}
         {fineTuneControls}
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }

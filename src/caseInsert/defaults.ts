@@ -2,6 +2,10 @@ import {
   DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
 } from '../editor/editorTypes.ts'
 import {
+  createRepeatedArtworkLabel,
+  createRepeatedArtworkSlotId,
+} from '../editor/repeatedArtwork.ts'
+import {
   DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
@@ -425,9 +429,11 @@ export function createDefaultJewelCaseSpineArtworkSlot(
   side: 'left' | 'right',
   index: number,
 ): ProjectCaseInsertImageSlot {
+  const idPrefix = `${side}-spine-artwork`
+
   return createDefaultCaseInsertImageSlot(
-    `${side}-spine-artwork-${index}`,
-    `Artwork ${index}`,
+    createRepeatedArtworkSlotId(idPrefix, index),
+    createRepeatedArtworkLabel(index),
     {
       enabled: true,
       fit: 'contain',

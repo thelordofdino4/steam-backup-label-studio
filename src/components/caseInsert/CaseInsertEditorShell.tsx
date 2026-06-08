@@ -42,6 +42,7 @@ import {
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
+import { EditorPanel } from '../editor/EditorPanel'
 import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
@@ -128,9 +129,7 @@ function CaseInsertProjectPanel({
   | 'onExportGuideToggle'
 >) {
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Project File</summary>
-      <div className="panel-content">
+    <EditorPanel title="Project File">
         <div className="button-row">
           <button className="secondary-button" type="button" onClick={onMainMenu}>
             Main Menu
@@ -152,8 +151,7 @@ function CaseInsertProjectPanel({
           </button>
         </div>
         <p className="hint">{projectStatus}</p>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }
 
@@ -180,9 +178,7 @@ function CaseInsertExportOptionsPanel({
   )
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Export Options</summary>
-      <div className="panel-content">
+    <EditorPanel title="Export Options">
         <p className="hint">
           {enabledGuideCount > 0
             ? `${enabledGuideCount} guide ${enabledGuideCount === 1 ? 'option is' : 'options are'} on.`
@@ -204,8 +200,7 @@ function CaseInsertExportOptionsPanel({
             </label>
           ))}
         </div>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }
 
@@ -219,10 +214,9 @@ function CaseInsertWorkflowPanel({
   children: ReactNode
 }) {
   return (
-    <details className="panel collapsible-panel" open={open}>
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+    <EditorPanel title={title} open={open}>
+      {children}
+    </EditorPanel>
   )
 }
 
@@ -238,9 +232,7 @@ function CaseInsertTemplatePanel({
   const activeTemplate = getSurfaceMetrics(activeTemplatePane, caseInsert)
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Template</summary>
-      <div className="panel-content">
+    <EditorPanel title="Template">
         <label className="field-label" htmlFor="case-insert-active-template">
           Case insert template
         </label>
@@ -271,16 +263,13 @@ function CaseInsertTemplatePanel({
             </div>
           </dl>
         ) : null}
-      </div>
-    </details>
+    </EditorPanel>
   )
 }
 
 function CaseInsertGuideLegendPanel() {
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Guide Legend</summary>
-      <div className="panel-content">
+    <EditorPanel title="Guide Legend">
         <div className="guide-legend">
           <div className="guide-legend-item">
             <span className="guide-swatch case-guide-swatch-trim" aria-hidden="true" />
@@ -304,8 +293,7 @@ function CaseInsertGuideLegendPanel() {
             </div>
           </div>
         </div>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }
 

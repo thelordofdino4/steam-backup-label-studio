@@ -7,7 +7,9 @@ import {
   mediaMarkSupportsTheme,
 } from '../../../project/projectMediaMark'
 import type { MediaMarkSource, MediaMarkTheme, MediaMarkValue } from '../../../project/projectTypes'
-import { formatLogoSize, getNumericInputValue } from './helpers'
+import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourceControls'
+import { EditorStackedRangeField } from '../../editor/EditorRangeField'
+import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
 
 type MediaMarkSetupControlsProps = Pick<
@@ -50,35 +52,41 @@ export function MediaMarkSetupControls({
           <select id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
             {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
           </select>
-          <label className="field-label spacing-top" htmlFor={fieldId('media-mark-source')}>Mark source</label>
-          <select id={fieldId('media-mark-source')} value={projectMediaMark.source} onChange={(event) => handleMediaMarkSourceChange(event.target.value as MediaMarkSource)}>
-            <option value="placeholder">Built-in generic</option>
-            <option value="custom">Custom image</option>
-          </select>
-          {showsThemeControl ? (
-            <>
-              <label className="field-label spacing-top" htmlFor={fieldId('media-mark-theme')}>Mark theme</label>
-              <select id={fieldId('media-mark-theme')} value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
-                {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-              </select>
-            </>
-          ) : null}
-          <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
-          {isCustomMediaMarkSource ? (
-            <>
-              <span className="field-label spacing-top">Custom mark image</span>
-              <label className="secondary-button logo-upload-button" htmlFor={fieldId('media-mark-upload')}>Choose custom mark</label>
-              <input id={fieldId('media-mark-upload')} className="logo-file-input" type="file" accept="image/*" onChange={handleMediaMarkUpload} />
-              {projectMediaMark.customImageDataUrl ? (
-                <div className="selected-lockup-card logo-asset-status-card">
-                  <img className="logo-asset-preview" src={projectMediaMark.customImageDataUrl} alt="" draggable={false} />
-                  <span>Custom media mark active{formatLogoSize(projectMediaMark.customImageSize)}</span>
-                </div>
-              ) : <p className="hint">No custom media mark image is selected yet. The bundled generic mark remains visible until you upload an image.</p>}
-            </>
-          ) : <p className="hint">Using the built-in generic mark.</p>}
+          <EditorMarkImageSourceControls
+            idPrefix={idPrefix}
+            source={projectMediaMark.source}
+            sourceLabel="Mark source"
+            sourceSelectId="media-mark-source"
+            builtInHint="Using the built-in generic mark."
+            customImageLabel="Custom mark image"
+            customImageDataUrl={projectMediaMark.customImageDataUrl}
+            customImageSize={projectMediaMark.customImageSize}
+            customActiveLabel="Custom media mark active"
+            uploadId="media-mark-upload"
+            uploadButtonLabel="Choose custom mark"
+            emptyCustomHint="No custom media mark image is selected yet. The bundled generic mark remains visible until you upload an image."
+            clearCustomLabel="Clear custom mark"
+            formatSize={formatLogoSize}
+            onSourceChange={(source) =>
+              handleMediaMarkSourceChange(source as MediaMarkSource)}
+            onUpload={handleMediaMarkUpload}
+            onClearCustomImage={handleClearMediaMarkImage}
+            sourceDetails={(
+              <>
+                {showsThemeControl ? (
+                  <>
+                    <label className="field-label spacing-top" htmlFor={fieldId('media-mark-theme')}>Mark theme</label>
+                    <select id={fieldId('media-mark-theme')} value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
+                      {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                    </select>
+                  </>
+                ) : null}
+                <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
+              </>
+            )}
+          >
           {children}
-          {isCustomMediaMarkSource && projectMediaMark.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearMediaMarkImage}>Clear custom mark</button>}
+          </EditorMarkImageSourceControls>
         </>
       )}
     </div>
@@ -114,12 +122,36 @@ export function MediaMarkControls({
       projectMediaMark={projectMediaMark}
       handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
     >
-      <label className="field-label spacing-top" htmlFor="media-mark-scale">Scale</label>
-      <input id="media-mark-scale" type="range" min="0.25" max="2" step="0.01" value={projectMediaMark.layout.scale} onInput={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('scale', getNumericInputValue(event))} />
-      <label className="field-label spacing-top" htmlFor="media-mark-x">X position</label>
-      <input id="media-mark-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectMediaMark.layout.x} onInput={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('x', getNumericInputValue(event))} />
-      <label className="field-label spacing-top" htmlFor="media-mark-y">Y position</label>
-      <input id="media-mark-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectMediaMark.layout.y} onInput={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleMediaMarkLayoutChange('y', getNumericInputValue(event))} />
+      <EditorStackedRangeField
+        id="media-mark-scale"
+        label="Scale"
+        min={0.25}
+        max={2}
+        step={0.01}
+        value={projectMediaMark.layout.scale}
+        onInput={(value) => handleMediaMarkLayoutChange('scale', value)}
+        onChange={(value) => handleMediaMarkLayoutChange('scale', value)}
+      />
+      <EditorStackedRangeField
+        id="media-mark-x"
+        label="X position"
+        min={sliderRanges.x.min}
+        max={sliderRanges.x.max}
+        step={0.1}
+        value={projectMediaMark.layout.x}
+        onInput={(value) => handleMediaMarkLayoutChange('x', value)}
+        onChange={(value) => handleMediaMarkLayoutChange('x', value)}
+      />
+      <EditorStackedRangeField
+        id="media-mark-y"
+        label="Y position"
+        min={sliderRanges.y.min}
+        max={sliderRanges.y.max}
+        step={0.1}
+        value={projectMediaMark.layout.y}
+        onInput={(value) => handleMediaMarkLayoutChange('y', value)}
+        onChange={(value) => handleMediaMarkLayoutChange('y', value)}
+      />
       <button className="secondary-button" type="button" onClick={handleResetMediaMarkLayout}>Reset media mark layout</button>
     </MediaMarkSetupControls>
   )

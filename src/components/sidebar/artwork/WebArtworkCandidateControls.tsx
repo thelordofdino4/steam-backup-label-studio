@@ -2,6 +2,7 @@ import { useCallback, useMemo, type ReactNode } from 'react'
 import {
   ImageCandidatePreviewPicker,
 } from '../ImageCandidatePicker'
+import { EditorFeaturePanel } from '../../editor/EditorPanel'
 import type { ArtworkPanelProps } from './types'
 import { createWebArtworkPickerItems } from './helpers'
 
@@ -31,9 +32,7 @@ export function WebArtworkCandidateControls({
   }, [handleUseWebArtworkCandidate, webArtworkDiscovery.candidates])
 
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">Web artwork</summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title="Web artwork">
         <div className="artwork-import-section">
           <button
             className="secondary-button"
@@ -67,7 +66,6 @@ export function WebArtworkCandidateControls({
           ) : null}
           {fineTuneControls}
         </div>
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }

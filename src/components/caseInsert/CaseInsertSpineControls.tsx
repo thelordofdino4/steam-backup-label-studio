@@ -28,6 +28,9 @@ import {
 import {
   RATING_BADGE_LAYOUT_PRESETS,
 } from '../../layout/presets'
+import {
+  createRepeatedArtworkSummary,
+} from '../../editor/repeatedArtwork'
 import type {
   CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
@@ -87,7 +90,6 @@ import {
   type CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
 import { CaseInsertMarkPlacementControls } from './CaseInsertMarkPlacementControls'
-import { CaseInsertImageSlotFrameControls } from './CaseInsertImageSlotFrameControls'
 import { CaseInsertImageSlotStatusCard } from './CaseInsertImageSlotStatusCard'
 import {
   CaseInsertTitleArtworkControls,
@@ -111,6 +113,9 @@ import {
   CaseInsertTextStyleControls,
 } from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
+import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
+import { EditorFeaturePanel } from '../editor/EditorPanel'
+import { EditorRangeField } from '../editor/EditorRangeField'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 
@@ -232,39 +237,6 @@ function sortSpineTextBlocksForControls(
   return [...textBlocks].sort(
     (left, right) =>
       getCaseInsertTextBlockPriority(left) - getCaseInsertTextBlockPriority(right),
-  )
-}
-
-function RangeField({
-  id,
-  label,
-  min,
-  max,
-  step,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  min: number
-  max: number
-  step: number
-  value: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label htmlFor={id}>
-      <span>{label}</span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
   )
 }
 
@@ -448,7 +420,7 @@ function SpineTitleControls({
             aria-label={`${title.label} fine tuning controls`}
           >
             <div className="disc-text-layout-grid">
-              <RangeField
+              <EditorRangeField
                 id={`${side}-spine-title-scale`}
                 label="Scale"
                 min={0.7}
@@ -457,7 +429,7 @@ function SpineTitleControls({
                 value={title.layout.scale}
                 onChange={(value) => onLayoutChange('scale', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${side}-spine-title-width`}
                 label="Width"
                 min={CASE_INSERT_TEXT_WIDTH_MIN}
@@ -466,7 +438,7 @@ function SpineTitleControls({
                 value={getCaseInsertTextLayoutWidth(title.layout, 90)}
                 onChange={(value) => onLayoutChange('width', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${side}-spine-title-x`}
                 label="Cross"
                 min={0}
@@ -475,7 +447,7 @@ function SpineTitleControls({
                 value={title.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${side}-spine-title-y`}
                 label="Length"
                 min={0}
@@ -698,7 +670,7 @@ function SpineTextBlockControls({
             aria-label={`${textBlock.label} fine tuning controls`}
           >
             <div className="disc-text-layout-grid">
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-scale`}
                 label="Scale"
                 min={0.5}
@@ -707,7 +679,7 @@ function SpineTextBlockControls({
                 value={textBlock.layout.scale}
                 onChange={(value) => onLayoutChange('scale', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-width`}
                 label="Width"
                 min={CASE_INSERT_TEXT_WIDTH_MIN}
@@ -716,7 +688,7 @@ function SpineTextBlockControls({
                 value={getCaseInsertTextLayoutWidth(textBlock.layout)}
                 onChange={(value) => onLayoutChange('width', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-x`}
                 label="Cross"
                 min={0}
@@ -725,7 +697,7 @@ function SpineTextBlockControls({
                 value={textBlock.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-y`}
                 label="Length"
                 min={0}
@@ -955,15 +927,12 @@ function SpineGroupedImageSlotControls({
     slotKey === 'logoSlots' && getCaseInsertAdditionalLogoKey(slot)
       ? 'bundled generic'
       : 'no image'
-  const summary = [
-    slot.enabled ? 'shown' : 'hidden',
-    slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
-    slotKey === 'artworkSlots'
-      ? slot.frame.enabled ? `${slot.frame.shape} frame` : 'no frame'
-      : null,
-    `fit ${slot.fit}`,
-    `scale ${slot.layout.scale.toFixed(2)}`,
-  ].filter(Boolean).join(' · ')
+  const summary = createRepeatedArtworkSummary({
+    enabled: slot.enabled,
+    imageSummary: slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
+    frame: slotKey === 'artworkSlots' ? slot.frame : null,
+    details: [`fit ${slot.fit}`, `scale ${slot.layout.scale.toFixed(2)}`],
+  })
 
   return (
     <RepeatedVisualElementCard
@@ -1040,9 +1009,9 @@ function SpineGroupedImageSlotControls({
             slot={slot}
             emptyHint="No image is selected yet. Upload a local image or use an imported artwork source."
           />
-          <CaseInsertImageSlotFrameControls
+          <EditorArtworkFrameControls
             idPrefix={uploadId}
-            slot={slot}
+            frame={slot.frame}
             onFrameChange={(field, value) =>
               actions.handleSpineGroupedImageSlotFrameChange(
                 side,
@@ -1078,11 +1047,7 @@ function SpineGroupedImageSlotSection({
   actions: JewelCaseSpineEditorActions
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">
-        {CASE_INSERT_ARTWORK_SECTION_LABELS.additionalArtwork}
-      </summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.additionalArtwork}>
         <div className="feature-control-body additional-artwork-control">
           <label className="field-label">
             <input
@@ -1100,7 +1065,7 @@ function SpineGroupedImageSlotSection({
           {featureEnabled ? (
             <>
               {slots.length === 0 ? (
-                <p className="hint">No additional artwork slots.</p>
+                <p className="hint">No additional artwork elements.</p>
               ) : null}
               {slots.map((slot, index) => (
                 <SpineGroupedImageSlotControls
@@ -1120,13 +1085,12 @@ function SpineGroupedImageSlotSection({
                   actions.handleAddSpineGroupedImageSlot(side, 'artworkSlots')}
               >
                 <PlusIcon />
-                <span>Add artwork slot</span>
+                <span>Add artwork element</span>
               </button>
             </>
           ) : null}
         </div>
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }
 
@@ -1138,10 +1102,12 @@ function SpineSideSection({
   children: ReactNode
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top case-insert-spine-side-section">
-      <summary className="panel-summary">{label}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+    <EditorFeaturePanel
+      title={label}
+      className="case-insert-spine-side-section"
+    >
+      {children}
+    </EditorFeaturePanel>
   )
 }
 
@@ -1153,10 +1119,9 @@ function SpineBrandingFeatureSection({
   children: ReactNode
 }) {
   return (
-    <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+    <EditorFeaturePanel title={title} variant="branding">
+      {children}
+    </EditorFeaturePanel>
   )
 }
 
@@ -1311,11 +1276,7 @@ export function CaseInsertSpineArtworkControls({
               imageSources={imageSources}
               actions={actions}
             />
-            <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-              <summary className="panel-summary">
-                {CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}
-              </summary>
-              <div className="panel-content">
+            <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
                 <CaseInsertTitleArtworkControls
                   slot={state.titleArtwork}
                   uploadId={`${side}-spine-title-artwork-upload`}
@@ -1350,8 +1311,7 @@ export function CaseInsertSpineArtworkControls({
                   onRestoreDefault={() =>
                     actions.handleRestoreSpineTitleArtworkDefault(side)}
                 />
-              </div>
-            </details>
+            </EditorFeaturePanel>
             <SpineGroupedImageSlotSection
               side={side}
               featureEnabled={state.additionalArtworkEnabled}
@@ -1486,9 +1446,7 @@ export function CaseInsertSpineBrandingControls({
                 onClearImage={() =>
                   actions.handleClearSpinePrimaryLogoSlot(side, 'developer')}
               >
-                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-                  <summary className="panel-summary">Additional developer logos</summary>
-                  <div className="panel-content">
+                <EditorFeaturePanel title="Additional developer logos">
                     {additionalDeveloperLogoSlots.length === 0 ? (
                       <p className="hint">No additional developer logos.</p>
                     ) : null}
@@ -1515,8 +1473,7 @@ export function CaseInsertSpineBrandingControls({
                       <PlusIcon />
                       <span>Add additional logo</span>
                     </button>
-                  </div>
-                </details>
+                </EditorFeaturePanel>
               </CaseInsertLogoSlotControls>
 
               <CaseInsertLogoSlotControls
@@ -1566,9 +1523,7 @@ export function CaseInsertSpineBrandingControls({
                 onClearImage={() =>
                   actions.handleClearSpinePrimaryLogoSlot(side, 'publisher')}
               >
-                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-                  <summary className="panel-summary">Additional publisher logos</summary>
-                  <div className="panel-content">
+                <EditorFeaturePanel title="Additional publisher logos">
                     {additionalPublisherLogoSlots.length === 0 ? (
                       <p className="hint">No additional publisher logos.</p>
                     ) : null}
@@ -1595,14 +1550,11 @@ export function CaseInsertSpineBrandingControls({
                       <PlusIcon />
                       <span>Add additional logo</span>
                     </button>
-                  </div>
-                </details>
+                </EditorFeaturePanel>
               </CaseInsertLogoSlotControls>
 
               {unassignedAdditionalLogoSlots.length > 0 ? (
-                <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-                  <summary className="panel-summary">Unassigned additional logos</summary>
-                  <div className="panel-content">
+                <EditorFeaturePanel title="Unassigned additional logos">
                     {unassignedAdditionalLogoSlots.map((slot, index) => (
                       <SpineGroupedImageSlotControls
                         key={slot.id}
@@ -1614,8 +1566,7 @@ export function CaseInsertSpineBrandingControls({
                         actions={actions}
                       />
                     ))}
-                  </div>
-                </details>
+                </EditorFeaturePanel>
               ) : null}
             </SpineBrandingFeatureSection>
             {CASE_INSERT_MARK_BRANDING_SECTIONS.map((section) => {

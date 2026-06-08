@@ -8,7 +8,9 @@ import {
   TITLE_ARTWORK_SCALE_MAX,
   TITLE_ARTWORK_SCALE_MIN,
 } from '../../../project/projectTitleArtwork'
-import { formatTitleArtworkSize, getNumericInputValue } from './helpers'
+import { EditorImageAssetStatusCard } from '../../editor/EditorImageAssetStatusCard'
+import { EditorRangeField } from '../../editor/EditorRangeField'
+import { formatTitleArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
 export function TitleArtworkControls({
@@ -72,24 +74,16 @@ export function TitleArtworkControls({
             onChange={handleTitleArtworkUpload}
           />
 
-          {hasTitleArtwork ? (
-            <div className="selected-lockup-card logo-asset-status-card title-artwork-status-card">
-              <img
-                className="logo-asset-preview title-artwork-preview"
-                src={projectTitleArtwork.imageDataUrl ?? undefined}
-                alt=""
-                draggable={false}
-              />
-              <span>
-                {projectTitleArtwork.sourceLabel}
-                {formatTitleArtworkSize(projectTitleArtwork.imageSize)}
-              </span>
-            </div>
-          ) : (
-            <p className="hint">
-              No game logo image is selected yet. Importing a Steam game can seed the Steam CDN logo automatically, or upload a custom image here.
-            </p>
-          )}
+          <EditorImageAssetStatusCard
+            cardClassName="title-artwork-status-card"
+            emptyHint="No game logo image is selected yet. Importing a Steam game can seed the Steam CDN logo automatically, or upload a custom image here."
+            fallbackLabel="Game logo image"
+            formatSize={formatTitleArtworkSize}
+            imageDataUrl={projectTitleArtwork.imageDataUrl}
+            imageSize={projectTitleArtwork.imageSize}
+            previewClassName="title-artwork-preview"
+            statusText="source-label"
+          />
 
           {canRestoreDefaultSteamLogo ? (
             <button
@@ -113,71 +107,51 @@ export function TitleArtworkControls({
             className="disc-text-layout-grid"
             aria-label="Game logo fine tuning controls"
           >
-            <label>
-              <span>Scale</span>
-              <input
-                type="range"
-                min={TITLE_ARTWORK_SCALE_MIN}
-                max={TITLE_ARTWORK_SCALE_MAX}
-                step="0.01"
-                value={projectTitleArtwork.layout.scale}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'scale',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'scale',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id="title-artwork-scale"
+              label="Scale"
+              min={TITLE_ARTWORK_SCALE_MIN}
+              max={TITLE_ARTWORK_SCALE_MAX}
+              step={0.01}
+              value={projectTitleArtwork.layout.scale}
+              disabled={!isRenderable}
+              onInput={(value) =>
+                handleTitleArtworkLayoutChange('scale', value)}
+              onChange={(value) =>
+                handleTitleArtworkLayoutChange('scale', value)}
+            />
 
-            <label>
-              <span>X</span>
-              <input
-                type="range"
-                min={xOffsetSliderRange.min}
-                max={xOffsetSliderRange.max}
-                step="0.1"
-                value={xOffset}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'x',
-                    DISC_LAYOUT_CENTER_PERCENT + getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'x',
-                    DISC_LAYOUT_CENTER_PERCENT + getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id="title-artwork-x"
+              label="X"
+              min={xOffsetSliderRange.min}
+              max={xOffsetSliderRange.max}
+              step={0.1}
+              value={xOffset}
+              disabled={!isRenderable}
+              onInput={(value) =>
+                handleTitleArtworkLayoutChange(
+                  'x',
+                  DISC_LAYOUT_CENTER_PERCENT + value,
+                )}
+              onChange={(value) =>
+                handleTitleArtworkLayoutChange(
+                  'x',
+                  DISC_LAYOUT_CENTER_PERCENT + value,
+                )}
+            />
 
-            <label>
-              <span>Y</span>
-              <input
-                type="range"
-                min={sliderRanges.y.min}
-                max={sliderRanges.y.max}
-                step="0.1"
-                value={projectTitleArtwork.layout.y}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleTitleArtworkLayoutChange(
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id="title-artwork-y"
+              label="Y"
+              min={sliderRanges.y.min}
+              max={sliderRanges.y.max}
+              step={0.1}
+              value={projectTitleArtwork.layout.y}
+              disabled={!isRenderable}
+              onInput={(value) => handleTitleArtworkLayoutChange('y', value)}
+              onChange={(value) => handleTitleArtworkLayoutChange('y', value)}
+            />
           </div>
 
           <button

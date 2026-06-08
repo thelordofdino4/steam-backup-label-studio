@@ -5,6 +5,7 @@ import { RatingBadgeControls } from './branding/RatingBadgeControls'
 import { SteamBannerControls } from './branding/SteamBannerControls'
 import { TechnicalMarkControls } from './branding/TechnicalMarkControls'
 import type { BrandingPanelProps } from './branding/types'
+import { EditorFeaturePanel, EditorPanel } from '../editor/EditorPanel'
 
 export type { BrandingPanelProps } from './branding/types'
 
@@ -12,19 +13,12 @@ export function BrandingPanel(props: BrandingPanelProps) {
   const { projectLogoAssets } = props
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Branding</summary>
-      <div className="panel-content">
-        <details className="feature-section-card metadata-details collapsible-panel">
-          <summary className="panel-summary">Steam banner</summary>
-          <div className="panel-content">
-            <SteamBannerControls {...props} />
-          </div>
-        </details>
+    <EditorPanel title="Branding">
+        <EditorFeaturePanel title="Steam banner" spacingTop={false}>
+          <SteamBannerControls {...props} />
+        </EditorFeaturePanel>
 
-        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Developer / publisher logos</summary>
-          <div className="panel-content">
+        <EditorFeaturePanel title="Developer / publisher logos" variant="branding">
             <LogoAssetControls
               logoKey="developer"
               label="Developer"
@@ -41,37 +35,23 @@ export function BrandingPanel(props: BrandingPanelProps) {
               layout={projectLogoAssets.publisherLogoLayout}
               {...props}
             />
-          </div>
-        </details>
+        </EditorFeaturePanel>
 
-        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Rating badge</summary>
-          <div className="panel-content">
-            <RatingBadgeControls {...props} />
-          </div>
-        </details>
+        <EditorFeaturePanel title="Rating badge" variant="branding">
+          <RatingBadgeControls {...props} />
+        </EditorFeaturePanel>
 
-        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Media format mark</summary>
-          <div className="panel-content">
-            <MediaMarkControls {...props} />
-          </div>
-        </details>
+        <EditorFeaturePanel title="Media format mark" variant="branding">
+          <MediaMarkControls {...props} />
+        </EditorFeaturePanel>
 
-        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Operating system marks</summary>
-          <div className="panel-content">
-            <PlatformMarkControls {...props} />
-          </div>
-        </details>
+        <EditorFeaturePanel title="Operating system marks" variant="branding">
+          <PlatformMarkControls {...props} />
+        </EditorFeaturePanel>
 
-        <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-          <summary className="panel-summary">Technical marks</summary>
-          <div className="panel-content">
-            <TechnicalMarkControls {...props} />
-          </div>
-        </details>
-      </div>
-    </details>
+        <EditorFeaturePanel title="Technical marks" variant="branding">
+          <TechnicalMarkControls {...props} />
+        </EditorFeaturePanel>
+    </EditorPanel>
   )
 }

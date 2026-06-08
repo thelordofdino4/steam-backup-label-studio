@@ -136,6 +136,42 @@ test('case insert primary logo reset and clear preserve enabled state and saved 
   assert.equal(developerLogo?.layout.y, 84)
 })
 
+test('case insert logo slots preserve selected images while disabled', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) =>
+    setCaseInsertPrimaryLogoSlotImage(tray, 'tray', 'developer', {
+      imageDataUrl: 'data:image/png;base64,developer',
+      imageSize: { width: 512, height: 128 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'uploaded',
+        sourceLabel: 'developer.png',
+      }),
+    }))
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) =>
+    setCaseInsertPrimaryLogoSlotEnabled(tray, 'tray', 'developer', false))
+
+  let developerLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.tray,
+    'developer',
+  )
+
+  assert.equal(developerLogo?.imageDataUrl, 'data:image/png;base64,developer')
+  assert.equal(getCaseInsertLogoSlotRenderInfo(developerLogo!), null)
+
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) =>
+    setCaseInsertPrimaryLogoSlotEnabled(tray, 'tray', 'developer', true))
+  developerLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.tray,
+    'developer',
+  )
+
+  assert.equal(
+    getCaseInsertLogoSlotRenderInfo(developerLogo!)?.imageDataUrl,
+    'data:image/png;base64,developer',
+  )
+})
+
 test('case insert logo render info uses bundled generic artwork for enabled empty logo slots', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 

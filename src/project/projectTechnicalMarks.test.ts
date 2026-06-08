@@ -6,6 +6,7 @@ import {
   getProjectTechnicalMarkAssetEntries,
   getProjectTechnicalMarkAsset,
   normalizeProjectTechnicalMarks,
+  removeTechnicalMarkAsset,
   setTechnicalMarkCustomImage,
   updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
@@ -92,6 +93,42 @@ test('additional technical mark assets keep category checkboxes and separate ent
   assert.equal(entries[1].assetId, extraAssetId)
   assert.equal(entries[1].asset.label, 'surround')
   assert.equal(entries[1].asset.customImageDataUrl, 'data:image/png;base64,extra-surround')
+})
+
+test('removing an additional technical mark preserves the primary mark asset', () => {
+  const technicalMarks = addTechnicalMarkAsset(
+    setTechnicalMarkCustomImage(
+      createDefaultProjectTechnicalMarks(),
+      'audio',
+      'data:image/png;base64,primary-audio',
+      { width: 200, height: 100 },
+    ),
+    'audio',
+  )
+  const extraAssetId = technicalMarks.additionalAssets?.audio?.[0]?.id
+
+  assert.ok(extraAssetId)
+
+  const updatedMarks = setTechnicalMarkCustomImage(
+    technicalMarks,
+    'audio',
+    'data:image/png;base64,extra-audio',
+    { width: 300, height: 120 },
+    undefined,
+    extraAssetId,
+  )
+  const removedMarks = removeTechnicalMarkAsset(
+    updatedMarks,
+    'audio',
+    extraAssetId,
+  )
+  const entries = getProjectTechnicalMarkAssetEntries(removedMarks, 'audio')
+
+  assert.deepEqual(removedMarks.values, ['audio'])
+  assert.equal(entries.length, 1)
+  assert.equal(entries[0].isPrimary, true)
+  assert.equal(entries[0].asset.customImageDataUrl, 'data:image/png;base64,primary-audio')
+  assert.deepEqual(removedMarks.additionalAssets?.audio, [])
 })
 
 test('disabling a technical mark preserves selected value and custom asset state', () => {

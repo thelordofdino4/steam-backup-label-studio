@@ -7,7 +7,9 @@ import {
   createAdditionalArtworkRenderItems,
   createDefaultProjectAdditionalArtwork,
   normalizeProjectAdditionalArtwork,
+  removeAdditionalArtworkElement,
   resetAdditionalArtworkElementFrame,
+  setAdditionalArtworkEnabled,
   setAdditionalArtworkElementImage,
   updateAdditionalArtworkElementLabel,
   updateAdditionalArtworkElementFrameField,
@@ -80,6 +82,38 @@ test('additional artwork elements default to editable frames that render with th
   assert.equal(reset.elements[0]!.imageDataUrl, importedImage.imageDataUrl)
 })
 
+test('additional artwork elements use shared numbering labels when added', () => {
+  let additionalArtwork = createDefaultProjectAdditionalArtwork()
+
+  additionalArtwork = addAdditionalArtworkElement(
+    additionalArtwork,
+    discTemplates.standardPrintableDisc,
+  )
+  additionalArtwork = addAdditionalArtworkElement(
+    additionalArtwork,
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.deepEqual(
+    additionalArtwork.elements.map(({ label }) => label),
+    ['Artwork 1', 'Artwork 2'],
+  )
+
+  additionalArtwork = removeAdditionalArtworkElement(
+    additionalArtwork,
+    additionalArtwork.elements[0]!.id,
+  )
+  additionalArtwork = addAdditionalArtworkElement(
+    additionalArtwork,
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.deepEqual(
+    additionalArtwork.elements.map(({ label }) => label),
+    ['Artwork 2', 'Artwork 3'],
+  )
+})
+
 test('additional artwork labels persist through updates and render items', () => {
   const withElement = addAdditionalArtworkElement(
     createDefaultProjectAdditionalArtwork(),
@@ -104,6 +138,53 @@ test('additional artwork labels persist through updates and render items', () =>
 
   assert.equal(withImage.elements[0]!.label, 'Character render')
   assert.equal(createAdditionalArtworkRenderItems(withImage)[0]!.label, 'Character render')
+})
+
+test('additional artwork global visibility preserves state while omitting render items', () => {
+  const withElement = addAdditionalArtworkElement(
+    createDefaultProjectAdditionalArtwork(),
+    discTemplates.standardPrintableDisc,
+  )
+  const elementId = withElement.elements[0]!.id
+  const withImageAndFrame = updateAdditionalArtworkElementFrameField(
+    updateAdditionalArtworkElementFrameField(
+      setAdditionalArtworkElementImage(
+        withElement,
+        elementId,
+        importedImage,
+        {
+          source: 'custom',
+          sourceId: null,
+          sourceLabel: importedImage.fileName,
+        },
+      ),
+      elementId,
+      'enabled',
+      true,
+    ),
+    elementId,
+    'width',
+    3,
+  )
+  const hidden = setAdditionalArtworkEnabled(withImageAndFrame, false)
+  const restored = normalizeProjectAdditionalArtwork(
+    hidden,
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.deepEqual(createAdditionalArtworkRenderItems(hidden), [])
+  assert.equal(hidden.elements[0]!.imageDataUrl, importedImage.imageDataUrl)
+  assert.equal(hidden.elements[0]!.frame.enabled, true)
+  assert.equal(hidden.elements[0]!.frame.width, 3)
+  assert.equal(restored.enabled, false)
+  assert.equal(restored.elements[0]!.imageDataUrl, importedImage.imageDataUrl)
+  assert.equal(restored.elements[0]!.frame.width, 3)
+  assert.equal(
+    createAdditionalArtworkRenderItems(
+      setAdditionalArtworkEnabled(restored, true),
+    ).length,
+    1,
+  )
 })
 
 test('additional artwork render items require feature, element, and image visibility', () => {

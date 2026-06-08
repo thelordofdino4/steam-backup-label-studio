@@ -12,7 +12,7 @@ import {
 } from '../../../image/backgroundArtworkSource'
 import { getProjectImageAssetStatus } from '../../../project/projectAssetStatus'
 import type { ProjectImageAssetProvenance } from '../../../project/projectTypes'
-import { getNumericInputValue } from './helpers'
+import { EditorRangeField } from '../../editor/EditorRangeField'
 import { LocalFileArtworkControls } from './LocalFileArtworkControls'
 import { LocalScreenshotControls } from './LocalScreenshotControls'
 import { SteamArtworkControls } from './SteamArtworkControls'
@@ -101,65 +101,38 @@ function BackgroundArtworkFineTuneControls({
       <p className="hint">{statusMessage}</p>
 
       <div className="disc-text-layout-grid">
-        <label>
-          <span>Scale</span>
-          <input
-            id={`${idPrefix}-background-scale`}
-            type="range"
-            min={BACKGROUND_SCALE_MIN}
-            max={BACKGROUND_SCALE_MAX}
-            step="0.01"
-            value={backgroundScale}
-            onInput={(event) =>
-              handleBackgroundScaleChange(getNumericInputValue(event))}
-            onChange={(event) =>
-              handleBackgroundScaleChange(getNumericInputValue(event))}
-          />
-        </label>
+        <EditorRangeField
+          id={`${idPrefix}-background-scale`}
+          label="Scale"
+          min={BACKGROUND_SCALE_MIN}
+          max={BACKGROUND_SCALE_MAX}
+          step={0.01}
+          value={backgroundScale}
+          onInput={handleBackgroundScaleChange}
+          onChange={handleBackgroundScaleChange}
+        />
 
-        <label>
-          <span>X</span>
-          <input
-            id={`${idPrefix}-background-offset-x`}
-            type="range"
-            min={backgroundOffsetSliderRanges.x.min}
-            max={backgroundOffsetSliderRanges.x.max}
-            step="0.1"
-            value={backgroundOffset.x}
-            onInput={(event) =>
-              handleBackgroundOffsetChange(
-                'x',
-                getNumericInputValue(event),
-              )}
-            onChange={(event) =>
-              handleBackgroundOffsetChange(
-                'x',
-                getNumericInputValue(event),
-              )}
-          />
-        </label>
+        <EditorRangeField
+          id={`${idPrefix}-background-offset-x`}
+          label="X"
+          min={backgroundOffsetSliderRanges.x.min}
+          max={backgroundOffsetSliderRanges.x.max}
+          step={0.1}
+          value={backgroundOffset.x}
+          onInput={(value) => handleBackgroundOffsetChange('x', value)}
+          onChange={(value) => handleBackgroundOffsetChange('x', value)}
+        />
 
-        <label>
-          <span>Y</span>
-          <input
-            id={`${idPrefix}-background-offset-y`}
-            type="range"
-            min={backgroundOffsetSliderRanges.y.min}
-            max={backgroundOffsetSliderRanges.y.max}
-            step="0.1"
-            value={backgroundOffset.y}
-            onInput={(event) =>
-              handleBackgroundOffsetChange(
-                'y',
-                getNumericInputValue(event),
-              )}
-            onChange={(event) =>
-              handleBackgroundOffsetChange(
-                'y',
-                getNumericInputValue(event),
-              )}
-          />
-        </label>
+        <EditorRangeField
+          id={`${idPrefix}-background-offset-y`}
+          label="Y"
+          min={backgroundOffsetSliderRanges.y.min}
+          max={backgroundOffsetSliderRanges.y.max}
+          step={0.1}
+          value={backgroundOffset.y}
+          onInput={(value) => handleBackgroundOffsetChange('y', value)}
+          onChange={(value) => handleBackgroundOffsetChange('y', value)}
+        />
       </div>
 
       <button

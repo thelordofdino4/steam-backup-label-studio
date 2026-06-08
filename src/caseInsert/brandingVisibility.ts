@@ -12,6 +12,10 @@ import {
 import {
   normalizeUskRatingValue,
 } from '../project/projectMetadata.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  isOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import type {
   ProjectCaseInsertImageSlot,
 } from '../project/projectTypes.ts'
@@ -43,7 +47,7 @@ function isRatingSourceCurrent(
     const ratingValue = brandingSources.projectRatingBadge.uskBadge.ratingValue
 
     return brandingSources.projectMetadata.ratingSystem === 'PEGI' &&
-      brandingSources.projectRatingBadge.uskBadge.layout.enabled &&
+      isOptionalLayoutFeatureEnabled(brandingSources.projectRatingBadge.uskBadge) &&
       Boolean(normalizeUskRatingValue(ratingValue)) &&
       sourceId === `case-rating:USK:${ratingValue}:supplemental`
   }
@@ -99,10 +103,10 @@ export function isCaseInsertMarkKindEnabled(
 ) {
   switch (kind) {
     case 'rating':
-      return brandingSources.projectRatingBadge.layout.enabled &&
+      return isOptionalLayoutFeatureEnabled(brandingSources.projectRatingBadge) &&
         brandingSources.projectMetadata.ratingSystem !== 'none'
     case 'media':
-      return brandingSources.projectMediaMark.layout.enabled
+      return isOptionalLayoutFeatureEnabled(brandingSources.projectMediaMark)
     case 'platform':
       return getEnabledPlatformMarkValues(
         brandingSources.projectPlatformMarks,
@@ -121,7 +125,7 @@ export function isCaseInsertMarkSlotVisible(
 ) {
   const sourceId = slot.imageSource?.sourceId
 
-  if (!slot.enabled) {
+  if (!isOptionalVisualFeatureEnabled(slot)) {
     return false
   }
 

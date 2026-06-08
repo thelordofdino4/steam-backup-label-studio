@@ -3,6 +3,10 @@ import {
   type SupportedCaseInsertTemplateType,
 } from '../editor/editorTypes.ts'
 import {
+  createRepeatedArtworkLabel,
+  createRepeatedArtworkSlotId,
+} from '../editor/repeatedArtwork.ts'
+import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
@@ -291,8 +295,12 @@ function normalizeCaseInsertImageSlotArray(
       slot,
       defaults[index] ??
         createDefaultCaseInsertImageSlot(
-          `${idPrefix}-${index + 1}`,
-          `${labelPrefix} ${index + 1}`,
+          labelPrefix === 'Artwork'
+            ? createRepeatedArtworkSlotId(idPrefix, index + 1)
+            : `${idPrefix}-${index + 1}`,
+          labelPrefix === 'Artwork'
+            ? createRepeatedArtworkLabel(index + 1)
+            : `${labelPrefix} ${index + 1}`,
         ),
     ),
   )

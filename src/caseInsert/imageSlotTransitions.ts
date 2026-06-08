@@ -2,6 +2,7 @@ import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import { setOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import { getJewelCaseImageRegionHeightFitScale } from '../layout/jewelCaseLayout.ts'
 import {
   DEFAULT_ADDITIONAL_ARTWORK_FRAME,
@@ -22,10 +23,7 @@ export function setCaseInsertImageSlotEnabled(
   slot: ProjectCaseInsertImageSlot,
   enabled: boolean,
 ): ProjectCaseInsertImageSlot {
-  return {
-    ...slot,
-    enabled,
-  }
+  return setOptionalVisualFeatureEnabled(slot, enabled)
 }
 
 export function setCaseInsertImageSlotImage(

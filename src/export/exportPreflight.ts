@@ -30,6 +30,12 @@ import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../branding/steamBannerDefaults.ts'
+import {
+  isOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  getMarkImageSourceStatus,
+} from '../editor/markImageSource.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3
@@ -207,7 +213,10 @@ function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
 }
 
 function getTitleArtworkWarnings(titleArtwork: ProjectTitleArtwork) {
-  if (!titleArtwork.layout.enabled || canUseTitleArtwork(titleArtwork)) {
+  if (
+    !isOptionalLayoutFeatureEnabled(titleArtwork) ||
+    canUseTitleArtwork(titleArtwork)
+  ) {
     return []
   }
 
@@ -222,7 +231,7 @@ function getRatingBadgeWarnings(
 ) {
   const warnings: string[] = []
 
-  if (!ratingBadge.layout.enabled) {
+  if (!isOptionalLayoutFeatureEnabled(ratingBadge)) {
     return warnings
   }
 
@@ -232,7 +241,9 @@ function getRatingBadgeWarnings(
     warnings.push('Rating badge is enabled, but no rating value is set.')
   }
 
-  if (ratingBadge.source === 'custom' && !ratingBadge.customImageDataUrl) {
+  const sourceStatus = getMarkImageSourceStatus(ratingBadge)
+
+  if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
     warnings.push('Custom rating badge is selected, but no custom image is uploaded; bundled rating artwork will export when rating metadata is renderable.')
   }
 
@@ -258,7 +269,9 @@ function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
     return []
   }
 
-  if (mediaMark.source === 'custom' && !mediaMark.customImageDataUrl) {
+  const sourceStatus = getMarkImageSourceStatus(mediaMark)
+
+  if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
     return [
       `Custom ${model.label} media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
     ]
@@ -273,7 +286,9 @@ function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
 
 function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
   return createPlatformMarkRenderModels(platformMarks).flatMap((model) => {
-    if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
+    const sourceStatus = getMarkImageSourceStatus(model.asset)
+
+    if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
       return [
         `Custom ${model.label} operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
       ]
@@ -289,7 +304,9 @@ function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
 
 function getTechnicalMarkWarnings(technicalMarks: ProjectTechnicalMarks) {
   return createTechnicalMarkRenderModels(technicalMarks).flatMap((model) => {
-    if (model.asset.source === 'custom' && !model.asset.customImageDataUrl) {
+    const sourceStatus = getMarkImageSourceStatus(model.asset)
+
+    if (sourceStatus.isCustomSource && !sourceStatus.hasCustomImage) {
       return [
         `Custom ${model.label} technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.`,
       ]

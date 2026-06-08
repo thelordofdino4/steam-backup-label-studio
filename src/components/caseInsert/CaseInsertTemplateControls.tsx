@@ -38,6 +38,9 @@ import {
 import {
   RATING_BADGE_LAYOUT_PRESETS,
 } from '../../layout/presets'
+import {
+  createRepeatedArtworkSummary,
+} from '../../editor/repeatedArtwork'
 import type {
   CaseInsertLayoutSliderRanges,
 } from '../../layout/caseInsertElementSafeZone'
@@ -71,6 +74,9 @@ import {
   getCaseInsertTextLayoutWidth,
   getCaseInsertTextListLayoutPresets,
 } from '../../caseInsert/textLayout'
+import { EditorFeaturePanel } from '../editor/EditorPanel'
+import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
+import { EditorRangeField } from '../editor/EditorRangeField'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
@@ -83,7 +89,6 @@ import {
   type CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
 import { CaseInsertMarkPlacementControls } from './CaseInsertMarkPlacementControls'
-import { CaseInsertImageSlotFrameControls } from './CaseInsertImageSlotFrameControls'
 import { CaseInsertImageSlotStatusCard } from './CaseInsertImageSlotStatusCard'
 import {
   CaseInsertTitleArtworkControls,
@@ -257,39 +262,6 @@ function sortTextBlocksForControls(textBlocks: ProjectCaseInsertTextBlock[]) {
 
 function getPositionPresets(paneId: CaseInsertTemplatePaneId) {
   return paneId === 'cover' ? COVER_POSITION_PRESETS : TRAY_POSITION_PRESETS
-}
-
-function RangeField({
-  id,
-  label,
-  min,
-  max,
-  step,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  min: number
-  max: number
-  step: number
-  value: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label htmlFor={id}>
-      <span>{label}</span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
-  )
 }
 
 function OverlayPositionPreset({
@@ -553,15 +525,12 @@ function GroupedImageSlotControls({
     slotKey === 'logoSlots' && getCaseInsertAdditionalLogoKey(slot)
       ? 'bundled generic'
       : 'no image'
-  const summary = [
-    slot.enabled ? 'shown' : 'hidden',
-    slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
-    slotKey === 'artworkSlots'
-      ? slot.frame.enabled ? `${slot.frame.shape} frame` : 'no frame'
-      : null,
-    `fit ${slot.fit}`,
-    `scale ${slot.layout.scale.toFixed(2)}`,
-  ].filter(Boolean).join(' · ')
+  const summary = createRepeatedArtworkSummary({
+    enabled: slot.enabled,
+    imageSummary: slot.imageDataUrl ? slotImageStatus.summary : emptyImageSummary,
+    frame: slotKey === 'artworkSlots' ? slot.frame : null,
+    details: [`fit ${slot.fit}`, `scale ${slot.layout.scale.toFixed(2)}`],
+  })
 
   return (
     <RepeatedVisualElementCard
@@ -638,9 +607,9 @@ function GroupedImageSlotControls({
             slot={slot}
             emptyHint="No image is selected yet. Upload a local image or use an imported artwork source."
           />
-          <CaseInsertImageSlotFrameControls
+          <EditorArtworkFrameControls
             idPrefix={uploadId}
-            slot={slot}
+            frame={slot.frame}
             onFrameChange={(field, value) =>
               actions.handleGroupedImageSlotFrameChange(
                 paneId,
@@ -725,9 +694,7 @@ function GroupedImageSlotSection({
   onFeatureEnabledChange?: (enabled: boolean) => void
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title={title}>
         {onFeatureEnabledChange ? (
           <div className="feature-control-body additional-artwork-control">
             <label className="field-label">
@@ -747,8 +714,7 @@ function GroupedImageSlotSection({
         ) : (
           <GroupedImageSlotList {...slotListProps} />
         )}
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }
 
@@ -760,10 +726,7 @@ function CaseInsertArtworkFeatureSection({
   children: ReactNode
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+    <EditorFeaturePanel title={title}>{children}</EditorFeaturePanel>
   )
 }
 
@@ -932,7 +895,7 @@ function TextBlockControls({
             aria-label={`${textBlock.label} fine tuning controls`}
           >
             <div className="disc-text-layout-grid">
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-scale`}
                 label="Scale"
                 min={0.7}
@@ -941,7 +904,7 @@ function TextBlockControls({
                 value={textBlock.layout.scale}
                 onChange={(value) => onLayoutChange('scale', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-width`}
                 label="Width"
                 min={CASE_INSERT_TEXT_WIDTH_MIN}
@@ -950,7 +913,7 @@ function TextBlockControls({
                 value={getCaseInsertTextLayoutWidth(textBlock.layout)}
                 onChange={(value) => onLayoutChange('width', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-x`}
                 label="X"
                 min={0}
@@ -959,7 +922,7 @@ function TextBlockControls({
                 value={textBlock.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textBlock.id}-y`}
                 label="Y"
                 min={0}
@@ -1159,7 +1122,7 @@ function TextListControls({
             aria-label={`${textList.label} fine tuning controls`}
           >
             <div className="disc-text-layout-grid">
-              <RangeField
+              <EditorRangeField
                 id={`${textList.id}-scale`}
                 label="Scale"
                 min={0.7}
@@ -1168,7 +1131,7 @@ function TextListControls({
                 value={textList.layout.scale}
                 onChange={(value) => onLayoutChange('scale', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textList.id}-width`}
                 label="Width"
                 min={CASE_INSERT_TEXT_WIDTH_MIN}
@@ -1177,7 +1140,7 @@ function TextListControls({
                 value={getCaseInsertTextLayoutWidth(textList.layout)}
                 onChange={(value) => onLayoutChange('width', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textList.id}-x`}
                 label="X"
                 min={0}
@@ -1186,7 +1149,7 @@ function TextListControls({
                 value={textList.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
-              <RangeField
+              <EditorRangeField
                 id={`${textList.id}-y`}
                 label="Y"
                 min={0}
@@ -1298,8 +1261,8 @@ export function CaseInsertTemplateArtworkControls({
         featureEnabled={templateState.additionalArtworkEnabled}
         onFeatureEnabledChange={(enabled) =>
           actions.handleAdditionalArtworkEnabledChange(paneId, enabled)}
-        emptyHint="No additional artwork slots."
-        addLabel="Add artwork slot"
+        emptyHint="No additional artwork elements."
+        addLabel="Add artwork element"
         slotKey="artworkSlots"
         slots={templateState.artworkSlots}
         imageSources={imageSources}
@@ -1317,10 +1280,9 @@ function CaseInsertBrandingFeatureSection({
   children: ReactNode
 }) {
   return (
-    <details className="branding-feature-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+    <EditorFeaturePanel title={title} variant="branding">
+      {children}
+    </EditorFeaturePanel>
   )
 }
 
@@ -1487,9 +1449,7 @@ export function CaseInsertTemplateBrandingControls({
           onClearImage={() =>
             actions.handleClearPrimaryLogoSlot(paneId, 'developer')}
         >
-          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-            <summary className="panel-summary">Additional developer logos</summary>
-            <div className="panel-content">
+          <EditorFeaturePanel title="Additional developer logos">
               <GroupedImageSlotList
                 paneId={paneId}
                 emptyHint="No additional developer logos."
@@ -1501,8 +1461,7 @@ export function CaseInsertTemplateBrandingControls({
                 onAddSlot={() =>
                   actions.handleAddAdditionalLogoSlot(paneId, 'developer')}
               />
-            </div>
-          </details>
+          </EditorFeaturePanel>
         </CaseInsertLogoSlotControls>
 
         <CaseInsertLogoSlotControls
@@ -1545,9 +1504,7 @@ export function CaseInsertTemplateBrandingControls({
           onClearImage={() =>
             actions.handleClearPrimaryLogoSlot(paneId, 'publisher')}
         >
-          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-            <summary className="panel-summary">Additional publisher logos</summary>
-            <div className="panel-content">
+          <EditorFeaturePanel title="Additional publisher logos">
               <GroupedImageSlotList
                 paneId={paneId}
                 emptyHint="No additional publisher logos."
@@ -1559,14 +1516,11 @@ export function CaseInsertTemplateBrandingControls({
                 onAddSlot={() =>
                   actions.handleAddAdditionalLogoSlot(paneId, 'publisher')}
               />
-            </div>
-          </details>
+          </EditorFeaturePanel>
         </CaseInsertLogoSlotControls>
 
         {unassignedAdditionalLogoSlots.length > 0 ? (
-          <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-            <summary className="panel-summary">Unassigned additional logos</summary>
-            <div className="panel-content">
+          <EditorFeaturePanel title="Unassigned additional logos">
               <GroupedImageSlotList
                 paneId={paneId}
                 emptyHint="No unassigned additional logos."
@@ -1577,8 +1531,7 @@ export function CaseInsertTemplateBrandingControls({
                 actions={actions}
                 showAddButton={false}
               />
-            </div>
-          </details>
+          </EditorFeaturePanel>
         ) : null}
       </CaseInsertBrandingFeatureSection>
 

@@ -6,10 +6,10 @@ import {
   type DiscTextLayoutSettings,
 } from '../discText/index'
 import {
+  createElementPercentDragState,
   createPercentDragState,
   createPixelDragState,
-  getDraggedPercentPoint,
-  getDraggedPixelOffset,
+  type DragPoint,
   type PercentDragState,
   type PixelDragState,
 } from './dragGeometry'
@@ -72,7 +72,10 @@ import type {
   TechnicalMarkValue,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
-import { usePointerDrag } from './usePointerDrag'
+import {
+  usePercentPointerDrag,
+  usePixelPointerDrag,
+} from './usePointerDragAdapters'
 import { clampBackgroundOffsetToImageBounds } from '../image/backgroundImage'
 
 type TextDragState = {
@@ -104,8 +107,6 @@ type TechnicalMarkDragState = {
   value: TechnicalMarkValue
   assetId?: string | null
 } & PercentDragState
-
-type PercentPoint = ReturnType<typeof getDraggedPercentPoint>
 
 type StateBinding<TValue> = {
   value: TValue
@@ -139,46 +140,13 @@ type UseDiscPreviewPointerDragOptions = {
 
 function useDiscPreviewPercentDrag<TDragState extends PercentDragState>(
   discPreviewRef: RefObject<HTMLDivElement | null>,
-  onDraggedPoint: (dragState: TDragState, draggedPoint: PercentPoint) => void,
+  onDraggedPoint: (dragState: TDragState, draggedPoint: DragPoint) => void,
 ) {
-  return usePointerDrag<TDragState>({
+  return usePercentPointerDrag<TDragState>({
     stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
-
-      if (!previewRect) {
-        return
-      }
-
-      onDraggedPoint(
-        dragState,
-        getDraggedPercentPoint(
-          dragState,
-          event.clientX,
-          event.clientY,
-          previewRect,
-        ),
-      )
-    },
+    getBounds: () => discPreviewRef.current?.getBoundingClientRect(),
+    onDraggedPoint,
   })
-}
-
-function createElementPercentDragState<TExtra extends object>(
-  event: PointerEvent<Element>,
-  startX: number,
-  startY: number,
-  extra: TExtra,
-): TExtra & PercentDragState {
-  return {
-    ...extra,
-    ...createPercentDragState(
-      event.pointerId,
-      event.clientX,
-      event.clientY,
-      startX,
-      startY,
-    ),
-  }
 }
 
 export function useDiscPreviewPointerDrag({
@@ -194,10 +162,12 @@ export function useDiscPreviewPointerDrag({
   technicalMarks,
 }: UseDiscPreviewPointerDragOptions) {
   const { discPreviewRef, selectedDiscTemplate } = preview
-  const backgroundPointerDrag = usePointerDrag<PixelDragState, HTMLDivElement>({
-    onDragMove: (dragState, event) => {
+  const backgroundPointerDrag = usePixelPointerDrag<
+    PixelDragState,
+    HTMLDivElement
+  >({
+    onDraggedOffset: (_dragState, nextOffset) => {
       const previewRect = discPreviewRef.current?.getBoundingClientRect()
-      const nextOffset = getDraggedPixelOffset(dragState, event.clientX, event.clientY)
 
       background.setOffset(
         previewRect
@@ -425,7 +395,9 @@ export function useDiscPreviewPointerDrag({
       discTextPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           discText.layout[key].x,
           discText.layout[key].y,
           { key },
@@ -446,7 +418,9 @@ export function useDiscPreviewPointerDrag({
       logoAssetPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           layout.x,
           layout.y,
           { logoKey, additionalLogoId },
@@ -486,7 +460,9 @@ export function useDiscPreviewPointerDrag({
       additionalArtworkPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           layout.x,
           layout.y,
           { elementId },
@@ -503,7 +479,9 @@ export function useDiscPreviewPointerDrag({
       ratingBadgePointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           layout.x,
           layout.y,
           { badgeKey },
@@ -536,7 +514,9 @@ export function useDiscPreviewPointerDrag({
       platformMarkPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           asset.layout.x,
           asset.layout.y,
           { value },
@@ -562,7 +542,9 @@ export function useDiscPreviewPointerDrag({
       technicalMarkPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
-          event,
+          event.pointerId,
+          event.clientX,
+          event.clientY,
           asset.layout.x,
           asset.layout.y,
           { value, assetId },

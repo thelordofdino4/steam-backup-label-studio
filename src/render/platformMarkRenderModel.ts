@@ -1,9 +1,14 @@
 import {
   getPlatformMarkBoundsPercent,
   getPlatformMarkPlaceholderBoundsPercent,
-  type RenderBoundsPercent,
 } from '../disc/geometry.ts'
 import { getPlatformMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  resolveMarkImageSource,
+} from '../editor/markImageSource.ts'
 import {
   getPlatformMarkLabel,
   getProjectPlatformMarkAsset,
@@ -14,19 +19,18 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
 } from '../project/projectTypes.ts'
-import { hasCustomMarkImage } from './markImageSource.ts'
+import {
+  createPercentPositionedImageRenderArtifact,
+  type PercentPositionedImageRenderArtifact,
+} from './imageRenderArtifact.ts'
 
-export type PlatformMarkRenderModel = {
+export type PlatformMarkRenderModel = PercentPositionedImageRenderArtifact<
+  PlatformMarkLayout,
+  {
   value: PlatformMarkValue
   asset: ProjectPlatformMarkAsset
-  imageDataUrl: string
-  isPlaceholderImage: boolean
-  label: string
-  alt: string
-  layout: PlatformMarkLayout
-  unscaledBounds: RenderBoundsPercent
-  scaledBounds: RenderBoundsPercent
-}
+  }
+>
 
 export function createPlatformMarkRenderModels(
   platformMarks: ProjectPlatformMarks,
@@ -34,30 +38,39 @@ export function createPlatformMarkRenderModels(
   return platformMarks.values.flatMap((value) => {
     const asset = getProjectPlatformMarkAsset(platformMarks, value)
 
-    if (!asset.layout.enabled) {
+    if (!isOptionalVisualFeatureEnabled(asset.layout)) {
       return []
     }
 
     const label = getPlatformMarkLabel(value)
-    const customImageDataUrl = asset.customImageDataUrl
-    const isCustomImage = hasCustomMarkImage(asset.source, customImageDataUrl)
+    const resolvedImage = resolveMarkImageSource({
+      source: asset.source,
+      customImageDataUrl: asset.customImageDataUrl,
+      customImageSize: asset.customImageSize,
+      builtInImageDataUrl: getPlatformMarkPlaceholderImageUrl(
+        value,
+        asset.theme,
+      ),
+    })
     const getBounds = (scale: number) =>
-      isCustomImage && asset.customImageSize
-        ? getPlatformMarkBoundsPercent(asset.customImageSize, scale)
+      resolvedImage.isCustomImage && resolvedImage.imageSize
+        ? getPlatformMarkBoundsPercent(resolvedImage.imageSize, scale)
         : getPlatformMarkPlaceholderBoundsPercent(scale)
 
-    return [{
+    const model = createPercentPositionedImageRenderArtifact({
       value,
       asset,
-      imageDataUrl: isCustomImage
-        ? customImageDataUrl
-        : getPlatformMarkPlaceholderImageUrl(value, asset.theme),
-      isPlaceholderImage: !isCustomImage,
+      imageDataUrl: resolvedImage.imageDataUrl,
+      isPlaceholderImage: resolvedImage.isBuiltInFallback,
       label,
-      alt: isCustomImage ? label : `${label} generic operating system mark`,
+      alt: resolvedImage.isCustomImage
+        ? label
+        : `${label} generic operating system mark`,
       layout: asset.layout,
       unscaledBounds: getBounds(1),
       scaledBounds: getBounds(asset.layout.scale),
-    }]
+    })
+
+    return model ? [model] : []
   })
 }

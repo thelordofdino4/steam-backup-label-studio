@@ -1,5 +1,6 @@
 import type { DiscTemplate } from '../../types/template'
 import type { SelectedDiscTemplateId } from '../../project/projectTypes'
+import { EditorPanel } from '../editor/EditorPanel'
 
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -30,9 +31,7 @@ export function TemplatePanel({
   handleCustomDimensionChange,
 }: TemplatePanelProps) {
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Template</summary>
-      <div className="panel-content">
+    <EditorPanel title="Template">
         <label className="field-label" htmlFor="disc-template">
           Disc type
         </label>
@@ -152,7 +151,6 @@ export function TemplatePanel({
         {selectedDiscTemplate.geometryNote && (
           <p className="hint">{selectedDiscTemplate.geometryNote}</p>
         )}
-      </div>
-    </details>
+    </EditorPanel>
   )
 }

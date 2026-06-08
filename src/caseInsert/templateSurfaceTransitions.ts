@@ -7,6 +7,11 @@ import type {
   ProjectCaseInsertTextList,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import {
+  createRepeatedArtworkLabel,
+  createRepeatedArtworkSlotId,
+  getNextRepeatedArtworkSlotNumber,
+} from '../editor/repeatedArtwork.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
 import type {
   CaseInsertImageSlotGroupKey,
@@ -148,10 +153,16 @@ export function createCaseInsertTemplateImageSlot(
   index: number,
 ): ProjectCaseInsertImageSlot {
   const config = getCaseInsertImageSlotGroupConfig(paneId, slotKey)
+  const id = slotKey === 'artworkSlots'
+    ? createRepeatedArtworkSlotId(config.idPrefix, index)
+    : `${config.idPrefix}-${index}`
+  const label = slotKey === 'artworkSlots'
+    ? createRepeatedArtworkLabel(index)
+    : `${config.labelPrefix} ${index}`
 
   return createDefaultCaseInsertImageSlot(
-    `${config.idPrefix}-${index}`,
-    `${config.labelPrefix} ${index}`,
+    id,
+    label,
     {
       enabled: true,
       fit: config.fit,
@@ -206,7 +217,12 @@ export function addCaseInsertTemplateImageSlot(
 ): ProjectJewelCaseState {
   return updateProjectCaseInsertTemplate(state, paneId, (templateState) => {
     const config = getCaseInsertImageSlotGroupConfig(paneId, slotKey)
-    const index = getNextSlotIndex(templateState[slotKey], config.idPrefix)
+    const index = slotKey === 'artworkSlots'
+      ? getNextRepeatedArtworkSlotNumber(
+          templateState[slotKey],
+          config.idPrefix,
+        )
+      : getNextSlotIndex(templateState[slotKey], config.idPrefix)
 
     return {
       ...templateState,
@@ -258,7 +274,9 @@ export function renameCaseInsertTemplateImageSlot(
     ...templateState,
     [slotKey]: updateImageSlotById(templateState[slotKey], slotId, (slot) => ({
       ...slot,
-      label: trimmedLabel || slot.label,
+      label: slotKey === 'artworkSlots'
+        ? label
+        : trimmedLabel || slot.label,
     })),
   }
 }

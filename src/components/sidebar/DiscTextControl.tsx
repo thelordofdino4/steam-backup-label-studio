@@ -34,6 +34,7 @@ import {
   getDiscTextInputState,
   isMetadataBoundDiscTextKey,
 } from '../../project/metadataDiscText'
+import { EditorRangeField } from '../editor/EditorRangeField'
 import type { TextPanelProps } from './textPanelTypes'
 
 type DiscTextControlProps = TextPanelProps & {
@@ -443,142 +444,102 @@ export function DiscTextControl({
             aria-label={`${controlLabel} fine tuning controls`}
           >
             <div className="disc-text-layout-grid">
-              <label>
-                <span>Scale</span>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="1.8"
-                  step="0.01"
-                  value={layout.scale}
-                  onChange={(event) =>
-                    handleDiscTextLayoutChange(key, 'scale', Number(event.target.value))
-                  }
-                />
-              </label>
+              <EditorRangeField
+                id={`disc-text-${key}-scale`}
+                label="Scale"
+                min={0.5}
+                max={1.8}
+                step={0.01}
+                value={layout.scale}
+                onChange={(value) =>
+                  handleDiscTextLayoutChange(key, 'scale', value)}
+              />
 
               {!isCurvedCopyright && (
-                <label>
-                  <span>Width</span>
-                  <input
-                    type="range"
-                    min={DISC_TEXT_WIDTH_MIN}
-                    max={DISC_TEXT_WIDTH_MAX}
-                    step="1"
-                    value={layout.width}
-                    onChange={(event) =>
-                      handleDiscTextLayoutChange(key, 'width', Number(event.target.value))
-                    }
-                  />
-                </label>
+                <EditorRangeField
+                  id={`disc-text-${key}-width`}
+                  label="Width"
+                  min={DISC_TEXT_WIDTH_MIN}
+                  max={DISC_TEXT_WIDTH_MAX}
+                  step={1}
+                  value={layout.width}
+                  onChange={(value) =>
+                    handleDiscTextLayoutChange(key, 'width', value)}
+                />
               )}
 
-              <label>
-                <span>{isCurvedCopyright ? 'Angle' : 'X'}</span>
-                <input
-                  type="range"
-                  min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : straightSliderRanges.x.min}
-                  max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : straightSliderRanges.x.max}
-                  step="0.1"
-                  value={layout.x}
-                  onChange={(event) =>
-                    handleDiscTextLayoutChange(key, 'x', Number(event.target.value))
-                  }
-                />
-              </label>
+              <EditorRangeField
+                id={`disc-text-${key}-x`}
+                label={isCurvedCopyright ? 'Angle' : 'X'}
+                min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : straightSliderRanges.x.min}
+                max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : straightSliderRanges.x.max}
+                step={0.1}
+                value={layout.x}
+                onChange={(value) =>
+                  handleDiscTextLayoutChange(key, 'x', value)}
+              />
 
-              <label>
-                <span>{isCurvedCopyright ? 'Inset' : 'Y'}</span>
-                <input
-                  type="range"
-                  min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : straightSliderRanges.y.min}
-                  max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : straightSliderRanges.y.max}
-                  step="0.1"
-                  value={layout.y}
-                  onChange={(event) =>
-                    handleDiscTextLayoutChange(key, 'y', Number(event.target.value))
-                  }
-                />
-              </label>
+              <EditorRangeField
+                id={`disc-text-${key}-y`}
+                label={isCurvedCopyright ? 'Inset' : 'Y'}
+                min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : straightSliderRanges.y.min}
+                max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : straightSliderRanges.y.max}
+                step={0.1}
+                value={layout.y}
+                onChange={(value) =>
+                  handleDiscTextLayoutChange(key, 'y', value)}
+              />
 
               {isCurvedCopyright && (
-                <label>
-                  <span>Arc</span>
-                  <input
-                    type="range"
-                    min="80"
-                    max="320"
-                    step="1"
-                    value={layout.arcDegrees}
-                    onChange={(event) =>
-                      handleDiscTextLayoutChange(
-                        key,
-                        'arcDegrees',
-                        Number(event.target.value),
-                      )
-                    }
-                  />
-                </label>
+                <EditorRangeField
+                  id={`disc-text-${key}-arc`}
+                  label="Arc"
+                  min={80}
+                  max={320}
+                  step={1}
+                  value={layout.arcDegrees}
+                  onChange={(value) =>
+                    handleDiscTextLayoutChange(key, 'arcDegrees', value)}
+                />
               )}
 
               {!isCurvedCopyright && textStyle.backgroundEnabled && (
                 <>
-                  <label>
-                    <span>Opacity</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.05"
-                      value={textStyle.backgroundOpacity}
-                      onChange={(event) =>
-                        handleDiscTextStyleChange(
-                          key,
-                          'backgroundOpacity',
-                          Number(event.target.value),
-                        )
-                      }
-                    />
-                  </label>
+                  <EditorRangeField
+                    id={`disc-text-${key}-background-opacity`}
+                    label="Opacity"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={textStyle.backgroundOpacity}
+                    onChange={(value) =>
+                      handleDiscTextStyleChange(key, 'backgroundOpacity', value)}
+                  />
 
-                  <label>
-                    <span>Padding</span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="4"
-                      step="0.1"
-                      value={textStyle.backgroundPadding}
-                      onChange={(event) =>
-                        handleDiscTextStyleChange(
-                          key,
-                          'backgroundPadding',
-                          Number(event.target.value),
-                        )
-                      }
-                    />
-                  </label>
+                  <EditorRangeField
+                    id={`disc-text-${key}-background-padding`}
+                    label="Padding"
+                    min={0}
+                    max={4}
+                    step={0.1}
+                    value={textStyle.backgroundPadding}
+                    onChange={(value) =>
+                      handleDiscTextStyleChange(key, 'backgroundPadding', value)}
+                  />
                 </>
               )}
 
               {!isCurvedCopyright && textStyle.backgroundEnabled && textStyle.borderEnabled && (
-                <label>
-                  <span>Radius</span>
-                  <input
-                    type="range"
-                    min="0"
-                    max="4"
-                    step="0.1"
-                    value={textStyle.borderRadius}
-                    onChange={(event) =>
-                      handleDiscTextStyleChange(
-                        key,
-                        'borderRadius',
-                        Number(event.target.value),
-                      )
-                    }
-                  />
-                </label>
+                <EditorRangeField
+                  id={`disc-text-${key}-border-radius`}
+                  label="Radius"
+                  min={0}
+                  max={4}
+                  step={0.1}
+                  value={textStyle.borderRadius}
+                  onChange={(value) =>
+                    handleDiscTextStyleChange(key, 'borderRadius', value)}
+                />
               )}
             </div>
           </div>

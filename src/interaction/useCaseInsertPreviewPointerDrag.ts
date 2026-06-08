@@ -54,16 +54,15 @@ import type {
 } from '../project/projectTypes.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import {
+  OFFSET_DRAG_POINT_RANGE,
+  PERCENT_DRAG_POINT_RANGE,
+  clampDragPointToRange,
   createPercentDragState,
-  getDraggedPercentPoint,
+  type DragBounds,
+  type DragPointRange,
   type PercentDragState,
 } from './dragGeometry.ts'
-import { usePointerDrag } from './usePointerDrag.ts'
-
-type DragBounds = {
-  width: number
-  height: number
-}
+import { usePercentPointerDrag } from './usePointerDragAdapters.ts'
 
 type CaseInsertDragRange = 'offset' | 'percent'
 
@@ -128,7 +127,7 @@ type CaseInsertDragTarget =
 
 type CaseInsertDragState = PercentDragState & {
   bounds: DragBounds
-  range: CaseInsertDragRange
+  pointRange: DragPointRange
   target: CaseInsertDragTarget
 }
 
@@ -197,21 +196,12 @@ type UseCaseInsertPreviewPointerDragOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function clampPointToRange(
-  point: CaseInsertLayoutPoint,
+function getCaseInsertDragPointRange(
   range: CaseInsertDragRange,
-) {
-  const min = range === 'offset' ? -100 : 0
-  const max = 100
-
-  return {
-    x: clampNumber(point.x, min, max),
-    y: clampNumber(point.y, min, max),
-  }
+): DragPointRange {
+  return range === 'offset'
+    ? OFFSET_DRAG_POINT_RANGE
+    : PERCENT_DRAG_POINT_RANGE
 }
 
 function getRegionBounds(
@@ -335,7 +325,7 @@ function createCaseInsertDragState({
       startLayout.y,
     ),
     bounds,
-    range,
+    pointRange: getCaseInsertDragPointRange(range),
     target,
   }
 }
@@ -482,17 +472,16 @@ export function useCaseInsertPreviewPointerDrag({
     ),
     [activeTemplatePane, caseInsert.templateType],
   )
-  const caseInsertPointerDrag = usePointerDrag<CaseInsertDragState, Element>({
+  const caseInsertPointerDrag = usePercentPointerDrag<
+    CaseInsertDragState,
+    Element
+  >({
     stopPropagation: true,
-    onDragMove: (dragState, event) => {
-      const draggedPoint = clampPointToRange(
-        getDraggedPercentPoint(
-          dragState,
-          event.clientX,
-          event.clientY,
-          dragState.bounds,
-        ),
-        dragState.range,
+    getBounds: (dragState) => dragState.bounds,
+    onDraggedPoint: (dragState, point) => {
+      const draggedPoint = clampDragPointToRange(
+        point,
+        dragState.pointRange,
       )
 
       setProjectJewelCase((currentCaseInsert) =>

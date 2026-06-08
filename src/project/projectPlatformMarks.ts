@@ -1,4 +1,8 @@
 import { getDefaultPlatformMarkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  setOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import type { DiscTemplate } from '../types/template'
 import type {
   PlatformMarkLayout,
@@ -226,10 +230,10 @@ export function setProjectPlatformMarkValues(
 
     assets[value] = {
       ...currentAsset,
-      layout: {
-        ...currentAsset.layout,
-        enabled: selectedValues.has(value),
-      },
+      layout: setOptionalVisualFeatureEnabled(
+        currentAsset.layout,
+        selectedValues.has(value),
+      ),
     }
   })
 
@@ -281,10 +285,7 @@ export function updatePlatformMarkToggle(
     value,
     {
       ...currentAsset,
-      layout: {
-        ...currentAsset.layout,
-        enabled,
-      },
+      layout: setOptionalVisualFeatureEnabled(currentAsset.layout, enabled),
     },
   )
 }
@@ -293,7 +294,9 @@ export function getEnabledPlatformMarkValues(
   platformMarks: ProjectPlatformMarks,
 ): PlatformMarkValue[] {
   return platformMarks.values.filter(
-    (value) => getProjectPlatformMarkAsset(platformMarks, value).layout.enabled,
+    (value) => isOptionalVisualFeatureEnabled(
+      getProjectPlatformMarkAsset(platformMarks, value).layout,
+    ),
   )
 }
 
@@ -342,10 +345,7 @@ export function setPlatformMarkCustomImage(
       source: 'custom',
       customImageDataUrl: imageDataUrl,
       customImageSize: imageSize,
-      layout: {
-        ...currentAsset.layout,
-        enabled: true,
-      },
+      layout: setOptionalVisualFeatureEnabled(currentAsset.layout, true),
     },
   )
 }

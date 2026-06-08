@@ -5,6 +5,9 @@ import {
   getCaseInsertMarkLayerKind,
   type CaseInsertMarkLayerKind,
 } from './brandingSlotSources.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 
 function isCaseInsertMarkSlotOfKind(
   slot: ProjectCaseInsertImageSlot,
@@ -23,7 +26,8 @@ export function getEnabledCaseInsertMarkSlotForKind(
   kind: CaseInsertMarkLayerKind,
 ) {
   return slots.find((slot) =>
-    slot.enabled && isCaseInsertMarkSlotOfKind(slot, kind)) ?? null
+    isOptionalVisualFeatureEnabled(slot) &&
+      isCaseInsertMarkSlotOfKind(slot, kind)) ?? null
 }
 
 export function getEnabledCaseInsertMarkSlotForSourcePrefix(
@@ -35,7 +39,7 @@ export function getEnabledCaseInsertMarkSlotForSourcePrefix(
     const sourceId = slot.imageSource?.sourceId
 
     return Boolean(
-      slot.enabled &&
+      isOptionalVisualFeatureEnabled(slot) &&
         sourceId?.startsWith(sourcePrefix) &&
         isCaseInsertMarkSlotOfKind(slot, kind),
     )

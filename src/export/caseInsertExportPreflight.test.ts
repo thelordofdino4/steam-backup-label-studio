@@ -212,6 +212,34 @@ test('case preflight ignores additional artwork slots when globally hidden', () 
   ))
 })
 
+test('case preflight ignores spine additional artwork slots when globally hidden', () => {
+  const project = createDefaultProjectJewelCaseState('Test Game')
+  const enabledEmptySlot = createDefaultCaseInsertImageSlot(
+    'left-spine-artwork-1',
+    'Artwork 1',
+    { enabled: true },
+  )
+  const summary = buildCaseInsertExportPreflightSummary({
+    caseInsert: {
+      ...project,
+      spine: {
+        ...project.spine,
+        left: {
+          ...project.spine.left,
+          additionalArtworkEnabled: false,
+          artworkSlots: [enabledEmptySlot],
+        },
+      },
+    },
+    activeTemplatePane: 'tray',
+    brandingSources: createDefaultBrandingSources(),
+    dpi: 300,
+  })
+
+  assert.ok(!summary.warnings.some((warning) =>
+    /Left spine Artwork 1/.test(warning)))
+})
+
 test('tray card preflight catches guide, image, text, and spine risks', () => {
   const project = createDefaultProjectJewelCaseState('Test Game')
   const trayLogo = createDefaultCaseInsertImageSlot(

@@ -5,6 +5,7 @@ import {
 import type { DiscTextLayoutPreset } from '../../layout/presets'
 import { DiscTextControl } from './DiscTextControl'
 import type { TextPanelProps } from './textPanelTypes'
+import { EditorPanel } from '../editor/EditorPanel'
 
 export type { TextPanelProps } from './textPanelTypes'
 
@@ -27,9 +28,7 @@ export function TextPanel(props: TextPanelProps) {
   }
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Text</summary>
-      <div className="panel-content">
+    <EditorPanel title="Text">
         <p className="hint">
           Enable text elements, type manual overrides, and adjust their preset position and scale.
         </p>
@@ -47,7 +46,6 @@ export function TextPanel(props: TextPanelProps) {
             />
           ))}
         </div>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }

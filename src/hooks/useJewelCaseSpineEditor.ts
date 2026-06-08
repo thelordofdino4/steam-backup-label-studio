@@ -47,6 +47,9 @@ import {
   setCustomCaseInsertTitleArtworkImage,
 } from '../caseInsert/titleArtwork'
 import {
+  getNextRepeatedArtworkSlotNumber,
+} from '../editor/repeatedArtwork'
+import {
   resetCaseInsertSteamBannerColors,
   resetCaseInsertSteamBannerLockupImage,
   resetCaseInsertSteamBannerLockupLayout,
@@ -201,14 +204,10 @@ function getNextSpineArtworkSlotIndex(
   side: JewelCaseSpineSide,
   slots: ProjectCaseInsertImageSlot[],
 ) {
-  const idPrefix = `${side}-spine-artwork`
-  let index = slots.length + 1
-
-  while (slots.some(({ id }) => id === `${idPrefix}-${index}`)) {
-    index += 1
-  }
-
-  return index
+  return getNextRepeatedArtworkSlotNumber(
+    slots,
+    `${side}-spine-artwork`,
+  )
 }
 
 function getNextSpineMarkSlotIndex(
@@ -811,7 +810,7 @@ export function useJewelCaseSpineEditor({
       )
 
       updateSpineSteamBanner(side, (banner) =>
-        setCustomCaseInsertSteamBannerLockupImage(banner, image),
+        setCustomCaseInsertSteamBannerLockupImage(banner, image, 'spine'),
       )
       announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
     } catch {

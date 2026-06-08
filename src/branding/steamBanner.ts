@@ -13,13 +13,16 @@ export {
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createCustomSteamBannerLockupImageState,
   createSteamLogoPlacementMemory,
+  getDefaultSteamBannerLockupSourceLabel,
   getEnabledSteamLogoPlacement,
   getNextSteamLogoPlacementMemory,
+  isCustomSteamBannerLockupSource,
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
   updateSteamBannerColor,
   updateSteamBannerLockupLayoutField,
   type SteamBannerColorField,
+  type SteamBannerLockupImageKind,
   type SteamBannerLockupLayoutField,
 } from './steamBannerDefaults'
 export type { SteamBannerLockupImageState } from './steamBannerDefaults'

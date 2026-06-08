@@ -12,6 +12,7 @@ import {
   DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
   createCustomSteamBannerLockupImageState,
   createDefaultSteamBannerLockupImageState,
+  getDefaultSteamBannerLockupSourceLabel,
   updateSteamBannerColor,
   updateSteamBannerLockupLayoutField,
   type SteamBannerColorField,
@@ -29,7 +30,7 @@ type UseSteamBannerStateOptions = {
 function createDefaultSteamBannerLockupImageSource() {
   return createProjectImageAssetProvenance({
     source: 'built-in',
-    sourceLabel: 'Default Steam banner lockup',
+    sourceLabel: getDefaultSteamBannerLockupSourceLabel('banner-lockup'),
   })
 }
 

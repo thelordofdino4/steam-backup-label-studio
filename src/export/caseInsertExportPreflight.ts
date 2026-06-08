@@ -45,6 +45,13 @@ import {
   getJewelCaseSpineImageSlotPreviewLayout,
   getJewelCaseSpineTitlePreviewLayout,
 } from '../layout/jewelCaseSpineLayout.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  shouldRenderOptionalVisualFeature,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  getFeatureVisibleRepeatedArtworkItems,
+} from '../editor/repeatedArtwork.ts'
 import type {
   CaseInsertPreviewLayout,
 } from '../layout/caseInsertPreviewLayout.ts'
@@ -267,22 +274,23 @@ function getCoverSlotWarnings(
     }),
   )
 
-  if (templateState.additionalArtworkEnabled) {
-    for (const slot of templateState.artworkSlots) {
-      warnings.push(
-        ...getRenderedImageSlotWarnings({
+  for (const slot of getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )) {
+    warnings.push(
+      ...getRenderedImageSlotWarnings({
+        slot,
+        label: slot.label,
+        rect: getJewelCaseFrontImageSlotPreviewRect(
           slot,
-          label: slot.label,
-          rect: getJewelCaseFrontImageSlotPreviewRect(
-            slot,
-            layout,
-            'calloutArtwork',
-          ),
-          safeBounds,
-          edge: { regionLabel: 'cover safe zone' },
-        }),
-      )
-    }
+          layout,
+          'calloutArtwork',
+        ),
+        safeBounds,
+        edge: { regionLabel: 'cover safe zone' },
+      }),
+    )
   }
 
   for (const slot of templateState.logoSlots) {
@@ -334,9 +342,10 @@ function getTraySlotWarnings(
     }),
   )
 
-  const artworkSlots = templateState.additionalArtworkEnabled
-    ? templateState.artworkSlots
-    : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )
 
   for (const slot of artworkSlots) {
     warnings.push(
@@ -517,9 +526,10 @@ function getSpineSideWarnings(
     layout,
     'titleArtwork',
   )
-  const artworkSlots = spineSide.additionalArtworkEnabled
-    ? spineSide.artworkSlots
-    : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    spineSide,
+    spineSide.artworkSlots,
+  )
   const visibleMarkSlots = getVisibleSpineMarkSlots(
     spineSide,
     brandingSources,
@@ -640,7 +650,7 @@ function getRenderedLogoSlotWarnings(params: {
 
   warnings.push(...getLayoutValueWarnings(label, slot.layout))
 
-  if (!slot.enabled || !renderInfo) {
+  if (!isOptionalVisualFeatureEnabled(slot) || !renderInfo) {
     return warnings
   }
 
@@ -669,10 +679,17 @@ function getRenderedImageSlotWarnings(params: {
 }) {
   const { slot, label, rect } = params
   const warnings = getImageSlotDataWarnings(label, slot)
+  const imageSize = slot.imageSize
 
   warnings.push(...getLayoutValueWarnings(label, slot.layout))
 
-  if (!slot.enabled || !slot.imageDataUrl || !slot.imageSize) {
+  if (
+    !shouldRenderOptionalVisualFeature(
+      slot,
+      Boolean(slot.imageDataUrl && imageSize),
+    ) ||
+    !imageSize
+  ) {
     return warnings
   }
 
@@ -681,7 +698,7 @@ function getRenderedImageSlotWarnings(params: {
     return warnings
   }
 
-  warnings.push(...getUpscaleWarnings(label, slot.imageSize, rect))
+  warnings.push(...getUpscaleWarnings(label, imageSize, rect))
 
   if (params.safeBounds && params.edge) {
     warnings.push(
@@ -706,7 +723,11 @@ function getSpineLogoSlotWarnings(params: {
 
   warnings.push(...getLayoutValueWarnings(params.label, params.slot.layout))
 
-  if (!params.slot.enabled || !renderInfo || !params.layout) {
+  if (
+    !isOptionalVisualFeatureEnabled(params.slot) ||
+    !renderInfo ||
+    !params.layout
+  ) {
     return warnings
   }
 
@@ -735,7 +756,7 @@ function getSpineImageSlotWarnings(params: {
   warnings.push(...getLayoutValueWarnings(params.label, params.slot.layout))
 
   if (
-    !params.slot.enabled ||
+    !isOptionalVisualFeatureEnabled(params.slot) ||
     !params.slot.imageDataUrl ||
     !params.slot.imageSize ||
     !params.layout
@@ -758,7 +779,7 @@ function getLogoSlotDataWarnings(
   slot: ProjectCaseInsertImageSlot,
   renderInfo: ReturnType<typeof getCaseInsertLogoSlotRenderInfo>,
 ) {
-  if (!slot.enabled) {
+  if (!isOptionalVisualFeatureEnabled(slot)) {
     return []
   }
 
@@ -789,7 +810,7 @@ function getImageSlotDataWarnings(
     warnMissingImage?: boolean
   } = {},
 ) {
-  if (!slot.enabled) {
+  if (!isOptionalVisualFeatureEnabled(slot)) {
     return []
   }
 
@@ -827,10 +848,17 @@ function getImageFitWarnings(
     false,
     { warnMissingImage: options.warnMissingImage },
   )
+  const imageSize = slot.imageSize
 
   warnings.push(...getLayoutValueWarnings(label, slot.layout))
 
-  if (!slot.enabled || !slot.imageDataUrl || !slot.imageSize) {
+  if (
+    !shouldRenderOptionalVisualFeature(
+      slot,
+      Boolean(slot.imageDataUrl && imageSize),
+    ) ||
+    !imageSize
+  ) {
     return warnings
   }
 
@@ -841,7 +869,7 @@ function getImageFitWarnings(
 
   if (fit.scale > IMAGE_UPSCALE_WARNING_THRESHOLD) {
     warnings.push(
-      `${label} is ${slot.imageSize.width} x ${slot.imageSize.height}px, but exports around ${formatPixels(fit.visibleRect.width)} x ${formatPixels(fit.visibleRect.height)}px; it may look soft in print.`,
+      `${label} is ${imageSize.width} x ${imageSize.height}px, but exports around ${formatPixels(fit.visibleRect.width)} x ${formatPixels(fit.visibleRect.height)}px; it may look soft in print.`,
     )
   }
 
@@ -938,7 +966,7 @@ function getTextBlockWarnings(params: {
   const { textBlock, label } = params
   const warnings: string[] = []
 
-  if (!textBlock.enabled) {
+  if (!isOptionalVisualFeatureEnabled(textBlock)) {
     return warnings
   }
 
@@ -992,7 +1020,7 @@ function getTextListWarnings(params: {
   const warnings: string[] = []
   const items = textList.items.map((item) => item.trim()).filter(Boolean)
 
-  if (!textList.enabled) {
+  if (!isOptionalVisualFeatureEnabled(textList)) {
     return warnings
   }
 
@@ -1099,7 +1127,10 @@ function getEnabledGuideNames(
 }
 
 function slotWillRender(slot: ProjectCaseInsertImageSlot) {
-  return Boolean(slot.enabled && slot.imageDataUrl && slot.imageSize)
+  return shouldRenderOptionalVisualFeature(
+    slot,
+    Boolean(slot.imageDataUrl && slot.imageSize),
+  )
 }
 
 function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
@@ -1107,9 +1138,9 @@ function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
 }
 
 function steamBannerWillRender(banner: ProjectCaseInsertSteamBanner) {
-  return Boolean(
-    banner.enabled &&
-      (banner.useTextFallback || banner.lockupImageDataUrl),
+  return shouldRenderOptionalVisualFeature(
+    banner,
+    Boolean(banner.useTextFallback || banner.lockupImageDataUrl),
   )
 }
 
@@ -1139,14 +1170,14 @@ function textBlockWillRender(
   metadata: ProjectMetadata,
 ) {
   return Boolean(
-    textBlock.enabled &&
+    isOptionalVisualFeatureEnabled(textBlock) &&
       getRenderedCaseInsertTextBlock(textBlock, metadata).value.trim(),
   )
 }
 
 function textListWillRender(textList: ProjectCaseInsertTextList) {
   return Boolean(
-    textList.enabled &&
+    isOptionalVisualFeatureEnabled(textList) &&
     textList.items.some((item) => item.trim()),
   )
 }
@@ -1159,10 +1190,10 @@ function surfaceHasVisibleContent(
     slotWillRender(surface.background) ||
     steamBannerWillRender(surface.steamBanner) ||
     slotWillRender(surface.titleArtwork) ||
-    (
-      surface.additionalArtworkEnabled &&
-      surface.artworkSlots.some(slotWillRender)
-    ) ||
+    getFeatureVisibleRepeatedArtworkItems(
+      surface,
+      surface.artworkSlots,
+    ).some(slotWillRender) ||
     surface.logoSlots.some(logoSlotWillRender) ||
     surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
     surface.textBlocks.some((textBlock) =>
@@ -1190,10 +1221,10 @@ function spineSideHasVisibleContent(
     slotWillRender(spineSide.background) ||
     steamBannerWillRender(spineSide.steamBanner) ||
     slotWillRender(spineSide.titleArtwork) ||
-    (
-      spineSide.additionalArtworkEnabled &&
-      spineSide.artworkSlots.some(slotWillRender)
-    ) ||
+    getFeatureVisibleRepeatedArtworkItems(
+      spineSide,
+      spineSide.artworkSlots,
+    ).some(slotWillRender) ||
     textBlockWillRender(spineSide.title, brandingSources.projectMetadata) ||
     spineSide.textBlocks.some((textBlock) =>
       textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
@@ -1214,9 +1245,10 @@ function formatVisibleElementStatus(
     Number(slotWillRender(surface.background)) +
     Number(steamBannerWillRender(surface.steamBanner)) +
     Number(slotWillRender(surface.titleArtwork)) +
-    (surface.additionalArtworkEnabled
-      ? surface.artworkSlots.filter(slotWillRender).length
-      : 0) +
+    getFeatureVisibleRepeatedArtworkItems(
+      surface,
+      surface.artworkSlots,
+    ).filter(slotWillRender).length +
     surface.logoSlots.filter(logoSlotWillRender).length +
     surface.markSlots.filter((slot) =>
       markSlotWillRender(slot, brandingSources)).length +
@@ -1239,7 +1271,7 @@ function formatVisibleElementStatus(
 }
 
 function formatImageSlotStatus(slot: ProjectCaseInsertImageSlot) {
-  if (!slot.enabled) return 'Disabled'
+  if (!isOptionalVisualFeatureEnabled(slot)) return 'Disabled'
   if (!slot.imageDataUrl) return 'None'
   if (!slot.imageSize) return 'Present'
 

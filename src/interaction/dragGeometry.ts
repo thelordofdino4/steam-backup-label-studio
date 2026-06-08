@@ -1,8 +1,18 @@
-import type { BackgroundOffset } from '../project/projectTypes'
-
-type DragBounds = {
+export type DragBounds = {
   width: number
   height: number
+}
+
+export type DragPoint = {
+  x: number
+  y: number
+}
+
+export type DragPointRange = {
+  maxX: number
+  maxY: number
+  minX: number
+  minY: number
 }
 
 export type PointerDragStart = {
@@ -19,6 +29,20 @@ export type PercentDragState = PointerDragStart & {
 export type PixelDragState = PointerDragStart & {
   startOffsetX: number
   startOffsetY: number
+}
+
+export const PERCENT_DRAG_POINT_RANGE: DragPointRange = {
+  minX: 0,
+  maxX: 100,
+  minY: 0,
+  maxY: 100,
+}
+
+export const OFFSET_DRAG_POINT_RANGE: DragPointRange = {
+  minX: -100,
+  maxX: 100,
+  minY: -100,
+  maxY: 100,
 }
 
 export function createPercentDragState(
@@ -42,10 +66,44 @@ export function getDraggedPercentPoint(
   clientX: number,
   clientY: number,
   bounds: DragBounds,
-) {
+): DragPoint {
   return {
     x: dragState.startX + ((clientX - dragState.startClientX) / bounds.width) * 100,
     y: dragState.startY + ((clientY - dragState.startClientY) / bounds.height) * 100,
+  }
+}
+
+export function createElementPercentDragState<TExtra extends object>(
+  pointerId: number,
+  clientX: number,
+  clientY: number,
+  startX: number,
+  startY: number,
+  extra: TExtra,
+): TExtra & PercentDragState {
+  return {
+    ...extra,
+    ...createPercentDragState(
+      pointerId,
+      clientX,
+      clientY,
+      startX,
+      startY,
+    ),
+  }
+}
+
+function clampNumber(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+export function clampDragPointToRange(
+  point: DragPoint,
+  range: DragPointRange,
+): DragPoint {
+  return {
+    x: clampNumber(point.x, range.minX, range.maxX),
+    y: clampNumber(point.y, range.minY, range.maxY),
   }
 }
 
@@ -53,7 +111,7 @@ export function createPixelDragState(
   pointerId: number,
   clientX: number,
   clientY: number,
-  startOffset: BackgroundOffset,
+  startOffset: DragPoint,
 ): PixelDragState {
   return {
     pointerId,
@@ -68,7 +126,7 @@ export function getDraggedPixelOffset(
   dragState: PixelDragState,
   clientX: number,
   clientY: number,
-): BackgroundOffset {
+): DragPoint {
   return {
     x: dragState.startOffsetX + clientX - dragState.startClientX,
     y: dragState.startOffsetY + clientY - dragState.startClientY,

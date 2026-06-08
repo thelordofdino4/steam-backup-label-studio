@@ -1,4 +1,16 @@
-import { getAdditionalArtworkBoundsPercent, type RenderBoundsPercent } from '../disc/geometry.ts'
+import { getAdditionalArtworkBoundsPercent } from '../disc/geometry.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  setOptionalVisualFeatureEnabled,
+  setOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  createRepeatedArtworkLabel,
+  createRepeatedArtworkLabelForIndex,
+  getNextRepeatedArtworkLabelNumber,
+  normalizeRepeatedArtworkLabel,
+  shouldRenderRepeatedArtworkItem,
+} from '../editor/repeatedArtwork.ts'
 import {
   getDefaultAdditionalArtworkLayoutForTemplate,
   getNextAdditionalArtworkLayoutForTemplate,
@@ -20,6 +32,10 @@ import {
   normalizeAdditionalArtworkFrame,
   type AdditionalArtworkFrameField,
 } from './additionalArtworkFrame.ts'
+import {
+  createPercentPositionedImageRenderArtifact,
+  type PercentPositionedImageRenderArtifact,
+} from '../render/imageRenderArtifact.ts'
 export {
   ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
   ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN,
@@ -37,17 +53,15 @@ export type AdditionalArtworkImportSource = {
   sourceLabel: string
 }
 
-export type AdditionalArtworkRenderItem = {
+export type AdditionalArtworkRenderItem = PercentPositionedImageRenderArtifact<
+  AdditionalArtworkLayout,
+  {
   id: string
-  label: string
-  imageDataUrl: string
   imageSize: BackgroundImageSize
-  layout: AdditionalArtworkLayout
   frame: AdditionalArtworkFrame
-  unscaledBounds: RenderBoundsPercent
-  scaledBounds: RenderBoundsPercent
   sourceLabel: string
-}
+  }
+>
 
 type AdditionalArtworkLayoutPoint = {
   x: number
@@ -87,16 +101,6 @@ function createAdditionalArtworkElementId() {
   return `artwork-${Date.now().toString(36)}-${additionalArtworkIdCounter}`
 }
 
-function getDefaultAdditionalArtworkLabel(additionalArtworkIndex: number) {
-  return `Artwork ${additionalArtworkIndex + 1}`
-}
-
-function normalizeElementLabel(label: unknown, fallbackLabel: string) {
-  return typeof label === 'string' && label.trim()
-    ? label
-    : fallbackLabel
-}
-
 function createFallbackAdditionalArtworkLayout(
   additionalArtworkIndex: number,
 ): AdditionalArtworkLayout {
@@ -128,10 +132,11 @@ function createDefaultAdditionalArtworkLayout(
 function createAdditionalArtworkElement(
   additionalArtworkIndex: number,
   selectedDiscTemplate?: DiscTemplate,
+  label = createRepeatedArtworkLabelForIndex(additionalArtworkIndex),
 ): ProjectAdditionalArtworkElement {
   return {
     id: createAdditionalArtworkElementId(),
-    label: getDefaultAdditionalArtworkLabel(additionalArtworkIndex),
+    label,
     source: 'custom',
     sourceId: null,
     sourceLabel: DEFAULT_ADDITIONAL_ARTWORK_SOURCE_LABEL,
@@ -177,10 +182,7 @@ export function setAdditionalArtworkEnabled(
   additionalArtwork: ProjectAdditionalArtwork,
   enabled: boolean,
 ): ProjectAdditionalArtwork {
-  return {
-    ...additionalArtwork,
-    enabled,
-  }
+  return setOptionalVisualFeatureEnabled(additionalArtwork, enabled)
 }
 
 export function addAdditionalArtworkElement(
@@ -189,7 +191,13 @@ export function addAdditionalArtworkElement(
 ): ProjectAdditionalArtwork {
   const elements = additionalArtwork.elements
   const previousElement = elements[elements.length - 1]
-  const nextElement = createAdditionalArtworkElement(elements.length, selectedDiscTemplate)
+  const nextElement = createAdditionalArtworkElement(
+    elements.length,
+    selectedDiscTemplate,
+    createRepeatedArtworkLabel(
+      getNextRepeatedArtworkLabelNumber(elements),
+    ),
+  )
   const layout = previousElement
     ? selectedDiscTemplate
       ? getNextAdditionalArtworkLayoutForTemplate(
@@ -368,10 +376,7 @@ export function setAdditionalArtworkElementImage(
       ),
       imageDataUrl: importedImage.imageDataUrl,
       imageSize: importedImage.imageSize,
-      layout: {
-        ...element.layout,
-        enabled: true,
-      },
+      layout: setOptionalLayoutFeatureEnabled(element, true).layout,
     }),
   )
 }
@@ -426,17 +431,17 @@ export function shouldRenderAdditionalArtworkElement(
   additionalArtwork: ProjectAdditionalArtwork,
   element: ProjectAdditionalArtworkElement,
 ) {
-  return (
-    additionalArtwork.enabled &&
-    element.layout.enabled &&
-    canUseAdditionalArtworkElement(element)
-  )
+  return shouldRenderRepeatedArtworkItem({
+    featureEnabled: isOptionalVisualFeatureEnabled(additionalArtwork),
+    itemEnabled: element.layout.enabled,
+    hasRenderableContent: canUseAdditionalArtworkElement(element),
+  })
 }
 
 export function createAdditionalArtworkRenderItems(
   additionalArtwork: ProjectAdditionalArtwork,
 ): AdditionalArtworkRenderItem[] {
-  if (!additionalArtwork.enabled) {
+  if (!isOptionalVisualFeatureEnabled(additionalArtwork)) {
     return []
   }
 
@@ -453,10 +458,10 @@ export function createAdditionalArtworkRenderItems(
 
     const imageSize = element.imageSize ?? DEFAULT_ADDITIONAL_ARTWORK_SIZE
 
-    return [
-      {
+    const renderItem = createPercentPositionedImageRenderArtifact({
         id: element.id,
         label: element.label,
+        alt: element.label,
         imageDataUrl,
         imageSize,
         layout: element.layout,
@@ -467,8 +472,9 @@ export function createAdditionalArtworkRenderItems(
         ),
         frame: element.frame,
         sourceLabel: element.sourceLabel,
-      },
-    ]
+      })
+
+    return renderItem ? [renderItem] : []
   })
 }
 
@@ -513,9 +519,9 @@ function normalizeAdditionalArtworkElement(
     id: typeof element.id === 'string' && element.id.trim()
       ? element.id
       : createAdditionalArtworkElementId(),
-    label: normalizeElementLabel(
+    label: normalizeRepeatedArtworkLabel(
       element.label,
-      getDefaultAdditionalArtworkLabel(additionalArtworkIndex),
+      additionalArtworkIndex + 1,
     ),
     source: isAdditionalArtworkSource(element.source) ? element.source : 'custom',
     sourceId: typeof element.sourceId === 'string' ? element.sourceId : null,

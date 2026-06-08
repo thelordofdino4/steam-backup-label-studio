@@ -8,7 +8,9 @@ import {
   getRatingValuesForSystem,
 } from '../../../project/projectMetadata'
 import type { GameRatingSystem, RatingBadgeSource } from '../../../project/projectTypes'
-import { formatLogoSize, getNumericInputValue } from './helpers'
+import { EditorStackedRangeField } from '../../editor/EditorRangeField'
+import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourceControls'
+import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
 
 type RatingBadgeSetupControlsProps = Pick<
@@ -49,7 +51,6 @@ export function RatingBadgeSetupControls({
   const activeRatingSystem = getActiveRatingSystemForBadge(projectMetadata.ratingSystem)
   const hasRatingValue = projectMetadata.ratingValue.trim().length > 0
   const ratingLabel = projectMetadata.ratingSystem === 'none' ? 'No rating selected' : `${projectMetadata.ratingSystem}${hasRatingValue ? ` ${projectMetadata.ratingValue}` : ''}`
-  const isCustomBadgeSource = projectRatingBadge.source === 'custom'
   const shouldShowSupplementalUskControls = activeRatingSystem === 'PEGI'
   const isSupplementalUskBadgeEnabled = projectRatingBadge.uskBadge.layout.enabled
 
@@ -114,29 +115,29 @@ export function RatingBadgeSetupControls({
             <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>
           )}
 
-          <label className="field-label spacing-top" htmlFor={fieldId('rating-badge-source')}>Badge source</label>
-          <select id={fieldId('rating-badge-source')} value={projectRatingBadge.source} onChange={(event) => handleRatingBadgeSourceChange(event.target.value as RatingBadgeSource)}>
-            <option value="placeholder">Built-in artwork</option>
-            <option value="custom">Custom image</option>
-          </select>
-
-          {isCustomBadgeSource ? (
-            <>
-              <span className="field-label spacing-top">Custom badge image</span>
-              <label className="secondary-button logo-upload-button" htmlFor={fieldId('rating-badge-upload')}>Choose custom badge</label>
-              <input id={fieldId('rating-badge-upload')} className="logo-file-input" type="file" accept="image/*" onChange={handleRatingBadgeUpload} />
-
-              {projectRatingBadge.customImageDataUrl ? (
-                <div className="selected-lockup-card logo-asset-status-card">
-                  <img className="logo-asset-preview" src={projectRatingBadge.customImageDataUrl} alt="" draggable={false} />
-                  <span>Custom rating badge active{formatLogoSize(projectRatingBadge.customImageSize)}</span>
-                </div>
-              ) : <p className="hint">No custom badge image is selected yet. The bundled rating artwork is used when a rating system and value are set.</p>}
-            </>
-          ) : <p className="hint">Using the built-in rating artwork.</p>}
-
-          {children}
-          {isCustomBadgeSource && projectRatingBadge.customImageDataUrl && <button className="secondary-button" type="button" onClick={handleClearRatingBadgeImage}>Clear custom badge</button>}
+          <EditorMarkImageSourceControls
+            idPrefix={idPrefix}
+            source={projectRatingBadge.source}
+            sourceLabel="Badge source"
+            sourceSelectId="rating-badge-source"
+            builtInOptionLabel="Built-in artwork"
+            builtInHint="Using the built-in rating artwork."
+            customImageLabel="Custom badge image"
+            customImageDataUrl={projectRatingBadge.customImageDataUrl}
+            customImageSize={projectRatingBadge.customImageSize}
+            customActiveLabel="Custom rating badge active"
+            uploadId="rating-badge-upload"
+            uploadButtonLabel="Choose custom badge"
+            emptyCustomHint="No custom badge image is selected yet. The bundled rating artwork is used when a rating system and value are set."
+            clearCustomLabel="Clear custom badge"
+            formatSize={formatLogoSize}
+            onSourceChange={(source) =>
+              handleRatingBadgeSourceChange(source as RatingBadgeSource)}
+            onUpload={handleRatingBadgeUpload}
+            onClearCustomImage={handleClearRatingBadgeImage}
+          >
+            {children}
+          </EditorMarkImageSourceControls>
         </>
       )}
     </div>
@@ -213,12 +214,42 @@ export function RatingBadgeControls({
             {RATING_BADGE_LAYOUT_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
           </select>
 
-          <label className="field-label spacing-top" htmlFor="usk-rating-badge-scale">USK scale</label>
-          <input id="usk-rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.uskBadge.layout.scale} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('scale', getNumericInputValue(event))} />
-          <label className="field-label spacing-top" htmlFor="usk-rating-badge-x">USK X position</label>
-          <input id="usk-rating-badge-x" type="range" min={supplementalUskSliderRanges.x.min} max={supplementalUskSliderRanges.x.max} step="0.1" value={projectRatingBadge.uskBadge.layout.x} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('x', getNumericInputValue(event))} />
-          <label className="field-label spacing-top" htmlFor="usk-rating-badge-y">USK Y position</label>
-          <input id="usk-rating-badge-y" type="range" min={supplementalUskSliderRanges.y.min} max={supplementalUskSliderRanges.y.max} step="0.1" value={projectRatingBadge.uskBadge.layout.y} onInput={(event) => handleSupplementalUskRatingBadgeLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleSupplementalUskRatingBadgeLayoutChange('y', getNumericInputValue(event))} />
+          <EditorStackedRangeField
+            id="usk-rating-badge-scale"
+            label="USK scale"
+            min={0.25}
+            max={2}
+            step={0.01}
+            value={projectRatingBadge.uskBadge.layout.scale}
+            onInput={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('scale', value)}
+            onChange={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('scale', value)}
+          />
+          <EditorStackedRangeField
+            id="usk-rating-badge-x"
+            label="USK X position"
+            min={supplementalUskSliderRanges.x.min}
+            max={supplementalUskSliderRanges.x.max}
+            step={0.1}
+            value={projectRatingBadge.uskBadge.layout.x}
+            onInput={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('x', value)}
+            onChange={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('x', value)}
+          />
+          <EditorStackedRangeField
+            id="usk-rating-badge-y"
+            label="USK Y position"
+            min={supplementalUskSliderRanges.y.min}
+            max={supplementalUskSliderRanges.y.max}
+            step={0.1}
+            value={projectRatingBadge.uskBadge.layout.y}
+            onInput={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('y', value)}
+            onChange={(value) =>
+              handleSupplementalUskRatingBadgeLayoutChange('y', value)}
+          />
           <button className="secondary-button" type="button" onClick={handleResetSupplementalUskRatingBadgeLayout}>Reset USK badge layout</button>
         </>
       )}
@@ -232,12 +263,36 @@ export function RatingBadgeControls({
         {RATING_BADGE_LAYOUT_PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
       </select>
 
-      <label className="field-label spacing-top" htmlFor="rating-badge-scale">Scale</label>
-      <input id="rating-badge-scale" type="range" min="0.25" max="2" step="0.01" value={projectRatingBadge.layout.scale} onInput={(event) => handleRatingBadgeLayoutChange('scale', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('scale', getNumericInputValue(event))} />
-      <label className="field-label spacing-top" htmlFor="rating-badge-x">X position</label>
-      <input id="rating-badge-x" type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={projectRatingBadge.layout.x} onInput={(event) => handleRatingBadgeLayoutChange('x', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('x', getNumericInputValue(event))} />
-      <label className="field-label spacing-top" htmlFor="rating-badge-y">Y position</label>
-      <input id="rating-badge-y" type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={projectRatingBadge.layout.y} onInput={(event) => handleRatingBadgeLayoutChange('y', getNumericInputValue(event))} onChange={(event) => handleRatingBadgeLayoutChange('y', getNumericInputValue(event))} />
+      <EditorStackedRangeField
+        id="rating-badge-scale"
+        label="Scale"
+        min={0.25}
+        max={2}
+        step={0.01}
+        value={projectRatingBadge.layout.scale}
+        onInput={(value) => handleRatingBadgeLayoutChange('scale', value)}
+        onChange={(value) => handleRatingBadgeLayoutChange('scale', value)}
+      />
+      <EditorStackedRangeField
+        id="rating-badge-x"
+        label="X position"
+        min={sliderRanges.x.min}
+        max={sliderRanges.x.max}
+        step={0.1}
+        value={projectRatingBadge.layout.x}
+        onInput={(value) => handleRatingBadgeLayoutChange('x', value)}
+        onChange={(value) => handleRatingBadgeLayoutChange('x', value)}
+      />
+      <EditorStackedRangeField
+        id="rating-badge-y"
+        label="Y position"
+        min={sliderRanges.y.min}
+        max={sliderRanges.y.max}
+        step={0.1}
+        value={projectRatingBadge.layout.y}
+        onInput={(value) => handleRatingBadgeLayoutChange('y', value)}
+        onChange={(value) => handleRatingBadgeLayoutChange('y', value)}
+      />
       <button className="secondary-button" type="button" onClick={handleResetRatingBadgeLayout}>Reset rating badge layout</button>
     </RatingBadgeSetupControls>
   )

@@ -4,13 +4,17 @@ import {
 } from '../assets/assetManifest.ts'
 import {
   DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
+  getCustomSteamBannerLockupSourceLabel,
+  getDefaultSteamBannerLockupSourceLabel,
   normalizeSteamBannerFallbackText,
+  type SteamBannerLockupImageKind,
 } from '../branding/steamBannerDefaults.ts'
 import {
   createEmbeddedProjectImageAssetProvenance,
   createProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from '../project/projectAssetStatus.ts'
+import { setOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import type {
   BackgroundImageSize,
   ProjectCaseInsertLayout,
@@ -111,15 +115,21 @@ function normalizeImageSize(value: unknown): BackgroundImageSize | null {
 function createBuiltInCaseInsertSteamBannerSource(
   kind: CaseInsertSteamBannerTargetKind,
 ) {
+  const lockupKind = getCaseInsertSteamBannerLockupImageKind(kind)
+
   return createProjectImageAssetProvenance({
     source: 'built-in',
     sourceId: kind === 'cover'
       ? 'case-steam-banner:cover-lockup'
       : 'case-steam-banner:spine-icon',
-    sourceLabel: kind === 'cover'
-      ? 'Default Steam banner lockup'
-      : 'Default Steam spine icon',
+    sourceLabel: getDefaultSteamBannerLockupSourceLabel(lockupKind),
   })
+}
+
+function getCaseInsertSteamBannerLockupImageKind(
+  kind: CaseInsertSteamBannerTargetKind,
+): SteamBannerLockupImageKind {
+  return kind === 'spine' ? 'spine-icon' : 'banner-lockup'
 }
 
 function getDefaultCaseInsertSteamBannerImageUrl(
@@ -179,9 +189,9 @@ export function normalizeCaseInsertSteamBanner(
         lockupImageDataUrl === defaults.lockupImageDataUrl
           ? defaults.lockupImageSource ?? null
           : createEmbeddedProjectImageAssetProvenance(
-              kind === 'cover'
-                ? 'Custom Steam banner lockup'
-                : 'Custom Steam spine icon',
+              getCustomSteamBannerLockupSourceLabel(
+                getCaseInsertSteamBannerLockupImageKind(kind),
+              ),
             )
       )
     : null
@@ -232,10 +242,7 @@ export function setCaseInsertSteamBannerEnabled(
   banner: ProjectCaseInsertSteamBanner,
   enabled: boolean,
 ): ProjectCaseInsertSteamBanner {
-  return {
-    ...banner,
-    enabled,
-  }
+  return setOptionalVisualFeatureEnabled(banner, enabled)
 }
 
 export function updateCaseInsertSteamBannerColor(
@@ -312,6 +319,7 @@ export function setCustomCaseInsertSteamBannerLockupImage(
     imageSize: BackgroundImageSize
     imageSource?: Partial<ProjectImageAssetProvenance> | null
   },
+  kind: CaseInsertSteamBannerTargetKind = 'cover',
 ): ProjectCaseInsertSteamBanner {
   return {
     ...banner,
@@ -319,7 +327,11 @@ export function setCustomCaseInsertSteamBannerLockupImage(
     lockupImageSize: image.imageSize,
     lockupImageSource: normalizeProjectImageAssetProvenance(
       image.imageSource,
-      createEmbeddedProjectImageAssetProvenance('Custom Steam banner lockup'),
+      createEmbeddedProjectImageAssetProvenance(
+        getCustomSteamBannerLockupSourceLabel(
+          getCaseInsertSteamBannerLockupImageKind(kind),
+        ),
+      ),
     ),
     useTextFallback: false,
   }

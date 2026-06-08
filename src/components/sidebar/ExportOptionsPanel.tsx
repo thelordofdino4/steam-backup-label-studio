@@ -1,4 +1,5 @@
 import type { ExportGuideKey, ExportGuideSelection } from '../../export/exportGuides'
+import { EditorPanel } from '../editor/EditorPanel'
 
 export type ExportOptionsPanelProps = {
   exportGuides: ExportGuideSelection
@@ -12,9 +13,7 @@ export function ExportOptionsPanel({
   const enabledGuideCount = Object.values(exportGuides).filter(Boolean).length
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Export Options</summary>
-      <div className="panel-content">
+    <EditorPanel title="Export Options">
         <p className="hint">
           Checked guide marks are drawn into the exported PNG to help verify the disc cut, printable area, and safe zone.
         </p>
@@ -55,7 +54,6 @@ export function ExportOptionsPanel({
           />
           <span>Safe zone guide</span>
         </label>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }

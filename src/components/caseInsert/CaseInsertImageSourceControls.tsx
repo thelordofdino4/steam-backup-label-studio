@@ -10,15 +10,15 @@ import type {
 } from '../../steam/steamApi'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import {
-  ArtworkImageSourceControls,
-  type ArtworkImageSourceCatalog,
-  type ArtworkImageSourceControlSource,
-} from '../sidebar/artwork/ArtworkImageSourceControls'
+  EditorImageSourceControls,
+  type EditorImageSourceCatalog,
+  type EditorImageSourceControlSource,
+} from '../editor/EditorImageSourceControls'
 
-export type CaseInsertImageSourceCatalog = ArtworkImageSourceCatalog
+export type CaseInsertImageSourceCatalog = EditorImageSourceCatalog
 
 export type CaseInsertImageSourceControlSource =
-  ArtworkImageSourceControlSource
+  EditorImageSourceControlSource
 
 export type CaseInsertImageSourceControlsProps = {
   selectedSteamGame: SteamImportedGame | null
@@ -54,5 +54,5 @@ export type CaseInsertImageSourceControlsProps = {
 export function CaseInsertImageSourceControls(
   props: CaseInsertImageSourceControlsProps,
 ) {
-  return <ArtworkImageSourceControls {...props} />
+  return <EditorImageSourceControls {...props} />
 }

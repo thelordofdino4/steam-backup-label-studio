@@ -18,7 +18,9 @@ import type {
   PlatformMarkValue,
   ProjectPlatformMarkAsset,
 } from '../../../project/projectTypes'
-import { formatLogoSize, getNumericInputValue } from './helpers'
+import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourceControls'
+import { EditorStackedRangeField } from '../../editor/EditorRangeField'
+import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
 
 type PlatformMarkSetupControlsProps = Pick<
@@ -92,7 +94,6 @@ export function PlatformMarkSetupControls({
           {enabledValues.map((value) => {
             const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
             const label = getPlatformMarkLabel(value)
-            const uploadId = fieldId(`platform-mark-upload-${value}`)
             const isCustomPlatformMarkSource = asset.source === 'custom'
             const themeOptions = getPlatformMarkThemeOptions(value)
             const showsThemeControl =
@@ -101,34 +102,39 @@ export function PlatformMarkSetupControls({
             return (
               <div key={value} className="logo-asset-card spacing-top">
                 <span className="field-label">{label} operating system mark</span>
-                <label className="field-label spacing-top" htmlFor={fieldId(`platform-mark-source-${value}`)}>Mark source</label>
-                <select id={fieldId(`platform-mark-source-${value}`)} value={asset.source} onChange={(event) => handlePlatformMarkSourceChange(value, event.target.value as PlatformMarkSource)}>
-                  <option value="placeholder">Built-in generic</option>
-                  <option value="custom">Custom image</option>
-                </select>
-                {showsThemeControl ? (
-                  <>
-                    <label className="field-label spacing-top" htmlFor={fieldId(`platform-mark-theme-${value}`)}>Mark style</label>
-                    <select id={fieldId(`platform-mark-theme-${value}`)} value={asset.theme} onChange={(event) => handlePlatformMarkThemeChange(value, event.target.value as PlatformMarkTheme)}>
-                      {themeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                  </>
-                ) : null}
-                {isCustomPlatformMarkSource ? (
-                  <>
-                    <span className="field-label spacing-top">Custom operating system image</span>
-                    <label className="secondary-button logo-upload-button" htmlFor={uploadId}>Choose custom {label}</label>
-                    <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handlePlatformMarkUpload(value, event)} />
-                    {asset.customImageDataUrl ? (
-                      <div className="selected-lockup-card logo-asset-status-card">
-                        <img className="logo-asset-preview" src={asset.customImageDataUrl} alt="" draggable={false} />
-                        <span>Custom {label} mark active{formatLogoSize(asset.customImageSize)}</span>
-                      </div>
-                    ) : <p className="hint">No custom {label} operating system image is selected yet. The bundled generic mark remains visible until you upload an image.</p>}
-                  </>
-                ) : <p className="hint">Using a bundled generic mark.</p>}
-                {renderLayoutControls?.(value, label, asset)}
-                {isCustomPlatformMarkSource && asset.customImageDataUrl && <button className="secondary-button" type="button" onClick={() => handleClearPlatformMarkImage(value)}>Clear custom {label}</button>}
+                <EditorMarkImageSourceControls
+                  idPrefix={idPrefix}
+                  source={asset.source}
+                  sourceLabel="Mark source"
+                  sourceSelectId={`platform-mark-source-${value}`}
+                  builtInHint="Using a bundled generic mark."
+                  customImageLabel="Custom operating system image"
+                  customImageDataUrl={asset.customImageDataUrl}
+                  customImageSize={asset.customImageSize}
+                  customActiveLabel={`Custom ${label} mark active`}
+                  uploadId={`platform-mark-upload-${value}`}
+                  uploadButtonLabel={`Choose custom ${label}`}
+                  emptyCustomHint={`No custom ${label} operating system image is selected yet. The bundled generic mark remains visible until you upload an image.`}
+                  clearCustomLabel={`Clear custom ${label}`}
+                  formatSize={formatLogoSize}
+                  onSourceChange={(source) =>
+                    handlePlatformMarkSourceChange(
+                      value,
+                      source as PlatformMarkSource,
+                    )}
+                  onUpload={(event) => handlePlatformMarkUpload(value, event)}
+                  onClearCustomImage={() => handleClearPlatformMarkImage(value)}
+                  sourceDetails={showsThemeControl ? (
+                    <>
+                      <label className="field-label spacing-top" htmlFor={fieldId(`platform-mark-theme-${value}`)}>Mark style</label>
+                      <select id={fieldId(`platform-mark-theme-${value}`)} value={asset.theme} onChange={(event) => handlePlatformMarkThemeChange(value, event.target.value as PlatformMarkTheme)}>
+                        {themeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      </select>
+                    </>
+                  ) : null}
+                >
+                  {renderLayoutControls?.(value, label, asset)}
+                </EditorMarkImageSourceControls>
               </div>
             )
           })}
@@ -169,12 +175,42 @@ export function PlatformMarkControls({
 
         return (
           <>
-            <label className="field-label spacing-top" htmlFor={`platform-mark-scale-${value}`}>Scale</label>
-            <input id={`platform-mark-scale-${value}`} type="range" min="0.25" max="2" step="0.01" value={asset.layout.scale} onInput={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'scale', getNumericInputValue(event))} />
-            <label className="field-label spacing-top" htmlFor={`platform-mark-x-${value}`}>X position</label>
-            <input id={`platform-mark-x-${value}`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={asset.layout.x} onInput={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'x', getNumericInputValue(event))} />
-            <label className="field-label spacing-top" htmlFor={`platform-mark-y-${value}`}>Y position</label>
-            <input id={`platform-mark-y-${value}`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={asset.layout.y} onInput={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} onChange={(event) => handlePlatformMarkLayoutChange(value, 'y', getNumericInputValue(event))} />
+            <EditorStackedRangeField
+              id={`platform-mark-scale-${value}`}
+              label="Scale"
+              min={0.25}
+              max={2}
+              step={0.01}
+              value={asset.layout.scale}
+              onInput={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'scale', nextValue)}
+              onChange={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'scale', nextValue)}
+            />
+            <EditorStackedRangeField
+              id={`platform-mark-x-${value}`}
+              label="X position"
+              min={sliderRanges.x.min}
+              max={sliderRanges.x.max}
+              step={0.1}
+              value={asset.layout.x}
+              onInput={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'x', nextValue)}
+              onChange={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'x', nextValue)}
+            />
+            <EditorStackedRangeField
+              id={`platform-mark-y-${value}`}
+              label="Y position"
+              min={sliderRanges.y.min}
+              max={sliderRanges.y.max}
+              step={0.1}
+              value={asset.layout.y}
+              onInput={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'y', nextValue)}
+              onChange={(nextValue) =>
+                handlePlatformMarkLayoutChange(value, 'y', nextValue)}
+            />
             <button className="secondary-button" type="button" onClick={() => handleResetPlatformMarkLayout(value)}>Reset {label} layout</button>
           </>
         )

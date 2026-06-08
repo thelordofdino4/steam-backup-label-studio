@@ -1,20 +1,20 @@
 import { getAdditionalArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
-  ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX,
-  ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN,
   ADDITIONAL_ARTWORK_SCALE_MAX,
   ADDITIONAL_ARTWORK_SCALE_MIN,
   canUseAdditionalArtworkElement,
   shouldRenderAdditionalArtworkElement,
 } from '../../../project/projectAdditionalArtwork'
+import {
+  createRepeatedArtworkSummary,
+} from '../../../editor/repeatedArtwork'
 import type { ProjectAdditionalArtworkElement } from '../../../project/projectTypes'
+import { EditorArtworkFrameControls } from '../../editor/EditorArtworkFrameControls'
+import { EditorRangeField } from '../../editor/EditorRangeField'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
 import { ArtworkImageSourceControls } from './ArtworkImageSourceControls'
-import {
-  formatAdditionalArtworkSize,
-  getNumericInputValue,
-} from './helpers'
+import { formatAdditionalArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
 function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
@@ -103,11 +103,11 @@ function AdditionalArtworkElementControls({
     source: element.source,
     sourceId: element.sourceId,
   }
-  const summary = [
-    element.layout.enabled ? 'shown' : 'hidden',
-    hasImage ? element.sourceLabel : 'no image',
-    element.frame.enabled ? `${element.frame.shape} frame` : 'no frame',
-  ].join(' · ')
+  const summary = createRepeatedArtworkSummary({
+    enabled: element.layout.enabled,
+    imageSummary: hasImage ? element.sourceLabel : 'no image',
+    frame: element.frame,
+  })
 
   return (
     <>
@@ -182,162 +182,68 @@ function AdditionalArtworkElementControls({
             </p>
           )}
 
-          <div className="additional-artwork-frame-controls">
-            <label className="field-label">
-              <input
-                type="checkbox"
-                checked={element.frame.enabled}
-                onChange={(event) =>
-                  handleAdditionalArtworkFrameChange(
-                    element.id,
-                    'enabled',
-                    event.target.checked,
-                  )}
-              />
-              Show border/frame
-            </label>
-
-            {element.frame.enabled ? (
-              <div className="disc-text-layout-grid">
-                <label>
-                  <span>Shape</span>
-                  <select
-                    value={element.frame.shape}
-                    onChange={(event) =>
-                      handleAdditionalArtworkFrameChange(
-                        element.id,
-                        'shape',
-                        event.target.value,
-                      )}
-                  >
-                    <option value="rectangle">Rectangle</option>
-                    <option value="circle">Circle / oval</option>
-                  </select>
-                </label>
-
-                <label>
-                  <span>Color</span>
-                  <input
-                    type="color"
-                    value={element.frame.color}
-                    onChange={(event) =>
-                      handleAdditionalArtworkFrameChange(
-                        element.id,
-                        'color',
-                        event.target.value,
-                      )}
-                  />
-                </label>
-
-                <label>
-                  <span>Width</span>
-                  <input
-                    type="range"
-                    min={ADDITIONAL_ARTWORK_FRAME_WIDTH_MIN}
-                    max={ADDITIONAL_ARTWORK_FRAME_WIDTH_MAX}
-                    step="0.25"
-                    value={element.frame.width}
-                    onInput={(event) =>
-                      handleAdditionalArtworkFrameChange(
-                        element.id,
-                        'width',
-                        getNumericInputValue(event),
-                      )}
-                    onChange={(event) =>
-                      handleAdditionalArtworkFrameChange(
-                        element.id,
-                        'width',
-                        getNumericInputValue(event),
-                      )}
-                  />
-                </label>
-
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() => handleResetAdditionalArtworkElementFrame(element.id)}
-                >
-                  Reset frame
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <EditorArtworkFrameControls
+            frame={element.frame}
+            idPrefix={`additional-artwork-${element.id}`}
+            onFrameChange={(field, value) =>
+              handleAdditionalArtworkFrameChange(element.id, field, value)}
+            onResetFrame={() =>
+              handleResetAdditionalArtworkElementFrame(element.id)}
+          />
 
           <div
             className="disc-text-layout-grid"
             aria-label={`${title} fine tuning controls`}
           >
-            <label>
-              <span>Scale</span>
-              <input
-                type="range"
-                min={ADDITIONAL_ARTWORK_SCALE_MIN}
-                max={ADDITIONAL_ARTWORK_SCALE_MAX}
-                step="0.01"
-                value={element.layout.scale}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'scale',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'scale',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id={`additional-artwork-${element.id}-scale`}
+              label="Scale"
+              min={ADDITIONAL_ARTWORK_SCALE_MIN}
+              max={ADDITIONAL_ARTWORK_SCALE_MAX}
+              step={0.01}
+              value={element.layout.scale}
+              disabled={!isRenderable}
+              onInput={(value) =>
+                handleAdditionalArtworkLayoutChange(
+                  element.id,
+                  'scale',
+                  value,
+                )}
+              onChange={(value) =>
+                handleAdditionalArtworkLayoutChange(
+                  element.id,
+                  'scale',
+                  value,
+                )}
+            />
 
-            <label>
-              <span>X</span>
-              <input
-                type="range"
-                min={sliderRanges.x.min}
-                max={sliderRanges.x.max}
-                step="0.1"
-                value={element.layout.x}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'x',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'x',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id={`additional-artwork-${element.id}-x`}
+              label="X"
+              min={sliderRanges.x.min}
+              max={sliderRanges.x.max}
+              step={0.1}
+              value={element.layout.x}
+              disabled={!isRenderable}
+              onInput={(value) =>
+                handleAdditionalArtworkLayoutChange(element.id, 'x', value)}
+              onChange={(value) =>
+                handleAdditionalArtworkLayoutChange(element.id, 'x', value)}
+            />
 
-            <label>
-              <span>Y</span>
-              <input
-                type="range"
-                min={sliderRanges.y.min}
-                max={sliderRanges.y.max}
-                step="0.1"
-                value={element.layout.y}
-                disabled={!isRenderable}
-                onInput={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-                onChange={(event) =>
-                  handleAdditionalArtworkLayoutChange(
-                    element.id,
-                    'y',
-                    getNumericInputValue(event),
-                  )}
-              />
-            </label>
+            <EditorRangeField
+              id={`additional-artwork-${element.id}-y`}
+              label="Y"
+              min={sliderRanges.y.min}
+              max={sliderRanges.y.max}
+              step={0.1}
+              value={element.layout.y}
+              disabled={!isRenderable}
+              onInput={(value) =>
+                handleAdditionalArtworkLayoutChange(element.id, 'y', value)}
+              onChange={(value) =>
+                handleAdditionalArtworkLayoutChange(element.id, 'y', value)}
+            />
           </div>
 
           <button

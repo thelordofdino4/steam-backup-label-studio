@@ -6,6 +6,7 @@ import type {
 import type {
   CaseInsertImageSourceControlSource,
 } from './CaseInsertImageSourceControls'
+import { EditorRangeField } from '../editor/EditorRangeField'
 
 export type CaseInsertImageSlotPlacementField = {
   field: Exclude<keyof ProjectCaseInsertLayout, 'width'>
@@ -53,40 +54,6 @@ function isCaseInsertImageSourceControlActive(
   }
 }
 
-function RangeField({
-  id,
-  label,
-  min,
-  max,
-  step,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  min: number
-  max: number
-  step: number
-  value: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label>
-      <span>{label}</span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onInput={(event) => onChange(Number(event.currentTarget.value))}
-        onChange={(event) => onChange(Number(event.currentTarget.value))}
-      />
-    </label>
-  )
-}
-
 export function CaseInsertImageSlotPlacementControls({
   beforeRangeControls,
   featureEnabled,
@@ -132,7 +99,7 @@ export function CaseInsertImageSlotPlacementControls({
       <div className="disc-text-layout-grid">
         {beforeRangeControls}
         {fields.map((field) => (
-          <RangeField
+          <EditorRangeField
             key={field.field}
             id={`${uploadId}-${source}-${field.field}`}
             label={field.label}
@@ -140,6 +107,7 @@ export function CaseInsertImageSlotPlacementControls({
             max={field.max}
             step={field.step}
             value={slot.layout[field.field]}
+            onInput={(value) => onLayoutChange(field.field, value)}
             onChange={(value) => onLayoutChange(field.field, value)}
           />
         ))}

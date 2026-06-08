@@ -1,9 +1,14 @@
 import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
-  type RenderBoundsPercent,
 } from '../disc/geometry.ts'
 import { getTechnicalMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  resolveMarkImageSource,
+} from '../editor/markImageSource.ts'
 import {
   getAllProjectTechnicalMarkAssetEntries,
   getTechnicalMarkLabel,
@@ -14,27 +19,20 @@ import type {
   TechnicalMarkLayout,
   TechnicalMarkValue,
 } from '../project/projectTypes.ts'
+import {
+  createPercentPositionedImageRenderArtifact,
+  type PercentPositionedImageRenderArtifact,
+} from './imageRenderArtifact.ts'
 
-export type TechnicalMarkRenderModel = {
+export type TechnicalMarkRenderModel = PercentPositionedImageRenderArtifact<
+  TechnicalMarkLayout,
+  {
   key: string
   value: TechnicalMarkValue
   assetId: string | null
   asset: ProjectTechnicalMarkAsset
-  imageDataUrl: string
-  isPlaceholderImage: boolean
-  label: string
-  alt: string
-  layout: TechnicalMarkLayout
-  unscaledBounds: RenderBoundsPercent
-  scaledBounds: RenderBoundsPercent
-}
-
-function hasCustomImage(
-  source: 'placeholder' | 'custom',
-  imageDataUrl: string | null,
-): imageDataUrl is string {
-  return source === 'custom' && Boolean(imageDataUrl)
-}
+  }
+>
 
 export function createTechnicalMarkRenderModels(
   technicalMarks: ProjectTechnicalMarks,
@@ -42,33 +40,37 @@ export function createTechnicalMarkRenderModels(
   return getAllProjectTechnicalMarkAssetEntries(technicalMarks).flatMap((entry) => {
     const { value, asset, assetId } = entry
 
-    if (!asset.layout.enabled) {
+    if (!isOptionalVisualFeatureEnabled(asset.layout)) {
       return []
     }
 
     const defaultLabel = getTechnicalMarkLabel(value)
     const label = asset.label.trim() ? asset.label : defaultLabel
-    const customImageDataUrl = asset.customImageDataUrl
-    const isCustomImage = hasCustomImage(asset.source, customImageDataUrl)
+    const resolvedImage = resolveMarkImageSource({
+      source: asset.source,
+      customImageDataUrl: asset.customImageDataUrl,
+      customImageSize: asset.customImageSize,
+      builtInImageDataUrl: getTechnicalMarkPlaceholderImageUrl(value),
+    })
     const getBounds = (scale: number) =>
-      isCustomImage && asset.customImageSize
-        ? getTechnicalMarkBoundsPercent(asset.customImageSize, scale)
+      resolvedImage.isCustomImage && resolvedImage.imageSize
+        ? getTechnicalMarkBoundsPercent(resolvedImage.imageSize, scale)
         : getTechnicalMarkPlaceholderBoundsPercent(scale)
 
-    return [{
+    const model = createPercentPositionedImageRenderArtifact({
       key: assetId ?? value,
       value,
       assetId,
       asset,
-      imageDataUrl: isCustomImage
-        ? customImageDataUrl
-        : getTechnicalMarkPlaceholderImageUrl(value),
-      isPlaceholderImage: !isCustomImage,
+      imageDataUrl: resolvedImage.imageDataUrl,
+      isPlaceholderImage: resolvedImage.isBuiltInFallback,
       label,
-      alt: isCustomImage ? label : `${label} generic technical mark`,
+      alt: resolvedImage.isCustomImage ? label : `${label} generic technical mark`,
       layout: asset.layout,
       unscaledBounds: getBounds(1),
       scaledBounds: getBounds(asset.layout.scale),
-    }]
+    })
+
+    return model ? [model] : []
   })
 }

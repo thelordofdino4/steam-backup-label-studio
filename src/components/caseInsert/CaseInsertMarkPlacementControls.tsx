@@ -1,4 +1,3 @@
-import type { ChangeEvent, FormEvent } from 'react'
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
@@ -6,6 +5,7 @@ import type {
 import type {
   CaseInsertMarkPlacementField,
 } from '../../caseInsert/brandingMarkPlacementFields'
+import { EditorStackedRangeField } from '../editor/EditorRangeField'
 
 export type CaseInsertMarkPlacementControlsProps = {
   fields: CaseInsertMarkPlacementField[]
@@ -32,12 +32,6 @@ export type CaseInsertMarkPlacementControlsProps = {
   presetLabel?: string
   resetLabel: string
   slot: ProjectCaseInsertImageSlot | null
-}
-
-function getRangeValue(
-  event: ChangeEvent<HTMLInputElement> | FormEvent<HTMLInputElement>,
-) {
-  return Number(event.currentTarget.value)
 }
 
 export function CaseInsertMarkPlacementControls({
@@ -96,26 +90,17 @@ export function CaseInsertMarkPlacementControls({
         </>
       ) : null}
       {fields.map((field) => (
-        <div key={field.field}>
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${idPrefix}-${field.field}`}
-          >
-            {field.label}
-          </label>
-          <input
-            id={`${idPrefix}-${field.field}`}
-            type="range"
-            min={field.min}
-            max={field.max}
-            step={field.step}
-            value={slot.layout[field.field]}
-            onInput={(event) =>
-              onLayoutChange(field.field, getRangeValue(event))}
-            onChange={(event) =>
-              onLayoutChange(field.field, getRangeValue(event))}
-          />
-        </div>
+        <EditorStackedRangeField
+          key={field.field}
+          id={`${idPrefix}-${field.field}`}
+          label={field.label}
+          min={field.min}
+          max={field.max}
+          step={field.step}
+          value={slot.layout[field.field] ?? 0}
+          onInput={(value) => onLayoutChange(field.field, value)}
+          onChange={(value) => onLayoutChange(field.field, value)}
+        />
       ))}
       <button
         className="secondary-button"

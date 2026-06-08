@@ -1,5 +1,4 @@
 import { getLogoAssetLayoutSliderRanges } from '../../../layout/discElementSafeZone'
-import { getProjectImageAssetStatus } from '../../../project/projectAssetStatus'
 import { getLogoAssetSource } from '../../../project/projectLogoAssets'
 import type {
   BackgroundImageSize,
@@ -7,13 +6,17 @@ import type {
   ProjectAdditionalLogoAsset,
   ProjectImageAssetProvenance,
 } from '../../../project/projectTypes'
+import {
+  createLogoAssetSummary,
+  type LogoAlignmentPreset,
+} from '../../../editor/logoAsset'
+import { EditorLogoAssetControls } from '../../editor/EditorLogoAssetControls'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
 import { formatLogoSize } from './helpers'
-import { LogoCandidateControls } from './LogoCandidateControls'
 import type { BrandingPanelProps, LogoKey } from './types'
 
-const LOGO_ALIGNMENT_PRESETS = [
+const LOGO_ALIGNMENT_PRESETS: readonly LogoAlignmentPreset[] = [
   { label: 'Top left', x: 22, y: 22 },
   { label: 'Top center', x: 50, y: 22 },
   { label: 'Top right', x: 78, y: 22 },
@@ -67,12 +70,6 @@ function LogoAssetControlBody({
   controlIdPrefix: string
   additionalLogoId?: string
 }) {
-  const hasLogoImage = Boolean(imageDataUrl)
-  const logoStatus = getProjectImageAssetStatus({
-    imageDataUrl,
-    provenance: imageSource,
-    fallbackLabel: `${label} logo image`,
-  })
   const sliderRanges = getLogoAssetLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
@@ -82,52 +79,60 @@ function LogoAssetControlBody({
     handleLogoAssetLayoutChange(logoKey, field, value, additionalLogoId)
 
   return (
-    <>
-      <label className="secondary-button logo-upload-button" htmlFor={uploadId}>{hasLogoImage ? `Replace ${label.toLowerCase()} logo` : `Choose ${label.toLowerCase()} logo`}</label>
-      <input id={uploadId} className="logo-file-input" type="file" accept="image/*" onChange={(event) => handleLogoAssetUpload(logoKey, event, additionalLogoId)} />
-
-      <LogoCandidateControls
-        logoKey={logoKey}
-        label={label}
-        discovery={logoCandidateDiscovery[logoKey]}
-        handleFindLogoCandidates={handleFindLogoCandidates}
-        handleApplyLogoCandidate={(candidate) =>
-          handleApplyLogoCandidate(logoKey, candidate, additionalLogoId)}
-      />
-
-      {hasLogoImage ? (
-        <div className="selected-lockup-card logo-asset-status-card">
-          <img className="logo-asset-preview" src={imageDataUrl ?? undefined} alt="" draggable={false} />
-          <span>{logoStatus.summary}{formatLogoSize(imageSize)}</span>
-        </div>
-      ) : (
-        <p className="hint">No {label.toLowerCase()} logo image is selected yet. A bundled generic logo is shown for placement; upload an image before export to render your actual logo.</p>
-      )}
-
-      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-alignment-preset`}>Align logo</label>
-      <select id={`${controlIdPrefix}-alignment-preset`} defaultValue="" onChange={(event) => {
-        const preset = LOGO_ALIGNMENT_PRESETS.find((candidate) => candidate.label === event.target.value)
-        if (!preset) return
+    <EditorLogoAssetControls
+      logoKey={logoKey}
+      label={label}
+      candidateLabel={label}
+      imageDataUrl={imageDataUrl}
+      imageSource={imageSource}
+      imageSize={imageSize}
+      uploadId={uploadId}
+      controlIdPrefix={controlIdPrefix}
+      alignmentPresets={LOGO_ALIGNMENT_PRESETS}
+      fields={[
+        {
+          id: `${controlIdPrefix}-scale`,
+          label: 'Scale',
+          min: 0.25,
+          max: 2,
+          step: 0.01,
+          value: layout.scale,
+          onChange: (value) => updateLayout('scale', value),
+        },
+        {
+          id: `${controlIdPrefix}-x`,
+          label: 'X position',
+          min: sliderRanges.x.min,
+          max: sliderRanges.x.max,
+          step: 0.1,
+          value: layout.x,
+          onChange: (value) => updateLayout('x', value),
+        },
+        {
+          id: `${controlIdPrefix}-y`,
+          label: 'Y position',
+          min: sliderRanges.y.min,
+          max: sliderRanges.y.max,
+          step: 0.1,
+          value: layout.y,
+          onChange: (value) => updateLayout('y', value),
+        },
+      ]}
+      formatSize={formatLogoSize}
+      logoCandidateDiscovery={logoCandidateDiscovery}
+      handleFindLogoCandidates={handleFindLogoCandidates}
+      handleApplyLogoCandidate={(candidate) =>
+        handleApplyLogoCandidate(logoKey, candidate, additionalLogoId)}
+      onUpload={(event) =>
+        handleLogoAssetUpload(logoKey, event, additionalLogoId)}
+      onApplyAlignmentPreset={(preset) => {
         updateLayout('x', preset.x)
         updateLayout('y', preset.y)
-        event.currentTarget.value = ''
-      }}>
-        <option value="">Choose preset...</option>
-        {LOGO_ALIGNMENT_PRESETS.map((preset) => <option key={preset.label} value={preset.label}>{preset.label}</option>)}
-      </select>
-
-      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-scale`}>Scale</label>
-      <input id={`${controlIdPrefix}-scale`} type="range" min="0.25" max="2" step="0.01" value={layout.scale} onChange={(event) => updateLayout('scale', Number(event.target.value))} />
-
-      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-x`}>X position</label>
-      <input id={`${controlIdPrefix}-x`} type="range" min={sliderRanges.x.min} max={sliderRanges.x.max} step="0.1" value={layout.x} onChange={(event) => updateLayout('x', Number(event.target.value))} />
-
-      <label className="field-label spacing-top" htmlFor={`${controlIdPrefix}-y`}>Y position</label>
-      <input id={`${controlIdPrefix}-y`} type="range" min={sliderRanges.y.min} max={sliderRanges.y.max} step="0.1" value={layout.y} onChange={(event) => updateLayout('y', Number(event.target.value))} />
-
-      <button className="secondary-button" type="button" onClick={() => handleResetLogoAssetLayout(logoKey, additionalLogoId)}>Reset logo layout</button>
-      {hasLogoImage && <button className="secondary-button" type="button" onClick={() => handleClearLogoAsset(logoKey, additionalLogoId)}>Clear logo</button>}
-    </>
+      }}
+      onResetLayout={() =>
+        handleResetLogoAssetLayout(logoKey, additionalLogoId)}
+      onClearImage={() => handleClearLogoAsset(logoKey, additionalLogoId)}
+    />
   )
 }
 
@@ -161,11 +166,11 @@ function AdditionalLogoAssetControls({
   const uploadId = `${logoKey}-additional-logo-${additionalLogoIndex + 1}`
   const additionalLabel = `Additional ${label.toLowerCase()}`
   const deleteLabel = `Delete ${additionalLabel} logo`
-  const summary = [
-    logoAsset.layout.enabled ? 'shown' : 'hidden',
-    logoAsset.imageDataUrl ? 'custom image' : 'bundled generic',
-    `scale ${logoAsset.layout.scale.toFixed(2)}`,
-  ].join(' · ')
+  const summary = createLogoAssetSummary({
+    enabled: logoAsset.layout.enabled,
+    hasImage: Boolean(logoAsset.imageDataUrl),
+    scale: logoAsset.layout.scale,
+  })
 
   return (
     <RepeatedVisualElementCard

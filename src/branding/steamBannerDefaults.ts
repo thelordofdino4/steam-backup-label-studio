@@ -1,12 +1,14 @@
 import type { SteamLogoPlacement } from '../discText/index'
 import type {
   BackgroundImageSize,
+  ProjectImageAssetProvenance,
   SteamBannerColors,
   SteamBannerLockupLayout,
 } from '../project/projectTypes'
 
 export type SteamBannerColorField = keyof SteamBannerColors
 export type SteamBannerLockupLayoutField = keyof SteamBannerLockupLayout
+export type SteamBannerLockupImageKind = 'banner-lockup' | 'spine-icon'
 
 export const DEFAULT_STEAM_BANNER_COLORS: SteamBannerColors = {
   gradientStart: '#2b475e',
@@ -24,6 +26,18 @@ export const DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT: SteamBannerLockupLayout = {
 export const DEFAULT_STEAM_BANNER_FALLBACK_TEXT = 'STEAM'
 
 export const DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT: SteamLogoPlacement = 'bottom'
+
+const DEFAULT_STEAM_BANNER_LOCKUP_SOURCE_LABELS:
+Record<SteamBannerLockupImageKind, string> = {
+  'banner-lockup': 'Default Steam banner lockup',
+  'spine-icon': 'Default Steam spine icon',
+}
+
+const CUSTOM_STEAM_BANNER_LOCKUP_SOURCE_LABELS:
+Record<SteamBannerLockupImageKind, string> = {
+  'banner-lockup': 'Custom Steam banner lockup',
+  'spine-icon': 'Custom Steam spine icon',
+}
 
 export type SteamBannerLockupImageState = {
   imageUrl: string | null
@@ -62,6 +76,24 @@ export function shouldRenderSteamBannerTextFallback(
   lockupImageUrl: string | null | undefined,
 ): boolean {
   return useTextFallback || !lockupImageUrl
+}
+
+export function getDefaultSteamBannerLockupSourceLabel(
+  kind: SteamBannerLockupImageKind,
+) {
+  return DEFAULT_STEAM_BANNER_LOCKUP_SOURCE_LABELS[kind]
+}
+
+export function getCustomSteamBannerLockupSourceLabel(
+  kind: SteamBannerLockupImageKind,
+) {
+  return CUSTOM_STEAM_BANNER_LOCKUP_SOURCE_LABELS[kind]
+}
+
+export function isCustomSteamBannerLockupSource(
+  source: Pick<ProjectImageAssetProvenance, 'source'> | null | undefined,
+) {
+  return source?.source !== 'built-in'
 }
 
 export function createSteamLogoPlacementMemory(

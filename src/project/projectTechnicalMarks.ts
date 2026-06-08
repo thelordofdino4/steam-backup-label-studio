@@ -1,4 +1,8 @@
 import { getDefaultTechnicalMarkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  setOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import type { DiscTemplate } from '../types/template'
 import type {
   BackgroundImageSize,
@@ -275,10 +279,7 @@ export function updateTechnicalMarkToggle(
     value,
     {
       ...currentAsset,
-      layout: {
-        ...currentAsset.layout,
-        enabled,
-      },
+      layout: setOptionalVisualFeatureEnabled(currentAsset.layout, enabled),
     },
   )
 
@@ -301,10 +302,7 @@ export function updateTechnicalMarkToggle(
       ...nextTechnicalMarks.additionalAssets,
       [value]: additionalAssets.map((asset) => ({
         ...asset,
-        layout: {
-          ...asset.layout,
-          enabled: false,
-        },
+        layout: setOptionalVisualFeatureEnabled(asset.layout, false),
       })),
     },
   }
@@ -316,11 +314,13 @@ export function getEnabledTechnicalMarkValues(
   return technicalMarks.values.filter(
     (value) => {
       const primaryEnabled =
-        getProjectTechnicalMarkAsset(technicalMarks, value).layout.enabled
+        isOptionalVisualFeatureEnabled(
+          getProjectTechnicalMarkAsset(technicalMarks, value).layout,
+        )
       const additionalEnabled = getProjectTechnicalMarkAdditionalAssets(
         technicalMarks,
         value,
-      ).some((asset) => asset.layout.enabled)
+      ).some((asset) => isOptionalVisualFeatureEnabled(asset.layout))
 
       return primaryEnabled || additionalEnabled
     },
@@ -374,10 +374,7 @@ export function setTechnicalMarkCustomImage(
       source: 'custom',
       customImageDataUrl: imageDataUrl,
       customImageSize: imageSize,
-      layout: {
-        ...currentAsset.layout,
-        enabled: true,
-      },
+      layout: setOptionalVisualFeatureEnabled(currentAsset.layout, true),
     },
     assetId,
   )

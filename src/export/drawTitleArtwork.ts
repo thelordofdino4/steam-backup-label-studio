@@ -14,9 +14,5 @@ export async function drawTitleArtwork(
     return
   }
 
-  await drawMarkImage(context, discContentSize, discOrigin, {
-    imageDataUrl: renderItem.imageDataUrl,
-    layout: renderItem.layout,
-    scaledBounds: renderItem.scaledBounds,
-  })
+  await drawMarkImage(context, discContentSize, discOrigin, renderItem)
 }

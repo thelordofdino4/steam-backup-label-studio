@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { EditorFeaturePanel } from '../editor/EditorPanel'
 
 type CaseInsertWorkflowSectionVariant = 'feature' | 'branding'
 
@@ -15,15 +16,14 @@ export function CaseInsertWorkflowSection({
   variant = 'feature',
   spacingTop = true,
 }: CaseInsertWorkflowSectionProps) {
-  const cardClassName =
-    variant === 'branding' ? 'branding-feature-card' : 'feature-section-card'
-
   return (
-    <details
-      className={`${cardClassName} case-insert-workflow-section metadata-details collapsible-panel${spacingTop ? ' spacing-top' : ''}`}
+    <EditorFeaturePanel
+      title={title}
+      variant={variant}
+      spacingTop={spacingTop}
+      className="case-insert-workflow-section"
     >
-      <summary className="panel-summary">{title}</summary>
-      <div className="panel-content">{children}</div>
-    </details>
+      {children}
+    </EditorFeaturePanel>
   )
 }

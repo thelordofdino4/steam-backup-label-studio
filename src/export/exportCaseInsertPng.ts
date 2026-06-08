@@ -40,6 +40,9 @@ import {
   CASE_INSERT_EDITOR_EXPORT_LAYER_ORDER,
   type CaseInsertEditorExportLayerId,
 } from '../editor/layerOrder'
+import {
+  getFeatureVisibleRepeatedArtworkItems,
+} from '../editor/repeatedArtwork'
 import type {
   CaseInsertPreviewLayout,
 } from '../layout/caseInsertPreviewLayout'
@@ -74,6 +77,11 @@ import type {
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
+import {
+  createBoxPositionedImageRenderArtifact,
+  createRectPositionedImageRenderArtifact,
+  type RectPositionedImageRenderArtifact,
+} from '../render/imageRenderArtifact'
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel'
 import { canvasToPngBytes, loadCanvasSafeImage } from './canvasImage'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
@@ -149,19 +157,23 @@ async function drawImageFit(
   context.restore()
 }
 
-async function drawImageInRect(
+async function drawImageArtifactInRect(
   context: CanvasRenderingContext2D,
-  imageDataUrl: string | null,
-  rect: JewelCasePixelRect | null,
-  description: string,
+  artifact: RectPositionedImageRenderArtifact | null,
 ) {
-  if (!rect || !imageDataUrl) {
+  if (!artifact) {
     return
   }
 
-  const image = await loadCanvasSafeImage(imageDataUrl, description)
+  const image = await loadCanvasSafeImage(artifact.imageDataUrl, artifact.label)
 
-  context.drawImage(image, rect.x, rect.y, rect.width, rect.height)
+  context.drawImage(
+    image,
+    artifact.rect.x,
+    artifact.rect.y,
+    artifact.rect.width,
+    artifact.rect.height,
+  )
 }
 
 function createImageSlotFramePath(
@@ -423,11 +435,13 @@ async function drawTemplateImageSlot(
     ? getCaseInsertLogoSlotRenderInfo(slot)
     : null
 
-  await drawImageInRect(
+  await drawImageArtifactInRect(
     context,
-    logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
-    getTemplateImageSlotRect(paneId, slot, layout, group),
-    slot.label,
+    createRectPositionedImageRenderArtifact({
+      imageDataUrl: logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
+      label: slot.label,
+      rect: getTemplateImageSlotRect(paneId, slot, layout, group),
+    }),
   )
 }
 
@@ -473,11 +487,10 @@ async function drawTemplateArtwork(
     'titleArtwork',
   )
 
-  if (!templateState.additionalArtworkEnabled) {
-    return
-  }
-
-  for (const slot of templateState.artworkSlots) {
+  for (const slot of getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )) {
     await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
   }
 }
@@ -680,7 +693,10 @@ async function drawSpineSide(
     { kind: 'spine', side },
     layout,
   )
-  const artworkSlots = state.additionalArtworkEnabled ? state.artworkSlots : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    state,
+    state.artworkSlots,
+  )
   const avoidanceRegions = createCaseInsertSpineTextAvoidanceRegions({
     side,
     spineSide: state,
@@ -692,23 +708,25 @@ async function drawSpineSide(
     [state.titleArtwork, 'titleArtwork'],
     ...artworkSlots.map((slot) => [slot, 'artwork'] as const),
   ] as const) {
-    const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
-      side,
-      slot,
-      layout,
-      role,
-    )
+    const artifact = createBoxPositionedImageRenderArtifact({
+      imageDataUrl: slot.imageDataUrl,
+      label: slot.label,
+      box: getJewelCaseSpineImageSlotPreviewLayout(
+        side,
+        slot,
+        layout,
+        role,
+      ),
+    })
 
-    const imageDataUrl = slot.imageDataUrl
+    if (!artifact) continue
 
-    if (!slotLayout || !imageDataUrl) continue
-
-    await drawWithTransformedBox(context, slotLayout, async () => {
+    await drawWithTransformedBox(context, artifact.box, async () => {
       const localRect = {
-        x: -slotLayout.width / 2,
-        y: -slotLayout.height / 2,
-        width: slotLayout.width,
-        height: slotLayout.height,
+        x: -artifact.box.width / 2,
+        y: -artifact.box.height / 2,
+        width: artifact.box.width,
+        height: artifact.box.height,
       }
 
       if (role === 'artwork' && slot.frame.enabled && slot.frame.shape === 'circle') {
@@ -717,10 +735,10 @@ async function drawSpineSide(
       }
       await drawContainImageInLocalBox(
         context,
-        imageDataUrl,
-        slotLayout.width,
-        slotLayout.height,
-        slot.label,
+        artifact.imageDataUrl,
+        artifact.box.width,
+        artifact.box.height,
+        artifact.label,
       )
       if (role === 'artwork') {
         drawImageSlotFrame(context, slot, localRect)
@@ -758,30 +776,30 @@ async function drawSpineSide(
         .map((slot) => [slot, 'mark'] as const),
     ),
   ] as const) {
-    const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
-      side,
-      slot,
-      layout,
-      role,
-    )
-
-    if (!slotLayout) continue
-
     const logoRenderInfo = role === 'logo'
       ? getCaseInsertLogoSlotRenderInfo(slot)
       : null
-    const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+    const artifact = createBoxPositionedImageRenderArtifact({
+      imageDataUrl: logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
+      label: slot.label,
+      box: getJewelCaseSpineImageSlotPreviewLayout(
+        side,
+        slot,
+        layout,
+        role,
+      ),
+    })
 
-    await drawWithTransformedBox(context, slotLayout, async () => {
-      if (imageDataUrl) {
-        await drawContainImageInLocalBox(
-          context,
-          imageDataUrl,
-          slotLayout.width,
-          slotLayout.height,
-          slot.label,
-        )
-      }
+    if (!artifact) continue
+
+    await drawWithTransformedBox(context, artifact.box, async () => {
+      await drawContainImageInLocalBox(
+        context,
+        artifact.imageDataUrl,
+        artifact.box.width,
+        artifact.box.height,
+        artifact.label,
+      )
     })
   }
 }

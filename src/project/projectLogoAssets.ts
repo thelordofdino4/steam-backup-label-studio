@@ -17,8 +17,20 @@ import {
   createEmbeddedProjectImageAssetProvenance,
   normalizeProjectImageAssetProvenance,
 } from './projectAssetStatus.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  setOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  createAdditionalLogoAssetLabel,
+  getLogoAssetImageFallbackLabel,
+  getLogoAssetKindLabel,
+  getPrimaryLogoAssetLabel,
+  normalizeLogoAssetLabel,
+  type LogoAssetKind,
+} from '../editor/logoAsset.ts'
 
-export type LogoAssetKey = 'developer' | 'publisher'
+export type LogoAssetKey = LogoAssetKind
 export type LogoAssetLayoutField = keyof LogoAssetLayout
 
 export type LogoAssetRenderItem = {
@@ -70,23 +82,8 @@ function createAdditionalLogoAssetId(logoKey: LogoAssetKey) {
   return `${logoKey}-${Date.now().toString(36)}-${additionalLogoAssetIdCounter}`
 }
 
-function getDefaultAdditionalLogoAssetLabel(
-  logoKey: LogoAssetKey,
-  additionalLogoIndex: number,
-) {
-  return `Additional ${logoKey} ${additionalLogoIndex + 1}`
-}
-
-function normalizeElementLabel(label: unknown, fallbackLabel: string) {
-  return typeof label === 'string' && label.trim()
-    ? label
-    : fallbackLabel
-}
-
 function getLegacyEmbeddedLogoLabel(logoKey: LogoAssetKey) {
-  return logoKey === 'developer'
-    ? 'Developer logo image'
-    : 'Publisher logo image'
+  return getLogoAssetImageFallbackLabel(getPrimaryLogoAssetLabel(logoKey))
 }
 
 function getAdditionalLogoField(logoKey: LogoAssetKey) {
@@ -339,10 +336,10 @@ export function setLogoAssetImage(
   imageSource: ProjectImageAssetProvenance | null = null,
   additionalLogoId?: string,
 ): ProjectLogoAssets {
-  const nextLayout = {
-    ...getLogoAssetLayout(logoAssets, logoKey, additionalLogoId),
-    enabled: true,
-  }
+  const nextLayout = setOptionalVisualFeatureEnabled(
+    getLogoAssetLayout(logoAssets, logoKey, additionalLogoId),
+    true,
+  )
 
   if (additionalLogoId) {
     return updateAdditionalLogoAsset(
@@ -438,7 +435,7 @@ export function addAdditionalLogoAsset(
     ...additionalLogos,
     {
       id: createAdditionalLogoAssetId(logoKey),
-      label: getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogos.length),
+      label: createAdditionalLogoAssetLabel(logoKey, additionalLogos.length),
       imageDataUrl: null,
       imageSource: null,
       imageSize: null,
@@ -531,51 +528,51 @@ export function createLogoAssetRenderItems(
 ): LogoAssetRenderItem[] {
   const renderItems: LogoAssetRenderItem[] = []
 
-  if (logoAssets.developerLogoLayout.enabled) {
+  if (isOptionalVisualFeatureEnabled(logoAssets.developerLogoLayout)) {
     renderItems.push({
       logoKey: 'developer',
       imageDataUrl: logoAssets.developerLogoDataUrl,
       imageSize: logoAssets.developerLogoSize,
       layout: logoAssets.developerLogoLayout,
-      label: 'Developer',
+      label: getLogoAssetKindLabel('developer'),
     })
     renderItems.push(
       ...logoAssets.additionalDeveloperLogos
-        .filter((logoAsset) => logoAsset.layout.enabled)
+        .filter((logoAsset) => isOptionalVisualFeatureEnabled(logoAsset.layout))
         .map((logoAsset, index) => ({
           logoKey: 'developer' as const,
           additionalLogoId: logoAsset.id,
           imageDataUrl: logoAsset.imageDataUrl,
           imageSize: logoAsset.imageSize,
           layout: logoAsset.layout,
-          label: normalizeElementLabel(
+          label: normalizeLogoAssetLabel(
             logoAsset.label,
-            getDefaultAdditionalLogoAssetLabel('developer', index),
+            createAdditionalLogoAssetLabel('developer', index),
           ),
         })),
     )
   }
 
-  if (logoAssets.publisherLogoLayout.enabled) {
+  if (isOptionalVisualFeatureEnabled(logoAssets.publisherLogoLayout)) {
     renderItems.push({
       logoKey: 'publisher',
       imageDataUrl: logoAssets.publisherLogoDataUrl,
       imageSize: logoAssets.publisherLogoSize,
       layout: logoAssets.publisherLogoLayout,
-      label: 'Publisher',
+      label: getLogoAssetKindLabel('publisher'),
     })
     renderItems.push(
       ...logoAssets.additionalPublisherLogos
-        .filter((logoAsset) => logoAsset.layout.enabled)
+        .filter((logoAsset) => isOptionalVisualFeatureEnabled(logoAsset.layout))
         .map((logoAsset, index) => ({
           logoKey: 'publisher' as const,
           additionalLogoId: logoAsset.id,
           imageDataUrl: logoAsset.imageDataUrl,
           imageSize: logoAsset.imageSize,
           layout: logoAsset.layout,
-          label: normalizeElementLabel(
+          label: normalizeLogoAssetLabel(
             logoAsset.label,
-            getDefaultAdditionalLogoAssetLabel('publisher', index),
+            createAdditionalLogoAssetLabel('publisher', index),
           ),
         })),
     )
@@ -620,16 +617,16 @@ function normalizeAdditionalLogoAsset(
     id: typeof logoAsset.id === 'string' && logoAsset.id.trim()
       ? logoAsset.id
       : createAdditionalLogoAssetId(logoKey),
-    label: normalizeElementLabel(
+    label: normalizeLogoAssetLabel(
       logoAsset.label,
-      getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogoIndex),
+      createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex),
     ),
     imageDataUrl: logoAsset.imageDataUrl ?? null,
     imageSource: normalizeProjectImageAssetProvenance(
       logoAsset.imageSource,
       logoAsset.imageDataUrl
         ? createEmbeddedProjectImageAssetProvenance(
-            `${getDefaultAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)} image`,
+            `${createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)} image`,
           )
         : null,
     ),

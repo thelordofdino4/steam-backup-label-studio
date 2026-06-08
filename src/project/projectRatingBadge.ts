@@ -1,4 +1,11 @@
 import { getDefaultRatingBadgeLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import {
+  isOptionalLayoutFeatureEnabled,
+  setOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  hasCustomMarkImage,
+} from '../editor/markImageSource.ts'
 import type { DiscTemplate } from '../types/template'
 import {
   getRatingMetadataForBadgeEnabled,
@@ -156,16 +163,12 @@ export function setRatingBadgeCustomImage(
   imageDataUrl: string,
   imageSize: BackgroundImageSize,
 ): ProjectRatingBadge {
-  return {
+  return setOptionalLayoutFeatureEnabled({
     ...ratingBadge,
     source: 'custom',
     customImageDataUrl: imageDataUrl,
     customImageSize: imageSize,
-    layout: {
-      ...ratingBadge.layout,
-      enabled: true,
-    },
-  }
+  }, true)
 }
 
 export function clearRatingBadgeImage(
@@ -203,13 +206,7 @@ export function updateSupplementalUskRatingBadgeEnabledState(
 ): ProjectRatingBadge {
   return {
     ...ratingBadge,
-    uskBadge: {
-      ...ratingBadge.uskBadge,
-      layout: {
-        ...ratingBadge.uskBadge.layout,
-        enabled,
-      },
-    },
+    uskBadge: setOptionalLayoutFeatureEnabled(ratingBadge.uskBadge, enabled),
   }
 }
 
@@ -267,7 +264,8 @@ export function shouldRenderRatingBadge(
   metadata: Pick<ProjectMetadata, 'ratingSystem'>,
   ratingBadge: ProjectRatingBadge,
 ) {
-  return ratingBadge.layout.enabled && metadata.ratingSystem !== 'none'
+  return isOptionalLayoutFeatureEnabled(ratingBadge) &&
+    metadata.ratingSystem !== 'none'
 }
 
 export function shouldRenderSupplementalUskRatingBadge(
@@ -277,7 +275,7 @@ export function shouldRenderSupplementalUskRatingBadge(
   return (
     shouldRenderRatingBadge(metadata, ratingBadge) &&
     metadata.ratingSystem === 'PEGI' &&
-    ratingBadge.uskBadge.layout.enabled &&
+    isOptionalLayoutFeatureEnabled(ratingBadge.uskBadge) &&
     Boolean(normalizeUskRatingValue(ratingBadge.uskBadge.ratingValue))
   )
 }
@@ -285,7 +283,10 @@ export function shouldRenderSupplementalUskRatingBadge(
 export function shouldUseCustomRatingBadgeImage(
   ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageDataUrl'>,
 ) {
-  return ratingBadge.source === 'custom' && Boolean(ratingBadge.customImageDataUrl)
+  return hasCustomMarkImage(
+    ratingBadge.source,
+    ratingBadge.customImageDataUrl,
+  )
 }
 
 export function updateRatingBadgeEnabledState(
@@ -302,13 +303,7 @@ export function updateRatingBadgeEnabledState(
 
   return {
     metadata: nextMetadata,
-    ratingBadge: {
-      ...ratingBadge,
-      layout: {
-        ...ratingBadge.layout,
-        enabled,
-      },
-    },
+    ratingBadge: setOptionalLayoutFeatureEnabled(ratingBadge, enabled),
   }
 }
 

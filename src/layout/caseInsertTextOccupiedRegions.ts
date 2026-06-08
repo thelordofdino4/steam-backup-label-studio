@@ -8,6 +8,9 @@ import {
   getRenderedCaseInsertTextBlock,
 } from '../caseInsert/textContent.ts'
 import {
+  getFeatureVisibleRepeatedArtworkItems,
+} from '../editor/repeatedArtwork.ts'
+import {
   getCaseInsertMarkLayerKind,
   type CaseInsertBrandingSourceCatalog,
 } from '../caseInsert/brandingSlotSources.ts'
@@ -179,9 +182,10 @@ export function createCaseInsertTemplateTextAvoidanceRegions({
   layout: CaseInsertPreviewLayout
   brandingSources: CaseInsertBrandingSourceCatalog
 }): CaseInsertTextAvoidanceRegion[] {
-  const artworkSlots = templateState.additionalArtworkEnabled
-    ? templateState.artworkSlots
-    : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )
 
   return compactRegions([
     createRegion(
@@ -255,9 +259,10 @@ export function createCaseInsertSpineTextAvoidanceRegions({
   layout: CaseInsertPreviewLayout
   brandingSources: CaseInsertBrandingSourceCatalog
 }): CaseInsertTextAvoidanceRegion[] {
-  const artworkSlots = spineSide.additionalArtworkEnabled
-    ? spineSide.artworkSlots
-    : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    spineSide,
+    spineSide.artworkSlots,
+  )
 
   return compactRegions([
     createRegion(

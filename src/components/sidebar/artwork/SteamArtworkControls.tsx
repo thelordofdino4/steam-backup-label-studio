@@ -1,5 +1,6 @@
 import { useCallback, useMemo, type ReactNode } from 'react'
 import type { SteamArtworkAsset } from '../../../steam/steamApi'
+import { EditorFeaturePanel } from '../../editor/EditorPanel'
 import { ImageCandidatePreviewPicker } from '../ImageCandidatePicker'
 import { createSteamArtworkPickerItems } from './helpers'
 import type { ArtworkPanelProps } from './types'
@@ -33,9 +34,7 @@ export function SteamArtworkControls({
   }, [artwork, handleUseSteamArtwork])
 
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">Imported Steam artwork</summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title="Imported Steam artwork">
         {selectedSteamGame?.artwork.length ? (
           <div className="artwork-import-section">
             <p className="hint">
@@ -57,7 +56,6 @@ export function SteamArtworkControls({
           </p>
         )}
         {fineTuneControls}
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }

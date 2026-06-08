@@ -1,4 +1,8 @@
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
+import {
+  shouldRenderOptionalVisualFeature,
+  setOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTitleArtworkDefaultAsset,
@@ -93,7 +97,10 @@ export function canUseCaseInsertTitleArtwork(
 export function shouldRenderCaseInsertTitleArtwork(
   slot: ProjectCaseInsertImageSlot,
 ) {
-  return slot.enabled && canUseCaseInsertTitleArtwork(slot)
+  return shouldRenderOptionalVisualFeature(
+    slot,
+    canUseCaseInsertTitleArtwork(slot),
+  )
 }
 
 export function getCaseInsertTitleArtworkDefaultSteamLogo(
@@ -170,8 +177,7 @@ export function restoreCaseInsertTitleArtworkDefaultSteamLogo(
   }
 
   return {
-    ...slot,
-    enabled: true,
+    ...setOptionalVisualFeatureEnabled(slot, true),
     imageDataUrl: defaultSteamLogo.imageDataUrl,
     imageSize: defaultSteamLogo.imageSize,
     imageSource: createProjectImageAssetProvenance({

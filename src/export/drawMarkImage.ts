@@ -1,15 +1,13 @@
-import type { RenderBoundsPercent } from '../disc/geometry'
+import type {
+  PercentPositionedImageRenderArtifact,
+  RenderPointLayout,
+} from '../render/imageRenderArtifact.ts'
 import { loadCanvasSafeImage } from './canvasImage.ts'
 
-type MarkImageRenderModel = {
-  imageDataUrl: string
-  label?: string
-  layout: {
-    x: number
-    y: number
-  }
-  scaledBounds: RenderBoundsPercent
-}
+type MarkImageRenderModel = Pick<
+  PercentPositionedImageRenderArtifact<RenderPointLayout>,
+  'imageDataUrl' | 'label' | 'layout' | 'scaledBounds'
+>
 
 export async function drawMarkImage(
   context: CanvasRenderingContext2D,

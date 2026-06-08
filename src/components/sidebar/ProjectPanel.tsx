@@ -1,3 +1,5 @@
+import { EditorPanel } from '../editor/EditorPanel'
+
 export type ProjectPanelProps = {
   projectStatus: string
   handleNewProject: () => void
@@ -18,9 +20,7 @@ export function ProjectPanel({
   handleNewCaseInsert,
 }: ProjectPanelProps) {
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Project File</summary>
-      <div className="panel-content">
+    <EditorPanel title="Project File">
         <div className="button-row">
           <button className="secondary-button" type="button" onClick={handleMainMenu}>
             Main Menu
@@ -42,7 +42,6 @@ export function ProjectPanel({
           </button>
         </div>
         <p className="hint">{projectStatus}</p>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }

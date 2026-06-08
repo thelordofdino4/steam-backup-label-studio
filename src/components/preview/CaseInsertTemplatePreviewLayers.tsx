@@ -33,6 +33,9 @@ import {
 import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
+import {
+  getFeatureVisibleRepeatedArtworkItems,
+} from '../../editor/repeatedArtwork'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
 import {
   createCaseInsertTemplateTextAvoidanceRegions,
@@ -58,6 +61,9 @@ import type {
 import type {
   CaseInsertTemplatePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
+import {
+  createRectPositionedImageRenderArtifact,
+} from '../../render/imageRenderArtifact'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 
 export type CaseInsertTemplateLayerProps = {
@@ -201,7 +207,14 @@ function CaseInsertTemplateImageSlot({
     : null
   const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
 
-  if (!rect || !imageDataUrl) {
+  const artifact = createRectPositionedImageRenderArtifact({
+    imageDataUrl,
+    label: slot.label,
+    alt: '',
+    rect,
+  })
+
+  if (!artifact) {
     return null
   }
 
@@ -235,13 +248,13 @@ function CaseInsertTemplateImageSlot({
       <div
         className={className}
         {...pointerProps}
-        style={getRectStyle(rect, layout)}
+        style={getRectStyle(artifact.rect, layout)}
       >
         <img
           alt=""
           className="case-insert-template-framed-artwork-image"
           draggable={false}
-          src={imageDataUrl}
+          src={artifact.imageDataUrl}
         />
         <CaseInsertImageSlotFrame slot={slot} />
       </div>
@@ -254,8 +267,8 @@ function CaseInsertTemplateImageSlot({
       className={`case-insert-template-overlay-image case-insert-template-${group}`}
       draggable={false}
       {...pointerProps}
-      src={imageDataUrl}
-      style={getRectStyle(rect, layout)}
+      src={artifact.imageDataUrl}
+      style={getRectStyle(artifact.rect, layout)}
     />
   )
 }
@@ -386,9 +399,10 @@ export function CaseInsertTemplateArtworkLayer({
   layout,
   pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
-  const artworkSlots = templateState.additionalArtworkEnabled
-    ? templateState.artworkSlots
-    : []
+  const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
+    templateState,
+    templateState.artworkSlots,
+  )
 
   return (
     <div className="case-insert-content-layer" aria-hidden="true">

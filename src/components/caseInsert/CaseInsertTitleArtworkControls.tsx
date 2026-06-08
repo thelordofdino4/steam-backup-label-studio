@@ -6,7 +6,6 @@ import {
   getCaseInsertTitleArtworkDefaultSteamLogo,
   shouldRenderCaseInsertTitleArtwork,
 } from '../../caseInsert/titleArtwork'
-import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
@@ -14,6 +13,8 @@ import type {
 import type {
   CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
+import { EditorImageAssetStatusCard } from '../editor/EditorImageAssetStatusCard'
+import { EditorRangeField } from '../editor/EditorRangeField'
 
 export type CaseInsertTitleArtworkPlacementField =
   CaseInsertImageSlotPlacementField
@@ -37,51 +38,6 @@ function formatImageSize(size: ProjectCaseInsertImageSlot['imageSize']) {
   return size ? ` · ${size.width} x ${size.height}px` : ''
 }
 
-function getImageStatus(slot: ProjectCaseInsertImageSlot) {
-  return getProjectImageAssetStatus({
-    imageDataUrl: slot.imageDataUrl,
-    provenance: slot.imageSource,
-    fallbackLabel: slot.label,
-  })
-}
-
-function RangeField({
-  disabled,
-  id,
-  label,
-  min,
-  max,
-  step,
-  value,
-  onChange,
-}: {
-  disabled: boolean
-  id: string
-  label: string
-  min: number
-  max: number
-  step: number
-  value: number
-  onChange: (value: number) => void
-}) {
-  return (
-    <label>
-      <span>{label}</span>
-      <input
-        id={id}
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        disabled={disabled}
-        onInput={(event) => onChange(Number(event.currentTarget.value))}
-        onChange={(event) => onChange(Number(event.currentTarget.value))}
-      />
-    </label>
-  )
-}
-
 export function CaseInsertTitleArtworkControls({
   fields,
   helpText,
@@ -99,7 +55,6 @@ export function CaseInsertTitleArtworkControls({
   const defaultSteamLogo = getCaseInsertTitleArtworkDefaultSteamLogo(slot)
   const canRestoreDefaultSteamLogo =
     canRestoreCaseInsertTitleArtworkDefaultSteamLogo(slot)
-  const imageStatus = getImageStatus(slot)
 
   return (
     <div className="feature-control-body title-artwork-control case-insert-title-artwork-control">
@@ -129,19 +84,17 @@ export function CaseInsertTitleArtworkControls({
             onChange={onUpload}
           />
 
-          {hasTitleArtwork ? (
-            <div className="selected-lockup-card logo-asset-status-card title-artwork-status-card">
-              <img
-                className="logo-asset-preview title-artwork-preview"
-                src={slot.imageDataUrl ?? undefined}
-                alt=""
-                draggable={false}
-              />
-              <span>{imageStatus.summary}{formatImageSize(slot.imageSize)}</span>
-            </div>
-          ) : (
-            <p className="hint">{CASE_INSERT_GAME_LOGO_EMPTY_HINT}</p>
-          )}
+          <EditorImageAssetStatusCard
+            cardClassName="title-artwork-status-card"
+            emptyHint={CASE_INSERT_GAME_LOGO_EMPTY_HINT}
+            fallbackLabel={slot.label}
+            formatSize={formatImageSize}
+            imageDataUrl={slot.imageDataUrl}
+            imageSize={slot.imageSize}
+            imageSource={slot.imageSource}
+            previewClassName="title-artwork-preview"
+            statusText="summary"
+          />
 
           {canRestoreDefaultSteamLogo ? (
             <button
@@ -164,7 +117,7 @@ export function CaseInsertTitleArtworkControls({
             aria-label="Game logo fine tuning controls"
           >
             {fields.map((field) => (
-              <RangeField
+              <EditorRangeField
                 key={field.field}
                 id={`${uploadId}-${field.field}`}
                 label={field.label}
@@ -173,6 +126,7 @@ export function CaseInsertTitleArtworkControls({
                 step={field.step}
                 value={slot.layout[field.field]}
                 disabled={!isRenderable}
+                onInput={(value) => onLayoutChange(field.field, value)}
                 onChange={(value) => onLayoutChange(field.field, value)}
               />
             ))}

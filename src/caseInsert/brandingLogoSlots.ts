@@ -1,4 +1,7 @@
 import { createProjectImageAssetProvenance } from '../project/projectAssetStatus.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import type {
   BackgroundImageSize,
   ProjectCaseInsertImageSlot,
@@ -9,6 +12,10 @@ import {
   getLogoAssetRenderSize,
   type LogoAssetKey,
 } from '../project/projectLogoAssets.ts'
+import {
+  createAdditionalLogoAssetLabel,
+  getPrimaryLogoAssetLabel,
+} from '../editor/logoAsset.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
 import {
   setCaseInsertImageSlotEnabled,
@@ -54,7 +61,7 @@ Record<CaseInsertLogoSurfaceId, Record<LogoAssetKey, ProjectCaseInsertLayout>> =
 }
 
 export function getCaseInsertPrimaryLogoLabel(logoKey: LogoAssetKey) {
-  return logoKey === 'developer' ? 'Developer logo' : 'Publisher logo'
+  return getPrimaryLogoAssetLabel(logoKey)
 }
 
 export function getCaseInsertPrimaryLogoSourceId(logoKey: LogoAssetKey) {
@@ -79,7 +86,7 @@ function getDefaultCaseInsertAdditionalLogoLabel(
   logoKey: LogoAssetKey,
   additionalLogoIndex: number,
 ) {
-  return `Additional ${logoKey} ${additionalLogoIndex + 1}`
+  return createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)
 }
 
 function normalizeLabel(value: string) {
@@ -470,7 +477,7 @@ export function clearCaseInsertAdditionalLogoSlotImage(
 export function getCaseInsertLogoSlotRenderInfo(
   slot: ProjectCaseInsertImageSlot,
 ): CaseInsertLogoSlotRenderInfo | null {
-  if (!slot.enabled) {
+  if (!isOptionalVisualFeatureEnabled(slot)) {
     return null
   }
 

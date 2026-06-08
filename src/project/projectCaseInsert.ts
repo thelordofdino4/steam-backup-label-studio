@@ -4,6 +4,7 @@ export {
   createDefaultCaseInsertTemplateStates,
   createDefaultCaseInsertTextBlock,
   createDefaultCaseInsertTextList,
+  createDefaultJewelCaseSpineArtworkSlot,
   createDefaultJewelCaseSpineMarkSlot,
   createDefaultProjectJewelCaseState,
 } from '../caseInsert/defaults.ts'

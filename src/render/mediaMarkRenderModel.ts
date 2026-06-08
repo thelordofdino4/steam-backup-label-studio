@@ -1,53 +1,56 @@
 import {
   getMediaMarkBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
-  type RenderBoundsPercent,
 } from '../disc/geometry.ts'
 import { getMediaMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  isOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  resolveMarkImageSource,
+} from '../editor/markImageSource.ts'
 import { getMediaMarkLabel } from '../project/projectMediaMark.ts'
 import type {
   MediaMarkLayout,
   ProjectMediaMark,
 } from '../project/projectTypes.ts'
-import { hasCustomMarkImage } from './markImageSource.ts'
+import {
+  createPercentPositionedImageRenderArtifact,
+  type PercentPositionedImageRenderArtifact,
+} from './imageRenderArtifact.ts'
 
-export type MediaMarkRenderModel = {
-  imageDataUrl: string
-  isPlaceholderImage: boolean
-  label: string
-  alt: string
-  layout: MediaMarkLayout
-  unscaledBounds: RenderBoundsPercent
-  scaledBounds: RenderBoundsPercent
-}
+export type MediaMarkRenderModel =
+  PercentPositionedImageRenderArtifact<MediaMarkLayout>
 
 export function createMediaMarkRenderModel(
   mediaMark: ProjectMediaMark,
 ): MediaMarkRenderModel | null {
-  if (!mediaMark.layout.enabled) {
+  if (!isOptionalLayoutFeatureEnabled(mediaMark)) {
     return null
   }
 
   const label = getMediaMarkLabel(mediaMark.value)
-  const customImageDataUrl = mediaMark.customImageDataUrl
-  const isCustomImage = hasCustomMarkImage(
-    mediaMark.source,
-    customImageDataUrl,
-  )
+  const resolvedImage = resolveMarkImageSource({
+    source: mediaMark.source,
+    customImageDataUrl: mediaMark.customImageDataUrl,
+    customImageSize: mediaMark.customImageSize,
+    builtInImageDataUrl: getMediaMarkPlaceholderImageUrl(
+      mediaMark.value,
+      mediaMark.theme,
+    ),
+  })
   const getBounds = (scale: number) =>
-    isCustomImage && mediaMark.customImageSize
-      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, scale)
+    resolvedImage.isCustomImage && resolvedImage.imageSize
+      ? getMediaMarkBoundsPercent(resolvedImage.imageSize, scale)
       : getMediaMarkPlaceholderBoundsPercent(scale)
 
-  return {
-    imageDataUrl: isCustomImage
-      ? customImageDataUrl
-      : getMediaMarkPlaceholderImageUrl(mediaMark.value, mediaMark.theme),
-    isPlaceholderImage: !isCustomImage,
+  return createPercentPositionedImageRenderArtifact({
+    imageDataUrl: resolvedImage.imageDataUrl,
+    isPlaceholderImage: resolvedImage.isBuiltInFallback,
     label,
-    alt: isCustomImage ? label : `${label} generic media mark`,
+    alt: resolvedImage.isCustomImage ? label : `${label} generic media mark`,
     layout: mediaMark.layout,
     unscaledBounds: getBounds(1),
     scaledBounds: getBounds(mediaMark.layout.scale),
-  }
+  })
 }

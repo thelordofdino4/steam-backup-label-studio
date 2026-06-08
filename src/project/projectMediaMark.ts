@@ -1,4 +1,5 @@
 import { getDefaultMediaMarkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import { setOptionalLayoutFeatureEnabled } from '../editor/optionalVisualFeature.ts'
 import type { DiscTemplate } from '../types/template'
 import type {
   BackgroundImageSize,
@@ -130,16 +131,12 @@ export function setMediaMarkCustomImage(
   imageDataUrl: string,
   imageSize: BackgroundImageSize,
 ): ProjectMediaMark {
-  return {
+  return setOptionalLayoutFeatureEnabled({
     ...mediaMark,
     source: 'custom',
     customImageDataUrl: imageDataUrl,
     customImageSize: imageSize,
-    layout: {
-      ...mediaMark.layout,
-      enabled: true,
-    },
-  }
+  }, true)
 }
 
 export function clearMediaMarkImage(

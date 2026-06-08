@@ -7,6 +7,7 @@ import type { GameRatingSystem, ProjectMetadata } from '../../project/projectTyp
 import type { SteamMetadataAssistanceState } from '../../hooks/useSteamMetadataAssistance'
 import type { SteamImportedGame, SteamSearchResult } from '../../steam/steamApi'
 import type { LegalTextCandidate, RatingBoardCandidate } from '../../steam/steamMetadataCandidates'
+import { EditorFeaturePanel, EditorPanel } from '../editor/EditorPanel'
 import { MetadataAssistanceControls } from './MetadataAssistanceControls'
 
 export type GamePanelProps = {
@@ -64,9 +65,7 @@ export function GamePanel({
     )
 
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Game</summary>
-      <div className="panel-content">
+    <EditorPanel title="Game">
       <label className="field-label spacing-top" htmlFor="game-search">
         Steam search
       </label>
@@ -147,9 +146,7 @@ export function GamePanel({
       )}
 
 
-      <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-        <summary className="panel-summary">Additional metadata</summary>
-        <div className="panel-content">
+      <EditorFeaturePanel title="Additional metadata">
       <label className="field-label" htmlFor="game-title">
         Label title
       </label>
@@ -345,10 +342,8 @@ export function GamePanel({
           <p className="hint">
             Rating and legal candidates are suggestions only. Keep or edit manual values when Steam data is missing or uncertain.
           </p>
-        </div>
-      </details>
+      </EditorFeaturePanel>
 
-      </div>
-    </details>
+    </EditorPanel>
   )
 }

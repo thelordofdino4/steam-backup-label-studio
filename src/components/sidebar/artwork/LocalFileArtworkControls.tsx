@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { EditorFeaturePanel } from '../../editor/EditorPanel'
 import type { ArtworkPanelProps } from './types'
 
 export function LocalFileArtworkControls({
@@ -8,9 +9,7 @@ export function LocalFileArtworkControls({
   fineTuneControls: ReactNode
 }) {
   return (
-    <details className="feature-section-card metadata-details collapsible-panel spacing-top">
-      <summary className="panel-summary">Local file</summary>
-      <div className="panel-content">
+    <EditorFeaturePanel title="Local file">
         <div className="artwork-import-section">
           <p className="hint">
             Choose an image from this computer when Steam, web, or screenshot sources do not have the artwork you want. Local files become the current disc background.
@@ -27,7 +26,6 @@ export function LocalFileArtworkControls({
           />
           {fineTuneControls}
         </div>
-      </div>
-    </details>
+    </EditorFeaturePanel>
   )
 }

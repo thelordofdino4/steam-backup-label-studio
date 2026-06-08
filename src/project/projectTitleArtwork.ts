@@ -1,5 +1,13 @@
 import type { SteamLogoPlacement } from '../discText/types'
-import { getTitleArtworkBoundsPercent, type RenderBoundsPercent } from '../disc/geometry.ts'
+import { getTitleArtworkBoundsPercent } from '../disc/geometry.ts'
+import {
+  createPercentPositionedImageRenderArtifact,
+  type PercentPositionedImageRenderArtifact,
+} from '../render/imageRenderArtifact.ts'
+import {
+  shouldRenderOptionalLayoutFeature,
+  setOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
 import { getDefaultTitleArtworkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'
@@ -26,14 +34,13 @@ type RememberTitleArtworkDefaultOptions = {
   replace?: boolean
 }
 
-export type TitleArtworkRenderItem = {
-  imageDataUrl: string
+export type TitleArtworkRenderItem = PercentPositionedImageRenderArtifact<
+  TitleArtworkLayout,
+  {
   imageSize: BackgroundImageSize
-  layout: TitleArtworkLayout
-  unscaledBounds: RenderBoundsPercent
-  scaledBounds: RenderBoundsPercent
   sourceLabel: string
-}
+  }
+>
 
 export const DEFAULT_TITLE_ARTWORK_SOURCE_LABEL = 'Steam title/logo artwork'
 export const CUSTOM_TITLE_ARTWORK_SOURCE_LABEL = 'Custom game logo artwork'
@@ -95,7 +102,10 @@ export function canUseTitleArtwork(titleArtwork: ProjectTitleArtwork) {
 }
 
 export function shouldRenderTitleArtwork(titleArtwork: ProjectTitleArtwork) {
-  return titleArtwork.layout.enabled && canUseTitleArtwork(titleArtwork)
+  return shouldRenderOptionalLayoutFeature(
+    titleArtwork,
+    canUseTitleArtwork(titleArtwork),
+  )
 }
 
 function isSameTitleArtworkDefaultImage(
@@ -136,9 +146,11 @@ export function createTitleArtworkRenderItem(
 
   const imageSize = titleArtwork.imageSize ?? DEFAULT_TITLE_ARTWORK_SIZE
 
-  return {
+  return createPercentPositionedImageRenderArtifact({
     imageDataUrl: titleArtwork.imageDataUrl,
     imageSize,
+    label: 'Game title artwork',
+    alt: 'Game title artwork',
     layout: titleArtwork.layout,
     unscaledBounds: getTitleArtworkBoundsPercent(imageSize, 1),
     scaledBounds: getTitleArtworkBoundsPercent(
@@ -146,7 +158,7 @@ export function createTitleArtworkRenderItem(
       titleArtwork.layout.scale,
     ),
     sourceLabel: titleArtwork.sourceLabel,
-  }
+  })
 }
 
 export function setTitleArtworkLayout(
@@ -205,20 +217,20 @@ export function setTitleArtworkImage(
     sourceLabel: steamAsset.label,
     imageDataUrl: importedImage.imageDataUrl,
     imageSize: importedImage.imageSize,
-    layout: {
-      ...nextLayout,
-      enabled: true,
-    },
+    layout: nextLayout,
   }
+
+  const enabledTitleArtwork =
+    setOptionalLayoutFeatureEnabled(nextTitleArtwork, true)
 
   return options.rememberAsDefault
     ? rememberTitleArtworkDefaultSteamLogo(
-        nextTitleArtwork,
+        enabledTitleArtwork,
         importedImage,
         steamAsset,
         { replace: true },
       )
-    : nextTitleArtwork
+    : enabledTitleArtwork
 }
 
 export function rememberTitleArtworkDefaultSteamLogo(
@@ -264,16 +276,12 @@ export function restoreTitleArtworkDefaultSteamLogo(
   }
 
   return {
-    ...titleArtwork,
+    ...setOptionalLayoutFeatureEnabled(titleArtwork, true),
     source: 'steam',
     steamArtworkAssetId: defaultSteamLogo.steamArtworkAssetId,
     sourceLabel: defaultSteamLogo.sourceLabel,
     imageDataUrl: defaultSteamLogo.imageDataUrl,
     imageSize: defaultSteamLogo.imageSize,
-    layout: {
-      ...titleArtwork.layout,
-      enabled: true,
-    },
   }
 }
 
@@ -292,18 +300,15 @@ export function setCustomTitleArtworkImage(
     ? titleArtwork.layout
     : defaultLayout
 
-  return {
+  return setOptionalLayoutFeatureEnabled({
     ...titleArtwork,
     source: 'custom',
     steamArtworkAssetId: null,
     sourceLabel: CUSTOM_TITLE_ARTWORK_SOURCE_LABEL,
     imageDataUrl: importedImage.imageDataUrl,
     imageSize: importedImage.imageSize,
-    layout: {
-      ...nextLayout,
-      enabled: true,
-    },
-  }
+    layout: nextLayout,
+  }, true)
 }
 
 export function clearTitleArtworkImage(

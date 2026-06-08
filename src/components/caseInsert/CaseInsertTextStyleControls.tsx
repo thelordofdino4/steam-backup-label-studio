@@ -12,6 +12,7 @@ import {
 import type {
   ProjectCaseInsertTextSource,
 } from '../../project/projectTypes'
+import { EditorRangeField } from '../editor/EditorRangeField'
 
 export type CaseInsertTextStyleControlsProps = {
   idPrefix: string
@@ -242,48 +243,36 @@ export function CaseInsertTextBackgroundFineTuneControls({
 
   return (
     <>
-      <label>
-        <span>Opacity</span>
-        <input
-          id={`${idPrefix}-background-opacity`}
-          type="range"
-          min="0"
-          max="1"
-          step="0.05"
-          value={style.backgroundOpacity}
-          onChange={(event) =>
-            onStyleChange('backgroundOpacity', Number(event.target.value))}
-        />
-      </label>
+      <EditorRangeField
+        id={`${idPrefix}-background-opacity`}
+        label="Opacity"
+        min={0}
+        max={1}
+        step={0.05}
+        value={style.backgroundOpacity}
+        onChange={(value) => onStyleChange('backgroundOpacity', value)}
+      />
 
-      <label>
-        <span>Padding</span>
-        <input
-          id={`${idPrefix}-background-padding`}
-          type="range"
-          min="0"
-          max="4"
-          step="0.1"
-          value={style.backgroundPadding}
-          onChange={(event) =>
-            onStyleChange('backgroundPadding', Number(event.target.value))}
-        />
-      </label>
+      <EditorRangeField
+        id={`${idPrefix}-background-padding`}
+        label="Padding"
+        min={0}
+        max={4}
+        step={0.1}
+        value={style.backgroundPadding}
+        onChange={(value) => onStyleChange('backgroundPadding', value)}
+      />
 
       {style.borderEnabled ? (
-        <label>
-          <span>Radius</span>
-          <input
-            id={`${idPrefix}-border-radius`}
-            type="range"
-            min="0"
-            max="4"
-            step="0.1"
-            value={style.borderRadius}
-            onChange={(event) =>
-              onStyleChange('borderRadius', Number(event.target.value))}
-          />
-        </label>
+        <EditorRangeField
+          id={`${idPrefix}-border-radius`}
+          label="Radius"
+          min={0}
+          max={4}
+          step={0.1}
+          value={style.borderRadius}
+          onChange={(value) => onStyleChange('borderRadius', value)}
+        />
       ) : null}
     </>
   )

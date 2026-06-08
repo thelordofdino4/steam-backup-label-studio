@@ -4,8 +4,11 @@ import {
   getCaseInsertPrimaryLogoLabel,
   getDefaultCaseInsertPrimaryLogoLayout,
 } from '../../caseInsert/brandingLogoSlots'
+import {
+  getLogoAssetKindLabel,
+  type LogoAlignmentPreset,
+} from '../../editor/logoAsset'
 import type { LogoCandidateDiscoveryState } from '../../hooks/useLogoAssetDiscovery'
-import { getProjectImageAssetStatus } from '../../project/projectAssetStatus'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type {
   ProjectCaseInsertImageSlot,
@@ -13,12 +16,12 @@ import type {
 } from '../../project/projectTypes'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { formatLogoSize } from '../sidebar/branding/helpers'
-import { LogoCandidateControls } from '../sidebar/branding/LogoCandidateControls'
+import { EditorLogoAssetControls } from '../editor/EditorLogoAssetControls'
 import type {
   CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
 
-const CASE_INSERT_LOGO_ALIGNMENT_PRESETS = [
+const CASE_INSERT_LOGO_ALIGNMENT_PRESETS: readonly LogoAlignmentPreset[] = [
   { label: 'Top left', x: 20, y: 18 },
   { label: 'Top center', x: 50, y: 18 },
   { label: 'Top right', x: 80, y: 18 },
@@ -33,37 +36,6 @@ const CASE_INSERT_LOGO_ALIGNMENT_PRESETS = [
   { label: 'Stacked right upper', x: 80, y: 72 },
   { label: 'Stacked right lower', x: 80, y: 84 },
 ] as const
-
-function RangeField({
-  id,
-  field,
-  layout,
-  onLayoutChange,
-}: {
-  id: string
-  field: CaseInsertImageSlotPlacementField
-  layout: ProjectCaseInsertLayout
-  onLayoutChange: (field: keyof ProjectCaseInsertLayout, value: number) => void
-}) {
-  return (
-    <>
-      <label className="field-label spacing-top" htmlFor={id}>
-        {field.label}
-        <span>{Number(layout[field.field]).toFixed(field.step < 1 ? 2 : 0)}</span>
-      </label>
-      <input
-        id={id}
-        type="range"
-        min={field.min}
-        max={field.max}
-        step={field.step}
-        value={layout[field.field]}
-        onChange={(event) =>
-          onLayoutChange(field.field, Number(event.currentTarget.value))}
-      />
-    </>
-  )
-}
 
 export function CaseInsertLogoSlotControls({
   paneId,
@@ -106,12 +78,6 @@ export function CaseInsertLogoSlotControls({
   const enabled = slot?.enabled ?? false
   const layout = slot?.layout ??
     getDefaultCaseInsertPrimaryLogoLayout(paneId, logoKey)
-  const hasLogoImage = Boolean(slot?.imageDataUrl)
-  const logoStatus = getProjectImageAssetStatus({
-    imageDataUrl: slot?.imageDataUrl,
-    provenance: slot?.imageSource,
-    fallbackLabel: `${label} image`,
-  })
 
   return (
     <div className="logo-asset-card">
@@ -126,91 +92,44 @@ export function CaseInsertLogoSlotControls({
 
       {!enabled ? null : (
         <>
-          <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
-            {hasLogoImage
-              ? `Replace ${label.toLocaleLowerCase()}`
-              : `Choose ${label.toLocaleLowerCase()}`}
-          </label>
-          <input
-            id={uploadId}
-            className="logo-file-input"
-            type="file"
-            accept="image/*"
-            onChange={(event) => void onUpload(event)}
-          />
-
-          <LogoCandidateControls
+          <EditorLogoAssetControls
             logoKey={logoKey}
-            label={label.replace(/ logo$/i, '')}
-            discovery={logoCandidateDiscovery[logoKey]}
-            helpText="Searches the same Steam and official-site logo candidates used by the disc editor. Manual upload remains available here."
+            label={label}
+            candidateLabel={getLogoAssetKindLabel(logoKey)}
+            imageDataUrl={slot?.imageDataUrl ?? null}
+            imageSource={slot?.imageSource ?? null}
+            imageSize={slot?.imageSize ?? null}
+            uploadId={uploadId}
+            controlIdPrefix={uploadId}
+            alignmentPresets={CASE_INSERT_LOGO_ALIGNMENT_PRESETS}
+            fields={fields.map((field) => ({
+              id: `${uploadId}-${field.field}`,
+              label: field.label,
+              min: field.min,
+              max: field.max,
+              step: field.step,
+              value: Number(layout[field.field]),
+              labelValue: (
+                <span>
+                  {Number(layout[field.field]).toFixed(field.step < 1 ? 2 : 0)}
+                </span>
+              ),
+              onChange: (value) => onLayoutChange(field.field, value),
+            }))}
+            formatSize={formatLogoSize}
+            logoCandidateDiscovery={logoCandidateDiscovery}
+            candidateHelpText="Searches the same Steam and official-site logo candidates used by the disc editor. Manual upload remains available here."
             handleFindLogoCandidates={handleFindLogoCandidates}
             handleApplyLogoCandidate={(candidate) =>
               onUseLogoCandidate(logoKey, candidate)}
-          />
-
-          {hasLogoImage ? (
-            <div className="selected-lockup-card logo-asset-status-card">
-              <img
-                className="logo-asset-preview"
-                src={slot?.imageDataUrl ?? undefined}
-                alt=""
-                draggable={false}
-              />
-              <span>{logoStatus.summary}{formatLogoSize(slot?.imageSize ?? null)}</span>
-            </div>
-          ) : (
-            <p className="hint">
-              No {label.toLocaleLowerCase()} image is selected yet. A bundled
-              generic logo is shown for placement; search logo candidates or
-              upload a custom logo here.
-            </p>
-          )}
-
-          <label className="field-label spacing-top" htmlFor={`${uploadId}-alignment-preset`}>
-            Align logo
-          </label>
-          <select
-            id={`${uploadId}-alignment-preset`}
-            defaultValue=""
-            onChange={(event) => {
-              const preset = CASE_INSERT_LOGO_ALIGNMENT_PRESETS.find(
-                (candidate) => candidate.label === event.currentTarget.value,
-              )
-
-              if (!preset) return
-
+            onUpload={onUpload}
+            onApplyAlignmentPreset={(preset) => {
               onLayoutChange('x', preset.x)
               onLayoutChange('y', preset.y)
-              event.currentTarget.value = ''
             }}
-          >
-            <option value="">Choose preset...</option>
-            {CASE_INSERT_LOGO_ALIGNMENT_PRESETS.map((preset) => (
-              <option key={preset.label} value={preset.label}>
-                {preset.label}
-              </option>
-            ))}
-          </select>
-
-          {fields.map((field) => (
-            <RangeField
-              key={field.field}
-              id={`${uploadId}-${field.field}`}
-              field={field}
-              layout={layout}
-              onLayoutChange={onLayoutChange}
-            />
-          ))}
-
-          <button className="secondary-button" type="button" onClick={onResetLayout}>
-            Reset logo layout
-          </button>
-          {hasLogoImage ? (
-            <button className="secondary-button" type="button" onClick={onClearImage}>
-              Clear logo
-            </button>
-          ) : null}
+            onResetLayout={onResetLayout}
+            onClearImage={onClearImage}
+          />
           {children}
         </>
       )}

@@ -8,6 +8,11 @@ import {
   getAdditionalLogoAssets,
 } from '../project/projectLogoAssets.ts'
 import {
+  createAdditionalLogoAssetLabel,
+  getPrimaryLogoAssetLabel,
+  normalizeLogoAssetLabel,
+} from '../editor/logoAsset.ts'
+import {
   getMediaMarkLabel,
 } from '../project/projectMediaMark.ts'
 import {
@@ -25,6 +30,12 @@ import {
   shouldRenderRatingBadge,
   shouldRenderSupplementalUskRatingBadge,
 } from '../project/projectRatingBadge.ts'
+import {
+  isOptionalLayoutFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import {
+  resolveMarkImageSource,
+} from '../editor/markImageSource.ts'
 import type {
   BackgroundImageSize,
   ProjectImageAssetProvenance,
@@ -170,14 +181,14 @@ function createLogoSourceItems(projectLogoAssets: ProjectLogoAssets) {
   const items: CaseInsertBrandingSlotSourceItem[] = []
 
   const developerLogo = createLogoSourceItem({
-    label: 'Developer logo',
+    label: getPrimaryLogoAssetLabel('developer'),
     imageDataUrl: projectLogoAssets.developerLogoDataUrl,
     imageSize: projectLogoAssets.developerLogoSize,
     imageSource: projectLogoAssets.developerLogoSource,
     sourceId: 'case-logo:developer',
   })
   const publisherLogo = createLogoSourceItem({
-    label: 'Publisher logo',
+    label: getPrimaryLogoAssetLabel('publisher'),
     imageDataUrl: projectLogoAssets.publisherLogoDataUrl,
     imageSize: projectLogoAssets.publisherLogoSize,
     imageSource: projectLogoAssets.publisherLogoSource,
@@ -188,18 +199,25 @@ function createLogoSourceItems(projectLogoAssets: ProjectLogoAssets) {
   if (publisherLogo) items.push(publisherLogo)
 
   ;(['developer', 'publisher'] as const).forEach((logoKey) => {
-    getAdditionalLogoAssets(projectLogoAssets, logoKey).forEach((logoAsset) => {
+    getAdditionalLogoAssets(projectLogoAssets, logoKey).forEach((
+      logoAsset,
+      index,
+    ) => {
+      const label = normalizeLogoAssetLabel(
+        logoAsset.label,
+        createAdditionalLogoAssetLabel(logoKey, index),
+      )
       const item = createBrandingSourceItem({
         id: `case-logo:${logoKey}:${logoAsset.id}`,
         slotKey: 'logoSlots',
-        label: logoAsset.label,
+        label,
         sourceTypeLabel: 'Additional logo',
         imageDataUrl: logoAsset.imageDataUrl,
         imageSize: logoAsset.imageSize,
         imageSource: logoAsset.imageSource ?? createSourceProvenance(
           'embedded',
           `case-logo:${logoKey}:${logoAsset.id}`,
-          logoAsset.label,
+          label,
         ),
       })
 
@@ -218,10 +236,13 @@ function createRatingSourceItems(
     return []
   }
 
-  const customImageDataUrl = projectRatingBadge.source === 'custom'
-    ? projectRatingBadge.customImageDataUrl
-    : null
   const renderModel = getRatingBadgePlaceholderRenderModel(projectMetadata)
+  const resolvedImage = resolveMarkImageSource({
+    source: projectRatingBadge.source,
+    customImageDataUrl: projectRatingBadge.customImageDataUrl,
+    customImageSize: projectRatingBadge.customImageSize,
+    builtInImageDataUrl: renderModel.imageUrl,
+  })
   const sourceId = `case-rating:${projectMetadata.ratingSystem}:${
     projectMetadata.ratingValue.trim() || 'default'
   }`
@@ -230,10 +251,10 @@ function createRatingSourceItems(
     slotKey: 'markSlots',
     label: renderModel.altLabel,
     sourceTypeLabel: 'Rating badge',
-    imageDataUrl: customImageDataUrl ?? renderModel.imageUrl,
-    imageSize: customImageDataUrl ? projectRatingBadge.customImageSize : null,
+    imageDataUrl: resolvedImage.imageDataUrl,
+    imageSize: resolvedImage.imageSize,
     imageSource: createSourceProvenance(
-      customImageDataUrl ? 'custom' : 'placeholder',
+      resolvedImage.provenanceSource,
       sourceId,
       renderModel.altLabel,
     ),
@@ -271,29 +292,33 @@ function createRatingSourceItems(
 }
 
 function createMediaMarkSourceItems(projectMediaMark: ProjectMediaMark) {
-  if (!projectMediaMark.layout.enabled) {
+  if (!isOptionalLayoutFeatureEnabled(projectMediaMark)) {
     return []
   }
 
-  const isCustom =
-    projectMediaMark.source === 'custom' &&
-    Boolean(projectMediaMark.customImageDataUrl)
   const theme = projectMediaMark.theme
   const sourceId = `case-media:${projectMediaMark.value}:${theme}`
   const label = getMediaMarkLabel(projectMediaMark.value)
+  const resolvedImage = resolveMarkImageSource({
+    source: projectMediaMark.source,
+    customImageDataUrl: projectMediaMark.customImageDataUrl,
+    customImageSize: projectMediaMark.customImageSize,
+    builtInImageDataUrl: getMediaMarkPlaceholderImageUrl(
+      projectMediaMark.value,
+      theme,
+    ),
+  })
   const item = createBrandingSourceItem({
     id: sourceId,
     slotKey: 'markSlots',
     label,
     sourceTypeLabel: 'Media mark',
-    imageDataUrl: isCustom
-      ? projectMediaMark.customImageDataUrl
-      : getMediaMarkPlaceholderImageUrl(projectMediaMark.value, theme),
-    imageSize: isCustom ? projectMediaMark.customImageSize : null,
+    imageDataUrl: resolvedImage.imageDataUrl,
+    imageSize: resolvedImage.imageSize,
     imageSource: createSourceProvenance(
-      isCustom ? 'custom' : 'placeholder',
+      resolvedImage.provenanceSource,
       sourceId,
-      `${label}${isCustom ? '' : ` ${theme}`} media mark`,
+      `${label}${resolvedImage.isCustomImage ? '' : ` ${theme}`} media mark`,
     ),
   })
 
@@ -303,22 +328,28 @@ function createMediaMarkSourceItems(projectMediaMark: ProjectMediaMark) {
 function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMarks) {
   return getEnabledPlatformMarkValues(projectPlatformMarks).flatMap((value) => {
     const asset = getProjectPlatformMarkAsset(projectPlatformMarks, value)
-    const isCustom = asset.source === 'custom' && Boolean(asset.customImageDataUrl)
     const label = getPlatformMarkLabel(value)
     const sourceId = `case-platform:${value}:${asset.theme}`
+    const resolvedImage = resolveMarkImageSource({
+      source: asset.source,
+      customImageDataUrl: asset.customImageDataUrl,
+      customImageSize: asset.customImageSize,
+      builtInImageDataUrl: getPlatformMarkPlaceholderImageUrl(
+        value,
+        asset.theme,
+      ),
+    })
     const item = createBrandingSourceItem({
       id: sourceId,
       slotKey: 'markSlots',
       label,
       sourceTypeLabel: 'Operating-system mark',
-      imageDataUrl: isCustom
-        ? asset.customImageDataUrl
-        : getPlatformMarkPlaceholderImageUrl(value, asset.theme),
-      imageSize: isCustom ? asset.customImageSize : null,
+      imageDataUrl: resolvedImage.imageDataUrl,
+      imageSize: resolvedImage.imageSize,
       imageSource: createSourceProvenance(
-        isCustom ? 'custom' : 'placeholder',
+        resolvedImage.provenanceSource,
         sourceId,
-        `${label}${isCustom ? '' : ` ${asset.theme}`} operating-system mark`,
+        `${label}${resolvedImage.isCustomImage ? '' : ` ${asset.theme}`} operating-system mark`,
       ),
     })
 

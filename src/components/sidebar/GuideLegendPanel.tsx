@@ -1,8 +1,8 @@
+import { EditorPanel } from '../editor/EditorPanel'
+
 export function GuideLegendPanel() {
   return (
-    <details className="panel collapsible-panel">
-      <summary className="panel-summary">Guide Legend</summary>
-      <div className="panel-content">
+    <EditorPanel title="Guide Legend">
         <div className="guide-legend" aria-label="Disc guide legend">
           <div className="guide-legend-item">
             <span className="guide-swatch guide-swatch-outer" aria-hidden="true" />
@@ -40,7 +40,6 @@ export function GuideLegendPanel() {
             </div>
           </div>
         </div>
-      </div>
-    </details>
+    </EditorPanel>
   )
 }
