@@ -29,6 +29,11 @@ names. Features that only make sense in one editor, such as curved disc text,
 disc hub geometry, disc-number artwork, or rotated jewel case spine layout, may
 retain editor-specific ownership and naming.
 
+The final audit artifact for the staged unification work is
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. That audit is the current source for
+what became shared source-of-truth code, what remains editor-specific, and which
+open issues should remain open.
+
 ## Required Rules For Every Prompt
 
 Every prompt below should begin with:
@@ -709,6 +714,8 @@ Validation:
 - User manual Tauri smoke for both editors
 ```
 
+Current tracking issue: #153. Closing #153 does not close #149 or #126.
+
 ## Recommended Issue Sequence
 
 Use this exact order unless a live bug or explicit user priority changes it.
@@ -738,6 +745,11 @@ the next issue begins.
 21. Issue #149: Structured tray/spine layouts, only after shared controls and
     visual behavior contracts are stable.
 22. Prompt 18: Final Unification Audit And Documentation Update.
+
+Prompt 18 may run earlier only when the user explicitly asks for a
+no-surprises audit before continuing implementation. In that case, the audit
+must call out any intentionally skipped sequence items, especially #149, and
+must leave their issues open.
 
 The naming migration should happen late. Renaming too early creates churn
 without proving that a module is genuinely shared.

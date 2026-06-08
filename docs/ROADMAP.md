@@ -1,6 +1,6 @@
 # Roadmap
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-08.
 
 ## Current State
 
@@ -8,9 +8,9 @@ Steam Backup Label Studio is **post-indev for the disc-label editor**.
 
 The current working interface is the **disc-label editor**. It is now a Steam backup disc-label editor with a real-disc-art workflow: Steam/manual metadata, Steam and local artwork sources, real disc geometry, background editing, title/logo artwork, additional artwork, Steam banner branding, developer/publisher/additional logos, rating badges, media marks, operating-system marks, technical marks, optional text systems, export preflight, save/load, and 300 DPI PNG export.
 
-This does not mean the whole planned product is close to complete. Jewel case, DVD/Amaray, and Blu-ray case editors remain planned interfaces, with the jewel case editor now next.
+This does not mean the whole planned product is close to complete. The jewel case insert editor is the active next surface under #126, with structured tray/spine layouts still tracked by #149. DVD/Amaray and Blu-ray case editors remain planned interfaces.
 
-The disc artwork editor alone has reached its alpha feature boundary. Issue #69 is closed. The next stretch of work should build the **jewel case editor** defined by #126 without regressing the disc-label editor.
+The disc artwork editor alone has reached its alpha feature boundary. Issue #69 is closed. The current stretch of work should finish the **jewel case editor** defined by #126 without regressing the disc-label editor.
 
 The current editor should be preserved and evolved in place. Steam/manual metadata, artwork import, title artwork, additional artwork, background placement, geometry, safe-zone guides, banner controls, logo/badge/mark systems, disc text, export preflight, New Project, save/load, export, preview, sidebar panels, and toast notifications are working launchpad systems.
 
@@ -28,6 +28,7 @@ Guide Legend remains a sidebar section for now. Issue #124 tracks moving it to a
 
 Open issues most relevant to this roadmap:
 
+- #149 - case inserts structured tray/spine layouts.
 - #124 - move Guide Legend into the live preview.
 - #125 - add historical technology mark catalog and missing mark families.
 - #126 - jewel case editor alpha finish line.
@@ -40,7 +41,7 @@ Open issues most relevant to this roadmap:
 
 Recently completed issue work that should not be described as missing:
 
-- #33, #59, #60, #61, #62, #63, #65, #66, #68, #69, #82-#85, #95, #96, #97, #98, #99, and #123.
+- #33, #59, #60, #61, #62, #63, #65, #66, #68, #69, #82-#85, #95, #96, #97, #98, #99, #123, and #153.
 
 ## Phase 0: Planning Foundation - Complete
 
@@ -211,13 +212,14 @@ Follow-up targets:
 - Continue architecture cleanup and schema migration work where it reduces alpha risk.
 - Prepare known issues and packaging only after non-interactive validation and manual runtime smoke are honestly complete.
 
-## Phase 8: Jewel Case Editor Foundation - Next
+## Phase 8: Jewel Case Editor Foundation - Active
 
 Goal: Define and implement the first case editor surface: jewel case front, back, and spine artwork.
 
 Planned work:
 
 - Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
+- Use #149 for the next structured tray/spine layout implementation work.
 - Use `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md` as the #127 boundary decision for app workspace, project type, and template/case variant separation.
 - Add a template/editor type selector that does not hide or destabilize the disc-label editor.
 - Define a jewel case template model with front, back, spine, bleed/trim, safe zones, and export dimensions.

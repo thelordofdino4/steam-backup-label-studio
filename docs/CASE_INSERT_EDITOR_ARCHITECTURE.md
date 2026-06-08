@@ -1,8 +1,8 @@
 # Case Insert Editor Architecture
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-08.
 
-Issue context: #126 and active jewel case follow-up issues #136-#144.
+Issue context: #126 and active jewel case follow-up issue #149.
 
 This note records the architecture decision for the jewel case editor foundation. It is intentionally small and should stay close to the first implementation pass. The goal is to keep the working disc-label editor stable while adding a separate case insert editor surface.
 
@@ -46,6 +46,10 @@ Case insert work should reuse existing systems when the existing system owns the
 
 Shared does not mean the disc editor owns case behavior. Shared systems should remain lower-level helpers or be extracted into focused modules when case work exposes a broader responsibility.
 
+The current shared/editor-specific ownership map lives in
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before creating a new
+case insert helper that might duplicate an existing shared editor contract.
+
 Shared utilities must stay neutral. A helper can live in shared template,
 asset-import, image-file, or project-status code only when it does not encode
 disc-only or case-only policy. If the helper needs to know which case region,
@@ -79,7 +83,7 @@ should preserve these owners instead of adding parallel case behavior elsewhere.
 - Built-in rectangular case insert template data lives in
   `src/templates/caseInsertTemplates.ts`.
 - Jewel case defaults, normalization, image-slot transitions, text transitions,
-  front-cover transitions, source import helpers, and case export settings live
+  surface transitions, source import helpers, and case export settings live
   under `src/caseInsert/`.
 - Saved case insert project snapshot, normalization, restoration, and routing
   live in `src/project/caseInsertProjectAdapters.ts` and
@@ -87,13 +91,14 @@ should preserve these owners instead of adding parallel case behavior elsewhere.
 - `src/project/projectCaseInsert.ts` is currently a compatibility barrel and
   adapter export surface for existing imports. Do not add new case state,
   transition, layout, import, or export behavior there.
-- The jewel case front editor action hook is
-  `src/hooks/useJewelCaseFrontEditor.ts`.
-- Case insert UI composition and front-cover controls live in
+- Jewel case surface action hooks live under `src/hooks/`, including the cover,
+  tray, and spine editor hooks.
+- Case insert UI composition and surface controls live in
   `src/components/caseInsert/`.
 - Case insert preview layers and guides live in
   `src/components/preview/CaseInsertPreview.tsx`,
-  `src/components/preview/CaseInsertFrontPreviewLayers.tsx`, and
+  `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`,
+  `src/components/preview/CaseInsertSpinePreviewLayer.tsx`, and
   `src/components/preview/CaseInsertGuideOverlay.tsx`.
 - Case insert preview/export layer order lives beside the disc policy in
   `src/editor/layerOrder.ts` and is documented in
@@ -121,18 +126,13 @@ or hooks.
 ## Next Implementation Path
 
 The home/workspace entry point, rectangular template model, physical jewel case
-template, case project schema/normalization, and first front-cover editing path
-now have implementation in the current worktree. Continue the active jewel case
-sequence without destabilizing the disc editor:
+template, case project schema/normalization, cover/tray/spine editing paths,
+case PNG export, and case-specific preflight now have implementation in the
+current worktree. Continue the active jewel case sequence without destabilizing
+the disc editor:
 
-1. Complete back-cover editing in focused case modules (#136).
-2. Complete spine editing in focused case modules (#137).
-3. Reuse Steam artwork and asset sources through the existing case image-source
-   import helpers instead of duplicating upload/download logic (#138).
-4. Adapt marks, logos, ratings, and text to case regions using case-owned layout
-   helpers, not disc safe-zone helpers (#139 and #140).
-5. Add case PNG export and case-specific preflight through focused case export
-   modules (#141 and #142).
-6. Keep sidebar panels and workflow tabs as composition shells (#143).
-7. Run an honest case insert alpha validation and manual smoke pass only when
-   the implemented case flows can be exercised (#144).
+1. Finish structured tray/spine layouts in focused case modules (#149).
+2. Preserve shared artwork, branding, text, source, drag, save/load, preflight,
+   and export contracts documented in `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+3. Run an honest case insert alpha validation and manual smoke pass only when
+   the implemented case flows can be exercised.

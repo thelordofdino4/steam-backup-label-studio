@@ -1,6 +1,6 @@
 # Preview/Export Rendering Architecture Audit
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-08.
 
 This document began as the issue #82 ownership audit. Issue #82 and related regressions #83, #84, and #85 are now closed. Keep this document as the current preview/export ownership map, not as evidence that those closed issues are still active.
 
@@ -16,6 +16,7 @@ Related current source-of-truth docs:
 - `docs/PROJECT_FILE_SPEC.md`
 - `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`
 - `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
+- `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`
 
 ## Current Layer Order
 
@@ -43,9 +44,9 @@ Current user-visible order:
 
 Case insert preview/export layer order is also centralized in
 `src/editor/layerOrder.ts`. The current case insert policy is documented in
-`docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`. Case export is still planned; do not
-claim case preview/export parity for print-ready PNG output until focused case
-export work lands.
+`docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`. Case export now has focused owners,
+but tray/spine layout work remains open under #149, so do not claim jewel case
+alpha preview/export parity until the relevant manual smoke has actually run.
 
 ## Preview/Export Render Paths
 
@@ -89,11 +90,11 @@ The case insert editor uses a separate rectangular rendering path.
 
 | Domain | State/defaults | Layout | Preview artifact | Export artifact | Save/load |
 | --- | --- | --- | --- | --- | --- |
-| Case insert template | `caseInsertTemplates` | `templateModel`, `jewelCaseLayout`, `caseInsertPreviewLayout` | `CaseInsertGuideOverlay` | planned case export owner | case project adapters |
-| Case front background | `caseInsert/defaults`, `frontCoverTransitions` | case image-slot layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
-| Case front title/callout/logo/mark slots | `caseInsert/defaults`, `frontCoverTransitions`, `imageSlotTransitions` | case image-slot layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
-| Case front callout text | `caseInsert/textTransitions` | case text layout fields | `CaseInsertFrontPreviewLayers` | planned case export owner | `caseInsertProjectAdapters` |
-| Case image source import | `caseInsert/imageSlotSourceImport` | none | `CaseInsertImageSourceControls` status and selected images | planned case export owner | embedded project assets |
+| Case insert template | `caseInsertTemplates` | `templateModel`, `jewelCaseLayout`, `caseInsertPreviewLayout` | `CaseInsertGuideOverlay` | `exportCaseInsertPng`, `drawCaseInsertGuides` | case project adapters |
+| Case surface background | `caseInsert/defaults`, `templateSurfaceTransitions` | case image-slot layout fields | `CaseInsertTemplatePreviewLayers` | `exportCaseInsertPng` | `caseInsertProjectAdapters` |
+| Case surface title/artwork/logo/mark slots | `caseInsert/defaults`, `templateSurfaceTransitions`, `imageSlotTransitions` | case image-slot layout fields | `CaseInsertTemplatePreviewLayers`, `CaseInsertSpinePreviewLayer` | `exportCaseInsertPng`, shared mark/logo draw helpers where applicable | `caseInsertProjectAdapters` |
+| Case surface text | `caseInsert/textTransitions` | case text layout fields | `CaseInsertTemplatePreviewLayers`, `CaseInsertSpinePreviewLayer` | `exportCaseInsertPng` | `caseInsertProjectAdapters` |
+| Case image source import | `caseInsert/imageSlotSourceImport` | none | shared editor source/status controls and selected images | `exportCaseInsertPng` | embedded project assets |
 
 Case render work must not reuse disc circular safe-zone helpers or disc export
 drawing modules. If back cover, spine, case export, or case preflight work needs

@@ -1,6 +1,6 @@
 # Milestones and Feature Backlog
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-08.
 
 This document tracks larger feature ideas and milestone boundaries so the project does not confuse a working disc-label path with the whole planned product.
 
@@ -13,6 +13,10 @@ The app should avoid becoming a full image editor. Advanced control is useful, b
 The app should not force a rigid checklist on users who want a blank project. Guided help belongs in the future Guided Start workflow or in export-time warnings, not as a permanent project-health panel.
 
 Issue #69 is closed as the parent finish-line definition for the disc artwork editor. The disc-label editor is now the first alpha-capable surface, while the whole multi-template product remains incomplete. The next major milestone is the jewel case editor tracked by #126.
+
+The staged editor unification ownership map is documented in
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit to preserve shared
+source-of-truth code while finishing the jewel case editor.
 
 ## Milestone: Disc Label Pre-Alpha Complete
 
@@ -116,6 +120,7 @@ Toast readiness:
 High-priority issue order:
 
 - Jewel case editor alpha definition (#126), mirrored in `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+- Structured tray/spine layouts for case inserts (#149).
 - #125 missing technical mark families as future catalog expansion.
 - Fixture/manual smoke follow-up for newer real-disc-art systems if no issue exists.
 - #44, #46, #47, and #48 only where they support alpha or reduce active implementation risk.

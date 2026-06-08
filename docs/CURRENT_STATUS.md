@@ -1,10 +1,12 @@
 # Current Project Status
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-08.
 
 Steam Backup Label Studio is **post-indev for the disc-label editor**. The disc-label editor is the first alpha-capable product surface.
 
-The current working interface is the **disc-label editor**. The app is now a Steam backup disc-label editor with a real-disc-art workflow, not just an early placeholder prototype. Jewel case, DVD/Amaray, and Blu-ray case editors remain planned future interfaces, with the jewel case editor next in #126.
+The stable alpha-capable interface is the **disc-label editor**. The app is now a Steam backup disc-label editor with a real-disc-art workflow, not just an early placeholder prototype.
+
+The **case insert editor** is now an active implementation surface under #126. Jewel case cover sheet, tray card, spine, save/load, export, and parity work exist in focused case insert owners, but structured tray/spine layouts remain open under #149. DVD/Amaray and Blu-ray editors remain planned future interfaces.
 
 ## Current Sidebar Flow
 
@@ -66,6 +68,9 @@ Architecture guardrails remain mandatory for the next phase. Jewel case work sho
 
 The case insert editor boundary is documented in `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`. Jewel case is the first template inside the Case Insert Editor, not a Disc Editor template, and saved project type should remain separate from concrete template/case variant choices.
 
+The staged editor unification ownership map is documented in
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+
 ## Disc Editor Alpha Status
 
 Issue #69 is closed as the parent finish line for disc-editor alpha.
@@ -97,6 +102,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 
 Open issues reviewed for this audit:
 
+- #149 - case inserts structured tray/spine layouts.
 - #124 - move Guide Legend into the live preview.
 - #125 - add historical technology mark catalog and missing mark families.
 - #126 - jewel case editor alpha finish line.
@@ -126,6 +132,7 @@ Closed issue work that older docs may still mention as active:
 - #98 multiple developer/publisher logo marks.
 - #99 technical/audio/codec marks.
 - #123 built-in placeholder/generic visual centralization and de-placeholdering.
+- #153 final editor unification audit and documentation update.
 
 ## Current Feature Status
 
@@ -154,8 +161,9 @@ Implemented for the current disc-label surface:
 
 Still limited or intentionally incomplete:
 
-- Only the disc-label editor is functional today.
-- Case templates are not implemented yet.
+- The disc-label editor remains the only alpha-capable surface.
+- The case insert editor exists, but jewel case alpha is still in progress under
+  #126 and structured tray/spine layouts remain open under #149.
 - Full arbitrary layer management is not implemented yet.
 - Missing historical technology mark families are still tracked by #125 as catalog/future-expansion work.
 - Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format is not implemented.
@@ -184,10 +192,11 @@ When disabled, optional visual features should hide dependent controls, not rend
 
 1. Use #69 as the closed baseline for the disc-editor alpha feature boundary.
 2. Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
-3. Keep the built-in asset tree organized and route new built-ins through `src/assets/assetManifest.ts` or a successor manifest if shared case assets require one.
-4. Keep #124 and #125 as separate polish/future-expansion work.
-5. Add or update fixture/manual smoke coverage for recently added disc systems and future case systems.
-6. Continue #44, #46, #47, and #48 only where they support current implementation risk.
-7. Keep #56 as the project packaging decision point.
+3. Use #149 as the next case insert feature implementation issue for structured tray/spine layouts.
+4. Keep the built-in asset tree organized and route new built-ins through `src/assets/assetManifest.ts` or a successor manifest if shared case assets require one.
+5. Keep #124 and #125 as separate polish/future-expansion work.
+6. Add or update fixture/manual smoke coverage for recently added disc systems and future case systems.
+7. Continue #44, #46, #47, and #48 only where they support current implementation risk.
+8. Keep #56 as the project packaging decision point.
 
 See `docs/MILESTONES.md` for broader milestone and feature backlog context.

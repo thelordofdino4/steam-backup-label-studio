@@ -1,6 +1,6 @@
 # Product Requirements Document
 
-Last refreshed: 2026-06-01.
+Last refreshed: 2026-06-08.
 
 ## Product Summary
 
@@ -8,19 +8,19 @@ Steam Backup Label Studio is a cross-platform desktop application for creating s
 
 The current app is a Steam backup **disc-label editor**. It lets users choose a real disc template, import Steam metadata and artwork where available, use local or custom assets, arrange real-disc-art elements visually, save projects, review export preflight information, and export print-accurate PNG files.
 
-The disc-label editor is the first alpha-capable surface. The next planned surface is the jewel case editor tracked by #126; DVD/Amaray and Blu-ray case editors remain future planned surfaces.
+The disc-label editor is the first alpha-capable surface. The jewel case insert editor is the active next surface tracked by #126, with structured tray/spine layouts tracked by #149. DVD/Amaray and Blu-ray case editors remain future planned surfaces.
 
 ## Current Product Status
 
 Steam Backup Label Studio is **post-indev for the disc-label editor**.
 
-The current implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported/discovered/local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
+The stable alpha-capable implementation focuses on the disc-label path. It can search Steam, import real metadata and artwork, use imported/discovered/local artwork as a disc background, drag and resize artwork, preserve physical disc geometry, save/load projects, and export clean 300 DPI PNG files.
 
 The current disc-label editor also supports Steam-style banner placement, title/logo artwork, additional artwork elements, optional straight and curved disc text, metadata-bound text defaults, developer/publisher/additional logo marks, rating badges, media marks, operating-system marks, technical/audio/codec marks, project-owned metadata, rating/legal candidate assistance, New Project reset behavior, export preflight, and toast status feedback.
 
 This makes the disc-label workflow the first alpha-capable product surface. Issue #69 is closed as the parent alpha finish-line tracker.
 
-The current working disc-label editor should not be mistaken for the whole planned product. Existing systems should be extended, migrated carefully, and preserved unless a specific replacement path is planned and reviewed.
+The current working disc-label editor should not be mistaken for the whole planned product. The jewel case insert editor is active but not yet alpha-complete. Existing systems should be extended, migrated carefully, and preserved unless a specific replacement path is planned and reviewed.
 
 ## Product Philosophy
 
@@ -107,7 +107,7 @@ Initial functional template:
 
 - Disc label
 
-Future templates:
+Future or in-progress templates:
 
 - Jewel case insert/front-back-spine editor
 - Amaray/DVD case cover

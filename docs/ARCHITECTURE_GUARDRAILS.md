@@ -26,6 +26,7 @@ Before implementing behavior, spend a small amount of time checking whether the 
 
 Use targeted searches rather than broad archaeology. Look for:
 
+- the final unification audit in `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`
 - matching domain names such as `discText`, `discTextStyles`, `discTextAvoidance`, `titleArtwork`, `additionalArtwork`, `discNumberArtwork`, `ratingBadge`, `mediaMark`, `platformMark`, `technicalMark`, `logoAsset`, `steamBanner`, `background`, `projectAssetStatus`, `metadataDiscText`, `project`, `exportPreflight`, or `export`
 - existing hooks under `src/hooks/`
 - existing layout helpers under `src/layout/` or geometry helpers under `src/disc/geometry.ts`
@@ -74,6 +75,24 @@ must preserve.
   to know about Steam artwork policy, disc geometry, case regions, saved-project
   compatibility, or visual feature semantics, it belongs in that domain instead
   of `src/utils/` or another broad shared folder.
+
+## Shared Source-Of-Truth Rule
+
+The current shared/editor-specific ownership map lives in
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+
+Use that audit before creating or renaming shared code:
+
+- A neutral shared owner is valid only when both editors actually consume it as
+  source-of-truth behavior.
+- Editor-specific adapters should keep editor-specific names when they own
+  geometry, template structure, target-slot mapping, or product differences.
+- Shared controls should receive values and handlers; they should not decide
+  what a layout field means.
+- Shared render, export, preflight, and project helpers should describe common
+  contracts, not disc or case geometry.
+- Closing a unification issue requires either fixed behavior, documented
+  intentional divergence, or linked follow-up issues for remaining gaps.
 
 ## App.tsx Boundary
 
@@ -161,7 +180,7 @@ Current case insert owners include, at minimum:
   `src/templates/templateModel.ts`.
 - Built-in case insert template data: `src/templates/caseInsertTemplates.ts`.
 - Case insert defaults, normalization, image-slot transitions, text
-  transitions, front-cover transitions, image-source import, and export settings:
+  transitions, surface transitions, image-source import, and export settings:
   `src/caseInsert/*`.
 - Saved case insert project snapshot, normalization, restoration, and routing
   adapters: `src/project/caseInsertProjectAdapters.ts`,
@@ -169,7 +188,8 @@ Current case insert owners include, at minimum:
 - Jewel case front editor actions: `src/hooks/useJewelCaseFrontEditor.ts`.
 - Case insert UI shell and front controls: `src/components/caseInsert/*`.
 - Case insert preview and guides: `src/components/preview/CaseInsertPreview.tsx`,
-  `src/components/preview/CaseInsertFrontPreviewLayers.tsx`, and
+  `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`,
+  `src/components/preview/CaseInsertSpinePreviewLayer.tsx`, and
   `src/components/preview/CaseInsertGuideOverlay.tsx`.
 - Case insert layer order: `src/editor/layerOrder.ts` and
   `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`.

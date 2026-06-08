@@ -1,6 +1,6 @@
 # Refactor Status
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-08.
 
 This document tracks controlled refactor history and current architecture expectations for the disc artwork editor.
 
@@ -22,6 +22,11 @@ The standing rule remains documented in `docs/ARCHITECTURE_GUARDRAILS.md`:
 - Large panels should remain composition shells over smaller controls, hooks,
   and domain modules.
 - Shared utilities should contain only neutral reusable logic.
+
+The staged editor unification ownership map is recorded in
+`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before renaming
+shared modules, creating new shared helpers, or deciding that remaining
+duplication is safe.
 
 ## Why This Matters
 
@@ -68,6 +73,17 @@ Because they are now broad enough to be real product surface, future work should
 - Added current case insert front-editor ownership through
   `src/hooks/useJewelCaseFrontEditor.ts`, `src/components/caseInsert/*`, and
   case insert preview components.
+- Added shared editor UI/control owners under `src/components/editor/*` for
+  panel shells, range fields, source/status controls, logo controls, mark source
+  controls, artwork frame controls, and Steam banner controls.
+- Added shared editor/domain owners under `src/editor/*` for optional visual
+  feature gates, repeated artwork labels/summaries, image asset transitions,
+  mark/logo source helpers, and layer-order declarations.
+- Added shared render/export/project primitives for image render artifacts,
+  common preflight warning builders, pointer-drag geometry, and saved-project
+  normalization helpers.
+- Documented the final staged unification audit in
+  `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
 
 ## Current Validation Status
 
@@ -94,11 +110,13 @@ The following risks remain worth attention:
 4. CSS can still become hidden layout/business logic if stale renderer rules remain.
 5. Project schema validation and migrations remain limited (#48).
 6. Built-in asset routing is centralized, but future assets still need to follow the manifest and folder hierarchy.
-7. Case insert export and preflight are not implemented yet; the current Export
-   PNG button intentionally reports that case export is planned.
+7. Case insert export and preflight now have focused owners, but preview/export
+   parity should still be protected as tray and spine layouts evolve.
 8. `src/project/projectCaseInsert.ts` must remain a compatibility barrel unless
    an explicit migration changes import sites; new case behavior belongs in
    `src/caseInsert/*` or focused adapters.
+9. Structured tray/spine layouts remain open under #149 and should not be
+   hidden inside broad cleanup patches.
 
 ## Follow-Up Work
 

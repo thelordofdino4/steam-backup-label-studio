@@ -21,11 +21,12 @@ order unless a visual/cascade review proves a move is safe:
 7. `app-panels.css` - collapsible panels, panel toggle icon, and Guide Legend swatches.
 8. `app-preview-feedback.css` - preview pane label and preview toast stack.
 9. `app-artwork.css` - current artwork import section spacing.
-10. `app-disc-text.css` - disc text preview layers, disc-number badge layer, and disc text sidebar controls.
-11. `app-sidebar-features.css` - shared optional-feature cards, background source layout controls, and mark-selection helpers.
-12. `app-image-candidates.css` - image candidate modal and preview picker styles.
-13. `app-metadata-controls.css` - metadata rows, repeated visual cards, logo upload/status cards, logo discovery, and metadata assistance.
-14. `app-disc-visual-layers.css` - disc title/additional artwork, logo, rating, media, platform, and technical mark preview layers.
+10. `app-editor-controls.css` - neutral shared editor control shells, text-control cards, range/style grids, source rows, status cards, and reset/action group primitives used by both editors.
+11. `app-disc-text.css` - disc text preview layers and disc-number badge layer/styles that are specific to the disc editor.
+12. `app-sidebar-features.css` - shared optional-feature cards, background source layout controls, and mark-selection helpers.
+13. `app-image-candidates.css` - image candidate modal and preview picker styles.
+14. `app-metadata-controls.css` - metadata rows, repeated visual cards, logo upload/status cards, logo discovery, and metadata assistance.
+15. `app-disc-visual-layers.css` - disc title/additional artwork, logo, rating, media, platform, and technical mark preview layers.
 
 `src/styles/layoutFix.css` remains separate and is still imported from both
 `src/main.tsx` and `src/app/App.tsx`. The later `App.tsx` import intentionally
@@ -49,6 +50,28 @@ component inspection confirmed they are no longer emitted by current components:
 Case insert guide and region role selectors may not appear as full literals in
 source because they are generated from guide/region data. Keep them unless the
 case insert preview component stops generating those classes.
+
+The current shared-control cleanup also removed stale or migrated CSS ownership
+for these old control selector names:
+
+- `selected-lockup-card`
+- `disc-text-layout-grid`
+- `disc-text-style-grid`
+- `disc-text-control-group`
+- `disc-text-action-group`
+- `disc-text-optional-checkboxes`
+- `disc-text-source-row`
+- `disc-text-source-button`
+- `disc-text-nested-checkbox`
+- `disc-text-control-list`
+- `disc-text-control`
+- `disc-text-enable-row`
+- `disc-text-control-body`
+- `disc-text-input`
+- `disc-text-reset-button`
+- `metadata-details`
+- `case-insert-control-card`
+- `case-insert-file-input`
 
 ## Manual Smoke Checklist
 

@@ -1,6 +1,6 @@
 # Manual Smoke Checklists
 
-Last refreshed: 2026-06-06.
+Last refreshed: 2026-06-08.
 
 These checklists are for human verification after visual/editor changes. They
 do not replace `npm run check:cycles`, lint, tests, or build, and agents should
@@ -149,3 +149,31 @@ npm run tauri dev
 - Save/load preserves case insert template choice, shared Steam metadata,
   surface-specific artwork/branding/text settings, export guide settings, and
   disabled optional feature state.
+
+## Shared Ownership / Unification Smoke
+
+Use this after editor unification or shared-control changes. It should be run
+in addition to the editor-specific sections above, not instead of them.
+
+- Confirm disc Artwork, Branding, and Text remain direct top-level workflow
+  panels.
+- Confirm case insert Artwork, Branding, and Text remain nested inside the
+  correct Cover Sheet, Tray Card, Left Spine, or Right Spine surface panels.
+- Confirm shared panel shells open/close without collapsing unrelated sibling
+  panels in either editor.
+- Confirm disabling and re-enabling shared optional visuals hides dependent
+  controls, omits preview/export rendering while disabled, and restores prior
+  source/layout state after re-enable.
+- Confirm shared image-source controls can switch between available imported,
+  web, local screenshot, built-in/default, and custom upload sources where each
+  source is supported.
+- Confirm repeated artwork uses "Artwork N" labels when a user adds a new
+  element, and does not recreate legacy screenshot defaults unless a structured
+  layout feature explicitly does that.
+- Confirm shared logo, badge, media, platform, technical, and Steam banner
+  controls still use target-specific layout adapters for disc, cover/tray, and
+  spine.
+- Confirm preview visibility, PNG export visibility, preflight warnings,
+  save/load restoration, sliders, and drag still agree for at least one shared
+  visual feature in the disc editor and one equivalent shared visual feature in
+  the case insert editor.
