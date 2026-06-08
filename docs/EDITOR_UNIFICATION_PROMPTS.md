@@ -74,6 +74,35 @@ Use this policy in every unification pass:
   UI labels, defaults, render layer labels, and tests should use current shared
   vocabulary.
 
+## Editor Panel Hierarchy Contract
+
+Shared panel code must support both editor hierarchies. The shared shell can be
+neutral, but the hierarchy it renders must remain editor-specific.
+
+Disc labeler hierarchy:
+
+- Top-level workflow panels remain:
+  Project File -> Export Options -> Game -> Template -> Artwork -> Branding ->
+  Text -> Guide Legend.
+- Artwork, Branding, and Text are direct top-level workflow panels in the disc
+  editor.
+
+Case insert hierarchy:
+
+- Top-level workflow panels begin with:
+  Project File -> Export Options -> Game -> Template.
+- Artwork, Branding, and Text are not direct top-level siblings in the same way
+  they are in the disc editor. They are wrapped inside surface-labeled panels.
+- Cover Sheet should expose its own Artwork, Branding, and Text sections inside
+  the Cover Sheet surface panel.
+- Tray Card should expose its own Artwork, Branding, and Text sections inside
+  the Tray Card surface panel.
+- Spine should expose side-specific panels first, such as Left Spine and Right
+  Spine, followed by that side's Artwork, Branding, and Text sections.
+- Shared panel components may render these shells, but they must not decide
+  which surfaces or spine sides exist. Surface capability and template structure
+  belong in case insert adapters.
+
 ## Prompt 00: Create The Unification Map
 
 ```text
@@ -108,16 +137,23 @@ Scope:
 - Audit disc sidebar panels and case insert panels for collapsible panels,
   nested feature panels, card styling, enabled-state body visibility, headings,
   action rows, empty states, and help text patterns.
+- Preserve both editor hierarchy contracts:
+  - disc Artwork, Branding, and Text are direct workflow panels
+  - case insert Artwork, Branding, and Text live inside surface-labeled panels
+  - case insert spine controls live inside Left Spine and Right Spine panels
+    before exposing Artwork, Branding, and Text
 - Extract or rename only presentation-level shells that do not own feature
   decisions.
 - Replace duplicated panel wrappers in both editors with the shared shell.
-- Preserve the current main sidebar order:
+- Preserve the current disc main sidebar order:
   Project File -> Export Options -> Game -> Template -> Artwork -> Branding ->
   Text -> Guide Legend.
 
 Constraints:
 - The shared panel shell must not know whether it is rendering disc or case
   insert.
+- Shared panel shells must support nested insert hierarchy without flattening
+  surface or spine-side panels into disc-style top-level panels.
 - Do not move feature-specific source selection, layout math, or state
   transitions into the shared panel component.
 - Preserve disabled-feature behavior: show only the top-level checkbox when
