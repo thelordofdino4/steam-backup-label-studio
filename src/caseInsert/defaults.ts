@@ -10,6 +10,12 @@ import {
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
 import {
+  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+  CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
+} from './defaultImportLayouts.ts'
+import {
   jewelCaseInsertTemplate,
   type JewelCaseGuideId,
   type JewelCaseSurfaceId,
@@ -214,48 +220,7 @@ const COVER_DISC_TEXT_LAYOUTS: Record<
 const TRAY_DISC_TEXT_LAYOUTS: Record<
   DiscTextKey,
   DefaultCaseInsertTextBlockConfig
-> = {
-  title: {
-    align: 'center',
-    layout: { scale: 1, width: 80, x: 50, y: 15 },
-  },
-  subtitle: {
-    align: 'center',
-    layout: { scale: 0.9, width: 72, x: 50, y: 22 },
-  },
-  discNumber: {
-    align: 'left',
-    layout: { scale: 0.78, width: 42, x: 18, y: 88 },
-  },
-  backupDate: {
-    align: 'center',
-    layout: { scale: 0.78, width: 48, x: 50, y: 88 },
-  },
-  appId: {
-    align: 'right',
-    layout: { scale: 0.78, width: 48, x: 82, y: 88 },
-  },
-  developer: {
-    align: 'left',
-    layout: { scale: 0.78, width: 48, x: 22, y: 76 },
-  },
-  publisher: {
-    align: 'right',
-    layout: { scale: 0.78, width: 48, x: 78, y: 76 },
-  },
-  installNotes: {
-    align: 'center',
-    layout: { scale: 0.86, width: 58, x: 50, y: 70 },
-  },
-  customNote: {
-    align: 'center',
-    layout: { scale: 0.9, width: 74, x: 50, y: 64 },
-  },
-  copyright: {
-    align: 'center',
-    layout: { scale: 1, width: 88, x: 50, y: 93 },
-  },
-}
+> = CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS
 
 const SPINE_DISC_TEXT_LAYOUTS: Record<
   DiscTextKey,
@@ -402,24 +367,30 @@ ProjectCaseInsertSurfaceState {
       createDefaultCaseInsertTextBlock(
         'tray-description',
         'Description',
-        { layout: { scale: 1, width: 82, x: 50, y: 50 } },
+        CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-description'],
       ),
       createDefaultCaseInsertTextBlock(
         'tray-minimum-requirements',
         'Minimum requirements',
-        { layout: { scale: 1, width: 40, x: 28, y: 81 } },
+        CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+          'tray-minimum-requirements'
+        ],
       ),
       createDefaultCaseInsertTextBlock(
         'tray-recommended-requirements',
         'Recommended requirements',
-        { layout: { scale: 1, width: 40, x: 72, y: 81 } },
+        CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+          'tray-recommended-requirements'
+        ],
       ),
     ],
     textLists: [
       createDefaultCaseInsertTextList(
         'tray-feature-bullets',
         'Feature bullets',
-        { layout: { scale: 1, width: 42, x: 28, y: 31 } },
+        CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS[
+          'tray-feature-bullets'
+        ],
       ),
     ],
   }
@@ -520,12 +491,7 @@ export function createDefaultJewelCaseSpineSideState(
       `${label} game logo`,
       {
         fit: 'contain',
-        layout: {
-          scale: 1,
-          x: 50,
-          y: 28,
-          rotation: side === 'left' ? -90 : 90,
-        },
+        layout: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
       },
     ),
     additionalArtworkEnabled: false,

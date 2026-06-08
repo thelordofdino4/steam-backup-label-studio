@@ -106,6 +106,11 @@ import type { CaseInsertImageSlotImageInput } from '../caseInsert/types'
 import {
   getCanonicalCaseInsertTextBlockId,
 } from '../caseInsert/textContent'
+import {
+  CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
+} from '../caseInsert/defaultImportLayouts'
 import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
@@ -141,23 +146,31 @@ const defaultTextBlockLayouts: Record<string, ProjectCaseInsertLayout> = {
   'cover-install-notes': { scale: 0.9, width: 58, x: 50, y: 74, rotation: 0 },
   'cover-custom-note': { scale: 1, width: 74, x: 50, y: 82, rotation: 0 },
   'cover-copyright-text': { scale: 1, width: 86, x: 50, y: 93, rotation: 0 },
-  'tray-title-text': { scale: 1, width: 80, x: 50, y: 15, rotation: 0 },
-  'tray-subtitle-text': { scale: 0.9, width: 72, x: 50, y: 22, rotation: 0 },
-  'tray-disc-number': { scale: 0.78, width: 42, x: 18, y: 88, rotation: 0 },
-  'tray-backup-date': { scale: 0.78, width: 48, x: 50, y: 88, rotation: 0 },
-  'tray-steam-app-id': { scale: 0.78, width: 48, x: 82, y: 88, rotation: 0 },
-  'tray-developer-text': { scale: 0.78, width: 48, x: 22, y: 76, rotation: 0 },
-  'tray-publisher-text': { scale: 0.78, width: 48, x: 78, y: 76, rotation: 0 },
-  'tray-install-notes': { scale: 0.86, width: 58, x: 50, y: 70, rotation: 0 },
-  'tray-custom-note': { scale: 0.9, width: 74, x: 50, y: 64, rotation: 0 },
-  'tray-copyright-text': { scale: 1, width: 88, x: 50, y: 93, rotation: 0 },
-  'tray-description': { scale: 1, width: 82, x: 50, y: 50, rotation: 0 },
-  'tray-minimum-requirements': { scale: 1, width: 40, x: 28, y: 81, rotation: 0 },
-  'tray-recommended-requirements': { scale: 1, width: 40, x: 72, y: 81, rotation: 0 },
+  'tray-title-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.title.layout,
+  'tray-subtitle-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.subtitle.layout,
+  'tray-disc-number': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.discNumber.layout,
+  'tray-backup-date': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.backupDate.layout,
+  'tray-steam-app-id': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.appId.layout,
+  'tray-developer-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.developer.layout,
+  'tray-publisher-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.publisher.layout,
+  'tray-install-notes': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.installNotes.layout,
+  'tray-custom-note': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.customNote.layout,
+  'tray-copyright-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.copyright.layout,
+  'tray-description':
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-description'].layout,
+  'tray-minimum-requirements':
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+      'tray-minimum-requirements'
+    ].layout,
+  'tray-recommended-requirements':
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+      'tray-recommended-requirements'
+    ].layout,
 }
 
 const defaultTextListLayouts: Record<string, ProjectCaseInsertLayout> = {
-  'tray-feature-bullets': { scale: 1, width: 42, x: 28, y: 31, rotation: 0 },
+  'tray-feature-bullets':
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS['tray-feature-bullets'].layout,
 }
 
 function normalizeLabel(label: string) {

@@ -159,7 +159,7 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(tray.textBlocks[0]?.value, '')
   assert.equal(tray.textBlocks[0]?.source, 'metadata')
   assert.equal(tray.textLists[0]?.style.backgroundEnabled, true)
-  assert.equal(tray.textLists[0]?.layout.width, 42)
+  assert.equal(tray.textLists[0]?.layout.width, 36)
   assert.deepEqual(tray.textLists[0]?.items, [])
   assert.equal(tray.textBlocks[10]?.enabled, false)
   assert.equal(tray.textBlocks[11]?.enabled, false)
@@ -295,7 +295,7 @@ test('creates case insert snapshots from generic template state', () => {
   assert.equal(
     project.caseInsert.templates.tray.textBlocks.find(({ id }) =>
       id === 'tray-description')?.layout.width,
-    82,
+    52,
   )
   assert.deepEqual(
     project.caseInsert.templates.tray.textBlocks.map(({ id }) => id),
@@ -305,7 +305,7 @@ test('creates case insert snapshots from generic template state', () => {
     'Single-player',
     'Co-op puzzles',
   ])
-  assert.equal(project.caseInsert.templates.tray.textLists[0]?.layout.width, 42)
+  assert.equal(project.caseInsert.templates.tray.textLists[0]?.layout.width, 36)
 })
 
 test('case insert text groups and styles survive sparse save/load data', () => {
@@ -437,7 +437,7 @@ test('case insert text groups and styles survive sparse save/load data', () => {
   assert.equal(
     sparse.templates.tray.textBlocks.find(({ id }) =>
       id === 'tray-description')?.layout.width,
-    82,
+    52,
   )
   assert.deepEqual(
     sparse.templates.tray.textBlocks.map(({ id }) => id),
@@ -447,7 +447,7 @@ test('case insert text groups and styles survive sparse save/load data', () => {
     'tray-feature-bullets',
   ])
   assert.equal(sparse.templates.tray.textLists[0]?.avoidVisualElements, false)
-  assert.equal(sparse.templates.tray.textLists[0]?.layout.width, 42)
+  assert.equal(sparse.templates.tray.textLists[0]?.layout.width, 36)
 })
 
 test('case insert text layout presets update width and alignment without changing spine orientation', () => {

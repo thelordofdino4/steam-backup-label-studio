@@ -17,6 +17,9 @@ import {
   setCaseInsertTitleArtworkSteamImage,
   setCustomCaseInsertTitleArtworkImage,
 } from './titleArtwork.ts'
+import {
+  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+} from './defaultImportLayouts.ts'
 
 const steamLogoAsset: SteamArtworkAsset = {
   id: 'cdn-logo',
@@ -103,6 +106,19 @@ test('Steam case insert title artwork seed applies to cover, tray, and both spin
       'data:image/png;base64,steam-logo',
     )
   }
+
+  assert.deepEqual(
+    state.spine.left.titleArtwork.layout,
+    CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+  )
+  assert.deepEqual(
+    state.spine.right.titleArtwork.layout,
+    CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+  )
+  assert.equal(state.spine.left.title.enabled, false)
+  assert.equal(state.spine.right.title.enabled, false)
+  assert.equal(state.spine.left.title.value, 'Portal 2')
+  assert.equal(state.spine.right.title.value, 'Portal 2')
 })
 
 test('case insert game logo can restore the remembered Steam default after custom replacement', () => {

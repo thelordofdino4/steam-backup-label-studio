@@ -4,6 +4,10 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
+import {
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
+} from './defaultImportLayouts.ts'
 
 type SteamBackCoverImportOptions = {
   legalText?: string
@@ -49,17 +53,67 @@ function normalizeSteamText(value: string | undefined) {
     .join('\n')
 }
 
-function shouldApplySteamValue(
-  current: { source?: string; value?: string; items?: string[] },
-  replaceExisting: boolean,
-) {
-  const hasValue = current.value
+type SteamTextTarget = { source?: string; value?: string; items?: string[] }
+
+function hasCaseInsertTextValue(current: SteamTextTarget) {
+  return current.value
     ? current.value.trim().length > 0
     : current.items
       ? current.items.some((item) => item.trim())
       : false
+}
 
-  return replaceExisting || current.source === 'steam' || !hasValue
+function shouldApplySteamValue(
+  current: SteamTextTarget,
+  replaceExisting: boolean,
+) {
+  return replaceExisting ||
+    current.source === 'steam' ||
+    !hasCaseInsertTextValue(current)
+}
+
+function shouldApplySteamDefaultLayout(
+  current: SteamTextTarget,
+  replaceExisting: boolean,
+) {
+  return replaceExisting || !hasCaseInsertTextValue(current)
+}
+
+function withSteamDefaultTextBlockLayout(
+  textBlock: ProjectCaseInsertTextBlock,
+): ProjectCaseInsertTextBlock {
+  const config = CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[textBlock.id]
+
+  if (!config) {
+    return textBlock
+  }
+
+  return {
+    ...textBlock,
+    align: config.align ?? textBlock.align,
+    layout: {
+      ...textBlock.layout,
+      ...config.layout,
+    },
+  }
+}
+
+function withSteamDefaultTextListLayout(
+  textList: ProjectCaseInsertTextList,
+): ProjectCaseInsertTextList {
+  const config = CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS[textList.id]
+
+  if (!config) {
+    return textList
+  }
+
+  return {
+    ...textList,
+    layout: {
+      ...textList.layout,
+      ...config.layout,
+    },
+  }
 }
 
 function updateSteamTextBlock(
@@ -72,12 +126,16 @@ function updateSteamTextBlock(
     return textBlock
   }
 
-  return {
+  const updatedTextBlock: ProjectCaseInsertTextBlock = {
     ...textBlock,
     enabled: enableImportedText ? value.trim().length > 0 : textBlock.enabled,
     value,
     source: 'steam',
   }
+
+  return shouldApplySteamDefaultLayout(textBlock, replaceExisting)
+    ? withSteamDefaultTextBlockLayout(updatedTextBlock)
+    : updatedTextBlock
 }
 
 function updateSteamTextList(
@@ -90,12 +148,16 @@ function updateSteamTextList(
     return textList
   }
 
-  return {
+  const updatedTextList: ProjectCaseInsertTextList = {
     ...textList,
     enabled: enableImportedText ? items.length > 0 : textList.enabled,
     items,
     source: 'steam',
   }
+
+  return shouldApplySteamDefaultLayout(textList, replaceExisting)
+    ? withSteamDefaultTextListLayout(updatedTextList)
+    : updatedTextList
 }
 
 function uniqueNonEmpty(values: string[]) {

@@ -23,6 +23,9 @@ import {
   createDefaultJewelCaseSpineMarkSlot,
 } from '../caseInsert/defaults'
 import {
+  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+} from '../caseInsert/defaultImportLayouts'
+import {
   addCaseInsertAdditionalLogoSlot,
   clearCaseInsertAdditionalLogoSlotImage,
   clearCaseInsertPrimaryLogoSlotImage,
@@ -150,11 +153,11 @@ const defaultSpineImageSlotLayouts: Record<
 > = {
   left: {
     background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: { scale: 1, x: 50, y: 28, rotation: -90 },
+    titleArtwork: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
   },
   right: {
     background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: { scale: 1, x: 50, y: 28, rotation: 90 },
+    titleArtwork: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
   },
 }
 
