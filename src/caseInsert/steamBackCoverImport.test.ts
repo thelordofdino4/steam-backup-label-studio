@@ -8,10 +8,36 @@ import {
   applySteamBackCoverImportToCaseInsert,
 } from './steamBackCoverImport.ts'
 import {
+  applyCaseInsertSteamImportBrandingDefaults,
+  getCaseInsertRatingBadgeForSteamImport,
+} from './steamImportBrandingDefaults.ts'
+import {
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
 } from './defaultImportLayouts.ts'
+import {
+  getEnabledCaseInsertMarkSlotForKind,
+} from './brandingMarkPlacement.ts'
+import {
+  syncProjectJewelCaseBrandingMarkSlots,
+} from './brandingMarkSlots.ts'
+import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import { createDefaultProjectMediaMark } from '../project/projectMediaMark.ts'
+import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
+import {
+  createDefaultProjectPlatformMarks,
+} from '../project/projectPlatformMarks.ts'
+import {
+  createDefaultProjectRatingBadge,
+} from '../project/projectRatingBadge.ts'
+import {
+  createDefaultProjectTechnicalMarks,
+} from '../project/projectTechnicalMarks.ts'
+import type {
+  CaseInsertBrandingSourceCatalog,
+} from './brandingSlotSources.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
+import type { RatingBoardCandidate } from '../steam/steamMetadataCandidates.ts'
 
 function createSteamGame(
   overrides: Partial<SteamImportedGame> = {},
@@ -35,6 +61,43 @@ function createSteamGame(
     website: undefined,
     storeUrl: 'https://store.steampowered.com/app/620',
     artwork: [],
+    ...overrides,
+  }
+}
+
+function createEsrbRatingCandidate(
+  overrides: Partial<RatingBoardCandidate> = {},
+): RatingBoardCandidate {
+  return {
+    id: 'rating-steam-appdetails-esrb-m',
+    boardId: 'esrb',
+    boardLabel: 'ESRB',
+    rawRating: 'm',
+    displayRating: 'M',
+    ratingSystem: 'ESRB',
+    ratingValue: 'M',
+    applyKind: 'rating',
+    canApply: true,
+    confidence: 'high',
+    source: 'steam-appdetails',
+    sourceLabel: 'Steam appdetails',
+    sourceUrl: null,
+    descriptors: [],
+    reasons: ['Steam appdetails includes ESRB rating data.'],
+    ...overrides,
+  }
+}
+
+function createBrandingSources(
+  overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
+): CaseInsertBrandingSourceCatalog {
+  return {
+    projectMetadata: createDefaultProjectMetadata(),
+    projectLogoAssets: createDefaultProjectLogoAssets(),
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    projectMediaMark: createDefaultProjectMediaMark(),
+    projectPlatformMarks: createDefaultProjectPlatformMarks(),
+    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
     ...overrides,
   }
 }
@@ -241,4 +304,76 @@ test('case insert legal candidate applies to the tray card legal text', () => {
   assert.equal(legalText.enabled, true)
   assert.equal(legalText.source, 'steam')
   assert.equal(legalText.value, '(c) Example Studio. All rights reserved.')
+})
+
+test('Steam import branding defaults enable the cover ESRB rating badge', () => {
+  const ratingCandidate = createEsrbRatingCandidate()
+  const projectMetadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'ESRB' as const,
+    ratingValue: 'M',
+  }
+  const projectRatingBadge = getCaseInsertRatingBadgeForSteamImport({
+    projectMetadata,
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    ratingCandidate,
+  })
+  const state = applyCaseInsertSteamImportBrandingDefaults({
+    caseInsert: createDefaultProjectJewelCaseState('Portal 2'),
+    ratingCandidate,
+    brandingSources: createBrandingSources({
+      projectMetadata,
+      projectRatingBadge,
+    }),
+  })
+  const coverRatingSlot = getEnabledCaseInsertMarkSlotForKind(
+    state.templates.cover.markSlots,
+    'rating',
+  )
+
+  assert.equal(projectRatingBadge.layout.enabled, true)
+  assert.equal(coverRatingSlot?.enabled, true)
+  assert.equal(coverRatingSlot?.imageSource?.sourceId, 'case-rating:ESRB:M')
+  assert.match(coverRatingSlot?.imageDataUrl ?? '', /rating-badge-esrb-m\.svg/)
+  assert.equal(state.templates.tray.markSlots.length, 0)
+  assert.equal(state.spine.left.markSlots.length, 0)
+  assert.equal(state.spine.right.markSlots.length, 0)
+})
+
+test('Steam import branding broad sync does not create tray or spine ESRB badges', () => {
+  const ratingCandidate = createEsrbRatingCandidate()
+  const projectMetadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'ESRB' as const,
+    ratingValue: 'M',
+  }
+  const projectRatingBadge = getCaseInsertRatingBadgeForSteamImport({
+    projectMetadata,
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    ratingCandidate,
+  })
+  const brandingSources = createBrandingSources({
+    projectMetadata,
+    projectRatingBadge,
+  })
+  const importDefaultState = applyCaseInsertSteamImportBrandingDefaults({
+    caseInsert: createDefaultProjectJewelCaseState('Portal 2'),
+    ratingCandidate,
+    brandingSources,
+  })
+  const syncedState = syncProjectJewelCaseBrandingMarkSlots(
+    importDefaultState,
+    brandingSources,
+  )
+
+  assert.equal(
+    getEnabledCaseInsertMarkSlotForKind(
+      syncedState.templates.cover.markSlots,
+      'rating',
+    )?.imageSource?.sourceId,
+    'case-rating:ESRB:M',
+  )
+  assert.equal(syncedState.templates.tray.markSlots.length, 0)
+  assert.equal(syncedState.spine.left.markSlots.length, 0)
+  assert.equal(syncedState.spine.right.markSlots.length, 0)
 })

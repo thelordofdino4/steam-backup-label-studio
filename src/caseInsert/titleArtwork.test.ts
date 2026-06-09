@@ -7,6 +7,12 @@ import {
   restoreCaseInsertProjectState,
 } from '../project/projectCaseInsert.ts'
 import type { SteamArtworkAsset, SteamImportedGame } from '../steam/steamApi.ts'
+import {
+  createJewelCasePreviewLayout,
+} from '../layout/caseInsertPreviewLayout.ts'
+import {
+  getJewelCaseSpineImageSlotPreviewLayout,
+} from '../layout/jewelCaseSpineLayout.ts'
 import type { CaseInsertImageSlotImageInput } from './types.ts'
 import {
   applySteamCaseInsertTitleArtworkSeedToProject,
@@ -25,6 +31,13 @@ const steamLogoAsset: SteamArtworkAsset = {
   id: 'cdn-logo',
   label: 'Steam CDN logo',
   url: 'https://cdn.akamai.steamstatic.com/steam/apps/620/logo.png',
+  kind: 'logo',
+}
+
+const alternateLogoAsset: SteamArtworkAsset = {
+  id: 'alternate-logo',
+  label: 'Alternate Steam logo',
+  url: 'https://cdn.akamai.steamstatic.com/steam/apps/620/alternate-logo.png',
   kind: 'logo',
 }
 
@@ -78,6 +91,33 @@ test('Steam case insert title artwork seed uses the same Steam CDN logo preferen
   assert.deepEqual(downloadedAssetIds, ['cdn-logo'])
 })
 
+test('Steam case insert title artwork seed falls back when the preferred logo cannot load', async () => {
+  const downloadedAssetIds: string[] = []
+
+  const seed = await createSteamCaseInsertTitleArtworkSeed(
+    createSteamGame([alternateLogoAsset, steamLogoAsset]),
+    {
+      createSteamArtworkImage: async (asset) => {
+        downloadedAssetIds.push(asset.id)
+
+        if (asset.id === 'cdn-logo') {
+          throw new Error('Preferred logo failed to load')
+        }
+
+        return createImage('data:image/png;base64,alternate-logo')
+      },
+    },
+  )
+
+  assert.equal(seed.status, 'seeded')
+  if (seed.status !== 'seeded') {
+    throw new Error('Expected fallback title artwork seed to succeed.')
+  }
+  assert.deepEqual(downloadedAssetIds, ['cdn-logo', 'alternate-logo'])
+  assert.equal(seed.steamArtworkAsset.id, 'alternate-logo')
+  assert.equal(seed.image.imageDataUrl, 'data:image/png;base64,alternate-logo')
+})
+
 test('Steam case insert title artwork seed applies to cover, tray, and both spines', async () => {
   const seed = await createSteamCaseInsertTitleArtworkSeed(
     createSteamGame([steamLogoAsset]),
@@ -115,6 +155,20 @@ test('Steam case insert title artwork seed applies to cover, tray, and both spin
     state.spine.right.titleArtwork.layout,
     CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
   )
+  const trayPreviewLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+
+  assert.ok(getJewelCaseSpineImageSlotPreviewLayout(
+    'left',
+    state.spine.left.titleArtwork,
+    trayPreviewLayout,
+    'titleArtwork',
+  ))
+  assert.ok(getJewelCaseSpineImageSlotPreviewLayout(
+    'right',
+    state.spine.right.titleArtwork,
+    trayPreviewLayout,
+    'titleArtwork',
+  ))
   assert.equal(state.spine.left.title.enabled, false)
   assert.equal(state.spine.right.title.enabled, false)
   assert.equal(state.spine.left.title.value, 'Portal 2')

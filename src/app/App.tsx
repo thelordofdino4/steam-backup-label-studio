@@ -84,6 +84,10 @@ import {
   applySteamBackCoverImportToCaseInsert,
 } from '../caseInsert/steamBackCoverImport'
 import {
+  applyCaseInsertSteamImportBrandingDefaults,
+  getCaseInsertRatingBadgeForSteamImport,
+} from '../caseInsert/steamImportBrandingDefaults'
+import {
   applySteamCaseInsertTitleArtworkSeedToProject,
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
@@ -1142,11 +1146,22 @@ function App() {
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
         : null
+      const caseInsertRatingBadgeForImport =
+        options.applyCaseInsertBackCoverDefaults
+          ? getCaseInsertRatingBadgeForSteamImport({
+              projectMetadata: nextProjectMetadataWithAutoApply,
+              projectRatingBadge,
+              ratingCandidate: autoRatingCandidate,
+            })
+          : projectRatingBadge
 
       setSelectedSteamGame(importedState.importedGame)
       setSteamSearchResults([])
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadataWithAutoApply)
+      if (options.applyCaseInsertBackCoverDefaults) {
+        setProjectRatingBadge(caseInsertRatingBadgeForImport)
+      }
 
       announceStatus(importedState.statusMessage)
 
@@ -1161,12 +1176,25 @@ function App() {
             },
           )
 
-          return caseInsertTitleArtworkSeed
+          const caseInsertWithTitleArtwork = caseInsertTitleArtworkSeed
             ? applySteamCaseInsertTitleArtworkSeedToProject(
                 caseInsertWithSteamText,
                 caseInsertTitleArtworkSeed,
               )
             : caseInsertWithSteamText
+
+          return applyCaseInsertSteamImportBrandingDefaults({
+            caseInsert: caseInsertWithTitleArtwork,
+            ratingCandidate: autoRatingCandidate,
+            brandingSources: {
+              projectMetadata: nextProjectMetadataWithAutoApply,
+              projectLogoAssets,
+              projectRatingBadge: caseInsertRatingBadgeForImport,
+              projectMediaMark,
+              projectPlatformMarks,
+              projectTechnicalMarks,
+            },
+          })
         })
         announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
         if (caseInsertTitleArtworkSeed) {

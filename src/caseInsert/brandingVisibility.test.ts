@@ -1047,8 +1047,11 @@ test('case insert technical mark targets sync added mark slots separately from p
 
 test('case insert mark sync preserves uploaded slot images while updating shared identity', () => {
   const enabledSources = createEnabledMarkBrandingSources()
-  const state = syncProjectJewelCaseBrandingMarkSlots(
+  const state = setProjectJewelCaseBrandingMarkTargetKindEnabled(
     createDefaultProjectJewelCaseState('Portal 2'),
+    { type: 'template', paneId: 'cover' },
+    'rating',
+    true,
     enabledSources,
   )
   const uploadedRatingSlot = {
@@ -1098,4 +1101,7 @@ test('case insert mark sync preserves uploaded slot images while updating shared
     ),
     true,
   )
+  assert.equal(syncedState.templates.tray.markSlots.length, 0)
+  assert.equal(syncedState.spine.left.markSlots.length, 0)
+  assert.equal(syncedState.spine.right.markSlots.length, 0)
 })

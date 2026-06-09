@@ -337,9 +337,11 @@ function syncMarkSlots(
     autoSlot: ProjectCaseInsertImageSlot,
     source: CaseInsertBrandingSlotSourceItem,
   ) => ProjectCaseInsertImageSlot = (slot) => slot,
+  options: { createMissing?: boolean } = {},
 ) {
   let nextSlots = slots
   let didChange = false
+  const createMissing = options.createMissing ?? true
 
   sources.forEach((source, sourceIndex) => {
     const autoSlot = createAutoSlot(source, nextSlots.length + sourceIndex + 1)
@@ -348,13 +350,24 @@ function syncMarkSlots(
       autoSlot.id,
       source,
     )
+
+    if (existingIndex < 0 && !createMissing) {
+      return
+    }
+
     const baseSlot = existingIndex >= 0
       ? nextSlots[existingIndex]!
       : autoSlot
-    const updatedSlot = setSlotSharedMarkSource(
+    const updatedSlotWithImage = setSlotSharedMarkSource(
       normalizeBaseSlot(baseSlot, autoSlot, source),
       source,
     )
+    const updatedSlot = existingIndex >= 0
+      ? {
+          ...updatedSlotWithImage,
+          enabled: baseSlot.enabled,
+        }
+      : updatedSlotWithImage
 
     if (existingIndex >= 0) {
       if (markSlotsMatch(nextSlots[existingIndex]!, updatedSlot)) {
@@ -378,6 +391,7 @@ function syncTemplateSurfaceMarkSlots(
   paneId: CaseInsertTemplatePaneId,
   surface: ProjectCaseInsertSurfaceState,
   sources: CaseInsertBrandingSlotSourceItem[],
+  options: { createMissing?: boolean } = {},
 ) {
   const defaultMarkLayout =
     getCaseInsertImageSlotGroupConfig(paneId, 'markSlots').defaultLayout
@@ -401,6 +415,7 @@ function syncTemplateSurfaceMarkSlots(
         autoSlot,
         defaultMarkLayout,
       ),
+    options,
   )
 
   return markSlots === surface.markSlots
@@ -415,6 +430,7 @@ function syncSpineSideMarkSlots(
   side: JewelCaseSpineSide,
   spineSide: ProjectJewelCaseSpineSideState,
   sources: CaseInsertBrandingSlotSourceItem[],
+  options: { createMissing?: boolean } = {},
 ) {
   const defaultMarkLayout = createDefaultJewelCaseSpineMarkSlot(side, 1).layout
   const markSlots = syncMarkSlots(
@@ -437,6 +453,7 @@ function syncSpineSideMarkSlots(
         autoSlot,
         defaultMarkLayout,
       ),
+    options,
   )
 
   return markSlots === spineSide.markSlots
@@ -663,7 +680,12 @@ export function syncProjectJewelCaseBrandingMarkSlots(
 
   CASE_INSERT_TEMPLATE_MARK_PANES.forEach((paneId) => {
     const surface = state.templates[paneId]
-    const syncedSurface = syncTemplateSurfaceMarkSlots(paneId, surface, sources)
+    const syncedSurface = syncTemplateSurfaceMarkSlots(
+      paneId,
+      surface,
+      sources,
+      { createMissing: false },
+    )
 
     if (syncedSurface !== surface) {
       templates[paneId] = syncedSurface
@@ -675,7 +697,12 @@ export function syncProjectJewelCaseBrandingMarkSlots(
 
   JEWEL_CASE_SPINE_SIDES.forEach((side) => {
     const spineSide = state.spine[side]
-    const syncedSpineSide = syncSpineSideMarkSlots(side, spineSide, sources)
+    const syncedSpineSide = syncSpineSideMarkSlots(
+      side,
+      spineSide,
+      sources,
+      { createMissing: false },
+    )
 
     if (syncedSpineSide !== spineSide) {
       spine[side] = syncedSpineSide

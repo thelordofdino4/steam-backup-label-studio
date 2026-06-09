@@ -1,6 +1,8 @@
 import type { ChangeEvent, ReactNode } from 'react'
 import {
   type CaseInsertLogoSurfaceId,
+  createCaseInsertLogoFallbackProvenance,
+  getCaseInsertLogoSlotRenderInfo,
   getCaseInsertPrimaryLogoLabel,
   getDefaultCaseInsertPrimaryLogoLayout,
 } from '../../caseInsert/brandingLogoSlots'
@@ -78,6 +80,10 @@ export function CaseInsertLogoSlotControls({
   const enabled = slot?.enabled ?? false
   const layout = slot?.layout ??
     getDefaultCaseInsertPrimaryLogoLayout(paneId, logoKey)
+  const renderInfo = slot ? getCaseInsertLogoSlotRenderInfo(slot) : null
+  const fallbackRenderInfo = renderInfo?.isBundledFallback
+    ? renderInfo
+    : null
 
   return (
     <div className="logo-asset-card">
@@ -96,6 +102,14 @@ export function CaseInsertLogoSlotControls({
             logoKey={logoKey}
             label={label}
             candidateLabel={getLogoAssetKindLabel(logoKey)}
+            fallbackImageDataUrl={fallbackRenderInfo?.imageDataUrl ?? null}
+            fallbackImageSize={fallbackRenderInfo?.imageSize ?? null}
+            fallbackImageSource={fallbackRenderInfo
+              ? createCaseInsertLogoFallbackProvenance(
+                  logoKey,
+                  slot?.imageSource?.sourceId ?? undefined,
+                )
+              : null}
             imageDataUrl={slot?.imageDataUrl ?? null}
             imageSource={slot?.imageSource ?? null}
             imageSize={slot?.imageSize ?? null}

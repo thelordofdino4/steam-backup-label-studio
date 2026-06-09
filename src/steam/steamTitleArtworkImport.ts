@@ -41,9 +41,21 @@ function isPreferredSteamCdnLogoAsset(asset: SteamArtworkAsset) {
 export function findSteamTitleArtworkAsset(
   importedGame: SteamImportedGame,
 ): SteamArtworkAsset | null {
-  const logoAssets = importedGame.artwork.filter((asset) => asset.kind === 'logo')
+  return getSteamTitleArtworkAssetCandidates(importedGame)[0] ?? null
+}
 
-  return logoAssets.find(isPreferredSteamCdnLogoAsset) ?? logoAssets[0] ?? null
+export function getSteamTitleArtworkAssetCandidates(
+  importedGame: SteamImportedGame,
+): SteamArtworkAsset[] {
+  const logoAssets = importedGame.artwork.filter((asset) => asset.kind === 'logo')
+  const preferredLogoAsset = logoAssets.find(isPreferredSteamCdnLogoAsset)
+
+  return preferredLogoAsset
+    ? [
+        preferredLogoAsset,
+        ...logoAssets.filter((asset) => asset !== preferredLogoAsset),
+      ]
+    : logoAssets
 }
 
 export async function createSteamTitleArtworkImport(
