@@ -6,6 +6,7 @@ import type {
   BackgroundImageSize,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
+  ProjectImageAssetProvenance,
 } from '../project/projectTypes.ts'
 import {
   getLogoAssetRenderDataUrl,
@@ -70,6 +71,17 @@ export function getCaseInsertPrimaryLogoLabel(logoKey: LogoAssetKey) {
 
 export function getCaseInsertPrimaryLogoSourceId(logoKey: LogoAssetKey) {
   return `case-logo:${logoKey}`
+}
+
+export function createCaseInsertLogoFallbackProvenance(
+  logoKey: LogoAssetKey,
+  sourceId = getCaseInsertPrimaryLogoSourceId(logoKey),
+): ProjectImageAssetProvenance {
+  return createProjectImageAssetProvenance({
+    source: 'placeholder',
+    sourceId,
+    sourceLabel: getCaseInsertPrimaryLogoLabel(logoKey),
+  })
 }
 
 export function getCaseInsertAdditionalLogoSourceId(

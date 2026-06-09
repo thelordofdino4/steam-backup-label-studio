@@ -39,6 +39,9 @@ export function EditorLogoAssetControls({
   clearLabel = 'Clear logo',
   controlIdPrefix,
   emptyHint,
+  fallbackImageDataUrl,
+  fallbackImageSize,
+  fallbackImageSource,
   fields,
   formatSize = () => '',
   handleApplyLogoCandidate,
@@ -63,6 +66,9 @@ export function EditorLogoAssetControls({
   clearLabel?: string
   controlIdPrefix: string
   emptyHint?: string
+  fallbackImageDataUrl?: string | null
+  fallbackImageSize?: BackgroundImageSize | null
+  fallbackImageSource?: ProjectImageAssetProvenance | null
   fields: readonly EditorLogoLayoutField[]
   formatSize?: (size: BackgroundImageSize | null) => string
   handleApplyLogoCandidate: (
@@ -115,6 +121,9 @@ export function EditorLogoAssetControls({
             mentionsCandidateSearch: Boolean(candidateHelpText),
           })
         }
+        fallbackImageDataUrl={fallbackImageDataUrl}
+        fallbackImageSize={fallbackImageSize}
+        fallbackImageSource={fallbackImageSource}
         fallbackLabel={getLogoAssetImageFallbackLabel(label)}
         formatSize={formatSize}
         imageDataUrl={imageDataUrl}

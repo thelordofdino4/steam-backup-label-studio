@@ -12,7 +12,9 @@ import type {
   SteamArtworkAsset,
   SteamImportedGame,
 } from '../steam/steamApi.ts'
-import { findSteamTitleArtworkAsset } from '../steam/steamTitleArtworkImport.ts'
+import {
+  getSteamTitleArtworkAssetCandidates,
+} from '../steam/steamTitleArtworkImport.ts'
 import type { CaseInsertImageSlotImageInput } from './types.ts'
 import {
   clearCaseInsertImageSlotImage,
@@ -197,9 +199,9 @@ export async function createSteamCaseInsertTitleArtworkSeed(
   importedGame: SteamImportedGame,
   options: CaseInsertTitleArtworkImportSeedOptions = {},
 ): Promise<CaseInsertTitleArtworkImportSeed> {
-  const steamLogoAsset = findSteamTitleArtworkAsset(importedGame)
+  const steamLogoAssets = getSteamTitleArtworkAssetCandidates(importedGame)
 
-  if (!steamLogoAsset) {
+  if (steamLogoAssets.length === 0) {
     return {
       status: 'unavailable',
       statusMessage:
@@ -207,22 +209,26 @@ export async function createSteamCaseInsertTitleArtworkSeed(
     }
   }
 
-  try {
-    const createSteamArtworkImage =
-      options.createSteamArtworkImage ?? createSteamArtworkCaseInsertImageSlotImage
+  const createSteamArtworkImage =
+    options.createSteamArtworkImage ?? createSteamArtworkCaseInsertImageSlotImage
 
-    return {
-      image: await createSteamArtworkImage(steamLogoAsset),
-      status: 'seeded',
-      statusMessage: `Using ${steamLogoAsset.label} as the case insert game logo.`,
-      steamArtworkAsset: steamLogoAsset,
+  for (const steamLogoAsset of steamLogoAssets) {
+    try {
+      return {
+        image: await createSteamArtworkImage(steamLogoAsset),
+        status: 'seeded',
+        statusMessage: `Using ${steamLogoAsset.label} as the case insert game logo.`,
+        steamArtworkAsset: steamLogoAsset,
+      }
+    } catch {
+      // Try the next Steam logo candidate before declaring the import failed.
     }
-  } catch {
-    return {
-      status: 'failed',
-      statusMessage:
-        'Steam title/logo artwork could not be downloaded. Custom case insert game logo upload remains available.',
-    }
+  }
+
+  return {
+    status: 'failed',
+    statusMessage:
+      'Steam title/logo artwork could not be downloaded. Custom case insert game logo upload remains available.',
   }
 }
 

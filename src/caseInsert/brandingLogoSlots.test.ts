@@ -4,6 +4,7 @@ import {
   addCaseInsertAdditionalLogoSlot,
   clearCaseInsertPrimaryLogoSlotImage,
   clearCaseInsertAdditionalLogoSlotImage,
+  createCaseInsertLogoFallbackProvenance,
   getCaseInsertAdditionalLogoSlotsForKey,
   getCaseInsertAdditionalLogoSlots,
   getCaseInsertLogoSlotRenderInfo,
@@ -181,11 +182,17 @@ test('case insert logo render info uses bundled generic artwork for enabled empt
   state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
     setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'developer', true))
   state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'publisher', true))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
     addCaseInsertAdditionalLogoSlot(cover, 'cover', 'developer'))
 
   const developerLogo = getCaseInsertPrimaryLogoSlot(
     state.templates.cover,
     'developer',
+  )
+  const publisherLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'publisher',
   )
   const additionalDeveloperLogo =
     getCaseInsertAdditionalLogoSlotsForKey(
@@ -194,17 +201,30 @@ test('case insert logo render info uses bundled generic artwork for enabled empt
     )[0]
 
   assert.ok(developerLogo)
+  assert.ok(publisherLogo)
   assert.ok(additionalDeveloperLogo)
 
   const developerRenderInfo = getCaseInsertLogoSlotRenderInfo(developerLogo)
+  const publisherRenderInfo = getCaseInsertLogoSlotRenderInfo(publisherLogo)
   const additionalRenderInfo =
     getCaseInsertLogoSlotRenderInfo(additionalDeveloperLogo)
 
   assert.equal(developerRenderInfo?.isBundledFallback, true)
   assert.equal(developerRenderInfo?.logoKey, 'developer')
   assert.equal(developerRenderInfo?.imageSize.width, 480)
+  assert.equal(publisherRenderInfo?.isBundledFallback, true)
+  assert.equal(publisherRenderInfo?.logoKey, 'publisher')
   assert.equal(additionalRenderInfo?.isBundledFallback, true)
   assert.equal(additionalRenderInfo?.logoKey, 'developer')
+  assert.deepEqual(
+    createCaseInsertLogoFallbackProvenance('developer'),
+    {
+      source: 'placeholder',
+      sourceId: 'case-logo:developer',
+      sourceLabel: 'Developer logo',
+      sourceUrl: null,
+    },
+  )
 })
 
 test('case insert additional logos are grouped by developer or publisher without losing legacy slots', () => {
