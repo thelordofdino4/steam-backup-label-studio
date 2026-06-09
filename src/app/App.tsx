@@ -112,7 +112,7 @@ import { buildCaseInsertExportPreflightSummary } from '../export/caseInsertExpor
 import { exportCaseInsertPngBytes } from '../export/exportCaseInsertPng'
 import { exportDiscLabelPngBytes } from '../export/exportPng'
 import { buildExportPreflightSummary } from '../export/exportPreflight'
-import { getNaturalImageSize } from '../utils/imageFile'
+import { createImageSizeWithDetectedContentBounds } from '../image/imageContentBounds'
 import {
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
 } from '../branding/steamBanner'
@@ -324,6 +324,7 @@ function App() {
     handleResetSupplementalUskRatingBadgeLayout,
   } = useRatingBadgeState({
     selectedDiscTemplate,
+    projectMetadata,
     announceStatus,
   })
   const {
@@ -525,6 +526,7 @@ function App() {
       setValue: setProjectAdditionalArtwork,
     },
     ratingBadge: {
+      projectMetadata,
       value: projectRatingBadge,
       setValue: setProjectRatingBadge,
     },
@@ -576,6 +578,7 @@ function App() {
       projectRatingBadge,
       projectMediaMark,
       projectPlatformMarks,
+      projectTechnicalMarks,
     }
   }
 
@@ -618,7 +621,11 @@ function App() {
 
     setProjectMetadata(nextState.metadata)
     setProjectRatingBadge(
-      clampProjectRatingBadgeToSafeZone(nextState.ratingBadge, selectedDiscTemplate),
+      clampProjectRatingBadgeToSafeZone(
+        nextState.ratingBadge,
+        selectedDiscTemplate,
+        nextState.metadata,
+      ),
     )
 
     if (enabled) {
@@ -691,6 +698,19 @@ function App() {
       affectedMetadataFields,
       nextProjectMetadata,
     )
+
+    if (
+      affectedMetadataFields.includes('ratingSystem') ||
+      affectedMetadataFields.includes('ratingValue')
+    ) {
+      setProjectRatingBadge((currentBadge) =>
+        clampProjectRatingBadgeToSafeZone(
+          currentBadge,
+          selectedDiscTemplate,
+          nextProjectMetadata,
+        ),
+      )
+    }
   }
 
   function handleProjectMetadataChange(field: keyof ProjectMetadata, value: string) {
@@ -729,7 +749,11 @@ function App() {
           true,
         )
 
-        return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+        return clampProjectRatingBadgeToSafeZone(
+          nextBadge,
+          selectedDiscTemplate,
+          projectMetadata,
+        )
       })
 
       if (options.announce ?? true) {
@@ -1416,7 +1440,7 @@ function App() {
       const restoredProject = await restoreProjectStateFromContents(contents, {
         defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
         resolveBackgroundImageSize: async (imageDataUrl) =>
-          getNaturalImageSize(await loadImage(imageDataUrl)),
+          createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
       })
 
       setManualGameTitle(restoredProject.manualGameTitle)
@@ -1600,12 +1624,14 @@ function App() {
       const result = await exportDiscLabelPngBytes({
         selectedDiscTemplate,
         backgroundImageUrl: effectiveBackgroundImageUrl,
+        backgroundImageSize: effectiveBackgroundImageSize,
         backgroundScale,
         backgroundOffset,
         previewSize,
         steamLogoPlacement,
         steamBannerColors,
         steamBannerLockupImageUrl,
+        steamBannerLockupImageSize,
         steamBannerLockupLayout,
         steamBannerUseTextFallback,
         steamBannerFallbackText,
@@ -1955,6 +1981,7 @@ function App() {
         statusToasts={statusToasts}
         background={{
           imageUrl: effectiveBackgroundImageUrl,
+          imageSize: effectiveBackgroundImageSize,
           previewSize: backgroundPreviewSize,
           offset: backgroundOffset,
           scale: backgroundScale,

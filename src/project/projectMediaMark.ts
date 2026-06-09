@@ -71,7 +71,12 @@ export function createDefaultProjectMediaMark(
     customImageDataUrl: null,
     customImageSize: null,
     layout: selectedDiscTemplate
-      ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate)
+      ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, {
+          value: 'dataDisc',
+          source: 'placeholder',
+          theme: DEFAULT_MEDIA_MARK_THEME,
+          customImageSize: null,
+        })
       : DEFAULT_MEDIA_MARK_LAYOUT,
   }
 }
@@ -213,7 +218,9 @@ export function normalizeProjectMediaMark(
   const customImageSize = normalizeImageSize(mediaMark?.customImageSize)
   const defaultLayout = selectedDiscTemplate
     ? getDefaultMediaMarkLayoutForTemplate(selectedDiscTemplate, {
+        value: rawValue,
         source,
+        theme,
         customImageSize,
       })
     : defaults.layout

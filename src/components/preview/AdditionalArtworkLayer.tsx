@@ -1,9 +1,11 @@
 import type { PointerEvent } from 'react'
+import { getImageContentSize } from '../../image/imageContentBounds'
 import {
   createAdditionalArtworkRenderItems,
   type AdditionalArtworkRenderItem,
 } from '../../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtwork } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type AdditionalArtworkLayerProps = {
   projectAdditionalArtwork: ProjectAdditionalArtwork
@@ -16,10 +18,11 @@ export type AdditionalArtworkLayerProps = {
 }
 
 function getFrameViewBox(renderItem: AdditionalArtworkRenderItem) {
+  const contentSize = getImageContentSize(renderItem.imageSize)
   const width = 100
   const height =
-    renderItem.imageSize.width > 0
-      ? Math.max(1, 100 * (renderItem.imageSize.height / renderItem.imageSize.width))
+    contentSize && contentSize.width > 0
+      ? Math.max(1, 100 * (contentSize.height / contentSize.width))
       : 100
 
   return { width, height }
@@ -85,7 +88,14 @@ export function AdditionalArtworkLayer({
     <div className="disc-additional-artwork-layer" aria-label="Additional artwork layer">
       {renderItems.map((renderItem) => (
         <div
-          className={`disc-additional-artwork${renderItem.frame.enabled && renderItem.frame.shape === 'circle' ? ' disc-additional-artwork--circle' : ''}`}
+          className={[
+            'disc-additional-artwork',
+            renderItem.frame.enabled && renderItem.frame.shape === 'circle'
+              ? 'disc-additional-artwork--circle'
+              : '',
+            renderItem.contentBounds ? 'disc-additional-artwork--content-bounded' : '',
+            renderItem.contentShape ? 'disc-additional-artwork--content-shaped' : '',
+          ].filter(Boolean).join(' ')}
           key={renderItem.id}
           onPointerDown={(event) =>
             handleAdditionalArtworkPointerDown(event, renderItem.id)}
@@ -101,10 +111,11 @@ export function AdditionalArtworkLayer({
             transform: `translate(-50%, -50%) scale(${renderItem.layout.scale})`,
           }}
         >
-          <img
+          <ContentBoundedImage
             className="disc-additional-artwork-image"
             src={renderItem.imageDataUrl}
             alt={`${renderItem.sourceLabel} additional artwork`}
+            imageSize={renderItem.imageSize}
             draggable={false}
           />
           <AdditionalArtworkFrame renderItem={renderItem} />

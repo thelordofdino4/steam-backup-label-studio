@@ -83,7 +83,12 @@ import {
   type RectPositionedImageRenderArtifact,
 } from '../render/imageRenderArtifact'
 import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel'
-import { canvasToPngBytes, loadCanvasSafeImage } from './canvasImage'
+import {
+  canvasToPngBytes,
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
 import { drawCaseInsertSteamBanner } from './drawCaseInsertSteamBanner'
 
@@ -146,12 +151,22 @@ async function drawImageFit(
     fit.region.height,
   )
   context.clip()
+
+  if (fit.sourceRect.width <= 0 || fit.sourceRect.height <= 0) {
+    context.restore()
+    return
+  }
+
   context.drawImage(
     image,
-    fit.imageRect.x,
-    fit.imageRect.y,
-    fit.imageRect.width,
-    fit.imageRect.height,
+    fit.sourceRect.x,
+    fit.sourceRect.y,
+    fit.sourceRect.width,
+    fit.sourceRect.height,
+    fit.visibleRect.x,
+    fit.visibleRect.y,
+    fit.visibleRect.width,
+    fit.visibleRect.height,
   )
   afterImage?.()
   context.restore()
@@ -167,12 +182,11 @@ async function drawImageArtifactInRect(
 
   const image = await loadCanvasSafeImage(artifact.imageDataUrl, artifact.label)
 
-  context.drawImage(
+  drawImageContent(
+    context,
     image,
-    artifact.rect.x,
-    artifact.rect.y,
-    artifact.rect.width,
-    artifact.rect.height,
+    artifact.imageSize,
+    artifact.rect,
   )
 }
 
@@ -246,7 +260,7 @@ async function drawImageSlotInRect(
     createImageSlotFramePath(context, slot, rect)
     context.clip()
   }
-  context.drawImage(image, rect.x, rect.y, rect.width, rect.height)
+  drawImageContent(context, image, slot.imageSize, rect)
   context.restore()
 
   drawImageSlotFrame(context, slot, rect)
@@ -255,21 +269,32 @@ async function drawImageSlotInRect(
 async function drawContainImageInLocalBox(
   context: CanvasRenderingContext2D,
   imageDataUrl: string,
+  imageSize: ProjectCaseInsertImageSlot['imageSize'],
   width: number,
   height: number,
   description: string,
 ) {
   const image = await loadCanvasSafeImage(imageDataUrl, description)
-  const scale = Math.min(width / image.width, height / image.height)
-  const drawWidth = image.width * scale
-  const drawHeight = image.height * scale
+  const contentSize = getCanvasImageContentSize(image, imageSize)
 
-  context.drawImage(
+  if (!contentSize) {
+    return
+  }
+
+  const scale = Math.min(width / contentSize.width, height / contentSize.height)
+  const drawWidth = contentSize.width * scale
+  const drawHeight = contentSize.height * scale
+
+  drawImageContent(
+    context,
     image,
-    -drawWidth / 2,
-    -drawHeight / 2,
-    drawWidth,
-    drawHeight,
+    imageSize,
+    {
+      x: -drawWidth / 2,
+      y: -drawHeight / 2,
+      width: drawWidth,
+      height: drawHeight,
+    },
   )
 }
 
@@ -439,6 +464,7 @@ async function drawTemplateImageSlot(
     context,
     createRectPositionedImageRenderArtifact({
       imageDataUrl: logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
+      imageSize: logoRenderInfo?.imageSize ?? slot.imageSize,
       label: slot.label,
       rect: getTemplateImageSlotRect(paneId, slot, layout, group),
     }),
@@ -708,10 +734,11 @@ async function drawSpineSide(
     [state.titleArtwork, 'titleArtwork'],
     ...artworkSlots.map((slot) => [slot, 'artwork'] as const),
   ] as const) {
-    const artifact = createBoxPositionedImageRenderArtifact({
-      imageDataUrl: slot.imageDataUrl,
-      label: slot.label,
-      box: getJewelCaseSpineImageSlotPreviewLayout(
+      const artifact = createBoxPositionedImageRenderArtifact({
+        imageDataUrl: slot.imageDataUrl,
+        imageSize: slot.imageSize,
+        label: slot.label,
+        box: getJewelCaseSpineImageSlotPreviewLayout(
         side,
         slot,
         layout,
@@ -736,6 +763,7 @@ async function drawSpineSide(
       await drawContainImageInLocalBox(
         context,
         artifact.imageDataUrl,
+        artifact.imageSize ?? null,
         artifact.box.width,
         artifact.box.height,
         artifact.label,
@@ -781,6 +809,7 @@ async function drawSpineSide(
       : null
     const artifact = createBoxPositionedImageRenderArtifact({
       imageDataUrl: logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl,
+      imageSize: logoRenderInfo?.imageSize ?? slot.imageSize,
       label: slot.label,
       box: getJewelCaseSpineImageSlotPreviewLayout(
         side,
@@ -796,6 +825,7 @@ async function drawSpineSide(
       await drawContainImageInLocalBox(
         context,
         artifact.imageDataUrl,
+        artifact.imageSize ?? null,
         artifact.box.width,
         artifact.box.height,
         artifact.label,

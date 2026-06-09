@@ -1,4 +1,6 @@
 import type { BackgroundImageSize } from './projectTypes.ts'
+import { normalizeStoredImageContentBounds } from '../image/imageContentBounds.ts'
+import { normalizeStoredImageContentShape } from '../image/imageContentShape.ts'
 
 export type JsonRecord = Record<string, unknown>
 
@@ -48,5 +50,24 @@ export function normalizeImageSize(value: unknown): BackgroundImageSize | null {
   const width = normalizePositiveNumber(record.width, 0)
   const height = normalizePositiveNumber(record.height, 0)
 
-  return width > 0 && height > 0 ? { width, height } : null
+  if (width <= 0 || height <= 0) {
+    return null
+  }
+
+  const contentBounds = normalizeStoredImageContentBounds(
+    record.contentBounds,
+    { width, height },
+  )
+  const contentSize = contentBounds ?? { width, height }
+  const contentShape = normalizeStoredImageContentShape(
+    record.contentShape,
+    contentSize,
+  )
+
+  return {
+    width,
+    height,
+    ...(contentBounds ? { contentBounds } : {}),
+    ...(contentShape ? { contentShape } : {}),
+  }
 }

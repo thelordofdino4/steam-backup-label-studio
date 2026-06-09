@@ -2,7 +2,10 @@ import {
   getPlatformMarkBoundsPercent,
   getPlatformMarkPlaceholderBoundsPercent,
 } from '../disc/geometry.ts'
-import { getPlatformMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  getPlatformMarkPlaceholderImageSize,
+  getPlatformMarkPlaceholderImageUrl,
+} from '../assets/assetManifest.ts'
 import {
   isOptionalVisualFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
@@ -51,9 +54,13 @@ export function createPlatformMarkRenderModels(
         value,
         asset.theme,
       ),
+      builtInImageSize: getPlatformMarkPlaceholderImageSize(
+        value,
+        asset.theme,
+      ),
     })
     const getBounds = (scale: number) =>
-      resolvedImage.isCustomImage && resolvedImage.imageSize
+      resolvedImage.imageSize
         ? getPlatformMarkBoundsPercent(resolvedImage.imageSize, scale)
         : getPlatformMarkPlaceholderBoundsPercent(scale)
 
@@ -61,6 +68,7 @@ export function createPlatformMarkRenderModels(
       value,
       asset,
       imageDataUrl: resolvedImage.imageDataUrl,
+      imageSize: resolvedImage.imageSize,
       isPlaceholderImage: resolvedImage.isBuiltInFallback,
       label,
       alt: resolvedImage.isCustomImage

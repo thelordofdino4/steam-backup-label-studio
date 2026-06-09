@@ -26,6 +26,7 @@ import {
 import {
   CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
 } from './defaultImportLayouts.ts'
+import { imageSizesWithContentBoundsMatch } from '../image/imageContentBounds.ts'
 
 export type CaseInsertTitleArtworkImportStatus =
   | 'seeded'
@@ -51,7 +52,7 @@ type CaseInsertTitleArtworkImportSeedOptions = {
 }
 
 export const CASE_INSERT_GAME_LOGO_EMPTY_HINT =
-  'No game logo image is selected yet. Importing a Steam game can seed the Steam CDN logo automatically, or upload a custom image here.'
+  'No game logo image is selected yet. Importing a Steam game can seed Steam title/logo artwork automatically, or upload a custom image here.'
 
 export const CASE_INSERT_CUSTOM_GAME_LOGO_SOURCE_LABEL =
   'Custom game logo artwork'
@@ -61,8 +62,7 @@ function isSameCaseInsertTitleArtworkDefaultImage(
   defaultSteamLogo: ProjectCaseInsertTitleArtworkDefaultAsset,
 ) {
   return slot.imageDataUrl === defaultSteamLogo.imageDataUrl &&
-    slot.imageSize?.width === defaultSteamLogo.imageSize.width &&
-    slot.imageSize?.height === defaultSteamLogo.imageSize.height
+    imageSizesWithContentBoundsMatch(slot.imageSize, defaultSteamLogo.imageSize)
 }
 
 function createSteamTitleArtworkImageSource(

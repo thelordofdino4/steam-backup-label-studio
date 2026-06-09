@@ -1285,7 +1285,7 @@ export function CaseInsertSpineArtworkControls({
                     state.titleArtwork,
                     'titleArtwork',
                   )}
-                  helpText="This is the game title/logo artwork on the spine. Steam import can seed the Steam CDN logo when available; Game title text stays independently available in the Text tab."
+                  helpText="This is the game title/logo artwork on the spine. Steam import can seed the best available Steam title/logo artwork; Game title text stays independently available in the Text tab."
                   onEnabledChange={(enabled) =>
                     actions.handleSpineImageSlotEnabledChange(
                       side,

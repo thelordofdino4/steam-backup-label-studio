@@ -11,7 +11,11 @@ import {
 import {
   getRatingBadgePlaceholderRenderModel,
 } from '../assets/assetManifest.ts'
-import { loadCanvasSafeImage } from './canvasImage.ts'
+import {
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage.ts'
 
 type DrawableRatingBadge = {
   source: RatingBadgeSource
@@ -33,9 +37,10 @@ async function drawPlaceholderRatingBadge(
   const renderModel = getRatingBadgePlaceholderRenderModel(metadata)
 
   const image = await imageLoader(renderModel.imageUrl, renderModel.altLabel)
-  const naturalWidth = image.naturalWidth || image.width || 1
-  const naturalHeight = image.naturalHeight || image.height || 1
-  const aspectRatio = naturalWidth / naturalHeight
+  const contentSize = getCanvasImageContentSize(image, renderModel.imageSize)
+  const aspectRatio = contentSize
+    ? contentSize.width / contentSize.height
+    : 1
   const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
   const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
 
@@ -52,7 +57,12 @@ async function drawPlaceholderRatingBadge(
   const x = centerX - drawWidth / 2
   const y = centerY - drawHeight / 2
 
-  context.drawImage(image, x, y, drawWidth, drawHeight)
+  drawImageContent(
+    context,
+    image,
+    renderModel.imageSize,
+    { x, y, width: drawWidth, height: drawHeight },
+  )
 
   if (!renderModel.overlayLabel) {
     return
@@ -83,9 +93,13 @@ async function drawCustomRatingBadge(
   }
 
   const image = await imageLoader(badge.customImageDataUrl, 'custom rating badge image')
-  const naturalWidth = image.naturalWidth || image.width || 1
-  const naturalHeight = image.naturalHeight || image.height || 1
-  const aspectRatio = naturalWidth / naturalHeight
+  const contentSize = getCanvasImageContentSize(image, badge.customImageSize)
+
+  if (!contentSize) {
+    return
+  }
+
+  const aspectRatio = contentSize.width / contentSize.height
 
   const maxWidth = discContentSize * RATING_BADGE_BASE_WIDTH_RATIO * badge.layout.scale
   const maxHeight = discContentSize * RATING_BADGE_BASE_HEIGHT_RATIO * badge.layout.scale
@@ -101,12 +115,16 @@ async function drawCustomRatingBadge(
   const centerX = discOrigin + discContentSize * (badge.layout.x / 100)
   const centerY = discOrigin + discContentSize * (badge.layout.y / 100)
 
-  context.drawImage(
+  drawImageContent(
+    context,
     image,
-    centerX - drawWidth / 2,
-    centerY - drawHeight / 2,
-    drawWidth,
-    drawHeight,
+    badge.customImageSize,
+    {
+      x: centerX - drawWidth / 2,
+      y: centerY - drawHeight / 2,
+      width: drawWidth,
+      height: drawHeight,
+    },
   )
 }
 

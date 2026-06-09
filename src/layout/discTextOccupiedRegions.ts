@@ -1,8 +1,8 @@
 import {
   getLogoAssetBoundsPercent,
   getRatingBadgeBoundsPercent,
-  getRatingBadgePlaceholderBoundsPercent,
 } from '../disc/geometry.ts'
+import { getRatingBadgePlaceholderImageSize } from '../assets/assetManifest.ts'
 import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import {
   getDiscTextContent,
@@ -147,14 +147,16 @@ export function createDiscTextOccupiedRegions({
   }
 
   if (shouldRenderRatingBadge(projectMetadata, projectRatingBadge)) {
-    const ratingBounds =
+    const ratingImageSize =
       shouldUseCustomRatingBadgeImage(projectRatingBadge) &&
       projectRatingBadge.customImageSize
-        ? getRatingBadgeBoundsPercent(
-            projectRatingBadge.customImageSize,
-            projectRatingBadge.layout.scale,
-          )
-        : getRatingBadgePlaceholderBoundsPercent(projectRatingBadge.layout.scale)
+        ? projectRatingBadge.customImageSize
+        : getRatingBadgePlaceholderImageSize(projectMetadata)
+    const ratingBounds =
+      getRatingBadgeBoundsPercent(
+        ratingImageSize,
+        projectRatingBadge.layout.scale,
+      )
 
     regions.push(
       createDiscTextAvoidanceRegionFromBounds(
@@ -168,13 +170,19 @@ export function createDiscTextOccupiedRegions({
   }
 
   if (shouldRenderSupplementalUskRatingBadge(projectMetadata, projectRatingBadge)) {
+    const uskBadgeImageSize = getRatingBadgePlaceholderImageSize({
+      ratingSystem: 'USK',
+      ratingValue: projectRatingBadge.uskBadge.ratingValue,
+    })
+
     regions.push(
       createDiscTextAvoidanceRegionFromBounds(
         'rating-badge-usk',
         'Additional USK rating badge',
         projectRatingBadge.uskBadge.layout.x,
         projectRatingBadge.uskBadge.layout.y,
-        getRatingBadgePlaceholderBoundsPercent(
+        getRatingBadgeBoundsPercent(
+          uskBadgeImageSize,
           projectRatingBadge.uskBadge.layout.scale,
         ),
       ),

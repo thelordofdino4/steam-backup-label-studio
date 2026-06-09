@@ -2,6 +2,7 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
 import {
   CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
 } from '../caseInsert/defaultImportLayouts.ts'
@@ -473,6 +474,7 @@ function getSpineImageSlotRenderSize(
   }
 
   const scale = normalizePositiveNumber(slot.layout.scale, 1)
+  const contentSize = getImageContentSize(slot.imageSize)
   const rotationDegrees = normalizeRotationDegrees(
     slot.layout.rotation,
     getDefaultSpineOverlayRotation(role),
@@ -480,8 +482,18 @@ function getSpineImageSlotRenderSize(
   const widthBasis = config.widthBasis === 'length'
     ? safeBounds.height
     : safeBounds.width
-  const width = widthBasis * config.widthRatio * scale
-  const height = safeBounds.width * config.heightRatio * scale
+  const maxWidth = widthBasis * config.widthRatio * scale
+  const maxHeight = safeBounds.width * config.heightRatio * scale
+  const aspectRatio = contentSize
+    ? contentSize.width / contentSize.height
+    : maxWidth / maxHeight
+  let width = maxWidth
+  let height = width / aspectRatio
+
+  if (height > maxHeight) {
+    height = maxHeight
+    width = height * aspectRatio
+  }
 
   return {
     safeBounds,

@@ -2,6 +2,12 @@ import {
   DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
   type SupportedCaseInsertTemplateType,
 } from '../editor/editorTypes.ts'
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
+import {
+  getImageContentBounds,
+  getImageContentSize,
+  isEmptyImageContentBounds,
+} from '../image/imageContentBounds.ts'
 import {
   getCaseInsertTemplate,
   getCaseInsertTemplateRegion,
@@ -436,7 +442,9 @@ export function intersectPixelRects(
     : null
 }
 
-function hasPositiveSize(size: JewelCasePixelSize | null) {
+function hasPositiveSize<T extends JewelCasePixelSize>(
+  size: T | null | undefined,
+): size is T {
   return Boolean(size && size.width > 0 && size.height > 0)
 }
 
@@ -456,11 +464,12 @@ export function getJewelCaseImageRegionHeightFitScale({
   region: JewelCasePixelSize
   fit?: JewelCaseImageFitMode
 }) {
-  if (!hasPositiveSize(imageSize) || !hasPositiveSize(region)) {
+  const sourceSize = getImageContentSize(imageSize as BackgroundImageSize | null)
+
+  if (!hasPositiveSize(sourceSize) || !hasPositiveSize(region)) {
     return null
   }
 
-  const sourceSize = imageSize as JewelCasePixelSize
   const containScale = Math.min(
     region.width / sourceSize.width,
     region.height / sourceSize.height,
@@ -484,11 +493,22 @@ export function fitImageToJewelCaseRegion({
   scale,
   offset,
 }: JewelCaseImageFitInput): JewelCaseImageFitResult | null {
-  if (!hasPositiveSize(imageSize) || !hasPositiveSize(region)) {
+  const sourceSize = getImageContentSize(imageSize as BackgroundImageSize | null)
+
+  if (!hasPositiveSize(sourceSize) || !hasPositiveSize(region)) {
     return null
   }
 
-  const sourceSize = imageSize as JewelCasePixelSize
+  const contentBounds = getImageContentBounds(imageSize as BackgroundImageSize | null)
+  const sourceOrigin = contentBounds && !isEmptyImageContentBounds(contentBounds)
+    ? {
+        x: contentBounds.x,
+        y: contentBounds.y,
+      }
+    : {
+        x: 0,
+        y: 0,
+      }
   const containScale = Math.min(
     region.width / sourceSize.width,
     region.height / sourceSize.height,
@@ -520,8 +540,12 @@ export function fitImageToJewelCaseRegion({
     height: 0,
   }
   const sourceRect = {
-    x: clampNumber((visibleRect.x - imageRect.x) / fittedScale, 0, sourceSize.width),
-    y: clampNumber((visibleRect.y - imageRect.y) / fittedScale, 0, sourceSize.height),
+    x:
+      sourceOrigin.x +
+      clampNumber((visibleRect.x - imageRect.x) / fittedScale, 0, sourceSize.width),
+    y:
+      sourceOrigin.y +
+      clampNumber((visibleRect.y - imageRect.y) / fittedScale, 0, sourceSize.height),
     width: clampNumber(visibleRect.width / fittedScale, 0, sourceSize.width),
     height: clampNumber(visibleRect.height / fittedScale, 0, sourceSize.height),
   }

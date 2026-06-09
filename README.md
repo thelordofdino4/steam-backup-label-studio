@@ -49,7 +49,7 @@ The core disc-label workflow is working:
 5. Edit project-owned metadata, including title, subtitle, Steam App ID, developer, publisher, release date, backup date, disc numbers, install notes, legal text, and rating fields.
 6. Use Steam store artwork, Steam library artwork, Steam screenshots, local Steam screenshots, web artwork candidates, or local upload as the disc background where available.
 7. Choose a physical disc template or custom dimensions.
-8. Add title/logo artwork from Steam CDN logo assets when available or a custom upload.
+8. Add title/logo artwork from current Steam title/logo assets when available or a custom upload.
 9. Add additional artwork elements from local upload, imported Steam artwork, or local Steam screenshots where available.
 10. Place the Steam-style banner lockup at the top or bottom, customize it, or hide it.
 11. Add developer, publisher, and additional logo marks with upload, candidate discovery, layout, preview, export, and save/load support.

@@ -41,3 +41,48 @@ test('saved project image size normalization rejects invalid dimensions', () => 
   assert.equal(normalizeImageSize({ width: '640', height: 360 }), null)
   assert.equal(normalizeImageSize(null), null)
 })
+
+test('saved project image size normalization preserves valid content shapes', () => {
+  assert.deepEqual(
+    normalizeImageSize({
+      width: 640,
+      height: 360,
+      contentBounds: { x: 10, y: 20, width: 120, height: 80 },
+      contentShape: {
+        width: 120,
+        height: 80,
+        path: 'M0 0 L120 0 L80 80 Z',
+        fillRule: 'evenodd',
+      },
+    }),
+    {
+      width: 640,
+      height: 360,
+      contentBounds: { x: 10, y: 20, width: 120, height: 80 },
+      contentShape: {
+        width: 120,
+        height: 80,
+        path: 'M0 0 L120 0 L80 80 Z',
+        fillRule: 'evenodd',
+      },
+    },
+  )
+
+  assert.deepEqual(
+    normalizeImageSize({
+      width: 640,
+      height: 360,
+      contentBounds: { x: 10, y: 20, width: 120, height: 80 },
+      contentShape: {
+        width: 640,
+        height: 360,
+        path: 'M0 0 L640 0 L640 360 Z',
+      },
+    }),
+    {
+      width: 640,
+      height: 360,
+      contentBounds: { x: 10, y: 20, width: 120, height: 80 },
+    },
+  )
+})

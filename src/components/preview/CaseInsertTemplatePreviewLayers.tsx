@@ -65,6 +65,7 @@ import {
   createRectPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type CaseInsertTemplateLayerProps = {
   paneId: CaseInsertTemplatePaneId
@@ -206,9 +207,11 @@ function CaseInsertTemplateImageSlot({
     ? getCaseInsertLogoSlotRenderInfo(slot)
     : null
   const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
 
   const artifact = createRectPositionedImageRenderArtifact({
     imageDataUrl,
+    imageSize,
     label: slot.label,
     alt: '',
     rect,
@@ -242,6 +245,12 @@ function CaseInsertTemplateImageSlot({
       slot.frame.enabled && slot.frame.shape === 'circle'
         ? 'case-insert-image-slot-frame-host--circle'
         : '',
+      artifact.contentBounds
+        ? 'case-insert-template-framed-artwork--content-bounded'
+        : '',
+      artifact.contentShape
+        ? 'case-insert-template-framed-artwork--content-shaped'
+        : '',
     ].filter(Boolean).join(' ')
 
     return (
@@ -250,10 +259,11 @@ function CaseInsertTemplateImageSlot({
         {...pointerProps}
         style={getRectStyle(artifact.rect, layout)}
       >
-        <img
+        <ContentBoundedImage
           alt=""
           className="case-insert-template-framed-artwork-image"
           draggable={false}
+          imageSize={imageSize}
           src={artifact.imageDataUrl}
         />
         <CaseInsertImageSlotFrame slot={slot} />
@@ -262,10 +272,11 @@ function CaseInsertTemplateImageSlot({
   }
 
   return (
-    <img
+    <ContentBoundedImage
       alt=""
       className={`case-insert-template-overlay-image case-insert-template-${group}`}
       draggable={false}
+      imageSize={artifact.imageSize}
       {...pointerProps}
       src={artifact.imageDataUrl}
       style={getRectStyle(artifact.rect, layout)}
@@ -382,10 +393,11 @@ export function CaseInsertTemplateBackgroundLayer({
       onPointerUp={pointerHandlers.handleTemplatePointerUp}
       style={getRectStyle(backgroundFit.region, layout)}
     >
-      <img
+      <ContentBoundedImage
         alt=""
         className="case-insert-template-background-image"
         draggable={false}
+        imageSize={templateState.background.imageSize}
         src={templateState.background.imageDataUrl}
         style={getImageStyle(backgroundFit.imageRect, backgroundFit.region)}
       />

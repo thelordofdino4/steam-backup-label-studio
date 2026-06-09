@@ -171,7 +171,10 @@ export function RatingBadgeControls({
   | 'handleResetSupplementalUskRatingBadgeLayout'
 >) {
   const sliderRanges = getRatingBadgeLayoutSliderRanges(
-    projectRatingBadge,
+    {
+      ...projectRatingBadge,
+      metadata: props.projectMetadata,
+    },
     selectedDiscTemplate,
   )
   const supplementalUskSliderRanges = getRatingBadgeLayoutSliderRanges(
@@ -179,6 +182,10 @@ export function RatingBadgeControls({
       source: 'placeholder',
       customImageSize: null,
       layout: projectRatingBadge.uskBadge.layout,
+      metadata: {
+        ratingSystem: 'USK',
+        ratingValue: projectRatingBadge.uskBadge.ratingValue,
+      },
     },
     selectedDiscTemplate,
   )

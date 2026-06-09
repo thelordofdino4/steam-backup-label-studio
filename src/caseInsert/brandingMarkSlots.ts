@@ -6,6 +6,7 @@ import type {
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import { imageSizesWithContentBoundsMatch } from '../image/imageContentBounds.ts'
 import {
   createCaseInsertTemplateImageSlot,
   getCaseInsertImageSlotGroupConfig,
@@ -267,7 +268,7 @@ function imageSizesMatch(
   left: ProjectCaseInsertImageSlot['imageSize'],
   right: ProjectCaseInsertImageSlot['imageSize'],
 ) {
-  return left?.width === right?.width && left?.height === right?.height
+  return imageSizesWithContentBoundsMatch(left, right)
 }
 
 function markLayoutsMatch(

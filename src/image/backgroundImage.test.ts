@@ -40,3 +40,18 @@ test('background offset updates clamp to image-edge bounds', () => {
     { x: 600, y: 0 },
   )
 })
+
+test('background sizing uses active content bounds instead of transparent padding', () => {
+  const ranges = getBackgroundOffsetSliderRanges(
+    {
+      width: 1000,
+      height: 1000,
+      contentBounds: { x: 100, y: 250, width: 800, height: 400 },
+    },
+    1,
+    600,
+  )
+
+  assert.deepEqual(ranges.x, { min: -900, max: 900 })
+  assert.deepEqual(ranges.y, { min: -600, max: 600 })
+})

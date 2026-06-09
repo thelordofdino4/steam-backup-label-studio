@@ -1,12 +1,14 @@
 import type {
   ProjectCaseInsertImageSlot,
 } from '../../project/projectTypes'
+import { getImageContentSize } from '../../image/imageContentBounds'
 
 function getFrameViewBox(slot: ProjectCaseInsertImageSlot) {
+  const contentSize = getImageContentSize(slot.imageSize)
   const width = 100
   const height =
-    slot.imageSize && slot.imageSize.width > 0
-      ? Math.max(1, 100 * (slot.imageSize.height / slot.imageSize.width))
+    contentSize && contentSize.width > 0
+      ? Math.max(1, 100 * (contentSize.height / contentSize.width))
       : 100
 
   return { width, height }

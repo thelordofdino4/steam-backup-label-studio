@@ -3,9 +3,12 @@ import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings } from '../dis
 import {
   DISC_LAYOUT_CENTER_PERCENT,
   clampNumber,
+  clampShapeToSafeAnnulus,
   clampLayoutPointToSafeZone,
+  doesShapeFitSafeAnnulus,
   doesRectAvoidDiscCenterCircle,
   getAdditionalArtworkBoundsPercent,
+  getImageContentShapeFootprintPercent,
   getInnerNoPrintRadiusPercent,
   getSafeZoneRadiusPercent,
   getLogoAssetBoundsPercent,
@@ -19,7 +22,15 @@ import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
   getTitleArtworkBoundsPercent,
+  type RenderBoundsPercent,
+  type RenderShapeFootprintPercent,
 } from '../disc/geometry.ts'
+import {
+  getMediaMarkPlaceholderImageSize,
+  getPlatformMarkPlaceholderImageSize,
+  getRatingBadgePlaceholderImageSize,
+  getTechnicalMarkPlaceholderImageSize,
+} from '../assets/assetManifest.ts'
 import {
   getDiscTextFontString,
   getStraightDiscTextRenderLayout,
@@ -36,11 +47,14 @@ import type {
   LogoAssetLayout,
   MediaMarkLayout,
   PlatformMarkLayout,
+  PlatformMarkTheme,
+  PlatformMarkValue,
   ProjectAdditionalArtwork,
   ProjectAdditionalArtworkElement,
   ProjectAdditionalLogoAsset,
   ProjectLogoAssets,
   ProjectMediaMark,
+  ProjectMetadata,
   ProjectPlatformMarkAsset,
   ProjectPlatformMarks,
   ProjectRatingBadge,
@@ -49,6 +63,7 @@ import type {
   ProjectTitleArtwork,
   RatingBadgeLayout,
   TechnicalMarkLayout,
+  TechnicalMarkValue,
   TitleArtworkLayout,
 } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
@@ -347,12 +362,22 @@ function normalizeSliderRangeValue(value: number) {
 function getSafeZoneLayoutSliderRanges(
   layout: Pick<LogoAssetLayout, 'x' | 'y'>,
   selectedDiscTemplate: DiscTemplate,
-  bounds: { halfWidth: number; halfHeight: number },
+  bounds: RenderBoundsPercent,
   axisBounds: LayoutSliderRanges = {
     x: SAFE_ZONE_LAYOUT_X_RANGE,
     y: SAFE_ZONE_LAYOUT_Y_RANGE,
   },
+  shapeFootprint?: RenderShapeFootprintPercent | null,
 ): LayoutSliderRanges {
+  if (shapeFootprint?.loops.length) {
+    return getShapeSafeZoneLayoutSliderRanges(
+      layout,
+      selectedDiscTemplate,
+      shapeFootprint,
+      axisBounds,
+    )
+  }
+
   const safeZoneRadius = getSafeZoneRadiusPercent(selectedDiscTemplate)
   const visualDeltaX = layout.x - DISC_LAYOUT_CENTER_PERCENT
   const visualDeltaY = layout.y - DISC_LAYOUT_CENTER_PERCENT
@@ -391,6 +416,219 @@ function getSafeZoneLayoutSliderRanges(
     selectedDiscTemplate,
     bounds,
   )
+}
+
+function getSafeImageShapeFootprint(
+  imageSize: BackgroundImageSize | null,
+  bounds: RenderBoundsPercent,
+) {
+  return getImageContentShapeFootprintPercent(imageSize, bounds)
+}
+
+type MediaMarkSafeZoneInput = Pick<
+  ProjectMediaMark,
+  'source' | 'customImageSize' | 'layout'
+> & Partial<Pick<ProjectMediaMark, 'value' | 'theme'>>
+
+type PlatformMarkSafeZoneInput = Pick<
+  ProjectPlatformMarkAsset,
+  'source' | 'customImageSize' | 'layout'
+> & {
+  value?: PlatformMarkValue
+  theme?: PlatformMarkTheme
+}
+
+type TechnicalMarkSafeZoneInput = Pick<
+  ProjectTechnicalMarkAsset,
+  'source' | 'customImageSize' | 'layout'
+> & {
+  value?: TechnicalMarkValue
+}
+
+type RatingBadgeSafeZoneInput = Pick<
+  ProjectRatingBadge,
+  'source' | 'customImageSize' | 'layout'
+> & {
+  metadata?: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'> | null
+}
+
+function getMediaMarkSafeImageSize(
+  mediaMark: Pick<
+    MediaMarkSafeZoneInput,
+    'source' | 'customImageSize' | 'value' | 'theme'
+  >,
+) {
+  if (mediaMark.source === 'custom' && mediaMark.customImageSize) {
+    return mediaMark.customImageSize
+  }
+
+  return mediaMark.value
+    ? getMediaMarkPlaceholderImageSize(mediaMark.value, mediaMark.theme)
+    : null
+}
+
+function getPlatformMarkSafeImageSize(
+  platformMark: Pick<
+    PlatformMarkSafeZoneInput,
+    'source' | 'customImageSize' | 'value' | 'theme'
+  >,
+) {
+  if (platformMark.source === 'custom' && platformMark.customImageSize) {
+    return platformMark.customImageSize
+  }
+
+  return platformMark.value
+    ? getPlatformMarkPlaceholderImageSize(
+        platformMark.value,
+        platformMark.theme,
+      )
+    : null
+}
+
+function getTechnicalMarkSafeImageSize(
+  technicalMark: Pick<
+    TechnicalMarkSafeZoneInput,
+    'source' | 'customImageSize' | 'value'
+  >,
+) {
+  if (technicalMark.source === 'custom' && technicalMark.customImageSize) {
+    return technicalMark.customImageSize
+  }
+
+  return technicalMark.value
+    ? getTechnicalMarkPlaceholderImageSize(technicalMark.value)
+    : null
+}
+
+function getRatingBadgeSafeImageSize(
+  ratingBadge: Pick<
+    RatingBadgeSafeZoneInput,
+    'source' | 'customImageSize' | 'metadata'
+  >,
+) {
+  if (ratingBadge.source === 'custom' && ratingBadge.customImageSize) {
+    return ratingBadge.customImageSize
+  }
+
+  return ratingBadge.metadata
+    ? getRatingBadgePlaceholderImageSize(ratingBadge.metadata)
+    : null
+}
+
+function getShapeSafeAxisRange(
+  axis: 'x' | 'y',
+  layout: Pick<LogoAssetLayout, 'x' | 'y'>,
+  clampedPoint: { x: number; y: number },
+  selectedDiscTemplate: DiscTemplate,
+  shapeFootprint: RenderShapeFootprintPercent,
+  axisBounds: LayoutAxisRange,
+) {
+  const innerNoPrintRadius = getInnerNoPrintRadiusPercent(selectedDiscTemplate)
+  const safeZoneRadius = getSafeZoneRadiusPercent(selectedDiscTemplate)
+  const fixedAxis = axis === 'x' ? 'y' : 'x'
+  const fixedValue = layout[fixedAxis]
+  const getPoint = (value: number) => ({
+    x: axis === 'x' ? value : fixedValue,
+    y: axis === 'y' ? value : fixedValue,
+  })
+  const isSafe = (value: number) =>
+    doesShapeFitSafeAnnulus(
+      getPoint(value),
+      innerNoPrintRadius,
+      safeZoneRadius,
+      shapeFootprint,
+    )
+  const requestedValue = layout[axis]
+  const clampedValue = clampedPoint[axis]
+  const centerValue = isSafe(requestedValue)
+    ? requestedValue
+    : clampNumber(clampedValue, axisBounds.min, axisBounds.max)
+
+  if (!isSafe(centerValue)) {
+    return axisBounds
+  }
+
+  const findLower = () => {
+    if (isSafe(axisBounds.min)) {
+      return axisBounds.min
+    }
+
+    let unsafeValue = axisBounds.min
+    let safeValue = centerValue
+
+    for (let iteration = 0; iteration < 36; iteration += 1) {
+      const mid = (unsafeValue + safeValue) / 2
+
+      if (isSafe(mid)) {
+        safeValue = mid
+      } else {
+        unsafeValue = mid
+      }
+    }
+
+    return safeValue
+  }
+  const findUpper = () => {
+    if (isSafe(axisBounds.max)) {
+      return axisBounds.max
+    }
+
+    let safeValue = centerValue
+    let unsafeValue = axisBounds.max
+
+    for (let iteration = 0; iteration < 36; iteration += 1) {
+      const mid = (safeValue + unsafeValue) / 2
+
+      if (isSafe(mid)) {
+        safeValue = mid
+      } else {
+        unsafeValue = mid
+      }
+    }
+
+    return safeValue
+  }
+
+  return clampLayoutAxisRange(
+    {
+      min: findLower(),
+      max: findUpper(),
+    },
+    axisBounds,
+  )
+}
+
+function getShapeSafeZoneLayoutSliderRanges(
+  layout: Pick<LogoAssetLayout, 'x' | 'y'>,
+  selectedDiscTemplate: DiscTemplate,
+  shapeFootprint: RenderShapeFootprintPercent,
+  axisBounds: LayoutSliderRanges,
+): LayoutSliderRanges {
+  const clampedPoint = clampShapeToSafeAnnulus(
+    layout,
+    getInnerNoPrintRadiusPercent(selectedDiscTemplate),
+    getSafeZoneRadiusPercent(selectedDiscTemplate),
+    shapeFootprint,
+  )
+
+  return {
+    x: getShapeSafeAxisRange(
+      'x',
+      layout,
+      clampedPoint,
+      selectedDiscTemplate,
+      shapeFootprint,
+      axisBounds.x,
+    ),
+    y: getShapeSafeAxisRange(
+      'y',
+      layout,
+      clampedPoint,
+      selectedDiscTemplate,
+      shapeFootprint,
+      axisBounds.y,
+    ),
+  }
 }
 
 export function getStraightDiscTextLayoutSliderRanges(
@@ -486,10 +724,14 @@ export function getLogoAssetLayoutSliderRanges(
   selectedDiscTemplate: DiscTemplate,
   imageSize: BackgroundImageSize | null,
 ): LayoutSliderRanges {
+  const bounds = getLogoAssetBoundsPercent(imageSize, layout.scale)
+
   return getSafeZoneLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
-    getLogoAssetBoundsPercent(imageSize, layout.scale),
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(imageSize, bounds),
   )
 }
 
@@ -498,11 +740,14 @@ export function getTitleArtworkLayoutSliderRanges(
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = titleArtwork.layout
+  const bounds = getTitleArtworkBoundsPercent(titleArtwork.imageSize, layout.scale)
 
   return getSafeZoneLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
-    getTitleArtworkBoundsPercent(titleArtwork.imageSize, layout.scale),
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(titleArtwork.imageSize, bounds),
   )
 }
 
@@ -511,64 +756,94 @@ export function getAdditionalArtworkLayoutSliderRanges(
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = additionalArtworkElement.layout
+  const bounds = getAdditionalArtworkBoundsPercent(
+    additionalArtworkElement.imageSize,
+    layout.scale,
+  )
 
   return getSafeZoneLayoutSliderRanges(
     layout,
     selectedDiscTemplate,
-    getAdditionalArtworkBoundsPercent(additionalArtworkElement.imageSize, layout.scale),
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(additionalArtworkElement.imageSize, bounds),
   )
 }
 
 export function getRatingBadgeLayoutSliderRanges(
-  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
+  ratingBadge: RatingBadgeSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = ratingBadge.layout
-  const bounds =
-    ratingBadge.source === 'custom' && ratingBadge.customImageSize
-      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
-      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+  const imageSize = getRatingBadgeSafeImageSize(ratingBadge)
+  const bounds = imageSize
+    ? getRatingBadgeBoundsPercent(imageSize, layout.scale)
+    : getRatingBadgePlaceholderBoundsPercent(layout.scale)
 
-  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 }
 
 export function getMediaMarkLayoutSliderRanges(
-  mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
+  mediaMark: MediaMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = mediaMark.layout
-  const bounds =
-    mediaMark.source === 'custom' && mediaMark.customImageSize
-      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, layout.scale)
-      : getMediaMarkPlaceholderBoundsPercent(layout.scale)
+  const imageSize = getMediaMarkSafeImageSize(mediaMark)
+  const bounds = imageSize
+    ? getMediaMarkBoundsPercent(imageSize, layout.scale)
+    : getMediaMarkPlaceholderBoundsPercent(layout.scale)
 
-  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 }
 
 export function getPlatformMarkLayoutSliderRanges(
-  platformMark: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  platformMark: PlatformMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = platformMark.layout
-  const bounds =
-    platformMark.source === 'custom' && platformMark.customImageSize
-      ? getPlatformMarkBoundsPercent(platformMark.customImageSize, layout.scale)
-      : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
+  const imageSize = getPlatformMarkSafeImageSize(platformMark)
+  const bounds = imageSize
+    ? getPlatformMarkBoundsPercent(imageSize, layout.scale)
+    : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
 
-  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 }
 
 export function getTechnicalMarkLayoutSliderRanges(
-  technicalMark: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  technicalMark: TechnicalMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): LayoutSliderRanges {
   const layout = technicalMark.layout
-  const bounds =
-    technicalMark.source === 'custom' && technicalMark.customImageSize
-      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, layout.scale)
-      : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
+  const imageSize = getTechnicalMarkSafeImageSize(technicalMark)
+  const bounds = imageSize
+    ? getTechnicalMarkBoundsPercent(imageSize, layout.scale)
+    : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
 
-  return getSafeZoneLayoutSliderRanges(layout, selectedDiscTemplate, bounds)
+  return getSafeZoneLayoutSliderRanges(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    undefined,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 }
 
 export function clampLogoAssetLayoutToSafeZone(
@@ -576,10 +851,12 @@ export function clampLogoAssetLayoutToSafeZone(
   selectedDiscTemplate: DiscTemplate,
   imageSize: BackgroundImageSize | null,
 ): LogoAssetLayout {
+  const bounds = getLogoAssetBoundsPercent(imageSize, layout.scale)
   const point = clampLayoutPointToSafeZone(
     layout,
     selectedDiscTemplate,
-    getLogoAssetBoundsPercent(imageSize, layout.scale),
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
   )
 
   return {
@@ -594,10 +871,12 @@ export function clampTitleArtworkLayoutToSafeZone(
   selectedDiscTemplate: DiscTemplate,
   imageSize: BackgroundImageSize | null,
 ): TitleArtworkLayout {
+  const bounds = getTitleArtworkBoundsPercent(imageSize, layout.scale)
   const point = clampLayoutPointToSafeZone(
     layout,
     selectedDiscTemplate,
-    getTitleArtworkBoundsPercent(imageSize, layout.scale),
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
   )
 
   return {
@@ -612,10 +891,12 @@ export function clampAdditionalArtworkElementLayoutToSafeZone(
   selectedDiscTemplate: DiscTemplate,
   imageSize: BackgroundImageSize | null,
 ): AdditionalArtworkLayout {
+  const bounds = getAdditionalArtworkBoundsPercent(imageSize, layout.scale)
   const point = clampLayoutPointToSafeZone(
     layout,
     selectedDiscTemplate,
-    getAdditionalArtworkBoundsPercent(imageSize, layout.scale),
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
   )
 
   return {
@@ -698,15 +979,20 @@ export function clampProjectLogoAssetsToSafeZone(
 }
 
 export function clampRatingBadgeLayoutToSafeZone(
-  ratingBadge: Pick<ProjectRatingBadge, 'source' | 'customImageSize' | 'layout'>,
+  ratingBadge: RatingBadgeSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): RatingBadgeLayout {
   const layout = ratingBadge.layout
-  const bounds =
-    ratingBadge.source === 'custom' && ratingBadge.customImageSize
-      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, layout.scale)
-      : getRatingBadgePlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+  const imageSize = getRatingBadgeSafeImageSize(ratingBadge)
+  const bounds = imageSize
+    ? getRatingBadgeBoundsPercent(imageSize, layout.scale)
+    : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 
   return {
     ...layout,
@@ -718,10 +1004,17 @@ export function clampRatingBadgeLayoutToSafeZone(
 export function clampProjectRatingBadgeToSafeZone(
   ratingBadge: ProjectRatingBadge,
   selectedDiscTemplate: DiscTemplate,
+  metadata?: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'> | null,
 ): ProjectRatingBadge {
   return {
     ...ratingBadge,
-    layout: clampRatingBadgeLayoutToSafeZone(ratingBadge, selectedDiscTemplate),
+    layout: clampRatingBadgeLayoutToSafeZone(
+      {
+        ...ratingBadge,
+        metadata,
+      },
+      selectedDiscTemplate,
+    ),
     uskBadge: {
       ...ratingBadge.uskBadge,
       layout: clampRatingBadgeLayoutToSafeZone(
@@ -729,6 +1022,10 @@ export function clampProjectRatingBadgeToSafeZone(
           source: 'placeholder',
           customImageSize: null,
           layout: ratingBadge.uskBadge.layout,
+          metadata: {
+            ratingSystem: 'USK',
+            ratingValue: ratingBadge.uskBadge.ratingValue,
+          },
         },
         selectedDiscTemplate,
       ),
@@ -737,15 +1034,20 @@ export function clampProjectRatingBadgeToSafeZone(
 }
 
 export function clampMediaMarkLayoutToSafeZone(
-  mediaMark: Pick<ProjectMediaMark, 'source' | 'customImageSize' | 'layout'>,
+  mediaMark: MediaMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): MediaMarkLayout {
   const layout = mediaMark.layout
-  const bounds =
-    mediaMark.source === 'custom' && mediaMark.customImageSize
-      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, layout.scale)
-      : getMediaMarkPlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+  const imageSize = getMediaMarkSafeImageSize(mediaMark)
+  const bounds = imageSize
+    ? getMediaMarkBoundsPercent(imageSize, layout.scale)
+    : getMediaMarkPlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 
   return {
     ...layout,
@@ -755,15 +1057,20 @@ export function clampMediaMarkLayoutToSafeZone(
 }
 
 export function clampPlatformMarkLayoutToSafeZone(
-  platformMark: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  platformMark: PlatformMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): PlatformMarkLayout {
   const layout = platformMark.layout
-  const bounds =
-    platformMark.source === 'custom' && platformMark.customImageSize
-      ? getPlatformMarkBoundsPercent(platformMark.customImageSize, layout.scale)
-      : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+  const imageSize = getPlatformMarkSafeImageSize(platformMark)
+  const bounds = imageSize
+    ? getPlatformMarkBoundsPercent(imageSize, layout.scale)
+    : getPlatformMarkPlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 
   return {
     ...layout,
@@ -773,15 +1080,20 @@ export function clampPlatformMarkLayoutToSafeZone(
 }
 
 export function clampTechnicalMarkLayoutToSafeZone(
-  technicalMark: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize' | 'layout'>,
+  technicalMark: TechnicalMarkSafeZoneInput,
   selectedDiscTemplate: DiscTemplate,
 ): TechnicalMarkLayout {
   const layout = technicalMark.layout
-  const bounds =
-    technicalMark.source === 'custom' && technicalMark.customImageSize
-      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, layout.scale)
-      : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
-  const point = clampLayoutPointToSafeZone(layout, selectedDiscTemplate, bounds)
+  const imageSize = getTechnicalMarkSafeImageSize(technicalMark)
+  const bounds = imageSize
+    ? getTechnicalMarkBoundsPercent(imageSize, layout.scale)
+    : getTechnicalMarkPlaceholderBoundsPercent(layout.scale)
+  const point = clampLayoutPointToSafeZone(
+    layout,
+    selectedDiscTemplate,
+    bounds,
+    getSafeImageShapeFootprint(imageSize, bounds),
+  )
 
   return {
     ...layout,
@@ -807,7 +1119,10 @@ export function clampProjectPlatformMarksToSafeZone(
             value,
             {
               ...asset,
-              layout: clampPlatformMarkLayoutToSafeZone(asset, selectedDiscTemplate),
+              layout: clampPlatformMarkLayoutToSafeZone(
+                { ...asset, value },
+                selectedDiscTemplate,
+              ),
             },
           ]
         }),
@@ -821,16 +1136,20 @@ export function clampProjectTechnicalMarksToSafeZone(
   selectedDiscTemplate: DiscTemplate,
 ): ProjectTechnicalMarks {
   const additionalAssets = Object.fromEntries(
-    Object.entries(technicalMarks.additionalAssets ?? {}).map(([value, assets]) => [
-      value,
-      assets.map((asset) => ({
-        ...asset,
-        layout: clampTechnicalMarkLayoutToSafeZone(
-          asset,
-          selectedDiscTemplate,
-        ),
-      })),
-    ]),
+    Object.entries(technicalMarks.additionalAssets ?? {}).map(([value, assets]) => {
+      const technicalValue = value as TechnicalMarkValue
+
+      return [
+        technicalValue,
+        assets.map((asset) => ({
+          ...asset,
+          layout: clampTechnicalMarkLayoutToSafeZone(
+            { ...asset, value: technicalValue },
+            selectedDiscTemplate,
+          ),
+        })),
+      ]
+    }),
   ) as ProjectTechnicalMarks['additionalAssets']
 
   return {
@@ -846,7 +1165,10 @@ export function clampProjectTechnicalMarksToSafeZone(
             value,
             {
               ...asset,
-              layout: clampTechnicalMarkLayoutToSafeZone(asset, selectedDiscTemplate),
+              layout: clampTechnicalMarkLayoutToSafeZone(
+                { ...asset, value },
+                selectedDiscTemplate,
+              ),
             },
           ]
         }),

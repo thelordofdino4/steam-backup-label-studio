@@ -3,7 +3,10 @@ import {
   getDefaultLogoAssetLayoutForTemplate,
   getNextAdditionalLogoAssetLayoutForTemplate,
 } from '../layout/discTemplateLayoutDefaults.ts'
-import { LOGO_PLACEHOLDER_IMAGE_URLS } from '../assets/assetManifest.ts'
+import {
+  LOGO_PLACEHOLDER_IMAGE_URLS,
+  getLogoPlaceholderImageSize,
+} from '../assets/assetManifest.ts'
 import type { DiscTemplate } from '../types/template'
 import type {
   BackgroundImageSize,
@@ -61,11 +64,6 @@ type LogoAssetLayoutPoint = {
 const FALLBACK_ADDITIONAL_LOGO_X_OFFSET_PERCENT = 20
 
 let additionalLogoAssetIdCounter = 0
-
-export const LOGO_PLACEHOLDER_SIZE: BackgroundImageSize = {
-  width: 480,
-  height: 180,
-}
 
 export const DEFAULT_DEVELOPER_LOGO_LAYOUT: LogoAssetLayout = {
   enabled: false,
@@ -204,7 +202,7 @@ export function getLogoAssetRenderDataUrl(
 }
 
 export function getLogoAssetRenderSize(imageSize: BackgroundImageSize | null) {
-  return imageSize ?? LOGO_PLACEHOLDER_SIZE
+  return imageSize ?? getLogoPlaceholderImageSize('developer')
 }
 
 export function createDefaultProjectLogoAssets(

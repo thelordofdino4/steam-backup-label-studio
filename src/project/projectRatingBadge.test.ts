@@ -98,9 +98,11 @@ test('ESRB built-in badge artwork is value-specific and does not use text overla
   })
 
   assert.match(e10Model.imageUrl, /rating-badge-esrb-e10-plus\.svg$/)
+  assert.deepEqual(e10Model.imageSize, { width: 60, height: 91 })
   assert.equal(e10Model.overlayLabel, null)
   assert.equal(e10Model.altLabel, 'ESRB E10+ rating badge')
   assert.match(rp17Model.imageUrl, /rating-badge-esrb-rp17-plus\.svg$/)
+  assert.deepEqual(rp17Model.imageSize, { width: 100, height: 150 })
   assert.equal(rp17Model.overlayLabel, null)
 })
 
@@ -111,6 +113,7 @@ test('PEGI built-in badge artwork is value-specific and does not use text overla
   })
 
   assert.match(pegiModel.imageUrl, /rating-badge-pegi-16\.png$/)
+  assert.deepEqual(pegiModel.imageSize, { width: 181, height: 220 })
   assert.equal(pegiModel.overlayLabel, null)
   assert.equal(pegiModel.altLabel, 'PEGI 16 rating badge')
 })
@@ -122,6 +125,7 @@ test('USK built-in badge artwork is value-specific and does not use text overlay
   })
 
   assert.match(uskModel.imageUrl, /rating-badge-usk-18\.svg$/)
+  assert.deepEqual(uskModel.imageSize, { width: 1406, height: 1406 })
   assert.equal(uskModel.overlayLabel, null)
   assert.equal(uskModel.altLabel, 'USK 18 rating badge')
 })

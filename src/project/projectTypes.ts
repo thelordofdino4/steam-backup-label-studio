@@ -58,9 +58,26 @@ export type BackgroundOffset = {
   y: number
 }
 
+export type ImageContentBounds = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type ImageContentShape = {
+  width: number
+  height: number
+  path: string
+  fillRule: 'evenodd'
+  safetyOutset?: number
+}
+
 export type BackgroundImageSize = {
   width: number
   height: number
+  contentBounds?: ImageContentBounds | null
+  contentShape?: ImageContentShape | null
 }
 
 export type ProjectImageAssetSource =

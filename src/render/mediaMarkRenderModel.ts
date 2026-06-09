@@ -2,7 +2,10 @@ import {
   getMediaMarkBoundsPercent,
   getMediaMarkPlaceholderBoundsPercent,
 } from '../disc/geometry.ts'
-import { getMediaMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  getMediaMarkPlaceholderImageSize,
+  getMediaMarkPlaceholderImageUrl,
+} from '../assets/assetManifest.ts'
 import {
   isOptionalLayoutFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
@@ -38,14 +41,19 @@ export function createMediaMarkRenderModel(
       mediaMark.value,
       mediaMark.theme,
     ),
+    builtInImageSize: getMediaMarkPlaceholderImageSize(
+      mediaMark.value,
+      mediaMark.theme,
+    ),
   })
   const getBounds = (scale: number) =>
-    resolvedImage.isCustomImage && resolvedImage.imageSize
+    resolvedImage.imageSize
       ? getMediaMarkBoundsPercent(resolvedImage.imageSize, scale)
       : getMediaMarkPlaceholderBoundsPercent(scale)
 
   return createPercentPositionedImageRenderArtifact({
     imageDataUrl: resolvedImage.imageDataUrl,
+    imageSize: resolvedImage.imageSize,
     isPlaceholderImage: resolvedImage.isBuiltInFallback,
     label,
     alt: resolvedImage.isCustomImage ? label : `${label} generic media mark`,

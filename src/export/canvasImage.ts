@@ -1,3 +1,18 @@
+import type { BackgroundImageSize, ImageContentBounds } from '../project/projectTypes.ts'
+import {
+  getImageContentSize,
+  getImageContentSourceRect,
+  getLoadedImageSize,
+  hasActiveImageContent,
+} from '../image/imageContentBounds.ts'
+
+export type CanvasImageRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export function canvasToPngBytes(canvas: HTMLCanvasElement) {
   return new Promise<number[]>((resolve, reject) => {
     canvas.toBlob((blob) => {
@@ -84,4 +99,68 @@ export async function loadCanvasSafeImage(source: string, description = 'image')
 
     throw error
   }
+}
+
+export function getCanvasImageContentSize(
+  image: CanvasImageSource & {
+    naturalWidth?: number
+    naturalHeight?: number
+    width?: number
+    height?: number
+  },
+  imageSize?: BackgroundImageSize | null,
+) {
+  if (imageSize && !hasActiveImageContent(imageSize)) {
+    return null
+  }
+
+  return getImageContentSize(imageSize) ?? getLoadedImageSize(image)
+}
+
+export function getCanvasImageContentSourceRect(
+  image: CanvasImageSource & {
+    naturalWidth?: number
+    naturalHeight?: number
+    width?: number
+    height?: number
+  },
+  imageSize?: BackgroundImageSize | null,
+): ImageContentBounds | null {
+  if (imageSize && !hasActiveImageContent(imageSize)) {
+    return null
+  }
+
+  return getImageContentSourceRect(imageSize, getLoadedImageSize(image))
+}
+
+export function drawImageContent(
+  context: CanvasRenderingContext2D,
+  image: CanvasImageSource & {
+    naturalWidth?: number
+    naturalHeight?: number
+    width?: number
+    height?: number
+  },
+  imageSize: BackgroundImageSize | null | undefined,
+  target: CanvasImageRect,
+) {
+  const sourceRect = getCanvasImageContentSourceRect(image, imageSize)
+
+  if (!sourceRect) {
+    return false
+  }
+
+  context.drawImage(
+    image,
+    sourceRect.x,
+    sourceRect.y,
+    sourceRect.width,
+    sourceRect.height,
+    target.x,
+    target.y,
+    target.width,
+    target.height,
+  )
+
+  return true
 }

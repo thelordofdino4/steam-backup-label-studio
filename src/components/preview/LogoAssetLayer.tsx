@@ -8,6 +8,7 @@ import {
   type LogoAssetRenderItem,
 } from '../../project/projectLogoAssets'
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type LogoAssetLayerProps = {
   projectLogoAssets: ProjectLogoAssets
@@ -47,10 +48,11 @@ function LogoAssetPreview({
   const unscaledBounds = getLogoAssetBoundsPercent(renderImageSize, 1)
 
   return (
-    <img
+    <ContentBoundedImage
       className="disc-logo-asset"
       src={renderImageDataUrl}
       alt={`${label} logo`}
+      imageSize={renderImageSize}
       draggable={false}
       onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey, additionalLogoId)}
       onPointerMove={handleLogoAssetPointerMove}

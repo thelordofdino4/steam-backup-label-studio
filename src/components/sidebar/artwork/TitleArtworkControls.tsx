@@ -76,7 +76,7 @@ export function TitleArtworkControls({
 
           <EditorImageAssetStatusCard
             cardClassName="title-artwork-status-card"
-            emptyHint="No game logo image is selected yet. Importing a Steam game can seed the Steam CDN logo automatically, or upload a custom image here."
+            emptyHint="No game logo image is selected yet. Importing a Steam game can seed Steam title/logo artwork automatically, or upload a custom image here."
             fallbackLabel="Game logo image"
             formatSize={formatTitleArtworkSize}
             imageDataUrl={projectTitleArtwork.imageDataUrl}
@@ -100,7 +100,7 @@ export function TitleArtworkControls({
           ) : null}
 
           <p className="hint">
-            This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the Steam CDN logo when available; rendered title text stays independently available in the Text tab as the fallback.
+            This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the best available Steam title/logo artwork; rendered title text stays independently available in the Text tab as the fallback.
           </p>
 
           <div

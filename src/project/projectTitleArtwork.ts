@@ -13,6 +13,7 @@ import {
   setEditorImageAssetContent,
 } from '../editor/imageAssetTransitions.ts'
 import { getDefaultTitleArtworkLayoutForTemplate } from '../layout/discTemplateLayoutDefaults.ts'
+import { imageSizesWithContentBoundsMatch } from '../image/imageContentBounds.ts'
 import type { SteamArtworkAsset } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { ImportedImageAsset } from '../utils/importedImageAsset.ts'
@@ -123,8 +124,10 @@ function isSameTitleArtworkDefaultImage(
   defaultSteamLogo: ProjectTitleArtworkDefaultAsset,
 ) {
   return titleArtwork.imageDataUrl === defaultSteamLogo.imageDataUrl &&
-    titleArtwork.imageSize?.width === defaultSteamLogo.imageSize.width &&
-    titleArtwork.imageSize?.height === defaultSteamLogo.imageSize.height
+    imageSizesWithContentBoundsMatch(
+      titleArtwork.imageSize,
+      defaultSteamLogo.imageSize,
+    )
 }
 
 export function getTitleArtworkDefaultSteamLogo(

@@ -3,7 +3,7 @@ import {
   type AdditionalArtworkRenderItem,
 } from '../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtwork } from '../project/projectTypes'
-import { loadCanvasSafeImage } from './canvasImage'
+import { drawImageContent, loadCanvasSafeImage } from './canvasImage'
 
 type AdditionalArtworkCanvasBounds = {
   centerX: number
@@ -106,12 +106,16 @@ async function drawAdditionalArtworkItem(
     context.clip()
   }
 
-  context.drawImage(
+  drawImageContent(
+    context,
     image,
-    bounds.x,
-    bounds.y,
-    bounds.drawWidth,
-    bounds.drawHeight,
+    renderItem.imageSize,
+    {
+      x: bounds.x,
+      y: bounds.y,
+      width: bounds.drawWidth,
+      height: bounds.drawHeight,
+    },
   )
   context.restore()
 

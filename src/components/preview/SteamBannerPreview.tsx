@@ -12,6 +12,7 @@ import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../../branding/steamBannerDefaults'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 function getSteamBannerStyle(colors: SteamBannerColors): CSSProperties {
   return {
@@ -109,9 +110,10 @@ export function SteamBannerPreview({
             style={lockupRect ? getLockupRectStyle(lockupRect) : undefined}
           >
             {!shouldShowTextFallback && steamBannerLockupImageUrl ? (
-              <img
+              <ContentBoundedImage
                 src={steamBannerLockupImageUrl}
                 alt="Steam banner lockup"
+                imageSize={steamBannerLockupImageSize}
                 draggable={false}
               />
             ) : (

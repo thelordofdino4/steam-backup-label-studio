@@ -2,6 +2,7 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
 import {
   getCaseInsertTextBlockStyleRole,
   getCaseInsertTextFontFamilyCanvas,
@@ -169,12 +170,14 @@ function getImageSlotPreviewSize(
   safeBounds: JewelCasePixelRect,
   role: JewelCaseFrontImageSlotRole,
 ): JewelCasePixelSize | null {
-  if (!slot.imageSize) {
+  const contentSize = getImageContentSize(slot.imageSize)
+
+  if (!contentSize) {
     return null
   }
 
   const scale = normalizePositiveNumber(slot.layout.scale, 1)
-  const aspectRatio = slot.imageSize.width / slot.imageSize.height
+  const aspectRatio = contentSize.width / contentSize.height
   const maxWidth = safeBounds.width * imageSlotWidthRatioByRole[role] * scale
   const width = Math.min(maxWidth, safeBounds.width)
   const height = width / aspectRatio

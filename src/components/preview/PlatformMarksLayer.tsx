@@ -4,6 +4,7 @@ import {
   type PlatformMarkRenderModel,
 } from '../../render/platformMarkRenderModel'
 import type { PlatformMarkValue, ProjectPlatformMarks } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type PlatformMarksLayerProps = {
   projectPlatformMarks: ProjectPlatformMarks
@@ -35,7 +36,11 @@ export function PlatformMarksLayer({
     return (
       <div
         key={model.value}
-        className="disc-media-mark-layer disc-platform-mark-layer"
+        className={[
+          'disc-media-mark-layer',
+          'disc-platform-mark-layer',
+          model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
+        ].filter(Boolean).join(' ')}
         aria-label={`${model.label} operating system mark layer`}
         style={{
           left: `${model.layout.x}%`,
@@ -48,10 +53,11 @@ export function PlatformMarksLayer({
         onPointerUp={handlePlatformMarkPointerUp}
         onPointerCancel={handlePlatformMarkPointerUp}
       >
-        <img
+        <ContentBoundedImage
           className={`disc-media-mark-image${model.isPlaceholderImage ? ' disc-placeholder-svg-image' : ''}`}
           src={model.imageDataUrl}
           alt={model.alt}
+          imageSize={model.imageSize}
           draggable={false}
         />
       </div>

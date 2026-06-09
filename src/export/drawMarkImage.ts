@@ -2,11 +2,15 @@ import type {
   PercentPositionedImageRenderArtifact,
   RenderPointLayout,
 } from '../render/imageRenderArtifact.ts'
-import { loadCanvasSafeImage } from './canvasImage.ts'
+import {
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage.ts'
 
 type MarkImageRenderModel = Pick<
   PercentPositionedImageRenderArtifact<RenderPointLayout>,
-  'imageDataUrl' | 'label' | 'layout' | 'scaledBounds'
+  'imageDataUrl' | 'label' | 'layout' | 'scaledBounds' | 'imageSize'
 >
 
 export async function drawMarkImage(
@@ -22,9 +26,13 @@ export async function drawMarkImage(
   )
   const maxWidth = discContentSize * (model.scaledBounds.halfWidth * 2 / 100)
   const maxHeight = discContentSize * (model.scaledBounds.halfHeight * 2 / 100)
-  const naturalWidth = image.naturalWidth || image.width || 1
-  const naturalHeight = image.naturalHeight || image.height || 1
-  const aspectRatio = naturalWidth / naturalHeight
+  const contentSize = getCanvasImageContentSize(image, model.imageSize)
+
+  if (!contentSize) {
+    return
+  }
+
+  const aspectRatio = contentSize.width / contentSize.height
   let drawWidth = maxWidth
   let drawHeight = drawWidth / aspectRatio
 
@@ -36,11 +44,15 @@ export async function drawMarkImage(
   const centerX = discOrigin + discContentSize * (model.layout.x / 100)
   const centerY = discOrigin + discContentSize * (model.layout.y / 100)
 
-  context.drawImage(
+  drawImageContent(
+    context,
     image,
-    centerX - drawWidth / 2,
-    centerY - drawHeight / 2,
-    drawWidth,
-    drawHeight,
+    model.imageSize,
+    {
+      x: centerX - drawWidth / 2,
+      y: centerY - drawHeight / 2,
+      width: drawWidth,
+      height: drawHeight,
+    },
   )
 }

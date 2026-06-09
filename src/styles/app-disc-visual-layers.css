@@ -1,3 +1,110 @@
+.content-bounded-image {
+  display: block;
+  overflow: visible;
+}
+
+.content-bounded-image--content-shaped {
+  pointer-events: none;
+}
+
+.content-bounded-image-source {
+  position: absolute;
+  display: block;
+  max-width: none;
+  max-height: none;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+}
+
+.content-shape-overlay {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.content-shape-hit-area {
+  fill: transparent;
+  pointer-events: fill;
+  stroke: transparent;
+}
+
+.background-image-layer .content-bounded-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  user-select: none;
+  pointer-events: none;
+}
+
+.background-image-layer .content-bounded-image-source,
+.steam-brand-lockup .content-bounded-image-source,
+.case-insert-steam-banner-lockup .content-bounded-image-source,
+.case-insert-template-background-clip .content-bounded-image-source,
+.case-insert-spine-background-clip .content-bounded-image-source {
+  object-fit: fill;
+}
+
+.steam-brand-lockup .content-bounded-image,
+.case-insert-steam-banner-lockup .content-bounded-image {
+  width: 100%;
+  height: 100%;
+}
+
+.case-insert-spine-overlay-box .content-bounded-image {
+  width: 100%;
+  height: 100%;
+}
+
+.case-insert-spine-overlay-box .content-bounded-image-source {
+  object-fit: fill;
+}
+
+.disc-title-artwork.content-bounded-image,
+.disc-logo-asset.content-bounded-image,
+.disc-rating-badge-image.content-bounded-image,
+.disc-media-mark-image.content-bounded-image,
+.case-insert-template-overlay-image.content-bounded-image,
+.disc-additional-artwork--content-bounded,
+.case-insert-template-framed-artwork--content-bounded,
+.case-insert-spine-overlay-box--content-bounded {
+  filter: none;
+}
+
+.disc-title-artwork.content-bounded-image .content-bounded-image-source,
+.disc-additional-artwork--content-bounded .content-bounded-image-source {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.38));
+}
+
+.disc-logo-asset.content-bounded-image .content-bounded-image-source,
+.disc-rating-badge-image.content-bounded-image .content-bounded-image-source,
+.disc-media-mark-image.content-bounded-image .content-bounded-image-source {
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+
+.case-insert-template-overlay-image.content-bounded-image .content-bounded-image-source,
+.case-insert-template-framed-artwork--content-bounded .content-bounded-image-source {
+  filter: drop-shadow(0 0.75cqw 1.1cqw rgba(0, 0, 0, 0.38));
+}
+
+.case-insert-spine-overlay-box--content-bounded .content-bounded-image-source {
+  filter: drop-shadow(0 0.35cqw 0.6cqw rgba(0, 0, 0, 0.32));
+}
+
+.disc-additional-artwork-image.content-bounded-image,
+.disc-rating-badge-image.content-bounded-image,
+.disc-media-mark-image.content-bounded-image,
+.case-insert-template-framed-artwork-image.content-bounded-image,
+.case-insert-spine-overlay-box .content-bounded-image,
+.steam-brand-lockup .content-bounded-image,
+.case-insert-steam-banner-lockup .content-bounded-image {
+  position: relative;
+}
+
 .disc-logo-asset-layer {
   position: absolute;
   inset: 0;
@@ -38,6 +145,14 @@
 .disc-additional-artwork--circle {
   border-radius: 999px;
   overflow: hidden;
+}
+
+.disc-additional-artwork--content-shaped,
+.disc-rating-badge-layer--content-shaped,
+.disc-media-mark-layer--content-shaped,
+.case-insert-template-framed-artwork--content-shaped,
+.case-insert-spine-overlay-box--content-shaped {
+  pointer-events: none;
 }
 
 .disc-title-artwork {

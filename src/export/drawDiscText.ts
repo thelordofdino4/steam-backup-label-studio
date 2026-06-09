@@ -19,7 +19,7 @@ import {
   measureDiscTextWithBrowserCanvas,
 } from '../discText/svgLayer'
 import { createSvgDataUrl } from '../utils/svg'
-import { loadCanvasSafeImage, loadImage } from './canvasImage'
+import { drawImageContent, loadCanvasSafeImage, loadImage } from './canvasImage'
 
 export async function drawDiscTextElements(
   context: CanvasRenderingContext2D,
@@ -57,12 +57,16 @@ export async function drawDiscTextElements(
     const centerX = discOrigin + discContentSize * (discNumberBadge.layout.x / 100)
     const centerY = discOrigin + discContentSize * (discNumberBadge.layout.y / 100)
 
-    context.drawImage(
+    drawImageContent(
+      context,
       badgeImage,
-      centerX - drawWidth / 2,
-      centerY - drawHeight / 2,
-      drawWidth,
-      drawHeight,
+      discNumberBadge.imageSize,
+      {
+        x: centerX - drawWidth / 2,
+        y: centerY - drawHeight / 2,
+        width: drawWidth,
+        height: drawHeight,
+      },
     )
 
     const textStyle = styles.discNumber
