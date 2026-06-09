@@ -7,13 +7,7 @@ import {
 } from '../project/projectRatingBadge.ts'
 import { drawRatingBadge } from './drawRatingBadge.ts'
 
-type DrawImageCall = [
-  image: CanvasImageSource,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-]
+type DrawImageCall = unknown[]
 
 function createDrawImageContext() {
   const calls: DrawImageCall[] = []

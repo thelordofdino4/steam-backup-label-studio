@@ -2,10 +2,15 @@ import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLog
 import type { DiscTextStyleSettings } from '../discText/styles'
 import { mmToPixels } from '../disc/geometry'
 import type { ExportGuideSelection } from './exportGuides'
-import type { ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { BackgroundImageSize, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../project/metadataDiscText'
 import type { DiscTemplate } from '../types/template'
-import { canvasToPngBytes, loadCanvasSafeImage } from './canvasImage'
+import {
+  canvasToPngBytes,
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage'
 import { drawDiscTextElements } from './drawDiscText'
 import { drawExportGuides, drawOuterDiscExportOutline } from './drawExportGuides'
 import { drawSteamBrandBanner } from './drawSteamBanner'
@@ -38,12 +43,14 @@ type PostClipExportLayerRenderer = Record<
 export async function exportDiscLabelPngBytes(params: {
   selectedDiscTemplate: DiscTemplate
   backgroundImageUrl: string | null
+  backgroundImageSize: BackgroundImageSize | null
   backgroundScale: number
   backgroundOffset: { x: number; y: number }
   previewSize: number
   steamLogoPlacement: SteamLogoPlacement
   steamBannerColors: SteamBannerColors
   steamBannerLockupImageUrl: string | null
+  steamBannerLockupImageSize?: BackgroundImageSize | null
   steamBannerLockupLayout: SteamBannerLockupLayout
   steamBannerUseTextFallback: boolean
   steamBannerFallbackText: string
@@ -116,13 +123,32 @@ export async function exportDiscLabelPngBytes(params: {
       'background artwork image',
     )
     const offsetScale = discContentSize / params.previewSize
-    const coverScale = Math.max(discContentSize / image.width, discContentSize / image.height)
+    const contentSize = getCanvasImageContentSize(image, params.backgroundImageSize)
+
+    if (!contentSize) {
+      return
+    }
+
+    const coverScale = Math.max(
+      discContentSize / contentSize.width,
+      discContentSize / contentSize.height,
+    )
     const drawScale = coverScale * params.backgroundScale
-    const drawWidth = image.width * drawScale
-    const drawHeight = image.height * drawScale
+    const drawWidth = contentSize.width * drawScale
+    const drawHeight = contentSize.height * drawScale
     const drawX = center - drawWidth / 2 + params.backgroundOffset.x * offsetScale
     const drawY = center - drawHeight / 2 + params.backgroundOffset.y * offsetScale
-    context.drawImage(image, drawX, drawY, drawWidth, drawHeight)
+    drawImageContent(
+      context,
+      image,
+      params.backgroundImageSize,
+      {
+        x: drawX,
+        y: drawY,
+        width: drawWidth,
+        height: drawHeight,
+      },
+    )
   }
 
   context.clearRect(0, 0, exportSize, exportSize)
@@ -152,6 +178,7 @@ export async function exportDiscLabelPngBytes(params: {
         params.steamLogoPlacement,
         params.steamBannerColors,
         params.steamBannerLockupImageUrl,
+        params.steamBannerLockupImageSize ?? null,
         params.steamBannerLockupLayout,
         params.steamBannerUseTextFallback,
         params.steamBannerFallbackText,

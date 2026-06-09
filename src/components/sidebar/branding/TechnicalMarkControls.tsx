@@ -225,7 +225,7 @@ export function TechnicalMarkControls({
       handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
       renderLayoutControls={(value, label, asset, assetId) => {
         const sliderRanges = getTechnicalMarkLayoutSliderRanges(
-          asset,
+          { ...asset, value },
           selectedDiscTemplate,
         )
         const elementId = assetId ?? value

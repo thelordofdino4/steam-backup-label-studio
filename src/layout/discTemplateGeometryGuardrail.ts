@@ -11,16 +11,17 @@ import type {
 } from '../discText/types'
 import {
   canClampRectToTemplateSafeAnnulus,
+  canClampShapeToTemplateSafeAnnulus,
+  getImageContentShapeFootprintPercent,
   getLogoAssetBoundsPercent,
-  getMediaMarkBoundsPercent,
-  getMediaMarkPlaceholderBoundsPercent,
-  getPlatformMarkBoundsPercent,
-  getPlatformMarkPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
-  getRatingBadgePlaceholderBoundsPercent,
   type LayoutPoint,
   type RenderBoundsPercent,
+  type RenderShapeFootprintPercent,
 } from '../disc/geometry.ts'
+import {
+  getRatingBadgePlaceholderImageSize,
+} from '../assets/assetManifest.ts'
 import {
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
@@ -28,17 +29,24 @@ import {
 } from '../discText/renderLayout.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import {
-  getPlatformMarkLabel,
-  getProjectPlatformMarkAsset,
-} from '../project/projectPlatformMarks.ts'
+  createMediaMarkRenderModel,
+} from '../render/mediaMarkRenderModel.ts'
+import {
+  createPlatformMarkRenderModels,
+} from '../render/platformMarkRenderModel.ts'
+import {
+  createTechnicalMarkRenderModels,
+} from '../render/technicalMarkRenderModel.ts'
 import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import type {
+  BackgroundImageSize,
   LogoAssetLayout,
   ProjectMetadata,
   ProjectLogoAssets,
   ProjectMediaMark,
   ProjectPlatformMarks,
   ProjectRatingBadge,
+  ProjectTechnicalMarks,
 } from '../project/projectTypes.ts'
 import type { DiscTemplate } from '../types/template.ts'
 
@@ -46,6 +54,7 @@ type MovableElementGeometry = {
   label: string
   point: LayoutPoint
   bounds: RenderBoundsPercent
+  shapeFootprint?: RenderShapeFootprintPercent | null
 }
 
 export type DiscTemplateGeometryGuardrailState = {
@@ -58,6 +67,7 @@ export type DiscTemplateGeometryGuardrailState = {
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
   projectPlatformMarks: ProjectPlatformMarks
+  projectTechnicalMarks: ProjectTechnicalMarks
 }
 
 export type DiscTemplateGeometryGuardrailResult = {
@@ -69,8 +79,23 @@ function createElementGeometry(
   label: string,
   point: LayoutPoint,
   bounds: RenderBoundsPercent,
+  shapeFootprint?: RenderShapeFootprintPercent | null,
 ): MovableElementGeometry {
-  return { label, point, bounds }
+  return { label, point, bounds, shapeFootprint }
+}
+
+function createImageElementGeometry(
+  label: string,
+  point: LayoutPoint,
+  bounds: RenderBoundsPercent,
+  imageSize: BackgroundImageSize | null | undefined,
+): MovableElementGeometry {
+  return createElementGeometry(
+    label,
+    point,
+    bounds,
+    getImageContentShapeFootprintPercent(imageSize ?? null, bounds),
+  )
 }
 
 function maybeCreateLogoGeometry(
@@ -82,11 +107,9 @@ function maybeCreateLogoGeometry(
     return null
   }
 
-  return createElementGeometry(
-    label,
-    layout,
-    getLogoAssetBoundsPercent(imageSize, layout.scale),
-  )
+  const bounds = getLogoAssetBoundsPercent(imageSize, layout.scale)
+
+  return createImageElementGeometry(label, layout, bounds, imageSize)
 }
 
 function maybeCreateStraightTextGeometry(
@@ -167,61 +190,65 @@ export function getMovableDiscElementGeometry(
 
   if (state.projectRatingBadge.layout.enabled) {
     const layout = state.projectRatingBadge.layout
-    const bounds =
+    const imageSize =
       state.projectRatingBadge.source === 'custom' &&
       state.projectRatingBadge.customImageSize
-        ? getRatingBadgeBoundsPercent(
-            state.projectRatingBadge.customImageSize,
-            layout.scale,
-          )
-        : getRatingBadgePlaceholderBoundsPercent(layout.scale)
+        ? state.projectRatingBadge.customImageSize
+        : getRatingBadgePlaceholderImageSize(state.projectMetadata)
+    const bounds = getRatingBadgeBoundsPercent(imageSize, layout.scale)
 
-    elements.push(createElementGeometry('rating badge', layout, bounds))
+    elements.push(createImageElementGeometry('rating badge', layout, bounds, imageSize))
   }
 
   if (shouldRenderSupplementalUskRatingBadge(state.projectMetadata, state.projectRatingBadge)) {
     const layout = state.projectRatingBadge.uskBadge.layout
+    const imageSize = getRatingBadgePlaceholderImageSize({
+      ratingSystem: 'USK',
+      ratingValue: state.projectRatingBadge.uskBadge.ratingValue,
+    })
+    const bounds = getRatingBadgeBoundsPercent(imageSize, layout.scale)
 
     elements.push(
-      createElementGeometry(
+      createImageElementGeometry(
         'additional USK rating badge',
         layout,
-        getRatingBadgePlaceholderBoundsPercent(layout.scale),
+        bounds,
+        imageSize,
       ),
     )
   }
 
-  if (state.projectMediaMark.layout.enabled) {
-    const layout = state.projectMediaMark.layout
-    const bounds =
-      state.projectMediaMark.source === 'custom' &&
-      state.projectMediaMark.customImageSize
-        ? getMediaMarkBoundsPercent(
-            state.projectMediaMark.customImageSize,
-            layout.scale,
-          )
-        : getMediaMarkPlaceholderBoundsPercent(layout.scale)
+  const mediaMark = createMediaMarkRenderModel(state.projectMediaMark)
 
-    elements.push(createElementGeometry('media mark', layout, bounds))
+  if (mediaMark) {
+    elements.push(
+      createImageElementGeometry(
+        mediaMark.label,
+        mediaMark.layout,
+        mediaMark.scaledBounds,
+        mediaMark.imageSize,
+      ),
+    )
   }
 
-  for (const value of state.projectPlatformMarks.values) {
-    const asset = getProjectPlatformMarkAsset(state.projectPlatformMarks, value)
-
-    if (!asset.layout.enabled) {
-      continue
-    }
-
-    const bounds =
-      asset.source === 'custom' && asset.customImageSize
-        ? getPlatformMarkBoundsPercent(asset.customImageSize, asset.layout.scale)
-        : getPlatformMarkPlaceholderBoundsPercent(asset.layout.scale)
-
+  for (const platformMark of createPlatformMarkRenderModels(state.projectPlatformMarks)) {
     elements.push(
-      createElementGeometry(
-        `${getPlatformMarkLabel(value)} operating system mark`,
-        asset.layout,
-        bounds,
+      createImageElementGeometry(
+        `${platformMark.label} operating system mark`,
+        platformMark.layout,
+        platformMark.scaledBounds,
+        platformMark.imageSize,
+      ),
+    )
+  }
+
+  for (const technicalMark of createTechnicalMarkRenderModels(state.projectTechnicalMarks)) {
+    elements.push(
+      createImageElementGeometry(
+        `${technicalMark.label} technical mark`,
+        technicalMark.layout,
+        technicalMark.scaledBounds,
+        technicalMark.imageSize,
       ),
     )
   }
@@ -240,11 +267,17 @@ export function validateDiscTemplateGeometryGuardrail(
   )
     .filter(
       (element) =>
-        !canClampRectToTemplateSafeAnnulus(
-          element.point,
-          template,
-          element.bounds,
-        ),
+        element.shapeFootprint?.loops.length
+          ? !canClampShapeToTemplateSafeAnnulus(
+              element.point,
+              template,
+              element.shapeFootprint,
+            )
+          : !canClampRectToTemplateSafeAnnulus(
+              element.point,
+              template,
+              element.bounds,
+            ),
     )
     .map((element) => element.label)
 

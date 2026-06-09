@@ -1,6 +1,7 @@
 import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import { loadImage } from '../export/canvasImage.ts'
-import { getNaturalImageSize, readImageFileAsDataUrl } from './imageFile.ts'
+import { createImageSizeWithDetectedContentBounds } from '../image/imageContentBounds.ts'
+import { readImageFileAsDataUrl } from './imageFile.ts'
 
 export type ImportedImageAsset = {
   imageDataUrl: string
@@ -20,7 +21,7 @@ export async function createImportedImageAssetFromDataUrl(
 
   return {
     imageDataUrl,
-    imageSize: getNaturalImageSize(image),
+    imageSize: createImageSizeWithDetectedContentBounds(image),
     fileName,
   }
 }

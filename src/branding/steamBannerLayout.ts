@@ -1,5 +1,6 @@
 import type { SteamLogoPlacement } from '../discText/index'
-import type { SteamBannerLockupLayout } from '../project/projectTypes'
+import type { BackgroundImageSize, SteamBannerLockupLayout } from '../project/projectTypes'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
 
 export type SteamBannerRect = {
   x: number
@@ -32,13 +33,15 @@ const DEFAULT_STEAM_BANNER_LOCKUP_ASPECT_RATIO =
   STEAM_BANNER_BOTTOM_LOCKUP_HEIGHT_AT_STANDARD_EXPORT
 
 export function getSteamBannerLockupAspectRatio(
-  imageSize: { width: number; height: number } | null | undefined,
+  imageSize: BackgroundImageSize | null | undefined,
 ): number {
-  if (!imageSize || imageSize.width <= 0 || imageSize.height <= 0) {
+  const contentSize = getImageContentSize(imageSize)
+
+  if (!contentSize) {
     return DEFAULT_STEAM_BANNER_LOCKUP_ASPECT_RATIO
   }
 
-  return imageSize.width / imageSize.height
+  return contentSize.width / contentSize.height
 }
 
 export function getSteamBannerBandLayout(

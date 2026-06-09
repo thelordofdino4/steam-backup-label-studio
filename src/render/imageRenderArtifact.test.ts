@@ -11,6 +11,17 @@ import {
 test('image render artifacts omit empty image sources', () => {
   assert.equal(createImageRenderArtifact({ imageDataUrl: null }), null)
   assert.equal(createImageRenderArtifact({ imageDataUrl: '' }), null)
+  assert.equal(
+    createImageRenderArtifact({
+      imageDataUrl: 'data:image/png;base64,transparent',
+      imageSize: {
+        width: 10,
+        height: 10,
+        contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+      },
+    }),
+    null,
+  )
   assert.equal(hasRenderableImageArtifact({ imageDataUrl: null }), false)
   assert.equal(hasRenderableImageArtifact({ imageDataUrl: 'data:image/png;base64,test' }), true)
 })
@@ -48,6 +59,17 @@ test('image render artifacts normalize label, alt text, and placeholder state', 
 test('percent positioned image artifacts preserve bounds and extra render data', () => {
   const artifact = createPercentPositionedImageRenderArtifact({
     imageDataUrl: 'data:image/png;base64:mark',
+    imageSize: {
+      width: 100,
+      height: 100,
+      contentBounds: { x: 20, y: 30, width: 50, height: 25 },
+      contentShape: {
+        width: 50,
+        height: 25,
+        path: 'M0 0 L50 0 L40 25 Z',
+        fillRule: 'evenodd',
+      },
+    },
     label: 'Windows',
     value: 'windows',
     layout: { x: 20, y: 30, scale: 1.4 },
@@ -57,6 +79,13 @@ test('percent positioned image artifacts preserve bounds and extra render data',
 
   assert.ok(artifact)
   assert.equal(artifact.value, 'windows')
+  assert.deepEqual(artifact.contentBounds, { x: 20, y: 30, width: 50, height: 25 })
+  assert.deepEqual(artifact.contentShape, {
+    width: 50,
+    height: 25,
+    path: 'M0 0 L50 0 L40 25 Z',
+    fillRule: 'evenodd',
+  })
   assert.deepEqual(artifact.layout, { x: 20, y: 30, scale: 1.4 })
   assert.deepEqual(artifact.scaledBounds, { halfWidth: 4.2, halfHeight: 2.8 })
 })

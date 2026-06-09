@@ -4,6 +4,7 @@ import {
   type TechnicalMarkRenderModel,
 } from '../../render/technicalMarkRenderModel'
 import type { ProjectTechnicalMarks, TechnicalMarkValue } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type TechnicalMarksLayerProps = {
   projectTechnicalMarks: ProjectTechnicalMarks
@@ -36,7 +37,11 @@ export function TechnicalMarksLayer({
     return (
       <div
         key={model.key}
-        className="disc-media-mark-layer disc-technical-mark-layer"
+        className={[
+          'disc-media-mark-layer',
+          'disc-technical-mark-layer',
+          model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
+        ].filter(Boolean).join(' ')}
         aria-label={`${model.label} technical mark layer`}
         style={{
           left: `${model.layout.x}%`,
@@ -50,10 +55,11 @@ export function TechnicalMarksLayer({
         onPointerUp={handleTechnicalMarkPointerUp}
         onPointerCancel={handleTechnicalMarkPointerUp}
       >
-        <img
+        <ContentBoundedImage
           className={`disc-media-mark-image${model.isPlaceholderImage ? ' disc-placeholder-svg-image' : ''}`}
           src={model.imageDataUrl}
           alt={model.alt}
+          imageSize={model.imageSize}
           draggable={false}
         />
       </div>

@@ -14,9 +14,14 @@ import type {
   JewelCasePixelRect,
 } from '../layout/jewelCaseLayout.ts'
 import type {
+  BackgroundImageSize,
   ProjectCaseInsertSteamBanner,
 } from '../project/projectTypes.ts'
-import { loadCanvasSafeImage } from './canvasImage.ts'
+import {
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage.ts'
 
 type CaseInsertSteamBannerImageLoader = typeof loadCanvasSafeImage
 
@@ -57,14 +62,16 @@ export async function drawCaseInsertSteamBanner(
           : 'Steam case banner lockup',
       )
 
-      drawLockupImage(
+      if (drawLockupImage(
         context,
         image,
         bannerLayout.lockupRect,
         bannerLayout.lockupRotationDegrees,
         shouldTintBuiltInSpineIcon,
-      )
-      return
+        banner.lockupImageSize,
+      )) {
+        return
+      }
     } catch {
       // Keep exports resilient if a custom banner image goes stale.
     }
@@ -110,12 +117,20 @@ function drawBannerBands(
 function getContainedImageRect(
   image: CanvasImageSource & { width: number; height: number },
   target: Pick<JewelCasePixelRect, 'width' | 'height'>,
+  imageSize: BackgroundImageSize | null,
 ) {
-  const width = image.width
-  const height = image.height
-  const scale = Math.min(target.width / width, target.height / height)
-  const drawWidth = width * scale
-  const drawHeight = height * scale
+  const contentSize = getCanvasImageContentSize(image, imageSize)
+
+  if (!contentSize) {
+    return null
+  }
+
+  const scale = Math.min(
+    target.width / contentSize.width,
+    target.height / contentSize.height,
+  )
+  const drawWidth = contentSize.width * scale
+  const drawHeight = contentSize.height * scale
 
   return {
     x: -drawWidth / 2,
@@ -127,6 +142,7 @@ function getContainedImageRect(
 
 function createTintedImageCanvas(
   image: CanvasImageSource & { width: number; height: number },
+  imageSize: BackgroundImageSize | null,
   width: number,
   height: number,
 ) {
@@ -143,7 +159,12 @@ function createTintedImageCanvas(
     return null
   }
 
-  context.drawImage(image, 0, 0, roundedWidth, roundedHeight)
+  drawImageContent(context, image, imageSize, {
+    x: 0,
+    y: 0,
+    width: roundedWidth,
+    height: roundedHeight,
+  })
   context.globalCompositeOperation = 'source-in'
   context.fillStyle = '#ffffff'
   context.fillRect(0, 0, roundedWidth, roundedHeight)
@@ -157,11 +178,18 @@ function drawLockupImage(
   rect: JewelCasePixelRect,
   rotationDegrees: number,
   tintWhite: boolean,
+  imageSize: BackgroundImageSize | null,
 ) {
-  const containedRect = getContainedImageRect(image, rect)
+  const containedRect = getContainedImageRect(image, rect, imageSize)
+
+  if (!containedRect) {
+    return false
+  }
+
   const imageToDraw = tintWhite
     ? createTintedImageCanvas(
         image,
+        imageSize,
         containedRect.width,
         containedRect.height,
       )
@@ -172,16 +200,16 @@ function drawLockupImage(
   context.rotate(rotationDegrees * Math.PI / 180)
 
   if (imageToDraw) {
-    context.drawImage(
+    drawImageContent(
+      context,
       imageToDraw,
-      containedRect.x,
-      containedRect.y,
-      containedRect.width,
-      containedRect.height,
+      null,
+      containedRect,
     )
   }
 
   context.restore()
+  return Boolean(imageToDraw)
 }
 
 function drawTextLockup(

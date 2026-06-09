@@ -310,6 +310,31 @@ test('image fitting preserves aspect ratio for contain, cover, scale, and crop m
   assert.equal(cropped?.cropOffset.x, 0.2)
 })
 
+test('image fitting uses active content bounds as the source rectangle origin', () => {
+  const fit = fitImageToJewelCaseRegion({
+    imageSize: {
+      width: 1000,
+      height: 1000,
+      contentBounds: { x: 250, y: 100, width: 500, height: 250 },
+    },
+    region: { x: 0, y: 0, width: 1000, height: 1000 },
+    fit: 'contain',
+  })
+
+  assertRectApproximatelyEqual(fit?.imageRect ?? null, {
+    x: 0,
+    y: 250,
+    width: 1000,
+    height: 500,
+  })
+  assertRectApproximatelyEqual(fit?.sourceRect ?? null, {
+    x: 250,
+    y: 100,
+    width: 500,
+    height: 250,
+  })
+})
+
 test('region height fit scale aligns image top and bottom pixels', () => {
   const region = { x: 0, y: 0, width: 1000, height: 1000 }
   const wideImageSize = { width: 4000, height: 1000 }

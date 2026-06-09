@@ -14,6 +14,7 @@ import {
 } from '../project/projectRatingBadge'
 import { applyImportedRatingBadge } from '../project/projectVisualAssetImport'
 import type {
+  ProjectMetadata,
   ProjectRatingBadge,
   RatingBadgeSource,
 } from '../project/projectTypes'
@@ -26,11 +27,13 @@ import {
 
 type UseRatingBadgeStateOptions = {
   selectedDiscTemplate: DiscTemplate
+  projectMetadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
   announceStatus: (message: string) => void
 }
 
 export function useRatingBadgeState({
   selectedDiscTemplate,
+  projectMetadata,
   announceStatus,
 }: UseRatingBadgeStateOptions) {
   const [projectRatingBadge, setProjectRatingBadge] = useState<ProjectRatingBadge>(() =>
@@ -44,7 +47,7 @@ export function useRatingBadgeState({
 
   function clampProjectRatingBadgeToTemplate(template: DiscTemplate) {
     setProjectRatingBadge((currentBadge) =>
-      clampProjectRatingBadgeToSafeZone(currentBadge, template),
+      clampProjectRatingBadgeToSafeZone(currentBadge, template, projectMetadata),
     )
   }
 
@@ -62,12 +65,36 @@ export function useRatingBadgeState({
         },
       }
 
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      return clampProjectRatingBadgeToSafeZone(
+        nextBadge,
+        selectedDiscTemplate,
+        projectMetadata,
+      )
     })
   }
 
   function setRatingBadgeEnabledForAppliedCandidate(candidate: RatingBoardCandidate) {
-    setRatingBadgeEnabled(candidate.applyKind !== 'none' && candidate.ratingSystem !== 'none')
+    const enabled = candidate.applyKind !== 'none' && candidate.ratingSystem !== 'none'
+    const candidateMetadata = enabled
+      ? {
+          ratingSystem: candidate.ratingSystem,
+          ratingValue: candidate.ratingValue,
+        }
+      : projectMetadata
+
+    setProjectRatingBadge((currentBadge) =>
+      clampProjectRatingBadgeToSafeZone(
+        {
+          ...currentBadge,
+          layout: {
+            ...currentBadge.layout,
+            enabled,
+          },
+        },
+        selectedDiscTemplate,
+        candidateMetadata,
+      ),
+    )
   }
 
   async function handleRatingBadgeUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -105,7 +132,11 @@ export function useRatingBadgeState({
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = updateRatingBadgeSource(currentBadge, source)
 
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      return clampProjectRatingBadgeToSafeZone(
+        nextBadge,
+        selectedDiscTemplate,
+        projectMetadata,
+      )
     })
   }
 
@@ -116,7 +147,11 @@ export function useRatingBadgeState({
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = updateRatingBadgeLayoutField(currentBadge, field, value)
 
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      return clampProjectRatingBadgeToSafeZone(
+        nextBadge,
+        selectedDiscTemplate,
+        projectMetadata,
+      )
     })
   }
 
@@ -125,6 +160,7 @@ export function useRatingBadgeState({
       clampProjectRatingBadgeToSafeZone(
         updateSupplementalUskRatingBadgeEnabledState(currentBadge, enabled),
         selectedDiscTemplate,
+        projectMetadata,
       ),
     )
   }
@@ -143,6 +179,7 @@ export function useRatingBadgeState({
       clampProjectRatingBadgeToSafeZone(
         updateSupplementalUskRatingBadgeLayoutField(currentBadge, field, value),
         selectedDiscTemplate,
+        projectMetadata,
       ),
     )
   }
@@ -151,7 +188,11 @@ export function useRatingBadgeState({
     setProjectRatingBadge((currentBadge) => {
       const nextBadge = clearRatingBadgeImage(currentBadge)
 
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      return clampProjectRatingBadgeToSafeZone(
+        nextBadge,
+        selectedDiscTemplate,
+        projectMetadata,
+      )
     })
 
     announceStatus('Cleared custom rating badge image.')
@@ -164,7 +205,11 @@ export function useRatingBadgeState({
         selectedDiscTemplate,
       )
 
-      return clampProjectRatingBadgeToSafeZone(nextBadge, selectedDiscTemplate)
+      return clampProjectRatingBadgeToSafeZone(
+        nextBadge,
+        selectedDiscTemplate,
+        projectMetadata,
+      )
     })
 
     announceStatus('Reset rating badge layout.')
@@ -178,6 +223,7 @@ export function useRatingBadgeState({
           selectedDiscTemplate,
         ),
         selectedDiscTemplate,
+        projectMetadata,
       ),
     )
 

@@ -3,18 +3,23 @@ import {
   clampLayoutPointToSafeZone,
   clampNumber,
   getAdditionalArtworkBoundsPercent,
+  getImageContentShapeFootprintPercent,
   getLogoAssetBoundsPercent,
   getMediaMarkBoundsPercent,
-  getMediaMarkPlaceholderBoundsPercent,
   getPlatformMarkBoundsPercent,
-  getPlatformMarkPlaceholderBoundsPercent,
   getRatingBadgeBoundsPercent,
-  getRatingBadgePlaceholderBoundsPercent,
   getSafeZoneRadiusPercent,
   getTechnicalMarkBoundsPercent,
-  getTechnicalMarkPlaceholderBoundsPercent,
   getTitleArtworkBoundsPercent,
+  type RenderBoundsPercent,
+  type RenderShapeFootprintPercent,
 } from '../disc/geometry.ts'
+import {
+  getMediaMarkPlaceholderImageSize,
+  getPlatformMarkPlaceholderImageSize,
+  getRatingBadgePlaceholderImageSize,
+  getTechnicalMarkPlaceholderImageSize,
+} from '../assets/assetManifest.ts'
 import type {
   DiscTextKey,
   DiscTextLayout,
@@ -28,6 +33,7 @@ import type {
   MediaMarkLayout,
   PlatformMarkLayout,
   PlatformMarkValue,
+  ProjectMetadata,
   ProjectMediaMark,
   ProjectPlatformMarkAsset,
   ProjectTechnicalMarkAsset,
@@ -225,9 +231,29 @@ function getPointFromAnchor(
 function getTemplateAwarePoint(
   template: DiscTemplate,
   anchor: RadialAnchor,
-  bounds?: { halfWidth: number; halfHeight: number },
+  bounds?: RenderBoundsPercent,
+  shapeFootprint: RenderShapeFootprintPercent | null = null,
 ) {
-  return clampLayoutPointToSafeZone(getPointFromAnchor(template, anchor), template, bounds)
+  return clampLayoutPointToSafeZone(
+    getPointFromAnchor(template, anchor),
+    template,
+    bounds,
+    shapeFootprint,
+  )
+}
+
+function getTemplateAwareImagePoint(
+  template: DiscTemplate,
+  anchor: RadialAnchor,
+  imageSize: BackgroundImageSize | null,
+  bounds: RenderBoundsPercent,
+) {
+  return getTemplateAwarePoint(
+    template,
+    anchor,
+    bounds,
+    getImageContentShapeFootprintPercent(imageSize, bounds),
+  )
 }
 
 function textLayoutFromPoint(
@@ -423,10 +449,12 @@ export function getDefaultLogoAssetLayoutForTemplate(
   imageSize: BackgroundImageSize | null = null,
 ): LogoAssetLayout {
   const scale = 1
-  const point = getTemplateAwarePoint(
+  const bounds = getLogoAssetBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
     template,
     LOGO_ANCHORS[logoKey],
-    getLogoAssetBoundsPercent(imageSize, scale),
+    imageSize,
+    bounds,
   )
 
   return {
@@ -445,13 +473,15 @@ export function getDefaultAdditionalLogoAssetLayoutForTemplate(
 ): LogoAssetLayout {
   const baseLayout = getDefaultLogoAssetLayoutForTemplate(template, logoKey, imageSize)
   const scale = baseLayout.scale
+  const bounds = getLogoAssetBoundsPercent(imageSize, scale)
   const point = clampLayoutPointToSafeZone(
     {
       x: baseLayout.x + ADDITIONAL_LOGO_X_OFFSET_PERCENT * (additionalLogoIndex + 1),
       y: baseLayout.y,
     },
     template,
-    getLogoAssetBoundsPercent(imageSize, scale),
+    bounds,
+    getImageContentShapeFootprintPercent(imageSize, bounds),
   )
 
   return {
@@ -467,13 +497,15 @@ export function getNextAdditionalLogoAssetLayoutForTemplate(
   referenceLayout: LogoAssetLayout,
   imageSize: BackgroundImageSize | null = null,
 ): LogoAssetLayout {
+  const bounds = getLogoAssetBoundsPercent(imageSize, referenceLayout.scale)
   const point = clampLayoutPointToSafeZone(
     {
       x: referenceLayout.x + ADDITIONAL_LOGO_X_OFFSET_PERCENT,
       y: referenceLayout.y,
     },
     template,
-    getLogoAssetBoundsPercent(imageSize, referenceLayout.scale),
+    bounds,
+    getImageContentShapeFootprintPercent(imageSize, bounds),
   )
 
   return {
@@ -490,12 +522,14 @@ export function getDefaultTitleArtworkLayoutForTemplate(
   imageSize: BackgroundImageSize | null = null,
 ): TitleArtworkLayout {
   const scale = 1
-  const point = getTemplateAwarePoint(
+  const bounds = getTitleArtworkBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
     template,
     placement === 'bottom'
       ? TITLE_ARTWORK_ANCHORS.bottom
       : TITLE_ARTWORK_ANCHORS.top,
-    getTitleArtworkBoundsPercent(imageSize, scale),
+    imageSize,
+    bounds,
   )
 
   return {
@@ -516,10 +550,12 @@ export function getDefaultAdditionalArtworkLayoutForTemplate(
     ADDITIONAL_ARTWORK_ANCHORS[
       additionalArtworkIndex % ADDITIONAL_ARTWORK_ANCHORS.length
     ]
-  const point = getTemplateAwarePoint(
+  const bounds = getAdditionalArtworkBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
     template,
     anchor,
-    getAdditionalArtworkBoundsPercent(imageSize, scale),
+    imageSize,
+    bounds,
   )
 
   return {
@@ -535,13 +571,18 @@ export function getNextAdditionalArtworkLayoutForTemplate(
   referenceLayout: AdditionalArtworkLayout,
   imageSize: BackgroundImageSize | null = null,
 ): AdditionalArtworkLayout {
+  const bounds = getAdditionalArtworkBoundsPercent(
+    imageSize,
+    referenceLayout.scale,
+  )
   const point = clampLayoutPointToSafeZone(
     {
       x: referenceLayout.x + ADDITIONAL_ARTWORK_X_OFFSET_PERCENT,
       y: referenceLayout.y + ADDITIONAL_ARTWORK_Y_OFFSET_PERCENT,
     },
     template,
-    getAdditionalArtworkBoundsPercent(imageSize, referenceLayout.scale),
+    bounds,
+    getImageContentShapeFootprintPercent(imageSize, bounds),
   )
 
   return {
@@ -554,14 +595,27 @@ export function getNextAdditionalArtworkLayoutForTemplate(
 
 export function getDefaultRatingBadgeLayoutForTemplate(
   template: DiscTemplate,
-  ratingBadge?: Pick<ProjectRatingBadge, 'source' | 'customImageSize'>,
+  ratingBadge?: Pick<ProjectRatingBadge, 'source' | 'customImageSize'> & {
+    metadata?: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'> | null
+  },
 ): RatingBadgeLayout {
   const scale = 1
-  const bounds =
+  const imageSize =
     ratingBadge?.source === 'custom' && ratingBadge.customImageSize
-      ? getRatingBadgeBoundsPercent(ratingBadge.customImageSize, scale)
-      : getRatingBadgePlaceholderBoundsPercent(scale)
-  const point = getTemplateAwarePoint(template, RATING_BADGE_ANCHOR, bounds)
+      ? ratingBadge.customImageSize
+      : getRatingBadgePlaceholderImageSize(
+          ratingBadge?.metadata ?? {
+            ratingSystem: 'ESRB',
+            ratingValue: 'RP',
+          },
+        )
+  const bounds = getRatingBadgeBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
+    template,
+    RATING_BADGE_ANCHOR,
+    imageSize,
+    bounds,
+  )
 
   return {
     enabled: false,
@@ -573,14 +627,24 @@ export function getDefaultRatingBadgeLayoutForTemplate(
 
 export function getDefaultMediaMarkLayoutForTemplate(
   template: DiscTemplate,
-  mediaMark?: Pick<ProjectMediaMark, 'source' | 'customImageSize'>,
+  mediaMark?: Pick<ProjectMediaMark, 'source' | 'customImageSize'> &
+    Partial<Pick<ProjectMediaMark, 'value' | 'theme'>>,
 ): MediaMarkLayout {
   const scale = 1
-  const bounds =
+  const imageSize =
     mediaMark?.source === 'custom' && mediaMark.customImageSize
-      ? getMediaMarkBoundsPercent(mediaMark.customImageSize, scale)
-      : getMediaMarkPlaceholderBoundsPercent(scale)
-  const point = getTemplateAwarePoint(template, MEDIA_MARK_ANCHOR, bounds)
+      ? mediaMark.customImageSize
+      : getMediaMarkPlaceholderImageSize(
+          mediaMark?.value ?? 'dataDisc',
+          mediaMark?.theme ?? 'light',
+        )
+  const bounds = getMediaMarkBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
+    template,
+    MEDIA_MARK_ANCHOR,
+    imageSize,
+    bounds,
+  )
 
   return {
     enabled: false,
@@ -593,14 +657,21 @@ export function getDefaultMediaMarkLayoutForTemplate(
 export function getDefaultPlatformMarkLayoutForTemplate(
   template: DiscTemplate,
   value: PlatformMarkValue,
-  platformMark?: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize'>,
+  platformMark?: Pick<ProjectPlatformMarkAsset, 'source' | 'customImageSize'> &
+    Partial<Pick<ProjectPlatformMarkAsset, 'theme'>>,
 ): PlatformMarkLayout {
   const scale = 1
-  const bounds =
+  const imageSize =
     platformMark?.source === 'custom' && platformMark.customImageSize
-      ? getPlatformMarkBoundsPercent(platformMark.customImageSize, scale)
-      : getPlatformMarkPlaceholderBoundsPercent(scale)
-  const point = getTemplateAwarePoint(template, PLATFORM_MARK_ANCHORS[value], bounds)
+      ? platformMark.customImageSize
+      : getPlatformMarkPlaceholderImageSize(value, platformMark?.theme)
+  const bounds = getPlatformMarkBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
+    template,
+    PLATFORM_MARK_ANCHORS[value],
+    imageSize,
+    bounds,
+  )
 
   return {
     enabled: true,
@@ -616,11 +687,17 @@ export function getDefaultTechnicalMarkLayoutForTemplate(
   technicalMark?: Pick<ProjectTechnicalMarkAsset, 'source' | 'customImageSize'>,
 ): TechnicalMarkLayout {
   const scale = 1
-  const bounds =
+  const imageSize =
     technicalMark?.source === 'custom' && technicalMark.customImageSize
-      ? getTechnicalMarkBoundsPercent(technicalMark.customImageSize, scale)
-      : getTechnicalMarkPlaceholderBoundsPercent(scale)
-  const point = getTemplateAwarePoint(template, TECHNICAL_MARK_ANCHORS[value], bounds)
+      ? technicalMark.customImageSize
+      : getTechnicalMarkPlaceholderImageSize(value)
+  const bounds = getTechnicalMarkBoundsPercent(imageSize, scale)
+  const point = getTemplateAwareImagePoint(
+    template,
+    TECHNICAL_MARK_ANCHORS[value],
+    imageSize,
+    bounds,
+  )
 
   return {
     enabled: true,

@@ -17,6 +17,7 @@ import {
   type SteamArtworkAsset,
   type SteamImportedGame,
 } from './steamApi.ts'
+import { getSteamTitleArtworkAssetPriority } from './steamArtworkAssets.ts'
 
 export type SteamTitleArtworkImportStatus =
   | 'seeded'
@@ -34,10 +35,6 @@ type SteamTitleArtworkImportOptions = {
   createImportedImageAsset?: (imageDataUrl: string) => Promise<ImportedImageAsset>
 }
 
-function isPreferredSteamCdnLogoAsset(asset: SteamArtworkAsset) {
-  return asset.id === 'cdn-logo' || asset.label.toLowerCase() === 'steam cdn logo'
-}
-
 export function findSteamTitleArtworkAsset(
   importedGame: SteamImportedGame,
 ): SteamArtworkAsset | null {
@@ -47,15 +44,13 @@ export function findSteamTitleArtworkAsset(
 export function getSteamTitleArtworkAssetCandidates(
   importedGame: SteamImportedGame,
 ): SteamArtworkAsset[] {
-  const logoAssets = importedGame.artwork.filter((asset) => asset.kind === 'logo')
-  const preferredLogoAsset = logoAssets.find(isPreferredSteamCdnLogoAsset)
-
-  return preferredLogoAsset
-    ? [
-        preferredLogoAsset,
-        ...logoAssets.filter((asset) => asset !== preferredLogoAsset),
-      ]
-    : logoAssets
+  return importedGame.artwork
+    .filter((asset) => asset.kind === 'logo')
+    .toSorted(
+      (a, b) =>
+        getSteamTitleArtworkAssetPriority(a) -
+        getSteamTitleArtworkAssetPriority(b),
+    )
 }
 
 export async function createSteamTitleArtworkImport(

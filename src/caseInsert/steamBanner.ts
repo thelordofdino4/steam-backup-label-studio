@@ -1,5 +1,7 @@
 import {
+  DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_SIZE,
   DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+  DEFAULT_STEAM_BANNER_SPINE_ICON_IMAGE_SIZE,
   DEFAULT_STEAM_BANNER_SPINE_ICON_IMAGE_URL,
 } from '../assets/assetManifest.ts'
 import {
@@ -111,6 +113,14 @@ function getDefaultCaseInsertSteamBannerImageUrl(
     : DEFAULT_STEAM_BANNER_SPINE_ICON_IMAGE_URL
 }
 
+function getDefaultCaseInsertSteamBannerImageSize(
+  kind: CaseInsertSteamBannerTargetKind,
+) {
+  return kind === 'cover'
+    ? DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_SIZE
+    : DEFAULT_STEAM_BANNER_SPINE_ICON_IMAGE_SIZE
+}
+
 function getDefaultCaseInsertSteamBannerLockupLayout(
   kind: CaseInsertSteamBannerTargetKind,
 ): ProjectCaseInsertLayout {
@@ -130,7 +140,7 @@ export function createDefaultCaseInsertSteamBanner(
     colors: { ...DEFAULT_CASE_INSERT_STEAM_BANNER_COLORS },
     lockupImageDataUrl: getDefaultCaseInsertSteamBannerImageUrl(kind),
     lockupImageSource: createBuiltInCaseInsertSteamBannerSource(kind),
-    lockupImageSize: null,
+    lockupImageSize: getDefaultCaseInsertSteamBannerImageSize(kind),
     lockupLayout: getDefaultCaseInsertSteamBannerLockupLayout(kind),
     useTextFallback: false,
     fallbackText: DEFAULT_STEAM_BANNER_FALLBACK_TEXT,
@@ -316,7 +326,7 @@ export function resetCaseInsertSteamBannerLockupImage(
     ...banner,
     lockupImageDataUrl: getDefaultCaseInsertSteamBannerImageUrl(kind),
     lockupImageSource: createBuiltInCaseInsertSteamBannerSource(kind),
-    lockupImageSize: null,
+    lockupImageSize: getDefaultCaseInsertSteamBannerImageSize(kind),
   }
 }
 

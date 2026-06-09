@@ -1,5 +1,12 @@
 import { invoke } from '@tauri-apps/api/core'
 import { bytesToBase64 } from '../utils/bytesToBase64.ts'
+import {
+  createSteamArtworkAssets,
+  type SteamArtworkAsset,
+  type SteamArtworkAppDetailsData,
+  type SteamLocalLibraryCacheAsset,
+  type SteamStoreBrowseItemData,
+} from './steamArtworkAssets.ts'
 
 export type SteamSearchResult = {
   appId: number
@@ -8,12 +15,7 @@ export type SteamSearchResult = {
   price?: string
 }
 
-export type SteamArtworkAsset = {
-  id: string
-  label: string
-  url: string
-  kind: 'header' | 'capsule' | 'background' | 'logo' | 'screenshot' | 'library'
-}
+export type { SteamArtworkAsset } from './steamArtworkAssets.ts'
 
 export type SteamImportedGame = {
   appId: number
@@ -74,7 +76,7 @@ type SteamAppDetailsResponse = Record<
   string,
   {
     success: boolean
-    data?: {
+    data?: SteamArtworkAppDetailsData & {
       name?: string
       developers?: string[]
       publishers?: string[]
@@ -97,17 +99,15 @@ type SteamAppDetailsResponse = Record<
         linux?: boolean
       }
       website?: string
-      header_image?: string
-      capsule_image?: string
-      background_raw?: string
-      screenshots?: Array<{
-        id: number
-        path_thumbnail: string
-        path_full: string
-      }>
     }
   }
 >
+
+type SteamStoreBrowseItemsResponse = {
+  response?: {
+    store_items?: SteamStoreBrowseItemData[]
+  }
+}
 
 function formatPrice(price?: { final?: number; currency?: string }) {
   if (!price || typeof price.final !== 'number') {
@@ -121,19 +121,6 @@ function formatPrice(price?: { final?: number; currency?: string }) {
   return `${price.currency ?? 'USD'} ${(price.final / 100).toFixed(2)}`
 }
 
-
-function dedupeArtwork(artwork: SteamArtworkAsset[]) {
-  const seen = new Set<string>()
-
-  return artwork.filter((asset) => {
-    if (seen.has(asset.url)) {
-      return false
-    }
-
-    seen.add(asset.url)
-    return true
-  })
-}
 
 function normalizeSteamPlatformSupport(
   platforms: SteamPlatformSupport | undefined,
@@ -159,6 +146,30 @@ function normalizeSteamPlatformSupport(
   return Object.keys(normalized).length > 0 ? normalized : undefined
 }
 
+async function fetchSteamStoreBrowseItems(
+  appId: number,
+): Promise<SteamStoreBrowseItemData[]> {
+  const responseText = await invoke<string>('fetch_steam_store_items', {
+    appid: appId,
+  })
+  const response = JSON.parse(responseText) as SteamStoreBrowseItemsResponse
+
+  return (response.response?.store_items ?? []).filter((item) => {
+    const itemAppId = item.appid ?? item.id
+
+    return itemAppId === undefined || itemAppId === appId
+  })
+}
+
+async function findSteamLibraryCacheAssets(
+  appId: number,
+): Promise<SteamLocalLibraryCacheAsset[]> {
+  return invoke<SteamLocalLibraryCacheAsset[]>(
+    'find_steam_library_cache_assets',
+    { appid: appId },
+  )
+}
+
 export async function searchSteamStore(term: string): Promise<SteamSearchResult[]> {
   const trimmedTerm = term.trim()
 
@@ -180,9 +191,14 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
 }
 
 export async function importSteamApp(appId: number): Promise<SteamImportedGame> {
-  const responseText = await invoke<string>('fetch_steam_app_details', {
-    appid: appId,
-  })
+  const [responseText, storeBrowseItems, localLibraryCacheAssets] =
+    await Promise.all([
+      invoke<string>('fetch_steam_app_details', {
+        appid: appId,
+      }),
+      fetchSteamStoreBrowseItems(appId).catch(() => []),
+      findSteamLibraryCacheAssets(appId).catch(() => []),
+    ])
   const response = JSON.parse(responseText) as SteamAppDetailsResponse
   const entry = response[String(appId)]
 
@@ -192,74 +208,11 @@ export async function importSteamApp(appId: number): Promise<SteamImportedGame> 
 
   const data = entry.data
   const title = data.name ?? `Steam App ${appId}`
-  const artwork = dedupeArtwork([
-    ...(data.header_image
-      ? [
-          {
-            id: 'header-image',
-            label: 'Store header image',
-            url: data.header_image,
-            kind: 'header' as const,
-          },
-        ]
-      : []),
-    ...(data.capsule_image
-      ? [
-          {
-            id: 'capsule-image',
-            label: 'Store capsule image',
-            url: data.capsule_image,
-            kind: 'capsule' as const,
-          },
-        ]
-      : []),
-    ...(data.background_raw
-      ? [
-          {
-            id: 'background-raw',
-            label: 'Store background image',
-            url: data.background_raw,
-            kind: 'background' as const,
-          },
-        ]
-      : []),
-    {
-      id: 'cdn-header',
-      label: 'Steam CDN header image',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/header.jpg`,
-      kind: 'header' as const,
-    },
-    {
-      id: 'cdn-capsule-large',
-      label: 'Steam CDN large capsule',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/capsule_616x353.jpg`,
-      kind: 'capsule' as const,
-    },
-    {
-      id: 'cdn-logo',
-      label: 'Steam CDN logo',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/logo.png`,
-      kind: 'logo' as const,
-    },
-    {
-      id: 'cdn-library-capsule',
-      label: 'Steam library capsule',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`,
-      kind: 'library' as const,
-    },
-    {
-      id: 'cdn-library-hero',
-      label: 'Steam library hero',
-      url: `https://cdn.akamai.steamstatic.com/steam/apps/${appId}/library_hero.jpg`,
-      kind: 'library' as const,
-    },
-    ...(data.screenshots ?? []).map((screenshot) => ({
-      id: `screenshot-${screenshot.id}`,
-      label: `Screenshot ${screenshot.id}`,
-      url: screenshot.path_full,
-      kind: 'screenshot' as const,
-    })),
-  ])
+  const artwork = createSteamArtworkAssets(appId, {
+    ...data,
+    store_browse_items: storeBrowseItems,
+    local_library_cache_assets: localLibraryCacheAssets,
+  })
 
   return {
     appId,

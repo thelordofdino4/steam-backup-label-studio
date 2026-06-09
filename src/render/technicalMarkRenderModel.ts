@@ -2,7 +2,10 @@ import {
   getTechnicalMarkBoundsPercent,
   getTechnicalMarkPlaceholderBoundsPercent,
 } from '../disc/geometry.ts'
-import { getTechnicalMarkPlaceholderImageUrl } from '../assets/assetManifest.ts'
+import {
+  getTechnicalMarkPlaceholderImageSize,
+  getTechnicalMarkPlaceholderImageUrl,
+} from '../assets/assetManifest.ts'
 import {
   isOptionalVisualFeatureEnabled,
 } from '../editor/optionalVisualFeature.ts'
@@ -51,9 +54,10 @@ export function createTechnicalMarkRenderModels(
       customImageDataUrl: asset.customImageDataUrl,
       customImageSize: asset.customImageSize,
       builtInImageDataUrl: getTechnicalMarkPlaceholderImageUrl(value),
+      builtInImageSize: getTechnicalMarkPlaceholderImageSize(value),
     })
     const getBounds = (scale: number) =>
-      resolvedImage.isCustomImage && resolvedImage.imageSize
+      resolvedImage.imageSize
         ? getTechnicalMarkBoundsPercent(resolvedImage.imageSize, scale)
         : getTechnicalMarkPlaceholderBoundsPercent(scale)
 
@@ -63,6 +67,7 @@ export function createTechnicalMarkRenderModels(
       assetId,
       asset,
       imageDataUrl: resolvedImage.imageDataUrl,
+      imageSize: resolvedImage.imageSize,
       isPlaceholderImage: resolvedImage.isBuiltInFallback,
       label,
       alt: resolvedImage.isCustomImage ? label : `${label} generic technical mark`,

@@ -28,6 +28,7 @@ export type DiscPreviewProps = {
   statusToasts: PreviewToast[]
   background: {
     imageUrl: string | null
+    imageSize: BackgroundImageSize | null
     previewSize: BackgroundPreviewSize
     offset: BackgroundOffset
     scale: number
@@ -197,6 +198,7 @@ export function DiscPreview({
     'background-artwork': (
       <BackgroundLayer
         backgroundImageUrl={background.imageUrl}
+        backgroundImageSize={background.imageSize}
         backgroundPreviewSize={background.previewSize}
         backgroundOffset={background.offset}
         backgroundScale={background.scale}

@@ -44,6 +44,7 @@ test('Steam banner export falls back to text when the lockup image fails', async
     'top',
     DEFAULT_STEAM_BANNER_COLORS,
     'stale-lockup.png',
+    null,
     DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
     false,
     'Taihazu Archive',

@@ -1,7 +1,6 @@
 import type { PointerEvent } from 'react'
 import {
   getRatingBadgeBoundsPercent,
-  getRatingBadgePlaceholderBoundsPercent,
 } from '../../disc/geometry'
 import {
   getRatingBadgePlaceholderRenderModel,
@@ -13,6 +12,7 @@ import {
   type RatingBadgeElementKey,
 } from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type RatingBadgeLayerProps = {
   projectMetadata: ProjectMetadata
@@ -50,10 +50,11 @@ function RatingBadgeLayerItem({
   handleRatingBadgePointerMove,
   handleRatingBadgePointerUp,
 }: RatingBadgeLayerItemProps) {
+  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(metadata)
   const unscaledBounds =
     shouldUseCustomImage && customImageSize
       ? getRatingBadgeBoundsPercent(customImageSize, 1)
-      : getRatingBadgePlaceholderBoundsPercent(1)
+      : getRatingBadgeBoundsPercent(placeholderRenderModel.imageSize, 1)
   const unscaledLayerSize = {
     width: `${unscaledBounds.halfWidth * 2}%`,
     height: `${unscaledBounds.halfHeight * 2}%`,
@@ -63,11 +64,17 @@ function RatingBadgeLayerItem({
     height: '100%',
     maxHeight: 'none',
   }
-  const placeholderRenderModel = getRatingBadgePlaceholderRenderModel(metadata)
-
   return (
     <div
-      className="disc-rating-badge-layer"
+      className={[
+        'disc-rating-badge-layer',
+        shouldUseCustomImage && customImageSize?.contentShape
+          ? 'disc-rating-badge-layer--content-shaped'
+          : '',
+        !shouldUseCustomImage && placeholderRenderModel.imageSize.contentShape
+          ? 'disc-rating-badge-layer--content-shaped'
+          : '',
+      ].filter(Boolean).join(' ')}
       aria-label={ariaLabel}
       style={{
         left: `${layout.x}%`,
@@ -81,19 +88,21 @@ function RatingBadgeLayerItem({
       onPointerCancel={handleRatingBadgePointerUp}
     >
       {shouldUseCustomImage ? (
-        <img
+        <ContentBoundedImage
           className="disc-rating-badge-image"
-          src={customImageDataUrl ?? undefined}
+          src={customImageDataUrl ?? ''}
           alt="Rating badge"
+          imageSize={customImageSize}
           draggable={false}
           style={fillLayerSize}
         />
       ) : (
         <>
-          <img
+          <ContentBoundedImage
             className="disc-rating-badge-image disc-placeholder-svg-image"
             src={placeholderRenderModel.imageUrl}
             alt={placeholderRenderModel.altLabel}
+            imageSize={placeholderRenderModel.imageSize}
             draggable={false}
             style={fillLayerSize}
           />

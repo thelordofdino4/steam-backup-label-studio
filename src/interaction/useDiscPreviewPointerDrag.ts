@@ -65,6 +65,7 @@ import type {
   ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMediaMark,
+  ProjectMetadata,
   ProjectPlatformMarks,
   ProjectRatingBadge,
   ProjectTechnicalMarks,
@@ -132,7 +133,9 @@ type UseDiscPreviewPointerDragOptions = {
   logoAssets: StateBinding<ProjectLogoAssets>
   titleArtwork: StateBinding<ProjectTitleArtwork>
   additionalArtwork: StateBinding<ProjectAdditionalArtwork>
-  ratingBadge: StateBinding<ProjectRatingBadge>
+  ratingBadge: StateBinding<ProjectRatingBadge> & {
+    projectMetadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>
+  }
   mediaMark: StateBinding<ProjectMediaMark>
   platformMarks: StateBinding<ProjectPlatformMarks>
   technicalMarks: StateBinding<ProjectTechnicalMarks>
@@ -304,12 +307,22 @@ export function useDiscPreviewPointerDrag({
           draggedPoint,
         )
         const nextLayout = dragState.badgeKey === 'primary'
-          ? clampRatingBadgeLayoutToSafeZone(nextBadge, selectedDiscTemplate)
+          ? clampRatingBadgeLayoutToSafeZone(
+              {
+                ...nextBadge,
+                metadata: ratingBadge.projectMetadata,
+              },
+              selectedDiscTemplate,
+            )
           : clampRatingBadgeLayoutToSafeZone(
               {
                 source: 'placeholder',
                 customImageSize: null,
                 layout: nextBadge.uskBadge.layout,
+                metadata: {
+                  ratingSystem: 'USK',
+                  ratingValue: nextBadge.uskBadge.ratingValue,
+                },
               },
               selectedDiscTemplate,
             )

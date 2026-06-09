@@ -1,6 +1,12 @@
 import type { DiscTemplate } from '../types/template'
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import type { DiscTextKey, DiscTextLayout } from '../discText/types'
 import { DISC_TEXT_RENDER_STYLES } from '../discText/styles.ts'
+import { getImageContentSize } from '../image/imageContentBounds.ts'
+import {
+  getImageContentShapeLoops,
+  getImageContentShapeSafetyOutset,
+} from '../image/imageContentShape.ts'
 
 export const EXPORT_DPI = 300
 export const MM_PER_INCH = 25.4
@@ -31,10 +37,12 @@ export type RenderBoundsPercent = {
   halfHeight: number
 }
 
-export type NaturalSize = {
-  width: number
-  height: number
-} | null
+export type RenderShapeFootprintPercent = {
+  loops: LayoutPoint[][]
+  safetyOutset: number
+}
+
+export type NaturalSize = BackgroundImageSize | null
 
 export function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)
@@ -134,6 +142,158 @@ export function doesRectFitTemplateSafeAnnulus(
     getInnerNoPrintRadiusPercent(template),
     getSafeZoneRadiusPercent(template),
     bounds,
+  )
+}
+
+function getSquaredDistanceToSegment(point: LayoutPoint, start: LayoutPoint, end: LayoutPoint) {
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+
+  if (dx === 0 && dy === 0) {
+    return (point.x - start.x) ** 2 + (point.y - start.y) ** 2
+  }
+
+  const t = clampNumber(
+    ((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy),
+    0,
+    1,
+  )
+  const projectedX = start.x + dx * t
+  const projectedY = start.y + dy * t
+
+  return (point.x - projectedX) ** 2 + (point.y - projectedY) ** 2
+}
+
+function isPointInsideLoop(point: LayoutPoint, loop: LayoutPoint[]) {
+  let inside = false
+
+  for (let index = 0, previousIndex = loop.length - 1; index < loop.length; previousIndex = index, index += 1) {
+    const current = loop[index]
+    const previous = loop[previousIndex]
+    const crosses =
+      current.y > point.y !== previous.y > point.y &&
+      point.x <
+        ((previous.x - current.x) * (point.y - current.y)) /
+          (previous.y - current.y) +
+          current.x
+
+    if (crosses) {
+      inside = !inside
+    }
+  }
+
+  return inside
+}
+
+function isPointInsideShape(point: LayoutPoint, loops: LayoutPoint[][]) {
+  return loops.reduce(
+    (inside, loop) => inside !== isPointInsideLoop(point, loop),
+    false,
+  )
+}
+
+function getAbsoluteShapeLoops(
+  point: LayoutPoint,
+  footprint: RenderShapeFootprintPercent,
+) {
+  return footprint.loops.map((loop) =>
+    loop.map((localPoint) => ({
+      x: point.x + localPoint.x,
+      y: point.y + localPoint.y,
+    })),
+  )
+}
+
+function getShapeMaxLocalRadius(footprint: RenderShapeFootprintPercent) {
+  return footprint.loops.reduce(
+    (maxRadius, loop) =>
+      Math.max(
+        maxRadius,
+        ...loop.map((point) =>
+          Math.hypot(point.x, point.y) + footprint.safetyOutset),
+      ),
+    0,
+  )
+}
+
+export function doesShapeFitInsideDiscCircle(
+  point: LayoutPoint,
+  radiusPercent: number,
+  footprint: RenderShapeFootprintPercent,
+) {
+  const radius = Math.max(0, radiusPercent)
+  const effectiveRadius = radius - Math.max(0, footprint.safetyOutset)
+  const radiusSquared = effectiveRadius ** 2
+  const loops = getAbsoluteShapeLoops(point, footprint)
+
+  if (effectiveRadius < 0) {
+    return false
+  }
+
+  return loops.every((loop) =>
+    loop.every((shapePoint) =>
+      (shapePoint.x - DISC_LAYOUT_CENTER_PERCENT) ** 2 +
+        (shapePoint.y - DISC_LAYOUT_CENTER_PERCENT) ** 2 <=
+        radiusSquared + 0.000001),
+  )
+}
+
+export function doesShapeAvoidDiscCenterCircle(
+  point: LayoutPoint,
+  radiusPercent: number,
+  footprint: RenderShapeFootprintPercent,
+) {
+  const radius = Math.max(0, radiusPercent) + Math.max(0, footprint.safetyOutset)
+
+  if (radius <= 0) {
+    return true
+  }
+
+  const center = {
+    x: DISC_LAYOUT_CENTER_PERCENT,
+    y: DISC_LAYOUT_CENTER_PERCENT,
+  }
+  const loops = getAbsoluteShapeLoops(point, footprint)
+
+  if (isPointInsideShape(center, loops)) {
+    return false
+  }
+
+  const minDistanceSquared = loops.reduce(
+    (minDistance, loop) => {
+      let nextMinDistance = minDistance
+
+      for (let index = 0; index < loop.length; index += 1) {
+        nextMinDistance = Math.min(
+          nextMinDistance,
+          getSquaredDistanceToSegment(
+            center,
+            loop[index],
+            loop[(index + 1) % loop.length],
+          ),
+        )
+      }
+
+      return nextMinDistance
+    },
+    Number.POSITIVE_INFINITY,
+  )
+
+  return minDistanceSquared >= (radius - 0.000001) ** 2
+}
+
+export function doesShapeFitSafeAnnulus(
+  point: LayoutPoint,
+  innerRadiusPercent: number,
+  outerRadiusPercent: number,
+  footprint: RenderShapeFootprintPercent,
+) {
+  const outerRadius = Math.max(0, outerRadiusPercent)
+  const innerRadius = clampNumber(Math.max(0, innerRadiusPercent), 0, outerRadius)
+
+  return (
+    doesShapeFitInsideDiscCircle(point, outerRadius, footprint) &&
+    doesShapeAvoidDiscCenterCircle(point, innerRadius, footprint)
   )
 }
 
@@ -399,13 +559,110 @@ export function clampRectToSafeAnnulus(
   }
 }
 
+export function clampShapeToSafeAnnulus(
+  point: LayoutPoint,
+  innerRadiusPercent: number,
+  outerRadiusPercent: number,
+  footprint: RenderShapeFootprintPercent,
+): LayoutPoint {
+  const x = Number.isFinite(point.x) ? point.x : DISC_LAYOUT_CENTER_PERCENT
+  const y = Number.isFinite(point.y) ? point.y : DISC_LAYOUT_CENTER_PERCENT
+  const outerRadius = Math.max(0, outerRadiusPercent)
+  const innerRadius = clampNumber(Math.max(0, innerRadiusPercent), 0, outerRadius)
+
+  if (footprint.loops.length === 0) {
+    return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+  }
+
+  const deltaX = x - DISC_LAYOUT_CENTER_PERCENT
+  const deltaY = y - DISC_LAYOUT_CENTER_PERCENT
+  const distance = Math.hypot(deltaX, deltaY)
+  const unitX = distance === 0 ? 0 : deltaX / distance
+  const unitY = distance === 0 ? 1 : deltaY / distance
+  const pointAtDistance = (nextDistance: number) => ({
+    x: DISC_LAYOUT_CENTER_PERCENT + unitX * nextDistance,
+    y: DISC_LAYOUT_CENTER_PERCENT + unitY * nextDistance,
+  })
+  const maxSearchDistance = outerRadius + getShapeMaxLocalRadius(footprint)
+
+  if (
+    maxSearchDistance <= 0 ||
+    !doesShapeFitInsideDiscCircle(pointAtDistance(0), outerRadius, footprint)
+  ) {
+    return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+  }
+
+  let outerLow = 0
+  let outerHigh = maxSearchDistance
+
+  for (let iteration = 0; iteration < 36; iteration += 1) {
+    const mid = (outerLow + outerHigh) / 2
+
+    if (doesShapeFitInsideDiscCircle(pointAtDistance(mid), outerRadius, footprint)) {
+      outerLow = mid
+    } else {
+      outerHigh = mid
+    }
+  }
+
+  const maxDistance = outerLow
+  let minDistance = 0
+
+  if (!doesShapeAvoidDiscCenterCircle(pointAtDistance(0), innerRadius, footprint)) {
+    if (!doesShapeAvoidDiscCenterCircle(pointAtDistance(maxDistance), innerRadius, footprint)) {
+      return clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+    }
+
+    let innerLow = 0
+    let innerHigh = maxDistance
+
+    for (let iteration = 0; iteration < 36; iteration += 1) {
+      const mid = (innerLow + innerHigh) / 2
+
+      if (doesShapeAvoidDiscCenterCircle(pointAtDistance(mid), innerRadius, footprint)) {
+        innerHigh = mid
+      } else {
+        innerLow = mid
+      }
+    }
+
+    minDistance = innerHigh
+  }
+
+  const targetDistance = clampNumber(
+    distance === 0 ? minDistance : distance,
+    minDistance,
+    maxDistance,
+  )
+  const clampedPoint = pointAtDistance(targetDistance)
+
+  return doesShapeFitSafeAnnulus(
+    clampedPoint,
+    innerRadius,
+    outerRadius,
+    footprint,
+  )
+    ? clampedPoint
+    : clampPointToSafeAnnulus({ x, y }, innerRadius, outerRadius)
+}
+
 export function clampLayoutPointToSafeZone(
   point: LayoutPoint,
   template: DiscTemplate,
   bounds?: RenderBoundsPercent,
+  shapeFootprint?: RenderShapeFootprintPercent | null,
 ): LayoutPoint {
   const safeZoneRadius = getSafeZoneRadiusPercent(template)
   const innerNoPrintRadius = getInnerNoPrintRadiusPercent(template)
+
+  if (shapeFootprint?.loops.length) {
+    return clampShapeToSafeAnnulus(
+      point,
+      innerNoPrintRadius,
+      safeZoneRadius,
+      shapeFootprint,
+    )
+  }
 
   if (bounds) {
     return clampRectToSafeAnnulus(point, innerNoPrintRadius, safeZoneRadius, bounds)
@@ -426,6 +683,57 @@ export function canClampRectToTemplateSafeAnnulus(
   )
 }
 
+export function canClampShapeToTemplateSafeAnnulus(
+  point: LayoutPoint,
+  template: DiscTemplate,
+  footprint: RenderShapeFootprintPercent,
+) {
+  return doesShapeFitSafeAnnulus(
+    clampLayoutPointToSafeZone(point, template, undefined, footprint),
+    getInnerNoPrintRadiusPercent(template),
+    getSafeZoneRadiusPercent(template),
+    footprint,
+  )
+}
+
+export function getImageContentShapeFootprintPercent(
+  naturalSize: NaturalSize,
+  bounds: RenderBoundsPercent,
+): RenderShapeFootprintPercent | null {
+  const loops = getImageContentShapeLoops(naturalSize)
+  const safetyOutset = getImageContentShapeSafetyOutset(naturalSize)
+
+  if (
+    loops.length === 0 ||
+    safetyOutset == null ||
+    bounds.halfWidth <= 0 ||
+    bounds.halfHeight <= 0
+  ) {
+    return null
+  }
+
+  const contentSize = getImageContentSize(naturalSize)
+
+  if (!contentSize || contentSize.width <= 0 || contentSize.height <= 0) {
+    return null
+  }
+
+  return {
+    safetyOutset: Math.max(
+      (safetyOutset / contentSize.width) * bounds.halfWidth * 2,
+      (safetyOutset / contentSize.height) * bounds.halfHeight * 2,
+    ),
+    loops: loops
+      .map((loop) =>
+        loop.map((point) => ({
+          x: (point.x / contentSize.width - 0.5) * bounds.halfWidth * 2,
+          y: (point.y / contentSize.height - 0.5) * bounds.halfHeight * 2,
+        })),
+      )
+      .filter((loop) => loop.length >= 3),
+  }
+}
+
 export function getContainedAssetBoundsPercent(
   naturalSize: NaturalSize,
   baseWidthRatio: number,
@@ -435,14 +743,23 @@ export function getContainedAssetBoundsPercent(
   const maxWidthPercent = baseWidthRatio * 100 * scale
   const maxHeightPercent = maxHeightRatio * 100 * scale
 
-  if (!naturalSize || naturalSize.width <= 0 || naturalSize.height <= 0) {
+  if (!naturalSize) {
     return {
       halfWidth: maxWidthPercent / 2,
       halfHeight: maxHeightPercent / 2,
     }
   }
 
-  const aspectRatio = naturalSize.width / naturalSize.height
+  const contentSize = getImageContentSize(naturalSize)
+
+  if (!contentSize) {
+    return {
+      halfWidth: 0,
+      halfHeight: 0,
+    }
+  }
+
+  const aspectRatio = contentSize.width / contentSize.height
   let widthPercent = maxWidthPercent
   let heightPercent = widthPercent / aspectRatio
 

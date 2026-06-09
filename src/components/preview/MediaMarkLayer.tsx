@@ -1,6 +1,7 @@
 import { useMemo, type PointerEvent } from 'react'
 import { createMediaMarkRenderModel } from '../../render/mediaMarkRenderModel'
 import type { ProjectMediaMark } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type MediaMarkLayerProps = {
   projectMediaMark: ProjectMediaMark
@@ -31,7 +32,10 @@ export function MediaMarkLayer({
 
   return (
     <div
-      className="disc-media-mark-layer"
+      className={[
+        'disc-media-mark-layer',
+        model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
+      ].filter(Boolean).join(' ')}
       aria-label="Media mark layer"
       style={{
         left: `${model.layout.x}%`,
@@ -44,10 +48,11 @@ export function MediaMarkLayer({
       onPointerUp={handleMediaMarkPointerUp}
       onPointerCancel={handleMediaMarkPointerUp}
     >
-      <img
+      <ContentBoundedImage
         className={`disc-media-mark-image${model.isPlaceholderImage ? ' disc-placeholder-svg-image' : ''}`}
         src={model.imageDataUrl}
         alt={model.alt}
+        imageSize={model.imageSize}
         draggable={false}
       />
     </div>

@@ -343,6 +343,7 @@ function normalizeSupplementalUskRatingBadge(
 export function normalizeProjectRatingBadge(
   ratingBadge: Partial<ProjectRatingBadge> | undefined,
   selectedDiscTemplate?: DiscTemplate,
+  metadata?: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'> | null,
 ): ProjectRatingBadge {
   const defaults = createDefaultProjectRatingBadge(selectedDiscTemplate)
   const source = ratingBadge?.source === 'custom' ? 'custom' : 'placeholder'
@@ -351,6 +352,7 @@ export function normalizeProjectRatingBadge(
     ? getDefaultRatingBadgeLayoutForTemplate(selectedDiscTemplate, {
         source,
         customImageSize,
+        metadata,
       })
     : defaults.layout
 

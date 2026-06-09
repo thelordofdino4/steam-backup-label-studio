@@ -102,6 +102,26 @@ test('Steam CDN logo is preferred over other logo assets', () => {
   assert.equal(findSteamTitleArtworkAsset(createSteamGame([firstLogo, cdnLogo])), cdnLogo)
 })
 
+test('current hashed Steam library logo is preferred over the legacy CDN logo', () => {
+  const hashedLibraryLogo: SteamArtworkAsset = {
+    id: 'store-library-logo',
+    label: 'Steam library logo',
+    url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/12345/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/logo.png',
+    kind: 'logo',
+  }
+  const legacyCdnLogo: SteamArtworkAsset = {
+    id: 'cdn-logo',
+    label: 'Steam CDN logo',
+    url: 'https://cdn.akamai.steamstatic.com/steam/apps/12345/logo.png',
+    kind: 'logo',
+  }
+
+  assert.equal(
+    findSteamTitleArtworkAsset(createSteamGame([legacyCdnLogo, hashedLibraryLogo])),
+    hashedLibraryLogo,
+  )
+})
+
 test('missing Steam title artwork clears stale artwork and leaves rendered text available', async () => {
   const previousLogo: SteamArtworkAsset = {
     id: 'cdn-logo',

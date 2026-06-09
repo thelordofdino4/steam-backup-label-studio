@@ -292,10 +292,12 @@ export async function restoreSavedProjectState(
   const loadedRatingBadge = normalizeProjectRatingBadge(
     project.ratingBadge,
     template.selectedDiscTemplate,
+    projectMetadata,
   )
   const projectRatingBadge = clampProjectRatingBadgeToSafeZone(
     loadedRatingBadge,
     template.selectedDiscTemplate,
+    projectMetadata,
   )
   const loadedMediaMark = normalizeProjectMediaMark(
     project.mediaMark,

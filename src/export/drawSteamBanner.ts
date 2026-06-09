@@ -1,4 +1,4 @@
-import type { SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
+import type { BackgroundImageSize, SteamBannerColors, SteamBannerLockupLayout } from '../project/projectTypes'
 import type { SteamLogoPlacement } from '../discText/index.ts'
 import {
   getSteamBannerBandLayout,
@@ -11,7 +11,11 @@ import {
   normalizeSteamBannerFallbackText,
   shouldRenderSteamBannerTextFallback,
 } from '../branding/steamBannerDefaults.ts'
-import { loadCanvasSafeImage } from './canvasImage.ts'
+import {
+  drawImageContent,
+  getCanvasImageContentSize,
+  loadCanvasSafeImage,
+} from './canvasImage.ts'
 
 type SteamBannerImageLoader = typeof loadCanvasSafeImage
 
@@ -22,6 +26,7 @@ export async function drawSteamBrandBanner(
   placement: SteamLogoPlacement,
   colors: SteamBannerColors,
   lockupImageDataUrl: string | null,
+  lockupImageSize: BackgroundImageSize | null,
   lockupLayout: SteamBannerLockupLayout,
   useTextFallback: boolean,
   fallbackText: string,
@@ -66,10 +71,8 @@ export async function drawSteamBrandBanner(
         lockupImageDataUrl,
         'Steam banner lockup image',
       )
-      const lockupAspectRatio = getSteamBannerLockupAspectRatio({
-        width: lockupImage.naturalWidth || lockupImage.width,
-        height: lockupImage.naturalHeight || lockupImage.height,
-      })
+      const contentSize = getCanvasImageContentSize(lockupImage, lockupImageSize)
+      const lockupAspectRatio = getSteamBannerLockupAspectRatio(contentSize)
       const imageLockupRect = getSteamBannerLockupRect(
         placement,
         lockupLayout,
@@ -79,14 +82,14 @@ export async function drawSteamBrandBanner(
       if (imageLockupRect) {
         const adjustedTarget = toExportRect(imageLockupRect, discContentSize, discOrigin)
 
-        context.drawImage(
+        if (drawImageContent(
+          context,
           lockupImage,
-          adjustedTarget.x,
-          adjustedTarget.y,
-          adjustedTarget.width,
-          adjustedTarget.height,
-        )
-        return
+          lockupImageSize,
+          adjustedTarget,
+        )) {
+          return
+        }
       }
     } catch {
       // Preserve export when a saved/custom lockup URL goes stale; draw the text fallback instead.

@@ -1,6 +1,7 @@
 import type { PointerEvent } from 'react'
 import { createTitleArtworkRenderItem } from '../../project/projectTitleArtwork'
 import type { ProjectTitleArtwork } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type TitleArtworkLayerProps = {
   projectTitleArtwork: ProjectTitleArtwork
@@ -23,10 +24,11 @@ export function TitleArtworkLayer({
 
   return (
     <div className="disc-title-artwork-layer" aria-label="Game title artwork layer">
-      <img
+      <ContentBoundedImage
         className="disc-title-artwork"
         src={renderItem.imageDataUrl}
         alt="Game title artwork"
+        imageSize={renderItem.imageSize}
         draggable={false}
         onPointerDown={handleTitleArtworkPointerDown}
         onPointerMove={handleTitleArtworkPointerMove}

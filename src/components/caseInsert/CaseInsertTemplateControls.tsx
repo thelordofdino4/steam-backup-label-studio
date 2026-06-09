@@ -1227,7 +1227,7 @@ export function CaseInsertTemplateArtworkControls({
             'titleArtwork',
             templateState.titleArtwork,
           )}
-          helpText="This is the game title/logo artwork on the case insert. Steam import can seed the Steam CDN logo when available; template text stays independently available in the Text tab."
+          helpText="This is the game title/logo artwork on the case insert. Steam import can seed the best available Steam title/logo artwork; template text stays independently available in the Text tab."
           onEnabledChange={(enabled) =>
             actions.handleImageSlotEnabledChange(
               paneId,

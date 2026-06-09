@@ -91,6 +91,29 @@ test('Steam case insert title artwork seed uses the same Steam CDN logo preferen
   assert.deepEqual(downloadedAssetIds, ['cdn-logo'])
 })
 
+test('Steam case insert title artwork seed prefers current hashed library logo', async () => {
+  const currentLibraryLogo: SteamArtworkAsset = {
+    id: 'store-library-logo',
+    label: 'Steam library logo',
+    url: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/620/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/logo.png',
+    kind: 'logo',
+  }
+  const downloadedAssetIds: string[] = []
+
+  const seed = await createSteamCaseInsertTitleArtworkSeed(
+    createSteamGame([steamLogoAsset, currentLibraryLogo]),
+    {
+      createSteamArtworkImage: async (asset) => {
+        downloadedAssetIds.push(asset.id)
+        return createImage()
+      },
+    },
+  )
+
+  assert.equal(seed.status, 'seeded')
+  assert.deepEqual(downloadedAssetIds, ['store-library-logo'])
+})
+
 test('Steam case insert title artwork seed falls back when the preferred logo cannot load', async () => {
   const downloadedAssetIds: string[] = []
 

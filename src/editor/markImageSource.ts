@@ -1,9 +1,8 @@
+import type { BackgroundImageSize } from '../project/projectTypes.ts'
+
 export type MarkImageSource = 'placeholder' | 'custom'
 
-export type MarkImageSize = {
-  width: number
-  height: number
-}
+export type MarkImageSize = BackgroundImageSize
 
 export type MarkImageSourceState = {
   source: MarkImageSource

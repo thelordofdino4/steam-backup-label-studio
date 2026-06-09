@@ -1,3 +1,14 @@
+import type {
+  BackgroundImageSize,
+  ImageContentBounds,
+  ImageContentShape,
+} from '../project/projectTypes.ts'
+import {
+  getImageContentBounds,
+  hasActiveImageContent,
+} from '../image/imageContentBounds.ts'
+import { getImageContentShape } from '../image/imageContentShape.ts'
+
 export type RenderPercentBounds = {
   halfWidth: number
   halfHeight: number
@@ -33,6 +44,9 @@ export type ImageRenderArtifact = {
   label: string
   alt: string
   isPlaceholderImage: boolean
+  imageSize?: BackgroundImageSize | null
+  contentBounds?: ImageContentBounds | null
+  contentShape?: ImageContentShape | null
 }
 
 type ImageRenderArtifactInput = {
@@ -40,6 +54,7 @@ type ImageRenderArtifactInput = {
   label?: string | null
   alt?: string | null
   isPlaceholderImage?: boolean
+  imageSize?: BackgroundImageSize | null
 }
 
 export type PercentPositionedImageRenderArtifact<
@@ -68,25 +83,36 @@ function normalizeRenderArtifactLabel(label: string | null | undefined) {
 }
 
 export function hasRenderableImageArtifact(
-  artifact: { imageDataUrl?: string | null } | null | undefined,
+  artifact: {
+    imageDataUrl?: string | null
+    imageSize?: BackgroundImageSize | null
+  } | null | undefined,
 ) {
-  return Boolean(artifact?.imageDataUrl)
+  return Boolean(artifact?.imageDataUrl && hasActiveImageContent(artifact.imageSize))
 }
 
 export function createImageRenderArtifact(
   input: ImageRenderArtifactInput,
 ): ImageRenderArtifact | null {
-  if (!input.imageDataUrl) {
+  if (!input.imageDataUrl || !hasActiveImageContent(input.imageSize)) {
     return null
   }
 
   const label = normalizeRenderArtifactLabel(input.label)
+  const imageContentFields = input.imageSize
+    ? {
+        imageSize: input.imageSize,
+        contentBounds: getImageContentBounds(input.imageSize),
+        contentShape: getImageContentShape(input.imageSize),
+      }
+    : {}
 
   return {
     imageDataUrl: input.imageDataUrl,
     label,
     alt: typeof input.alt === 'string' ? input.alt : label,
     isPlaceholderImage: input.isPlaceholderImage ?? false,
+    ...imageContentFields,
   }
 }
 

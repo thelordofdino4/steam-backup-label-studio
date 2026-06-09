@@ -514,6 +514,7 @@ export function useCaseInsertBrandingMarkSync({
       projectRatingBadge: clampProjectRatingBadgeToSafeZone(
         nextState.ratingBadge,
         selectedDiscTemplate,
+        nextState.metadata,
       ),
     })
   }
@@ -798,6 +799,7 @@ export function useCaseInsertBrandingMarkSync({
         projectRatingBadge: clampProjectRatingBadgeToSafeZone(
           nextState.ratingBadge,
           selectedDiscTemplate,
+          nextState.metadata,
         ),
       })
     }
@@ -811,6 +813,7 @@ export function useCaseInsertBrandingMarkSync({
           enabled,
         ),
         selectedDiscTemplate,
+        targetBrandingSources.projectMetadata,
       )
 
       handleSupplementalUskRatingBadgeEnabledChange(enabled)
@@ -845,6 +848,7 @@ export function useCaseInsertBrandingMarkSync({
       const nextProjectRatingBadge = clampProjectRatingBadgeToSafeZone(
         clearRatingBadgeImage(targetProjectRatingBadge),
         selectedDiscTemplate,
+        targetBrandingSources.projectMetadata,
       )
 
       handleClearRatingBadgeImage()

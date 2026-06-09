@@ -53,6 +53,7 @@ import {
 } from '../../render/imageRenderArtifact'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type CaseInsertSpinePreviewLayerProps = {
   spine: ProjectJewelCaseSpineState
@@ -176,10 +177,11 @@ function CaseInsertSpineBackground({
       onPointerUp={pointerHandlers.handleSpinePointerUp}
       style={getRectStyle(backgroundFit.region, layout)}
     >
-      <img
+      <ContentBoundedImage
         alt=""
         className="case-insert-spine-background-image"
         draggable={false}
+        imageSize={slot.imageSize}
         src={slot.imageDataUrl}
         style={getImageStyle(backgroundFit.imageRect, backgroundFit.region)}
       />
@@ -303,8 +305,10 @@ function CaseInsertSpineOverlaySlot({
     ? getCaseInsertLogoSlotRenderInfo(slot)
     : null
   const imageDataUrl = logoRenderInfo?.imageDataUrl ?? slot.imageDataUrl
+  const imageSize = logoRenderInfo?.imageSize ?? slot.imageSize
   const artifact = createBoxPositionedImageRenderArtifact({
     imageDataUrl,
+    imageSize,
     label: slot.label,
     alt: '',
     box: slotLayout,
@@ -320,7 +324,9 @@ function CaseInsertSpineOverlaySlot({
     role === 'artwork' && slot.frame.enabled && slot.frame.shape === 'circle'
       ? 'case-insert-image-slot-frame-host--circle'
       : '',
-  ].join(' ')
+    artifact.contentBounds ? 'case-insert-spine-overlay-box--content-bounded' : '',
+    artifact.contentShape ? 'case-insert-spine-overlay-box--content-shaped' : '',
+  ].filter(Boolean).join(' ')
   const style = getTransformedBoxStyle(artifact.box, layout)
   const pointerProps = {
     onPointerDown: (event: PointerEvent<Element>) =>
@@ -342,7 +348,12 @@ function CaseInsertSpineOverlaySlot({
 
   return (
     <div className={className} {...pointerProps} style={style}>
-      <img src={artifact.imageDataUrl} alt={artifact.alt} draggable={false} />
+      <ContentBoundedImage
+        src={artifact.imageDataUrl}
+        alt={artifact.alt}
+        imageSize={artifact.imageSize}
+        draggable={false}
+      />
       {role === 'artwork' ? <CaseInsertImageSlotFrame slot={slot} /> : null}
     </div>
   )

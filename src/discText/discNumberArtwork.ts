@@ -4,8 +4,14 @@ import type {
   DiscTextValues,
 } from './index.ts'
 import { getDiscTextContent } from './index.ts'
-import { DISC_NUMBER_BADGE_IMAGE_URLS } from '../assets/assetManifest.ts'
-import type { ProjectDiscNumberArtwork } from '../project/projectTypes.ts'
+import {
+  DISC_NUMBER_BADGE_IMAGE_URLS,
+  getDiscNumberBadgeImageSize,
+} from '../assets/assetManifest.ts'
+import type {
+  BackgroundImageSize,
+  ProjectDiscNumberArtwork,
+} from '../project/projectTypes.ts'
 
 export type DiscNumberArtworkMode = ProjectDiscNumberArtwork['mode']
 export type DiscNumberBadgeSet = ProjectDiscNumberArtwork['badgeSet']
@@ -17,6 +23,7 @@ export type DiscNumberBadgeSetOption = {
 
 export type DiscNumberBadgeRenderModel = {
   imageDataUrl: string
+  imageSize: BackgroundImageSize
   text: string
   label: string
   layout: DiscTextLayoutSettings['discNumber']
@@ -102,6 +109,7 @@ export function createDiscNumberBadgeRenderModel(
 
   return {
     imageDataUrl: DISC_NUMBER_BADGE_IMAGE_URLS[discNumberArtwork.badgeSet],
+    imageSize: getDiscNumberBadgeImageSize(discNumberArtwork.badgeSet),
     text,
     label: DISC_NUMBER_BADGE_SET_OPTIONS.find(
       (option) => option.value === discNumberArtwork.badgeSet,

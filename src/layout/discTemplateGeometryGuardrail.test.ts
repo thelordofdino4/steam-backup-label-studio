@@ -16,6 +16,10 @@ import {
   updatePlatformMarkToggle,
 } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
+import {
+  createDefaultProjectTechnicalMarks,
+  updateTechnicalMarkToggle,
+} from '../project/projectTechnicalMarks.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
   validateDiscTemplateGeometryGuardrail,
@@ -44,6 +48,7 @@ function createGuardrailState(
     projectRatingBadge: createDefaultProjectRatingBadge(standardTemplate),
     projectMediaMark: createDefaultProjectMediaMark(standardTemplate),
     projectPlatformMarks: createDefaultProjectPlatformMarks(),
+    projectTechnicalMarks: createDefaultProjectTechnicalMarks(),
     ...overrides,
   }
 }
@@ -94,7 +99,7 @@ test('custom geometry guardrail blocks safe-zone shrinkage that cannot fit an en
 
 test('custom geometry guardrail blocks inner hub growth that cannot fit an enabled badge', () => {
   const template = buildCustomDiscTemplate(standardTemplate, {
-    innerHoleDiameterMm: 90,
+    innerHoleDiameterMm: 100,
   })
   const result = validateDiscTemplateGeometryGuardrail(
     template,
@@ -183,6 +188,27 @@ test('custom geometry guardrail includes enabled operating system marks', () => 
 
   assert.equal(result.allowed, false)
   assert.ok(result.blockingElementLabels.includes('Windows operating system mark'))
+})
+
+test('custom geometry guardrail includes enabled technical marks', () => {
+  const template = buildCustomDiscTemplate(standardTemplate, {
+    innerHoleDiameterMm: 90,
+  })
+  const result = validateDiscTemplateGeometryGuardrail(
+    template,
+    createGuardrailState({
+      projectTechnicalMarks: updateTechnicalMarkToggle(
+        createDefaultProjectTechnicalMarks(),
+        'audio',
+        true,
+        standardTemplate,
+      ),
+    }),
+    measureText,
+  )
+
+  assert.equal(result.allowed, false)
+  assert.ok(result.blockingElementLabels.includes('audio technical mark'))
 })
 
 test('custom geometry guardrail ignores hidden movable element state', () => {

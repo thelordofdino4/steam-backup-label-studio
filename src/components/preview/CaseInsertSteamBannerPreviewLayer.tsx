@@ -17,6 +17,7 @@ import type {
 import type {
   ProjectCaseInsertSteamBanner,
 } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 type CaseInsertSteamBannerPreviewLayerProps = {
   banner: ProjectCaseInsertSteamBanner
@@ -114,9 +115,10 @@ export function CaseInsertSteamBannerPreviewLayer({
         )}
       >
         {!shouldShowTextFallback && banner.lockupImageDataUrl ? (
-          <img
+          <ContentBoundedImage
             src={banner.lockupImageDataUrl}
             alt=""
+            imageSize={banner.lockupImageSize}
             className={
               shouldTintBuiltInSpineIcon
                 ? 'case-insert-steam-banner-lockup-image--white'

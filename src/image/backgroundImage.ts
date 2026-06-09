@@ -1,5 +1,6 @@
 import { clampNumber } from '../disc/geometry.ts'
 import type { BackgroundImageSize, BackgroundOffset } from '../project/projectTypes'
+import { getImageContentSize } from './imageContentBounds.ts'
 
 export const DEFAULT_BACKGROUND_SCALE = 1
 export const BACKGROUND_SCALE_MIN = 0.1
@@ -67,25 +68,41 @@ function getBackgroundCoverSize(
 ) {
   const size = Number.isFinite(previewSize) && previewSize > 0 ? previewSize : 0
 
-  if (!imageSize || imageSize.width <= 0 || imageSize.height <= 0 || size <= 0) {
+  if (imageSize) {
+    const contentSize = getImageContentSize(imageSize)
+
+    if (!contentSize || size <= 0) {
+      return {
+        width: 0,
+        height: 0,
+      }
+    }
+
+    const aspectRatio = contentSize.width / contentSize.height
+
+    if (aspectRatio >= 1) {
+      return {
+        width: aspectRatio * size,
+        height: size,
+      }
+    }
+
+    return {
+      width: size,
+      height: (1 / aspectRatio) * size,
+    }
+  }
+
+  if (size <= 0) {
     return {
       width: size,
       height: size,
     }
   }
 
-  const aspectRatio = imageSize.width / imageSize.height
-
-  if (aspectRatio >= 1) {
-    return {
-      width: aspectRatio * size,
-      height: size,
-    }
-  }
-
   return {
     width: size,
-    height: (1 / aspectRatio) * size,
+    height: size,
   }
 }
 
@@ -170,14 +187,23 @@ export function updateBackgroundOffsetField(
 export function getBackgroundPreviewSize(
   imageSize: BackgroundImageSize | null,
 ) {
-  if (!imageSize || imageSize.width <= 0 || imageSize.height <= 0) {
+  if (!imageSize) {
     return {
       width: '100%',
       height: '100%',
     }
   }
 
-  const aspectRatio = imageSize.width / imageSize.height
+  const contentSize = getImageContentSize(imageSize)
+
+  if (!contentSize) {
+    return {
+      width: '0%',
+      height: '0%',
+    }
+  }
+
+  const aspectRatio = contentSize.width / contentSize.height
 
   if (aspectRatio >= 1) {
     return {

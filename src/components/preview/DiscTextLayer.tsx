@@ -25,6 +25,7 @@ import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '.
 import type { ProjectDiscNumberArtwork, ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { createSvgDataUrl } from '../../utils/svg'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
@@ -210,8 +211,9 @@ export function DiscTextLayer({
             fontFamily: getDiscTextFontFamilyCss(discTextStyles.discNumber.fontFamily),
           }}
         >
-          <img
+          <ContentBoundedImage
             className="disc-number-badge-image"
+            imageSize={discNumberBadgeRenderModel.imageSize}
             src={discNumberBadgeRenderModel.imageDataUrl}
             alt=""
             draggable={false}

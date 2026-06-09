@@ -1,5 +1,7 @@
 import type { PointerEvent } from 'react'
-import type { BackgroundOffset } from '../../project/projectTypes'
+import { hasActiveImageContent } from '../../image/imageContentBounds'
+import type { BackgroundImageSize, BackgroundOffset } from '../../project/projectTypes'
+import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type BackgroundPreviewSize = {
   width: string
@@ -8,6 +10,7 @@ export type BackgroundPreviewSize = {
 
 export type BackgroundLayerProps = {
   backgroundImageUrl: string | null
+  backgroundImageSize: BackgroundImageSize | null
   backgroundPreviewSize: BackgroundPreviewSize
   backgroundOffset: BackgroundOffset
   backgroundScale: number
@@ -18,6 +21,7 @@ export type BackgroundLayerProps = {
 
 export function BackgroundLayer({
   backgroundImageUrl,
+  backgroundImageSize,
   backgroundPreviewSize,
   backgroundOffset,
   backgroundScale,
@@ -27,7 +31,7 @@ export function BackgroundLayer({
 }: BackgroundLayerProps) {
   return (
     <>
-      {backgroundImageUrl ? (
+      {backgroundImageUrl && hasActiveImageContent(backgroundImageSize) ? (
         <div
           className="background-image-layer"
           role="img"
@@ -37,9 +41,10 @@ export function BackgroundLayer({
           onPointerUp={handleBackgroundPointerUp}
           onPointerCancel={handleBackgroundPointerUp}
         >
-          <img
+          <ContentBoundedImage
             src={backgroundImageUrl}
             alt=""
+            imageSize={backgroundImageSize}
             draggable={false}
             style={{
               width: backgroundPreviewSize.width,

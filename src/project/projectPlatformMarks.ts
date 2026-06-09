@@ -159,13 +159,19 @@ export function createDefaultProjectPlatformMarkAsset(
   value: PlatformMarkValue,
   selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarkAsset {
+  const theme = getDefaultPlatformMarkTheme(value)
+
   return {
     source: 'placeholder',
-    theme: getDefaultPlatformMarkTheme(value),
+    theme,
     customImageDataUrl: null,
     customImageSize: null,
     layout: selectedDiscTemplate
-      ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value)
+      ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value, {
+          source: 'placeholder',
+          theme,
+          customImageSize: null,
+        })
       : DEFAULT_PLATFORM_MARK_LAYOUTS[value],
   }
 }
@@ -538,6 +544,7 @@ function normalizePlatformMarkAsset(
   const defaultLayout = selectedDiscTemplate
     ? getDefaultPlatformMarkLayoutForTemplate(selectedDiscTemplate, value, {
         source,
+        theme,
         customImageSize,
       })
     : defaults.layout

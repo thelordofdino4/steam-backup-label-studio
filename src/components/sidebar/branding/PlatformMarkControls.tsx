@@ -169,7 +169,7 @@ export function PlatformMarkControls({
       handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
       renderLayoutControls={(value, label, asset) => {
         const sliderRanges = getPlatformMarkLayoutSliderRanges(
-          asset,
+          { ...asset, value },
           selectedDiscTemplate,
         )
 

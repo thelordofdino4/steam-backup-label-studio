@@ -1,9 +1,12 @@
 import {
+  getMediaMarkPlaceholderImageSize,
   getMediaMarkPlaceholderImageUrl,
+  getPlatformMarkPlaceholderImageSize,
   getPlatformMarkPlaceholderImageUrl,
   getRatingBadgePlaceholderRenderModel,
 } from '../assets/assetManifest.ts'
 import { loadImage } from '../export/canvasImage.ts'
+import { createImageSizeWithDetectedContentBounds } from '../image/imageContentBounds.ts'
 import {
   getAdditionalLogoAssets,
 } from '../project/projectLogoAssets.ts'
@@ -47,7 +50,6 @@ import type {
   ProjectRatingBadge,
   ProjectTechnicalMarks,
 } from '../project/projectTypes.ts'
-import { getNaturalImageSize } from '../utils/imageFile.ts'
 import type { CaseInsertImageSlotGroupKey } from './templateSurfaces.ts'
 import type { CaseInsertImageSlotImageInput } from './types.ts'
 
@@ -116,7 +118,9 @@ async function resolveImageSize(
     return fallbackSize
   }
 
-  return getNaturalImageSize(await loadImage(imageDataUrl, label))
+  return createImageSizeWithDetectedContentBounds(
+    await loadImage(imageDataUrl, label),
+  )
 }
 
 function createBrandingSourceItem({
@@ -242,6 +246,7 @@ function createRatingSourceItems(
     customImageDataUrl: projectRatingBadge.customImageDataUrl,
     customImageSize: projectRatingBadge.customImageSize,
     builtInImageDataUrl: renderModel.imageUrl,
+    builtInImageSize: renderModel.imageSize,
   })
   const sourceId = `case-rating:${projectMetadata.ratingSystem}:${
     projectMetadata.ratingValue.trim() || 'default'
@@ -260,28 +265,25 @@ function createRatingSourceItems(
     ),
   })
 
+  const supplementalUskRenderModel = getRatingBadgePlaceholderRenderModel({
+    ratingSystem: 'USK',
+    ratingValue: projectRatingBadge.uskBadge.ratingValue,
+  })
+  const supplementalUskSourceId =
+    `case-rating:USK:${projectRatingBadge.uskBadge.ratingValue}:supplemental`
   const supplementalUskItem =
     shouldRenderSupplementalUskRatingBadge(projectMetadata, projectRatingBadge)
       ? createBrandingSourceItem({
-          id: `case-rating:USK:${projectRatingBadge.uskBadge.ratingValue}:supplemental`,
+          id: supplementalUskSourceId,
           slotKey: 'markSlots',
-          label: getRatingBadgePlaceholderRenderModel({
-            ratingSystem: 'USK',
-            ratingValue: projectRatingBadge.uskBadge.ratingValue,
-          }).altLabel,
+          label: supplementalUskRenderModel.altLabel,
           sourceTypeLabel: 'Rating badge',
-          imageDataUrl: getRatingBadgePlaceholderRenderModel({
-            ratingSystem: 'USK',
-            ratingValue: projectRatingBadge.uskBadge.ratingValue,
-          }).imageUrl,
-          imageSize: null,
+          imageDataUrl: supplementalUskRenderModel.imageUrl,
+          imageSize: supplementalUskRenderModel.imageSize,
           imageSource: createSourceProvenance(
             'placeholder',
-            `case-rating:USK:${projectRatingBadge.uskBadge.ratingValue}:supplemental`,
-            getRatingBadgePlaceholderRenderModel({
-              ratingSystem: 'USK',
-              ratingValue: projectRatingBadge.uskBadge.ratingValue,
-            }).altLabel,
+            supplementalUskSourceId,
+            supplementalUskRenderModel.altLabel,
           ),
         })
       : null
@@ -304,6 +306,10 @@ function createMediaMarkSourceItems(projectMediaMark: ProjectMediaMark) {
     customImageDataUrl: projectMediaMark.customImageDataUrl,
     customImageSize: projectMediaMark.customImageSize,
     builtInImageDataUrl: getMediaMarkPlaceholderImageUrl(
+      projectMediaMark.value,
+      theme,
+    ),
+    builtInImageSize: getMediaMarkPlaceholderImageSize(
       projectMediaMark.value,
       theme,
     ),
@@ -338,6 +344,10 @@ function createPlatformMarkSourceItems(projectPlatformMarks: ProjectPlatformMark
         value,
         asset.theme,
       ),
+      builtInImageSize: getPlatformMarkPlaceholderImageSize(
+        value,
+        asset.theme,
+      ),
     })
     const item = createBrandingSourceItem({
       id: sourceId,
@@ -368,7 +378,7 @@ function createTechnicalMarkSourceItems(projectTechnicalMarks: ProjectTechnicalM
       label,
       sourceTypeLabel: 'Technical mark',
       imageDataUrl: model.imageDataUrl,
-      imageSize: model.isPlaceholderImage ? null : model.asset.customImageSize,
+      imageSize: model.imageSize ?? null,
       imageSource: createSourceProvenance(
         model.isPlaceholderImage ? 'placeholder' : 'custom',
         sourceId,
