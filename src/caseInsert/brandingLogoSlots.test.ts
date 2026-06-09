@@ -52,9 +52,12 @@ test('case insert primary logo slots have stable developer and publisher identit
 
   assert.equal(developerLogo?.enabled, true)
   assert.equal(developerLogo?.label, 'Developer logo')
-  assert.equal(developerLogo?.layout.x, 20)
+  assert.equal(developerLogo?.layout.x, 50)
+  assert.equal(developerLogo?.layout.y, 92)
   assert.equal(publisherLogo?.enabled, true)
   assert.equal(publisherLogo?.label, 'Publisher logo')
+  assert.equal(publisherLogo?.layout.x, 84)
+  assert.equal(publisherLogo?.layout.y, 92)
   assert.equal(
     publisherLogo?.imageSource?.source,
     'official-logo-candidate',
@@ -132,8 +135,8 @@ test('case insert primary logo reset and clear preserve enabled state and saved 
   )
 
   assert.equal(developerLogo?.enabled, true)
-  assert.equal(developerLogo?.layout.x, 20)
-  assert.equal(developerLogo?.layout.y, 84)
+  assert.equal(developerLogo?.layout.x, 50)
+  assert.equal(developerLogo?.layout.y, 92)
 })
 
 test('case insert logo slots preserve selected images while disabled', () => {

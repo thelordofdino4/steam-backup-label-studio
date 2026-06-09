@@ -18,6 +18,10 @@ import {
 } from '../editor/logoAsset.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
 import {
+  CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT,
+  CASE_INSERT_COVER_PUBLISHER_LOGO_LAYOUT,
+} from './defaultBrandingLayouts.ts'
+import {
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
   updateCaseInsertImageSlotLayoutField,
@@ -47,8 +51,8 @@ export type CaseInsertLogoSlotRenderInfo = {
 const CASE_INSERT_PRIMARY_LOGO_LAYOUTS:
 Record<CaseInsertLogoSurfaceId, Record<LogoAssetKey, ProjectCaseInsertLayout>> = {
   cover: {
-    developer: { scale: 1, x: 20, y: 84, rotation: 0 },
-    publisher: { scale: 1, x: 80, y: 84, rotation: 0 },
+    developer: CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT,
+    publisher: CASE_INSERT_COVER_PUBLISHER_LOGO_LAYOUT,
   },
   tray: {
     developer: { scale: 1, x: 18, y: 88, rotation: 0 },

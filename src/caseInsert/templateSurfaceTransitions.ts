@@ -13,6 +13,10 @@ import {
   getNextRepeatedArtworkSlotNumber,
 } from '../editor/repeatedArtwork.ts'
 import { createDefaultCaseInsertImageSlot } from './defaults.ts'
+import {
+  CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT,
+  CASE_INSERT_COVER_RATING_MARK_LAYOUT,
+} from './defaultBrandingLayouts.ts'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
@@ -42,13 +46,13 @@ const imageSlotGroupConfig: Record<
       idPrefix: 'cover-logo',
       labelPrefix: 'Logo',
       fit: 'contain',
-      defaultLayout: { scale: 1, x: 20, y: 84 },
+      defaultLayout: CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT,
     },
     markSlots: {
       idPrefix: 'cover-mark',
       labelPrefix: 'Mark',
       fit: 'contain',
-      defaultLayout: { scale: 1, x: 82, y: 84 },
+      defaultLayout: CASE_INSERT_COVER_RATING_MARK_LAYOUT,
     },
   },
   tray: {

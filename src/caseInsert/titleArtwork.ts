@@ -21,6 +21,9 @@ import {
 import {
   createSteamArtworkCaseInsertImageSlotImage,
 } from './imageSlotSourceImport.ts'
+import {
+  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+} from './defaultImportLayouts.ts'
 
 export type CaseInsertTitleArtworkImportStatus =
   | 'seeded'
@@ -249,6 +252,20 @@ export function applySteamCaseInsertTitleArtworkSeedToProject(
 ): ProjectJewelCaseState {
   const applySeed = (slot: ProjectCaseInsertImageSlot) =>
     applySteamCaseInsertTitleArtworkSeedToSlot(slot, seed)
+  const applySpineSeed = (slot: ProjectCaseInsertImageSlot) => {
+    const seededSlot = applySeed(slot)
+
+    return seed.status === 'seeded'
+      ? {
+          ...seededSlot,
+          layout: {
+            ...seededSlot.layout,
+            ...CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+          },
+        }
+      : seededSlot
+  }
+  const hideSpineTitleForImportedLogo = seed.status === 'seeded'
 
   return {
     ...caseInsert,
@@ -266,11 +283,17 @@ export function applySteamCaseInsertTitleArtworkSeedToProject(
     spine: {
       left: {
         ...caseInsert.spine.left,
-        titleArtwork: applySeed(caseInsert.spine.left.titleArtwork),
+        titleArtwork: applySpineSeed(caseInsert.spine.left.titleArtwork),
+        title: hideSpineTitleForImportedLogo
+          ? { ...caseInsert.spine.left.title, enabled: false }
+          : caseInsert.spine.left.title,
       },
       right: {
         ...caseInsert.spine.right,
-        titleArtwork: applySeed(caseInsert.spine.right.titleArtwork),
+        titleArtwork: applySpineSeed(caseInsert.spine.right.titleArtwork),
+        title: hideSpineTitleForImportedLogo
+          ? { ...caseInsert.spine.right.title, enabled: false }
+          : caseInsert.spine.right.title,
       },
     },
   }

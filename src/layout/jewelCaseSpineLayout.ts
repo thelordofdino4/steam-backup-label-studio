@@ -3,6 +3,9 @@ import type {
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
 import {
+  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
+} from '../caseInsert/defaultImportLayouts.ts'
+import {
   getCaseInsertTextBlockStyleRole,
   getCaseInsertTextFontFamilyCanvas,
   getCaseInsertTextStyleRoleMaxLines,
@@ -71,7 +74,10 @@ const spineOverlayConfig = {
     widthBasis: 'length',
     widthRatio: 0.42,
     heightRatio: 0.82,
-    defaultCenter: { x: 50, y: 28 },
+    defaultCenter: {
+      x: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT.x,
+      y: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT.y,
+    },
   },
   artwork: {
     widthBasis: 'width',
@@ -122,11 +128,10 @@ function getDefaultSpineRotation(side: JewelCaseSpineSideId) {
 }
 
 function getDefaultSpineOverlayRotation(
-  side: JewelCaseSpineSideId,
   role: JewelCaseSpineOverlayRole,
 ) {
   return role === 'titleArtwork'
-    ? getDefaultSpineRotation(side)
+    ? CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT.rotation
     : 0
 }
 
@@ -470,7 +475,7 @@ function getSpineImageSlotRenderSize(
   const scale = normalizePositiveNumber(slot.layout.scale, 1)
   const rotationDegrees = normalizeRotationDegrees(
     slot.layout.rotation,
-    getDefaultSpineOverlayRotation(side, role),
+    getDefaultSpineOverlayRotation(role),
   )
   const widthBasis = config.widthBasis === 'length'
     ? safeBounds.height

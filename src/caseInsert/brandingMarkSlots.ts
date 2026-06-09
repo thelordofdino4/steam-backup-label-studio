@@ -43,7 +43,7 @@ const USER_OVERRIDE_IMAGE_SOURCES = new Set<ProjectImageAssetSource>([
   'official-logo-candidate',
 ])
 const SUPPLEMENTAL_USK_MARK_SCALE_MULTIPLIER = 1.2
-const SUPPLEMENTAL_USK_TEMPLATE_X_OFFSET = -12
+const SUPPLEMENTAL_USK_TEMPLATE_X_OFFSET = 12
 const SUPPLEMENTAL_USK_SPINE_Y_OFFSET = -12
 
 export type CaseInsertBrandingMarkTarget =

@@ -7,6 +7,10 @@ import {
   applyCaseInsertBackCoverLegalText,
   applySteamBackCoverImportToCaseInsert,
 } from './steamBackCoverImport.ts'
+import {
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
+  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
+} from './defaultImportLayouts.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
 
 function createSteamGame(
@@ -48,6 +52,19 @@ function getTrayTextBlock(
   return textBlock
 }
 
+function getTrayTextList(
+  caseInsert: ReturnType<typeof createDefaultProjectJewelCaseState>,
+  id: string,
+) {
+  const textList = caseInsert.templates.tray.textLists.find(
+    (candidate) => candidate.id === id,
+  )
+
+  assert.ok(textList)
+
+  return textList
+}
+
 test('Steam import seeds tray card back-cover text fields', () => {
   const state = applySteamBackCoverImportToCaseInsert(
     createDefaultProjectJewelCaseState(),
@@ -61,17 +78,38 @@ test('Steam import seeds tray card back-cover text fields', () => {
   )
   assert.equal(getTrayTextBlock(state, 'tray-description').enabled, false)
   assert.equal(getTrayTextBlock(state, 'tray-description').source, 'steam')
+  assert.equal(getTrayTextBlock(state, 'tray-description').align, 'left')
+  assert.deepEqual(
+    getTrayTextBlock(state, 'tray-description').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-description'].layout,
+  )
   assert.equal(
     getTrayTextBlock(state, 'tray-minimum-requirements').value,
     'Minimum:\nOS: Windows XP',
+  )
+  assert.deepEqual(
+    getTrayTextBlock(state, 'tray-minimum-requirements').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+      'tray-minimum-requirements'
+    ].layout,
   )
   assert.equal(
     getTrayTextBlock(state, 'tray-recommended-requirements').value,
     'Recommended:\nOS: Windows 7\nMemory: 2 GB RAM',
   )
+  assert.deepEqual(
+    getTrayTextBlock(state, 'tray-recommended-requirements').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
+      'tray-recommended-requirements'
+    ].layout,
+  )
   assert.equal(
     getTrayTextBlock(state, 'tray-copyright-text').value,
     '(c) Valve Corporation. All rights reserved.',
+  )
+  assert.deepEqual(
+    getTrayTextBlock(state, 'tray-copyright-text').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-copyright-text'].layout,
   )
   assert.deepEqual(tray.textLists[0]?.items, [
     'Single-player',
@@ -82,6 +120,10 @@ test('Steam import seeds tray card back-cover text fields', () => {
   ])
   assert.equal(tray.textLists[0]?.enabled, false)
   assert.equal(tray.textLists[0]?.source, 'steam')
+  assert.deepEqual(
+    getTrayTextList(state, 'tray-feature-bullets').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS['tray-feature-bullets'].layout,
+  )
 })
 
 test('Steam import preserves enabled tray text fields while updating game text', () => {
@@ -121,6 +163,12 @@ test('Steam import preserves user-edited tray card text by default', () => {
           enabled: true,
           value: 'Custom back-cover copy',
           source: 'manual' as const,
+          layout: {
+            ...textBlock.layout,
+            scale: 1.2,
+            x: 12,
+            y: 88,
+          },
         }
       : textBlock,
   )
@@ -143,6 +191,9 @@ test('Steam import preserves user-edited tray card text by default', () => {
     'Custom back-cover copy',
   )
   assert.equal(getTrayTextBlock(updated, 'tray-description').source, 'manual')
+  assert.equal(getTrayTextBlock(updated, 'tray-description').layout.scale, 1.2)
+  assert.equal(getTrayTextBlock(updated, 'tray-description').layout.x, 12)
+  assert.equal(getTrayTextBlock(updated, 'tray-description').layout.y, 88)
 })
 
 test('Steam import can replace game-scoped tray card text', () => {
@@ -174,6 +225,10 @@ test('Steam import can replace game-scoped tray card text', () => {
 
   assert.equal(getTrayTextBlock(updated, 'tray-description').value, 'Next game copy.')
   assert.equal(getTrayTextBlock(updated, 'tray-description').source, 'steam')
+  assert.deepEqual(
+    getTrayTextBlock(updated, 'tray-description').layout,
+    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-description'].layout,
+  )
 })
 
 test('case insert legal candidate applies to the tray card legal text', () => {
