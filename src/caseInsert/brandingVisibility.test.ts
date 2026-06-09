@@ -10,6 +10,9 @@ import {
   createDefaultProjectJewelCaseState,
 } from './defaults.ts'
 import {
+  CASE_INSERT_COVER_RATING_MARK_LAYOUT,
+} from './defaultBrandingLayouts.ts'
+import {
   type CaseInsertBrandingMarkTarget,
   setProjectJewelCaseBrandingMarkTargetKindEnabled,
   setProjectJewelCaseBrandingMarkTargetSourcePrefixEnabled,
@@ -347,6 +350,18 @@ test('case insert target mark enable creates visible slots only for that target'
   assert.equal(state.templates.cover.markSlots.length, 0)
   assert.equal(state.templates.tray.markSlots.length, 0)
   assert.equal(state.spine.right.markSlots.length, 0)
+
+  const coverState = setProjectJewelCaseBrandingMarkTargetKindEnabled(
+    createDefaultProjectJewelCaseState('Portal 2'),
+    { type: 'template', paneId: 'cover' },
+    'rating',
+    true,
+    brandingSources,
+  )
+  const coverRatingSlot = coverState.templates.cover.markSlots[0]
+
+  assert.equal(coverRatingSlot?.imageSource?.sourceId, 'case-rating:ESRB:M')
+  assert.deepEqual(coverRatingSlot?.layout, CASE_INSERT_COVER_RATING_MARK_LAYOUT)
 })
 
 test('case insert target source toggles do not create marks on other faces', () => {
@@ -509,7 +524,7 @@ test('case insert supplemental USK rating badge defaults away from the primary r
       assert.equal(supplementalSlot.layout.x, primarySlot.layout.x)
       assert.equal(supplementalSlot.layout.y < primarySlot.layout.y, true)
     } else {
-      assert.equal(supplementalSlot.layout.x < primarySlot.layout.x, true)
+      assert.equal(supplementalSlot.layout.x > primarySlot.layout.x, true)
       assert.equal(supplementalSlot.layout.y, primarySlot.layout.y)
     }
   })
@@ -586,7 +601,7 @@ test('case insert supplemental USK sync migrates untouched overlapping auto layo
     migratedPrimarySlot.layout,
   )
   assert.equal(
-    migratedSupplementalSlot.layout.x < migratedPrimarySlot.layout.x,
+    migratedSupplementalSlot.layout.x > migratedPrimarySlot.layout.x,
     true,
   )
 })

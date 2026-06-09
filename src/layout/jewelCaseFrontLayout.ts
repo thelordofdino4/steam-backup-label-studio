@@ -25,6 +25,10 @@ import {
   type CaseInsertTextAvoidanceRegion,
 } from './caseInsertTextAvoidance.ts'
 import {
+  CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT,
+  CASE_INSERT_COVER_RATING_MARK_LAYOUT,
+} from '../caseInsert/defaultBrandingLayouts.ts'
+import {
   getCaseInsertTextVisualLayout,
   type CaseInsertTextVisualLine,
 } from './caseInsertTextVisualLayout.ts'
@@ -69,8 +73,14 @@ const imageSlotFallbackCenterByRole: Record<
 > = {
   titleArtwork: { x: 50, y: 24 },
   calloutArtwork: { x: 50, y: 62 },
-  logo: { x: 20, y: 84 },
-  mark: { x: 82, y: 84 },
+  logo: {
+    x: CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT.x,
+    y: CASE_INSERT_COVER_DEVELOPER_LOGO_LAYOUT.y,
+  },
+  mark: {
+    x: CASE_INSERT_COVER_RATING_MARK_LAYOUT.x,
+    y: CASE_INSERT_COVER_RATING_MARK_LAYOUT.y,
+  },
 }
 
 const textBlockConfigByRole: Record<

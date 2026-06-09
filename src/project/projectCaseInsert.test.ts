@@ -1447,7 +1447,10 @@ test('template helpers add, update, preserve, and remove logo and mark slots', (
   assert.equal(state.templates.cover.markSlots[0]?.id, 'cover-mark-1')
   assert.equal(state.templates.tray.logoSlots[0]?.id, 'tray-logo-1')
   assert.equal(state.templates.tray.markSlots[0]?.id, 'tray-mark-1')
-  assert.equal(state.templates.cover.markSlots[0]?.layout.x, 82)
+  assert.equal(state.templates.cover.logoSlots[0]?.layout.x, 50)
+  assert.equal(state.templates.cover.logoSlots[0]?.layout.y, 92)
+  assert.equal(state.templates.cover.markSlots[0]?.layout.x, 0)
+  assert.equal(state.templates.cover.markSlots[0]?.layout.y, 100)
   assert.equal(state.templates.tray.markSlots[0]?.layout.x, 84)
 
   state = updateCaseInsertTemplateImageSlotInGroup(
