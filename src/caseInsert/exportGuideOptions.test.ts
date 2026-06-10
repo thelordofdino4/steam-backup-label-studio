@@ -27,10 +27,14 @@ test('case insert export guide options group tray spine guides simply', () => {
     trayOptions.map(({ label }) => label),
     [
       'Show trim bounds',
-      'Show safe zones',
+      'Show tray safe zone',
       'Show spine bounds',
       'Show spine safe zones',
     ],
+  )
+  assert.deepEqual(
+    trayOptions.find(({ id }) => id === 'tray-safe')?.guideIds,
+    ['backPanelSafeBounds'],
   )
   assert.deepEqual(
     trayOptions.find(({ id }) => id === 'tray-spine-bounds')?.guideIds,

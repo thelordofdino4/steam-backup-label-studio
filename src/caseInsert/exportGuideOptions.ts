@@ -42,8 +42,8 @@ const CASE_INSERT_EXPORT_GUIDE_OPTION_DEFINITIONS: Record<
     },
     {
       id: 'tray-safe',
-      label: 'Show safe zones',
-      guideIds: ['backSafeBounds', 'backPanelSafeBounds'],
+      label: 'Show tray safe zone',
+      guideIds: ['backPanelSafeBounds'],
     },
     {
       id: 'tray-spine-bounds',

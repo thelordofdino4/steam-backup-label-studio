@@ -13,6 +13,9 @@ import {
   createJewelCasePreviewLayout,
   type CaseInsertPreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
+import {
+  createCaseInsertGuideLayout,
+} from '../../layout/caseInsertGuideLayout'
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type { ProjectJewelCaseState } from '../../project/projectTypes'
 import type {
@@ -108,11 +111,14 @@ export function CaseInsertPreview({
   const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const layout = useMemo(
-    () => createJewelCasePreviewLayout(
-      caseInsert.templateType,
-      activePaneConfig.surfaceId,
+    () => createCaseInsertGuideLayout(
+      createJewelCasePreviewLayout(
+        caseInsert.templateType,
+        activePaneConfig.surfaceId,
+      ),
+      caseInsert,
     ),
-    [activePaneConfig.surfaceId, caseInsert.templateType],
+    [activePaneConfig.surfaceId, caseInsert],
   )
   const previewStyle = useMemo(
     () => ({

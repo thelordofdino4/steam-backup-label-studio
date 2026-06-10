@@ -26,6 +26,9 @@ import {
   JEWEL_CASE_FULL_INSERT_EXPORT_GAP_PX,
 } from './caseInsertPreviewLayout.ts'
 import {
+  createCaseInsertGuideLayout,
+} from './caseInsertGuideLayout.ts'
+import {
   createCaseInsertPngExportLayout,
 } from '../caseInsert/exportLayout.ts'
 import {
@@ -254,9 +257,15 @@ test('case insert PNG export layout matches the active template preview surface'
 
 test('case insert export guide geometry matches active preview surfaces', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
-  const coverPreviewLayout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const coverPreviewLayout = createCaseInsertGuideLayout(
+    createJewelCasePreviewLayout('jewelCase', 'front'),
+    state,
+  )
   const coverExportLayout = createCaseInsertPngExportLayout(state, 'cover')
-  const trayPreviewLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const trayPreviewLayout = createCaseInsertGuideLayout(
+    createJewelCasePreviewLayout('jewelCase', 'back'),
+    state,
+  )
   const trayExportLayout = createCaseInsertPngExportLayout(state, 'tray')
 
   for (const guideId of ['frontTrimBounds', 'frontSafeBounds'] as const) {
@@ -283,6 +292,86 @@ test('case insert export guide geometry matches active preview surfaces', () => 
       trayPreviewLayout.guides.find((guide) => guide.guideId === guideId),
     )
   }
+})
+
+test('case insert guide layout removes tray safe connectors and adjusts spine safe zones', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createCaseInsertGuideLayout(
+    createJewelCasePreviewLayout('jewelCase', 'back'),
+    state,
+  )
+  const backPanelSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'backPanelSafeBounds',
+  )
+  const leftSpineSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'leftSpineSafeBounds',
+  )
+  const rightSpineSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'rightSpineSafeBounds',
+  )
+
+  assert.equal(
+    layout.guides.some(({ guideId }) => guideId === 'backSafeBounds'),
+    false,
+  )
+  assert.deepEqual(backPanelSafe?.bounds, {
+    x: JEWEL_CASE_SPINE_WIDTH_PX + 48,
+    y: 48,
+    width: JEWEL_CASE_BACK_PANEL_WIDTH_PX - 96,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX - 96,
+  })
+  assert.deepEqual(leftSpineSafe?.bounds, {
+    x: 0,
+    y: 176,
+    width: JEWEL_CASE_SPINE_WIDTH_PX,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX - 176,
+  })
+  assert.deepEqual(rightSpineSafe?.bounds, {
+    x: JEWEL_CASE_SPINE_WIDTH_PX + JEWEL_CASE_BACK_PANEL_WIDTH_PX,
+    y: 176,
+    width: JEWEL_CASE_SPINE_WIDTH_PX,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX - 176,
+  })
+})
+
+test('case insert guide layout uses the full spine when Steam banner is disabled', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const disabledBannerState = {
+    ...state,
+    spine: {
+      left: {
+        ...state.spine.left,
+        steamBanner: { ...state.spine.left.steamBanner, enabled: false },
+      },
+      right: {
+        ...state.spine.right,
+        steamBanner: { ...state.spine.right.steamBanner, enabled: false },
+      },
+    },
+  }
+  const layout = createCaseInsertGuideLayout(
+    createJewelCasePreviewLayout('jewelCase', 'back'),
+    disabledBannerState,
+  )
+  const leftSpineSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'leftSpineSafeBounds',
+  )
+  const rightSpineSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'rightSpineSafeBounds',
+  )
+
+  assert.deepEqual(leftSpineSafe?.bounds, {
+    x: 0,
+    y: 0,
+    width: JEWEL_CASE_SPINE_WIDTH_PX,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
+  })
+  assert.deepEqual(rightSpineSafe?.bounds, {
+    x: JEWEL_CASE_SPINE_WIDTH_PX + JEWEL_CASE_BACK_PANEL_WIDTH_PX,
+    y: 0,
+    width: JEWEL_CASE_SPINE_WIDTH_PX,
+    height: JEWEL_CASE_BACK_SURFACE_HEIGHT_PX,
+  })
 })
 
 test('case insert guide stroke and dash styles are layout-scaled', () => {

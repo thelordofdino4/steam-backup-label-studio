@@ -3,6 +3,9 @@ import {
   createJewelCasePreviewLayout,
 } from '../layout/caseInsertPreviewLayout.ts'
 import {
+  createCaseInsertGuideLayout,
+} from '../layout/caseInsertGuideLayout.ts'
+import {
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
@@ -16,9 +19,12 @@ export function createCaseInsertPngExportLayout(
 ) {
   const paneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
 
-  return createJewelCasePreviewLayout(
-    caseInsert.templateType,
-    paneConfig.surfaceId,
-    { dpi: options.dpi },
+  return createCaseInsertGuideLayout(
+    createJewelCasePreviewLayout(
+      caseInsert.templateType,
+      paneConfig.surfaceId,
+      { dpi: options.dpi },
+    ),
+    caseInsert,
   )
 }
