@@ -339,6 +339,7 @@ test('case insert guide layout uses the full spine when Steam banner is disabled
   const disabledBannerState = {
     ...state,
     spine: {
+      ...state.spine,
       left: {
         ...state.spine.left,
         steamBanner: { ...state.spine.left.steamBanner, enabled: false },

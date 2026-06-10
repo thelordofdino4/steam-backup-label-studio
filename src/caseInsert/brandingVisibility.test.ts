@@ -20,6 +20,9 @@ import {
   syncProjectJewelCaseBrandingMarkSlotsForTarget,
 } from './brandingMarkSlots.ts'
 import {
+  setJewelCaseSpineMirrored,
+} from './jewelCaseTransitions.ts'
+import {
   getEnabledCaseInsertMarkSlotForKind,
   getEnabledCaseInsertMarkSlotForSourcePrefix,
 } from './brandingMarkPlacement.ts'
@@ -327,7 +330,10 @@ test('case insert target mark enable creates visible slots only for that target'
     },
   })
   const state = setProjectJewelCaseBrandingMarkTargetKindEnabled(
-    createDefaultProjectJewelCaseState('Portal 2'),
+    setJewelCaseSpineMirrored(
+      createDefaultProjectJewelCaseState('Portal 2'),
+      false,
+    ),
     { type: 'spine', side: 'left' },
     'rating',
     true,
@@ -362,6 +368,44 @@ test('case insert target mark enable creates visible slots only for that target'
 
   assert.equal(coverRatingSlot?.imageSource?.sourceId, 'case-rating:ESRB:M')
   assert.deepEqual(coverRatingSlot?.layout, CASE_INSERT_COVER_RATING_MARK_LAYOUT)
+})
+
+test('mirrored spine mark enable creates visible slots for both spines', () => {
+  const defaultRatingBadge = createDefaultProjectRatingBadge()
+  const brandingSources = createBrandingSources({
+    projectMetadata: {
+      ...createDefaultProjectMetadata(),
+      ratingSystem: 'ESRB',
+      ratingValue: 'M',
+    },
+    projectRatingBadge: {
+      ...defaultRatingBadge,
+      layout: {
+        ...defaultRatingBadge.layout,
+        enabled: true,
+      },
+    },
+  })
+  const state = setProjectJewelCaseBrandingMarkTargetKindEnabled(
+    createDefaultProjectJewelCaseState('Portal 2'),
+    { type: 'spine', side: 'left' },
+    'rating',
+    true,
+    brandingSources,
+  )
+
+  assert.deepEqual(
+    state.spine.left.markSlots.map((slot) => slot.imageSource?.sourceId),
+    ['case-rating:ESRB:M'],
+  )
+  assert.deepEqual(
+    state.spine.right.markSlots.map((slot) => slot.imageSource?.sourceId),
+    ['case-rating:ESRB:M'],
+  )
+  assert.equal(state.spine.left.markSlots[0]?.id, 'left-spine-auto-rating-primary')
+  assert.equal(state.spine.right.markSlots[0]?.id, 'right-spine-auto-rating-primary')
+  assert.equal(state.spine.left.markSlots[0]?.enabled, true)
+  assert.equal(state.spine.right.markSlots[0]?.enabled, true)
 })
 
 test('case insert target source toggles do not create marks on other faces', () => {

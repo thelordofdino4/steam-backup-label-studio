@@ -9,7 +9,6 @@ import type {
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
   ProjectImageAssetProvenance,
-  ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
   ProjectMetadata,
 } from '../project/projectTypes.ts'
@@ -106,6 +105,8 @@ export type ProjectJewelCaseSpineSideStateInput = {
 }
 
 export type ProjectJewelCaseSpineStateInput = {
+  mirrored?: boolean
+  mirror?: boolean
   left?: ProjectJewelCaseSpineSideStateInput
   right?: ProjectJewelCaseSpineSideStateInput
 }
@@ -159,4 +160,4 @@ export type CaseInsertLayoutPoint = {
   y: number
 }
 
-export type JewelCaseSpineSide = keyof ProjectJewelCaseSpineState
+export type JewelCaseSpineSide = 'left' | 'right'

@@ -684,6 +684,10 @@ function normalizeJewelCaseSpineState(
   }
 
   return {
+    mirrored: normalizeBoolean(
+      record.mirrored ?? record.mirror,
+      defaults.mirrored,
+    ),
     left: normalizeJewelCaseSpineSideState(record.left, defaults.left),
     right: normalizeJewelCaseSpineSideState(record.right, defaults.right),
   }

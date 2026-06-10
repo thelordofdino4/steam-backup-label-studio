@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import type {
   JewelCaseSpineImageSlotKey,
   JewelCaseSpineImageSlotGroupKey,
@@ -24,7 +24,11 @@ import {
 } from '../../caseInsert/brandingLogoSlots'
 import {
   createJewelCasePreviewLayout,
+  type CaseInsertPreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
+import {
+  createCaseInsertSpineGuideLayout,
+} from '../../layout/caseInsertGuideLayout'
 import {
   RATING_BADGE_LAYOUT_PRESETS,
 } from '../../layout/presets'
@@ -37,6 +41,7 @@ import type {
 import {
   getJewelCaseSpineBackgroundLayoutSliderRanges,
   getJewelCaseSpineImageSlotLayoutSliderRanges,
+  getJewelCaseSpineTextLayoutSliderRanges,
   type JewelCaseSpineOverlayRole,
 } from '../../layout/jewelCaseSpineLayout'
 import type {
@@ -69,6 +74,7 @@ import {
   getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
   getNextCaseInsertTextSource,
+  getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
   CASE_INSERT_TEXT_WIDTH_MAX,
@@ -140,6 +146,8 @@ const SPINE_SIDES: Array<{
   { side: 'right', label: 'Right Spine' },
 ]
 
+const MIRRORED_SPINE_CONTROL_SIDE: JewelCaseSpineSide = 'left'
+
 const TITLE_ORIENTATION_OPTIONS = [
   { value: -90, label: 'Read up' },
   { value: 90, label: 'Read down' },
@@ -186,8 +194,10 @@ function applyLayoutSliderRanges<
   })
 }
 
-function getSpinePreviewLayout() {
-  return createJewelCasePreviewLayout('jewelCase', 'back')
+function getSpinePreviewLayout(spine?: ProjectJewelCaseSpineState) {
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+
+  return spine ? createCaseInsertSpineGuideLayout(layout, spine) : layout
 }
 
 function getSpineImageSlotPlacementFields(
@@ -272,11 +282,13 @@ function SpineTextLayoutPresetControl({
 }
 
 function SpineTitleControls({
+  layout,
   side,
   title,
   projectMetadata,
   actions,
 }: {
+  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   title: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -289,6 +301,12 @@ function SpineTitleControls({
   const inputState = getCaseInsertTextBlockInputState(
     title,
     projectMetadata,
+  )
+  const renderedTitle = getRenderedCaseInsertTextBlock(title, projectMetadata)
+  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
+    side,
+    renderedTitle,
+    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', title)
 
@@ -441,18 +459,18 @@ function SpineTitleControls({
               <EditorRangeField
                 id={`${side}-spine-title-x`}
                 label="Cross"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.x.min}
+                max={layoutRanges.x.max}
+                step={0.1}
                 value={title.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
               <EditorRangeField
                 id={`${side}-spine-title-y`}
                 label="Length"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.y.min}
+                max={layoutRanges.y.max}
+                step={0.1}
                 value={title.layout.y}
                 onChange={(value) => onLayoutChange('y', value)}
               />
@@ -488,11 +506,13 @@ function SpineTitleControls({
 }
 
 function SpineTextBlockControls({
+  layout,
   side,
   textBlock,
   projectMetadata,
   actions,
 }: {
+  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   textBlock: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -528,6 +548,15 @@ function SpineTextBlockControls({
   const inputState = getCaseInsertTextBlockInputState(
     textBlock,
     projectMetadata,
+  )
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(
+    textBlock,
+    projectMetadata,
+  )
+  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
+    side,
+    renderedTextBlock,
+    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', textBlock)
 
@@ -691,18 +720,18 @@ function SpineTextBlockControls({
               <EditorRangeField
                 id={`${textBlock.id}-x`}
                 label="Cross"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.x.min}
+                max={layoutRanges.x.max}
+                step={0.1}
                 value={textBlock.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
               <EditorRangeField
                 id={`${textBlock.id}-y`}
                 label="Length"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.y.min}
+                max={layoutRanges.y.max}
+                step={0.1}
                 value={textBlock.layout.y}
                 onChange={(value) => onLayoutChange('y', value)}
               />
@@ -1253,77 +1282,111 @@ function getSpineSideState(
   return spine[side]
 }
 
-export function CaseInsertSpineArtworkControls({
+function getSpineControlSections(spine: ProjectJewelCaseSpineState) {
+  return spine.mirrored
+    ? [{ side: MIRRORED_SPINE_CONTROL_SIDE, label: 'Spine' }]
+    : SPINE_SIDES
+}
+
+function renderSpineControlSections({
   spine,
-  actions,
-  imageSources,
-}: CaseInsertSpineControlsProps) {
+  renderControls,
+}: {
+  spine: ProjectJewelCaseSpineState
+  renderControls: (
+    section: {
+      side: JewelCaseSpineSide
+      label: string
+    },
+  ) => ReactNode
+}) {
   return (
     <>
-      {SPINE_SIDES.map(({ side, label }) => {
-        const state = getSpineSideState(spine, side)
+      {getSpineControlSections(spine).map((section) => {
+        const controls = renderControls(section)
 
-        return (
-          <SpineSideSection key={side} label={label}>
-            <SpineImageSlotControls
-              side={side}
-              slotKey="background"
-              slot={state.background}
-              title={`${label} background`}
-              enableLabel="Show spine background artwork"
-              uploadId={`${side}-spine-background-upload`}
-              isBackground
-              imageSources={imageSources}
-              actions={actions}
-            />
-            <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
-                <CaseInsertTitleArtworkControls
-                  slot={state.titleArtwork}
-                  uploadId={`${side}-spine-title-artwork-upload`}
-                  fields={getSpineImageSlotPlacementFields(
-                    side,
-                    state.titleArtwork,
-                    'titleArtwork',
-                  )}
-                  helpText="This is the game title/logo artwork on the spine. Steam import can seed the best available Steam title/logo artwork; Game title text stays independently available in the Text tab."
-                  onEnabledChange={(enabled) =>
-                    actions.handleSpineImageSlotEnabledChange(
-                      side,
-                      'titleArtwork',
-                      enabled,
-                    )}
-                  onUpload={(event) =>
-                    actions.handleSpineImageSlotUpload(
-                      side,
-                      'titleArtwork',
-                      state.titleArtwork.label,
-                      event,
-                    )}
-                  onLayoutChange={(field, value) =>
-                    actions.handleSpineImageSlotLayoutChange(
-                      side,
-                      'titleArtwork',
-                      field,
-                      value,
-                    )}
-                  onResetLayout={() =>
-                    actions.handleResetSpineImageSlotLayout(side, 'titleArtwork')}
-                  onRestoreDefault={() =>
-                    actions.handleRestoreSpineTitleArtworkDefault(side)}
-                />
-            </EditorFeaturePanel>
-            <SpineGroupedImageSlotSection
-              side={side}
-              featureEnabled={state.additionalArtworkEnabled}
-              slots={state.artworkSlots}
-              imageSources={imageSources}
-              actions={actions}
-            />
+        return spine.mirrored ? (
+          <Fragment key={section.side}>{controls}</Fragment>
+        ) : (
+          <SpineSideSection key={section.side} label={section.label}>
+            {controls}
           </SpineSideSection>
         )
       })}
     </>
   )
+}
+
+export function CaseInsertSpineArtworkControls({
+  spine,
+  actions,
+  imageSources,
+}: CaseInsertSpineControlsProps) {
+  return renderSpineControlSections({
+    spine,
+    renderControls: ({ side, label }) => {
+      const state = getSpineSideState(spine, side)
+
+      return (
+        <>
+          <SpineImageSlotControls
+            side={side}
+            slotKey="background"
+            slot={state.background}
+            title={`${label} background`}
+            enableLabel="Show spine background artwork"
+            uploadId={`${side}-spine-background-upload`}
+            isBackground
+            imageSources={imageSources}
+            actions={actions}
+          />
+          <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
+            <CaseInsertTitleArtworkControls
+              slot={state.titleArtwork}
+              uploadId={`${side}-spine-title-artwork-upload`}
+              fields={getSpineImageSlotPlacementFields(
+                side,
+                state.titleArtwork,
+                'titleArtwork',
+              )}
+              helpText="This is the game title/logo artwork on the spine. Steam import can seed the best available Steam title/logo artwork; Game title text stays independently available in the Text tab."
+              onEnabledChange={(enabled) =>
+                actions.handleSpineImageSlotEnabledChange(
+                  side,
+                  'titleArtwork',
+                  enabled,
+                )}
+              onUpload={(event) =>
+                actions.handleSpineImageSlotUpload(
+                  side,
+                  'titleArtwork',
+                  state.titleArtwork.label,
+                  event,
+                )}
+              onLayoutChange={(field, value) =>
+                actions.handleSpineImageSlotLayoutChange(
+                  side,
+                  'titleArtwork',
+                  field,
+                  value,
+                )}
+              onResetLayout={() =>
+                actions.handleResetSpineImageSlotLayout(side, 'titleArtwork')}
+              onRestoreDefault={() =>
+                actions.handleRestoreSpineTitleArtworkDefault(side)}
+            />
+          </EditorFeaturePanel>
+          <SpineGroupedImageSlotSection
+            side={side}
+            featureEnabled={state.additionalArtworkEnabled}
+            slots={state.artworkSlots}
+            imageSources={imageSources}
+            actions={actions}
+          />
+        </>
+      )
+    },
+  })
 }
 
 export function CaseInsertSpineBrandingControls({
@@ -1334,32 +1397,32 @@ export function CaseInsertSpineBrandingControls({
   logoCandidateDiscovery,
   handleFindLogoCandidates,
 }: CaseInsertSpineControlsProps) {
-  return (
-    <>
-      {SPINE_SIDES.map(({ side, label }) => {
-        const state = getSpineSideState(spine, side)
-        const developerLogoSlot = getCaseInsertPrimaryLogoSlot(
-          state,
-          'developer',
-        )
-        const publisherLogoSlot = getCaseInsertPrimaryLogoSlot(
-          state,
-          'publisher',
-        )
-        const additionalDeveloperLogoSlots =
-          getCaseInsertAdditionalLogoSlotsForKey(state, 'developer')
-        const additionalPublisherLogoSlots =
-          getCaseInsertAdditionalLogoSlotsForKey(state, 'publisher')
-        const unassignedAdditionalLogoSlots =
-          getCaseInsertUnassignedAdditionalLogoSlots(state)
-        const brandingControls = getBrandingControls(
-          { type: 'spine', side },
-          state,
-        )
+  return renderSpineControlSections({
+    spine,
+    renderControls: ({ side }) => {
+      const state = getSpineSideState(spine, side)
+      const developerLogoSlot = getCaseInsertPrimaryLogoSlot(
+        state,
+        'developer',
+      )
+      const publisherLogoSlot = getCaseInsertPrimaryLogoSlot(
+        state,
+        'publisher',
+      )
+      const additionalDeveloperLogoSlots =
+        getCaseInsertAdditionalLogoSlotsForKey(state, 'developer')
+      const additionalPublisherLogoSlots =
+        getCaseInsertAdditionalLogoSlotsForKey(state, 'publisher')
+      const unassignedAdditionalLogoSlots =
+        getCaseInsertUnassignedAdditionalLogoSlots(state)
+      const brandingControls = getBrandingControls(
+        { type: 'spine', side },
+        state,
+      )
 
-        return (
-          <SpineSideSection key={side} label={label}>
-            <SpineBrandingFeatureSection title="Steam banner">
+      return (
+        <>
+          <SpineBrandingFeatureSection title="Steam banner">
               <CaseInsertSteamBannerControls
                 banner={state.steamBanner}
                 idPrefix={`${side}-spine-steam-banner`}
@@ -1397,8 +1460,8 @@ export function CaseInsertSpineBrandingControls({
                 onResetColors={() =>
                   actions.handleResetSpineSteamBannerColors(side)}
               />
-            </SpineBrandingFeatureSection>
-            <SpineBrandingFeatureSection title="Developer / publisher logos">
+          </SpineBrandingFeatureSection>
+          <SpineBrandingFeatureSection title="Developer / publisher logos">
               <CaseInsertLogoSlotControls
                 paneId="spine"
                 logoKey="developer"
@@ -1661,11 +1724,10 @@ export function CaseInsertSpineBrandingControls({
                 </SpineBrandingFeatureSection>
               )
             })}
-          </SpineSideSection>
-        )
-      })}
-    </>
-  )
+        </>
+      )
+    },
+  })
 }
 
 export function CaseInsertSpineTextControls({
@@ -1673,33 +1735,36 @@ export function CaseInsertSpineTextControls({
   projectMetadata,
   actions,
 }: CaseInsertSpineControlsProps) {
-  return (
-    <>
-      {SPINE_SIDES.map(({ side, label }) => {
-        const state = getSpineSideState(spine, side)
+  const layout = getSpinePreviewLayout(spine)
 
-        return (
-          <SpineSideSection key={side} label={label}>
-            <SpineTitleControls
+  return renderSpineControlSections({
+    spine,
+    renderControls: ({ side }) => {
+      const state = getSpineSideState(spine, side)
+
+      return (
+        <>
+          <SpineTitleControls
+            layout={layout}
+            side={side}
+            title={state.title}
+            projectMetadata={projectMetadata}
+            actions={actions}
+          />
+          {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
+            <SpineTextBlockControls
+              key={textBlock.id}
+              layout={layout}
               side={side}
-              title={state.title}
+              textBlock={textBlock}
               projectMetadata={projectMetadata}
               actions={actions}
             />
-            {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
-              <SpineTextBlockControls
-                key={textBlock.id}
-                side={side}
-                textBlock={textBlock}
-                projectMetadata={projectMetadata}
-                actions={actions}
-              />
-            ))}
-          </SpineSideSection>
-        )
-      })}
-    </>
-  )
+          ))}
+        </>
+      )
+    },
+  })
 }
 
 export function CaseInsertSpineWorkflowControls(

@@ -6,7 +6,7 @@
 .panel-summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 12px;
   padding: 16px;
   color: #f9fafb;
@@ -15,6 +15,19 @@
   cursor: pointer;
   user-select: none;
   list-style: none;
+}
+
+.panel-summary-title {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.panel-summary-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .panel-summary::-webkit-details-marker {

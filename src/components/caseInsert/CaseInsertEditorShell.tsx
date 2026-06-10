@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react'
+import type { MouseEvent, ReactNode, RefObject } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
   getCaseInsertTemplatePaneConfig,
@@ -43,6 +43,7 @@ import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceContro
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
 import { EditorPanel } from '../editor/EditorPanel'
+import { MirrorIcon } from '../sidebar/PanelIcons'
 import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
@@ -207,16 +208,51 @@ function CaseInsertExportOptionsPanel({
 function CaseInsertWorkflowPanel({
   title,
   open = false,
+  headerActions,
   children,
 }: {
   title: string
   open?: boolean
+  headerActions?: ReactNode
   children: ReactNode
 }) {
   return (
-    <EditorPanel title={title} open={open}>
+    <EditorPanel title={title} open={open} headerActions={headerActions}>
       {children}
     </EditorPanel>
+  )
+}
+
+function CaseInsertSpineMirrorToggle({
+  mirrored,
+  onMirroredChange,
+}: {
+  mirrored: boolean
+  onMirroredChange: (mirrored: boolean) => void
+}) {
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    event.stopPropagation()
+    onMirroredChange(!mirrored)
+  }
+
+  return (
+    <button
+      className={`icon-button case-insert-spine-mirror-button${
+        mirrored ? ' is-active' : ''
+      }`}
+      type="button"
+      aria-label={mirrored
+        ? 'Turn off mirrored spine editing'
+        : 'Turn on mirrored spine editing'}
+      aria-pressed={mirrored}
+      title={mirrored
+        ? 'Mirrored spine editing on'
+        : 'Mirrored spine editing off'}
+      onClick={handleClick}
+    >
+      <MirrorIcon />
+    </button>
   )
 }
 
@@ -384,6 +420,12 @@ export function CaseInsertEditorShell({
             key={panel.id}
             title={panel.label}
             open={panel.openByDefault}
+            headerActions={(
+              <CaseInsertSpineMirrorToggle
+                mirrored={caseInsert.spine.mirrored}
+                onMirroredChange={spineEditor.handleSpineMirroredChange}
+              />
+            )}
           >
             <CaseInsertSpineWorkflowControls
               spine={caseInsert.spine}

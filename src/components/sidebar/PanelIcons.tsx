@@ -6,6 +6,14 @@ export function PlusIcon() {
   )
 }
 
+export function MirrorIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path d="M12 4v16M10 6 4 12l6 6V6ZM14 6l6 6-6 6V6Z" />
+    </svg>
+  )
+}
+
 export function TrashIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">

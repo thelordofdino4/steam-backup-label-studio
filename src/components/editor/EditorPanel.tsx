@@ -11,6 +11,7 @@ type EditorPanelProps = {
   open?: boolean
   spacingTop?: boolean
   className?: string
+  headerActions?: ReactNode
 }
 
 type EditorFeaturePanelProps = Omit<EditorPanelProps, 'kind'> & {
@@ -24,13 +25,19 @@ export function EditorPanel({
   open,
   spacingTop = false,
   className,
+  headerActions,
 }: EditorPanelProps) {
   return (
     <details
       className={getEditorPanelClassName({ kind, spacingTop, className })}
       open={open}
     >
-      <summary className="panel-summary">{title}</summary>
+      <summary className="panel-summary">
+        <span className="panel-summary-title">{title}</span>
+        {headerActions ? (
+          <span className="panel-summary-actions">{headerActions}</span>
+        ) : null}
+      </summary>
       <div className="panel-content">{children}</div>
     </details>
   )
@@ -43,6 +50,7 @@ export function EditorFeaturePanel({
   open,
   spacingTop = true,
   className,
+  headerActions,
 }: EditorFeaturePanelProps) {
   return (
     <EditorPanel
@@ -51,6 +59,7 @@ export function EditorFeaturePanel({
       open={open}
       spacingTop={spacingTop}
       className={className}
+      headerActions={headerActions}
     >
       {children}
     </EditorPanel>

@@ -101,6 +101,28 @@ function getCenteredAxisRange({
   )
 }
 
+function getOffsetAxisRange({
+  boundsLength,
+  rectEnd,
+  rectStart,
+}: {
+  boundsLength: number
+  rectEnd: number
+  rectStart: number
+}): CaseInsertLayoutAxisRange {
+  if (boundsLength <= 0 || rectEnd <= rectStart) {
+    return CASE_INSERT_PERCENT_LAYOUT_RANGE
+  }
+
+  return clampLayoutAxisRange(
+    {
+      min: -rectStart / boundsLength * 100,
+      max: (boundsLength - rectEnd) / boundsLength * 100,
+    },
+    CASE_INSERT_PERCENT_LAYOUT_RANGE,
+  )
+}
+
 export function getCenteredRectLayoutSliderRanges(
   bounds: JewelCasePixelRect,
   renderedSize: JewelCasePixelSize,
@@ -113,6 +135,24 @@ export function getCenteredRectLayoutSliderRanges(
     y: getCenteredAxisRange({
       boundsLength: bounds.height,
       renderedLength: renderedSize.height,
+    }),
+  }
+}
+
+export function getOffsetRectLayoutSliderRanges(
+  bounds: JewelCasePixelRect,
+  rectOffsetFromLayoutPoint: JewelCasePixelRect,
+): CaseInsertLayoutSliderRanges {
+  return {
+    x: getOffsetAxisRange({
+      boundsLength: bounds.width,
+      rectStart: rectOffsetFromLayoutPoint.x,
+      rectEnd: rectOffsetFromLayoutPoint.x + rectOffsetFromLayoutPoint.width,
+    }),
+    y: getOffsetAxisRange({
+      boundsLength: bounds.height,
+      rectStart: rectOffsetFromLayoutPoint.y,
+      rectEnd: rectOffsetFromLayoutPoint.y + rectOffsetFromLayoutPoint.height,
     }),
   }
 }

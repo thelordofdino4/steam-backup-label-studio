@@ -15,6 +15,10 @@ import {
   createDefaultJewelCaseSpineMarkSlot,
 } from './defaults.ts'
 import {
+  JEWEL_CASE_SPINE_SIDES,
+  updateProjectJewelCaseSpineSides,
+} from './jewelCaseTransitions.ts'
+import {
   setCaseInsertImageSlotImage,
 } from './imageSlotTransitions.ts'
 import {
@@ -34,7 +38,6 @@ const CASE_INSERT_TEMPLATE_MARK_PANES: CaseInsertTemplatePaneId[] = [
   'cover',
   'tray',
 ]
-const JEWEL_CASE_SPINE_SIDES: JewelCaseSpineSide[] = ['left', 'right']
 const USER_OVERRIDE_IMAGE_SOURCES = new Set<ProjectImageAssetSource>([
   'uploaded',
   'steam-artwork',
@@ -489,22 +492,11 @@ function syncTargetMarkSlots(
         }
   }
 
-  const spineSide = state.spine[target.side]
-  const syncedSpineSide = syncSpineSideMarkSlots(
+  return updateProjectJewelCaseSpineSides(
+    state,
     target.side,
-    spineSide,
-    sources,
+    (spineSide, side) => syncSpineSideMarkSlots(side, spineSide, sources),
   )
-
-  return syncedSpineSide === spineSide
-    ? state
-    : {
-        ...state,
-        spine: {
-          ...state.spine,
-          [target.side]: syncedSpineSide,
-        },
-      }
 }
 
 function updateTargetMarkSlots(
@@ -532,21 +524,20 @@ function updateTargetMarkSlots(
         }
   }
 
-  const spineSide = state.spine[target.side]
-  const markSlots = updater(spineSide.markSlots)
+  return updateProjectJewelCaseSpineSides(
+    state,
+    target.side,
+    (spineSide) => {
+      const markSlots = updater(spineSide.markSlots)
 
-  return markSlots === spineSide.markSlots
-    ? state
-    : {
-        ...state,
-        spine: {
-          ...state.spine,
-          [target.side]: {
+      return markSlots === spineSide.markSlots
+        ? spineSide
+        : {
             ...spineSide,
             markSlots,
-          },
-        },
-      }
+          }
+    },
+  )
 }
 
 function setMarkSlotsOfKindEnabled(

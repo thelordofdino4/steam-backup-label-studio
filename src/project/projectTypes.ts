@@ -453,6 +453,7 @@ export type ProjectJewelCaseSpineSideState = {
 }
 
 export type ProjectJewelCaseSpineState = {
+  mirrored: boolean
   left: ProjectJewelCaseSpineSideState
   right: ProjectJewelCaseSpineSideState
 }

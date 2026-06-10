@@ -515,6 +515,7 @@ export function createDefaultJewelCaseSpineState(
   title: string,
 ): ProjectJewelCaseSpineState {
   return {
+    mirrored: true,
     left: createDefaultJewelCaseSpineSideState('left', title),
     right: createDefaultJewelCaseSpineSideState('right', title),
   }

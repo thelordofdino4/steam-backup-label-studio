@@ -24,6 +24,7 @@ import {
   CASE_INSERT_OFFSET_LAYOUT_RANGES,
   CASE_INSERT_PERCENT_LAYOUT_RANGES,
   getCenteredRectLayoutSliderRanges,
+  getOffsetRectLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
 import type { CaseInsertTextAvoidanceRegion } from './caseInsertTextAvoidance.ts'
@@ -41,6 +42,9 @@ import {
 import {
   getJewelCaseSteamBannerOpenArtworkRegion,
 } from './jewelCaseSteamBannerLayout.ts'
+import type {
+  JewelCaseGuideId,
+} from '../templates/caseInsertTemplates.ts'
 
 export type JewelCaseSpineOverlayRole =
   | 'titleArtwork'
@@ -262,14 +266,45 @@ function getSpineRegionId(
   return safe ? 'rightSpineSafe' : 'rightSpine'
 }
 
+function getSpineSafeGuideId(side: JewelCaseSpineSideId): JewelCaseGuideId {
+  return side === 'left' ? 'leftSpineSafeBounds' : 'rightSpineSafeBounds'
+}
+
 function getSpineSafeBounds(
   side: JewelCaseSpineSideId,
   layout: CaseInsertPreviewLayout,
 ) {
-  return getRegionBounds(layout, getSpineRegionId(side, true))
+  return layout.guides.find(
+    ({ guideId }) => guideId === getSpineSafeGuideId(side),
+  )?.bounds ?? getRegionBounds(layout, getSpineRegionId(side, true))
 }
 
 function getClampedTransformedBoxLayout({
+  safeBounds,
+  width,
+  height,
+  rotationDegrees,
+  centerPercent,
+}: {
+  safeBounds: JewelCasePixelRect
+  width: number
+  height: number
+  rotationDegrees: number
+  centerPercent: { x: number; y: number }
+}): JewelCaseSpineBoxLayout {
+  return clampTransformedBoxLayoutToBounds(
+    getTransformedBoxLayout({
+      safeBounds,
+      width,
+      height,
+      rotationDegrees,
+      centerPercent,
+    }),
+    safeBounds,
+  )
+}
+
+function getTransformedBoxLayout({
   safeBounds,
   width,
   height,
@@ -297,17 +332,256 @@ function getClampedTransformedBoxLayout({
     width: boundingSize.width,
     height: boundingSize.height,
   }
-  const clampedBoundingRect = clampPixelRectToBounds(boundingRect, safeBounds)
 
   return {
-    center: {
-      x: clampedBoundingRect.x + clampedBoundingRect.width / 2,
-      y: clampedBoundingRect.y + clampedBoundingRect.height / 2,
-    },
+    center: requestedCenter,
     width,
     height,
     rotationDegrees,
-    boundingRect: clampedBoundingRect,
+    boundingRect,
+  }
+}
+
+function offsetTransformedBoxLayout(
+  box: JewelCaseSpineBoxLayout,
+  offset: { x: number; y: number },
+): JewelCaseSpineBoxLayout {
+  return {
+    ...box,
+    center: {
+      x: box.center.x + offset.x,
+      y: box.center.y + offset.y,
+    },
+    boundingRect: {
+      ...box.boundingRect,
+      x: box.boundingRect.x + offset.x,
+      y: box.boundingRect.y + offset.y,
+    },
+  }
+}
+
+function getTransformedBoxLayoutOffset(
+  from: JewelCaseSpineBoxLayout,
+  to: JewelCaseSpineBoxLayout,
+) {
+  return {
+    x: to.center.x - from.center.x,
+    y: to.center.y - from.center.y,
+  }
+}
+
+function boxLayoutOffsetIsZero(offset: { x: number; y: number }) {
+  return Math.abs(offset.x) < 0.000001 && Math.abs(offset.y) < 0.000001
+}
+
+function clampTransformedBoxLayoutToBounds(
+  box: JewelCaseSpineBoxLayout,
+  safeBounds: JewelCasePixelRect,
+): JewelCaseSpineBoxLayout {
+  const clampedBoundingRect = clampPixelRectToBounds(box.boundingRect, safeBounds)
+
+  return offsetTransformedBoxLayout(box, {
+    x: clampedBoundingRect.x - box.boundingRect.x,
+    y: clampedBoundingRect.y - box.boundingRect.y,
+  })
+}
+
+function getLocalTransformedBoxBounds(box: JewelCaseSpineBoxLayout) {
+  return {
+    x: -box.width / 2,
+    y: -box.height / 2,
+    width: box.width,
+    height: box.height,
+  }
+}
+
+function getVisualBoxFromLocalBounds(
+  box: JewelCaseSpineBoxLayout,
+  localVisualBounds: JewelCasePixelRect,
+): JewelCaseSpineBoxLayout {
+  const localVisualCenter = {
+    x: localVisualBounds.x + localVisualBounds.width / 2,
+    y: localVisualBounds.y + localVisualBounds.height / 2,
+  }
+  const rotatedVisualCenter = rotatePoint(
+    localVisualCenter,
+    box.rotationDegrees,
+  )
+  const visualCenter = {
+    x: box.center.x + rotatedVisualCenter.x,
+    y: box.center.y + rotatedVisualCenter.y,
+  }
+  const visualBoundingSize = getTransformedBoundingSize({
+    height: localVisualBounds.height,
+    rotationDegrees: box.rotationDegrees,
+    width: localVisualBounds.width,
+  })
+
+  return {
+    ...box,
+    center: visualCenter,
+    width: localVisualBounds.width,
+    height: localVisualBounds.height,
+    boundingRect: {
+      x: visualCenter.x - visualBoundingSize.width / 2,
+      y: visualCenter.y - visualBoundingSize.height / 2,
+      width: visualBoundingSize.width,
+      height: visualBoundingSize.height,
+    },
+  }
+}
+
+function getSpineTextLocalVisualLayout({
+  avoidanceRegions,
+  box,
+  fontSizePx,
+  title,
+}: {
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  box: JewelCaseSpineBoxLayout
+  fontSizePx: number
+  title: ProjectCaseInsertTextBlock
+}) {
+  const isTitleText = title.id.endsWith('-title-text')
+  const localReservedBounds = getLocalTransformedBoxBounds(box)
+
+  return getCaseInsertTextVisualLayout(
+    localReservedBounds,
+    {
+      align: title.align,
+      avoidanceRegions: title.avoidVisualElements
+        ? transformAvoidanceRegionsToLocal(
+            avoidanceRegions,
+            box.center,
+            box.rotationDegrees,
+          )
+        : [],
+      boundsLimit: localReservedBounds,
+      fontFamily: getCaseInsertTextFontFamilyCanvas(title.style.fontFamily),
+      fontSizePx,
+      fontWeight: isTitleText ? 800 : 600,
+      lineHeightPx: fontSizePx * 1.1,
+      maxLines: getCaseInsertTextStyleRoleMaxLines(
+        getCaseInsertTextBlockStyleRole(title),
+      ),
+      paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),
+      text: title.value,
+      uppercase: isTitleText,
+      verticalAlign: 'center',
+    },
+  )
+}
+
+function getClampedSpineTextVisualPlacement({
+  avoidanceRegions,
+  fontSizePx,
+  requestedBox,
+  safeBounds,
+  title,
+}: {
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  fontSizePx: number
+  requestedBox: JewelCaseSpineBoxLayout
+  safeBounds: JewelCasePixelRect
+  title: ProjectCaseInsertTextBlock
+}) {
+  let reservedBox = requestedBox
+  let localVisualLayout = getSpineTextLocalVisualLayout({
+    avoidanceRegions,
+    box: reservedBox,
+    fontSizePx,
+    title,
+  })
+  let visualBox = getVisualBoxFromLocalBounds(reservedBox, localVisualLayout.bounds)
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const clampedVisualBox = clampTransformedBoxLayoutToBounds(
+      visualBox,
+      safeBounds,
+    )
+    const clampOffset = getTransformedBoxLayoutOffset(
+      visualBox,
+      clampedVisualBox,
+    )
+
+    visualBox = clampedVisualBox
+
+    if (boxLayoutOffsetIsZero(clampOffset)) {
+      break
+    }
+
+    reservedBox = offsetTransformedBoxLayout(reservedBox, clampOffset)
+
+    if (!title.avoidVisualElements) {
+      break
+    }
+
+    localVisualLayout = getSpineTextLocalVisualLayout({
+      avoidanceRegions,
+      box: reservedBox,
+      fontSizePx,
+      title,
+    })
+    visualBox = getVisualBoxFromLocalBounds(
+      reservedBox,
+      localVisualLayout.bounds,
+    )
+  }
+
+  const finalVisualBox = clampTransformedBoxLayoutToBounds(visualBox, safeBounds)
+  const finalClampOffset = getTransformedBoxLayoutOffset(
+    visualBox,
+    finalVisualBox,
+  )
+
+  if (!boxLayoutOffsetIsZero(finalClampOffset)) {
+    reservedBox = offsetTransformedBoxLayout(reservedBox, finalClampOffset)
+  }
+
+  return { localVisualLayout, reservedBox, visualBox: finalVisualBox }
+}
+
+function getSpineTextLayoutRequest(
+  side: JewelCaseSpineSideId,
+  title: ProjectCaseInsertTextBlock,
+  layout: CaseInsertPreviewLayout,
+) {
+  const safeBounds = getSpineSafeBounds(side, layout)
+
+  if (!safeBounds || !title.enabled || !title.value.trim()) {
+    return null
+  }
+
+  const scale = normalizePositiveNumber(title.layout.scale, 1)
+  const rotationDegrees = normalizeRotationDegrees(
+    title.layout.rotation,
+    getDefaultSpineRotation(side),
+  )
+  const fontSizePx = clampNumber(
+    SPINE_TITLE_FONT_TARGET_PX * scale,
+    SPINE_TITLE_FONT_MIN_PX,
+    safeBounds.width * SPINE_TITLE_FONT_FILL_RATIO,
+  )
+  const requestedBox = getTransformedBoxLayout({
+    safeBounds,
+    width: safeBounds.height *
+      getCaseInsertTextLayoutWidth(
+        title.layout,
+        SPINE_TITLE_WIDTH_RATIO * 100,
+      ) /
+      100,
+    height: safeBounds.width * SPINE_TITLE_HEIGHT_RATIO,
+    rotationDegrees,
+    centerPercent: {
+      x: normalizePercent(title.layout.x, 50),
+      y: normalizePercent(title.layout.y, 50),
+    },
+  })
+
+  return {
+    fontSizePx,
+    requestedBox,
+    safeBounds,
   }
 }
 
@@ -359,99 +633,25 @@ export function getJewelCaseSpineTitlePreviewLayout(
   layout: CaseInsertPreviewLayout,
   avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseSpineTitlePreviewLayout | null {
-  const safeBounds = getSpineSafeBounds(side, layout)
+  const request = getSpineTextLayoutRequest(side, title, layout)
 
-  if (!safeBounds || !title.enabled || !title.value.trim()) {
+  if (!request) {
     return null
   }
 
-  const scale = normalizePositiveNumber(title.layout.scale, 1)
-  const rotationDegrees = normalizeRotationDegrees(
-    title.layout.rotation,
-    getDefaultSpineRotation(side),
-  )
-  const fontSizePx = clampNumber(
-    SPINE_TITLE_FONT_TARGET_PX * scale,
-    SPINE_TITLE_FONT_MIN_PX,
-    safeBounds.width * SPINE_TITLE_FONT_FILL_RATIO,
-  )
-  const box = getClampedTransformedBoxLayout({
-    safeBounds,
-    width: safeBounds.height *
-      getCaseInsertTextLayoutWidth(
-        title.layout,
-        SPINE_TITLE_WIDTH_RATIO * 100,
-      ) /
-      100,
-    height: safeBounds.width * SPINE_TITLE_HEIGHT_RATIO,
-    rotationDegrees,
-    centerPercent: {
-      x: normalizePercent(title.layout.x, 50),
-      y: normalizePercent(title.layout.y, 50),
-    },
-  })
-  const isTitleText = title.id.endsWith('-title-text')
-  const localReservedBounds = {
-    x: -box.width / 2,
-    y: -box.height / 2,
-    width: box.width,
-    height: box.height,
-  }
-  const localVisualLayout = getCaseInsertTextVisualLayout(
-    localReservedBounds,
-    {
-      align: title.align,
-      avoidanceRegions: title.avoidVisualElements
-        ? transformAvoidanceRegionsToLocal(
-            avoidanceRegions,
-            box.center,
-            box.rotationDegrees,
-          )
-        : [],
-      boundsLimit: localReservedBounds,
-      fontFamily: getCaseInsertTextFontFamilyCanvas(title.style.fontFamily),
+  const { fontSizePx, requestedBox, safeBounds } = request
+  const { localVisualLayout, reservedBox, visualBox } =
+    getClampedSpineTextVisualPlacement({
+      avoidanceRegions,
       fontSizePx,
-      fontWeight: isTitleText ? 800 : 600,
-      lineHeightPx: fontSizePx * 1.1,
-      maxLines: getCaseInsertTextStyleRoleMaxLines(
-        getCaseInsertTextBlockStyleRole(title),
-      ),
-      paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),
-      text: title.value,
-      uppercase: isTitleText,
-      verticalAlign: 'center',
-    },
-  )
+      requestedBox,
+      safeBounds,
+      title,
+    })
   const localVisualBounds = localVisualLayout.bounds
   const localVisualCenter = {
     x: localVisualBounds.x + localVisualBounds.width / 2,
     y: localVisualBounds.y + localVisualBounds.height / 2,
-  }
-  const rotationRadians = box.rotationDegrees * Math.PI / 180
-  const visualCenter = {
-    x: box.center.x +
-      localVisualCenter.x * Math.cos(rotationRadians) -
-      localVisualCenter.y * Math.sin(rotationRadians),
-    y: box.center.y +
-      localVisualCenter.x * Math.sin(rotationRadians) +
-      localVisualCenter.y * Math.cos(rotationRadians),
-  }
-  const visualBoundingSize = getTransformedBoundingSize({
-    height: localVisualBounds.height,
-    rotationDegrees: box.rotationDegrees,
-    width: localVisualBounds.width,
-  })
-  const visualBox = {
-    ...box,
-    center: visualCenter,
-    width: localVisualBounds.width,
-    height: localVisualBounds.height,
-    boundingRect: {
-      x: visualCenter.x - visualBoundingSize.width / 2,
-      y: visualCenter.y - visualBoundingSize.height / 2,
-      width: visualBoundingSize.width,
-      height: visualBoundingSize.height,
-    },
   }
   const textBounds = {
     x: -localVisualBounds.width / 2,
@@ -465,9 +665,40 @@ export function getJewelCaseSpineTitlePreviewLayout(
     fontSizePx,
     lineHeightPx: fontSizePx * 1.1,
     lines: offsetTextVisualLines(localVisualLayout.lines, localVisualCenter),
-    reservedBoundingRect: box.boundingRect,
+    reservedBoundingRect: reservedBox.boundingRect,
     textBounds,
   }
+}
+
+export function getJewelCaseSpineTextLayoutSliderRanges(
+  side: JewelCaseSpineSideId,
+  title: ProjectCaseInsertTextBlock,
+  layout: CaseInsertPreviewLayout,
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
+): CaseInsertLayoutSliderRanges {
+  const request = getSpineTextLayoutRequest(side, title, layout)
+
+  if (!request) {
+    return CASE_INSERT_PERCENT_LAYOUT_RANGES
+  }
+
+  const localVisualLayout = getSpineTextLocalVisualLayout({
+    avoidanceRegions,
+    box: request.requestedBox,
+    fontSizePx: request.fontSizePx,
+    title,
+  })
+  const visualBox = getVisualBoxFromLocalBounds(
+    request.requestedBox,
+    localVisualLayout.bounds,
+  )
+
+  return getOffsetRectLayoutSliderRanges(request.safeBounds, {
+    x: visualBox.boundingRect.x - request.requestedBox.center.x,
+    y: visualBox.boundingRect.y - request.requestedBox.center.y,
+    width: visualBox.boundingRect.width,
+    height: visualBox.boundingRect.height,
+  })
 }
 
 function getSpineImageSlotRenderSize(

@@ -90,16 +90,22 @@ function getSpineTitleTextStyle(
 function getSpineTextBackplateStyle(
   style: ProjectJewelCaseSpineSideState['title']['style'],
 ): CSSProperties {
+  const hasVisibleBackplate = style.backgroundEnabled
+
   return {
     backgroundColor: getCaseInsertTextBackgroundColor(style),
     border: getCaseInsertTextBorderCss(style),
     borderRadius: getCaseInsertTextBorderRadiusCss(style),
     boxSizing: 'border-box',
+    cursor: hasVisibleBackplate ? 'grab' : undefined,
     display: 'block',
     height: '100%',
     overflow: 'hidden',
     padding: 0,
+    pointerEvents: hasVisibleBackplate ? 'auto' : 'none',
     position: 'relative',
+    touchAction: hasVisibleBackplate ? 'none' : undefined,
+    userSelect: 'none',
     width: '100%',
   }
 }
@@ -110,14 +116,18 @@ function getSpineTextLineStyle(
   lineHeightPx: number,
 ): CSSProperties {
   return {
+    cursor: 'grab',
     display: 'block',
     height: `${lineHeightPx / textBounds.height * 100}%`,
     left: `${(line.left - textBounds.x) / textBounds.width * 100}%`,
     lineHeight: 'inherit',
     overflow: 'visible',
+    pointerEvents: 'auto',
     position: 'absolute',
     textAlign: 'left',
     top: `${(line.y - textBounds.y) / textBounds.height * 100}%`,
+    touchAction: 'none',
+    userSelect: 'none',
     whiteSpace: 'pre',
     width: `${line.width / textBounds.width * 100}%`,
   }
@@ -240,7 +250,9 @@ function CaseInsertSpineTextBlock({
     fontSize: getLayerFontSize(titleLayout.fontSizePx, layout),
     lineHeight: getLayerFontSize(titleLayout.lineHeightPx, layout),
     padding: 0,
+    pointerEvents: 'none',
     textTransform: dragKind.kind === 'title' ? 'uppercase' : 'none',
+    userSelect: 'none',
   } as CSSProperties
 
   return (

@@ -5,15 +5,9 @@ import {
   type SetStateAction,
 } from 'react'
 import {
-  addJewelCaseSpineImageSlot,
-  removeJewelCaseSpineImageSlot,
-  renameJewelCaseSpineImageSlot,
-  setJewelCaseSpineAdditionalArtworkEnabled,
-  updateProjectJewelCaseSpineSide,
-  updateJewelCaseSpineImageSlot,
-  updateJewelCaseSpineImageSlotInGroup,
-  updateJewelCaseSpineTextBlock,
-  updateJewelCaseSpineTitle,
+  getJewelCaseSpineSideScopedId,
+  setJewelCaseSpineMirrored,
+  updateProjectJewelCaseSpineSides,
   type JewelCaseSpineImageSlotGroupKey,
   type JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions'
@@ -62,7 +56,6 @@ import {
   updateCaseInsertSteamBannerColor,
   updateCaseInsertSteamBannerFallbackText,
   updateCaseInsertSteamBannerLockupLayoutField,
-  updateJewelCaseSpineSteamBanner,
   type CaseInsertSteamBannerColorField,
   type CaseInsertSteamBannerLayoutField,
 } from '../caseInsert/steamBanner'
@@ -103,7 +96,9 @@ import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertTextAlign,
+  ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextSource,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
@@ -325,81 +320,111 @@ export function useJewelCaseSpineEditor({
   setProjectJewelCase,
   announceStatus,
 }: UseJewelCaseSpineEditorOptions) {
-  const updateSpineTitle = useCallback((
+  const updateSpineSides = useCallback((
     side: JewelCaseSpineSide,
-    updater: Parameters<typeof updateJewelCaseSpineTitle>[2],
+    updater: (
+      spineSide: ProjectJewelCaseState['spine'][JewelCaseSpineSide],
+      side: JewelCaseSpineSide,
+    ) => ProjectJewelCaseState['spine'][JewelCaseSpineSide],
   ) => {
     setProjectJewelCase((currentCaseInsert) =>
-      updateJewelCaseSpineTitle(currentCaseInsert, side, updater),
+      updateProjectJewelCaseSpineSides(currentCaseInsert, side, updater),
     )
   }, [setProjectJewelCase])
+
+  const updateSpineTitle = useCallback((
+    side: JewelCaseSpineSide,
+    updater: (
+      title: ProjectCaseInsertTextBlock,
+      side: JewelCaseSpineSide,
+    ) => ProjectCaseInsertTextBlock,
+  ) => {
+    updateSpineSides(side, (spineSide, targetSide) => ({
+      ...spineSide,
+      title: updater(spineSide.title, targetSide),
+    }))
+  }, [updateSpineSides])
 
   const updateSpineTextBlock = useCallback((
     side: JewelCaseSpineSide,
     textBlockId: string,
-    updater: Parameters<typeof updateJewelCaseSpineTextBlock>[3],
+    updater: (
+      textBlock: ProjectCaseInsertTextBlock,
+    ) => ProjectCaseInsertTextBlock,
   ) => {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateJewelCaseSpineTextBlock(
-        currentCaseInsert,
-        side,
+    updateSpineSides(side, (spineSide, targetSide) => {
+      const targetTextBlockId = getJewelCaseSpineSideScopedId(
+        targetSide,
         textBlockId,
-        updater,
-      ),
-    )
-  }, [setProjectJewelCase])
+      )
+
+      return {
+        ...spineSide,
+        textBlocks: spineSide.textBlocks.map((textBlock) =>
+          textBlock.id === targetTextBlockId
+            ? updater(textBlock)
+            : textBlock),
+      }
+    })
+  }, [updateSpineSides])
 
   const updateSpineImageSlot = useCallback((
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
-    updater: Parameters<typeof updateJewelCaseSpineImageSlot>[3],
+    updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
   ) => {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateJewelCaseSpineImageSlot(
-        currentCaseInsert,
-        side,
-        slotKey,
-        updater,
-      ),
-    )
-  }, [setProjectJewelCase])
+    updateSpineSides(side, (spineSide) => ({
+      ...spineSide,
+      [slotKey]: updater(spineSide[slotKey]),
+    }))
+  }, [updateSpineSides])
 
   const updateSpineGroupedImageSlot = useCallback((
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
-    updater: Parameters<typeof updateJewelCaseSpineImageSlotInGroup>[4],
+    updater: (slot: ProjectCaseInsertImageSlot) => ProjectCaseInsertImageSlot,
     options: {
       enableAdditionalArtwork?: boolean
     } = {},
   ) => {
-    setProjectJewelCase((currentCaseInsert) => {
-      const nextCaseInsert = updateJewelCaseSpineImageSlotInGroup(
-        currentCaseInsert,
-        side,
-        slotKey,
-        slotId,
-        updater,
-      )
+    updateSpineSides(side, (spineSide, targetSide) => {
+      const targetSlotId = getJewelCaseSpineSideScopedId(targetSide, slotId)
 
-      return slotKey === 'artworkSlots' && options.enableAdditionalArtwork
-        ? setJewelCaseSpineAdditionalArtworkEnabled(
-            nextCaseInsert,
-            side,
-            true,
-          )
-        : nextCaseInsert
+      return {
+        ...spineSide,
+        additionalArtworkEnabled: slotKey === 'artworkSlots' &&
+          options.enableAdditionalArtwork
+          ? true
+          : spineSide.additionalArtworkEnabled,
+        [slotKey]: spineSide[slotKey].map((slot) =>
+          slot.id === targetSlotId ? updater(slot) : slot),
+      }
     })
-  }, [setProjectJewelCase])
+  }, [updateSpineSides])
 
   const updateSpineSteamBanner = useCallback((
     side: JewelCaseSpineSide,
-    updater: Parameters<typeof updateJewelCaseSpineSteamBanner>[2],
+    updater: (
+      banner: ProjectCaseInsertSteamBanner,
+    ) => ProjectCaseInsertSteamBanner,
   ) => {
+    updateSpineSides(side, (spineSide) => ({
+      ...spineSide,
+      steamBanner: updater(spineSide.steamBanner),
+    }))
+  }, [updateSpineSides])
+
+  function handleSpineMirroredChange(mirrored: boolean) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateJewelCaseSpineSteamBanner(currentCaseInsert, side, updater),
+      setJewelCaseSpineMirrored(currentCaseInsert, mirrored),
     )
-  }, [setProjectJewelCase])
+    announceStatus(
+      mirrored
+        ? 'Mirrored spine editing enabled.'
+        : 'Mirrored spine editing disabled.',
+    )
+  }
 
   function handleSpineTitleEnabledChange(
     side: JewelCaseSpineSide,
@@ -465,9 +490,9 @@ export function useJewelCaseSpineEditor({
   }
 
   function handleResetSpineTitleLayout(side: JewelCaseSpineSide) {
-    updateSpineTitle(side, (title) => ({
+    updateSpineTitle(side, (title, targetSide) => ({
       ...title,
-      layout: defaultSpineTitleLayouts[side],
+      layout: defaultSpineTitleLayouts[targetSide],
     }))
   }
 
@@ -547,16 +572,28 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) {
-    const layout = getDefaultSpineTextBlockLayout(side, textBlockId)
+    updateSpineSides(side, (spineSide, targetSide) => {
+      const targetTextBlockId = getJewelCaseSpineSideScopedId(
+        targetSide,
+        textBlockId,
+      )
+      const layout = getDefaultSpineTextBlockLayout(
+        targetSide,
+        targetTextBlockId,
+      )
 
-    if (!layout) {
-      return
-    }
+      if (!layout) {
+        return spineSide
+      }
 
-    updateSpineTextBlock(side, textBlockId, (textBlock) => ({
-      ...textBlock,
-      layout,
-    }))
+      return {
+        ...spineSide,
+        textBlocks: spineSide.textBlocks.map((textBlock) =>
+          textBlock.id === targetTextBlockId
+            ? { ...textBlock, layout }
+            : textBlock),
+      }
+    })
   }
 
   function handleSpineTitleStyleChange(
@@ -743,9 +780,12 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
   ) {
-    updateSpineImageSlot(side, slotKey, (slot) => ({
-      ...slot,
-      layout: defaultSpineImageSlotLayouts[side][slotKey],
+    updateSpineSides(side, (spineSide, targetSide) => ({
+      ...spineSide,
+      [slotKey]: {
+        ...spineSide[slotKey],
+        layout: defaultSpineImageSlotLayouts[targetSide][slotKey],
+      },
     }))
   }
 
@@ -766,16 +806,26 @@ export function useJewelCaseSpineEditor({
     }
 
     setProjectJewelCase((currentCaseInsert) => {
-      const region = getSpineBackgroundFitRegion(currentCaseInsert, side)
-
-      return region
-        ? updateJewelCaseSpineImageSlot(
+      return updateProjectJewelCaseSpineSides(
+        currentCaseInsert,
+        side,
+        (spineSide, targetSide) => {
+          const region = getSpineBackgroundFitRegion(
             currentCaseInsert,
-            side,
-            slotKey,
-            (slot) => fitCaseInsertImageSlotToRegionHeight(slot, region),
+            targetSide,
           )
-        : currentCaseInsert
+
+          return region
+            ? {
+                ...spineSide,
+                [slotKey]: fitCaseInsertImageSlotToRegionHeight(
+                  spineSide[slotKey],
+                  region,
+                ),
+              }
+            : spineSide
+        },
+      )
     })
     announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
   }
@@ -900,16 +950,27 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotGroupKey,
   ) {
-    setProjectJewelCase((currentCaseInsert) => {
-      const slots = currentCaseInsert.spine[side][slotKey]
-      const slot = createDefaultJewelCaseSpineGroupedImageSlot(
+    setProjectJewelCase((currentCaseInsert) =>
+      updateProjectJewelCaseSpineSides(
+        currentCaseInsert,
         side,
-        slotKey,
-        slots,
-      )
+        (spineSide, targetSide) => {
+          const slot = createDefaultJewelCaseSpineGroupedImageSlot(
+            targetSide,
+            slotKey,
+            spineSide[slotKey],
+          )
 
-      return addJewelCaseSpineImageSlot(currentCaseInsert, side, slotKey, slot)
-    })
+          return {
+            ...spineSide,
+            additionalArtworkEnabled: slotKey === 'artworkSlots'
+              ? true
+              : spineSide.additionalArtworkEnabled,
+            [slotKey]: [...spineSide[slotKey], slot],
+          }
+        },
+      ),
+    )
     announceStatus(
       slotKey === 'artworkSlots'
         ? `Added ${side} spine artwork slot.`
@@ -924,15 +985,15 @@ export function useJewelCaseSpineEditor({
     logoKey: LogoAssetKey,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSide(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        (spineSide) =>
+        (spineSide, targetSide) =>
           addCaseInsertAdditionalLogoSlot(
             spineSide,
             'spine',
             logoKey,
-            getSpineLogoSlotIdPrefix(side),
+            getSpineLogoSlotIdPrefix(targetSide),
           ),
       ),
     )
@@ -944,10 +1005,13 @@ export function useJewelCaseSpineEditor({
     enabled: boolean,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      setJewelCaseSpineAdditionalArtworkEnabled(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        enabled,
+        (spineSide) => ({
+          ...spineSide,
+          additionalArtworkEnabled: enabled,
+        }),
       ),
     )
   }
@@ -958,7 +1022,23 @@ export function useJewelCaseSpineEditor({
     slotId: string,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      removeJewelCaseSpineImageSlot(currentCaseInsert, side, slotKey, slotId),
+      updateProjectJewelCaseSpineSides(
+        currentCaseInsert,
+        side,
+        (spineSide, targetSide) => {
+          const targetSlotId = getJewelCaseSpineSideScopedId(
+            targetSide,
+            slotId,
+          )
+
+          return {
+            ...spineSide,
+            [slotKey]: spineSide[slotKey].filter(
+              (slot) => slot.id !== targetSlotId,
+            ),
+          }
+        },
+      ),
     )
     announceStatus(
       slotKey === 'artworkSlots'
@@ -992,14 +1072,16 @@ export function useJewelCaseSpineEditor({
     slotId: string,
     label: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      renameJewelCaseSpineImageSlot(
-        currentCaseInsert,
-        side,
-        slotKey,
-        slotId,
-        label,
-      ),
+    const trimmedLabel = label.trim()
+
+    updateSpineGroupedImageSlot(
+      side,
+      slotKey,
+      slotId,
+      (slot) => ({
+        ...slot,
+        label: trimmedLabel || slot.label,
+      }),
     )
   }
 
@@ -1172,10 +1254,20 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotGroupKey,
     slotId: string,
   ) {
-    updateSpineGroupedImageSlot(side, slotKey, slotId, (slot) => ({
-      ...slot,
-      layout: defaultSpineGroupedImageSlotLayouts[side][slotKey],
-    }))
+    updateSpineSides(side, (spineSide, targetSide) => {
+      const targetSlotId = getJewelCaseSpineSideScopedId(targetSide, slotId)
+
+      return {
+        ...spineSide,
+        [slotKey]: spineSide[slotKey].map((slot) =>
+          slot.id === targetSlotId
+            ? {
+                ...slot,
+                layout: defaultSpineGroupedImageSlotLayouts[targetSide][slotKey],
+              }
+            : slot),
+      }
+    })
   }
 
   function handleResetSpineGroupedImageSlotFrame(
@@ -1219,16 +1311,16 @@ export function useJewelCaseSpineEditor({
     enabled: boolean,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSide(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        (spineSide) =>
+        (spineSide, targetSide) =>
           setCaseInsertPrimaryLogoSlotEnabled(
             spineSide,
             'spine',
             logoKey,
             enabled,
-            getSpineLogoSlotIdPrefix(side),
+            getSpineLogoSlotIdPrefix(targetSide),
           ),
       ),
     )
@@ -1261,16 +1353,16 @@ export function useJewelCaseSpineEditor({
       )
 
       setProjectJewelCase((currentCaseInsert) =>
-        updateProjectJewelCaseSpineSide(
+        updateProjectJewelCaseSpineSides(
           currentCaseInsert,
           side,
-          (spineSide) =>
+          (spineSide, targetSide) =>
             setCaseInsertPrimaryLogoSlotImage(
               spineSide,
               'spine',
               logoKey,
               image,
-              getSpineLogoSlotIdPrefix(side),
+              getSpineLogoSlotIdPrefix(targetSide),
             ),
         ),
       )
@@ -1287,17 +1379,17 @@ export function useJewelCaseSpineEditor({
     value: number,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSide(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        (spineSide) =>
+        (spineSide, targetSide) =>
           updateCaseInsertPrimaryLogoSlotLayoutField(
             spineSide,
             'spine',
             logoKey,
             field,
             value,
-            getSpineLogoSlotIdPrefix(side),
+            getSpineLogoSlotIdPrefix(targetSide),
           ),
       ),
     )
@@ -1308,15 +1400,15 @@ export function useJewelCaseSpineEditor({
     logoKey: LogoAssetKey,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSide(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        (spineSide) =>
+        (spineSide, targetSide) =>
           resetCaseInsertPrimaryLogoSlotLayout(
             spineSide,
             'spine',
             logoKey,
-            getSpineLogoSlotIdPrefix(side),
+            getSpineLogoSlotIdPrefix(targetSide),
           ),
       ),
     )
@@ -1327,15 +1419,15 @@ export function useJewelCaseSpineEditor({
     logoKey: LogoAssetKey,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSide(
+      updateProjectJewelCaseSpineSides(
         currentCaseInsert,
         side,
-        (spineSide) =>
+        (spineSide, targetSide) =>
           clearCaseInsertPrimaryLogoSlotImage(
             spineSide,
             'spine',
             logoKey,
-            getSpineLogoSlotIdPrefix(side),
+            getSpineLogoSlotIdPrefix(targetSide),
           ),
       ),
     )
@@ -1356,16 +1448,16 @@ export function useJewelCaseSpineEditor({
       const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
 
       setProjectJewelCase((currentCaseInsert) =>
-        updateProjectJewelCaseSpineSide(
+        updateProjectJewelCaseSpineSides(
           currentCaseInsert,
           side,
-          (spineSide) =>
+          (spineSide, targetSide) =>
             setCaseInsertPrimaryLogoSlotImage(
               spineSide,
               'spine',
               logoKey,
               image,
-              getSpineLogoSlotIdPrefix(side),
+              getSpineLogoSlotIdPrefix(targetSide),
             ),
         ),
       )
@@ -1376,6 +1468,7 @@ export function useJewelCaseSpineEditor({
   }
 
   return {
+    handleSpineMirroredChange,
     handleSpineTitleEnabledChange,
     handleSpineTitleValueChange,
     handleSpineTitleAlignChange,

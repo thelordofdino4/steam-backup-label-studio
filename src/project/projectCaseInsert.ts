@@ -35,9 +35,13 @@ export {
 } from '../caseInsert/templateSurfaceTransitions.ts'
 export {
   addJewelCaseSpineImageSlot,
+  getJewelCaseSpineEditSides,
+  getJewelCaseSpineSideScopedId,
   removeJewelCaseSpineImageSlot,
   renameJewelCaseSpineImageSlot,
+  setJewelCaseSpineMirrored,
   setJewelCaseSpineAdditionalArtworkEnabled,
+  updateProjectJewelCaseSpineSides,
   updateJewelCaseSpineImageSlot,
   updateJewelCaseSpineImageSlotInGroup,
   updateJewelCaseSpineTextBlock,

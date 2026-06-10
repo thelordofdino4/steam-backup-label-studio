@@ -16,6 +16,9 @@ import {
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
 import {
+  createCaseInsertGuideLayout,
+} from './caseInsertGuideLayout.ts'
+import {
   createCaseInsertTextAvoidanceRegionFromRect,
 } from './caseInsertTextAvoidance.ts'
 import {
@@ -39,6 +42,7 @@ import {
   getJewelCaseSpineBackgroundFit,
   getJewelCaseSpineImageSlotLayoutSliderRanges,
   getJewelCaseSpineImageSlotPreviewLayout,
+  getJewelCaseSpineTextLayoutSliderRanges,
   getJewelCaseSpineTitlePreviewLayout,
 } from './jewelCaseSpineLayout.ts'
 import {
@@ -590,6 +594,166 @@ test('spine text avoidance ignores reserved text box dead space', () => {
   assert.deepEqual(
     adjustedLayout.reservedBoundingRect,
     baseLayout.reservedBoundingRect,
+  )
+})
+
+test('spine text visual bounds are measured instead of width-slider sized', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftTitle = setCaseInsertTextBlockEnabled(
+    updateCaseInsertTextBlockValue(state.spine.left.title, 'Portal 2'),
+    true,
+  )
+  const wideLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    {
+      ...leftTitle,
+      layout: { ...leftTitle.layout, width: 90 },
+    },
+    layout,
+  )
+  const narrowLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    {
+      ...leftTitle,
+      layout: { ...leftTitle.layout, width: 30 },
+    },
+    layout,
+  )
+
+  assert.ok(wideLayout)
+  assert.ok(narrowLayout)
+  assert.notEqual(
+    wideLayout.reservedBoundingRect.height,
+    narrowLayout.reservedBoundingRect.height,
+  )
+  assert.equal(wideLayout.width, narrowLayout.width)
+  assert.equal(wideLayout.height, narrowLayout.height)
+  assert.deepEqual(wideLayout.boundingRect, narrowLayout.boundingRect)
+})
+
+test('spine text edge placement clamps measured text instead of width-slider box', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const spineSides = [
+    { side: 'left' as const, safeRegionId: 'leftSpineSafe' },
+    { side: 'right' as const, safeRegionId: 'rightSpineSafe' },
+  ]
+
+  for (const { side, safeRegionId } of spineSides) {
+    const safeRegion = layout.regions.find(
+      ({ regionId }) => regionId === safeRegionId,
+    )
+    const title = setCaseInsertTextBlockEnabled(
+      updateCaseInsertTextBlockValue(state.spine[side].title, 'Portal 2'),
+      true,
+    )
+    const wideLayout = getJewelCaseSpineTitlePreviewLayout(
+      side,
+      {
+        ...title,
+        layout: { ...title.layout, width: 90, y: 100 },
+      },
+      layout,
+    )
+    const narrowLayout = getJewelCaseSpineTitlePreviewLayout(
+      side,
+      {
+        ...title,
+        layout: { ...title.layout, width: 30, y: 100 },
+      },
+      layout,
+    )
+
+    assert.ok(safeRegion)
+    assert.ok(wideLayout)
+    assert.ok(narrowLayout)
+    assert.equal(
+      wideLayout.reservedBoundingRect.height >
+        wideLayout.boundingRect.height * 3,
+      true,
+    )
+    assert.notEqual(
+      wideLayout.reservedBoundingRect.height,
+      narrowLayout.reservedBoundingRect.height,
+    )
+    assert.equal(
+      isPixelRectInsideBounds(wideLayout.boundingRect, safeRegion.bounds),
+      true,
+    )
+    assert.equal(
+      isPixelRectInsideBounds(narrowLayout.boundingRect, safeRegion.bounds),
+      true,
+    )
+    assertRectApproximatelyEqual(
+      wideLayout.boundingRect,
+      narrowLayout.boundingRect,
+    )
+    assertApproximatelyEqual(
+      wideLayout.boundingRect.y + wideLayout.boundingRect.height,
+      safeRegion.bounds.y + safeRegion.bounds.height,
+    )
+  }
+})
+
+test('spine text placement uses adjusted visible spine safe guide bounds', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const rawLayout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const layout = createCaseInsertGuideLayout(rawLayout, state)
+  const rawSafe = rawLayout.regions.find(
+    ({ regionId }) => regionId === 'leftSpineSafe',
+  )
+  const adjustedSafe = layout.guides.find(
+    ({ guideId }) => guideId === 'leftSpineSafeBounds',
+  )
+  const title = setCaseInsertTextBlockEnabled(
+    updateCaseInsertTextBlockValue(state.spine.left.title, 'Portal 2'),
+    true,
+  )
+  const topLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    {
+      ...title,
+      layout: { ...title.layout, y: 0 },
+    },
+    layout,
+  )
+  const ranges = getJewelCaseSpineTextLayoutSliderRanges(
+    'left',
+    title,
+    layout,
+  )
+  const maxLengthLayout = getJewelCaseSpineTitlePreviewLayout(
+    'left',
+    {
+      ...title,
+      layout: { ...title.layout, y: ranges.y.max },
+    },
+    layout,
+  )
+
+  assert.ok(rawSafe)
+  assert.ok(adjustedSafe?.bounds)
+  assert.ok(topLayout)
+  assert.ok(maxLengthLayout)
+  assert.equal(adjustedSafe.bounds.y > rawSafe.bounds.y, true)
+  assert.equal(
+    isPixelRectInsideBounds(topLayout.boundingRect, adjustedSafe.bounds),
+    true,
+  )
+  assertApproximatelyEqual(topLayout.boundingRect.y, adjustedSafe.bounds.y)
+  assert.equal(ranges.y.min > 0, true)
+  assert.equal(ranges.y.max < 100, true)
+  assert.equal(
+    maxLengthLayout.boundingRect.y + maxLengthLayout.boundingRect.height <=
+      adjustedSafe.bounds.y + adjustedSafe.bounds.height,
+    true,
+  )
+  assert.equal(
+    adjustedSafe.bounds.y + adjustedSafe.bounds.height -
+      (maxLengthLayout.boundingRect.y + maxLengthLayout.boundingRect.height) <
+      adjustedSafe.bounds.height * 0.001,
+    true,
   )
 })
 
