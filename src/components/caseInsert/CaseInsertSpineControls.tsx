@@ -24,7 +24,11 @@ import {
 } from '../../caseInsert/brandingLogoSlots'
 import {
   createJewelCasePreviewLayout,
+  type CaseInsertPreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
+import {
+  createCaseInsertSpineGuideLayout,
+} from '../../layout/caseInsertGuideLayout'
 import {
   RATING_BADGE_LAYOUT_PRESETS,
 } from '../../layout/presets'
@@ -37,6 +41,7 @@ import type {
 import {
   getJewelCaseSpineBackgroundLayoutSliderRanges,
   getJewelCaseSpineImageSlotLayoutSliderRanges,
+  getJewelCaseSpineTextLayoutSliderRanges,
   type JewelCaseSpineOverlayRole,
 } from '../../layout/jewelCaseSpineLayout'
 import type {
@@ -69,6 +74,7 @@ import {
   getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
   getNextCaseInsertTextSource,
+  getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
   CASE_INSERT_TEXT_WIDTH_MAX,
@@ -186,8 +192,10 @@ function applyLayoutSliderRanges<
   })
 }
 
-function getSpinePreviewLayout() {
-  return createJewelCasePreviewLayout('jewelCase', 'back')
+function getSpinePreviewLayout(spine?: ProjectJewelCaseSpineState) {
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+
+  return spine ? createCaseInsertSpineGuideLayout(layout, spine) : layout
 }
 
 function getSpineImageSlotPlacementFields(
@@ -272,11 +280,13 @@ function SpineTextLayoutPresetControl({
 }
 
 function SpineTitleControls({
+  layout,
   side,
   title,
   projectMetadata,
   actions,
 }: {
+  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   title: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -289,6 +299,12 @@ function SpineTitleControls({
   const inputState = getCaseInsertTextBlockInputState(
     title,
     projectMetadata,
+  )
+  const renderedTitle = getRenderedCaseInsertTextBlock(title, projectMetadata)
+  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
+    side,
+    renderedTitle,
+    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', title)
 
@@ -441,18 +457,18 @@ function SpineTitleControls({
               <EditorRangeField
                 id={`${side}-spine-title-x`}
                 label="Cross"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.x.min}
+                max={layoutRanges.x.max}
+                step={0.1}
                 value={title.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
               <EditorRangeField
                 id={`${side}-spine-title-y`}
                 label="Length"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.y.min}
+                max={layoutRanges.y.max}
+                step={0.1}
                 value={title.layout.y}
                 onChange={(value) => onLayoutChange('y', value)}
               />
@@ -488,11 +504,13 @@ function SpineTitleControls({
 }
 
 function SpineTextBlockControls({
+  layout,
   side,
   textBlock,
   projectMetadata,
   actions,
 }: {
+  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   textBlock: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -528,6 +546,15 @@ function SpineTextBlockControls({
   const inputState = getCaseInsertTextBlockInputState(
     textBlock,
     projectMetadata,
+  )
+  const renderedTextBlock = getRenderedCaseInsertTextBlock(
+    textBlock,
+    projectMetadata,
+  )
+  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
+    side,
+    renderedTextBlock,
+    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', textBlock)
 
@@ -691,18 +718,18 @@ function SpineTextBlockControls({
               <EditorRangeField
                 id={`${textBlock.id}-x`}
                 label="Cross"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.x.min}
+                max={layoutRanges.x.max}
+                step={0.1}
                 value={textBlock.layout.x}
                 onChange={(value) => onLayoutChange('x', value)}
               />
               <EditorRangeField
                 id={`${textBlock.id}-y`}
                 label="Length"
-                min={0}
-                max={100}
-                step={1}
+                min={layoutRanges.y.min}
+                max={layoutRanges.y.max}
+                step={0.1}
                 value={textBlock.layout.y}
                 onChange={(value) => onLayoutChange('y', value)}
               />
@@ -1673,6 +1700,8 @@ export function CaseInsertSpineTextControls({
   projectMetadata,
   actions,
 }: CaseInsertSpineControlsProps) {
+  const layout = getSpinePreviewLayout(spine)
+
   return (
     <>
       {SPINE_SIDES.map(({ side, label }) => {
@@ -1681,6 +1710,7 @@ export function CaseInsertSpineTextControls({
         return (
           <SpineSideSection key={side} label={label}>
             <SpineTitleControls
+              layout={layout}
               side={side}
               title={state.title}
               projectMetadata={projectMetadata}
@@ -1689,6 +1719,7 @@ export function CaseInsertSpineTextControls({
             {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
               <SpineTextBlockControls
                 key={textBlock.id}
+                layout={layout}
                 side={side}
                 textBlock={textBlock}
                 projectMetadata={projectMetadata}
