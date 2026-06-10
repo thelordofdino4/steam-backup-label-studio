@@ -44,6 +44,18 @@ function getRegionBounds(
     null
 }
 
+function getTargetRegionBounds(
+  target: JewelCaseSteamBannerTarget,
+  layout: CaseInsertPreviewLayout,
+) {
+  return target.kind === 'cover'
+    ? getRegionBounds(layout, 'front')
+    : getRegionBounds(
+        layout,
+        target.side === 'left' ? 'leftSpine' : 'rightSpine',
+      )
+}
+
 function scaleRectFromReference(
   reference: JewelCasePixelRect,
   scale: number,
@@ -188,4 +200,40 @@ export function getJewelCaseSteamBannerVisualLayout(
   )
 
   return spine ? createSpineSteamBannerLayout(banner, spine) : null
+}
+
+export function getJewelCaseSteamBannerOpenArtworkRegion(
+  banner: ProjectCaseInsertSteamBanner,
+  target: JewelCaseSteamBannerTarget,
+  layout: CaseInsertPreviewLayout,
+): JewelCasePixelRect | null {
+  const region = getTargetRegionBounds(target, layout)
+
+  if (!region) {
+    return null
+  }
+
+  const bannerLayout = getJewelCaseSteamBannerVisualLayout(
+    banner,
+    target,
+    layout,
+  )
+
+  if (!bannerLayout) {
+    return region
+  }
+
+  const bannerBottom = Math.max(
+    bannerLayout.mainBand.y + bannerLayout.mainBand.height,
+    bannerLayout.accentBand.y + bannerLayout.accentBand.height,
+  )
+  const regionBottom = region.y + region.height
+  const y = Math.min(regionBottom, Math.max(region.y, bannerBottom))
+
+  return {
+    x: region.x,
+    y,
+    width: region.width,
+    height: Math.max(0, regionBottom - y),
+  }
 }

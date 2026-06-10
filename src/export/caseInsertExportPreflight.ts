@@ -213,7 +213,11 @@ function getTemplateSurfaceWarnings(
 ) {
   const warnings: string[] = []
   const backgroundFit = paneId === 'cover'
-    ? getJewelCaseFrontBackgroundFit(templateState.background, layout)
+    ? getJewelCaseFrontBackgroundFit(
+        templateState.background,
+        layout,
+        templateState.steamBanner,
+      )
     : getJewelCaseBackBackgroundFit(templateState.background, layout)
 
   if (!slotWillRender(templateState.background)) {
@@ -514,6 +518,7 @@ function getSpineSideWarnings(
     side,
     spineSide.background,
     layout,
+    spineSide.steamBanner,
   )
   const renderedTitle = getRenderedCaseInsertTextBlock(
     spineSide.title,

@@ -1,5 +1,6 @@
 import type {
   ProjectCaseInsertImageSlot,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
@@ -23,7 +24,6 @@ import {
   CASE_INSERT_OFFSET_LAYOUT_RANGES,
   CASE_INSERT_PERCENT_LAYOUT_RANGES,
   getCenteredRectLayoutSliderRanges,
-  getImageFitOffsetLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
 import type { CaseInsertTextAvoidanceRegion } from './caseInsertTextAvoidance.ts'
@@ -38,6 +38,9 @@ import {
   type JewelCasePixelRect,
   type JewelCaseSpineSideId,
 } from './jewelCaseLayout.ts'
+import {
+  getJewelCaseSteamBannerOpenArtworkRegion,
+} from './jewelCaseSteamBannerLayout.ts'
 
 export type JewelCaseSpineOverlayRole =
   | 'titleArtwork'
@@ -312,8 +315,15 @@ export function getJewelCaseSpineBackgroundFit(
   side: JewelCaseSpineSideId,
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
+  steamBanner?: ProjectCaseInsertSteamBanner,
 ): JewelCaseImageFitResult | null {
-  const region = getRegionBounds(layout, getSpineRegionId(side))
+  const region = steamBanner
+    ? getJewelCaseSteamBannerOpenArtworkRegion(
+        steamBanner,
+        { kind: 'spine', side },
+        layout,
+      )
+    : getRegionBounds(layout, getSpineRegionId(side))
 
   if (!region || !slot.enabled || !slot.imageDataUrl) {
     return null
@@ -336,11 +346,11 @@ export function getJewelCaseSpineBackgroundLayoutSliderRanges(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
 ): CaseInsertLayoutSliderRanges {
-  const fit = getJewelCaseSpineBackgroundFit(side, slot, layout)
+  void side
+  void slot
+  void layout
 
-  return fit
-    ? getImageFitOffsetLayoutSliderRanges(fit)
-    : CASE_INSERT_OFFSET_LAYOUT_RANGES
+  return CASE_INSERT_OFFSET_LAYOUT_RANGES
 }
 
 export function getJewelCaseSpineTitlePreviewLayout(

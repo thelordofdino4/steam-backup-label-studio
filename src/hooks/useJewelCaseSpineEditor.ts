@@ -66,7 +66,10 @@ import {
   type CaseInsertSteamBannerColorField,
   type CaseInsertSteamBannerLayoutField,
 } from '../caseInsert/steamBanner'
-import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
+import { createCaseInsertPngExportLayout } from '../caseInsert/exportLayout'
+import {
+  getJewelCaseSteamBannerOpenArtworkRegion,
+} from '../layout/jewelCaseSteamBannerLayout'
 import {
   createLogoCandidateCaseInsertImageSlotImage,
   createLocalSteamScreenshotCaseInsertImageSlotImage,
@@ -185,9 +188,16 @@ function getSpineLogoSlotIdPrefix(side: JewelCaseSpineSide) {
   return `${side}-spine-logo`
 }
 
-function getSpineBackgroundFitRegion(side: JewelCaseSpineSide) {
-  return getJewelCaseRegionExportBounds(
-    side === 'left' ? 'leftSpine' : 'rightSpine',
+function getSpineBackgroundFitRegion(
+  caseInsert: ProjectJewelCaseState,
+  side: JewelCaseSpineSide,
+) {
+  const layout = createCaseInsertPngExportLayout(caseInsert, 'tray')
+
+  return getJewelCaseSteamBannerOpenArtworkRegion(
+    caseInsert.spine[side].steamBanner,
+    { kind: 'spine', side },
+    layout,
   )
 }
 
@@ -755,15 +765,18 @@ export function useJewelCaseSpineEditor({
       return
     }
 
-    const region = getSpineBackgroundFitRegion(side)
+    setProjectJewelCase((currentCaseInsert) => {
+      const region = getSpineBackgroundFitRegion(currentCaseInsert, side)
 
-    if (!region) {
-      return
-    }
-
-    updateSpineImageSlot(side, slotKey, (slot) =>
-      fitCaseInsertImageSlotToRegionHeight(slot, region),
-    )
+      return region
+        ? updateJewelCaseSpineImageSlot(
+            currentCaseInsert,
+            side,
+            slotKey,
+            (slot) => fitCaseInsertImageSlotToRegionHeight(slot, region),
+          )
+        : currentCaseInsert
+    })
     announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
   }
 

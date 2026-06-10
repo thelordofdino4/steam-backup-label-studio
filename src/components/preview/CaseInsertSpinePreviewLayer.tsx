@@ -31,6 +31,7 @@ import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayo
 import type { JewelCasePixelRect } from '../../layout/jewelCaseLayout'
 import type {
   ProjectCaseInsertImageSlot,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertTextBlock,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
@@ -150,15 +151,22 @@ function getTransformedBoxStyle(
 function CaseInsertSpineBackground({
   side,
   slot,
+  steamBanner,
   layout,
   pointerHandlers,
 }: {
   side: 'left' | 'right'
   slot: ProjectCaseInsertImageSlot
+  steamBanner: ProjectCaseInsertSteamBanner
   layout: CaseInsertPreviewLayout
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
-  const backgroundFit = getJewelCaseSpineBackgroundFit(side, slot, layout)
+  const backgroundFit = getJewelCaseSpineBackgroundFit(
+    side,
+    slot,
+    layout,
+    steamBanner,
+  )
 
   if (!backgroundFit || !slot.imageDataUrl) {
     return null
@@ -391,6 +399,7 @@ function CaseInsertSpineSidePreview({
       <CaseInsertSpineBackground
         side={side}
         slot={state.background}
+        steamBanner={state.steamBanner}
         layout={layout}
         pointerHandlers={pointerHandlers}
       />

@@ -304,9 +304,10 @@ export function getJewelCaseBackBackgroundLayoutSliderRanges(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
 ): CaseInsertLayoutSliderRanges {
-  return getImageFitOffsetLayoutSliderRanges(
-    getJewelCaseBackBackgroundFit(slot, layout),
-  )
+  void slot
+  void layout
+
+  return CASE_INSERT_OFFSET_LAYOUT_RANGES
 }
 
 export function getJewelCaseBackScreenshotFrameRect(

@@ -1,5 +1,6 @@
 import type {
   ProjectCaseInsertImageSlot,
+  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertTextBlock,
 } from '../project/projectTypes.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
@@ -17,9 +18,9 @@ import {
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
+  CASE_INSERT_OFFSET_LAYOUT_RANGES,
   CASE_INSERT_PERCENT_LAYOUT_RANGES,
   getCenteredRectLayoutSliderRanges,
-  getImageFitOffsetLayoutSliderRanges,
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
 import {
@@ -40,6 +41,9 @@ import {
   type JewelCasePixelRect,
   type JewelCasePixelSize,
 } from './jewelCaseLayout.ts'
+import {
+  getJewelCaseSteamBannerOpenArtworkRegion,
+} from './jewelCaseSteamBannerLayout.ts'
 
 export type JewelCaseFrontImageSlotRole =
   | 'titleArtwork'
@@ -200,8 +204,15 @@ export function getJewelCaseFrontPreviewRegionBounds(
 export function getJewelCaseFrontBackgroundFit(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
+  steamBanner?: ProjectCaseInsertSteamBanner,
 ): JewelCaseImageFitResult | null {
-  const region = getJewelCaseFrontPreviewRegionBounds(layout, 'front')
+  const region = steamBanner
+    ? getJewelCaseSteamBannerOpenArtworkRegion(
+        steamBanner,
+        { kind: 'cover' },
+        layout,
+      )
+    : getJewelCaseFrontPreviewRegionBounds(layout, 'front')
 
   if (!region || !slot.enabled || !slot.imageDataUrl) {
     return null
@@ -223,9 +234,10 @@ export function getJewelCaseFrontBackgroundLayoutSliderRanges(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
 ): CaseInsertLayoutSliderRanges {
-  return getImageFitOffsetLayoutSliderRanges(
-    getJewelCaseFrontBackgroundFit(slot, layout),
-  )
+  void slot
+  void layout
+
+  return CASE_INSERT_OFFSET_LAYOUT_RANGES
 }
 
 export function getJewelCaseFrontImageSlotPreviewRect(

@@ -373,7 +373,11 @@ export function CaseInsertTemplateBackgroundLayer({
   pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
   const backgroundFit = paneId === 'cover'
-    ? getJewelCaseFrontBackgroundFit(templateState.background, layout)
+    ? getJewelCaseFrontBackgroundFit(
+        templateState.background,
+        layout,
+        templateState.steamBanner,
+      )
     : getJewelCaseBackBackgroundFit(templateState.background, layout)
 
   if (!backgroundFit || !templateState.background.imageDataUrl) {

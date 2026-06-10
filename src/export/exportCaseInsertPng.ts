@@ -482,7 +482,11 @@ async function drawTemplateBackgrounds(
   if (paneId === 'cover') {
     await drawImageFit(
       context,
-      getJewelCaseFrontBackgroundFit(templateState.background, layout),
+      getJewelCaseFrontBackgroundFit(
+        templateState.background,
+        layout,
+        templateState.steamBanner,
+      ),
       templateState.background.imageDataUrl,
       templateState.background.label,
     )
@@ -709,7 +713,12 @@ async function drawSpineSide(
 ) {
   await drawImageFit(
     context,
-    getJewelCaseSpineBackgroundFit(side, state.background, layout),
+    getJewelCaseSpineBackgroundFit(
+      side,
+      state.background,
+      layout,
+      state.steamBanner,
+    ),
     state.background.imageDataUrl,
     state.background.label,
   )

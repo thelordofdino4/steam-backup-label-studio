@@ -7,6 +7,13 @@ import {
   createJewelCasePreviewLayout,
 } from './caseInsertPreviewLayout.ts'
 import {
+  getJewelCaseFrontBackgroundFit,
+} from './jewelCaseFrontLayout.ts'
+import {
+  getJewelCaseSpineBackgroundFit,
+} from './jewelCaseSpineLayout.ts'
+import {
+  getJewelCaseSteamBannerOpenArtworkRegion,
   getJewelCaseSteamBannerVisualLayout,
 } from './jewelCaseSteamBannerLayout.ts'
 
@@ -119,4 +126,118 @@ test('disabled case insert Steam banners do not produce visual layout', () => {
     ),
     null,
   )
+})
+
+test('cover sheet open artwork region starts below enabled Steam banner', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const openRegion = getJewelCaseSteamBannerOpenArtworkRegion(
+    caseInsert.templates.cover.steamBanner,
+    { kind: 'cover' },
+    layout,
+  )
+
+  assert.deepEqual(openRegion && roundedRect(openRegion), {
+    x: 0,
+    y: 176,
+    width: 1414,
+    height: 1238,
+  })
+})
+
+test('spine open artwork regions start below each enabled Steam banner', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const leftOpenRegion = getJewelCaseSteamBannerOpenArtworkRegion(
+    caseInsert.spine.left.steamBanner,
+    { kind: 'spine', side: 'left' },
+    layout,
+  )
+  const rightOpenRegion = getJewelCaseSteamBannerOpenArtworkRegion(
+    caseInsert.spine.right.steamBanner,
+    { kind: 'spine', side: 'right' },
+    layout,
+  )
+
+  assert.deepEqual(leftOpenRegion && roundedRect(leftOpenRegion), {
+    x: 0,
+    y: 176,
+    width: 75,
+    height: 1214,
+  })
+  assert.deepEqual(rightOpenRegion && roundedRect(rightOpenRegion), {
+    x: 1705,
+    y: 176,
+    width: 75,
+    height: 1214,
+  })
+})
+
+test('disabled Steam banner open artwork region falls back to full target', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const openRegion = getJewelCaseSteamBannerOpenArtworkRegion(
+    {
+      ...caseInsert.templates.cover.steamBanner,
+      enabled: false,
+    },
+    { kind: 'cover' },
+    layout,
+  )
+
+  assert.deepEqual(openRegion && roundedRect(openRegion), {
+    x: 0,
+    y: 0,
+    width: 1414,
+    height: 1414,
+  })
+})
+
+test('cover background fit can target the Steam-banner open artwork region', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const fit = getJewelCaseFrontBackgroundFit(
+    {
+      ...caseInsert.templates.cover.background,
+      enabled: true,
+      imageDataUrl: 'data:image/png;base64,cover',
+      imageSize: { width: 1414, height: 1414 },
+      fit: 'cover',
+    },
+    layout,
+    caseInsert.templates.cover.steamBanner,
+  )
+
+  assert.ok(fit)
+  assert.deepEqual(roundedRect(fit.region), {
+    x: 0,
+    y: 176,
+    width: 1414,
+    height: 1238,
+  })
+})
+
+test('spine background fit can target the Steam-banner open artwork region', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const fit = getJewelCaseSpineBackgroundFit(
+    'right',
+    {
+      ...caseInsert.spine.right.background,
+      enabled: true,
+      imageDataUrl: 'data:image/png;base64,spine',
+      imageSize: { width: 75, height: 1390 },
+      fit: 'cover',
+    },
+    layout,
+    caseInsert.spine.right.steamBanner,
+  )
+
+  assert.ok(fit)
+  assert.deepEqual(roundedRect(fit.region), {
+    x: 1705,
+    y: 176,
+    width: 75,
+    height: 1214,
+  })
 })

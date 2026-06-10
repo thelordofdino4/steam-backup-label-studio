@@ -55,7 +55,10 @@ import {
   type CaseInsertSteamBannerColorField,
   type CaseInsertSteamBannerLayoutField,
 } from '../caseInsert/steamBanner'
-import { getJewelCaseRegionExportBounds } from '../layout/jewelCaseLayout'
+import { createCaseInsertPngExportLayout } from '../caseInsert/exportLayout'
+import {
+  getJewelCaseSteamBannerOpenArtworkRegion,
+} from '../layout/jewelCaseSteamBannerLayout'
 import {
   createLogoCandidateCaseInsertImageSlotImage,
   createLocalSteamScreenshotCaseInsertImageSlotImage,
@@ -191,6 +194,7 @@ function getGroupDefaultLayout(
 }
 
 function getPrimaryImageSlotFitRegion(
+  caseInsert: ProjectJewelCaseState,
   paneId: CaseInsertTemplatePaneId,
   slotKey: CaseInsertPrimaryImageSlotKey,
 ) {
@@ -198,7 +202,18 @@ function getPrimaryImageSlotFitRegion(
     return null
   }
 
-  return getJewelCaseRegionExportBounds(paneId === 'cover' ? 'front' : 'back')
+  const layout = createCaseInsertPngExportLayout(caseInsert, paneId)
+
+  if (paneId === 'cover') {
+    return getJewelCaseSteamBannerOpenArtworkRegion(
+      caseInsert.templates.cover.steamBanner,
+      { kind: 'cover' },
+      layout,
+    )
+  }
+
+  return layout.regions.find(({ regionId }) => regionId === 'back')?.bounds ??
+    null
 }
 
 function preserveCaseInsertMarkSource(
@@ -441,15 +456,26 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertPrimaryImageSlotKey,
     label: string,
   ) {
-    const region = getPrimaryImageSlotFitRegion(paneId, slotKey)
-
-    if (!region) {
+    if (slotKey !== 'background') {
       return
     }
 
-    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-      fitCaseInsertImageSlotToRegionHeight(slot, region),
-    )
+    setProjectJewelCase((currentCaseInsert) => {
+      const region = getPrimaryImageSlotFitRegion(
+        currentCaseInsert,
+        paneId,
+        slotKey,
+      )
+
+      return region
+        ? updateCaseInsertTemplateImageSlot(
+            currentCaseInsert,
+            paneId,
+            slotKey,
+            (slot) => fitCaseInsertImageSlotToRegionHeight(slot, region),
+          )
+        : currentCaseInsert
+    })
     announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
   }
 
