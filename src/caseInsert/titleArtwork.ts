@@ -287,6 +287,7 @@ export function applySteamCaseInsertTitleArtworkSeedToProject(
       },
     },
     spine: {
+      ...caseInsert.spine,
       left: {
         ...caseInsert.spine.left,
         titleArtwork: applySpineSeed(caseInsert.spine.left.titleArtwork),

@@ -2,6 +2,7 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertTextBlock,
   ProjectJewelCaseSpineSideState,
+  ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import type { JewelCaseSpineSide } from './types.ts'
@@ -14,6 +15,47 @@ export type JewelCaseSpineImageSlotGroupKey =
   | 'artworkSlots'
   | 'logoSlots'
   | 'markSlots'
+
+export const JEWEL_CASE_SPINE_SIDES: JewelCaseSpineSide[] = ['left', 'right']
+
+export function getJewelCaseSpineEditSides(
+  spine: ProjectJewelCaseSpineState,
+  side: JewelCaseSpineSide,
+): JewelCaseSpineSide[] {
+  return spine.mirrored ? JEWEL_CASE_SPINE_SIDES : [side]
+}
+
+export function getJewelCaseSpineSideScopedId(
+  side: JewelCaseSpineSide,
+  id: string,
+) {
+  const currentPrefix = `${side}-spine-`
+
+  if (id.startsWith(currentPrefix)) {
+    return id
+  }
+
+  const oppositePrefix = side === 'left' ? 'right-spine-' : 'left-spine-'
+
+  return id.startsWith(oppositePrefix)
+    ? `${currentPrefix}${id.slice(oppositePrefix.length)}`
+    : id
+}
+
+export function setJewelCaseSpineMirrored(
+  state: ProjectJewelCaseState,
+  mirrored: boolean,
+): ProjectJewelCaseState {
+  return state.spine.mirrored === mirrored
+    ? state
+    : {
+        ...state,
+        spine: {
+          ...state.spine,
+          mirrored,
+        },
+      }
+}
 
 export function updateProjectJewelCaseSpineSide(
   state: ProjectJewelCaseState,
@@ -29,6 +71,35 @@ export function updateProjectJewelCaseSpineSide(
       [side]: updater(state.spine[side]),
     },
   }
+}
+
+export function updateProjectJewelCaseSpineSides(
+  state: ProjectJewelCaseState,
+  side: JewelCaseSpineSide,
+  updater: (
+    spineSide: ProjectJewelCaseSpineSideState,
+    side: JewelCaseSpineSide,
+  ) => ProjectJewelCaseSpineSideState,
+): ProjectJewelCaseState {
+  let didChange = false
+  const spine = { ...state.spine }
+
+  getJewelCaseSpineEditSides(state.spine, side).forEach((targetSide) => {
+    const spineSide = state.spine[targetSide]
+    const nextSpineSide = updater(spineSide, targetSide)
+
+    if (nextSpineSide !== spineSide) {
+      spine[targetSide] = nextSpineSide
+      didChange = true
+    }
+  })
+
+  return didChange
+    ? {
+        ...state,
+        spine,
+      }
+    : state
 }
 
 export function updateJewelCaseSpineTitle(

@@ -10,16 +10,17 @@ import type {
   JewelCaseSpineSideId,
 } from './jewelCaseLayout.ts'
 import type {
+  ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 
 function getAdjustedSpineSafeBounds(
-  caseInsert: ProjectJewelCaseState,
+  spine: ProjectJewelCaseSpineState,
   side: JewelCaseSpineSideId,
   layout: CaseInsertPreviewLayout,
 ): JewelCasePixelRect | null {
   return getJewelCaseSteamBannerOpenArtworkRegion(
-    caseInsert.spine[side].steamBanner,
+    spine[side].steamBanner,
     { kind: 'spine', side },
     layout,
   )
@@ -32,9 +33,9 @@ function adjustGuideBounds(
   return bounds ? { ...guide, bounds } : guide
 }
 
-export function createCaseInsertGuideLayout(
+export function createCaseInsertSpineGuideLayout(
   layout: CaseInsertPreviewLayout,
-  caseInsert: ProjectJewelCaseState,
+  spine: ProjectJewelCaseSpineState,
 ): CaseInsertPreviewLayout {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
     return layout
@@ -48,14 +49,14 @@ export function createCaseInsertGuideLayout(
     if (guide.guideId === 'leftSpineSafeBounds') {
       return [adjustGuideBounds(
         guide,
-        getAdjustedSpineSafeBounds(caseInsert, 'left', layout),
+        getAdjustedSpineSafeBounds(spine, 'left', layout),
       )]
     }
 
     if (guide.guideId === 'rightSpineSafeBounds') {
       return [adjustGuideBounds(
         guide,
-        getAdjustedSpineSafeBounds(caseInsert, 'right', layout),
+        getAdjustedSpineSafeBounds(spine, 'right', layout),
       )]
     }
 
@@ -66,4 +67,11 @@ export function createCaseInsertGuideLayout(
     ...layout,
     guides,
   }
+}
+
+export function createCaseInsertGuideLayout(
+  layout: CaseInsertPreviewLayout,
+  caseInsert: ProjectJewelCaseState,
+): CaseInsertPreviewLayout {
+  return createCaseInsertSpineGuideLayout(layout, caseInsert.spine)
 }

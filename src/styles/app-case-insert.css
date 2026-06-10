@@ -346,6 +346,12 @@
   min-width: 0;
 }
 
+.case-insert-spine-mirror-button.is-active {
+  border-color: #22c55e;
+  background: #052e1a;
+  color: #bbf7d0;
+}
+
 .case-insert-primary-slot-control > .field-label {
   align-items: center;
   display: flex;

@@ -10,10 +10,8 @@ import {
   updateCaseInsertImageSlotLayoutPosition,
 } from '../caseInsert/imageSlotTransitions.ts'
 import {
-  updateJewelCaseSpineImageSlot,
-  updateJewelCaseSpineImageSlotInGroup,
-  updateJewelCaseSpineTextBlock,
-  updateJewelCaseSpineTitle,
+  getJewelCaseSpineSideScopedId,
+  updateProjectJewelCaseSpineSides,
   type JewelCaseSpineImageSlotGroupKey,
   type JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions.ts'
@@ -366,32 +364,63 @@ function updateCaseInsertDragTargetPosition(
         (textList) => updateCaseInsertTextListLayoutPosition(textList, point),
       )
     case 'spinePrimaryImage':
-      return updateJewelCaseSpineImageSlot(
+      return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        target.slotKey,
-        (slot) => updateCaseInsertImageSlotLayoutPosition(slot, point),
+        (spineSide) => ({
+          ...spineSide,
+          [target.slotKey]: updateCaseInsertImageSlotLayoutPosition(
+            spineSide[target.slotKey],
+            point,
+          ),
+        }),
       )
     case 'spineGroupedImage':
-      return updateJewelCaseSpineImageSlotInGroup(
+      return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        target.slotKey,
-        target.slotId,
-        (slot) => updateCaseInsertImageSlotLayoutPosition(slot, point),
+        (spineSide, side) => {
+          const slotId = getJewelCaseSpineSideScopedId(side, target.slotId)
+
+          return {
+            ...spineSide,
+            [target.slotKey]: spineSide[target.slotKey].map((slot) =>
+              slot.id === slotId
+                ? updateCaseInsertImageSlotLayoutPosition(slot, point)
+                : slot),
+          }
+        },
       )
     case 'spineTitle':
-      return updateJewelCaseSpineTitle(
+      return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        (title) => updateCaseInsertTextBlockLayoutPosition(title, point),
+        (spineSide) => ({
+          ...spineSide,
+          title: updateCaseInsertTextBlockLayoutPosition(
+            spineSide.title,
+            point,
+          ),
+        }),
       )
     case 'spineTextBlock':
-      return updateJewelCaseSpineTextBlock(
+      return updateProjectJewelCaseSpineSides(
         state,
         target.side,
-        target.textBlockId,
-        (textBlock) => updateCaseInsertTextBlockLayoutPosition(textBlock, point),
+        (spineSide, side) => {
+          const textBlockId = getJewelCaseSpineSideScopedId(
+            side,
+            target.textBlockId,
+          )
+
+          return {
+            ...spineSide,
+            textBlocks: spineSide.textBlocks.map((textBlock) =>
+              textBlock.id === textBlockId
+                ? updateCaseInsertTextBlockLayoutPosition(textBlock, point)
+                : textBlock),
+          }
+        },
       )
     default:
       return state

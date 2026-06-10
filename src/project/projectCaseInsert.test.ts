@@ -26,6 +26,7 @@ import {
   createDefaultJewelCaseSpineMarkSlot,
   createDefaultProjectJewelCaseState,
   fitCaseInsertImageSlotToRegionHeight,
+  getJewelCaseSpineSideScopedId,
   removeCaseInsertTemplateImageSlot,
   removeCaseInsertTextListItem,
   renameCaseInsertTemplateImageSlot,
@@ -34,6 +35,7 @@ import {
   setCaseInsertImageSlotImage,
   setCaseInsertTemplateAdditionalArtworkEnabled,
   setJewelCaseSpineAdditionalArtworkEnabled,
+  setJewelCaseSpineMirrored,
   setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
   setCaseInsertTextListAvoidVisualElements,
@@ -48,6 +50,7 @@ import {
   updateCaseInsertTextBlockStyleField,
   updateProjectCaseInsertTemplate,
   updateProjectJewelCaseSpineSide,
+  updateProjectJewelCaseSpineSides,
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListItem,
   normalizeSavedCaseInsertProject,
@@ -138,6 +141,7 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.template.type, 'caseInsert')
   assert.equal(project.template.variant, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
   assert.equal(project.caseInsert.templateType, DEFAULT_CASE_INSERT_TEMPLATE_TYPE)
+  assert.equal(project.caseInsert.spine.mirrored, true)
   assert.equal(cover.background.enabled, true)
   assert.equal(tray.background.enabled, true)
   assert.equal(cover.steamBanner.enabled, true)
@@ -200,6 +204,39 @@ test('creates blank jewel case saved project data with generic template panes', 
     projectType: 'caseInsert',
     workspace: 'caseInsert',
   })
+})
+
+test('mirrored spine side updates fan out until mirror is disabled', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+
+  const mirroredState = updateProjectJewelCaseSpineSides(
+    state,
+    'left',
+    (spineSide) => ({
+      ...spineSide,
+      title: updateCaseInsertTextBlockValue(spineSide.title, 'Shared spine'),
+    }),
+  )
+
+  assert.equal(mirroredState.spine.left.title.value, 'Shared spine')
+  assert.equal(mirroredState.spine.right.title.value, 'Shared spine')
+  assert.equal(
+    getJewelCaseSpineSideScopedId('right', 'left-spine-artwork-1'),
+    'right-spine-artwork-1',
+  )
+
+  const independentState = updateProjectJewelCaseSpineSides(
+    setJewelCaseSpineMirrored(mirroredState, false),
+    'left',
+    (spineSide) => ({
+      ...spineSide,
+      title: updateCaseInsertTextBlockValue(spineSide.title, 'Left only'),
+    }),
+  )
+
+  assert.equal(independentState.spine.mirrored, false)
+  assert.equal(independentState.spine.left.title.value, 'Left only')
+  assert.equal(independentState.spine.right.title.value, 'Shared spine')
 })
 
 test('creates case insert snapshots from generic template state', () => {
@@ -306,6 +343,21 @@ test('creates case insert snapshots from generic template state', () => {
     'Co-op puzzles',
   ])
   assert.equal(project.caseInsert.templates.tray.textLists[0]?.layout.width, 36)
+})
+
+test('case insert save and restore preserves spine mirror setting', () => {
+  const state = setJewelCaseSpineMirrored(
+    createDefaultProjectJewelCaseState('Portal 2'),
+    false,
+  )
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2',
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+
+  assert.equal(saved.caseInsert.spine.mirrored, false)
+  assert.equal(restored.spine.mirrored, false)
 })
 
 test('case insert text groups and styles survive sparse save/load data', () => {
