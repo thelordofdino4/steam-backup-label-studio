@@ -106,6 +106,12 @@ import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
+import {
+  getCaseInsertMarkLayerKind,
+} from '../caseInsert/brandingSlotSources'
+import {
+  getJewelCaseSpineMarkDefaultLayout,
+} from '../caseInsert/defaultBrandingLayouts'
 
 type UseJewelCaseSpineEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -283,6 +289,18 @@ function createDefaultJewelCaseSpineGroupedImageSlot(
     side,
     getNextSpineMarkSlotIndex(side, slots),
   )
+}
+
+function getSpineGroupedImageSlotResetLayout(
+  side: JewelCaseSpineSide,
+  slotKey: JewelCaseSpineImageSlotGroupKey,
+  slot: ProjectCaseInsertImageSlot,
+) {
+  const sourceId = slot.imageSource?.sourceId
+
+  return slotKey === 'markSlots' && sourceId?.startsWith('case-')
+    ? getJewelCaseSpineMarkDefaultLayout(getCaseInsertMarkLayerKind(sourceId))
+    : defaultSpineGroupedImageSlotLayouts[side][slotKey]
 }
 
 function preserveSpineMarkSource(
@@ -1263,7 +1281,11 @@ export function useJewelCaseSpineEditor({
           slot.id === targetSlotId
             ? {
                 ...slot,
-                layout: defaultSpineGroupedImageSlotLayouts[targetSide][slotKey],
+                layout: getSpineGroupedImageSlotResetLayout(
+                  targetSide,
+                  slotKey,
+                  slot,
+                ),
               }
             : slot),
       }

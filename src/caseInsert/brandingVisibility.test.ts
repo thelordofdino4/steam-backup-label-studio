@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { CaseInsertBrandingSourceCatalog } from './brandingSlotSources.ts'
+import {
+  getCaseInsertMarkLayerKind,
+  type CaseInsertBrandingSourceCatalog,
+  type CaseInsertMarkLayerKind,
+} from './brandingSlotSources.ts'
 import {
   isCaseInsertMarkKindEnabled,
   isCaseInsertMarkSlotVisible,
@@ -11,6 +15,8 @@ import {
 } from './defaults.ts'
 import {
   CASE_INSERT_COVER_RATING_MARK_LAYOUT,
+  CASE_INSERT_SPINE_MARK_LAYOUTS,
+  CASE_INSERT_TRAY_MARK_LAYOUTS,
 } from './defaultBrandingLayouts.ts'
 import {
   type CaseInsertBrandingMarkTarget,
@@ -131,6 +137,41 @@ function getTargetMarkSlots(
   return target.type === 'template'
     ? state.templates[target.paneId].markSlots
     : state.spine[target.side].markSlots
+}
+
+function getMarkLayoutsByKind(slots: ProjectCaseInsertImageSlot[]) {
+  const layoutsByKind = new Map<
+    CaseInsertMarkLayerKind,
+    ProjectCaseInsertImageSlot['layout']
+  >()
+
+  slots.forEach((slot) => {
+    layoutsByKind.set(
+      getCaseInsertMarkLayerKind(slot.imageSource?.sourceId),
+      slot.layout,
+    )
+  })
+
+  return layoutsByKind
+}
+
+function enableAllSharedMarkKinds(
+  target: CaseInsertBrandingMarkTarget,
+  brandingSources: CaseInsertBrandingSourceCatalog,
+) {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  ;(['rating', 'media', 'platform', 'technical'] as const).forEach((kind) => {
+    state = setProjectJewelCaseBrandingMarkTargetKindEnabled(
+      state,
+      target,
+      kind,
+      true,
+      brandingSources,
+    )
+  })
+
+  return state
 }
 
 test('case insert mark placement lookup finds enabled concrete mark slots only', () => {
@@ -432,6 +473,45 @@ test('case insert target source toggles do not create marks on other faces', () 
   assert.equal(state.templates.cover.markSlots.length, 0)
   assert.equal(state.spine.left.markSlots.length, 0)
   assert.equal(state.spine.right.markSlots.length, 0)
+})
+
+test('generated tray and spine mark slots use structured defaults by kind', () => {
+  const brandingSources = createEnabledMarkBrandingSources()
+  const trayTarget: CaseInsertBrandingMarkTarget = {
+    type: 'template',
+    paneId: 'tray',
+  }
+  const spineTarget: CaseInsertBrandingMarkTarget = {
+    type: 'spine',
+    side: 'left',
+  }
+  const trayState = enableAllSharedMarkKinds(trayTarget, brandingSources)
+  const spineState = enableAllSharedMarkKinds(spineTarget, brandingSources)
+  const trayLayouts = getMarkLayoutsByKind(
+    getTargetMarkSlots(trayState, trayTarget),
+  )
+  const spineLayouts = getMarkLayoutsByKind(
+    getTargetMarkSlots(spineState, spineTarget),
+  )
+
+  assert.deepEqual(trayLayouts.get('rating'), CASE_INSERT_TRAY_MARK_LAYOUTS.rating)
+  assert.deepEqual(trayLayouts.get('media'), CASE_INSERT_TRAY_MARK_LAYOUTS.media)
+  assert.deepEqual(trayLayouts.get('platform'), CASE_INSERT_TRAY_MARK_LAYOUTS.platform)
+  assert.deepEqual(
+    trayLayouts.get('technical'),
+    CASE_INSERT_TRAY_MARK_LAYOUTS.technical,
+  )
+
+  assert.deepEqual(spineLayouts.get('rating'), CASE_INSERT_SPINE_MARK_LAYOUTS.rating)
+  assert.deepEqual(spineLayouts.get('media'), CASE_INSERT_SPINE_MARK_LAYOUTS.media)
+  assert.deepEqual(
+    spineLayouts.get('platform'),
+    CASE_INSERT_SPINE_MARK_LAYOUTS.platform,
+  )
+  assert.deepEqual(
+    spineLayouts.get('technical'),
+    CASE_INSERT_SPINE_MARK_LAYOUTS.technical,
+  )
 })
 
 test('case insert supplemental USK rating badge syncs as a separate rating slot', () => {

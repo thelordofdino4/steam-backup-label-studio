@@ -12,6 +12,10 @@ import {
   getCaseInsertImageSlotGroupConfig,
 } from './templateSurfaceTransitions.ts'
 import {
+  getCaseInsertTemplateMarkDefaultLayout,
+  getJewelCaseSpineMarkDefaultLayout,
+} from './defaultBrandingLayouts.ts'
+import {
   createDefaultJewelCaseSpineMarkSlot,
 } from './defaults.ts'
 import {
@@ -408,6 +412,10 @@ function syncTemplateSurfaceMarkSlots(
           ...createCaseInsertTemplateImageSlot(paneId, 'markSlots', index),
           id: getAutoMarkSlotId(paneId, source),
           label: source.label,
+          layout: getCaseInsertTemplateMarkDefaultLayout(
+            paneId,
+            getCaseInsertMarkLayerKind(source.sourceId),
+          ),
         },
         source,
         'template',
@@ -446,6 +454,9 @@ function syncSpineSideMarkSlots(
           ...createDefaultJewelCaseSpineMarkSlot(side, index),
           id: getAutoMarkSlotId(`${side}-spine`, source),
           label: source.label,
+          layout: getJewelCaseSpineMarkDefaultLayout(
+            getCaseInsertMarkLayerKind(source.sourceId),
+          ),
         },
         source,
         'spine',

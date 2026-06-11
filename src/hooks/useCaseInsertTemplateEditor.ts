@@ -118,6 +118,12 @@ import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
 import { isImageFile } from '../utils/importedImageAsset'
+import {
+  getCaseInsertMarkLayerKind,
+} from '../caseInsert/brandingSlotSources'
+import {
+  getCaseInsertTemplateMarkDefaultLayout,
+} from '../caseInsert/defaultBrandingLayouts'
 
 type UseCaseInsertTemplateEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -191,6 +197,21 @@ function getGroupDefaultLayout(
     rotation: 0,
     ...getCaseInsertImageSlotGroupConfig(paneId, slotKey).defaultLayout,
   }
+}
+
+function getGroupedImageSlotResetLayout(
+  paneId: CaseInsertTemplatePaneId,
+  slotKey: CaseInsertImageSlotGroupKey,
+  slot: ProjectCaseInsertImageSlot,
+): ProjectCaseInsertLayout {
+  const sourceId = slot.imageSource?.sourceId
+
+  return slotKey === 'markSlots' && sourceId?.startsWith('case-')
+    ? getCaseInsertTemplateMarkDefaultLayout(
+        paneId,
+        getCaseInsertMarkLayerKind(sourceId),
+      )
+    : getGroupDefaultLayout(paneId, slotKey)
 }
 
 function getPrimaryImageSlotFitRegion(
@@ -967,7 +988,7 @@ export function useCaseInsertTemplateEditor({
   ) {
     updateGroupedImageSlot(paneId, slotKey, slotId, (slot) => ({
       ...slot,
-      layout: getGroupDefaultLayout(paneId, slotKey),
+      layout: getGroupedImageSlotResetLayout(paneId, slotKey, slot),
     }))
   }
 
