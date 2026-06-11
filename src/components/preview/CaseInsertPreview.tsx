@@ -4,6 +4,7 @@ import {
   type ReactNode,
   type RefObject,
   useMemo,
+  useState,
 } from 'react'
 import {
   CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER,
@@ -36,6 +37,8 @@ import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPrevie
 import { CaseInsertSpinePreviewLayer } from './CaseInsertSpinePreviewLayer'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
+import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
+import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
@@ -108,6 +111,12 @@ export function CaseInsertPreview({
   pointerHandlers,
   statusToasts,
 }: CaseInsertPreviewProps) {
+  const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
+  const { guideLegendClosedSize, previewAreaRef } =
+    usePreviewGuideLegendPlacement({
+      isOpen: isGuideLegendOpen,
+      previewRef: caseInsertPreviewRef,
+    })
   const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const layout = useMemo(
@@ -226,7 +235,11 @@ export function CaseInsertPreview({
   }
 
   return (
-    <section className="preview-area" aria-labelledby="case-insert-preview-title">
+    <section
+      ref={previewAreaRef}
+      className="preview-area"
+      aria-labelledby="case-insert-preview-title"
+    >
       <div className="preview-pane-label">
         <span>Live Preview</span>
         <strong id="case-insert-preview-title">
@@ -236,15 +249,23 @@ export function CaseInsertPreview({
 
       <PreviewToastStack statusToasts={statusToasts} />
 
-      <div
-        ref={caseInsertPreviewRef}
-        className="case-insert-preview"
-        style={previewStyle}
-        aria-label={`${activePaneConfig.label} live preview`}
-      >
-        {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-          <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-        ))}
+      <div className="preview-workspace">
+        <div
+          ref={caseInsertPreviewRef}
+          className="case-insert-preview"
+          style={previewStyle}
+          aria-label={`${activePaneConfig.label} live preview`}
+        >
+          {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+            <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+          ))}
+        </div>
+
+        <CaseInsertGuideLegendPreviewPanel
+          closedSize={guideLegendClosedSize}
+          isOpen={isGuideLegendOpen}
+          onOpenChange={setIsGuideLegendOpen}
+        />
       </div>
     </section>
   )

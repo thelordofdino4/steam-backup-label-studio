@@ -68,9 +68,21 @@
     overflow: hidden !important;
   }
 
+  .preview-workspace {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    align-items: center !important;
+    justify-items: center !important;
+    gap: clamp(12px, 1.4vw, 18px) !important;
+  }
+
   .disc-preview {
     width: min(
-      calc(100vw - 320px - 64px),
+      100%,
       calc(100vh - var(--preview-chrome-space)),
       640px
     ) !important;
@@ -80,12 +92,51 @@
 
   .case-insert-preview {
     width: min(
-      calc(100vw - 320px - 64px),
+      100%,
       calc((100vh - var(--preview-chrome-space)) * var(--case-insert-preview-width-ratio, 1)),
       1080px
     ) !important;
     min-width: 220px !important;
     max-width: 100% !important;
+  }
+
+  .preview-guide-legend-panel.is-open {
+    position: absolute !important;
+    right: clamp(16px, 3vw, 32px) !important;
+    bottom: clamp(16px, 3vw, 32px) !important;
+    z-index: 40 !important;
+  }
+
+  .preview-guide-legend-panel:not(.is-open) {
+    position: absolute !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    z-index: 40 !important;
+    width: var(--preview-guide-legend-closed-size, 40px) !important;
+    height: var(--preview-guide-legend-closed-size, 40px) !important;
+    max-height: var(--preview-guide-legend-closed-size, 40px) !important;
+  }
+
+  .preview-guide-legend-panel:not(.is-open) .preview-guide-legend-header {
+    justify-content: center !important;
+    gap: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    padding: 0 !important;
+  }
+
+  .preview-guide-legend-panel:not(.is-open) .preview-guide-legend-header h2 {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+  }
+
+  .preview-guide-legend-panel:not(.is-open) .preview-guide-legend-toggle {
+    width: 100% !important;
+    height: 100% !important;
   }
 }
 
@@ -105,8 +156,20 @@
     order: -1 !important;
     height: auto !important;
     min-height: 42vh !important;
-    position: static !important;
+    position: relative !important;
     padding: 16px !important;
+  }
+
+  .preview-workspace {
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, auto) auto !important;
+    align-content: center !important;
+    justify-items: center !important;
+    gap: 14px !important;
   }
 
   .sidebar {
@@ -117,12 +180,37 @@
   }
 
   .disc-preview {
-    width: min(calc(100vw - 32px), calc(42vh - 32px), 640px) !important;
+    width: min(
+      100%,
+      420px,
+      calc(100vw - 32px)
+    ) !important;
     min-width: 160px !important;
   }
 
   .case-insert-preview {
-    width: min(calc(100vw - 32px), 1080px) !important;
+    width: min(
+      100%,
+      420px,
+      calc(100vw - 32px)
+    ) !important;
     min-width: 220px !important;
+  }
+
+  .preview-guide-legend-panel {
+    justify-self: end !important;
+    width: min(280px, 100%) !important;
+    max-height: min(48vh, 420px) !important;
+  }
+
+  .preview-guide-legend-body {
+    max-height: calc(min(48vh, 420px) - 48px) !important;
+  }
+
+  .preview-guide-legend-panel.is-open {
+    position: absolute !important;
+    right: 16px !important;
+    bottom: 16px !important;
+    z-index: 40 !important;
   }
 }

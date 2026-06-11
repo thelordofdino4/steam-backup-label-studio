@@ -303,36 +303,6 @@ function CaseInsertTemplatePanel({
   )
 }
 
-function CaseInsertGuideLegendPanel() {
-  return (
-    <EditorPanel title="Guide Legend">
-        <div className="guide-legend">
-          <div className="guide-legend-item">
-            <span className="guide-swatch case-guide-swatch-trim" aria-hidden="true" />
-            <div>
-              <strong>Trim</strong>
-              <p>Final cut boundary.</p>
-            </div>
-          </div>
-          <div className="guide-legend-item">
-            <span className="guide-swatch case-guide-swatch-safe" aria-hidden="true" />
-            <div>
-              <strong>Safe Area</strong>
-              <p>Keep important content inside this line.</p>
-            </div>
-          </div>
-          <div className="guide-legend-item">
-            <span className="guide-swatch case-guide-swatch-spine" aria-hidden="true" />
-            <div>
-              <strong>Spine Fold</strong>
-              <p>Tray-card fold lines for the two spine strips.</p>
-            </div>
-          </div>
-        </div>
-    </EditorPanel>
-  )
-}
-
 export function CaseInsertEditorShell({
   caseInsert,
   activeTemplatePane,
@@ -438,8 +408,6 @@ export function CaseInsertEditorShell({
             />
           </CaseInsertWorkflowPanel>
         )
-      case 'guideLegend':
-        return <CaseInsertGuideLegendPanel key={panel.id} />
       default:
         return null
     }

@@ -21,7 +21,6 @@ test('cover sheet case sidebar mirrors the core editor flow', () => {
       'Game',
       'Template',
       'Cover Sheet',
-      'Guide Legend',
     ],
   )
 })
@@ -36,7 +35,6 @@ test('tray card case sidebar gives each editable surface a main panel', () => {
       'Template',
       'Tray Card',
       'Spine',
-      'Guide Legend',
     ],
   )
 })
@@ -44,11 +42,11 @@ test('tray card case sidebar gives each editable surface a main panel', () => {
 test('case sidebar panels start closed by default', () => {
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('cover').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined, undefined],
   )
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('tray').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined, undefined, undefined],
   )
 })
 
