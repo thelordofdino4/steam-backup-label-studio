@@ -23,9 +23,21 @@
   justify-self: center;
 }
 
+.preview-workspace {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  justify-items: center;
+  gap: clamp(12px, 1.4vw, 18px);
+}
+
 .disc-preview {
   width: min(
-    calc(100vw - 320px - 64px),
+    100%,
     calc(100vh - var(--preview-chrome-space)),
     640px
   );
@@ -44,7 +56,7 @@
 
 .case-insert-preview {
   width: min(
-    calc(100vw - 320px - 64px),
+    100%,
     calc((100vh - var(--preview-chrome-space)) * var(--case-insert-preview-width-ratio, 1)),
     1080px
   );
@@ -54,4 +66,95 @@
   position: relative;
   overflow: visible;
   container-type: inline-size;
+}
+
+.preview-guide-legend-panel {
+  align-self: end;
+  justify-self: end;
+  width: min(280px, 100%);
+  max-height: min(48vh, 420px, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(12px);
+}
+
+.preview-guide-legend-panel:not(.is-open) {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  width: var(--preview-guide-legend-closed-size, 40px);
+  height: var(--preview-guide-legend-closed-size, 40px);
+  max-height: var(--preview-guide-legend-closed-size, 40px);
+}
+
+.preview-guide-legend-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 8px 12px;
+}
+
+.preview-guide-legend-panel:not(.is-open) .preview-guide-legend-header {
+  justify-content: center;
+  gap: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+
+.preview-guide-legend-header h2 {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  color: #f9fafb;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+.preview-guide-legend-panel:not(.is-open) .preview-guide-legend-header h2 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.preview-guide-legend-toggle {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
+}
+
+.preview-guide-legend-panel:not(.is-open) .preview-guide-legend-toggle {
+  width: 100%;
+  height: 100%;
+}
+
+.preview-guide-legend-toggle svg {
+  transition: transform 140ms ease;
+}
+
+.preview-guide-legend-toggle .guide-legend-icon {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.preview-guide-legend-panel.is-open {
+  position: absolute;
+  right: clamp(16px, 3vw, 32px);
+  bottom: clamp(16px, 3vw, 32px);
+  z-index: 40;
+}
+
+.preview-guide-legend-body {
+  max-height: calc(min(48vh, 420px) - 48px);
+  overflow-y: auto;
+  padding: 0 12px 12px;
 }

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, type PointerEvent, type ReactNode, type RefObject } from 'react'
+import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleSettings } from '../../discText/styles'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
@@ -15,6 +15,8 @@ import { PlatformMarksLayer } from './PlatformMarksLayer'
 import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
+import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
+import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
 import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
@@ -151,6 +153,12 @@ export function DiscPreview({
   pointerHandlers,
   guideOverlay,
 }: DiscPreviewProps) {
+  const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
+  const { guideLegendClosedSize, previewAreaRef } =
+    usePreviewGuideLegendPlacement({
+      isOpen: isGuideLegendOpen,
+      previewRef: discPreviewRef,
+    })
   const metadataBoundDiscTextValues = useMemo(
     () => resolveMetadataBoundDiscTextValues(
       discText.values,
@@ -287,7 +295,11 @@ export function DiscPreview({
   }
 
   return (
-    <section className="preview-area" aria-labelledby="disc-preview-title">
+    <section
+      ref={previewAreaRef}
+      className="preview-area"
+      aria-labelledby="disc-preview-title"
+    >
       <div className="preview-pane-label">
         <span>Live Preview</span>
         <strong id="disc-preview-title">Disc Preview</strong>
@@ -295,14 +307,22 @@ export function DiscPreview({
 
       <PreviewToastStack statusToasts={statusToasts} />
 
-      <div
-        ref={discPreviewRef}
-        className="disc-preview"
-        aria-label="Blank standard printable disc preview"
-      >
-        {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-          <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-        ))}
+      <div className="preview-workspace">
+        <div
+          ref={discPreviewRef}
+          className="disc-preview"
+          aria-label="Blank standard printable disc preview"
+        >
+          {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+            <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+          ))}
+        </div>
+
+        <DiscGuideLegendPreviewPanel
+          closedSize={guideLegendClosedSize}
+          isOpen={isGuideLegendOpen}
+          onOpenChange={setIsGuideLegendOpen}
+        />
       </div>
     </section>
   )

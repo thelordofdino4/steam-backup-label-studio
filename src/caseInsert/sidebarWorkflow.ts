@@ -10,7 +10,6 @@ export type CaseInsertSidebarPanelId =
   | 'template'
   | 'surface'
   | 'spine'
-  | 'guideLegend'
 
 export type CaseInsertSidebarPanel = {
   id: CaseInsertSidebarPanelId
@@ -41,8 +40,6 @@ export function getCaseInsertSidebarWorkflow(
   if (paneConfig.hasSpine) {
     panels.push({ id: 'spine', label: 'Spine' })
   }
-
-  panels.push({ id: 'guideLegend', label: 'Guide Legend' })
 
   return panels
 }

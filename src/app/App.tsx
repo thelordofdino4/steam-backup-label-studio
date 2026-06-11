@@ -41,7 +41,6 @@ import { ArtworkPanel } from '../components/sidebar/ArtworkPanel'
 import { BrandingPanel } from '../components/sidebar/BrandingPanel'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
-import { GuideLegendPanel } from '../components/sidebar/GuideLegendPanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { TextPanel } from '../components/sidebar/TextPanel'
@@ -1973,7 +1972,6 @@ function App() {
           steamLogoPlacement={steamLogoPlacement}
         />
 
-        <GuideLegendPanel />
       </aside>
 
       <DiscPreview
