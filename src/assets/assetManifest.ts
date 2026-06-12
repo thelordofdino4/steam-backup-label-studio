@@ -44,6 +44,7 @@ type StatusToastIconKind =
   | 'project'
   | 'logo'
   | 'text'
+type ArtworkFrameTextureKind = 'rocky'
 
 export type BuiltInImageAsset = {
   id: string
@@ -592,6 +593,13 @@ export const STATUS_TOAST_ICON_URLS: Record<StatusToastIconKind, string> = {
   ).href,
 }
 
+export const ARTWORK_FRAME_TEXTURE_URLS: Record<ArtworkFrameTextureKind, string> = {
+  rocky: new URL(
+    './artwork-frames/rocky-frame-texture.png',
+    import.meta.url,
+  ).href,
+}
+
 const STATUS_TOAST_ICON_IMAGE_SIZES: Record<StatusToastIconKind, BackgroundImageSize> = {
   artwork: createImageSize(48, 48, { x: 8, y: 11, width: 32, height: 27 }),
   error: createImageSize(48, 48, { x: 5, y: 5, width: 39, height: 39 }),
@@ -604,6 +612,10 @@ const STATUS_TOAST_ICON_IMAGE_SIZES: Record<StatusToastIconKind, BackgroundImage
   template: createImageSize(48, 48, { x: 6, y: 6, width: 37, height: 37 }),
   text: createImageSize(48, 48, { x: 10, y: 12, width: 30, height: 24 }),
   warning: createImageSize(48, 48, { x: 6, y: 7, width: 37, height: 32 }),
+}
+
+const ARTWORK_FRAME_TEXTURE_IMAGE_SIZES: Record<ArtworkFrameTextureKind, BackgroundImageSize> = {
+  rocky: createImageSize(1254, 1254),
 }
 
 export function getRatingBadgePlaceholderImageUrl(
@@ -818,6 +830,10 @@ export function getStatusToastIconImageSize(value: StatusToastIconKind) {
   return STATUS_TOAST_ICON_IMAGE_SIZES[value]
 }
 
+export function getArtworkFrameTextureImageSize(value: ArtworkFrameTextureKind) {
+  return ARTWORK_FRAME_TEXTURE_IMAGE_SIZES[value]
+}
+
 export function getEditorBuiltInImageAssets(): BuiltInImageAsset[] {
   const assets: BuiltInImageAsset[] = [
     createBuiltInImageAsset(
@@ -915,6 +931,15 @@ export function getEditorBuiltInImageAssets(): BuiltInImageAsset[] {
         `toast:${value}`,
         STATUS_TOAST_ICON_URLS[value],
         STATUS_TOAST_ICON_IMAGE_SIZES[value],
+      ),
+    )
+  })
+  ;(Object.keys(ARTWORK_FRAME_TEXTURE_URLS) as ArtworkFrameTextureKind[]).forEach((value) => {
+    assets.push(
+      createBuiltInImageAsset(
+        `artwork-frame:${value}`,
+        ARTWORK_FRAME_TEXTURE_URLS[value],
+        ARTWORK_FRAME_TEXTURE_IMAGE_SIZES[value],
       ),
     )
   })

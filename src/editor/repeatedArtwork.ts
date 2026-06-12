@@ -21,6 +21,7 @@ export type RepeatedArtworkLabelItem = {
 export type RepeatedArtworkFrameSummary = {
   enabled: boolean
   shape: string
+  style?: string
 }
 
 function normalizeSlotNumber(slotNumber: number) {
@@ -117,7 +118,13 @@ export function getRepeatedArtworkFrameSummary(
     return null
   }
 
-  return frame.enabled ? `${frame.shape} frame` : 'no frame'
+  if (!frame.enabled) {
+    return 'no frame'
+  }
+
+  return frame.style && frame.style !== 'solid'
+    ? `${frame.style} frame`
+    : `${frame.shape} frame`
 }
 
 export function createRepeatedArtworkSummary({

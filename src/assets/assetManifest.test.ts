@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   getDiscNumberBadgeImageSize,
   getEditorBuiltInImageAssets,
+  getArtworkFrameTextureImageSize,
   getMediaMarkPlaceholderImageSize,
   getPlatformMarkPlaceholderImageSize,
   getRatingBadgePlaceholderRenderModel,
@@ -28,6 +29,7 @@ test('built-in mark metadata includes active-pixel bounds and contours where nee
   const dataDisc = getMediaMarkPlaceholderImageSize('dataDisc', 'light')
   const windows11 = getPlatformMarkPlaceholderImageSize('windows', 'windows11')
   const discNumber = getDiscNumberBadgeImageSize('starterRing')
+  const rockyFrameTexture = getArtworkFrameTextureImageSize('rocky')
   const pegi16 = getRatingBadgePlaceholderRenderModel({
     ratingSystem: 'PEGI',
     ratingValue: '16',
@@ -46,6 +48,10 @@ test('built-in mark metadata includes active-pixel bounds and contours where nee
     y: 4,
     width: 240,
     height: 124,
+  })
+  assert.deepEqual(rockyFrameTexture, {
+    width: 1254,
+    height: 1254,
   })
   assert.deepEqual(pegi16.imageSize, {
     width: 181,

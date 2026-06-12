@@ -82,4 +82,13 @@ test('repeated artwork visibility and summaries keep the shared contract narrow'
     }),
     'shown · Steam screenshot · circle frame · fit contain · scale 1.25',
   )
+  assert.equal(
+    createRepeatedArtworkSummary({
+      enabled: true,
+      imageSummary: 'Steam screenshot',
+      frame: { enabled: true, shape: 'rectangle', style: 'rocky' },
+      details: ['fit cover', 'scale 1.00'],
+    }),
+    'shown · Steam screenshot · rocky frame · fit cover · scale 1.00',
+  )
 })

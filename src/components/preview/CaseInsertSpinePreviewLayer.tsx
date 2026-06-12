@@ -341,7 +341,10 @@ function CaseInsertSpineOverlaySlot({
   const className = [
     'case-insert-spine-overlay-box',
     `case-insert-spine-overlay-${role}`,
-    role === 'artwork' && slot.frame.enabled && slot.frame.shape === 'circle'
+    role === 'artwork' &&
+      slot.frame.enabled &&
+      slot.frame.shape === 'circle' &&
+      !artifact.contentShape
       ? 'case-insert-image-slot-frame-host--circle'
       : '',
     artifact.contentBounds ? 'case-insert-spine-overlay-box--content-bounded' : '',

@@ -184,11 +184,17 @@ export type AdditionalArtworkLayout = {
 
 export type AdditionalArtworkFrameShape = 'rectangle' | 'circle'
 
+export type AdditionalArtworkFrameStyle = 'solid' | 'rocky'
+
 export type AdditionalArtworkFrame = {
   enabled: boolean
   color: string
   width: number
   shape: AdditionalArtworkFrameShape
+  style: AdditionalArtworkFrameStyle
+  lumpiness: number
+  jaggedness: number
+  roughnessOffset: number
 }
 
 export type ProjectAdditionalArtworkElement = {

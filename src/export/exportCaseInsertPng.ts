@@ -43,6 +43,7 @@ import {
 import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../editor/repeatedArtwork'
+import { hasImageContentShape } from '../image/imageContentShape'
 import type {
   CaseInsertPreviewLayout,
 } from '../layout/caseInsertPreviewLayout'
@@ -89,6 +90,7 @@ import {
   getCanvasImageContentSize,
   loadCanvasSafeImage,
 } from './canvasImage'
+import { createArtworkFrameClipPath, drawArtworkFrame } from './drawArtworkFrame'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
 import { drawCaseInsertSteamBanner } from './drawCaseInsertSteamBanner'
 
@@ -190,59 +192,6 @@ async function drawImageArtifactInRect(
   )
 }
 
-function createImageSlotFramePath(
-  context: CanvasRenderingContext2D,
-  slot: ProjectCaseInsertImageSlot,
-  rect: JewelCasePixelRect,
-  strokeWidth = 0,
-) {
-  const inset = strokeWidth / 2
-
-  context.beginPath()
-
-  if (slot.frame.shape === 'circle') {
-    context.ellipse(
-      rect.x + rect.width / 2,
-      rect.y + rect.height / 2,
-      Math.max(0, (rect.width - strokeWidth) / 2),
-      Math.max(0, (rect.height - strokeWidth) / 2),
-      0,
-      0,
-      Math.PI * 2,
-    )
-    return
-  }
-
-  context.rect(
-    rect.x + inset,
-    rect.y + inset,
-    Math.max(0, rect.width - strokeWidth),
-    Math.max(0, rect.height - strokeWidth),
-  )
-}
-
-function drawImageSlotFrame(
-  context: CanvasRenderingContext2D,
-  slot: ProjectCaseInsertImageSlot,
-  rect: JewelCasePixelRect,
-) {
-  if (!slot.frame.enabled) {
-    return
-  }
-
-  const strokeWidth = Math.max(
-    1,
-    Math.min(rect.width, rect.height) * (slot.frame.width / 100),
-  )
-
-  context.save()
-  context.strokeStyle = slot.frame.color
-  context.lineWidth = strokeWidth
-  createImageSlotFramePath(context, slot, rect, strokeWidth)
-  context.stroke()
-  context.restore()
-}
-
 async function drawImageSlotInRect(
   context: CanvasRenderingContext2D,
   slot: ProjectCaseInsertImageSlot,
@@ -256,14 +205,18 @@ async function drawImageSlotInRect(
   const image = await loadCanvasSafeImage(slot.imageDataUrl, description)
 
   context.save()
-  if (slot.frame.enabled && slot.frame.shape === 'circle') {
-    createImageSlotFramePath(context, slot, rect)
+  if (
+    slot.frame.enabled &&
+    slot.frame.shape === 'circle' &&
+    !hasImageContentShape(slot.imageSize)
+  ) {
+    createArtworkFrameClipPath(context, slot.frame, rect)
     context.clip()
   }
   drawImageContent(context, image, slot.imageSize, rect)
   context.restore()
 
-  drawImageSlotFrame(context, slot, rect)
+  await drawArtworkFrame(context, slot.frame, rect, slot.imageSize)
 }
 
 async function drawContainImageInLocalBox(
@@ -743,11 +696,11 @@ async function drawSpineSide(
     [state.titleArtwork, 'titleArtwork'],
     ...artworkSlots.map((slot) => [slot, 'artwork'] as const),
   ] as const) {
-      const artifact = createBoxPositionedImageRenderArtifact({
-        imageDataUrl: slot.imageDataUrl,
-        imageSize: slot.imageSize,
-        label: slot.label,
-        box: getJewelCaseSpineImageSlotPreviewLayout(
+    const artifact = createBoxPositionedImageRenderArtifact({
+      imageDataUrl: slot.imageDataUrl,
+      imageSize: slot.imageSize,
+      label: slot.label,
+      box: getJewelCaseSpineImageSlotPreviewLayout(
         side,
         slot,
         layout,
@@ -757,16 +710,21 @@ async function drawSpineSide(
 
     if (!artifact) continue
 
-    await drawWithTransformedBox(context, artifact.box, async () => {
-      const localRect = {
-        x: -artifact.box.width / 2,
-        y: -artifact.box.height / 2,
-        width: artifact.box.width,
-        height: artifact.box.height,
-      }
+    const localRect = {
+      x: -artifact.box.width / 2,
+      y: -artifact.box.height / 2,
+      width: artifact.box.width,
+      height: artifact.box.height,
+    }
 
-      if (role === 'artwork' && slot.frame.enabled && slot.frame.shape === 'circle') {
-        createImageSlotFramePath(context, slot, localRect)
+    await drawWithTransformedBox(context, artifact.box, async () => {
+      if (
+        role === 'artwork' &&
+        slot.frame.enabled &&
+        slot.frame.shape === 'circle' &&
+        !hasImageContentShape(slot.imageSize)
+      ) {
+        createArtworkFrameClipPath(context, slot.frame, localRect)
         context.clip()
       }
       await drawContainImageInLocalBox(
@@ -777,10 +735,15 @@ async function drawSpineSide(
         artifact.box.height,
         artifact.label,
       )
-      if (role === 'artwork') {
-        drawImageSlotFrame(context, slot, localRect)
-      }
     })
+
+    if (role === 'artwork') {
+      context.save()
+      context.translate(artifact.box.center.x, artifact.box.center.y)
+      context.rotate(artifact.box.rotationDegrees * Math.PI / 180)
+      await drawArtworkFrame(context, slot.frame, localRect, slot.imageSize)
+      context.restore()
+    }
   }
 
   drawSpineTextBlock(

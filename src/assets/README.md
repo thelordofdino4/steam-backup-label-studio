@@ -8,6 +8,7 @@ legacy `placeholder` source value for compatibility.
 Current domain folders:
 
 - `app-shell/` - editor shell UI assets such as panel toggles and non-disc artwork.
+- `artwork-frames/` - built-in textures used by scalable additional-artwork frame styles.
 - `disc-number-badges/` - built-in disc-number badge artwork.
 - `media-format/` - media marks such as Blu-ray, CD-ROM, DVD, data disc, and install disc.
 - `operating-system/` - platform and operating-system marks, grouped by Linux, macOS, PC, SteamOS, and Windows.

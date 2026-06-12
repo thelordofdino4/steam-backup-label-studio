@@ -887,12 +887,21 @@ test('case insert additional artwork frame helpers match disc defaults', () => {
   slot = updateCaseInsertImageSlotFrameField(slot, 'shape', 'circle')
   slot = updateCaseInsertImageSlotFrameField(slot, 'color', '#ff00aa')
   slot = updateCaseInsertImageSlotFrameField(slot, 'width', 6)
+  slot = updateCaseInsertImageSlotFrameField(slot, 'style', 'rocky')
+  slot = updateCaseInsertImageSlotFrameField(slot, 'lumpiness', 74)
+  slot = updateCaseInsertImageSlotFrameField(slot, 'jaggedness', 63)
+  slot = updateCaseInsertImageSlotFrameField(slot, 'roughnessOffset', 31)
 
   assert.deepEqual(slot.frame, {
+    ...DEFAULT_ADDITIONAL_ARTWORK_FRAME,
     enabled: true,
     shape: 'circle',
     color: '#ff00aa',
     width: 6,
+    style: 'rocky',
+    lumpiness: 74,
+    jaggedness: 63,
+    roughnessOffset: 31,
   })
   assert.deepEqual(
     resetCaseInsertImageSlotFrame(slot).frame,
@@ -921,6 +930,10 @@ test('case insert additional artwork frame helpers match disc defaults', () => {
                 shape: 'circle',
                 color: '#0f172a',
                 width: 999,
+                style: 'rocky',
+                lumpiness: -5,
+                jaggedness: 999,
+                roughnessOffset: 44,
               },
             },
           ],
@@ -930,10 +943,15 @@ test('case insert additional artwork frame helpers match disc defaults', () => {
   }).caseInsert
 
   assert.deepEqual(restored.templates.cover.artworkSlots[0]?.frame, {
+    ...DEFAULT_ADDITIONAL_ARTWORK_FRAME,
     enabled: true,
     shape: 'circle',
     color: '#0f172a',
     width: 8,
+    style: 'rocky',
+    lumpiness: 0,
+    jaggedness: 100,
+    roughnessOffset: 44,
   })
 })
 

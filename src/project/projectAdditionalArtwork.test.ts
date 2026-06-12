@@ -38,26 +38,54 @@ test('additional artwork elements default to editable frames that render with th
     discTemplates.standardPrintableDisc,
   )
   const elementId = withElement.elements[0]!.id
-  const withFrame = updateAdditionalArtworkElementFrameField(
-    updateAdditionalArtworkElementFrameField(
-      updateAdditionalArtworkElementFrameField(
-        updateAdditionalArtworkElementFrameField(
-          withElement,
-          elementId,
-          'enabled',
-          true,
-        ),
-        elementId,
-        'color',
-        '#ffcc00',
-      ),
-      elementId,
-      'width',
-      4,
-    ),
+  let withFrame = updateAdditionalArtworkElementFrameField(
+    withElement,
+    elementId,
+    'enabled',
+    true,
+  )
+
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'color',
+    '#ffcc00',
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'width',
+    4,
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
     elementId,
     'shape',
     'circle',
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'style',
+    'rocky',
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'lumpiness',
+    72,
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'jaggedness',
+    64,
+  )
+  withFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'roughnessOffset',
+    28,
   )
   const withImage = setAdditionalArtworkElementImage(
     withFrame,
@@ -76,6 +104,10 @@ test('additional artwork elements default to editable frames that render with th
   assert.equal(renderItem.frame.color, '#ffcc00')
   assert.equal(renderItem.frame.width, 4)
   assert.equal(renderItem.frame.shape, 'circle')
+  assert.equal(renderItem.frame.style, 'rocky')
+  assert.equal(renderItem.frame.lumpiness, 72)
+  assert.equal(renderItem.frame.jaggedness, 64)
+  assert.equal(renderItem.frame.roughnessOffset, 28)
 
   const reset = resetAdditionalArtworkElementFrame(withImage, elementId)
 
@@ -250,6 +282,10 @@ test('normalizes missing and saved additional artwork state safely', () => {
             color: '#00ff88',
             width: 99,
             shape: 'circle',
+            style: 'rocky',
+            lumpiness: 150,
+            jaggedness: -10,
+            roughnessOffset: 25,
           },
         },
       ],
@@ -268,6 +304,10 @@ test('normalizes missing and saved additional artwork state safely', () => {
   assert.equal(restored.elements[0]!.frame.color, '#00ff88')
   assert.equal(restored.elements[0]!.frame.width, 8)
   assert.equal(restored.elements[0]!.frame.shape, 'circle')
+  assert.equal(restored.elements[0]!.frame.style, 'rocky')
+  assert.equal(restored.elements[0]!.frame.lumpiness, 100)
+  assert.equal(restored.elements[0]!.frame.jaggedness, 0)
+  assert.equal(restored.elements[0]!.frame.roughnessOffset, 25)
 })
 
 test('normalizes web artwork as a saved additional artwork source', () => {

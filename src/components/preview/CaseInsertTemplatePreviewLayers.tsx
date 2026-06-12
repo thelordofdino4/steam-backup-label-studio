@@ -242,7 +242,7 @@ function CaseInsertTemplateImageSlot({
   if (group === 'artwork') {
     const className = [
       'case-insert-template-framed-artwork',
-      slot.frame.enabled && slot.frame.shape === 'circle'
+      slot.frame.enabled && slot.frame.shape === 'circle' && !artifact.contentShape
         ? 'case-insert-image-slot-frame-host--circle'
         : '',
       artifact.contentBounds

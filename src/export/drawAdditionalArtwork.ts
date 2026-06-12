@@ -2,14 +2,18 @@ import {
   createAdditionalArtworkRenderItems,
   type AdditionalArtworkRenderItem,
 } from '../project/projectAdditionalArtwork'
+import { hasImageContentShape } from '../image/imageContentShape'
 import type { ProjectAdditionalArtwork } from '../project/projectTypes'
 import { drawImageContent, loadCanvasSafeImage } from './canvasImage'
+import { createArtworkFrameClipPath, drawArtworkFrame } from './drawArtworkFrame'
 
 type AdditionalArtworkCanvasBounds = {
   centerX: number
   centerY: number
   drawWidth: number
   drawHeight: number
+  height: number
+  width: number
   x: number
   y: number
 }
@@ -29,62 +33,11 @@ function getCanvasBounds(
     centerY,
     drawWidth,
     drawHeight,
+    height: drawHeight,
+    width: drawWidth,
     x: centerX - drawWidth / 2,
     y: centerY - drawHeight / 2,
   }
-}
-
-function createAdditionalArtworkFramePath(
-  context: CanvasRenderingContext2D,
-  renderItem: AdditionalArtworkRenderItem,
-  bounds: AdditionalArtworkCanvasBounds,
-  strokeWidth = 0,
-) {
-  const inset = strokeWidth / 2
-
-  context.beginPath()
-
-  if (renderItem.frame.shape === 'circle') {
-    context.ellipse(
-      bounds.centerX,
-      bounds.centerY,
-      Math.max(0, (bounds.drawWidth - strokeWidth) / 2),
-      Math.max(0, (bounds.drawHeight - strokeWidth) / 2),
-      0,
-      0,
-      Math.PI * 2,
-    )
-    return
-  }
-
-  context.rect(
-    bounds.x + inset,
-    bounds.y + inset,
-    Math.max(0, bounds.drawWidth - strokeWidth),
-    Math.max(0, bounds.drawHeight - strokeWidth),
-  )
-}
-
-function drawAdditionalArtworkFrame(
-  context: CanvasRenderingContext2D,
-  renderItem: AdditionalArtworkRenderItem,
-  bounds: AdditionalArtworkCanvasBounds,
-) {
-  if (!renderItem.frame.enabled) {
-    return
-  }
-
-  const strokeWidth = Math.max(
-    1,
-    Math.min(bounds.drawWidth, bounds.drawHeight) * (renderItem.frame.width / 100),
-  )
-
-  context.save()
-  context.strokeStyle = renderItem.frame.color
-  context.lineWidth = strokeWidth
-  createAdditionalArtworkFramePath(context, renderItem, bounds, strokeWidth)
-  context.stroke()
-  context.restore()
 }
 
 async function drawAdditionalArtworkItem(
@@ -101,8 +54,12 @@ async function drawAdditionalArtworkItem(
 
   context.save()
 
-  if (renderItem.frame.enabled && renderItem.frame.shape === 'circle') {
-    createAdditionalArtworkFramePath(context, renderItem, bounds)
+  if (
+    renderItem.frame.enabled &&
+    renderItem.frame.shape === 'circle' &&
+    !hasImageContentShape(renderItem.imageSize)
+  ) {
+    createArtworkFrameClipPath(context, renderItem.frame, bounds)
     context.clip()
   }
 
@@ -119,7 +76,7 @@ async function drawAdditionalArtworkItem(
   )
   context.restore()
 
-  drawAdditionalArtworkFrame(context, renderItem, bounds)
+  await drawArtworkFrame(context, renderItem.frame, bounds, renderItem.imageSize)
 }
 
 export async function drawAdditionalArtwork(
