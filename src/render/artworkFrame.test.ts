@@ -96,6 +96,90 @@ function countSharpTurns(
   }, 0)
 }
 
+function pointsAreNearlyEqual(
+  left: { x: number; y: number },
+  right: { x: number; y: number },
+) {
+  return Math.abs(left.x - right.x) < 0.000001 &&
+    Math.abs(left.y - right.y) < 0.000001
+}
+
+function getCrossProduct(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  c: { x: number; y: number },
+) {
+  return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x)
+}
+
+function hasProperSegmentIntersection(
+  a: { x: number; y: number },
+  b: { x: number; y: number },
+  c: { x: number; y: number },
+  d: { x: number; y: number },
+) {
+  if (
+    pointsAreNearlyEqual(a, b) ||
+    pointsAreNearlyEqual(c, d) ||
+    pointsAreNearlyEqual(a, c) ||
+    pointsAreNearlyEqual(a, d) ||
+    pointsAreNearlyEqual(b, c) ||
+    pointsAreNearlyEqual(b, d)
+  ) {
+    return false
+  }
+
+  const abToC = getCrossProduct(a, b, c)
+  const abToD = getCrossProduct(a, b, d)
+  const cdToA = getCrossProduct(c, d, a)
+  const cdToB = getCrossProduct(c, d, b)
+
+  return abToC * abToD < -0.000001 && cdToA * cdToB < -0.000001
+}
+
+function countProperSegmentIntersections(
+  points: Array<{ x: number; y: number }>,
+) {
+  let intersections = 0
+
+  for (let leftIndex = 0; leftIndex < points.length; leftIndex += 1) {
+    const leftStart = points[leftIndex]!
+    const leftEnd = points[(leftIndex + 1) % points.length]!
+
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < points.length;
+      rightIndex += 1
+    ) {
+      const isAdjacent =
+        rightIndex === leftIndex ||
+        rightIndex === (leftIndex + 1) % points.length ||
+        leftIndex === (rightIndex + 1) % points.length ||
+        (leftIndex === 0 && rightIndex === points.length - 1)
+
+      if (isAdjacent) {
+        continue
+      }
+
+      const rightStart = points[rightIndex]!
+      const rightEnd = points[(rightIndex + 1) % points.length]!
+
+      if (
+        hasProperSegmentIntersection(
+          leftStart,
+          leftEnd,
+          rightStart,
+          rightEnd,
+        )
+      ) {
+        intersections += 1
+      }
+    }
+  }
+
+  return intersections
+}
+
 test('rocky artwork frame geometry scales from the target bounds', () => {
   const frame = {
     enabled: true,
@@ -261,6 +345,48 @@ test('rocky rectangle frame corners do not close with diagonal inner triangles',
       Math.abs(firstInnerPoint.x - lastInnerPoint.x) < 0.01,
     true,
   )
+})
+
+test('rocky rectangle frame rough inner edges do not self-intersect', () => {
+  const boundsCases = [
+    { width: 100, height: 56 },
+    { width: 100, height: 66.667 },
+    { width: 100, height: 100 },
+    { width: 100, height: 30 },
+  ]
+  const roughnessOffsets = [0, 5, 13, 21, 35, 75, 100]
+
+  for (const bounds of boundsCases) {
+    for (const roughnessOffset of roughnessOffsets) {
+      const frame = {
+        enabled: true,
+        color: '#ffffff',
+        width: 8,
+        shape: 'rectangle',
+        style: 'rocky',
+        lumpiness: 100,
+        jaggedness: 100,
+        roughnessOffset,
+      } as const
+      const stroke = getArtworkFrameStrokeWidth(
+        frame,
+        bounds.width,
+        bounds.height,
+      )
+      const [outer, inner] = splitPathPoints(
+        createTexturedArtworkFramePathData(
+          frame,
+          { x: 0, y: 0, ...bounds },
+          stroke,
+        ),
+      )
+      const label =
+        `${bounds.width}x${bounds.height} offset ${roughnessOffset}`
+
+      assert.equal(countProperSegmentIntersections(outer ?? []), 0, label)
+      assert.equal(countProperSegmentIntersections(inner ?? []), 0, label)
+    }
+  }
 })
 
 test('rocky lumpiness creates broad lobes while jaggedness creates sharp teeth', () => {

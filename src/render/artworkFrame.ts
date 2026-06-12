@@ -253,6 +253,20 @@ function getEdgePointCount(length: number, spacing: number) {
   return Math.max(4, Math.ceil(length / spacing))
 }
 
+function getRectangleCornerClearance(
+  length: number,
+  offsetMagnitude: number,
+  noiseOptions: RoughFrameNoiseOptions,
+) {
+  const clearance = Math.max(
+    noiseOptions.rectSpacing * 2,
+    Math.abs(offsetMagnitude) + noiseOptions.maxAmplitude +
+      noiseOptions.rectSpacing,
+  )
+
+  return clampNumber(clearance, 0, length * 0.33)
+}
+
 function addRectangleEdgePoints(
   points: ArtworkFramePoint[],
   options: {
@@ -260,22 +274,52 @@ function addRectangleEdgePoints(
     edge: 'top' | 'right' | 'bottom' | 'left'
     edgeDistance: number
     end: ArtworkFramePoint
+    endCorner: ArtworkFramePoint
+    endClearance: number
     noiseMode: 'inward' | 'outward' | 'signed'
     perimeter: number
     noiseOptions: RoughFrameNoiseOptions
     seed: number
+    skipStart?: boolean
     start: ArtworkFramePoint
+    startCorner: ArtworkFramePoint
+    startClearance: number
   },
 ) {
   const length = options.edge === 'top' || options.edge === 'bottom'
     ? Math.abs(options.end.x - options.start.x)
     : Math.abs(options.end.y - options.start.y)
-  const count = getEdgePointCount(length, options.noiseOptions.rectSpacing)
+  const usableLength = Math.max(
+    0,
+    length - options.startClearance - options.endClearance,
+  )
+  const count = getEdgePointCount(
+    usableLength,
+    options.noiseOptions.rectSpacing,
+  )
 
   for (let index = 0; index <= count; index += 1) {
+    if (index === 0) {
+      if (!options.skipStart) {
+        points.push(options.startCorner)
+      }
+      continue
+    }
+
+    if (index === count) {
+      points.push(options.endCorner)
+      continue
+    }
+
     const t = index / count
+    const edgeT = length > 0
+      ? (
+          options.startClearance +
+          usableLength * t
+        ) / length
+      : 0
     const pathPosition = options.perimeter > 0
-      ? (options.edgeDistance + length * t) / options.perimeter
+      ? (options.edgeDistance + length * edgeT) / options.perimeter
       : 0
     const noiseMagnitude = getRoughOffsetMagnitude(
       options.seed,
@@ -288,8 +332,8 @@ function addRectangleEdgePoints(
       noiseMagnitude,
       noiseMagnitude,
     )
-    const x = options.start.x + (options.end.x - options.start.x) * t
-    const y = options.start.y + (options.end.y - options.start.y) * t
+    const x = options.start.x + (options.end.x - options.start.x) * edgeT
+    const y = options.start.y + (options.end.y - options.start.y) * edgeT
     const minX = options.bounds.x - options.noiseOptions.maxAmplitude
     const minY = options.bounds.y - options.noiseOptions.maxAmplitude
     const maxX =
@@ -321,16 +365,13 @@ function addRectangleEdgePoints(
   }
 }
 
-function addRectangleCornerPoint(
-  points: ArtworkFramePoint[],
-  options: {
+function getRectangleCornerPoint(options: {
     corner: 'top-right' | 'bottom-right' | 'bottom-left' | 'top-left'
     noiseMode: 'inward' | 'outward' | 'signed'
     offsetMagnitude: number
     x: number
     y: number
-  },
-) {
+  }) {
   const noiseMagnitude = Math.abs(options.offsetMagnitude)
   const sign = options.noiseMode === 'outward' ? 1 : -1
   const signedMagnitude = options.noiseMode === 'signed'
@@ -345,10 +386,10 @@ function addRectangleCornerPoint(
       ? 1
       : -1
 
-  points.push({
+  return {
     x: options.x + horizontalSign * signedMagnitude,
     y: options.y + verticalSign * signedMagnitude,
-  })
+  }
 }
 
 function getRectangleEdgeNoise(
@@ -416,78 +457,137 @@ function createRoughRectanglePoints(
     1,
     noiseOptions,
   )
-
-  addRectangleEdgePoints(points, {
-    bounds: pathBounds,
-    edge: 'top',
-    edgeDistance: 0,
-    end: { x: right, y: top },
+  const topLeftCorner = getRectangleCornerPoint({
+    corner: 'top-left',
     noiseMode,
-    noiseOptions,
-    perimeter,
-    seed,
-    start: { x: left, y: top },
+    offsetMagnitude: topLeftOffset,
+    x: left,
+    y: top,
   })
-  addRectangleCornerPoint(points, {
+  const topRightCorner = getRectangleCornerPoint({
     corner: 'top-right',
     noiseMode,
     offsetMagnitude: topRightOffset,
     x: right,
     y: top,
   })
-  addRectangleEdgePoints(points, {
-    bounds: pathBounds,
-    edge: 'right',
-    edgeDistance: pathBounds.width,
-    end: { x: right, y: bottom },
-    noiseMode,
-    noiseOptions,
-    perimeter,
-    seed,
-    start: { x: right, y: top },
-  })
-  addRectangleCornerPoint(points, {
+  const bottomRightCorner = getRectangleCornerPoint({
     corner: 'bottom-right',
     noiseMode,
     offsetMagnitude: bottomRightOffset,
     x: right,
     y: bottom,
   })
-  addRectangleEdgePoints(points, {
-    bounds: pathBounds,
-    edge: 'bottom',
-    edgeDistance: pathBounds.width + pathBounds.height,
-    end: { x: left, y: bottom },
-    noiseMode,
-    noiseOptions,
-    perimeter,
-    seed,
-    start: { x: right, y: bottom },
-  })
-  addRectangleCornerPoint(points, {
+  const bottomLeftCorner = getRectangleCornerPoint({
     corner: 'bottom-left',
     noiseMode,
     offsetMagnitude: bottomLeftOffset,
     x: left,
     y: bottom,
   })
+  const topLeftHorizontalClearance = getRectangleCornerClearance(
+    pathBounds.width,
+    topLeftOffset,
+    noiseOptions,
+  )
+  const topLeftVerticalClearance = getRectangleCornerClearance(
+    pathBounds.height,
+    topLeftOffset,
+    noiseOptions,
+  )
+  const topRightHorizontalClearance = getRectangleCornerClearance(
+    pathBounds.width,
+    topRightOffset,
+    noiseOptions,
+  )
+  const topRightVerticalClearance = getRectangleCornerClearance(
+    pathBounds.height,
+    topRightOffset,
+    noiseOptions,
+  )
+  const bottomRightHorizontalClearance = getRectangleCornerClearance(
+    pathBounds.width,
+    bottomRightOffset,
+    noiseOptions,
+  )
+  const bottomRightVerticalClearance = getRectangleCornerClearance(
+    pathBounds.height,
+    bottomRightOffset,
+    noiseOptions,
+  )
+  const bottomLeftHorizontalClearance = getRectangleCornerClearance(
+    pathBounds.width,
+    bottomLeftOffset,
+    noiseOptions,
+  )
+  const bottomLeftVerticalClearance = getRectangleCornerClearance(
+    pathBounds.height,
+    bottomLeftOffset,
+    noiseOptions,
+  )
+
+  addRectangleEdgePoints(points, {
+    bounds: pathBounds,
+    edge: 'top',
+    edgeDistance: 0,
+    end: { x: right, y: top },
+    endCorner: topRightCorner,
+    endClearance: topRightHorizontalClearance,
+    noiseMode,
+    noiseOptions,
+    perimeter,
+    seed,
+    start: { x: left, y: top },
+    startCorner: topLeftCorner,
+    startClearance: topLeftHorizontalClearance,
+  })
+  addRectangleEdgePoints(points, {
+    bounds: pathBounds,
+    edge: 'right',
+    edgeDistance: pathBounds.width,
+    end: { x: right, y: bottom },
+    endCorner: bottomRightCorner,
+    endClearance: bottomRightVerticalClearance,
+    noiseMode,
+    noiseOptions,
+    perimeter,
+    seed,
+    skipStart: true,
+    start: { x: right, y: top },
+    startCorner: topRightCorner,
+    startClearance: topRightVerticalClearance,
+  })
+  addRectangleEdgePoints(points, {
+    bounds: pathBounds,
+    edge: 'bottom',
+    edgeDistance: pathBounds.width + pathBounds.height,
+    end: { x: left, y: bottom },
+    endCorner: bottomLeftCorner,
+    endClearance: bottomLeftHorizontalClearance,
+    noiseMode,
+    noiseOptions,
+    perimeter,
+    seed,
+    skipStart: true,
+    start: { x: right, y: bottom },
+    startCorner: bottomRightCorner,
+    startClearance: bottomRightHorizontalClearance,
+  })
   addRectangleEdgePoints(points, {
     bounds: pathBounds,
     edge: 'left',
     edgeDistance: pathBounds.width * 2 + pathBounds.height,
     end: { x: left, y: top },
+    endCorner: topLeftCorner,
+    endClearance: topLeftVerticalClearance,
     noiseMode,
     noiseOptions,
     perimeter,
     seed,
+    skipStart: true,
     start: { x: left, y: bottom },
-  })
-  addRectangleCornerPoint(points, {
-    corner: 'top-left',
-    noiseMode,
-    offsetMagnitude: topLeftOffset,
-    x: left,
-    y: top,
+    startCorner: bottomLeftCorner,
+    startClearance: bottomLeftVerticalClearance,
   })
 
   return points
