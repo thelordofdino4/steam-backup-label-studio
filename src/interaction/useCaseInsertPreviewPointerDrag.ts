@@ -61,6 +61,12 @@ import {
   type PercentDragState,
 } from './dragGeometry.ts'
 import { usePercentPointerDrag } from './usePointerDragAdapters.ts'
+import type { PointerDragActivationOptions } from './usePointerDrag.ts'
+
+const TEXT_DRAG_ACTIVATION_OPTIONS = {
+  activationDelayMs: 320,
+  movementTolerancePx: 6,
+} satisfies PointerDragActivationOptions
 
 type CaseInsertDragRange = 'offset' | 'percent'
 
@@ -530,6 +536,7 @@ export function useCaseInsertPreviewPointerDrag({
       startLayout: ProjectCaseInsertLayout,
       range: CaseInsertDragRange,
       target: CaseInsertDragTarget,
+      activationOptions?: PointerDragActivationOptions,
     ) => {
       const bounds = getCssDragBounds(caseInsertPreviewRef, layout, region)
 
@@ -546,6 +553,7 @@ export function useCaseInsertPreviewPointerDrag({
           startLayout,
           target,
         }),
+        activationOptions,
       )
     },
     [caseInsertPointerDrag, caseInsertPreviewRef, layout],
@@ -630,6 +638,7 @@ export function useCaseInsertPreviewPointerDrag({
           paneId,
           textBlockId,
         },
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],
@@ -657,6 +666,7 @@ export function useCaseInsertPreviewPointerDrag({
           paneId,
           textListId,
         },
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],
@@ -727,6 +737,7 @@ export function useCaseInsertPreviewPointerDrag({
           scope: 'spineTitle',
           side,
         },
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert.spine, layout],
@@ -754,6 +765,7 @@ export function useCaseInsertPreviewPointerDrag({
           side,
           textBlockId,
         },
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],

@@ -79,6 +79,11 @@ import {
 } from './usePointerDragAdapters'
 import { clampBackgroundOffsetToImageBounds } from '../image/backgroundImage'
 
+const TEXT_DRAG_ACTIVATION_OPTIONS = {
+  activationDelayMs: 320,
+  movementTolerancePx: 6,
+}
+
 type TextDragState = {
   key: DiscTextKey
 } & PercentDragState
@@ -415,6 +420,7 @@ export function useDiscPreviewPointerDrag({
           discText.layout[key].y,
           { key },
         ),
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [discText.layout, discTextPointerDrag],
