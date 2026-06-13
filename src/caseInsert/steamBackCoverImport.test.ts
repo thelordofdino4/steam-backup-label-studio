@@ -177,9 +177,9 @@ test('Steam import seeds tray card back-cover text fields', () => {
   assert.deepEqual(tray.textLists[0]?.items, [
     'Single-player',
     'Co-op',
-    'Steam Achievements',
     'Puzzle',
     'Action',
+    'Steam Achievements',
   ])
   assert.equal(tray.textLists[0]?.enabled, false)
   assert.equal(tray.textLists[0]?.source, 'steam')

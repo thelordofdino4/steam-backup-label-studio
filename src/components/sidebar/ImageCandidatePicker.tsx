@@ -8,6 +8,8 @@ export type ImageCandidatePickerItem = {
   imageUrl?: string | null
   imageFit?: 'cover' | 'contain'
   placeholderLabel?: string
+  qualityLabel?: string
+  qualityTone?: 'good' | 'neutral' | 'warning'
   isSelected?: boolean
 }
 
@@ -127,6 +129,13 @@ function ImageCandidatePickerDialog({
                     {item.title}
                     {item.isSelected ? ' · selected' : ''}
                   </strong>
+                  {item.qualityLabel ? (
+                    <span
+                      className={`image-candidate-picker-quality image-candidate-picker-quality-${item.qualityTone ?? 'neutral'}`}
+                    >
+                      {item.qualityLabel}
+                    </span>
+                  ) : null}
                   <span>{item.subtitle}</span>
                   {item.details?.map((detail) => (
                     <span key={detail}>{detail}</span>

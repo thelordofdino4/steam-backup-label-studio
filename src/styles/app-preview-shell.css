@@ -68,6 +68,61 @@
   container-type: inline-size;
 }
 
+.preview-element-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.preview-element-outline {
+  position: absolute;
+  box-sizing: border-box;
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.preview-element-outline--hovered {
+  border: 2px dashed rgba(96, 165, 250, 0.95);
+  background: rgba(59, 130, 246, 0.1);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.64),
+    0 0 18px rgba(37, 99, 235, 0.3);
+  animation: preview-element-outline-breathe 1400ms ease-in-out infinite;
+}
+
+.preview-element-outline--selected {
+  border: 2px solid rgba(191, 219, 254, 0.98);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.88),
+    0 0 0 4px rgba(37, 99, 235, 0.24),
+    0 0 20px rgba(59, 130, 246, 0.34);
+}
+
+@keyframes preview-element-outline-breathe {
+  0%,
+  100% {
+    background-color: rgba(59, 130, 246, 0.08);
+    box-shadow:
+      0 0 0 1px rgba(15, 23, 42, 0.64),
+      0 0 14px rgba(37, 99, 235, 0.24);
+  }
+
+  50% {
+    background-color: rgba(59, 130, 246, 0.16);
+    box-shadow:
+      0 0 0 1px rgba(15, 23, 42, 0.64),
+      0 0 22px rgba(37, 99, 235, 0.42);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preview-element-outline--hovered {
+    animation: none;
+  }
+}
+
 .preview-guide-legend-panel {
   align-self: end;
   justify-self: end;
@@ -89,6 +144,7 @@
   width: var(--preview-guide-legend-closed-size, 40px);
   height: var(--preview-guide-legend-closed-size, 40px);
   max-height: var(--preview-guide-legend-closed-size, 40px);
+  overflow: visible;
 }
 
 .preview-design-check-panel:not(.is-open) {
@@ -131,8 +187,8 @@
 
 .preview-guide-legend-toggle {
   flex: 0 0 auto;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
 }
 
 .preview-design-check-toggle.has-warnings {

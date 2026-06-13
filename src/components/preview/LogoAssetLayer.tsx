@@ -8,6 +8,10 @@ import {
   type LogoAssetRenderItem,
 } from '../../project/projectLogoAssets'
 import type { BackgroundImageSize, LogoAssetLayout, ProjectLogoAssets } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type LogoAssetLayerProps = {
@@ -53,6 +57,16 @@ function LogoAssetPreview({
       src={renderImageDataUrl}
       alt={`${label} logo`}
       imageSize={renderImageSize}
+      editableAttributes={createPreviewEditableAttributes({
+        id: createPreviewEditableElementId(
+          'disc',
+          'logo',
+          logoKey,
+          additionalLogoId,
+        ),
+        label: `${label} logo`,
+        kind: 'logo',
+      })}
       draggable={false}
       onPointerDown={(event) => handleLogoAssetPointerDown(event, logoKey, additionalLogoId)}
       onPointerMove={handleLogoAssetPointerMove}

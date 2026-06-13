@@ -8,6 +8,7 @@
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
+  min-height: 48px;
   padding: 16px;
   color: #f9fafb;
   font-size: 16px;
@@ -15,6 +16,11 @@
   cursor: pointer;
   user-select: none;
   list-style: none;
+}
+
+.panel-summary:focus-visible {
+  position: relative;
+  z-index: 1;
 }
 
 .panel-summary-title {

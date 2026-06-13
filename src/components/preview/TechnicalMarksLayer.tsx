@@ -4,6 +4,10 @@ import {
   type TechnicalMarkRenderModel,
 } from '../../render/technicalMarkRenderModel'
 import type { ProjectTechnicalMarks, TechnicalMarkValue } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type TechnicalMarksLayerProps = {
@@ -43,6 +47,11 @@ export function TechnicalMarksLayer({
           model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
         ].filter(Boolean).join(' ')}
         aria-label={`${model.label} technical mark layer`}
+        {...createPreviewEditableAttributes({
+          id: createPreviewEditableElementId('disc', 'technical-mark', model.key),
+          label: `${model.label} technical mark`,
+          kind: 'mark',
+        })}
         style={{
           left: `${model.layout.x}%`,
           top: `${model.layout.y}%`,

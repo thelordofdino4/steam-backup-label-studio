@@ -20,8 +20,21 @@ body {
 
 button,
 input,
-select {
+select,
+textarea {
   font: inherit;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+.logo-upload-button:focus-visible,
+.logo-upload-button:has(+ .logo-file-input:focus-visible) {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.24);
 }
 
 .app-shell {
@@ -96,13 +109,22 @@ input[type="file"] {
 
 input[type="range"] {
   width: 100%;
+  min-height: 24px;
+  accent-color: #60a5fa;
+}
+
+input[type="color"] {
+  min-height: 36px;
+  cursor: pointer;
 }
 
 input[type="text"],
 input[type="search"],
 input[type="number"],
-select {
+select,
+textarea {
   width: 100%;
+  min-height: 38px;
   border: 1px solid #374151;
   border-radius: 10px;
   background: #0f1117;
@@ -110,18 +132,35 @@ select {
   padding: 10px 12px;
 }
 
+textarea {
+  resize: vertical;
+}
+
 .checkbox-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-height: 32px;
   margin-top: 10px;
   color: #d1d5db;
+  cursor: pointer;
   font-size: 14px;
 }
 
+.field-label:has(> input[type="checkbox"]) {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.field-label > input[type="checkbox"],
 .checkbox-row input {
-  width: 16px;
-  height: 16px;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  accent-color: #60a5fa;
 }
 
 .custom-dimension-grid {
@@ -150,6 +189,7 @@ select {
 
 .secondary-button {
   width: 100%;
+  min-height: 40px;
   margin-top: 12px;
   border: 1px solid #374151;
   border-radius: 10px;
@@ -180,8 +220,10 @@ select {
 .icon-button {
   display: inline-grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
   border: 1px solid #374151;
   border-radius: 8px;
   background: #111827;

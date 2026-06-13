@@ -17,6 +17,7 @@ import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
+import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
@@ -382,6 +383,7 @@ export function DiscPreview({
           {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
             <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
           ))}
+          <PreviewElementOverlay previewRef={discPreviewRef} />
         </div>
 
         <PreviewDesignCheckPanel

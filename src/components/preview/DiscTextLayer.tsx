@@ -25,6 +25,10 @@ import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '.
 import type { ProjectDiscNumberArtwork, ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { createSvgDataUrl } from '../../utils/svg'
+import {
+  createDiscTextPreviewEditableElementId,
+  createPreviewEditableAttributes,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type DiscTextLayerProps = {
@@ -197,6 +201,11 @@ export function DiscTextLayer({
         <div
           className="disc-number-badge-layer"
           aria-label={`${discNumberBadgeRenderModel.text} disc number badge`}
+          {...createPreviewEditableAttributes({
+            id: createDiscTextPreviewEditableElementId('discNumber'),
+            label: 'Disc number badge',
+            kind: 'text',
+          })}
           onPointerDown={(event) => handleDiscTextPointerDown(event, 'discNumber')}
           onPointerMove={handleDiscTextPointerMove}
           onPointerUp={handleDiscTextPointerUp}

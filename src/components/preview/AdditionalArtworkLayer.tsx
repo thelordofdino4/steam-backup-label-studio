@@ -3,6 +3,10 @@ import {
   createAdditionalArtworkRenderItems,
 } from '../../project/projectAdditionalArtwork'
 import type { ProjectAdditionalArtwork } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ArtworkFrameOverlay } from './ArtworkFrameOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
@@ -43,6 +47,15 @@ export function AdditionalArtworkLayer({
             renderItem.contentShape ? 'disc-additional-artwork--content-shaped' : '',
           ].filter(Boolean).join(' ')}
           key={renderItem.id}
+          {...createPreviewEditableAttributes({
+            id: createPreviewEditableElementId(
+              'disc',
+              'additional-artwork',
+              renderItem.id,
+            ),
+            label: `${renderItem.sourceLabel} additional artwork`,
+            kind: 'artwork',
+          })}
           onPointerDown={(event) =>
             handleAdditionalArtworkPointerDown(event, renderItem.id)}
           onPointerMove={handleAdditionalArtworkPointerMove}

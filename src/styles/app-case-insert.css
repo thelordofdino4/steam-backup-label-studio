@@ -447,7 +447,8 @@
   min-width: 0;
 }
 
-.case-insert-title-artwork-control .editor-control-grid label {
+.case-insert-title-artwork-control .editor-control-grid > label,
+.case-insert-title-artwork-control .editor-control-grid > .editor-range-field {
   grid-template-columns: minmax(48px, max-content) minmax(0, 1fr);
 }
 

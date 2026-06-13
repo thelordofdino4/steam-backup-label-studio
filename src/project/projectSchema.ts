@@ -16,10 +16,10 @@ export const SUPPORTED_PROJECT_SCHEMA_VERSIONS = [
 
 type JsonRecord = Record<string, unknown>
 
-type ProjectSchemaMigration = {
+export type ProjectSchemaMigration = {
   from: string
   to: string
-  migrate: (project: JsonRecord) => JsonRecord
+  migrate: (project: JsonRecord) => unknown
 }
 
 const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = []
@@ -40,7 +40,16 @@ export class ProjectSchemaError extends Error {
 }
 
 export function parseSavedProjectContents(contents: string): SavedProject {
-  const project = migrateSavedProjectRecord(parseProjectJsonRecord(contents))
+  const project = migrateProjectSchemaRecord(parseProjectJsonRecord(contents))
+
+  validateSavedProjectSchema(project)
+
+  return project as SavedProject
+}
+
+export function validateSavedProjectSchema(
+  project: unknown,
+): asserts project is SavedProject {
   const issues = getSavedProjectSchemaIssues(project)
 
   if (issues.length > 0) {
@@ -49,8 +58,6 @@ export function parseSavedProjectContents(contents: string): SavedProject {
       issues,
     )
   }
-
-  return project as SavedProject
 }
 
 export function parseProjectJsonRecord(contents: string): JsonRecord {
@@ -122,25 +129,64 @@ export function getSavedProjectSchemaIssues(project: unknown): string[] {
   return issues
 }
 
-function migrateSavedProjectRecord(project: JsonRecord): JsonRecord {
+export function migrateProjectSchemaRecord(
+  project: JsonRecord,
+  migrations: readonly ProjectSchemaMigration[] = PROJECT_SCHEMA_MIGRATIONS,
+): JsonRecord {
   let migratedProject = project
   let schemaVersion = readSchemaVersion(migratedProject)
+  const visitedVersions = new Set<string>()
 
   while (schemaVersion !== CURRENT_PROJECT_SCHEMA_VERSION) {
-    const migration = PROJECT_SCHEMA_MIGRATIONS.find(({ from }) =>
-      from === schemaVersion)
-
-    if (!migration) {
+    if (visitedVersions.has(schemaVersion)) {
       throw new ProjectSchemaError(
-        `Unsupported project schema version ${schemaVersion}. Supported version: ${CURRENT_PROJECT_SCHEMA_VERSION}.`,
+        `Project schema migration loop detected at version ${schemaVersion}.`,
       )
     }
 
-    migratedProject = migration.migrate(migratedProject)
-    schemaVersion = readSchemaVersion(migratedProject)
+    visitedVersions.add(schemaVersion)
+
+    const migration = migrations.find(({ from }) => from === schemaVersion)
+
+    if (!migration) {
+      throw new ProjectSchemaError(
+        `Unsupported project schema version ${schemaVersion}. Supported versions: ${getAcceptedProjectSchemaVersions(migrations).join(', ')}.`,
+      )
+    }
+
+    const migrationResult = asRecord(migration.migrate(migratedProject))
+
+    if (!migrationResult) {
+      throw new ProjectSchemaError(
+        `Project schema migration ${migration.from} -> ${migration.to} did not return a project object.`,
+      )
+    }
+
+    const migratedVersion = readSchemaVersion(migrationResult)
+
+    if (migratedVersion !== migration.to) {
+      throw new ProjectSchemaError(
+        `Project schema migration ${migration.from} -> ${migration.to} produced schemaVersion ${migratedVersion}.`,
+      )
+    }
+
+    migratedProject = migrationResult
+    schemaVersion = migratedVersion
   }
 
   return migratedProject
+}
+
+export function getAcceptedProjectSchemaVersions(
+  migrations: readonly ProjectSchemaMigration[] = PROJECT_SCHEMA_MIGRATIONS,
+): string[] {
+  const versions = new Set<string>([CURRENT_PROJECT_SCHEMA_VERSION])
+
+  for (const migration of migrations) {
+    versions.add(migration.from)
+  }
+
+  return [...versions]
 }
 
 function readSchemaVersion(project: JsonRecord) {
@@ -200,6 +246,24 @@ function validateGameRecord(game: unknown, issues: string[]) {
     !asRecord(gameRecord.selectedSteamGame)
   ) {
     issues.push('game.selectedSteamGame must be an object or null.')
+    return
+  }
+
+  const selectedSteamGameRecord = asRecord(gameRecord.selectedSteamGame)
+
+  if (selectedSteamGameRecord) {
+    validateFiniteNumberField(
+      selectedSteamGameRecord,
+      'appId',
+      'game.selectedSteamGame.appId',
+      issues,
+    )
+    validateStringField(
+      selectedSteamGameRecord,
+      'title',
+      'game.selectedSteamGame.title',
+      issues,
+    )
   }
 }
 
@@ -240,6 +304,14 @@ function validateDiscProjectRecord(
   }
 
   validateStringField(templateRecord, 'variant', 'template.variant', issues)
+
+  if (
+    templateRecord.customDimensions !== undefined &&
+    templateRecord.customDimensions !== null &&
+    !asRecord(templateRecord.customDimensions)
+  ) {
+    issues.push('template.customDimensions must be an object or null.')
+  }
 
   const steamBackupLogoRecord = asRecord(record.steamBackupLogo)
 
@@ -303,8 +375,97 @@ function validateCaseInsertProjectRecord(
     issues.push('template.variant must be a supported case insert template type.')
   }
 
-  if (!asRecord(record.caseInsert) && !asRecord(record.jewelCase)) {
+  const caseInsertRecord = asRecord(record.caseInsert) ?? asRecord(record.jewelCase)
+
+  if (!caseInsertRecord) {
     issues.push('case insert projects must include caseInsert state.')
+    return
+  }
+
+  validateCaseInsertStateRecord(caseInsertRecord, issues)
+}
+
+function validateCaseInsertStateRecord(
+  caseInsertRecord: JsonRecord,
+  issues: string[],
+) {
+  if (
+    caseInsertRecord.templateType !== undefined &&
+    !isCaseInsertTemplateType(caseInsertRecord.templateType)
+  ) {
+    issues.push('caseInsert.templateType must be a supported case insert template type.')
+  }
+
+  validateOptionalRecordField(
+    caseInsertRecord,
+    'templates',
+    'caseInsert.templates',
+    issues,
+  )
+  validateOptionalRecordField(
+    caseInsertRecord,
+    'spine',
+    'caseInsert.spine',
+    issues,
+  )
+
+  const exportRecord = validateOptionalRecordField(
+    caseInsertRecord,
+    'export',
+    'caseInsert.export',
+    issues,
+  )
+
+  if (exportRecord) {
+    validateOptionalStringArrayField(
+      exportRecord,
+      'surfaces',
+      'caseInsert.export.surfaces',
+      issues,
+    )
+    validateOptionalStringArrayField(
+      exportRecord,
+      'guideIds',
+      'caseInsert.export.guideIds',
+      issues,
+    )
+  }
+}
+
+function validateOptionalRecordField(
+  record: JsonRecord,
+  key: string,
+  path: string,
+  issues: string[],
+): JsonRecord | null {
+  if (record[key] === undefined) {
+    return null
+  }
+
+  const nestedRecord = asRecord(record[key])
+
+  if (!nestedRecord) {
+    issues.push(`${path} must be an object when present.`)
+    return null
+  }
+
+  return nestedRecord
+}
+
+function validateOptionalStringArrayField(
+  record: JsonRecord,
+  key: string,
+  path: string,
+  issues: string[],
+) {
+  const value = record[key]
+
+  if (value === undefined) {
+    return
+  }
+
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    issues.push(`${path} must be an array of strings when present.`)
   }
 }
 

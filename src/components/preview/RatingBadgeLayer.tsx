@@ -12,6 +12,10 @@ import {
   type RatingBadgeElementKey,
 } from '../../project/projectRatingBadge'
 import type { ProjectMetadata, ProjectRatingBadge, RatingBadgeLayout } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type RatingBadgeLayerProps = {
@@ -76,6 +80,11 @@ function RatingBadgeLayerItem({
           : '',
       ].filter(Boolean).join(' ')}
       aria-label={ariaLabel}
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId('disc', 'rating-badge', badgeKey),
+        label: ariaLabel,
+        kind: 'mark',
+      })}
       style={{
         left: `${layout.x}%`,
         top: `${layout.y}%`,

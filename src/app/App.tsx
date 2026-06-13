@@ -82,6 +82,7 @@ import {
   applyCaseInsertBackCoverLegalText,
   applySteamBackCoverImportToCaseInsert,
 } from '../caseInsert/steamBackCoverImport'
+import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
   getCaseInsertRatingBadgeForSteamImport,
@@ -1173,6 +1174,11 @@ function App() {
               ratingCandidate: autoRatingCandidate,
             })
           : projectRatingBadge
+      const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
+        ? createFittedSteamBackCoverCopy(importedState.importedGame, {
+            legalText: nextProjectMetadataWithAutoApply.copyrightText,
+          })
+        : null
 
       setSelectedSteamGame(importedState.importedGame)
       setSteamSearchResults([])
@@ -1216,6 +1222,9 @@ function App() {
           })
         })
         announceStatus('Updated available Tray Card back-cover fields from Steam metadata.')
+        caseInsertBackCoverCopyFit?.warnings.forEach((warning) => {
+          announceStatus(warning)
+        })
         if (caseInsertTitleArtworkSeed) {
           announceStatus(caseInsertTitleArtworkSeed.statusMessage)
         }

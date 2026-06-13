@@ -1,6 +1,11 @@
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import type { SteamArtworkAsset } from '../../steam/steamApi'
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
+import {
+  getImageCandidateRanking,
+  type ImageCandidateRanking,
+  type ImageCandidateTarget,
+} from '../../editor/imageCandidateRanking.ts'
 import type { ImageCandidatePickerItem } from '../sidebar/ImageCandidatePicker'
 
 export function formatEditorSteamArtworkKind(
@@ -32,39 +37,117 @@ export function formatEditorModifiedDate(modifiedUnixSeconds?: number) {
   return new Date(modifiedUnixSeconds * 1000).toLocaleDateString()
 }
 
+function withRanking(
+  item: ImageCandidatePickerItem,
+  ranking: ImageCandidateRanking,
+) {
+  return {
+    ...item,
+    details: [...ranking.details, ...(item.details ?? [])],
+    qualityLabel: ranking.qualityLabel,
+    qualityTone: ranking.qualityTone,
+  }
+}
+
+function sortRankedPickerItems(
+  items: Array<{
+    item: ImageCandidatePickerItem
+    score: number
+    originalIndex: number
+  }>,
+) {
+  return items
+    .sort((firstItem, secondItem) =>
+      secondItem.score - firstItem.score ||
+      firstItem.originalIndex - secondItem.originalIndex)
+    .map(({ item }) => item)
+}
+
+function inferSteamArtworkDimensions(asset: SteamArtworkAsset) {
+  const dimensionMatch = `${asset.label} ${asset.url}`.match(
+    /(\d{2,5})\s*[xX]\s*(\d{2,5})/,
+  )
+
+  if (dimensionMatch) {
+    return {
+      width: Number(dimensionMatch[1]),
+      height: Number(dimensionMatch[2]),
+    }
+  }
+
+  const label = asset.label.toLocaleLowerCase()
+
+  if (asset.kind === 'header') return { width: 460, height: 215 }
+  if (asset.kind === 'background') return { width: 1920, height: 1080 }
+  if (asset.kind === 'logo') return null
+  if (asset.kind === 'screenshot') return null
+
+  if (label.includes('hero')) return { width: 3840, height: 1240 }
+  if (label.includes('small')) return { width: 231, height: 87 }
+  if (label.includes('capsule')) return { width: 600, height: 900 }
+
+  return null
+}
+
 export function createEditorSteamArtworkPickerItems(
   assets: SteamArtworkAsset[],
   selectedArtworkId?: string | null,
+  target: ImageCandidateTarget = 'background',
 ): ImageCandidatePickerItem[] {
-  return assets.map((asset) => ({
-    id: asset.id,
-    title: asset.label,
-    subtitle: `Source: Steam online · Type: ${formatEditorSteamArtworkKind(asset.kind)}`,
-    imageUrl: asset.url,
-    imageFit: 'cover',
-    isSelected: selectedArtworkId === asset.id,
-  }))
+  return sortRankedPickerItems(
+    assets.map((asset, originalIndex) => {
+      const dimensions = inferSteamArtworkDimensions(asset)
+      const ranking = getImageCandidateRanking({
+        height: dimensions?.height,
+        kind: asset.kind,
+        target,
+        width: dimensions?.width,
+      })
+
+      return {
+        item: withRanking({
+          id: asset.id,
+          title: asset.label,
+          subtitle: `Source: Steam online · Type: ${formatEditorSteamArtworkKind(asset.kind)}`,
+          imageUrl: asset.url,
+          imageFit: asset.kind === 'logo' ? 'contain' : 'cover',
+          isSelected: selectedArtworkId === asset.id,
+        }, ranking),
+        originalIndex,
+        score: ranking.score,
+      }
+    }),
+  )
 }
 
 export function createEditorLocalSteamScreenshotPickerItems(
   assets: LocalSteamScreenshotAsset[],
   thumbnails: Record<string, string>,
   selectedArtworkId?: string | null,
+  target: ImageCandidateTarget = 'background',
 ): ImageCandidatePickerItem[] {
-  return assets.map((asset) => {
+  return sortRankedPickerItems(assets.map((asset, originalIndex) => {
     const modifiedDate = formatEditorModifiedDate(asset.modifiedUnixSeconds)
+    const ranking = getImageCandidateRanking({
+      kind: 'screenshot',
+      target,
+    })
 
     return {
-      id: asset.id,
-      title: asset.label,
-      subtitle: 'Source: Local Steam screenshots · Type: Local screenshot',
-      details: modifiedDate ? [`Modified: ${modifiedDate}`] : undefined,
-      imageUrl: thumbnails[asset.id] ?? null,
-      imageFit: 'cover',
-      placeholderLabel: 'Local',
-      isSelected: selectedArtworkId === asset.id,
+      item: withRanking({
+        id: asset.id,
+        title: asset.label,
+        subtitle: 'Source: Local Steam screenshots · Type: Local screenshot',
+        details: modifiedDate ? [`Modified: ${modifiedDate}`] : undefined,
+        imageUrl: thumbnails[asset.id] ?? null,
+        imageFit: 'cover',
+        placeholderLabel: 'Local',
+        isSelected: selectedArtworkId === asset.id,
+      }, ranking),
+      originalIndex,
+      score: ranking.score,
     }
-  })
+  }))
 }
 
 export function formatEditorWebArtworkSourceKind(
@@ -101,14 +184,33 @@ function formatWebArtworkCandidateDimensions(candidate: RemoteLogoCandidate) {
 export function createEditorWebArtworkPickerItems(
   candidates: RemoteLogoCandidate[],
   selectedArtworkId?: string | null,
+  target: ImageCandidateTarget = 'background',
 ): ImageCandidatePickerItem[] {
-  return candidates.map((candidate) => ({
-    id: candidate.id,
-    title: candidate.label,
-    subtitle: `Source: ${formatEditorWebArtworkSourceKind(candidate.sourceKind)}${formatWebArtworkCandidateDimensions(candidate)}`,
-    details: candidate.reasons.slice(0, 3),
-    imageUrl: candidate.previewUrl ?? candidate.url,
-    imageFit: 'cover',
-    isSelected: selectedArtworkId === candidate.id,
-  }))
+  return sortRankedPickerItems(
+    candidates.map((candidate, originalIndex) => {
+      const ranking = getImageCandidateRanking({
+        baseScore: candidate.score,
+        contentKind: candidate.contentKind,
+        height: candidate.height,
+        isVector: candidate.fileType === 'svg',
+        target,
+        transparencyHint: candidate.transparencyHint,
+        width: candidate.width,
+      })
+
+      return {
+        item: withRanking({
+          id: candidate.id,
+          title: candidate.label,
+          subtitle: `Source: ${formatEditorWebArtworkSourceKind(candidate.sourceKind)}${formatWebArtworkCandidateDimensions(candidate)}`,
+          details: candidate.reasons.slice(0, 3),
+          imageUrl: candidate.previewUrl ?? candidate.url,
+          imageFit: candidate.contentKind === 'logo' ? 'contain' : 'cover',
+          isSelected: selectedArtworkId === candidate.id,
+        }, ranking),
+        originalIndex,
+        score: ranking.score,
+      }
+    }),
+  )
 }

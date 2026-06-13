@@ -1,6 +1,10 @@
 import { useMemo, type PointerEvent } from 'react'
 import { createMediaMarkRenderModel } from '../../render/mediaMarkRenderModel'
 import type { ProjectMediaMark } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type MediaMarkLayerProps = {
@@ -37,6 +41,11 @@ export function MediaMarkLayer({
         model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
       ].filter(Boolean).join(' ')}
       aria-label="Media mark layer"
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId('disc', 'media-mark'),
+        label: 'Media mark',
+        kind: 'mark',
+      })}
       style={{
         left: `${model.layout.x}%`,
         top: `${model.layout.y}%`,

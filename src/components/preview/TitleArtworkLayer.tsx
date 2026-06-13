@@ -1,6 +1,10 @@
 import type { PointerEvent } from 'react'
 import { createTitleArtworkRenderItem } from '../../project/projectTitleArtwork'
 import type { ProjectTitleArtwork } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type TitleArtworkLayerProps = {
@@ -29,6 +33,11 @@ export function TitleArtworkLayer({
         src={renderItem.imageDataUrl}
         alt="Game title artwork"
         imageSize={renderItem.imageSize}
+        editableAttributes={createPreviewEditableAttributes({
+          id: createPreviewEditableElementId('disc', 'title-artwork'),
+          label: 'Game title artwork',
+          kind: 'artwork',
+        })}
         draggable={false}
         onPointerDown={handleTitleArtworkPointerDown}
         onPointerMove={handleTitleArtworkPointerMove}

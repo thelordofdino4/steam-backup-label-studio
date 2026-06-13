@@ -179,12 +179,13 @@ type SavedCaseInsertProject = {
 
 ## Normalization Rules
 
-Project loading now has a small schema validation gate before editor
-restoration. The parser checks that the file is valid JSON, that the root is an
-object, that the schema version is supported, and that the top-level saved
-project shape has the required current sections for its editor type. It remains
-intentionally shallow; feature-specific normalization still belongs to the
-existing project/domain modules so sparse `0.1.0` data can be restored safely.
+Project loading now has a small schema validation and migration gate before
+editor restoration. The parser checks that the file is valid JSON, that the root
+is an object, that the schema version is either current or has a registered
+migration path to the current version, and that the top-level saved project shape
+has the required current sections for its editor type. It remains intentionally
+shallow; feature-specific normalization still belongs to the existing
+project/domain modules so sparse `0.1.0` data can be restored safely.
 
 Loader normalization should:
 
@@ -219,9 +220,15 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- Extend explicit project schema validation and migration support (#48) as new
-  schema versions are introduced.
-- Document migration behavior before changing schema semantics.
+- Register focused project schema migrations in `src/project/projectSchema.ts`
+  before changing saved-project semantics.
+- Keep migrations one version step at a time and make each migration produce the
+  declared target `schemaVersion`; the loader rejects missing, looping, or
+  mismatched migration chains before editor restoration.
+- Keep explicit schema validation limited to raw JSON safety and current
+  top-level saved-project contracts. Feature-specific defaults, sparse restore
+  behavior, and layout clamping should remain in the existing project/domain
+  normalizers.
 - Keep backward compatibility for current fixed systems during any future flexible visual-element migration.
 - Keep user-facing documentation clear that case insert project schema groundwork
   exists, while full case editor coverage is still incomplete until focused

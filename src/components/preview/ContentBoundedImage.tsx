@@ -15,6 +15,7 @@ export type ContentBoundedImageProps = {
   imageSize?: BackgroundImageSize | null
   className?: string
   style?: CSSProperties
+  editableAttributes?: Record<string, string>
   draggable?: boolean
   onPointerDown?: PointerEventHandler<Element>
   onPointerMove?: PointerEventHandler<Element>
@@ -78,6 +79,7 @@ export function ContentBoundedImage({
   imageSize,
   className,
   style,
+  editableAttributes,
   draggable = false,
   onPointerDown,
   onPointerMove,
@@ -97,6 +99,7 @@ export function ContentBoundedImage({
         className={className}
         src={src}
         alt={alt}
+        {...editableAttributes}
         draggable={draggable}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
@@ -118,6 +121,7 @@ export function ContentBoundedImage({
         'content-bounded-image',
         shape && 'content-bounded-image--content-shaped',
       )}
+      {...editableAttributes}
       draggable={draggable}
       role={alt ? 'img' : undefined}
       aria-label={alt || undefined}

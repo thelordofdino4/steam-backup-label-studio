@@ -50,6 +50,10 @@ import {
   getCaseInsertLogoSlotRenderInfo,
 } from '../../caseInsert/brandingLogoSlots'
 import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
+import {
   createBoxPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
@@ -185,6 +189,11 @@ function CaseInsertSpineBackground({
   return (
     <div
       className="case-insert-spine-background-clip"
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId('case', 'spine', side, 'background'),
+        label: `${side === 'left' ? 'Left' : 'Right'} spine background artwork`,
+        kind: 'background',
+      })}
       onPointerDown={(event) =>
         pointerHandlers.handleSpinePrimaryImageSlotPointerDown(
           event,
@@ -260,6 +269,19 @@ function CaseInsertSpineTextBlock({
       className={dragKind.kind === 'title'
         ? 'case-insert-spine-title'
         : 'case-insert-spine-text-block'}
+      {...createPreviewEditableAttributes({
+        id: dragKind.kind === 'title'
+          ? createPreviewEditableElementId('case', 'spine', side, 'title')
+          : createPreviewEditableElementId(
+              'case',
+              'spine',
+              side,
+              'text-block',
+              dragKind.textBlockId,
+            ),
+        label: renderedTextBlock.label,
+        kind: 'text',
+      })}
       onPointerDown={(event) =>
         dragKind.kind === 'title'
           ? pointerHandlers.handleSpineTitlePointerDown(event, side)
@@ -368,9 +390,27 @@ function CaseInsertSpineOverlaySlot({
     onPointerMove: pointerHandlers.handleSpinePointerMove,
     onPointerUp: pointerHandlers.handleSpinePointerUp,
   }
+  const editableAttributes = createPreviewEditableAttributes({
+    id: dragTarget.kind === 'primary'
+      ? createPreviewEditableElementId('case', 'spine', side, dragTarget.slotKey)
+      : createPreviewEditableElementId(
+          'case',
+          'spine',
+          side,
+          dragTarget.slotKey,
+          dragTarget.slotId,
+        ),
+    label: slot.label,
+    kind: role === 'logo' ? 'logo' : role === 'mark' ? 'mark' : 'artwork',
+  })
 
   return (
-    <div className={className} {...pointerProps} style={style}>
+    <div
+      className={className}
+      {...editableAttributes}
+      {...pointerProps}
+      style={style}
+    >
       <ContentBoundedImage
         src={artifact.imageDataUrl}
         alt={artifact.alt}

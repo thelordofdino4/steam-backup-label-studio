@@ -58,6 +58,10 @@ import type {
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
 } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import type {
   CaseInsertTemplatePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
@@ -238,6 +242,18 @@ function CaseInsertTemplateImageSlot({
     onPointerMove: pointerHandlers.handleTemplatePointerMove,
     onPointerUp: pointerHandlers.handleTemplatePointerUp,
   }
+  const editableAttributes = createPreviewEditableAttributes({
+    id: dragTarget.kind === 'primary'
+      ? createPreviewEditableElementId('case', paneId, dragTarget.slotKey)
+      : createPreviewEditableElementId(
+          'case',
+          paneId,
+          dragTarget.slotKey,
+          dragTarget.slotId,
+        ),
+    label: slot.label,
+    kind: group === 'logo' ? 'logo' : group === 'mark' ? 'mark' : 'artwork',
+  })
 
   if (group === 'artwork') {
     const className = [
@@ -256,6 +272,7 @@ function CaseInsertTemplateImageSlot({
     return (
       <div
         className={className}
+        {...editableAttributes}
         {...pointerProps}
         style={getRectStyle(artifact.rect, layout)}
       >
@@ -276,6 +293,7 @@ function CaseInsertTemplateImageSlot({
       alt=""
       className={`case-insert-template-overlay-image case-insert-template-${group}`}
       draggable={false}
+      editableAttributes={editableAttributes}
       imageSize={artifact.imageSize}
       {...pointerProps}
       src={artifact.imageDataUrl}
@@ -338,6 +356,16 @@ function CaseInsertTemplateTextBlock({
   return (
     <div
       className={`case-insert-template-text-block case-insert-template-text-block-${paneId}`}
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId(
+          'case',
+          paneId,
+          'text-block',
+          renderedTextBlock.id,
+        ),
+        label: renderedTextBlock.label,
+        kind: 'text',
+      })}
       onPointerDown={(event) =>
         pointerHandlers.handleTemplateTextBlockPointerDown(
           event,
@@ -387,6 +415,11 @@ export function CaseInsertTemplateBackgroundLayer({
   return (
     <div
       className="case-insert-template-background-clip"
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId('case', paneId, 'background'),
+        label: `${paneId === 'cover' ? 'Cover' : 'Tray'} background artwork`,
+        kind: 'background',
+      })}
       onPointerDown={(event) =>
         pointerHandlers.handleTemplatePrimaryImageSlotPointerDown(
           event,
@@ -566,6 +599,16 @@ export function CaseInsertTemplateTextLayer({
           <div
             className="case-insert-template-feature-list"
             key={textList.id}
+            {...createPreviewEditableAttributes({
+              id: createPreviewEditableElementId(
+                'case',
+                paneId,
+                'text-list',
+                textList.id,
+              ),
+              label: textList.label,
+              kind: 'text',
+            })}
             onPointerDown={(event) =>
               pointerHandlers.handleTemplateTextListPointerDown(
                 event,

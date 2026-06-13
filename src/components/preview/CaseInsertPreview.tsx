@@ -39,6 +39,7 @@ import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
+import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
   CaseInsertPreviewPointerHandlers,
@@ -285,6 +286,7 @@ export function CaseInsertPreview({
           {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
             <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
           ))}
+          <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
         </div>
 
         <PreviewDesignCheckPanel

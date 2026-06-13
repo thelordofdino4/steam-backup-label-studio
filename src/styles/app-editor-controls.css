@@ -104,14 +104,54 @@
   margin-top: 10px;
 }
 
-.editor-control-grid label,
-.editor-style-grid label {
+.editor-control-grid > label,
+.editor-control-grid > .editor-range-field,
+.editor-style-grid > label {
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   color: #9ca3af;
   font-size: 12px;
+}
+
+.editor-range-field {
+  min-width: 0;
+}
+
+.editor-range-field > label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.editor-range-field-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(64px, 76px);
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.editor-range-number-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.editor-range-number-input {
+  min-width: 0;
+  min-height: 32px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  text-align: right;
+}
+
+.editor-range-number-unit {
+  color: #9ca3af;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .editor-style-grid {

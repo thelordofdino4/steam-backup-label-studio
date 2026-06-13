@@ -1,6 +1,10 @@
 import type { PointerEvent } from 'react'
 import { hasActiveImageContent } from '../../image/imageContentBounds'
 import type { BackgroundImageSize, BackgroundOffset } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type BackgroundPreviewSize = {
@@ -36,6 +40,11 @@ export function BackgroundLayer({
           className="background-image-layer"
           role="img"
           aria-label="Uploaded background image layer"
+          {...createPreviewEditableAttributes({
+            id: createPreviewEditableElementId('disc', 'background'),
+            label: 'Background artwork',
+            kind: 'background',
+          })}
           onPointerDown={handleBackgroundPointerDown}
           onPointerMove={handleBackgroundPointerMove}
           onPointerUp={handleBackgroundPointerUp}

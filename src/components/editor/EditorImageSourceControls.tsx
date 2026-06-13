@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ChangeEvent, type ReactNode } from 'react'
+import { useCallback, type ChangeEvent, type ReactNode } from 'react'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import type { ProjectImageAssetSource } from '../../project/projectTypes'
@@ -14,6 +14,7 @@ import {
   createEditorSteamArtworkPickerItems,
   createEditorWebArtworkPickerItems,
 } from './editorImageSourcePickerItems'
+import type { ImageCandidateTarget } from '../../editor/imageCandidateRanking'
 
 const EMPTY_STEAM_ARTWORK: SteamArtworkAsset[] = []
 
@@ -50,6 +51,7 @@ export type EditorImageSourceControlsProps = EditorImageSourceCatalog & {
   allowLocalSteamScreenshots?: boolean
   localFileActionLabel?: string
   localFileHint?: string
+  imageCandidateTarget?: ImageCandidateTarget
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   onUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
   onUseLocalSteamScreenshot: (
@@ -85,6 +87,20 @@ function getLocalFileActionLabel(title: string, hasImage: boolean) {
   return hasImage ? `Replace ${target}` : `Choose ${target}`
 }
 
+function getDefaultImageCandidateTarget(title: string): ImageCandidateTarget {
+  const normalizedTitle = title.toLocaleLowerCase()
+
+  if (normalizedTitle.includes('logo') || normalizedTitle.includes('title')) {
+    return 'logo'
+  }
+
+  if (normalizedTitle.includes('background')) {
+    return 'background'
+  }
+
+  return 'supportingArtwork'
+}
+
 export function EditorImageSourceControls({
   uploadId,
   title,
@@ -93,6 +109,7 @@ export function EditorImageSourceControls({
   allowSteamArtwork = true,
   allowWebArtwork = true,
   allowLocalSteamScreenshots = true,
+  imageCandidateTarget,
   localFileActionLabel,
   localFileHint = 'Choose an image from this computer when Steam, web, or screenshot sources do not have the artwork you want.',
   selectedSteamGame,
@@ -112,6 +129,8 @@ export function EditorImageSourceControls({
 }: EditorImageSourceControlsProps) {
   const target = title.trim() || 'artwork'
   const targetLabel = target.toLocaleLowerCase()
+  const rankingTarget =
+    imageCandidateTarget ?? getDefaultImageCandidateTarget(target)
   const steamArtwork = allowSteamArtwork
     ? selectedSteamGame?.artwork ?? EMPTY_STEAM_ARTWORK
     : EMPTY_STEAM_ARTWORK
@@ -127,31 +146,21 @@ export function EditorImageSourceControls({
     imageSource,
     'local-steam-screenshot',
   )
-  const steamArtworkPickerItems = useMemo(
-    () => createEditorSteamArtworkPickerItems(
-      steamArtwork,
-      selectedSteamArtworkId,
-    ),
-    [selectedSteamArtworkId, steamArtwork],
+  const steamArtworkPickerItems = createEditorSteamArtworkPickerItems(
+    steamArtwork,
+    selectedSteamArtworkId,
+    rankingTarget,
   )
-  const webArtworkPickerItems = useMemo(
-    () => createEditorWebArtworkPickerItems(
-      webArtworkDiscovery.candidates,
-      selectedWebArtworkId,
-    ),
-    [selectedWebArtworkId, webArtworkDiscovery.candidates],
+  const webArtworkPickerItems = createEditorWebArtworkPickerItems(
+    webArtworkDiscovery.candidates,
+    selectedWebArtworkId,
+    rankingTarget,
   )
-  const localScreenshotPickerItems = useMemo(
-    () => createEditorLocalSteamScreenshotPickerItems(
-      localSteamScreenshots,
-      localSteamScreenshotThumbnails,
-      selectedLocalSteamScreenshotId,
-    ),
-    [
-      localSteamScreenshots,
-      localSteamScreenshotThumbnails,
-      selectedLocalSteamScreenshotId,
-    ],
+  const localScreenshotPickerItems = createEditorLocalSteamScreenshotPickerItems(
+    localSteamScreenshots,
+    localSteamScreenshotThumbnails,
+    selectedLocalSteamScreenshotId,
+    rankingTarget,
   )
   const selectSteamArtwork = useCallback((itemId: string) => {
     const asset = steamArtwork.find(

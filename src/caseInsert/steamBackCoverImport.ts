@@ -8,8 +8,14 @@ import {
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
 } from './defaultImportLayouts.ts'
+import {
+  createFittedSteamBackCoverCopy,
+  normalizeSteamBackCoverText,
+  type BackCoverDescriptionVariantId,
+} from './backCoverCopyFit.ts'
 
 type SteamBackCoverImportOptions = {
+  descriptionVariant?: BackCoverDescriptionVariantId
   legalText?: string
   replaceExisting?: boolean
   enableImportedText?: boolean
@@ -23,35 +29,6 @@ const TRAY_COPYRIGHT_TEXT_IDS = new Set([
   'tray-legal-text',
 ])
 const TRAY_FEATURE_BULLETS_ID = 'tray-feature-bullets'
-const MAX_STEAM_FEATURE_BULLETS = 5
-
-function decodeHtmlEntities(value: string) {
-  return value
-    .replace(/&amp;/gi, '&')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/gi, "'")
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&copy;/gi, '(c)')
-    .replace(/&#169;/g, '(c)')
-}
-
-function normalizeSteamText(value: string | undefined) {
-  if (!value) return ''
-
-  return decodeHtmlEntities(
-    value
-      .replace(/<br\s*\/?>/gi, '\n')
-      .replace(/<\/(?:p|div|li|ul|ol)>/gi, '\n')
-      .replace(/<li\b[^>]*>/gi, '- ')
-      .replace(/<[^>]*>/g, ' '),
-  )
-    .split('\n')
-    .map((line) => line.replace(/\s+/g, ' ').trim())
-    .filter(Boolean)
-    .join('\n')
-}
 
 type SteamTextTarget = { source?: string; value?: string; items?: string[] }
 
@@ -160,32 +137,6 @@ function updateSteamTextList(
     : updatedTextList
 }
 
-function uniqueNonEmpty(values: string[]) {
-  const seen = new Set<string>()
-  const uniqueValues: string[] = []
-
-  for (const value of values) {
-    const normalizedValue = normalizeSteamText(value)
-    const key = normalizedValue.toLocaleLowerCase()
-
-    if (!normalizedValue || seen.has(key)) {
-      continue
-    }
-
-    seen.add(key)
-    uniqueValues.push(normalizedValue)
-  }
-
-  return uniqueValues
-}
-
-function createSteamFeatureBullets(importedGame: SteamImportedGame) {
-  return uniqueNonEmpty([
-    ...importedGame.categories,
-    ...importedGame.genres,
-  ]).slice(0, MAX_STEAM_FEATURE_BULLETS)
-}
-
 export function applySteamBackCoverImportToCaseInsert(
   caseInsert: ProjectJewelCaseState,
   importedGame: SteamImportedGame,
@@ -193,15 +144,10 @@ export function applySteamBackCoverImportToCaseInsert(
 ): ProjectJewelCaseState {
   const replaceExisting = options.replaceExisting ?? false
   const enableImportedText = options.enableImportedText ?? false
-  const description = normalizeSteamText(
-    importedGame.shortDescription ?? importedGame.detailedDescription,
-  )
-  const minimumRequirements = normalizeSteamText(importedGame.minimumRequirements)
-  const recommendedRequirements = normalizeSteamText(
-    importedGame.recommendedRequirements,
-  )
-  const legalText = normalizeSteamText(options.legalText ?? importedGame.legalNotice)
-  const featureBullets = createSteamFeatureBullets(importedGame)
+  const backCoverCopy = createFittedSteamBackCoverCopy(importedGame, {
+    descriptionVariant: options.descriptionVariant,
+    legalText: options.legalText,
+  })
   const tray = caseInsert.templates.tray
 
   return {
@@ -215,21 +161,21 @@ export function applySteamBackCoverImportToCaseInsert(
             case TRAY_DESCRIPTION_ID:
               return updateSteamTextBlock(
                 textBlock,
-                description,
+                backCoverCopy.description,
                 replaceExisting,
                 enableImportedText,
               )
             case TRAY_MINIMUM_REQUIREMENTS_ID:
               return updateSteamTextBlock(
                 textBlock,
-                minimumRequirements,
+                backCoverCopy.minimumRequirements,
                 replaceExisting,
                 enableImportedText,
               )
             case TRAY_RECOMMENDED_REQUIREMENTS_ID:
               return updateSteamTextBlock(
                 textBlock,
-                recommendedRequirements,
+                backCoverCopy.recommendedRequirements,
                 replaceExisting,
                 enableImportedText,
               )
@@ -237,7 +183,7 @@ export function applySteamBackCoverImportToCaseInsert(
             case 'tray-legal-text':
               return updateSteamTextBlock(
                 textBlock,
-                legalText,
+                backCoverCopy.legalText,
                 replaceExisting,
                 enableImportedText,
               )
@@ -249,7 +195,7 @@ export function applySteamBackCoverImportToCaseInsert(
           textList.id === TRAY_FEATURE_BULLETS_ID
             ? updateSteamTextList(
                 textList,
-                featureBullets,
+                backCoverCopy.featureBullets,
                 replaceExisting,
                 enableImportedText,
               )
@@ -266,7 +212,7 @@ export function applyCaseInsertBackCoverLegalText(
   options: { replaceExisting?: boolean } = {},
 ) {
   const tray = caseInsert.templates.tray
-  const normalizedLegalText = normalizeSteamText(legalText)
+  const normalizedLegalText = normalizeSteamBackCoverText(legalText)
 
   return {
     ...caseInsert,

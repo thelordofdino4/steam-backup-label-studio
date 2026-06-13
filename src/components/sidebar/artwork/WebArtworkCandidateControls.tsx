@@ -7,12 +7,14 @@ import type { ArtworkPanelProps } from './types'
 import { createWebArtworkPickerItems } from './helpers'
 
 export function WebArtworkCandidateControls({
+  selectedArtworkId,
   webArtworkDiscovery,
   handleFindWebArtworkCandidates,
   handleUseWebArtworkCandidate,
   fineTuneControls,
 }: Pick<
   ArtworkPanelProps,
+  | 'selectedArtworkId'
   | 'webArtworkDiscovery'
   | 'handleFindWebArtworkCandidates'
   | 'handleUseWebArtworkCandidate'
@@ -20,8 +22,11 @@ export function WebArtworkCandidateControls({
   fineTuneControls: ReactNode
 }) {
   const pickerItems = useMemo(
-    () => createWebArtworkPickerItems(webArtworkDiscovery.candidates),
-    [webArtworkDiscovery.candidates],
+    () => createWebArtworkPickerItems(
+      webArtworkDiscovery.candidates,
+      selectedArtworkId,
+    ),
+    [selectedArtworkId, webArtworkDiscovery.candidates],
   )
   const selectWebArtworkCandidate = useCallback((itemId: string) => {
     const candidate = webArtworkDiscovery.candidates.find(

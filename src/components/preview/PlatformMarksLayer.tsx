@@ -4,6 +4,10 @@ import {
   type PlatformMarkRenderModel,
 } from '../../render/platformMarkRenderModel'
 import type { PlatformMarkValue, ProjectPlatformMarks } from '../../project/projectTypes'
+import {
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+} from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type PlatformMarksLayerProps = {
@@ -42,6 +46,15 @@ export function PlatformMarksLayer({
           model.contentShape ? 'disc-media-mark-layer--content-shaped' : '',
         ].filter(Boolean).join(' ')}
         aria-label={`${model.label} operating system mark layer`}
+        {...createPreviewEditableAttributes({
+          id: createPreviewEditableElementId(
+            'disc',
+            'platform-mark',
+            model.value,
+          ),
+          label: `${model.label} operating system mark`,
+          kind: 'mark',
+        })}
         style={{
           left: `${model.layout.x}%`,
           top: `${model.layout.y}%`,
