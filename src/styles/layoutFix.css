@@ -117,6 +117,11 @@
     max-height: var(--preview-guide-legend-closed-size, 40px) !important;
   }
 
+  .preview-design-check-panel:not(.is-open) {
+    right: var(--preview-design-check-closed-offset, 48px) !important;
+    overflow: visible !important;
+  }
+
   .preview-guide-legend-panel:not(.is-open) .preview-guide-legend-header {
     justify-content: center !important;
     gap: 0 !important;

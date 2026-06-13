@@ -35,6 +35,14 @@ export function GuideLegendIcon() {
   )
 }
 
+export function DesignCheckIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">
+      <path d="M9 5h10M9 12h10M9 19h10M4 5l1.2 1.2L7.5 3.8M4 12l1.2 1.2L7.5 10.8M4 19l1.2 1.2L7.5 17.8" />
+    </svg>
+  )
+}
+
 export function TrashIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">

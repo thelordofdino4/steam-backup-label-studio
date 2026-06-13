@@ -50,6 +50,6 @@ test('logo asset summary matches the shared optional visual wording', () => {
       hasImage: false,
       scale: 1.25,
     }),
-    'shown · bundled generic · scale 1.25',
+    'shown · built-in default · scale 1.25',
   )
 })

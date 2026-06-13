@@ -159,7 +159,7 @@ export function getProjectImageAssetStatus({
   const embeddedLabel = isEmbedded
     ? 'embedded in project'
     : isBundled
-      ? 'bundled with app'
+      ? 'included with app'
       : imageDataUrl
         ? 'referenced by project'
         : 'no embedded image'

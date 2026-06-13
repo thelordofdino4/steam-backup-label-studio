@@ -788,7 +788,7 @@ test('case insert platform mark targets can disable and re-enable preserved slot
   })
 })
 
-test('case insert rating mark targets replace bundled artwork with uploaded custom images', () => {
+test('case insert rating mark targets replace built-in artwork with uploaded custom images', () => {
   const placeholderRatingBadge = createDefaultProjectRatingBadge()
   const enabledPlaceholderRatingBadge = {
     ...placeholderRatingBadge,
@@ -847,7 +847,7 @@ test('case insert rating mark targets replace bundled artwork with uploaded cust
   })
 })
 
-test('case insert media mark targets replace bundled artwork with uploaded custom images', () => {
+test('case insert media mark targets replace built-in artwork with uploaded custom images', () => {
   const placeholderMediaMark = updateMediaMarkLayoutField(
     createDefaultProjectMediaMark(),
     'enabled',
@@ -896,7 +896,7 @@ test('case insert media mark targets replace bundled artwork with uploaded custo
   })
 })
 
-test('case insert platform mark targets replace bundled artwork with uploaded custom images', () => {
+test('case insert platform mark targets replace built-in artwork with uploaded custom images', () => {
   const placeholderPlatformMarks = updatePlatformMarkToggle(
     createDefaultProjectPlatformMarks(),
     'windows',
@@ -946,7 +946,7 @@ test('case insert platform mark targets replace bundled artwork with uploaded cu
   })
 })
 
-test('case insert rating media and platform targets restore bundled artwork after custom images are cleared', () => {
+test('case insert rating media and platform targets restore built-in artwork after custom images are cleared', () => {
   const enabledRatingBadge = {
     ...createDefaultProjectRatingBadge(),
     layout: {

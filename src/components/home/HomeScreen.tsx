@@ -2,7 +2,6 @@ export type HomeScreenProps = {
   onLoadProject: () => void
   onNewDisc: () => void
   onNewCaseInsert: () => void
-  onWizard: () => void
   statusMessage?: string | null
 }
 
@@ -39,7 +38,6 @@ export function HomeScreen({
   onLoadProject,
   onNewDisc,
   onNewCaseInsert,
-  onWizard,
   statusMessage,
 }: HomeScreenProps) {
   return (
@@ -71,13 +69,6 @@ export function HomeScreen({
             description="Start the separate case insert editor flow."
             status="Jewel case foundation next"
             onClick={onNewCaseInsert}
-          />
-          <HomeMenuItem
-            icon="WIP"
-            title="Wizard"
-            description="Guided setup for future disc and case projects."
-            status="Work in progress"
-            onClick={onWizard}
           />
         </div>
 

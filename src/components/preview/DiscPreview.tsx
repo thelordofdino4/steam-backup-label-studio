@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleSettings } from '../../discText/styles'
-import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
+import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SelectedDiscTemplateId, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
 import { DiscGuideOverlay } from './DiscGuideOverlay'
@@ -15,6 +15,7 @@ import { PlatformMarksLayer } from './PlatformMarksLayer'
 import { TechnicalMarksLayer } from './TechnicalMarksLayer'
 import { TitleArtworkLayer } from './TitleArtworkLayer'
 import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
+import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
@@ -24,9 +25,11 @@ import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
+import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
+  selectedDiscTemplateId: SelectedDiscTemplateId
   statusToasts: PreviewToast[]
   background: {
     imageUrl: string | null
@@ -143,6 +146,7 @@ type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
 
 export function DiscPreview({
   discPreviewRef,
+  selectedDiscTemplateId,
   statusToasts,
   background,
   steamBanner,
@@ -153,12 +157,28 @@ export function DiscPreview({
   pointerHandlers,
   guideOverlay,
 }: DiscPreviewProps) {
+  const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
-      isOpen: isGuideLegendOpen,
+      closedButtonCount: 2,
+      isOpen: isDesignCheckOpen || isGuideLegendOpen,
       previewRef: discPreviewRef,
     })
+
+  function handleDesignCheckOpenChange(isOpen: boolean) {
+    setIsDesignCheckOpen(isOpen)
+    if (isOpen) {
+      setIsGuideLegendOpen(false)
+    }
+  }
+
+  function handleGuideLegendOpenChange(isOpen: boolean) {
+    setIsGuideLegendOpen(isOpen)
+    if (isOpen) {
+      setIsDesignCheckOpen(false)
+    }
+  }
   const metadataBoundDiscTextValues = useMemo(
     () => resolveMetadataBoundDiscTextValues(
       discText.values,
@@ -200,6 +220,52 @@ export function DiscPreview({
       marks.technicalMarks,
       metadata,
       metadataBoundDiscTextValues,
+    ],
+  )
+  const designCheckSummary = useMemo(
+    () => buildDiscDesignCheckSummary({
+      selectedDiscTemplateId,
+      selectedDiscTemplate: discText.selectedDiscTemplate,
+      backgroundImageUrl: background.imageUrl,
+      backgroundImageSize: background.imageSize,
+      backgroundScale: background.scale,
+      steamLogoPlacement: steamBanner.logoPlacement,
+      projectLogoAssets: artwork.logoAssets,
+      projectTitleArtwork: artwork.titleArtwork,
+      projectAdditionalArtwork: artwork.additionalArtwork,
+      projectDiscNumberArtwork: discText.discNumberArtwork,
+      projectMetadata: metadata,
+      projectRatingBadge: marks.ratingBadge,
+      projectMediaMark: marks.mediaMark,
+      projectPlatformMarks: marks.platformMarks,
+      projectTechnicalMarks: marks.technicalMarks,
+      discTextSettings: discText.settings,
+      discTextValues: metadataBoundDiscTextValues,
+      discTextLayout: discText.layout,
+      discTextStyles: discText.styles,
+      manualGameTitle: discText.manualGameTitle,
+    }),
+    [
+      artwork.additionalArtwork,
+      artwork.logoAssets,
+      artwork.titleArtwork,
+      background.imageSize,
+      background.imageUrl,
+      background.scale,
+      discText.discNumberArtwork,
+      discText.layout,
+      discText.manualGameTitle,
+      discText.selectedDiscTemplate,
+      discText.settings,
+      discText.styles,
+      marks.mediaMark,
+      marks.platformMarks,
+      marks.ratingBadge,
+      marks.technicalMarks,
+      metadata,
+      metadataBoundDiscTextValues,
+      selectedDiscTemplateId,
+      steamBanner.logoPlacement,
     ],
   )
   const previewLayers: PreviewLayerMap = {
@@ -318,10 +384,19 @@ export function DiscPreview({
           ))}
         </div>
 
+        <PreviewDesignCheckPanel
+          closedOffset={guideLegendClosedSize + 8}
+          closedSize={guideLegendClosedSize}
+          isOpen={isDesignCheckOpen}
+          label="Disc design check"
+          onOpenChange={handleDesignCheckOpenChange}
+          summary={designCheckSummary}
+        />
+
         <DiscGuideLegendPreviewPanel
           closedSize={guideLegendClosedSize}
           isOpen={isGuideLegendOpen}
-          onOpenChange={setIsGuideLegendOpen}
+          onOpenChange={handleGuideLegendOpenChange}
         />
       </div>
     </section>

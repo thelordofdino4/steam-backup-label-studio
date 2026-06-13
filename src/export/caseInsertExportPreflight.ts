@@ -81,7 +81,6 @@ import {
   buildGuideExportWarnings,
   buildLayoutValueWarnings,
   buildUpscaleWarnings,
-  createBundledAssetWarning,
   createMissingBackgroundWarning,
   createMissingImageSizeWarning,
   createMissingImageWarning,
@@ -167,7 +166,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
   }
 }
 
-function buildCaseInsertExportWarnings(params: {
+export function buildCaseInsertExportWarnings(params: {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
   brandingSources: CaseInsertBrandingSourceCatalog
@@ -804,14 +803,14 @@ function getLogoSlotDataWarnings(
   }
 
   if (renderInfo.isBundledFallback) {
-    return [createBundledAssetWarning(label, 'logo')]
+    return []
   }
 
   if (!slot.imageSize) {
     return [createMissingImageSizeWarning(label)]
   }
 
-  return getBundledAssetWarnings(label, slot)
+  return []
 }
 
 function getImageSlotDataWarnings(
@@ -840,7 +839,7 @@ function getImageSlotDataWarnings(
     return [createMissingImageSizeWarning(label)]
   }
 
-  return getBundledAssetWarnings(label, slot)
+  return []
 }
 
 function getImageFitWarnings(
@@ -886,43 +885,6 @@ function getImageFitWarnings(
   }
 
   return warnings
-}
-
-function getBundledAssetWarnings(
-  label: string,
-  slot: ProjectCaseInsertImageSlot,
-) {
-  const source = slot.imageSource?.source
-
-  if (source !== 'placeholder' && source !== 'built-in') {
-    return []
-  }
-
-  const sourceId = slot.imageSource?.sourceId
-
-  if (sourceId?.startsWith('case-logo:') || /\blogo\b/i.test(label)) {
-    return [createBundledAssetWarning(label, 'logo')]
-  }
-
-  if (sourceId?.startsWith('case-rating:')) {
-    return [createBundledAssetWarning(label, 'ratingBadge')]
-  }
-
-  const markKind = getCaseInsertMarkLayerKind(sourceId)
-
-  if (markKind === 'media') {
-    return [createBundledAssetWarning(label, 'mediaMark')]
-  }
-
-  if (markKind === 'platform') {
-    return [createBundledAssetWarning(label, 'operatingSystemMark')]
-  }
-
-  if (markKind === 'technical') {
-    return [createBundledAssetWarning(label, 'technicalMark')]
-  }
-
-  return [createBundledAssetWarning(label, 'genericArtwork')]
 }
 
 function getTextBlockWarnings(params: {

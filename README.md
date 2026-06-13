@@ -85,11 +85,14 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Optional disc text elements for title, subtitle, disc number, backup date, Steam App ID, developer, publisher, install notes, custom note, and copyright/legal text.
 - Straight text dragging, scale, width, alignment, layout presets, visual-element avoidance, style presets, contrast, background, border, preview, export, and save/load persistence.
 - Stable centered curved copyright/legal text with arc length, angle, inset, scale, side, wrapping, preview, export, and save/load persistence.
-- Disc-number graphic badge mode using a bundled generic starter badge.
+- Disc-number graphic badge mode using a built-in starter badge.
 - Plain JSON project files, commonly named `.sbls.json`, with embedded data URLs for current visual assets and provenance/status metadata where supported.
-- Export preflight summary and warnings for guide marks, missing backgrounds, unusual custom dimensions, enabled-but-unavailable visuals, and generic/bundled assets.
+- Export preflight summary and warnings for guide marks, missing backgrounds, unusual custom dimensions, enabled-but-unavailable visuals, and print/readability risks.
+- Preview Design Check separates notification-worthy design omissions from lower-risk print-quality notes, so the badge count is reserved for issues such as missing required artwork, marks, logos, titles, or text.
 - Shared layer-order policy in `src/editor/layerOrder.ts` and documentation in `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - File-backed built-in assets route through `src/assets/assetManifest.ts`; official replacements live in domain folders under `src/assets/`, while true placeholder-named fallbacks remain under `src/assets/placeholders/`.
+
+Built-in/default app assets are valid first-party artwork and must not generate warnings merely because they are built in.
 
 ## Disc Editor Alpha Status
 
@@ -170,6 +173,7 @@ See the `docs/` folder for:
 - `ARCHITECTURE_GUARDRAILS.md` - hard implementation guardrails for future work.
 - `REFACTOR_STATUS.md` - historical refactor status and remaining architecture risks.
 - `PROJECT_FILE_SPEC.md` - current saved-project format notes.
+- `PROJECT_PACKAGE_FORMAT_DECISION.md` - #56 decision record for current JSON embedding and future `.sbls` package direction.
 - `DISC_EDITOR_LAYER_ORDER.md` - preview/export layer order source-of-truth notes.
 - `CASE_INSERT_EDITOR_LAYER_ORDER.md` - jewel case preview/export layer order notes.
 - `METADATA_DISC_TEXT_BINDING.md` - metadata-to-rendered-text binding behavior.

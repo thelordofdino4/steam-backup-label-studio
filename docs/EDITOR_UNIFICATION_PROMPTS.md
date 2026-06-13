@@ -553,7 +553,7 @@ share the same feature semantics.
 
 Scope:
 - Audit preflight warnings for guide export, missing backgrounds, low
-  resolution, generic/bundled assets, enabled-but-unavailable visuals, text
+  resolution, enabled-but-unavailable visuals, text
   readability, unsafe placement, and export dimensions.
 - Extract neutral warning builders for shared visual features.
 - Keep disc-specific warnings and case-specific warnings in adapters.
@@ -561,6 +561,9 @@ Scope:
 Constraints:
 - Preflight should describe real export risk, not internal implementation
   details.
+- Built-in/default app artwork is valid first-party output and must not produce
+  warnings solely because it is built in, generic, or backed by a compatibility
+  `placeholder` source value.
 - It should remain informational unless a value is truly invalid.
 - Disabled visual features should not produce warnings.
 

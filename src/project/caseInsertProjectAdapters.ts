@@ -22,7 +22,10 @@ import type {
   ProjectMetadata,
   SavedCaseInsertProject,
 } from './projectTypes.ts'
-import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
+import {
+  CURRENT_PROJECT_SCHEMA_VERSION,
+  parseSavedProjectContents,
+} from './projectSchema.ts'
 
 export function createCaseInsertProjectSnapshot(
   params: CreateCaseInsertProjectSnapshotParams = {},
@@ -138,5 +141,5 @@ export function restoreCaseInsertProjectState(
 export function restoreCaseInsertProjectStateFromContents(
   contents: string,
 ): RestoredCaseInsertProjectState {
-  return restoreCaseInsertProjectState(JSON.parse(contents) as unknown)
+  return restoreCaseInsertProjectState(parseSavedProjectContents(contents))
 }

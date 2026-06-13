@@ -295,6 +295,24 @@ When a visual element appears in both preview and PNG export:
 
 If a feature needs an editor-only hit target, keep it separate from the visual artifact and document that separation.
 
+## Warning Severity And Built-In Asset Rule
+
+Built-in/default app artwork is valid first-party output. Do not create export
+warnings, Design Check warnings, notification badges, or future checklist
+failures solely because a visible element uses a built-in/default/generic app
+asset. Internal saved-project source names such as `placeholder` may remain for
+compatibility, but user-facing warning logic must not treat those sources as a
+problem.
+
+Design Check notification badges are for concrete design-rule failures that
+would break the reviewed cover/disc guidance, such as missing background
+artwork, title/logo treatment, rating/game-info marks, company logos, legal
+text, back-cover description, screenshots/supporting art, system requirements,
+or spine identification. Lower-risk print-quality issues such as low-resolution
+source art, export upscaling, safe-zone proximity, and similar advisory details
+belong inside the open checklist as notes and must not increment the closed
+button count.
+
 ## Interaction Safety Rule
 
 Visual parity refactors must not silently break editor controls.

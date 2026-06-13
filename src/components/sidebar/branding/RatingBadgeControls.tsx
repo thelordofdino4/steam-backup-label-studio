@@ -128,7 +128,7 @@ export function RatingBadgeSetupControls({
             customActiveLabel="Custom rating badge active"
             uploadId="rating-badge-upload"
             uploadButtonLabel="Choose custom badge"
-            emptyCustomHint="No custom badge image is selected yet. The bundled rating artwork is used when a rating system and value are set."
+            emptyCustomHint="No custom badge image is selected yet. The built-in rating artwork is used when a rating system and value are set."
             clearCustomLabel="Clear custom badge"
             formatSize={formatLogoSize}
             onSourceChange={(source) =>

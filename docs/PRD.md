@@ -316,9 +316,13 @@ Current export behavior:
 - Optional exported guides.
 - Export preflight summary before writing the PNG.
 
-Export preflight currently covers output dimensions, DPI, selected template, center hole behavior, guide marks, background status, metadata status, Steam banner state, optional text state, custom dimension warnings, enabled-but-unavailable visuals, and generic/bundled asset warnings.
+Export preflight currently covers output dimensions, DPI, selected template, center hole behavior, guide marks, background status, metadata status, Steam banner state, optional text state, custom dimension warnings, enabled-but-unavailable visuals, and print/readability risks.
 
 Warnings should generally be informational and should not block export unless a value is truly invalid.
+
+Built-in/default app artwork is a valid first-party output source. The app should not warn users, add export warnings, or show Design Check notification badges solely because artwork came from a built-in/default/generic app asset. Warnings should target actual missing content, invalid settings, unresolved export behavior, or concrete print/readability risks.
+
+Preview Design Check notification badges should be reserved for design-rule failures such as missing required background artwork, title/logo treatment, game-info marks, company logos, legal text, back-cover description, screenshots/supporting art, system requirements, or spine identification. Lower-risk print-quality details such as low source resolution, safe-zone proximity, or larger export size should remain visible inside the open checklist as notes without changing the notification icon state.
 
 Export should not silently omit enabled visible elements. Preview/export layer ordering should be documented and followed by both preview and PNG export.
 

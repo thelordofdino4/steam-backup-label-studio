@@ -37,11 +37,13 @@ import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPrevie
 import { CaseInsertSpinePreviewLayer } from './CaseInsertSpinePreviewLayer'
 import { CaseInsertGuideOverlay } from './CaseInsertGuideOverlay'
 import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
+import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
+import { buildCaseInsertDesignCheckSummary } from '../../export/caseInsertDesignCheck'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
@@ -111,12 +113,28 @@ export function CaseInsertPreview({
   pointerHandlers,
   statusToasts,
 }: CaseInsertPreviewProps) {
+  const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
-      isOpen: isGuideLegendOpen,
+      closedButtonCount: 2,
+      isOpen: isDesignCheckOpen || isGuideLegendOpen,
       previewRef: caseInsertPreviewRef,
     })
+
+  function handleDesignCheckOpenChange(isOpen: boolean) {
+    setIsDesignCheckOpen(isOpen)
+    if (isOpen) {
+      setIsGuideLegendOpen(false)
+    }
+  }
+
+  function handleGuideLegendOpenChange(isOpen: boolean) {
+    setIsGuideLegendOpen(isOpen)
+    if (isOpen) {
+      setIsDesignCheckOpen(false)
+    }
+  }
   const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const layout = useMemo(
@@ -135,6 +153,14 @@ export function CaseInsertPreview({
       '--case-insert-preview-width-ratio': `${layout.width / layout.height}`,
     }) as CSSProperties,
     [layout.height, layout.width],
+  )
+  const designCheckSummary = useMemo(
+    () => buildCaseInsertDesignCheckSummary({
+      caseInsert,
+      activeTemplatePane,
+      brandingSources,
+    }),
+    [activeTemplatePane, brandingSources, caseInsert],
   )
   const previewLayers: PreviewLayerMap = {
     'case-surface-base': <CaseInsertSurfaceBaseLayer layout={layout} />,
@@ -261,10 +287,19 @@ export function CaseInsertPreview({
           ))}
         </div>
 
+        <PreviewDesignCheckPanel
+          closedOffset={guideLegendClosedSize + 8}
+          closedSize={guideLegendClosedSize}
+          isOpen={isDesignCheckOpen}
+          label="Case insert design check"
+          onOpenChange={handleDesignCheckOpenChange}
+          summary={designCheckSummary}
+        />
+
         <CaseInsertGuideLegendPreviewPanel
           closedSize={guideLegendClosedSize}
           isOpen={isGuideLegendOpen}
-          onOpenChange={setIsGuideLegendOpen}
+          onOpenChange={handleGuideLegendOpenChange}
         />
       </div>
     </section>

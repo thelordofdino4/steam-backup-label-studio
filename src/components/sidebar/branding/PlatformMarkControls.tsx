@@ -107,14 +107,14 @@ export function PlatformMarkSetupControls({
                   source={asset.source}
                   sourceLabel="Mark source"
                   sourceSelectId={`platform-mark-source-${value}`}
-                  builtInHint="Using a bundled generic mark."
+                  builtInHint="Using the built-in mark."
                   customImageLabel="Custom operating system image"
                   customImageDataUrl={asset.customImageDataUrl}
                   customImageSize={asset.customImageSize}
                   customActiveLabel={`Custom ${label} mark active`}
                   uploadId={`platform-mark-upload-${value}`}
                   uploadButtonLabel={`Choose custom ${label}`}
-                  emptyCustomHint={`No custom ${label} operating system image is selected yet. The bundled generic mark remains visible until you upload an image.`}
+                  emptyCustomHint={`No custom ${label} operating system image is selected yet. The built-in mark remains visible until you upload an image.`}
                   clearCustomLabel={`Clear custom ${label}`}
                   formatSize={formatLogoSize}
                   onSourceChange={(source) =>

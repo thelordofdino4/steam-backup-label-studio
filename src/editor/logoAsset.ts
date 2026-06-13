@@ -71,7 +71,7 @@ export function getLogoAssetEmptyHint({
     ? 'search logo candidates or upload a custom logo here'
     : 'upload an image before export to render your actual logo'
 
-  return `No ${imageLabel} image is selected yet. A bundled generic logo is shown for placement; ${actionHint}.`
+  return `No ${imageLabel} image is selected yet. The built-in default logo is shown for placement; ${actionHint}.`
 }
 
 export function createLogoAssetSummary({
@@ -85,7 +85,7 @@ export function createLogoAssetSummary({
 }) {
   return [
     enabled ? 'shown' : 'hidden',
-    hasImage ? 'custom image' : 'bundled generic',
+    hasImage ? 'custom image' : 'built-in default',
     `scale ${scale.toFixed(2)}`,
   ].join(' · ')
 }

@@ -1,9 +1,322 @@
 import type { SavedProject } from './projectTypes'
+import {
+  DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+  UNAVAILABLE_CASE_INSERT_TEMPLATE_TYPES,
+  type CaseInsertTemplateType,
+  type EditorProjectType,
+} from '../editor/editorTypes.ts'
 
 export const CURRENT_PROJECT_SCHEMA_VERSION = '0.1.0' as const
 
 export type CurrentProjectSchemaVersion = typeof CURRENT_PROJECT_SCHEMA_VERSION
 
+export const SUPPORTED_PROJECT_SCHEMA_VERSIONS = [
+  CURRENT_PROJECT_SCHEMA_VERSION,
+] as const
+
+type JsonRecord = Record<string, unknown>
+
+type ProjectSchemaMigration = {
+  from: string
+  to: string
+  migrate: (project: JsonRecord) => JsonRecord
+}
+
+const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = []
+
+const CASE_INSERT_TEMPLATE_TYPES: readonly CaseInsertTemplateType[] = [
+  DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
+  ...UNAVAILABLE_CASE_INSERT_TEMPLATE_TYPES,
+]
+
+export class ProjectSchemaError extends Error {
+  readonly issues: readonly string[]
+
+  constructor(message: string, issues: readonly string[] = [message]) {
+    super(message)
+    this.name = 'ProjectSchemaError'
+    this.issues = issues
+  }
+}
+
 export function parseSavedProjectContents(contents: string): SavedProject {
-  return JSON.parse(contents) as SavedProject
+  const project = migrateSavedProjectRecord(parseProjectJsonRecord(contents))
+  const issues = getSavedProjectSchemaIssues(project)
+
+  if (issues.length > 0) {
+    throw new ProjectSchemaError(
+      `Project file failed schema validation: ${issues[0]}`,
+      issues,
+    )
+  }
+
+  return project as SavedProject
+}
+
+export function parseProjectJsonRecord(contents: string): JsonRecord {
+  let parsed: unknown
+
+  try {
+    parsed = JSON.parse(contents) as unknown
+  } catch (error) {
+    throw new ProjectSchemaError(
+      `Project file is not valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+    )
+  }
+
+  const record = asRecord(parsed)
+
+  if (!record) {
+    throw new ProjectSchemaError('Project file root must be a JSON object.')
+  }
+
+  return record
+}
+
+export function getSavedProjectSchemaIssues(project: unknown): string[] {
+  const record = asRecord(project)
+
+  if (!record) {
+    return ['Project file root must be a JSON object.']
+  }
+
+  const issues: string[] = []
+
+  validateStringField(record, 'schemaVersion', 'schemaVersion', issues)
+
+  if (
+    typeof record.schemaVersion === 'string' &&
+    !isSupportedProjectSchemaVersion(record.schemaVersion)
+  ) {
+    issues.push(
+      `schemaVersion must be ${CURRENT_PROJECT_SCHEMA_VERSION}; received ${record.schemaVersion}.`,
+    )
+  }
+
+  validateStringField(record, 'title', 'title', issues)
+  validateStringField(record, 'savedAt', 'savedAt', issues)
+  validateGameRecord(record.game, issues)
+
+  const templateRecord = asRecord(record.template)
+
+  if (!templateRecord) {
+    issues.push('template must be an object.')
+    return issues
+  }
+
+  const projectType = resolveSchemaProjectType(record, templateRecord)
+
+  if (!projectType) {
+    issues.push(
+      'projectType/template.type must identify a supported disc or case insert project.',
+    )
+    return issues
+  }
+
+  if (projectType === 'disc') {
+    validateDiscProjectRecord(record, templateRecord, issues)
+  } else {
+    validateCaseInsertProjectRecord(record, templateRecord, issues)
+  }
+
+  return issues
+}
+
+function migrateSavedProjectRecord(project: JsonRecord): JsonRecord {
+  let migratedProject = project
+  let schemaVersion = readSchemaVersion(migratedProject)
+
+  while (schemaVersion !== CURRENT_PROJECT_SCHEMA_VERSION) {
+    const migration = PROJECT_SCHEMA_MIGRATIONS.find(({ from }) =>
+      from === schemaVersion)
+
+    if (!migration) {
+      throw new ProjectSchemaError(
+        `Unsupported project schema version ${schemaVersion}. Supported version: ${CURRENT_PROJECT_SCHEMA_VERSION}.`,
+      )
+    }
+
+    migratedProject = migration.migrate(migratedProject)
+    schemaVersion = readSchemaVersion(migratedProject)
+  }
+
+  return migratedProject
+}
+
+function readSchemaVersion(project: JsonRecord) {
+  const schemaVersion = project.schemaVersion
+
+  if (typeof schemaVersion !== 'string' || !schemaVersion.trim()) {
+    throw new ProjectSchemaError(
+      `Project file is missing schemaVersion ${CURRENT_PROJECT_SCHEMA_VERSION}.`,
+    )
+  }
+
+  return schemaVersion
+}
+
+function asRecord(value: unknown): JsonRecord | null {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : null
+}
+
+function isSupportedProjectSchemaVersion(
+  value: string,
+): value is CurrentProjectSchemaVersion {
+  return SUPPORTED_PROJECT_SCHEMA_VERSIONS.includes(
+    value as CurrentProjectSchemaVersion,
+  )
+}
+
+function validateStringField(
+  record: JsonRecord,
+  key: string,
+  path: string,
+  issues: string[],
+) {
+  if (typeof record[key] !== 'string') {
+    issues.push(`${path} must be a string.`)
+  }
+}
+
+function validateGameRecord(game: unknown, issues: string[]) {
+  const gameRecord = asRecord(game)
+
+  if (!gameRecord) {
+    issues.push('game must be an object.')
+    return
+  }
+
+  validateStringField(gameRecord, 'manualTitle', 'game.manualTitle', issues)
+
+  if (!Object.hasOwn(gameRecord, 'selectedSteamGame')) {
+    issues.push('game.selectedSteamGame must be present.')
+    return
+  }
+
+  if (
+    gameRecord.selectedSteamGame !== null &&
+    !asRecord(gameRecord.selectedSteamGame)
+  ) {
+    issues.push('game.selectedSteamGame must be an object or null.')
+  }
+}
+
+function normalizeEditorProjectType(value: unknown): EditorProjectType | null {
+  return value === 'disc' || value === 'caseInsert' ? value : null
+}
+
+function isCaseInsertTemplateType(value: unknown): value is CaseInsertTemplateType {
+  return (
+    typeof value === 'string' &&
+    CASE_INSERT_TEMPLATE_TYPES.includes(value as CaseInsertTemplateType)
+  )
+}
+
+function resolveSchemaProjectType(
+  record: JsonRecord,
+  templateRecord: JsonRecord,
+): EditorProjectType | null {
+  const editorRecord = asRecord(record.editor)
+  const templateType = templateRecord.type
+
+  return (
+    normalizeEditorProjectType(record.projectType) ??
+    normalizeEditorProjectType(editorRecord?.projectType) ??
+    normalizeEditorProjectType(editorRecord?.workspace) ??
+    normalizeEditorProjectType(templateType) ??
+    (isCaseInsertTemplateType(templateType) ? 'caseInsert' : null)
+  )
+}
+
+function validateDiscProjectRecord(
+  record: JsonRecord,
+  templateRecord: JsonRecord,
+  issues: string[],
+) {
+  if (templateRecord.type !== 'disc') {
+    issues.push('disc projects must use template.type "disc".')
+  }
+
+  validateStringField(templateRecord, 'variant', 'template.variant', issues)
+
+  const steamBackupLogoRecord = asRecord(record.steamBackupLogo)
+
+  if (!steamBackupLogoRecord) {
+    issues.push('steamBackupLogo must be an object for disc projects.')
+  } else {
+    validateStringField(
+      steamBackupLogoRecord,
+      'placement',
+      'steamBackupLogo.placement',
+      issues,
+    )
+  }
+
+  const backgroundRecord = asRecord(record.background)
+
+  if (!backgroundRecord) {
+    issues.push('background must be an object for disc projects.')
+    return
+  }
+
+  validateFiniteNumberField(backgroundRecord, 'scale', 'background.scale', issues)
+
+  const offsetRecord = asRecord(backgroundRecord.offset)
+
+  if (!offsetRecord) {
+    issues.push('background.offset must be an object.')
+  } else {
+    validateFiniteNumberField(offsetRecord, 'x', 'background.offset.x', issues)
+    validateFiniteNumberField(offsetRecord, 'y', 'background.offset.y', issues)
+  }
+
+  if (
+    backgroundRecord.imageDataUrl !== null &&
+    typeof backgroundRecord.imageDataUrl !== 'string'
+  ) {
+    issues.push('background.imageDataUrl must be a string or null.')
+  }
+}
+
+function validateCaseInsertProjectRecord(
+  record: JsonRecord,
+  templateRecord: JsonRecord,
+  issues: string[],
+) {
+  const templateType = templateRecord.type
+
+  if (
+    templateType !== 'caseInsert' &&
+    !isCaseInsertTemplateType(templateType)
+  ) {
+    issues.push(
+      'case insert projects must use template.type "caseInsert" or a legacy case insert template type.',
+    )
+  }
+
+  if (
+    templateRecord.variant !== undefined &&
+    !isCaseInsertTemplateType(templateRecord.variant)
+  ) {
+    issues.push('template.variant must be a supported case insert template type.')
+  }
+
+  if (!asRecord(record.caseInsert) && !asRecord(record.jewelCase)) {
+    issues.push('case insert projects must include caseInsert state.')
+  }
+}
+
+function validateFiniteNumberField(
+  record: JsonRecord,
+  key: string,
+  path: string,
+  issues: string[],
+) {
+  const value = record[key]
+
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    issues.push(`${path} must be a finite number.`)
+  }
 }

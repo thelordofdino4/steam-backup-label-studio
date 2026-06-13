@@ -9,42 +9,20 @@ type LayoutValueWarningInput = {
   scale: number
 }
 
-type BundledAssetKind =
-  | 'logo'
+type CustomMarkMissingImageKind =
   | 'ratingBadge'
   | 'mediaMark'
   | 'operatingSystemMark'
   | 'technicalMark'
-  | 'genericArtwork'
 
-const BUNDLED_ASSET_WARNING_COPY: Record<
-  BundledAssetKind,
-  { descriptor: string | null; assetDescription: string }
+const CUSTOM_MARK_MISSING_IMAGE_DESCRIPTORS: Record<
+  CustomMarkMissingImageKind,
+  string
 > = {
-  logo: {
-    descriptor: 'logo',
-    assetDescription: 'bundled generic logo artwork',
-  },
-  ratingBadge: {
-    descriptor: 'rating badge',
-    assetDescription: 'bundled rating artwork',
-  },
-  mediaMark: {
-    descriptor: 'media mark',
-    assetDescription: 'bundled generic artwork',
-  },
-  operatingSystemMark: {
-    descriptor: 'operating system mark',
-    assetDescription: 'bundled generic artwork',
-  },
-  technicalMark: {
-    descriptor: 'technical mark',
-    assetDescription: 'bundled generic artwork',
-  },
-  genericArtwork: {
-    descriptor: null,
-    assetDescription: 'bundled generic artwork',
-  },
+  ratingBadge: 'rating badge',
+  mediaMark: 'media mark',
+  operatingSystemMark: 'operating system mark',
+  technicalMark: 'technical mark',
 }
 
 export const GUIDE_MARKS_EXPORT_WARNING =
@@ -136,29 +114,14 @@ export function buildLayoutValueWarnings(
   return warnings
 }
 
-export function createBundledAssetWarning(
-  label: string,
-  kind: BundledAssetKind,
-) {
-  const { descriptor, assetDescription } = BUNDLED_ASSET_WARNING_COPY[kind]
-  const describedLabel = descriptor
-    ? ensureLabelDescriptor(label, descriptor)
-    : label
-
-  return `${describedLabel} uses ${assetDescription}.`
-}
-
 export function createCustomMarkMissingImageWarning(
   label: string,
-  kind: Exclude<BundledAssetKind, 'logo' | 'genericArtwork'>,
+  kind: CustomMarkMissingImageKind,
 ) {
-  const { descriptor, assetDescription } = BUNDLED_ASSET_WARNING_COPY[kind]
-  const describedLabel = ensureLabelDescriptor(label, descriptor ?? 'mark')
-  const fallbackDescription = kind === 'ratingBadge'
-    ? `${assetDescription} will export when rating metadata is renderable`
-    : `the ${assetDescription} will export`
+  const descriptor = CUSTOM_MARK_MISSING_IMAGE_DESCRIPTORS[kind]
+  const describedLabel = ensureLabelDescriptor(label, descriptor)
 
-  return `Custom ${describedLabel} is selected, but no custom image is uploaded; ${fallbackDescription}.`
+  return `Custom ${describedLabel} is selected, but no custom image is uploaded.`
 }
 
 export function ensureLabelDescriptor(label: string, descriptor: string) {

@@ -126,7 +126,7 @@ export function TechnicalMarkSetupControls({
               asset.layout.enabled ? 'shown' : 'hidden',
               isCustomTechnicalMarkSource && asset.customImageDataUrl
                 ? 'custom image'
-                : 'bundled generic',
+                : 'built-in default',
               `scale ${asset.layout.scale.toFixed(2)}`,
             ].join(' · ')
             return (
@@ -159,14 +159,14 @@ export function TechnicalMarkSetupControls({
                   source={asset.source}
                   sourceLabel="Mark source"
                   sourceSelectId={`technical-mark-source-${elementId}`}
-                  builtInHint="Using a bundled generic mark."
+                  builtInHint="Using the built-in mark."
                   customImageLabel="Custom technical image"
                   customImageDataUrl={asset.customImageDataUrl}
                   customImageSize={asset.customImageSize}
                   customActiveLabel={`Custom ${label} mark active`}
                   uploadId={`technical-mark-upload-${elementId}`}
                   uploadButtonLabel={`Choose custom ${label}`}
-                  emptyCustomHint={`No custom ${label.toLowerCase()} technical image is selected yet. The bundled generic technical mark remains visible until you upload an image.`}
+                  emptyCustomHint={`No custom ${label.toLowerCase()} technical image is selected yet. The built-in technical mark remains visible until you upload an image.`}
                   clearCustomLabel={`Clear custom ${label}`}
                   formatSize={formatLogoSize}
                   onSourceChange={(source) =>

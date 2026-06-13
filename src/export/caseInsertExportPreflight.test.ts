@@ -28,10 +28,7 @@ import type {
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
 import { buildCaseInsertExportPreflightSummary } from './caseInsertExportPreflight.ts'
-import {
-  GUIDE_MARKS_EXPORT_WARNING,
-  createBundledAssetWarning,
-} from './preflightWarnings.ts'
+import { GUIDE_MARKS_EXPORT_WARNING } from './preflightWarnings.ts'
 
 function createDefaultBrandingSources(): CaseInsertBrandingSourceCatalog {
   return {
@@ -104,7 +101,7 @@ function createBundledSlot(
     {
       source: 'placeholder',
       sourceId,
-      sourceLabel: `${label} bundled generic`,
+      sourceLabel: `${label} built-in default`,
     },
   )
 }
@@ -312,7 +309,7 @@ test('tray card preflight catches guide, image, text, and spine risks', () => {
   assert.match(summary.message, /Spine regions: Included/)
 })
 
-test('case preflight matches disc warnings for bundled generic visual assets', () => {
+test('case preflight accepts built-in visual assets without asset-origin warnings', () => {
   const project = createCleanCoverProject()
   const summary = buildCaseInsertExportPreflightSummary({
     caseInsert: {
@@ -342,20 +339,6 @@ test('case preflight matches disc warnings for bundled generic visual assets', (
     dpi: 300,
   })
 
-  assert.equal(summary.hasWarnings, true)
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('Developer logo', 'logo'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('ESRB E', 'ratingBadge'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('DVD', 'mediaMark'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('Windows', 'operatingSystemMark'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('Audio', 'technicalMark'),
-  ))
+  assert.ok(!summary.warnings.some((warning) =>
+    /bundled|generic artwork|built-in .*artwork/i.test(warning)))
 })

@@ -1,6 +1,6 @@
 # Project File Specification
 
-Last refreshed: 2026-06-03.
+Last refreshed: 2026-06-12.
 
 ## Purpose
 
@@ -30,7 +30,7 @@ related project modules. Case insert saved-project adapters remain available
 through `src/project/projectCaseInsert.ts`, while case-owned defaults,
 normalization, and state transitions live under `src/caseInsert/`.
 
-The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today.
+The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today. The package-format direction is recorded in `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`.
 
 The future package format should not block disc-editor alpha unless a specific save/load limitation appears.
 
@@ -179,6 +179,13 @@ type SavedCaseInsertProject = {
 
 ## Normalization Rules
 
+Project loading now has a small schema validation gate before editor
+restoration. The parser checks that the file is valid JSON, that the root is an
+object, that the schema version is supported, and that the top-level saved
+project shape has the required current sections for its editor type. It remains
+intentionally shallow; feature-specific normalization still belongs to the
+existing project/domain modules so sparse `0.1.0` data can be restored safely.
+
 Loader normalization should:
 
 - tolerate sparse legacy `0.1.0` project data
@@ -192,24 +199,28 @@ Loader normalization should:
 - preserve case image asset provenance and embedded data where present
 - preserve optional case image, text, artwork, logo, mark, and export state when controls are toggled off
 
-## Future Format
+## Future Package Direction
 
-A future version may use a packaged project format that bundles JSON plus local assets:
+A future version should use a ZIP-compatible packaged project format that bundles JSON plus local assets:
 
 ```text
 project.sbls
+  manifest.json
   project.json
   assets/
-    background-001.png
-    logo-001.png
-    screenshot-001.jpg
+    asset-0001.png
+    asset-0002.jpg
+    asset-0003.webp
 ```
 
-This would make projects more portable between machines and may reduce large JSON files. That package/container format is future work tracked separately from the current disc-editor alpha unless a concrete limitation appears.
+This keeps projects portable as one file, avoids a custom binary container, and may reduce large JSON files. Existing `.sbls.json` data-URL projects remain the compatibility baseline. Package read/write behavior is future work tracked separately from the current disc-editor alpha unless a concrete limitation appears.
+
+See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- Add explicit project schema validation and migration support (#48).
+- Extend explicit project schema validation and migration support (#48) as new
+  schema versions are introduced.
 - Document migration behavior before changing schema semantics.
 - Keep backward compatibility for current fixed systems during any future flexible visual-element migration.
 - Keep user-facing documentation clear that case insert project schema groundwork

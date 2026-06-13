@@ -10,9 +10,7 @@ import {
   createMediaMarkRenderModel,
 } from '../render/mediaMarkRenderModel.ts'
 import { createPlatformMarkRenderModels } from '../render/platformMarkRenderModel.ts'
-import { shouldRenderSupplementalUskRatingBadge } from '../project/projectRatingBadge.ts'
 import { canUseTitleArtwork } from '../project/projectTitleArtwork.ts'
-import { createLogoAssetRenderItems } from '../project/projectLogoAssets.ts'
 import type {
   BackgroundImageSize,
   ProjectLogoAssets,
@@ -39,10 +37,8 @@ import {
 import type { DiscTemplate } from '../types/template.ts'
 import {
   buildGuideExportWarnings,
-  createBundledAssetWarning,
   createCustomMarkMissingImageWarning,
   createMissingBackgroundWarning,
-  createMissingImageFallbackWarning,
   createMissingImageWarning,
 } from './preflightWarnings.ts'
 
@@ -94,7 +90,7 @@ export function buildExportPreflightSummary(params: {
   const enabledTextLabels = DISC_TEXT_KEYS.filter((key) => params.discTextSettings[key]).map(
     getDiscTextLabel,
   )
-  const warnings = buildExportWarnings(
+  const warnings = buildDiscExportWarnings(
     params.selectedDiscTemplateId,
     params.selectedDiscTemplate,
     params.backgroundImageUrl,
@@ -165,12 +161,12 @@ function getEnabledGuideLabels(exportGuides: ExportGuideSelection) {
     .map(([guideKey]) => GUIDE_LABELS[guideKey as ExportGuideKey])
 }
 
-function buildExportWarnings(
+export function buildDiscExportWarnings(
   selectedDiscTemplateId: SelectedDiscTemplateId,
   selectedDiscTemplate: DiscTemplate,
   backgroundImageUrl: string | null,
   enabledGuideLabels: string[],
-  projectLogoAssets: ProjectLogoAssets,
+  _projectLogoAssets: ProjectLogoAssets,
   projectTitleArtwork: ProjectTitleArtwork,
   projectMetadata: ProjectMetadata,
   projectRatingBadge: ProjectRatingBadge,
@@ -196,32 +192,10 @@ function buildExportWarnings(
   }
 
   warnings.push(...getTitleArtworkWarnings(projectTitleArtwork))
-  warnings.push(...getLogoAssetWarnings(projectLogoAssets))
   warnings.push(...getRatingBadgeWarnings(projectMetadata, projectRatingBadge))
   warnings.push(...getMediaMarkWarnings(projectMediaMark))
   warnings.push(...getPlatformMarkWarnings(projectPlatformMarks))
   warnings.push(...getTechnicalMarkWarnings(projectTechnicalMarks))
-
-  return warnings
-}
-
-function getLogoAssetWarnings(logoAssets: ProjectLogoAssets) {
-  const warnings: string[] = []
-
-  for (const logoAsset of createLogoAssetRenderItems(logoAssets)) {
-    if (!logoAsset.imageDataUrl) {
-      const logoLabel = /\blogo\b/i.test(logoAsset.label)
-        ? logoAsset.label
-        : `${logoAsset.label} logo`
-
-      warnings.push(
-        createMissingImageFallbackWarning(logoLabel, {
-          imageAction: 'uploaded',
-          fallbackDescription: 'the bundled generic logo will export',
-        }),
-      )
-    }
-  }
 
   return warnings
 }
@@ -266,20 +240,6 @@ function getRatingBadgeWarnings(
     )
   }
 
-  if (
-    ratingBadge.source === 'placeholder' &&
-    metadata.ratingSystem !== 'none' &&
-    metadata.ratingValue.trim()
-  ) {
-    warnings.push(createBundledAssetWarning('Rating badge', 'ratingBadge'))
-  }
-
-  if (shouldRenderSupplementalUskRatingBadge(metadata, ratingBadge)) {
-    warnings.push(
-      createBundledAssetWarning('Additional USK rating badge', 'ratingBadge'),
-    )
-  }
-
   return warnings
 }
 
@@ -298,10 +258,6 @@ function getMediaMarkWarnings(mediaMark: ProjectMediaMark) {
     ]
   }
 
-  if (model.isPlaceholderImage) {
-    return [createBundledAssetWarning(model.label, 'mediaMark')]
-  }
-
   return []
 }
 
@@ -318,10 +274,6 @@ function getPlatformMarkWarnings(platformMarks: ProjectPlatformMarks) {
       ]
     }
 
-    if (model.isPlaceholderImage) {
-      return [createBundledAssetWarning(model.label, 'operatingSystemMark')]
-    }
-
     return []
   })
 }
@@ -334,10 +286,6 @@ function getTechnicalMarkWarnings(technicalMarks: ProjectTechnicalMarks) {
       return [
         createCustomMarkMissingImageWarning(model.label, 'technicalMark'),
       ]
-    }
-
-    if (model.isPlaceholderImage) {
-      return [createBundledAssetWarning(model.label, 'technicalMark')]
     }
 
     return []

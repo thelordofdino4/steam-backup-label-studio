@@ -176,7 +176,7 @@ test('case insert logo slots preserve selected images while disabled', () => {
   )
 })
 
-test('case insert logo render info uses bundled generic artwork for enabled empty logo slots', () => {
+test('case insert logo render info uses built-in default artwork for enabled empty logo slots', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
   state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>

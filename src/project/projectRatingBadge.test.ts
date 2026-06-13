@@ -130,7 +130,7 @@ test('USK built-in badge artwork is value-specific and does not use text overlay
   assert.equal(uskModel.altLabel, 'USK 18 rating badge')
 })
 
-test('custom bundled rating badges keep generic text overlays', () => {
+test('custom built-in rating badges keep generic text overlays', () => {
   const customModel = getRatingBadgePlaceholderRenderModel({
     ratingSystem: 'custom',
     ratingValue: 'USK 12',

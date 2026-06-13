@@ -231,7 +231,7 @@ export function DiscTextControl({
                       ))}
                     </select>
                     <p className="hint">
-                      Uses the current disc number value and placement with a bundled generic badge.
+                      Uses the current disc number value and placement with the built-in badge.
                     </p>
                   </>
                 ) : null}

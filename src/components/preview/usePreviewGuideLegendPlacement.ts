@@ -8,6 +8,7 @@ import {
 
 const DEFAULT_CLOSED_GUIDE_LEGEND_SIZE = 40
 const MIN_CLOSED_GUIDE_LEGEND_SIZE = 28
+const CLOSED_GUIDE_LEGEND_BUTTON_GAP = 8
 
 function rectsIntersect(
   first: DOMRectReadOnly,
@@ -27,9 +28,11 @@ function rectsIntersect(
 }
 
 export function usePreviewGuideLegendPlacement({
+  closedButtonCount = 1,
   isOpen,
   previewRef,
 }: {
+  closedButtonCount?: number
   isOpen: boolean
   previewRef: RefObject<HTMLElement | null>
 }) {
@@ -53,8 +56,11 @@ export function usePreviewGuideLegendPlacement({
 
     const areaRect = previewArea.getBoundingClientRect()
     const previewRect = preview.getBoundingClientRect()
+    const closedControlWidth =
+      DEFAULT_CLOSED_GUIDE_LEGEND_SIZE * closedButtonCount +
+      CLOSED_GUIDE_LEGEND_BUTTON_GAP * Math.max(0, closedButtonCount - 1)
     const bottomRightCandidate = {
-      left: areaRect.right - DEFAULT_CLOSED_GUIDE_LEGEND_SIZE,
+      left: areaRect.right - closedControlWidth,
       right: areaRect.right,
       top: areaRect.bottom - DEFAULT_CLOSED_GUIDE_LEGEND_SIZE,
       bottom: areaRect.bottom,
@@ -67,13 +73,18 @@ export function usePreviewGuideLegendPlacement({
 
     const availableRight = Math.max(0, areaRect.right - previewRect.right)
     const availableBottom = Math.max(0, areaRect.bottom - previewRect.bottom)
-    const availableSize = Math.max(availableRight, availableBottom)
+    const availableWidthSize = Math.floor(
+      (Math.max(0, availableRight) -
+        CLOSED_GUIDE_LEGEND_BUTTON_GAP * Math.max(0, closedButtonCount - 1)) /
+        closedButtonCount,
+    )
+    const availableSize = Math.max(availableWidthSize, availableBottom)
 
     setClosedSize(Math.max(
       MIN_CLOSED_GUIDE_LEGEND_SIZE,
       Math.min(DEFAULT_CLOSED_GUIDE_LEGEND_SIZE, Math.floor(availableSize)),
     ))
-  }, [isOpen, previewRef])
+  }, [closedButtonCount, isOpen, previewRef])
 
   useLayoutEffect(() => {
     const frameId = window.requestAnimationFrame(updatePlacement)

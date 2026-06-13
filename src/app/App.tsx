@@ -1014,10 +1014,6 @@ function App() {
     announceStatus('Started a new blank case insert project.')
   }
 
-  function handleWizardPlaceholder() {
-    setHomeStatusMessage('Guided setup is planned for a future pass.')
-  }
-
   async function handleReturnToHome() {
     const shouldReturn = await confirm(
       'Return to the main menu? Unsaved changes will remain in memory for now, but new actions may replace them.',
@@ -1712,7 +1708,6 @@ function App() {
         onLoadProject={handleLoadProject}
         onNewDisc={handleStartNewDiscProject}
         onNewCaseInsert={handleOpenCaseInsertEditor}
-        onWizard={handleWizardPlaceholder}
         statusMessage={homeStatusMessage}
       />
     )
@@ -1976,6 +1971,7 @@ function App() {
 
       <DiscPreview
         discPreviewRef={discPreviewRef}
+        selectedDiscTemplateId={selectedDiscTemplateId}
         statusToasts={statusToasts}
         background={{
           imageUrl: effectiveBackgroundImageUrl,

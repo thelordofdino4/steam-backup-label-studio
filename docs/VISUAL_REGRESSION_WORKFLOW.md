@@ -114,7 +114,7 @@ For each fixture:
    - Technical mark placement, scale, labels, and visibility.
    - Straight text content, alignment, width, scale, and placement.
    - Curved copyright/legal text content, arc side, inset, wrapping, and placement.
-   - Export preflight warnings match enabled/missing/generic visual state.
+   - Export preflight warnings match enabled/missing visual state and concrete print risks; built-in/default app assets do not warn merely because they are built in.
    - Guide export behavior for outer edge, physical center hole, inner print boundary, printable boundary, and safe zone.
    - Safe-zone constrained elements remain inside the intended bounds.
 7. If an expected export PNG already exists, compare the new PNG against it and record whether the difference is intentional.

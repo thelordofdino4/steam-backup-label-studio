@@ -5,7 +5,6 @@ import {
   buildGuideExportWarnings,
   buildLayoutValueWarnings,
   buildUpscaleWarnings,
-  createBundledAssetWarning,
   createCustomMarkMissingImageWarning,
   createMissingBackgroundWarning,
   createMissingImageWarning,
@@ -34,22 +33,14 @@ test('shared preflight builders create guide, background, and missing-image warn
   )
 })
 
-test('shared bundled asset warnings keep feature descriptors consistent', () => {
-  assert.equal(
-    createBundledAssetWarning('Developer logo', 'logo'),
-    'Developer logo uses bundled generic logo artwork.',
-  )
-  assert.equal(
-    createBundledAssetWarning('ESRB E', 'ratingBadge'),
-    'ESRB E rating badge uses bundled rating artwork.',
-  )
-  assert.equal(
-    createBundledAssetWarning('Windows', 'operatingSystemMark'),
-    'Windows operating system mark uses bundled generic artwork.',
-  )
+test('shared custom mark missing-image warnings keep feature descriptors consistent', () => {
   assert.equal(
     createCustomMarkMissingImageWarning('PC', 'operatingSystemMark'),
-    'Custom PC operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
+    'Custom PC operating system mark is selected, but no custom image is uploaded.',
+  )
+  assert.equal(
+    createCustomMarkMissingImageWarning('ESRB E', 'ratingBadge'),
+    'Custom ESRB E rating badge is selected, but no custom image is uploaded.',
   )
 })
 

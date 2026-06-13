@@ -15,7 +15,7 @@ test('disabled technical marks do not create render models', () => {
   assert.deepEqual(createTechnicalMarkRenderModels(technicalMarks), [])
 })
 
-test('custom technical source without an image falls back to bundled generic rendering', () => {
+test('custom technical source without an image falls back to built-in rendering', () => {
   const technicalMarks = updateTechnicalMarkSource(
     updateTechnicalMarkToggle(createDefaultProjectTechnicalMarks(), 'audio', true),
     'audio',

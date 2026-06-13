@@ -102,14 +102,16 @@ npm run tauri dev
   background artwork, title artwork, additional artwork, branding marks, text,
   export guide settings, and disabled optional feature state.
 - Sparse or older fixture projects still normalize without fatal errors.
-- Disc export preflight lists output dimensions, guide state, missing/generic
-  assets, and enabled-but-unavailable visual warnings accurately.
+- Disc export preflight lists output dimensions, guide state, missing assets,
+  enabled-but-unavailable visuals, and print-risk warnings accurately. Built-in
+  app assets should not warn merely because they are built in.
 - Clean disc PNG export omits editor-only guides and preserves the physical
   center-hole cutout.
 - Guide-enabled disc PNG export draws selected guide marks last.
 - Exported PNG layer order and relative placement match the live preview.
 - Case insert export preflight lists output dimensions, guide state, missing
-  artwork, generic placeholders, and template-specific warnings accurately.
+  artwork, template-specific warnings, and print-risk warnings accurately.
+  Built-in app assets should not warn merely because they are built in.
 - Clean case insert PNG export omits editor-only guides, uses a pure white paper
   background when no image is selected, and contains no preview-page chrome.
 - Guide-enabled case insert PNG export draws selected trim, safe-zone, and spine

@@ -11,10 +11,7 @@ import { createDefaultProjectTechnicalMarks, updateTechnicalMarkSource, updateTe
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import { buildExportPreflightSummary } from './exportPreflight.ts'
-import {
-  GUIDE_MARKS_EXPORT_WARNING,
-  createBundledAssetWarning,
-} from './preflightWarnings.ts'
+import { GUIDE_MARKS_EXPORT_WARNING } from './preflightWarnings.ts'
 
 function createDefaultPreflightParams(): Parameters<typeof buildExportPreflightSummary>[0] {
   return {
@@ -85,7 +82,7 @@ test('missing background is advisory and still lets the user continue export', (
   assert.match(summary.message, /Continue with export\?/)
 })
 
-test('disc preflight uses shared guide and bundled mark warning wording', () => {
+test('disc preflight does not warn about built-in mark artwork', () => {
   const params = createDefaultPreflightParams()
   const projectMediaMark = updateMediaMarkLayoutField(
     params.projectMediaMark,
@@ -114,18 +111,11 @@ test('disc preflight uses shared guide and bundled mark warning wording', () => 
   })
 
   assert.ok(summary.warnings.includes(GUIDE_MARKS_EXPORT_WARNING))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('Data Disc', 'mediaMark'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('PC', 'operatingSystemMark'),
-  ))
-  assert.ok(summary.warnings.includes(
-    createBundledAssetWarning('audio', 'technicalMark'),
-  ))
+  assert.ok(!summary.warnings.some((warning) =>
+    /bundled|generic artwork|built-in .*artwork/i.test(warning)))
 })
 
-test('preflight warns about enabled visual elements that will be missing or generic-asset-backed', () => {
+test('preflight warns about enabled visual elements that will be missing', () => {
   const params = createDefaultPreflightParams()
   const projectMediaMark = updateMediaMarkSource(
     updateMediaMarkLayoutField(params.projectMediaMark, 'enabled', true),
@@ -187,22 +177,20 @@ test('preflight warns about enabled visual elements that will be missing or gene
   assert.ok(summary.warnings.includes(
     'Title/logo artwork is enabled, but no Steam or custom title artwork image is selected; it will not render in the exported PNG.',
   ))
+  assert.ok(!summary.warnings.some((warning) => /Developer logo/.test(warning)))
+  assert.ok(!summary.warnings.some((warning) => /Licensor logo/.test(warning)))
   assert.ok(summary.warnings.includes(
-    'Developer logo is enabled, but no image is uploaded; the bundled generic logo will export.',
+    'Custom rating badge is selected, but no custom image is uploaded.',
   ))
   assert.ok(summary.warnings.includes(
-    'Licensor logo is enabled, but no image is uploaded; the bundled generic logo will export.',
+    'Custom Data Disc media mark is selected, but no custom image is uploaded.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom rating badge is selected, but no custom image is uploaded; bundled rating artwork will export when rating metadata is renderable.',
+    'Custom PC operating system mark is selected, but no custom image is uploaded.',
   ))
   assert.ok(summary.warnings.includes(
-    'Custom Data Disc media mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
+    'Custom audio technical mark is selected, but no custom image is uploaded.',
   ))
-  assert.ok(summary.warnings.includes(
-    'Custom PC operating system mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
-  ))
-  assert.ok(summary.warnings.includes(
-    'Custom audio technical mark is selected, but no custom image is uploaded; the bundled generic artwork will export.',
-  ))
+  assert.ok(!summary.warnings.some((warning) =>
+    /bundled|generic artwork|built-in .*artwork/i.test(warning)))
 })

@@ -523,7 +523,7 @@ function GroupedImageSlotControls({
   const slotImageStatus = getImageStatus(slot)
   const emptyImageSummary =
     slotKey === 'logoSlots' && getCaseInsertAdditionalLogoKey(slot)
-      ? 'bundled generic'
+      ? 'built-in default'
       : 'no image'
   const summary = createRepeatedArtworkSummary({
     enabled: slot.enabled,

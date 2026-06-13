@@ -45,7 +45,7 @@ The current disc-label workflow has many working systems:
 - Use metadata-bound text values with manual overrides.
 - Use straight text width controls, layout presets, visual-element avoidance, style presets, backplates/borders, preview, export, and save/load support.
 - Use stable centered curved copyright/legal text with arc length, angle, inset, scale, side, wrapping, preview, export, and save/load support.
-- Use a bundled generic disc-number badge mode.
+- Use a built-in disc-number badge mode.
 - Use export preflight to review output dimensions and warnings before PNG export.
 - Export a clean 300 DPI PNG based on the selected physical disc geometry.
 - Receive status feedback through the preview toast feed.
@@ -90,6 +90,7 @@ The structural real-disc-art elements are now mostly represented:
 Remaining disc-editor work is polish, validation, and future expansion:
 
 - Keep built-in asset routing centralized through `src/assets/assetManifest.ts`, official replacements in domain folders under `src/assets/`, true placeholder-named fallbacks under `src/assets/placeholders/`, and generated-only user-facing visuals out of the editor surface.
+- Treat built-in/default app artwork as valid first-party output; it should not produce warnings or checklist notification badges merely because it is built in.
 - Keep preview and PNG export layer order in sync through `src/editor/layerOrder.ts` and `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - Preserve optional visual state when disabled, hide dependent controls while disabled, and prevent disabled visuals from rendering/exporting.
 - Keep text inside the safe zone and keep visual-element avoidance behavior honest.
@@ -106,7 +107,7 @@ Open issues reviewed for this audit:
 - #124 - move Guide Legend into the live preview.
 - #125 - add historical technology mark catalog and missing mark families.
 - #126 - jewel case editor alpha finish line.
-- #56 - decide embedded asset strategy and future `.sbls` package format.
+- #56 - embedded asset strategy and future `.sbls` package format decision, now documented in `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`.
 - #48 - add project schema validation and migration support.
 - #47 - review Rust Tauri command module organization.
 - #46 - organize CSS after component extraction.
@@ -166,12 +167,18 @@ Still limited or intentionally incomplete:
   #126 and structured tray/spine layouts remain open under #149.
 - Full arbitrary layer management is not implemented yet.
 - Missing historical technology mark families are still tracked by #125 as catalog/future-expansion work.
-- Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format is not implemented.
+- Project files are currently plain JSON, often named `.sbls.json`; the future `.sbls` package/container format decision is documented, but package read/write is not implemented.
 - Project schema validation/migrations are still limited (#48).
 - Existing fixtures do not yet cover every recently added real-disc-art system; title artwork, additional artwork, technical marks, metadata-bound text, and export preflight need better fixture/manual smoke coverage.
 - Manual runtime smoke checklist coverage now lives in `docs/MANUAL_SMOKE_CHECKLISTS.md`; use it to record editor, artwork, branding, preview, save/load/export, and case insert checks.
 - Manual native/Tauri smoke is still required before claiming current live editor behavior is verified for a release package.
 - Guided Start remains deferred (#17).
+
+Design Check notification badges should be reserved for concrete design-rule
+failures such as missing background artwork, title/logo treatment, game-info
+marks, company logos, legal text, back-cover description, screenshots/supporting
+art, system requirements, or spine identification. Lower-risk print-quality
+details remain visible as checklist notes without changing the icon state.
 
 ## Optional Visual UI Rule
 

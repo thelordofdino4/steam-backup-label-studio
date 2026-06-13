@@ -102,6 +102,12 @@ Placeholder/generic asset policy:
 - User-provided custom images should remain supported.
 - Official trademarked assets should not be bundled unless licensing is clearly safe.
 - Test fixtures may use obvious placeholders when documented as fixtures.
+- Built-in/default app artwork is a valid first-party output source. Do not warn users or show checklist notification badges solely because an element uses built-in/default/generic app artwork.
+
+Design Check severity policy:
+
+- Notification badges should be reserved for concrete design-rule failures from the reviewed disc and cover-art guidance, such as missing background artwork, title/logo treatment, game-info marks, company logos, legal text, back-cover description, screenshots/supporting art, system requirements, or spine identification.
+- Lower-risk print-quality details such as low-resolution source art, export upscaling, safe-zone proximity, and similar advisories should remain visible inside the open checklist as notes without changing the notification icon state.
 
 Text-boundary policy:
 

@@ -64,7 +64,7 @@ export function MediaMarkSetupControls({
             customActiveLabel="Custom media mark active"
             uploadId="media-mark-upload"
             uploadButtonLabel="Choose custom mark"
-            emptyCustomHint="No custom media mark image is selected yet. The bundled generic mark remains visible until you upload an image."
+            emptyCustomHint="No custom media mark image is selected yet. The built-in mark remains visible until you upload an image."
             clearCustomLabel="Clear custom mark"
             formatSize={formatLogoSize}
             onSourceChange={(source) =>

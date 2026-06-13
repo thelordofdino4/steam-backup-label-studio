@@ -74,7 +74,7 @@ test('restores schema 0.1.0 project contents into editor state', async () => {
   assert.equal(restored.steamBannerFallbackText, DEFAULT_STEAM_BANNER_FALLBACK_TEXT)
 })
 
-test('restores saved built-in Steam banner lockups with the current bundled default', async () => {
+test('restores saved built-in Steam banner lockups with the current included default', async () => {
   const restored = await restoreSavedProjectState(
     {
       ...baseProject,
