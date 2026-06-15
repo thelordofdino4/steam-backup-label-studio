@@ -163,30 +163,49 @@ function splitLongTokenByMeasuredWidth(
   return chunks
 }
 
+function splitLineIntoMeasuredTokens(line: string) {
+  return line.match(/\s+|\S+/g) ?? []
+}
+
+function getLineBeforeWrappedToken(currentLine: string, nextTokenPart: string) {
+  if (!/\S/.test(nextTokenPart)) return currentLine
+
+  const withoutTrailingWhitespace = currentLine.replace(/\s+$/, '')
+  return withoutTrailingWhitespace || currentLine
+}
+
+function getLineAfterWrappedTokenPart(tokenPart: string) {
+  return /^\s+$/.test(tokenPart) ? '' : tokenPart
+}
+
+function appendTokenPartToLine(currentLine: string, tokenPart: string) {
+  return `${currentLine}${tokenPart}`
+}
+
 function wrapLine(
   line: string,
   maxWidth: number,
   font: string,
   measureText: CaseInsertTextMeasureFunction,
 ) {
-  const words = line.split(/\s+/).filter(Boolean)
+  const tokens = splitLineIntoMeasuredTokens(line)
   const lines: string[] = []
   let currentLine = ''
 
-  for (const word of words) {
-    const wordParts = measureText(word, font) > maxWidth
-      ? splitLongTokenByMeasuredWidth(word, maxWidth, font, measureText)
-      : [word]
+  for (const token of tokens) {
+    const tokenParts = measureText(token, font) > maxWidth
+      ? splitLongTokenByMeasuredWidth(token, maxWidth, font, measureText)
+      : [token]
 
-    for (const wordPart of wordParts) {
-      const candidate = currentLine ? `${currentLine} ${wordPart}` : wordPart
+    for (const tokenPart of tokenParts) {
+      const candidate = appendTokenPartToLine(currentLine, tokenPart)
 
       if (
         currentLine &&
         measureText(candidate, font) > maxWidth
       ) {
-        lines.push(currentLine)
-        currentLine = wordPart
+        lines.push(getLineBeforeWrappedToken(currentLine, tokenPart))
+        currentLine = getLineAfterWrappedTokenPart(tokenPart)
       } else {
         currentLine = candidate
       }
@@ -454,7 +473,7 @@ function appendWrappedSourceLineBySegments({
   maxLines: number
   measureText: CaseInsertTextMeasureFunction
 }) {
-  const tokens = sourceLine.split(/\s+/).filter(Boolean)
+  const tokens = splitLineIntoMeasuredTokens(sourceLine)
   let currentLine = ''
 
   if (tokens.length === 0) {
@@ -484,17 +503,15 @@ function appendWrappedSourceLineBySegments({
         Math.min(lines.length, lineSegments.length - 1)
       ]
       const maxWidth = lineSegment ? lineSegment.right - lineSegment.left : 1
-      const candidate = currentLine
-        ? `${currentLine} ${tokenPart}`
-        : tokenPart
+      const candidate = appendTokenPartToLine(currentLine, tokenPart)
 
       if (measureText(candidate, font) <= maxWidth || !currentLine) {
         currentLine = candidate
         continue
       }
 
-      lines.push(currentLine)
-      currentLine = tokenPart
+      lines.push(getLineBeforeWrappedToken(currentLine, tokenPart))
+      currentLine = getLineAfterWrappedTokenPart(tokenPart)
 
       if (lines.length >= maxLines) {
         return

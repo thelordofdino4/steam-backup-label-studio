@@ -8,6 +8,7 @@ import {
   normalizeDiscTextValueSources,
   resolveMetadataBoundDiscTextTitle,
   resolveMetadataBoundDiscTextValues,
+  updateDiscTextInlineDraftValue,
   updateDiscTextInputValue,
   updateDiscTextValueSource,
 } from './metadataDiscText.ts'
@@ -228,6 +229,28 @@ test('clearing metadata-bound input returns it to metadata/default', () => {
   assert.equal(resolvedValues.appId, '440')
 })
 
+test('inline metadata-bound draft can stay manually empty while editing', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    steamAppId: '440',
+  }
+  const inputUpdate = updateDiscTextInlineDraftValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'appId',
+    '',
+  )
+  const resolvedValues = resolveMetadataBoundDiscTextValues(
+    inputUpdate.values,
+    metadata,
+    inputUpdate.sources,
+  )
+
+  assert.equal(inputUpdate.sources.appId, 'manual')
+  assert.equal(inputUpdate.values.appId, '')
+  assert.equal(resolvedValues.appId, '')
+})
+
 test('clearing title input returns it to Game metadata/default', () => {
   const metadata = {
     ...createDefaultProjectMetadata(),
@@ -257,4 +280,50 @@ test('clearing title input returns it to Game metadata/default', () => {
   assert.equal(clearedUpdate.sources.title, 'metadata')
   assert.equal(clearedUpdate.titleValue, '')
   assert.equal(resolvedTitle, 'Warframe')
+})
+
+test('inline title draft can stay manually empty while editing', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const inputUpdate = updateDiscTextInlineDraftValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'title',
+    '',
+    '',
+  )
+  const resolvedTitle = resolveMetadataBoundDiscTextTitle(
+    inputUpdate.titleValue,
+    metadata,
+    inputUpdate.sources,
+  )
+
+  assert.equal(inputUpdate.sources.title, 'manual')
+  assert.equal(inputUpdate.titleValue, '')
+  assert.equal(resolvedTitle, '')
+})
+
+test('inline title replacement draft preserves spaces and exact words', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const inputUpdate = updateDiscTextInlineDraftValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'title',
+    'hello hello',
+    '',
+  )
+  const resolvedTitle = resolveMetadataBoundDiscTextTitle(
+    inputUpdate.titleValue,
+    metadata,
+    inputUpdate.sources,
+  )
+
+  assert.equal(inputUpdate.sources.title, 'manual')
+  assert.equal(inputUpdate.titleValue, 'hello hello')
+  assert.equal(resolvedTitle, 'hello hello')
 })

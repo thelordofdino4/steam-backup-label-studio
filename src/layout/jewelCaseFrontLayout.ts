@@ -5,14 +5,13 @@ import type {
 } from '../project/projectTypes.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
 import {
-  getCaseInsertTextBlockStyleRole,
   getCaseInsertTextFontFamilyCanvas,
-  getCaseInsertTextStyleRoleMaxLines,
 } from '../caseInsert/textStyles.ts'
 import {
   getCaseInsertTextLayoutPaddingRatio,
 } from '../caseInsert/textRenderStyles.ts'
 import {
+  CASE_INSERT_TEXT_BLOCK_MAX_LINES,
   getCaseInsertTextLayoutWidth,
 } from '../caseInsert/textLayout.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
@@ -307,7 +306,7 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
 ): JewelCaseFrontTextBlockLayout | null {
   const safeBounds = getJewelCaseFrontPreviewRegionBounds(layout, 'frontSafe')
 
-  if (!safeBounds || !textBlock.enabled || !textBlock.value.trim()) {
+  if (!safeBounds || !textBlock.enabled) {
     return null
   }
 
@@ -343,9 +342,7 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
       fontSizePx,
       fontWeight: 800,
       lineHeightPx: fontSizePx * 1.14,
-      maxLines: getCaseInsertTextStyleRoleMaxLines(
-        getCaseInsertTextBlockStyleRole(textBlock),
-      ),
+      maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
       text: textBlock.value,
       uppercase: role === 'title',

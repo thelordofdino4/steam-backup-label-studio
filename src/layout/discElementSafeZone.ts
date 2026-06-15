@@ -37,7 +37,10 @@ import {
   getStraightDiscTextVisualBounds,
   type TextMeasureFunction,
 } from '../discText/renderLayout.ts'
-import { DISC_TEXT_RENDER_STYLES } from '../discText/styles.ts'
+import {
+  getResolvedDiscTextRenderStyle,
+  type DiscTextStyleInput,
+} from '../discText/styles.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
@@ -161,6 +164,7 @@ function getMeasuredStraightTextVisualBounds(
   key: DiscTextKey,
   layout: DiscTextLayout,
   measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+  styles?: DiscTextStyleInput,
 ): TextVisualBoundsPercent {
   const lines = getRenderedStraightTextLines(key)
 
@@ -168,10 +172,14 @@ function getMeasuredStraightTextVisualBounds(
     return getFallbackTextVisualBounds(key, layout)
   }
 
-  const renderStyle = DISC_TEXT_RENDER_STYLES[key]
+  const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const fontSize = renderStyle.fontSizePercent * layout.scale
   const lineHeight = fontSize * 1.18
-  const font = getDiscTextFontString(renderStyle.fontWeight, fontSize)
+  const font = getDiscTextFontString(
+    renderStyle.fontWeight,
+    fontSize,
+    renderStyle.fontFamilyCanvas,
+  )
   const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
   const x = getStraightTextAnchorX(layout, firstLineWidth)
   const firstLineY = layout.y - ((lines.length - 1) * lineHeight) / 2
@@ -210,12 +218,19 @@ function getMeasuredStraightTextVisualBoundsFromContent(
   text: string,
   layout: DiscTextLayout,
   measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+  styles?: DiscTextStyleInput,
 ): TextVisualBoundsPercent {
   if (!text.trim()) {
     return getFallbackTextVisualBounds(key, layout)
   }
 
-  const renderLayout = getStraightDiscTextRenderLayout(key, text, layout, measureText)
+  const renderLayout = getStraightDiscTextRenderLayout(
+    key,
+    text,
+    layout,
+    measureText,
+    styles,
+  )
 
   if (renderLayout.lines.length === 0) {
     return getFallbackTextVisualBounds(key, layout)
@@ -637,6 +652,7 @@ export function getStraightDiscTextLayoutSliderRanges(
   layout: DiscTextLayout,
   selectedDiscTemplate: DiscTemplate,
   measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
+  styles?: DiscTextStyleInput,
 ): StraightDiscTextLayoutSliderRanges {
   if (layout.mode !== 'straight') {
     return {
@@ -651,6 +667,7 @@ export function getStraightDiscTextLayoutSliderRanges(
     text,
     layout,
     measureText,
+    styles,
   )
   const visualCenter = {
     x: DISC_LAYOUT_CENTER_PERCENT + layout.x + visualBounds.centerOffsetX,
@@ -1184,6 +1201,7 @@ export function clampStraightDiscTextLayoutToSafeZone(
   selectedDiscTemplate: DiscTemplate,
   text?: string,
   measureText?: TextMeasureFunction,
+  styles?: DiscTextStyleInput,
 ): DiscTextLayout {
   if (layout.mode !== 'straight') {
     return layout
@@ -1200,8 +1218,9 @@ export function clampStraightDiscTextLayoutToSafeZone(
           text,
           layout,
           measureText,
+          styles,
         )
-      : getMeasuredStraightTextVisualBounds(key, layout, measureText)
+      : getMeasuredStraightTextVisualBounds(key, layout, measureText, styles)
   const visualCenter = {
     x: layoutAnchor.x + visualBounds.centerOffsetX,
     y: layoutAnchor.y + visualBounds.centerOffsetY,

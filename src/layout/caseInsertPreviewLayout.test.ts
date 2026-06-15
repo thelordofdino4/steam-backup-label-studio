@@ -49,6 +49,9 @@ import {
 import {
   createCaseInsertTemplateTextAvoidanceRegions,
 } from './caseInsertTextOccupiedRegions.ts'
+import {
+  wrapCaseInsertTextLines,
+} from './caseInsertTextVisualLayout.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
 import { createDefaultProjectMediaMark } from '../project/projectMediaMark.ts'
 import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
@@ -88,6 +91,10 @@ function getJoinedTextLines(
   layout: { lines: Array<{ text: string }> },
 ) {
   return layout.lines.map((line) => line.text).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+function measureTextAsCharacters(text: string) {
+  return Array.from(text).length
 }
 
 function createBrandingSources() {
@@ -557,6 +564,27 @@ test('cover sheet text width controls reserved wrapping width', () => {
   assert.ok(narrowLayout)
   assert.equal(narrowLayout.reservedBounds.width < wideLayout.reservedBounds.width, true)
   assert.equal(narrowLayout.lines.length >= wideLayout.lines.length, true)
+})
+
+test('case insert text wrapping preserves typed whitespace for live editing', () => {
+  assert.deepEqual(
+    wrapCaseInsertTextLines(
+      'hello  world ',
+      80,
+      '10px test',
+      measureTextAsCharacters,
+    ),
+    ['hello  world '],
+  )
+  assert.deepEqual(
+    wrapCaseInsertTextLines(
+      'hello world',
+      7,
+      '10px test',
+      measureTextAsCharacters,
+    ),
+    ['hello', 'world'],
+  )
 })
 
 test('cover sheet text avoidance wraps around other visible text blocks', () => {

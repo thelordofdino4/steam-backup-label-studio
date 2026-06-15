@@ -180,6 +180,7 @@ See the `docs/` folder for:
 - `VISUAL_REGRESSION_WORKFLOW.md` - manual preview/export comparison workflow for fixture-based visual checks.
 - `MANUAL_SMOKE_CHECKLISTS.md` - manual runtime smoke checklists for editor, artwork, branding, preview, save/load/export, and case insert flows.
 - `CSS_STYLE_OWNERSHIP.md` - current stylesheet ownership, import order, and manual CSS smoke checklist.
+- `TEXT_EDITOR_CONTRACT.md` - protected contract and regression gate for preview-mounted text editing.
 
 ## Disclaimer
 

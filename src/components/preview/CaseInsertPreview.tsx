@@ -45,14 +45,26 @@ import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
 import { buildCaseInsertDesignCheckSummary } from '../../export/caseInsertDesignCheck'
+import type {
+  CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
   brandingSources: CaseInsertBrandingSourceCatalog
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   caseInsertPreviewRef: RefObject<HTMLDivElement | null>
   pointerHandlers: CaseInsertPreviewPointerHandlers
   statusToasts: PreviewToast[]
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }
 
 type PreviewLayerMap = Record<CaseInsertEditorPreviewLayerId, ReactNode>
@@ -110,9 +122,13 @@ export function CaseInsertPreview({
   caseInsert,
   activeTemplatePane,
   brandingSources,
+  selectedTextTarget,
   caseInsertPreviewRef,
   pointerHandlers,
   statusToasts,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: CaseInsertPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
@@ -247,7 +263,11 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         brandingSources={brandingSources}
+        selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers.template}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
     ),
     'case-spine-content': (
@@ -255,7 +275,11 @@ export function CaseInsertPreview({
         spine={caseInsert.spine}
         layout={layout}
         brandingSources={brandingSources}
+        selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers.spine}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
     ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,

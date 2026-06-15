@@ -31,8 +31,6 @@ export type StraightDiscTextRenderOptions = {
   avoidanceRegions?: DiscTextAvoidanceRegion[]
 }
 
-const AVOIDANCE_EXTRA_MAX_LINES = 3
-
 type DiscTextLineSegment = {
   left: number
   right: number
@@ -79,6 +77,25 @@ function splitLongTokenByMeasuredWidth(
   return chunks
 }
 
+function splitLineIntoMeasuredTokens(line: string) {
+  return line.match(/\s+|\S+/g) ?? []
+}
+
+function getLineBeforeWrappedToken(currentLine: string, nextTokenPart: string) {
+  if (!/\S/.test(nextTokenPart)) return currentLine
+
+  const withoutTrailingWhitespace = currentLine.replace(/\s+$/, '')
+  return withoutTrailingWhitespace || currentLine
+}
+
+function getLineAfterWrappedTokenPart(tokenPart: string) {
+  return /^\s+$/.test(tokenPart) ? '' : tokenPart
+}
+
+function appendTokenPartToLine(currentLine: string, tokenPart: string) {
+  return `${currentLine}${tokenPart}`
+}
+
 export function wrapMeasuredTextLines(
   text: string,
   maxWidth: number,
@@ -86,9 +103,55 @@ export function wrapMeasuredTextLines(
   maxLines: number,
   measureText: TextMeasureFunction,
 ) {
-  const tokens = text.split(/\s+/).filter(Boolean)
   const lines: string[] = []
+
+  if (text.length === 0) {
+    return lines
+  }
+
+  for (const sourceLine of text.replace(/\r\n/g, '\n').split('\n')) {
+    appendWrappedMeasuredTextSourceLine({
+      sourceLine,
+      lines,
+      maxWidth,
+      font,
+      maxLines,
+      measureText,
+    })
+
+    if (lines.length >= maxLines) {
+      break
+    }
+  }
+
+  return lines
+}
+
+function appendWrappedMeasuredTextSourceLine({
+  sourceLine,
+  lines,
+  maxWidth,
+  font,
+  maxLines,
+  measureText,
+}: {
+  sourceLine: string
+  lines: string[]
+  maxWidth: number
+  font: string
+  maxLines: number
+  measureText: TextMeasureFunction
+}) {
+  const tokens = splitLineIntoMeasuredTokens(sourceLine)
   let currentLine = ''
+
+  if (tokens.length === 0) {
+    if (lines.length < maxLines) {
+      lines.push('')
+    }
+
+    return
+  }
 
   for (const token of tokens) {
     const tokenParts = measureText(token, font) > maxWidth
@@ -96,24 +159,23 @@ export function wrapMeasuredTextLines(
       : [token]
 
     for (const part of tokenParts) {
-      const testLine = currentLine ? `${currentLine} ${part}` : part
+      const testLine = appendTokenPartToLine(currentLine, part)
 
       if (measureText(testLine, font) <= maxWidth || !currentLine) {
         currentLine = testLine
         continue
       }
 
-      lines.push(currentLine)
-      currentLine = part
+      lines.push(getLineBeforeWrappedToken(currentLine, part))
+      currentLine = getLineAfterWrappedTokenPart(part)
 
       if (lines.length >= maxLines) {
-        return lines
+        return
       }
     }
   }
 
   if (currentLine && lines.length < maxLines) lines.push(currentLine)
-  return lines
 }
 
 function getBaseTextSegment(layout: DiscTextLayout) {
@@ -263,9 +325,55 @@ function wrapMeasuredTextLinesBySegments(
   maxLines: number,
   measureText: TextMeasureFunction,
 ) {
-  const tokens = text.split(/\s+/).filter(Boolean)
   const lines: string[] = []
+
+  if (text.length === 0) {
+    return lines
+  }
+
+  for (const sourceLine of text.replace(/\r\n/g, '\n').split('\n')) {
+    appendWrappedMeasuredTextSourceLineBySegments({
+      sourceLine,
+      lines,
+      lineSegments,
+      font,
+      maxLines,
+      measureText,
+    })
+
+    if (lines.length >= maxLines) {
+      break
+    }
+  }
+
+  return lines
+}
+
+function appendWrappedMeasuredTextSourceLineBySegments({
+  sourceLine,
+  lines,
+  lineSegments,
+  font,
+  maxLines,
+  measureText,
+}: {
+  sourceLine: string
+  lines: string[]
+  lineSegments: DiscTextLineSegment[]
+  font: string
+  maxLines: number
+  measureText: TextMeasureFunction
+}) {
+  const tokens = splitLineIntoMeasuredTokens(sourceLine)
   let currentLine = ''
+
+  if (tokens.length === 0) {
+    if (lines.length < maxLines) {
+      lines.push('')
+    }
+
+    return
+  }
 
   for (const token of tokens) {
     const currentSegment = lineSegments[Math.min(lines.length, lineSegments.length - 1)]
@@ -283,24 +391,23 @@ function wrapMeasuredTextLinesBySegments(
     for (const part of tokenParts) {
       const lineSegment = lineSegments[Math.min(lines.length, lineSegments.length - 1)]
       const maxWidth = lineSegment ? lineSegment.right - lineSegment.left : 1
-      const testLine = currentLine ? `${currentLine} ${part}` : part
+      const testLine = appendTokenPartToLine(currentLine, part)
 
       if (measureText(testLine, font) <= maxWidth || !currentLine) {
         currentLine = testLine
         continue
       }
 
-      lines.push(currentLine)
-      currentLine = part
+      lines.push(getLineBeforeWrappedToken(currentLine, part))
+      currentLine = getLineAfterWrappedTokenPart(part)
 
       if (lines.length >= maxLines) {
-        return lines
+        return
       }
     }
   }
 
   if (currentLine && lines.length < maxLines) lines.push(currentLine)
-  return lines
 }
 
 function wrapMeasuredTextLinesWithAvoidance(
@@ -458,9 +565,7 @@ export function getStraightDiscTextRenderLayout(
   const avoidanceRegions = layout.avoidVisualElements
     ? options.avoidanceRegions ?? []
     : []
-  const maxLines = avoidanceRegions.length > 0
-    ? Math.min(6, renderStyle.maxLines + AVOIDANCE_EXTRA_MAX_LINES)
-    : renderStyle.maxLines
+  const maxLines = Number.POSITIVE_INFINITY
   const avoidanceResult = avoidanceRegions.length > 0
     ? wrapMeasuredTextLinesWithAvoidance(
         text,

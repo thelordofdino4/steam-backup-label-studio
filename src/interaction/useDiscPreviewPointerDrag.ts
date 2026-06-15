@@ -72,6 +72,7 @@ import type {
   ProjectTitleArtwork,
   TechnicalMarkValue,
 } from '../project/projectTypes'
+import type { DiscTextStyleSettings } from '../discText/styles'
 import type { DiscTemplate } from '../types/template'
 import {
   usePercentPointerDrag,
@@ -133,6 +134,8 @@ type UseDiscPreviewPointerDragOptions = {
   }
   discText: {
     layout: DiscTextLayoutSettings
+    styles: DiscTextStyleSettings
+    getTextContent: (key: DiscTextKey) => string
     setLayout: Dispatch<SetStateAction<DiscTextLayoutSettings>>
   }
   logoAssets: StateBinding<ProjectLogoAssets>
@@ -212,6 +215,9 @@ export function useDiscPreviewPointerDrag({
                 dragState.key,
                 nextTextLayout,
                 selectedDiscTemplate,
+                discText.getTextContent(dragState.key),
+                undefined,
+                discText.styles,
               ),
         }
       })

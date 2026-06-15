@@ -47,10 +47,14 @@ import { MirrorIcon } from '../sidebar/PanelIcons'
 import type {
   CaseInsertPreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
+import type {
+  CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   caseInsertPreviewRef: RefObject<HTMLDivElement | null>
   pointerHandlers: CaseInsertPreviewPointerHandlers
   editor: CaseInsertTemplateEditorActions
@@ -77,6 +81,14 @@ export type CaseInsertEditorShellProps = {
     checked: boolean,
   ) => void
   onActiveTemplatePaneChange: (paneId: CaseInsertTemplatePaneId) => void
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }
 
 function getSurfaceMetrics(
@@ -115,6 +127,7 @@ function CaseInsertProjectPanel({
   CaseInsertEditorShellProps,
   | 'caseInsert'
   | 'activeTemplatePane'
+  | 'selectedTextTarget'
   | 'caseInsertPreviewRef'
   | 'pointerHandlers'
   | 'editor'
@@ -127,6 +140,9 @@ function CaseInsertProjectPanel({
   | 'gamePanelProps'
   | 'statusToasts'
   | 'onActiveTemplatePaneChange'
+  | 'onSelectedTextTargetChange'
+  | 'onTextTargetValueChange'
+  | 'onTextTargetEditComplete'
   | 'onExportGuideToggle'
 >) {
   return (
@@ -306,6 +322,7 @@ function CaseInsertTemplatePanel({
 export function CaseInsertEditorShell({
   caseInsert,
   activeTemplatePane,
+  selectedTextTarget,
   caseInsertPreviewRef,
   pointerHandlers,
   editor,
@@ -326,6 +343,9 @@ export function CaseInsertEditorShell({
   onExportPng,
   onExportGuideToggle,
   onActiveTemplatePaneChange,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
@@ -381,6 +401,7 @@ export function CaseInsertEditorShell({
               getBrandingControls={getBrandingControls}
               logoCandidateDiscovery={logoCandidateDiscovery}
               handleFindLogoCandidates={handleFindLogoCandidates}
+              onSelectedTextTargetChange={onSelectedTextTargetChange}
             />
           </CaseInsertWorkflowPanel>
         )
@@ -405,6 +426,7 @@ export function CaseInsertEditorShell({
               getBrandingControls={getBrandingControls}
               logoCandidateDiscovery={logoCandidateDiscovery}
               handleFindLogoCandidates={handleFindLogoCandidates}
+              onSelectedTextTargetChange={onSelectedTextTargetChange}
             />
           </CaseInsertWorkflowPanel>
         )
@@ -426,9 +448,13 @@ export function CaseInsertEditorShell({
         caseInsert={caseInsert}
         activeTemplatePane={activeTemplatePane}
         brandingSources={brandingSources}
+        selectedTextTarget={selectedTextTarget}
         caseInsertPreviewRef={caseInsertPreviewRef}
         pointerHandlers={pointerHandlers}
         statusToasts={statusToasts}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
     </main>
   )

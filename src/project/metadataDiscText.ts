@@ -228,6 +228,36 @@ export function updateDiscTextInputValue(
   }
 }
 
+export function updateDiscTextInlineDraftValue(
+  values: DiscTextValues,
+  sources: DiscTextValueSources,
+  key: DiscTextInputValueKey,
+  value: string,
+  titleValue = '',
+): DiscTextInputUpdate {
+  if (key === 'title') {
+    return {
+      values,
+      sources: updateDiscTextValueSource(sources, key, 'manual'),
+      titleValue: value,
+    }
+  }
+
+  if (!isMetadataBoundDiscTextKey(key)) {
+    return {
+      values: updateDiscTextValue(values, key, value),
+      sources,
+      titleValue,
+    }
+  }
+
+  return {
+    values: updateDiscTextValue(values, key, value),
+    sources: updateDiscTextValueSource(sources, key, 'manual'),
+    titleValue,
+  }
+}
+
 function isDiscTextValueSource(value: unknown): value is DiscTextValueSource {
   return value === 'metadata' || value === 'manual'
 }

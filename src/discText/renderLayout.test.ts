@@ -144,3 +144,53 @@ test('avoidance wrapping can use extra lines instead of truncating one-line text
   assert.ok(renderLayout.lines.length > 1)
   assert.equal(renderLayout.lines.map((line) => line.text).join(' '), text)
 })
+
+test('straight disc text wraps beyond the style default line count', () => {
+  const text = [
+    'alpha',
+    'beta',
+    'gamma',
+    'delta',
+    'epsilon',
+    'zeta',
+    'eta',
+    'theta',
+  ].join(' ')
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    text,
+    createLayout({ width: 12 }),
+    measureText,
+  )
+
+  assert.ok(renderLayout.lines.length > 2)
+  assert.equal(renderLayout.lines.map((line) => line.text).join(' '), text)
+})
+
+test('straight disc text preserves explicit typed newlines', () => {
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'customNote',
+    'alpha beta\ngamma\n\nomega',
+    createLayout({ width: 60 }),
+    measureText,
+  )
+
+  assert.deepEqual(
+    renderLayout.lines.map((line) => line.text),
+    ['alpha beta', 'gamma', '', 'omega'],
+  )
+})
+
+test('straight disc text preserves typed whitespace for live editing', () => {
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'customNote',
+    'hello  world ',
+    createLayout({ width: 60 }),
+    measureText,
+  )
+
+  assert.deepEqual(
+    renderLayout.lines.map((line) => line.text),
+    ['hello  world '],
+  )
+})

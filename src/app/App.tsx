@@ -82,6 +82,13 @@ import {
   applyCaseInsertBackCoverLegalText,
   applySteamBackCoverImportToCaseInsert,
 } from '../caseInsert/steamBackCoverImport'
+import type {
+  CaseInsertPreviewTextTarget,
+} from '../caseInsert/previewTextSelection'
+import {
+  finalizeCaseInsertPreviewTextDraft,
+  updateCaseInsertPreviewTextDraftValue,
+} from '../caseInsert/previewTextEditing'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
@@ -163,6 +170,8 @@ function App() {
   )
   const [activeCaseInsertTemplatePane, setActiveCaseInsertTemplatePane] =
     useState<CaseInsertTemplatePaneId>('cover')
+  const [selectedCaseInsertTextTarget, setSelectedCaseInsertTextTarget] =
+    useState<CaseInsertPreviewTextTarget | null>(null)
   const caseInsertTemplateEditor = useCaseInsertTemplateEditor({
     setProjectJewelCase,
     announceStatus,
@@ -261,6 +270,7 @@ function App() {
     discTextStyles,
     metadataBoundDiscTextValues,
     resolvedDiscTextTitle,
+    getCurrentDiscTextContent,
     setDiscTextLayout,
     resetDiscTextState,
     restoreDiscTextState,
@@ -270,6 +280,8 @@ function App() {
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
     handleDiscTextContentChange,
+    handleDiscTextInlineDraftChange,
+    finalizeDiscTextInlineDraft,
     handleUseMetadataDiscTextValue,
     handleDiscTextLayoutChange,
     handleDiscTextAlignmentChange,
@@ -511,6 +523,8 @@ function App() {
     },
     discText: {
       layout: discTextLayout,
+      styles: discTextStyles,
+      getTextContent: getCurrentDiscTextContent,
       setLayout: setDiscTextLayout,
     },
     logoAssets: {
@@ -554,6 +568,22 @@ function App() {
     caseInsert: projectJewelCase,
     setProjectJewelCase,
   })
+
+  function handleCaseInsertPreviewTextValueChange(
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextDraftValue(currentCaseInsert, target, value))
+  }
+
+  function handleCaseInsertPreviewTextEditComplete(
+    target: CaseInsertPreviewTextTarget,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      finalizeCaseInsertPreviewTextDraft(currentCaseInsert, target))
+    setSelectedCaseInsertTextTarget(null)
+  }
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
@@ -1727,6 +1757,7 @@ function App() {
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
+        selectedTextTarget={selectedCaseInsertTextTarget}
         caseInsertPreviewRef={caseInsertPreviewRef}
         pointerHandlers={caseInsertPreviewPointerHandlers}
         editor={caseInsertTemplateEditor}
@@ -1766,6 +1797,9 @@ function App() {
         onExportPng={handleExportPng}
         onExportGuideToggle={handleCaseInsertExportGuideToggle}
         onActiveTemplatePaneChange={setActiveCaseInsertTemplatePane}
+        onSelectedTextTargetChange={setSelectedCaseInsertTextTarget}
+        onTextTargetValueChange={handleCaseInsertPreviewTextValueChange}
+        onTextTargetEditComplete={handleCaseInsertPreviewTextEditComplete}
       />
     )
   }
@@ -2020,6 +2054,8 @@ function App() {
           discNumberArtwork: projectDiscNumberArtwork,
           selectedDiscTemplate,
           getPreviewTransform: getDiscTextPreviewTransform,
+          onTextValueChange: handleDiscTextInlineDraftChange,
+          onTextEditComplete: finalizeDiscTextInlineDraft,
         }}
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}

@@ -9,6 +9,11 @@ import {
   getCaseInsertMarkLayerKind,
 } from '../caseInsert/brandingSlotSources.ts'
 import {
+  finalizeCaseInsertPreviewTextDraft,
+  getCaseInsertPreviewTextEditValue,
+  updateCaseInsertPreviewTextDraftValue,
+} from '../caseInsert/previewTextEditing.ts'
+import {
   addCaseInsertAdditionalLogoSlot,
   getCaseInsertAdditionalLogoSlotsForKey,
 } from '../caseInsert/brandingLogoSlots.ts'
@@ -204,6 +209,184 @@ test('creates blank jewel case saved project data with generic template panes', 
     projectType: 'caseInsert',
     workspace: 'caseInsert',
   })
+})
+
+test('case insert preview text drafts can stay empty until editing completes', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const emptyCoverDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-title-text',
+    },
+    '',
+  )
+  const coverTitle = emptyCoverDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+
+  assert.equal(coverTitle?.value, '')
+  assert.equal(coverTitle?.source, 'manual')
+
+  const finalizedCoverDraft = finalizeCaseInsertPreviewTextDraft(
+    emptyCoverDraft,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-title-text',
+    },
+  )
+  const finalizedCoverTitle =
+    finalizedCoverDraft.templates.cover.textBlocks.find(
+      ({ id }) => id === 'cover-title-text',
+    )
+
+  assert.equal(finalizedCoverTitle?.value, '')
+  assert.equal(finalizedCoverTitle?.source, 'metadata')
+})
+
+test('case insert preview text edit values include metadata defaults', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Portal 2',
+    steamAppId: '620',
+  }
+  const coverTitle = state.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+  const coverAppId = state.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-steam-app-id',
+  )
+
+  assert.equal(
+    coverTitle ? getCaseInsertPreviewTextEditValue(coverTitle, metadata) : '',
+    'Portal 2',
+  )
+  assert.equal(
+    coverAppId ? getCaseInsertPreviewTextEditValue(coverAppId, metadata) : '',
+    'Steam App ID 620',
+  )
+})
+
+test('case insert preview text edit values preserve manual whitespace', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverTitleDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-title-text',
+    },
+    'hello ',
+  )
+  const titleBlock = coverTitleDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+  const coverAppIdDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-steam-app-id',
+    },
+    'Steam App ID 620 ',
+  )
+  const appIdBlock = coverAppIdDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-steam-app-id',
+  )
+
+  assert.equal(
+    titleBlock ? getCaseInsertPreviewTextEditValue(titleBlock) : '',
+    'hello ',
+  )
+  assert.equal(
+    appIdBlock ? getCaseInsertPreviewTextEditValue(appIdBlock) : '',
+    'Steam App ID 620 ',
+  )
+})
+
+test('case insert preview title replacement draft commits unchanged words', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'cover' as const,
+    textBlockId: 'cover-title-text',
+  }
+  const coverTitleDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    coverTitleTarget,
+    'hello hello',
+  )
+  const titleBlock = coverTitleDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+
+  assert.equal(titleBlock?.value, 'hello hello')
+  assert.equal(titleBlock?.source, 'manual')
+  assert.equal(
+    titleBlock ? getCaseInsertPreviewTextEditValue(titleBlock) : '',
+    'hello hello',
+  )
+
+  const finalizedDraft = finalizeCaseInsertPreviewTextDraft(
+    coverTitleDraft,
+    coverTitleTarget,
+  )
+  const finalizedTitleBlock =
+    finalizedDraft.templates.cover.textBlocks.find(
+      ({ id }) => id === 'cover-title-text',
+    )
+
+  assert.equal(finalizedTitleBlock?.value, 'hello hello')
+  assert.equal(finalizedTitleBlock?.source, 'manual')
+})
+
+test('case insert preview text drafts strip rendered prefixes before saving', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const appIdDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-steam-app-id',
+    },
+    'Steam App ID 620',
+  )
+  const coverAppId = appIdDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-steam-app-id',
+  )
+
+  assert.equal(coverAppId?.value, '620')
+  assert.equal(coverAppId?.source, 'manual')
+})
+
+test('case insert preview text draft completion preserves empty custom text', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const emptyCustomDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-custom-note',
+    },
+    '',
+  )
+  const finalizedCustomDraft = finalizeCaseInsertPreviewTextDraft(
+    emptyCustomDraft,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'cover',
+      textBlockId: 'cover-custom-note',
+    },
+  )
+  const customNote = finalizedCustomDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-custom-note',
+  )
+
+  assert.equal(customNote?.value, '')
+  assert.equal(customNote?.source, 'manual')
 })
 
 test('mirrored spine side updates fan out until mirror is disabled', () => {

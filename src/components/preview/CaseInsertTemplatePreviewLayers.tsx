@@ -34,6 +34,9 @@ import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
+  getCaseInsertPreviewTextEditValue,
+} from '../../caseInsert/previewTextEditing'
+import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../../editor/repeatedArtwork'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -57,6 +60,7 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
+  ProjectCaseInsertTextList,
 } from '../../project/projectTypes'
 import {
   createPreviewEditableAttributes,
@@ -66,8 +70,18 @@ import type {
   CaseInsertTemplatePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
 import {
+  caseInsertPreviewTextTargetsMatch,
+  getCaseInsertPreviewTextTargetKey,
+  type CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
+import {
   createRectPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
+import {
+  InlinePreviewTextEditor,
+  INLINE_PREVIEW_TEXT_HOST_CLASS,
+  INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
+} from './InlinePreviewTextEditor'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
@@ -77,6 +91,18 @@ export type CaseInsertTemplateLayerProps = {
   layout: CaseInsertPreviewLayout
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
   brandingSources: CaseInsertBrandingSourceCatalog
+}
+
+type CaseInsertTemplateTextLayerProps = CaseInsertTemplateLayerProps & {
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }
 
 export type CaseInsertTemplateMarkLayerKind =
@@ -156,6 +182,15 @@ function getCaseInsertTextLineStyle(
     whiteSpace: 'pre',
     width: `${line.width / textBounds.width * 100}%`,
   }
+}
+
+function getInlineTextMenuPlacement(
+  textBounds: JewelCasePixelRect,
+  layout: CaseInsertPreviewLayout,
+) {
+  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
+    ? 'above'
+    : 'below'
 }
 
 function getImageStyle(
@@ -308,32 +343,62 @@ function CaseInsertTemplateTextBlock({
   layout,
   brandingSources,
   avoidanceRegions,
+  selectedTextTarget,
   pointerHandlers,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
   layout: CaseInsertPreviewLayout
   brandingSources: CaseInsertBrandingSourceCatalog
   avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }) {
   const renderedTextBlock = getRenderedCaseInsertTextBlock(
     textBlock,
     brandingSources.projectMetadata,
   )
+  const textTarget: CaseInsertPreviewTextTarget = {
+    scope: 'templateTextBlock',
+    paneId,
+    textBlockId: renderedTextBlock.id,
+  }
+  const isSelected = caseInsertPreviewTextTargetsMatch(
+    selectedTextTarget,
+    textTarget,
+  )
+  const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const editValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+  )
+  const layoutTextBlock = isSelected
+    ? { ...renderedTextBlock, value: editValue }
+    : renderedTextBlock
   const textAvoidanceRegions = avoidanceRegions.filter(
     (region) => region.sourceTextBlockId !== renderedTextBlock.id,
   )
   const textLayout = paneId === 'cover'
     ? getJewelCaseFrontTextBlockPreviewLayout(
-        renderedTextBlock,
+        layoutTextBlock,
         layout,
         textAvoidanceRegions,
       )
     : getJewelCaseBackTextBlockPreviewLayout(
-        renderedTextBlock,
+        layoutTextBlock,
         layout,
-        getCaseInsertBackTextBlockRole(renderedTextBlock),
+        getCaseInsertBackTextBlockRole(layoutTextBlock),
         textAvoidanceRegions,
       )
 
@@ -341,21 +406,30 @@ function CaseInsertTemplateTextBlock({
     return null
   }
 
+  const isEmptyText = layoutTextBlock.value.trim().length === 0
   const style = {
     ...getRectStyle(textLayout.bounds, layout),
-    ...getCaseInsertTextCssStyle(renderedTextBlock.style),
+    ...getCaseInsertTextCssStyle(layoutTextBlock.style),
     backgroundColor: 'transparent',
     border: 0,
     display: 'block',
     fontSize: getLayerFontSize(textLayout.fontSizePx, layout),
     lineHeight: getLayerFontSize(textLayout.lineHeightPx, layout),
     padding: 0,
-    textTransform: getTemplateTextTransform(paneId, renderedTextBlock),
+    textTransform: getTemplateTextTransform(paneId, layoutTextBlock),
+  } as CSSProperties
+  const textareaStyle = {
+    textAlign: layoutTextBlock.align,
   } as CSSProperties
 
   return (
     <div
-      className={`case-insert-template-text-block case-insert-template-text-block-${paneId}`}
+      className={[
+        'case-insert-template-text-block',
+        `case-insert-template-text-block-${paneId}`,
+        isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+        isSelected && isEmptyText ? 'is-empty' : '',
+      ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
         id: createPreviewEditableElementId(
           'case',
@@ -366,20 +440,23 @@ function CaseInsertTemplateTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
-      onPointerDown={(event) =>
-        pointerHandlers.handleTemplateTextBlockPointerDown(
-          event,
-          paneId,
-          renderedTextBlock.id,
-        )}
-      onPointerMove={pointerHandlers.handleTemplatePointerMove}
-      onPointerUp={pointerHandlers.handleTemplatePointerUp}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
       style={style}
     >
-      <span style={getCaseInsertTextBackplateCssStyle(renderedTextBlock.style)}>
+      <span style={getCaseInsertTextBackplateCssStyle(layoutTextBlock.style)}>
         {textLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
+            {...{ [INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE]: index }}
             style={getCaseInsertTextLineStyle(
               line,
               textLayout.bounds,
@@ -390,6 +467,169 @@ function CaseInsertTemplateTextBlock({
           </span>
         ))}
       </span>
+      {isSelected ? (
+        <InlinePreviewTextEditor
+          ariaLabel={`Edit ${renderedTextBlock.label}`}
+          caretValue={
+            getTemplateTextTransform(paneId, layoutTextBlock) === 'uppercase'
+              ? editValue.toLocaleUpperCase()
+              : editValue
+          }
+          lines={textLayout.lines}
+          targetKey={targetKey}
+          value={editValue}
+          textareaStyle={textareaStyle}
+          menuPlacement={getInlineTextMenuPlacement(textLayout.bounds, layout)}
+          onValueChange={(value) =>
+            onTextTargetValueChange(textTarget, value)}
+          onMoveHandlePointerDown={(event) =>
+            pointerHandlers.handleTemplateTextBlockPointerDown(
+              event,
+              paneId,
+              renderedTextBlock.id,
+            )}
+          onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
+          onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
+          onDone={() => onTextTargetEditComplete(textTarget)}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function getPreviewTextListValue(textList: ProjectCaseInsertTextList) {
+  return textList.items.map((item) => `• ${item}`).join('\n')
+}
+
+function CaseInsertTemplateTextList({
+  paneId,
+  textList,
+  layout,
+  avoidanceRegions,
+  selectedTextTarget,
+  pointerHandlers,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
+}: {
+  paneId: CaseInsertTemplatePaneId
+  textList: ProjectCaseInsertTextList
+  layout: CaseInsertPreviewLayout
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
+  pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+}) {
+  const textListLayout = getJewelCaseBackTextListPreviewLayout(
+    textList,
+    layout,
+    avoidanceRegions,
+  )
+
+  if (!textListLayout) {
+    return null
+  }
+
+  const textTarget: CaseInsertPreviewTextTarget = {
+    scope: 'templateTextList',
+    paneId,
+    textListId: textList.id,
+  }
+  const isSelected = caseInsertPreviewTextTargetsMatch(
+    selectedTextTarget,
+    textTarget,
+  )
+  const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const textListStyle = {
+    ...getRectStyle(textListLayout.bounds, layout),
+    ...getCaseInsertTextCssStyle(textList.style),
+    backgroundColor: 'transparent',
+    border: 0,
+    display: 'block',
+    fontSize: getLayerFontSize(textListLayout.fontSizePx, layout),
+    lineHeight: getLayerFontSize(
+      textListLayout.lineHeightPx,
+      layout,
+    ),
+    padding: 0,
+    textTransform:
+      getCaseInsertTextListStyleRole(textList) === 'features'
+        ? 'none'
+        : undefined,
+  } as CSSProperties
+
+  return (
+    <div
+      className={[
+        'case-insert-template-feature-list',
+        isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+      ].filter(Boolean).join(' ')}
+      {...createPreviewEditableAttributes({
+        id: createPreviewEditableElementId(
+          'case',
+          paneId,
+          'text-list',
+          textList.id,
+        ),
+        label: textList.label,
+        kind: 'text',
+      })}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
+      style={textListStyle}
+    >
+      <span style={getCaseInsertTextBackplateCssStyle(textList.style)}>
+        {textListLayout.lines.map((line, index) => (
+          <span
+            key={`${index}-${line.text}`}
+            {...{ [INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE]: index }}
+            style={getCaseInsertTextLineStyle(
+              line,
+              textListLayout.bounds,
+              textListLayout.lineHeightPx,
+            )}
+          >
+            {line.text}
+          </span>
+        ))}
+      </span>
+      {isSelected ? (
+        <InlinePreviewTextEditor
+          ariaLabel={`Edit ${textList.label}`}
+          caretValue={getPreviewTextListValue(textList)}
+          lines={textListLayout.lines}
+          targetKey={targetKey}
+          value={getPreviewTextListValue(textList)}
+          textareaStyle={{ textAlign: 'left' }}
+          menuPlacement={getInlineTextMenuPlacement(textListLayout.bounds, layout)}
+          onValueChange={(value) =>
+            onTextTargetValueChange(textTarget, value)}
+          onMoveHandlePointerDown={(event) =>
+            pointerHandlers.handleTemplateTextListPointerDown(
+              event,
+              paneId,
+              textList.id,
+            )}
+          onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
+          onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
+          onDone={() => onTextTargetEditComplete(textTarget)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -545,16 +785,19 @@ export function CaseInsertTemplateTextLayer({
   layout,
   pointerHandlers,
   brandingSources,
-}: CaseInsertTemplateLayerProps) {
+  selectedTextTarget,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
+}: CaseInsertTemplateTextLayerProps) {
   const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
     paneId,
     templateState,
     layout,
     brandingSources,
   })
-
   return (
-    <div className="case-insert-content-layer" aria-hidden="true">
+    <div className="case-insert-content-layer">
       {templateState.textBlocks.map((textBlock) => (
         <CaseInsertTemplateTextBlock
           key={textBlock.id}
@@ -563,78 +806,32 @@ export function CaseInsertTemplateTextLayer({
           layout={layout}
           brandingSources={brandingSources}
           avoidanceRegions={avoidanceRegions}
+          selectedTextTarget={selectedTextTarget}
           pointerHandlers={pointerHandlers}
+          onSelectedTextTargetChange={onSelectedTextTargetChange}
+          onTextTargetValueChange={onTextTargetValueChange}
+          onTextTargetEditComplete={onTextTargetEditComplete}
         />
       ))}
       {templateState.textLists.map((textList) => {
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceTextListId !== textList.id,
         )
-        const textListLayout = getJewelCaseBackTextListPreviewLayout(
-          textList,
-          layout,
-          textAvoidanceRegions,
-        )
-        const textListStyle = textListLayout
-          ? {
-              ...getRectStyle(textListLayout.bounds, layout),
-              ...getCaseInsertTextCssStyle(textList.style),
-              backgroundColor: 'transparent',
-              border: 0,
-              display: 'block',
-              fontSize: getLayerFontSize(textListLayout.fontSizePx, layout),
-              lineHeight: getLayerFontSize(
-                textListLayout.lineHeightPx,
-                layout,
-              ),
-              padding: 0,
-              textTransform:
-                getCaseInsertTextListStyleRole(textList) === 'features'
-                  ? 'none'
-                  : undefined,
-            } as CSSProperties
-          : null
 
-        return textListLayout && textListStyle ? (
-          <div
-            className="case-insert-template-feature-list"
+        return (
+          <CaseInsertTemplateTextList
             key={textList.id}
-            {...createPreviewEditableAttributes({
-              id: createPreviewEditableElementId(
-                'case',
-                paneId,
-                'text-list',
-                textList.id,
-              ),
-              label: textList.label,
-              kind: 'text',
-            })}
-            onPointerDown={(event) =>
-              pointerHandlers.handleTemplateTextListPointerDown(
-                event,
-                paneId,
-                textList.id,
-              )}
-            onPointerMove={pointerHandlers.handleTemplatePointerMove}
-            onPointerUp={pointerHandlers.handleTemplatePointerUp}
-            style={textListStyle}
-          >
-            <span style={getCaseInsertTextBackplateCssStyle(textList.style)}>
-              {textListLayout.lines.map((line, index) => (
-                <span
-                  key={`${index}-${line.text}`}
-                  style={getCaseInsertTextLineStyle(
-                    line,
-                    textListLayout.bounds,
-                    textListLayout.lineHeightPx,
-                  )}
-                >
-                  {line.text}
-                </span>
-              ))}
-            </span>
-          </div>
-        ) : null
+            paneId={paneId}
+            textList={textList}
+            layout={layout}
+            avoidanceRegions={textAvoidanceRegions}
+            selectedTextTarget={selectedTextTarget}
+            pointerHandlers={pointerHandlers}
+            onSelectedTextTargetChange={onSelectedTextTargetChange}
+            onTextTargetValueChange={onTextTargetValueChange}
+            onTextTargetEditComplete={onTextTargetEditComplete}
+          />
+        )
       })}
     </div>
   )

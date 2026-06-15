@@ -18,6 +18,8 @@ import {
 export const CASE_INSERT_TEXT_WIDTH_MIN = 20
 export const CASE_INSERT_TEXT_WIDTH_MAX = 100
 export const DEFAULT_CASE_INSERT_TEXT_WIDTH = 80
+export const CASE_INSERT_TEXT_BLOCK_MAX_LINES = 12
+export const CASE_INSERT_TEXT_LIST_MAX_LINES = 14
 
 export type CaseInsertTextLayoutPreset = {
   id: string

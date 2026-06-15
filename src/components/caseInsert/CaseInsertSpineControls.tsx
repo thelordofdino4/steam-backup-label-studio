@@ -73,7 +73,6 @@ import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
   getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
-  getNextCaseInsertTextSource,
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
@@ -124,6 +123,9 @@ import { EditorFeaturePanel } from '../editor/EditorPanel'
 import { EditorRangeField } from '../editor/EditorRangeField'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
+import type {
+  CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
 
 export type CaseInsertSpineControlsProps = {
   spine: ProjectJewelCaseSpineState
@@ -136,6 +138,9 @@ export type CaseInsertSpineControlsProps = {
   ) => CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }
 
 const SPINE_SIDES: Array<{
@@ -287,12 +292,16 @@ function SpineTitleControls({
   title,
   projectMetadata,
   actions,
+  onSelectedTextTargetChange,
 }: {
   layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   title: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
   actions: JewelCaseSpineEditorActions
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }) {
   const onLayoutChange = (
     field: keyof ProjectCaseInsertLayout,
@@ -362,25 +371,17 @@ function SpineTitleControls({
             className="editor-control-group"
             aria-label={`${title.label} text controls`}
           >
-            <label className="field-label" htmlFor={`${side}-spine-title`}>
-              Text value
-            </label>
-            <input
-              id={`${side}-spine-title`}
-              className="editor-text-input"
-              type="text"
-              value={inputState.value}
-              placeholder={inputState.placeholder}
-              onChange={(event) => {
-                const value = event.target.value
-
-                actions.handleSpineTitleValueChange(
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() =>
+                onSelectedTextTargetChange({
+                  scope: 'spineTitle',
                   side,
-                  value,
-                  getNextCaseInsertTextSource(title, value),
-                )
-              }}
-            />
+                })}
+            >
+              Edit in preview
+            </button>
           </div>
 
           <div
@@ -511,12 +512,16 @@ function SpineTextBlockControls({
   textBlock,
   projectMetadata,
   actions,
+  onSelectedTextTargetChange,
 }: {
   layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   textBlock: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
   actions: JewelCaseSpineEditorActions
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }) {
   const onLayoutChange = (
     field: keyof ProjectCaseInsertLayout,
@@ -618,24 +623,18 @@ function SpineTextBlockControls({
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
-            <label className="field-label" htmlFor={`${textBlock.id}-value`}>
-              Text value
-            </label>
-            <input
-              id={`${textBlock.id}-value`}
-              className="editor-text-input"
-              type="text"
-              value={inputState.value}
-              placeholder={inputState.placeholder}
-              onChange={(event) => {
-                const value = event.target.value
-
-                onValueChange(
-                  value,
-                  getNextCaseInsertTextSource(textBlock, value),
-                )
-              }}
-            />
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() =>
+                onSelectedTextTargetChange({
+                  scope: 'spineTextBlock',
+                  side,
+                  textBlockId: textBlock.id,
+                })}
+            >
+              Edit in preview
+            </button>
           </div>
 
           <div
@@ -1734,6 +1733,7 @@ export function CaseInsertSpineTextControls({
   spine,
   projectMetadata,
   actions,
+  onSelectedTextTargetChange,
 }: CaseInsertSpineControlsProps) {
   const layout = getSpinePreviewLayout(spine)
 
@@ -1750,6 +1750,7 @@ export function CaseInsertSpineTextControls({
             title={state.title}
             projectMetadata={projectMetadata}
             actions={actions}
+            onSelectedTextTargetChange={onSelectedTextTargetChange}
           />
           {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
             <SpineTextBlockControls
@@ -1759,6 +1760,7 @@ export function CaseInsertSpineTextControls({
               textBlock={textBlock}
               projectMetadata={projectMetadata}
               actions={actions}
+              onSelectedTextTargetChange={onSelectedTextTargetChange}
             />
           ))}
         </>
