@@ -1,6 +1,6 @@
 # Manual Smoke Checklists
 
-Last refreshed: 2026-06-08.
+Last refreshed: 2026-06-15.
 
 These checklists are for human verification after visual/editor changes. They
 do not replace `npm run check:cycles`, lint, tests, or build, and agents should
@@ -92,6 +92,49 @@ npm run tauri dev
   legal text preview/export behavior still match.
 - No text, button label, or panel content overlaps incoherently at normal
   desktop and narrow widths.
+
+## Text Editor Stabilization
+
+Use this section after preview-mounted text editor changes. Record which surface
+was checked: cover sheet, tray card, left spine, right spine, straight disc
+text, and curved disc text.
+
+- Selecting visible text opens the compact contextual editor near that text.
+- Selected text is the positioning anchor for the tabs, editable text, move
+  handle, and context menu.
+- Tabs appear directly above the selected text.
+- Editable text remains on the canvas and is typed into directly from the
+  preview.
+- The context menu appears below the selected text by default.
+- The context menu repositions upward before hitting the bottom of the active
+  preview window.
+- The context menu clamps inside the active preview window horizontally and
+  vertically.
+- Contextual editor positioning is relative to the preview window, not the
+  page, sidebar, or document body.
+- The editor reads as a compact contextual toolbar, not a relocated sidebar
+  panel.
+- Right spine menu clipping is a known runtime failure to verify before
+  claiming the positioning contract is satisfied.
+- The dotted editor boundary hugs the visible text bounds, not the full
+  safe-zone or reserved layout width.
+- Empty selected text still shows a small visible dotted box.
+- Typing `hello hello` shows both words while editing and after clicking Done.
+- Long text grows horizontally until the safe-zone boundary, then wraps.
+- Multiline text grows vertically after line 2 and beyond.
+- Space, multiple spaces, leading spaces, trailing spaces, and pasted multiline
+  text remain visible while editing and after Done.
+- The blue caret blinks at the actual insertion point and does not follow a
+  hidden or duplicate text surface.
+- Selecting text reflects the currently visible preview text.
+- The move handle is separate from text selection and uses grab/grabbing cursor
+  behavior.
+- Default metadata text can be deleted while editing and does not repopulate
+  until the user blurs/exits while it is still empty.
+- Straight disc text shows all words and preserves spaces.
+- Curved disc text stays SVG/textPath based and is not edited through a visible
+  rectangular textarea.
+- Cover, tray, and spine feature panels remain bundled and recognizable.
 
 ## Save Load Export
 

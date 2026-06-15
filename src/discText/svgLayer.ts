@@ -40,6 +40,7 @@ export type DiscTextSvgLayerParams = {
   width: number | string
   height: number | string
   idPrefix?: string
+  hiddenTextKeys?: readonly DiscTextKey[]
 }
 
 type ResolvedDiscTextRenderStyle = ReturnType<typeof getResolvedDiscTextRenderStyle>
@@ -48,6 +49,8 @@ const DISC_TEXT_STROKE_COLOR = 'rgba(0, 0, 0, 0.58)'
 const DISC_TEXT_STRAIGHT_STROKE_WIDTH = 0.28
 const DISC_TEXT_CURVED_STROKE_WIDTH = 0.28
 const DISC_TEXT_BOX_BORDER_WIDTH = 0.18
+const DISC_TEXT_CURVED_PATH_MIN_PAINT_PADDING = 1.2
+const DISC_TEXT_CURVED_PATH_PAINT_PADDING_FACTOR = 2.2
 
 let discTextMeasureContext: CanvasRenderingContext2D | null = null
 
@@ -95,6 +98,41 @@ function getCurvedLineWidth(
   return measuredWidth + Math.max(0, characterCount - 1) * letterSpacing
 }
 
+function getCurvedTextPathPaintPadding(fontSize: number, letterSpacing: number) {
+  return Math.max(
+    DISC_TEXT_CURVED_PATH_MIN_PAINT_PADDING,
+    fontSize * DISC_TEXT_CURVED_PATH_PAINT_PADDING_FACTOR,
+    Math.max(0, letterSpacing) * 6,
+  )
+}
+
+function getCurvedTextUsableArcLength(
+  maxArcLength: number,
+  fontSize: number,
+  letterSpacing: number,
+) {
+  return Math.max(
+    1,
+    maxArcLength - getCurvedTextPathPaintPadding(fontSize, letterSpacing),
+  )
+}
+
+function getCurvedLinePathWidth(
+  line: string,
+  font: string,
+  fontSize: number,
+  letterSpacing: number,
+  measureText: TextMeasureFunction,
+) {
+  return getCurvedLineWidth(
+    line,
+    font,
+    fontSize,
+    letterSpacing,
+    measureText,
+  ) + getCurvedTextPathPaintPadding(fontSize, letterSpacing)
+}
+
 function splitLongTokenForCurvedText(
   token: string,
   maxArcLength: number,
@@ -135,13 +173,18 @@ function wrapCurvedTextByMeasuredArcLength(
   const tokens = text.split(/\s+/).filter(Boolean)
   const lines: string[] = []
   let currentLine = ''
+  const maxTextLength = getCurvedTextUsableArcLength(
+    maxArcLength,
+    fontSize,
+    letterSpacing,
+  )
 
   for (const token of tokens) {
     const tokenParts =
-      getCurvedLineWidth(token, font, fontSize, letterSpacing, measureText) > maxArcLength
+      getCurvedLineWidth(token, font, fontSize, letterSpacing, measureText) > maxTextLength
         ? splitLongTokenForCurvedText(
             token,
-            maxArcLength,
+            maxTextLength,
             font,
             fontSize,
             letterSpacing,
@@ -152,7 +195,7 @@ function wrapCurvedTextByMeasuredArcLength(
     for (const part of tokenParts) {
       const testLine = currentLine ? `${currentLine} ${part}` : part
       if (
-        getCurvedLineWidth(testLine, font, fontSize, letterSpacing, measureText) <= maxArcLength ||
+        getCurvedLineWidth(testLine, font, fontSize, letterSpacing, measureText) <= maxTextLength ||
         !currentLine
       ) {
         currentLine = testLine
@@ -226,7 +269,13 @@ function wrapCurvedTextBlock(
     align: 'center',
     lines: lines.map((line, index) => ({
       text: line,
-      measuredWidth: getCurvedLineWidth(line, font, fontSize, letterSpacing, measureText),
+      measuredWidth: getCurvedLinePathWidth(
+        line,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      ),
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
@@ -350,7 +399,7 @@ function buildCurvedCopyrightMarkup(
     blockWindowDegrees,
     lines: lines.map((line, index) => ({
       text: line,
-      measuredWidth: getCurvedLineWidth(
+      measuredWidth: getCurvedLinePathWidth(
         line,
         font,
         fontSize,
@@ -391,6 +440,7 @@ function buildCurvedCopyrightMarkup(
         class="disc-text-render-text"
         dominant-baseline="middle"
         data-disc-text-key="${key}"
+        xml:space="preserve"
         style="${style}"
       >
         <textPath href="#${pathId}" xlink:href="#${pathId}" startOffset="${textPathAnchor.startOffset}" text-anchor="${textPathAnchor.textAnchor}">${escapeSvgText(lineLayout.text)}</textPath>
@@ -409,6 +459,7 @@ function buildStraightTextMarkup(
   shadowFilterId: string,
   styles?: DiscTextStyleInput,
   avoidanceRegions?: DiscTextAvoidanceRegion[],
+  hideText = false,
 ) {
   const textAvoidanceRegions = avoidanceRegions?.filter(
     (region) => region.sourceDiscTextKey !== key,
@@ -430,12 +481,13 @@ function buildStraightTextMarkup(
   )
   const boxMarkup = buildStraightTextBoxMarkup(key, straightTextLayout, measureText)
 
-  const textMarkup = straightTextLayout.lines.map((line) => `
+  const textMarkup = hideText ? '' : straightTextLayout.lines.map((line) => `
     <text
       class="disc-text-render-text"
       dominant-baseline="middle"
       data-disc-text-key="${key}"
       text-anchor="${straightTextLayout.textAnchor}"
+      xml:space="preserve"
       x="${line.x}"
       y="${line.y}"
       style="${textStyle}"
@@ -495,14 +547,16 @@ export function buildDiscTextSvgLayer({
   width,
   height,
   idPrefix = 'disc-text-layer',
+  hiddenTextKeys = [],
 }: DiscTextSvgLayerParams) {
   const shadowFilterId = `${idPrefix}-shadow`
+  const hiddenTextKeySet = new Set(hiddenTextKeys)
   const pathDefs: string[] = []
   const textElements = DISC_TEXT_KEYS.map((key) => {
     if (!settings[key]) return ''
 
-    const text = getDiscTextContent(key, values, title).trim()
-    if (!text) return ''
+    const text = getDiscTextContent(key, values, title)
+    if (!text.trim()) return ''
 
     const layout = layoutSettings[key]
 
@@ -530,6 +584,7 @@ export function buildDiscTextSvgLayer({
       shadowFilterId,
       styles,
       avoidanceRegions,
+      hiddenTextKeySet.has(key),
     )
   }).join('')
 

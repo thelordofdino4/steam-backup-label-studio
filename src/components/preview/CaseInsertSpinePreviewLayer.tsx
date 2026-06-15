@@ -39,6 +39,11 @@ import type {
 import type {
   CaseInsertSpinePreviewPointerHandlers,
 } from '../../interaction/useCaseInsertPreviewPointerDrag'
+import {
+  caseInsertPreviewTextTargetsMatch,
+  getCaseInsertPreviewTextTargetKey,
+  type CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
 import type {
   CaseInsertBrandingSourceCatalog,
   CaseInsertMarkLayerKind,
@@ -56,6 +61,14 @@ import {
 import {
   createBoxPositionedImageRenderArtifact,
 } from '../../render/imageRenderArtifact'
+import {
+  getCaseInsertPreviewTextEditValue,
+} from '../../caseInsert/previewTextEditing'
+import {
+  InlinePreviewTextEditor,
+  INLINE_PREVIEW_TEXT_HOST_CLASS,
+  INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
+} from './InlinePreviewTextEditor'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 import { ContentBoundedImage } from './ContentBoundedImage'
@@ -64,7 +77,16 @@ export type CaseInsertSpinePreviewLayerProps = {
   spine: ProjectJewelCaseSpineState
   layout: CaseInsertPreviewLayout
   brandingSources: CaseInsertBrandingSourceCatalog
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }
 
 function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout) {
@@ -162,6 +184,15 @@ function getTransformedBoxStyle(
   }
 }
 
+function getInlineTextMenuPlacement(
+  textBounds: JewelCasePixelRect,
+  layout: CaseInsertPreviewLayout,
+) {
+  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
+    ? 'above'
+    : 'below'
+}
+
 function CaseInsertSpineBackground({
   side,
   slot,
@@ -223,7 +254,11 @@ function CaseInsertSpineTextBlock({
   brandingSources,
   avoidanceRegions,
   dragKind,
+  selectedTextTarget,
   pointerHandlers,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: {
   side: 'left' | 'right'
   textBlock: ProjectCaseInsertTextBlock
@@ -233,15 +268,43 @@ function CaseInsertSpineTextBlock({
   dragKind:
     | { kind: 'title' }
     | { kind: 'textBlock'; textBlockId: string }
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }) {
   const renderedTextBlock = getRenderedCaseInsertTextBlock(
     textBlock,
     brandingSources.projectMetadata,
   )
+  const textTarget: CaseInsertPreviewTextTarget = dragKind.kind === 'title'
+    ? { scope: 'spineTitle', side }
+    : {
+        scope: 'spineTextBlock',
+        side,
+        textBlockId: dragKind.textBlockId,
+      }
+  const isSelected = caseInsertPreviewTextTargetsMatch(
+    selectedTextTarget,
+    textTarget,
+  )
+  const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const editValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+  )
+  const layoutTextBlock = isSelected
+    ? { ...renderedTextBlock, value: editValue }
+    : renderedTextBlock
   const titleLayout = getJewelCaseSpineTitlePreviewLayout(
     side,
-    renderedTextBlock,
+    layoutTextBlock,
     layout,
     avoidanceRegions,
   )
@@ -250,25 +313,30 @@ function CaseInsertSpineTextBlock({
     return null
   }
 
+  const isEmptyText = layoutTextBlock.value.trim().length === 0
   const style = {
     ...getTransformedBoxStyle(titleLayout, layout),
-    ...getSpineTitleTextStyle(renderedTextBlock.style),
+    ...getSpineTitleTextStyle(layoutTextBlock.style),
     backgroundColor: 'transparent',
     border: 0,
     display: 'block',
     fontSize: getLayerFontSize(titleLayout.fontSizePx, layout),
     lineHeight: getLayerFontSize(titleLayout.lineHeightPx, layout),
     padding: 0,
-    pointerEvents: 'none',
+    pointerEvents: 'auto',
     textTransform: dragKind.kind === 'title' ? 'uppercase' : 'none',
     userSelect: 'none',
   } as CSSProperties
 
   return (
     <div
-      className={dragKind.kind === 'title'
-        ? 'case-insert-spine-title'
-        : 'case-insert-spine-text-block'}
+      className={[
+        dragKind.kind === 'title'
+          ? 'case-insert-spine-title'
+          : 'case-insert-spine-text-block',
+        isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+        isSelected && isEmptyText ? 'is-empty' : '',
+      ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
         id: dragKind.kind === 'title'
           ? createPreviewEditableElementId('case', 'spine', side, 'title')
@@ -282,22 +350,23 @@ function CaseInsertSpineTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
-      onPointerDown={(event) =>
-        dragKind.kind === 'title'
-          ? pointerHandlers.handleSpineTitlePointerDown(event, side)
-          : pointerHandlers.handleSpineTextBlockPointerDown(
-              event,
-              side,
-              dragKind.textBlockId,
-            )}
-      onPointerMove={pointerHandlers.handleSpinePointerMove}
-      onPointerUp={pointerHandlers.handleSpinePointerUp}
+      onPointerDown={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        onSelectedTextTargetChange(textTarget)
+      }}
       style={style}
     >
-      <span style={getSpineTextBackplateStyle(renderedTextBlock.style)}>
+      <span style={getSpineTextBackplateStyle(layoutTextBlock.style)}>
         {titleLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
+            {...{ [INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE]: index }}
             style={getSpineTextLineStyle(
               line,
               titleLayout.textBounds,
@@ -308,6 +377,37 @@ function CaseInsertSpineTextBlock({
           </span>
         ))}
       </span>
+      {isSelected ? (
+        <InlinePreviewTextEditor
+          ariaLabel={`Edit ${renderedTextBlock.label}`}
+          caretValue={
+            dragKind.kind === 'title'
+              ? editValue.toLocaleUpperCase()
+              : editValue
+          }
+          lines={titleLayout.lines}
+          targetKey={targetKey}
+          value={editValue}
+          textareaStyle={{ textAlign: layoutTextBlock.align }}
+          menuPlacement={getInlineTextMenuPlacement(
+            titleLayout.boundingRect,
+            layout,
+          )}
+          onValueChange={(value) =>
+            onTextTargetValueChange(textTarget, value)}
+          onMoveHandlePointerDown={(event) =>
+            dragKind.kind === 'title'
+              ? pointerHandlers.handleSpineTitlePointerDown(event, side)
+              : pointerHandlers.handleSpineTextBlockPointerDown(
+                  event,
+                  side,
+                  dragKind.textBlockId,
+                )}
+          onMoveHandlePointerMove={pointerHandlers.handleSpinePointerMove}
+          onMoveHandlePointerUp={pointerHandlers.handleSpinePointerUp}
+          onDone={() => onTextTargetEditComplete(textTarget)}
+        />
+      ) : null}
     </div>
   )
 }
@@ -427,13 +527,26 @@ function CaseInsertSpineSidePreview({
   state,
   layout,
   brandingSources,
+  selectedTextTarget,
   pointerHandlers,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: {
   side: 'left' | 'right'
   state: ProjectJewelCaseSpineSideState
   layout: CaseInsertPreviewLayout
   brandingSources: CaseInsertBrandingSourceCatalog
+  selectedTextTarget: CaseInsertPreviewTextTarget | null
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
+  onTextTargetValueChange: (
+    target: CaseInsertPreviewTextTarget,
+    value: string,
+  ) => void
+  onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
 }) {
   const artworkSlots = state.additionalArtworkEnabled
     ? state.artworkSlots
@@ -489,7 +602,11 @@ function CaseInsertSpineSidePreview({
         brandingSources={brandingSources}
         avoidanceRegions={avoidanceRegions}
         dragKind={{ kind: 'title' }}
+        selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
       {state.textBlocks.map((textBlock) => (
         <CaseInsertSpineTextBlock
@@ -500,7 +617,11 @@ function CaseInsertSpineSidePreview({
           brandingSources={brandingSources}
           avoidanceRegions={avoidanceRegions}
           dragKind={{ kind: 'textBlock', textBlockId: textBlock.id }}
+          selectedTextTarget={selectedTextTarget}
           pointerHandlers={pointerHandlers}
+          onSelectedTextTargetChange={onSelectedTextTargetChange}
+          onTextTargetValueChange={onTextTargetValueChange}
+          onTextTargetEditComplete={onTextTargetEditComplete}
         />
       ))}
       {state.logoSlots.map((slot) => (
@@ -539,27 +660,39 @@ export function CaseInsertSpinePreviewLayer({
   spine,
   layout,
   brandingSources,
+  selectedTextTarget,
   pointerHandlers,
+  onSelectedTextTargetChange,
+  onTextTargetValueChange,
+  onTextTargetEditComplete,
 }: CaseInsertSpinePreviewLayerProps) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
     return null
   }
 
   return (
-    <div className="case-insert-content-layer" aria-hidden="true">
+    <div className="case-insert-content-layer">
       <CaseInsertSpineSidePreview
         side="left"
         state={spine.left}
         layout={layout}
         brandingSources={brandingSources}
+        selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
       <CaseInsertSpineSidePreview
         side="right"
         state={spine.right}
         layout={layout}
         brandingSources={brandingSources}
+        selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers}
+        onSelectedTextTargetChange={onSelectedTextTargetChange}
+        onTextTargetValueChange={onTextTargetValueChange}
+        onTextTargetEditComplete={onTextTargetEditComplete}
       />
     </div>
   )

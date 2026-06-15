@@ -30,10 +30,10 @@ export function TextPanel(props: TextPanelProps) {
   return (
     <EditorPanel title="Text">
         <p className="hint">
-          Enable text elements, type manual overrides, and adjust their preset position and scale.
+          Enable disc text elements and adjust their style, position, and scale.
         </p>
         <p className="hint">
-          Metadata-backed text shows the Game metadata/default as input hint text until edited here. Clearing the override returns to the Game metadata/default value.
+          Straight text is edited on the preview. Curved copyright text remains SVG/textPath based and uses its sidebar value field until curved inline editing is added.
         </p>
 
         <div className="editor-text-control-list">

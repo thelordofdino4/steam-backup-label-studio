@@ -36,26 +36,27 @@
 .case-insert-template-screenshot-clip,
 .case-insert-template-overlay-image,
 .case-insert-template-framed-artwork,
-.case-insert-template-text-block,
-.case-insert-template-feature-list,
 .case-insert-spine-background-clip,
-.case-insert-spine-title,
-.case-insert-spine-text-block,
 .case-insert-spine-overlay-box {
   pointer-events: auto;
   cursor: grab;
   touch-action: none;
 }
 
+.case-insert-template-text-block,
+.case-insert-template-feature-list,
+.case-insert-spine-title,
+.case-insert-spine-text-block {
+  pointer-events: auto;
+  cursor: text;
+  touch-action: auto;
+}
+
 .case-insert-template-background-clip:active,
 .case-insert-template-screenshot-clip:active,
 .case-insert-template-overlay-image:active,
 .case-insert-template-framed-artwork:active,
-.case-insert-template-text-block:active,
-.case-insert-template-feature-list:active,
 .case-insert-spine-background-clip:active,
-.case-insert-spine-title:active,
-.case-insert-spine-text-block:active,
 .case-insert-spine-overlay-box:active {
   cursor: grabbing;
 }

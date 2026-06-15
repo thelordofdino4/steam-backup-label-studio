@@ -70,6 +70,8 @@ export type DiscPreviewProps = {
     discNumberArtwork: ProjectDiscNumberArtwork
     selectedDiscTemplate: DiscTemplate
     getPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
+    onTextValueChange: (key: DiscTextKey, value: string) => void
+    onTextEditComplete: (key: DiscTextKey) => void
   }
   pointerHandlers: {
     background: {
@@ -160,6 +162,8 @@ export function DiscPreview({
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
+  const [selectedDiscTextKey, setSelectedDiscTextKey] =
+    useState<DiscTextKey | null>(null)
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
       closedButtonCount: 2,
@@ -348,6 +352,10 @@ export function DiscPreview({
         selectedDiscTemplate={discText.selectedDiscTemplate}
         avoidanceRegions={discTextOccupiedRegions}
         getDiscTextPreviewTransform={discText.getPreviewTransform}
+        selectedDiscTextKey={selectedDiscTextKey}
+        onSelectedDiscTextKeyChange={setSelectedDiscTextKey}
+        onDiscTextValueChange={discText.onTextValueChange}
+        onDiscTextEditComplete={discText.onTextEditComplete}
         {...pointerHandlers.discText}
       />
     ),

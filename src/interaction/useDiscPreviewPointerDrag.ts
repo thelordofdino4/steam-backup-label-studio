@@ -72,12 +72,18 @@ import type {
   ProjectTitleArtwork,
   TechnicalMarkValue,
 } from '../project/projectTypes'
+import type { DiscTextStyleSettings } from '../discText/styles'
 import type { DiscTemplate } from '../types/template'
 import {
   usePercentPointerDrag,
   usePixelPointerDrag,
 } from './usePointerDragAdapters'
 import { clampBackgroundOffsetToImageBounds } from '../image/backgroundImage'
+
+const TEXT_DRAG_ACTIVATION_OPTIONS = {
+  activationDelayMs: 320,
+  movementTolerancePx: 6,
+}
 
 type TextDragState = {
   key: DiscTextKey
@@ -128,6 +134,8 @@ type UseDiscPreviewPointerDragOptions = {
   }
   discText: {
     layout: DiscTextLayoutSettings
+    styles: DiscTextStyleSettings
+    getTextContent: (key: DiscTextKey) => string
     setLayout: Dispatch<SetStateAction<DiscTextLayoutSettings>>
   }
   logoAssets: StateBinding<ProjectLogoAssets>
@@ -207,6 +215,9 @@ export function useDiscPreviewPointerDrag({
                 dragState.key,
                 nextTextLayout,
                 selectedDiscTemplate,
+                discText.getTextContent(dragState.key),
+                undefined,
+                discText.styles,
               ),
         }
       })
@@ -415,6 +426,7 @@ export function useDiscPreviewPointerDrag({
           discText.layout[key].y,
           { key },
         ),
+        TEXT_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [discText.layout, discTextPointerDrag],

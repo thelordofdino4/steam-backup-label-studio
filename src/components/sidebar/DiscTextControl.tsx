@@ -76,6 +76,7 @@ export function DiscTextControl({
   const isTextEnabled = discTextSettings[key]
   const isCopyright = key === 'copyright'
   const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
+  const shouldShowSidebarTextValue = isCurvedCopyright
   const presets = getDiscTextLayoutPresetsForKey(key)
   const inputState = getDiscTextInputState(
     key,
@@ -95,6 +96,8 @@ export function DiscTextControl({
     renderedText,
     layout,
     selectedDiscTemplate,
+    undefined,
+    discTextStyles,
   )
   const controlLabel = getDiscTextLabel(key)
 
@@ -358,22 +361,27 @@ export function DiscTextControl({
             </div>
           </div>
 
-          <div
-            className="editor-control-group"
-            aria-label={`${controlLabel} text controls`}
-          >
-            <label className="field-label" htmlFor={`disc-text-value-${key}`}>
-              Text value
-            </label>
-            <input
-              id={`disc-text-value-${key}`}
-              className="editor-text-input"
-              type="text"
-              value={inputState.value}
-              placeholder={inputState.placeholder}
-              onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
-            />
-          </div>
+          {shouldShowSidebarTextValue ? (
+            <div
+              className="editor-control-group"
+              aria-label={`${controlLabel} curved text controls`}
+            >
+              <label className="field-label" htmlFor={`disc-text-value-${key}`}>
+                Curved text value
+              </label>
+              <input
+                id={`disc-text-value-${key}`}
+                className="editor-text-input"
+                type="text"
+                value={inputState.value}
+                placeholder={inputState.placeholder}
+                onChange={(event) => handleDiscTextContentChange(key, event.target.value)}
+              />
+              <p className="hint">
+                Curved-text exception: this remains SVG/textPath based and uses this value field until curved inline editing is added.
+              </p>
+            </div>
+          ) : null}
 
           <div
             className="editor-control-group"

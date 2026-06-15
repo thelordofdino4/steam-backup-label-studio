@@ -8,14 +8,13 @@ import {
   CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
 } from '../caseInsert/defaultImportLayouts.ts'
 import {
-  getCaseInsertTextBlockStyleRole,
   getCaseInsertTextFontFamilyCanvas,
-  getCaseInsertTextStyleRoleMaxLines,
 } from '../caseInsert/textStyles.ts'
 import {
   getCaseInsertTextLayoutPaddingRatio,
 } from '../caseInsert/textRenderStyles.ts'
 import {
+  CASE_INSERT_TEXT_BLOCK_MAX_LINES,
   getCaseInsertTextLayoutWidth,
 } from '../caseInsert/textLayout.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
@@ -461,9 +460,7 @@ function getSpineTextLocalVisualLayout({
       fontSizePx,
       fontWeight: isTitleText ? 800 : 600,
       lineHeightPx: fontSizePx * 1.1,
-      maxLines: getCaseInsertTextStyleRoleMaxLines(
-        getCaseInsertTextBlockStyleRole(title),
-      ),
+      maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),
       text: title.value,
       uppercase: isTitleText,
@@ -548,7 +545,7 @@ function getSpineTextLayoutRequest(
 ) {
   const safeBounds = getSpineSafeBounds(side, layout)
 
-  if (!safeBounds || !title.enabled || !title.value.trim()) {
+  if (!safeBounds || !title.enabled) {
     return null
   }
 

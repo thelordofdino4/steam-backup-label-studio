@@ -21,6 +21,7 @@ import { discTemplates } from '../templates/discTemplates.ts'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
   buildCustomDiscTemplate,
+  doesRectFitSafeAnnulus,
   doesShapeFitSafeAnnulus,
   getImageContentShapeFootprintPercent,
   getInnerNoPrintRadiusPercent,
@@ -241,6 +242,44 @@ test('straight text safe-zone clamp matches the computed slider edge', () => {
   )
 
   assertApproximatelyEqual(clamped.x, ranges.x.max)
+})
+
+test('straight text safe-zone clamp uses rendered text pixels instead of configured width', () => {
+  const template = discTemplates.standardPrintableDisc
+  const text = 'HI'
+  const requestedNarrow = titleLayout({ x: 40, y: 20, width: 20, scale: 1 })
+  const requestedWide = titleLayout({ x: 40, y: 20, width: 80, scale: 1 })
+  const narrowClamp = clampStraightDiscTextLayoutToSafeZone(
+    'title',
+    requestedNarrow,
+    template,
+    text,
+    measureText,
+  )
+  const wideClamp = clampStraightDiscTextLayoutToSafeZone(
+    'title',
+    requestedWide,
+    template,
+    text,
+    measureText,
+  )
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    text,
+    wideClamp,
+    measureText,
+  )
+  const visualBounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
+
+  assertApproximatelyEqual(wideClamp.x, narrowClamp.x)
+  assert.ok(
+    doesRectFitSafeAnnulus(
+      { x: visualBounds.centerX, y: visualBounds.centerY },
+      getInnerNoPrintRadiusPercent(template),
+      getSafeZoneRadiusPercent(template),
+      { halfWidth: visualBounds.halfWidth, halfHeight: visualBounds.halfHeight },
+    ),
+  )
 })
 
 test('straight text slider ranges are aligned to the native slider step', () => {

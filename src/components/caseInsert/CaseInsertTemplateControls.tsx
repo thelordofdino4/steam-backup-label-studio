@@ -65,7 +65,6 @@ import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
   getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
-  getNextCaseInsertTextSource,
 } from '../../caseInsert/textContent'
 import {
   CASE_INSERT_TEXT_WIDTH_MAX,
@@ -110,6 +109,9 @@ import {
   CaseInsertTextStyleControls,
 } from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
+import type {
+  CaseInsertPreviewTextTarget,
+} from '../../caseInsert/previewTextSelection'
 
 export type CaseInsertTemplateControlsProps = {
   paneId: CaseInsertTemplatePaneId
@@ -123,6 +125,9 @@ export type CaseInsertTemplateControlsProps = {
   ) => CaseInsertBrandingSetupControlsProps
   logoCandidateDiscovery: LogoCandidateDiscoveryState
   handleFindLogoCandidates: (logoKey: LogoAssetKey) => void | Promise<void>
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }
 
 const COVER_POSITION_PRESETS = [
@@ -735,11 +740,15 @@ function TextBlockControls({
   textBlock,
   projectMetadata,
   actions,
+  onSelectedTextTargetChange,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
   actions: CaseInsertTemplateEditorActions
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }) {
   const onLayoutChange = (
     field: keyof ProjectCaseInsertLayout,
@@ -832,26 +841,18 @@ function TextBlockControls({
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
-            <label className="field-label" htmlFor={`${textBlock.id}-value`}>
-              Text value
-            </label>
-            <input
-              id={`${textBlock.id}-value`}
-              className="editor-text-input"
-              type="text"
-              value={inputState.value}
-              placeholder={inputState.placeholder}
-              onChange={(event) => {
-                const value = event.target.value
-
-                actions.handleTextBlockValueChange(
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() =>
+                onSelectedTextTargetChange({
+                  scope: 'templateTextBlock',
                   paneId,
-                  textBlock.id,
-                  value,
-                  getNextCaseInsertTextSource(textBlock, value),
-                )
-              }}
-            />
+                  textBlockId: textBlock.id,
+                })}
+            >
+              Edit in preview
+            </button>
           </div>
 
           <div
@@ -973,10 +974,14 @@ function TextListControls({
   paneId,
   textList,
   actions,
+  onSelectedTextTargetChange,
 }: {
   paneId: CaseInsertTemplatePaneId
   textList: ProjectCaseInsertTextList
   actions: CaseInsertTemplateEditorActions
+  onSelectedTextTargetChange: (
+    target: CaseInsertPreviewTextTarget | null,
+  ) => void
 }) {
   const onLayoutChange = (
     field: keyof ProjectCaseInsertLayout,
@@ -1054,41 +1059,19 @@ function TextListControls({
             {textList.items.length === 0 ? (
               <p className="hint">No list items yet.</p>
             ) : null}
-            {textList.items.map((item, index) => (
-              <div className="case-insert-list-item-row" key={index}>
-                <label
-                  className="field-label"
-                  htmlFor={`${textList.id}-${index + 1}`}
-                >
-                  Item {index + 1}
-                </label>
-                <input
-                  id={`${textList.id}-${index + 1}`}
-                  type="text"
-                  value={item}
-                  onChange={(event) =>
-                    actions.handleTextListItemValueChange(
-                      paneId,
-                      textList.id,
-                      index,
-                      event.target.value,
-                    )}
-                />
-                <button
-                  className="secondary-button"
-                  type="button"
-                  onClick={() =>
-                    actions.handleRemoveTextListItem(
-                      paneId,
-                      textList.id,
-                      index,
-                    )}
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-
+            <button
+              className="secondary-button"
+              type="button"
+              disabled={textList.items.length === 0}
+              onClick={() =>
+                onSelectedTextTargetChange({
+                  scope: 'templateTextList',
+                  paneId,
+                  textListId: textList.id,
+                })}
+            >
+              Edit in preview
+            </button>
             <button
               className="secondary-button icon-text-button spacing-top"
               type="button"
@@ -1639,6 +1622,7 @@ export function CaseInsertTemplateTextControls({
   templateState,
   projectMetadata,
   actions,
+  onSelectedTextTargetChange,
 }: CaseInsertTemplateControlsProps) {
   const textBlocks = sortTextBlocksForControls(templateState.textBlocks)
   const leadingTextBlocks = paneId === 'tray'
@@ -1659,6 +1643,7 @@ export function CaseInsertTemplateTextControls({
           textBlock={textBlock}
           projectMetadata={projectMetadata}
           actions={actions}
+          onSelectedTextTargetChange={onSelectedTextTargetChange}
         />
       ))}
       {templateState.textLists.map((textList) => (
@@ -1667,6 +1652,7 @@ export function CaseInsertTemplateTextControls({
           paneId={paneId}
           textList={textList}
           actions={actions}
+          onSelectedTextTargetChange={onSelectedTextTargetChange}
         />
       ))}
       {trailingTextBlocks.map((textBlock) => (
@@ -1676,6 +1662,7 @@ export function CaseInsertTemplateTextControls({
           textBlock={textBlock}
           projectMetadata={projectMetadata}
           actions={actions}
+          onSelectedTextTargetChange={onSelectedTextTargetChange}
         />
       ))}
     </div>

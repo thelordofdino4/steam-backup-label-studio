@@ -1,6 +1,7 @@
 import { useMemo, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
+  isCurvedCopyrightDiscTextLayout,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
@@ -30,6 +31,7 @@ import {
   createPreviewEditableAttributes,
 } from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
+import { DiscInlineTextEditorLayer } from './DiscInlineTextEditorLayer'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
@@ -44,6 +46,10 @@ export type DiscTextLayerProps = {
   selectedDiscTemplate: DiscTemplate
   avoidanceRegions: DiscTextAvoidanceRegion[]
   getDiscTextPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
+  selectedDiscTextKey: DiscTextKey | null
+  onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
+  onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  onDiscTextEditComplete: (key: DiscTextKey) => void
   handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
@@ -74,24 +80,45 @@ export function DiscTextLayer({
   steamLogoPlacement,
   selectedDiscTemplate,
   avoidanceRegions,
+  selectedDiscTextKey,
+  onSelectedDiscTextKeyChange,
+  onDiscTextValueChange,
+  onDiscTextEditComplete,
   handleDiscTextPointerDown,
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
 }: DiscTextLayerProps) {
   const safeZoneRadiusPercent =
     (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * 50
+  const metadataBoundDiscTextValues = useMemo(
+    () => resolveMetadataBoundDiscTextValues(
+      discTextValues,
+      projectMetadata,
+      discTextValueSources,
+    ),
+    [discTextValueSources, discTextValues, projectMetadata],
+  )
+  const effectiveSettings = useMemo(
+    () => getEffectiveDiscTextSettingsForDiscNumberArtwork(
+      discTextSettings,
+      projectDiscNumberArtwork,
+    ),
+    [discTextSettings, projectDiscNumberArtwork],
+  )
+  const hiddenVisibleTextKeys = useMemo(() => {
+    if (!selectedDiscTextKey) {
+      return []
+    }
+
+    const isSelectedTextCurved = isCurvedCopyrightDiscTextLayout(
+      selectedDiscTextKey,
+      discTextLayout[selectedDiscTextKey],
+    )
+
+    return isSelectedTextCurved ? [] : [selectedDiscTextKey]
+  }, [discTextLayout, selectedDiscTextKey])
   const visibleTextLayerSvg = useMemo(
     () => {
-      const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
-        discTextValues,
-        projectMetadata,
-        discTextValueSources,
-      )
-      const effectiveSettings = getEffectiveDiscTextSettingsForDiscNumberArtwork(
-        discTextSettings,
-        projectDiscNumberArtwork,
-      )
-
       return buildDiscTextSvgLayer({
         settings: effectiveSettings,
         values: metadataBoundDiscTextValues,
@@ -105,34 +132,23 @@ export function DiscTextLayer({
         width: 100,
         height: 100,
         idPrefix: 'disc-text-preview-image',
+        hiddenTextKeys: hiddenVisibleTextKeys,
       })
     },
     [
-      discTextSettings,
-      discTextValues,
-      discTextValueSources,
       discTextStyles,
-      projectDiscNumberArtwork,
       discTextLayout,
+      effectiveSettings,
       manualGameTitle,
-      projectMetadata,
+      metadataBoundDiscTextValues,
       steamLogoPlacement,
       safeZoneRadiusPercent,
       avoidanceRegions,
+      hiddenVisibleTextKeys,
     ],
   )
   const hitTargetTextLayerSvg = useMemo(
     () => {
-      const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
-        discTextValues,
-        projectMetadata,
-        discTextValueSources,
-      )
-      const effectiveSettings = getEffectiveDiscTextSettingsForDiscNumberArtwork(
-        discTextSettings,
-        projectDiscNumberArtwork,
-      )
-
       return buildDiscTextSvgLayer({
         settings: effectiveSettings,
         values: metadataBoundDiscTextValues,
@@ -146,20 +162,19 @@ export function DiscTextLayer({
         width: '100%',
         height: '100%',
         idPrefix: 'disc-text-preview-hit-target',
+        hiddenTextKeys: hiddenVisibleTextKeys,
       })
     },
     [
-      discTextSettings,
-      discTextValues,
-      discTextValueSources,
       discTextStyles,
-      projectDiscNumberArtwork,
       discTextLayout,
+      effectiveSettings,
       manualGameTitle,
-      projectMetadata,
+      metadataBoundDiscTextValues,
       steamLogoPlacement,
       safeZoneRadiusPercent,
       avoidanceRegions,
+      hiddenVisibleTextKeys,
     ],
   )
   const visibleTextLayerDataUrl = useMemo(
@@ -167,12 +182,6 @@ export function DiscTextLayer({
     [visibleTextLayerSvg],
   )
   const discNumberBadgeRenderModel = useMemo(() => {
-    const metadataBoundDiscTextValues = resolveMetadataBoundDiscTextValues(
-      discTextValues,
-      projectMetadata,
-      discTextValueSources,
-    )
-
     return createDiscNumberBadgeRenderModel(
       projectDiscNumberArtwork,
       discTextSettings,
@@ -181,16 +190,21 @@ export function DiscTextLayer({
     )
   }, [
     discTextSettings,
-    discTextValues,
-    discTextValueSources,
     discTextLayout,
+    metadataBoundDiscTextValues,
     projectDiscNumberArtwork,
-    projectMetadata,
   ])
 
   function handlePointerDown(event: PointerEvent<Element>) {
     const key = getDiscTextKeyFromEventTarget(event.target)
     if (!key) return
+
+    if (!isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectedDiscTextKeyChange(key)
+      return
+    }
 
     handleDiscTextPointerDown(event, key)
   }
@@ -244,6 +258,22 @@ export function DiscTextLayer({
         onPointerUp={handleDiscTextPointerUp}
         onPointerCancel={handleDiscTextPointerUp}
         dangerouslySetInnerHTML={{ __html: hitTargetTextLayerSvg }}
+      />
+      <DiscInlineTextEditorLayer
+        discTextSettings={effectiveSettings}
+        discTextValues={metadataBoundDiscTextValues}
+        discTextStyles={discTextStyles}
+        discTextLayout={discTextLayout}
+        title={manualGameTitle}
+        selectedDiscTextKey={selectedDiscTextKey}
+        avoidanceRegions={avoidanceRegions}
+        measureText={measureDiscTextWithBrowserCanvas}
+        onSelectedDiscTextKeyChange={onSelectedDiscTextKeyChange}
+        onDiscTextValueChange={onDiscTextValueChange}
+        onDiscTextEditComplete={onDiscTextEditComplete}
+        onMoveHandlePointerDown={handleDiscTextPointerDown}
+        onMoveHandlePointerMove={handleDiscTextPointerMove}
+        onMoveHandlePointerUp={handleDiscTextPointerUp}
       />
     </div>
   )
