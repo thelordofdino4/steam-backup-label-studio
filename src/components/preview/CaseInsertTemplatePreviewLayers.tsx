@@ -81,6 +81,7 @@ import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { ContentBoundedImage } from './ContentBoundedImage'
@@ -440,6 +441,9 @@ function CaseInsertTemplateTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
+      {...(isSelected
+        ? { [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }
+        : {})}
       onPointerDown={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -475,6 +479,7 @@ function CaseInsertTemplateTextBlock({
               ? editValue.toLocaleUpperCase()
               : editValue
           }
+          inputMode="adapter"
           lines={textLayout.lines}
           targetKey={targetKey}
           value={editValue}
@@ -581,6 +586,9 @@ function CaseInsertTemplateTextList({
         label: textList.label,
         kind: 'text',
       })}
+      {...(isSelected
+        ? { [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }
+        : {})}
       onPointerDown={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -612,6 +620,7 @@ function CaseInsertTemplateTextList({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${textList.label}`}
           caretValue={getPreviewTextListValue(textList)}
+          inputMode="adapter"
           lines={textListLayout.lines}
           targetKey={targetKey}
           value={getPreviewTextListValue(textList)}

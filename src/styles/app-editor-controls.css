@@ -222,6 +222,26 @@
   -webkit-text-stroke-width: 0;
 }
 
+.inline-preview-textarea--adapter {
+  position: fixed;
+  inset: auto;
+  left: -10000px;
+  top: 0;
+  z-index: -1;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inline-preview-text-selection {
+  position: absolute;
+  z-index: 2;
+  border-radius: 2px;
+  background: rgba(42, 171, 226, 0.28);
+  pointer-events: none;
+}
+
 .inline-preview-text-caret {
   position: absolute;
   z-index: 3;

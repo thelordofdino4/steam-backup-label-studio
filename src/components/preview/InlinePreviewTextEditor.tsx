@@ -6,7 +6,7 @@ import {
   type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
-  type PointerEvent,
+  type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -15,6 +15,7 @@ import {
 import {
   getInlinePreviewTextCaretIndexForLineOffset,
   getInlinePreviewTextCaretLineOffset,
+  getInlinePreviewTextSelectionLineOffsets,
 } from './inlinePreviewTextEditorCaret'
 import {
   getInlinePreviewTextControlLayout,
@@ -28,6 +29,10 @@ import {
 export const INLINE_PREVIEW_TEXT_HOST_CLASS = 'inline-preview-text-host'
 export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
   'data-inline-preview-text-line-index'
+export const INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE =
+  'data-inline-preview-text-target'
+
+export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
 
 export type InlinePreviewTextEditorTab =
   | 'presets'
@@ -42,15 +47,16 @@ export type InlinePreviewTextEditorLine = {
 export type InlinePreviewTextEditorProps = {
   ariaLabel: string
   caretValue: string
+  inputMode?: InlinePreviewTextEditorInputMode
   lines: InlinePreviewTextEditorLine[]
   targetKey: string
   value: string
   textareaStyle?: CSSProperties
   menuPlacement: InlinePreviewTextEditorMenuPlacement
   onValueChange: (value: string) => void
-  onMoveHandlePointerDown: (event: PointerEvent<Element>) => void
-  onMoveHandlePointerMove: (event: PointerEvent<Element>) => void
-  onMoveHandlePointerUp: (event: PointerEvent<Element>) => void
+  onMoveHandlePointerDown: (event: ReactPointerEvent<Element>) => void
+  onMoveHandlePointerMove: (event: ReactPointerEvent<Element>) => void
+  onMoveHandlePointerUp: (event: ReactPointerEvent<Element>) => void
   onDone: () => void
 }
 
@@ -63,6 +69,19 @@ type InlineTextCaretFrame = {
   height: number
   left: number
   top: number
+}
+
+type InlineTextSelectionFrame = {
+  height: number
+  left: number
+  top: number
+  width: number
+}
+
+type InlineTextSelectionState = {
+  end: number
+  focus: number
+  start: number
 }
 
 const INLINE_TEXT_EDITOR_TABS: Array<{
@@ -87,7 +106,7 @@ function stopInlineTextEditorClick(event: MouseEvent<Element>) {
   event.stopPropagation()
 }
 
-function keepInlineTextEditorFocus(event: PointerEvent<Element>) {
+function keepInlineTextEditorFocus(event: ReactPointerEvent<Element>) {
   event.preventDefault()
   event.stopPropagation()
 }
@@ -150,6 +169,36 @@ function getLineSpan(host: Element, lineIndex: number) {
   )
 }
 
+function getInlinePreviewTextHostForTarget({
+  inputMode,
+  targetKey,
+  textarea,
+}: {
+  inputMode: InlinePreviewTextEditorInputMode
+  targetKey: string
+  textarea: HTMLTextAreaElement | null
+}) {
+  if (inputMode === 'overlay') {
+    return textarea?.closest<HTMLElement>(
+      `.${INLINE_PREVIEW_TEXT_HOST_CLASS}`,
+    ) ?? null
+  }
+
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  const candidates = Array.from(
+    document.querySelectorAll<HTMLElement>(
+      `[${INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE}]`,
+    ),
+  )
+
+  return candidates.find((candidate) =>
+    candidate.getAttribute(INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE) === targetKey,
+  ) ?? null
+}
+
 function getTextRangeBoundary(
   textNode: ChildNode | null,
   offset: number,
@@ -187,13 +236,114 @@ function getTextRangeBoundary(
   return boundary
 }
 
-function getNearestTextOffset(lineSpan: HTMLElement, clientX: number) {
-  const lineRect = lineSpan.getBoundingClientRect()
+function getLineTextNode(lineSpan: HTMLElement) {
   const textNode = lineSpan.firstChild
-  const textLength =
-    textNode && textNode.nodeType === Node.TEXT_NODE
-      ? textNode.textContent?.length ?? 0
-      : 0
+
+  return textNode && textNode.nodeType === Node.TEXT_NODE
+    ? textNode
+    : null
+}
+
+function clampTextNodeOffset(textNode: ChildNode, offset: number) {
+  const textLength = textNode.textContent?.length ?? 0
+
+  return Math.max(0, Math.min(offset, textLength))
+}
+
+function getTextNodeCaretOffset({
+  lineSpan,
+  offset,
+  offsetNode,
+  textNode,
+}: {
+  lineSpan: HTMLElement
+  offset: number
+  offsetNode: Node | null
+  textNode: ChildNode
+}) {
+  if (offsetNode === textNode) {
+    return clampTextNodeOffset(textNode, offset)
+  }
+
+  if (offsetNode instanceof Element && lineSpan.contains(offsetNode)) {
+    return offset <= 0 ? 0 : clampTextNodeOffset(textNode, offset)
+  }
+
+  return null
+}
+
+function getCaretTextOffsetFromPoint(
+  lineSpan: HTMLElement,
+  clientX: number,
+  clientY: number,
+) {
+  const textNode = getLineTextNode(lineSpan)
+
+  if (!textNode || typeof document === 'undefined') {
+    return null
+  }
+
+  const ownerDocument = lineSpan.ownerDocument
+  const caretPositionFromPoint = ownerDocument.caretPositionFromPoint
+
+  if (caretPositionFromPoint) {
+    const position = caretPositionFromPoint.call(
+      ownerDocument,
+      clientX,
+      clientY,
+    )
+    const offset = position
+      ? getTextNodeCaretOffset({
+          lineSpan,
+          offset: position.offset,
+          offsetNode: position.offsetNode,
+          textNode,
+        })
+      : null
+
+    if (offset !== null) {
+      return offset
+    }
+  }
+
+  const documentWithCaretRange = ownerDocument as Document & {
+    caretRangeFromPoint?: (x: number, y: number) => Range | null
+  }
+  const caretRangeFromPoint = documentWithCaretRange.caretRangeFromPoint
+
+  if (!caretRangeFromPoint) {
+    return null
+  }
+
+  const range = caretRangeFromPoint.call(ownerDocument, clientX, clientY)
+  const offset = range
+    ? getTextNodeCaretOffset({
+        lineSpan,
+        offset: range.startOffset,
+        offsetNode: range.startContainer,
+        textNode,
+      })
+    : null
+
+  range?.detach()
+
+  return offset
+}
+
+function getNearestTextOffset(
+  lineSpan: HTMLElement,
+  clientX: number,
+  clientY: number,
+) {
+  const caretOffset = getCaretTextOffsetFromPoint(lineSpan, clientX, clientY)
+
+  if (caretOffset !== null) {
+    return caretOffset
+  }
+
+  const lineRect = lineSpan.getBoundingClientRect()
+  const textNode = getLineTextNode(lineSpan)
+  const textLength = textNode?.textContent?.length ?? 0
   let nearestOffset = 0
   let nearestDistance = Math.abs(clientX - lineRect.left)
 
@@ -279,13 +429,88 @@ function getPointerSelectionStart({
     caretValue,
     lineIndex: nearestLine.lineIndex,
     lines,
-    offset: getNearestTextOffset(nearestLine.lineSpan, clientX),
+    offset: getNearestTextOffset(nearestLine.lineSpan, clientX, clientY),
   })
+}
+
+function getTextSelectionFrames({
+  caretValue,
+  host,
+  lines,
+  selection,
+}: {
+  caretValue: string
+  host: Element
+  lines: InlinePreviewTextEditorLine[]
+  selection: InlineTextSelectionState
+}) {
+  const lineOffsets = getInlinePreviewTextSelectionLineOffsets({
+    caretValue,
+    lines,
+    selectionEnd: selection.end,
+    selectionStart: selection.start,
+  })
+  const hostRect = host.getBoundingClientRect()
+
+  return lineOffsets.flatMap((lineOffset) => {
+    const lineSpan = getLineSpan(host, lineOffset.lineIndex)
+
+    if (!lineSpan) {
+      return []
+    }
+
+    const lineRect = lineSpan.getBoundingClientRect()
+    const textNode = lineSpan.firstChild
+    const startBoundary = getTextRangeBoundary(
+      textNode,
+      lineOffset.startOffset,
+      lineRect,
+    )
+    const endBoundary = getTextRangeBoundary(
+      textNode,
+      lineOffset.endOffset,
+      lineRect,
+    )
+    const left = Math.min(startBoundary, endBoundary)
+    const width = Math.abs(endBoundary - startBoundary)
+
+    if (width <= 0) {
+      return []
+    }
+
+    return [
+      {
+        height: Math.max(1, lineRect.height),
+        left: left - hostRect.left,
+        top: lineRect.top - hostRect.top,
+        width,
+      } satisfies InlineTextSelectionFrame,
+    ]
+  })
+}
+
+function getTextareaSelectionState(textarea: HTMLTextAreaElement) {
+  const start = textarea.selectionStart
+  const end = textarea.selectionEnd
+  const focus = textarea.selectionDirection === 'backward' ? start : end
+
+  return { end, focus, start } satisfies InlineTextSelectionState
+}
+
+function getCollapsedSelectionState(
+  caretIndex: number,
+): InlineTextSelectionState {
+  return {
+    end: caretIndex,
+    focus: caretIndex,
+    start: caretIndex,
+  }
 }
 
 export function InlinePreviewTextEditor({
   ariaLabel,
   caretValue,
+  inputMode = 'overlay',
   lines,
   targetKey,
   value,
@@ -301,8 +526,15 @@ export function InlinePreviewTextEditor({
   const tabsRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
+  const adapterSelectionAnchorRef = useRef(value.length)
+  const adapterSelectionPointerIdRef = useRef<number | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
-  const [selectionStart, setSelectionStart] = useState(value.length)
+  const [selection, setSelection] = useState<InlineTextSelectionState>(() =>
+    getCollapsedSelectionState(value.length),
+  )
+  const [selectionFrames, setSelectionFrames] = useState<
+    InlineTextSelectionFrame[]
+  >([])
   const [controlFrame, setControlFrame] =
     useState<InlineTextControlFrame | null>(null)
   const [controlSizes, setControlSizes] =
@@ -319,7 +551,7 @@ export function InlinePreviewTextEditor({
       return
     }
 
-    setSelectionStart(textarea.selectionStart)
+    setSelection(getTextareaSelectionState(textarea))
   }
 
   const handleInlineTextEditorKeyDown = (
@@ -335,11 +567,15 @@ export function InlinePreviewTextEditor({
 
     const textarea = event.currentTarget
     textarea.setSelectionRange(0, textarea.value.length, 'forward')
-    setSelectionStart(0)
+    setSelection({
+      end: textarea.value.length,
+      focus: textarea.value.length,
+      start: 0,
+    })
   }
 
   const handleInlineTextEditorPointerDown = (
-    event: PointerEvent<HTMLTextAreaElement>,
+    event: ReactPointerEvent<HTMLTextAreaElement>,
   ) => {
     const textarea = event.currentTarget
     const host = textarea.closest(`.${INLINE_PREVIEW_TEXT_HOST_CLASS}`)
@@ -366,7 +602,7 @@ export function InlinePreviewTextEditor({
       nextSelectionStart,
       'forward',
     )
-    setSelectionStart(nextSelectionStart)
+    setSelection(getCollapsedSelectionState(nextSelectionStart))
   }
 
   useEffect(() => {
@@ -378,12 +614,18 @@ export function InlinePreviewTextEditor({
 
     textarea.focus({ preventScroll: true })
     textarea.setSelectionRange(textarea.value.length, textarea.value.length)
-    setSelectionStart(textarea.value.length)
+    adapterSelectionAnchorRef.current = textarea.value.length
+    adapterSelectionPointerIdRef.current = null
+    setSelection(getCollapsedSelectionState(textarea.value.length))
   }, [targetKey])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
-    const host = textarea?.closest(`.${INLINE_PREVIEW_TEXT_HOST_CLASS}`)
+    const host = getInlinePreviewTextHostForTarget({
+      inputMode,
+      targetKey,
+      textarea,
+    })
 
     if (!host) {
       setControlFrame(null)
@@ -427,7 +669,7 @@ export function InlinePreviewTextEditor({
       window.removeEventListener('resize', updateControlFrame)
       window.removeEventListener('scroll', updateControlFrame, true)
     }
-  }, [menuPlacement, targetKey, value])
+  }, [inputMode, menuPlacement, targetKey, value])
 
   useLayoutEffect(() => {
     if (!controlFrame) return
@@ -478,16 +720,21 @@ export function InlinePreviewTextEditor({
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
-    const host = textarea?.closest(`.${INLINE_PREVIEW_TEXT_HOST_CLASS}`)
+    const host = getInlinePreviewTextHostForTarget({
+      inputMode,
+      targetKey,
+      textarea,
+    })
 
     if (!host) {
       setCaretFrame(null)
+      setSelectionFrames([])
       return
     }
 
     const hostRect = host.getBoundingClientRect()
     const { lineIndex, offset } = getInlinePreviewTextCaretLineOffset({
-      caretIndex: selectionStart,
+      caretIndex: selection.focus,
       caretValue,
       lines,
     })
@@ -499,6 +746,7 @@ export function InlinePreviewTextEditor({
         left: 0,
         top: 0,
       })
+      setSelectionFrames([])
       return
     }
 
@@ -533,7 +781,139 @@ export function InlinePreviewTextEditor({
       left: caretLeft - hostRect.left,
       top: lineRect.top - hostRect.top,
     })
-  }, [caretValue, lines, selectionStart, targetKey, value])
+    setSelectionFrames(
+      inputMode === 'adapter'
+        ? getTextSelectionFrames({
+            caretValue,
+            host,
+            lines,
+            selection,
+          })
+        : [],
+    )
+  }, [caretValue, inputMode, lines, selection, targetKey, value])
+
+  useLayoutEffect(() => {
+    if (inputMode !== 'adapter') {
+      return
+    }
+
+    const textarea = textareaRef.current
+    const host = getInlinePreviewTextHostForTarget({
+      inputMode,
+      targetKey,
+      textarea,
+    })
+
+    if (!textarea || !host) {
+      return
+    }
+
+    const setAdapterPointerSelection = (
+      event: globalThis.PointerEvent,
+      anchor: number,
+    ) => {
+      const nextSelectionFocus = getPointerSelectionStart({
+        caretValue,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        host,
+        lines,
+      })
+
+      if (nextSelectionFocus === null) {
+        return
+      }
+
+      const start = Math.min(anchor, nextSelectionFocus)
+      const end = Math.max(anchor, nextSelectionFocus)
+      const direction = nextSelectionFocus < anchor ? 'backward' : 'forward'
+
+      textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(start, end, direction)
+      setSelection({
+        end,
+        focus: nextSelectionFocus,
+        start,
+      })
+    }
+
+    const handleAdapterPointerDown = (event: globalThis.PointerEvent) => {
+      if (event.button !== 0) {
+        return
+      }
+
+      const nextSelectionFocus = getPointerSelectionStart({
+        caretValue,
+        clientX: event.clientX,
+        clientY: event.clientY,
+        host,
+        lines,
+      })
+
+      if (nextSelectionFocus === null) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      adapterSelectionAnchorRef.current = nextSelectionFocus
+      adapterSelectionPointerIdRef.current = event.pointerId
+
+      if (host instanceof HTMLElement && host.setPointerCapture) {
+        host.setPointerCapture(event.pointerId)
+      }
+
+      textarea.focus({ preventScroll: true })
+      textarea.setSelectionRange(
+        nextSelectionFocus,
+        nextSelectionFocus,
+        'forward',
+      )
+      setSelection(getCollapsedSelectionState(nextSelectionFocus))
+    }
+
+    const handleAdapterPointerMove = (event: globalThis.PointerEvent) => {
+      if (adapterSelectionPointerIdRef.current !== event.pointerId) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      setAdapterPointerSelection(event, adapterSelectionAnchorRef.current)
+    }
+
+    const handleAdapterPointerUp = (event: globalThis.PointerEvent) => {
+      if (adapterSelectionPointerIdRef.current !== event.pointerId) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      if (host instanceof HTMLElement && host.releasePointerCapture) {
+        try {
+          host.releasePointerCapture(event.pointerId)
+        } catch {
+          // Some browsers release capture before pointerup if the pointer leaves.
+        }
+      }
+
+      adapterSelectionPointerIdRef.current = null
+    }
+
+    host.addEventListener('pointerdown', handleAdapterPointerDown)
+    host.addEventListener('pointermove', handleAdapterPointerMove)
+    host.addEventListener('pointerup', handleAdapterPointerUp)
+    host.addEventListener('pointercancel', handleAdapterPointerUp)
+
+    return () => {
+      host.removeEventListener('pointerdown', handleAdapterPointerDown)
+      host.removeEventListener('pointermove', handleAdapterPointerMove)
+      host.removeEventListener('pointerup', handleAdapterPointerUp)
+      host.removeEventListener('pointercancel', handleAdapterPointerUp)
+    }
+  }, [caretValue, inputMode, lines, targetKey])
 
   const controlLayout = controlFrame
     ? getInlinePreviewTextControlLayout({
@@ -635,31 +1015,61 @@ export function InlinePreviewTextEditor({
     </>
   ) : null
 
+  const hasVisibleSelection =
+    inputMode === 'adapter' && selection.start !== selection.end
+  const textareaElement = (
+    <textarea
+      ref={textareaRef}
+      aria-label={ariaLabel}
+      className={[
+        'inline-preview-textarea',
+        inputMode === 'adapter'
+          ? 'inline-preview-textarea--adapter'
+          : '',
+      ].filter(Boolean).join(' ')}
+      value={value}
+      spellCheck={false}
+      style={inputMode === 'overlay' ? textareaStyle : undefined}
+      onChange={(event) => {
+        onValueChange(event.target.value)
+        setSelection(getTextareaSelectionState(event.target))
+      }}
+      onClick={(event) => {
+        stopInlineTextEditorClick(event)
+        updateSelectionStart()
+      }}
+      onKeyDown={handleInlineTextEditorKeyDown}
+      onKeyUp={updateSelectionStart}
+      onBlur={onDone}
+      onPointerDown={
+        inputMode === 'overlay'
+          ? handleInlineTextEditorPointerDown
+          : undefined
+      }
+      onPointerUp={updateSelectionStart}
+      onSelect={updateSelectionStart}
+    />
+  )
+
   return (
     <>
-      <textarea
-        ref={textareaRef}
-        aria-label={ariaLabel}
-        className="inline-preview-textarea"
-        value={value}
-        spellCheck={false}
-        style={textareaStyle}
-        onChange={(event) => {
-          onValueChange(event.target.value)
-          setSelectionStart(event.target.selectionStart)
-        }}
-        onClick={(event) => {
-          stopInlineTextEditorClick(event)
-          updateSelectionStart()
-        }}
-        onKeyDown={handleInlineTextEditorKeyDown}
-        onKeyUp={updateSelectionStart}
-        onBlur={onDone}
-        onPointerDown={handleInlineTextEditorPointerDown}
-        onPointerUp={updateSelectionStart}
-        onSelect={updateSelectionStart}
-      />
-      {caretFrame ? (
+      {inputMode === 'adapter' && typeof document !== 'undefined'
+        ? createPortal(textareaElement, document.body)
+        : textareaElement}
+      {selectionFrames.map((frame, index) => (
+        <span
+          key={`${index}-${frame.left}-${frame.width}`}
+          aria-hidden="true"
+          className="inline-preview-text-selection"
+          style={{
+            height: frame.height,
+            left: frame.left,
+            top: frame.top,
+            width: frame.width,
+          }}
+        />
+      ))}
+      {caretFrame && !hasVisibleSelection ? (
         <span
           aria-hidden="true"
           className="inline-preview-text-caret"

@@ -68,6 +68,7 @@ import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
@@ -350,6 +351,9 @@ function CaseInsertSpineTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
+      {...(isSelected
+        ? { [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }
+        : {})}
       onPointerDown={(event) => {
         event.preventDefault()
         event.stopPropagation()
@@ -385,6 +389,7 @@ function CaseInsertSpineTextBlock({
               ? editValue.toLocaleUpperCase()
               : editValue
           }
+          inputMode="adapter"
           lines={titleLayout.lines}
           targetKey={targetKey}
           value={editValue}

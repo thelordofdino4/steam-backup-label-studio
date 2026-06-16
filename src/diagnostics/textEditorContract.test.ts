@@ -49,11 +49,27 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
     source,
     /textarea\.setSelectionRange\(0,\s*textarea\.value\.length,\s*'forward'\)/,
   )
-  assert.match(source, /onPointerDown=\{handleInlineTextEditorPointerDown\}/)
+  assert.match(source, /inputMode === 'overlay'/)
+  assert.match(source, /handleInlineTextEditorPointerDown/)
   assert.match(source, /getPointerSelectionStart\(/)
   assert.match(
     source,
     /textarea\.setSelectionRange\(\s*nextSelectionStart,\s*nextSelectionStart,\s*'forward',?\s*\)/,
+  )
+  assert.match(source, /inputMode\?:\s*InlinePreviewTextEditorInputMode/)
+  assert.match(source, /inputMode = 'overlay'/)
+  assert.match(source, /inline-preview-textarea--adapter/)
+  assert.match(source, /getInlinePreviewTextSelectionLineOffsets/)
+  assert.match(source, /createPortal\(textareaElement,\s*document\.body\)/)
+  assert.match(source, /adapterSelectionAnchorRef/)
+  assert.match(source, /adapterSelectionPointerIdRef/)
+  assert.match(source, /caretPositionFromPoint/)
+  assert.match(source, /caretRangeFromPoint/)
+  assert.match(source, /setPointerCapture\(event\.pointerId\)/)
+  assert.match(source, /releasePointerCapture\(event\.pointerId\)/)
+  assert.doesNotMatch(
+    source,
+    /\}, \[caretValue, inputMode, lines, selection\.focus, targetKey\]\)/,
   )
 })
 
@@ -62,9 +78,25 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
 
   assert.match(css, /\.inline-preview-text-host\s*\{[^}]*outline:\s*2px dotted/s)
   assert.match(css, /\.inline-preview-text-host\.is-empty\s*\{[^}]*min-width/s)
+  assert.match(css, /\.inline-preview-textarea--adapter\s*\{[^}]*position:\s*fixed/s)
+  assert.match(css, /\.inline-preview-text-selection\s*\{[^}]*background:\s*rgba\(42,\s*171,\s*226,\s*0\.28\)/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*background:\s*#2aabe2/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*animation:\s*inline-preview-text-caret-flash/s)
   assert.match(css, /@keyframes inline-preview-text-caret-flash/)
+})
+
+test('case insert inline editing uses the adapter input path', () => {
+  const templateLayer = readRepoFile(
+    'src/components/preview/CaseInsertTemplatePreviewLayers.tsx',
+  )
+  const spineLayer = readRepoFile(
+    'src/components/preview/CaseInsertSpinePreviewLayer.tsx',
+  )
+
+  assert.match(templateLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
+  assert.match(spineLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
+  assert.equal((templateLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
+  assert.equal((spineLayer.match(/inputMode="adapter"/g) ?? []).length, 1)
 })
 
 test('curved disc text is not routed through a visible rectangular editor layer', () => {

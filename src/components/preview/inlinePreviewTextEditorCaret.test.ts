@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   getInlinePreviewTextCaretIndexForLineOffset,
   getInlinePreviewTextCaretLineOffset,
+  getInlinePreviewTextSelectionLineOffsets,
 } from './inlinePreviewTextEditorCaret.ts'
 
 test('inline preview caret maps repeated visible text to the correct later index', () => {
@@ -91,5 +92,48 @@ test('inline preview caret clamps out-of-range line offsets', () => {
       lineIndex: 0,
       offset: 0,
     },
+  )
+})
+
+test('inline preview selection maps visible ranges across wrapped lines', () => {
+  const caretValue = 'hello  world again'
+  const lines = [{ text: 'hello' }, { text: 'world' }, { text: 'again' }]
+
+  assert.deepEqual(
+    getInlinePreviewTextSelectionLineOffsets({
+      caretValue,
+      lines,
+      selectionEnd: caretValue.length,
+      selectionStart: 3,
+    }),
+    [
+      {
+        endOffset: 5,
+        lineIndex: 0,
+        startOffset: 3,
+      },
+      {
+        endOffset: 5,
+        lineIndex: 1,
+        startOffset: 0,
+      },
+      {
+        endOffset: 5,
+        lineIndex: 2,
+        startOffset: 0,
+      },
+    ],
+  )
+})
+
+test('inline preview selection returns no visible frames for a collapsed caret', () => {
+  assert.deepEqual(
+    getInlinePreviewTextSelectionLineOffsets({
+      caretValue: 'hello',
+      lines: [{ text: 'hello' }],
+      selectionEnd: 2,
+      selectionStart: 2,
+    }),
+    [],
   )
 })
