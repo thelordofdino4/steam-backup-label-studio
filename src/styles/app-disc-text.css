@@ -82,20 +82,6 @@
   touch-action: auto;
 }
 
-.disc-inline-text-line {
-  position: absolute;
-  display: block;
-  white-space: pre;
-  color: currentColor;
-  paint-order: stroke fill;
-  text-shadow: inherit;
-  user-select: none;
-  pointer-events: none;
-  -webkit-text-fill-color: currentColor;
-  -webkit-text-stroke-color: inherit;
-  -webkit-text-stroke-width: inherit;
-}
-
 .disc-number-artwork-controls {
   margin-top: 0;
 }

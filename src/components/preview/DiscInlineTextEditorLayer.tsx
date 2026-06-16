@@ -14,16 +14,13 @@ import {
   getStraightDiscTextRenderLayout,
   getStraightDiscTextVisualBounds,
 } from '../../discText/renderLayout'
+import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEditorGeometry'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
-import {
-  getDiscTextFontFamilyCss,
-  type DiscTextStyleSettings,
-} from '../../discText/styles'
+import type { DiscTextStyleSettings } from '../../discText/styles'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
-  INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 
 export type DiscInlineTextEditorLayerProps = {
@@ -54,8 +51,6 @@ type DiscInlineEditorBounds = {
 }
 
 const DISC_INLINE_EDITOR_MIN_WIDTH_PERCENT = 4
-const DISC_INLINE_TEXT_STROKE_COLOR = 'rgba(0, 0, 0, 0.58)'
-const DISC_INLINE_TEXT_STROKE_WIDTH = 0.28
 
 const DISC_TEXT_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   backupDate: 'Backed up ',
@@ -98,22 +93,6 @@ function getDiscInlineEditorMenuPlacement(bounds: DiscInlineEditorBounds) {
   return bounds.centerY + bounds.halfHeight + 18 > 100 ? 'above' : 'below'
 }
 
-function getDiscInlineEditorTextShadow(
-  style: ReturnType<typeof getStraightDiscTextRenderLayout>['style'],
-) {
-  return style.contrast === 'shadow' || style.contrast === 'strokeShadow'
-    ? '0 0.32cqw 0.62cqw rgba(0, 0, 0, 0.85), 0 0 0.22cqw rgba(0, 0, 0, 0.9)'
-    : 'none'
-}
-
-function getDiscInlineEditorTextStroke(
-  style: ReturnType<typeof getStraightDiscTextRenderLayout>['style'],
-) {
-  return style.contrast === 'stroke' || style.contrast === 'strokeShadow'
-    ? `${DISC_INLINE_TEXT_STROKE_WIDTH}cqw ${DISC_INLINE_TEXT_STROKE_COLOR}`
-    : '0 transparent'
-}
-
 function getHostStyle({
   bounds,
   renderLayout,
@@ -129,43 +108,8 @@ function getHostStyle({
     top: `${bounds.centerY - height / 2}%`,
     width: `${width}%`,
     height: `${height}%`,
-    color: renderLayout.color,
-    fontFamily: renderLayout.fontFamily,
     fontSize: `${renderLayout.fontSize}cqw`,
-    fontWeight: renderLayout.fontWeight,
     lineHeight: `${renderLayout.lineHeight}cqw`,
-    paintOrder: 'stroke fill',
-    textAlign: renderLayout.align,
-    textShadow: getDiscInlineEditorTextShadow(renderLayout.style),
-    WebkitTextStroke: getDiscInlineEditorTextStroke(renderLayout.style),
-  } satisfies CSSProperties
-}
-
-function getLineStyle({
-  bounds,
-  line,
-  renderLayout,
-}: {
-  bounds: DiscInlineEditorBounds
-  line: ReturnType<typeof getStraightDiscTextRenderLayout>['lines'][number]
-  renderLayout: ReturnType<typeof getStraightDiscTextRenderLayout>
-}) {
-  const hostLeft = bounds.centerX - bounds.halfWidth
-  const hostTop = bounds.centerY - bounds.halfHeight
-  const hostWidth = Math.max(0.01, bounds.halfWidth * 2)
-  const hostHeight = Math.max(0.01, bounds.halfHeight * 2)
-  const anchorOffset =
-    renderLayout.textAnchor === 'middle'
-      ? '-50%'
-      : renderLayout.textAnchor === 'end'
-        ? '-100%'
-        : '0'
-
-  return {
-    left: `${((line.x - hostLeft) / hostWidth) * 100}%`,
-    top: `${((line.y - renderLayout.lineHeight / 2 - hostTop) / hostHeight) * 100}%`,
-    height: `${renderLayout.lineHeight}cqw`,
-    transform: `translateX(${anchorOffset})`,
   } satisfies CSSProperties
 }
 
@@ -217,6 +161,11 @@ export function DiscInlineTextEditorLayer({
           measureText,
         )
         const hostStyle = getHostStyle({ bounds, renderLayout })
+        const geometryLines = getDiscInlineTextEditorGeometryLines({
+          bounds,
+          measureText,
+          renderLayout,
+        })
         const isEmptyText = text.trim().length === 0
 
         return (
@@ -240,32 +189,13 @@ export function DiscInlineTextEditorLayer({
               onSelectedDiscTextKeyChange(key)
             }}
           >
-            {renderLayout.lines.map((line, index) => (
-              <span
-                key={`${key}-${index}-${line.text}`}
-                className="disc-inline-text-line"
-                {...{ [INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE]: index }}
-                style={getLineStyle({
-                  bounds,
-                  line,
-                  renderLayout,
-                })}
-              >
-                {line.text}
-              </span>
-            ))}
             <InlinePreviewTextEditor
               ariaLabel={`Edit ${getDiscTextLabel(key)}`}
               caretValue={text}
+              geometryLines={geometryLines}
               lines={renderLayout.lines}
               targetKey={`disc:${key}`}
               value={text}
-              textareaStyle={{
-                fontFamily: getDiscTextFontFamilyCss(
-                  discTextStyles[key].fontFamily,
-                ),
-                textAlign: renderLayout.align,
-              }}
               menuPlacement={getDiscInlineEditorMenuPlacement(bounds)}
               onValueChange={(value) =>
                 onDiscTextValueChange(

@@ -123,27 +123,19 @@ test('disc sidebar text value is limited to the curved text exception', () => {
   assert.match(panel, /Curved copyright text remains SVG\/textPath based/)
 })
 
-test('straight disc inline editing hides only the duplicate visible SVG glyphs', () => {
+test('straight disc inline editing keeps the SVG renderer visible', () => {
   const adapter = readRepoFile(
     'src/components/preview/DiscInlineTextEditorLayer.tsx',
   )
   const discLayer = readRepoFile('src/components/preview/DiscTextLayer.tsx')
   const discCss = readRepoFile('src/styles/app-disc-text.css')
-  const hiddenTextKeyUsages =
-    discLayer.match(/hiddenTextKeys:\s*hiddenVisibleTextKeys/g) ?? []
 
-  assert.equal(hiddenTextKeyUsages.length, 2)
+  assert.doesNotMatch(discLayer, /hiddenVisibleTextKeys/)
+  assert.doesNotMatch(discLayer, /hiddenTextKeys:\s*hiddenVisibleTextKeys/)
   assert.match(discLayer, /isCurvedCopyrightDiscTextLayout/)
-  assert.match(
-    discCss,
-    /\.disc-inline-text-line\s*\{[^}]*color:\s*currentColor/s,
-  )
-  assert.doesNotMatch(
-    discCss,
-    /\.disc-inline-text-line\s*\{[^}]*color:\s*transparent/s,
-  )
-  assert.match(adapter, /textShadow:\s*getDiscInlineEditorTextShadow/)
-  assert.match(adapter, /WebkitTextStroke:\s*getDiscInlineEditorTextStroke/)
+  assert.match(adapter, /geometryLines=\{geometryLines\}/)
+  assert.doesNotMatch(adapter, /className="disc-inline-text-line"/)
+  assert.doesNotMatch(discCss, /\.disc-inline-text-line/)
 })
 
 test('source tree does not contain the removed ghost text editor renderer', () => {
