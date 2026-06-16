@@ -8,6 +8,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - `docs/ROADMAP.md`
    - `docs/MILESTONES.md`
    - `docs/ARCHITECTURE_GUARDRAILS.md`
+   - `docs/SOFTWARE_DESIGN_DOCUMENT.md` before architecture-sensitive work, especially preview/edit/export parity, text editing, save/load serialization, PNG export, drag/selection interactions, disc or case insert renderers, hit targets, or hidden input layers
    - `docs/REFACTOR_STATUS.md` if the task touches architecture or refactoring
    - `docs/PRD.md` if the task affects product direction or scope
 
@@ -33,6 +34,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - For visual/editor changes, ask the user to verify with `npm run tauri dev`.
 
 5. Follow the architecture guardrails. This is a hard rule, not a preference.
+   - Architecture-sensitive work must preserve the SDD contracts. In particular, the visible preview/final renderer remains the visual source of truth; hidden inputs, hit targets, measurement layers, and export renderers are adapters; save/load/export parity is required; and WYSIWYG-sensitive changes require runtime validation.
    - Before creating new behavior or a new module, do a light search for existing owners: nearby domain modules, hooks, renderers, layout helpers, export helpers, project/schema helpers, and utilities.
    - If an existing feature or module already owns that behavior, update the existing owner instead of creating a parallel implementation.
    - If a change does something genuinely new, create a focused new `.ts` or `.tsx` module for it.
