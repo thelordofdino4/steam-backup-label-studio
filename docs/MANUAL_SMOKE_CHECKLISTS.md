@@ -1,6 +1,6 @@
 # Manual Smoke Checklists
 
-Last refreshed: 2026-06-15.
+Last refreshed: 2026-06-16.
 
 These checklists are for human verification after visual/editor changes. They
 do not replace `npm run check:cycles`, lint, tests, or build, and agents should
@@ -114,8 +114,8 @@ text, and curved disc text.
   page, sidebar, or document body.
 - The editor reads as a compact contextual toolbar, not a relocated sidebar
   panel.
-- Right spine menu clipping is a known runtime failure to verify before
-  claiming the positioning contract is satisfied.
+- Right spine tabs, menu, editable boundary, and move handle stay inside the
+  active preview window.
 - The dotted editor boundary hugs the visible text bounds, not the full
   safe-zone or reserved layout width.
 - Empty selected text still shows a small visible dotted box.
@@ -124,14 +124,23 @@ text, and curved disc text.
 - Multiline text grows vertically after line 2 and beyond.
 - Space, multiple spaces, leading spaces, trailing spaces, and pasted multiline
   text remain visible while editing and after Done.
+- Entering and exiting edit mode does not swap in a visibly different text
+  renderer, change wrapping, shift position, lose styling, or reveal duplicate
+  text.
 - The blue caret blinks at the actual insertion point and does not follow a
   hidden or duplicate text surface.
 - Selecting text reflects the currently visible preview text.
+- Ctrl+A selects the visible text in adapter-backed insert and straight-disc
+  editing paths.
+- LMB-drag selection works on visible text in adapter-backed insert and
+  straight-disc editing paths.
 - The move handle is separate from text selection and uses grab/grabbing cursor
   behavior.
 - Default metadata text can be deleted while editing and does not repopulate
   until the user blurs/exits while it is still empty.
-- Straight disc text shows all words and preserves spaces.
+- Straight disc text shows all words, preserves spaces, keeps SVG
+  fill/stroke/shadow visible, and does not shift, grow, shrink, or reveal
+  duplicate layers while editing.
 - Curved disc text stays SVG/textPath based and is not edited through a visible
   rectangular textarea.
 - Cover, tray, and spine feature panels remain bundled and recognizable.
