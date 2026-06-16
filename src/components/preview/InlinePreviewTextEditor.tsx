@@ -239,6 +239,44 @@ function areInlineTextSizesEqual(
   )
 }
 
+function areInlineTextRectsEqual(
+  first: InlinePreviewTextRect,
+  second: InlinePreviewTextRect,
+) {
+  return (
+    Math.abs(first.bottom - second.bottom) < 0.5 &&
+    Math.abs(first.left - second.left) < 0.5 &&
+    Math.abs(first.right - second.right) < 0.5 &&
+    Math.abs(first.top - second.top) < 0.5
+  )
+}
+
+function areInlineTextAnchorsEqual(
+  first: InlinePreviewTextAnchor,
+  second: InlinePreviewTextAnchor,
+) {
+  return (
+    Math.abs(first.bottom - second.bottom) < 0.5 &&
+    Math.abs(first.centerX - second.centerX) < 0.5 &&
+    Math.abs(first.centerY - second.centerY) < 0.5 &&
+    Math.abs(first.right - second.right) < 0.5 &&
+    Math.abs(first.top - second.top) < 0.5
+  )
+}
+
+function areInlineTextControlFramesEqual(
+  first: InlineTextControlFrame | null,
+  second: InlineTextControlFrame | null,
+) {
+  if (first === second) return true
+  if (!first || !second) return false
+
+  return (
+    areInlineTextAnchorsEqual(first.anchor, second.anchor) &&
+    areInlineTextRectsEqual(first.previewRect, second.previewRect)
+  )
+}
+
 function areInlineTextControlSizesEqual(
   first: InlinePreviewTextControlSizes,
   second: InlinePreviewTextControlSizes,
@@ -1036,6 +1074,7 @@ export function InlinePreviewTextEditor({
   >([])
   const [controlFrame, setControlFrame] =
     useState<InlineTextControlFrame | null>(null)
+  const controlFrameRef = useRef<InlineTextControlFrame | null>(null)
   const [controlSizes, setControlSizes] =
     useState<InlinePreviewTextControlSizes>(
       INLINE_TEXT_DEFAULT_CONTROL_SIZES,
@@ -1143,23 +1182,40 @@ export function InlinePreviewTextEditor({
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
-    const host = getInlinePreviewTextHostForTarget({
-      inputMode,
-      targetKey,
-      textarea,
-    })
+    const getCurrentHost = () =>
+      getInlinePreviewTextHostForTarget({
+        inputMode,
+        targetKey,
+        textarea,
+      })
+    const host = getCurrentHost()
 
     if (!host) {
+      controlFrameRef.current = null
       setControlFrame(null)
       return
     }
 
-    const updateControlFrame = () => {
-      const rect = host.getBoundingClientRect()
-      const previewRect =
-        getInlineTextPreviewSurface(host)?.getBoundingClientRect() ?? rect
+    let frameRequestId: number | null = null
+    let isFrameTrackingActive = true
 
-      setControlFrame({
+    const updateControlFrame = () => {
+      const currentHost = getCurrentHost()
+
+      if (!currentHost) {
+        if (controlFrameRef.current !== null) {
+          controlFrameRef.current = null
+          setControlFrame(null)
+        }
+        return
+      }
+
+      const rect = currentHost.getBoundingClientRect()
+      const previewRect =
+        getInlineTextPreviewSurface(currentHost)?.getBoundingClientRect() ??
+        rect
+
+      const nextControlFrame = {
         anchor: {
           bottom: rect.bottom,
           centerX: rect.left + rect.width / 2,
@@ -1168,10 +1224,41 @@ export function InlinePreviewTextEditor({
           top: rect.top,
         },
         previewRect: rectToInlineTextRect(previewRect),
-      })
+      }
+
+      if (
+        areInlineTextControlFramesEqual(
+          controlFrameRef.current,
+          nextControlFrame,
+        )
+      ) {
+        return
+      }
+
+      controlFrameRef.current = nextControlFrame
+      setControlFrame(nextControlFrame)
+    }
+
+    const updateControlFrameOnAnimationFrame = () => {
+      if (!isFrameTrackingActive) {
+        return
+      }
+
+      updateControlFrame()
+      frameRequestId = window.requestAnimationFrame(
+        updateControlFrameOnAnimationFrame,
+      )
     }
 
     updateControlFrame()
+    if (
+      typeof window.requestAnimationFrame === 'function' &&
+      typeof window.cancelAnimationFrame === 'function'
+    ) {
+      frameRequestId = window.requestAnimationFrame(
+        updateControlFrameOnAnimationFrame,
+      )
+    }
 
     const resizeObserver =
       typeof ResizeObserver === 'undefined'
@@ -1187,6 +1274,10 @@ export function InlinePreviewTextEditor({
     window.addEventListener('scroll', updateControlFrame, true)
 
     return () => {
+      isFrameTrackingActive = false
+      if (frameRequestId !== null) {
+        window.cancelAnimationFrame(frameRequestId)
+      }
       resizeObserver?.disconnect()
       window.removeEventListener('resize', updateControlFrame)
       window.removeEventListener('scroll', updateControlFrame, true)

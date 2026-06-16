@@ -138,3 +138,94 @@ test('inline text controls keep a narrow preview fallback inside the preview ori
   assert.ok(layout.menu.top >= narrowPreviewRect.top)
   assert.ok(layout.moveHandle.top >= narrowPreviewRect.top)
 })
+
+test('inline text controls follow when the selected text moves', () => {
+  const originalLayout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor(),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+  const movedLayout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 170,
+      centerX: 190,
+      centerY: 155,
+      right: 210,
+      top: 140,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+
+  assert.equal(movedLayout.tabs.left - originalLayout.tabs.left, 40)
+  assert.equal(movedLayout.tabs.top - originalLayout.tabs.top, 40)
+  assert.equal(movedLayout.menu.left - originalLayout.menu.left, 40)
+  assert.equal(movedLayout.menu.top - originalLayout.menu.top, 40)
+  assert.equal(
+    movedLayout.moveHandle.left - originalLayout.moveHandle.left,
+    40,
+  )
+  assert.equal(
+    movedLayout.moveHandle.top - originalLayout.moveHandle.top,
+    40,
+  )
+})
+
+test('inline text controls follow when selected text bounds change', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 165,
+      centerX: 150,
+      centerY: 132.5,
+      right: 225,
+      top: 100,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+
+  assert.deepEqual(layout.tabs, {
+    left: 100,
+    maxWidth: 300,
+    top: 68,
+  })
+  assert.deepEqual(layout.menu, {
+    left: 110,
+    maxWidth: 300,
+    placement: 'below',
+    top: 173,
+  })
+  assert.deepEqual(layout.moveHandle, {
+    left: 233,
+    top: 120.5,
+  })
+})
+
+test('inline text controls clamp after following a moved selection', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 286,
+      centerX: 292,
+      centerY: 268,
+      right: 298,
+      top: 250,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes: {
+      ...sizes,
+      menu: { height: 40, width: 120 },
+      tabs: { height: 24, width: 140 },
+    },
+  })
+
+  assert.equal(layout.tabs.left, 160)
+  assert.equal(layout.menu.left, 180)
+  assert.equal(layout.menu.placement, 'above')
+  assert.equal(layout.menu.top, 202)
+  assert.equal(layout.moveHandle.left, 260)
+  assert.equal(layout.moveHandle.top, 256)
+})
