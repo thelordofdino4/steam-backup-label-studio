@@ -21,6 +21,7 @@ import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 
 export type DiscInlineTextEditorLayerProps = {
@@ -167,6 +168,7 @@ export function DiscInlineTextEditorLayer({
           renderLayout,
         })
         const isEmptyText = text.trim().length === 0
+        const targetKey = `disc:${key}`
 
         return (
           <div
@@ -177,6 +179,7 @@ export function DiscInlineTextEditorLayer({
               'is-editing',
               isEmptyText ? 'is-empty' : '',
             ].filter(Boolean).join(' ')}
+            {...{ [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }}
             style={hostStyle}
             onPointerDown={(event) => {
               event.preventDefault()
@@ -193,8 +196,9 @@ export function DiscInlineTextEditorLayer({
               ariaLabel={`Edit ${getDiscTextLabel(key)}`}
               caretValue={text}
               geometryLines={geometryLines}
+              inputMode="adapter"
               lines={renderLayout.lines}
-              targetKey={`disc:${key}`}
+              targetKey={targetKey}
               value={text}
               menuPlacement={getDiscInlineEditorMenuPlacement(bounds)}
               onValueChange={(value) =>
