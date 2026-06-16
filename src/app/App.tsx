@@ -89,6 +89,15 @@ import {
   finalizeCaseInsertPreviewTextDraft,
   updateCaseInsertPreviewTextDraftValue,
 } from '../caseInsert/previewTextEditing'
+import {
+  applyCaseInsertPreviewTextTargetStylePreset,
+  resetCaseInsertPreviewTextTargetStyle,
+  setCaseInsertPreviewTextTargetEnabled,
+  updateCaseInsertPreviewTextTargetAlign,
+  updateCaseInsertPreviewTextTargetAvoidVisualElements,
+  updateCaseInsertPreviewTextTargetLayoutField,
+  updateCaseInsertPreviewTextTargetStyleField,
+} from '../caseInsert/previewTextControls'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
   applyCaseInsertSteamImportBrandingDefaults,
@@ -103,7 +112,15 @@ import {
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
 } from '../project/projectRatingBadge'
-import type { ProjectMetadata } from '../project/projectTypes'
+import type {
+  ProjectCaseInsertLayout,
+  ProjectCaseInsertTextAlign,
+  ProjectMetadata,
+} from '../project/projectTypes'
+import type {
+  CaseInsertTextStyleField,
+  CaseInsertTextStyleValue,
+} from '../caseInsert/textStyles'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -583,6 +600,88 @@ function App() {
     setProjectJewelCase((currentCaseInsert) =>
       finalizeCaseInsertPreviewTextDraft(currentCaseInsert, target))
     setSelectedCaseInsertTextTarget(null)
+  }
+
+  function handleCaseInsertPreviewTextEnabledChange(
+    target: CaseInsertPreviewTextTarget,
+    enabled: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      setCaseInsertPreviewTextTargetEnabled(
+        currentCaseInsert,
+        target,
+        enabled,
+      ))
+    if (!enabled) {
+      setSelectedCaseInsertTextTarget(null)
+    }
+  }
+
+  function handleCaseInsertPreviewTextStyleChange(
+    target: CaseInsertPreviewTextTarget,
+    field: CaseInsertTextStyleField,
+    value: CaseInsertTextStyleValue,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextTargetStyleField(
+        currentCaseInsert,
+        target,
+        field,
+        value,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextApplyStylePreset(
+    target: CaseInsertPreviewTextTarget,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      applyCaseInsertPreviewTextTargetStylePreset(
+        currentCaseInsert,
+        target,
+        presetId,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextResetStyle(
+    target: CaseInsertPreviewTextTarget,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      resetCaseInsertPreviewTextTargetStyle(currentCaseInsert, target))
+  }
+
+  function handleCaseInsertPreviewTextLayoutChange(
+    target: CaseInsertPreviewTextTarget,
+    field: keyof ProjectCaseInsertLayout,
+    value: number,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextTargetLayoutField(
+        currentCaseInsert,
+        target,
+        field,
+        value,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextAlignChange(
+    target: CaseInsertPreviewTextTarget,
+    align: ProjectCaseInsertTextAlign,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextTargetAlign(currentCaseInsert, target, align))
+  }
+
+  function handleCaseInsertPreviewTextAvoidVisualElementsChange(
+    target: CaseInsertPreviewTextTarget,
+    avoidVisualElements: boolean,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextTargetAvoidVisualElements(
+        currentCaseInsert,
+        target,
+        avoidVisualElements,
+      ))
   }
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
@@ -1800,6 +1899,16 @@ function App() {
         onSelectedTextTargetChange={setSelectedCaseInsertTextTarget}
         onTextTargetValueChange={handleCaseInsertPreviewTextValueChange}
         onTextTargetEditComplete={handleCaseInsertPreviewTextEditComplete}
+        previewTextControlHandlers={{
+          onEnabledChange: handleCaseInsertPreviewTextEnabledChange,
+          onStyleChange: handleCaseInsertPreviewTextStyleChange,
+          onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
+          onResetStyle: handleCaseInsertPreviewTextResetStyle,
+          onLayoutChange: handleCaseInsertPreviewTextLayoutChange,
+          onAlignChange: handleCaseInsertPreviewTextAlignChange,
+          onAvoidVisualElementsChange:
+            handleCaseInsertPreviewTextAvoidVisualElementsChange,
+        }}
       />
     )
   }
@@ -2054,8 +2163,16 @@ function App() {
           discNumberArtwork: projectDiscNumberArtwork,
           selectedDiscTemplate,
           getPreviewTransform: getDiscTextPreviewTransform,
+          onTextEnabledChange: handleDiscTextToggle,
           onTextValueChange: handleDiscTextInlineDraftChange,
           onTextEditComplete: finalizeDiscTextInlineDraft,
+          onTextStyleChange: handleDiscTextStyleChange,
+          onApplyTextStylePreset: handleApplyDiscTextStylePreset,
+          onResetTextStyle: handleResetDiscTextStyle,
+          onTextLayoutChange: handleDiscTextLayoutChange,
+          onTextAlignmentChange: handleDiscTextAlignmentChange,
+          onTextVisualAvoidanceChange: handleDiscTextVisualAvoidanceChange,
+          onResetTextLayout: handleResetDiscTextLayout,
         }}
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}

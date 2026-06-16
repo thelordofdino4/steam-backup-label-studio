@@ -6,6 +6,7 @@ import type {
 import {
   getJewelCaseSpineBackgroundFit,
   getJewelCaseSpineImageSlotPreviewLayout,
+  getJewelCaseSpineTextLayoutSliderRanges,
   getJewelCaseSpineTitlePreviewLayout,
   type JewelCaseSpineBoxLayout,
   type JewelCaseSpineOverlayRole,
@@ -70,6 +71,10 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
+import {
+  createCaseInsertInlineTextEditorControls,
+  type CaseInsertPreviewTextControlHandlers,
+} from './caseInsertInlineTextEditorControls'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 import { ContentBoundedImage } from './ContentBoundedImage'
@@ -88,6 +93,7 @@ export type CaseInsertSpinePreviewLayerProps = {
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }
 
 function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout) {
@@ -260,6 +266,7 @@ function CaseInsertSpineTextBlock({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: {
   side: 'left' | 'right'
   textBlock: ProjectCaseInsertTextBlock
@@ -279,6 +286,7 @@ function CaseInsertSpineTextBlock({
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
   const renderedTextBlock = getRenderedCaseInsertTextBlock(
     textBlock,
@@ -315,6 +323,34 @@ function CaseInsertSpineTextBlock({
   }
 
   const isEmptyText = layoutTextBlock.value.trim().length === 0
+  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
+    side,
+    layoutTextBlock,
+    layout,
+  )
+  const editorControls = isSelected
+    ? createCaseInsertInlineTextEditorControls({
+        align: layoutTextBlock.align,
+        avoidVisualElements: layoutTextBlock.avoidVisualElements,
+        handlers: previewTextControlHandlers,
+        label: renderedTextBlock.label,
+        layout: layoutTextBlock.layout,
+        scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
+        scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
+        style: layoutTextBlock.style,
+        target: textTarget,
+        widthFallback: dragKind.kind === 'title' ? 90 : undefined,
+        xLabel: 'Cross',
+        xMax: layoutRanges.x.max,
+        xMin: layoutRanges.x.min,
+        xStep: 0.1,
+        yLabel: 'Length',
+        yMax: layoutRanges.y.max,
+        yMin: layoutRanges.y.min,
+        yStep: 0.1,
+        onDeleteComplete: () => onSelectedTextTargetChange(null),
+      })
+    : undefined
   const style = {
     ...getTransformedBoxStyle(titleLayout, layout),
     ...getSpineTitleTextStyle(layoutTextBlock.style),
@@ -389,6 +425,7 @@ function CaseInsertSpineTextBlock({
               ? editValue.toLocaleUpperCase()
               : editValue
           }
+          controls={editorControls}
           inputMode="adapter"
           lines={titleLayout.lines}
           targetKey={targetKey}
@@ -537,6 +574,7 @@ function CaseInsertSpineSidePreview({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: {
   side: 'left' | 'right'
   state: ProjectJewelCaseSpineSideState
@@ -552,6 +590,7 @@ function CaseInsertSpineSidePreview({
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
   const artworkSlots = state.additionalArtworkEnabled
     ? state.artworkSlots
@@ -612,6 +651,7 @@ function CaseInsertSpineSidePreview({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
       {state.textBlocks.map((textBlock) => (
         <CaseInsertSpineTextBlock
@@ -627,6 +667,7 @@ function CaseInsertSpineSidePreview({
           onSelectedTextTargetChange={onSelectedTextTargetChange}
           onTextTargetValueChange={onTextTargetValueChange}
           onTextTargetEditComplete={onTextTargetEditComplete}
+          previewTextControlHandlers={previewTextControlHandlers}
         />
       ))}
       {state.logoSlots.map((slot) => (
@@ -670,6 +711,7 @@ export function CaseInsertSpinePreviewLayer({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: CaseInsertSpinePreviewLayerProps) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
     return null
@@ -687,6 +729,7 @@ export function CaseInsertSpinePreviewLayer({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
       <CaseInsertSpineSidePreview
         side="right"
@@ -698,6 +741,7 @@ export function CaseInsertSpinePreviewLayer({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
     </div>
   )
