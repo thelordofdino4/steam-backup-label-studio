@@ -439,6 +439,8 @@ function CaseInsertTemplateTextBlock({
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onResetLayout: () =>
+          previewTextControlHandlers.onResetLayout(textTarget),
       })
     : undefined
 

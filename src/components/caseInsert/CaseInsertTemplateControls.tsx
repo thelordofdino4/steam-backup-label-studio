@@ -56,7 +56,6 @@ import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertSurfaceState,
-  ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
   ProjectMetadata,
@@ -750,15 +749,6 @@ function TextBlockControls({
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const onLayoutChange = (
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) => actions.handleTextBlockLayoutChange(
-    paneId,
-    textBlock.id,
-    field,
-    value,
-  )
   const inputState = getCaseInsertTextBlockInputState(
     textBlock,
     projectMetadata,
@@ -783,26 +773,6 @@ function TextBlockControls({
 
       {!textBlock.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextOptionalStyleControls
-            idPrefix={textBlock.id}
-            label={textBlock.label}
-            style={textBlock.style}
-            avoidVisualElements={textBlock.avoidVisualElements}
-            onAvoidVisualElementsChange={(avoidVisualElements) =>
-              actions.handleTextBlockAvoidVisualElementsChange(
-                paneId,
-                textBlock.id,
-                avoidVisualElements,
-              )}
-            onStyleChange={(field, value) =>
-              actions.handleTextBlockStyleChange(
-                paneId,
-                textBlock.id,
-                field,
-                value,
-              )}
-          />
-
           <CaseInsertTextSourceControls
             label={textBlock.label}
             source={textBlock.source}
@@ -817,30 +787,13 @@ function TextBlockControls({
               )}
           />
 
-          <CaseInsertTextStyleControls
-            idPrefix={textBlock.id}
-            label={textBlock.label}
-            style={textBlock.style}
-            source={textBlock.source}
-            onStyleChange={(field, value) =>
-              actions.handleTextBlockStyleChange(
-                paneId,
-                textBlock.id,
-                field,
-                value,
-              )}
-            onApplyStylePreset={(presetId) =>
-              actions.handleApplyTextBlockStylePreset(
-                paneId,
-                textBlock.id,
-                presetId,
-              )}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
+            <p className="hint">
+              Select this text in the preview to edit style and placement.
+            </p>
             <button
               className="secondary-button"
               type="button"
@@ -855,29 +808,11 @@ function TextBlockControls({
             </button>
           </div>
 
-          <div
-            className="editor-control-group"
-            aria-label={`${textBlock.label} placement controls`}
-          >
-            <div className="editor-control-grid">
-              <label htmlFor={`${textBlock.id}-align`}>
-                <span>Align</span>
-                <select
-                  id={`${textBlock.id}-align`}
-                  value={textBlock.align}
-                  onChange={(event) =>
-                    actions.handleTextBlockAlignChange(
-                      paneId,
-                      textBlock.id,
-                      event.target.value as ProjectCaseInsertTextAlign,
-                    )}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </label>
-
+          {layoutPresets.length > 0 ? (
+            <div
+              className="editor-control-group"
+              aria-label={`${textBlock.label} layout preset controls`}
+            >
               <TextLayoutPresetControl
                 id={`${textBlock.id}-placement`}
                 presets={layoutPresets}
@@ -889,81 +824,7 @@ function TextBlockControls({
                   )}
               />
             </div>
-          </div>
-
-          <div
-            className="editor-control-group"
-            aria-label={`${textBlock.label} fine tuning controls`}
-          >
-            <div className="editor-control-grid">
-              <EditorRangeField
-                id={`${textBlock.id}-scale`}
-                label="Scale"
-                min={0.7}
-                max={1.8}
-                step={0.01}
-                value={textBlock.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-width`}
-                label="Width"
-                min={CASE_INSERT_TEXT_WIDTH_MIN}
-                max={CASE_INSERT_TEXT_WIDTH_MAX}
-                step={1}
-                value={getCaseInsertTextLayoutWidth(textBlock.layout)}
-                onChange={(value) => onLayoutChange('width', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-x`}
-                label="X"
-                min={0}
-                max={100}
-                step={1}
-                value={textBlock.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-y`}
-                label="Y"
-                min={0}
-                max={100}
-                step={1}
-                value={textBlock.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-              <CaseInsertTextBackgroundFineTuneControls
-                idPrefix={textBlock.id}
-                style={textBlock.style}
-                onStyleChange={(field, value) =>
-                  actions.handleTextBlockStyleChange(
-                    paneId,
-                    textBlock.id,
-                    field,
-                    value,
-                  )}
-              />
-            </div>
-          </div>
-
-          <div className="editor-control-group editor-action-group">
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetTextBlockLayout(paneId, textBlock.id)}
-            >
-              Reset {textBlock.label.toLocaleLowerCase()} layout
-            </button>
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetTextBlockStyle(paneId, textBlock.id)}
-            >
-              Reset {textBlock.label.toLocaleLowerCase()} style
-            </button>
-          </div>
+          ) : null}
         </div>
       )}
     </div>

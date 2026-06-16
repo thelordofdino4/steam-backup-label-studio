@@ -664,6 +664,19 @@ function App() {
       ))
   }
 
+  function handleCaseInsertPreviewTextResetLayout(
+    target: CaseInsertPreviewTextTarget,
+  ) {
+    if (target.scope !== 'templateTextBlock') {
+      return
+    }
+
+    caseInsertTemplateEditor.handleResetTextBlockLayout(
+      target.paneId,
+      target.textBlockId,
+    )
+  }
+
   function handleCaseInsertPreviewTextAlignChange(
     target: CaseInsertPreviewTextTarget,
     align: ProjectCaseInsertTextAlign,
@@ -1904,6 +1917,7 @@ function App() {
           onStyleChange: handleCaseInsertPreviewTextStyleChange,
           onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
           onResetStyle: handleCaseInsertPreviewTextResetStyle,
+          onResetLayout: handleCaseInsertPreviewTextResetLayout,
           onLayoutChange: handleCaseInsertPreviewTextLayoutChange,
           onAlignChange: handleCaseInsertPreviewTextAlignChange,
           onAvoidVisualElementsChange:

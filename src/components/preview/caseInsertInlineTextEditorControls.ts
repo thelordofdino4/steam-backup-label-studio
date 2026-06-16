@@ -7,13 +7,13 @@ import {
   type CaseInsertTextStyle,
   type CaseInsertTextStyleField,
   type CaseInsertTextStyleValue,
-} from '../../caseInsert/textStyles'
+} from '../../caseInsert/textStyles.ts'
 import {
   CASE_INSERT_TEXT_WIDTH_MAX,
   CASE_INSERT_TEXT_WIDTH_MIN,
   DEFAULT_CASE_INSERT_TEXT_WIDTH,
   getCaseInsertTextLayoutWidth,
-} from '../../caseInsert/textLayout'
+} from '../../caseInsert/textLayout.ts'
 import type {
   CaseInsertPreviewTextTarget,
 } from '../../caseInsert/previewTextSelection'
@@ -40,6 +40,7 @@ export type CaseInsertPreviewTextControlHandlers = {
     presetId: string,
   ) => void
   onResetStyle: (target: CaseInsertPreviewTextTarget) => void
+  onResetLayout: (target: CaseInsertPreviewTextTarget) => void
   onLayoutChange: (
     target: CaseInsertPreviewTextTarget,
     field: keyof ProjectCaseInsertLayout,
@@ -75,6 +76,7 @@ type CaseInsertInlineTextEditorControlParams = {
   yMin?: number
   yStep?: number
   onDeleteComplete?: () => void
+  onResetLayout?: () => void
 }
 
 const TEXT_ALIGNMENT_OPTIONS = [
@@ -103,6 +105,7 @@ export function createCaseInsertInlineTextEditorControls({
   yMin = 0,
   yStep = 1,
   onDeleteComplete,
+  onResetLayout,
 }: CaseInsertInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   return {
     presets: {
@@ -265,6 +268,7 @@ export function createCaseInsertInlineTextEditorControls({
         value: layout.y,
         onChange: (value) => handlers.onLayoutChange(target, 'y', value),
       },
+      resetLayout: onResetLayout,
       markdownPlanned: true,
     },
     deleteAction: {
