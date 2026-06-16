@@ -118,3 +118,107 @@ test('case insert contextual controls expose migrated text block properties', ()
     'delete-complete',
   ])
 })
+
+test('case insert contextual controls expose migrated text list properties', () => {
+  const calls: string[] = []
+  const target: CaseInsertPreviewTextTarget = {
+    scope: 'templateTextList',
+    paneId: 'tray',
+    textListId: 'tray-feature-bullets',
+  }
+  const layout: ProjectCaseInsertLayout = {
+    scale: 0.96,
+    width: 38,
+    x: 58,
+    y: 62,
+    rotation: 0,
+  }
+  const style = {
+    ...createDefaultCaseInsertTextStyle('features'),
+    backgroundEnabled: true,
+    backgroundColor: '#202a36',
+    backgroundOpacity: 0.45,
+    backgroundPadding: 1,
+    borderEnabled: true,
+    borderColor: '#94a3b8',
+    borderRadius: 0.5,
+  }
+  const handlers: CaseInsertPreviewTextControlHandlers = {
+    onEnabledChange: (_target, enabled) => {
+      calls.push(`enabled:${enabled}`)
+    },
+    onStyleChange: (_target, field, value) => {
+      calls.push(`style:${field}:${String(value)}`)
+    },
+    onApplyStylePreset: (_target, presetId) => {
+      calls.push(`preset:${presetId}`)
+    },
+    onResetStyle: () => {
+      calls.push('reset-style')
+    },
+    onResetLayout: () => {
+      calls.push('reset-layout')
+    },
+    onLayoutChange: (_target, field, value) => {
+      calls.push(`layout:${field}:${value}`)
+    },
+    onAlignChange: (_target, align) => {
+      calls.push(`align:${align}`)
+    },
+    onAvoidVisualElementsChange: (_target, avoidVisualElements) => {
+      calls.push(`avoid:${avoidVisualElements}`)
+    },
+  }
+
+  const controls = createCaseInsertInlineTextEditorControls({
+    avoidVisualElements: false,
+    handlers,
+    label: 'Feature bullets',
+    layout,
+    style,
+    target,
+    onDeleteComplete: () => calls.push('delete-complete'),
+    onResetLayout: () => handlers.onResetLayout(target),
+  })
+
+  assert.ok(controls.presets?.options.length)
+  controls.presets?.onReset?.()
+  controls.presets?.onApply('steam-archive')
+  assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
+  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.alignment, undefined)
+  assert.deepEqual(controls.text?.unsupported, ['Bold', 'Italic', 'Underline'])
+  assert.equal(controls.art?.color?.value, style.color)
+  assert.equal(controls.art?.contrast?.value, style.contrast)
+  assert.equal(controls.art?.backgroundEnabled?.checked, true)
+  assert.equal(controls.art?.backgroundColor?.value, '#202a36')
+  assert.equal(controls.art?.backgroundOpacity?.value, 0.45)
+  assert.equal(controls.art?.backgroundPadding?.value, 1)
+  assert.equal(controls.art?.borderEnabled?.checked, true)
+  assert.equal(controls.art?.borderColor?.value, '#94a3b8')
+  assert.equal(controls.art?.borderRadius?.value, 0.5)
+  assert.equal(controls.utilities?.respectVisualElements?.checked, false)
+  assert.equal(controls.utilities?.width?.value, layout.width)
+  assert.equal(controls.utilities?.x?.value, layout.x)
+  assert.equal(controls.utilities?.y?.value, layout.y)
+  assert.equal(typeof controls.utilities?.resetLayout, 'function')
+  assert.equal(controls.utilities?.markdownPlanned, true)
+  assert.equal(controls.deleteAction?.label, 'Hide Feature bullets')
+
+  controls.art?.backgroundOpacity?.onChange(0.8)
+  controls.utilities?.respectVisualElements?.onChange(true)
+  controls.utilities?.x?.onChange(44)
+  controls.utilities?.resetLayout?.()
+  controls.deleteAction?.onDelete()
+
+  assert.deepEqual(calls, [
+    'reset-style',
+    'preset:steam-archive',
+    'style:backgroundOpacity:0.8',
+    'avoid:true',
+    'layout:x:44',
+    'reset-layout',
+    'enabled:false',
+    'delete-complete',
+  ])
+})

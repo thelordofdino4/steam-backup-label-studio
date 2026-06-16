@@ -66,15 +66,11 @@ import {
   getCaseInsertTextBlockPriority,
 } from '../../caseInsert/textContent'
 import {
-  CASE_INSERT_TEXT_WIDTH_MAX,
-  CASE_INSERT_TEXT_WIDTH_MIN,
   getCaseInsertTextBlockLayoutPresets,
-  getCaseInsertTextLayoutWidth,
   getCaseInsertTextListLayoutPresets,
 } from '../../caseInsert/textLayout'
 import { EditorFeaturePanel } from '../editor/EditorPanel'
 import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
-import { EditorRangeField } from '../editor/EditorRangeField'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
@@ -102,10 +98,7 @@ import {
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
 import {
-  CaseInsertTextBackgroundFineTuneControls,
-  CaseInsertTextOptionalStyleControls,
   CaseInsertTextSourceControls,
-  CaseInsertTextStyleControls,
 } from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import type {
@@ -844,10 +837,6 @@ function TextListControls({
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const onLayoutChange = (
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) => actions.handleTextListLayoutChange(paneId, textList.id, field, value)
   const layoutPresets = getCaseInsertTextListLayoutPresets(paneId)
 
   return (
@@ -868,55 +857,18 @@ function TextListControls({
 
       {!textList.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextOptionalStyleControls
-            idPrefix={textList.id}
-            label={textList.label}
-            style={textList.style}
-            avoidVisualElements={textList.avoidVisualElements}
-            onAvoidVisualElementsChange={(avoidVisualElements) =>
-              actions.handleTextListAvoidVisualElementsChange(
-                paneId,
-                textList.id,
-                avoidVisualElements,
-              )}
-            onStyleChange={(field, value) =>
-              actions.handleTextListStyleChange(
-                paneId,
-                textList.id,
-                field,
-                value,
-              )}
-          />
-
           <CaseInsertTextSourceControls
             label={textList.label}
             source={textList.source}
-          />
-
-          <CaseInsertTextStyleControls
-            idPrefix={textList.id}
-            label={textList.label}
-            style={textList.style}
-            source={textList.source}
-            onStyleChange={(field, value) =>
-              actions.handleTextListStyleChange(
-                paneId,
-                textList.id,
-                field,
-                value,
-              )}
-            onApplyStylePreset={(presetId) =>
-              actions.handleApplyTextListStylePreset(
-                paneId,
-                textList.id,
-                presetId,
-              )}
           />
 
           <div
             className="editor-control-group"
             aria-label={`${textList.label} text controls`}
           >
+            <p className="hint">
+              Select this list in the preview to edit style and placement.
+            </p>
             {textList.items.length === 0 ? (
               <p className="hint">No list items yet.</p>
             ) : null}
@@ -943,11 +895,11 @@ function TextListControls({
             </button>
           </div>
 
-          <div
-            className="editor-control-group"
-            aria-label={`${textList.label} placement controls`}
-          >
-            <div className="editor-control-grid">
+          {layoutPresets.length > 0 ? (
+            <div
+              className="editor-control-group"
+              aria-label={`${textList.label} layout preset controls`}
+            >
               <TextLayoutPresetControl
                 id={`${textList.id}-placement`}
                 presets={layoutPresets}
@@ -959,81 +911,7 @@ function TextListControls({
                   )}
               />
             </div>
-          </div>
-
-          <div
-            className="editor-control-group"
-            aria-label={`${textList.label} fine tuning controls`}
-          >
-            <div className="editor-control-grid">
-              <EditorRangeField
-                id={`${textList.id}-scale`}
-                label="Scale"
-                min={0.7}
-                max={1.8}
-                step={0.01}
-                value={textList.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <EditorRangeField
-                id={`${textList.id}-width`}
-                label="Width"
-                min={CASE_INSERT_TEXT_WIDTH_MIN}
-                max={CASE_INSERT_TEXT_WIDTH_MAX}
-                step={1}
-                value={getCaseInsertTextLayoutWidth(textList.layout)}
-                onChange={(value) => onLayoutChange('width', value)}
-              />
-              <EditorRangeField
-                id={`${textList.id}-x`}
-                label="X"
-                min={0}
-                max={100}
-                step={1}
-                value={textList.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <EditorRangeField
-                id={`${textList.id}-y`}
-                label="Y"
-                min={0}
-                max={100}
-                step={1}
-                value={textList.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-              <CaseInsertTextBackgroundFineTuneControls
-                idPrefix={textList.id}
-                style={textList.style}
-                onStyleChange={(field, value) =>
-                  actions.handleTextListStyleChange(
-                    paneId,
-                    textList.id,
-                    field,
-                    value,
-                  )}
-              />
-            </div>
-          </div>
-
-          <div className="editor-control-group editor-action-group">
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetTextListLayout(paneId, textList.id)}
-            >
-              Reset {textList.label.toLocaleLowerCase()} layout
-            </button>
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetTextListStyle(paneId, textList.id)}
-            >
-              Reset {textList.label.toLocaleLowerCase()} style
-            </button>
-          </div>
+          ) : null}
         </div>
       )}
     </div>

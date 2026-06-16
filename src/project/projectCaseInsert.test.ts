@@ -2206,6 +2206,8 @@ test('case branding source catalog exposes shared mark and real logo sources', (
 test('feature bullet helpers edit items without replacing feature state', () => {
   let textList = createDefaultProjectJewelCaseState().templates.tray.textLists[0]!
 
+  assert.deepEqual(addCaseInsertTextListItem(textList).items, ['New item'])
+
   textList = addCaseInsertTextListItem(textList, 'First bullet')
   textList = addCaseInsertTextListItem(textList, 'Second bullet')
   textList = updateCaseInsertTextListItem(textList, 1, 'Updated second bullet')

@@ -70,7 +70,7 @@ test('cover and tray text block sidebars keep entry/source controls only', () =>
   assert.doesNotMatch(textBlockControls, /handleResetTextBlockStyle/)
 })
 
-test('cover and tray text list sidebars keep list management controls', () => {
+test('cover and tray text list sidebars keep entry/source controls only', () => {
   const source = readRepoFile(
     'src/components/caseInsert/CaseInsertTemplateControls.tsx',
   )
@@ -80,14 +80,49 @@ test('cover and tray text list sidebars keep list management controls', () => {
     'CaseInsertTemplateArtworkControls',
   )
 
-  assert.match(textListControls, /CaseInsertTextOptionalStyleControls/)
-  assert.match(textListControls, /CaseInsertTextStyleControls/)
-  assert.match(textListControls, /CaseInsertTextBackgroundFineTuneControls/)
   assert.match(textListControls, /handleTextListEnabledChange/)
+  assert.match(textListControls, /CaseInsertTextSourceControls/)
   assert.match(textListControls, /No list items yet/)
+  assert.match(textListControls, /Select this list in the preview/)
   assert.match(textListControls, /Edit in preview/)
   assert.match(textListControls, /Add item/)
   assert.match(textListControls, /handleAddTextListItem/)
+  assert.match(textListControls, /TextLayoutPresetControl/)
+  assert.match(textListControls, /handleApplyTextListLayoutPreset/)
+
+  assert.doesNotMatch(textListControls, /CaseInsertTextOptionalStyleControls/)
+  assert.doesNotMatch(textListControls, /CaseInsertTextStyleControls/)
+  assert.doesNotMatch(
+    textListControls,
+    /CaseInsertTextBackgroundFineTuneControls/,
+  )
+  assert.doesNotMatch(textListControls, /EditorRangeField/)
+  assert.doesNotMatch(textListControls, /handleTextListStyleChange/)
+  assert.doesNotMatch(textListControls, /handleTextListLayoutChange/)
+  assert.doesNotMatch(
+    textListControls,
+    /handleTextListAvoidVisualElementsChange/,
+  )
+  assert.doesNotMatch(textListControls, /handleApplyTextListStylePreset/)
+  assert.doesNotMatch(textListControls, /handleResetTextListLayout/)
+  assert.doesNotMatch(textListControls, /handleResetTextListStyle/)
+})
+
+test('cover and tray text list item management helpers remain wired', () => {
+  const editorHook = readRepoFile('src/hooks/useCaseInsertTemplateEditor.ts')
+  const transitions = readRepoFile('src/caseInsert/textTransitions.ts')
+
+  assert.match(editorHook, /function handleAddTextListItem/)
+  assert.match(editorHook, /function handleTextListItemValueChange/)
+  assert.match(editorHook, /function handleRemoveTextListItem/)
+  assert.match(editorHook, /handleAddTextListItem,/)
+  assert.match(editorHook, /handleTextListItemValueChange,/)
+  assert.match(editorHook, /handleRemoveTextListItem,/)
+
+  assert.match(transitions, /export function addCaseInsertTextListItem/)
+  assert.match(transitions, /export function updateCaseInsertTextListItem/)
+  assert.match(transitions, /export function removeCaseInsertTextListItem/)
+  assert.match(transitions, /export function setCaseInsertTextListItems/)
 })
 
 test('case insert export continues reading migrated text block state', () => {

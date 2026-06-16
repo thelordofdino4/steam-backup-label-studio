@@ -602,6 +602,8 @@ function CaseInsertTemplateTextList({
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onResetLayout: () =>
+          previewTextControlHandlers.onResetLayout(textTarget),
       })
     : undefined
 
