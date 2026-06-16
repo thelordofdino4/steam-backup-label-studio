@@ -69,7 +69,9 @@ export type DiscPreviewProps = {
     layout: DiscTextLayoutSettings
     discNumberArtwork: ProjectDiscNumberArtwork
     selectedDiscTemplate: DiscTemplate
+    selectedKey: DiscTextKey | null
     getPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
+    onSelectedKeyChange: (key: DiscTextKey | null) => void
     onTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
     onTextValueChange: (key: DiscTextKey, value: string) => void
     onTextEditComplete: (key: DiscTextKey) => void
@@ -184,8 +186,6 @@ export function DiscPreview({
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
-  const [selectedDiscTextKey, setSelectedDiscTextKey] =
-    useState<DiscTextKey | null>(null)
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
       closedButtonCount: 2,
@@ -374,8 +374,8 @@ export function DiscPreview({
         selectedDiscTemplate={discText.selectedDiscTemplate}
         avoidanceRegions={discTextOccupiedRegions}
         getDiscTextPreviewTransform={discText.getPreviewTransform}
-        selectedDiscTextKey={selectedDiscTextKey}
-        onSelectedDiscTextKeyChange={setSelectedDiscTextKey}
+        selectedDiscTextKey={discText.selectedKey}
+        onSelectedDiscTextKeyChange={discText.onSelectedKeyChange}
         onDiscTextEnabledChange={discText.onTextEnabledChange}
         onDiscTextValueChange={discText.onTextValueChange}
         onDiscTextEditComplete={discText.onTextEditComplete}

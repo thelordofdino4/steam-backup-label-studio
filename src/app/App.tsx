@@ -142,7 +142,11 @@ import {
 } from '../branding/steamBanner'
 import { useCaseInsertPreviewPointerDrag } from '../interaction/useCaseInsertPreviewPointerDrag'
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
-import { getDiscTextPreviewTransform, type SteamLogoPlacement } from '../discText/index'
+import {
+  getDiscTextPreviewTransform,
+  type DiscTextKey,
+  type SteamLogoPlacement,
+} from '../discText/index'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -277,6 +281,8 @@ function App() {
 
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
+  const [selectedDiscTextKey, setSelectedDiscTextKey] =
+    useState<DiscTextKey | null>(null)
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -319,6 +325,13 @@ function App() {
     selectedDiscTemplate,
     steamLogoPlacement,
   })
+
+  function handleDiscTextPreviewEditStart(key: DiscTextKey) {
+    if (!discTextSettings[key]) {
+      handleDiscTextToggle(key, true)
+    }
+    setSelectedDiscTextKey(key)
+  }
   const {
     projectLogoAssets,
     setProjectLogoAssets,
@@ -2116,7 +2129,9 @@ function App() {
           discTextTitleValue={discTextTitleValue}
           resolvedDiscTextTitle={resolvedDiscTextTitle}
           selectedDiscTemplate={selectedDiscTemplate}
+          selectedDiscTextKey={selectedDiscTextKey}
           handleDiscTextToggle={handleDiscTextToggle}
+          handleDiscTextPreviewEditStart={handleDiscTextPreviewEditStart}
           handleDiscTextContentChange={handleDiscTextContentChange}
           handleUseMetadataDiscTextValue={handleUseMetadataDiscTextValue}
           handleDiscTextLayoutChange={handleDiscTextLayoutChange}
@@ -2176,7 +2191,9 @@ function App() {
           layout: discTextLayout,
           discNumberArtwork: projectDiscNumberArtwork,
           selectedDiscTemplate,
+          selectedKey: selectedDiscTextKey,
           getPreviewTransform: getDiscTextPreviewTransform,
+          onSelectedKeyChange: setSelectedDiscTextKey,
           onTextEnabledChange: handleDiscTextToggle,
           onTextValueChange: handleDiscTextInlineDraftChange,
           onTextEditComplete: finalizeDiscTextInlineDraft,

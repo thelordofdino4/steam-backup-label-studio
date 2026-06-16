@@ -3,9 +3,6 @@ import {
   CURVED_COPYRIGHT_LAYOUT_X_MIN,
   CURVED_COPYRIGHT_LAYOUT_Y_MAX,
   CURVED_COPYRIGHT_LAYOUT_Y_MIN,
-  DISC_TEXT_WIDTH_MAX,
-  DISC_TEXT_WIDTH_MIN,
-  getDiscTextContent,
   getDiscTextLabel,
   isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
@@ -25,7 +22,6 @@ import {
   type DiscNumberArtworkMode,
   type DiscNumberBadgeSet,
 } from '../../discText/discNumberArtwork'
-import { getStraightDiscTextLayoutSliderRanges } from '../../layout/discElementSafeZone'
 import {
   getDiscTextLayoutPresetsForKey,
   type DiscTextLayoutPreset,
@@ -50,19 +46,19 @@ export function DiscTextControl({
   discTextStyles,
   projectDiscNumberArtwork,
   discTextValues,
+  selectedDiscTextKey,
   discTextValueSources,
   metadataBoundDiscTextValues,
   discTextTitleValue,
   resolvedDiscTextTitle,
-  selectedDiscTemplate,
   handleDiscTextToggle,
+  handleDiscTextPreviewEditStart,
   handleDiscTextContentChange,
   handleUseMetadataDiscTextValue,
   handleDiscTextLayoutChange,
   handleDiscTextAlignmentChange,
   handleDiscTextModeChange,
   handleDiscTextArcSideChange,
-  handleDiscTextVisualAvoidanceChange,
   handleResetDiscTextLayout,
   handleDiscTextStyleChange,
   handleApplyDiscTextStylePreset,
@@ -76,6 +72,7 @@ export function DiscTextControl({
   const isTextEnabled = discTextSettings[key]
   const isCopyright = key === 'copyright'
   const isCurvedCopyright = isCurvedCopyrightDiscTextLayout(key, layout)
+  const isSelectedForPreview = selectedDiscTextKey === key
   const shouldShowSidebarTextValue = isCurvedCopyright
   const presets = getDiscTextLayoutPresetsForKey(key)
   const inputState = getDiscTextInputState(
@@ -85,19 +82,6 @@ export function DiscTextControl({
     discTextValueSources,
     discTextTitleValue,
     resolvedDiscTextTitle,
-  )
-  const renderedText = getDiscTextContent(
-    key,
-    metadataBoundDiscTextValues,
-    resolvedDiscTextTitle,
-  )
-  const straightSliderRanges = getStraightDiscTextLayoutSliderRanges(
-    key,
-    renderedText,
-    layout,
-    selectedDiscTemplate,
-    undefined,
-    discTextStyles,
   )
   const controlLabel = getDiscTextLabel(key)
 
@@ -114,59 +98,6 @@ export function DiscTextControl({
 
       {!isTextEnabled ? null : (
         <div className="editor-text-control-body">
-          {!isCurvedCopyright && (
-            <div
-              className="editor-control-group editor-optional-checkboxes"
-              aria-label={`${controlLabel} optional controls`}
-            >
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={layout.avoidVisualElements}
-                  onChange={(event) =>
-                    handleDiscTextVisualAvoidanceChange(
-                      key,
-                      event.target.checked,
-                    )
-                  }
-                />
-                <span>Respect visual elements</span>
-              </label>
-
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={textStyle.backgroundEnabled}
-                  onChange={(event) =>
-                    handleDiscTextStyleChange(
-                      key,
-                      'backgroundEnabled',
-                      event.target.checked,
-                    )
-                  }
-                />
-                <span>Block background</span>
-              </label>
-
-              {textStyle.backgroundEnabled && (
-                <label className="checkbox-row editor-nested-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={textStyle.borderEnabled}
-                    onChange={(event) =>
-                      handleDiscTextStyleChange(
-                        key,
-                        'borderEnabled',
-                        event.target.checked,
-                      )
-                    }
-                  />
-                  <span>Border</span>
-                </label>
-              )}
-            </div>
-          )}
-
           {inputState.isMetadataBacked && (
             <div
               className="editor-control-group"
@@ -195,11 +126,12 @@ export function DiscTextControl({
             </div>
           )}
 
-          <div
-            className="editor-control-group"
-            aria-label={`${controlLabel} type and style controls`}
-          >
-            {key === 'discNumber' && (
+          {key === 'discNumber' || isCopyright ? (
+            <div
+              className="editor-control-group"
+              aria-label={`${controlLabel} type controls`}
+            >
+              {key === 'discNumber' && (
               <div className="disc-number-artwork-controls">
                 <label className="field-label" htmlFor="disc-number-artwork-mode">
                   Display
@@ -239,127 +171,48 @@ export function DiscTextControl({
                   </>
                 ) : null}
               </div>
-            )}
+              )}
 
-            <div className="editor-style-grid">
               {isCopyright && (
-                <label>
-                  <span>Mode</span>
-                  <select
-                    value={layout.mode}
-                    onChange={(event) =>
-                      handleDiscTextModeChange(
-                        key,
-                        event.target.value as DiscTextMode,
-                      )
-                    }
-                  >
-                    <option value="straight">Straight</option>
-                    <option value="curved">Curved</option>
-                  </select>
-                </label>
-              )}
-
-              <label>
-                <span>Style preset</span>
-                <select
-                  defaultValue=""
-                  onChange={(event) => {
-                    if (event.target.value) {
-                      handleApplyDiscTextStylePreset(key, event.target.value)
-                    }
-                    event.currentTarget.value = ''
-                  }}
-                >
-                  <option value="">Choose preset...</option>
-                  {DISC_TEXT_STYLE_PRESETS.map((preset) => (
-                    <option key={preset.id} value={preset.id}>{preset.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>Font</span>
-                <select
-                  value={textStyle.fontFamily}
-                  onChange={(event) =>
-                    handleDiscTextStyleChange(
-                      key,
-                      'fontFamily',
-                      event.target.value as DiscTextFontFamily,
-                    )
-                  }
-                >
-                  {DISC_TEXT_FONT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>Color</span>
-                <input
-                  type="color"
-                  value={textStyle.color}
-                  onChange={(event) =>
-                    handleDiscTextStyleChange(key, 'color', event.target.value)
-                  }
-                />
-              </label>
-
-              <label>
-                <span>Contrast</span>
-                <select
-                  value={textStyle.contrast}
-                  onChange={(event) =>
-                    handleDiscTextStyleChange(
-                      key,
-                      'contrast',
-                      event.target.value as DiscTextContrastMode,
-                    )
-                  }
-                >
-                  {DISC_TEXT_CONTRAST_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
-              </label>
-
-              {!isCurvedCopyright && textStyle.backgroundEnabled && (
-                <label>
-                  <span>Fill</span>
-                  <input
-                    type="color"
-                    value={textStyle.backgroundColor}
-                    onChange={(event) =>
-                      handleDiscTextStyleChange(
-                        key,
-                        'backgroundColor',
-                        event.target.value,
-                      )
-                    }
-                  />
-                </label>
-              )}
-
-              {!isCurvedCopyright && textStyle.backgroundEnabled && textStyle.borderEnabled && (
-                <label>
-                  <span>Line</span>
-                  <input
-                    type="color"
-                    value={textStyle.borderColor}
-                    onChange={(event) =>
-                      handleDiscTextStyleChange(
-                        key,
-                        'borderColor',
-                        event.target.value,
-                      )
-                    }
-                  />
-                </label>
+                <div className="editor-style-grid">
+                  <label>
+                    <span>Mode</span>
+                    <select
+                      value={layout.mode}
+                      onChange={(event) =>
+                        handleDiscTextModeChange(
+                          key,
+                          event.target.value as DiscTextMode,
+                        )
+                      }
+                    >
+                      <option value="straight">Straight</option>
+                      <option value="curved">Curved</option>
+                    </select>
+                  </label>
+                </div>
               )}
             </div>
-          </div>
+          ) : null}
+
+          {!isCurvedCopyright ? (
+            <div
+              className="editor-control-group"
+              aria-label={`${controlLabel} preview edit controls`}
+            >
+              <p className="hint">
+                Select this text in the preview to edit style and placement.
+              </p>
+              <button
+                className="secondary-button"
+                type="button"
+                aria-pressed={isSelectedForPreview}
+                onClick={() => handleDiscTextPreviewEditStart(key)}
+              >
+                {isSelectedForPreview ? 'Editing in preview' : 'Edit in preview'}
+              </button>
+            </div>
+          ) : null}
 
           {shouldShowSidebarTextValue ? (
             <div
@@ -383,195 +236,215 @@ export function DiscTextControl({
             </div>
           ) : null}
 
-          <div
-            className="editor-control-group"
-            aria-label={`${controlLabel} placement controls`}
-          >
-            <div className="editor-control-grid">
-              <label>
-                <span>Align</span>
-                <select
-                  value={layout.align}
-                  onChange={(event) =>
-                    handleDiscTextAlignmentChange(
-                      key,
-                      event.target.value as DiscTextAlignment,
-                    )
-                  }
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </label>
+          {isCurvedCopyright ? (
+            <>
+              <div
+                className="editor-control-group"
+                aria-label={`${controlLabel} curved style controls`}
+              >
+                <div className="editor-style-grid">
+                  <label>
+                    <span>Style preset</span>
+                    <select
+                      defaultValue=""
+                      onChange={(event) => {
+                        if (event.target.value) {
+                          handleApplyDiscTextStylePreset(key, event.target.value)
+                        }
+                        event.currentTarget.value = ''
+                      }}
+                    >
+                      <option value="">Choose preset...</option>
+                      {DISC_TEXT_STYLE_PRESETS.map((preset) => (
+                        <option key={preset.id} value={preset.id}>{preset.label}</option>
+                      ))}
+                    </select>
+                  </label>
 
-              {isCurvedCopyright && (
-                <label>
-                  <span>Side</span>
-                  <select
-                    aria-label="Arc side"
-                    value={layout.arcSide}
-                    disabled={steamLogoPlacement !== 'none'}
-                    onChange={(event) =>
-                      handleDiscTextArcSideChange(
-                        key,
-                        event.target.value as DiscTextArcSide,
-                      )
-                    }
-                  >
-                    <option value="top">Top arc</option>
-                    <option value="bottom">Bottom arc</option>
-                  </select>
-                </label>
-              )}
-            </div>
+                  <label>
+                    <span>Font</span>
+                    <select
+                      value={textStyle.fontFamily}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(
+                          key,
+                          'fontFamily',
+                          event.target.value as DiscTextFontFamily,
+                        )
+                      }
+                    >
+                      {DISC_TEXT_FONT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
 
-            {presets.length > 0 && (
-              <label className="field-label spacing-top" htmlFor={`disc-text-preset-${key}`}>
-                <span>Layout preset</span>
-                <select
-                  id={`disc-text-preset-${key}`}
-                  defaultValue=""
-                  onChange={(event) => {
-                    const preset = presets.find((candidate) => candidate.id === event.target.value)
-                    if (preset) applyDiscTextPreset(key, preset)
-                    event.currentTarget.value = ''
-                  }}
-                >
-                  <option value="">Choose preset...</option>
-                  {presets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>{preset.label}</option>
-                  ))}
-                </select>
-              </label>
-            )}
-          </div>
+                  <label>
+                    <span>Color</span>
+                    <input
+                      type="color"
+                      value={textStyle.color}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(key, 'color', event.target.value)
+                      }
+                    />
+                  </label>
 
-          <div
-            className="editor-control-group"
-            aria-label={`${controlLabel} fine tuning controls`}
-          >
-            <div className="editor-control-grid">
-              <EditorRangeField
-                id={`disc-text-${key}-scale`}
-                label="Scale"
-                min={0.5}
-                max={1.8}
-                step={0.01}
-                value={layout.scale}
-                onChange={(value) =>
-                  handleDiscTextLayoutChange(key, 'scale', value)}
-              />
+                  <label>
+                    <span>Contrast</span>
+                    <select
+                      value={textStyle.contrast}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(
+                          key,
+                          'contrast',
+                          event.target.value as DiscTextContrastMode,
+                        )
+                      }
+                    >
+                      {DISC_TEXT_CONTRAST_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
 
-              {!isCurvedCopyright && (
-                <EditorRangeField
-                  id={`disc-text-${key}-width`}
-                  label="Width"
-                  min={DISC_TEXT_WIDTH_MIN}
-                  max={DISC_TEXT_WIDTH_MAX}
-                  step={1}
-                  value={layout.width}
-                  onChange={(value) =>
-                    handleDiscTextLayoutChange(key, 'width', value)}
-                />
-              )}
+              <div
+                className="editor-control-group"
+                aria-label={`${controlLabel} curved placement controls`}
+              >
+                <div className="editor-control-grid">
+                  <label>
+                    <span>Align</span>
+                    <select
+                      value={layout.align}
+                      onChange={(event) =>
+                        handleDiscTextAlignmentChange(
+                          key,
+                          event.target.value as DiscTextAlignment,
+                        )
+                      }
+                    >
+                      <option value="left">Left</option>
+                      <option value="center">Center</option>
+                      <option value="right">Right</option>
+                    </select>
+                  </label>
 
-              <EditorRangeField
-                id={`disc-text-${key}-x`}
-                label={isCurvedCopyright ? 'Angle' : 'X'}
-                min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MIN : straightSliderRanges.x.min}
-                max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_X_MAX : straightSliderRanges.x.max}
-                step={0.1}
-                value={layout.x}
-                onChange={(value) =>
-                  handleDiscTextLayoutChange(key, 'x', value)}
-              />
+                  <label>
+                    <span>Side</span>
+                    <select
+                      aria-label="Arc side"
+                      value={layout.arcSide}
+                      disabled={steamLogoPlacement !== 'none'}
+                      onChange={(event) =>
+                        handleDiscTextArcSideChange(
+                          key,
+                          event.target.value as DiscTextArcSide,
+                        )
+                      }
+                    >
+                      <option value="top">Top arc</option>
+                      <option value="bottom">Bottom arc</option>
+                    </select>
+                  </label>
+                </div>
 
-              <EditorRangeField
-                id={`disc-text-${key}-y`}
-                label={isCurvedCopyright ? 'Inset' : 'Y'}
-                min={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MIN : straightSliderRanges.y.min}
-                max={isCurvedCopyright ? CURVED_COPYRIGHT_LAYOUT_Y_MAX : straightSliderRanges.y.max}
-                step={0.1}
-                value={layout.y}
-                onChange={(value) =>
-                  handleDiscTextLayoutChange(key, 'y', value)}
-              />
+                {presets.length > 0 && (
+                  <label className="field-label spacing-top" htmlFor={`disc-text-preset-${key}`}>
+                    <span>Layout preset</span>
+                    <select
+                      id={`disc-text-preset-${key}`}
+                      defaultValue=""
+                      onChange={(event) => {
+                        const preset = presets.find((candidate) => candidate.id === event.target.value)
+                        if (preset) applyDiscTextPreset(key, preset)
+                        event.currentTarget.value = ''
+                      }}
+                    >
+                      <option value="">Choose preset...</option>
+                      {presets.map((preset) => (
+                        <option key={preset.id} value={preset.id}>{preset.label}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+              </div>
 
-              {isCurvedCopyright && (
-                <EditorRangeField
-                  id={`disc-text-${key}-arc`}
-                  label="Arc"
-                  min={80}
-                  max={320}
-                  step={1}
-                  value={layout.arcDegrees}
-                  onChange={(value) =>
-                    handleDiscTextLayoutChange(key, 'arcDegrees', value)}
-                />
-              )}
-
-              {!isCurvedCopyright && textStyle.backgroundEnabled && (
-                <>
+              <div
+                className="editor-control-group"
+                aria-label={`${controlLabel} curved fine tuning controls`}
+              >
+                <div className="editor-control-grid">
                   <EditorRangeField
-                    id={`disc-text-${key}-background-opacity`}
-                    label="Opacity"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={textStyle.backgroundOpacity}
+                    id={`disc-text-${key}-scale`}
+                    label="Scale"
+                    min={0.5}
+                    max={1.8}
+                    step={0.01}
+                    value={layout.scale}
                     onChange={(value) =>
-                      handleDiscTextStyleChange(key, 'backgroundOpacity', value)}
+                      handleDiscTextLayoutChange(key, 'scale', value)}
                   />
 
                   <EditorRangeField
-                    id={`disc-text-${key}-background-padding`}
-                    label="Padding"
-                    min={0}
-                    max={4}
+                    id={`disc-text-${key}-x`}
+                    label="Angle"
+                    min={CURVED_COPYRIGHT_LAYOUT_X_MIN}
+                    max={CURVED_COPYRIGHT_LAYOUT_X_MAX}
                     step={0.1}
-                    value={textStyle.backgroundPadding}
+                    value={layout.x}
                     onChange={(value) =>
-                      handleDiscTextStyleChange(key, 'backgroundPadding', value)}
+                      handleDiscTextLayoutChange(key, 'x', value)}
                   />
-                </>
-              )}
 
-              {!isCurvedCopyright && textStyle.backgroundEnabled && textStyle.borderEnabled && (
-                <EditorRangeField
-                  id={`disc-text-${key}-border-radius`}
-                  label="Radius"
-                  min={0}
-                  max={4}
-                  step={0.1}
-                  value={textStyle.borderRadius}
-                  onChange={(value) =>
-                    handleDiscTextStyleChange(key, 'borderRadius', value)}
-                />
-              )}
-            </div>
-          </div>
+                  <EditorRangeField
+                    id={`disc-text-${key}-y`}
+                    label="Inset"
+                    min={CURVED_COPYRIGHT_LAYOUT_Y_MIN}
+                    max={CURVED_COPYRIGHT_LAYOUT_Y_MAX}
+                    step={0.1}
+                    value={layout.y}
+                    onChange={(value) =>
+                      handleDiscTextLayoutChange(key, 'y', value)}
+                  />
 
-          <div
-            className="editor-control-group editor-action-group"
-            aria-label={`${controlLabel} reset actions`}
-          >
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() => handleResetDiscTextLayout(key)}
-            >
-              Reset {controlLabel.toLowerCase()} layout
-            </button>
+                  <EditorRangeField
+                    id={`disc-text-${key}-arc`}
+                    label="Arc"
+                    min={80}
+                    max={320}
+                    step={1}
+                    value={layout.arcDegrees}
+                    onChange={(value) =>
+                      handleDiscTextLayoutChange(key, 'arcDegrees', value)}
+                  />
+                </div>
+              </div>
 
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() => handleResetDiscTextStyle(key)}
-            >
-              Reset {controlLabel.toLowerCase()} style
-            </button>
-          </div>
+              <div
+                className="editor-control-group editor-action-group"
+                aria-label={`${controlLabel} curved reset actions`}
+              >
+                <button
+                  className="secondary-button editor-text-reset-button"
+                  type="button"
+                  onClick={() => handleResetDiscTextLayout(key)}
+                >
+                  Reset {controlLabel.toLowerCase()} layout
+                </button>
+
+                <button
+                  className="secondary-button editor-text-reset-button"
+                  type="button"
+                  onClick={() => handleResetDiscTextStyle(key)}
+                >
+                  Reset {controlLabel.toLowerCase()} style
+                </button>
+              </div>
+            </>
+          ) : null}
         </div>
       )}
     </div>
