@@ -1,6 +1,6 @@
 # Text Editor Contract
 
-Last refreshed: 2026-06-15.
+Last refreshed: 2026-06-16.
 
 This contract freezes the expected behavior of the preview-mounted text editor
 before more text editor feature work continues. It exists because recent text
@@ -70,8 +70,8 @@ tested, and the remaining divergences are recorded.
 - Cover sheet, tray card, left spine, right spine, and straight disc text should
   all use the same positioning contract, with target-specific geometry only
   where the surface requires it.
-- Right spine menu clipping is a known runtime failure to verify before the
-  positioning contract can be considered satisfied.
+- Right spine menu clipping was reported runtime-verified in PR `#186`; keep it
+  as a required smoke scenario whenever contextual editor positioning changes.
 
 ## Input And Caret Contract
 
@@ -91,11 +91,24 @@ tested, and the remaining divergences are recorded.
 
 - Curved disc text remains SVG/textPath based.
 - Curved disc text must not be forced into a visible rectangular textarea.
-- Straight disc text may share input infrastructure only when the visible
-  renderer remains correct.
+- Straight disc text may share input infrastructure only through an adapter path
+  that keeps the SVG/final preview renderer visible and correct.
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
 - Any future hidden/native input adapter for curved text must keep SVG as the
   visible source of truth.
+
+## Current Implementation Notes
+
+As of PR `#186`, cover sheet, tray card, left spine, right spine, and straight
+disc inline editing use adapter input/selection paths so the final preview
+renderer remains the visible glyph renderer during edit. The adapter may own
+keyboard input, caret placement, selection affordances, dotted boundaries, and
+menu positioning, but it must not become a second visible text renderer.
+
+Curved disc copyright/legal text remains the intentional exception: it stays
+SVG/textPath based and must not open the rectangular inline editor unless a
+future ADR defines a curved-text adapter that preserves SVG as the visible
+source of truth.
 
 ## Protected Existing Behavior
 
@@ -123,6 +136,9 @@ is required:
 - Left/right spine text: does not type backwards, delete characters, or jump
   after exit.
 - Straight disc text: shows all words, preserves spaces, and wraps correctly.
+- Straight disc text: keeps SVG fill/stroke/shadow visible during editing and
+  does not shift, grow, shrink, or show duplicate text when entering/exiting
+  edit mode.
 - Curved disc text: remains SVG/textPath and does not regress.
 - Spacebar: Space changes the live draft and visible preview.
 - Multiple, trailing, and leading spaces are preserved in the live draft and
@@ -131,6 +147,8 @@ is required:
   while empty.
 - Caret: blue, blinking, and located at the actual insertion point.
 - Ghosting: no duplicate visible text under the editor.
+- Selection: Ctrl+A and pointer-drag selection operate on the visible text for
+  adapter-backed insert and straight-disc editing paths.
 - Panels: cover/tray/spine feature groups remain bundled and recognizable.
 
 ## Current Gate Owners

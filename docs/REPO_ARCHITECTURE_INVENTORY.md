@@ -5,10 +5,14 @@ This inventory records how Steam Backup Label Studio is implemented in the repos
 ## Basis
 
 - Branch: `main`
-- HEAD commit: `94fa3cf2c9936aa281d2da017f189e91b491edfc`
+- HEAD commit at original inventory draft: `94fa3cf2c9936aa281d2da017f189e91b491edfc`
+- WYSIWYG text sections were refreshed after PR `#186` was merged into `main`
+  at `40fd7e4ca44648a4fa0061696bc1aa4583ff8d45`.
 - Working tree note: the checkout had pre-existing working-tree noise before this file was created. Some source paths appeared in `git status` even when `git diff` showed no content changes for those files. Status-only/no-diff paths are not treated as meaningful dirty source changes in this inventory; only paths with actual content diffs should be treated as uncommitted source changes.
 - This file is based on repository files and live issue review. Unknowns are marked as unknown.
-- No runtime, browser, or Tauri manual verification was performed for this inventory.
+- No runtime, browser, or Tauri manual verification was performed during this
+  inventory refresh. Runtime observations for WYSIWYG text come from the PR
+  `#186` merge report.
 
 ## Open Issue Context
 
@@ -433,14 +437,24 @@ Source-of-truth state:
 
 Render path:
 
-- Disc text renders through `DiscTextLayer`, SVG text helpers, and inline editor overlays for selected straight text.
+- Disc text renders through `DiscTextLayer`, SVG text helpers, and an inline
+  adapter for selected straight text. The SVG/final preview renderer remains
+  the visible glyph source during straight-disc editing.
 - Case insert text renders through template/spine preview layers and computed visual layout helpers.
+- Case insert inline editing uses the shared editor in adapter mode for cover,
+  tray, left spine, and right spine text, keeping the existing template/spine
+  preview renderers visible during editing.
 
 Edit/interaction path:
 
 - Sidebar text controls update text state and styles.
-- Straight disc text can be edited inline through `InlinePreviewTextEditor`.
-- Case insert preview text selection/editing helpers exist; the exact complete runtime behavior was not manually verified here.
+- Straight disc text can be edited inline through `InlinePreviewTextEditor`
+  adapter mode.
+- Curved disc text remains SVG/textPath based and is not routed through a
+  visible rectangular editor.
+- Case insert preview text selection/editing helpers support adapter-based
+  preview editing; broad case insert runtime behavior was not independently
+  manually verified during this inventory refresh.
 
 Save/load path:
 
@@ -640,7 +654,11 @@ Render path:
 
 - Editable preview elements expose data attributes.
 - `PreviewElementOverlay` measures matching DOM nodes and draws hover/selected boxes.
-- Inline text editor renders preview-mounted textarea and controls.
+- Inline text editor renders preview-mounted contextual controls and hidden
+  native input/selection adapters. For case insert and straight disc WYSIWYG
+  paths, the final preview renderer remains visible as the glyph renderer
+  during editing; the adapter supplies input, caret, selection, boundaries, and
+  menu affordances.
 
 Edit/interaction path:
 
@@ -661,6 +679,7 @@ Tests:
 - `src/interaction/dragGeometry.test.ts`
 - `src/editor/previewElementOverlay.test.ts`
 - `src/components/preview/inlinePreviewTextEditor*.test.ts`
+- `src/diagnostics/textEditorContract.test.ts`
 
 Risks:
 

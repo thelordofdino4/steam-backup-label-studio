@@ -13,6 +13,15 @@ Branch and commit at the time this SDD was drafted:
 - Branch: `main`
 - HEAD commit: `94fa3cf2c9936aa281d2da017f189e91b491edfc`
 
+WYSIWYG text refresh note:
+
+- Text editor architecture notes were reviewed again after PR `#186` was
+  merged into `main` at `40fd7e4ca44648a4fa0061696bc1aa4583ff8d45`.
+- PR `#186` reported runtime verification for cover, tray, left/right spine,
+  straight disc inline editing, and the curved disc SVG/textPath exception.
+- This documentation refresh did not independently launch Tauri; runtime claims
+  beyond the PR `#186` report still require a new manual runtime pass.
+
 Current working-tree note:
 
 - The checkout had pre-existing working-tree noise before this SDD was created.
@@ -121,10 +130,10 @@ For any persisted visual or text feature:
 
 Text editing is WYSIWYG-sensitive. Runtime validation is required before claiming text editor behavior is fixed or preserved.
 
-Current caveat:
+Current implementation note:
 
-- Preview-mounted text editing is governed by this WYSIWYG contract, but manual runtime testing has shown the current implementation is not yet fully compliant.
-- Treat current preview-mounted text editing as an active stabilization area, not as proof that the contract is already satisfied.
+- Preview-mounted text editing is governed by this WYSIWYG contract. As of PR `#186`, cover, tray, left/right spine, and straight disc inline editing keep the final preview renderer visible during edit and use target-specific input/selection adapters instead of fake visible edit text.
+- Treat preview-mounted text editing as a protected stabilization area. Future WYSIWYG changes still need parity tests and runtime validation, especially around save/load, export, rich text, caret behavior, selection behavior, wrapping, and curved disc text.
 
 Contracts:
 
@@ -423,6 +432,7 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Disc curved legal text uses SVG/textPath in preview and export-oriented SVG/canvas conversion.
 - Case insert text uses computed rectangular/spine layout helpers.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
+- Cover, tray, spine, and straight disc inline editing use adapter mode: native input/selection support is hidden, while the existing final preview renderers remain the visible glyph source.
 - Export uses `drawDiscTextElements` for disc text and `exportCaseInsertPng.ts` for case insert text.
 
 ### 9.5 Invariants And Future-Change Rules
@@ -443,7 +453,7 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 ### 9.7 Known Risks
 
 - Browser caret measurement and wrapped text layout are fragile.
-- Right spine menu clipping is explicitly called out as a runtime scenario to verify in `docs/TEXT_EDITOR_CONTRACT.md`.
+- Right spine contextual-editor clipping was reported runtime-verified in PR `#186`; keep it in smoke coverage whenever contextual editor positioning changes.
 - Open issues `#178`, `#181`, and `#184` track text expansion/redesign work.
 
 ## 10. Image And Artwork System Design
@@ -629,7 +639,9 @@ The disc editor is the first alpha-capable app surface.
 
 - Disc preview/export parity depends on separate DOM/SVG and canvas paths.
 - Straight text and curved text have different render/edit constraints.
-- Runtime behavior was not manually verified for this SDD.
+- This documentation refresh did not independently launch Tauri. PR `#186`
+  reported runtime validation for straight disc inline editing and the curved
+  SVG/textPath exception.
 
 ## 13. Case Insert Editor Design
 
@@ -696,7 +708,9 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - Case insert hooks and export are large and central.
 - Structured tray/spine layouts remain open under `#149`.
 - Jewel case alpha remains open under `#126`.
-- Some case insert runtime behavior is unknown from source-only review.
+- Broad case insert runtime behavior remains source-reviewed in this document.
+  PR `#186` reported runtime validation for cover, tray, and spine inline text
+  editor parity only.
 
 ## 14. Interaction Model
 
@@ -1095,7 +1109,7 @@ Consequences:
 
 - Hidden inputs, caret helpers, and measurement layers cannot become separate visual renderers.
 - Runtime text editor validation is mandatory for claims of correctness.
-- Manual runtime testing has shown the current preview-mounted text editor is not yet fully compliant with this contract, so future text work should treat this ADR as a stabilization target rather than a claim of completed parity.
+- PR `#186` reported runtime evidence that cover, tray, spine, and straight disc inline editing now keep the final renderer visible during edit and use adapter input/selection paths. The previous blanket noncompliance caveat is stale for those surfaces, but this ADR remains the stabilization contract for future WYSIWYG work.
 
 ### ADR-008: Optional Visual Features Preserve Disabled State
 
