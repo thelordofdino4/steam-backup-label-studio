@@ -481,8 +481,9 @@ function InlinePreviewTextEditorMenuContent({
                 type="button"
                 className="inline-preview-text-planned-control"
                 disabled
+                title={`${label} is not supported in the contextual editor yet`}
               >
-                {label} planned
+                {label} unsupported
               </button>
             ))}
           </div>
