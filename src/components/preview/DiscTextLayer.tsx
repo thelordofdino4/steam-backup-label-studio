@@ -105,18 +105,6 @@ export function DiscTextLayer({
     ),
     [discTextSettings, projectDiscNumberArtwork],
   )
-  const hiddenVisibleTextKeys = useMemo(() => {
-    if (!selectedDiscTextKey) {
-      return []
-    }
-
-    const isSelectedTextCurved = isCurvedCopyrightDiscTextLayout(
-      selectedDiscTextKey,
-      discTextLayout[selectedDiscTextKey],
-    )
-
-    return isSelectedTextCurved ? [] : [selectedDiscTextKey]
-  }, [discTextLayout, selectedDiscTextKey])
   const visibleTextLayerSvg = useMemo(
     () => {
       return buildDiscTextSvgLayer({
@@ -132,7 +120,6 @@ export function DiscTextLayer({
         width: 100,
         height: 100,
         idPrefix: 'disc-text-preview-image',
-        hiddenTextKeys: hiddenVisibleTextKeys,
       })
     },
     [
@@ -144,7 +131,6 @@ export function DiscTextLayer({
       steamLogoPlacement,
       safeZoneRadiusPercent,
       avoidanceRegions,
-      hiddenVisibleTextKeys,
     ],
   )
   const hitTargetTextLayerSvg = useMemo(
@@ -162,7 +148,6 @@ export function DiscTextLayer({
         width: '100%',
         height: '100%',
         idPrefix: 'disc-text-preview-hit-target',
-        hiddenTextKeys: hiddenVisibleTextKeys,
       })
     },
     [
@@ -174,7 +159,6 @@ export function DiscTextLayer({
       steamLogoPlacement,
       safeZoneRadiusPercent,
       avoidanceRegions,
-      hiddenVisibleTextKeys,
     ],
   )
   const visibleTextLayerDataUrl = useMemo(
