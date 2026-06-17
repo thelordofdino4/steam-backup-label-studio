@@ -24,7 +24,6 @@ import {
 } from '../../caseInsert/brandingLogoSlots'
 import {
   createJewelCasePreviewLayout,
-  type CaseInsertPreviewLayout,
 } from '../../layout/caseInsertPreviewLayout'
 import {
   createCaseInsertSpineGuideLayout,
@@ -41,7 +40,6 @@ import type {
 import {
   getJewelCaseSpineBackgroundLayoutSliderRanges,
   getJewelCaseSpineImageSlotLayoutSliderRanges,
-  getJewelCaseSpineTextLayoutSliderRanges,
   type JewelCaseSpineOverlayRole,
 } from '../../layout/jewelCaseSpineLayout'
 import type {
@@ -61,7 +59,6 @@ import type {
   ProjectCaseInsertLayout,
   ProjectPlatformMarkAsset,
   ProjectTechnicalMarkAsset,
-  ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextSource,
   ProjectMetadata,
@@ -73,18 +70,10 @@ import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
   getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
-  getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
-  CASE_INSERT_TEXT_WIDTH_MAX,
-  CASE_INSERT_TEXT_WIDTH_MIN,
   getCaseInsertTextBlockLayoutPresets,
-  getCaseInsertTextLayoutWidth,
 } from '../../caseInsert/textLayout'
-import type {
-  CaseInsertTextStyleField,
-  CaseInsertTextStyleValue,
-} from '../../caseInsert/textStyles'
 import {
   CaseInsertImageSourceControls,
   type CaseInsertImageSourceControlSource,
@@ -112,15 +101,11 @@ import type {
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
 import {
-  CaseInsertTextBackgroundFineTuneControls,
-  CaseInsertTextOptionalStyleControls,
   CaseInsertTextSourceControls,
-  CaseInsertTextStyleControls,
 } from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
 import { EditorFeaturePanel } from '../editor/EditorPanel'
-import { EditorRangeField } from '../editor/EditorRangeField'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import type {
@@ -287,14 +272,12 @@ function SpineTextLayoutPresetControl({
 }
 
 function SpineTitleControls({
-  layout,
   side,
   title,
   projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: {
-  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   title: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -303,19 +286,9 @@ function SpineTitleControls({
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const onLayoutChange = (
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) => actions.handleSpineTitleLayoutChange(side, field, value)
   const inputState = getCaseInsertTextBlockInputState(
     title,
     projectMetadata,
-  )
-  const renderedTitle = getRenderedCaseInsertTextBlock(title, projectMetadata)
-  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
-    side,
-    renderedTitle,
-    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', title)
 
@@ -333,20 +306,6 @@ function SpineTitleControls({
 
       {!title.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextOptionalStyleControls
-            idPrefix={`${side}-spine-title`}
-            label={title.label}
-            style={title.style}
-            avoidVisualElements={title.avoidVisualElements}
-            onAvoidVisualElementsChange={(avoidVisualElements) =>
-              actions.handleSpineTitleAvoidVisualElementsChange(
-                side,
-                avoidVisualElements,
-              )}
-            onStyleChange={(field, value) =>
-              actions.handleSpineTitleStyleChange(side, field, value)}
-          />
-
           <CaseInsertTextSourceControls
             label={title.label}
             source={title.source}
@@ -356,21 +315,13 @@ function SpineTitleControls({
               actions.handleSpineTitleValueChange(side, '', 'metadata')}
           />
 
-          <CaseInsertTextStyleControls
-            idPrefix={`${side}-spine-title`}
-            label={title.label}
-            style={title.style}
-            source={title.source}
-            onStyleChange={(field, value) =>
-              actions.handleSpineTitleStyleChange(side, field, value)}
-            onApplyStylePreset={(presetId) =>
-              actions.handleApplySpineTitleStylePreset(side, presetId)}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${title.label} text controls`}
           >
+            <p className="hint">
+              Select this text in the preview to edit style and placement.
+            </p>
             <button
               className="secondary-button"
               type="button"
@@ -389,23 +340,6 @@ function SpineTitleControls({
             aria-label={`${title.label} placement controls`}
           >
             <div className="editor-control-grid">
-              <label htmlFor={`${side}-spine-title-align`}>
-                <span>Align</span>
-                <select
-                  id={`${side}-spine-title-align`}
-                  value={title.align}
-                  onChange={(event) =>
-                    actions.handleSpineTitleAlignChange(
-                      side,
-                      event.target.value as ProjectCaseInsertTextAlign,
-                    )}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </label>
-
               <label htmlFor={`${side}-spine-title-orientation`}>
                 <span>Orientation</span>
                 <select
@@ -433,73 +367,6 @@ function SpineTitleControls({
               />
             </div>
           </div>
-
-          <div
-            className="editor-control-group"
-            aria-label={`${title.label} fine tuning controls`}
-          >
-            <div className="editor-control-grid">
-              <EditorRangeField
-                id={`${side}-spine-title-scale`}
-                label="Scale"
-                min={0.7}
-                max={1.6}
-                step={0.01}
-                value={title.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <EditorRangeField
-                id={`${side}-spine-title-width`}
-                label="Width"
-                min={CASE_INSERT_TEXT_WIDTH_MIN}
-                max={CASE_INSERT_TEXT_WIDTH_MAX}
-                step={1}
-                value={getCaseInsertTextLayoutWidth(title.layout, 90)}
-                onChange={(value) => onLayoutChange('width', value)}
-              />
-              <EditorRangeField
-                id={`${side}-spine-title-x`}
-                label="Cross"
-                min={layoutRanges.x.min}
-                max={layoutRanges.x.max}
-                step={0.1}
-                value={title.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <EditorRangeField
-                id={`${side}-spine-title-y`}
-                label="Length"
-                min={layoutRanges.y.min}
-                max={layoutRanges.y.max}
-                step={0.1}
-                value={title.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-              <CaseInsertTextBackgroundFineTuneControls
-                idPrefix={`${side}-spine-title`}
-                style={title.style}
-                onStyleChange={(field, value) =>
-                  actions.handleSpineTitleStyleChange(side, field, value)}
-              />
-            </div>
-          </div>
-
-          <div className="editor-control-group editor-action-group">
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() => actions.handleResetSpineTitleLayout(side)}
-            >
-              Reset game title layout
-            </button>
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() => actions.handleResetSpineTitleStyle(side)}
-            >
-              Reset game title style
-            </button>
-          </div>
         </div>
       )}
     </div>
@@ -507,14 +374,12 @@ function SpineTitleControls({
 }
 
 function SpineTextBlockControls({
-  layout,
   side,
   textBlock,
   projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: {
-  layout: CaseInsertPreviewLayout
   side: JewelCaseSpineSide
   textBlock: ProjectCaseInsertTextBlock
   projectMetadata: ProjectMetadata
@@ -523,24 +388,6 @@ function SpineTextBlockControls({
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const onLayoutChange = (
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) => actions.handleSpineTextBlockLayoutChange(
-    side,
-    textBlock.id,
-    field,
-    value,
-  )
-  const onStyleChange = (
-    field: CaseInsertTextStyleField,
-    value: CaseInsertTextStyleValue,
-  ) => actions.handleSpineTextBlockStyleChange(
-    side,
-    textBlock.id,
-    field,
-    value,
-  )
   const onValueChange = (
     value: string,
     source?: ProjectCaseInsertTextSource,
@@ -553,15 +400,6 @@ function SpineTextBlockControls({
   const inputState = getCaseInsertTextBlockInputState(
     textBlock,
     projectMetadata,
-  )
-  const renderedTextBlock = getRenderedCaseInsertTextBlock(
-    textBlock,
-    projectMetadata,
-  )
-  const layoutRanges = getJewelCaseSpineTextLayoutSliderRanges(
-    side,
-    renderedTextBlock,
-    layout,
   )
   const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', textBlock)
 
@@ -583,20 +421,6 @@ function SpineTextBlockControls({
 
       {!textBlock.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextOptionalStyleControls
-            idPrefix={textBlock.id}
-            label={textBlock.label}
-            style={textBlock.style}
-            avoidVisualElements={textBlock.avoidVisualElements}
-            onAvoidVisualElementsChange={(avoidVisualElements) =>
-              actions.handleSpineTextBlockAvoidVisualElementsChange(
-                side,
-                textBlock.id,
-                avoidVisualElements,
-              )}
-            onStyleChange={onStyleChange}
-          />
-
           <CaseInsertTextSourceControls
             label={textBlock.label}
             source={textBlock.source}
@@ -605,24 +429,13 @@ function SpineTextBlockControls({
             onUseMetadataValue={() => onValueChange('', 'metadata')}
           />
 
-          <CaseInsertTextStyleControls
-            idPrefix={textBlock.id}
-            label={textBlock.label}
-            style={textBlock.style}
-            source={textBlock.source}
-            onStyleChange={onStyleChange}
-            onApplyStylePreset={(presetId) =>
-              actions.handleApplySpineTextBlockStylePreset(
-                side,
-                textBlock.id,
-                presetId,
-              )}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
           >
+            <p className="hint">
+              Select this text in the preview to edit style and placement.
+            </p>
             <button
               className="secondary-button"
               type="button"
@@ -642,24 +455,6 @@ function SpineTextBlockControls({
             aria-label={`${textBlock.label} placement controls`}
           >
             <div className="editor-control-grid">
-              <label htmlFor={`${textBlock.id}-align`}>
-                <span>Align</span>
-                <select
-                  id={`${textBlock.id}-align`}
-                  value={textBlock.align}
-                  onChange={(event) =>
-                    actions.handleSpineTextBlockAlignChange(
-                      side,
-                      textBlock.id,
-                      event.target.value as ProjectCaseInsertTextAlign,
-                    )}
-                >
-                  <option value="left">Left</option>
-                  <option value="center">Center</option>
-                  <option value="right">Right</option>
-                </select>
-              </label>
-
               <label htmlFor={`${textBlock.id}-orientation`}>
                 <span>Orientation</span>
                 <select
@@ -691,74 +486,6 @@ function SpineTextBlockControls({
                   )}
               />
             </div>
-          </div>
-
-          <div
-            className="editor-control-group"
-            aria-label={`${textBlock.label} fine tuning controls`}
-          >
-            <div className="editor-control-grid">
-              <EditorRangeField
-                id={`${textBlock.id}-scale`}
-                label="Scale"
-                min={0.5}
-                max={1.8}
-                step={0.01}
-                value={textBlock.layout.scale}
-                onChange={(value) => onLayoutChange('scale', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-width`}
-                label="Width"
-                min={CASE_INSERT_TEXT_WIDTH_MIN}
-                max={CASE_INSERT_TEXT_WIDTH_MAX}
-                step={1}
-                value={getCaseInsertTextLayoutWidth(textBlock.layout)}
-                onChange={(value) => onLayoutChange('width', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-x`}
-                label="Cross"
-                min={layoutRanges.x.min}
-                max={layoutRanges.x.max}
-                step={0.1}
-                value={textBlock.layout.x}
-                onChange={(value) => onLayoutChange('x', value)}
-              />
-              <EditorRangeField
-                id={`${textBlock.id}-y`}
-                label="Length"
-                min={layoutRanges.y.min}
-                max={layoutRanges.y.max}
-                step={0.1}
-                value={textBlock.layout.y}
-                onChange={(value) => onLayoutChange('y', value)}
-              />
-              <CaseInsertTextBackgroundFineTuneControls
-                idPrefix={textBlock.id}
-                style={textBlock.style}
-                onStyleChange={onStyleChange}
-              />
-            </div>
-          </div>
-
-          <div className="editor-control-group editor-action-group">
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetSpineTextBlockLayout(side, textBlock.id)}
-            >
-              Reset {textBlock.label.toLocaleLowerCase()} layout
-            </button>
-            <button
-              className="secondary-button editor-text-reset-button"
-              type="button"
-              onClick={() =>
-                actions.handleResetSpineTextBlockStyle(side, textBlock.id)}
-            >
-              Reset {textBlock.label.toLocaleLowerCase()} style
-            </button>
           </div>
         </div>
       )}
@@ -1735,8 +1462,6 @@ export function CaseInsertSpineTextControls({
   actions,
   onSelectedTextTargetChange,
 }: CaseInsertSpineControlsProps) {
-  const layout = getSpinePreviewLayout(spine)
-
   return renderSpineControlSections({
     spine,
     renderControls: ({ side }) => {
@@ -1745,7 +1470,6 @@ export function CaseInsertSpineTextControls({
       return (
         <>
           <SpineTitleControls
-            layout={layout}
             side={side}
             title={state.title}
             projectMetadata={projectMetadata}
@@ -1755,7 +1479,6 @@ export function CaseInsertSpineTextControls({
           {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
             <SpineTextBlockControls
               key={textBlock.id}
-              layout={layout}
               side={side}
               textBlock={textBlock}
               projectMetadata={projectMetadata}

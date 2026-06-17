@@ -108,6 +108,84 @@ test('cover and tray text list sidebars keep entry/source controls only', () => 
   assert.doesNotMatch(textListControls, /handleResetTextListStyle/)
 })
 
+test('left and right spine title sidebars keep entry/source controls only', () => {
+  const source = readRepoFile(
+    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+  )
+  const titleControls = getFunctionSource(
+    source,
+    'SpineTitleControls',
+    'SpineTextBlockControls',
+  )
+
+  assert.match(titleControls, /handleSpineTitleEnabledChange/)
+  assert.match(titleControls, /CaseInsertTextSourceControls/)
+  assert.match(titleControls, /onUseMetadataValue/)
+  assert.match(titleControls, /Select this text in the preview/)
+  assert.match(titleControls, /Edit in preview/)
+  assert.match(titleControls, /Orientation/)
+  assert.match(titleControls, /SpineTextLayoutPresetControl/)
+  assert.match(titleControls, /handleSpineTitleOrientationChange/)
+  assert.match(titleControls, /handleApplySpineTitleLayoutPreset/)
+
+  assert.doesNotMatch(titleControls, /CaseInsertTextOptionalStyleControls/)
+  assert.doesNotMatch(titleControls, /CaseInsertTextStyleControls/)
+  assert.doesNotMatch(
+    titleControls,
+    /CaseInsertTextBackgroundFineTuneControls/,
+  )
+  assert.doesNotMatch(titleControls, /EditorRangeField/)
+  assert.doesNotMatch(titleControls, /handleSpineTitleStyleChange/)
+  assert.doesNotMatch(titleControls, /handleSpineTitleLayoutChange/)
+  assert.doesNotMatch(titleControls, /handleSpineTitleAlignChange/)
+  assert.doesNotMatch(
+    titleControls,
+    /handleSpineTitleAvoidVisualElementsChange/,
+  )
+  assert.doesNotMatch(titleControls, /handleApplySpineTitleStylePreset/)
+  assert.doesNotMatch(titleControls, /handleResetSpineTitleLayout/)
+  assert.doesNotMatch(titleControls, /handleResetSpineTitleStyle/)
+})
+
+test('left and right spine text block sidebars keep entry/source controls only', () => {
+  const source = readRepoFile(
+    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+  )
+  const textBlockControls = getFunctionSource(
+    source,
+    'SpineTextBlockControls',
+    'SpineImageSlotControls',
+  )
+
+  assert.match(textBlockControls, /handleSpineTextBlockEnabledChange/)
+  assert.match(textBlockControls, /CaseInsertTextSourceControls/)
+  assert.match(textBlockControls, /onUseMetadataValue/)
+  assert.match(textBlockControls, /Select this text in the preview/)
+  assert.match(textBlockControls, /Edit in preview/)
+  assert.match(textBlockControls, /Orientation/)
+  assert.match(textBlockControls, /SpineTextLayoutPresetControl/)
+  assert.match(textBlockControls, /handleSpineTextBlockOrientationChange/)
+  assert.match(textBlockControls, /handleApplySpineTextBlockLayoutPreset/)
+
+  assert.doesNotMatch(textBlockControls, /CaseInsertTextOptionalStyleControls/)
+  assert.doesNotMatch(textBlockControls, /CaseInsertTextStyleControls/)
+  assert.doesNotMatch(
+    textBlockControls,
+    /CaseInsertTextBackgroundFineTuneControls/,
+  )
+  assert.doesNotMatch(textBlockControls, /EditorRangeField/)
+  assert.doesNotMatch(textBlockControls, /handleSpineTextBlockStyleChange/)
+  assert.doesNotMatch(textBlockControls, /handleSpineTextBlockLayoutChange/)
+  assert.doesNotMatch(textBlockControls, /handleSpineTextBlockAlignChange/)
+  assert.doesNotMatch(
+    textBlockControls,
+    /handleSpineTextBlockAvoidVisualElementsChange/,
+  )
+  assert.doesNotMatch(textBlockControls, /handleApplySpineTextBlockStylePreset/)
+  assert.doesNotMatch(textBlockControls, /handleResetSpineTextBlockLayout/)
+  assert.doesNotMatch(textBlockControls, /handleResetSpineTextBlockStyle/)
+})
+
 test('cover and tray text list item management helpers remain wired', () => {
   const editorHook = readRepoFile('src/hooks/useCaseInsertTemplateEditor.ts')
   const transitions = readRepoFile('src/caseInsert/textTransitions.ts')

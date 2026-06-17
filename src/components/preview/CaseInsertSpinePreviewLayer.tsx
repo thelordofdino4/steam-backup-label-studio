@@ -349,6 +349,7 @@ function CaseInsertSpineTextBlock({
         yMin: layoutRanges.y.min,
         yStep: 0.1,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onResetLayout: () => previewTextControlHandlers.onResetLayout(textTarget),
       })
     : undefined
   const style = {
