@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
+import { createDefaultProjectJewelCaseState } from './defaults.ts'
+import { updateCaseInsertPreviewTextDraftValue } from './previewTextEditing.ts'
+import {
+  addCaseInsertTextListItem,
+  removeCaseInsertTextListItem,
+  updateCaseInsertTextListItem,
+} from './textTransitions.ts'
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(testDir))
@@ -201,6 +208,60 @@ test('cover and tray text list item management helpers remain wired', () => {
   assert.match(transitions, /export function updateCaseInsertTextListItem/)
   assert.match(transitions, /export function removeCaseInsertTextListItem/)
   assert.match(transitions, /export function setCaseInsertTextListItems/)
+})
+
+test('cover and tray text list item management remains behaviorally intact', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const textList = state.templates.tray.textLists.find(
+    (currentList) => currentList.id === 'tray-feature-bullets',
+  )
+
+  assert.ok(textList, 'tray feature bullets list should exist')
+
+  let managedList = addCaseInsertTextListItem(textList, 'Co-op chambers')
+  assert.equal(managedList.enabled, true)
+  assert.deepEqual(managedList.items, ['Co-op chambers'])
+
+  managedList = updateCaseInsertTextListItem(
+    managedList,
+    0,
+    'Single-player campaign',
+  )
+  managedList = addCaseInsertTextListItem(managedList, 'Two-player co-op')
+  managedList = removeCaseInsertTextListItem(managedList, 1)
+  assert.deepEqual(managedList.items, ['Single-player campaign'])
+
+  const target = {
+    scope: 'templateTextList',
+    paneId: 'tray',
+    textListId: textList.id,
+  } as const
+  const draftState = updateCaseInsertPreviewTextDraftValue(
+    state,
+    target,
+    '• Portal puzzles\n- Co-op chambers\nSpeedrun routes',
+  )
+  const draftedList = draftState.templates.tray.textLists.find(
+    (currentList) => currentList.id === textList.id,
+  )
+  assert.deepEqual(draftedList?.items, [
+    'Portal puzzles',
+    'Co-op chambers',
+    'Speedrun routes',
+  ])
+
+  const reorderedState = updateCaseInsertPreviewTextDraftValue(
+    draftState,
+    target,
+    'Speedrun routes\nPortal puzzles',
+  )
+  const reorderedList = reorderedState.templates.tray.textLists.find(
+    (currentList) => currentList.id === textList.id,
+  )
+  assert.deepEqual(reorderedList?.items, [
+    'Speedrun routes',
+    'Portal puzzles',
+  ])
 })
 
 test('case insert export continues reading migrated text block state', () => {
