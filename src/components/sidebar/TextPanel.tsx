@@ -30,7 +30,8 @@ export function TextPanel(props: TextPanelProps) {
   return (
     <EditorPanel title="Text">
         <p className="hint">
-          Enable disc text elements and adjust their style, position, and scale.
+          Enable disc text elements, then edit straight text style and placement
+          on the preview.
         </p>
         <p className="hint">
           Straight text is edited on the preview. Curved copyright text remains SVG/textPath based and uses its sidebar value field until curved inline editing is added.

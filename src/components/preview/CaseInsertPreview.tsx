@@ -48,6 +48,9 @@ import { buildCaseInsertDesignCheckSummary } from '../../export/caseInsertDesign
 import type {
   CaseInsertPreviewTextTarget,
 } from '../../caseInsert/previewTextSelection'
+import type {
+  CaseInsertPreviewTextControlHandlers,
+} from './caseInsertInlineTextEditorControls'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
@@ -65,6 +68,7 @@ export type CaseInsertPreviewProps = {
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }
 
 type PreviewLayerMap = Record<CaseInsertEditorPreviewLayerId, ReactNode>
@@ -129,6 +133,7 @@ export function CaseInsertPreview({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: CaseInsertPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
@@ -268,6 +273,7 @@ export function CaseInsertPreview({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
     ),
     'case-spine-content': (
@@ -280,6 +286,7 @@ export function CaseInsertPreview({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
     ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,

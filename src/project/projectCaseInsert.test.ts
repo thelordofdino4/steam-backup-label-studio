@@ -14,6 +14,13 @@ import {
   updateCaseInsertPreviewTextDraftValue,
 } from '../caseInsert/previewTextEditing.ts'
 import {
+  setCaseInsertPreviewTextTargetEnabled,
+  updateCaseInsertPreviewTextTargetAlign,
+  updateCaseInsertPreviewTextTargetAvoidVisualElements,
+  updateCaseInsertPreviewTextTargetLayoutField,
+  updateCaseInsertPreviewTextTargetStyleField,
+} from '../caseInsert/previewTextControls.ts'
+import {
   addCaseInsertAdditionalLogoSlot,
   getCaseInsertAdditionalLogoSlotsForKey,
 } from '../caseInsert/brandingLogoSlots.ts'
@@ -387,6 +394,191 @@ test('case insert preview text draft completion preserves empty custom text', ()
 
   assert.equal(customNote?.value, '')
   assert.equal(customNote?.source, 'manual')
+})
+
+test('case insert preview text controls update existing target state fields', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'cover' as const,
+    textBlockId: 'cover-title-text',
+  }
+  const trayFeaturesTarget = {
+    scope: 'templateTextList' as const,
+    paneId: 'tray' as const,
+    textListId: 'tray-feature-bullets',
+  }
+  const spineSubtitleTarget = {
+    scope: 'spineTextBlock' as const,
+    side: 'left' as const,
+    textBlockId: 'left-spine-subtitle-text',
+  }
+  const styledCoverTitle = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    coverTitleTarget,
+    'color',
+    '#ff00ff',
+  )
+  const positionedCoverTitle = updateCaseInsertPreviewTextTargetLayoutField(
+    styledCoverTitle,
+    coverTitleTarget,
+    'width',
+    72,
+  )
+  const alignedCoverTitle = updateCaseInsertPreviewTextTargetAlign(
+    positionedCoverTitle,
+    coverTitleTarget,
+    'right',
+  )
+  const avoidantCoverTitle =
+    updateCaseInsertPreviewTextTargetAvoidVisualElements(
+      alignedCoverTitle,
+      coverTitleTarget,
+      true,
+    )
+  const hiddenCoverTitle = setCaseInsertPreviewTextTargetEnabled(
+    avoidantCoverTitle,
+    coverTitleTarget,
+    false,
+  )
+  const coverTitle = hiddenCoverTitle.templates.cover.textBlocks.find(
+    ({ id }) => id === coverTitleTarget.textBlockId,
+  )
+  const listAlignAttempt = updateCaseInsertPreviewTextTargetAlign(
+    hiddenCoverTitle,
+    trayFeaturesTarget,
+    'right',
+  )
+  const styledSpineSubtitle = updateCaseInsertPreviewTextTargetStyleField(
+    hiddenCoverTitle,
+    spineSubtitleTarget,
+    'color',
+    '#00ff00',
+  )
+  const leftSubtitle = styledSpineSubtitle.spine.left.textBlocks.find(
+    ({ id }) => id === 'left-spine-subtitle-text',
+  )
+  const rightSubtitle = styledSpineSubtitle.spine.right.textBlocks.find(
+    ({ id }) => id === 'right-spine-subtitle-text',
+  )
+
+  assert.equal(coverTitle?.style.color, '#ff00ff')
+  assert.equal(coverTitle?.layout.width, 72)
+  assert.equal(coverTitle?.align, 'right')
+  assert.equal(coverTitle?.avoidVisualElements, true)
+  assert.equal(coverTitle?.enabled, false)
+  assert.equal(listAlignAttempt, hiddenCoverTitle)
+  assert.equal(leftSubtitle?.style.color, '#00ff00')
+  assert.equal(rightSubtitle?.style.color, '#00ff00')
+})
+
+test('migrated cover and tray text block properties survive save and restore', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'cover' as const,
+    textBlockId: 'cover-title-text',
+  }
+  const trayDescriptionTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'tray' as const,
+    textBlockId: 'tray-description',
+  }
+
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    coverTitleTarget,
+    'color',
+    '#123456',
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    coverTitleTarget,
+    'backgroundEnabled',
+    true,
+  )
+  state = updateCaseInsertPreviewTextTargetLayoutField(
+    state,
+    coverTitleTarget,
+    'width',
+    68,
+  )
+  state = updateCaseInsertPreviewTextTargetLayoutField(
+    state,
+    coverTitleTarget,
+    'x',
+    44,
+  )
+  state = updateCaseInsertPreviewTextTargetAlign(
+    state,
+    coverTitleTarget,
+    'right',
+  )
+  state = updateCaseInsertPreviewTextTargetAvoidVisualElements(
+    state,
+    coverTitleTarget,
+    true,
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    trayDescriptionTarget,
+    'fontFamily',
+    'georgia',
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    trayDescriptionTarget,
+    'borderEnabled',
+    true,
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    trayDescriptionTarget,
+    'borderRadius',
+    0.85,
+  )
+  state = updateCaseInsertPreviewTextTargetLayoutField(
+    state,
+    trayDescriptionTarget,
+    'scale',
+    1.18,
+  )
+  state = updateCaseInsertPreviewTextTargetLayoutField(
+    state,
+    trayDescriptionTarget,
+    'y',
+    58,
+  )
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const restoredCoverTitle = restored.templates.cover.textBlocks.find(
+    ({ id }) => id === coverTitleTarget.textBlockId,
+  )
+  const restoredTrayDescription = restored.templates.tray.textBlocks.find(
+    ({ id }) => id === trayDescriptionTarget.textBlockId,
+  )
+
+  assert.equal(
+    saved.caseInsert.templates.cover.textBlocks.find(
+      ({ id }) => id === coverTitleTarget.textBlockId,
+    )?.layout.width,
+    68,
+  )
+  assert.equal(restoredCoverTitle?.style.color, '#123456')
+  assert.equal(restoredCoverTitle?.style.backgroundEnabled, true)
+  assert.equal(restoredCoverTitle?.layout.width, 68)
+  assert.equal(restoredCoverTitle?.layout.x, 44)
+  assert.equal(restoredCoverTitle?.align, 'right')
+  assert.equal(restoredCoverTitle?.avoidVisualElements, true)
+  assert.equal(restoredTrayDescription?.style.fontFamily, 'georgia')
+  assert.equal(restoredTrayDescription?.style.borderEnabled, true)
+  assert.equal(restoredTrayDescription?.style.borderRadius, 0.85)
+  assert.equal(restoredTrayDescription?.layout.scale, 1.18)
+  assert.equal(restoredTrayDescription?.layout.y, 58)
 })
 
 test('mirrored spine side updates fan out until mirror is disabled', () => {
@@ -2013,6 +2205,8 @@ test('case branding source catalog exposes shared mark and real logo sources', (
 
 test('feature bullet helpers edit items without replacing feature state', () => {
   let textList = createDefaultProjectJewelCaseState().templates.tray.textLists[0]!
+
+  assert.deepEqual(addCaseInsertTextListItem(textList).items, ['New item'])
 
   textList = addCaseInsertTextListItem(textList, 'First bullet')
   textList = addCaseInsertTextListItem(textList, 'Second bullet')

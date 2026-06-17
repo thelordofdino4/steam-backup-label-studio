@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
-import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
-import type { DiscTextStyleSettings } from '../../discText/styles'
+import type { DiscTextAlignment, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
+import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } from '../../discText/styles'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SelectedDiscTemplateId, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
@@ -69,9 +69,33 @@ export type DiscPreviewProps = {
     layout: DiscTextLayoutSettings
     discNumberArtwork: ProjectDiscNumberArtwork
     selectedDiscTemplate: DiscTemplate
+    selectedKey: DiscTextKey | null
     getPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
+    onSelectedKeyChange: (key: DiscTextKey | null) => void
+    onTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
     onTextValueChange: (key: DiscTextKey, value: string) => void
     onTextEditComplete: (key: DiscTextKey) => void
+    onTextStyleChange: (
+      key: DiscTextKey,
+      field: DiscTextStyleField,
+      value: DiscTextStyleValue,
+    ) => void
+    onApplyTextStylePreset: (key: DiscTextKey, presetId: string) => void
+    onResetTextStyle: (key: DiscTextKey) => void
+    onTextLayoutChange: (
+      key: DiscTextKey,
+      field: DiscTextLayoutNumericField,
+      value: number,
+    ) => void
+    onTextAlignmentChange: (
+      key: DiscTextKey,
+      alignment: DiscTextAlignment,
+    ) => void
+    onTextVisualAvoidanceChange: (
+      key: DiscTextKey,
+      avoidVisualElements: boolean,
+    ) => void
+    onResetTextLayout: (key: DiscTextKey) => void
   }
   pointerHandlers: {
     background: {
@@ -162,8 +186,6 @@ export function DiscPreview({
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
-  const [selectedDiscTextKey, setSelectedDiscTextKey] =
-    useState<DiscTextKey | null>(null)
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
       closedButtonCount: 2,
@@ -352,10 +374,18 @@ export function DiscPreview({
         selectedDiscTemplate={discText.selectedDiscTemplate}
         avoidanceRegions={discTextOccupiedRegions}
         getDiscTextPreviewTransform={discText.getPreviewTransform}
-        selectedDiscTextKey={selectedDiscTextKey}
-        onSelectedDiscTextKeyChange={setSelectedDiscTextKey}
+        selectedDiscTextKey={discText.selectedKey}
+        onSelectedDiscTextKeyChange={discText.onSelectedKeyChange}
+        onDiscTextEnabledChange={discText.onTextEnabledChange}
         onDiscTextValueChange={discText.onTextValueChange}
         onDiscTextEditComplete={discText.onTextEditComplete}
+        onDiscTextStyleChange={discText.onTextStyleChange}
+        onApplyDiscTextStylePreset={discText.onApplyTextStylePreset}
+        onResetDiscTextStyle={discText.onResetTextStyle}
+        onDiscTextLayoutChange={discText.onTextLayoutChange}
+        onDiscTextAlignmentChange={discText.onTextAlignmentChange}
+        onDiscTextVisualAvoidanceChange={discText.onTextVisualAvoidanceChange}
+        onResetDiscTextLayout={discText.onResetTextLayout}
         {...pointerHandlers.discText}
       />
     ),

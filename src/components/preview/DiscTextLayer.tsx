@@ -2,8 +2,10 @@ import { useMemo, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   isCurvedCopyrightDiscTextLayout,
+  type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
+  type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
   type DiscTextSettings,
   type DiscTextValues,
@@ -11,7 +13,9 @@ import {
 } from '../../discText/index'
 import {
   getDiscTextFontFamilyCss,
+  type DiscTextStyleField,
   type DiscTextStyleSettings,
+  type DiscTextStyleValue,
 } from '../../discText/styles'
 import {
   createDiscNumberBadgeRenderModel,
@@ -48,8 +52,30 @@ export type DiscTextLayerProps = {
   getDiscTextPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
   selectedDiscTextKey: DiscTextKey | null
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
+  onDiscTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
   onDiscTextValueChange: (key: DiscTextKey, value: string) => void
   onDiscTextEditComplete: (key: DiscTextKey) => void
+  onDiscTextStyleChange: (
+    key: DiscTextKey,
+    field: DiscTextStyleField,
+    value: DiscTextStyleValue,
+  ) => void
+  onApplyDiscTextStylePreset: (key: DiscTextKey, presetId: string) => void
+  onResetDiscTextStyle: (key: DiscTextKey) => void
+  onDiscTextLayoutChange: (
+    key: DiscTextKey,
+    field: DiscTextLayoutNumericField,
+    value: number,
+  ) => void
+  onDiscTextAlignmentChange: (
+    key: DiscTextKey,
+    alignment: DiscTextAlignment,
+  ) => void
+  onDiscTextVisualAvoidanceChange: (
+    key: DiscTextKey,
+    avoidVisualElements: boolean,
+  ) => void
+  onResetDiscTextLayout: (key: DiscTextKey) => void
   handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
@@ -82,8 +108,16 @@ export function DiscTextLayer({
   avoidanceRegions,
   selectedDiscTextKey,
   onSelectedDiscTextKeyChange,
+  onDiscTextEnabledChange,
   onDiscTextValueChange,
   onDiscTextEditComplete,
+  onDiscTextStyleChange,
+  onApplyDiscTextStylePreset,
+  onResetDiscTextStyle,
+  onDiscTextLayoutChange,
+  onDiscTextAlignmentChange,
+  onDiscTextVisualAvoidanceChange,
+  onResetDiscTextLayout,
   handleDiscTextPointerDown,
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
@@ -253,8 +287,16 @@ export function DiscTextLayer({
         avoidanceRegions={avoidanceRegions}
         measureText={measureDiscTextWithBrowserCanvas}
         onSelectedDiscTextKeyChange={onSelectedDiscTextKeyChange}
+        onDiscTextEnabledChange={onDiscTextEnabledChange}
         onDiscTextValueChange={onDiscTextValueChange}
         onDiscTextEditComplete={onDiscTextEditComplete}
+        onDiscTextStyleChange={onDiscTextStyleChange}
+        onApplyDiscTextStylePreset={onApplyDiscTextStylePreset}
+        onResetDiscTextStyle={onResetDiscTextStyle}
+        onDiscTextLayoutChange={onDiscTextLayoutChange}
+        onDiscTextAlignmentChange={onDiscTextAlignmentChange}
+        onDiscTextVisualAvoidanceChange={onDiscTextVisualAvoidanceChange}
+        onResetDiscTextLayout={onResetDiscTextLayout}
         onMoveHandlePointerDown={handleDiscTextPointerDown}
         onMoveHandlePointerMove={handleDiscTextPointerMove}
         onMoveHandlePointerUp={handleDiscTextPointerUp}

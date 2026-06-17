@@ -195,7 +195,7 @@ export function applyCaseInsertTextListPresetLayout(
 
 export function addCaseInsertTextListItem(
   textList: ProjectCaseInsertTextList,
-  value = '',
+  value = 'New item',
 ): ProjectCaseInsertTextList {
   return {
     ...textList,

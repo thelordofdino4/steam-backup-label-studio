@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type FocusEvent as ReactFocusEvent,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -51,9 +52,83 @@ export type InlinePreviewTextEditorGeometryLine = {
   topRatio: number
 }
 
+export type InlinePreviewTextEditorOption<T extends string = string> = {
+  label: string
+  value: T
+}
+
+export type InlinePreviewTextEditorSelectControl<T extends string = string> = {
+  label: string
+  options: readonly InlinePreviewTextEditorOption<T>[]
+  value: T
+  onChange: (value: T) => void
+}
+
+export type InlinePreviewTextEditorRangeControl = {
+  label: string
+  max: number
+  min: number
+  step: number
+  value: number
+  onChange: (value: number) => void
+}
+
+export type InlinePreviewTextEditorCheckboxControl = {
+  checked: boolean
+  label: string
+  onChange: (checked: boolean) => void
+}
+
+export type InlinePreviewTextEditorColorControl = {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}
+
+export type InlinePreviewTextEditorControls = {
+  presets?: {
+    options: readonly InlinePreviewTextEditorOption[]
+    onApply: (presetId: string) => void
+    onReset?: () => void
+  }
+  text?: {
+    alignment?: InlinePreviewTextEditorSelectControl
+    fontFamily?: InlinePreviewTextEditorSelectControl
+    size?: InlinePreviewTextEditorRangeControl
+    unsupported?: readonly string[]
+  }
+  art?: {
+    backgroundColor?: InlinePreviewTextEditorColorControl
+    backgroundEnabled?: InlinePreviewTextEditorCheckboxControl
+    backgroundOpacity?: InlinePreviewTextEditorRangeControl
+    backgroundPadding?: InlinePreviewTextEditorRangeControl
+    borderColor?: InlinePreviewTextEditorColorControl
+    borderEnabled?: InlinePreviewTextEditorCheckboxControl
+    borderRadius?: InlinePreviewTextEditorRangeControl
+    color?: InlinePreviewTextEditorColorControl
+    contrast?: InlinePreviewTextEditorSelectControl
+  }
+  utilities?: {
+    arcDegrees?: InlinePreviewTextEditorRangeControl
+    arcSide?: InlinePreviewTextEditorSelectControl
+    markdownPlanned?: boolean
+    mode?: InlinePreviewTextEditorSelectControl
+    respectVisualElements?: InlinePreviewTextEditorCheckboxControl
+    resetLayout?: () => void
+    width?: InlinePreviewTextEditorRangeControl
+    x?: InlinePreviewTextEditorRangeControl
+    y?: InlinePreviewTextEditorRangeControl
+  }
+  deleteAction?: {
+    label?: string
+    onDelete: () => void
+  }
+}
+
 export type InlinePreviewTextEditorProps = {
   ariaLabel: string
   caretValue: string
+  controls?: InlinePreviewTextEditorControls
   inputMode?: InlinePreviewTextEditorInputMode
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   lines: InlinePreviewTextEditorLine[]
@@ -119,6 +194,10 @@ function keepInlineTextEditorFocus(event: ReactPointerEvent<Element>) {
   event.stopPropagation()
 }
 
+function stopInlineTextEditorPointer(event: ReactPointerEvent<Element>) {
+  event.stopPropagation()
+}
+
 function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
   return {
     bottom: rect.bottom,
@@ -157,6 +236,44 @@ function areInlineTextSizesEqual(
   return (
     Math.abs(first.height - second.height) < 0.5 &&
     Math.abs(first.width - second.width) < 0.5
+  )
+}
+
+function areInlineTextRectsEqual(
+  first: InlinePreviewTextRect,
+  second: InlinePreviewTextRect,
+) {
+  return (
+    Math.abs(first.bottom - second.bottom) < 0.5 &&
+    Math.abs(first.left - second.left) < 0.5 &&
+    Math.abs(first.right - second.right) < 0.5 &&
+    Math.abs(first.top - second.top) < 0.5
+  )
+}
+
+function areInlineTextAnchorsEqual(
+  first: InlinePreviewTextAnchor,
+  second: InlinePreviewTextAnchor,
+) {
+  return (
+    Math.abs(first.bottom - second.bottom) < 0.5 &&
+    Math.abs(first.centerX - second.centerX) < 0.5 &&
+    Math.abs(first.centerY - second.centerY) < 0.5 &&
+    Math.abs(first.right - second.right) < 0.5 &&
+    Math.abs(first.top - second.top) < 0.5
+  )
+}
+
+function areInlineTextControlFramesEqual(
+  first: InlineTextControlFrame | null,
+  second: InlineTextControlFrame | null,
+) {
+  if (first === second) return true
+  if (!first || !second) return false
+
+  return (
+    areInlineTextAnchorsEqual(first.anchor, second.anchor) &&
+    areInlineTextRectsEqual(first.previewRect, second.previewRect)
   )
 }
 
@@ -205,6 +322,223 @@ function getInlinePreviewTextHostForTarget({
   return candidates.find((candidate) =>
     candidate.getAttribute(INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE) === targetKey,
   ) ?? null
+}
+
+function renderInlinePreviewTextSelectControl(
+  control: InlinePreviewTextEditorSelectControl | undefined,
+) {
+  if (!control) return null
+
+  return (
+    <label className="inline-preview-text-control-field">
+      <span>{control.label}</span>
+      <select
+        value={control.value}
+        onChange={(event) => control.onChange(event.target.value)}
+      >
+        {control.options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
+}
+
+function renderInlinePreviewTextRangeControl(
+  control: InlinePreviewTextEditorRangeControl | undefined,
+) {
+  if (!control) return null
+
+  const handleChange = (value: string) => {
+    const nextValue = Number(value)
+    if (Number.isFinite(nextValue)) {
+      control.onChange(nextValue)
+    }
+  }
+
+  return (
+    <label className="inline-preview-text-control-field inline-preview-text-range-field">
+      <span>{control.label}</span>
+      <input
+        type="range"
+        min={control.min}
+        max={control.max}
+        step={control.step}
+        value={control.value}
+        onChange={(event) => handleChange(event.target.value)}
+      />
+      <input
+        aria-label={control.label}
+        type="number"
+        min={control.min}
+        max={control.max}
+        step={control.step}
+        value={Number(control.value.toFixed(2))}
+        onChange={(event) => handleChange(event.target.value)}
+      />
+    </label>
+  )
+}
+
+function renderInlinePreviewTextCheckboxControl(
+  control: InlinePreviewTextEditorCheckboxControl | undefined,
+) {
+  if (!control) return null
+
+  return (
+    <label className="inline-preview-text-checkbox-field">
+      <input
+        type="checkbox"
+        checked={control.checked}
+        onChange={(event) => control.onChange(event.target.checked)}
+      />
+      <span>{control.label}</span>
+    </label>
+  )
+}
+
+function renderInlinePreviewTextColorControl(
+  control: InlinePreviewTextEditorColorControl | undefined,
+) {
+  if (!control) return null
+
+  return (
+    <label className="inline-preview-text-control-field">
+      <span>{control.label}</span>
+      <input
+        type="color"
+        value={control.value}
+        onChange={(event) => control.onChange(event.target.value)}
+      />
+    </label>
+  )
+}
+
+function InlinePreviewTextEditorMenuContent({
+  activeTab,
+  controls,
+}: {
+  activeTab: InlinePreviewTextEditorTab
+  controls?: InlinePreviewTextEditorControls
+}) {
+  if (!controls) {
+    return (
+      <div className="inline-preview-text-control-grid">
+        <span className="inline-preview-text-planned-control">
+          No controls available
+        </span>
+      </div>
+    )
+  }
+
+  if (activeTab === 'presets') {
+    return (
+      <div className="inline-preview-text-control-grid">
+        {controls.presets?.options.length ? (
+          <div className="inline-preview-text-preset-list">
+            {controls.presets.options.map((preset) => (
+              <button
+                key={preset.value}
+                type="button"
+                className="secondary-button inline-preview-text-control-button"
+                onClick={() => controls.presets?.onApply(preset.value)}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <span className="inline-preview-text-planned-control">
+            Style presets unavailable
+          </span>
+        )}
+        {controls.presets?.onReset ? (
+          <button
+            type="button"
+            className="secondary-button inline-preview-text-control-button"
+            onClick={controls.presets.onReset}
+          >
+            Reset style
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
+  if (activeTab === 'text') {
+    return (
+      <div className="inline-preview-text-control-grid">
+        {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
+        {renderInlinePreviewTextRangeControl(controls.text?.size)}
+        {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
+        {controls.text?.unsupported?.length ? (
+          <div className="inline-preview-text-planned-row">
+            {controls.text.unsupported.map((label) => (
+              <button
+                key={label}
+                type="button"
+                className="inline-preview-text-planned-control"
+                disabled
+                title={`${label} is not supported in the contextual editor yet`}
+              >
+                {label} unsupported
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  if (activeTab === 'art') {
+    return (
+      <div className="inline-preview-text-control-grid">
+        {renderInlinePreviewTextColorControl(controls.art?.color)}
+        {renderInlinePreviewTextSelectControl(controls.art?.contrast)}
+        {renderInlinePreviewTextCheckboxControl(controls.art?.backgroundEnabled)}
+        {renderInlinePreviewTextColorControl(controls.art?.backgroundColor)}
+        {renderInlinePreviewTextRangeControl(controls.art?.backgroundOpacity)}
+        {renderInlinePreviewTextRangeControl(controls.art?.backgroundPadding)}
+        {renderInlinePreviewTextCheckboxControl(controls.art?.borderEnabled)}
+        {renderInlinePreviewTextColorControl(controls.art?.borderColor)}
+        {renderInlinePreviewTextRangeControl(controls.art?.borderRadius)}
+      </div>
+    )
+  }
+
+  return (
+    <div className="inline-preview-text-control-grid">
+      {renderInlinePreviewTextCheckboxControl(
+        controls.utilities?.respectVisualElements,
+      )}
+      {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
+      {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
+      {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
+      {renderInlinePreviewTextSelectControl(controls.utilities?.mode)}
+      {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
+      {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
+      {controls.utilities?.resetLayout ? (
+        <button
+          type="button"
+          className="secondary-button inline-preview-text-control-button"
+          onClick={controls.utilities.resetLayout}
+        >
+          Reset layout
+        </button>
+      ) : null}
+      {controls.utilities?.markdownPlanned ? (
+        <button
+          type="button"
+          className="inline-preview-text-planned-control"
+          disabled
+        >
+          Markdown planned
+        </button>
+      ) : null}
+    </div>
+  )
 }
 
 function getTextRangeBoundary(
@@ -712,6 +1046,7 @@ function getGeometryCaretFrame({
 export function InlinePreviewTextEditor({
   ariaLabel,
   caretValue,
+  controls: editorControls,
   inputMode = 'overlay',
   geometryLines,
   lines,
@@ -740,12 +1075,25 @@ export function InlinePreviewTextEditor({
   >([])
   const [controlFrame, setControlFrame] =
     useState<InlineTextControlFrame | null>(null)
+  const controlFrameRef = useRef<InlineTextControlFrame | null>(null)
   const [controlSizes, setControlSizes] =
     useState<InlinePreviewTextControlSizes>(
       INLINE_TEXT_DEFAULT_CONTROL_SIZES,
     )
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
+
+  const isInlineControlElement = (target: EventTarget | null) => {
+    if (!(target instanceof Node)) {
+      return false
+    }
+
+    return Boolean(
+      tabsRef.current?.contains(target) ||
+      menuRef.current?.contains(target) ||
+      moveHandleRef.current?.contains(target),
+    )
+  }
 
   const updateSelectionStart = () => {
     const textarea = textareaRef.current
@@ -809,6 +1157,16 @@ export function InlinePreviewTextEditor({
     setSelection(getCollapsedSelectionState(nextSelectionStart))
   }
 
+  const handleInlineTextEditorBlur = (
+    event: ReactFocusEvent<HTMLTextAreaElement>,
+  ) => {
+    if (isInlineControlElement(event.relatedTarget)) {
+      return
+    }
+
+    onDone()
+  }
+
   useEffect(() => {
     const textarea = textareaRef.current
 
@@ -825,23 +1183,40 @@ export function InlinePreviewTextEditor({
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
-    const host = getInlinePreviewTextHostForTarget({
-      inputMode,
-      targetKey,
-      textarea,
-    })
+    const getCurrentHost = () =>
+      getInlinePreviewTextHostForTarget({
+        inputMode,
+        targetKey,
+        textarea,
+      })
+    const host = getCurrentHost()
 
     if (!host) {
+      controlFrameRef.current = null
       setControlFrame(null)
       return
     }
 
-    const updateControlFrame = () => {
-      const rect = host.getBoundingClientRect()
-      const previewRect =
-        getInlineTextPreviewSurface(host)?.getBoundingClientRect() ?? rect
+    let frameRequestId: number | null = null
+    let isFrameTrackingActive = true
 
-      setControlFrame({
+    const updateControlFrame = () => {
+      const currentHost = getCurrentHost()
+
+      if (!currentHost) {
+        if (controlFrameRef.current !== null) {
+          controlFrameRef.current = null
+          setControlFrame(null)
+        }
+        return
+      }
+
+      const rect = currentHost.getBoundingClientRect()
+      const previewRect =
+        getInlineTextPreviewSurface(currentHost)?.getBoundingClientRect() ??
+        rect
+
+      const nextControlFrame = {
         anchor: {
           bottom: rect.bottom,
           centerX: rect.left + rect.width / 2,
@@ -850,10 +1225,41 @@ export function InlinePreviewTextEditor({
           top: rect.top,
         },
         previewRect: rectToInlineTextRect(previewRect),
-      })
+      }
+
+      if (
+        areInlineTextControlFramesEqual(
+          controlFrameRef.current,
+          nextControlFrame,
+        )
+      ) {
+        return
+      }
+
+      controlFrameRef.current = nextControlFrame
+      setControlFrame(nextControlFrame)
+    }
+
+    const updateControlFrameOnAnimationFrame = () => {
+      if (!isFrameTrackingActive) {
+        return
+      }
+
+      updateControlFrame()
+      frameRequestId = window.requestAnimationFrame(
+        updateControlFrameOnAnimationFrame,
+      )
     }
 
     updateControlFrame()
+    if (
+      typeof window.requestAnimationFrame === 'function' &&
+      typeof window.cancelAnimationFrame === 'function'
+    ) {
+      frameRequestId = window.requestAnimationFrame(
+        updateControlFrameOnAnimationFrame,
+      )
+    }
 
     const resizeObserver =
       typeof ResizeObserver === 'undefined'
@@ -869,6 +1275,10 @@ export function InlinePreviewTextEditor({
     window.addEventListener('scroll', updateControlFrame, true)
 
     return () => {
+      isFrameTrackingActive = false
+      if (frameRequestId !== null) {
+        window.cancelAnimationFrame(frameRequestId)
+      }
       resizeObserver?.disconnect()
       window.removeEventListener('resize', updateControlFrame)
       window.removeEventListener('scroll', updateControlFrame, true)
@@ -1241,9 +1651,27 @@ export function InlinePreviewTextEditor({
           `inline-preview-text-menu--${resolvedMenuPlacement}`,
         ].join(' ')}
         onClick={stopInlineTextEditorClick}
-        onPointerDown={keepInlineTextEditorFocus}
+        onPointerDown={stopInlineTextEditorPointer}
         style={menuStyle}
       >
+        <InlinePreviewTextEditorMenuContent
+          activeTab={activeTab}
+          controls={editorControls}
+        />
+        <div className="inline-preview-text-menu-actions">
+          {editorControls?.deleteAction ? (
+            <button
+              type="button"
+              className="secondary-button inline-preview-text-delete-button"
+              onClick={(event) => {
+                event.stopPropagation()
+                editorControls.deleteAction?.onDelete()
+              }}
+              onPointerDown={keepInlineTextEditorFocus}
+            >
+              {editorControls.deleteAction.label ?? 'Delete'}
+            </button>
+          ) : null}
         <button
           type="button"
           className="secondary-button inline-preview-text-done-button"
@@ -1255,6 +1683,7 @@ export function InlinePreviewTextEditor({
         >
           Done
         </button>
+        </div>
       </div>
     </>
   ) : null
@@ -1284,7 +1713,7 @@ export function InlinePreviewTextEditor({
       }}
       onKeyDown={handleInlineTextEditorKeyDown}
       onKeyUp={updateSelectionStart}
-      onBlur={onDone}
+      onBlur={handleInlineTextEditorBlur}
       onPointerDown={
         inputMode === 'overlay'
           ? handleInlineTextEditorPointerDown

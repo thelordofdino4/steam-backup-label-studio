@@ -39,6 +39,14 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
 
+  assert.match(source, /controls\?:\s*InlinePreviewTextEditorControls/)
+  assert.match(source, /InlinePreviewTextEditorMenuContent/)
+  assert.match(source, /deleteAction/)
+  assert.match(source, /Markdown planned/)
+  assert.match(source, /unsupported\?:\s*readonly string\[\]/)
+  assert.match(source, /controls\.text\.unsupported/)
+  assert.match(source, /\{label\} unsupported/)
+  assert.match(source, /is not supported in the contextual editor yet/)
   assert.match(source, /<textarea/)
   assert.match(source, /value=\{value\}/)
   assert.match(source, /onChange=\{\(event\) => \{/)
@@ -85,6 +93,40 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
   assert.match(css, /@keyframes inline-preview-text-caret-flash/)
 })
 
+test('contextual text editor shell keeps tab and menu sizing stable', () => {
+  const css = readRepoFile('src/styles/app-editor-controls.css')
+
+  assert.match(css, /\.inline-preview-text-tabs\s*\{[^}]*display:\s*grid/s)
+  assert.match(
+    css,
+    /\.inline-preview-text-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-tabs\s*\{[^}]*width:\s*min\(520px,\s*calc\(100vw - 24px\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)\s*auto/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*\{[^}]*width:\s*min\(520px,\s*calc\(100vw - 24px\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(286px,\s*calc\(100vh - 32px\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*>\s*\.inline-preview-text-control-grid\s*\{[^}]*overflow-y:\s*auto/s,
+  )
+  assert.doesNotMatch(
+    css,
+    /\.inline-preview-text-(tabs|menu)\s*\{[^}]*width:\s*max-content/s,
+  )
+})
+
 test('case insert inline editing uses the adapter input path', () => {
   const templateLayer = readRepoFile(
     'src/components/preview/CaseInsertTemplatePreviewLayers.tsx',
@@ -92,9 +134,19 @@ test('case insert inline editing uses the adapter input path', () => {
   const spineLayer = readRepoFile(
     'src/components/preview/CaseInsertSpinePreviewLayer.tsx',
   )
+  const previewControls = readRepoFile(
+    'src/components/preview/caseInsertInlineTextEditorControls.ts',
+  )
 
   assert.match(templateLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
   assert.match(spineLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
+  assert.match(templateLayer, /createCaseInsertInlineTextEditorControls/)
+  assert.match(spineLayer, /createCaseInsertInlineTextEditorControls/)
+  assert.match(previewControls, /CASE_INSERT_TEXT_STYLE_PRESETS/)
+  assert.match(previewControls, /CASE_INSERT_TEXT_FONT_OPTIONS/)
+  assert.match(previewControls, /CASE_INSERT_TEXT_CONTRAST_OPTIONS/)
+  assert.match(previewControls, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
+  assert.match(previewControls, /markdownPlanned:\s*true/)
   assert.equal((templateLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
   assert.equal((spineLayer.match(/inputMode="adapter"/g) ?? []).length, 1)
 })
@@ -107,6 +159,9 @@ test('curved disc text is not routed through a visible rectangular editor layer'
 
   assert.match(adapter, /isCurvedCopyrightDiscTextLayout/)
   assert.match(adapter, /return null/)
+  assert.match(adapter, /createDiscInlineTextEditorControls/)
+  assert.match(adapter, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
+  assert.match(adapter, /controls=\{controls\}/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(discLayer, /DiscInlineTextEditorLayer/)
 })

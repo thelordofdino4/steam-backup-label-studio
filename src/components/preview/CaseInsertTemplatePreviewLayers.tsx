@@ -83,6 +83,10 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
+import {
+  createCaseInsertInlineTextEditorControls,
+  type CaseInsertPreviewTextControlHandlers,
+} from './caseInsertInlineTextEditorControls'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
@@ -104,6 +108,7 @@ type CaseInsertTemplateTextLayerProps = CaseInsertTemplateLayerProps & {
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }
 
 export type CaseInsertTemplateMarkLayerKind =
@@ -349,6 +354,7 @@ function CaseInsertTemplateTextBlock({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
@@ -365,6 +371,7 @@ function CaseInsertTemplateTextBlock({
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
   const renderedTextBlock = getRenderedCaseInsertTextBlock(
     textBlock,
@@ -422,6 +429,20 @@ function CaseInsertTemplateTextBlock({
   const textareaStyle = {
     textAlign: layoutTextBlock.align,
   } as CSSProperties
+  const editorControls = isSelected
+    ? createCaseInsertInlineTextEditorControls({
+        align: layoutTextBlock.align,
+        avoidVisualElements: layoutTextBlock.avoidVisualElements,
+        handlers: previewTextControlHandlers,
+        label: renderedTextBlock.label,
+        layout: layoutTextBlock.layout,
+        style: layoutTextBlock.style,
+        target: textTarget,
+        onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onResetLayout: () =>
+          previewTextControlHandlers.onResetLayout(textTarget),
+      })
+    : undefined
 
   return (
     <div
@@ -479,6 +500,7 @@ function CaseInsertTemplateTextBlock({
               ? editValue.toLocaleUpperCase()
               : editValue
           }
+          controls={editorControls}
           inputMode="adapter"
           lines={textLayout.lines}
           targetKey={targetKey}
@@ -516,6 +538,7 @@ function CaseInsertTemplateTextList({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
   textList: ProjectCaseInsertTextList
@@ -531,6 +554,7 @@ function CaseInsertTemplateTextList({
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
   const textListLayout = getJewelCaseBackTextListPreviewLayout(
     textList,
@@ -569,6 +593,19 @@ function CaseInsertTemplateTextList({
         ? 'none'
         : undefined,
   } as CSSProperties
+  const editorControls = isSelected
+    ? createCaseInsertInlineTextEditorControls({
+        avoidVisualElements: textList.avoidVisualElements,
+        handlers: previewTextControlHandlers,
+        label: textList.label,
+        layout: textList.layout,
+        style: textList.style,
+        target: textTarget,
+        onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onResetLayout: () =>
+          previewTextControlHandlers.onResetLayout(textTarget),
+      })
+    : undefined
 
   return (
     <div
@@ -620,6 +657,7 @@ function CaseInsertTemplateTextList({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${textList.label}`}
           caretValue={getPreviewTextListValue(textList)}
+          controls={editorControls}
           inputMode="adapter"
           lines={textListLayout.lines}
           targetKey={targetKey}
@@ -798,6 +836,7 @@ export function CaseInsertTemplateTextLayer({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: CaseInsertTemplateTextLayerProps) {
   const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
     paneId,
@@ -820,6 +859,7 @@ export function CaseInsertTemplateTextLayer({
           onSelectedTextTargetChange={onSelectedTextTargetChange}
           onTextTargetValueChange={onTextTargetValueChange}
           onTextTargetEditComplete={onTextTargetEditComplete}
+          previewTextControlHandlers={previewTextControlHandlers}
         />
       ))}
       {templateState.textLists.map((textList) => {
@@ -839,6 +879,7 @@ export function CaseInsertTemplateTextLayer({
             onSelectedTextTargetChange={onSelectedTextTargetChange}
             onTextTargetValueChange={onTextTargetValueChange}
             onTextTargetEditComplete={onTextTargetEditComplete}
+            previewTextControlHandlers={previewTextControlHandlers}
           />
         )
       })}

@@ -35,7 +35,9 @@ export type TextPanelProps = {
   discTextTitleValue: string
   resolvedDiscTextTitle: string
   selectedDiscTemplate: DiscTemplate
+  selectedDiscTextKey: DiscTextKey | null
   handleDiscTextToggle: (key: DiscTextKey, checked: boolean) => void
+  handleDiscTextPreviewEditStart: (key: DiscTextKey) => void
   handleDiscTextContentChange: (key: DiscTextKey, value: string) => void
   handleUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
   handleDiscTextLayoutChange: (

@@ -50,6 +50,9 @@ import type {
 import type {
   CaseInsertPreviewTextTarget,
 } from '../../caseInsert/previewTextSelection'
+import type {
+  CaseInsertPreviewTextControlHandlers,
+} from '../preview/caseInsertInlineTextEditorControls'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
@@ -89,6 +92,7 @@ export type CaseInsertEditorShellProps = {
     value: string,
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }
 
 function getSurfaceMetrics(
@@ -143,6 +147,7 @@ function CaseInsertProjectPanel({
   | 'onSelectedTextTargetChange'
   | 'onTextTargetValueChange'
   | 'onTextTargetEditComplete'
+  | 'previewTextControlHandlers'
   | 'onExportGuideToggle'
 >) {
   return (
@@ -346,6 +351,7 @@ export function CaseInsertEditorShell({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  previewTextControlHandlers,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
@@ -455,6 +461,7 @@ export function CaseInsertEditorShell({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        previewTextControlHandlers={previewTextControlHandlers}
       />
     </main>
   )
