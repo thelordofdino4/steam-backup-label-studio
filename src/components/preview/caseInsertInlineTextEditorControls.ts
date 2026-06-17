@@ -272,7 +272,8 @@ export function createCaseInsertInlineTextEditorControls({
       markdownPlanned: true,
     },
     deleteAction: {
-      label: `Hide ${label}`,
+      label: 'Delete',
+      ariaLabel: `Delete ${label}`,
       onDelete: () => {
         handlers.onEnabledChange(target, false)
         onDeleteComplete?.()
