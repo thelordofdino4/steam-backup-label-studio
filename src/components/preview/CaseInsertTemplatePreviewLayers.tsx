@@ -45,8 +45,8 @@ import {
   getCaseInsertPreviewTextListEditValue,
 } from '../../caseInsert/previewTextEditing'
 import {
-  isMarkdownTextEnabled,
-} from '../../text/markdownText'
+  isHtmlTextEnabled,
+} from '../../text/htmlText'
 import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../../editor/repeatedArtwork'
@@ -225,11 +225,30 @@ function renderCaseInsertTextLineContent(
       text: string
       bold?: boolean
       italic?: boolean
+      underline?: boolean
+      color?: string
+      backgroundColor?: string
+      fontFamily?: string
+      fontSizePx?: number
+      fontWeight?: number
+      fontStyle?: 'normal' | 'italic'
+      textDecoration?: 'none' | 'underline'
     }>
   },
+  baseFontSizePx: number,
 ) {
   const runs = line.runs?.filter((run) => run.text)
-  const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+  const hasStyledRuns = runs?.some((run) =>
+    run.bold ||
+    run.italic ||
+    run.underline ||
+    run.color ||
+    run.backgroundColor ||
+    run.fontFamily ||
+    run.fontSizePx ||
+    run.fontWeight ||
+    run.fontStyle ||
+    run.textDecoration)
 
   if (!runs || !hasStyledRuns) {
     return line.text
@@ -239,8 +258,16 @@ function renderCaseInsertTextLineContent(
     <span
       key={`${index}-${run.text}`}
       style={{
-        fontStyle: run.italic ? 'italic' : undefined,
-        fontWeight: run.bold ? 800 : undefined,
+        backgroundColor: run.backgroundColor,
+        color: run.color,
+        fontFamily: run.fontFamily,
+        fontSize: run.fontSizePx ? `${run.fontSizePx / baseFontSizePx}em` : undefined,
+        fontStyle: run.fontStyle ?? (run.italic ? 'italic' : undefined),
+        fontWeight: run.fontWeight ?? (run.bold ? 800 : undefined),
+        textDecorationLine:
+          run.textDecoration === 'underline' || run.underline
+            ? 'underline'
+            : run.textDecoration,
       }}
     >
       {run.text}
@@ -440,7 +467,7 @@ function CaseInsertTemplateTextBlock({
     textBlock,
     brandingSources.projectMetadata,
   )
-  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textBlock)
+  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
   const layoutTextBlock = isSelected
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -508,7 +535,7 @@ function CaseInsertTemplateTextBlock({
         'case-insert-template-text-block',
         `case-insert-template-text-block-${paneId}`,
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
-        isMarkdownEditing ? 'is-markdown-source' : '',
+        isHtmlSourceEditing ? 'is-html-source' : '',
         isSelected && isEmptyText ? 'is-empty' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
@@ -550,7 +577,7 @@ function CaseInsertTemplateTextBlock({
               textLayout.lineHeightPx,
             )}
           >
-            {renderCaseInsertTextLineContent(line)}
+            {renderCaseInsertTextLineContent(line, textLayout.fontSizePx)}
           </span>
         ))}
       </span>
@@ -558,15 +585,15 @@ function CaseInsertTemplateTextBlock({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${renderedTextBlock.label}`}
           caretValue={
-            !isMarkdownEditing &&
+            !isHtmlSourceEditing &&
               getTemplateTextTransform(paneId, layoutTextBlock) === 'uppercase'
               ? editValue.toLocaleUpperCase()
               : editValue
           }
           controls={editorControls}
-          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
+          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
           lines={textLayout.lines}
-          sourceMode={isMarkdownEditing}
+          sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
@@ -637,7 +664,7 @@ function CaseInsertTemplateTextList({
   )
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
   const editValue = getCaseInsertPreviewTextListEditValue(textList)
-  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textList)
+  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textList)
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
     ...getCaseInsertTextCssStyle(textList.style, 600),
@@ -676,7 +703,7 @@ function CaseInsertTemplateTextList({
       className={[
         'case-insert-template-feature-list',
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
-        isMarkdownEditing ? 'is-markdown-source' : '',
+        isHtmlSourceEditing ? 'is-html-source' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
         id: createPreviewEditableElementId(
@@ -717,7 +744,7 @@ function CaseInsertTemplateTextList({
               textListLayout.lineHeightPx,
             )}
           >
-            {renderCaseInsertTextLineContent(line)}
+            {renderCaseInsertTextLineContent(line, textListLayout.fontSizePx)}
           </span>
         ))}
       </span>
@@ -726,9 +753,9 @@ function CaseInsertTemplateTextList({
           ariaLabel={`Edit ${textList.label}`}
           caretValue={editValue}
           controls={editorControls}
-          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
+          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
           lines={textListLayout.lines}
-          sourceMode={isMarkdownEditing}
+          sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: 'left' }}

@@ -2,16 +2,16 @@ import type { CSSProperties, PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   getDiscTextContent,
-  getDiscTextMarkdownSource,
+  getDiscTextHtmlSource,
   getDiscTextLabel,
-  isDiscTextMarkdownEnabled,
+  isDiscTextHtmlEnabled,
   isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
-  type DiscTextMarkdownSources,
+  type DiscTextHtmlSources,
   type DiscTextSettings,
   type DiscTextValues,
 } from '../../discText/index'
@@ -41,9 +41,9 @@ import {
 } from '../../layout/presets'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
-  parseMarkdownText,
+  parseHtmlText,
   type TextContentMode,
-} from '../../text/markdownText'
+} from '../../text/htmlText'
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
@@ -54,7 +54,7 @@ import {
 export type DiscInlineTextEditorLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
-  discTextMarkdownSources: DiscTextMarkdownSources
+  discTextHtmlSources: DiscTextHtmlSources
   discTextStyles: DiscTextStyleSettings
   discTextLayout: DiscTextLayoutSettings
   title: string
@@ -236,7 +236,7 @@ function createDiscInlineTextEditorControls({
   onDiscTextAlignmentChange,
   onDiscTextVisualAvoidanceChange,
   onResetDiscTextLayout,
-  isMarkdownEnabled,
+  isHtmlSourceEnabled,
   onDiscTextContentModeChange,
 }: {
   key: DiscTextKey
@@ -265,7 +265,7 @@ function createDiscInlineTextEditorControls({
     avoidVisualElements: boolean,
   ) => void
   onResetDiscTextLayout: (key: DiscTextKey) => void
-  isMarkdownEnabled: boolean
+  isHtmlSourceEnabled: boolean
   onDiscTextContentModeChange: (
     key: DiscTextKey,
     contentMode: TextContentMode,
@@ -487,11 +487,11 @@ function createDiscInlineTextEditorControls({
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
-      markdown: {
-        label: 'Markdown',
-        checked: isMarkdownEnabled,
+      htmlSource: {
+        label: 'HTML source',
+        checked: isHtmlSourceEnabled,
         onChange: (checked) =>
-          onDiscTextContentModeChange(key, checked ? 'markdown' : 'plain'),
+          onDiscTextContentModeChange(key, checked ? 'html' : 'plain'),
       },
     },
     deleteAction: {
@@ -528,7 +528,7 @@ function getHostStyle({
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
-  discTextMarkdownSources,
+  discTextHtmlSources,
   discTextStyles,
   discTextLayout,
   title,
@@ -566,15 +566,15 @@ export function DiscInlineTextEditorLayer({
         }
 
         const text = getDiscTextContent(key, discTextValues, title)
-        const isMarkdownEditing = isDiscTextMarkdownEnabled(
-          discTextMarkdownSources,
+        const isHtmlSourceEditing = isDiscTextHtmlEnabled(
+          discTextHtmlSources,
           key,
         )
-        const editValue = isMarkdownEditing
-          ? getDiscTextMarkdownSource(discTextMarkdownSources, key, text)
+        const editValue = isHtmlSourceEditing
+          ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
           : text
-        const renderedText = isMarkdownEditing
-          ? parseMarkdownText(editValue).plainText
+        const renderedText = isHtmlSourceEditing
+          ? parseHtmlText(editValue).plainText
           : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
@@ -613,7 +613,7 @@ export function DiscInlineTextEditorLayer({
           onDiscTextAlignmentChange,
           onDiscTextVisualAvoidanceChange,
           onResetDiscTextLayout,
-          isMarkdownEnabled: isMarkdownEditing,
+          isHtmlSourceEnabled: isHtmlSourceEditing,
           onDiscTextContentModeChange,
         })
 
@@ -624,7 +624,7 @@ export function DiscInlineTextEditorLayer({
               'disc-inline-text-host',
               INLINE_PREVIEW_TEXT_HOST_CLASS,
               'is-editing',
-              isMarkdownEditing ? 'is-markdown-source' : '',
+              isHtmlSourceEditing ? 'is-html-source' : '',
               isEmptyText ? 'is-empty' : '',
             ].filter(Boolean).join(' ')}
             {...{ [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }}
@@ -645,16 +645,16 @@ export function DiscInlineTextEditorLayer({
               caretValue={editValue}
               controls={controls}
               geometryLines={geometryLines}
-              inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
+              inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
               lines={renderLayout.lines}
-              sourceMode={isMarkdownEditing}
+              sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}
               menuPlacement="below"
               onValueChange={(value) =>
                 onDiscTextValueChange(
                   key,
-                  isMarkdownEditing
+                  isHtmlSourceEditing
                     ? value
                     : getDiscInlineEditorRawValue(key, value),
                 )}

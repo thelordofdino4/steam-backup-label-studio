@@ -36,9 +36,8 @@ import {
 import {
   getRenderablePlainText,
   getRenderableRichTextDocument,
-  isMarkdownTextEnabled,
-  parseMarkdownText,
-} from '../text/markdownText.ts'
+  isHtmlTextEnabled,
+} from '../text/htmlText.ts'
 import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
@@ -266,7 +265,7 @@ function getTextLayoutFromConfig(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
-      richText: isMarkdownTextEnabled(textBlock)
+      richText: isHtmlTextEnabled(textBlock)
         ? getRenderableRichTextDocument(textBlock, textBlock.value)
         : undefined,
       text: textBlock.value,
@@ -463,11 +462,14 @@ export function getJewelCaseBackTextListPreviewLayout(
   avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseBackTextListLayout | null {
   const safeBounds = getJewelCaseBackPreviewRegionBounds(layout, 'backPanelSafe')
-  const markdownDocument = isMarkdownTextEnabled(textList)
-    ? parseMarkdownText(textList.markdownSource ?? textList.items.join('\n'))
+  const htmlDocument = isHtmlTextEnabled(textList)
+    ? getRenderableRichTextDocument(
+        textList,
+        textList.items.map((item) => `• ${item}`).join('\n'),
+      )
     : null
-  const items = markdownDocument
-    ? getRenderablePlainText(textList, markdownDocument.plainText)
+  const items = htmlDocument
+    ? getRenderablePlainText(textList, htmlDocument.plainText)
         .split('\n')
         .map((item) => item.trim())
         .filter(Boolean)
@@ -514,8 +516,8 @@ export function getJewelCaseBackTextListPreviewLayout(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_LIST_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textList.style),
-      richText: markdownDocument ?? undefined,
-      text: markdownDocument?.plainText ?? items.map((item) => `• ${item}`).join('\n'),
+      richText: htmlDocument ?? undefined,
+      text: htmlDocument?.plainText ?? items.map((item) => `• ${item}`).join('\n'),
       verticalAlign: 'center',
     },
   )

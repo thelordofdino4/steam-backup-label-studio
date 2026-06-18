@@ -426,6 +426,7 @@ Key files:
 - `src/caseInsert/textContent.ts`
 - `src/caseInsert/previewTextSelection.ts`
 - `src/caseInsert/previewTextEditing.ts`
+- `src/text/htmlText.ts`
 - `docs/TEXT_EDITOR_CONTRACT.md`
 
 Source-of-truth state:
@@ -659,6 +660,10 @@ Render path:
   paths, the final preview renderer remains visible as the glyph renderer
   during editing; the adapter supplies input, caret, selection, boundaries, and
   menu affordances.
+- HTML source editing is parsed and sanitized by `src/text/htmlText.ts` into
+  the shared rich-text run model. Project restore migrates legacy Markdown
+  source fields into canonical HTML; preview and export consume parsed runs, not
+  unsanitized markup.
 
 Edit/interaction path:
 

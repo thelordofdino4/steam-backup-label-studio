@@ -92,7 +92,7 @@ test('disc SVG renderer applies emphasis to straight text without duplicate rend
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
-test('disc SVG renderer maps straight Markdown to safe tspans', () => {
+test('disc SVG renderer maps straight HTML to safe tspans', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
     customNote: true,
@@ -104,8 +104,8 @@ test('disc SVG renderer maps straight Markdown to safe tspans', () => {
   const svg = buildDiscTextSvgLayer({
     settings,
     values,
-    markdownSources: {
-      customNote: 'Hello **bold** and *italic* <script>alert(1)</script>',
+    htmlSources: {
+      customNote: '<p>Hello <strong>bold</strong> and <em>italic</em> <span style="color:#ff0000">red</span><script>alert(1)</script></p>',
     },
     layoutSettings: createDefaultDiscTextLayout('none'),
     title: 'Portal 2',
@@ -118,7 +118,8 @@ test('disc SVG renderer maps straight Markdown to safe tspans', () => {
 
   assert.match(svg, /<tspan style="font-weight:800">bold<\/tspan>/)
   assert.match(svg, /<tspan style="font-style:italic">italic<\/tspan>/)
-  assert.match(svg, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/)
+  assert.match(svg, /<tspan style="fill:#ff0000">red<\/tspan>/)
+  assert.doesNotMatch(svg, /alert\(1\)/)
   assert.doesNotMatch(svg, /<script>/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
@@ -187,7 +188,7 @@ test('curved disc copyright text remains SVG textPath based', () => {
   assert.doesNotMatch(svg, /disc-text-editable-preview/)
 })
 
-test('curved disc copyright ignores Markdown sources and remains textPath', () => {
+test('curved disc copyright ignores HTML sources and remains textPath', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
     copyright: true,
@@ -200,8 +201,8 @@ test('curved disc copyright ignores Markdown sources and remains textPath', () =
   const svg = buildDiscTextSvgLayer({
     settings,
     values,
-    markdownSources: {
-      copyright: '**Markdown legal text**',
+    htmlSources: {
+      copyright: '<p><strong>HTML legal text</strong></p>',
     },
     layoutSettings: {
       ...layoutSettings,
@@ -220,7 +221,7 @@ test('curved disc copyright ignores Markdown sources and remains textPath', () =
 
   assert.match(svg, /<textPath\b/)
   assert.match(svg, />Plain legal text<\/textPath>/)
-  assert.doesNotMatch(svg, /Markdown legal text/)
+  assert.doesNotMatch(svg, /HTML legal text/)
   assert.doesNotMatch(svg, /<tspan\b/)
 })
 

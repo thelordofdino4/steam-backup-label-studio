@@ -138,6 +138,14 @@ text, and curved disc text.
   behavior.
 - Default metadata text can be deleted while editing and does not repopulate
   until the user blurs/exits while it is still empty.
+- Utilities exposes `HTML source` for cover, tray, left spine, right spine, and
+  straight disc text; it does not expose a separate Markdown mode.
+- HTML source mode shows canonical sanitized HTML for the current text, and
+  leaving source mode updates the final visible renderer.
+- Inline HTML color spans render in preview, survive save/load, and appear in
+  exported PNG output where that surface supports the style.
+- Older projects with plain text or legacy Markdown source fields load safely
+  and preserve visible text and supported bold/italic/bullet meaning.
 - Straight disc text shows all words, preserves spaces, keeps SVG
   fill/stroke/shadow visible, and does not shift, grow, shrink, or reveal
   duplicate layers while editing.

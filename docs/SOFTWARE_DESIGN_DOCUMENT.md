@@ -433,6 +433,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Case insert text uses computed rectangular/spine layout helpers.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
 - Cover, tray, spine, and straight disc inline editing use adapter mode: native input/selection support is hidden, while the existing final preview renderers remain the visible glyph source.
+- HTML source editing stores canonical sanitized HTML, parses it into the shared
+  rich-text run model, and renders those runs through the same preview/export
+  renderers. Legacy Markdown fields are load-only migration inputs.
 - Export uses `drawDiscTextElements` for disc text and `exportCaseInsertPng.ts` for case insert text.
 
 ### 9.5 Invariants And Future-Change Rules
@@ -442,6 +445,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Hidden inputs and measurement layers are adapters.
 - Text selection should work as text selection. Text movement should use a handle or intentional long-hold interaction.
 - Fake visible text over a transparent input is a known violation/risk unless explicit parity tests cover it.
+- Unsanitized HTML must never be used as the visual renderer source of truth;
+  source editors are input adapters, and normal preview/export must consume the
+  parsed safe rich-text model.
 - Spaces, newlines, wrapping, caret position, final preview, save/load, and export must remain aligned.
 
 ### 9.6 Validation Expectations

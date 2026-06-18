@@ -5,10 +5,12 @@ import type {
   ProjectCaseInsertTextSource,
 } from '../project/projectTypes.ts'
 import {
+  getHtmlSource,
   getRenderablePlainText,
-  parseMarkdownText,
+  parseHtmlText,
+  sanitizeHtmlSource,
   type TextContentMode,
-} from '../text/markdownText.ts'
+} from '../text/htmlText.ts'
 import { normalizeTextListItems } from './normalization.ts'
 import {
   applyCaseInsertTextBlockLayoutPreset,
@@ -41,14 +43,21 @@ export function updateCaseInsertTextBlockValue(
   value: string,
   source: ProjectCaseInsertTextSource = textBlock.source,
 ): ProjectCaseInsertTextBlock {
+  if (textBlock.contentMode === 'html') {
+    const htmlSource = sanitizeHtmlSource(value)
+
+    return {
+      ...textBlock,
+      value: parseHtmlText(htmlSource).plainText,
+      htmlSource,
+      markdownSource: undefined,
+      source,
+    }
+  }
+
   return {
     ...textBlock,
-    value: textBlock.contentMode === 'markdown'
-      ? parseMarkdownText(value).plainText
-      : value,
-    ...(textBlock.contentMode === 'markdown'
-      ? { markdownSource: value }
-      : {}),
+    value,
     source,
   }
 }
@@ -58,21 +67,30 @@ export function updateCaseInsertTextBlockContentMode(
   contentMode: TextContentMode,
   sourceValue: string,
 ): ProjectCaseInsertTextBlock {
-  if (contentMode === 'markdown') {
+  if (contentMode === 'html') {
+    const htmlSource = sanitizeHtmlSource(sourceValue)
+
     return {
       ...textBlock,
       contentMode,
-      markdownSource: sourceValue,
-      value: parseMarkdownText(sourceValue).plainText,
+      htmlSource,
+      markdownSource: undefined,
+      value: parseHtmlText(htmlSource).plainText,
       source: 'manual',
     }
   }
 
+  const renderedPlainText = getRenderablePlainText(
+    textBlock,
+    getHtmlSource(textBlock, sourceValue),
+  )
+
   return {
     ...textBlock,
     contentMode: undefined,
+    htmlSource: undefined,
     markdownSource: undefined,
-    value: getRenderablePlainText(textBlock, sourceValue),
+    value: renderedPlainText,
     source: 'manual',
   }
 }
@@ -188,16 +206,18 @@ export function setCaseInsertTextListItems(
   }
 }
 
-export function updateCaseInsertTextListMarkdownSource(
+export function updateCaseInsertTextListHtmlSource(
   textList: ProjectCaseInsertTextList,
-  markdownSource: string,
+  sourceValue: string,
 ): ProjectCaseInsertTextList {
-  const plainText = parseMarkdownText(markdownSource).plainText
+  const htmlSource = sanitizeHtmlSource(sourceValue)
+  const plainText = parseHtmlText(htmlSource).plainText
 
   return {
     ...textList,
-    contentMode: 'markdown',
-    markdownSource,
+    contentMode: 'html',
+    htmlSource,
+    markdownSource: undefined,
     items: normalizeTextListItems(plainText.split('\n'), textList.items),
     source: 'manual',
   }
@@ -208,16 +228,20 @@ export function updateCaseInsertTextListContentMode(
   contentMode: TextContentMode,
   sourceValue: string,
 ): ProjectCaseInsertTextList {
-  if (contentMode === 'markdown') {
-    return updateCaseInsertTextListMarkdownSource(textList, sourceValue)
+  if (contentMode === 'html') {
+    return updateCaseInsertTextListHtmlSource(textList, sourceValue)
   }
 
   return {
     ...textList,
     contentMode: undefined,
+    htmlSource: undefined,
     markdownSource: undefined,
     items: normalizeTextListItems(
-      getRenderablePlainText(textList, sourceValue).split('\n'),
+      getRenderablePlainText(
+        textList,
+        getHtmlSource(textList, sourceValue),
+      ).split('\n'),
       textList.items,
     ),
     source: 'manual',

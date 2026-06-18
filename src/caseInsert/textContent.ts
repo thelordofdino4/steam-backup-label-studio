@@ -13,10 +13,9 @@ import type {
   ProjectMetadata,
 } from '../project/projectTypes.ts'
 import {
-  getMarkdownSource,
   getRenderablePlainText,
-  isMarkdownTextEnabled,
-} from '../text/markdownText.ts'
+  isHtmlTextEnabled,
+} from '../text/htmlText.ts'
 
 export type CaseInsertTextSurfaceId = 'cover' | 'tray' | 'spine'
 
@@ -168,10 +167,10 @@ export function getCaseInsertTextBlockRenderValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
 ) {
-  if (isMarkdownTextEnabled(textBlock)) {
+  if (isHtmlTextEnabled(textBlock)) {
     return getRenderablePlainText(
       textBlock,
-      getMarkdownSource(textBlock, textBlock.value),
+      textBlock.value,
     )
   }
 

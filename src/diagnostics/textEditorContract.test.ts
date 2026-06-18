@@ -30,7 +30,7 @@ test('text editor contract document records the stabilization gate', () => {
   assert.match(contract, /Core UX Contract/)
   assert.match(contract, /Input And Caret Contract/)
   assert.match(contract, /Disc Compatibility Contract/)
-  assert.match(contract, /Markdown is the supported source-editing mode/)
+  assert.match(contract, /HTML source is the supported source-editing mode/)
   assert.match(contract, /Curved disc text remains SVG\/textPath based/)
 })
 
@@ -42,7 +42,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /controls\?:\s*InlinePreviewTextEditorControls/)
   assert.match(source, /InlinePreviewTextEditorMenuContent/)
   assert.match(source, /deleteAction/)
-  assert.match(source, /markdown\?:\s*InlinePreviewTextEditorCheckboxControl/)
+  assert.match(source, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
   assert.match(source, /sourceMode\?:\s*boolean/)
   assert.doesNotMatch(source, /Markdown planned/)
   assert.match(source, /controls\.presets\?\.style/)
@@ -167,21 +167,21 @@ test('case insert inline editing uses the adapter input path', () => {
   assert.match(previewControls, /'italic'/)
   assert.match(previewControls, /'underline'/)
   assert.doesNotMatch(previewControls, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
-  assert.match(previewControls, /label:\s*'Markdown'/)
+  assert.match(previewControls, /label:\s*'HTML source'/)
   assert.match(previewControls, /onContentModeChange/)
   assert.doesNotMatch(previewControls, /markdownPlanned:\s*true/)
   assert.equal(
-    (templateLayer.match(/inputMode=\{isMarkdownEditing \? 'overlay' : 'adapter'\}/g) ?? [])
+    (templateLayer.match(/inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/g) ?? [])
       .length,
     2,
   )
   assert.equal(
-    (spineLayer.match(/inputMode=\{isMarkdownEditing \? 'overlay' : 'adapter'\}/g) ?? [])
+    (spineLayer.match(/inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/g) ?? [])
       .length,
     1,
   )
-  assert.match(templateLayer, /sourceMode=\{isMarkdownEditing\}/)
-  assert.match(spineLayer, /sourceMode=\{isMarkdownEditing\}/)
+  assert.match(templateLayer, /sourceMode=\{isHtmlSourceEditing\}/)
+  assert.match(spineLayer, /sourceMode=\{isHtmlSourceEditing\}/)
 })
 
 test('curved disc text is not routed through a visible rectangular editor layer', () => {

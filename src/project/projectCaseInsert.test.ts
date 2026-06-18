@@ -604,7 +604,7 @@ test('migrated cover and tray text block properties survive save and restore', (
   assert.equal(restoredTrayDescription?.layout.y, 58)
 })
 
-test('case insert Markdown text fields survive save and restore', () => {
+test('case insert HTML text fields survive save and restore', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 
   state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
@@ -613,8 +613,8 @@ test('case insert Markdown text fields survive save and restore', () => {
       textBlock.id === 'cover-title-text'
         ? updateCaseInsertTextBlockContentMode(
             textBlock,
-            'markdown',
-            'A **bold** title',
+            'html',
+            '<p>A <strong>bold</strong> title</p>',
           )
         : textBlock),
   }))
@@ -624,8 +624,8 @@ test('case insert Markdown text fields survive save and restore', () => {
       textList.id === 'tray-feature-bullets'
         ? updateCaseInsertTextListContentMode(
             textList,
-            'markdown',
-            '- **Co-op** puzzles\n- *Workshop* support',
+            'html',
+            '<ul><li><strong>Co-op</strong> puzzles</li><li><em>Workshop</em> support</li></ul>',
           )
         : textList),
   }))
@@ -642,15 +642,62 @@ test('case insert Markdown text fields survive save and restore', () => {
     ({ id }) => id === 'tray-feature-bullets',
   )
 
-  assert.equal(coverTitle?.contentMode, 'markdown')
-  assert.equal(coverTitle?.markdownSource, 'A **bold** title')
+  assert.equal(coverTitle?.contentMode, 'html')
+  assert.equal(coverTitle?.htmlSource, '<p>A <strong>bold</strong> title</p>')
   assert.equal(coverTitle?.value, 'A bold title')
-  assert.equal(featureList?.contentMode, 'markdown')
+  assert.equal(featureList?.contentMode, 'html')
   assert.equal(
-    featureList?.markdownSource,
-    '- **Co-op** puzzles\n- *Workshop* support',
+    featureList?.htmlSource,
+    '<ul><li><strong>Co-op</strong> puzzles</li><li><em>Workshop</em> support</li></ul>',
   )
   assert.deepEqual(featureList?.items, ['• Co-op puzzles', '• Workshop support'])
+})
+
+test('legacy case insert Markdown text fields migrate to HTML on restore', () => {
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: createDefaultProjectJewelCaseState('Portal 2'),
+  })
+  const coverTitle = saved.caseInsert.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+  const featureList = saved.caseInsert.templates.tray.textLists.find(
+    ({ id }) => id === 'tray-feature-bullets',
+  )
+
+  assert.ok(coverTitle)
+  assert.ok(featureList)
+
+  coverTitle.contentMode = 'markdown'
+  coverTitle.markdownSource = 'A **legacy** title'
+  coverTitle.htmlSource = undefined
+  featureList.contentMode = 'markdown'
+  featureList.markdownSource = '- **Co-op** puzzles\n- *Workshop* support'
+  featureList.htmlSource = undefined
+
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const restoredCoverTitle = restored.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+  const restoredFeatureList = restored.templates.tray.textLists.find(
+    ({ id }) => id === 'tray-feature-bullets',
+  )
+
+  assert.equal(restoredCoverTitle?.contentMode, 'html')
+  assert.equal(
+    restoredCoverTitle?.htmlSource,
+    '<p>A <strong>legacy</strong> title</p>',
+  )
+  assert.equal(restoredCoverTitle?.value, 'A legacy title')
+  assert.equal(restoredFeatureList?.contentMode, 'html')
+  assert.equal(
+    restoredFeatureList?.htmlSource,
+    '<ul><li><strong>Co-op</strong> puzzles</li><li><em>Workshop</em> support</li></ul>',
+  )
+  assert.deepEqual(restoredFeatureList?.items, [
+    '• Co-op puzzles',
+    '• Workshop support',
+  ])
 })
 
 test('mirrored spine side updates fan out until mirror is disabled', () => {

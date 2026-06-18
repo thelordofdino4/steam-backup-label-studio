@@ -193,7 +193,7 @@
     0 0 0 4px rgba(42, 171, 226, 0.1);
 }
 
-.inline-preview-text-host.is-markdown-source .case-insert-text-render-content {
+.inline-preview-text-host.is-html-source .case-insert-text-render-content {
   visibility: hidden;
 }
 

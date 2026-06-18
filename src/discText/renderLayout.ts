@@ -10,7 +10,7 @@ import {
   type RichTextDocument,
   type RichTextLine,
   type RichTextRun,
-} from '../text/markdownText.ts'
+} from '../text/htmlText.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 
@@ -26,6 +26,14 @@ export type StraightDiscTextRunLayout = {
   text: string
   bold?: boolean
   italic?: boolean
+  underline?: boolean
+  color?: string
+  backgroundColor?: string
+  fontFamily?: string
+  fontSizePx?: number
+  fontWeight?: number
+  fontStyle?: 'normal' | 'italic'
+  textDecoration?: 'none' | 'underline'
   width: number
 }
 
@@ -114,7 +122,15 @@ function splitLineIntoMeasuredTokens(line: string) {
 
 function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
   return Boolean(first.bold) === Boolean(second.bold) &&
-    Boolean(first.italic) === Boolean(second.italic)
+    Boolean(first.italic) === Boolean(second.italic) &&
+    Boolean(first.underline) === Boolean(second.underline) &&
+    first.color === second.color &&
+    first.backgroundColor === second.backgroundColor &&
+    first.fontFamily === second.fontFamily &&
+    first.fontSizePx === second.fontSizePx &&
+    first.fontWeight === second.fontWeight &&
+    first.fontStyle === second.fontStyle &&
+    first.textDecoration === second.textDecoration
 }
 
 function appendRichTextRun(runs: RichTextRun[], run: RichTextRun) {
@@ -145,10 +161,10 @@ function getDiscTextRunFontString({
   run: RichTextRun
 }) {
   return getDiscTextFontString(
-    run.bold ? Math.max(baseFontWeight, 800) : baseFontWeight,
-    fontSize,
-    fontFamily,
-    run.italic ? 'italic' : baseFontStyle,
+    run.fontWeight ?? (run.bold ? Math.max(baseFontWeight, 800) : baseFontWeight),
+    run.fontSizePx ?? fontSize,
+    run.fontFamily ?? fontFamily,
+    run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),
   )
 }
 
@@ -1034,6 +1050,14 @@ export function getStraightDiscTextRenderLayout(
             text: run.text,
             bold: run.bold,
             italic: run.italic,
+            underline: run.underline,
+            color: run.color,
+            backgroundColor: run.backgroundColor,
+            fontFamily: run.fontFamily,
+            fontSizePx: run.fontSizePx,
+            fontWeight: run.fontWeight,
+            fontStyle: run.fontStyle,
+            textDecoration: run.textDecoration,
             width: run.width,
           }))
 

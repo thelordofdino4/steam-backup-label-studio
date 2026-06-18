@@ -6,14 +6,14 @@ import { getRatingBadgePlaceholderImageSize } from '../assets/assetManifest.ts'
 import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import {
   getDiscTextContent,
-  getDiscTextMarkdownSource,
+  getDiscTextHtmlSource,
   getDiscTextLabel,
-  isDiscTextMarkdownEnabled,
+  isDiscTextHtmlEnabled,
 } from '../discText/index.ts'
 import type {
   DiscTextKey,
   DiscTextLayoutSettings,
-  DiscTextMarkdownSources,
+  DiscTextHtmlSources,
   DiscTextSettings,
   DiscTextValues,
 } from '../discText/types'
@@ -50,7 +50,7 @@ import type {
   ProjectTitleArtwork,
 } from '../project/projectTypes.ts'
 import { createTechnicalMarkRenderModels } from '../render/technicalMarkRenderModel.ts'
-import { parseMarkdownText } from '../text/markdownText.ts'
+import { parseHtmlText } from '../text/htmlText.ts'
 
 const DISC_TEXT_TO_TEXT_AVOIDANCE_GAP_PERCENT = 0.8
 
@@ -66,7 +66,7 @@ export type DiscTextOccupiedRegionParams = {
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
-  discTextMarkdownSources?: DiscTextMarkdownSources
+  discTextHtmlSources?: DiscTextHtmlSources
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
   discTextTitle: string
@@ -105,7 +105,7 @@ export function createDiscTextOccupiedRegions({
   projectDiscNumberArtwork,
   discTextSettings,
   discTextValues,
-  discTextMarkdownSources = {},
+  discTextHtmlSources = {},
   discTextLayout,
   discTextStyles,
   discTextTitle,
@@ -274,15 +274,15 @@ export function createDiscTextOccupiedRegions({
     if (layout.mode !== 'straight') continue
 
     const fallbackText = getDiscTextContent(key, discTextValues, discTextTitle)
-    const markdownDocument = isDiscTextMarkdownEnabled(
-      discTextMarkdownSources,
+    const htmlDocument = isDiscTextHtmlEnabled(
+      discTextHtmlSources,
       key,
     )
-      ? parseMarkdownText(
-          getDiscTextMarkdownSource(discTextMarkdownSources, key, fallbackText),
+      ? parseHtmlText(
+          getDiscTextHtmlSource(discTextHtmlSources, key, fallbackText),
         )
       : null
-    const text = (markdownDocument?.plainText ?? fallbackText).trim()
+    const text = (htmlDocument?.plainText ?? fallbackText).trim()
     if (!text) continue
 
     const renderLayout = getStraightDiscTextRenderLayout(
@@ -294,7 +294,7 @@ export function createDiscTextOccupiedRegions({
       },
       measureText,
       discTextStyles,
-      markdownDocument ? { richText: markdownDocument } : undefined,
+      htmlDocument ? { richText: htmlDocument } : undefined,
     )
     const bounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
 

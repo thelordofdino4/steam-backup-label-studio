@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
-import type { DiscTextAlignment, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextMarkdownSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
+import type { DiscTextAlignment, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } from '../../discText/styles'
+import type { TextContentMode } from '../../text/htmlText'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SelectedDiscTemplateId, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { BackgroundLayer, type BackgroundPreviewSize } from './BackgroundLayer'
@@ -64,7 +65,7 @@ export type DiscPreviewProps = {
     settings: DiscTextSettings
     values: DiscTextValues
     valueSources: DiscTextValueSources
-    markdownSources: DiscTextMarkdownSources
+    htmlSources: DiscTextHtmlSources
     styles: DiscTextStyleSettings
     manualGameTitle: string
     layout: DiscTextLayoutSettings
@@ -77,7 +78,7 @@ export type DiscPreviewProps = {
     onTextValueChange: (key: DiscTextKey, value: string) => void
     onTextContentModeChange: (
       key: DiscTextKey,
-      contentMode: 'plain' | 'markdown',
+      contentMode: TextContentMode,
     ) => void
     onTextEditComplete: (key: DiscTextKey) => void
     onTextStyleChange: (
@@ -232,7 +233,7 @@ export function DiscPreview({
       projectDiscNumberArtwork: discText.discNumberArtwork,
       discTextSettings: discText.settings,
       discTextValues: metadataBoundDiscTextValues,
-      discTextMarkdownSources: discText.markdownSources,
+      discTextHtmlSources: discText.htmlSources,
       discTextLayout: discText.layout,
       discTextStyles: discText.styles,
       discTextTitle: discText.manualGameTitle,
@@ -244,7 +245,7 @@ export function DiscPreview({
       artwork.titleArtwork,
       discText.discNumberArtwork,
       discText.layout,
-      discText.markdownSources,
+      discText.htmlSources,
       discText.manualGameTitle,
       discText.settings,
       discText.styles,
@@ -372,7 +373,7 @@ export function DiscPreview({
         discTextSettings={discText.settings}
         discTextValues={discText.values}
         discTextValueSources={discText.valueSources}
-        discTextMarkdownSources={discText.markdownSources}
+        discTextHtmlSources={discText.htmlSources}
         discTextStyles={discText.styles}
         projectDiscNumberArtwork={discText.discNumberArtwork}
         projectMetadata={metadata}
