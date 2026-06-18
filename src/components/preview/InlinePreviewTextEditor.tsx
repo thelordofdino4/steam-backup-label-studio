@@ -30,6 +30,10 @@ import {
   type InlinePreviewTextRect,
   type InlinePreviewTextSize,
 } from './inlinePreviewTextEditorPositioning'
+import {
+  CONTEXTUAL_TEXT_CONTROL_GROUPS,
+  type ContextualTextControlGroupId,
+} from '../../text/contextualTextControlViewModel'
 
 export const INLINE_PREVIEW_TEXT_HOST_CLASS = 'inline-preview-text-host'
 export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
@@ -39,11 +43,7 @@ export const INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE =
 
 export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
 
-export type InlinePreviewTextEditorTab =
-  | 'presets'
-  | 'text'
-  | 'art'
-  | 'utilities'
+export type InlinePreviewTextEditorTab = ContextualTextControlGroupId
 
 export type InlinePreviewTextEditorLine = {
   text: string
@@ -182,15 +182,7 @@ type InlineTextSelectionState = {
   start: number
 }
 
-const INLINE_TEXT_EDITOR_TABS: Array<{
-  id: InlinePreviewTextEditorTab
-  label: string
-}> = [
-  { id: 'presets', label: 'Style Presets' },
-  { id: 'text', label: 'Text Controls' },
-  { id: 'art', label: 'Artistic Elements' },
-  { id: 'utilities', label: 'Utilities' },
-]
+const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 
 const INLINE_PREVIEW_SURFACE_SELECTOR = '.case-insert-preview, .disc-preview'
 

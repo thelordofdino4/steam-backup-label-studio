@@ -23,6 +23,16 @@ import type {
   ProjectCaseInsertTextAlign,
 } from '../../project/projectTypes'
 import type { LegacyTextContentMode, TextContentMode } from '../../text/htmlText'
+import {
+  CONTEXTUAL_TEXT_ALIGNMENT_OPTIONS,
+  CONTEXTUAL_TEXT_CONTROL_LABELS,
+  CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
+  createContextualTextPresetOptions,
+  contextualTextNumericValuesMatch,
+  findMatchingContextualTextPreset,
+  findMatchingContextualTextStylePreset,
+  isContextualTextCustomPreset,
+} from '../../text/contextualTextControlViewModel.ts'
 import type {
   InlinePreviewTextEditorControls,
 } from './InlinePreviewTextEditor'
@@ -91,25 +101,6 @@ type CaseInsertInlineTextEditorControlParams = {
   onResetLayout?: () => void
 }
 
-const TEXT_ALIGNMENT_OPTIONS = [
-  { value: 'left', label: 'Left' },
-  { value: 'center', label: 'Center' },
-  { value: 'right', label: 'Right' },
-] as const
-
-const CUSTOM_PRESET_OPTION = { label: 'Custom', value: 'custom' } as const
-
-function numericValuesMatch(first: number | undefined, second: number) {
-  return typeof first === 'number' && Math.abs(first - second) < 0.001
-}
-
-function getMatchingCaseInsertStylePreset(style: CaseInsertTextStyle) {
-  return CASE_INSERT_TEXT_STYLE_PRESETS.find((preset) =>
-    Object.entries(preset.style).every(([field, value]) =>
-      style[field as keyof CaseInsertTextStyle] === value),
-  )
-}
-
 function getMatchingCaseInsertLayoutPreset({
   align,
   layout,
@@ -119,13 +110,13 @@ function getMatchingCaseInsertLayoutPreset({
   layout: ProjectCaseInsertLayout
   layoutPresets: readonly CaseInsertTextLayoutPreset[]
 }) {
-  return layoutPresets.find((preset) => {
+  return findMatchingContextualTextPreset(layoutPresets, (preset) => {
     if (preset.align && preset.align !== align) {
       return false
     }
 
     return Object.entries(preset.layout).every(([field, value]) =>
-      numericValuesMatch(
+      contextualTextNumericValuesMatch(
         layout[field as keyof Pick<ProjectCaseInsertLayout, 'scale' | 'width' | 'x' | 'y'>],
         value,
       ),
@@ -157,7 +148,10 @@ export function createCaseInsertInlineTextEditorControls({
   onDeleteComplete,
   onResetLayout,
 }: CaseInsertInlineTextEditorControlParams): InlinePreviewTextEditorControls {
-  const matchingStylePreset = getMatchingCaseInsertStylePreset(style)
+  const matchingStylePreset = findMatchingContextualTextStylePreset(
+    style,
+    CASE_INSERT_TEXT_STYLE_PRESETS,
+  )
   const matchingLayoutPreset = getMatchingCaseInsertLayoutPreset({
     align,
     layout,
@@ -167,34 +161,25 @@ export function createCaseInsertInlineTextEditorControls({
   return {
     presets: {
       style: {
-        label: 'Style preset',
-        options: [
-          CUSTOM_PRESET_OPTION,
-          ...CASE_INSERT_TEXT_STYLE_PRESETS.map(({ id, label }) => ({
-            label,
-            value: id,
-          })),
-        ],
-        value: matchingStylePreset?.id ?? CUSTOM_PRESET_OPTION.value,
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.stylePreset,
+        options: createContextualTextPresetOptions(
+          CASE_INSERT_TEXT_STYLE_PRESETS,
+        ),
+        value: matchingStylePreset?.id ?? CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
         onChange: (presetId) => {
-          if (presetId !== CUSTOM_PRESET_OPTION.value) {
+          if (!isContextualTextCustomPreset(presetId)) {
             handlers.onApplyStylePreset(target, presetId)
           }
         },
       },
       layout: layoutPresets.length > 0
         ? {
-            label: 'Layout preset',
-            options: [
-              CUSTOM_PRESET_OPTION,
-              ...layoutPresets.map(({ id, label }) => ({
-                label,
-                value: id,
-              })),
-            ],
-            value: matchingLayoutPreset?.id ?? CUSTOM_PRESET_OPTION.value,
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.layoutPreset,
+            options: createContextualTextPresetOptions(layoutPresets),
+            value:
+              matchingLayoutPreset?.id ?? CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
             onChange: (presetId) => {
-              if (presetId !== CUSTOM_PRESET_OPTION.value) {
+              if (!isContextualTextCustomPreset(presetId)) {
                 handlers.onApplyLayoutPreset(target, presetId)
               }
             },
@@ -204,7 +189,7 @@ export function createCaseInsertInlineTextEditorControls({
     },
     text: {
       fontFamily: {
-        label: 'Font',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.fontFamily,
         options: CASE_INSERT_TEXT_FONT_OPTIONS.map(({ label, value }) => ({
           label,
           value,
@@ -218,7 +203,7 @@ export function createCaseInsertInlineTextEditorControls({
           ),
       },
       size: {
-        label: 'Size',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
         min: scaleMin,
         max: scaleMax,
         step: 0.01,
@@ -227,8 +212,8 @@ export function createCaseInsertInlineTextEditorControls({
       },
       alignment: align
         ? {
-            label: 'Align',
-            options: TEXT_ALIGNMENT_OPTIONS,
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.alignment,
+            options: CONTEXTUAL_TEXT_ALIGNMENT_OPTIONS,
             value: align,
             onChange: (value) =>
               handlers.onAlignChange(
@@ -238,17 +223,17 @@ export function createCaseInsertInlineTextEditorControls({
           }
         : undefined,
       bold: {
-        label: 'Bold',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
         pressed: style.bold,
         onChange: (pressed) => handlers.onStyleChange(target, 'bold', pressed),
       },
       italic: {
-        label: 'Italic',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
         pressed: style.italic,
         onChange: (pressed) => handlers.onStyleChange(target, 'italic', pressed),
       },
       underline: {
-        label: 'Underline',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.underline,
         pressed: style.underline,
         onChange: (pressed) =>
           handlers.onStyleChange(target, 'underline', pressed),
@@ -256,12 +241,12 @@ export function createCaseInsertInlineTextEditorControls({
     },
     art: {
       color: {
-        label: 'Color',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.color,
         value: style.color,
         onChange: (value) => handlers.onStyleChange(target, 'color', value),
       },
       contrast: {
-        label: 'Contrast',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.contrast,
         options: CASE_INSERT_TEXT_CONTRAST_OPTIONS.map(({ label, value }) => ({
           label,
           value,
@@ -275,14 +260,14 @@ export function createCaseInsertInlineTextEditorControls({
           ),
       },
       backgroundEnabled: {
-        label: 'Background',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundEnabled,
         checked: style.backgroundEnabled,
         onChange: (checked) =>
           handlers.onStyleChange(target, 'backgroundEnabled', checked),
       },
       backgroundColor: style.backgroundEnabled
         ? {
-            label: 'Fill',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundColor,
             value: style.backgroundColor,
             onChange: (value) =>
               handlers.onStyleChange(target, 'backgroundColor', value),
@@ -290,7 +275,7 @@ export function createCaseInsertInlineTextEditorControls({
         : undefined,
       backgroundOpacity: style.backgroundEnabled
         ? {
-            label: 'Opacity',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundOpacity,
             min: 0,
             max: 1,
             step: 0.05,
@@ -301,7 +286,7 @@ export function createCaseInsertInlineTextEditorControls({
         : undefined,
       backgroundPadding: style.backgroundEnabled
         ? {
-            label: 'Padding',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundPadding,
             min: 0,
             max: 4,
             step: 0.1,
@@ -312,7 +297,7 @@ export function createCaseInsertInlineTextEditorControls({
         : undefined,
       borderEnabled: style.backgroundEnabled
         ? {
-            label: 'Border',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
             checked: style.borderEnabled,
             onChange: (checked) =>
               handlers.onStyleChange(target, 'borderEnabled', checked),
@@ -320,7 +305,7 @@ export function createCaseInsertInlineTextEditorControls({
         : undefined,
       borderColor: style.backgroundEnabled && style.borderEnabled
         ? {
-            label: 'Line',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
             value: style.borderColor,
             onChange: (value) =>
               handlers.onStyleChange(target, 'borderColor', value),
@@ -328,7 +313,7 @@ export function createCaseInsertInlineTextEditorControls({
         : undefined,
       borderRadius: style.backgroundEnabled && style.borderEnabled
         ? {
-            label: 'Radius',
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
             min: 0,
             max: 4,
             step: 0.1,
@@ -340,13 +325,13 @@ export function createCaseInsertInlineTextEditorControls({
     },
     utilities: {
       respectVisualElements: {
-        label: 'Respect visuals',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
         checked: avoidVisualElements,
         onChange: (checked) =>
           handlers.onAvoidVisualElementsChange(target, checked),
       },
       width: {
-        label: 'Width',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.width,
         min: CASE_INSERT_TEXT_WIDTH_MIN,
         max: CASE_INSERT_TEXT_WIDTH_MAX,
         step: 1,
@@ -371,7 +356,7 @@ export function createCaseInsertInlineTextEditorControls({
       },
       resetLayout: onResetLayout,
       htmlSource: {
-        label: 'HTML source',
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
         checked: contentMode === 'html',
         onChange: (checked) =>
           handlers.onContentModeChange(
@@ -381,7 +366,7 @@ export function createCaseInsertInlineTextEditorControls({
       },
     },
     deleteAction: {
-      label: 'Delete',
+      label: CONTEXTUAL_TEXT_CONTROL_LABELS.delete,
       ariaLabel: `Delete ${label}`,
       onDelete: () => {
         handlers.onEnabledChange(target, false)
