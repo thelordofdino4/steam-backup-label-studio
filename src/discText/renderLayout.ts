@@ -1,6 +1,7 @@
 import type { DiscTextAlignment, DiscTextKey, DiscTextLayout } from './types'
 import type { DiscTextAvoidanceRegion } from './avoidance.ts'
 import {
+  getDiscTextFontStyle,
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
 } from './styles.ts'
@@ -19,6 +20,7 @@ export type StraightDiscTextRenderLayout = {
   fontFamily: string
   font: string
   fontSize: number
+  fontStyle: string
   fontWeight: number
   lineHeight: number
   maxWidth: number
@@ -48,8 +50,11 @@ export function getDiscTextFontString(
   fontWeight: number,
   fontSize: number,
   fontFamily = 'Arial, sans-serif',
+  fontStyle = 'normal',
 ) {
-  return `${fontWeight} ${fontSize}px ${fontFamily}`
+  const fontStylePrefix = fontStyle === 'italic' ? 'italic ' : ''
+
+  return `${fontStylePrefix}${fontWeight} ${fontSize}px ${fontFamily}`
 }
 
 function splitLongTokenByMeasuredWidth(
@@ -561,6 +566,7 @@ export function getStraightDiscTextRenderLayout(
     renderStyle.fontWeight,
     fontSize,
     renderStyle.fontFamilyCanvas,
+    getDiscTextFontStyle(renderStyle),
   )
   const avoidanceRegions = layout.avoidVisualElements
     ? options.avoidanceRegions ?? []
@@ -595,6 +601,7 @@ export function getStraightDiscTextRenderLayout(
     fontFamily: renderStyle.fontFamilyCss,
     font,
     fontSize,
+    fontStyle: getDiscTextFontStyle(renderStyle),
     fontWeight: renderStyle.fontWeight,
     lineHeight,
     maxWidth: layout.width,

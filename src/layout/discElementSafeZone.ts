@@ -38,6 +38,7 @@ import {
   type TextMeasureFunction,
 } from '../discText/renderLayout.ts'
 import {
+  getDiscTextFontStyle,
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
 } from '../discText/styles.ts'
@@ -179,6 +180,7 @@ function getMeasuredStraightTextVisualBounds(
     renderStyle.fontWeight,
     fontSize,
     renderStyle.fontFamilyCanvas,
+    getDiscTextFontStyle(renderStyle),
   )
   const firstLineWidth = lines.length > 0 ? Math.max(0, measureText(lines[0], font)) : 0
   const x = getStraightTextAnchorX(layout, firstLineWidth)

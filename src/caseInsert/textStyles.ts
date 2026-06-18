@@ -4,8 +4,11 @@ import {
   DISC_TEXT_RENDER_STYLES,
   DISC_TEXT_STYLE_PRESETS,
   createDefaultDiscTextStyle,
+  getDiscTextDecoration,
+  getDiscTextEffectiveFontWeight,
   getDiscTextFontFamilyCanvas,
   getDiscTextFontFamilyCss,
+  getDiscTextFontStyle,
   normalizeDiscTextStyle,
   type DiscTextContrastMode,
   type DiscTextFontFamily,
@@ -45,8 +48,11 @@ export type CaseInsertTextStyleRole =
 export const CASE_INSERT_TEXT_FONT_OPTIONS = DISC_TEXT_FONT_OPTIONS
 export const CASE_INSERT_TEXT_CONTRAST_OPTIONS = DISC_TEXT_CONTRAST_OPTIONS
 export const CASE_INSERT_TEXT_STYLE_PRESETS = DISC_TEXT_STYLE_PRESETS
+export const getCaseInsertTextDecoration = getDiscTextDecoration
+export const getCaseInsertTextEffectiveFontWeight = getDiscTextEffectiveFontWeight
 export const getCaseInsertTextFontFamilyCss = getDiscTextFontFamilyCss
 export const getCaseInsertTextFontFamilyCanvas = getDiscTextFontFamilyCanvas
+export const getCaseInsertTextFontStyle = getDiscTextFontStyle
 
 const ROLE_TO_DISC_TEXT_KEY = {
   title: 'title',

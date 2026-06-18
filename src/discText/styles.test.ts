@@ -25,6 +25,9 @@ test('creates disc text style defaults that preserve the existing render baselin
 
   assert.equal(styles.title.fontFamily, 'arial')
   assert.equal(styles.title.color, DISC_TEXT_RENDER_STYLES.title.color)
+  assert.equal(styles.title.bold, false)
+  assert.equal(styles.title.italic, false)
+  assert.equal(styles.title.underline, false)
   assert.equal(styles.title.contrast, 'strokeShadow')
   assert.equal(styles.title.backgroundEnabled, false)
   assert.equal(styles.title.borderEnabled, false)
@@ -36,6 +39,9 @@ test('normalizes missing and invalid saved disc text styles safely', () => {
     title: {
       fontFamily: 'papyrus' as never,
       color: 'red',
+      bold: true,
+      italic: 'yes' as never,
+      underline: true,
       contrast: 'glow' as never,
       backgroundEnabled: true,
       backgroundColor: '#ABCDEF',
@@ -49,6 +55,9 @@ test('normalizes missing and invalid saved disc text styles safely', () => {
 
   assert.equal(styles.title.fontFamily, 'arial')
   assert.equal(styles.title.color, DISC_TEXT_RENDER_STYLES.title.color)
+  assert.equal(styles.title.bold, true)
+  assert.equal(styles.title.italic, false)
+  assert.equal(styles.title.underline, true)
   assert.equal(styles.title.contrast, 'strokeShadow')
   assert.equal(styles.title.backgroundEnabled, true)
   assert.equal(styles.title.backgroundColor, '#abcdef')
@@ -82,12 +91,15 @@ test('style preset catalog covers the issue themes with complete editable style 
     'backgroundEnabled',
     'backgroundOpacity',
     'backgroundPadding',
+    'bold',
     'borderColor',
     'borderEnabled',
     'borderRadius',
     'color',
     'contrast',
     'fontFamily',
+    'italic',
+    'underline',
   ]
 
   assert.deepEqual(presetIds, ['metallic', 'futuristic', 'horror', 'gritty'])
@@ -107,6 +119,9 @@ test('applies editable text style presets through the existing style model', () 
 
   assert.equal(presetStyles.title.fontFamily, 'system')
   assert.equal(presetStyles.title.color, '#67e8f9')
+  assert.equal(presetStyles.title.bold, false)
+  assert.equal(presetStyles.title.italic, false)
+  assert.equal(presetStyles.title.underline, false)
   assert.equal(presetStyles.title.backgroundEnabled, true)
   assert.equal(presetStyles.title.borderEnabled, true)
   assert.equal(presetStyles.subtitle.color, defaultStyles.subtitle.color)
@@ -118,8 +133,22 @@ test('applies editable text style presets through the existing style model', () 
     'color',
     '#ffffff',
   )
+  const emphasizedStyles = updateDiscTextStyleField(
+    updateDiscTextStyleField(
+      updateDiscTextStyleField(editedStyles, 'title', 'bold', true),
+      'title',
+      'italic',
+      true,
+    ),
+    'title',
+    'underline',
+    true,
+  )
 
   assert.equal(editedStyles.title.color, '#ffffff')
+  assert.equal(emphasizedStyles.title.bold, true)
+  assert.equal(emphasizedStyles.title.italic, true)
+  assert.equal(emphasizedStyles.title.underline, true)
 
   const resetStyles = resetDiscTextStyle(editedStyles, 'title')
 
@@ -155,6 +184,9 @@ test('applies font, color, contrast, and box style to the shared straight text r
     title: {
       fontFamily: 'georgia',
       color: '#224466',
+      bold: true,
+      italic: true,
+      underline: true,
       contrast: 'shadow',
       backgroundEnabled: true,
       backgroundColor: '#101820',
@@ -172,9 +204,14 @@ test('applies font, color, contrast, and box style to the shared straight text r
   )
 
   assert.equal(renderLayout.color, '#224466')
+  assert.equal(renderLayout.fontWeight, 950)
+  assert.equal(renderLayout.fontStyle, 'italic')
+  assert.equal(renderLayout.style.bold, true)
+  assert.equal(renderLayout.style.italic, true)
+  assert.equal(renderLayout.style.underline, true)
   assert.equal(renderLayout.style.contrast, 'shadow')
   assert.equal(renderLayout.style.backgroundEnabled, true)
   assert.equal(renderLayout.style.backgroundOpacity, 0.45)
-  assert.match(renderLayout.font, /Georgia/)
+  assert.match(renderLayout.font, /^italic 950 .*Georgia/)
   assert.match(renderLayout.fontFamily, /Georgia/)
 })

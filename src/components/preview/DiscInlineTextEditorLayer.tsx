@@ -337,7 +337,24 @@ function createDiscInlineTextEditorControls({
         onChange: (value) =>
           onDiscTextAlignmentChange(key, value as DiscTextAlignment),
       },
-      unsupported: ['Bold', 'Italic', 'Underline'],
+      bold: {
+        label: 'Bold',
+        pressed: style.bold,
+        onChange: (pressed) =>
+          onDiscTextStyleChange(key, 'bold', pressed),
+      },
+      italic: {
+        label: 'Italic',
+        pressed: style.italic,
+        onChange: (pressed) =>
+          onDiscTextStyleChange(key, 'italic', pressed),
+      },
+      underline: {
+        label: 'Underline',
+        pressed: style.underline,
+        onChange: (pressed) =>
+          onDiscTextStyleChange(key, 'underline', pressed),
+      },
     },
     art: {
       color: {

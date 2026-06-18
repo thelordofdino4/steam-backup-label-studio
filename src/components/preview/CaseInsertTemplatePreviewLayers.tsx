@@ -27,7 +27,10 @@ import {
 } from '../../caseInsert/textRenderStyles'
 import {
   getCaseInsertTextBlockStyleRole,
+  getCaseInsertTextDecoration,
+  getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCss,
+  getCaseInsertTextFontStyle,
   getCaseInsertTextListStyleRole,
 } from '../../caseInsert/textStyles'
 import {
@@ -136,13 +139,30 @@ function getLayerFontSize(value: number, layout: CaseInsertPreviewLayout) {
 
 function getCaseInsertTextCssStyle(
   textStyle: ProjectCaseInsertTextBlock['style'],
+  baseFontWeight: number,
 ): CSSProperties {
   return {
     color: textStyle.color,
     fontFamily: getCaseInsertTextFontFamilyCss(textStyle.fontFamily),
+    fontStyle: getCaseInsertTextFontStyle(textStyle),
+    fontWeight: getCaseInsertTextEffectiveFontWeight(baseFontWeight, textStyle),
+    textDecorationLine: getCaseInsertTextDecoration(textStyle),
     textShadow: getCaseInsertTextShadowCss(textStyle),
     WebkitTextStroke: getCaseInsertTextStrokeCss(textStyle),
   }
+}
+
+function getTemplateTextBlockFontWeight(
+  paneId: CaseInsertTemplatePaneId,
+  textBlock: ProjectCaseInsertTextBlock,
+) {
+  if (paneId === 'cover') {
+    return 800
+  }
+
+  return textBlock.id.includes('legal') || textBlock.id.includes('copyright')
+    ? 500
+    : 600
 }
 
 function getCaseInsertTextBackplateCssStyle(
@@ -412,7 +432,10 @@ function CaseInsertTemplateTextBlock({
   const isEmptyText = layoutTextBlock.value.trim().length === 0
   const style = {
     ...getRectStyle(textLayout.bounds, layout),
-    ...getCaseInsertTextCssStyle(layoutTextBlock.style),
+    ...getCaseInsertTextCssStyle(
+      layoutTextBlock.style,
+      getTemplateTextBlockFontWeight(paneId, layoutTextBlock),
+    ),
     backgroundColor: 'transparent',
     border: 0,
     display: 'block',
@@ -577,7 +600,7 @@ function CaseInsertTemplateTextList({
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
-    ...getCaseInsertTextCssStyle(textList.style),
+    ...getCaseInsertTextCssStyle(textList.style, 600),
     backgroundColor: 'transparent',
     border: 0,
     display: 'block',

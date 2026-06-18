@@ -5,7 +5,9 @@ import type {
 } from '../project/projectTypes.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
 import {
+  getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextFontStyle,
 } from '../caseInsert/textStyles.ts'
 import {
   getCaseInsertTextLayoutPaddingRatio,
@@ -340,7 +342,8 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
       boundsLimit: safeBounds,
       fontFamily: getCaseInsertTextFontFamilyCanvas(textBlock.style.fontFamily),
       fontSizePx,
-      fontWeight: 800,
+      fontStyle: getCaseInsertTextFontStyle(textBlock.style),
+      fontWeight: getCaseInsertTextEffectiveFontWeight(800, textBlock.style),
       lineHeightPx: fontSizePx * 1.14,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),

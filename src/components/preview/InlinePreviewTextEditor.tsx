@@ -80,6 +80,12 @@ export type InlinePreviewTextEditorCheckboxControl = {
   onChange: (checked: boolean) => void
 }
 
+export type InlinePreviewTextEditorToggleControl = {
+  label: string
+  pressed: boolean
+  onChange: (pressed: boolean) => void
+}
+
 export type InlinePreviewTextEditorColorControl = {
   label: string
   value: string
@@ -94,8 +100,11 @@ export type InlinePreviewTextEditorControls = {
   }
   text?: {
     alignment?: InlinePreviewTextEditorSelectControl
+    bold?: InlinePreviewTextEditorToggleControl
     fontFamily?: InlinePreviewTextEditorSelectControl
+    italic?: InlinePreviewTextEditorToggleControl
     size?: InlinePreviewTextEditorRangeControl
+    underline?: InlinePreviewTextEditorToggleControl
     unsupported?: readonly string[]
   }
   art?: {
@@ -401,6 +410,30 @@ function renderInlinePreviewTextCheckboxControl(
   )
 }
 
+function renderInlinePreviewTextToggleControl(
+  control: InlinePreviewTextEditorToggleControl | undefined,
+) {
+  if (!control) return null
+
+  return (
+    <button
+      type="button"
+      className={[
+        'inline-preview-text-format-toggle',
+        control.pressed ? 'is-active' : '',
+      ].filter(Boolean).join(' ')}
+      aria-pressed={control.pressed}
+      onClick={(event) => {
+        event.stopPropagation()
+        control.onChange(!control.pressed)
+      }}
+      onPointerDown={keepInlineTextEditorFocus}
+    >
+      {control.label}
+    </button>
+  )
+}
+
 function renderInlinePreviewTextColorControl(
   control: InlinePreviewTextEditorColorControl | undefined,
 ) {
@@ -464,6 +497,13 @@ function InlinePreviewTextEditorMenuContent({
         {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
         {renderInlinePreviewTextRangeControl(controls.text?.size)}
         {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
+        {controls.text?.bold || controls.text?.italic || controls.text?.underline ? (
+          <div className="inline-preview-text-format-row">
+            {renderInlinePreviewTextToggleControl(controls.text.bold)}
+            {renderInlinePreviewTextToggleControl(controls.text.italic)}
+            {renderInlinePreviewTextToggleControl(controls.text.underline)}
+          </div>
+        ) : null}
         {controls.text?.unsupported?.length ? (
           <div className="inline-preview-text-planned-row">
             {controls.text.unsupported.map((label) => (

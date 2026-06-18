@@ -23,7 +23,10 @@ import {
   getCaseInsertTextStrokeCss,
 } from '../../caseInsert/textRenderStyles'
 import {
+  getCaseInsertTextDecoration,
+  getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCss,
+  getCaseInsertTextFontStyle,
 } from '../../caseInsert/textStyles'
 import {
   getCaseInsertTextBlockLayoutPresets,
@@ -114,10 +117,14 @@ function getLayerFontSize(value: number, layout: CaseInsertPreviewLayout) {
 
 function getSpineTitleTextStyle(
   style: ProjectJewelCaseSpineSideState['title']['style'],
+  baseFontWeight: number,
 ): CSSProperties {
   return {
     color: style.color,
     fontFamily: getCaseInsertTextFontFamilyCss(style.fontFamily),
+    fontStyle: getCaseInsertTextFontStyle(style),
+    fontWeight: getCaseInsertTextEffectiveFontWeight(baseFontWeight, style),
+    textDecorationLine: getCaseInsertTextDecoration(style),
     textShadow: getCaseInsertTextShadowCss(style),
     WebkitTextStroke: getCaseInsertTextStrokeCss(style),
   }
@@ -352,7 +359,10 @@ function CaseInsertSpineTextBlock({
     : undefined
   const style = {
     ...getTransformedBoxStyle(titleLayout, layout),
-    ...getSpineTitleTextStyle(layoutTextBlock.style),
+    ...getSpineTitleTextStyle(
+      layoutTextBlock.style,
+      dragKind.kind === 'title' ? 800 : 600,
+    ),
     backgroundColor: 'transparent',
     border: 0,
     display: 'block',

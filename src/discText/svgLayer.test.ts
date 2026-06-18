@@ -60,6 +60,38 @@ test('disc SVG renderer preserves straight text spaces for preview and export pa
   assert.ok(svg.includes('> hello  world </text>'))
 })
 
+test('disc SVG renderer applies emphasis to straight text without duplicate renderers', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    title: true,
+  }
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values: createDefaultDiscTextValues(),
+    styles: {
+      title: {
+        bold: true,
+        italic: true,
+        underline: true,
+      },
+    },
+    layoutSettings: createDefaultDiscTextLayout('none'),
+    title: 'Emphasized title',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.match(svg, /font-style:italic/)
+  assert.match(svg, /font-weight:950/)
+  assert.match(svg, /text-decoration:underline/)
+  assert.match(svg, />Emphasized title<\/text>/)
+  assert.doesNotMatch(svg, /<textarea\b/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
 test('disc SVG renderer can hide selected straight text glyphs for inline editing', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
@@ -122,6 +154,48 @@ test('curved disc copyright text remains SVG textPath based', () => {
   assert.doesNotMatch(svg, /<textarea\b/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
   assert.doesNotMatch(svg, /disc-text-editable-preview/)
+})
+
+test('disc SVG renderer applies emphasis to curved copyright textPath', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright: 'Copyright 2026 Archive Copy',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    styles: {
+      copyright: {
+        bold: true,
+        italic: true,
+        underline: true,
+      },
+    },
+    layoutSettings: {
+      ...layoutSettings,
+      copyright: {
+        ...layoutSettings.copyright,
+        mode: 'curved',
+      },
+    },
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.match(svg, /<textPath\b/)
+  assert.match(svg, /font-style:italic/)
+  assert.match(svg, /text-decoration:underline/)
+  assert.doesNotMatch(svg, /<textarea\b/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
 test('curved disc copyright textPath keeps the final word visible within paint-safe path geometry', () => {

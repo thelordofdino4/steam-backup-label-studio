@@ -423,6 +423,7 @@
 }
 
 .inline-preview-text-preset-list,
+.inline-preview-text-format-row,
 .inline-preview-text-planned-row,
 .inline-preview-text-menu-actions {
   display: flex;
@@ -432,6 +433,31 @@
 
 .inline-preview-text-preset-list {
   grid-column: 1 / -1;
+}
+
+.inline-preview-text-format-row {
+  grid-column: 1 / -1;
+}
+
+.inline-preview-text-format-toggle {
+  min-width: 48px;
+  min-height: 32px;
+  padding: 6px 10px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #111827;
+  color: #d1d5db;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.inline-preview-text-format-toggle.is-active {
+  border-color: rgba(96, 165, 250, 0.95);
+  background: #1d4ed8;
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.32);
 }
 
 .inline-preview-text-planned-row {

@@ -19,7 +19,10 @@ import {
   getCaseInsertTextLayoutPaddingRatio,
 } from '../caseInsert/textRenderStyles'
 import {
+  getCaseInsertTextDecoration,
+  getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextFontStyle,
   type CaseInsertTextStyle,
 } from '../caseInsert/textStyles'
 import {
@@ -283,8 +286,10 @@ function getCaseInsertTextCanvasOptions(style: CaseInsertTextStyle) {
     border: style.backgroundEnabled && style.borderEnabled
       ? getCaseInsertTextBorderColor(style)
       : undefined,
+    fontStyle: getCaseInsertTextFontStyle(style),
     shadow: caseInsertTextUsesShadow(style),
     stroke: caseInsertTextUsesStroke(style),
+    underline: getCaseInsertTextDecoration(style) === 'underline',
     paddingRatio: getCaseInsertTextLayoutPaddingRatio(style),
   }
 }
@@ -297,6 +302,7 @@ function drawComputedTextLayout(
     lineHeightPx: number
     lines: Array<{
       text: string
+      width: number
       x: number
       y: number
     }>
@@ -306,14 +312,18 @@ function drawComputedTextLayout(
     weight?: number
     color?: string
     fontFamily?: string
+    fontStyle?: string
     background?: string
     border?: string
     shadow?: boolean
     stroke?: boolean
+    underline?: boolean
   },
 ) {
   context.save()
-  context.font = `${options.weight ?? 600} ${textLayout.fontSizePx}px ${
+  const fontStylePrefix = options.fontStyle === 'italic' ? 'italic ' : ''
+
+  context.font = `${fontStylePrefix}${options.weight ?? 600} ${textLayout.fontSizePx}px ${
     options.fontFamily ?? FONT_STACK
   }`
   context.textAlign = getCanvasTextAlign(options.align)
@@ -368,6 +378,29 @@ function drawComputedTextLayout(
     }
 
     context.fillText(line.text, line.x, line.y)
+
+    if (options.underline) {
+      const underlineY = line.y + textLayout.fontSizePx * 0.92
+      const underlineStartX = options.align === 'right'
+        ? line.x - line.width
+        : options.align === 'center'
+          ? line.x - line.width / 2
+          : line.x
+      const underlineEndX = options.align === 'right'
+        ? line.x
+        : options.align === 'center'
+          ? line.x + line.width / 2
+          : line.x + line.width
+
+      context.save()
+      context.strokeStyle = options.color ?? '#f8fafc'
+      context.lineWidth = Math.max(1, textLayout.fontSizePx * 0.06)
+      context.beginPath()
+      context.moveTo(underlineStartX, underlineY)
+      context.lineTo(underlineEndX, underlineY)
+      context.stroke()
+      context.restore()
+    }
   })
   context.restore()
 }
@@ -551,7 +584,10 @@ function drawTemplateTextBlock(
   if (paneId === 'cover') {
     drawComputedTextLayout(context, textLayout, {
       align: renderedTextBlock.align,
-      weight: 800,
+      weight: getCaseInsertTextEffectiveFontWeight(
+        800,
+        renderedTextBlock.style,
+      ),
       ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
     })
     return
@@ -559,10 +595,13 @@ function drawTemplateTextBlock(
 
   drawComputedTextLayout(context, textLayout, {
     align: renderedTextBlock.align,
-    weight: renderedTextBlock.id.includes('legal') ||
+    weight: getCaseInsertTextEffectiveFontWeight(
+      renderedTextBlock.id.includes('legal') ||
         renderedTextBlock.id.includes('copyright')
-      ? 500
-      : 600,
+        ? 500
+        : 600,
+      renderedTextBlock.style,
+    ),
     ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
   })
 }
@@ -586,7 +625,7 @@ function drawTemplateTextList(
 
   drawComputedTextLayout(context, textListLayout, {
     align: 'left',
-    weight: 600,
+    weight: getCaseInsertTextEffectiveFontWeight(600, textList.style),
     ...getCaseInsertTextCanvasOptions(textList.style),
   })
 }
@@ -651,7 +690,10 @@ function drawSpineTextBlock(
       lines: textLayout.lines,
     }, {
       align: renderedTextBlock.align,
-      weight: options.uppercase ? 800 : 600,
+      weight: getCaseInsertTextEffectiveFontWeight(
+        options.uppercase ? 800 : 600,
+        renderedTextBlock.style,
+      ),
       ...getCaseInsertTextCanvasOptions(renderedTextBlock.style),
     })
   })

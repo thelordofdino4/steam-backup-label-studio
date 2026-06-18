@@ -230,7 +230,22 @@ export function createCaseInsertInlineTextEditorControls({
               ),
           }
         : undefined,
-      unsupported: ['Bold', 'Italic', 'Underline'],
+      bold: {
+        label: 'Bold',
+        pressed: style.bold,
+        onChange: (pressed) => handlers.onStyleChange(target, 'bold', pressed),
+      },
+      italic: {
+        label: 'Italic',
+        pressed: style.italic,
+        onChange: (pressed) => handlers.onStyleChange(target, 'italic', pressed),
+      },
+      underline: {
+        label: 'Underline',
+        pressed: style.underline,
+        onChange: (pressed) =>
+          handlers.onStyleChange(target, 'underline', pressed),
+      },
     },
     art: {
       color: {

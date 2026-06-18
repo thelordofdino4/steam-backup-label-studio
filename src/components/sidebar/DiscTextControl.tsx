@@ -307,6 +307,39 @@ export function DiscTextControl({
                       ))}
                     </select>
                   </label>
+
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={textStyle.bold}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(key, 'bold', event.target.checked)
+                      }
+                    />
+                    <span>Bold</span>
+                  </label>
+
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={textStyle.italic}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(key, 'italic', event.target.checked)
+                      }
+                    />
+                    <span>Italic</span>
+                  </label>
+
+                  <label className="checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={textStyle.underline}
+                      onChange={(event) =>
+                        handleDiscTextStyleChange(key, 'underline', event.target.checked)
+                      }
+                    />
+                    <span>Underline</span>
+                  </label>
                 </div>
               </div>
 
