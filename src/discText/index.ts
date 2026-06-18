@@ -22,12 +22,17 @@ import type {
   DiscTextLayout,
   DiscTextLayoutNumericField,
   DiscTextLayoutSettings,
-  DiscTextMarkdownSources,
+  DiscTextHtmlSources,
   DiscTextMode,
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
 } from './types'
+import {
+  markdownToHtmlSource,
+  plainTextToHtmlSource,
+  sanitizeHtmlSource,
+} from '../text/htmlText.ts'
 
 export * from './constants.ts'
 export type * from './types.ts'
@@ -137,56 +142,61 @@ export function normalizeDiscTextValues(values?: Partial<DiscTextValues>, appId?
   return { ...createDefaultDiscTextValues(appId), ...(values ?? {}) }
 }
 
-export function normalizeDiscTextMarkdownSources(
+export function normalizeDiscTextHtmlSources(
   sources?: Partial<Record<DiscTextKey, unknown>>,
-): DiscTextMarkdownSources {
-  if (!sources) return {}
-
+  legacyMarkdownSources?: Partial<Record<DiscTextKey, unknown>>,
+): DiscTextHtmlSources {
   return DISC_TEXT_KEYS.reduce((normalizedSources, key) => {
-    const source = sources[key]
+    const source = sources?.[key]
+    const legacyMarkdownSource = legacyMarkdownSources?.[key]
 
     if (typeof source === 'string') {
-      normalizedSources[key] = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, '')
+      normalizedSources[key] = sanitizeHtmlSource(source)
+      return normalizedSources
+    }
+
+    if (typeof legacyMarkdownSource === 'string') {
+      normalizedSources[key] = markdownToHtmlSource(legacyMarkdownSource)
     }
 
     return normalizedSources
-  }, {} as DiscTextMarkdownSources)
+  }, {} as DiscTextHtmlSources)
 }
 
-export function isDiscTextMarkdownEnabled(
-  sources: DiscTextMarkdownSources,
+export function isDiscTextHtmlEnabled(
+  sources: DiscTextHtmlSources,
   key: DiscTextKey,
 ) {
   return typeof sources[key] === 'string'
 }
 
-export function getDiscTextMarkdownSource(
-  sources: DiscTextMarkdownSources,
+export function getDiscTextHtmlSource(
+  sources: DiscTextHtmlSources,
   key: DiscTextKey,
   fallback: string,
 ) {
-  return sources[key] ?? fallback
+  return sources[key] ?? plainTextToHtmlSource(fallback)
 }
 
-export function setDiscTextMarkdownSource(
-  sources: DiscTextMarkdownSources,
+export function setDiscTextHtmlSource(
+  sources: DiscTextHtmlSources,
   key: DiscTextKey,
   source: string,
-): DiscTextMarkdownSources {
+): DiscTextHtmlSources {
   return {
     ...sources,
-    [key]: source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, ''),
+    [key]: sanitizeHtmlSource(source),
   }
 }
 
-export function setDiscTextMarkdownEnabled(
-  sources: DiscTextMarkdownSources,
+export function setDiscTextHtmlEnabled(
+  sources: DiscTextHtmlSources,
   key: DiscTextKey,
   enabled: boolean,
   fallback: string,
-): DiscTextMarkdownSources {
+): DiscTextHtmlSources {
   if (enabled) {
-    return setDiscTextMarkdownSource(sources, key, fallback)
+    return setDiscTextHtmlSource(sources, key, fallback)
   }
 
   const nextSources = { ...sources }

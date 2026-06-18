@@ -11,7 +11,7 @@ import {
 } from './textContent.ts'
 import {
   setCaseInsertTextListItems,
-  updateCaseInsertTextListMarkdownSource,
+  updateCaseInsertTextListHtmlSource,
   updateCaseInsertTextBlockValue,
 } from './textTransitions.ts'
 import {
@@ -25,9 +25,9 @@ import {
 import type { CaseInsertPreviewTextTarget } from './previewTextSelection.ts'
 import type { DiscTextKey } from '../discText/types.ts'
 import {
-  getMarkdownSource,
-  isMarkdownTextEnabled,
-} from '../text/markdownText.ts'
+  getHtmlSource,
+  isHtmlTextEnabled,
+} from '../text/htmlText.ts'
 
 const CASE_INSERT_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   backupDate: 'Backed up ',
@@ -61,8 +61,8 @@ export function getCaseInsertPreviewTextEditValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
 ) {
-  if (isMarkdownTextEnabled(textBlock)) {
-    return getMarkdownSource(textBlock, textBlock.value)
+  if (isHtmlTextEnabled(textBlock)) {
+    return getHtmlSource(textBlock, textBlock.value)
   }
 
   if (textBlock.source !== 'metadata') {
@@ -91,12 +91,13 @@ function updatePreviewTextBlockDraft(
 export function getCaseInsertPreviewTextListEditValue(
   textList: {
     items: readonly string[]
-    contentMode?: 'plain' | 'markdown'
+    contentMode?: 'plain' | 'html' | 'markdown'
+    htmlSource?: string | null
     markdownSource?: string | null
   },
 ) {
-  return isMarkdownTextEnabled(textList)
-    ? getMarkdownSource(textList, textList.items.map((item) => `- ${item}`).join('\n'))
+  return isHtmlTextEnabled(textList)
+    ? getHtmlSource(textList, textList.items.map((item) => `• ${item}`).join('\n'))
     : textList.items.map((item) => `• ${item}`).join('\n')
 }
 
@@ -130,8 +131,8 @@ export function updateCaseInsertPreviewTextDraftValue(
         caseInsert,
         target.paneId,
         target.textListId,
-        (textList) => isMarkdownTextEnabled(textList)
-          ? updateCaseInsertTextListMarkdownSource(textList, value)
+        (textList) => isHtmlTextEnabled(textList)
+          ? updateCaseInsertTextListHtmlSource(textList, value)
           : setCaseInsertTextListItems(
               textList,
               getPreviewTextListItems(value),

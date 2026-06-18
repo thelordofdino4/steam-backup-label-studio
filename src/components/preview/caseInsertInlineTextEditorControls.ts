@@ -22,7 +22,7 @@ import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
 } from '../../project/projectTypes'
-import type { TextContentMode } from '../../text/markdownText'
+import type { LegacyTextContentMode, TextContentMode } from '../../text/htmlText'
 import type {
   InlinePreviewTextEditorControls,
 } from './InlinePreviewTextEditor'
@@ -73,7 +73,7 @@ type CaseInsertInlineTextEditorControlParams = {
   label: string
   layout: ProjectCaseInsertLayout
   layoutPresets?: readonly CaseInsertTextLayoutPreset[]
-  contentMode?: TextContentMode
+  contentMode?: LegacyTextContentMode
   scaleMax?: number
   scaleMin?: number
   style: CaseInsertTextStyle
@@ -370,13 +370,13 @@ export function createCaseInsertInlineTextEditorControls({
         onChange: (value) => handlers.onLayoutChange(target, 'y', value),
       },
       resetLayout: onResetLayout,
-      markdown: {
-        label: 'Markdown',
-        checked: contentMode === 'markdown',
+      htmlSource: {
+        label: 'HTML source',
+        checked: contentMode === 'html',
         onChange: (checked) =>
           handlers.onContentModeChange(
             target,
-            checked ? 'markdown' : 'plain',
+            checked ? 'html' : 'plain',
           ),
       },
     },

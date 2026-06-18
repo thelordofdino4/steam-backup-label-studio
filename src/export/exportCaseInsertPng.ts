@@ -306,6 +306,14 @@ function drawComputedTextLayout(
         text: string
         bold?: boolean
         italic?: boolean
+        underline?: boolean
+        color?: string
+        backgroundColor?: string
+        fontFamily?: string
+        fontSizePx?: number
+        fontWeight?: number
+        fontStyle?: 'normal' | 'italic'
+        textDecoration?: 'none' | 'underline'
         left: number
         width: number
       }>
@@ -378,7 +386,33 @@ function drawComputedTextLayout(
 
   textLayout.lines.forEach((line) => {
     const runs = line.runs?.filter((run) => run.text)
-    const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+    const hasStyledRuns = runs?.some((run) =>
+      run.bold ||
+      run.italic ||
+      run.underline ||
+      run.color ||
+      run.backgroundColor ||
+      run.fontFamily ||
+      run.fontSizePx ||
+      run.fontWeight ||
+      run.fontStyle ||
+      run.textDecoration)
+
+    if (runs && hasStyledRuns) {
+      for (const run of runs) {
+        if (!run.backgroundColor) continue
+
+        context.save()
+        context.fillStyle = run.backgroundColor
+        context.fillRect(
+          run.left,
+          line.y,
+          run.width,
+          textLayout.lineHeightPx,
+        )
+        context.restore()
+      }
+    }
 
     if (options.stroke) {
       context.save()
@@ -390,10 +424,11 @@ function drawComputedTextLayout(
         context.textAlign = 'left'
         for (const run of runs) {
           context.font = getCaseInsertTextCanvasFont({
-            fontFamily: options.fontFamily,
-            fontSizePx: textLayout.fontSizePx,
-            fontStyle: run.italic ? 'italic' : options.fontStyle,
-            weight: run.bold ? Math.max(options.weight ?? 600, 800) : options.weight,
+            fontFamily: run.fontFamily ?? options.fontFamily,
+            fontSizePx: run.fontSizePx ?? textLayout.fontSizePx,
+            fontStyle: run.fontStyle ?? (run.italic ? 'italic' : options.fontStyle),
+            weight: run.fontWeight ??
+              (run.bold ? Math.max(options.weight ?? 600, 800) : options.weight),
           })
           context.strokeText(run.text, run.left, line.y)
         }
@@ -409,13 +444,31 @@ function drawComputedTextLayout(
       context.textAlign = 'left'
       for (const run of runs) {
         context.font = getCaseInsertTextCanvasFont({
-          fontFamily: options.fontFamily,
-          fontSizePx: textLayout.fontSizePx,
-          fontStyle: run.italic ? 'italic' : options.fontStyle,
-          weight: run.bold ? Math.max(options.weight ?? 600, 800) : options.weight,
+          fontFamily: run.fontFamily ?? options.fontFamily,
+          fontSizePx: run.fontSizePx ?? textLayout.fontSizePx,
+          fontStyle: run.fontStyle ?? (run.italic ? 'italic' : options.fontStyle),
+          weight: run.fontWeight ??
+            (run.bold ? Math.max(options.weight ?? 600, 800) : options.weight),
         })
+        context.fillStyle = run.color ?? options.color ?? '#f8fafc'
         context.fillText(run.text, run.left, line.y)
+        if (run.underline || run.textDecoration === 'underline') {
+          const underlineY = line.y + (run.fontSizePx ?? textLayout.fontSizePx) * 0.92
+
+          context.save()
+          context.strokeStyle = run.color ?? options.color ?? '#f8fafc'
+          context.lineWidth = Math.max(
+            1,
+            (run.fontSizePx ?? textLayout.fontSizePx) * 0.06,
+          )
+          context.beginPath()
+          context.moveTo(run.left, underlineY)
+          context.lineTo(run.left + run.width, underlineY)
+          context.stroke()
+          context.restore()
+        }
       }
+      context.fillStyle = options.color ?? '#f8fafc'
     } else {
       context.font = baseFont
       context.textAlign = getCanvasTextAlign(options.align)

@@ -123,7 +123,7 @@ import type {
   CaseInsertTextStyleField,
   CaseInsertTextStyleValue,
 } from '../caseInsert/textStyles'
-import type { TextContentMode } from '../text/markdownText'
+import type { TextContentMode } from '../text/htmlText'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -292,7 +292,7 @@ function App() {
     discTextValues,
     discTextValueSources,
     discTextTitleValue,
-    discTextMarkdownSources,
+    discTextHtmlSources,
     discTextLayout,
     discTextStyles,
     metadataBoundDiscTextValues,
@@ -1575,7 +1575,7 @@ function App() {
             discTextValues,
             discTextValueSources,
             discTextTitleValue,
-            discTextMarkdownSources,
+            discTextHtmlSources,
             discTextLayout,
             discTextStyles,
           })
@@ -1663,7 +1663,7 @@ function App() {
         discTextValues: restoredProject.discTextValues,
         discTextValueSources: restoredProject.discTextValueSources,
         discTextTitleValue: restoredProject.discTextTitleValue,
-        discTextMarkdownSources: restoredProject.discTextMarkdownSources,
+        discTextHtmlSources: restoredProject.discTextHtmlSources,
         discTextLayout: restoredProject.discTextLayout,
         discTextStyles: restoredProject.discTextStyles,
       })
@@ -1837,7 +1837,7 @@ function App() {
         discTextSettings,
         discTextValues,
         discTextValueSources,
-        discTextMarkdownSources,
+        discTextHtmlSources,
         discTextStyles,
         discTextLayout,
         manualGameTitle: resolvedDiscTextTitle,
@@ -2220,7 +2220,7 @@ function App() {
           settings: discTextSettings,
           values: discTextValues,
           valueSources: discTextValueSources,
-          markdownSources: discTextMarkdownSources,
+          htmlSources: discTextHtmlSources,
           styles: discTextStyles,
           manualGameTitle: resolvedDiscTextTitle,
           layout: discTextLayout,

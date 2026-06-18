@@ -37,8 +37,8 @@ import {
 } from './caseInsertTextVisualLayout.ts'
 import {
   getRenderableRichTextDocument,
-  isMarkdownTextEnabled,
-} from '../text/markdownText.ts'
+  isHtmlTextEnabled,
+} from '../text/htmlText.ts'
 import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
@@ -351,7 +351,7 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
       lineHeightPx: fontSizePx * 1.14,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
-      richText: isMarkdownTextEnabled(textBlock)
+      richText: isHtmlTextEnabled(textBlock)
         ? getRenderableRichTextDocument(textBlock, textBlock.value)
         : undefined,
       text: textBlock.value,

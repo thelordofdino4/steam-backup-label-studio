@@ -36,9 +36,15 @@ tested, and the remaining divergences are recorded.
 - A separate visible move handle is used for dragging.
 - Drag uses pointer capture and a grab/grabbing cursor.
 - Delete/trash removes the text object instead of relying on a "show" checkbox.
-- Markdown is the supported source-editing mode where a text module can safely
-  render the parsed result through its final visible renderer. HTML source
-  editing is not part of this contract.
+- HTML source is the supported source-editing mode where a text module can
+  safely parse sanitized markup into the shared rich-text run model and render
+  the parsed result through its final visible renderer.
+- Legacy Markdown source fields remain readable only as a backward-compatible
+  project migration path. New saves should persist canonical sanitized HTML,
+  not Markdown.
+- HTML source mode may show raw source in the editor, but normal edit/final
+  preview must remain WYSIWYG and must not introduce a second visible text
+  renderer.
 
 ## Layout Contract
 
@@ -53,6 +59,8 @@ tested, and the remaining divergences are recorded.
 - Safe-zone compliance is based on rendered text bounds/pixels, similar to
   image collision behavior, not a giant invisible text box.
 - Save/load and export must preserve the same rendered result.
+- Safe HTML source, parsed rich-text runs, live preview, saved project data, and
+  export output must preserve the same supported formatting.
 
 ## Contextual Editor Positioning Contract
 
@@ -95,6 +103,8 @@ tested, and the remaining divergences are recorded.
 - Straight disc text may share input infrastructure only through an adapter path
   that keeps the SVG/final preview renderer visible and correct.
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
+- Straight disc HTML source must render through safe SVG text/tspan output in
+  preview and export.
 - Any future hidden/native input adapter for curved text must keep SVG as the
   visible source of truth.
 

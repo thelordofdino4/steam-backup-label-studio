@@ -121,7 +121,7 @@ export type InlinePreviewTextEditorControls = {
   utilities?: {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
-    markdown?: InlinePreviewTextEditorCheckboxControl
+    htmlSource?: InlinePreviewTextEditorCheckboxControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
     resetLayout?: () => void
@@ -603,7 +603,7 @@ function InlinePreviewTextEditorMenuContent({
       {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.mode)}
-      {renderInlinePreviewTextCheckboxControl(controls.utilities?.markdown)}
+      {renderInlinePreviewTextCheckboxControl(controls.utilities?.htmlSource)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
       {controls.utilities?.resetLayout ? (

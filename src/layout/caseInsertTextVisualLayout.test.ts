@@ -4,7 +4,7 @@ import {
   getCaseInsertTextVisualLayout,
   wrapCaseInsertTextLines,
 } from './caseInsertTextVisualLayout.ts'
-import { parseMarkdownText } from '../text/markdownText.ts'
+import { parseHtmlText } from '../text/htmlText.ts'
 
 function measureTextAsCharacters(text: string) {
   return Array.from(text).length
@@ -89,7 +89,7 @@ test('case insert visual layout measures with the emphasized font string', () =>
   assert.ok(measuredFonts.every((font) => font === layout.font))
 })
 
-test('case insert visual layout carries Markdown rich runs through measured lines', () => {
+test('case insert visual layout carries HTML rich runs through measured lines', () => {
   const measuredFonts: string[] = []
   const layout = getCaseInsertTextVisualLayout(reservedBounds, {
     align: 'left',
@@ -103,7 +103,7 @@ test('case insert visual layout carries Markdown rich runs through measured line
       return Array.from(text).length
     },
     paddingRatio: 0,
-    richText: parseMarkdownText('Alpha **bold** *italic*'),
+    richText: parseHtmlText('<p>Alpha <strong>bold</strong> <em>italic</em></p>'),
     text: 'Alpha bold italic',
     verticalAlign: 'top',
   })

@@ -37,7 +37,7 @@ import type {
   CaseInsertTextStyleField,
   CaseInsertTextStyleValue,
 } from './textStyles.ts'
-import type { TextContentMode } from '../text/markdownText.ts'
+import type { TextContentMode } from '../text/htmlText.ts'
 
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
 

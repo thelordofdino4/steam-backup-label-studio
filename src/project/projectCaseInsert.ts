@@ -96,7 +96,7 @@ export {
   updateCaseInsertTextBlockValue,
   updateCaseInsertTextListContentMode,
   updateCaseInsertTextListItem,
-  updateCaseInsertTextListMarkdownSource,
+  updateCaseInsertTextListHtmlSource,
   updateCaseInsertTextListStyleField,
 } from '../caseInsert/textTransitions.ts'
 export {

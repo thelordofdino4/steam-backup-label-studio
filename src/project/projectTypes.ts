@@ -20,7 +20,7 @@ import type {
   EditorProjectType,
   SupportedCaseInsertTemplateType,
 } from '../editor/editorTypes'
-import type { TextContentMode } from '../text/markdownText'
+import type { LegacyTextContentMode } from '../text/htmlText'
 
 export type SteamBannerColors = {
   gradientStart: string
@@ -417,7 +417,8 @@ export type ProjectCaseInsertTextBlock = {
   label: string
   enabled: boolean
   value: string
-  contentMode?: TextContentMode
+  contentMode?: LegacyTextContentMode
+  htmlSource?: string
   markdownSource?: string
   source: ProjectCaseInsertTextSource
   avoidVisualElements: boolean
@@ -431,7 +432,8 @@ export type ProjectCaseInsertTextList = {
   label: string
   enabled: boolean
   items: string[]
-  contentMode?: TextContentMode
+  contentMode?: LegacyTextContentMode
+  htmlSource?: string
   markdownSource?: string
   source: ProjectCaseInsertTextSource
   avoidVisualElements: boolean
@@ -536,6 +538,7 @@ export type SavedDiscProject = SavedProjectBase & {
     values?: Partial<DiscTextValues>
     valueSources?: Partial<DiscTextValueSources>
     titleValue?: string
+    htmlSources?: Partial<Record<DiscTextKey, string>>
     markdownSources?: Partial<Record<DiscTextKey, string>>
     layout?: Partial<Record<DiscTextKey, Partial<DiscTextLayout>>>
     styles?: Partial<Record<DiscTextKey, Partial<DiscTextStyle>>>

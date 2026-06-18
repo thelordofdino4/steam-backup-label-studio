@@ -32,12 +32,12 @@ import {
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
   getDiscTextContent,
-  getDiscTextMarkdownSource,
+  getDiscTextHtmlSource,
   resetDiscTextLayout,
   isCurvedCopyrightDiscTextLayout,
-  isDiscTextMarkdownEnabled,
-  setDiscTextMarkdownEnabled,
-  setDiscTextMarkdownSource,
+  isDiscTextHtmlEnabled,
+  setDiscTextHtmlEnabled,
+  setDiscTextHtmlSource,
   updateDiscTextAlignment,
   updateDiscTextArcSide,
   updateDiscTextLayoutForSteamLogoPlacement,
@@ -50,7 +50,7 @@ import {
   type DiscTextKey,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
-  type DiscTextMarkdownSources,
+  type DiscTextHtmlSources,
   type DiscTextMode,
   type DiscTextSettings,
   type DiscTextValues,
@@ -66,9 +66,9 @@ import {
   type DiscTextStyleValue,
 } from '../discText/styles'
 import {
-  parseMarkdownText,
+  parseHtmlText,
   type TextContentMode,
-} from '../text/markdownText'
+} from '../text/htmlText'
 
 type UseDiscTextStateOptions = {
   projectMetadata: ProjectMetadata
@@ -82,7 +82,7 @@ type DiscTextStateSnapshot = {
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
-  discTextMarkdownSources: DiscTextMarkdownSources
+  discTextHtmlSources: DiscTextHtmlSources
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
 }
@@ -116,8 +116,8 @@ export function useDiscTextState({
     createDefaultDiscTextValueSources(),
   )
   const [discTextTitleValue, setDiscTextTitleValue] = useState('')
-  const [discTextMarkdownSources, setDiscTextMarkdownSources] =
-    useState<DiscTextMarkdownSources>({})
+  const [discTextHtmlSources, setDiscTextHtmlSources] =
+    useState<DiscTextHtmlSources>({})
   const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
     createDefaultDiscTextLayout(steamLogoPlacement, selectedDiscTemplate),
   )
@@ -165,9 +165,9 @@ export function useDiscTextState({
   function getCurrentDiscTextRenderedContent(key: DiscTextKey) {
     const text = getCurrentDiscTextContent(key)
 
-    return isDiscTextMarkdownEnabled(discTextMarkdownSources, key)
-      ? parseMarkdownText(
-          getDiscTextMarkdownSource(discTextMarkdownSources, key, text),
+    return isDiscTextHtmlEnabled(discTextHtmlSources, key)
+      ? parseHtmlText(
+          getDiscTextHtmlSource(discTextHtmlSources, key, text),
         ).plainText
       : text
   }
@@ -203,7 +203,7 @@ export function useDiscTextState({
     setDiscTextValues(createDefaultDiscTextValues())
     setDiscTextValueSources(createDefaultDiscTextValueSources())
     setDiscTextTitleValue('')
-    setDiscTextMarkdownSources({})
+    setDiscTextHtmlSources({})
     setDiscTextLayout(createDefaultDiscTextLayout(placement, template))
     setDiscTextStyles(createDefaultDiscTextStyles())
   }
@@ -214,7 +214,7 @@ export function useDiscTextState({
     discTextValues: restoredDiscTextValues,
     discTextValueSources: restoredDiscTextValueSources,
     discTextTitleValue: restoredDiscTextTitleValue,
-    discTextMarkdownSources: restoredDiscTextMarkdownSources,
+    discTextHtmlSources: restoredDiscTextHtmlSources,
     discTextLayout: restoredDiscTextLayout,
     discTextStyles: restoredDiscTextStyles,
   }: DiscTextStateSnapshot) {
@@ -223,7 +223,7 @@ export function useDiscTextState({
     setDiscTextValues(restoredDiscTextValues)
     setDiscTextValueSources(restoredDiscTextValueSources)
     setDiscTextTitleValue(restoredDiscTextTitleValue)
-    setDiscTextMarkdownSources(restoredDiscTextMarkdownSources)
+    setDiscTextHtmlSources(restoredDiscTextHtmlSources)
     setDiscTextLayout(restoredDiscTextLayout)
     setDiscTextStyles(restoredDiscTextStyles)
   }
@@ -364,23 +364,23 @@ export function useDiscTextState({
     }
 
     const currentText = getCurrentDiscTextContent(key)
-    const currentSource = getDiscTextMarkdownSource(
-      discTextMarkdownSources,
+    const currentSource = getDiscTextHtmlSource(
+      discTextHtmlSources,
       key,
       currentText,
     )
 
-    if (contentMode === 'markdown') {
-      setDiscTextMarkdownSources((currentSources) =>
-        setDiscTextMarkdownEnabled(currentSources, key, true, currentSource))
+    if (contentMode === 'html') {
+      setDiscTextHtmlSources((currentSources) =>
+        setDiscTextHtmlEnabled(currentSources, key, true, currentSource))
       clampDiscTextLayoutForContent(
         key,
-        parseMarkdownText(currentSource).plainText,
+        parseHtmlText(currentSource).plainText,
       )
       return
     }
 
-    const renderedPlainText = parseMarkdownText(currentSource).plainText
+    const renderedPlainText = parseHtmlText(currentSource).plainText
     const nextInputUpdate = updateDiscTextInputValue(
       discTextValues,
       discTextValueSources,
@@ -394,14 +394,14 @@ export function useDiscTextState({
     }
     setDiscTextValues(nextInputUpdate.values)
     setDiscTextTitleValue(nextInputUpdate.titleValue)
-    setDiscTextMarkdownSources((currentSources) =>
-      setDiscTextMarkdownEnabled(currentSources, key, false, currentSource))
+    setDiscTextHtmlSources((currentSources) =>
+      setDiscTextHtmlEnabled(currentSources, key, false, currentSource))
     clampDiscTextLayoutForContent(key, renderedPlainText)
   }
 
   function handleDiscTextInlineDraftChange(key: DiscTextKey, value: string) {
-    if (isDiscTextMarkdownEnabled(discTextMarkdownSources, key)) {
-      const renderedPlainText = parseMarkdownText(value).plainText
+    if (isDiscTextHtmlEnabled(discTextHtmlSources, key)) {
+      const renderedPlainText = parseHtmlText(value).plainText
       const nextInputUpdate = updateDiscTextInlineDraftValue(
         discTextValues,
         discTextValueSources,
@@ -410,8 +410,8 @@ export function useDiscTextState({
         discTextTitleValue,
       )
 
-      setDiscTextMarkdownSources((currentSources) =>
-        setDiscTextMarkdownSource(currentSources, key, value))
+      setDiscTextHtmlSources((currentSources) =>
+        setDiscTextHtmlSource(currentSources, key, value))
       if (isMetadataBoundDiscTextKey(key)) {
         setDiscTextValueSources(nextInputUpdate.sources)
       }
@@ -727,7 +727,7 @@ export function useDiscTextState({
     discTextValues,
     discTextValueSources,
     discTextTitleValue,
-    discTextMarkdownSources,
+    discTextHtmlSources,
     discTextLayout,
     discTextStyles,
     metadataBoundDiscTextValues,

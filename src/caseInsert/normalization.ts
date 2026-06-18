@@ -41,7 +41,12 @@ import type {
   ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
-import type { TextContentMode } from '../text/markdownText.ts'
+import type { TextContentMode } from '../text/htmlText.ts'
+import {
+  getRenderablePlainText,
+  markdownToHtmlSource,
+  sanitizeHtmlSource,
+} from '../text/htmlText.ts'
 import {
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
@@ -121,17 +126,22 @@ function normalizeCaseInsertTextAlign(
 }
 
 function normalizeTextContentMode(value: unknown): TextContentMode | undefined {
-  return value === 'markdown' ? 'markdown' : undefined
+  return value === 'html' || value === 'markdown' ? 'html' : undefined
 }
 
-function getNormalizedMarkdownTextFields(record: Record<string, unknown>) {
+function getNormalizedHtmlTextFields(record: Record<string, unknown>) {
   const contentMode = normalizeTextContentMode(record.contentMode)
-  const markdownSource = normalizeTextValue(record.markdownSource, '')
+  const htmlSource = typeof record.htmlSource === 'string'
+    ? sanitizeHtmlSource(record.htmlSource)
+    : undefined
+  const markdownSource = typeof record.markdownSource === 'string'
+    ? markdownToHtmlSource(record.markdownSource)
+    : undefined
 
-  return contentMode === 'markdown'
+  return contentMode === 'html'
     ? {
         contentMode,
-        markdownSource,
+        htmlSource: htmlSource ?? markdownSource ?? '<p></p>',
       }
     : {}
 }
@@ -303,12 +313,17 @@ function normalizeCaseInsertTextBlock(
     defaults.id,
   )
 
+  const htmlFields = getNormalizedHtmlTextFields(record)
+  const fallbackValue = normalizeTextValue(record.value ?? record.text, defaults.value)
+
   return {
     id,
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
-    value: normalizeTextValue(record.value ?? record.text, defaults.value),
-    ...getNormalizedMarkdownTextFields(record),
+    value: htmlFields.contentMode === 'html'
+      ? getRenderablePlainText(htmlFields, fallbackValue)
+      : fallbackValue,
+    ...htmlFields,
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
     avoidVisualElements: normalizeBoolean(
       record.avoidVisualElements,
@@ -397,12 +412,26 @@ function normalizeCaseInsertTextList(
     return defaults
   }
 
+  const htmlFields = getNormalizedHtmlTextFields(record)
+  const fallbackItems = normalizeTextListItems(
+    record.items ?? record.values,
+    defaults.items,
+  )
+
   return {
     id: normalizeString(record.id, defaults.id),
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
-    items: normalizeTextListItems(record.items ?? record.values, defaults.items),
-    ...getNormalizedMarkdownTextFields(record),
+    items: htmlFields.contentMode === 'html'
+      ? normalizeTextListItems(
+          getRenderablePlainText(
+            htmlFields,
+            fallbackItems.map((item) => `• ${item}`).join('\n'),
+          ).split('\n'),
+          fallbackItems,
+        )
+      : fallbackItems,
+    ...htmlFields,
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
     avoidVisualElements: normalizeBoolean(
       record.avoidVisualElements,

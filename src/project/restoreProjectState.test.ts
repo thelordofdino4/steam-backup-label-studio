@@ -619,22 +619,26 @@ test('restores saved and legacy disc text metadata source state', async () => {
   assert.equal(restoredEmptyManualSource.discTextValueSources.appId, 'metadata')
 })
 
-test('restores saved disc text Markdown sources and ignores invalid entries', async () => {
+test('restores saved disc text HTML sources and migrates legacy Markdown', async () => {
   const restored = await restoreSavedProjectState({
     ...baseProject,
     discText: {
       values: {
         customNote: 'plain fallback',
       },
-      markdownSources: {
-        customNote: 'A **Markdown** note',
+      htmlSources: {
+        customNote: '<p>A <strong>HTML</strong> note<script>alert(1)</script></p>',
         title: 42 as unknown as string,
+      },
+      markdownSources: {
+        backupDate: 'A **legacy** note',
       },
     },
   })
 
-  assert.deepEqual(restored.discTextMarkdownSources, {
-    customNote: 'A **Markdown** note',
+  assert.deepEqual(restored.discTextHtmlSources, {
+    customNote: '<p>A <strong>HTML</strong> note</p>',
+    backupDate: '<p>A <strong>legacy</strong> note</p>',
   })
 })
 

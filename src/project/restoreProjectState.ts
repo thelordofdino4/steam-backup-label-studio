@@ -1,10 +1,10 @@
 import {
   normalizeDiscTextLayout,
-  normalizeDiscTextMarkdownSources,
+  normalizeDiscTextHtmlSources,
   normalizeDiscTextSettings,
   normalizeDiscTextValues,
   type DiscTextLayoutSettings,
-  type DiscTextMarkdownSources,
+  type DiscTextHtmlSources,
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
@@ -110,7 +110,7 @@ export type RestoredProjectState = {
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
-  discTextMarkdownSources: DiscTextMarkdownSources
+  discTextHtmlSources: DiscTextHtmlSources
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
   backgroundScale: number
@@ -373,7 +373,8 @@ export async function restoreSavedProjectState(
       discTextTitleValue,
     ),
     discTextTitleValue,
-    discTextMarkdownSources: normalizeDiscTextMarkdownSources(
+    discTextHtmlSources: normalizeDiscTextHtmlSources(
+      project.discText?.htmlSources,
       project.discText?.markdownSources,
     ),
     discTextLayout: clampDiscTextLayoutToSafeZone(

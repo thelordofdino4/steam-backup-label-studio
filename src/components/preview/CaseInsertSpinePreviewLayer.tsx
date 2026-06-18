@@ -72,8 +72,8 @@ import {
   getCaseInsertPreviewTextEditValue,
 } from '../../caseInsert/previewTextEditing'
 import {
-  isMarkdownTextEnabled,
-} from '../../text/markdownText'
+  isHtmlTextEnabled,
+} from '../../text/htmlText'
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
@@ -186,11 +186,30 @@ function renderSpineTextLineContent(
       text: string
       bold?: boolean
       italic?: boolean
+      underline?: boolean
+      color?: string
+      backgroundColor?: string
+      fontFamily?: string
+      fontSizePx?: number
+      fontWeight?: number
+      fontStyle?: 'normal' | 'italic'
+      textDecoration?: 'none' | 'underline'
     }>
   },
+  baseFontSizePx: number,
 ) {
   const runs = line.runs?.filter((run) => run.text)
-  const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+  const hasStyledRuns = runs?.some((run) =>
+    run.bold ||
+    run.italic ||
+    run.underline ||
+    run.color ||
+    run.backgroundColor ||
+    run.fontFamily ||
+    run.fontSizePx ||
+    run.fontWeight ||
+    run.fontStyle ||
+    run.textDecoration)
 
   if (!runs || !hasStyledRuns) {
     return line.text
@@ -200,8 +219,16 @@ function renderSpineTextLineContent(
     <span
       key={`${index}-${run.text}`}
       style={{
-        fontStyle: run.italic ? 'italic' : undefined,
-        fontWeight: run.bold ? 800 : undefined,
+        backgroundColor: run.backgroundColor,
+        color: run.color,
+        fontFamily: run.fontFamily,
+        fontSize: run.fontSizePx ? `${run.fontSizePx / baseFontSizePx}em` : undefined,
+        fontStyle: run.fontStyle ?? (run.italic ? 'italic' : undefined),
+        fontWeight: run.fontWeight ?? (run.bold ? 800 : undefined),
+        textDecorationLine:
+          run.textDecoration === 'underline' || run.underline
+            ? 'underline'
+            : run.textDecoration,
       }}
     >
       {run.text}
@@ -342,7 +369,7 @@ function CaseInsertSpineTextBlock({
     textBlock,
     brandingSources.projectMetadata,
   )
-  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textBlock)
+  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
   const layoutTextBlock = isSelected
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -416,7 +443,7 @@ function CaseInsertSpineTextBlock({
           ? 'case-insert-spine-title'
           : 'case-insert-spine-text-block',
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
-        isMarkdownEditing ? 'is-markdown-source' : '',
+        isHtmlSourceEditing ? 'is-html-source' : '',
         isSelected && isEmptyText ? 'is-empty' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
@@ -461,7 +488,7 @@ function CaseInsertSpineTextBlock({
               titleLayout.lineHeightPx,
             )}
           >
-            {renderSpineTextLineContent(line)}
+            {renderSpineTextLineContent(line, titleLayout.fontSizePx)}
           </span>
         ))}
       </span>
@@ -469,14 +496,14 @@ function CaseInsertSpineTextBlock({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${renderedTextBlock.label}`}
           caretValue={
-            !isMarkdownEditing && dragKind.kind === 'title'
+            !isHtmlSourceEditing && dragKind.kind === 'title'
               ? editValue.toLocaleUpperCase()
               : editValue
           }
           controls={editorControls}
-          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
+          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
           lines={titleLayout.lines}
-          sourceMode={isMarkdownEditing}
+          sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}
