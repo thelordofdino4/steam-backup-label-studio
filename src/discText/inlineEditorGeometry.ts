@@ -49,7 +49,7 @@ export function getDiscInlineTextEditorGeometryLines({
   }
 
   return renderLayout.lines.map((line) => {
-    const lineWidth = Math.max(0, measureText(line.text, renderLayout.font))
+    const lineWidth = Math.max(0, line.width ?? measureText(line.text, renderLayout.font))
     const lineLeft = getLineLeft({
       lineWidth,
       renderLayout,

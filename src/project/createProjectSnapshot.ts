@@ -1,5 +1,6 @@
 import type {
   DiscTextLayoutSettings,
+  DiscTextMarkdownSources,
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
@@ -63,6 +64,7 @@ export type CreateProjectSnapshotParams = {
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
+  discTextMarkdownSources?: DiscTextMarkdownSources
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
 }
@@ -107,6 +109,7 @@ export function createProjectSnapshot({
   discTextValues,
   discTextValueSources,
   discTextTitleValue,
+  discTextMarkdownSources,
   discTextLayout,
   discTextStyles,
 }: CreateProjectSnapshotParams): SavedDiscProject {
@@ -166,6 +169,7 @@ export function createProjectSnapshot({
       values: discTextValues,
       valueSources: discTextValueSources,
       titleValue: discTextTitleValue,
+      markdownSources: discTextMarkdownSources ?? {},
       layout: discTextLayout,
       styles: discTextStyles,
     },

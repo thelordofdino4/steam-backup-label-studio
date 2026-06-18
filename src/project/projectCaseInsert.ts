@@ -91,9 +91,12 @@ export {
   setCaseInsertTextListItems,
   updateCaseInsertTextBlockLayout,
   updateCaseInsertTextBlockLayoutField,
+  updateCaseInsertTextBlockContentMode,
   updateCaseInsertTextBlockStyleField,
   updateCaseInsertTextBlockValue,
+  updateCaseInsertTextListContentMode,
   updateCaseInsertTextListItem,
+  updateCaseInsertTextListMarkdownSource,
   updateCaseInsertTextListStyleField,
 } from '../caseInsert/textTransitions.ts'
 export {

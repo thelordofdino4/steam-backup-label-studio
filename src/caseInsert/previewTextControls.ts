@@ -24,13 +24,20 @@ import {
   setCaseInsertTextListAvoidVisualElements,
   setCaseInsertTextListEnabled,
   updateCaseInsertTextBlockLayoutField,
+  updateCaseInsertTextBlockContentMode,
   updateCaseInsertTextBlockStyleField,
+  updateCaseInsertTextListContentMode,
   updateCaseInsertTextListStyleField,
 } from './textTransitions.ts'
+import {
+  getCaseInsertPreviewTextEditValue,
+  getCaseInsertPreviewTextListEditValue,
+} from './previewTextEditing.ts'
 import type {
   CaseInsertTextStyleField,
   CaseInsertTextStyleValue,
 } from './textStyles.ts'
+import type { TextContentMode } from '../text/markdownText.ts'
 
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
 
@@ -141,6 +148,63 @@ export function updateCaseInsertPreviewTextTargetStyleField(
         target,
         (textBlock) =>
           updateCaseInsertTextBlockStyleField(textBlock, field, value),
+      )
+  }
+}
+
+export function updateCaseInsertPreviewTextTargetContentMode(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextTarget,
+  contentMode: TextContentMode,
+) {
+  switch (target.scope) {
+    case 'templateTextBlock':
+      return updateCaseInsertTemplateTextBlock(
+        caseInsert,
+        target.paneId,
+        target.textBlockId,
+        (textBlock) =>
+          updateCaseInsertTextBlockContentMode(
+            textBlock,
+            contentMode,
+            getCaseInsertPreviewTextEditValue(textBlock),
+          ),
+      )
+    case 'templateTextList':
+      return updateCaseInsertTemplateTextList(
+        caseInsert,
+        target.paneId,
+        target.textListId,
+        (textList) =>
+          updateCaseInsertTextListContentMode(
+            textList,
+            contentMode,
+            getCaseInsertPreviewTextListEditValue(textList),
+          ),
+      )
+    case 'spineTitle':
+      return updateProjectJewelCaseSpineSides(
+        caseInsert,
+        target.side,
+        (spineSide) => ({
+          ...spineSide,
+          title: updateCaseInsertTextBlockContentMode(
+            spineSide.title,
+            contentMode,
+            getCaseInsertPreviewTextEditValue(spineSide.title),
+          ),
+        }),
+      )
+    case 'spineTextBlock':
+      return updateSpinePreviewTextBlock(
+        caseInsert,
+        target,
+        (textBlock) =>
+          updateCaseInsertTextBlockContentMode(
+            textBlock,
+            contentMode,
+            getCaseInsertPreviewTextEditValue(textBlock),
+          ),
       )
   }
 }

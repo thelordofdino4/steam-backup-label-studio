@@ -71,6 +71,9 @@ test('case insert contextual controls expose migrated text block properties', ()
     onAvoidVisualElementsChange: (_target, avoidVisualElements) => {
       calls.push(`avoid:${avoidVisualElements}`)
     },
+    onContentModeChange: (_target, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
+    },
   }
 
   const controls = createCaseInsertInlineTextEditorControls({
@@ -138,7 +141,8 @@ test('case insert contextual controls expose migrated text block properties', ()
   assert.equal(controls.utilities?.x?.value, layout.x)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.markdownPlanned, true)
+  assert.equal(controls.utilities?.markdown?.checked, false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdownPlanned'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Title')
 
@@ -148,6 +152,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   controls.text?.underline?.onChange(true)
   controls.art?.backgroundPadding?.onChange(1.8)
   controls.utilities?.width?.onChange(64)
+  controls.utilities?.markdown?.onChange(true)
   controls.utilities?.resetLayout?.()
   controls.deleteAction?.onDelete()
 
@@ -161,6 +166,7 @@ test('case insert contextual controls expose migrated text block properties', ()
     'style:underline:true',
     'style:backgroundPadding:1.8',
     'layout:width:64',
+    'content-mode:markdown',
     'reset-layout',
     'enabled:false',
     'delete-complete',
@@ -220,6 +226,9 @@ test('case insert contextual controls expose migrated text list properties', () 
     onAvoidVisualElementsChange: (_target, avoidVisualElements) => {
       calls.push(`avoid:${avoidVisualElements}`)
     },
+    onContentModeChange: (_target, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
+    },
   }
 
   const controls = createCaseInsertInlineTextEditorControls({
@@ -228,6 +237,7 @@ test('case insert contextual controls expose migrated text list properties', () 
     label: 'Feature bullets',
     layout,
     layoutPresets: getCaseInsertTextListLayoutPresets('tray'),
+    contentMode: 'markdown',
     style,
     target,
     onDeleteComplete: () => calls.push('delete-complete'),
@@ -271,13 +281,15 @@ test('case insert contextual controls expose migrated text list properties', () 
   assert.equal(controls.utilities?.x?.value, layout.x)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.markdownPlanned, true)
+  assert.equal(controls.utilities?.markdown?.checked, true)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdownPlanned'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Feature bullets')
 
   controls.art?.backgroundOpacity?.onChange(0.8)
   controls.text?.italic?.onChange(false)
   controls.utilities?.respectVisualElements?.onChange(true)
+  controls.utilities?.markdown?.onChange(false)
   controls.utilities?.x?.onChange(44)
   controls.utilities?.resetLayout?.()
   controls.deleteAction?.onDelete()
@@ -289,6 +301,7 @@ test('case insert contextual controls expose migrated text list properties', () 
     'style:backgroundOpacity:0.8',
     'style:italic:false',
     'avoid:true',
+    'content-mode:plain',
     'layout:x:44',
     'reset-layout',
     'enabled:false',
@@ -348,6 +361,9 @@ test('case insert contextual controls expose migrated spine text properties', ()
     },
     onAvoidVisualElementsChange: (_target, avoidVisualElements) => {
       calls.push(`avoid:${avoidVisualElements}`)
+    },
+    onContentModeChange: (_target, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
     },
   }
 
@@ -432,7 +448,8 @@ test('case insert contextual controls expose migrated spine text properties', ()
   assert.equal(controls.utilities?.y?.step, 0.1)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.markdownPlanned, true)
+  assert.equal(controls.utilities?.markdown?.checked, false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdownPlanned'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Right spine note')
 
@@ -440,6 +457,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
   controls.text?.underline?.onChange(false)
   controls.art?.borderRadius?.onChange(1.1)
   controls.utilities?.respectVisualElements?.onChange(true)
+  controls.utilities?.markdown?.onChange(true)
   controls.utilities?.x?.onChange(-4.5)
   controls.utilities?.y?.onChange(84)
   controls.utilities?.resetLayout?.()
@@ -453,6 +471,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
     'style:underline:false',
     'style:borderRadius:1.1',
     'avoid:true',
+    'content-mode:markdown',
     'layout:x:-4.5',
     'layout:y:84',
     'reset-layout',

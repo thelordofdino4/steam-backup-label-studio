@@ -12,6 +12,11 @@ import type {
   ProjectCaseInsertTextSource,
   ProjectMetadata,
 } from '../project/projectTypes.ts'
+import {
+  getMarkdownSource,
+  getRenderablePlainText,
+  isMarkdownTextEnabled,
+} from '../text/markdownText.ts'
 
 export type CaseInsertTextSurfaceId = 'cover' | 'tray' | 'spine'
 
@@ -163,6 +168,13 @@ export function getCaseInsertTextBlockRenderValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
 ) {
+  if (isMarkdownTextEnabled(textBlock)) {
+    return getRenderablePlainText(
+      textBlock,
+      getMarkdownSource(textBlock, textBlock.value),
+    )
+  }
+
   const discKey = getCaseInsertTextBlockDiscKey(textBlock)
 
   if (

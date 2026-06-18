@@ -1,5 +1,6 @@
 import type {
   DiscTextLayoutSettings,
+  DiscTextMarkdownSources,
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
@@ -31,6 +32,7 @@ export async function drawDiscTextElements(
   projectDiscNumberArtwork: ProjectDiscNumberArtwork,
   layoutSettings: DiscTextLayoutSettings,
   title: string,
+  markdownSources: DiscTextMarkdownSources = {},
   placement: SteamLogoPlacement,
   safeZoneRadius: number,
   avoidanceRegions: DiscTextAvoidanceRegion[] = [],
@@ -98,6 +100,7 @@ export async function drawDiscTextElements(
   const svg = buildDiscTextSvgLayer({
     settings: effectiveSettings,
     values,
+    markdownSources,
     styles,
     layoutSettings,
     title,

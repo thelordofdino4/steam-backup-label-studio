@@ -4,6 +4,7 @@ import {
   getCaseInsertTextVisualLayout,
   wrapCaseInsertTextLines,
 } from './caseInsertTextVisualLayout.ts'
+import { parseMarkdownText } from '../text/markdownText.ts'
 
 function measureTextAsCharacters(text: string) {
   return Array.from(text).length
@@ -86,6 +87,42 @@ test('case insert visual layout measures with the emphasized font string', () =>
 
   assert.equal(layout.font, 'italic 820 10px Georgia, serif')
   assert.ok(measuredFonts.every((font) => font === layout.font))
+})
+
+test('case insert visual layout carries Markdown rich runs through measured lines', () => {
+  const measuredFonts: string[] = []
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    fontFamily: 'Georgia, serif',
+    fontSizePx: 10,
+    fontWeight: 600,
+    lineHeightPx: 12,
+    measureText: (text, font) => {
+      measuredFonts.push(font)
+
+      return Array.from(text).length
+    },
+    paddingRatio: 0,
+    richText: parseMarkdownText('Alpha **bold** *italic*'),
+    text: 'Alpha bold italic',
+    verticalAlign: 'top',
+  })
+
+  assert.deepEqual(
+    layout.lines[0]?.runs?.map(({ text, bold, italic }) => ({
+      text,
+      bold: Boolean(bold),
+      italic: Boolean(italic),
+    })),
+    [
+      { text: 'Alpha ', bold: false, italic: false },
+      { text: 'bold', bold: true, italic: false },
+      { text: ' ', bold: false, italic: false },
+      { text: 'italic', bold: false, italic: true },
+    ],
+  )
+  assert.ok(measuredFonts.includes('800 10px Georgia, serif'))
+  assert.ok(measuredFonts.includes('italic 600 10px Georgia, serif'))
 })
 
 test('case insert editable bounds keep a visible minimum box for empty text', () => {

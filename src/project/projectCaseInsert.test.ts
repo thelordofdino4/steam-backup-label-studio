@@ -63,7 +63,9 @@ import {
   updateProjectCaseInsertTemplate,
   updateProjectJewelCaseSpineSide,
   updateProjectJewelCaseSpineSides,
+  updateCaseInsertTextBlockContentMode,
   updateCaseInsertTextBlockValue,
+  updateCaseInsertTextListContentMode,
   updateCaseInsertTextListItem,
   normalizeSavedCaseInsertProject,
   restoreCaseInsertProjectState,
@@ -600,6 +602,55 @@ test('migrated cover and tray text block properties survive save and restore', (
   assert.equal(restoredTrayDescription?.style.borderRadius, 0.85)
   assert.equal(restoredTrayDescription?.layout.scale, 1.18)
   assert.equal(restoredTrayDescription?.layout.y, 58)
+})
+
+test('case insert Markdown text fields survive save and restore', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
+    ...cover,
+    textBlocks: cover.textBlocks.map((textBlock) =>
+      textBlock.id === 'cover-title-text'
+        ? updateCaseInsertTextBlockContentMode(
+            textBlock,
+            'markdown',
+            'A **bold** title',
+          )
+        : textBlock),
+  }))
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) => ({
+    ...tray,
+    textLists: tray.textLists.map((textList) =>
+      textList.id === 'tray-feature-bullets'
+        ? updateCaseInsertTextListContentMode(
+            textList,
+            'markdown',
+            '- **Co-op** puzzles\n- *Workshop* support',
+          )
+        : textList),
+  }))
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: state,
+  })
+  const restored = restoreCaseInsertProjectState(saved).caseInsert
+  const coverTitle = restored.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+  const featureList = restored.templates.tray.textLists.find(
+    ({ id }) => id === 'tray-feature-bullets',
+  )
+
+  assert.equal(coverTitle?.contentMode, 'markdown')
+  assert.equal(coverTitle?.markdownSource, 'A **bold** title')
+  assert.equal(coverTitle?.value, 'A bold title')
+  assert.equal(featureList?.contentMode, 'markdown')
+  assert.equal(
+    featureList?.markdownSource,
+    '- **Co-op** puzzles\n- *Workshop* support',
+  )
+  assert.deepEqual(featureList?.items, ['• Co-op puzzles', '• Workshop support'])
 })
 
 test('mirrored spine side updates fan out until mirror is disabled', () => {

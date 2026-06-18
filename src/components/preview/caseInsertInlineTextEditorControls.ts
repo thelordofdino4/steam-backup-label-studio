@@ -22,6 +22,7 @@ import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
 } from '../../project/projectTypes'
+import type { TextContentMode } from '../../text/markdownText'
 import type {
   InlinePreviewTextEditorControls,
 } from './InlinePreviewTextEditor'
@@ -59,6 +60,10 @@ export type CaseInsertPreviewTextControlHandlers = {
     target: CaseInsertPreviewTextTarget,
     avoidVisualElements: boolean,
   ) => void
+  onContentModeChange: (
+    target: CaseInsertPreviewTextTarget,
+    contentMode: TextContentMode,
+  ) => void
 }
 
 type CaseInsertInlineTextEditorControlParams = {
@@ -68,6 +73,7 @@ type CaseInsertInlineTextEditorControlParams = {
   label: string
   layout: ProjectCaseInsertLayout
   layoutPresets?: readonly CaseInsertTextLayoutPreset[]
+  contentMode?: TextContentMode
   scaleMax?: number
   scaleMin?: number
   style: CaseInsertTextStyle
@@ -134,6 +140,7 @@ export function createCaseInsertInlineTextEditorControls({
   label,
   layout,
   layoutPresets = [],
+  contentMode = 'plain',
   scaleMax = 1.8,
   scaleMin = 0.7,
   style,
@@ -363,7 +370,15 @@ export function createCaseInsertInlineTextEditorControls({
         onChange: (value) => handlers.onLayoutChange(target, 'y', value),
       },
       resetLayout: onResetLayout,
-      markdownPlanned: true,
+      markdown: {
+        label: 'Markdown',
+        checked: contentMode === 'markdown',
+        onChange: (checked) =>
+          handlers.onContentModeChange(
+            target,
+            checked ? 'markdown' : 'plain',
+          ),
+      },
     },
     deleteAction: {
       label: 'Delete',

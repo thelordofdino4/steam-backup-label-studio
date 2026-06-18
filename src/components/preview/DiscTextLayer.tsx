@@ -7,9 +7,11 @@ import {
   type DiscTextLayout,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
+  type DiscTextMarkdownSources,
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
+  isDiscTextMarkdownEnabled,
 } from '../../discText/index'
 import {
   getDiscTextFontFamilyCss,
@@ -41,6 +43,7 @@ export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextMarkdownSources: DiscTextMarkdownSources
   discTextStyles: DiscTextStyleSettings
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectMetadata: ProjectMetadata
@@ -54,6 +57,7 @@ export type DiscTextLayerProps = {
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
   onDiscTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
   onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  onDiscTextContentModeChange: (key: DiscTextKey, contentMode: 'plain' | 'markdown') => void
   onDiscTextEditComplete: (key: DiscTextKey) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
@@ -98,6 +102,7 @@ export function DiscTextLayer({
   discTextSettings,
   discTextValues,
   discTextValueSources,
+  discTextMarkdownSources,
   discTextStyles,
   projectDiscNumberArtwork,
   projectMetadata,
@@ -110,6 +115,7 @@ export function DiscTextLayer({
   onSelectedDiscTextKeyChange,
   onDiscTextEnabledChange,
   onDiscTextValueChange,
+  onDiscTextContentModeChange,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onApplyDiscTextStylePreset,
@@ -141,9 +147,20 @@ export function DiscTextLayer({
   )
   const visibleTextLayerSvg = useMemo(
     () => {
+      const hiddenTextKeys =
+        selectedDiscTextKey &&
+        isDiscTextMarkdownEnabled(discTextMarkdownSources, selectedDiscTextKey) &&
+        !isCurvedCopyrightDiscTextLayout(
+          selectedDiscTextKey,
+          discTextLayout[selectedDiscTextKey],
+        )
+          ? [selectedDiscTextKey]
+          : []
+
       return buildDiscTextSvgLayer({
         settings: effectiveSettings,
         values: metadataBoundDiscTextValues,
+        markdownSources: discTextMarkdownSources,
         styles: discTextStyles,
         layoutSettings: discTextLayout,
         title: manualGameTitle,
@@ -154,9 +171,12 @@ export function DiscTextLayer({
         width: 100,
         height: 100,
         idPrefix: 'disc-text-preview-image',
+        hiddenTextKeys,
       })
     },
     [
+      selectedDiscTextKey,
+      discTextMarkdownSources,
       discTextStyles,
       discTextLayout,
       effectiveSettings,
@@ -172,6 +192,7 @@ export function DiscTextLayer({
       return buildDiscTextSvgLayer({
         settings: effectiveSettings,
         values: metadataBoundDiscTextValues,
+        markdownSources: discTextMarkdownSources,
         styles: discTextStyles,
         layoutSettings: discTextLayout,
         title: manualGameTitle,
@@ -185,6 +206,7 @@ export function DiscTextLayer({
       })
     },
     [
+      discTextMarkdownSources,
       discTextStyles,
       discTextLayout,
       effectiveSettings,
@@ -280,6 +302,7 @@ export function DiscTextLayer({
       <DiscInlineTextEditorLayer
         discTextSettings={effectiveSettings}
         discTextValues={metadataBoundDiscTextValues}
+        discTextMarkdownSources={discTextMarkdownSources}
         discTextStyles={discTextStyles}
         discTextLayout={discTextLayout}
         title={manualGameTitle}
@@ -289,6 +312,7 @@ export function DiscTextLayer({
         onSelectedDiscTextKeyChange={onSelectedDiscTextKeyChange}
         onDiscTextEnabledChange={onDiscTextEnabledChange}
         onDiscTextValueChange={onDiscTextValueChange}
+        onDiscTextContentModeChange={onDiscTextContentModeChange}
         onDiscTextEditComplete={onDiscTextEditComplete}
         onDiscTextStyleChange={onDiscTextStyleChange}
         onApplyDiscTextStylePreset={onApplyDiscTextStylePreset}

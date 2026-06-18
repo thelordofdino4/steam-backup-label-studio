@@ -3,12 +3,15 @@ import {
   createSvgArcPath,
   getCopyrightArcSide,
   getCurvedPreviewLetterSpacing,
+  getDiscTextMarkdownSource,
   getDiscTextContent,
   getLargeArcFlag,
   getReadableCurvedTextScale,
+  isDiscTextMarkdownEnabled,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutSettings,
+  type DiscTextMarkdownSources,
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
@@ -28,10 +31,16 @@ import {
   type DiscTextStyleInput,
 } from './styles.ts'
 import { escapeSvgAttribute, escapeSvgText } from '../utils/svg.ts'
+import {
+  parseMarkdownText,
+  type RichTextDocument,
+  type RichTextRun,
+} from '../text/markdownText.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
   values: DiscTextValues
+  markdownSources?: DiscTextMarkdownSources
   styles?: DiscTextStyleInput
   layoutSettings: DiscTextLayoutSettings
   title: string
@@ -465,6 +474,7 @@ function buildStraightTextMarkup(
   styles?: DiscTextStyleInput,
   avoidanceRegions?: DiscTextAvoidanceRegion[],
   hideText = false,
+  richText?: RichTextDocument,
 ) {
   const textAvoidanceRegions = avoidanceRegions?.filter(
     (region) => region.sourceDiscTextKey !== key,
@@ -475,7 +485,7 @@ function buildStraightTextMarkup(
     layout,
     measureText,
     styles,
-    { avoidanceRegions: textAvoidanceRegions },
+    { avoidanceRegions: textAvoidanceRegions, richText },
   )
   const textStyle = buildTextStyleAttribute(
     straightTextLayout.style,
@@ -496,10 +506,37 @@ function buildStraightTextMarkup(
       x="${line.x}"
       y="${line.y}"
       style="${textStyle}"
-    >${escapeSvgText(line.text)}</text>
+    >${buildStraightTextLineContent(line.runs, line.text)}</text>
   `).join('')
 
   return `${boxMarkup}${textMarkup}`
+}
+
+function buildStraightTextRunStyle(run: RichTextRun) {
+  const declarations = [
+    run.bold ? 'font-weight:800' : '',
+    run.italic ? 'font-style:italic' : '',
+  ].filter(Boolean)
+
+  return declarations.length > 0
+    ? ` style="${escapeSvgAttribute(declarations.join('; '))}"`
+    : ''
+}
+
+function buildStraightTextLineContent(
+  runs: ReturnType<typeof getStraightDiscTextRenderLayout>['lines'][number]['runs'],
+  fallbackText: string,
+) {
+  const visibleRuns = runs?.filter((run) => run.text)
+  const hasStyledRuns = visibleRuns?.some((run) => run.bold || run.italic)
+
+  if (!visibleRuns || !hasStyledRuns) {
+    return escapeSvgText(fallbackText)
+  }
+
+  return visibleRuns.map((run) =>
+    `<tspan${buildStraightTextRunStyle(run)}>${escapeSvgText(run.text)}</tspan>`,
+  ).join('')
 }
 
 function buildStraightTextBoxMarkup(
@@ -542,6 +579,7 @@ function buildStraightTextBoxMarkup(
 export function buildDiscTextSvgLayer({
   settings,
   values,
+  markdownSources = {},
   styles,
   layoutSettings,
   title,
@@ -560,10 +598,18 @@ export function buildDiscTextSvgLayer({
   const textElements = DISC_TEXT_KEYS.map((key) => {
     if (!settings[key]) return ''
 
-    const text = getDiscTextContent(key, values, title)
-    if (!text.trim()) return ''
-
+    const fallbackText = getDiscTextContent(key, values, title)
     const layout = layoutSettings[key]
+    const markdownDocument =
+      key === 'copyright' && layout.mode === 'curved'
+        ? null
+        : isDiscTextMarkdownEnabled(markdownSources, key)
+          ? parseMarkdownText(
+              getDiscTextMarkdownSource(markdownSources, key, fallbackText),
+            )
+          : null
+    const text = markdownDocument?.plainText ?? fallbackText
+    if (!text.trim()) return ''
 
     if (key === 'copyright' && layout.mode === 'curved') {
       const curvedMarkup = buildCurvedCopyrightMarkup(
@@ -590,6 +636,7 @@ export function buildDiscTextSvgLayer({
       styles,
       avoidanceRegions,
       hiddenTextKeySet.has(key),
+      markdownDocument ?? undefined,
     )
   }).join('')
 

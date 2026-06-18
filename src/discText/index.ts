@@ -22,6 +22,7 @@ import type {
   DiscTextLayout,
   DiscTextLayoutNumericField,
   DiscTextLayoutSettings,
+  DiscTextMarkdownSources,
   DiscTextMode,
   DiscTextSettings,
   DiscTextValues,
@@ -134,6 +135,63 @@ export function updateDiscTextSetting(
 
 export function normalizeDiscTextValues(values?: Partial<DiscTextValues>, appId?: number): DiscTextValues {
   return { ...createDefaultDiscTextValues(appId), ...(values ?? {}) }
+}
+
+export function normalizeDiscTextMarkdownSources(
+  sources?: Partial<Record<DiscTextKey, unknown>>,
+): DiscTextMarkdownSources {
+  if (!sources) return {}
+
+  return DISC_TEXT_KEYS.reduce((normalizedSources, key) => {
+    const source = sources[key]
+
+    if (typeof source === 'string') {
+      normalizedSources[key] = source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, '')
+    }
+
+    return normalizedSources
+  }, {} as DiscTextMarkdownSources)
+}
+
+export function isDiscTextMarkdownEnabled(
+  sources: DiscTextMarkdownSources,
+  key: DiscTextKey,
+) {
+  return typeof sources[key] === 'string'
+}
+
+export function getDiscTextMarkdownSource(
+  sources: DiscTextMarkdownSources,
+  key: DiscTextKey,
+  fallback: string,
+) {
+  return sources[key] ?? fallback
+}
+
+export function setDiscTextMarkdownSource(
+  sources: DiscTextMarkdownSources,
+  key: DiscTextKey,
+  source: string,
+): DiscTextMarkdownSources {
+  return {
+    ...sources,
+    [key]: source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, ''),
+  }
+}
+
+export function setDiscTextMarkdownEnabled(
+  sources: DiscTextMarkdownSources,
+  key: DiscTextKey,
+  enabled: boolean,
+  fallback: string,
+): DiscTextMarkdownSources {
+  if (enabled) {
+    return setDiscTextMarkdownSource(sources, key, fallback)
+  }
+
+  const nextSources = { ...sources }
+  delete nextSources[key]
+  return nextSources
 }
 
 export function updateDiscTextValue(

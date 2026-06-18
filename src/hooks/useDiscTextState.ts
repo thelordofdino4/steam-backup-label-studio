@@ -32,8 +32,12 @@ import {
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
   getDiscTextContent,
+  getDiscTextMarkdownSource,
   resetDiscTextLayout,
   isCurvedCopyrightDiscTextLayout,
+  isDiscTextMarkdownEnabled,
+  setDiscTextMarkdownEnabled,
+  setDiscTextMarkdownSource,
   updateDiscTextAlignment,
   updateDiscTextArcSide,
   updateDiscTextLayoutForSteamLogoPlacement,
@@ -46,6 +50,7 @@ import {
   type DiscTextKey,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
+  type DiscTextMarkdownSources,
   type DiscTextMode,
   type DiscTextSettings,
   type DiscTextValues,
@@ -60,6 +65,10 @@ import {
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
 } from '../discText/styles'
+import {
+  parseMarkdownText,
+  type TextContentMode,
+} from '../text/markdownText'
 
 type UseDiscTextStateOptions = {
   projectMetadata: ProjectMetadata
@@ -73,6 +82,7 @@ type DiscTextStateSnapshot = {
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
   discTextTitleValue: string
+  discTextMarkdownSources: DiscTextMarkdownSources
   discTextLayout: DiscTextLayoutSettings
   discTextStyles: DiscTextStyleSettings
 }
@@ -106,6 +116,8 @@ export function useDiscTextState({
     createDefaultDiscTextValueSources(),
   )
   const [discTextTitleValue, setDiscTextTitleValue] = useState('')
+  const [discTextMarkdownSources, setDiscTextMarkdownSources] =
+    useState<DiscTextMarkdownSources>({})
   const [discTextLayout, setDiscTextLayout] = useState<DiscTextLayoutSettings>(() =>
     createDefaultDiscTextLayout(steamLogoPlacement, selectedDiscTemplate),
   )
@@ -150,6 +162,16 @@ export function useDiscTextState({
     return getDiscTextContent(key, metadataBoundDiscTextValues, resolvedDiscTextTitle)
   }
 
+  function getCurrentDiscTextRenderedContent(key: DiscTextKey) {
+    const text = getCurrentDiscTextContent(key)
+
+    return isDiscTextMarkdownEnabled(discTextMarkdownSources, key)
+      ? parseMarkdownText(
+          getDiscTextMarkdownSource(discTextMarkdownSources, key, text),
+        ).plainText
+      : text
+  }
+
   function clampDiscTextLayoutSettingsForCurrentContent(
     layout: DiscTextLayoutSettings,
     template: DiscTemplate,
@@ -163,7 +185,7 @@ export function useDiscTextState({
             key,
             currentTextLayout,
             template,
-            getCurrentDiscTextContent(key),
+            getCurrentDiscTextRenderedContent(key),
             undefined,
             styles,
           )
@@ -181,6 +203,7 @@ export function useDiscTextState({
     setDiscTextValues(createDefaultDiscTextValues())
     setDiscTextValueSources(createDefaultDiscTextValueSources())
     setDiscTextTitleValue('')
+    setDiscTextMarkdownSources({})
     setDiscTextLayout(createDefaultDiscTextLayout(placement, template))
     setDiscTextStyles(createDefaultDiscTextStyles())
   }
@@ -191,6 +214,7 @@ export function useDiscTextState({
     discTextValues: restoredDiscTextValues,
     discTextValueSources: restoredDiscTextValueSources,
     discTextTitleValue: restoredDiscTextTitleValue,
+    discTextMarkdownSources: restoredDiscTextMarkdownSources,
     discTextLayout: restoredDiscTextLayout,
     discTextStyles: restoredDiscTextStyles,
   }: DiscTextStateSnapshot) {
@@ -199,6 +223,7 @@ export function useDiscTextState({
     setDiscTextValues(restoredDiscTextValues)
     setDiscTextValueSources(restoredDiscTextValueSources)
     setDiscTextTitleValue(restoredDiscTextTitleValue)
+    setDiscTextMarkdownSources(restoredDiscTextMarkdownSources)
     setDiscTextLayout(restoredDiscTextLayout)
     setDiscTextStyles(restoredDiscTextStyles)
   }
@@ -330,7 +355,72 @@ export function useDiscTextState({
     )
   }
 
+  function handleDiscTextContentModeChange(
+    key: DiscTextKey,
+    contentMode: TextContentMode,
+  ) {
+    if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
+      return
+    }
+
+    const currentText = getCurrentDiscTextContent(key)
+    const currentSource = getDiscTextMarkdownSource(
+      discTextMarkdownSources,
+      key,
+      currentText,
+    )
+
+    if (contentMode === 'markdown') {
+      setDiscTextMarkdownSources((currentSources) =>
+        setDiscTextMarkdownEnabled(currentSources, key, true, currentSource))
+      clampDiscTextLayoutForContent(
+        key,
+        parseMarkdownText(currentSource).plainText,
+      )
+      return
+    }
+
+    const renderedPlainText = parseMarkdownText(currentSource).plainText
+    const nextInputUpdate = updateDiscTextInputValue(
+      discTextValues,
+      discTextValueSources,
+      key,
+      renderedPlainText,
+      discTextTitleValue,
+    )
+
+    if (isMetadataBoundDiscTextKey(key)) {
+      setDiscTextValueSources(nextInputUpdate.sources)
+    }
+    setDiscTextValues(nextInputUpdate.values)
+    setDiscTextTitleValue(nextInputUpdate.titleValue)
+    setDiscTextMarkdownSources((currentSources) =>
+      setDiscTextMarkdownEnabled(currentSources, key, false, currentSource))
+    clampDiscTextLayoutForContent(key, renderedPlainText)
+  }
+
   function handleDiscTextInlineDraftChange(key: DiscTextKey, value: string) {
+    if (isDiscTextMarkdownEnabled(discTextMarkdownSources, key)) {
+      const renderedPlainText = parseMarkdownText(value).plainText
+      const nextInputUpdate = updateDiscTextInlineDraftValue(
+        discTextValues,
+        discTextValueSources,
+        key,
+        renderedPlainText,
+        discTextTitleValue,
+      )
+
+      setDiscTextMarkdownSources((currentSources) =>
+        setDiscTextMarkdownSource(currentSources, key, value))
+      if (isMetadataBoundDiscTextKey(key)) {
+        setDiscTextValueSources(nextInputUpdate.sources)
+      }
+      setDiscTextValues(nextInputUpdate.values)
+      setDiscTextTitleValue(nextInputUpdate.titleValue)
+      clampDiscTextLayoutForContent(key, renderedPlainText)
+      return
+    }
+
     const nextInputUpdate = updateDiscTextInlineDraftValue(
       discTextValues,
       discTextValueSources,
@@ -408,7 +498,7 @@ export function useDiscTextState({
           key,
           nextLayout[key],
           selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
+          getCurrentDiscTextRenderedContent(key),
           undefined,
           discTextStyles,
         ),
@@ -429,7 +519,7 @@ export function useDiscTextState({
               key,
               nextTextLayout,
               selectedDiscTemplate,
-              getCurrentDiscTextContent(key),
+              getCurrentDiscTextRenderedContent(key),
               undefined,
               discTextStyles,
             ),
@@ -453,7 +543,7 @@ export function useDiscTextState({
           key,
           nextLayout[key],
           selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
+          getCurrentDiscTextRenderedContent(key),
           undefined,
           discTextStyles,
         ),
@@ -495,7 +585,7 @@ export function useDiscTextState({
           key,
           nextLayout[key],
           selectedDiscTemplate,
-          getCurrentDiscTextContent(key),
+          getCurrentDiscTextRenderedContent(key),
           undefined,
           discTextStyles,
         ),
@@ -514,13 +604,13 @@ export function useDiscTextState({
     setDiscTextLayout((currentLayout) => ({
       ...currentLayout,
       [key]: clampStraightDiscTextLayoutToSafeZone(
-        key,
-        currentLayout[key],
-        selectedDiscTemplate,
-        getCurrentDiscTextContent(key),
-        undefined,
-        nextStyles,
-      ),
+              key,
+              currentLayout[key],
+              selectedDiscTemplate,
+              getCurrentDiscTextRenderedContent(key),
+              undefined,
+              nextStyles,
+            ),
     }))
   }
 
@@ -531,13 +621,13 @@ export function useDiscTextState({
     setDiscTextLayout((currentLayout) => ({
       ...currentLayout,
       [key]: clampStraightDiscTextLayoutToSafeZone(
-        key,
-        currentLayout[key],
-        selectedDiscTemplate,
-        getCurrentDiscTextContent(key),
-        undefined,
-        nextStyles,
-      ),
+              key,
+              currentLayout[key],
+              selectedDiscTemplate,
+              getCurrentDiscTextRenderedContent(key),
+              undefined,
+              nextStyles,
+            ),
     }))
   }
 
@@ -548,13 +638,13 @@ export function useDiscTextState({
     setDiscTextLayout((currentLayout) => ({
       ...currentLayout,
       [key]: clampStraightDiscTextLayoutToSafeZone(
-        key,
-        currentLayout[key],
-        selectedDiscTemplate,
-        getCurrentDiscTextContent(key),
-        undefined,
-        nextStyles,
-      ),
+              key,
+              currentLayout[key],
+              selectedDiscTemplate,
+              getCurrentDiscTextRenderedContent(key),
+              undefined,
+              nextStyles,
+            ),
     }))
   }
 
@@ -637,11 +727,13 @@ export function useDiscTextState({
     discTextValues,
     discTextValueSources,
     discTextTitleValue,
+    discTextMarkdownSources,
     discTextLayout,
     discTextStyles,
     metadataBoundDiscTextValues,
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
+    getCurrentDiscTextRenderedContent,
     setDiscTextLayout,
     resetDiscTextState,
     restoreDiscTextState,
@@ -652,6 +744,7 @@ export function useDiscTextState({
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
     handleDiscTextContentChange,
+    handleDiscTextContentModeChange,
     handleDiscTextInlineDraftChange,
     finalizeDiscTextInlineDraft,
     handleUseMetadataDiscTextValue,

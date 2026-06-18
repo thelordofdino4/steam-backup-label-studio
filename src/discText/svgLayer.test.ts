@@ -92,6 +92,37 @@ test('disc SVG renderer applies emphasis to straight text without duplicate rend
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
+test('disc SVG renderer maps straight Markdown to safe tspans', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    customNote: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    customNote: 'fallback note',
+  }
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    markdownSources: {
+      customNote: 'Hello **bold** and *italic* <script>alert(1)</script>',
+    },
+    layoutSettings: createDefaultDiscTextLayout('none'),
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.match(svg, /<tspan style="font-weight:800">bold<\/tspan>/)
+  assert.match(svg, /<tspan style="font-style:italic">italic<\/tspan>/)
+  assert.match(svg, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/)
+  assert.doesNotMatch(svg, /<script>/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
 test('disc SVG renderer can hide selected straight text glyphs for inline editing', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
@@ -154,6 +185,43 @@ test('curved disc copyright text remains SVG textPath based', () => {
   assert.doesNotMatch(svg, /<textarea\b/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
   assert.doesNotMatch(svg, /disc-text-editable-preview/)
+})
+
+test('curved disc copyright ignores Markdown sources and remains textPath', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright: 'Plain legal text',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    markdownSources: {
+      copyright: '**Markdown legal text**',
+    },
+    layoutSettings: {
+      ...layoutSettings,
+      copyright: {
+        ...layoutSettings.copyright,
+        mode: 'curved',
+      },
+    },
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.match(svg, /<textPath\b/)
+  assert.match(svg, />Plain legal text<\/textPath>/)
+  assert.doesNotMatch(svg, /Markdown legal text/)
+  assert.doesNotMatch(svg, /<tspan\b/)
 })
 
 test('disc SVG renderer applies emphasis to curved copyright textPath', () => {

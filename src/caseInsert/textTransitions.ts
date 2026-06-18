@@ -4,6 +4,11 @@ import type {
   ProjectCaseInsertTextList,
   ProjectCaseInsertTextSource,
 } from '../project/projectTypes.ts'
+import {
+  getRenderablePlainText,
+  parseMarkdownText,
+  type TextContentMode,
+} from '../text/markdownText.ts'
 import { normalizeTextListItems } from './normalization.ts'
 import {
   applyCaseInsertTextBlockLayoutPreset,
@@ -38,8 +43,37 @@ export function updateCaseInsertTextBlockValue(
 ): ProjectCaseInsertTextBlock {
   return {
     ...textBlock,
-    value,
+    value: textBlock.contentMode === 'markdown'
+      ? parseMarkdownText(value).plainText
+      : value,
+    ...(textBlock.contentMode === 'markdown'
+      ? { markdownSource: value }
+      : {}),
     source,
+  }
+}
+
+export function updateCaseInsertTextBlockContentMode(
+  textBlock: ProjectCaseInsertTextBlock,
+  contentMode: TextContentMode,
+  sourceValue: string,
+): ProjectCaseInsertTextBlock {
+  if (contentMode === 'markdown') {
+    return {
+      ...textBlock,
+      contentMode,
+      markdownSource: sourceValue,
+      value: parseMarkdownText(sourceValue).plainText,
+      source: 'manual',
+    }
+  }
+
+  return {
+    ...textBlock,
+    contentMode: undefined,
+    markdownSource: undefined,
+    value: getRenderablePlainText(textBlock, sourceValue),
+    source: 'manual',
   }
 }
 
@@ -151,6 +185,42 @@ export function setCaseInsertTextListItems(
   return {
     ...textList,
     items: normalizeTextListItems(items, textList.items),
+  }
+}
+
+export function updateCaseInsertTextListMarkdownSource(
+  textList: ProjectCaseInsertTextList,
+  markdownSource: string,
+): ProjectCaseInsertTextList {
+  const plainText = parseMarkdownText(markdownSource).plainText
+
+  return {
+    ...textList,
+    contentMode: 'markdown',
+    markdownSource,
+    items: normalizeTextListItems(plainText.split('\n'), textList.items),
+    source: 'manual',
+  }
+}
+
+export function updateCaseInsertTextListContentMode(
+  textList: ProjectCaseInsertTextList,
+  contentMode: TextContentMode,
+  sourceValue: string,
+): ProjectCaseInsertTextList {
+  if (contentMode === 'markdown') {
+    return updateCaseInsertTextListMarkdownSource(textList, sourceValue)
+  }
+
+  return {
+    ...textList,
+    contentMode: undefined,
+    markdownSource: undefined,
+    items: normalizeTextListItems(
+      getRenderablePlainText(textList, sourceValue).split('\n'),
+      textList.items,
+    ),
+    source: 'manual',
   }
 }
 

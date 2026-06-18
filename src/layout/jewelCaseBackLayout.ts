@@ -34,6 +34,12 @@ import {
   type CaseInsertTextVisualLine,
 } from './caseInsertTextVisualLayout.ts'
 import {
+  getRenderablePlainText,
+  getRenderableRichTextDocument,
+  isMarkdownTextEnabled,
+  parseMarkdownText,
+} from '../text/markdownText.ts'
+import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
   getDefaultJewelCaseBackScreenshotSlotLayouts,
@@ -260,6 +266,9 @@ function getTextLayoutFromConfig(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
+      richText: isMarkdownTextEnabled(textBlock)
+        ? getRenderableRichTextDocument(textBlock, textBlock.value)
+        : undefined,
       text: textBlock.value,
       verticalAlign: 'center',
     },
@@ -454,7 +463,15 @@ export function getJewelCaseBackTextListPreviewLayout(
   avoidanceRegions: CaseInsertTextAvoidanceRegion[] = [],
 ): JewelCaseBackTextListLayout | null {
   const safeBounds = getJewelCaseBackPreviewRegionBounds(layout, 'backPanelSafe')
-  const items = textList.items.map((item) => item.trim()).filter(Boolean)
+  const markdownDocument = isMarkdownTextEnabled(textList)
+    ? parseMarkdownText(textList.markdownSource ?? textList.items.join('\n'))
+    : null
+  const items = markdownDocument
+    ? getRenderablePlainText(textList, markdownDocument.plainText)
+        .split('\n')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : textList.items.map((item) => item.trim()).filter(Boolean)
 
   if (!safeBounds || !textList.enabled || items.length === 0) {
     return null
@@ -497,7 +514,8 @@ export function getJewelCaseBackTextListPreviewLayout(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_LIST_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textList.style),
-      text: items.map((item) => `• ${item}`).join('\n'),
+      richText: markdownDocument ?? undefined,
+      text: markdownDocument?.plainText ?? items.map((item) => `• ${item}`).join('\n'),
       verticalAlign: 'center',
     },
   )
