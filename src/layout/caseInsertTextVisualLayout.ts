@@ -9,6 +9,13 @@ import {
   inflateCaseInsertTextAvoidanceRect,
   type CaseInsertTextAvoidanceRegion,
 } from './caseInsertTextAvoidance.ts'
+import {
+  plainTextToRichTextDocument,
+  transformRichTextDocument,
+  type RichTextDocument,
+  type RichTextLine,
+  type RichTextRun,
+} from '../text/markdownText.ts'
 
 export type CaseInsertTextMeasureFunction = (
   text: string,
@@ -27,8 +34,17 @@ export type CaseInsertTextVisualLine = {
   text: string
   left: number
   right: number
+  runs?: CaseInsertTextVisualRun[]
   x: number
   y: number
+  width: number
+}
+
+export type CaseInsertTextVisualRun = {
+  text: string
+  bold?: boolean
+  italic?: boolean
+  left: number
   width: number
 }
 
@@ -45,6 +61,7 @@ export type CaseInsertTextVisualLayoutOptions = {
   maxLines?: number
   measureText?: CaseInsertTextMeasureFunction
   paddingRatio?: number
+  richText?: RichTextDocument
   text: string
   uppercase?: boolean
   verticalAlign?: 'center' | 'top'
@@ -166,6 +183,306 @@ function splitLongTokenByMeasuredWidth(
 
 function splitLineIntoMeasuredTokens(line: string) {
   return line.match(/\s+|\S+/g) ?? []
+}
+
+type RichTextMeasuredRun = RichTextRun & {
+  width: number
+}
+
+type RichTextWrappedLine = {
+  text: string
+  runs: RichTextMeasuredRun[]
+  width: number
+}
+
+function getCaseInsertTextRunFontString({
+  baseFontStyle,
+  baseFontWeight,
+  fontFamily,
+  fontSizePx,
+  run,
+}: {
+  baseFontStyle: 'normal' | 'italic'
+  baseFontWeight: number
+  fontFamily: string
+  fontSizePx: number
+  run: RichTextRun
+}) {
+  return getCaseInsertTextFontString(
+    run.bold ? Math.max(baseFontWeight, 800) : baseFontWeight,
+    fontSizePx,
+    fontFamily,
+    run.italic ? 'italic' : baseFontStyle,
+  )
+}
+
+function measureRichTextRun(
+  run: RichTextRun,
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+) {
+  return options.measureText(
+    run.text,
+    getCaseInsertTextRunFontString({
+      baseFontStyle: options.baseFontStyle,
+      baseFontWeight: options.baseFontWeight,
+      fontFamily: options.fontFamily,
+      fontSizePx: options.fontSizePx,
+      run,
+    }),
+  )
+}
+
+function measureRichTextRuns(
+  runs: RichTextRun[],
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+) {
+  return runs.reduce(
+    (width, run) => width + measureRichTextRun(run, options),
+    0,
+  )
+}
+
+function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
+  return Boolean(first.bold) === Boolean(second.bold) &&
+    Boolean(first.italic) === Boolean(second.italic)
+}
+
+function appendRichTextRun(runs: RichTextRun[], run: RichTextRun) {
+  if (!run.text) return runs
+
+  const previousRun = runs[runs.length - 1]
+
+  if (previousRun && richRunStylesMatch(previousRun, run)) {
+    previousRun.text += run.text
+    return runs
+  }
+
+  runs.push({ ...run })
+  return runs
+}
+
+function splitRichTextLineIntoTokens(line: RichTextLine): RichTextRun[] {
+  return line.runs.flatMap((run) =>
+    (run.text.match(/\s+|\S+/g) ?? []).map((text) => ({
+      ...run,
+      text,
+    })))
+}
+
+function splitRichTextRunByMeasuredWidth(
+  run: RichTextRun,
+  maxWidth: number,
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+) {
+  const chunks: RichTextRun[] = []
+  let currentChunk = ''
+
+  for (const character of Array.from(run.text)) {
+    const testChunk = `${currentChunk}${character}`
+    const testRun = { ...run, text: testChunk }
+
+    if (
+      measureRichTextRun(testRun, options) <= maxWidth ||
+      !currentChunk
+    ) {
+      currentChunk = testChunk
+      continue
+    }
+
+    chunks.push({ ...run, text: currentChunk })
+    currentChunk = character
+  }
+
+  if (currentChunk) chunks.push({ ...run, text: currentChunk })
+  return chunks
+}
+
+function trimTrailingWhitespaceFromRichRuns(runs: RichTextRun[]) {
+  const trimmedRuns = runs.map((run) => ({ ...run }))
+
+  while (trimmedRuns.length > 0) {
+    const lastRun = trimmedRuns[trimmedRuns.length - 1]
+    const nextText = lastRun.text.replace(/\s+$/, '')
+
+    if (nextText) {
+      lastRun.text = nextText
+      break
+    }
+
+    trimmedRuns.pop()
+  }
+
+  return trimmedRuns.length > 0 ? trimmedRuns : runs
+}
+
+function normalizeWrappedRichLine(
+  runs: RichTextRun[],
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+): RichTextWrappedLine {
+  const measuredRuns = runs.map((run) => ({
+    ...run,
+    width: measureRichTextRun(run, options),
+  }))
+  const text = measuredRuns.map((run) => run.text).join('')
+  const width = measuredRuns.reduce((total, run) => total + run.width, 0)
+
+  return { text, runs: measuredRuns, width }
+}
+
+function getNextRichLineAfterWrap(run: RichTextRun) {
+  return /^\s+$/.test(run.text) ? [] : [{ ...run }]
+}
+
+function appendWrappedRichTextLine({
+  line,
+  lines,
+  maxWidth,
+  maxLines,
+  options,
+}: {
+  line: RichTextLine
+  lines: RichTextWrappedLine[]
+  maxWidth: number
+  maxLines: number
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  }
+}) {
+  const tokens = splitRichTextLineIntoTokens(line)
+  let currentRuns: RichTextRun[] = []
+
+  if (tokens.length === 0) {
+    if (lines.length < maxLines) {
+      lines.push(normalizeWrappedRichLine([], options))
+    }
+    return
+  }
+
+  for (const token of tokens) {
+    const tokenParts = measureRichTextRun(token, options) > maxWidth
+      ? splitRichTextRunByMeasuredWidth(token, maxWidth, options)
+      : [token]
+
+    for (const tokenPart of tokenParts) {
+      const candidateRuns = [...currentRuns.map((run) => ({ ...run }))]
+      appendRichTextRun(candidateRuns, tokenPart)
+
+      if (
+        measureRichTextRuns(candidateRuns, options) <= maxWidth ||
+        currentRuns.length === 0
+      ) {
+        currentRuns = candidateRuns
+        continue
+      }
+
+      lines.push(
+        normalizeWrappedRichLine(
+          /\S/.test(tokenPart.text)
+            ? trimTrailingWhitespaceFromRichRuns(currentRuns)
+            : currentRuns,
+          options,
+        ),
+      )
+      currentRuns = getNextRichLineAfterWrap(tokenPart)
+
+      if (lines.length >= maxLines) return
+    }
+  }
+
+  if (currentRuns.length > 0 && lines.length < maxLines) {
+    lines.push(normalizeWrappedRichLine(currentRuns, options))
+  }
+}
+
+function wrapRichTextDocumentLines(
+  document: RichTextDocument,
+  maxWidth: number,
+  maxLines: number,
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+) {
+  const lines: RichTextWrappedLine[] = []
+
+  for (const sourceLine of document.lines) {
+    appendWrappedRichTextLine({
+      line: sourceLine,
+      lines,
+      maxWidth,
+      maxLines,
+      options,
+    })
+
+    if (lines.length >= maxLines) break
+  }
+
+  return lines.length > 0
+    ? lines
+    : [normalizeWrappedRichLine([], options)]
+}
+
+function wrapRichTextDocumentLinesBySegments(
+  document: RichTextDocument,
+  lineSegments: CaseInsertTextLineSegment[],
+  maxLines: number,
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  },
+) {
+  const lines: RichTextWrappedLine[] = []
+
+  for (const sourceLine of document.lines) {
+    const currentSegment = lineSegments[Math.min(lines.length, lineSegments.length - 1)]
+    appendWrappedRichTextLine({
+      line: sourceLine,
+      lines,
+      maxWidth: currentSegment ? currentSegment.right - currentSegment.left : 1,
+      maxLines,
+      options,
+    })
+
+    if (lines.length >= maxLines) break
+  }
+
+  return lines.length > 0
+    ? lines
+    : [normalizeWrappedRichLine([], options)]
 }
 
 function getLineBeforeWrappedToken(currentLine: string, nextTokenPart: string) {
@@ -684,17 +1001,149 @@ function wrapCaseInsertTextLinesWithAvoidance({
   }
 }
 
+function wrapRichTextDocumentWithAvoidance({
+  document,
+  reservedBounds,
+  padding,
+  innerHeight,
+  lineHeightPx,
+  align,
+  verticalAlign,
+  maxLines,
+  avoidanceRegions,
+  options,
+}: {
+  document: RichTextDocument
+  reservedBounds: JewelCasePixelRect
+  padding: number
+  innerHeight: number
+  lineHeightPx: number
+  align: ProjectCaseInsertTextAlign
+  verticalAlign?: 'center' | 'top'
+  maxLines: number
+  avoidanceRegions: CaseInsertTextAvoidanceRegion[]
+  options: {
+    baseFontStyle: 'normal' | 'italic'
+    baseFontWeight: number
+    fontFamily: string
+    fontSizePx: number
+    measureText: CaseInsertTextMeasureFunction
+  }
+}) {
+  let lines = wrapRichTextDocumentLines(
+    document,
+    Math.max(1, reservedBounds.width - padding * 2),
+    maxLines,
+    options,
+  )
+  const initialLineCount = lines.length
+  const baseLineSegments = getAvoidanceLineSegments({
+    reservedBounds,
+    padding,
+    innerHeight,
+    lineCount: Math.max(1, lines.length),
+    lineHeightPx,
+    align,
+    verticalAlign,
+    avoidanceRegions: [],
+  })
+  const initialLineRects = lines.map((line, index) => {
+    const segment = baseLineSegments[index] ??
+      baseLineSegments[baseLineSegments.length - 1]
+    const anchorX = segment
+      ? getLineSegmentAnchorX(segment, align)
+      : getTextAlignX(reservedBounds, align, padding)
+    const horizontalBounds = getLineHorizontalBounds(anchorX, align, line.width)
+
+    return {
+      x: horizontalBounds.left,
+      y: segment?.y ?? reservedBounds.y + padding,
+      width: Math.max(1, horizontalBounds.right - horizontalBounds.left),
+      height: lineHeightPx,
+    }
+  })
+  const marginPx = getCaseInsertTextAvoidanceGap(reservedBounds)
+  const relevantAvoidanceRegions = avoidanceRegions.filter((region) => {
+    const inflatedBounds = inflateCaseInsertTextAvoidanceRect(
+      region.bounds,
+      marginPx,
+    )
+
+    return initialLineRects.some((lineRect) =>
+      rectsOverlap(lineRect, inflatedBounds))
+  })
+
+  if (relevantAvoidanceRegions.length === 0) {
+    return {
+      lineSegments: baseLineSegments,
+      lines,
+    }
+  }
+
+  for (let attempt = 0; attempt < AVOIDANCE_WRAP_MAX_ATTEMPTS; attempt += 1) {
+    const lineSegments = getAvoidanceLineSegments({
+      reservedBounds,
+      padding,
+      innerHeight,
+      lineCount: Math.max(1, lines.length),
+      lineHeightPx,
+      align,
+      verticalAlign,
+      avoidanceRegions: relevantAvoidanceRegions,
+    })
+    const nextLines = wrapRichTextDocumentLinesBySegments(
+      document,
+      lineSegments,
+      maxLines,
+      options,
+    )
+
+    if (nextLines.map((line) => line.text).join('\n') ===
+      lines.map((line) => line.text).join('\n')) {
+      return {
+        lineSegments,
+        lines,
+      }
+    }
+
+    if (nextLines.length < lines.length && lines.length > initialLineCount) {
+      return {
+        lineSegments,
+        lines,
+      }
+    }
+
+    lines = nextLines
+  }
+
+  return {
+    lineSegments: getAvoidanceLineSegments({
+      reservedBounds,
+      padding,
+      innerHeight,
+      lineCount: Math.max(1, lines.length),
+      lineHeightPx,
+      align,
+      verticalAlign,
+      avoidanceRegions: relevantAvoidanceRegions,
+    }),
+    lines,
+  }
+}
+
 export function getCaseInsertTextVisualLayout(
   reservedBounds: JewelCasePixelRect,
   options: CaseInsertTextVisualLayoutOptions,
 ): CaseInsertTextVisualLayout {
   const measureText = options.measureText ?? measureCaseInsertTextWithBrowserCanvas
   const fontWeight = options.fontWeight ?? 600
+  const fontFamily = options.fontFamily ?? FALLBACK_FONT_STACK
+  const fontStyle = options.fontStyle ?? 'normal'
   const font = getCaseInsertTextFontString(
     fontWeight,
     options.fontSizePx,
-    options.fontFamily,
-    options.fontStyle,
+    fontFamily,
+    fontStyle,
   )
   const padding = getCaseInsertTextPaddingPx(
     options.fontSizePx,
@@ -702,10 +1151,15 @@ export function getCaseInsertTextVisualLayout(
   )
   const innerWidth = Math.max(1, reservedBounds.width - padding * 2)
   const innerHeight = Math.max(1, reservedBounds.height - padding * 2)
-  const renderedText = textValueToCaseInsertRenderValue(
-    options.text,
-    options.uppercase,
-  )
+  const sourceDocument = options.richText ??
+    plainTextToRichTextDocument(options.text)
+  const renderedDocument = options.uppercase
+    ? transformRichTextDocument(
+        sourceDocument,
+        (text) => text.toLocaleUpperCase(),
+      )
+    : sourceDocument
+  const renderedText = renderedDocument.plainText
   const baseMaxLineCount = Math.max(
     1,
     Math.floor(innerHeight / options.lineHeightPx),
@@ -720,7 +1174,28 @@ export function getCaseInsertTextVisualLayout(
       ? options.maxAvoidanceExtraLines ?? DEFAULT_AVOIDANCE_EXTRA_LINES
       : 0
   )
-  const avoidanceResult = avoidanceRegions.length > 0
+  const richOptions = {
+    baseFontStyle: fontStyle,
+    baseFontWeight: fontWeight,
+    fontFamily,
+    fontSizePx: options.fontSizePx,
+    measureText,
+  }
+  const richAvoidanceResult = options.richText && avoidanceRegions.length > 0
+    ? wrapRichTextDocumentWithAvoidance({
+        document: renderedDocument,
+        reservedBounds,
+        padding,
+        innerHeight,
+        lineHeightPx: options.lineHeightPx,
+        align: options.align,
+        verticalAlign: options.verticalAlign,
+        maxLines: maxLineCount,
+        avoidanceRegions,
+        options: richOptions,
+      })
+    : null
+  const avoidanceResult = !options.richText && avoidanceRegions.length > 0
     ? wrapCaseInsertTextLinesWithAvoidance({
         text: renderedText,
         reservedBounds,
@@ -735,12 +1210,23 @@ export function getCaseInsertTextVisualLayout(
         avoidanceRegions,
       })
     : null
-  const lines = avoidanceResult?.lines ?? wrapCaseInsertTextLines(
-    renderedText,
-    innerWidth,
-    font,
-    measureText,
-  )
+  const richLines = richAvoidanceResult?.lines ??
+    (options.richText
+      ? wrapRichTextDocumentLines(
+          renderedDocument,
+          innerWidth,
+          maxLineCount,
+          richOptions,
+        )
+      : null)
+  const lines = richLines?.map((line) => line.text) ??
+    avoidanceResult?.lines ??
+    wrapCaseInsertTextLines(
+      renderedText,
+      innerWidth,
+      font,
+      measureText,
+    )
   const visibleLines = lines.slice(0, maxLineCount)
   const contentHeight = visibleLines.length * options.lineHeightPx
   const startY = getTextLayoutStartY({
@@ -755,8 +1241,13 @@ export function getCaseInsertTextVisualLayout(
   let left = Number.POSITIVE_INFINITY
   let right = Number.NEGATIVE_INFINITY
   const visualLines = visibleLines.map((line, index) => {
-    const lineWidth = Math.max(0, measureText(line, font))
-    const lineSegment = avoidanceResult?.lineSegments[index]
+    const richLine = richLines?.[index]
+    const lineWidth = richLine
+      ? richLine.width
+      : Math.max(0, measureText(line, font))
+    const lineSegment =
+      richAvoidanceResult?.lineSegments[index] ??
+      avoidanceResult?.lineSegments[index]
     const lineX = lineSegment
       ? getLineSegmentAnchorX(lineSegment, options.align)
       : anchorX
@@ -770,10 +1261,26 @@ export function getCaseInsertTextVisualLayout(
     left = Math.min(left, horizontalBounds.left)
     right = Math.max(right, horizontalBounds.right)
 
+    const runStart = horizontalBounds.left
+    let runLeft = runStart
+    const runs = richLine?.runs.map((run) => {
+      const visualRun = {
+        text: run.text,
+        bold: run.bold,
+        italic: run.italic,
+        left: runLeft,
+        width: run.width,
+      }
+
+      runLeft += run.width
+      return visualRun
+    })
+
     return {
       text: line,
       left: horizontalBounds.left,
       right: horizontalBounds.right,
+      ...(runs ? { runs } : {}),
       x: lineX,
       y: lineY,
       width: lineWidth,

@@ -13,6 +13,7 @@ export type DiscTextKey =
   | 'copyright'
 
 export type DiscTextSettings = Record<DiscTextKey, boolean>
+export type DiscTextMarkdownSources = Partial<Record<DiscTextKey, string>>
 
 export type DiscTextValues = {
   subtitle: string

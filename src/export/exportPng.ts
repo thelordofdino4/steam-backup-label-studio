@@ -1,4 +1,4 @@
-import type { DiscTextLayoutSettings, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
+import type { DiscTextLayoutSettings, DiscTextMarkdownSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../discText/index'
 import type { DiscTextStyleSettings } from '../discText/styles'
 import { mmToPixels } from '../disc/geometry'
 import type { ExportGuideSelection } from './exportGuides'
@@ -66,6 +66,7 @@ export async function exportDiscLabelPngBytes(params: {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
   discTextValueSources: DiscTextValueSources
+  discTextMarkdownSources: DiscTextMarkdownSources
   discTextStyles: DiscTextStyleSettings
   discTextLayout: DiscTextLayoutSettings
   manualGameTitle: string
@@ -97,6 +98,7 @@ export async function exportDiscLabelPngBytes(params: {
     projectDiscNumberArtwork: params.projectDiscNumberArtwork,
     discTextSettings: params.discTextSettings,
     discTextValues: metadataBoundDiscTextValues,
+    discTextMarkdownSources: params.discTextMarkdownSources,
     discTextLayout: params.discTextLayout,
     discTextStyles: params.discTextStyles,
     discTextTitle: params.manualGameTitle,
@@ -215,6 +217,7 @@ export async function exportDiscLabelPngBytes(params: {
         params.projectDiscNumberArtwork,
         params.discTextLayout,
         params.manualGameTitle,
+        params.discTextMarkdownSources,
         params.steamLogoPlacement,
         safeZoneRadius,
         discTextOccupiedRegions,

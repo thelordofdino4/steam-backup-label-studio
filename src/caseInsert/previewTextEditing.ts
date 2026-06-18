@@ -11,6 +11,7 @@ import {
 } from './textContent.ts'
 import {
   setCaseInsertTextListItems,
+  updateCaseInsertTextListMarkdownSource,
   updateCaseInsertTextBlockValue,
 } from './textTransitions.ts'
 import {
@@ -23,6 +24,10 @@ import {
 } from './jewelCaseTransitions.ts'
 import type { CaseInsertPreviewTextTarget } from './previewTextSelection.ts'
 import type { DiscTextKey } from '../discText/types.ts'
+import {
+  getMarkdownSource,
+  isMarkdownTextEnabled,
+} from '../text/markdownText.ts'
 
 const CASE_INSERT_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   backupDate: 'Backed up ',
@@ -56,6 +61,10 @@ export function getCaseInsertPreviewTextEditValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
 ) {
+  if (isMarkdownTextEnabled(textBlock)) {
+    return getMarkdownSource(textBlock, textBlock.value)
+  }
+
   if (textBlock.source !== 'metadata') {
     const discKey = getCaseInsertTextBlockDiscKey(textBlock)
     const prefix = discKey ? CASE_INSERT_RENDERED_PREFIXES[discKey] : undefined
@@ -77,6 +86,18 @@ function updatePreviewTextBlockDraft(
     getPreviewTextBlockDraftValue(textBlock, value),
     'manual',
   )
+}
+
+export function getCaseInsertPreviewTextListEditValue(
+  textList: {
+    items: readonly string[]
+    contentMode?: 'plain' | 'markdown'
+    markdownSource?: string | null
+  },
+) {
+  return isMarkdownTextEnabled(textList)
+    ? getMarkdownSource(textList, textList.items.map((item) => `- ${item}`).join('\n'))
+    : textList.items.map((item) => `• ${item}`).join('\n')
 }
 
 function finalizePreviewTextBlockDraft(textBlock: ProjectCaseInsertTextBlock) {
@@ -109,10 +130,12 @@ export function updateCaseInsertPreviewTextDraftValue(
         caseInsert,
         target.paneId,
         target.textListId,
-        (textList) => setCaseInsertTextListItems(
-          textList,
-          getPreviewTextListItems(value),
-        ),
+        (textList) => isMarkdownTextEnabled(textList)
+          ? updateCaseInsertTextListMarkdownSource(textList, value)
+          : setCaseInsertTextListItems(
+              textList,
+              getPreviewTextListItems(value),
+            ),
       )
     case 'spineTitle':
       return updateProjectJewelCaseSpineSides(

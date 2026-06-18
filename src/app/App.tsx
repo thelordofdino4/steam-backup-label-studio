@@ -96,6 +96,7 @@ import {
   setCaseInsertPreviewTextTargetEnabled,
   updateCaseInsertPreviewTextTargetAlign,
   updateCaseInsertPreviewTextTargetAvoidVisualElements,
+  updateCaseInsertPreviewTextTargetContentMode,
   updateCaseInsertPreviewTextTargetLayoutField,
   updateCaseInsertPreviewTextTargetStyleField,
 } from '../caseInsert/previewTextControls'
@@ -122,6 +123,7 @@ import type {
   CaseInsertTextStyleField,
   CaseInsertTextStyleValue,
 } from '../caseInsert/textStyles'
+import type { TextContentMode } from '../text/markdownText'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -290,6 +292,7 @@ function App() {
     discTextValues,
     discTextValueSources,
     discTextTitleValue,
+    discTextMarkdownSources,
     discTextLayout,
     discTextStyles,
     metadataBoundDiscTextValues,
@@ -304,6 +307,7 @@ function App() {
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
     handleDiscTextContentChange,
+    handleDiscTextContentModeChange,
     handleDiscTextInlineDraftChange,
     finalizeDiscTextInlineDraft,
     handleUseMetadataDiscTextValue,
@@ -720,6 +724,18 @@ function App() {
         currentCaseInsert,
         target,
         avoidVisualElements,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextContentModeChange(
+    target: CaseInsertPreviewTextTarget,
+    contentMode: TextContentMode,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      updateCaseInsertPreviewTextTargetContentMode(
+        currentCaseInsert,
+        target,
+        contentMode,
       ))
   }
 
@@ -1559,6 +1575,7 @@ function App() {
             discTextValues,
             discTextValueSources,
             discTextTitleValue,
+            discTextMarkdownSources,
             discTextLayout,
             discTextStyles,
           })
@@ -1646,6 +1663,7 @@ function App() {
         discTextValues: restoredProject.discTextValues,
         discTextValueSources: restoredProject.discTextValueSources,
         discTextTitleValue: restoredProject.discTextTitleValue,
+        discTextMarkdownSources: restoredProject.discTextMarkdownSources,
         discTextLayout: restoredProject.discTextLayout,
         discTextStyles: restoredProject.discTextStyles,
       })
@@ -1819,6 +1837,7 @@ function App() {
         discTextSettings,
         discTextValues,
         discTextValueSources,
+        discTextMarkdownSources,
         discTextStyles,
         discTextLayout,
         manualGameTitle: resolvedDiscTextTitle,
@@ -1949,6 +1968,7 @@ function App() {
           onAlignChange: handleCaseInsertPreviewTextAlignChange,
           onAvoidVisualElementsChange:
             handleCaseInsertPreviewTextAvoidVisualElementsChange,
+          onContentModeChange: handleCaseInsertPreviewTextContentModeChange,
         }}
       />
     )
@@ -2200,6 +2220,7 @@ function App() {
           settings: discTextSettings,
           values: discTextValues,
           valueSources: discTextValueSources,
+          markdownSources: discTextMarkdownSources,
           styles: discTextStyles,
           manualGameTitle: resolvedDiscTextTitle,
           layout: discTextLayout,
@@ -2210,6 +2231,7 @@ function App() {
           onSelectedKeyChange: setSelectedDiscTextKey,
           onTextEnabledChange: handleDiscTextToggle,
           onTextValueChange: handleDiscTextInlineDraftChange,
+          onTextContentModeChange: handleDiscTextContentModeChange,
           onTextEditComplete: finalizeDiscTextInlineDraft,
           onTextStyleChange: handleDiscTextStyleChange,
           onApplyTextStylePreset: handleApplyDiscTextStylePreset,

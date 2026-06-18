@@ -36,8 +36,9 @@ tested, and the remaining divergences are recorded.
 - A separate visible move handle is used for dragging.
 - Drag uses pointer capture and a grab/grabbing cursor.
 - Delete/trash removes the text object instead of relying on a "show" checkbox.
-- Markdown is the planned source-editing mode. HTML source editing is not part
-  of this contract.
+- Markdown is the supported source-editing mode where a text module can safely
+  render the parsed result through its final visible renderer. HTML source
+  editing is not part of this contract.
 
 ## Layout Contract
 

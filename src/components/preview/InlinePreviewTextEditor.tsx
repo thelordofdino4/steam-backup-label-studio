@@ -121,7 +121,7 @@ export type InlinePreviewTextEditorControls = {
   utilities?: {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
-    markdownPlanned?: boolean
+    markdown?: InlinePreviewTextEditorCheckboxControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
     resetLayout?: () => void
@@ -146,6 +146,7 @@ export type InlinePreviewTextEditorProps = {
   targetKey: string
   value: string
   textareaStyle?: CSSProperties
+  sourceMode?: boolean
   menuPlacement: InlinePreviewTextEditorMenuPlacement
   onValueChange: (value: string) => void
   onMoveHandlePointerDown: (event: ReactPointerEvent<Element>) => void
@@ -602,6 +603,7 @@ function InlinePreviewTextEditorMenuContent({
       {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.mode)}
+      {renderInlinePreviewTextCheckboxControl(controls.utilities?.markdown)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
       {controls.utilities?.resetLayout ? (
@@ -611,15 +613,6 @@ function InlinePreviewTextEditorMenuContent({
           onClick={controls.utilities.resetLayout}
         >
           Reset layout
-        </button>
-      ) : null}
-      {controls.utilities?.markdownPlanned ? (
-        <button
-          type="button"
-          className="inline-preview-text-planned-control"
-          disabled
-        >
-          Markdown planned
         </button>
       ) : null}
     </div>
@@ -1138,6 +1131,7 @@ export function InlinePreviewTextEditor({
   targetKey,
   value,
   textareaStyle,
+  sourceMode = false,
   menuPlacement,
   onValueChange,
   onMoveHandlePointerDown,
@@ -1791,6 +1785,7 @@ export function InlinePreviewTextEditor({
         inputMode === 'adapter'
           ? 'inline-preview-textarea--adapter'
           : '',
+        sourceMode ? 'inline-preview-textarea--source' : '',
       ].filter(Boolean).join(' ')}
       value={value}
       spellCheck={false}
@@ -1807,7 +1802,7 @@ export function InlinePreviewTextEditor({
       onKeyUp={updateSelectionStart}
       onBlur={handleInlineTextEditorBlur}
       onPointerDown={
-        inputMode === 'overlay'
+        inputMode === 'overlay' && !sourceMode
           ? handleInlineTextEditorPointerDown
           : undefined
       }
@@ -1821,7 +1816,7 @@ export function InlinePreviewTextEditor({
       {inputMode === 'adapter' && typeof document !== 'undefined'
         ? createPortal(textareaElement, document.body)
         : textareaElement}
-      {selectionFrames.map((frame, index) => (
+      {!sourceMode ? selectionFrames.map((frame, index) => (
         <span
           key={`${index}-${frame.left}-${frame.width}`}
           aria-hidden="true"
@@ -1833,8 +1828,8 @@ export function InlinePreviewTextEditor({
             width: frame.width,
           }}
         />
-      ))}
-      {caretFrame && !hasVisibleSelection ? (
+      )) : null}
+      {caretFrame && !hasVisibleSelection && !sourceMode ? (
         <span
           aria-hidden="true"
           className="inline-preview-text-caret"

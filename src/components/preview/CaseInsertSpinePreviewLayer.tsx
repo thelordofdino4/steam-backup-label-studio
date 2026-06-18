@@ -72,6 +72,9 @@ import {
   getCaseInsertPreviewTextEditValue,
 } from '../../caseInsert/previewTextEditing'
 import {
+  isMarkdownTextEnabled,
+} from '../../text/markdownText'
+import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
@@ -174,6 +177,36 @@ function getSpineTextLineStyle(
     whiteSpace: 'pre',
     width: `${line.width / textBounds.width * 100}%`,
   }
+}
+
+function renderSpineTextLineContent(
+  line: {
+    text: string
+    runs?: Array<{
+      text: string
+      bold?: boolean
+      italic?: boolean
+    }>
+  },
+) {
+  const runs = line.runs?.filter((run) => run.text)
+  const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+
+  if (!runs || !hasStyledRuns) {
+    return line.text
+  }
+
+  return runs.map((run, index) => (
+    <span
+      key={`${index}-${run.text}`}
+      style={{
+        fontStyle: run.italic ? 'italic' : undefined,
+        fontWeight: run.bold ? 800 : undefined,
+      }}
+    >
+      {run.text}
+    </span>
+  ))
 }
 
 function getImageStyle(
@@ -309,6 +342,7 @@ function CaseInsertSpineTextBlock({
     textBlock,
     brandingSources.projectMetadata,
   )
+  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textBlock)
   const layoutTextBlock = isSelected
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -340,6 +374,7 @@ function CaseInsertSpineTextBlock({
           'spine',
           layoutTextBlock,
         ),
+        contentMode: layoutTextBlock.contentMode,
         scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
         scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
         style: layoutTextBlock.style,
@@ -381,6 +416,7 @@ function CaseInsertSpineTextBlock({
           ? 'case-insert-spine-title'
           : 'case-insert-spine-text-block',
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+        isMarkdownEditing ? 'is-markdown-source' : '',
         isSelected && isEmptyText ? 'is-empty' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
@@ -411,7 +447,10 @@ function CaseInsertSpineTextBlock({
       }}
       style={style}
     >
-      <span style={getSpineTextBackplateStyle(layoutTextBlock.style)}>
+      <span
+        className="case-insert-text-render-content"
+        style={getSpineTextBackplateStyle(layoutTextBlock.style)}
+      >
         {titleLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
@@ -422,7 +461,7 @@ function CaseInsertSpineTextBlock({
               titleLayout.lineHeightPx,
             )}
           >
-            {line.text}
+            {renderSpineTextLineContent(line)}
           </span>
         ))}
       </span>
@@ -430,13 +469,14 @@ function CaseInsertSpineTextBlock({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${renderedTextBlock.label}`}
           caretValue={
-            dragKind.kind === 'title'
+            !isMarkdownEditing && dragKind.kind === 'title'
               ? editValue.toLocaleUpperCase()
               : editValue
           }
           controls={editorControls}
-          inputMode="adapter"
+          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
           lines={titleLayout.lines}
+          sourceMode={isMarkdownEditing}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}

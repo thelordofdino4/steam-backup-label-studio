@@ -41,6 +41,7 @@ import type {
   ProjectJewelCaseSpineState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
+import type { TextContentMode } from '../text/markdownText.ts'
 import {
   type CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
@@ -117,6 +118,22 @@ function normalizeCaseInsertTextAlign(
   return value === 'left' || value === 'center' || value === 'right'
     ? value
     : fallback
+}
+
+function normalizeTextContentMode(value: unknown): TextContentMode | undefined {
+  return value === 'markdown' ? 'markdown' : undefined
+}
+
+function getNormalizedMarkdownTextFields(record: Record<string, unknown>) {
+  const contentMode = normalizeTextContentMode(record.contentMode)
+  const markdownSource = normalizeTextValue(record.markdownSource, '')
+
+  return contentMode === 'markdown'
+    ? {
+        contentMode,
+        markdownSource,
+      }
+    : {}
 }
 
 function normalizeCaseInsertTitleArtworkDefaultSteamLogo(
@@ -291,6 +308,7 @@ function normalizeCaseInsertTextBlock(
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     value: normalizeTextValue(record.value ?? record.text, defaults.value),
+    ...getNormalizedMarkdownTextFields(record),
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
     avoidVisualElements: normalizeBoolean(
       record.avoidVisualElements,
@@ -384,6 +402,7 @@ function normalizeCaseInsertTextList(
     label: normalizeString(record.label, defaults.label),
     enabled: normalizeBoolean(record.enabled, defaults.enabled),
     items: normalizeTextListItems(record.items ?? record.values, defaults.items),
+    ...getNormalizedMarkdownTextFields(record),
     source: normalizeCaseInsertTextSource(record.source, defaults.source),
     avoidVisualElements: normalizeBoolean(
       record.avoidVisualElements,

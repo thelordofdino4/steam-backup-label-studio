@@ -193,6 +193,10 @@
     0 0 0 4px rgba(42, 171, 226, 0.1);
 }
 
+.inline-preview-text-host.is-markdown-source .case-insert-text-render-content {
+  visibility: hidden;
+}
+
 .inline-preview-textarea {
   position: absolute;
   inset: 0;
@@ -232,6 +236,23 @@
   height: 1px;
   opacity: 0;
   pointer-events: none;
+}
+
+.inline-preview-textarea--source {
+  padding: 6px 8px;
+  overflow: auto;
+  border: 1px solid rgba(42, 171, 226, 0.72);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #0f172a;
+  caret-color: #2aabe2;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  text-transform: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  -webkit-text-fill-color: #0f172a;
+  -webkit-text-stroke-color: transparent;
+  -webkit-text-stroke-width: 0;
 }
 
 .inline-preview-text-selection {

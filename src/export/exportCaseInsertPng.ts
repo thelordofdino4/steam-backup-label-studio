@@ -302,6 +302,13 @@ function drawComputedTextLayout(
     lineHeightPx: number
     lines: Array<{
       text: string
+      runs?: Array<{
+        text: string
+        bold?: boolean
+        italic?: boolean
+        left: number
+        width: number
+      }>
       width: number
       x: number
       y: number
@@ -321,11 +328,14 @@ function drawComputedTextLayout(
   },
 ) {
   context.save()
-  const fontStylePrefix = options.fontStyle === 'italic' ? 'italic ' : ''
+  const baseFont = getCaseInsertTextCanvasFont({
+    fontFamily: options.fontFamily,
+    fontSizePx: textLayout.fontSizePx,
+    fontStyle: options.fontStyle,
+    weight: options.weight,
+  })
 
-  context.font = `${fontStylePrefix}${options.weight ?? 600} ${textLayout.fontSizePx}px ${
-    options.fontFamily ?? FONT_STACK
-  }`
+  context.font = baseFont
   context.textAlign = getCanvasTextAlign(options.align)
   context.textBaseline = 'top'
 
@@ -367,17 +377,50 @@ function drawComputedTextLayout(
   }
 
   textLayout.lines.forEach((line) => {
+    const runs = line.runs?.filter((run) => run.text)
+    const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+
     if (options.stroke) {
       context.save()
       context.shadowColor = 'transparent'
       context.strokeStyle = CASE_INSERT_TEXT_STROKE_COLOR
       context.lineJoin = 'round'
       context.lineWidth = Math.max(1, textLayout.fontSizePx * 0.08)
-      context.strokeText(line.text, line.x, line.y)
+      if (runs && hasStyledRuns) {
+        context.textAlign = 'left'
+        for (const run of runs) {
+          context.font = getCaseInsertTextCanvasFont({
+            fontFamily: options.fontFamily,
+            fontSizePx: textLayout.fontSizePx,
+            fontStyle: run.italic ? 'italic' : options.fontStyle,
+            weight: run.bold ? Math.max(options.weight ?? 600, 800) : options.weight,
+          })
+          context.strokeText(run.text, run.left, line.y)
+        }
+      } else {
+        context.font = baseFont
+        context.textAlign = getCanvasTextAlign(options.align)
+        context.strokeText(line.text, line.x, line.y)
+      }
       context.restore()
     }
 
-    context.fillText(line.text, line.x, line.y)
+    if (runs && hasStyledRuns) {
+      context.textAlign = 'left'
+      for (const run of runs) {
+        context.font = getCaseInsertTextCanvasFont({
+          fontFamily: options.fontFamily,
+          fontSizePx: textLayout.fontSizePx,
+          fontStyle: run.italic ? 'italic' : options.fontStyle,
+          weight: run.bold ? Math.max(options.weight ?? 600, 800) : options.weight,
+        })
+        context.fillText(run.text, run.left, line.y)
+      }
+    } else {
+      context.font = baseFont
+      context.textAlign = getCanvasTextAlign(options.align)
+      context.fillText(line.text, line.x, line.y)
+    }
 
     if (options.underline) {
       const underlineY = line.y + textLayout.fontSizePx * 0.92
@@ -403,6 +446,24 @@ function drawComputedTextLayout(
     }
   })
   context.restore()
+}
+
+function getCaseInsertTextCanvasFont({
+  fontFamily,
+  fontSizePx,
+  fontStyle,
+  weight,
+}: {
+  fontFamily?: string
+  fontSizePx: number
+  fontStyle?: string
+  weight?: number
+}) {
+  const fontStylePrefix = fontStyle === 'italic' ? 'italic ' : ''
+
+  return `${fontStylePrefix}${weight ?? 600} ${fontSizePx}px ${
+    fontFamily ?? FONT_STACK
+  }`
 }
 
 function getTemplateImageSlotRect(

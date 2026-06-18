@@ -2,13 +2,16 @@ import type { CSSProperties, PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   getDiscTextContent,
+  getDiscTextMarkdownSource,
   getDiscTextLabel,
+  isDiscTextMarkdownEnabled,
   isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
+  type DiscTextMarkdownSources,
   type DiscTextSettings,
   type DiscTextValues,
 } from '../../discText/index'
@@ -38,6 +41,10 @@ import {
 } from '../../layout/presets'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
+  parseMarkdownText,
+  type TextContentMode,
+} from '../../text/markdownText'
+import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
@@ -47,6 +54,7 @@ import {
 export type DiscInlineTextEditorLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextMarkdownSources: DiscTextMarkdownSources
   discTextStyles: DiscTextStyleSettings
   discTextLayout: DiscTextLayoutSettings
   title: string
@@ -56,6 +64,10 @@ export type DiscInlineTextEditorLayerProps = {
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
   onDiscTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
   onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  onDiscTextContentModeChange: (
+    key: DiscTextKey,
+    contentMode: TextContentMode,
+  ) => void
   onDiscTextEditComplete: (key: DiscTextKey) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
@@ -224,6 +236,8 @@ function createDiscInlineTextEditorControls({
   onDiscTextAlignmentChange,
   onDiscTextVisualAvoidanceChange,
   onResetDiscTextLayout,
+  isMarkdownEnabled,
+  onDiscTextContentModeChange,
 }: {
   key: DiscTextKey
   layout: DiscTextLayout
@@ -251,6 +265,11 @@ function createDiscInlineTextEditorControls({
     avoidVisualElements: boolean,
   ) => void
   onResetDiscTextLayout: (key: DiscTextKey) => void
+  isMarkdownEnabled: boolean
+  onDiscTextContentModeChange: (
+    key: DiscTextKey,
+    contentMode: TextContentMode,
+  ) => void
 }): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode !== 'curved')
@@ -468,7 +487,12 @@ function createDiscInlineTextEditorControls({
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
-      markdownPlanned: true,
+      markdown: {
+        label: 'Markdown',
+        checked: isMarkdownEnabled,
+        onChange: (checked) =>
+          onDiscTextContentModeChange(key, checked ? 'markdown' : 'plain'),
+      },
     },
     deleteAction: {
       label: 'Delete',
@@ -504,6 +528,7 @@ function getHostStyle({
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
+  discTextMarkdownSources,
   discTextStyles,
   discTextLayout,
   title,
@@ -513,6 +538,7 @@ export function DiscInlineTextEditorLayer({
   onSelectedDiscTextKeyChange,
   onDiscTextEnabledChange,
   onDiscTextValueChange,
+  onDiscTextContentModeChange,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onApplyDiscTextStylePreset,
@@ -540,12 +566,22 @@ export function DiscInlineTextEditorLayer({
         }
 
         const text = getDiscTextContent(key, discTextValues, title)
+        const isMarkdownEditing = isDiscTextMarkdownEnabled(
+          discTextMarkdownSources,
+          key,
+        )
+        const editValue = isMarkdownEditing
+          ? getDiscTextMarkdownSource(discTextMarkdownSources, key, text)
+          : text
+        const renderedText = isMarkdownEditing
+          ? parseMarkdownText(editValue).plainText
+          : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
         )
         const renderLayout = getStraightDiscTextRenderLayout(
           key,
-          text,
+          renderedText,
           layout,
           measureText,
           discTextStyles,
@@ -562,7 +598,7 @@ export function DiscInlineTextEditorLayer({
           measureText,
           renderLayout,
         })
-        const isEmptyText = text.trim().length === 0
+        const isEmptyText = renderedText.trim().length === 0
         const targetKey = `disc:${key}`
         const controls = createDiscInlineTextEditorControls({
           key,
@@ -577,6 +613,8 @@ export function DiscInlineTextEditorLayer({
           onDiscTextAlignmentChange,
           onDiscTextVisualAvoidanceChange,
           onResetDiscTextLayout,
+          isMarkdownEnabled: isMarkdownEditing,
+          onDiscTextContentModeChange,
         })
 
         return (
@@ -586,6 +624,7 @@ export function DiscInlineTextEditorLayer({
               'disc-inline-text-host',
               INLINE_PREVIEW_TEXT_HOST_CLASS,
               'is-editing',
+              isMarkdownEditing ? 'is-markdown-source' : '',
               isEmptyText ? 'is-empty' : '',
             ].filter(Boolean).join(' ')}
             {...{ [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }}
@@ -603,18 +642,21 @@ export function DiscInlineTextEditorLayer({
           >
             <InlinePreviewTextEditor
               ariaLabel={`Edit ${getDiscTextLabel(key)}`}
-              caretValue={text}
+              caretValue={editValue}
               controls={controls}
               geometryLines={geometryLines}
-              inputMode="adapter"
+              inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
               lines={renderLayout.lines}
+              sourceMode={isMarkdownEditing}
               targetKey={targetKey}
-              value={text}
+              value={editValue}
               menuPlacement="below"
               onValueChange={(value) =>
                 onDiscTextValueChange(
                   key,
-                  getDiscInlineEditorRawValue(key, value),
+                  isMarkdownEditing
+                    ? value
+                    : getDiscInlineEditorRawValue(key, value),
                 )}
               onMoveHandlePointerDown={(event) =>
                 onMoveHandlePointerDown(event, key)}

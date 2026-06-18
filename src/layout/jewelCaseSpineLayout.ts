@@ -34,6 +34,10 @@ import {
   type CaseInsertTextVisualLine,
 } from './caseInsertTextVisualLayout.ts'
 import {
+  getRenderableRichTextDocument,
+  isMarkdownTextEnabled,
+} from '../text/markdownText.ts'
+import {
   clampPixelRectToBounds,
   fitImageToJewelCaseRegion,
   type JewelCaseImageFitResult,
@@ -468,6 +472,9 @@ function getSpineTextLocalVisualLayout({
       lineHeightPx: fontSizePx * 1.1,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),
+      richText: isMarkdownTextEnabled(title)
+        ? getRenderableRichTextDocument(title, title.value)
+        : undefined,
       text: title.value,
       uppercase: isTitleText,
       verticalAlign: 'center',

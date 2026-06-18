@@ -42,7 +42,11 @@ import {
 } from '../../caseInsert/textContent'
 import {
   getCaseInsertPreviewTextEditValue,
+  getCaseInsertPreviewTextListEditValue,
 } from '../../caseInsert/previewTextEditing'
+import {
+  isMarkdownTextEnabled,
+} from '../../text/markdownText'
 import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../../editor/repeatedArtwork'
@@ -212,6 +216,36 @@ function getCaseInsertTextLineStyle(
     whiteSpace: 'pre',
     width: `${line.width / textBounds.width * 100}%`,
   }
+}
+
+function renderCaseInsertTextLineContent(
+  line: {
+    text: string
+    runs?: Array<{
+      text: string
+      bold?: boolean
+      italic?: boolean
+    }>
+  },
+) {
+  const runs = line.runs?.filter((run) => run.text)
+  const hasStyledRuns = runs?.some((run) => run.bold || run.italic)
+
+  if (!runs || !hasStyledRuns) {
+    return line.text
+  }
+
+  return runs.map((run, index) => (
+    <span
+      key={`${index}-${run.text}`}
+      style={{
+        fontStyle: run.italic ? 'italic' : undefined,
+        fontWeight: run.bold ? 800 : undefined,
+      }}
+    >
+      {run.text}
+    </span>
+  ))
 }
 
 function getImageStyle(
@@ -406,6 +440,7 @@ function CaseInsertTemplateTextBlock({
     textBlock,
     brandingSources.projectMetadata,
   )
+  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textBlock)
   const layoutTextBlock = isSelected
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -458,6 +493,7 @@ function CaseInsertTemplateTextBlock({
           paneId,
           layoutTextBlock,
         ),
+        contentMode: layoutTextBlock.contentMode,
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -472,6 +508,7 @@ function CaseInsertTemplateTextBlock({
         'case-insert-template-text-block',
         `case-insert-template-text-block-${paneId}`,
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+        isMarkdownEditing ? 'is-markdown-source' : '',
         isSelected && isEmptyText ? 'is-empty' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
@@ -499,7 +536,10 @@ function CaseInsertTemplateTextBlock({
       }}
       style={style}
     >
-      <span style={getCaseInsertTextBackplateCssStyle(layoutTextBlock.style)}>
+      <span
+        className="case-insert-text-render-content"
+        style={getCaseInsertTextBackplateCssStyle(layoutTextBlock.style)}
+      >
         {textLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
@@ -510,7 +550,7 @@ function CaseInsertTemplateTextBlock({
               textLayout.lineHeightPx,
             )}
           >
-            {line.text}
+            {renderCaseInsertTextLineContent(line)}
           </span>
         ))}
       </span>
@@ -518,13 +558,15 @@ function CaseInsertTemplateTextBlock({
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${renderedTextBlock.label}`}
           caretValue={
-            getTemplateTextTransform(paneId, layoutTextBlock) === 'uppercase'
+            !isMarkdownEditing &&
+              getTemplateTextTransform(paneId, layoutTextBlock) === 'uppercase'
               ? editValue.toLocaleUpperCase()
               : editValue
           }
           controls={editorControls}
-          inputMode="adapter"
+          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
           lines={textLayout.lines}
+          sourceMode={isMarkdownEditing}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
@@ -544,10 +586,6 @@ function CaseInsertTemplateTextBlock({
       ) : null}
     </div>
   )
-}
-
-function getPreviewTextListValue(textList: ProjectCaseInsertTextList) {
-  return textList.items.map((item) => `• ${item}`).join('\n')
 }
 
 function CaseInsertTemplateTextList({
@@ -598,6 +636,8 @@ function CaseInsertTemplateTextList({
     textTarget,
   )
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const editValue = getCaseInsertPreviewTextListEditValue(textList)
+  const isMarkdownEditing = isSelected && isMarkdownTextEnabled(textList)
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
     ...getCaseInsertTextCssStyle(textList.style, 600),
@@ -622,6 +662,7 @@ function CaseInsertTemplateTextList({
         label: textList.label,
         layout: textList.layout,
         layoutPresets: getCaseInsertTextListLayoutPresets(paneId),
+        contentMode: textList.contentMode,
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -635,6 +676,7 @@ function CaseInsertTemplateTextList({
       className={[
         'case-insert-template-feature-list',
         isSelected ? `${INLINE_PREVIEW_TEXT_HOST_CLASS} is-editing` : '',
+        isMarkdownEditing ? 'is-markdown-source' : '',
       ].filter(Boolean).join(' ')}
       {...createPreviewEditableAttributes({
         id: createPreviewEditableElementId(
@@ -661,7 +703,10 @@ function CaseInsertTemplateTextList({
       }}
       style={textListStyle}
     >
-      <span style={getCaseInsertTextBackplateCssStyle(textList.style)}>
+      <span
+        className="case-insert-text-render-content"
+        style={getCaseInsertTextBackplateCssStyle(textList.style)}
+      >
         {textListLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
@@ -672,19 +717,20 @@ function CaseInsertTemplateTextList({
               textListLayout.lineHeightPx,
             )}
           >
-            {line.text}
+            {renderCaseInsertTextLineContent(line)}
           </span>
         ))}
       </span>
       {isSelected ? (
         <InlinePreviewTextEditor
           ariaLabel={`Edit ${textList.label}`}
-          caretValue={getPreviewTextListValue(textList)}
+          caretValue={editValue}
           controls={editorControls}
-          inputMode="adapter"
+          inputMode={isMarkdownEditing ? 'overlay' : 'adapter'}
           lines={textListLayout.lines}
+          sourceMode={isMarkdownEditing}
           targetKey={targetKey}
-          value={getPreviewTextListValue(textList)}
+          value={editValue}
           textareaStyle={{ textAlign: 'left' }}
           menuPlacement="below"
           onValueChange={(value) =>
