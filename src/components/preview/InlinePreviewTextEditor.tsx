@@ -88,8 +88,8 @@ export type InlinePreviewTextEditorColorControl = {
 
 export type InlinePreviewTextEditorControls = {
   presets?: {
-    options: readonly InlinePreviewTextEditorOption[]
-    onApply: (presetId: string) => void
+    layout?: InlinePreviewTextEditorSelectControl
+    style?: InlinePreviewTextEditorSelectControl
     onReset?: () => void
   }
   text?: {
@@ -438,24 +438,13 @@ function InlinePreviewTextEditorMenuContent({
   if (activeTab === 'presets') {
     return (
       <div className="inline-preview-text-control-grid">
-        {controls.presets?.options.length ? (
-          <div className="inline-preview-text-preset-list">
-            {controls.presets.options.map((preset) => (
-              <button
-                key={preset.value}
-                type="button"
-                className="secondary-button inline-preview-text-control-button"
-                onClick={() => controls.presets?.onApply(preset.value)}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        ) : (
+        {renderInlinePreviewTextSelectControl(controls.presets?.style)}
+        {renderInlinePreviewTextSelectControl(controls.presets?.layout)}
+        {!controls.presets?.style && !controls.presets?.layout ? (
           <span className="inline-preview-text-planned-control">
             Style presets unavailable
           </span>
-        )}
+        ) : null}
         {controls.presets?.onReset ? (
           <button
             type="button"

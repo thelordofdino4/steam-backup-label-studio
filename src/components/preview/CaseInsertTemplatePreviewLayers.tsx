@@ -31,6 +31,10 @@ import {
   getCaseInsertTextListStyleRole,
 } from '../../caseInsert/textStyles'
 import {
+  getCaseInsertTextBlockLayoutPresets,
+  getCaseInsertTextListLayoutPresets,
+} from '../../caseInsert/textLayout'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
@@ -436,6 +440,10 @@ function CaseInsertTemplateTextBlock({
         handlers: previewTextControlHandlers,
         label: renderedTextBlock.label,
         layout: layoutTextBlock.layout,
+        layoutPresets: getCaseInsertTextBlockLayoutPresets(
+          paneId,
+          layoutTextBlock,
+        ),
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -599,6 +607,7 @@ function CaseInsertTemplateTextList({
         handlers: previewTextControlHandlers,
         label: textList.label,
         layout: textList.layout,
+        layoutPresets: getCaseInsertTextListLayoutPresets(paneId),
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),

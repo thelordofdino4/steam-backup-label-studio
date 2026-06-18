@@ -11,6 +11,7 @@ import {
 import {
   CASE_INSERT_TEXT_WIDTH_MAX,
   CASE_INSERT_TEXT_WIDTH_MIN,
+  type CaseInsertTextLayoutPreset,
   DEFAULT_CASE_INSERT_TEXT_WIDTH,
   getCaseInsertTextLayoutWidth,
 } from '../../caseInsert/textLayout.ts'
@@ -39,6 +40,10 @@ export type CaseInsertPreviewTextControlHandlers = {
     target: CaseInsertPreviewTextTarget,
     presetId: string,
   ) => void
+  onApplyLayoutPreset: (
+    target: CaseInsertPreviewTextTarget,
+    presetId: string,
+  ) => void
   onResetStyle: (target: CaseInsertPreviewTextTarget) => void
   onResetLayout: (target: CaseInsertPreviewTextTarget) => void
   onLayoutChange: (
@@ -62,6 +67,7 @@ type CaseInsertInlineTextEditorControlParams = {
   handlers: CaseInsertPreviewTextControlHandlers
   label: string
   layout: ProjectCaseInsertLayout
+  layoutPresets?: readonly CaseInsertTextLayoutPreset[]
   scaleMax?: number
   scaleMin?: number
   style: CaseInsertTextStyle
@@ -85,12 +91,49 @@ const TEXT_ALIGNMENT_OPTIONS = [
   { value: 'right', label: 'Right' },
 ] as const
 
+const CUSTOM_PRESET_OPTION = { label: 'Custom', value: 'custom' } as const
+
+function numericValuesMatch(first: number | undefined, second: number) {
+  return typeof first === 'number' && Math.abs(first - second) < 0.001
+}
+
+function getMatchingCaseInsertStylePreset(style: CaseInsertTextStyle) {
+  return CASE_INSERT_TEXT_STYLE_PRESETS.find((preset) =>
+    Object.entries(preset.style).every(([field, value]) =>
+      style[field as keyof CaseInsertTextStyle] === value),
+  )
+}
+
+function getMatchingCaseInsertLayoutPreset({
+  align,
+  layout,
+  layoutPresets,
+}: {
+  align?: ProjectCaseInsertTextAlign
+  layout: ProjectCaseInsertLayout
+  layoutPresets: readonly CaseInsertTextLayoutPreset[]
+}) {
+  return layoutPresets.find((preset) => {
+    if (preset.align && preset.align !== align) {
+      return false
+    }
+
+    return Object.entries(preset.layout).every(([field, value]) =>
+      numericValuesMatch(
+        layout[field as keyof Pick<ProjectCaseInsertLayout, 'scale' | 'width' | 'x' | 'y'>],
+        value,
+      ),
+    )
+  })
+}
+
 export function createCaseInsertInlineTextEditorControls({
   align,
   avoidVisualElements,
   handlers,
   label,
   layout,
+  layoutPresets = [],
   scaleMax = 1.8,
   scaleMin = 0.7,
   style,
@@ -107,13 +150,49 @@ export function createCaseInsertInlineTextEditorControls({
   onDeleteComplete,
   onResetLayout,
 }: CaseInsertInlineTextEditorControlParams): InlinePreviewTextEditorControls {
+  const matchingStylePreset = getMatchingCaseInsertStylePreset(style)
+  const matchingLayoutPreset = getMatchingCaseInsertLayoutPreset({
+    align,
+    layout,
+    layoutPresets,
+  })
+
   return {
     presets: {
-      options: CASE_INSERT_TEXT_STYLE_PRESETS.map(({ id, label }) => ({
-        label,
-        value: id,
-      })),
-      onApply: (presetId) => handlers.onApplyStylePreset(target, presetId),
+      style: {
+        label: 'Style preset',
+        options: [
+          CUSTOM_PRESET_OPTION,
+          ...CASE_INSERT_TEXT_STYLE_PRESETS.map(({ id, label }) => ({
+            label,
+            value: id,
+          })),
+        ],
+        value: matchingStylePreset?.id ?? CUSTOM_PRESET_OPTION.value,
+        onChange: (presetId) => {
+          if (presetId !== CUSTOM_PRESET_OPTION.value) {
+            handlers.onApplyStylePreset(target, presetId)
+          }
+        },
+      },
+      layout: layoutPresets.length > 0
+        ? {
+            label: 'Layout preset',
+            options: [
+              CUSTOM_PRESET_OPTION,
+              ...layoutPresets.map(({ id, label }) => ({
+                label,
+                value: id,
+              })),
+            ],
+            value: matchingLayoutPreset?.id ?? CUSTOM_PRESET_OPTION.value,
+            onChange: (presetId) => {
+              if (presetId !== CUSTOM_PRESET_OPTION.value) {
+                handlers.onApplyLayoutPreset(target, presetId)
+              }
+            },
+          }
+        : undefined,
       onReset: () => handlers.onResetStyle(target),
     },
     text: {

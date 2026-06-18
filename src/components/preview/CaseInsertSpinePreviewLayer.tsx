@@ -26,6 +26,9 @@ import {
   getCaseInsertTextFontFamilyCss,
 } from '../../caseInsert/textStyles'
 import {
+  getCaseInsertTextBlockLayoutPresets,
+} from '../../caseInsert/textLayout'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -335,6 +338,10 @@ function CaseInsertSpineTextBlock({
         handlers: previewTextControlHandlers,
         label: renderedTextBlock.label,
         layout: layoutTextBlock.layout,
+        layoutPresets: getCaseInsertTextBlockLayoutPresets(
+          'spine',
+          layoutTextBlock,
+        ),
         scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
         scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
         style: layoutTextBlock.style,

@@ -65,6 +65,11 @@ test('straight disc contextual editor still exposes migrated controls', () => {
 
   assert.match(editor, /function createDiscInlineTextEditorControls/)
   assert.match(editor, /DISC_TEXT_STYLE_PRESETS/)
+  assert.match(editor, /getDiscTextLayoutPresetsForKey/)
+  assert.match(editor, /preset\.layout\.mode !== 'curved'/)
+  assert.match(editor, /label:\s*'Style preset'/)
+  assert.match(editor, /label:\s*'Layout preset'/)
+  assert.match(editor, /applyDiscTextLayoutPreset/)
   assert.match(editor, /label: 'Font'/)
   assert.match(editor, /label: 'Size'/)
   assert.match(editor, /label: 'Align'/)

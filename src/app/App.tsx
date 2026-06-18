@@ -90,6 +90,7 @@ import {
   updateCaseInsertPreviewTextDraftValue,
 } from '../caseInsert/previewTextEditing'
 import {
+  applyCaseInsertPreviewTextTargetLayoutPreset,
   applyCaseInsertPreviewTextTargetStylePreset,
   resetCaseInsertPreviewTextTargetStyle,
   setCaseInsertPreviewTextTargetEnabled,
@@ -650,6 +651,18 @@ function App() {
   ) {
     setProjectJewelCase((currentCaseInsert) =>
       applyCaseInsertPreviewTextTargetStylePreset(
+        currentCaseInsert,
+        target,
+        presetId,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextApplyLayoutPreset(
+    target: CaseInsertPreviewTextTarget,
+    presetId: string,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      applyCaseInsertPreviewTextTargetLayoutPreset(
         currentCaseInsert,
         target,
         presetId,
@@ -1926,11 +1939,12 @@ function App() {
         onTextTargetValueChange={handleCaseInsertPreviewTextValueChange}
         onTextTargetEditComplete={handleCaseInsertPreviewTextEditComplete}
         previewTextControlHandlers={{
-          onEnabledChange: handleCaseInsertPreviewTextEnabledChange,
-          onStyleChange: handleCaseInsertPreviewTextStyleChange,
-          onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
-          onResetStyle: handleCaseInsertPreviewTextResetStyle,
-          onResetLayout: handleCaseInsertPreviewTextResetLayout,
+        onEnabledChange: handleCaseInsertPreviewTextEnabledChange,
+        onStyleChange: handleCaseInsertPreviewTextStyleChange,
+        onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
+        onApplyLayoutPreset: handleCaseInsertPreviewTextApplyLayoutPreset,
+        onResetStyle: handleCaseInsertPreviewTextResetStyle,
+        onResetLayout: handleCaseInsertPreviewTextResetLayout,
           onLayoutChange: handleCaseInsertPreviewTextLayoutChange,
           onAlignChange: handleCaseInsertPreviewTextAlignChange,
           onAvoidVisualElementsChange:

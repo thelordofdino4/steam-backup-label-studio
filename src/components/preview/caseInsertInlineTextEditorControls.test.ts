@@ -3,6 +3,10 @@ import test from 'node:test'
 import {
   createDefaultCaseInsertTextStyle,
 } from '../../caseInsert/textStyles.ts'
+import {
+  getCaseInsertTextBlockLayoutPresets,
+  getCaseInsertTextListLayoutPresets,
+} from '../../caseInsert/textLayout.ts'
 import type {
   CaseInsertPreviewTextTarget,
 } from '../../caseInsert/previewTextSelection.ts'
@@ -46,7 +50,10 @@ test('case insert contextual controls expose migrated text block properties', ()
       calls.push(`style:${field}:${String(value)}`)
     },
     onApplyStylePreset: (_target, presetId) => {
-      calls.push(`preset:${presetId}`)
+      calls.push(`style-preset:${presetId}`)
+    },
+    onApplyLayoutPreset: (_target, presetId) => {
+      calls.push(`layout-preset:${presetId}`)
     },
     onResetStyle: () => {
       calls.push('reset-style')
@@ -71,15 +78,44 @@ test('case insert contextual controls expose migrated text block properties', ()
     handlers,
     label: 'Title',
     layout,
+    layoutPresets: getCaseInsertTextBlockLayoutPresets('cover', {
+      id: target.textBlockId,
+      label: 'Title',
+      enabled: true,
+      value: 'Title',
+      source: 'manual',
+      align: 'center',
+      avoidVisualElements: true,
+      layout,
+      style,
+    }),
     style,
     target,
     onDeleteComplete: () => calls.push('delete-complete'),
     onResetLayout: () => handlers.onResetLayout(target),
   })
 
-  assert.ok(controls.presets?.options.length)
+  assert.equal(controls.presets?.style?.label, 'Style preset')
+  assert.equal(controls.presets?.layout?.label, 'Layout preset')
+  assert.equal(controls.presets?.style?.value, 'custom')
+  assert.equal(controls.presets?.layout?.value, 'custom')
+  assert.ok(
+    controls.presets?.style?.options.some((option) => option.value === 'metallic'),
+  )
+  assert.ok(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'cover-top-center',
+    ),
+  )
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'spine-centered',
+    ),
+    false,
+  )
   controls.presets?.onReset?.()
-  controls.presets?.onApply('steam-archive')
+  controls.presets?.style?.onChange('metallic')
+  controls.presets?.layout?.onChange('cover-top-center')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
   assert.equal(controls.text?.size?.value, layout.scale)
   assert.equal(controls.text?.alignment?.value, 'center')
@@ -110,7 +146,8 @@ test('case insert contextual controls expose migrated text block properties', ()
 
   assert.deepEqual(calls, [
     'reset-style',
-    'preset:steam-archive',
+    'style-preset:metallic',
+    'layout-preset:cover-top-center',
     'align:right',
     'style:backgroundPadding:1.8',
     'layout:width:64',
@@ -152,7 +189,10 @@ test('case insert contextual controls expose migrated text list properties', () 
       calls.push(`style:${field}:${String(value)}`)
     },
     onApplyStylePreset: (_target, presetId) => {
-      calls.push(`preset:${presetId}`)
+      calls.push(`style-preset:${presetId}`)
+    },
+    onApplyLayoutPreset: (_target, presetId) => {
+      calls.push(`layout-preset:${presetId}`)
     },
     onResetStyle: () => {
       calls.push('reset-style')
@@ -176,15 +216,29 @@ test('case insert contextual controls expose migrated text list properties', () 
     handlers,
     label: 'Feature bullets',
     layout,
+    layoutPresets: getCaseInsertTextListLayoutPresets('tray'),
     style,
     target,
     onDeleteComplete: () => calls.push('delete-complete'),
     onResetLayout: () => handlers.onResetLayout(target),
   })
 
-  assert.ok(controls.presets?.options.length)
+  assert.equal(controls.presets?.style?.label, 'Style preset')
+  assert.equal(controls.presets?.layout?.label, 'Layout preset')
+  assert.ok(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'tray-center',
+    ),
+  )
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'cover-center',
+    ),
+    false,
+  )
   controls.presets?.onReset?.()
-  controls.presets?.onApply('steam-archive')
+  controls.presets?.style?.onChange('futuristic')
+  controls.presets?.layout?.onChange('tray-center')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
   assert.equal(controls.text?.size?.value, layout.scale)
   assert.equal(controls.text?.alignment, undefined)
@@ -215,7 +269,8 @@ test('case insert contextual controls expose migrated text list properties', () 
 
   assert.deepEqual(calls, [
     'reset-style',
-    'preset:steam-archive',
+    'style-preset:futuristic',
+    'layout-preset:tray-center',
     'style:backgroundOpacity:0.8',
     'avoid:true',
     'layout:x:44',
@@ -257,7 +312,10 @@ test('case insert contextual controls expose migrated spine text properties', ()
       calls.push(`style:${field}:${String(value)}`)
     },
     onApplyStylePreset: (_target, presetId) => {
-      calls.push(`preset:${presetId}`)
+      calls.push(`style-preset:${presetId}`)
+    },
+    onApplyLayoutPreset: (_target, presetId) => {
+      calls.push(`layout-preset:${presetId}`)
     },
     onResetStyle: () => {
       calls.push('reset-style')
@@ -282,6 +340,17 @@ test('case insert contextual controls expose migrated spine text properties', ()
     handlers,
     label: 'Right spine note',
     layout,
+    layoutPresets: getCaseInsertTextBlockLayoutPresets('spine', {
+      id: target.textBlockId,
+      label: 'Right spine note',
+      enabled: true,
+      value: 'Right spine note',
+      source: 'manual',
+      align: 'right',
+      avoidVisualElements: false,
+      layout,
+      style,
+    }),
     scaleMax: 1.8,
     scaleMin: 0.5,
     style,
@@ -299,9 +368,22 @@ test('case insert contextual controls expose migrated spine text properties', ()
     onResetLayout: () => handlers.onResetLayout(target),
   })
 
-  assert.ok(controls.presets?.options.length)
+  assert.equal(controls.presets?.style?.label, 'Style preset')
+  assert.equal(controls.presets?.layout?.label, 'Layout preset')
+  assert.ok(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'spine-centered',
+    ),
+  )
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'cover-top-center',
+    ),
+    false,
+  )
   controls.presets?.onReset?.()
-  controls.presets?.onApply('steam-archive')
+  controls.presets?.style?.onChange('horror')
+  controls.presets?.layout?.onChange('spine-centered')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
   assert.equal(controls.text?.size?.min, 0.5)
   assert.equal(controls.text?.size?.max, 1.8)
@@ -344,7 +426,8 @@ test('case insert contextual controls expose migrated spine text properties', ()
 
   assert.deepEqual(calls, [
     'reset-style',
-    'preset:steam-archive',
+    'style-preset:horror',
+    'layout-preset:spine-centered',
     'align:center',
     'style:borderRadius:1.1',
     'avoid:true',
