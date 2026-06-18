@@ -413,6 +413,7 @@ Key files:
 - `src/discText/curvedTextLayout.ts`
 - `src/discText/styles.ts`
 - `src/discText/discNumberArtwork.ts`
+- `src/discText/sidebarControlPolicy.ts`
 - `src/hooks/useDiscTextState.ts`
 - `src/project/metadataDiscText.ts`
 - `src/components/preview/DiscTextLayer.tsx`
@@ -459,6 +460,9 @@ Edit/interaction path:
   `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
   adapters still own state setters, ranges, units, geometry semantics, renderer
   paths, and commit behavior.
+- Straight-disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts`
+  to consult those contextual target capabilities instead of maintaining a
+  separate migrated-control list in the sidebar component.
 - Curved disc text remains SVG/textPath based and is not routed through a
   visible rectangular editor.
 - Case insert preview text selection/editing helpers support adapter-based
