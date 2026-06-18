@@ -240,6 +240,60 @@ function getInlineTextControlSize(
   }
 }
 
+function getCssPixelValue(style: CSSStyleDeclaration, propertyName: string) {
+  const value = Number.parseFloat(style.getPropertyValue(propertyName))
+
+  return Number.isFinite(value) ? value : 0
+}
+
+function getInlineTextMenuControlSize(
+  element: HTMLElement | null,
+  fallback: InlinePreviewTextSize,
+): InlinePreviewTextSize {
+  if (!element) return fallback
+
+  const rect = element.getBoundingClientRect()
+
+  if (rect.width <= 0 || rect.height <= 0) {
+    return fallback
+  }
+
+  const style = window.getComputedStyle(element)
+  const controlGrid = element.querySelector<HTMLElement>(
+    '.inline-preview-text-control-grid',
+  )
+  const actions = element.querySelector<HTMLElement>(
+    '.inline-preview-text-menu-actions',
+  )
+  const controlGridHeight =
+    controlGrid && controlGrid.scrollHeight > 0
+      ? controlGrid.scrollHeight
+      : 0
+  const actionsRect = actions?.getBoundingClientRect()
+  const actionsHeight = actionsRect && actionsRect.height > 0
+    ? actionsRect.height
+    : 0
+  const rowGap =
+    controlGrid && actions
+      ? getCssPixelValue(style, 'row-gap') ||
+        getCssPixelValue(style, 'gap')
+      : 0
+  const boxHeight =
+    getCssPixelValue(style, 'padding-top') +
+    getCssPixelValue(style, 'padding-bottom') +
+    getCssPixelValue(style, 'border-top-width') +
+    getCssPixelValue(style, 'border-bottom-width')
+  const intrinsicHeight =
+    controlGridHeight > 0 || actionsHeight > 0
+      ? controlGridHeight + rowGap + actionsHeight + boxHeight
+      : 0
+
+  return {
+    height: Math.max(rect.height, element.scrollHeight, intrinsicHeight),
+    width: rect.width,
+  }
+}
+
 function areInlineTextSizesEqual(
   first: InlinePreviewTextSize,
   second: InlinePreviewTextSize,
@@ -1321,7 +1375,7 @@ export function InlinePreviewTextEditor({
 
     const updateControlSizes = () => {
       const nextControlSizes = {
-        menu: getInlineTextControlSize(
+        menu: getInlineTextMenuControlSize(
           menuRef.current,
           INLINE_TEXT_DEFAULT_CONTROL_SIZES.menu,
         ),

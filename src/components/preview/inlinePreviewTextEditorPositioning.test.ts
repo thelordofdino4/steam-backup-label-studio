@@ -80,6 +80,34 @@ test('inline text menu flips above the tab strip before overflowing the preview 
   assert.ok(layout.menu.top + 40 <= layout.tabs.top - 8)
 })
 
+test('inline text menu uses full measured height on initial bottom-edge open', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 286,
+      centerY: 268,
+      top: 250,
+    }),
+    previewRect: {
+      bottom: 360,
+      left: 0,
+      right: 520,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 178, width: 220 },
+      moveHandle: sizes.moveHandle,
+      tabs: { height: 46, width: 220 },
+    },
+  })
+
+  assert.equal(layout.menu.placement, 'above')
+  assert.equal(layout.tabs.top, 196)
+  assert.equal(layout.menu.top, 10)
+  assert.equal(layout.menu.maxHeight, 188)
+  assert.ok(layout.menu.top + 178 <= layout.tabs.top - 8)
+})
+
 test('inline text menu and tabs do not overlap in upward placement', () => {
   const layout = getInlinePreviewTextControlLayout({
     anchor: createAnchor({
@@ -98,6 +126,75 @@ test('inline text menu and tabs do not overlap in upward placement', () => {
 
   assert.equal(layout.menu.placement, 'above')
   assert.ok(layout.menu.top + 88 <= layout.tabs.top - 8)
+})
+
+test('inline text menu falls back to internal scrolling when neither side fits on initial open', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 155,
+      centerY: 140,
+      top: 125,
+    }),
+    previewRect: {
+      bottom: 240,
+      left: 0,
+      right: 420,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 178, width: 220 },
+      moveHandle: sizes.moveHandle,
+      tabs: { height: 46, width: 220 },
+    },
+  })
+
+  assert.equal(layout.menu.placement, 'below')
+  assert.equal(layout.menu.top, 163)
+  assert.equal(layout.menu.maxHeight, 77)
+  assert.ok(layout.menu.top + layout.menu.maxHeight <= 240)
+})
+
+test('inline text menu recalculates when tab content changes menu height', () => {
+  const anchor = createAnchor({
+    bottom: 286,
+    centerY: 268,
+    top: 250,
+  })
+  const sharedSizes = {
+    moveHandle: sizes.moveHandle,
+    tabs: { height: 46, width: 220 },
+  }
+  const preview = {
+    bottom: 360,
+    left: 0,
+    right: 520,
+    top: 0,
+  }
+  const compactLayout = getInlinePreviewTextControlLayout({
+    anchor,
+    previewRect: preview,
+    requestedMenuPlacement: 'below',
+    sizes: {
+      ...sharedSizes,
+      menu: { height: 48, width: 220 },
+    },
+  })
+  const expandedLayout = getInlinePreviewTextControlLayout({
+    anchor,
+    previewRect: preview,
+    requestedMenuPlacement: 'below',
+    sizes: {
+      ...sharedSizes,
+      menu: { height: 178, width: 220 },
+    },
+  })
+
+  assert.equal(compactLayout.menu.placement, 'below')
+  assert.equal(expandedLayout.menu.placement, 'above')
+  assert.ok(
+    expandedLayout.menu.top + 178 <= expandedLayout.tabs.top - 8,
+  )
 })
 
 test('inline text controls clamp leftward before crossing the right edge', () => {
@@ -227,6 +324,40 @@ test('inline text controls follow when selected text bounds change', () => {
     left: 233,
     top: 120.5,
   })
+})
+
+test('inline text controls use replaced text host bounds as the new anchor', () => {
+  const originalLayout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 168,
+      centerX: 150,
+      centerY: 134,
+      right: 230,
+      top: 100,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+  const replacedHostLayout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 248,
+      centerX: 210,
+      centerY: 214,
+      right: 290,
+      top: 180,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+
+  assert.equal(replacedHostLayout.tabs.left - originalLayout.tabs.left, 60)
+  assert.equal(replacedHostLayout.tabs.top - originalLayout.tabs.top, 80)
+  assert.equal(
+    replacedHostLayout.moveHandle.top - originalLayout.moveHandle.top,
+    80,
+  )
 })
 
 test('inline text controls clamp after following a moved selection', () => {
