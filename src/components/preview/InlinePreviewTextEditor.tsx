@@ -13,6 +13,7 @@ import { createPortal } from 'react-dom'
 import {
   isInlinePreviewTextSelectAllShortcut,
 } from './inlinePreviewTextEditorInput'
+import { TrashIcon } from '../sidebar/PanelIcons'
 import {
   getInlinePreviewTextCaretIndexForLineOffset,
   getInlinePreviewTextCaretLineOffset,
@@ -120,6 +121,7 @@ export type InlinePreviewTextEditorControls = {
     y?: InlinePreviewTextEditorRangeControl
   }
   deleteAction?: {
+    ariaLabel?: string
     label?: string
     onDelete: () => void
   }
@@ -1601,6 +1603,9 @@ export function InlinePreviewTextEditor({
         transform: 'none',
       } satisfies CSSProperties)
     : undefined
+  const deleteAction = editorControls?.deleteAction
+  const deleteLabel = deleteAction?.label ?? 'Delete'
+  const deleteAriaLabel = deleteAction?.ariaLabel ?? deleteLabel
   const controls = controlFrame ? (
     <>
       <div
@@ -1659,17 +1664,20 @@ export function InlinePreviewTextEditor({
           controls={editorControls}
         />
         <div className="inline-preview-text-menu-actions">
-          {editorControls?.deleteAction ? (
+          {deleteAction ? (
             <button
               type="button"
-              className="secondary-button inline-preview-text-delete-button"
+              className="secondary-button icon-text-button inline-preview-text-delete-button"
+              aria-label={deleteAriaLabel}
+              title={deleteAriaLabel}
               onClick={(event) => {
                 event.stopPropagation()
-                editorControls.deleteAction?.onDelete()
+                deleteAction.onDelete()
               }}
               onPointerDown={keepInlineTextEditorFocus}
             >
-              {editorControls.deleteAction.label ?? 'Delete'}
+              <TrashIcon />
+              <span>{deleteLabel}</span>
             </button>
           ) : null}
         <button

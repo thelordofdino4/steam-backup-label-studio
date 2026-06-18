@@ -332,6 +332,7 @@ function createDiscInlineTextEditorControls({
     },
     deleteAction: {
       label: 'Delete',
+      ariaLabel: `Delete ${getDiscTextLabel(key)}`,
       onDelete: () => {
         onDiscTextEnabledChange(key, false)
         onSelectedDiscTextKeyChange(null)
