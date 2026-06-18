@@ -72,6 +72,9 @@ import {
   getCaseInsertTextBlockPriority,
 } from '../../caseInsert/textContent'
 import {
+  shouldShowCaseInsertTextSidebarControl,
+} from '../../caseInsert/sidebarControlPolicy'
+import {
   getCaseInsertTextBlockLayoutPresets,
 } from '../../caseInsert/textLayout'
 import {
@@ -290,7 +293,9 @@ function SpineTitleControls({
     title,
     projectMetadata,
   )
-  const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', title)
+  const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
+    ? getCaseInsertTextBlockLayoutPresets('spine', title)
+    : []
 
   return (
     <div className="editor-text-control">
@@ -359,12 +364,14 @@ function SpineTitleControls({
                 </select>
               </label>
 
-              <SpineTextLayoutPresetControl
-                id={`${side}-spine-title-layout-preset`}
-                presets={layoutPresets}
-                onApplyPreset={(presetId) =>
-                  actions.handleApplySpineTitleLayoutPreset(side, presetId)}
-              />
+              {layoutPresets.length > 0 ? (
+                <SpineTextLayoutPresetControl
+                  id={`${side}-spine-title-layout-preset`}
+                  presets={layoutPresets}
+                  onApplyPreset={(presetId) =>
+                    actions.handleApplySpineTitleLayoutPreset(side, presetId)}
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -401,7 +408,9 @@ function SpineTextBlockControls({
     textBlock,
     projectMetadata,
   )
-  const layoutPresets = getCaseInsertTextBlockLayoutPresets('spine', textBlock)
+  const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
+    ? getCaseInsertTextBlockLayoutPresets('spine', textBlock)
+    : []
 
   return (
     <div className="editor-text-control">
@@ -475,16 +484,18 @@ function SpineTextBlockControls({
                 </select>
               </label>
 
-              <SpineTextLayoutPresetControl
-                id={`${textBlock.id}-layout-preset`}
-                presets={layoutPresets}
-                onApplyPreset={(presetId) =>
-                  actions.handleApplySpineTextBlockLayoutPreset(
-                    side,
-                    textBlock.id,
-                    presetId,
-                  )}
-              />
+              {layoutPresets.length > 0 ? (
+                <SpineTextLayoutPresetControl
+                  id={`${textBlock.id}-layout-preset`}
+                  presets={layoutPresets}
+                  onApplyPreset={(presetId) =>
+                    actions.handleApplySpineTextBlockLayoutPreset(
+                      side,
+                      textBlock.id,
+                      presetId,
+                    )}
+                />
+              ) : null}
             </div>
           </div>
         </div>

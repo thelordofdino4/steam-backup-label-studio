@@ -464,10 +464,11 @@ Edit/interaction path:
 - Straight-disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts`
   to consult those contextual target capabilities instead of maintaining a
   separate migrated-control list in the sidebar component.
-- Cover/tray text-list sidebar demotion uses
+- Cover/tray text-list and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same rectangular
   case-insert text target capabilities instead of duplicating registry policy
-  in the template sidebar component.
+  in template or spine sidebar components; spine orientation remains a
+  sidebar-owned structural control.
 - Curved disc text remains SVG/textPath based and is not routed through a
   visible rectangular editor.
 - Case insert preview text selection/editing helpers support adapter-based

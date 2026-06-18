@@ -119,7 +119,7 @@ test('cover and tray text list sidebars keep entry/source controls only', () => 
   assert.doesNotMatch(textListControls, /handleResetTextListStyle/)
 })
 
-test('cover and tray text list sidebar policy omits contextual equivalents', () => {
+test('case insert sidebar policy omits contextual equivalents', () => {
   const migratedControls = [
     'stylePreset',
     'layoutPreset',
@@ -191,10 +191,13 @@ test('left and right spine title sidebars keep entry/source controls only', () =
   assert.match(titleControls, /Select this text in the preview/)
   assert.match(titleControls, /Edit in preview/)
   assert.match(titleControls, /Orientation/)
-  assert.match(titleControls, /SpineTextLayoutPresetControl/)
+  assert.match(titleControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(titleControls, /handleSpineTitleOrientationChange/)
-  assert.match(titleControls, /handleApplySpineTitleLayoutPreset/)
 
+  assert.doesNotMatch(
+    titleControls,
+    /const layoutPresets = getCaseInsertTextBlockLayoutPresets\('spine', title\)/,
+  )
   assert.doesNotMatch(titleControls, /CaseInsertTextOptionalStyleControls/)
   assert.doesNotMatch(titleControls, /CaseInsertTextStyleControls/)
   assert.doesNotMatch(
@@ -230,10 +233,13 @@ test('left and right spine text block sidebars keep entry/source controls only',
   assert.match(textBlockControls, /Select this text in the preview/)
   assert.match(textBlockControls, /Edit in preview/)
   assert.match(textBlockControls, /Orientation/)
-  assert.match(textBlockControls, /SpineTextLayoutPresetControl/)
+  assert.match(textBlockControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(textBlockControls, /handleSpineTextBlockOrientationChange/)
-  assert.match(textBlockControls, /handleApplySpineTextBlockLayoutPreset/)
 
+  assert.doesNotMatch(
+    textBlockControls,
+    /const layoutPresets = getCaseInsertTextBlockLayoutPresets\('spine', textBlock\)/,
+  )
   assert.doesNotMatch(textBlockControls, /CaseInsertTextOptionalStyleControls/)
   assert.doesNotMatch(textBlockControls, /CaseInsertTextStyleControls/)
   assert.doesNotMatch(
