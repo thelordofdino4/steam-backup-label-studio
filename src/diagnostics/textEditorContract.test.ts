@@ -118,7 +118,11 @@ test('contextual text editor shell keeps tab and menu sizing stable', () => {
   )
   assert.match(
     css,
-    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(286px,\s*calc\(100vh - 32px\)\)/s,
+    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(\s*286px,\s*calc\(100vh - 32px\),\s*var\(--inline-preview-text-menu-max-height,\s*calc\(100vh - 32px\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*\{[^}]*min-height:\s*min\(\s*178px,\s*var\(--inline-preview-text-menu-max-height,\s*178px\)/s,
   )
   assert.match(
     css,

@@ -211,10 +211,6 @@ function getDiscInlineEditorBounds(
   }
 }
 
-function getDiscInlineEditorMenuPlacement(bounds: DiscInlineEditorBounds) {
-  return bounds.centerY + bounds.halfHeight + 18 > 100 ? 'above' : 'below'
-}
-
 function createDiscInlineTextEditorControls({
   key,
   layout,
@@ -597,7 +593,7 @@ export function DiscInlineTextEditorLayer({
               lines={renderLayout.lines}
               targetKey={targetKey}
               value={text}
-              menuPlacement={getDiscInlineEditorMenuPlacement(bounds)}
+              menuPlacement="below"
               onValueChange={(value) =>
                 onDiscTextValueChange(
                   key,

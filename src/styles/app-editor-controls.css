@@ -321,8 +321,15 @@
   width: min(520px, calc(100vw - 24px));
   max-width: min(520px, calc(100vw - 24px));
   box-sizing: border-box;
-  min-height: 178px;
-  max-height: min(286px, calc(100vh - 32px));
+  min-height: min(
+    178px,
+    var(--inline-preview-text-menu-max-height, 178px)
+  );
+  max-height: min(
+    286px,
+    calc(100vh - 32px),
+    var(--inline-preview-text-menu-max-height, calc(100vh - 32px))
+  );
   padding: 10px;
   overflow: hidden;
   border: 1px solid #2a2e38;

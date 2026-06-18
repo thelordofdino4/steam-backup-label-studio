@@ -194,15 +194,6 @@ function getCaseInsertTextLineStyle(
   }
 }
 
-function getInlineTextMenuPlacement(
-  textBounds: JewelCasePixelRect,
-  layout: CaseInsertPreviewLayout,
-) {
-  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
-    ? 'above'
-    : 'below'
-}
-
 function getImageStyle(
   imageRect: JewelCasePixelRect,
   region: JewelCasePixelRect,
@@ -514,7 +505,7 @@ function CaseInsertTemplateTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
-          menuPlacement={getInlineTextMenuPlacement(textLayout.bounds, layout)}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>
@@ -672,7 +663,7 @@ function CaseInsertTemplateTextList({
           targetKey={targetKey}
           value={getPreviewTextListValue(textList)}
           textareaStyle={{ textAlign: 'left' }}
-          menuPlacement={getInlineTextMenuPlacement(textListLayout.bounds, layout)}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>

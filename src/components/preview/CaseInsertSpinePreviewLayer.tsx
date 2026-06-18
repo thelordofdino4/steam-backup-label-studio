@@ -194,15 +194,6 @@ function getTransformedBoxStyle(
   }
 }
 
-function getInlineTextMenuPlacement(
-  textBounds: JewelCasePixelRect,
-  layout: CaseInsertPreviewLayout,
-) {
-  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
-    ? 'above'
-    : 'below'
-}
-
 function CaseInsertSpineBackground({
   side,
   slot,
@@ -439,10 +430,7 @@ function CaseInsertSpineTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}
-          menuPlacement={getInlineTextMenuPlacement(
-            titleLayout.boundingRect,
-            layout,
-          )}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>

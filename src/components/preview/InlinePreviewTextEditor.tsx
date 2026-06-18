@@ -1580,10 +1580,11 @@ export function InlinePreviewTextEditor({
   const menuStyle = controlLayout
     ? ({
         left: controlLayout.menu.left,
+        '--inline-preview-text-menu-max-height': `${controlLayout.menu.maxHeight}px`,
         maxWidth: controlLayout.menu.maxWidth,
         top: controlLayout.menu.top,
         transform: 'none',
-      } satisfies CSSProperties)
+      } as CSSProperties)
     : undefined
   const moveHandleStyle = controlLayout
     ? ({
