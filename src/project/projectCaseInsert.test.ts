@@ -17,6 +17,7 @@ import {
   setCaseInsertPreviewTextTargetEnabled,
   updateCaseInsertPreviewTextTargetAlign,
   updateCaseInsertPreviewTextTargetAvoidVisualElements,
+  updateCaseInsertPreviewTextTargetContentMode,
   updateCaseInsertPreviewTextTargetLayoutField,
   updateCaseInsertPreviewTextTargetStyleField,
 } from '../caseInsert/previewTextControls.ts'
@@ -277,6 +278,31 @@ test('case insert preview text edit values include metadata defaults', () => {
     coverAppId ? getCaseInsertPreviewTextEditValue(coverAppId, metadata) : '',
     'Steam App ID 620',
   )
+})
+
+test('case insert HTML source mode seeds metadata-backed defaults from rendered text', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Portal 2',
+  }
+  const nextState = updateCaseInsertPreviewTextTargetContentMode(
+    state,
+    {
+      scope: 'templateTextBlock',
+      paneId: 'tray',
+      textBlockId: 'tray-title-text',
+    },
+    'html',
+    metadata,
+  )
+  const trayTitle = nextState.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+
+  assert.equal(trayTitle?.contentMode, 'html')
+  assert.equal(trayTitle?.htmlSource, '<p>Portal 2</p>')
+  assert.equal(trayTitle?.value, 'Portal 2')
 })
 
 test('case insert preview text edit values preserve manual whitespace', () => {

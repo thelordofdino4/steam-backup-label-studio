@@ -2,6 +2,7 @@ import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
   ProjectJewelCaseState,
+  ProjectMetadata,
 } from '../project/projectTypes.ts'
 import {
   getJewelCaseSpineSideScopedId,
@@ -156,6 +157,7 @@ export function updateCaseInsertPreviewTextTargetContentMode(
   caseInsert: ProjectJewelCaseState,
   target: CaseInsertPreviewTextTarget,
   contentMode: TextContentMode,
+  metadata?: ProjectMetadata,
 ) {
   switch (target.scope) {
     case 'templateTextBlock':
@@ -167,7 +169,7 @@ export function updateCaseInsertPreviewTextTargetContentMode(
           updateCaseInsertTextBlockContentMode(
             textBlock,
             contentMode,
-            getCaseInsertPreviewTextEditValue(textBlock),
+            getCaseInsertPreviewTextEditValue(textBlock, metadata),
           ),
       )
     case 'templateTextList':
@@ -191,7 +193,7 @@ export function updateCaseInsertPreviewTextTargetContentMode(
           title: updateCaseInsertTextBlockContentMode(
             spineSide.title,
             contentMode,
-            getCaseInsertPreviewTextEditValue(spineSide.title),
+            getCaseInsertPreviewTextEditValue(spineSide.title, metadata),
           ),
         }),
       )
@@ -203,7 +205,7 @@ export function updateCaseInsertPreviewTextTargetContentMode(
           updateCaseInsertTextBlockContentMode(
             textBlock,
             contentMode,
-            getCaseInsertPreviewTextEditValue(textBlock),
+            getCaseInsertPreviewTextEditValue(textBlock, metadata),
           ),
       )
   }

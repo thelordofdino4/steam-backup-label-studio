@@ -44,6 +44,13 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /deleteAction/)
   assert.match(source, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
   assert.match(source, /sourceMode\?:\s*boolean/)
+  assert.match(source, /getInlinePreviewHtmlSourceDraftStatus/)
+  assert.match(source, /inline-preview-text-source-textarea/)
+  assert.match(source, /HTML source editor/)
+  assert.match(
+    source,
+    /event\.currentTarget\.select\(\)/,
+  )
   assert.doesNotMatch(source, /Markdown planned/)
   assert.match(source, /controls\.presets\?\.style/)
   assert.match(source, /controls\.presets\?\.layout/)
@@ -74,6 +81,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /inputMode\?:\s*InlinePreviewTextEditorInputMode/)
   assert.match(source, /inputMode = 'overlay'/)
   assert.match(source, /inline-preview-textarea--adapter/)
+  assert.doesNotMatch(source, /inline-preview-textarea--source/)
   assert.match(source, /getInlinePreviewTextSelectionLineOffsets/)
   assert.match(source, /createPortal\(textareaElement,\s*document\.body\)/)
   assert.match(source, /adapterSelectionAnchorRef/)
@@ -94,6 +102,10 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
   assert.match(css, /\.inline-preview-text-host\s*\{[^}]*outline:\s*2px dotted/s)
   assert.match(css, /\.inline-preview-text-host\.is-empty\s*\{[^}]*min-width/s)
   assert.match(css, /\.inline-preview-textarea--adapter\s*\{[^}]*position:\s*fixed/s)
+  assert.match(css, /\.inline-preview-text-source-control\s*\{[^}]*grid-column:\s*1 \/ -1/s)
+  assert.match(css, /\.inline-preview-text-source-textarea\s*\{[^}]*font-family:\s*"Cascadia Mono",\s*"Consolas",\s*monospace/s)
+  assert.match(css, /\.inline-preview-text-source-textarea\s*\{[^}]*caret-color:\s*#2aabe2/s)
+  assert.doesNotMatch(css, /\.inline-preview-text-host\.is-html-source\s+\.case-insert-text-render-content\s*\{[^}]*visibility:\s*hidden/s)
   assert.match(css, /\.inline-preview-text-selection\s*\{[^}]*background:\s*rgba\(42,\s*171,\s*226,\s*0\.28\)/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*background:\s*#2aabe2/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*animation:\s*inline-preview-text-caret-flash/s)
@@ -170,16 +182,12 @@ test('case insert inline editing uses the adapter input path', () => {
   assert.match(previewControls, /label:\s*'HTML source'/)
   assert.match(previewControls, /onContentModeChange/)
   assert.doesNotMatch(previewControls, /markdownPlanned:\s*true/)
-  assert.equal(
-    (templateLayer.match(/inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/g) ?? [])
-      .length,
-    2,
-  )
-  assert.equal(
-    (spineLayer.match(/inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/g) ?? [])
-      .length,
-    1,
-  )
+  assert.equal((templateLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
+  assert.equal((spineLayer.match(/inputMode="adapter"/g) ?? []).length, 1)
+  assert.doesNotMatch(templateLayer, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
+  assert.doesNotMatch(spineLayer, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
+  assert.match(templateLayer, /isSelected && !isHtmlSourceEditing/)
+  assert.match(spineLayer, /isSelected && !isHtmlSourceEditing/)
   assert.match(templateLayer, /sourceMode=\{isHtmlSourceEditing\}/)
   assert.match(spineLayer, /sourceMode=\{isHtmlSourceEditing\}/)
 })
@@ -198,6 +206,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.match(adapter, /label:\s*'Underline'/)
   assert.doesNotMatch(adapter, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
   assert.match(adapter, /controls=\{controls\}/)
+  assert.match(adapter, /inputMode="adapter"/)
+  assert.doesNotMatch(adapter, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(discLayer, /DiscInlineTextEditorLayer/)
 })

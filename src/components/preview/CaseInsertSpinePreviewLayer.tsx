@@ -370,7 +370,7 @@ function CaseInsertSpineTextBlock({
     brandingSources.projectMetadata,
   )
   const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
-  const layoutTextBlock = isSelected
+  const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
   const titleLayout = getJewelCaseSpineTitlePreviewLayout(
@@ -501,7 +501,7 @@ function CaseInsertSpineTextBlock({
               : editValue
           }
           controls={editorControls}
-          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
+          inputMode="adapter"
           lines={titleLayout.lines}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
