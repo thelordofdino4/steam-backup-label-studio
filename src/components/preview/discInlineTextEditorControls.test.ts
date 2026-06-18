@@ -1,0 +1,204 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {
+  createDefaultDiscTextLayout,
+  type DiscTextKey,
+  type DiscTextLayout,
+} from '../../discText/index.ts'
+import {
+  createDefaultDiscTextStyle,
+  DISC_TEXT_STYLE_PRESETS,
+} from '../../discText/styles.ts'
+import {
+  createContextualTextPresetOptions,
+} from '../../text/contextualTextControlViewModel.ts'
+import {
+  createDiscInlineTextEditorControls,
+  type DiscInlineTextEditorControlParams,
+} from './discInlineTextEditorControls.ts'
+
+function createControls(
+  overrides: Partial<DiscInlineTextEditorControlParams> = {},
+) {
+  const calls: string[] = []
+  const key: DiscTextKey = overrides.key ?? 'title'
+  const layout = overrides.layout ?? {
+    ...createDefaultDiscTextLayout('top')[key],
+    scale: 1.05,
+    width: 62,
+  }
+  const style = overrides.style ?? {
+    ...createDefaultDiscTextStyle(key),
+    backgroundEnabled: true,
+    backgroundColor: '#111111',
+    backgroundOpacity: 0.5,
+    backgroundPadding: 1.2,
+    borderEnabled: true,
+    borderColor: '#eeeeee',
+    borderRadius: 0.75,
+  }
+
+  const controls = createDiscInlineTextEditorControls({
+    isHtmlSourceEnabled: false,
+    key,
+    layout,
+    onApplyDiscTextStylePreset: (_key, presetId) => {
+      calls.push(`style-preset:${presetId}`)
+    },
+    onDiscTextAlignmentChange: (_key, alignment) => {
+      calls.push(`align:${alignment}`)
+    },
+    onDiscTextContentModeChange: (_key, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
+    },
+    onDiscTextEnabledChange: (_key, enabled) => {
+      calls.push(`enabled:${enabled}`)
+    },
+    onDiscTextLayoutChange: (_key, field, value) => {
+      calls.push(`layout:${field}:${value}`)
+    },
+    onDiscTextStyleChange: (_key, field, value) => {
+      calls.push(`style:${field}:${String(value)}`)
+    },
+    onDiscTextVisualAvoidanceChange: (_key, avoidVisualElements) => {
+      calls.push(`avoid:${avoidVisualElements}`)
+    },
+    onResetDiscTextLayout: () => {
+      calls.push('reset-layout')
+    },
+    onResetDiscTextStyle: () => {
+      calls.push('reset-style')
+    },
+    onSelectedDiscTextKeyChange: (selectedKey) => {
+      calls.push(`selected:${String(selectedKey)}`)
+    },
+    style,
+    ...overrides,
+  })
+
+  return { calls, controls, layout, style }
+}
+
+test('disc contextual controls use shared preset options and labels', () => {
+  const { controls, layout, style } = createControls()
+
+  assert.equal(controls.presets?.style?.label, 'Style preset')
+  assert.deepEqual(
+    controls.presets?.style?.options,
+    createContextualTextPresetOptions(DISC_TEXT_STYLE_PRESETS),
+  )
+  assert.equal(controls.presets?.style?.value, 'custom')
+  assert.equal(controls.presets?.layout?.label, 'Layout preset')
+  assert.equal(controls.presets?.layout?.value, 'title-top')
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'top-arc',
+    ),
+    false,
+  )
+  assert.equal(controls.text?.fontFamily?.label, 'Font')
+  assert.equal(controls.text?.size?.label, 'Size')
+  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.alignment?.label, 'Align')
+  assert.equal(controls.text?.alignment?.value, layout.align)
+  assert.equal(controls.text?.bold?.label, 'Bold')
+  assert.equal(controls.text?.italic?.label, 'Italic')
+  assert.equal(controls.text?.underline?.label, 'Underline')
+  assert.equal(controls.text?.unsupported, undefined)
+  assert.equal(controls.art?.color?.label, 'Color')
+  assert.equal(controls.art?.contrast?.label, 'Contrast')
+  assert.equal(controls.art?.backgroundEnabled?.label, 'Background')
+  assert.equal(controls.art?.backgroundColor?.value, '#111111')
+  assert.equal(controls.art?.backgroundOpacity?.value, 0.5)
+  assert.equal(controls.art?.backgroundPadding?.value, 1.2)
+  assert.equal(controls.art?.borderEnabled?.checked, true)
+  assert.equal(controls.art?.borderColor?.value, '#eeeeee')
+  assert.equal(controls.art?.borderRadius?.value, 0.75)
+  assert.equal(controls.utilities?.respectVisualElements?.label, 'Respect visuals')
+  assert.equal(controls.utilities?.width?.label, 'Width')
+  assert.equal(controls.utilities?.x?.label, 'X')
+  assert.equal(controls.utilities?.y?.label, 'Y')
+  assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'mode'), false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'arcSide'), false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'arcDegrees'), false)
+  assert.equal(controls.deleteAction?.ariaLabel, 'Delete Game title')
+  assert.equal(style.backgroundEnabled, true)
+})
+
+test('disc custom option is inert and target-specific handlers stay in adapter', () => {
+  const { calls, controls } = createControls()
+
+  controls.presets?.onReset?.()
+  controls.presets?.style?.onChange('custom')
+  controls.presets?.layout?.onChange('custom')
+  controls.presets?.style?.onChange('metallic')
+  controls.presets?.layout?.onChange('title-top')
+  controls.text?.alignment?.onChange('right')
+  controls.text?.bold?.onChange(true)
+  controls.text?.italic?.onChange(true)
+  controls.text?.underline?.onChange(true)
+  controls.art?.backgroundPadding?.onChange(2)
+  controls.utilities?.respectVisualElements?.onChange(true)
+  controls.utilities?.htmlSource?.onChange(true)
+  controls.utilities?.width?.onChange(70)
+  controls.utilities?.resetLayout?.()
+  controls.deleteAction?.onDelete()
+
+  assert.deepEqual(calls, [
+    'reset-style',
+    'style-preset:metallic',
+    'layout:x:0',
+    'layout:y:19.5',
+    'layout:width:62',
+    'layout:scale:1.05',
+    'align:center',
+    'align:right',
+    'style:bold:true',
+    'style:italic:true',
+    'style:underline:true',
+    'style:backgroundPadding:2',
+    'avoid:true',
+    'content-mode:html',
+    'layout:width:70',
+    'reset-layout',
+    'enabled:false',
+    'selected:null',
+  ])
+})
+
+test('disc copyright straight controls omit curved presets without changing curved exception ownership', () => {
+  const layout: DiscTextLayout = {
+    ...createDefaultDiscTextLayout('top').copyright,
+    align: 'center',
+    mode: 'straight',
+    scale: 0.84,
+    width: 74,
+    x: 0,
+    y: 86,
+  }
+  const { controls } = createControls({
+    key: 'copyright',
+    layout,
+    style: createDefaultDiscTextStyle('copyright'),
+  })
+
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'lower-legal-line',
+    ),
+    true,
+  )
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'top-arc',
+    ),
+    false,
+  )
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'bottom-arc',
+    ),
+    false,
+  )
+})

@@ -417,7 +417,9 @@ Key files:
 - `src/project/metadataDiscText.ts`
 - `src/components/preview/DiscTextLayer.tsx`
 - `src/components/preview/DiscInlineTextEditorLayer.tsx`
+- `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
+- `src/components/preview/caseInsertInlineTextEditorControls.ts`
 - `src/caseInsert/textTransitions.ts`
 - `src/caseInsert/textLayout.ts`
 - `src/caseInsert/textStyles.ts`
@@ -426,6 +428,7 @@ Key files:
 - `src/caseInsert/textContent.ts`
 - `src/caseInsert/previewTextSelection.ts`
 - `src/caseInsert/previewTextEditing.ts`
+- `src/text/contextualTextControlViewModel.ts`
 - `src/text/htmlText.ts`
 - `docs/TEXT_EDITOR_CONTRACT.md`
 
@@ -451,6 +454,11 @@ Edit/interaction path:
 - Sidebar text controls update text state and styles.
 - Straight disc text can be edited inline through `InlinePreviewTextEditor`
   adapter mode.
+- Contextual text-control labels, preset option construction, Custom-option
+  behavior, and target capability declarations live in
+  `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
+  adapters still own state setters, ranges, units, geometry semantics, renderer
+  paths, and commit behavior.
 - Curved disc text remains SVG/textPath based and is not routed through a
   visible rectangular editor.
 - Case insert preview text selection/editing helpers support adapter-based
@@ -470,7 +478,9 @@ Export path:
 Tests:
 
 - `src/discText/*.test.ts`
+- `src/components/preview/discInlineTextEditorControls.test.ts`
 - `src/components/preview/inlinePreviewTextEditor*.test.ts`
+- `src/text/contextualTextControlViewModel.test.ts`
 - `src/diagnostics/textEditorContract.test.ts`
 - `src/caseInsert/textReadability.test.ts`
 - `src/layout/caseInsertTextVisualLayout.test.ts`
