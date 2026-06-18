@@ -66,6 +66,9 @@ import {
   getCaseInsertTextBlockPriority,
 } from '../../caseInsert/textContent'
 import {
+  shouldShowCaseInsertTextSidebarControl,
+} from '../../caseInsert/sidebarControlPolicy'
+import {
   getCaseInsertTextBlockLayoutPresets,
   getCaseInsertTextListLayoutPresets,
 } from '../../caseInsert/textLayout'
@@ -837,7 +840,9 @@ function TextListControls({
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const layoutPresets = getCaseInsertTextListLayoutPresets(paneId)
+  const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
+    ? getCaseInsertTextListLayoutPresets(paneId)
+    : []
 
   return (
     <div className="editor-text-control">

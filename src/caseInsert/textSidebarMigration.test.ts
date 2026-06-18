@@ -5,11 +5,16 @@ import { fileURLToPath } from 'node:url'
 import test from 'node:test'
 import { createDefaultProjectJewelCaseState } from './defaults.ts'
 import { updateCaseInsertPreviewTextDraftValue } from './previewTextEditing.ts'
+import type { ContextualTextControlId } from '../text/contextualTextControlViewModel.ts'
 import {
   addCaseInsertTextListItem,
   removeCaseInsertTextListItem,
   updateCaseInsertTextListItem,
 } from './textTransitions.ts'
+import {
+  getCaseInsertTextSidebarTargetCapability,
+  shouldShowCaseInsertTextSidebarControl,
+} from './sidebarControlPolicy.ts'
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(testDir))
@@ -94,8 +99,7 @@ test('cover and tray text list sidebars keep entry/source controls only', () => 
   assert.match(textListControls, /Edit in preview/)
   assert.match(textListControls, /Add item/)
   assert.match(textListControls, /handleAddTextListItem/)
-  assert.match(textListControls, /TextLayoutPresetControl/)
-  assert.match(textListControls, /handleApplyTextListLayoutPreset/)
+  assert.match(textListControls, /shouldShowCaseInsertTextSidebarControl/)
 
   assert.doesNotMatch(textListControls, /CaseInsertTextOptionalStyleControls/)
   assert.doesNotMatch(textListControls, /CaseInsertTextStyleControls/)
@@ -113,6 +117,62 @@ test('cover and tray text list sidebars keep entry/source controls only', () => 
   assert.doesNotMatch(textListControls, /handleApplyTextListStylePreset/)
   assert.doesNotMatch(textListControls, /handleResetTextListLayout/)
   assert.doesNotMatch(textListControls, /handleResetTextListStyle/)
+})
+
+test('cover and tray text list sidebar policy omits contextual equivalents', () => {
+  const migratedControls = [
+    'stylePreset',
+    'layoutPreset',
+    'fontFamily',
+    'size',
+    'alignment',
+    'bold',
+    'italic',
+    'underline',
+    'color',
+    'contrast',
+    'backgroundEnabled',
+    'backgroundColor',
+    'backgroundOpacity',
+    'backgroundPadding',
+    'borderEnabled',
+    'borderColor',
+    'borderRadius',
+    'respectVisualElements',
+    'width',
+    'x',
+    'y',
+    'resetStyle',
+    'resetLayout',
+    'htmlSource',
+    'delete',
+  ] as const satisfies readonly ContextualTextControlId[]
+  const sidebarOwnedControls = [
+    'mode',
+    'arcSide',
+    'arcDegrees',
+  ] as const satisfies readonly ContextualTextControlId[]
+  const target = getCaseInsertTextSidebarTargetCapability()
+
+  assert.equal(target.id, 'caseInsertRectangularText')
+  assert.equal(target.supportsContextualEditor, true)
+  assert.ok(target.contextualControlIds.includes('layoutPreset'))
+
+  for (const controlId of migratedControls) {
+    assert.equal(
+      shouldShowCaseInsertTextSidebarControl(controlId),
+      false,
+      `${controlId} should be omitted from text-list sidebar ownership`,
+    )
+  }
+
+  for (const controlId of sidebarOwnedControls) {
+    assert.equal(
+      shouldShowCaseInsertTextSidebarControl(controlId),
+      true,
+      `${controlId} should remain sidebar-eligible without a contextual equivalent`,
+    )
+  }
 })
 
 test('left and right spine title sidebars keep entry/source controls only', () => {

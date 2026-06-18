@@ -410,6 +410,7 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
 - `src/components/preview/caseInsertInlineTextEditorControls.ts`
+- `src/caseInsert/sidebarControlPolicy.ts`
 - `src/caseInsert/textTransitions.ts`
 - `src/caseInsert/textLayout.ts`
 - `src/caseInsert/textStyles.ts`
@@ -444,6 +445,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Straight-disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts`
   to consult those contextual target capabilities; curved copyright keeps the
   documented sidebar exception while it remains SVG/textPath based.
+- Cover/tray text-list sidebar demotion uses
+  `src/caseInsert/sidebarControlPolicy.ts` to consult the same contextual
+  target capabilities for rectangular case-insert text.
 - Cover, tray, spine, and straight disc inline editing use adapter mode: native input/selection support is hidden, while the existing final preview renderers remain the visible glyph source.
 - HTML source editing stores canonical sanitized HTML, parses it into the shared
   rich-text run model, and renders those runs through the same preview/export
