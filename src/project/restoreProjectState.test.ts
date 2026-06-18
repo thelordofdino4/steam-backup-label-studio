@@ -633,6 +633,9 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
         title: {
           fontFamily: 'georgia',
           color: '#112233',
+          bold: true,
+          italic: true,
+          underline: true,
           contrast: 'shadow',
           backgroundEnabled: true,
           backgroundColor: '#445566',
@@ -655,10 +658,16 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
   })
 
   assert.equal(restoredLegacyStyles.discTextStyles.title.fontFamily, 'arial')
+  assert.equal(restoredLegacyStyles.discTextStyles.title.bold, false)
+  assert.equal(restoredLegacyStyles.discTextStyles.title.italic, false)
+  assert.equal(restoredLegacyStyles.discTextStyles.title.underline, false)
   assert.equal(restoredLegacyStyles.discTextStyles.title.contrast, 'strokeShadow')
   assert.equal(restoredLegacyStyles.discTextStyles.title.backgroundEnabled, false)
   assert.equal(restoredSavedStyles.discTextStyles.title.fontFamily, 'georgia')
   assert.equal(restoredSavedStyles.discTextStyles.title.color, '#112233')
+  assert.equal(restoredSavedStyles.discTextStyles.title.bold, true)
+  assert.equal(restoredSavedStyles.discTextStyles.title.italic, true)
+  assert.equal(restoredSavedStyles.discTextStyles.title.underline, true)
   assert.equal(restoredSavedStyles.discTextStyles.title.contrast, 'shadow')
   assert.equal(restoredSavedStyles.discTextStyles.title.backgroundEnabled, true)
   assert.equal(restoredSavedStyles.discTextStyles.title.backgroundColor, '#445566')

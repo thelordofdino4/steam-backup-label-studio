@@ -497,6 +497,18 @@ test('migrated cover and tray text block properties survive save and restore', (
     'backgroundEnabled',
     true,
   )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    coverTitleTarget,
+    'bold',
+    true,
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    coverTitleTarget,
+    'underline',
+    true,
+  )
   state = updateCaseInsertPreviewTextTargetLayoutField(
     state,
     coverTitleTarget,
@@ -524,6 +536,12 @@ test('migrated cover and tray text block properties survive save and restore', (
     trayDescriptionTarget,
     'fontFamily',
     'georgia',
+  )
+  state = updateCaseInsertPreviewTextTargetStyleField(
+    state,
+    trayDescriptionTarget,
+    'italic',
+    true,
   )
   state = updateCaseInsertPreviewTextTargetStyleField(
     state,
@@ -570,11 +588,14 @@ test('migrated cover and tray text block properties survive save and restore', (
   )
   assert.equal(restoredCoverTitle?.style.color, '#123456')
   assert.equal(restoredCoverTitle?.style.backgroundEnabled, true)
+  assert.equal(restoredCoverTitle?.style.bold, true)
+  assert.equal(restoredCoverTitle?.style.underline, true)
   assert.equal(restoredCoverTitle?.layout.width, 68)
   assert.equal(restoredCoverTitle?.layout.x, 44)
   assert.equal(restoredCoverTitle?.align, 'right')
   assert.equal(restoredCoverTitle?.avoidVisualElements, true)
   assert.equal(restoredTrayDescription?.style.fontFamily, 'georgia')
+  assert.equal(restoredTrayDescription?.style.italic, true)
   assert.equal(restoredTrayDescription?.style.borderEnabled, true)
   assert.equal(restoredTrayDescription?.style.borderRadius, 0.85)
   assert.equal(restoredTrayDescription?.layout.scale, 1.18)

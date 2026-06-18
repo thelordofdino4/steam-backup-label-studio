@@ -34,6 +34,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   }
   const style = {
     ...createDefaultCaseInsertTextStyle('title'),
+    bold: true,
     backgroundEnabled: true,
     backgroundColor: '#111111',
     backgroundOpacity: 0.5,
@@ -119,7 +120,10 @@ test('case insert contextual controls expose migrated text block properties', ()
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
   assert.equal(controls.text?.size?.value, layout.scale)
   assert.equal(controls.text?.alignment?.value, 'center')
-  assert.deepEqual(controls.text?.unsupported, ['Bold', 'Italic', 'Underline'])
+  assert.equal(controls.text?.bold?.pressed, true)
+  assert.equal(controls.text?.italic?.pressed, false)
+  assert.equal(controls.text?.underline?.pressed, false)
+  assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.value, style.color)
   assert.equal(controls.art?.contrast?.value, style.contrast)
   assert.equal(controls.art?.backgroundEnabled?.checked, true)
@@ -139,6 +143,9 @@ test('case insert contextual controls expose migrated text block properties', ()
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Title')
 
   controls.text?.alignment?.onChange('right')
+  controls.text?.bold?.onChange(false)
+  controls.text?.italic?.onChange(true)
+  controls.text?.underline?.onChange(true)
   controls.art?.backgroundPadding?.onChange(1.8)
   controls.utilities?.width?.onChange(64)
   controls.utilities?.resetLayout?.()
@@ -149,6 +156,9 @@ test('case insert contextual controls expose migrated text block properties', ()
     'style-preset:metallic',
     'layout-preset:cover-top-center',
     'align:right',
+    'style:bold:false',
+    'style:italic:true',
+    'style:underline:true',
     'style:backgroundPadding:1.8',
     'layout:width:64',
     'reset-layout',
@@ -173,6 +183,7 @@ test('case insert contextual controls expose migrated text list properties', () 
   }
   const style = {
     ...createDefaultCaseInsertTextStyle('features'),
+    italic: true,
     backgroundEnabled: true,
     backgroundColor: '#202a36',
     backgroundOpacity: 0.45,
@@ -242,7 +253,10 @@ test('case insert contextual controls expose migrated text list properties', () 
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
   assert.equal(controls.text?.size?.value, layout.scale)
   assert.equal(controls.text?.alignment, undefined)
-  assert.deepEqual(controls.text?.unsupported, ['Bold', 'Italic', 'Underline'])
+  assert.equal(controls.text?.bold?.pressed, false)
+  assert.equal(controls.text?.italic?.pressed, true)
+  assert.equal(controls.text?.underline?.pressed, false)
+  assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.value, style.color)
   assert.equal(controls.art?.contrast?.value, style.contrast)
   assert.equal(controls.art?.backgroundEnabled?.checked, true)
@@ -262,6 +276,7 @@ test('case insert contextual controls expose migrated text list properties', () 
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Feature bullets')
 
   controls.art?.backgroundOpacity?.onChange(0.8)
+  controls.text?.italic?.onChange(false)
   controls.utilities?.respectVisualElements?.onChange(true)
   controls.utilities?.x?.onChange(44)
   controls.utilities?.resetLayout?.()
@@ -272,6 +287,7 @@ test('case insert contextual controls expose migrated text list properties', () 
     'style-preset:futuristic',
     'layout-preset:tray-center',
     'style:backgroundOpacity:0.8',
+    'style:italic:false',
     'avoid:true',
     'layout:x:44',
     'reset-layout',
@@ -296,6 +312,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
   }
   const style = {
     ...createDefaultCaseInsertTextStyle('spine'),
+    underline: true,
     backgroundEnabled: true,
     backgroundColor: '#0f172a',
     backgroundOpacity: 0.6,
@@ -389,7 +406,10 @@ test('case insert contextual controls expose migrated spine text properties', ()
   assert.equal(controls.text?.size?.max, 1.8)
   assert.equal(controls.text?.size?.value, layout.scale)
   assert.equal(controls.text?.alignment?.value, 'right')
-  assert.deepEqual(controls.text?.unsupported, ['Bold', 'Italic', 'Underline'])
+  assert.equal(controls.text?.bold?.pressed, false)
+  assert.equal(controls.text?.italic?.pressed, false)
+  assert.equal(controls.text?.underline?.pressed, true)
+  assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.value, style.color)
   assert.equal(controls.art?.contrast?.value, style.contrast)
   assert.equal(controls.art?.backgroundEnabled?.checked, true)
@@ -417,6 +437,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Right spine note')
 
   controls.text?.alignment?.onChange('center')
+  controls.text?.underline?.onChange(false)
   controls.art?.borderRadius?.onChange(1.1)
   controls.utilities?.respectVisualElements?.onChange(true)
   controls.utilities?.x?.onChange(-4.5)
@@ -429,6 +450,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
     'style-preset:horror',
     'layout-preset:spine-centered',
     'align:center',
+    'style:underline:false',
     'style:borderRadius:1.1',
     'avoid:true',
     'layout:x:-4.5',

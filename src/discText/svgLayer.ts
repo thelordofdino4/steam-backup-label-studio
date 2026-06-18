@@ -22,6 +22,8 @@ import {
   type TextMeasureFunction,
 } from './renderLayout.ts'
 import {
+  getDiscTextDecoration,
+  getDiscTextFontStyle,
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
 } from './styles.ts'
@@ -332,7 +334,9 @@ function buildTextStyleAttribute(
     `fill:${style.color}`,
     `font-family:${style.fontFamilyCss}`,
     `font-size:${fontSize}px`,
+    `font-style:${getDiscTextFontStyle(style)}`,
     `font-weight:${fontWeight}`,
+    `text-decoration:${getDiscTextDecoration(style)}`,
     typeof letterSpacing === 'number' ? `letter-spacing:${letterSpacing}px` : '',
     hasDiscTextShadow(style) ? `filter:url(#${shadowFilterId})` : '',
     'paint-order:stroke fill',
@@ -375,6 +379,7 @@ function buildCurvedCopyrightMarkup(
     renderStyle.fontWeight,
     fontSize,
     renderStyle.fontFamilyCanvas,
+    getDiscTextFontStyle(renderStyle),
   )
   const textRadius = Math.max(1, safeZoneRadiusPercent - layout.y * 0.18)
   const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x

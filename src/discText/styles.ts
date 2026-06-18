@@ -24,6 +24,9 @@ export type DiscTextContrastMode =
 export type DiscTextStyle = {
   fontFamily: DiscTextFontFamily
   color: string
+  bold: boolean
+  italic: boolean
+  underline: boolean
   contrast: DiscTextContrastMode
   backgroundEnabled: boolean
   backgroundColor: string
@@ -123,6 +126,9 @@ export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
     style: {
       fontFamily: 'trebuchet',
       color: '#f8fafc',
+      bold: false,
+      italic: false,
+      underline: false,
       contrast: 'strokeShadow',
       backgroundEnabled: true,
       backgroundColor: '#1e293b',
@@ -139,6 +145,9 @@ export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
     style: {
       fontFamily: 'system',
       color: '#67e8f9',
+      bold: false,
+      italic: false,
+      underline: false,
       contrast: 'shadow',
       backgroundEnabled: true,
       backgroundColor: '#031b2d',
@@ -155,6 +164,9 @@ export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
     style: {
       fontFamily: 'georgia',
       color: '#fecaca',
+      bold: false,
+      italic: false,
+      underline: false,
       contrast: 'strokeShadow',
       backgroundEnabled: true,
       backgroundColor: '#1f0507',
@@ -171,6 +183,9 @@ export const DISC_TEXT_STYLE_PRESETS: readonly DiscTextStylePreset[] = [
     style: {
       fontFamily: 'courier',
       color: '#fde68a',
+      bold: false,
+      italic: false,
+      underline: false,
       contrast: 'stroke',
       backgroundEnabled: true,
       backgroundColor: '#1c1917',
@@ -229,6 +244,9 @@ export function createDefaultDiscTextStyle(key: DiscTextKey): DiscTextStyle {
   return {
     fontFamily: DEFAULT_DISC_TEXT_FONT_FAMILY,
     color: DISC_TEXT_RENDER_STYLES[key].color,
+    bold: false,
+    italic: false,
+    underline: false,
     contrast: DEFAULT_DISC_TEXT_CONTRAST,
     backgroundEnabled: false,
     backgroundColor: DEFAULT_DISC_TEXT_BACKGROUND_COLOR,
@@ -262,6 +280,9 @@ export function normalizeDiscTextStyle(
         ? fontFamily
         : defaults.fontFamily,
     color: normalizeHexColor(style?.color, defaults.color),
+    bold: normalizeBoolean(style?.bold, defaults.bold),
+    italic: normalizeBoolean(style?.italic, defaults.italic),
+    underline: normalizeBoolean(style?.underline, defaults.underline),
     contrast:
       typeof contrast === 'string' && DISC_TEXT_CONTRAST_VALUES.has(contrast)
         ? contrast
@@ -354,12 +375,31 @@ export function getResolvedDiscTextRenderStyle(
   key: DiscTextKey,
   styles?: DiscTextStyleInput,
 ) {
+  const baseRenderStyle = DISC_TEXT_RENDER_STYLES[key]
   const style = normalizeDiscTextStyle(key, styles?.[key])
 
   return {
-    ...DISC_TEXT_RENDER_STYLES[key],
+    ...baseRenderStyle,
     ...style,
+    fontWeight: getDiscTextEffectiveFontWeight(baseRenderStyle.fontWeight, style),
     fontFamilyCss: getDiscTextFontFamilyCss(style.fontFamily),
     fontFamilyCanvas: getDiscTextFontFamilyCanvas(style.fontFamily),
   }
+}
+
+export function getDiscTextEffectiveFontWeight(
+  baseFontWeight: number,
+  style: Pick<DiscTextStyle, 'bold'>,
+) {
+  return style.bold
+    ? Math.min(950, Math.max(baseFontWeight + 120, 700))
+    : baseFontWeight
+}
+
+export function getDiscTextFontStyle(style: Pick<DiscTextStyle, 'italic'>) {
+  return style.italic ? 'italic' : 'normal'
+}
+
+export function getDiscTextDecoration(style: Pick<DiscTextStyle, 'underline'>) {
+  return style.underline ? 'underline' : 'none'
 }

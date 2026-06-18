@@ -8,7 +8,9 @@ import {
   CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
 } from '../caseInsert/defaultImportLayouts.ts'
 import {
+  getCaseInsertTextEffectiveFontWeight,
   getCaseInsertTextFontFamilyCanvas,
+  getCaseInsertTextFontStyle,
 } from '../caseInsert/textStyles.ts'
 import {
   getCaseInsertTextLayoutPaddingRatio,
@@ -458,7 +460,11 @@ function getSpineTextLocalVisualLayout({
       boundsLimit: localReservedBounds,
       fontFamily: getCaseInsertTextFontFamilyCanvas(title.style.fontFamily),
       fontSizePx,
-      fontWeight: isTitleText ? 800 : 600,
+      fontStyle: getCaseInsertTextFontStyle(title.style),
+      fontWeight: getCaseInsertTextEffectiveFontWeight(
+        isTitleText ? 800 : 600,
+        title.style,
+      ),
       lineHeightPx: fontSizePx * 1.1,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(title.style),

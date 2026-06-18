@@ -65,6 +65,29 @@ test('case insert editable bounds hug visible text instead of the reserved box',
   assert.ok(layout.bounds.width < reservedBounds.width / 2)
 })
 
+test('case insert visual layout measures with the emphasized font string', () => {
+  const measuredFonts: string[] = []
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    fontFamily: 'Georgia, serif',
+    fontSizePx: 10,
+    fontStyle: 'italic',
+    fontWeight: 820,
+    lineHeightPx: 12,
+    measureText: (_text, font) => {
+      measuredFonts.push(font)
+
+      return 5
+    },
+    paddingRatio: 0,
+    text: 'HELLO',
+    verticalAlign: 'top',
+  })
+
+  assert.equal(layout.font, 'italic 820 10px Georgia, serif')
+  assert.ok(measuredFonts.every((font) => font === layout.font))
+})
+
 test('case insert editable bounds keep a visible minimum box for empty text', () => {
   const layout = getCaseInsertTextVisualLayout(reservedBounds, {
     align: 'left',

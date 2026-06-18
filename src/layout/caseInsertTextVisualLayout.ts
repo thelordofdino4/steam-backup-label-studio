@@ -38,6 +38,7 @@ export type CaseInsertTextVisualLayoutOptions = {
   boundsLimit?: JewelCasePixelRect
   fontFamily?: string
   fontSizePx: number
+  fontStyle?: 'normal' | 'italic'
   fontWeight?: number
   lineHeightPx: number
   maxAvoidanceExtraLines?: number
@@ -242,8 +243,11 @@ export function getCaseInsertTextFontString(
   fontWeight: number,
   fontSizePx: number,
   fontFamily = FALLBACK_FONT_STACK,
+  fontStyle = 'normal',
 ) {
-  return `${fontWeight} ${fontSizePx}px ${fontFamily}`
+  const fontStylePrefix = fontStyle === 'italic' ? 'italic ' : ''
+
+  return `${fontStylePrefix}${fontWeight} ${fontSizePx}px ${fontFamily}`
 }
 
 export function getCaseInsertTextPaddingPx(
@@ -690,6 +694,7 @@ export function getCaseInsertTextVisualLayout(
     fontWeight,
     options.fontSizePx,
     options.fontFamily,
+    options.fontStyle,
   )
   const padding = getCaseInsertTextPaddingPx(
     options.fontSizePx,
