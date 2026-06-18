@@ -3,6 +3,13 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import test from 'node:test'
+import type { ContextualTextControlId } from '../text/contextualTextControlViewModel.ts'
+import { createDefaultDiscTextLayout } from './index.ts'
+import {
+  getDiscTextSidebarException,
+  getDiscTextSidebarTargetCapabilityId,
+  shouldShowDiscTextSidebarControl,
+} from './sidebarControlPolicy.ts'
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(testDir))
@@ -21,6 +28,93 @@ function getSourceBetween(source: string, startText: string, endText: string) {
   return source.slice(start, end)
 }
 
+test('straight disc sidebar policy omits contextual controls and keeps exceptions', () => {
+  const layout = createDefaultDiscTextLayout('none')
+  const migratedControlIds = [
+    'stylePreset',
+    'layoutPreset',
+    'fontFamily',
+    'size',
+    'alignment',
+    'bold',
+    'italic',
+    'underline',
+    'color',
+    'contrast',
+    'backgroundEnabled',
+    'backgroundColor',
+    'backgroundOpacity',
+    'backgroundPadding',
+    'borderEnabled',
+    'borderColor',
+    'borderRadius',
+    'respectVisualElements',
+    'width',
+    'x',
+    'y',
+    'resetStyle',
+    'resetLayout',
+    'htmlSource',
+    'delete',
+  ] as const satisfies readonly ContextualTextControlId[]
+  const sidebarExceptionControlIds = [
+    'mode',
+    'arcSide',
+    'arcDegrees',
+  ] as const satisfies readonly ContextualTextControlId[]
+
+  assert.equal(
+    getDiscTextSidebarTargetCapabilityId('title', layout.title),
+    'straightDiscText',
+  )
+  assert.equal(getDiscTextSidebarException('title', layout.title), undefined)
+  for (const controlId of migratedControlIds) {
+    assert.equal(
+      shouldShowDiscTextSidebarControl({
+        controlId,
+        key: 'title',
+        layout: layout.title,
+      }),
+      false,
+      `${controlId} should move out of the straight disc sidebar`,
+    )
+  }
+  for (const controlId of sidebarExceptionControlIds) {
+    assert.equal(
+      shouldShowDiscTextSidebarControl({
+        controlId,
+        key: 'title',
+        layout: layout.title,
+      }),
+      true,
+      `${controlId} should remain available when a sidebar path owns it`,
+    )
+  }
+
+  assert.equal(
+    getDiscTextSidebarTargetCapabilityId('copyright', layout.copyright),
+    'curvedDiscCopyrightText',
+  )
+  assert.match(
+    getDiscTextSidebarException('copyright', layout.copyright) ?? '',
+    /SVG\/textPath/,
+  )
+  for (const controlId of [
+    ...migratedControlIds,
+    ...sidebarExceptionControlIds,
+  ]) {
+    assert.equal(
+      shouldShowDiscTextSidebarControl({
+        controlId,
+        key: 'copyright',
+        layout: layout.copyright,
+      }),
+      true,
+      `${controlId} should stay in the curved copyright sidebar exception`,
+    )
+  }
+})
+
 test('straight disc sidebar keeps entry and source controls without migrated style/layout duplicates', () => {
   const control = readRepoFile('src/components/sidebar/DiscTextControl.tsx')
   const straightPreviewControls = getSourceBetween(
@@ -31,6 +125,9 @@ test('straight disc sidebar keeps entry and source controls without migrated sty
 
   assert.match(straightPreviewControls, /Edit in preview/)
   assert.match(straightPreviewControls, /handleDiscTextPreviewEditStart\(key\)/)
+  assert.match(control, /getDiscTextSidebarTargetCapability/)
+  assert.match(control, /shouldShowDiscTextSidebarControl/)
+  assert.match(control, /sidebarTarget\.supportsContextualEditor/)
   assert.match(control, /selectedDiscTextKey/)
   assert.match(control, /Using Game metadata\/default/)
   assert.match(control, /Use Game metadata value/)
@@ -103,9 +200,9 @@ test('curved copyright keeps its sidebar exception and SVG textPath path', () =>
   const editor = readRepoFile('src/components/preview/DiscInlineTextEditorLayer.tsx')
   const svgLayer = readRepoFile('src/discText/svgLayer.ts')
 
-  assert.match(control, /shouldShowSidebarTextValue\s*=\s*isCurvedCopyright/)
+  assert.match(control, /getDiscTextSidebarException/)
   assert.match(control, /Curved text value/)
-  assert.match(control, /Curved-text exception/)
+  assert.match(control, /\{sidebarException\}/)
   assert.match(control, />Mode</)
   assert.match(control, /curved style controls/)
   assert.match(control, /curved placement controls/)

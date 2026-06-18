@@ -217,11 +217,16 @@ test('curved disc text is not routed through a visible rectangular editor layer'
 
 test('disc sidebar text value is limited to the curved text exception', () => {
   const control = readRepoFile('src/components/sidebar/DiscTextControl.tsx')
+  const policy = readRepoFile('src/discText/sidebarControlPolicy.ts')
   const panel = readRepoFile('src/components/sidebar/TextPanel.tsx')
 
-  assert.match(control, /shouldShowSidebarTextValue\s*=\s*isCurvedCopyright/)
+  assert.match(control, /getDiscTextSidebarException/)
+  assert.match(control, /sidebarTarget\.supportsContextualEditor/)
   assert.match(control, /Curved text value/)
-  assert.match(control, /Curved-text exception/)
+  assert.match(control, /\{sidebarException\}/)
+  assert.match(policy, /curvedDiscCopyrightText/)
+  assert.match(policy, /supportsContextualEditor/)
+  assert.match(policy, /hasContextualTextControlEquivalent/)
   assert.doesNotMatch(control, />\s*Text value\s*</)
   assert.match(panel, /Straight text is edited on the preview/)
   assert.match(panel, /Curved copyright text remains SVG\/textPath based/)
