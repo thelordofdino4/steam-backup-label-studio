@@ -468,7 +468,7 @@ function CaseInsertTemplateTextBlock({
     brandingSources.projectMetadata,
   )
   const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
-  const layoutTextBlock = isSelected
+  const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
   const textAvoidanceRegions = avoidanceRegions.filter(
@@ -591,7 +591,7 @@ function CaseInsertTemplateTextBlock({
               : editValue
           }
           controls={editorControls}
-          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
+          inputMode="adapter"
           lines={textLayout.lines}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
@@ -753,7 +753,7 @@ function CaseInsertTemplateTextList({
           ariaLabel={`Edit ${textList.label}`}
           caretValue={editValue}
           controls={editorControls}
-          inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
+          inputMode="adapter"
           lines={textListLayout.lines}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}

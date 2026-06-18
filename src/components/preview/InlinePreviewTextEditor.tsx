@@ -13,6 +13,9 @@ import { createPortal } from 'react-dom'
 import {
   isInlinePreviewTextSelectAllShortcut,
 } from './inlinePreviewTextEditorInput'
+import {
+  getInlinePreviewHtmlSourceDraftStatus,
+} from './inlinePreviewTextEditorSource'
 import { TrashIcon } from '../sidebar/PanelIcons'
 import {
   getInlinePreviewTextCaretIndexForLineOffset,
@@ -465,6 +468,108 @@ function renderInlinePreviewTextCheckboxControl(
   )
 }
 
+function renderInlinePreviewHtmlSourceControl({
+  control,
+  sourceDraftIdentity,
+  sourceInitialValue,
+  sourceMode,
+  onSourceDraftChange,
+  onSourceDraftCommit,
+}: {
+  control: InlinePreviewTextEditorCheckboxControl | undefined
+  sourceDraftIdentity: string
+  sourceInitialValue: string
+  sourceMode: boolean
+  onSourceDraftChange: (value: string) => void
+  onSourceDraftCommit: () => void
+}) {
+  if (!control) return null
+
+  return (
+    <div className="inline-preview-text-source-control">
+      <label className="inline-preview-text-checkbox-field">
+        <input
+          type="checkbox"
+          checked={control.checked}
+          onChange={(event) => {
+            const checked = event.target.checked
+            if (!checked) {
+              onSourceDraftCommit()
+            }
+            control.onChange(checked)
+          }}
+        />
+        <span>{control.label}</span>
+      </label>
+      {sourceMode ? (
+        <InlinePreviewHtmlSourceTextarea
+          key={sourceDraftIdentity}
+          initialValue={sourceInitialValue}
+          onDraftChange={onSourceDraftChange}
+        />
+      ) : null}
+    </div>
+  )
+}
+
+function InlinePreviewHtmlSourceTextarea({
+  initialValue,
+  onDraftChange,
+}: {
+  initialValue: string
+  onDraftChange: (value: string) => void
+}) {
+  const initialStatus = getInlinePreviewHtmlSourceDraftStatus(initialValue)
+  const [draft, setDraft] = useState(initialValue)
+  const [message, setMessage] = useState(initialStatus.message)
+
+  const handleChange = (nextDraft: string) => {
+    setDraft(nextDraft)
+    setMessage(getInlinePreviewHtmlSourceDraftStatus(nextDraft).message)
+    onDraftChange(nextDraft)
+  }
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    event.stopPropagation()
+
+    if (!isInlinePreviewTextSelectAllShortcut(event)) {
+      return
+    }
+
+    event.preventDefault()
+    event.currentTarget.select()
+  }
+
+  return (
+    <>
+      <label className="inline-preview-text-source-field">
+        <span>Source</span>
+        <textarea
+          aria-label="HTML source editor"
+          className="inline-preview-text-source-textarea"
+          value={draft}
+          spellCheck={false}
+          onChange={(event) => handleChange(event.target.value)}
+          onClick={stopInlineTextEditorClick}
+          onKeyDown={handleKeyDown}
+          onKeyUp={(event) => event.stopPropagation()}
+          onPaste={(event) => event.stopPropagation()}
+          onCopy={(event) => event.stopPropagation()}
+          onCut={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+          onSelect={(event) => event.stopPropagation()}
+        />
+      </label>
+      {message ? (
+        <p className="inline-preview-text-source-message">
+          {message}
+        </p>
+      ) : null}
+    </>
+  )
+}
+
 function renderInlinePreviewTextToggleControl(
   control: InlinePreviewTextEditorToggleControl | undefined,
 ) {
@@ -509,9 +614,19 @@ function renderInlinePreviewTextColorControl(
 function InlinePreviewTextEditorMenuContent({
   activeTab,
   controls,
+  sourceDraftIdentity,
+  sourceInitialValue,
+  sourceMode,
+  onSourceDraftChange,
+  onSourceDraftCommit,
 }: {
   activeTab: InlinePreviewTextEditorTab
   controls?: InlinePreviewTextEditorControls
+  sourceDraftIdentity: string
+  sourceInitialValue: string
+  sourceMode: boolean
+  onSourceDraftChange: (value: string) => void
+  onSourceDraftCommit: () => void
 }) {
   if (!controls) {
     return (
@@ -603,7 +718,14 @@ function InlinePreviewTextEditorMenuContent({
       {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.mode)}
-      {renderInlinePreviewTextCheckboxControl(controls.utilities?.htmlSource)}
+      {renderInlinePreviewHtmlSourceControl({
+        control: controls.utilities?.htmlSource,
+        sourceDraftIdentity,
+        sourceInitialValue,
+        sourceMode,
+        onSourceDraftChange,
+        onSourceDraftCommit,
+      })}
       {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
       {controls.utilities?.resetLayout ? (
@@ -1161,6 +1283,23 @@ export function InlinePreviewTextEditor({
     )
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
+  const sourceDraftIdentity = sourceMode
+    ? `${targetKey}:html-source`
+    : `${targetKey}:wysiwyg`
+
+  const updateSourceDraft = (nextDraft: string) => {
+    onValueChange(nextDraft)
+  }
+
+  const commitSourceDraft = () => {
+    if (sourceMode) {
+      const sourceTextarea =
+        menuRef.current?.querySelector<HTMLTextAreaElement>(
+          '.inline-preview-text-source-textarea',
+        )
+      onValueChange(sourceTextarea?.value ?? value)
+    }
+  }
 
   const isInlineControlElement = (target: EventTarget | null) => {
     if (!(target instanceof Node)) {
@@ -1249,7 +1388,7 @@ export function InlinePreviewTextEditor({
   useEffect(() => {
     const textarea = textareaRef.current
 
-    if (!textarea) {
+    if (!textarea || sourceMode) {
       return
     }
 
@@ -1258,7 +1397,7 @@ export function InlinePreviewTextEditor({
     adapterSelectionAnchorRef.current = textarea.value.length
     adapterSelectionPointerIdRef.current = null
     setSelection(getCollapsedSelectionState(textarea.value.length))
-  }, [targetKey])
+  }, [sourceMode, targetKey])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
@@ -1740,6 +1879,11 @@ export function InlinePreviewTextEditor({
         <InlinePreviewTextEditorMenuContent
           activeTab={activeTab}
           controls={editorControls}
+          sourceDraftIdentity={sourceDraftIdentity}
+          sourceInitialValue={value}
+          sourceMode={sourceMode}
+          onSourceDraftChange={updateSourceDraft}
+          onSourceDraftCommit={commitSourceDraft}
         />
         <div className="inline-preview-text-menu-actions">
           {deleteAction ? (
@@ -1763,6 +1907,7 @@ export function InlinePreviewTextEditor({
           className="secondary-button inline-preview-text-done-button"
           onClick={(event) => {
             event.stopPropagation()
+            commitSourceDraft()
             onDone()
           }}
           onPointerDown={keepInlineTextEditorFocus}
@@ -1785,7 +1930,6 @@ export function InlinePreviewTextEditor({
         inputMode === 'adapter'
           ? 'inline-preview-textarea--adapter'
           : '',
-        sourceMode ? 'inline-preview-textarea--source' : '',
       ].filter(Boolean).join(' ')}
       value={value}
       spellCheck={false}
@@ -1813,9 +1957,11 @@ export function InlinePreviewTextEditor({
 
   return (
     <>
-      {inputMode === 'adapter' && typeof document !== 'undefined'
-        ? createPortal(textareaElement, document.body)
-        : textareaElement}
+      {!sourceMode ? (
+        inputMode === 'adapter' && typeof document !== 'undefined'
+          ? createPortal(textareaElement, document.body)
+          : textareaElement
+      ) : null}
       {!sourceMode ? selectionFrames.map((frame, index) => (
         <span
           key={`${index}-${frame.left}-${frame.width}`}

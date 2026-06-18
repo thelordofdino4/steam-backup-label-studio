@@ -645,7 +645,7 @@ export function DiscInlineTextEditorLayer({
               caretValue={editValue}
               controls={controls}
               geometryLines={geometryLines}
-              inputMode={isHtmlSourceEditing ? 'overlay' : 'adapter'}
+              inputMode="adapter"
               lines={renderLayout.lines}
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}

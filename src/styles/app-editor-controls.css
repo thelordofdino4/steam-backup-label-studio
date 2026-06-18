@@ -193,10 +193,6 @@
     0 0 0 4px rgba(42, 171, 226, 0.1);
 }
 
-.inline-preview-text-host.is-html-source .case-insert-text-render-content {
-  visibility: hidden;
-}
-
 .inline-preview-textarea {
   position: absolute;
   inset: 0;
@@ -236,23 +232,6 @@
   height: 1px;
   opacity: 0;
   pointer-events: none;
-}
-
-.inline-preview-textarea--source {
-  padding: 6px 8px;
-  overflow: auto;
-  border: 1px solid rgba(42, 171, 226, 0.72);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.94);
-  color: #0f172a;
-  caret-color: #2aabe2;
-  font-family: "Cascadia Mono", "Consolas", monospace;
-  text-transform: none;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  -webkit-text-fill-color: #0f172a;
-  -webkit-text-stroke-color: transparent;
-  -webkit-text-stroke-width: 0;
 }
 
 .inline-preview-text-selection {
@@ -441,6 +420,57 @@
   width: 18px;
   height: 18px;
   accent-color: #60a5fa;
+}
+
+.inline-preview-text-source-control {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.inline-preview-text-source-field {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.inline-preview-text-source-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 116px;
+  max-height: 172px;
+  padding: 8px 9px;
+  overflow: auto;
+  border: 1px solid rgba(96, 165, 250, 0.68);
+  border-radius: 8px;
+  background: #0f1117;
+  color: #f9fafb;
+  caret-color: #2aabe2;
+  font-family: "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  resize: vertical;
+  scrollbar-width: thin;
+  text-transform: none;
+  white-space: pre;
+}
+
+.inline-preview-text-source-textarea:focus {
+  border-color: #60a5fa;
+  outline: 2px solid rgba(96, 165, 250, 0.34);
+  outline-offset: 1px;
+}
+
+.inline-preview-text-source-message {
+  margin: 0;
+  color: #fbbf24;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
 }
 
 .inline-preview-text-preset-list,

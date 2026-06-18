@@ -736,6 +736,7 @@ function App() {
         currentCaseInsert,
         target,
         contentMode,
+        projectMetadata,
       ))
   }
 
