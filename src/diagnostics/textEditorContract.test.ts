@@ -43,6 +43,9 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /InlinePreviewTextEditorMenuContent/)
   assert.match(source, /deleteAction/)
   assert.match(source, /Markdown planned/)
+  assert.match(source, /controls\.presets\?\.style/)
+  assert.match(source, /controls\.presets\?\.layout/)
+  assert.doesNotMatch(source, /inline-preview-text-preset-list/)
   assert.match(source, /unsupported\?:\s*readonly string\[\]/)
   assert.match(source, /controls\.text\.unsupported/)
   assert.match(source, /\{label\} unsupported/)
@@ -115,7 +118,11 @@ test('contextual text editor shell keeps tab and menu sizing stable', () => {
   )
   assert.match(
     css,
-    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(286px,\s*calc\(100vh - 32px\)\)/s,
+    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(\s*286px,\s*calc\(100vh - 32px\),\s*var\(--inline-preview-text-menu-max-height,\s*calc\(100vh - 32px\)\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\s*\{[^}]*min-height:\s*min\(\s*178px,\s*var\(--inline-preview-text-menu-max-height,\s*178px\)/s,
   )
   assert.match(
     css,
@@ -143,6 +150,10 @@ test('case insert inline editing uses the adapter input path', () => {
   assert.match(templateLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(spineLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(previewControls, /CASE_INSERT_TEXT_STYLE_PRESETS/)
+  assert.match(previewControls, /layoutPresets\?:\s*readonly CaseInsertTextLayoutPreset\[\]/)
+  assert.match(previewControls, /onApplyLayoutPreset/)
+  assert.match(previewControls, /label:\s*'Style preset'/)
+  assert.match(previewControls, /label:\s*'Layout preset'/)
   assert.match(previewControls, /CASE_INSERT_TEXT_FONT_OPTIONS/)
   assert.match(previewControls, /CASE_INSERT_TEXT_CONTRAST_OPTIONS/)
   assert.match(previewControls, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)

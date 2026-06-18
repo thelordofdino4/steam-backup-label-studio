@@ -26,6 +26,9 @@ import {
   getCaseInsertTextFontFamilyCss,
 } from '../../caseInsert/textStyles'
 import {
+  getCaseInsertTextBlockLayoutPresets,
+} from '../../caseInsert/textLayout'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -191,15 +194,6 @@ function getTransformedBoxStyle(
   }
 }
 
-function getInlineTextMenuPlacement(
-  textBounds: JewelCasePixelRect,
-  layout: CaseInsertPreviewLayout,
-) {
-  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
-    ? 'above'
-    : 'below'
-}
-
 function CaseInsertSpineBackground({
   side,
   slot,
@@ -335,6 +329,10 @@ function CaseInsertSpineTextBlock({
         handlers: previewTextControlHandlers,
         label: renderedTextBlock.label,
         layout: layoutTextBlock.layout,
+        layoutPresets: getCaseInsertTextBlockLayoutPresets(
+          'spine',
+          layoutTextBlock,
+        ),
         scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
         scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
         style: layoutTextBlock.style,
@@ -432,10 +430,7 @@ function CaseInsertSpineTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}
-          menuPlacement={getInlineTextMenuPlacement(
-            titleLayout.boundingRect,
-            layout,
-          )}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>

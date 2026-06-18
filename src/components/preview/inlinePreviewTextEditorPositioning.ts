@@ -29,6 +29,7 @@ export type InlinePreviewTextControlSizes = {
 export type InlinePreviewTextControlLayout = {
   menu: {
     left: number
+    maxHeight: number
     maxWidth: number
     placement: InlinePreviewTextEditorMenuPlacement
     top: number
@@ -95,37 +96,36 @@ function clampTopInsidePreview(
   )
 }
 
-function getMenuPlacement({
-  anchor,
+function getPreferredMenuPlacement({
+  aboveAvailableHeight,
+  belowAvailableHeight,
+  menuHeight,
   requestedPlacement,
-  menuSize,
-  previewRect,
 }: {
-  anchor: InlinePreviewTextAnchor
+  aboveAvailableHeight: number
+  belowAvailableHeight: number
+  menuHeight: number
   requestedPlacement: InlinePreviewTextEditorMenuPlacement
-  menuSize: InlinePreviewTextSize
-  previewRect: InlinePreviewTextRect
 }) {
-  const belowTop = anchor.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP
-  const aboveTop = anchor.top - menuSize.height - INLINE_PREVIEW_TEXT_CONTROL_GAP
+  const hasRoomBelow = belowAvailableHeight >= menuHeight
+  const hasRoomAbove = aboveAvailableHeight >= menuHeight
 
-  if (
-    requestedPlacement === 'below' &&
-    belowTop + menuSize.height > previewRect.bottom &&
-    aboveTop >= previewRect.top
-  ) {
+  if (requestedPlacement === 'below') {
+    if (hasRoomBelow) return 'below'
+    if (hasRoomAbove) return 'above'
+
+    return belowAvailableHeight >= aboveAvailableHeight ? 'below' : 'above'
+  }
+
+  if (hasRoomAbove) {
     return 'above'
   }
 
-  if (
-    requestedPlacement === 'above' &&
-    aboveTop < previewRect.top &&
-    belowTop + menuSize.height <= previewRect.bottom
-  ) {
+  if (hasRoomBelow) {
     return 'below'
   }
 
-  return requestedPlacement
+  return aboveAvailableHeight >= belowAvailableHeight ? 'above' : 'below'
 }
 
 export function getInlinePreviewTextControlLayout({
@@ -150,24 +150,37 @@ export function getInlinePreviewTextControlLayout({
     sizes.tabs,
     previewRect,
   )
-  const menuPlacement = getMenuPlacement({
-    anchor,
-    requestedPlacement: requestedMenuPlacement,
-    menuSize: sizes.menu,
-    previewRect,
-  })
-  const requestedMenuTop =
-    menuPlacement === 'below'
-      ? anchor.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP
-      : anchor.top - sizes.menu.height - INLINE_PREVIEW_TEXT_CONTROL_GAP
   const menuLeft = clampLeftInsidePreview(
     anchor.centerX - sizes.menu.width / 2,
     sizes.menu,
     previewRect,
   )
+  const belowMenuTop = anchor.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP
+  const belowAvailableHeight = Math.max(0, previewRect.bottom - belowMenuTop)
+  const aboveAvailableHeight = Math.max(
+    0,
+    tabsTop - INLINE_PREVIEW_TEXT_CONTROL_GAP - previewRect.top,
+  )
+  const menuPlacement = getPreferredMenuPlacement({
+    aboveAvailableHeight,
+    belowAvailableHeight,
+    menuHeight: sizes.menu.height,
+    requestedPlacement: requestedMenuPlacement,
+  })
+  const menuMaxHeight = Math.max(
+    1,
+    menuPlacement === 'below'
+      ? belowAvailableHeight
+      : aboveAvailableHeight,
+  )
+  const menuLayoutHeight = Math.min(sizes.menu.height, menuMaxHeight)
+  const requestedMenuTop =
+    menuPlacement === 'below'
+      ? belowMenuTop
+      : tabsTop - INLINE_PREVIEW_TEXT_CONTROL_GAP - menuLayoutHeight
   const menuTop = clampTopInsidePreview(
     requestedMenuTop,
-    sizes.menu,
+    { ...sizes.menu, height: menuLayoutHeight },
     previewRect,
   )
   const moveHandleLeft = clampLeftInsidePreview(
@@ -184,6 +197,7 @@ export function getInlinePreviewTextControlLayout({
   return {
     menu: {
       left: menuLeft,
+      maxHeight: menuMaxHeight,
       maxWidth: previewWidth,
       placement: menuPlacement,
       top: menuTop,

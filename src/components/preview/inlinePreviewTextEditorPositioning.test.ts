@@ -48,6 +48,7 @@ test('inline text controls use normal below-text placement when there is room', 
   })
   assert.deepEqual(layout.menu, {
     left: 110,
+    maxHeight: 162,
     maxWidth: 300,
     placement: 'below',
     top: 138,
@@ -58,7 +59,7 @@ test('inline text controls use normal below-text placement when there is room', 
   })
 })
 
-test('inline text menu flips upward before overflowing the preview bottom', () => {
+test('inline text menu flips above the tab strip before overflowing the preview bottom', () => {
   const layout = getInlinePreviewTextControlLayout({
     anchor: createAnchor({
       bottom: 286,
@@ -74,7 +75,29 @@ test('inline text menu flips upward before overflowing the preview bottom', () =
   })
 
   assert.equal(layout.menu.placement, 'above')
-  assert.equal(layout.menu.top, 202)
+  assert.equal(layout.menu.top, 170)
+  assert.equal(layout.menu.maxHeight, 210)
+  assert.ok(layout.menu.top + 40 <= layout.tabs.top - 8)
+})
+
+test('inline text menu and tabs do not overlap in upward placement', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 292,
+      centerY: 271,
+      top: 250,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes: {
+      ...sizes,
+      menu: { height: 88, width: 90 },
+      tabs: { height: 34, width: 130 },
+    },
+  })
+
+  assert.equal(layout.menu.placement, 'above')
+  assert.ok(layout.menu.top + 88 <= layout.tabs.top - 8)
 })
 
 test('inline text controls clamp leftward before crossing the right edge', () => {
@@ -132,6 +155,7 @@ test('inline text controls keep a narrow preview fallback inside the preview ori
   assert.equal(layout.tabs.left, narrowPreviewRect.left)
   assert.equal(layout.tabs.maxWidth, 40)
   assert.equal(layout.menu.left, narrowPreviewRect.left)
+  assert.equal(layout.menu.maxHeight, 12)
   assert.equal(layout.menu.maxWidth, 40)
   assert.equal(layout.moveHandle.left, narrowPreviewRect.left)
   assert.ok(layout.tabs.top >= narrowPreviewRect.top)
@@ -194,6 +218,7 @@ test('inline text controls follow when selected text bounds change', () => {
   })
   assert.deepEqual(layout.menu, {
     left: 110,
+    maxHeight: 127,
     maxWidth: 300,
     placement: 'below',
     top: 173,
@@ -225,7 +250,100 @@ test('inline text controls clamp after following a moved selection', () => {
   assert.equal(layout.tabs.left, 160)
   assert.equal(layout.menu.left, 180)
   assert.equal(layout.menu.placement, 'above')
-  assert.equal(layout.menu.top, 202)
+  assert.equal(layout.menu.top, 170)
   assert.equal(layout.moveHandle.left, 260)
   assert.equal(layout.moveHandle.top, 256)
+})
+
+test('inline text menu shrinks inside the preview when neither vertical side has full room', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 115,
+      centerY: 97.5,
+      top: 80,
+    }),
+    previewRect: {
+      bottom: 170,
+      left: 0,
+      right: 300,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 178, width: 180 },
+      moveHandle: sizes.moveHandle,
+      tabs: { height: 46, width: 180 },
+    },
+  })
+
+  assert.equal(layout.menu.placement, 'below')
+  assert.equal(layout.menu.top, 123)
+  assert.equal(layout.menu.maxHeight, 47)
+  assert.ok(layout.menu.top + layout.menu.maxHeight <= 170)
+})
+
+test('inline text controls clamp for the right spine edge case', () => {
+  const rightSpinePreviewRect: InlinePreviewTextRect = {
+    bottom: 900,
+    left: 320,
+    right: 1580,
+    top: 0,
+  }
+  const rightSpineSizes: InlinePreviewTextControlSizes = {
+    menu: { height: 178, width: 520 },
+    moveHandle: { height: 32, width: 60 },
+    tabs: { height: 46, width: 520 },
+  }
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 862,
+      centerX: 1570,
+      centerY: 691,
+      right: 1578,
+      top: 520,
+    }),
+    previewRect: rightSpinePreviewRect,
+    requestedMenuPlacement: 'below',
+    sizes: rightSpineSizes,
+  })
+
+  assert.equal(layout.tabs.left, 1060)
+  assert.equal(layout.menu.left, 1060)
+  assert.equal(layout.tabs.left + rightSpineSizes.tabs.width, 1580)
+  assert.equal(layout.menu.left + rightSpineSizes.menu.width, 1580)
+  assert.equal(layout.menu.placement, 'above')
+  assert.ok(layout.menu.top + rightSpineSizes.menu.height <= layout.tabs.top - 8)
+})
+
+test('inline text controls use straight-disc preview coordinates without page offsets', () => {
+  const discPreviewRect: InlinePreviewTextRect = {
+    bottom: 1200,
+    left: 320,
+    right: 1600,
+    top: 0,
+  }
+  const discSizes: InlinePreviewTextControlSizes = {
+    menu: { height: 178, width: 520 },
+    moveHandle: { height: 32, width: 60 },
+    tabs: { height: 46, width: 520 },
+  }
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 455,
+      centerX: 960,
+      centerY: 438.5,
+      right: 1160,
+      top: 422,
+    }),
+    previewRect: discPreviewRect,
+    requestedMenuPlacement: 'below',
+    sizes: discSizes,
+  })
+
+  assert.equal(layout.tabs.left, 700)
+  assert.equal(layout.tabs.top, 368)
+  assert.equal(layout.menu.left, 700)
+  assert.equal(layout.menu.placement, 'below')
+  assert.equal(layout.menu.top, 463)
+  assert.equal(layout.menu.maxWidth, 1280)
 })

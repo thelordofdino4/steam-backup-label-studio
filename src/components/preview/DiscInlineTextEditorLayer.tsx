@@ -32,6 +32,10 @@ import {
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
 } from '../../discText/styles'
+import {
+  getDiscTextLayoutPresetsForKey,
+  type DiscTextLayoutPreset,
+} from '../../layout/presets'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
   InlinePreviewTextEditor,
@@ -104,6 +108,79 @@ const TEXT_ALIGNMENT_OPTIONS = [
   { value: 'right', label: 'Right' },
 ] as const
 
+const CUSTOM_PRESET_OPTION = { label: 'Custom', value: 'custom' } as const
+
+function numericValuesMatch(first: number | undefined, second: number) {
+  return typeof first === 'number' && Math.abs(first - second) < 0.001
+}
+
+function getMatchingDiscStylePreset(style: DiscTextStyleSettings[DiscTextKey]) {
+  return DISC_TEXT_STYLE_PRESETS.find((preset) =>
+    Object.entries(preset.style).every(([field, value]) =>
+      style[field as keyof DiscTextStyleSettings[DiscTextKey]] === value),
+  )
+}
+
+function getMatchingDiscLayoutPreset({
+  layout,
+  layoutPresets,
+}: {
+  layout: DiscTextLayout
+  layoutPresets: readonly DiscTextLayoutPreset[]
+}) {
+  return layoutPresets.find((preset) => {
+    if (preset.layout.align && preset.layout.align !== layout.align) {
+      return false
+    }
+
+    if (preset.layout.mode && preset.layout.mode !== layout.mode) {
+      return false
+    }
+
+    return (['x', 'y', 'width', 'scale', 'arcDegrees'] as const).every(
+      (field) =>
+        typeof preset.layout[field] === 'number'
+          ? numericValuesMatch(preset.layout[field], layout[field])
+          : true,
+    )
+  })
+}
+
+function applyDiscTextLayoutPreset({
+  key,
+  layoutPreset,
+  onDiscTextAlignmentChange,
+  onDiscTextLayoutChange,
+}: {
+  key: DiscTextKey
+  layoutPreset: DiscTextLayoutPreset
+  onDiscTextAlignmentChange: (
+    key: DiscTextKey,
+    alignment: DiscTextAlignment,
+  ) => void
+  onDiscTextLayoutChange: (
+    key: DiscTextKey,
+    field: DiscTextLayoutNumericField,
+    value: number,
+  ) => void
+}) {
+  if (typeof layoutPreset.layout.x === 'number') {
+    onDiscTextLayoutChange(key, 'x', layoutPreset.layout.x)
+  }
+  if (typeof layoutPreset.layout.y === 'number') {
+    onDiscTextLayoutChange(key, 'y', layoutPreset.layout.y)
+  }
+  if (typeof layoutPreset.layout.width === 'number') {
+    onDiscTextLayoutChange(key, 'width', layoutPreset.layout.width)
+  }
+  if (typeof layoutPreset.layout.scale === 'number') {
+    onDiscTextLayoutChange(key, 'scale', layoutPreset.layout.scale)
+  }
+  if (layoutPreset.layout.align) {
+    onDiscTextAlignmentChange(key, layoutPreset.layout.align)
+  }
+}
+
 function getDiscInlineEditorRawValue(key: DiscTextKey, value: string) {
   const prefix = DISC_TEXT_RENDERED_PREFIXES[key]
 
@@ -132,10 +209,6 @@ function getDiscInlineEditorBounds(
     ),
     halfHeight: renderLayout.lineHeight / 2,
   }
-}
-
-function getDiscInlineEditorMenuPlacement(bounds: DiscInlineEditorBounds) {
-  return bounds.centerY + bounds.halfHeight + 18 > 100 ? 'above' : 'below'
 }
 
 function createDiscInlineTextEditorControls({
@@ -179,13 +252,63 @@ function createDiscInlineTextEditorControls({
   ) => void
   onResetDiscTextLayout: (key: DiscTextKey) => void
 }): InlinePreviewTextEditorControls {
+  const layoutPresets = getDiscTextLayoutPresetsForKey(key)
+    .filter((preset) => preset.layout.mode !== 'curved')
+  const matchingStylePreset = getMatchingDiscStylePreset(style)
+  const matchingLayoutPreset = getMatchingDiscLayoutPreset({
+    layout,
+    layoutPresets,
+  })
+
   return {
     presets: {
-      options: DISC_TEXT_STYLE_PRESETS.map(({ id, label }) => ({
-        label,
-        value: id,
-      })),
-      onApply: (presetId) => onApplyDiscTextStylePreset(key, presetId),
+      style: {
+        label: 'Style preset',
+        options: [
+          CUSTOM_PRESET_OPTION,
+          ...DISC_TEXT_STYLE_PRESETS.map(({ id, label }) => ({
+            label,
+            value: id,
+          })),
+        ],
+        value: matchingStylePreset?.id ?? CUSTOM_PRESET_OPTION.value,
+        onChange: (presetId) => {
+          if (presetId !== CUSTOM_PRESET_OPTION.value) {
+            onApplyDiscTextStylePreset(key, presetId)
+          }
+        },
+      },
+      layout: layoutPresets.length > 0
+        ? {
+            label: 'Layout preset',
+            options: [
+              CUSTOM_PRESET_OPTION,
+              ...layoutPresets.map(({ id, label }) => ({
+                label,
+                value: id,
+              })),
+            ],
+            value: matchingLayoutPreset?.id ?? CUSTOM_PRESET_OPTION.value,
+            onChange: (presetId) => {
+              if (presetId === CUSTOM_PRESET_OPTION.value) {
+                return
+              }
+
+              const layoutPreset = layoutPresets.find(
+                (candidate) => candidate.id === presetId,
+              )
+
+              if (layoutPreset) {
+                applyDiscTextLayoutPreset({
+                  key,
+                  layoutPreset,
+                  onDiscTextAlignmentChange,
+                  onDiscTextLayoutChange,
+                })
+              }
+            },
+          }
+        : undefined,
       onReset: () => onResetDiscTextStyle(key),
     },
     text: {
@@ -470,7 +593,7 @@ export function DiscInlineTextEditorLayer({
               lines={renderLayout.lines}
               targetKey={targetKey}
               value={text}
-              menuPlacement={getDiscInlineEditorMenuPlacement(bounds)}
+              menuPlacement="below"
               onValueChange={(value) =>
                 onDiscTextValueChange(
                   key,

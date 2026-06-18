@@ -14,6 +14,8 @@ import {
 } from './templateSurfaceTransitions.ts'
 import {
   applyCaseInsertTextBlockStylePreset,
+  applyCaseInsertTextBlockPresetLayout,
+  applyCaseInsertTextListPresetLayout,
   applyCaseInsertTextListStylePreset,
   resetCaseInsertTextBlockStyle,
   resetCaseInsertTextListStyle,
@@ -182,6 +184,59 @@ export function applyCaseInsertPreviewTextTargetStylePreset(
         caseInsert,
         target,
         (textBlock) => applyCaseInsertTextBlockStylePreset(textBlock, presetId),
+      )
+  }
+}
+
+export function applyCaseInsertPreviewTextTargetLayoutPreset(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextTarget,
+  presetId: string,
+) {
+  switch (target.scope) {
+    case 'templateTextBlock':
+      return updateCaseInsertTemplateTextBlock(
+        caseInsert,
+        target.paneId,
+        target.textBlockId,
+        (textBlock) =>
+          applyCaseInsertTextBlockPresetLayout(
+            target.paneId,
+            textBlock,
+            presetId,
+          ),
+      )
+    case 'templateTextList':
+      return updateCaseInsertTemplateTextList(
+        caseInsert,
+        target.paneId,
+        target.textListId,
+        (textList) =>
+          applyCaseInsertTextListPresetLayout(
+            target.paneId,
+            textList,
+            presetId,
+          ),
+      )
+    case 'spineTitle':
+      return updateProjectJewelCaseSpineSides(
+        caseInsert,
+        target.side,
+        (spineSide) => ({
+          ...spineSide,
+          title: applyCaseInsertTextBlockPresetLayout(
+            'spine',
+            spineSide.title,
+            presetId,
+          ),
+        }),
+      )
+    case 'spineTextBlock':
+      return updateSpinePreviewTextBlock(
+        caseInsert,
+        target,
+        (textBlock) =>
+          applyCaseInsertTextBlockPresetLayout('spine', textBlock, presetId),
       )
   }
 }

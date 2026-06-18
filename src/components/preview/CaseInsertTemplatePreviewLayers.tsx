@@ -31,6 +31,10 @@ import {
   getCaseInsertTextListStyleRole,
 } from '../../caseInsert/textStyles'
 import {
+  getCaseInsertTextBlockLayoutPresets,
+  getCaseInsertTextListLayoutPresets,
+} from '../../caseInsert/textLayout'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
@@ -188,15 +192,6 @@ function getCaseInsertTextLineStyle(
     whiteSpace: 'pre',
     width: `${line.width / textBounds.width * 100}%`,
   }
-}
-
-function getInlineTextMenuPlacement(
-  textBounds: JewelCasePixelRect,
-  layout: CaseInsertPreviewLayout,
-) {
-  return textBounds.y + textBounds.height + layout.height * 0.22 > layout.height
-    ? 'above'
-    : 'below'
 }
 
 function getImageStyle(
@@ -436,6 +431,10 @@ function CaseInsertTemplateTextBlock({
         handlers: previewTextControlHandlers,
         label: renderedTextBlock.label,
         layout: layoutTextBlock.layout,
+        layoutPresets: getCaseInsertTextBlockLayoutPresets(
+          paneId,
+          layoutTextBlock,
+        ),
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -506,7 +505,7 @@ function CaseInsertTemplateTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
-          menuPlacement={getInlineTextMenuPlacement(textLayout.bounds, layout)}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>
@@ -599,6 +598,7 @@ function CaseInsertTemplateTextList({
         handlers: previewTextControlHandlers,
         label: textList.label,
         layout: textList.layout,
+        layoutPresets: getCaseInsertTextListLayoutPresets(paneId),
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -663,7 +663,7 @@ function CaseInsertTemplateTextList({
           targetKey={targetKey}
           value={getPreviewTextListValue(textList)}
           textareaStyle={{ textAlign: 'left' }}
-          menuPlacement={getInlineTextMenuPlacement(textListLayout.bounds, layout)}
+          menuPlacement="below"
           onValueChange={(value) =>
             onTextTargetValueChange(textTarget, value)}
           onMoveHandlePointerDown={(event) =>
