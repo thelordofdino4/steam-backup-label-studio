@@ -170,6 +170,7 @@ Key files:
 - `src/project/projectRouting.ts`
 - `src/project/savedProjectNormalization.ts`
 - `src/project/projectCaseInsert.ts`
+- `src/diagnostics/projectParityHarness.ts`
 - `src-tauri/src/commands/files.rs`
 - `docs/PROJECT_FILE_SPEC.md`
 
@@ -208,6 +209,7 @@ Tests:
 - `src/project/restoreProjectState.test.ts`
 - `src/project/savedProjectNormalization.test.ts`
 - `src/project/projectCaseInsert.test.ts`
+- `src/diagnostics/projectParityHarness.test.ts`
 - Feature-specific project tests for title artwork, additional artwork, logos, media marks, rating badges, technical marks, visual asset import, and metadata-bound disc text.
 
 Risks:
@@ -860,6 +862,7 @@ Current `npm run test` covers these broad areas:
 - Drag geometry.
 - Disc and jewel-case layout helpers.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
+- Shared project parity harness diagnostics for representative disc and case insert runtime/saved/restored/export inputs.
 - Render models for artwork frames, image render artifacts, platform marks, and technical marks.
 - Template models and case insert templates.
 

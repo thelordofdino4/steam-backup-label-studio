@@ -290,6 +290,7 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - `src/project/projectRouting.ts`
 - `src/project/savedProjectNormalization.ts`
 - `src/project/projectCaseInsert.ts`
+- `src/diagnostics/projectParityHarness.ts`
 - `docs/PROJECT_FILE_SPEC.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 
@@ -327,6 +328,7 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - Project changes should update project/schema tests.
 - Save/load-affecting changes need manual load/save/export smoke on real projects or fixtures.
 - Runtime validation must distinguish disc and case insert project routing.
+- Shared parity fixtures in `src/diagnostics/projectParityHarness.test.ts` compare semantic runtime, saved, restored, and export-facing state for representative disc and case insert visual/text features without merging their schemas.
 
 ### 7.8 Known Risks
 
@@ -1000,6 +1002,7 @@ Current tests cover broad helper and contract areas:
 - Drag geometry.
 - Disc and jewel case layout helpers.
 - Project schema, routing, restoration, normalization, and feature-specific serialization.
+- Shared project parity diagnostics for runtime-to-snapshot-to-restore-to-export inputs across representative disc and case insert fixtures.
 
 ### 18.4 Known Validation Gaps
 
