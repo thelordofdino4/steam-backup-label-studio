@@ -71,8 +71,10 @@ import {
   type TextContentMode,
 } from '../text/htmlText'
 import {
+  applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
   type PlainTextSelectionRange,
@@ -113,7 +115,10 @@ type DiscTextResolution = {
   resolvedDiscTextTitle: string
 }
 
-type DiscTextRichTextCommand = RichTextInlineToggleCommand | 'color'
+type DiscTextRichTextCommand =
+  | RichTextInlineToggleCommand
+  | 'bulletedList'
+  | 'color'
 type DiscTextRichTextCommandState =
   | RichTextSelectionStyleState
   | RichTextSelectionColorState
@@ -669,12 +674,18 @@ export function useDiscTextState({
           color: String(value),
           selection,
         })
-      : applyRichTextInlineToggleCommand({
-          ...source,
-          active: Boolean(value),
-          command,
-          selection,
-        })
+      : command === 'bulletedList'
+        ? applyRichTextBulletedListCommand({
+            ...source,
+            active: Boolean(value),
+            selection,
+          })
+        : applyRichTextInlineToggleCommand({
+            ...source,
+            active: Boolean(value),
+            command,
+            selection,
+          })
 
     if (!result) {
       return
@@ -696,6 +707,7 @@ export function useDiscTextState({
     setDiscTextValues(nextInputUpdate.values)
     setDiscTextTitleValue(nextInputUpdate.titleValue)
     clampDiscTextLayoutForContent(key, result.plainText)
+    return result.selection
   }
 
   function getDiscTextRichTextCommandState(
@@ -714,7 +726,9 @@ export function useDiscTextState({
 
     return command === 'color'
       ? getRichTextSelectionColorState({ ...source, selection })
-      : getRichTextInlineToggleState({ ...source, command, selection })
+      : command === 'bulletedList'
+        ? getRichTextBulletedListState({ ...source, selection })
+        : getRichTextInlineToggleState({ ...source, command, selection })
   }
 
   function handleResetDiscTextStyle(key: DiscTextKey) {

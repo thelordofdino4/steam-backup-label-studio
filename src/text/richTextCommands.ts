@@ -15,6 +15,7 @@ export type PlainTextSelectionRange = {
 
 export type RichTextInlineToggleCommand = 'bold' | 'italic' | 'underline'
 export type RichTextInlineCommand = RichTextInlineToggleCommand | 'color'
+export type RichTextListCommand = 'bulletedList'
 export type RichTextSelectionStyleState = 'active' | 'inactive' | 'mixed'
 
 export type RichTextCommandResult = {
@@ -47,6 +48,20 @@ type RichTextSourceInput = {
   htmlSource?: string | null
 }
 
+type RichTextLineRange = {
+  end: number
+  index: number
+  start: number
+}
+
+type RichTextLinePrefixChange = {
+  lineStart: number
+  newPrefixLength: number
+  oldPrefixLength: number
+}
+
+const BULLETED_LIST_PREFIX = '• '
+
 function normalizeSelection(
   selection: PlainTextSelectionRange | undefined,
   plainTextLength: number,
@@ -67,6 +82,160 @@ function getRichTextDocument({ fallbackText, htmlSource }: RichTextSourceInput) 
   return typeof htmlSource === 'string'
     ? parseHtmlText(htmlSource)
     : plainTextToRichTextDocument(fallbackText)
+}
+
+function getRichTextLineRanges(
+  lines: readonly RichTextLine[],
+): RichTextLineRange[] {
+  let lineStart = 0
+
+  return lines.map((line, index) => {
+    const lineEnd = lineStart + line.text.length
+    const range = {
+      end: lineEnd,
+      index,
+      start: lineStart,
+    }
+
+    lineStart = lineEnd + (index < lines.length - 1 ? 1 : 0)
+    return range
+  })
+}
+
+function getSelectedRichTextLineIndexes(
+  document: RichTextDocument,
+  selection: NormalizedSelectionRange,
+) {
+  const ranges = getRichTextLineRanges(document.lines)
+
+  if (ranges.length === 0) return []
+
+  if (selection.isCollapsed) {
+    return [
+      ranges.find((range) =>
+        selection.start >= range.start && selection.start <= range.end,
+      )?.index ?? ranges[ranges.length - 1].index,
+    ]
+  }
+
+  const selectedIndexes = ranges
+    .filter((range) =>
+      selection.start <= range.end && selection.end >= range.start,
+    )
+    .map((range) => range.index)
+
+  return selectedIndexes.length > 0
+    ? selectedIndexes
+    : [ranges[ranges.length - 1].index]
+}
+
+function removeRichTextLinePrefix(
+  line: RichTextLine,
+  prefix: string | undefined,
+) {
+  if (!prefix) {
+    return {
+      runs: mergeAdjacentRichTextRuns(line.runs),
+      text: line.text,
+    }
+  }
+
+  const runs = (
+    line.runs.length > 0
+      ? line.runs
+      : line.text
+        ? [{ text: line.text }]
+        : []
+  ).map((run) => ({ ...run }))
+  let prefixRemaining = prefix.length
+
+  while (prefixRemaining > 0 && runs.length > 0) {
+    const firstRun = runs[0]
+
+    if (firstRun.text.length <= prefixRemaining) {
+      prefixRemaining -= firstRun.text.length
+      runs.shift()
+      continue
+    }
+
+    firstRun.text = firstRun.text.slice(prefixRemaining)
+    prefixRemaining = 0
+  }
+
+  const nextRuns = mergeAdjacentRichTextRuns(runs)
+
+  return {
+    runs: nextRuns,
+    text: nextRuns.map((run) => run.text).join(''),
+  }
+}
+
+function setRichTextLineBulleted(line: RichTextLine): RichTextLine {
+  const content = removeRichTextLinePrefix(line, line.list?.prefix)
+  const runs = mergeAdjacentRichTextRuns([
+    { text: BULLETED_LIST_PREFIX },
+    ...content.runs,
+  ])
+
+  return {
+    ...line,
+    list: {
+      prefix: BULLETED_LIST_PREFIX,
+      type: 'ul',
+    },
+    runs,
+    text: runs.map((run) => run.text).join(''),
+  }
+}
+
+function unsetRichTextLineBulleted(line: RichTextLine): RichTextLine {
+  if (line.list?.type !== 'ul') {
+    return line
+  }
+
+  const content = removeRichTextLinePrefix(line, line.list.prefix)
+
+  return {
+    runs: content.runs,
+    text: content.text,
+  }
+}
+
+function adjustOffsetForPrefixChanges(
+  offset: number,
+  changes: readonly RichTextLinePrefixChange[],
+) {
+  return changes.reduce((nextOffset, change) => {
+    const delta = change.newPrefixLength - change.oldPrefixLength
+
+    if (delta > 0 && offset >= change.lineStart) {
+      return nextOffset + delta
+    }
+
+    if (delta < 0) {
+      const removedPrefixEnd = change.lineStart + change.oldPrefixLength
+
+      if (offset > removedPrefixEnd) {
+        return nextOffset + delta
+      }
+
+      if (offset > change.lineStart) {
+        return nextOffset - (offset - change.lineStart)
+      }
+    }
+
+    return nextOffset
+  }, offset)
+}
+
+function adjustSelectionForPrefixChanges(
+  selection: PlainTextSelectionRange,
+  changes: readonly RichTextLinePrefixChange[],
+): PlainTextSelectionRange {
+  return {
+    end: adjustOffsetForPrefixChanges(selection.end, changes),
+    start: adjustOffsetForPrefixChanges(selection.start, changes),
+  }
 }
 
 function styleRun(
@@ -369,6 +538,53 @@ export function applyRichTextInlineColorCommand({
   )
 }
 
+export function applyRichTextBulletedListCommand({
+  active,
+  fallbackText,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  active: boolean
+  selection?: PlainTextSelectionRange
+}): RichTextCommandResult | null {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+  const selectedLineIndexes = new Set(
+    getSelectedRichTextLineIndexes(document, normalizedSelection),
+  )
+  const lineRanges = getRichTextLineRanges(document.lines)
+  const prefixChanges: RichTextLinePrefixChange[] = []
+  const lines = document.lines.map((line, index) => {
+    if (!selectedLineIndexes.has(index)) {
+      return line
+    }
+
+    const nextLine = active
+      ? setRichTextLineBulleted(line)
+      : unsetRichTextLineBulleted(line)
+    const oldPrefixLength = line.list?.prefix.length ?? 0
+    const newPrefixLength = nextLine.list?.prefix.length ?? 0
+
+    if (oldPrefixLength !== newPrefixLength) {
+      prefixChanges.push({
+        lineStart: lineRanges[index]?.start ?? 0,
+        newPrefixLength,
+        oldPrefixLength,
+      })
+    }
+
+    return nextLine
+  })
+
+  return createCommandResult(
+    {
+      ...document,
+      lines,
+    },
+    adjustSelectionForPrefixChanges(normalizedSelection, prefixChanges),
+  )
+}
+
 export function getRichTextInlineToggleState({
   command,
   ambientStyle,
@@ -416,4 +632,25 @@ export function getRichTextSelectionColorState({
     return { state: 'active', value: [...colors][0] }
   }
   return { state: 'mixed', value: [...colors][0] }
+}
+
+export function getRichTextBulletedListState({
+  fallbackText,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  selection?: PlainTextSelectionRange
+}): RichTextSelectionStyleState {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+  const selectedLineIndexes = getSelectedRichTextLineIndexes(
+    document,
+    normalizedSelection,
+  )
+
+  return getStateFromBooleans(
+    selectedLineIndexes.map((index) =>
+      document.lines[index]?.list?.type === 'ul',
+    ),
+  )
 }

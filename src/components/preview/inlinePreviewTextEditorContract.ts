@@ -70,7 +70,7 @@ export type InlinePreviewTextEditorToggleControl = {
   onChange: (
     pressed: boolean,
     selection?: InlinePreviewTextEditorSelectionRange,
-  ) => void
+  ) => InlinePreviewTextEditorSelectionRange | void
 }
 
 export type InlinePreviewTextEditorColorControl = {
@@ -97,6 +97,7 @@ export type InlinePreviewTextEditorControls = {
   text?: {
     alignment?: InlinePreviewTextEditorSelectControl
     bold?: InlinePreviewTextEditorToggleControl
+    bulletedList?: InlinePreviewTextEditorToggleControl
     fontFamily?: InlinePreviewTextEditorSelectControl
     italic?: InlinePreviewTextEditorToggleControl
     size?: InlinePreviewTextEditorRangeControl

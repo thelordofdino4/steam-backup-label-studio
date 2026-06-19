@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
 } from './richTextCommands.ts'
@@ -147,4 +149,76 @@ test('ambient color contributes to selected range state', () => {
     }),
     { state: 'active', value: '#ffffff' },
   )
+})
+
+test('selected multiline text toggles into canonical bulleted list HTML', () => {
+  const result = applyRichTextBulletedListCommand({
+    active: true,
+    fallbackText: 'Alpha\nBeta',
+    selection: { start: 0, end: 'Alpha\nBeta'.length },
+  })
+
+  assert.equal(result?.plainText, '• Alpha\n• Beta')
+  assert.equal(result?.htmlSource, '<ul><li>Alpha</li><li>Beta</li></ul>')
+  assert.deepEqual(result?.selection, { start: 2, end: 14 })
+  assert.equal(
+    getRichTextBulletedListState({
+      fallbackText: result?.plainText ?? '',
+      htmlSource: result?.htmlSource,
+      selection: result?.selection,
+    }),
+    'active',
+  )
+})
+
+test('collapsed caret toggles the current paragraph into a bullet item', () => {
+  const result = applyRichTextBulletedListCommand({
+    active: true,
+    fallbackText: 'Alpha\nBeta',
+    selection: { start: 7, end: 7 },
+  })
+
+  assert.equal(result?.plainText, 'Alpha\n• Beta')
+  assert.equal(result?.htmlSource, '<p>Alpha</p><ul><li>Beta</li></ul>')
+  assert.deepEqual(result?.selection, { start: 9, end: 9 })
+})
+
+test('bulleted list toggle removes bullets and preserves inline formatting', () => {
+  const result = applyRichTextBulletedListCommand({
+    active: false,
+    fallbackText: '• Alpha\n• Beta',
+    htmlSource:
+      '<ul><li><strong>Alpha</strong></li><li><span style="color:#ff0000">Beta</span></li></ul>',
+    selection: { start: 0, end: '• Alpha\n• Beta'.length },
+  })
+
+  assert.equal(result?.plainText, 'Alpha\nBeta')
+  assert.equal(
+    result?.htmlSource,
+    '<p><strong>Alpha</strong></p><p><span style="color:#ff0000">Beta</span></p>',
+  )
+  assert.deepEqual(result?.selection, { start: 0, end: 10 })
+})
+
+test('bulleted list state reports mixed selected paragraphs', () => {
+  assert.equal(
+    getRichTextBulletedListState({
+      fallbackText: 'Intro\n• Item',
+      htmlSource: '<p>Intro</p><ul><li>Item</li></ul>',
+      selection: { start: 0, end: 'Intro\n• Item'.length },
+    }),
+    'mixed',
+  )
+})
+
+test('empty text toggles into a safe empty list item', () => {
+  const result = applyRichTextBulletedListCommand({
+    active: true,
+    fallbackText: '',
+    selection: { start: 0, end: 0 },
+  })
+
+  assert.equal(result?.plainText, '• ')
+  assert.equal(result?.htmlSource, '<ul><li></li></ul>')
+  assert.deepEqual(result?.selection, { start: 2, end: 2 })
 })

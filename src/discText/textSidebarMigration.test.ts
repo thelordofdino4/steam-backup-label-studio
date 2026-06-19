@@ -37,6 +37,7 @@ test('straight disc sidebar policy omits contextual controls and keeps exception
     'size',
     'alignment',
     'bold',
+    'bulletedList',
     'italic',
     'underline',
     'color',
@@ -175,9 +176,11 @@ test('straight disc contextual editor still exposes migrated controls', () => {
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.bold/)
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.italic/)
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.underline/)
+  assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.bulletedList/)
   assert.match(editor, /'bold'/)
   assert.match(editor, /'italic'/)
   assert.match(editor, /'underline'/)
+  assert.match(editor, /'bulletedList'/)
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.color/)
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.contrast/)
   assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.backgroundEnabled/)

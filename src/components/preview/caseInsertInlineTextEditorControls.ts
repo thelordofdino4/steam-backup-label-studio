@@ -77,13 +77,13 @@ export type CaseInsertPreviewTextControlHandlers = {
   ) => void
   onRichTextCommand?: (
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: InlinePreviewTextEditorSelectionRange | undefined,
     value: boolean | string,
-  ) => void
+  ) => InlinePreviewTextEditorSelectionRange | void
   getRichTextCommandState?: (
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
@@ -190,11 +190,11 @@ export function createCaseInsertInlineTextEditorControls({
     selection?: InlinePreviewTextEditorSelectionRange,
   ) => {
     if (selection && selection.start !== selection.end) {
-      handlers.onRichTextCommand?.(target, command, selection, pressed)
-      return
+      return handlers.onRichTextCommand?.(target, command, selection, pressed)
     }
 
     handlers.onStyleChange(target, field, pressed)
+    return undefined
   }
   const handleInlineColorChange = (
     value: string,
@@ -206,6 +206,17 @@ export function createCaseInsertInlineTextEditorControls({
     }
 
     handlers.onStyleChange(target, 'color', value)
+  }
+  const handleBulletedListChange = (
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    return handlers.onRichTextCommand?.(
+      target,
+      'bulletedList',
+      selection,
+      pressed,
+    )
   }
 
   return {
@@ -324,6 +335,19 @@ export function createCaseInsertInlineTextEditorControls({
             pressed,
             selection,
           ),
+      },
+      bulletedList: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList,
+        pressed: false,
+        getSelectionState: (selection) => {
+          const state = handlers.getRichTextCommandState?.(
+            target,
+            'bulletedList',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: handleBulletedListChange,
       },
     },
     art: {

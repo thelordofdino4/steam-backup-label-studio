@@ -88,13 +88,13 @@ export type DiscPreviewProps = {
     ) => void
     onTextRichTextCommand: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color',
+      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
       selection: { end: number; start: number } | undefined,
       value: boolean | string,
-    ) => void
+    ) => { end: number; start: number } | void
     getTextRichTextCommandState: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color',
+      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
       selection: { end: number; start: number },
     ) => 'active' | 'inactive' | 'mixed' | {
       state: 'active' | 'inactive' | 'mixed'

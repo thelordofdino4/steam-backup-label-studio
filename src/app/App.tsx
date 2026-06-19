@@ -655,24 +655,27 @@ function App() {
 
   function handleCaseInsertPreviewTextRichTextCommand(
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: { end: number; start: number } | undefined,
     value: boolean | string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
+    const result =
       updateCaseInsertPreviewTextTargetRichTextCommand(
-        currentCaseInsert,
+        projectJewelCase,
         target,
         command,
         selection,
         value,
         projectMetadata,
-      ))
+      )
+
+    setProjectJewelCase(result.caseInsert)
+    return result.selection
   }
 
   function getCaseInsertPreviewTextRichTextCommandState(
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: { end: number; start: number },
   ) {
     return getCaseInsertPreviewTextTargetRichTextCommandState(

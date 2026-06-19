@@ -49,8 +49,10 @@ import {
   type TextContentMode,
 } from '../text/htmlText.ts'
 import {
+  applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
   type PlainTextSelectionRange,
@@ -63,6 +65,7 @@ import {
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
 export type CaseInsertPreviewRichTextCommand =
   | RichTextInlineToggleCommand
+  | 'bulletedList'
   | 'color'
 
 export type CaseInsertPreviewRichTextState =
@@ -229,24 +232,33 @@ function applyRichTextCommandToTextBlock(
         color: String(value),
         selection,
       })
-    : applyRichTextInlineToggleCommand({
-        ...source,
-        active: Boolean(value),
-        command,
-        selection,
-      })
+    : command === 'bulletedList'
+      ? applyRichTextBulletedListCommand({
+          ...source,
+          active: Boolean(value),
+          selection,
+        })
+      : applyRichTextInlineToggleCommand({
+          ...source,
+          active: Boolean(value),
+          command,
+          selection,
+        })
 
   if (!result) {
-    return textBlock
+    return { textBlock }
   }
 
   return {
-    ...textBlock,
-    contentMode: 'html' as const,
-    htmlSource: result.htmlSource,
-    markdownSource: undefined,
-    source: 'manual' as const,
-    value: result.plainText,
+    selection: result.selection,
+    textBlock: {
+      ...textBlock,
+      contentMode: 'html' as const,
+      htmlSource: result.htmlSource,
+      markdownSource: undefined,
+      source: 'manual' as const,
+      value: result.plainText,
+    },
   }
 }
 
@@ -273,26 +285,35 @@ function applyRichTextCommandToTextList(
         color: String(value),
         selection,
       })
-    : applyRichTextInlineToggleCommand({
-        ...source,
-        active: Boolean(value),
-        command,
-        selection,
-      })
+    : command === 'bulletedList'
+      ? applyRichTextBulletedListCommand({
+          ...source,
+          active: Boolean(value),
+          selection,
+        })
+      : applyRichTextInlineToggleCommand({
+          ...source,
+          active: Boolean(value),
+          command,
+          selection,
+        })
 
   if (!result) {
-    return textList
+    return { textList }
   }
 
-  return updateCaseInsertTextListContentMode(
-    {
-      ...textList,
-      htmlSource: result.htmlSource,
-      markdownSource: undefined,
-    },
-    'html',
-    result.htmlSource,
-  )
+  return {
+    selection: result.selection,
+    textList: updateCaseInsertTextListContentMode(
+      {
+        ...textList,
+        htmlSource: result.htmlSource,
+        markdownSource: undefined,
+      },
+      'html',
+      result.htmlSource,
+    ),
+  }
 }
 
 export function updateCaseInsertPreviewTextTargetRichTextCommand(
@@ -303,57 +324,89 @@ export function updateCaseInsertPreviewTextTargetRichTextCommand(
   value: boolean | string,
   metadata?: ProjectMetadata,
 ) {
+  let nextSelection: PlainTextSelectionRange | undefined
+
   switch (target.scope) {
     case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          applyRichTextCommandToTextBlock(
-            textBlock,
-            command,
-            selection,
-            value,
-            metadata,
-          ),
-      )
+      return {
+        caseInsert: updateCaseInsertTemplateTextBlock(
+          caseInsert,
+          target.paneId,
+          target.textBlockId,
+          (textBlock) => {
+            const result = applyRichTextCommandToTextBlock(
+              textBlock,
+              command,
+              selection,
+              value,
+              metadata,
+            )
+            nextSelection = result.selection
+            return result.textBlock
+          },
+        ),
+        selection: nextSelection,
+      }
     case 'templateTextList':
-      return updateCaseInsertTemplateTextList(
-        caseInsert,
-        target.paneId,
-        target.textListId,
-        (textList) =>
-          applyRichTextCommandToTextList(textList, command, selection, value),
-      )
+      return {
+        caseInsert: updateCaseInsertTemplateTextList(
+          caseInsert,
+          target.paneId,
+          target.textListId,
+          (textList) => {
+            const result = applyRichTextCommandToTextList(
+              textList,
+              command,
+              selection,
+              value,
+            )
+            nextSelection = result.selection
+            return result.textList
+          },
+        ),
+        selection: nextSelection,
+      }
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: applyRichTextCommandToTextBlock(
-            spineSide.title,
-            command,
-            selection,
-            value,
-            metadata,
-          ),
-        }),
-      )
+      return {
+        caseInsert: updateProjectJewelCaseSpineSides(
+          caseInsert,
+          target.side,
+          (spineSide) => {
+            const result = applyRichTextCommandToTextBlock(
+              spineSide.title,
+              command,
+              selection,
+              value,
+              metadata,
+            )
+            nextSelection = result.selection
+            return {
+              ...spineSide,
+              title: result.textBlock,
+            }
+          },
+        ),
+        selection: nextSelection,
+      }
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
-        caseInsert,
-        target,
-        (textBlock) =>
-          applyRichTextCommandToTextBlock(
-            textBlock,
-            command,
-            selection,
-            value,
-            metadata,
-          ),
-      )
+      return {
+        caseInsert: updateSpinePreviewTextBlock(
+          caseInsert,
+          target,
+          (textBlock) => {
+            const result = applyRichTextCommandToTextBlock(
+              textBlock,
+              command,
+              selection,
+              value,
+              metadata,
+            )
+            nextSelection = result.selection
+            return result.textBlock
+          },
+        ),
+        selection: nextSelection,
+      }
   }
 }
 
@@ -367,7 +420,9 @@ function getRichTextCommandStateForTextBlock(
 
   return command === 'color'
     ? getRichTextSelectionColorState({ ...source, selection })
-    : getRichTextInlineToggleState({ ...source, command, selection })
+    : command === 'bulletedList'
+      ? getRichTextBulletedListState({ ...source, selection })
+      : getRichTextInlineToggleState({ ...source, command, selection })
 }
 
 function getRichTextCommandStateForTextList(
@@ -389,7 +444,9 @@ function getRichTextCommandStateForTextList(
 
   return command === 'color'
     ? getRichTextSelectionColorState({ ...source, selection })
-    : getRichTextInlineToggleState({ ...source, command, selection })
+    : command === 'bulletedList'
+      ? getRichTextBulletedListState({ ...source, selection })
+      : getRichTextInlineToggleState({ ...source, command, selection })
 }
 
 export function getCaseInsertPreviewTextTargetRichTextCommandState(

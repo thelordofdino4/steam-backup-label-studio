@@ -104,6 +104,7 @@ test('disc contextual controls use shared preset options and labels', () => {
   assert.equal(controls.text?.bold?.label, 'Bold')
   assert.equal(controls.text?.italic?.label, 'Italic')
   assert.equal(controls.text?.underline?.label, 'Underline')
+  assert.equal(controls.text?.bulletedList?.label, 'Bulleted List')
   assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.label, 'Color')
   assert.equal(controls.art?.contrast?.label, 'Contrast')
@@ -124,6 +125,35 @@ test('disc contextual controls use shared preset options and labels', () => {
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'arcDegrees'), false)
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Game title')
   assert.equal(style.backgroundEnabled, true)
+})
+
+test('disc bulleted list control routes selection command through adapter', () => {
+  const routedCalls: string[] = []
+  const { controls } = createControls({
+    getDiscTextRichTextCommandState: (_key, command, selection) => {
+      routedCalls.push(
+        `state:${command}:${selection.start}-${selection.end}`,
+      )
+      return command === 'bulletedList' ? 'active' : 'inactive'
+    },
+    onDiscTextRichTextCommand: (_key, command, selection, value) => {
+      routedCalls.push(
+        `command:${command}:${String(value)}:${selection?.start}-${selection?.end}`,
+      )
+    },
+  })
+  const selection = { start: 0, end: 0 }
+
+  assert.equal(
+    controls.text?.bulletedList?.getSelectionState?.(selection),
+    'active',
+  )
+  controls.text?.bulletedList?.onChange(false, selection)
+
+  assert.deepEqual(routedCalls, [
+    'state:bulletedList:0-0',
+    'command:bulletedList:false:0-0',
+  ])
 })
 
 test('disc custom option is inert and target-specific handlers stay in adapter', () => {

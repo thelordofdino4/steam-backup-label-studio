@@ -65,13 +65,13 @@ export type DiscInlineTextEditorControlParams = {
   ) => void
   onDiscTextRichTextCommand?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: InlinePreviewTextEditorSelectionRange | undefined,
     value: boolean | string,
-  ) => void
+  ) => InlinePreviewTextEditorSelectionRange | void
   getDiscTextRichTextCommandState?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
@@ -192,11 +192,11 @@ export function createDiscInlineTextEditorControls({
     selection?: InlinePreviewTextEditorSelectionRange,
   ) => {
     if (selection && selection.start !== selection.end) {
-      onDiscTextRichTextCommand?.(key, command, selection, pressed)
-      return
+      return onDiscTextRichTextCommand?.(key, command, selection, pressed)
     }
 
     onDiscTextStyleChange(key, field, pressed)
+    return undefined
   }
   const handleInlineColorChange = (
     value: string,
@@ -208,6 +208,17 @@ export function createDiscInlineTextEditorControls({
     }
 
     onDiscTextStyleChange(key, 'color', value)
+  }
+  const handleBulletedListChange = (
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    return onDiscTextRichTextCommand?.(
+      key,
+      'bulletedList',
+      selection,
+      pressed,
+    )
   }
 
   return {
@@ -328,6 +339,19 @@ export function createDiscInlineTextEditorControls({
             pressed,
             selection,
           ),
+      },
+      bulletedList: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList,
+        pressed: false,
+        getSelectionState: (selection) => {
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'bulletedList',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: handleBulletedListChange,
       },
     },
     art: {

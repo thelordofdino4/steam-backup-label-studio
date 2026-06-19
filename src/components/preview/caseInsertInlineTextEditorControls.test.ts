@@ -126,6 +126,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   assert.equal(controls.text?.bold?.pressed, true)
   assert.equal(controls.text?.italic?.pressed, false)
   assert.equal(controls.text?.underline?.pressed, false)
+  assert.equal(controls.text?.bulletedList?.label, 'Bulleted List')
   assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.value, style.color)
   assert.equal(controls.art?.contrast?.value, style.contrast)
@@ -171,6 +172,67 @@ test('case insert contextual controls expose migrated text block properties', ()
     'reset-layout',
     'enabled:false',
     'delete-complete',
+  ])
+})
+
+test('case insert bulleted list control routes selection command through handlers', () => {
+  const routedCalls: string[] = []
+  const target: CaseInsertPreviewTextTarget = {
+    scope: 'templateTextBlock',
+    paneId: 'cover',
+    textBlockId: 'cover-title-text',
+  }
+  const layout: ProjectCaseInsertLayout = {
+    scale: 1,
+    width: 80,
+    x: 50,
+    y: 50,
+    rotation: 0,
+  }
+  const style = createDefaultCaseInsertTextStyle('title')
+  const handlers: CaseInsertPreviewTextControlHandlers = {
+    onEnabledChange: () => {},
+    onStyleChange: () => {},
+    onApplyStylePreset: () => {},
+    onApplyLayoutPreset: () => {},
+    onResetStyle: () => {},
+    onResetLayout: () => {},
+    onLayoutChange: () => {},
+    onAlignChange: () => {},
+    onAvoidVisualElementsChange: () => {},
+    onContentModeChange: () => {},
+    getRichTextCommandState: (_target, command, selection) => {
+      routedCalls.push(
+        `state:${command}:${selection.start}-${selection.end}`,
+      )
+      return command === 'bulletedList' ? 'mixed' : 'inactive'
+    },
+    onRichTextCommand: (_target, command, selection, value) => {
+      routedCalls.push(
+        `command:${command}:${String(value)}:${selection?.start}-${selection?.end}`,
+      )
+    },
+  }
+  const controls = createCaseInsertInlineTextEditorControls({
+    align: 'left',
+    avoidVisualElements: false,
+    handlers,
+    label: 'Title',
+    layout,
+    style,
+    target,
+  })
+  const selection = { start: 0, end: 12 }
+
+  assert.equal(
+    controls.text?.bulletedList?.getSelectionState?.(selection),
+    'mixed',
+  )
+  controls.text?.bulletedList?.onChange(true, selection)
+
+  assert.deepEqual(routedCalls, [
+    'state:bulletedList:0-12',
+    'command:bulletedList:true:0-12',
   ])
 })
 

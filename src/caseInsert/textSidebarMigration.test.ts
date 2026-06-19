@@ -143,6 +143,7 @@ test('case insert sidebar policy omits contextual equivalents', () => {
     'size',
     'alignment',
     'bold',
+    'bulletedList',
     'italic',
     'underline',
     'color',
