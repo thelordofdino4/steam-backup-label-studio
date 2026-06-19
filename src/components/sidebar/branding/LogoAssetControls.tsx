@@ -11,6 +11,7 @@ import {
   type LogoAlignmentPreset,
 } from '../../../editor/logoAsset'
 import { EditorLogoAssetControls } from '../../editor/EditorLogoAssetControls'
+import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
 import { formatLogoSize } from './helpers'
@@ -241,49 +242,46 @@ export function LogoAssetControls({
     : projectLogoAssets.additionalPublisherLogos
 
   return (
-    <div className="logo-asset-card">
-      <label className="field-label">
-        <input type="checkbox" checked={layout.enabled} onChange={(event) => handleLogoAssetLayoutChange(logoKey, 'enabled', event.target.checked)} />
-        Show {label.toLowerCase()} logo
-      </label>
+    <OptionalFeatureSection
+      className="logo-asset-card"
+      enabled={layout.enabled}
+      enableLabel={`Show ${label.toLowerCase()} logo`}
+      onEnabledChange={(enabled) =>
+        handleLogoAssetLayoutChange(logoKey, 'enabled', enabled)}
+    >
+      <LogoAssetControlBody
+        {...props}
+        logoKey={logoKey}
+        label={label}
+        imageDataUrl={imageDataUrl}
+        imageSource={getLogoAssetSource(projectLogoAssets, logoKey)}
+        imageSize={imageSize}
+        layout={layout}
+        uploadId={uploadId}
+        controlIdPrefix={`${logoKey}-logo`}
+        handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
+      />
 
-      {!layout.enabled ? null : (
-        <>
-          <LogoAssetControlBody
-            {...props}
-            logoKey={logoKey}
-            label={label}
-            imageDataUrl={imageDataUrl}
-            imageSource={getLogoAssetSource(projectLogoAssets, logoKey)}
-            imageSize={imageSize}
-            layout={layout}
-            uploadId={uploadId}
-            controlIdPrefix={`${logoKey}-logo`}
-            handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
-          />
+      {additionalLogos.map((logoAsset, index) => (
+        <AdditionalLogoAssetControls
+          key={logoAsset.id}
+          {...props}
+          logoKey={logoKey}
+          label={label}
+          logoAsset={logoAsset}
+          additionalLogoIndex={index}
+          handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
+        />
+      ))}
 
-          {additionalLogos.map((logoAsset, index) => (
-            <AdditionalLogoAssetControls
-              key={logoAsset.id}
-              {...props}
-              logoKey={logoKey}
-              label={label}
-              logoAsset={logoAsset}
-              additionalLogoIndex={index}
-              handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
-            />
-          ))}
-
-          <button
-            className="secondary-button icon-text-button"
-            type="button"
-            onClick={() => handleAddAdditionalLogoAsset(logoKey)}
-          >
-            <PlusIcon />
-            <span>Add additional logo</span>
-          </button>
-        </>
-      )}
-    </div>
+      <button
+        className="secondary-button icon-text-button"
+        type="button"
+        onClick={() => handleAddAdditionalLogoAsset(logoKey)}
+      >
+        <PlusIcon />
+        <span>Add additional logo</span>
+      </button>
+    </OptionalFeatureSection>
   )
 }

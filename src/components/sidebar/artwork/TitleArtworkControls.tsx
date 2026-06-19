@@ -10,6 +10,7 @@ import {
 } from '../../../project/projectTitleArtwork'
 import { EditorImageAssetStatusCard } from '../../editor/EditorImageAssetStatusCard'
 import { EditorRangeField } from '../../editor/EditorRangeField'
+import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { formatTitleArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
@@ -46,124 +47,117 @@ export function TitleArtworkControls({
   }
 
   return (
-    <div className="feature-control-body title-artwork-control">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isFeatureEnabled}
-          onChange={(event) =>
-            handleTitleArtworkLayoutChange('enabled', event.target.checked)}
-        />
-        Show game logo
-      </label>
-
-      {!isFeatureEnabled ? null : (
-        <>
-          <span className="field-label spacing-top">Game logo image</span>
-          <label
-            className="secondary-button logo-upload-button"
-            htmlFor="title-artwork-upload"
-          >
-            {hasTitleArtwork ? 'Replace game logo image' : 'Choose game logo image'}
-          </label>
-          <input
-            id="title-artwork-upload"
-            className="logo-file-input"
-            type="file"
-            accept="image/*"
-            onChange={handleTitleArtworkUpload}
-          />
-
-          <EditorImageAssetStatusCard
-            cardClassName="title-artwork-status-card"
-            emptyHint="No game logo image is selected yet. Importing a Steam game can seed Steam title/logo artwork automatically, or upload a custom image here."
-            fallbackLabel="Game logo image"
-            formatSize={formatTitleArtworkSize}
-            imageDataUrl={projectTitleArtwork.imageDataUrl}
-            imageSize={projectTitleArtwork.imageSize}
-            previewClassName="title-artwork-preview"
-            statusText="source-label"
-          />
-
-          {canRestoreDefaultSteamLogo ? (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={handleRestoreTitleArtworkDefault}
-            >
-              Restore Steam default game logo
-            </button>
-          ) : null}
-
-          {defaultSteamLogo ? (
-            <p className="hint">Steam default: {defaultSteamLogo.sourceLabel}.</p>
-          ) : null}
-
-          <p className="hint">
-            This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the best available Steam title/logo artwork; rendered title text stays independently available in the Text tab as the fallback.
-          </p>
-
-          <div
-            className="editor-control-grid"
-            aria-label="Game logo fine tuning controls"
-          >
-            <EditorRangeField
-              id="title-artwork-scale"
-              label="Scale"
-              min={TITLE_ARTWORK_SCALE_MIN}
-              max={TITLE_ARTWORK_SCALE_MAX}
-              step={0.01}
-              value={projectTitleArtwork.layout.scale}
-              disabled={!isRenderable}
-              onInput={(value) =>
-                handleTitleArtworkLayoutChange('scale', value)}
-              onChange={(value) =>
-                handleTitleArtworkLayoutChange('scale', value)}
-            />
-
-            <EditorRangeField
-              id="title-artwork-x"
-              label="X"
-              min={xOffsetSliderRange.min}
-              max={xOffsetSliderRange.max}
-              step={0.1}
-              value={xOffset}
-              disabled={!isRenderable}
-              onInput={(value) =>
-                handleTitleArtworkLayoutChange(
-                  'x',
-                  DISC_LAYOUT_CENTER_PERCENT + value,
-                )}
-              onChange={(value) =>
-                handleTitleArtworkLayoutChange(
-                  'x',
-                  DISC_LAYOUT_CENTER_PERCENT + value,
-                )}
-            />
-
-            <EditorRangeField
-              id="title-artwork-y"
-              label="Y"
-              min={sliderRanges.y.min}
-              max={sliderRanges.y.max}
-              step={0.1}
-              value={projectTitleArtwork.layout.y}
-              disabled={!isRenderable}
-              onInput={(value) => handleTitleArtworkLayoutChange('y', value)}
-              onChange={(value) => handleTitleArtworkLayoutChange('y', value)}
-            />
-          </div>
-
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={!isRenderable}
-            onClick={handleResetTitleArtworkLayout}
-          >
-            Reset game logo layout
-          </button>
-        </>
+    <OptionalFeatureSection
+      className="feature-control-body title-artwork-control"
+      enabled={isFeatureEnabled}
+      enableLabel="Show game logo"
+      onEnabledChange={(enabled) =>
+        handleTitleArtworkLayoutChange('enabled', enabled)}
+      actions={(
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={!isRenderable}
+          onClick={handleResetTitleArtworkLayout}
+        >
+          Reset game logo layout
+        </button>
       )}
-    </div>
+    >
+      <span className="field-label spacing-top">Game logo image</span>
+      <label
+        className="secondary-button logo-upload-button"
+        htmlFor="title-artwork-upload"
+      >
+        {hasTitleArtwork ? 'Replace game logo image' : 'Choose game logo image'}
+      </label>
+      <input
+        id="title-artwork-upload"
+        className="logo-file-input"
+        type="file"
+        accept="image/*"
+        onChange={handleTitleArtworkUpload}
+      />
+
+      <EditorImageAssetStatusCard
+        cardClassName="title-artwork-status-card"
+        emptyHint="No game logo image is selected yet. Importing a Steam game can seed Steam title/logo artwork automatically, or upload a custom image here."
+        fallbackLabel="Game logo image"
+        formatSize={formatTitleArtworkSize}
+        imageDataUrl={projectTitleArtwork.imageDataUrl}
+        imageSize={projectTitleArtwork.imageSize}
+        previewClassName="title-artwork-preview"
+        statusText="source-label"
+      />
+
+      {canRestoreDefaultSteamLogo ? (
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={handleRestoreTitleArtworkDefault}
+        >
+          Restore Steam default game logo
+        </button>
+      ) : null}
+
+      {defaultSteamLogo ? (
+        <p className="hint">Steam default: {defaultSteamLogo.sourceLabel}.</p>
+      ) : null}
+
+      <p className="hint">
+        This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the best available Steam title/logo artwork; rendered title text stays independently available in the Text tab as the fallback.
+      </p>
+
+      <div
+        className="editor-control-grid"
+        aria-label="Game logo fine tuning controls"
+      >
+        <EditorRangeField
+          id="title-artwork-scale"
+          label="Scale"
+          min={TITLE_ARTWORK_SCALE_MIN}
+          max={TITLE_ARTWORK_SCALE_MAX}
+          step={0.01}
+          value={projectTitleArtwork.layout.scale}
+          disabled={!isRenderable}
+          onInput={(value) =>
+            handleTitleArtworkLayoutChange('scale', value)}
+          onChange={(value) =>
+            handleTitleArtworkLayoutChange('scale', value)}
+        />
+
+        <EditorRangeField
+          id="title-artwork-x"
+          label="X"
+          min={xOffsetSliderRange.min}
+          max={xOffsetSliderRange.max}
+          step={0.1}
+          value={xOffset}
+          disabled={!isRenderable}
+          onInput={(value) =>
+            handleTitleArtworkLayoutChange(
+              'x',
+              DISC_LAYOUT_CENTER_PERCENT + value,
+            )}
+          onChange={(value) =>
+            handleTitleArtworkLayoutChange(
+              'x',
+              DISC_LAYOUT_CENTER_PERCENT + value,
+            )}
+        />
+
+        <EditorRangeField
+          id="title-artwork-y"
+          label="Y"
+          min={sliderRanges.y.min}
+          max={sliderRanges.y.max}
+          step={0.1}
+          value={projectTitleArtwork.layout.y}
+          disabled={!isRenderable}
+          onInput={(value) => handleTitleArtworkLayoutChange('y', value)}
+          onChange={(value) => handleTitleArtworkLayoutChange('y', value)}
+        />
+      </div>
+    </OptionalFeatureSection>
   )
 }

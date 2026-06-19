@@ -8,6 +8,7 @@ import {
   createDefaultProjectLogoAssets,
   createLogoAssetRenderItems,
   getAdditionalLogoAssets,
+  getLogoAssetLayout,
   getLogoAssetRenderDataUrl,
   getLogoAssetSource,
   normalizeProjectLogoAssets,
@@ -51,6 +52,82 @@ test('disc logo assets preserve source data when disabled and restore on re-enab
   const [renderItem] = createLogoAssetRenderItems(logoAssets)
   assert.equal(renderItem?.label, 'Developer')
   assert.equal(renderItem?.imageDataUrl, 'data:image/png;base64,developer-logo')
+})
+
+test('disc primary logo assets preserve layout for developer and publisher while disabled', () => {
+  let logoAssets = createDefaultProjectLogoAssets(discTemplates.standardPrintableDisc)
+
+  ;(['developer', 'publisher'] as const).forEach((logoKey, index) => {
+    logoAssets = setLogoAssetImage(
+      logoAssets,
+      logoKey,
+      `data:image/png;base64,${logoKey}-logo`,
+      imageSize,
+      createProjectImageAssetProvenance({
+        source: 'uploaded',
+        sourceLabel: `${logoKey}.png`,
+      }),
+    )
+    logoAssets = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'scale',
+      1.2 + index,
+    )
+    logoAssets = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'x',
+      31 + index,
+    )
+    logoAssets = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'y',
+      71 + index,
+    )
+    logoAssets = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'enabled',
+      false,
+    )
+  })
+
+  assert.deepEqual(createLogoAssetRenderItems(logoAssets), [])
+
+  ;(['developer', 'publisher'] as const).forEach((logoKey, index) => {
+    const layout = getLogoAssetLayout(logoAssets, logoKey)
+    const visibleWithLogo = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'enabled',
+      true,
+    )
+
+    assert.equal(
+      createLogoAssetRenderItems(visibleWithLogo).some((item) =>
+        item.imageDataUrl === `data:image/png;base64,${logoKey}-logo`),
+      true,
+    )
+    assert.equal(getLogoAssetSource(logoAssets, logoKey)?.sourceLabel, `${logoKey}.png`)
+    assert.equal(layout.enabled, false)
+    assert.equal(layout.scale, 1.2 + index)
+    assert.equal(layout.x, 31 + index)
+    assert.equal(layout.y, 71 + index)
+
+    logoAssets = updateLogoAssetLayoutField(
+      logoAssets,
+      logoKey,
+      'enabled',
+      true,
+    )
+  })
+
+  assert.deepEqual(
+    createLogoAssetRenderItems(logoAssets).map((item) => item.label),
+    ['Developer', 'Publisher'],
+  )
 })
 
 test('disc additional logo add remove and fallback rendering use shared logo contract', () => {
