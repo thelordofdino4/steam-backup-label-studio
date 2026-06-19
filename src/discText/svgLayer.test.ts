@@ -85,7 +85,7 @@ test('disc SVG renderer applies emphasis to straight text without duplicate rend
   })
 
   assert.match(svg, /font-style:italic/)
-  assert.match(svg, /font-weight:950/)
+  assert.match(svg, /font-weight:900/)
   assert.match(svg, /text-decoration:underline/)
   assert.match(svg, />Emphasized title<\/text>/)
   assert.doesNotMatch(svg, /<textarea\b/i)
@@ -116,7 +116,7 @@ test('disc SVG renderer maps straight HTML to safe tspans', () => {
     height: 100,
   })
 
-  assert.match(svg, /<tspan style="font-weight:800">bold<\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:900">bold<\/tspan>/)
   assert.match(svg, /<tspan style="font-style:italic">italic<\/tspan>/)
   assert.match(svg, /<tspan style="fill:#ff0000">red<\/tspan>/)
   assert.doesNotMatch(svg, /alert\(1\)/)
@@ -163,8 +163,40 @@ test('disc SVG renderer reflects changed straight HTML source drafts', () => {
   assert.doesNotMatch(secondSvg, /Draft one/)
   assert.match(secondSvg, /fill:#0000ff/)
   assert.match(secondSvg, /Draft two/)
-  assert.match(secondSvg, /font-weight:800/)
+  assert.match(secondSvg, /font-weight:900/)
   assert.match(secondSvg, /Next line/)
+})
+
+test('disc SVG renderer maps straight HTML bullet lists to visible tspans', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    customNote: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    customNote: 'fallback note',
+  }
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    htmlSources: {
+      customNote:
+        '<ul><li><strong>Alpha</strong></li><li><span style="color:#00ff00">Beta</span></li></ul>',
+    },
+    layoutSettings: createDefaultDiscTextLayout('none'),
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+
+  assert.match(svg, /<tspan>• <\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:900">Alpha<\/tspan>/)
+  assert.match(svg, /<tspan style="fill:#00ff00">Beta<\/tspan>/)
+  assert.doesNotMatch(svg, /<li>/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
 test('disc SVG renderer can hide selected straight text glyphs for inline editing', () => {

@@ -151,8 +151,7 @@ function mergeRunStyles(
   return {
     ...first,
     ...second,
-    bold: first.bold || second.bold || second.fontWeight === 700 ||
-      second.fontWeight === 800 || second.fontWeight === 900 ||
+    bold: first.bold || second.bold || second.fontWeight === 900 ||
       undefined,
     italic: first.italic || second.italic || second.fontStyle === 'italic' ||
       undefined,
@@ -347,7 +346,7 @@ function normalizeFontWeight(value: string | undefined) {
   const trimmedValue = value.trim().toLowerCase()
 
   if (trimmedValue === 'normal') return 400
-  if (trimmedValue === 'bold') return 800
+  if (trimmedValue === 'bold') return 900
 
   const numericValue = Number.parseInt(trimmedValue, 10)
 
@@ -357,7 +356,12 @@ function normalizeFontWeight(value: string | undefined) {
 }
 
 function normalizeFontStyle(value: string | undefined) {
-  return value?.trim().toLowerCase() === 'italic' ? 'italic' : undefined
+  const normalizedValue = value?.trim().toLowerCase()
+
+  if (normalizedValue === 'italic') return 'italic'
+  if (normalizedValue === 'normal') return 'normal'
+
+  return undefined
 }
 
 function normalizeTextDecoration(value: string | undefined) {
@@ -397,13 +401,13 @@ function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
       const fontWeight = normalizeFontWeight(value)
       if (fontWeight) {
         runStyle.fontWeight = fontWeight
-        runStyle.bold = fontWeight >= 700 || undefined
+        runStyle.bold = fontWeight >= 900 || undefined
       }
     } else if (property === 'font-style') {
       const fontStyle = normalizeFontStyle(value)
       if (fontStyle) {
         runStyle.fontStyle = fontStyle
-        runStyle.italic = true
+        runStyle.italic = fontStyle === 'italic' || undefined
       }
     } else if (property === 'text-decoration') {
       const textDecoration = normalizeTextDecoration(value)
@@ -420,7 +424,7 @@ function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
 }
 
 function getTagStyle(tagName: string, rawTag: string): RichTextRunStyle {
-  if (tagName === 'strong' || tagName === 'b') return { bold: true, fontWeight: 800 }
+  if (tagName === 'strong' || tagName === 'b') return { bold: true, fontWeight: 900 }
   if (tagName === 'em' || tagName === 'i') return { italic: true, fontStyle: 'italic' }
   if (tagName === 'u') return { underline: true, textDecoration: 'underline' }
   if (tagName === 'span') {
@@ -437,9 +441,11 @@ function getSafeStyleDeclarations(run: RichTextRun) {
     run.fontFamily ? `font-family:${run.fontFamily}` : '',
     run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
     run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
-    run.fontStyle === 'italic' && !run.italic ? 'font-style:italic' : '',
+    run.fontStyle && !run.italic ? `font-style:${run.fontStyle}` : '',
     run.textDecoration === 'underline' && !run.underline
       ? 'text-decoration:underline'
+      : run.textDecoration === 'none' && !run.underline
+        ? 'text-decoration:none'
       : '',
   ].filter(Boolean)
 
@@ -712,7 +718,7 @@ function parseInlineMarkdown(
       if (closingIndex > index + 2) {
         runs.push(...parseInlineMarkdown(
           text.slice(index + 2, closingIndex),
-          { ...inheritedStyle, bold: true, fontWeight: 800 },
+          { ...inheritedStyle, bold: true, fontWeight: 900 },
         ))
         index = closingIndex + 2
         continue

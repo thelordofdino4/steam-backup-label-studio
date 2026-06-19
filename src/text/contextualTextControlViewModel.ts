@@ -11,6 +11,7 @@ export type ContextualTextControlId =
   | 'size'
   | 'alignment'
   | 'bold'
+  | 'bulletedList'
   | 'italic'
   | 'underline'
   | 'color'
@@ -107,6 +108,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   backgroundOpacity: 'Opacity',
   backgroundPadding: 'Padding',
   bold: 'Bold',
+  bulletedList: 'Bulleted List',
   borderColor: 'Line',
   borderEnabled: 'Border',
   borderRadius: 'Radius',
@@ -137,6 +139,7 @@ const COMMON_CONTEXTUAL_CONTROL_IDS = [
   'size',
   'alignment',
   'bold',
+  'bulletedList',
   'italic',
   'underline',
   'color',
@@ -209,6 +212,12 @@ export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
     hasContextualEquivalent: true,
     id: 'bold',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
+  },
+  bulletedList: {
+    group: 'text',
+    hasContextualEquivalent: true,
+    id: 'bulletedList',
+    label: CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList,
   },
   borderColor: {
     group: 'art',

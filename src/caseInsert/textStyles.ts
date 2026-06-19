@@ -75,6 +75,7 @@ const ROLE_STYLE_OVERRIDES: Partial<
   Record<CaseInsertTextStyleRole, Partial<CaseInsertTextStyle>>
 > = {
   title: {
+    bold: false,
     color: '#ffffff',
     contrast: 'strokeShadow',
     backgroundEnabled: false,
@@ -164,6 +165,7 @@ const ROLE_STYLE_OVERRIDES: Partial<
     borderRadius: 0.35,
   },
   spine: {
+    bold: false,
     color: '#ffffff',
     contrast: 'strokeShadow',
     backgroundEnabled: false,
@@ -274,6 +276,12 @@ export function getCaseInsertTextStyleRoleMaxLines(
   role: CaseInsertTextStyleRole,
 ) {
   return DISC_TEXT_RENDER_STYLES[ROLE_TO_DISC_TEXT_KEY[role]].maxLines
+}
+
+export function getCaseInsertTextStyleRoleBaseFontWeight(
+  role: CaseInsertTextStyleRole,
+) {
+  return DISC_TEXT_RENDER_STYLES[ROLE_TO_DISC_TEXT_KEY[role]].fontWeight
 }
 
 export function hexToRgba(hexColor: string, opacity: number) {

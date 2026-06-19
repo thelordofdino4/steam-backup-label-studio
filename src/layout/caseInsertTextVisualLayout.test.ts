@@ -121,8 +121,48 @@ test('case insert visual layout carries HTML rich runs through measured lines', 
       { text: 'italic', bold: false, italic: true },
     ],
   )
-  assert.ok(measuredFonts.includes('800 10px Georgia, serif'))
+  assert.ok(measuredFonts.includes('900 10px Georgia, serif'))
   assert.ok(measuredFonts.includes('italic 600 10px Georgia, serif'))
+})
+
+test('case insert rich text layout renders bullet list glyphs and item styling', () => {
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    fontFamily: 'Georgia, serif',
+    fontSizePx: 10,
+    fontWeight: 600,
+    lineHeightPx: 12,
+    measureText: measureTextAsCharacters,
+    paddingRatio: 0,
+    richText: parseHtmlText(
+      '<ul><li><strong>Alpha</strong></li><li><span style="color:#00ff00">Beta</span></li></ul>',
+    ),
+    text: 'Alpha\nBeta',
+    verticalAlign: 'top',
+  })
+
+  assert.deepEqual(
+    layout.lines.map((line) => line.text),
+    ['• Alpha', '• Beta'],
+  )
+  assert.deepEqual(
+    layout.lines[0]?.runs?.map(({ text, bold, color }) => ({
+      text,
+      bold: Boolean(bold),
+      color,
+    })),
+    [
+      { text: '• ', bold: false, color: undefined },
+      { text: 'Alpha', bold: true, color: undefined },
+    ],
+  )
+  assert.deepEqual(
+    layout.lines[1]?.runs?.map(({ text, color }) => ({ text, color })),
+    [
+      { text: '• ', color: undefined },
+      { text: 'Beta', color: '#00ff00' },
+    ],
+  )
 })
 
 test('case insert editable bounds keep a visible minimum box for empty text', () => {

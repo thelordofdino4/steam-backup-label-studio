@@ -97,6 +97,8 @@ import {
   updateCaseInsertPreviewTextTargetAlign,
   updateCaseInsertPreviewTextTargetAvoidVisualElements,
   updateCaseInsertPreviewTextTargetContentMode,
+  getCaseInsertPreviewTextTargetRichTextCommandState,
+  updateCaseInsertPreviewTextTargetRichTextCommand,
   updateCaseInsertPreviewTextTargetLayoutField,
   updateCaseInsertPreviewTextTargetStyleField,
 } from '../caseInsert/previewTextControls'
@@ -318,6 +320,8 @@ function App() {
     handleDiscTextVisualAvoidanceChange,
     handleResetDiscTextLayout,
     handleDiscTextStyleChange,
+    handleDiscTextRichTextCommand,
+    getDiscTextRichTextCommandState,
     handleResetDiscTextStyle,
     handleApplyDiscTextStylePreset,
     handleDiscNumberArtworkModeChange,
@@ -647,6 +651,40 @@ function App() {
         field,
         value,
       ))
+  }
+
+  function handleCaseInsertPreviewTextRichTextCommand(
+    target: CaseInsertPreviewTextTarget,
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    selection: { end: number; start: number } | undefined,
+    value: boolean | string,
+  ) {
+    const result =
+      updateCaseInsertPreviewTextTargetRichTextCommand(
+        projectJewelCase,
+        target,
+        command,
+        selection,
+        value,
+        projectMetadata,
+      )
+
+    setProjectJewelCase(result.caseInsert)
+    return result.selection
+  }
+
+  function getCaseInsertPreviewTextRichTextCommandState(
+    target: CaseInsertPreviewTextTarget,
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    selection: { end: number; start: number },
+  ) {
+    return getCaseInsertPreviewTextTargetRichTextCommandState(
+      projectJewelCase,
+      target,
+      command,
+      selection,
+      projectMetadata,
+    )
   }
 
   function handleCaseInsertPreviewTextApplyStylePreset(
@@ -1961,6 +1999,9 @@ function App() {
         previewTextControlHandlers={{
         onEnabledChange: handleCaseInsertPreviewTextEnabledChange,
         onStyleChange: handleCaseInsertPreviewTextStyleChange,
+        onRichTextCommand: handleCaseInsertPreviewTextRichTextCommand,
+        getRichTextCommandState:
+          getCaseInsertPreviewTextRichTextCommandState,
         onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
         onApplyLayoutPreset: handleCaseInsertPreviewTextApplyLayoutPreset,
         onResetStyle: handleCaseInsertPreviewTextResetStyle,
@@ -2235,6 +2276,8 @@ function App() {
           onTextContentModeChange: handleDiscTextContentModeChange,
           onTextEditComplete: finalizeDiscTextInlineDraft,
           onTextStyleChange: handleDiscTextStyleChange,
+          onTextRichTextCommand: handleDiscTextRichTextCommand,
+          getTextRichTextCommandState: getDiscTextRichTextCommandState,
           onApplyTextStylePreset: handleApplyDiscTextStylePreset,
           onResetTextStyle: handleResetDiscTextStyle,
           onTextLayoutChange: handleDiscTextLayoutChange,

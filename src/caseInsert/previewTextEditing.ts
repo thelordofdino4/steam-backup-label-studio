@@ -25,6 +25,7 @@ import {
 import type { CaseInsertPreviewTextTarget } from './previewTextSelection.ts'
 import type { DiscTextKey } from '../discText/types.ts'
 import {
+  getRenderablePlainText,
   getHtmlSource,
   isHtmlTextEnabled,
 } from '../text/htmlText.ts'
@@ -60,21 +61,26 @@ function getPreviewTextBlockDraftValue(
 export function getCaseInsertPreviewTextEditValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
+  options: { sourceMode?: boolean } = {},
 ) {
-  if (isHtmlTextEnabled(textBlock)) {
-    return getHtmlSource(textBlock, textBlock.value)
-  }
-
-  if (textBlock.source !== 'metadata') {
+  const fallbackValue = textBlock.source !== 'metadata'
+    ? (() => {
     const discKey = getCaseInsertTextBlockDiscKey(textBlock)
     const prefix = discKey ? CASE_INSERT_RENDERED_PREFIXES[discKey] : undefined
 
     return prefix && textBlock.value
       ? `${prefix}${textBlock.value}`
       : textBlock.value
+  })()
+    : getCaseInsertTextBlockRenderValue(textBlock, metadata)
+
+  if (isHtmlTextEnabled(textBlock)) {
+    return options.sourceMode
+      ? getHtmlSource(textBlock, fallbackValue)
+      : getRenderablePlainText(textBlock, fallbackValue)
   }
 
-  return getCaseInsertTextBlockRenderValue(textBlock, metadata)
+  return fallbackValue
 }
 
 function updatePreviewTextBlockDraft(
@@ -95,10 +101,17 @@ export function getCaseInsertPreviewTextListEditValue(
     htmlSource?: string | null
     markdownSource?: string | null
   },
+  options: { sourceMode?: boolean } = {},
 ) {
-  return isHtmlTextEnabled(textList)
-    ? getHtmlSource(textList, textList.items.map((item) => `• ${item}`).join('\n'))
-    : textList.items.map((item) => `• ${item}`).join('\n')
+  const fallbackValue = textList.items.map((item) => `• ${item}`).join('\n')
+
+  if (isHtmlTextEnabled(textList)) {
+    return options.sourceMode
+      ? getHtmlSource(textList, fallbackValue)
+      : getRenderablePlainText(textList, fallbackValue)
+  }
+
+  return fallbackValue
 }
 
 function finalizePreviewTextBlockDraft(textBlock: ProjectCaseInsertTextBlock) {

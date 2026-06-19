@@ -61,7 +61,7 @@ export type DiscTextStylePreset = {
 }
 
 export const DISC_TEXT_RENDER_STYLES: Record<DiscTextKey, DiscTextRenderStyle> = {
-  title: { fontSizePercent: 3.6, fontWeight: 900, color: '#f9fafb', maxLines: 2 },
+  title: { fontSizePercent: 3.6, fontWeight: 800, color: '#f9fafb', maxLines: 2 },
   subtitle: { fontSizePercent: 2.2, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
   discNumber: { fontSizePercent: 1.9, fontWeight: 800, color: '#f9fafb', maxLines: 1 },
   backupDate: { fontSizePercent: 1.55, fontWeight: 700, color: '#e5e7eb', maxLines: 1 },
@@ -244,7 +244,7 @@ export function createDefaultDiscTextStyle(key: DiscTextKey): DiscTextStyle {
   return {
     fontFamily: DEFAULT_DISC_TEXT_FONT_FAMILY,
     color: DISC_TEXT_RENDER_STYLES[key].color,
-    bold: false,
+    bold: key === 'title',
     italic: false,
     underline: false,
     contrast: DEFAULT_DISC_TEXT_CONTRAST,
@@ -391,9 +391,14 @@ export function getDiscTextEffectiveFontWeight(
   baseFontWeight: number,
   style: Pick<DiscTextStyle, 'bold'>,
 ) {
-  return style.bold
-    ? Math.min(950, Math.max(baseFontWeight + 120, 700))
-    : baseFontWeight
+  if (!style.bold) {
+    return baseFontWeight
+  }
+
+  return Math.min(
+    900,
+    Math.max(700, Math.ceil((baseFontWeight + 1) / 100) * 100),
+  )
 }
 
 export function getDiscTextFontStyle(style: Pick<DiscTextStyle, 'italic'>) {

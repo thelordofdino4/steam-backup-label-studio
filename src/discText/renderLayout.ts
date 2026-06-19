@@ -161,7 +161,7 @@ function getDiscTextRunFontString({
   run: RichTextRun
 }) {
   return getDiscTextFontString(
-    run.fontWeight ?? (run.bold ? Math.max(baseFontWeight, 800) : baseFontWeight),
+    run.fontWeight ?? (run.bold ? Math.max(baseFontWeight, 900) : baseFontWeight),
     run.fontSizePx ?? fontSize,
     run.fontFamily ?? fontFamily,
     run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),

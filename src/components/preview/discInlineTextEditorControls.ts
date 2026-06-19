@@ -35,6 +35,7 @@ import {
   isContextualTextCustomPreset,
 } from '../../text/contextualTextControlViewModel.ts'
 import type {
+  InlinePreviewTextEditorSelectionRange,
   InlinePreviewTextEditorControls,
 } from './InlinePreviewTextEditor'
 
@@ -62,6 +63,20 @@ export type DiscInlineTextEditorControlParams = {
     field: DiscTextStyleField,
     value: DiscTextStyleValue,
   ) => void
+  onDiscTextRichTextCommand?: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    selection: InlinePreviewTextEditorSelectionRange | undefined,
+    value: boolean | string,
+  ) => InlinePreviewTextEditorSelectionRange | void
+  getDiscTextRichTextCommandState?: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => 'active' | 'inactive' | 'mixed' | {
+    state: 'active' | 'inactive' | 'mixed'
+    value?: string
+  }
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
     avoidVisualElements: boolean,
@@ -98,6 +113,12 @@ function getMatchingDiscLayoutPreset({
           : true,
     )
   })
+}
+
+function hasInlineSelectionRange(
+  selection: InlinePreviewTextEditorSelectionRange,
+) {
+  return selection.start !== selection.end
 }
 
 function applyDiscTextLayoutPreset({
@@ -150,6 +171,8 @@ export function createDiscInlineTextEditorControls({
   onResetDiscTextLayout,
   isHtmlSourceEnabled,
   onDiscTextContentModeChange,
+  onDiscTextRichTextCommand,
+  getDiscTextRichTextCommandState,
 }: DiscInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode !== 'curved')
@@ -161,6 +184,42 @@ export function createDiscInlineTextEditorControls({
     layout,
     layoutPresets,
   })
+
+  const handleInlineToggleChange = (
+    command: 'bold' | 'italic' | 'underline',
+    field: Extract<DiscTextStyleField, 'bold' | 'italic' | 'underline'>,
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      return onDiscTextRichTextCommand?.(key, command, selection, pressed)
+    }
+
+    onDiscTextStyleChange(key, field, pressed)
+    return undefined
+  }
+  const handleInlineColorChange = (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'color', selection, value)
+      return
+    }
+
+    onDiscTextStyleChange(key, 'color', value)
+  }
+  const handleBulletedListChange = (
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    return onDiscTextRichTextCommand?.(
+      key,
+      'bulletedList',
+      selection,
+      pressed,
+    )
+  }
 
   return {
     presets: {
@@ -231,27 +290,87 @@ export function createDiscInlineTextEditorControls({
       bold: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
         pressed: style.bold,
-        onChange: (pressed) =>
-          onDiscTextStyleChange(key, 'bold', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'bold',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('bold', 'bold', pressed, selection),
       },
       italic: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
         pressed: style.italic,
-        onChange: (pressed) =>
-          onDiscTextStyleChange(key, 'italic', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'italic',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('italic', 'italic', pressed, selection),
       },
       underline: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.underline,
         pressed: style.underline,
-        onChange: (pressed) =>
-          onDiscTextStyleChange(key, 'underline', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'underline',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange(
+            'underline',
+            'underline',
+            pressed,
+            selection,
+          ),
+      },
+      bulletedList: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList,
+        pressed: false,
+        getSelectionState: (selection) => {
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'bulletedList',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: handleBulletedListChange,
       },
     },
     art: {
       color: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.color,
         value: style.color,
-        onChange: (value) => onDiscTextStyleChange(key, 'color', value),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'color',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state ?? { state: 'inactive' }
+        },
+        onChange: handleInlineColorChange,
       },
       contrast: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.contrast,
