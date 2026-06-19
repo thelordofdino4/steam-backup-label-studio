@@ -432,6 +432,7 @@ Key files:
 - `src/caseInsert/previewTextEditing.ts`
 - `src/text/contextualTextControlViewModel.ts`
 - `src/text/htmlText.ts`
+- `src/text/richTextRunStyle.ts`
 - `docs/TEXT_EDITOR_CONTRACT.md`
 
 Source-of-truth state:
@@ -447,6 +448,9 @@ Render path:
   adapter for selected straight text. The SVG/final preview renderer remains
   the visible glyph source during straight-disc editing.
 - Case insert text renders through template/spine preview layers and computed visual layout helpers.
+- Case insert rich-text run style interpretation is shared in
+  `src/text/richTextRunStyle.ts`; DOM preview span creation, layout
+  measurement, and canvas drawing remain adapter-owned.
 - Case insert inline editing uses the shared editor in adapter mode for cover,
   tray, left spine, and right spine text, keeping the existing template/spine
   preview renderers visible during editing.
@@ -491,6 +495,7 @@ Tests:
 - `src/components/preview/discInlineTextEditorControls.test.ts`
 - `src/components/preview/inlinePreviewTextEditor*.test.ts`
 - `src/text/contextualTextControlViewModel.test.ts`
+- `src/text/richTextRunStyle.test.ts`
 - `src/diagnostics/textEditorContract.test.ts`
 - `src/caseInsert/textReadability.test.ts`
 - `src/layout/caseInsertTextVisualLayout.test.ts`
