@@ -103,6 +103,35 @@ test('additional artwork per-item cards remain feature-owned', () => {
   assert.match(caseInsertSpine, /onDelete=/)
 })
 
+test('Steam banner controls use the shared shell without owning banner state', () => {
+  const editorControls = readRepoFile(
+    'src/components/editor/EditorSteamBannerControls.tsx',
+  )
+  const discControls = readRepoFile(
+    'src/components/sidebar/branding/SteamBannerControls.tsx',
+  )
+  const caseControls = readRepoFile(
+    'src/components/caseInsert/CaseInsertSteamBannerControls.tsx',
+  )
+
+  assert.match(editorControls, /OptionalFeatureSection/)
+  assert.match(editorControls, /className="feature-control-body"/)
+  assert.match(editorControls, /enableLabel="Show Steam banner"/)
+  assert.match(editorControls, /actions=\{actions\}/)
+  assert.match(editorControls, /onResetColors/)
+  assert.match(editorControls, /onResetLayout/)
+
+  assert.match(discControls, /createSteamLogoPlacementMemory/)
+  assert.match(discControls, /getEnabledSteamLogoPlacement/)
+  assert.match(discControls, /getNextSteamLogoPlacementMemory/)
+  assert.match(discControls, /handleSteamLogoPlacementChange\('none'\)/)
+  assert.doesNotMatch(discControls, /OptionalFeatureSection/)
+
+  assert.match(caseControls, /enabled=\{banner\.enabled\}/)
+  assert.match(caseControls, /onEnabledChange=\{onEnabledChange\}/)
+  assert.doesNotMatch(caseControls, /OptionalFeatureSection/)
+})
+
 test('disc title artwork keeps its reset action in the shell action slot', () => {
   const source = readRepoFile(
     'src/components/sidebar/artwork/TitleArtworkControls.tsx',
@@ -115,7 +144,6 @@ test('disc title artwork keeps its reset action in the shell action slot', () =>
 
 test('non-target optional visual components stay out of this mechanical migration', () => {
   const excludedPaths = [
-    'src/components/editor/EditorSteamBannerControls.tsx',
     'src/components/sidebar/artwork/BackgroundArtworkControls.tsx',
     'src/components/sidebar/branding/PlatformMarkControls.tsx',
     'src/components/sidebar/branding/RatingBadgeControls.tsx',

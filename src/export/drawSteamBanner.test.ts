@@ -14,16 +14,24 @@ type FillTextCall = [
 ]
 
 function createSteamBannerContext() {
+  const drawImageCalls: unknown[][] = []
+  const fillRectCalls: Array<[number, number, number, number]> = []
   const fillTextCalls: FillTextCall[] = []
 
   return {
+    drawImageCalls,
+    fillRectCalls,
     fillTextCalls,
     context: {
       createLinearGradient: () => ({
         addColorStop: () => {},
       }),
-      fillRect: () => {},
-      drawImage: () => {},
+      fillRect: (...args: [number, number, number, number]) => {
+        fillRectCalls.push(args)
+      },
+      drawImage: (...args: unknown[]) => {
+        drawImageCalls.push(args)
+      },
       measureText: (text: string) => ({ width: text.length * 8 }),
       save: () => {},
       restore: () => {},
@@ -33,6 +41,28 @@ function createSteamBannerContext() {
     } as unknown as CanvasRenderingContext2D,
   }
 }
+
+test('disabled Steam banner is omitted from disc PNG export', async () => {
+  const { context, drawImageCalls, fillRectCalls, fillTextCalls } =
+    createSteamBannerContext()
+
+  await drawSteamBrandBanner(
+    context,
+    1000,
+    0,
+    'none',
+    DEFAULT_STEAM_BANNER_COLORS,
+    'default-lockup.png',
+    null,
+    DEFAULT_STEAM_BANNER_LOCKUP_LAYOUT,
+    false,
+    'STEAM',
+  )
+
+  assert.equal(fillRectCalls.length, 0)
+  assert.equal(drawImageCalls.length, 0)
+  assert.equal(fillTextCalls.length, 0)
+})
 
 test('Steam banner export falls back to text when the lockup image fails', async () => {
   const { context, fillTextCalls } = createSteamBannerContext()
