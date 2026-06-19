@@ -16,6 +16,9 @@ import {
   type RichTextLine,
   type RichTextRun,
 } from '../text/htmlText.ts'
+import {
+  getRichTextRunResolvedFont,
+} from '../text/richTextRunStyle.ts'
 
 export type CaseInsertTextMeasureFunction = (
   text: string,
@@ -216,11 +219,18 @@ function getCaseInsertTextRunFontString({
   fontSizePx: number
   run: RichTextRun
 }) {
+  const resolvedFont = getRichTextRunResolvedFont(run, {
+    baseFontFamily: fontFamily,
+    baseFontSizePx: fontSizePx,
+    baseFontStyle,
+    baseFontWeight,
+  })
+
   return getCaseInsertTextFontString(
-    run.fontWeight ?? (run.bold ? Math.max(baseFontWeight, 800) : baseFontWeight),
-    run.fontSizePx ?? fontSizePx,
-    run.fontFamily ?? fontFamily,
-    run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),
+    resolvedFont.fontWeight,
+    resolvedFont.fontSizePx,
+    resolvedFont.fontFamily,
+    resolvedFont.fontStyle,
   )
 }
 

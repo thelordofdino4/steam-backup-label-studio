@@ -420,6 +420,8 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - `src/caseInsert/previewTextSelection.ts`
 - `src/caseInsert/previewTextEditing.ts`
 - `src/text/contextualTextControlViewModel.ts`
+- `src/text/htmlText.ts`
+- `src/text/richTextRunStyle.ts`
 - `src/layout/caseInsertTextVisualLayout.ts`
 - `src/export/drawDiscText.ts`
 - `docs/TEXT_EDITOR_CONTRACT.md`
@@ -453,6 +455,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - HTML source editing stores canonical sanitized HTML, parses it into the shared
   rich-text run model, and renders those runs through the same preview/export
   renderers. Legacy Markdown fields are load-only migration inputs.
+- Case insert rich-text run style interpretation is shared through
+  `src/text/richTextRunStyle.ts`; DOM preview layers, layout measurement, and
+  canvas export remain separate adapters that consume the normalized run style.
 - Export uses `drawDiscTextElements` for disc text and `exportCaseInsertPng.ts` for case insert text.
 
 ### 9.5 Invariants And Future-Change Rules
@@ -471,6 +476,8 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 
 - Required text validation is broader than unit tests.
 - Deterministic coverage belongs in `src/discText/*.test.ts`, `src/components/preview/inlinePreviewTextEditor*.test.ts`, `src/diagnostics/textEditorContract.test.ts`, `src/caseInsert/textReadability.test.ts`, and layout tests.
+- Rich-text run style normalization coverage belongs in
+  `src/text/richTextRunStyle.test.ts`.
 - Runtime validation must use the text editor stabilization checklist for cover, tray, left spine, right spine, straight disc text, and curved disc text where affected.
 
 ### 9.7 Known Risks

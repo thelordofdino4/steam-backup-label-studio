@@ -48,6 +48,11 @@ import {
   isHtmlTextEnabled,
 } from '../../text/htmlText'
 import {
+  getRenderableRichTextRuns,
+  getRichTextRunDomStyle,
+  richTextRunsHaveVisualStyles,
+} from '../../text/richTextRunStyle'
+import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../../editor/repeatedArtwork'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -221,54 +226,20 @@ function getCaseInsertTextLineStyle(
 function renderCaseInsertTextLineContent(
   line: {
     text: string
-    runs?: Array<{
-      text: string
-      bold?: boolean
-      italic?: boolean
-      underline?: boolean
-      color?: string
-      backgroundColor?: string
-      fontFamily?: string
-      fontSizePx?: number
-      fontWeight?: number
-      fontStyle?: 'normal' | 'italic'
-      textDecoration?: 'none' | 'underline'
-    }>
+    runs?: Parameters<typeof getRenderableRichTextRuns>[0]
   },
   baseFontSizePx: number,
 ) {
-  const runs = line.runs?.filter((run) => run.text)
-  const hasStyledRuns = runs?.some((run) =>
-    run.bold ||
-    run.italic ||
-    run.underline ||
-    run.color ||
-    run.backgroundColor ||
-    run.fontFamily ||
-    run.fontSizePx ||
-    run.fontWeight ||
-    run.fontStyle ||
-    run.textDecoration)
+  const runs = getRenderableRichTextRuns(line.runs)
 
-  if (!runs || !hasStyledRuns) {
+  if (!richTextRunsHaveVisualStyles(runs)) {
     return line.text
   }
 
   return runs.map((run, index) => (
     <span
       key={`${index}-${run.text}`}
-      style={{
-        backgroundColor: run.backgroundColor,
-        color: run.color,
-        fontFamily: run.fontFamily,
-        fontSize: run.fontSizePx ? `${run.fontSizePx / baseFontSizePx}em` : undefined,
-        fontStyle: run.fontStyle ?? (run.italic ? 'italic' : undefined),
-        fontWeight: run.fontWeight ?? (run.bold ? 800 : undefined),
-        textDecorationLine:
-          run.textDecoration === 'underline' || run.underline
-            ? 'underline'
-            : run.textDecoration,
-      }}
+      style={getRichTextRunDomStyle(run, baseFontSizePx)}
     >
       {run.text}
     </span>

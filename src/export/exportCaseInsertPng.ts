@@ -71,6 +71,12 @@ import {
 import {
   getCanvasTextAlign,
 } from '../layout/caseInsertTextVisualLayout'
+import {
+  getRenderableRichTextRuns,
+  getRichTextRunCanvasStyle,
+  richTextRunsHaveVisualStyles,
+  type RichTextRunStyleContext,
+} from '../text/richTextRunStyle'
 import type {
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertSurfaceState,
@@ -336,6 +342,13 @@ function drawComputedTextLayout(
   },
 ) {
   context.save()
+  const richTextRunStyleContext: RichTextRunStyleContext = {
+    baseColor: options.color,
+    baseFontFamily: options.fontFamily,
+    baseFontSizePx: textLayout.fontSizePx,
+    baseFontStyle: options.fontStyle === 'italic' ? 'italic' : 'normal',
+    baseFontWeight: options.weight,
+  }
   const baseFont = getCaseInsertTextCanvasFont({
     fontFamily: options.fontFamily,
     fontSizePx: textLayout.fontSizePx,
@@ -385,25 +398,19 @@ function drawComputedTextLayout(
   }
 
   textLayout.lines.forEach((line) => {
-    const runs = line.runs?.filter((run) => run.text)
-    const hasStyledRuns = runs?.some((run) =>
-      run.bold ||
-      run.italic ||
-      run.underline ||
-      run.color ||
-      run.backgroundColor ||
-      run.fontFamily ||
-      run.fontSizePx ||
-      run.fontWeight ||
-      run.fontStyle ||
-      run.textDecoration)
+    const runs = getRenderableRichTextRuns(line.runs)
+    const hasStyledRuns = richTextRunsHaveVisualStyles(runs)
 
-    if (runs && hasStyledRuns) {
+    if (hasStyledRuns) {
       for (const run of runs) {
-        if (!run.backgroundColor) continue
+        const runStyle = getRichTextRunCanvasStyle(
+          run,
+          richTextRunStyleContext,
+        )
+        if (!runStyle.backgroundColor) continue
 
         context.save()
-        context.fillStyle = run.backgroundColor
+        context.fillStyle = runStyle.backgroundColor
         context.fillRect(
           run.left,
           line.y,
@@ -420,15 +427,18 @@ function drawComputedTextLayout(
       context.strokeStyle = CASE_INSERT_TEXT_STROKE_COLOR
       context.lineJoin = 'round'
       context.lineWidth = Math.max(1, textLayout.fontSizePx * 0.08)
-      if (runs && hasStyledRuns) {
+      if (hasStyledRuns) {
         context.textAlign = 'left'
         for (const run of runs) {
+          const runStyle = getRichTextRunCanvasStyle(
+            run,
+            richTextRunStyleContext,
+          )
           context.font = getCaseInsertTextCanvasFont({
-            fontFamily: run.fontFamily ?? options.fontFamily,
-            fontSizePx: run.fontSizePx ?? textLayout.fontSizePx,
-            fontStyle: run.fontStyle ?? (run.italic ? 'italic' : options.fontStyle),
-            weight: run.fontWeight ??
-              (run.bold ? Math.max(options.weight ?? 600, 800) : options.weight),
+            fontFamily: runStyle.fontFamily,
+            fontSizePx: runStyle.fontSizePx,
+            fontStyle: runStyle.fontStyle,
+            weight: runStyle.fontWeight,
           })
           context.strokeText(run.text, run.left, line.y)
         }
@@ -440,26 +450,29 @@ function drawComputedTextLayout(
       context.restore()
     }
 
-    if (runs && hasStyledRuns) {
+    if (hasStyledRuns) {
       context.textAlign = 'left'
       for (const run of runs) {
+        const runStyle = getRichTextRunCanvasStyle(
+          run,
+          richTextRunStyleContext,
+        )
         context.font = getCaseInsertTextCanvasFont({
-          fontFamily: run.fontFamily ?? options.fontFamily,
-          fontSizePx: run.fontSizePx ?? textLayout.fontSizePx,
-          fontStyle: run.fontStyle ?? (run.italic ? 'italic' : options.fontStyle),
-          weight: run.fontWeight ??
-            (run.bold ? Math.max(options.weight ?? 600, 800) : options.weight),
+          fontFamily: runStyle.fontFamily,
+          fontSizePx: runStyle.fontSizePx,
+          fontStyle: runStyle.fontStyle,
+          weight: runStyle.fontWeight,
         })
-        context.fillStyle = run.color ?? options.color ?? '#f8fafc'
+        context.fillStyle = runStyle.color
         context.fillText(run.text, run.left, line.y)
-        if (run.underline || run.textDecoration === 'underline') {
-          const underlineY = line.y + (run.fontSizePx ?? textLayout.fontSizePx) * 0.92
+        if (runStyle.underline) {
+          const underlineY = line.y + runStyle.fontSizePx * 0.92
 
           context.save()
-          context.strokeStyle = run.color ?? options.color ?? '#f8fafc'
+          context.strokeStyle = runStyle.color
           context.lineWidth = Math.max(
             1,
-            (run.fontSizePx ?? textLayout.fontSizePx) * 0.06,
+            runStyle.fontSizePx * 0.06,
           )
           context.beginPath()
           context.moveTo(run.left, underlineY)
