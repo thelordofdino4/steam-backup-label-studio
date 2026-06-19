@@ -4,14 +4,14 @@ import type {
   DiscTextSettings,
   DiscTextValues,
   SteamLogoPlacement,
-} from '../discText/types'
-import type { DiscTextStyleSettings } from '../discText/styles'
-import type { ExportGuideSelection } from '../export/exportGuides'
-import type { SteamImportedGame } from '../steam/steamApi'
-import type { DiscTemplate } from '../types/template'
-import type { DiscTextValueSources } from './metadataDiscTextTypes'
-import { normalizeSteamBannerFallbackText } from '../branding/steamBannerDefaults'
-import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema'
+} from '../discText/types.ts'
+import type { DiscTextStyleSettings } from '../discText/styles.ts'
+import type { ExportGuideSelection } from '../export/exportGuides.ts'
+import type { SteamImportedGame } from '../steam/steamApi.ts'
+import type { DiscTemplate } from '../types/template.ts'
+import type { DiscTextValueSources } from './metadataDiscTextTypes.ts'
+import { normalizeSteamBannerFallbackText } from '../branding/steamBannerDefaults.ts'
+import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -29,7 +29,7 @@ import type {
   SelectedDiscTemplateId,
   SteamBannerColors,
   SteamBannerLockupLayout,
-} from './projectTypes'
+} from './projectTypes.ts'
 
 export type CreateProjectSnapshotParams = {
   manualGameTitle: string
