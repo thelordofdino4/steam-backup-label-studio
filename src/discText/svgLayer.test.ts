@@ -124,6 +124,49 @@ test('disc SVG renderer maps straight HTML to safe tspans', () => {
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
+test('disc SVG renderer reflects changed straight HTML source drafts', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    customNote: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    customNote: 'fallback note',
+  }
+  const commonParams = {
+    settings,
+    values,
+    layoutSettings: createDefaultDiscTextLayout('none'),
+    title: 'Portal 2',
+    placement: 'none' as const,
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  }
+  const firstSvg = buildDiscTextSvgLayer({
+    ...commonParams,
+    htmlSources: {
+      customNote: '<p><span style="color:#ff0000">Draft one</span></p>',
+    },
+  })
+  const secondSvg = buildDiscTextSvgLayer({
+    ...commonParams,
+    htmlSources: {
+      customNote:
+        '<p><span style="color:#0000ff">Draft two</span><br><strong>Next line</strong></p>',
+    },
+  })
+
+  assert.match(firstSvg, /fill:#ff0000/)
+  assert.match(firstSvg, /Draft one/)
+  assert.doesNotMatch(secondSvg, /Draft one/)
+  assert.match(secondSvg, /fill:#0000ff/)
+  assert.match(secondSvg, /Draft two/)
+  assert.match(secondSvg, /font-weight:800/)
+  assert.match(secondSvg, /Next line/)
+})
+
 test('disc SVG renderer can hide selected straight text glyphs for inline editing', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,

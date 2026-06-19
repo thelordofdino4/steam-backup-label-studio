@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -16,6 +17,11 @@ import {
 import {
   getInlinePreviewHtmlSourceDraftStatus,
 } from './inlinePreviewTextEditorSource'
+import {
+  isInlinePreviewTextEditorControlEvent,
+  shouldKeepInlinePreviewTextEditorOpenOnBlur,
+  type InlinePreviewTextEditorControlRoot,
+} from './inlinePreviewTextEditorInteraction'
 import { TrashIcon } from '../sidebar/PanelIcons'
 import {
   getInlinePreviewTextCaretIndexForLineOffset,
@@ -1171,6 +1177,7 @@ export function InlinePreviewTextEditor({
   const tabsRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
+  const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
@@ -1207,17 +1214,18 @@ export function InlinePreviewTextEditor({
     }
   }
 
-  const isInlineControlElement = (target: EventTarget | null) => {
-    if (!(target instanceof Node)) {
-      return false
-    }
+  const getInlineControlRoots = useCallback(() => {
+    const elements: HTMLElement[] = []
 
-    return Boolean(
-      tabsRef.current?.contains(target) ||
-      menuRef.current?.contains(target) ||
-      moveHandleRef.current?.contains(target),
-    )
-  }
+    if (tabsRef.current) elements.push(tabsRef.current)
+    if (menuRef.current) elements.push(menuRef.current)
+    if (moveHandleRef.current) elements.push(moveHandleRef.current)
+
+    return elements.map((element) => ({
+      contains: (target: unknown) =>
+        target instanceof Node && element.contains(target),
+    } satisfies InlinePreviewTextEditorControlRoot))
+  }, [])
 
   const updateSelectionStart = () => {
     const textarea = textareaRef.current
@@ -1284,12 +1292,54 @@ export function InlinePreviewTextEditor({
   const handleInlineTextEditorBlur = (
     event: ReactFocusEvent<HTMLTextAreaElement>,
   ) => {
-    if (isInlineControlElement(event.relatedTarget)) {
+    if (
+      shouldKeepInlinePreviewTextEditorOpenOnBlur({
+        pointerStartedInsideControls: controlPointerStartedInsideRef.current,
+        relatedTarget: event.relatedTarget,
+        roots: getInlineControlRoots(),
+      })
+    ) {
       return
     }
 
     onDone()
   }
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined
+    }
+
+    const handleDocumentPointerDown = (event: globalThis.PointerEvent) => {
+      controlPointerStartedInsideRef.current =
+        isInlinePreviewTextEditorControlEvent({
+          composedPath: event.composedPath?.(),
+          roots: getInlineControlRoots(),
+          target: event.target,
+        })
+    }
+    const handleDocumentPointerEnd = () => {
+      controlPointerStartedInsideRef.current = false
+    }
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown, true)
+    document.addEventListener('pointerup', handleDocumentPointerEnd, true)
+    document.addEventListener('pointercancel', handleDocumentPointerEnd, true)
+
+    return () => {
+      document.removeEventListener(
+        'pointerdown',
+        handleDocumentPointerDown,
+        true,
+      )
+      document.removeEventListener('pointerup', handleDocumentPointerEnd, true)
+      document.removeEventListener(
+        'pointercancel',
+        handleDocumentPointerEnd,
+        true,
+      )
+    }
+  }, [getInlineControlRoots])
 
   useEffect(() => {
     const textarea = textareaRef.current
