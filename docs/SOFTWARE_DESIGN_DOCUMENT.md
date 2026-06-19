@@ -409,6 +409,7 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - `src/components/preview/DiscInlineTextEditorLayer.tsx`
 - `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
+- `src/components/preview/inlinePreviewTextEditorContract.ts`
 - `src/components/preview/caseInsertInlineTextEditorControls.ts`
 - `src/caseInsert/sidebarControlPolicy.ts`
 - `src/caseInsert/textTransitions.ts`
@@ -439,6 +440,11 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Disc curved legal text uses SVG/textPath in preview and export-oriented SVG/canvas conversion.
 - Case insert text uses computed rectangular/spine layout helpers.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
+- `src/components/preview/inlinePreviewTextEditorContract.ts` owns the
+  neutral preview-mounted adapter contract, capability flags, normalized
+  edit-session shape, and conformance assertions. Surface adapters still own
+  renderer choice, measured layout, state setters, pointer movement, and
+  commit/delete behavior.
 - Shared contextual text-control labels, tabs, preset option construction,
   Custom-option behavior, matching helpers, and target capability declarations
   live in `src/text/contextualTextControlViewModel.ts`; adapters keep current

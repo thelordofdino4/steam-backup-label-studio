@@ -38,12 +38,16 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   const source = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
+  const contract = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorContract.ts',
+  )
 
-  assert.match(source, /controls\?:\s*InlinePreviewTextEditorControls/)
+  assert.match(contract, /controls\?:\s*InlinePreviewTextEditorControls/)
+  assert.match(source, /inlinePreviewTextEditorContract/)
   assert.match(source, /InlinePreviewTextEditorMenuContent/)
   assert.match(source, /deleteAction/)
-  assert.match(source, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
-  assert.match(source, /sourceMode\?:\s*boolean/)
+  assert.match(contract, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
+  assert.match(contract, /sourceMode\?:\s*boolean/)
   assert.match(source, /getInlinePreviewHtmlSourceDraftStatus/)
   assert.match(source, /inline-preview-text-source-textarea/)
   assert.match(source, /HTML source editor/)
@@ -55,9 +59,9 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /controls\.presets\?\.style/)
   assert.match(source, /controls\.presets\?\.layout/)
   assert.doesNotMatch(source, /inline-preview-text-preset-list/)
-  assert.match(source, /bold\?:\s*InlinePreviewTextEditorToggleControl/)
-  assert.match(source, /italic\?:\s*InlinePreviewTextEditorToggleControl/)
-  assert.match(source, /underline\?:\s*InlinePreviewTextEditorToggleControl/)
+  assert.match(contract, /bold\?:\s*InlinePreviewTextEditorToggleControl/)
+  assert.match(contract, /italic\?:\s*InlinePreviewTextEditorToggleControl/)
+  assert.match(contract, /underline\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(source, /renderInlinePreviewTextToggleControl/)
   assert.match(source, /aria-pressed=\{control\.pressed\}/)
   assert.match(source, /inline-preview-text-format-row/)
@@ -78,7 +82,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
     source,
     /textarea\.setSelectionRange\(\s*nextSelectionStart,\s*nextSelectionStart,\s*'forward',?\s*\)/,
   )
-  assert.match(source, /inputMode\?:\s*InlinePreviewTextEditorInputMode/)
+  assert.match(contract, /inputMode\?:\s*InlinePreviewTextEditorInputMode/)
   assert.match(source, /inputMode = 'overlay'/)
   assert.match(source, /inline-preview-textarea--adapter/)
   assert.doesNotMatch(source, /inline-preview-textarea--source/)

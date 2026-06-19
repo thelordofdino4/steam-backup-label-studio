@@ -420,6 +420,7 @@ Key files:
 - `src/components/preview/DiscInlineTextEditorLayer.tsx`
 - `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
+- `src/components/preview/inlinePreviewTextEditorContract.ts`
 - `src/components/preview/caseInsertInlineTextEditorControls.ts`
 - `src/caseInsert/textTransitions.ts`
 - `src/caseInsert/sidebarControlPolicy.ts`
@@ -460,6 +461,11 @@ Edit/interaction path:
 - Sidebar text controls update text state and styles.
 - Straight disc text can be edited inline through `InlinePreviewTextEditor`
   adapter mode.
+- `src/components/preview/inlinePreviewTextEditorContract.ts` owns the shared
+  preview-mounted adapter contract, normalized edit-session shape, capability
+  flags, conformance assertions, and curved-text exclusion assertion. The case
+  insert and straight-disc adapters continue to own geometry, layout, state
+  setters, renderer ownership, pointer movement, and commit/delete behavior.
 - Contextual text-control labels, preset option construction, Custom-option
   behavior, and target capability declarations live in
   `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
