@@ -663,6 +663,7 @@ Key files:
 - `src/interaction/usePointerDragAdapters.ts`
 - `src/interaction/useDiscPreviewPointerDrag.ts`
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+- `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
@@ -674,17 +675,20 @@ Source-of-truth state:
 
 - Drag operations update the owning feature state through callbacks supplied by `App.tsx` and editor hooks.
 - Overlay hover/selection UI state is local to `PreviewElementOverlay`.
-- Preview-editable element identity is encoded with DOM attributes defined by `src/editor/previewElementOverlay.ts`.
+- Preview-editable element identity, DOM attribute names, stable target keys, and inline text target keys are owned by `src/editor/previewEditableRegistry.ts`; `src/editor/previewElementOverlay.ts` keeps overlay lookup and rectangle measurement.
 
 Render path:
 
-- Editable preview elements expose data attributes.
+- Editable preview elements expose registry-defined data attributes.
 - `PreviewElementOverlay` measures matching DOM nodes and draws hover/selected boxes.
 - Inline text editor renders preview-mounted contextual controls and hidden
   native input/selection adapters. For case insert and straight disc WYSIWYG
   paths, the final preview renderer remains visible as the glyph renderer
   during editing; the adapter supplies input, caret, selection, boundaries, and
   menu affordances.
+- Inline text host lookup uses registry-defined target keys; case insert and
+  disc adapters still own their values, geometry, commit behavior, and pointer
+  movement.
 - HTML source editing is parsed and sanitized by `src/text/htmlText.ts` into
   the shared rich-text run model. Project restore migrates legacy Markdown
   source fields into canonical HTML; preview and export consume parsed runs, not
@@ -707,6 +711,7 @@ Export path:
 Tests:
 
 - `src/interaction/dragGeometry.test.ts`
+- `src/editor/previewEditableRegistry.test.ts`
 - `src/editor/previewElementOverlay.test.ts`
 - `src/components/preview/inlinePreviewTextEditor*.test.ts`
 - `src/diagnostics/textEditorContract.test.ts`

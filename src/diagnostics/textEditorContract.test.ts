@@ -161,8 +161,8 @@ test('case insert inline editing uses the adapter input path', () => {
     'src/components/preview/caseInsertInlineTextEditorControls.ts',
   )
 
-  assert.match(templateLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
-  assert.match(spineLayer, /INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE/)
+  assert.match(templateLayer, /createInlinePreviewTextTargetAttributes/)
+  assert.match(spineLayer, /createInlinePreviewTextTargetAttributes/)
   assert.match(templateLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(spineLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(previewControls, /CASE_INSERT_TEXT_STYLE_PRESETS/)

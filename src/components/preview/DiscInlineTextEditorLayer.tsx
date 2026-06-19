@@ -34,8 +34,11 @@ import {
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
-  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
+import {
+  createInlinePreviewTextTargetAttributes,
+  createDiscInlineTextTargetKey,
+} from '../../editor/previewEditableRegistry'
 import {
   createDiscInlineTextEditorControls,
 } from './discInlineTextEditorControls'
@@ -227,7 +230,7 @@ export function DiscInlineTextEditorLayer({
           renderLayout,
         })
         const isEmptyText = renderedText.trim().length === 0
-        const targetKey = `disc:${key}`
+        const targetKey = createDiscInlineTextTargetKey(key)
         const controls = createDiscInlineTextEditorControls({
           key,
           layout,
@@ -255,7 +258,7 @@ export function DiscInlineTextEditorLayer({
               isHtmlSourceEditing ? 'is-html-source' : '',
               isEmptyText ? 'is-empty' : '',
             ].filter(Boolean).join(' ')}
-            {...{ [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }}
+            {...createInlinePreviewTextTargetAttributes(targetKey)}
             style={hostStyle}
             onPointerDown={(event) => {
               event.preventDefault()

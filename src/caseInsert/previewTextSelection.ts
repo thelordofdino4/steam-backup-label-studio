@@ -1,5 +1,8 @@
 import type { CaseInsertTemplatePaneId } from './templateSurfaces'
 import type { JewelCaseSpineSide } from './types'
+import {
+  createCaseInsertInlineTextTargetKey,
+} from '../editor/previewEditableRegistry.ts'
 
 export type CaseInsertPreviewTextTarget =
   | {
@@ -53,14 +56,5 @@ export function caseInsertPreviewTextTargetsMatch(
 export function getCaseInsertPreviewTextTargetKey(
   target: CaseInsertPreviewTextTarget,
 ) {
-  switch (target.scope) {
-    case 'templateTextBlock':
-      return `${target.scope}:${target.paneId}:${target.textBlockId}`
-    case 'templateTextList':
-      return `${target.scope}:${target.paneId}:${target.textListId}`
-    case 'spineTitle':
-      return `${target.scope}:${target.side}`
-    case 'spineTextBlock':
-      return `${target.scope}:${target.side}:${target.textBlockId}`
-  }
+  return createCaseInsertInlineTextTargetKey(target)
 }

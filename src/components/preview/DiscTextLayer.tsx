@@ -36,6 +36,7 @@ import { createSvgDataUrl } from '../../utils/svg'
 import {
   createDiscTextPreviewEditableElementId,
   createPreviewEditableAttributes,
+  DISC_TEXT_KEY_ATTRIBUTE,
 } from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 import { DiscInlineTextEditorLayer } from './DiscInlineTextEditorLayer'
@@ -89,8 +90,8 @@ export type DiscTextLayerProps = {
 function getDiscTextKeyFromEventTarget(target: EventTarget | null) {
   if (!(target instanceof Element)) return null
 
-  const textElement = target.closest('[data-disc-text-key]')
-  const key = textElement?.getAttribute('data-disc-text-key')
+  const textElement = target.closest(`[${DISC_TEXT_KEY_ATTRIBUTE}]`)
+  const key = textElement?.getAttribute(DISC_TEXT_KEY_ATTRIBUTE)
 
   if (key && DISC_TEXT_KEYS.includes(key as DiscTextKey)) {
     return key as DiscTextKey

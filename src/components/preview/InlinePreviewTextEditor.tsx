@@ -34,12 +34,17 @@ import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
   type ContextualTextControlGroupId,
 } from '../../text/contextualTextControlViewModel'
+import {
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
+} from '../../editor/previewEditableRegistry'
+
+export {
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
+} from '../../editor/previewEditableRegistry'
 
 export const INLINE_PREVIEW_TEXT_HOST_CLASS = 'inline-preview-text-host'
 export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
   'data-inline-preview-text-line-index'
-export const INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE =
-  'data-inline-preview-text-target'
 
 export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
 

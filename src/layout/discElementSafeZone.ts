@@ -43,6 +43,7 @@ import {
   type DiscTextStyleInput,
 } from '../discText/styles.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
+import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectTechnicalMarkAsset } from '../project/projectTechnicalMarks.ts'
 import type {
@@ -154,7 +155,7 @@ function getRenderedStraightTextLines(key: DiscTextKey) {
 
   return Array.from(
     document.querySelectorAll<SVGTextElement>(
-      `.disc-text-render-text[data-disc-text-key="${key}"]`,
+      `.disc-text-render-text[${DISC_TEXT_KEY_ATTRIBUTE}="${key}"]`,
     ),
   )
     .map((textElement) => textElement.textContent?.trim() ?? '')

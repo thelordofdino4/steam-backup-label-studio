@@ -755,6 +755,7 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 - `src/interaction/usePointerDragAdapters.ts`
 - `src/interaction/useDiscPreviewPointerDrag.ts`
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+- `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
@@ -764,13 +765,14 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 
 ### 14.3 Source-Of-Truth State
 
-Pointer operations update owning feature state through callbacks. Overlay hover/selection state is local to the overlay component. Editable element identity is encoded by DOM attributes defined in `src/editor/previewElementOverlay.ts`.
+Pointer operations update owning feature state through callbacks. Overlay hover/selection state is local to the overlay component. Editable element identity, DOM attribute names, stable target keys, and inline text target keys are owned by `src/editor/previewEditableRegistry.ts`. `src/editor/previewElementOverlay.ts` remains the overlay lookup and rectangle-measurement facade.
 
 ### 14.4 Render/Edit/Export Paths
 
-- Preview elements expose data attributes for overlay lookup.
+- Preview elements expose registry-defined data attributes for overlay lookup.
 - `PreviewElementOverlay` measures matching DOM nodes.
 - Drag adapters translate pointer movement into percent or pixel layout changes.
+- Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 
 ### 14.5 Invariants And Future-Change Rules

@@ -62,6 +62,7 @@ import {
   getCaseInsertLogoSlotRenderInfo,
 } from '../../caseInsert/brandingLogoSlots'
 import {
+  createInlinePreviewTextTargetAttributes,
   createPreviewEditableAttributes,
   createPreviewEditableElementId,
 } from '../../editor/previewElementOverlay'
@@ -83,7 +84,6 @@ import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
-  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import {
   createCaseInsertInlineTextEditorControls,
@@ -431,7 +431,7 @@ function CaseInsertSpineTextBlock({
         kind: 'text',
       })}
       {...(isSelected
-        ? { [INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE]: targetKey }
+        ? createInlinePreviewTextTargetAttributes(targetKey)
         : {})}
       onPointerDown={(event) => {
         event.preventDefault()
