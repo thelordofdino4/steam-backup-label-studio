@@ -9,6 +9,7 @@ import {
 import type { MediaMarkSource, MediaMarkTheme, MediaMarkValue } from '../../../project/projectTypes'
 import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourceControls'
 import { EditorStackedRangeField } from '../../editor/EditorRangeField'
+import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
 
@@ -44,52 +45,53 @@ export function MediaMarkSetupControls({
     mediaMarkSupportsTheme(projectMediaMark.value)
 
   return (
-    <div className="logo-asset-card">
-      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => handleMediaMarkLayoutChange('enabled', event.target.checked)} /> Show media format mark</label>
-      {!isEnabled ? null : (
-        <>
-          <label className="field-label spacing-top" htmlFor={fieldId('media-mark-value')}>Format</label>
-          <select id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
-            {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <EditorMarkImageSourceControls
-            idPrefix={idPrefix}
-            source={projectMediaMark.source}
-            sourceLabel="Mark source"
-            sourceSelectId="media-mark-source"
-            builtInHint="Using the built-in generic mark."
-            customImageLabel="Custom mark image"
-            customImageDataUrl={projectMediaMark.customImageDataUrl}
-            customImageSize={projectMediaMark.customImageSize}
-            customActiveLabel="Custom media mark active"
-            uploadId="media-mark-upload"
-            uploadButtonLabel="Choose custom mark"
-            emptyCustomHint="No custom media mark image is selected yet. The built-in mark remains visible until you upload an image."
-            clearCustomLabel="Clear custom mark"
-            formatSize={formatLogoSize}
-            onSourceChange={(source) =>
-              handleMediaMarkSourceChange(source as MediaMarkSource)}
-            onUpload={handleMediaMarkUpload}
-            onClearCustomImage={handleClearMediaMarkImage}
-            sourceDetails={(
+    <OptionalFeatureSection
+      className="logo-asset-card"
+      enabled={isEnabled}
+      enableLabel="Show media format mark"
+      onEnabledChange={(enabled) =>
+        handleMediaMarkLayoutChange('enabled', enabled)}
+    >
+      <label className="field-label spacing-top" htmlFor={fieldId('media-mark-value')}>Format</label>
+      <select id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
+        {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <EditorMarkImageSourceControls
+        idPrefix={idPrefix}
+        source={projectMediaMark.source}
+        sourceLabel="Mark source"
+        sourceSelectId="media-mark-source"
+        builtInHint="Using the built-in generic mark."
+        customImageLabel="Custom mark image"
+        customImageDataUrl={projectMediaMark.customImageDataUrl}
+        customImageSize={projectMediaMark.customImageSize}
+        customActiveLabel="Custom media mark active"
+        uploadId="media-mark-upload"
+        uploadButtonLabel="Choose custom mark"
+        emptyCustomHint="No custom media mark image is selected yet. The built-in mark remains visible until you upload an image."
+        clearCustomLabel="Clear custom mark"
+        formatSize={formatLogoSize}
+        onSourceChange={(source) =>
+          handleMediaMarkSourceChange(source as MediaMarkSource)}
+        onUpload={handleMediaMarkUpload}
+        onClearCustomImage={handleClearMediaMarkImage}
+        sourceDetails={(
+          <>
+            {showsThemeControl ? (
               <>
-                {showsThemeControl ? (
-                  <>
-                    <label className="field-label spacing-top" htmlFor={fieldId('media-mark-theme')}>Mark theme</label>
-                    <select id={fieldId('media-mark-theme')} value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
-                      {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                    </select>
-                  </>
-                ) : null}
-                <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
+                <label className="field-label spacing-top" htmlFor={fieldId('media-mark-theme')}>Mark theme</label>
+                <select id={fieldId('media-mark-theme')} value={projectMediaMark.theme} onChange={(event) => handleMediaMarkThemeChange(event.target.value as MediaMarkTheme)}>
+                  {MEDIA_MARK_THEME_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </select>
               </>
-            )}
-          >
-          {children}
-          </EditorMarkImageSourceControls>
-        </>
-      )}
-    </div>
+            ) : null}
+            <p className="hint">Current media mark: {getMediaMarkLabel(projectMediaMark.value)}.</p>
+          </>
+        )}
+      >
+      {children}
+      </EditorMarkImageSourceControls>
+    </OptionalFeatureSection>
   )
 }
 

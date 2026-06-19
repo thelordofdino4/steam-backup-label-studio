@@ -15,6 +15,7 @@ import type {
 } from './CaseInsertImageSlotPlacementControls'
 import { EditorImageAssetStatusCard } from '../editor/EditorImageAssetStatusCard'
 import { EditorRangeField } from '../editor/EditorRangeField'
+import { OptionalFeatureSection } from '../editor/OptionalFeatureSection'
 
 export type CaseInsertTitleArtworkPlacementField =
   CaseInsertImageSlotPlacementField
@@ -57,91 +58,84 @@ export function CaseInsertTitleArtworkControls({
     canRestoreCaseInsertTitleArtworkDefaultSteamLogo(slot)
 
   return (
-    <div className="feature-control-body title-artwork-control case-insert-title-artwork-control">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isFeatureEnabled}
-          onChange={(event) => onEnabledChange(event.target.checked)}
-        />
-        Show game logo
-      </label>
-
-      {!isFeatureEnabled ? null : (
-        <>
-          <span className="field-label spacing-top">Game logo image</span>
-          <label
-            className="secondary-button logo-upload-button"
-            htmlFor={uploadId}
-          >
-            {hasTitleArtwork ? 'Replace game logo image' : 'Choose game logo image'}
-          </label>
-          <input
-            id={uploadId}
-            className="logo-file-input"
-            type="file"
-            accept="image/*"
-            onChange={onUpload}
-          />
-
-          <EditorImageAssetStatusCard
-            cardClassName="title-artwork-status-card"
-            emptyHint={CASE_INSERT_GAME_LOGO_EMPTY_HINT}
-            fallbackLabel={slot.label}
-            formatSize={formatImageSize}
-            imageDataUrl={slot.imageDataUrl}
-            imageSize={slot.imageSize}
-            imageSource={slot.imageSource}
-            previewClassName="title-artwork-preview"
-            statusText="summary"
-          />
-
-          {canRestoreDefaultSteamLogo ? (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={onRestoreDefault}
-            >
-              Restore Steam default game logo
-            </button>
-          ) : null}
-
-          {defaultSteamLogo ? (
-            <p className="hint">Steam default: {defaultSteamLogo.sourceLabel}.</p>
-          ) : null}
-
-          <p className="hint">{helpText}</p>
-
-          <div
-            className="editor-control-grid"
-            aria-label="Game logo fine tuning controls"
-          >
-            {fields.map((field) => (
-              <EditorRangeField
-                key={field.field}
-                id={`${uploadId}-${field.field}`}
-                label={field.label}
-                min={field.min}
-                max={field.max}
-                step={field.step}
-                value={slot.layout[field.field]}
-                disabled={!isRenderable}
-                onInput={(value) => onLayoutChange(field.field, value)}
-                onChange={(value) => onLayoutChange(field.field, value)}
-              />
-            ))}
-          </div>
-
-          <button
-            className="secondary-button"
-            type="button"
-            disabled={!isRenderable}
-            onClick={onResetLayout}
-          >
-            Reset game logo layout
-          </button>
-        </>
+    <OptionalFeatureSection
+      className="feature-control-body title-artwork-control case-insert-title-artwork-control"
+      enabled={isFeatureEnabled}
+      enableLabel="Show game logo"
+      onEnabledChange={onEnabledChange}
+      actions={(
+        <button
+          className="secondary-button"
+          type="button"
+          disabled={!isRenderable}
+          onClick={onResetLayout}
+        >
+          Reset game logo layout
+        </button>
       )}
-    </div>
+    >
+      <span className="field-label spacing-top">Game logo image</span>
+      <label
+        className="secondary-button logo-upload-button"
+        htmlFor={uploadId}
+      >
+        {hasTitleArtwork ? 'Replace game logo image' : 'Choose game logo image'}
+      </label>
+      <input
+        id={uploadId}
+        className="logo-file-input"
+        type="file"
+        accept="image/*"
+        onChange={onUpload}
+      />
+
+      <EditorImageAssetStatusCard
+        cardClassName="title-artwork-status-card"
+        emptyHint={CASE_INSERT_GAME_LOGO_EMPTY_HINT}
+        fallbackLabel={slot.label}
+        formatSize={formatImageSize}
+        imageDataUrl={slot.imageDataUrl}
+        imageSize={slot.imageSize}
+        imageSource={slot.imageSource}
+        previewClassName="title-artwork-preview"
+        statusText="summary"
+      />
+
+      {canRestoreDefaultSteamLogo ? (
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={onRestoreDefault}
+        >
+          Restore Steam default game logo
+        </button>
+      ) : null}
+
+      {defaultSteamLogo ? (
+        <p className="hint">Steam default: {defaultSteamLogo.sourceLabel}.</p>
+      ) : null}
+
+      <p className="hint">{helpText}</p>
+
+      <div
+        className="editor-control-grid"
+        aria-label="Game logo fine tuning controls"
+      >
+        {fields.map((field) => (
+          <EditorRangeField
+            key={field.field}
+            id={`${uploadId}-${field.field}`}
+            label={field.label}
+            min={field.min}
+            max={field.max}
+            step={field.step}
+            value={slot.layout[field.field]}
+            disabled={!isRenderable}
+            onInput={(value) => onLayoutChange(field.field, value)}
+            onChange={(value) => onLayoutChange(field.field, value)}
+          />
+        ))}
+      </div>
+    </OptionalFeatureSection>
   )
 }

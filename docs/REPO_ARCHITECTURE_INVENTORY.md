@@ -605,6 +605,8 @@ Key files:
 - `src/project/projectMediaMark.ts`
 - `src/project/projectPlatformMarks.ts`
 - `src/project/projectTechnicalMarks.ts`
+- `src/components/editor/OptionalFeatureSection.tsx`
+- `src/components/editor/optionalFeatureSectionModel.ts`
 - `src/render/mediaMarkRenderModel.ts`
 - `src/render/platformMarkRenderModel.ts`
 - `src/render/technicalMarkRenderModel.ts`
@@ -630,6 +632,7 @@ Edit/interaction path:
 - Sidebar branding controls mutate feature state.
 - Case insert branding sync maps shared mark/logo sources into case insert slots.
 - Optional feature visibility uses shared optional-feature helpers where applicable.
+- `OptionalFeatureSection` provides only the neutral sidebar show/enable shell and dependent-control hiding; feature-specific controls keep ownership of values, handlers, source choices, reset/clear behavior, preview/export inclusion, and persistence.
 
 Save/load path:
 
@@ -660,6 +663,7 @@ Tests:
 Risks:
 
 - Optional visual features must preserve disabled state and not render/export when disabled.
+- Optional feature shell reuse must remain UI/policy-only and must not force disc/case visuals into a single feature state model.
 - Open issue `#125` tracks missing/historical mark families.
 - Case insert global-source sync has a large dedicated hook and is a parity risk.
 
