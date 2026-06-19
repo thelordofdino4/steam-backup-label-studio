@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT,
   DEFAULT_STEAM_BANNER_COLORS,
+  createSteamLogoPlacementMemory,
   getCustomSteamBannerLockupSourceLabel,
   getDefaultSteamBannerLockupSourceLabel,
+  getEnabledSteamLogoPlacement,
+  getNextSteamLogoPlacementMemory,
   getSteamBannerFallbackTextFontSizeForHeight,
   getSteamBannerFallbackTextLengthScale,
   isCustomSteamBannerLockupSource,
@@ -64,5 +68,26 @@ test('Steam banner fallback text scales from the lockup height', () => {
   assert.ok(
     getSteamBannerFallbackTextLengthScale('STEAM BACKUP') <
       getSteamBannerFallbackTextLengthScale('STEAM'),
+  )
+})
+
+test('Steam banner placement memory restores the last visible placement', () => {
+  assert.equal(createSteamLogoPlacementMemory('top'), 'top')
+  assert.equal(
+    createSteamLogoPlacementMemory('none'),
+    DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT,
+  )
+
+  const topMemory = getNextSteamLogoPlacementMemory('bottom', 'top')
+  const disabledMemory = getNextSteamLogoPlacementMemory(topMemory, 'none')
+  const bottomMemory = getNextSteamLogoPlacementMemory(disabledMemory, 'bottom')
+
+  assert.equal(topMemory, 'top')
+  assert.equal(disabledMemory, 'top')
+  assert.equal(getEnabledSteamLogoPlacement(disabledMemory), 'top')
+  assert.equal(bottomMemory, 'bottom')
+  assert.equal(
+    getEnabledSteamLogoPlacement('none'),
+    DEFAULT_ENABLED_STEAM_LOGO_PLACEMENT,
   )
 })

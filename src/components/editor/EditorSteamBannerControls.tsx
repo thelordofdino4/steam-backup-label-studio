@@ -11,6 +11,7 @@ import type {
   SteamBannerColors,
 } from '../../project/projectTypes'
 import { EditorStackedRangeField } from './EditorRangeField'
+import { OptionalFeatureSection } from './OptionalFeatureSection'
 
 export type EditorSteamBannerLayoutControl = {
   id: string
@@ -71,152 +72,151 @@ export function EditorSteamBannerControls({
     fallbackLabel: defaultLockupLabel,
   })
   const hasCustomLockupImage = isCustomSteamBannerLockupSource(lockupImageSource)
+  const actions = (
+    <>
+      {!useTextFallback && hasCustomLockupImage ? (
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={onClearLockup}
+        >
+          Reset to default lockup
+        </button>
+      ) : null}
+      <button
+        className="secondary-button"
+        type="button"
+        onClick={onResetColors}
+      >
+        Reset banner colors
+      </button>
+      <button
+        className="secondary-button"
+        type="button"
+        onClick={onResetLayout}
+      >
+        Reset lockup layout
+      </button>
+    </>
+  )
 
   return (
-    <div className="feature-control-body">
-      <label className="field-label">
+    <OptionalFeatureSection
+      className="feature-control-body"
+      enabled={enabled}
+      enableLabel="Show Steam banner"
+      onEnabledChange={onEnabledChange}
+      actions={actions}
+    >
+      <>
+        {placementControls}
+
+        <label
+          className="field-label spacing-top"
+          htmlFor={`${idPrefix}-gradient-start`}
+        >
+          Gradient start
+        </label>
         <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => onEnabledChange(event.target.checked)}
+          id={`${idPrefix}-gradient-start`}
+          type="color"
+          value={colors.gradientStart}
+          onChange={(event) => onColorChange('gradientStart', event.target.value)}
         />
-        Show Steam banner
-      </label>
 
-      {!enabled ? null : (
-        <>
-          {placementControls}
+        <label
+          className="field-label spacing-top"
+          htmlFor={`${idPrefix}-gradient-end`}
+        >
+          Gradient end
+        </label>
+        <input
+          id={`${idPrefix}-gradient-end`}
+          type="color"
+          value={colors.gradientEnd}
+          onChange={(event) => onColorChange('gradientEnd', event.target.value)}
+        />
 
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${idPrefix}-gradient-start`}
-          >
-            Gradient start
-          </label>
+        <label
+          className="field-label spacing-top"
+          htmlFor={`${idPrefix}-accent`}
+        >
+          Accent strip
+        </label>
+        <input
+          id={`${idPrefix}-accent`}
+          type="color"
+          value={colors.accent}
+          onChange={(event) => onColorChange('accent', event.target.value)}
+        />
+
+        <label className="field-label spacing-top">
           <input
-            id={`${idPrefix}-gradient-start`}
-            type="color"
-            value={colors.gradientStart}
-            onChange={(event) => onColorChange('gradientStart', event.target.value)}
+            type="checkbox"
+            checked={useTextFallback}
+            onChange={(event) =>
+              onUseTextFallbackChange(event.target.checked)}
           />
+          Use text fallback for lockup
+        </label>
 
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${idPrefix}-gradient-end`}
-          >
-            Gradient end
-          </label>
-          <input
-            id={`${idPrefix}-gradient-end`}
-            type="color"
-            value={colors.gradientEnd}
-            onChange={(event) => onColorChange('gradientEnd', event.target.value)}
-          />
-
-          <label
-            className="field-label spacing-top"
-            htmlFor={`${idPrefix}-accent`}
-          >
-            Accent strip
-          </label>
-          <input
-            id={`${idPrefix}-accent`}
-            type="color"
-            value={colors.accent}
-            onChange={(event) => onColorChange('accent', event.target.value)}
-          />
-
-          <label className="field-label spacing-top">
-            <input
-              type="checkbox"
-              checked={useTextFallback}
-              onChange={(event) =>
-                onUseTextFallbackChange(event.target.checked)}
-            />
-            Use text fallback for lockup
-          </label>
-
-          {useTextFallback ? (
-            <>
-              <label
-                className="field-label spacing-top"
-                htmlFor={`${idPrefix}-fallback-text`}
-              >
-                Fallback lockup text
-              </label>
-              <input
-                id={`${idPrefix}-fallback-text`}
-                type="text"
-                value={fallbackText}
-                onChange={(event) =>
-                  onFallbackTextChange(event.target.value)}
-              />
-              <p className="hint">Blank text renders as STEAM.</p>
-            </>
-          ) : (
-            <>
-              <span className="field-label spacing-top">
-                Banner lockup image
-              </span>
-              <label
-                className="secondary-button logo-upload-button"
-                htmlFor={`${idPrefix}-lockup-upload`}
-              >
-                Choose banner lockup image
-              </label>
-              <input
-                id={`${idPrefix}-lockup-upload`}
-                className="logo-file-input"
-                type="file"
-                accept="image/*"
-                onChange={onLockupUpload}
-              />
-              <p className="hint">
-                Banner lockup: {lockupStatus.summary}.{' '}
-                {lockupStatus.availabilityLabel}
-              </p>
-            </>
-          )}
-
-          {layoutControls.map((control) => (
-            <EditorStackedRangeField
-              key={control.id}
-              id={control.id}
-              label={control.label}
-              min={control.min}
-              max={control.max}
-              step={control.step}
-              value={control.value}
-              onInput={control.onInput}
-              onChange={control.onChange}
-            />
-          ))}
-
-          {!useTextFallback && hasCustomLockupImage ? (
-            <button
-              className="secondary-button"
-              type="button"
-              onClick={onClearLockup}
+        {useTextFallback ? (
+          <>
+            <label
+              className="field-label spacing-top"
+              htmlFor={`${idPrefix}-fallback-text`}
             >
-              Reset to default lockup
-            </button>
-          ) : null}
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={onResetColors}
-          >
-            Reset banner colors
-          </button>
-          <button
-            className="secondary-button"
-            type="button"
-            onClick={onResetLayout}
-          >
-            Reset lockup layout
-          </button>
-        </>
-      )}
-    </div>
+              Fallback lockup text
+            </label>
+            <input
+              id={`${idPrefix}-fallback-text`}
+              type="text"
+              value={fallbackText}
+              onChange={(event) =>
+                onFallbackTextChange(event.target.value)}
+            />
+            <p className="hint">Blank text renders as STEAM.</p>
+          </>
+        ) : (
+          <>
+            <span className="field-label spacing-top">
+              Banner lockup image
+            </span>
+            <label
+              className="secondary-button logo-upload-button"
+              htmlFor={`${idPrefix}-lockup-upload`}
+            >
+              Choose banner lockup image
+            </label>
+            <input
+              id={`${idPrefix}-lockup-upload`}
+              className="logo-file-input"
+              type="file"
+              accept="image/*"
+              onChange={onLockupUpload}
+            />
+            <p className="hint">
+              Banner lockup: {lockupStatus.summary}.{' '}
+              {lockupStatus.availabilityLabel}
+            </p>
+          </>
+        )}
+
+        {layoutControls.map((control) => (
+          <EditorStackedRangeField
+            key={control.id}
+            id={control.id}
+            label={control.label}
+            min={control.min}
+            max={control.max}
+            step={control.step}
+            value={control.value}
+            onInput={control.onInput}
+            onChange={control.onChange}
+          />
+        ))}
+
+      </>
+    </OptionalFeatureSection>
   )
 }
