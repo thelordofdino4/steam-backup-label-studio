@@ -2,7 +2,6 @@ import { DISC_TEXT_KEYS } from '../discText/constants.ts'
 import type { DiscTextKey, DiscTextLayout, DiscTextLayoutSettings } from '../discText/types'
 import {
   DISC_LAYOUT_CENTER_PERCENT,
-  clampNumber,
   clampShapeToSafeAnnulus,
   clampLayoutPointToSafeZone,
   doesShapeFitSafeAnnulus,
@@ -25,6 +24,12 @@ import {
   type RenderBoundsPercent,
   type RenderShapeFootprintPercent,
 } from '../disc/geometry.ts'
+import {
+  clampLayoutNumber,
+  clampSteppedLayoutAxisRange,
+  type LayoutAxisRange as SharedLayoutAxisRange,
+  type LayoutSliderRanges as SharedLayoutSliderRanges,
+} from './layoutRangeMath.ts'
 import {
   getMediaMarkPlaceholderImageSize,
   getPlatformMarkPlaceholderImageSize,
@@ -80,15 +85,9 @@ type TextVisualBoundsPercent = {
   halfHeight: number
 }
 
-export type LayoutAxisRange = {
-  min: number
-  max: number
-}
+export type LayoutAxisRange = SharedLayoutAxisRange
 
-export type LayoutSliderRanges = {
-  x: LayoutAxisRange
-  y: LayoutAxisRange
-}
+export type LayoutSliderRanges = SharedLayoutSliderRanges
 
 export type StraightDiscTextLayoutSliderRanges = LayoutSliderRanges
 
@@ -346,35 +345,9 @@ function clampLayoutAxisRange(
   range: LayoutAxisRange,
   bounds: LayoutAxisRange,
 ): LayoutAxisRange {
-  const clampedRange = {
-    min: clampNumber(range.min, bounds.min, bounds.max),
-    max: clampNumber(range.max, bounds.min, bounds.max),
-  }
-  const min = normalizeSliderRangeValue(
-    Math.ceil(clampedRange.min / LAYOUT_SLIDER_STEP) *
-    LAYOUT_SLIDER_STEP,
-  )
-  const max = normalizeSliderRangeValue(
-    Math.floor(clampedRange.max / LAYOUT_SLIDER_STEP) *
-    LAYOUT_SLIDER_STEP,
-  )
-
-  if (min <= max) {
-    return { min, max }
-  }
-
-  const midpoint = normalizeSliderRangeValue((clampedRange.min + clampedRange.max) / 2)
-
-  return {
-    min: midpoint,
-    max: midpoint,
-  }
-}
-
-function normalizeSliderRangeValue(value: number) {
-  const normalizedValue = Number(value.toFixed(4))
-
-  return Object.is(normalizedValue, -0) ? 0 : normalizedValue
+  return clampSteppedLayoutAxisRange(range, bounds, {
+    step: LAYOUT_SLIDER_STEP,
+  })
 }
 
 function getSafeZoneLayoutSliderRanges(
@@ -560,7 +533,7 @@ function getShapeSafeAxisRange(
   const clampedValue = clampedPoint[axis]
   const centerValue = isSafe(requestedValue)
     ? requestedValue
-    : clampNumber(clampedValue, axisBounds.min, axisBounds.max)
+    : clampLayoutNumber(clampedValue, axisBounds.min, axisBounds.max)
 
   if (!isSafe(centerValue)) {
     return axisBounds

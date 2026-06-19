@@ -386,6 +386,19 @@ test('artwork and placeholder slider ranges shrink as rendered scale grows', () 
   }
 })
 
+test('logo asset slider ranges preserve standard safe-zone fixture values', () => {
+  const ranges = getLogoAssetLayoutSliderRanges(
+    artworkLayout(),
+    discTemplates.standardPrintableDisc,
+    null,
+  )
+
+  assert.deepEqual(ranges, {
+    x: { min: 68.2, max: 87.2 },
+    y: { min: 64.2, max: 90.7 },
+  })
+})
+
 test('rating badge slider edge remains inside the authoritative safe-zone clamp', () => {
   const template = discTemplates.standardPrintableDisc
   const badge = {

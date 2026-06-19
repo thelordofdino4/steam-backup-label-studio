@@ -638,6 +638,7 @@ The disc editor is the first alpha-capable app surface.
 - `src/components/sidebar/*Panel.tsx`
 - `src/discText/*`
 - `src/layout/disc*.ts`
+- `src/layout/layoutRangeMath.ts`
 - `src/templates/discTemplates.ts`
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
@@ -662,6 +663,7 @@ The disc editor is the first alpha-capable app surface.
 
 - Preserve the current sidebar flow: Project File, Export Options, Game, Template, Artwork, Branding, Text, Guide Legend.
 - Keep circular disc geometry out of case insert modules.
+- Keep shared layout helpers limited to neutral numeric range math; disc annulus, center-hole, and safe-zone collision rules remain disc-owned.
 - Keep editor-only guides and UI chrome out of clean exports.
 - Preserve disc preview/export parity and fixed layer order.
 - Curved disc text remains SVG/textPath.
@@ -701,6 +703,7 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
 - `src/layout/caseInsert*.ts`
+- `src/layout/layoutRangeMath.ts`
 - `src/templates/caseInsertTemplates.ts`
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertExportPreflight.ts`
@@ -731,6 +734,7 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - DVD/Amaray and Blu-ray must remain unavailable until usable template, preview, save/load, and export support exists.
 - Keep rectangular case geometry out of disc-specific modules.
 - Keep cover, tray, left spine, and right spine behavior explicit.
+- Keep rectangular bounds, cover/tray/spine coordinate interpretation, and movement policy case-owned; shared layout helpers may own only neutral numeric range math.
 - Shared controls may render neutral UI, but target-specific geometry and source-slot mapping remain case-owned.
 - Parity work must cover all applicable target surfaces, not only one panel shape.
 

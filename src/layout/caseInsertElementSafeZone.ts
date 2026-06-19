@@ -3,16 +3,15 @@ import type {
   JewelCasePixelRect,
   JewelCasePixelSize,
 } from './jewelCaseLayout.ts'
+import {
+  clampSteppedLayoutAxisRange,
+  type LayoutAxisRange as SharedLayoutAxisRange,
+  type LayoutSliderRanges as SharedLayoutSliderRanges,
+} from './layoutRangeMath.ts'
 
-export type CaseInsertLayoutAxisRange = {
-  min: number
-  max: number
-}
+export type CaseInsertLayoutAxisRange = SharedLayoutAxisRange
 
-export type CaseInsertLayoutSliderRanges = {
-  x: CaseInsertLayoutAxisRange
-  y: CaseInsertLayoutAxisRange
-}
+export type CaseInsertLayoutSliderRanges = SharedLayoutSliderRanges
 
 export const CASE_INSERT_LAYOUT_SLIDER_STEP = 0.1
 
@@ -38,45 +37,13 @@ export const CASE_INSERT_OFFSET_LAYOUT_RANGES: CaseInsertLayoutSliderRanges = {
 
 const EPSILON = 0.000001
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function normalizeSliderRangeValue(value: number) {
-  const normalizedValue = Number(value.toFixed(4))
-
-  return Object.is(normalizedValue, -0) ? 0 : normalizedValue
-}
-
 function clampLayoutAxisRange(
   range: CaseInsertLayoutAxisRange,
   bounds: CaseInsertLayoutAxisRange,
 ): CaseInsertLayoutAxisRange {
-  const clampedRange = {
-    min: clampNumber(range.min, bounds.min, bounds.max),
-    max: clampNumber(range.max, bounds.min, bounds.max),
-  }
-  const min = normalizeSliderRangeValue(
-    Math.ceil(clampedRange.min / CASE_INSERT_LAYOUT_SLIDER_STEP) *
-    CASE_INSERT_LAYOUT_SLIDER_STEP,
-  )
-  const max = normalizeSliderRangeValue(
-    Math.floor(clampedRange.max / CASE_INSERT_LAYOUT_SLIDER_STEP) *
-    CASE_INSERT_LAYOUT_SLIDER_STEP,
-  )
-
-  if (min <= max) {
-    return { min, max }
-  }
-
-  const midpoint = normalizeSliderRangeValue(
-    (clampedRange.min + clampedRange.max) / 2,
-  )
-
-  return {
-    min: midpoint,
-    max: midpoint,
-  }
+  return clampSteppedLayoutAxisRange(range, bounds, {
+    step: CASE_INSERT_LAYOUT_SLIDER_STEP,
+  })
 }
 
 function getCenteredAxisRange({
