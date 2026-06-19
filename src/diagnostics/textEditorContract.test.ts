@@ -245,6 +245,8 @@ test('straight disc inline editing keeps the SVG renderer visible', () => {
 
   assert.doesNotMatch(discLayer, /hiddenVisibleTextKeys/)
   assert.doesNotMatch(discLayer, /hiddenTextKeys:\s*hiddenVisibleTextKeys/)
+  assert.doesNotMatch(discLayer, /hiddenTextKeys/)
+  assert.doesNotMatch(discLayer, /isDiscTextHtmlEnabled/)
   assert.match(discLayer, /isCurvedCopyrightDiscTextLayout/)
   assert.match(adapter, /geometryLines=\{geometryLines\}/)
   assert.doesNotMatch(adapter, /className="disc-inline-text-line"/)

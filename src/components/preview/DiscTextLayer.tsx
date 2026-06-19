@@ -11,7 +11,6 @@ import {
   type DiscTextSettings,
   type DiscTextValues,
   type SteamLogoPlacement,
-  isDiscTextHtmlEnabled,
 } from '../../discText/index'
 import {
   getDiscTextFontFamilyCss,
@@ -149,16 +148,6 @@ export function DiscTextLayer({
   )
   const visibleTextLayerSvg = useMemo(
     () => {
-      const hiddenTextKeys =
-        selectedDiscTextKey &&
-        isDiscTextHtmlEnabled(discTextHtmlSources, selectedDiscTextKey) &&
-        !isCurvedCopyrightDiscTextLayout(
-          selectedDiscTextKey,
-          discTextLayout[selectedDiscTextKey],
-        )
-          ? [selectedDiscTextKey]
-          : []
-
       return buildDiscTextSvgLayer({
         settings: effectiveSettings,
         values: metadataBoundDiscTextValues,
@@ -173,11 +162,9 @@ export function DiscTextLayer({
         width: 100,
         height: 100,
         idPrefix: 'disc-text-preview-image',
-        hiddenTextKeys,
       })
     },
     [
-      selectedDiscTextKey,
       discTextHtmlSources,
       discTextStyles,
       discTextLayout,

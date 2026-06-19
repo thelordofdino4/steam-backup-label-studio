@@ -572,6 +572,7 @@ test('adapter ownership does not introduce a fake visible renderer', () => {
   assert.match(discAdapter, /isCurvedCopyrightDiscTextLayout/)
   assert.doesNotMatch(discAdapter, /className="disc-inline-text-line"/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
+  assert.doesNotMatch(discLayer, /hiddenTextKeys/)
   assert.doesNotMatch(discLayer, /hiddenVisibleTextKeys/)
   assert.equal((templateLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
   assert.equal((spineLayer.match(/inputMode="adapter"/g) ?? []).length, 1)
