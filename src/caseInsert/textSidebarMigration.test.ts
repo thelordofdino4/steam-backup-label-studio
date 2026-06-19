@@ -61,9 +61,13 @@ test('cover and tray text block sidebars keep entry/source controls only', () =>
   assert.match(textBlockControls, /CaseInsertTextSourceControls/)
   assert.match(textBlockControls, /onUseMetadataValue/)
   assert.match(textBlockControls, /Edit in preview/)
-  assert.match(textBlockControls, /TextLayoutPresetControl/)
+  assert.match(textBlockControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(textBlockControls, /Select this text in the preview/)
 
+  assert.doesNotMatch(
+    textBlockControls,
+    /const layoutPresets = getCaseInsertTextBlockLayoutPresets\(paneId, textBlock\)/,
+  )
   assert.doesNotMatch(textBlockControls, /CaseInsertTextOptionalStyleControls/)
   assert.doesNotMatch(textBlockControls, /CaseInsertTextStyleControls/)
   assert.doesNotMatch(
@@ -78,8 +82,20 @@ test('cover and tray text block sidebars keep entry/source controls only', () =>
     textBlockControls,
     /handleTextBlockAvoidVisualElementsChange/,
   )
+  assert.doesNotMatch(textBlockControls, /handleApplyTextBlockStylePreset/)
   assert.doesNotMatch(textBlockControls, /handleResetTextBlockLayout/)
   assert.doesNotMatch(textBlockControls, /handleResetTextBlockStyle/)
+})
+
+test('cover and tray text block contextual editor keeps layout preset ownership', () => {
+  const editor = readRepoFile(
+    'src/components/preview/caseInsertInlineTextEditorControls.ts',
+  )
+
+  assert.match(editor, /createCaseInsertInlineTextEditorControls/)
+  assert.match(editor, /CONTEXTUAL_TEXT_CONTROL_LABELS\.layoutPreset/)
+  assert.match(editor, /handlers\.onApplyLayoutPreset\(target, presetId\)/)
+  assert.match(editor, /layoutPresets\.length > 0/)
 })
 
 test('cover and tray text list sidebars keep entry/source controls only', () => {

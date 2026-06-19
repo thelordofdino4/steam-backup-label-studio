@@ -749,7 +749,9 @@ function TextBlockControls({
     textBlock,
     projectMetadata,
   )
-  const layoutPresets = getCaseInsertTextBlockLayoutPresets(paneId, textBlock)
+  const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
+    ? getCaseInsertTextBlockLayoutPresets(paneId, textBlock)
+    : []
 
   return (
     <div className="editor-text-control">
