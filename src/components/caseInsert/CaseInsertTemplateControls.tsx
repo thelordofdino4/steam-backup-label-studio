@@ -74,6 +74,7 @@ import {
 } from '../../caseInsert/textLayout'
 import { EditorFeaturePanel } from '../editor/EditorPanel'
 import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
+import { OptionalFeatureSection } from '../editor/OptionalFeatureSection'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import {
@@ -696,21 +697,14 @@ function GroupedImageSlotSection({
   return (
     <EditorFeaturePanel title={title}>
         {onFeatureEnabledChange ? (
-          <div className="feature-control-body additional-artwork-control">
-            <label className="field-label">
-              <input
-                type="checkbox"
-                checked={Boolean(featureEnabled)}
-                onChange={(event) =>
-                  onFeatureEnabledChange(event.target.checked)}
-              />
-              Show additional artwork
-            </label>
-
-            {featureEnabled ? (
-              <GroupedImageSlotList {...slotListProps} />
-            ) : null}
-          </div>
+          <OptionalFeatureSection
+            className="feature-control-body additional-artwork-control"
+            enabled={Boolean(featureEnabled)}
+            enableLabel="Show additional artwork"
+            onEnabledChange={onFeatureEnabledChange}
+          >
+            <GroupedImageSlotList {...slotListProps} />
+          </OptionalFeatureSection>
         ) : (
           <GroupedImageSlotList {...slotListProps} />
         )}

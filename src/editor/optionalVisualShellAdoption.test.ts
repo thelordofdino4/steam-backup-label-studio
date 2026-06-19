@@ -40,6 +40,69 @@ test('approved simple optional visual slots use the shared shell', () => {
   })
 })
 
+test('additional artwork global and frame gates use the shared shell', () => {
+  const targets = [
+    {
+      path: 'src/components/sidebar/artwork/AdditionalArtworkControls.tsx',
+      className: 'feature-control-body additional-artwork-control',
+      label: 'Show additional artwork',
+    },
+    {
+      path: 'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+      className: 'feature-control-body additional-artwork-control',
+      label: 'Show additional artwork',
+    },
+    {
+      path: 'src/components/caseInsert/CaseInsertSpineControls.tsx',
+      className: 'feature-control-body additional-artwork-control',
+      label: 'Show additional artwork',
+    },
+    {
+      path: 'src/components/editor/EditorArtworkFrameControls.tsx',
+      className: 'additional-artwork-frame-controls',
+      label: 'Show border/frame',
+    },
+  ] as const
+
+  targets.forEach(({ path, className, label }) => {
+    const source = readRepoFile(path)
+
+    assert.match(source, /OptionalFeatureSection/)
+    assert.match(source, new RegExp(`className="${className}"`))
+    assert.match(source, new RegExp(`enableLabel="${label}"`))
+  })
+})
+
+test('additional artwork frame keeps reset in the shell action slot', () => {
+  const source = readRepoFile(
+    'src/components/editor/EditorArtworkFrameControls.tsx',
+  )
+
+  assert.match(source, /actions=\{\(/)
+  assert.match(source, /Reset frame/)
+})
+
+test('additional artwork per-item cards remain feature-owned', () => {
+  const discAdditionalArtwork = readRepoFile(
+    'src/components/sidebar/artwork/AdditionalArtworkControls.tsx',
+  )
+  const caseInsertTemplate = readRepoFile(
+    'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+  )
+  const caseInsertSpine = readRepoFile(
+    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+  )
+
+  assert.match(discAdditionalArtwork, /RepeatedVisualElementCard/)
+  assert.match(caseInsertTemplate, /RepeatedVisualElementCard/)
+  assert.match(caseInsertSpine, /RepeatedVisualElementCard/)
+  assert.match(discAdditionalArtwork, /handleRemoveAdditionalArtworkElement/)
+  assert.match(caseInsertTemplate, /deleteLabel=/)
+  assert.match(caseInsertTemplate, /onDelete=/)
+  assert.match(caseInsertSpine, /deleteLabel=/)
+  assert.match(caseInsertSpine, /onDelete=/)
+})
+
 test('disc title artwork keeps its reset action in the shell action slot', () => {
   const source = readRepoFile(
     'src/components/sidebar/artwork/TitleArtworkControls.tsx',

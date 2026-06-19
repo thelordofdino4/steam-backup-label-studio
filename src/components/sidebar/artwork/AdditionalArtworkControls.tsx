@@ -10,6 +10,7 @@ import {
 } from '../../../editor/repeatedArtwork'
 import type { ProjectAdditionalArtworkElement } from '../../../project/projectTypes'
 import { EditorArtworkFrameControls } from '../../editor/EditorArtworkFrameControls'
+import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { EditorRangeField } from '../../editor/EditorRangeField'
 import { PlusIcon } from '../PanelIcons'
 import { RepeatedVisualElementCard } from '../RepeatedVisualElementCard'
@@ -284,40 +285,31 @@ export function AdditionalArtworkControls(props: ArtworkPanelProps) {
   const hasArtworkElements = projectAdditionalArtwork.elements.length > 0
 
   return (
-    <div className="feature-control-body additional-artwork-control">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={isEnabled}
-          onChange={(event) =>
-            handleAdditionalArtworkEnabledChange(event.target.checked)}
-        />
-        Show additional artwork
-      </label>
-
-      {!isEnabled ? null : (
+    <OptionalFeatureSection
+      className="feature-control-body additional-artwork-control"
+      enabled={isEnabled}
+      enableLabel="Show additional artwork"
+      onEnabledChange={handleAdditionalArtworkEnabledChange}
+    >
+      {!hasArtworkElements ? (
         <>
-          {!hasArtworkElements ? (
-            <>
-              <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+          <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
 
-              <p className="hint">
-                Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
-              </p>
-            </>
-          ) : null}
-
-          {projectAdditionalArtwork.elements.map((element, index) => (
-            <AdditionalArtworkElementControls
-              key={element.id}
-              {...props}
-              element={element}
-              elementIndex={index}
-              showAddButton={index === projectAdditionalArtwork.elements.length - 1}
-            />
-          ))}
+          <p className="hint">
+            Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
+          </p>
         </>
-      )}
-    </div>
+      ) : null}
+
+      {projectAdditionalArtwork.elements.map((element, index) => (
+        <AdditionalArtworkElementControls
+          key={element.id}
+          {...props}
+          element={element}
+          elementIndex={index}
+          showAddButton={index === projectAdditionalArtwork.elements.length - 1}
+        />
+      ))}
+    </OptionalFeatureSection>
   )
 }

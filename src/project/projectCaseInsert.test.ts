@@ -2,6 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { DEFAULT_CASE_INSERT_TEMPLATE_TYPE } from '../editor/editorTypes.ts'
 import {
+  getFeatureVisibleRepeatedArtworkItems,
+} from '../editor/repeatedArtwork.ts'
+import {
   createCaseInsertImageSlotImageFromImportedAsset,
 } from '../caseInsert/imageSlotSourceImport.ts'
 import {
@@ -1750,6 +1753,13 @@ test('case insert additional artwork global visibility preserves slot state', ()
     trayArtwork?.imageDataUrl,
     'data:image/png;base64,hidden-screenshot',
   )
+  assert.deepEqual(
+    getFeatureVisibleRepeatedArtworkItems(
+      restored.templates.tray,
+      restored.templates.tray.artworkSlots,
+    ),
+    [],
+  )
   assert.deepEqual(trayArtwork?.imageSize, { width: 1280, height: 720 })
   assert.deepEqual(trayArtwork?.frame, {
     ...DEFAULT_ADDITIONAL_ARTWORK_FRAME,
@@ -1760,6 +1770,13 @@ test('case insert additional artwork global visibility preserves slot state', ()
   assert.equal(restored.spine.left.additionalArtworkEnabled, false)
   assert.equal(restored.spine.left.artworkSlots[0]?.id, 'left-spine-artwork-1')
   assert.equal(restored.spine.left.artworkSlots[0]?.label, 'Artwork 1')
+  assert.deepEqual(
+    getFeatureVisibleRepeatedArtworkItems(
+      restored.spine.left,
+      restored.spine.left.artworkSlots,
+    ),
+    [],
+  )
   assert.deepEqual(
     restored.spine.left.artworkSlots[0]?.frame,
     DEFAULT_ADDITIONAL_ARTWORK_FRAME,
@@ -1996,6 +2013,13 @@ test('case additional artwork slots use shared labels, frames, and save/load beh
     restored.templates.tray.artworkSlots[0]?.imageDataUrl,
     'data:image/png;base64,tray-artwork',
   )
+  assert.deepEqual(
+    getFeatureVisibleRepeatedArtworkItems(
+      restored.templates.tray,
+      restored.templates.tray.artworkSlots,
+    ),
+    [],
+  )
   assert.deepEqual(restored.templates.tray.artworkSlots[0]?.frame, {
     ...DEFAULT_ADDITIONAL_ARTWORK_FRAME,
     enabled: true,
@@ -2004,6 +2028,13 @@ test('case additional artwork slots use shared labels, frames, and save/load beh
   assert.equal(restored.spine.right.additionalArtworkEnabled, false)
   assert.equal(restored.spine.right.artworkSlots[0]?.id, 'right-spine-artwork-1')
   assert.equal(restored.spine.right.artworkSlots[0]?.label, 'Artwork 1')
+  assert.deepEqual(
+    getFeatureVisibleRepeatedArtworkItems(
+      restored.spine.right,
+      restored.spine.right.artworkSlots,
+    ),
+    [],
+  )
 })
 
 test('case image slot height fit keeps the full image vertical span visible', () => {

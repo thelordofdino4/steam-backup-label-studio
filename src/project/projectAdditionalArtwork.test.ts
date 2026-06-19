@@ -220,6 +220,146 @@ test('additional artwork global visibility preserves state while omitting render
   )
 })
 
+test('additional artwork global visibility preserves multiple elements and settings', () => {
+  let additionalArtwork = createDefaultProjectAdditionalArtwork()
+
+  additionalArtwork = addAdditionalArtworkElement(
+    additionalArtwork,
+    discTemplates.standardPrintableDisc,
+  )
+  additionalArtwork = addAdditionalArtworkElement(
+    additionalArtwork,
+    discTemplates.standardPrintableDisc,
+  )
+
+  const [firstId, secondId] = additionalArtwork.elements.map(({ id }) => id)
+
+  additionalArtwork = setAdditionalArtworkElementImage(
+    additionalArtwork,
+    firstId!,
+    importedImage,
+    {
+      source: 'custom',
+      sourceId: null,
+      sourceLabel: importedImage.fileName,
+    },
+  )
+  additionalArtwork = setAdditionalArtworkElementImage(
+    additionalArtwork,
+    secondId!,
+    {
+      imageDataUrl: 'data:image/png;base64,second-additional',
+      imageSize: { width: 720, height: 720 },
+      fileName: 'second.png',
+    },
+    {
+      source: 'custom',
+      sourceId: null,
+      sourceLabel: 'second.png',
+    },
+  )
+  additionalArtwork = updateAdditionalArtworkElementLayoutField(
+    additionalArtwork,
+    secondId!,
+    'scale',
+    0.72,
+  )
+  additionalArtwork = updateAdditionalArtworkElementFrameField(
+    updateAdditionalArtworkElementFrameField(
+      updateAdditionalArtworkElementFrameField(
+        additionalArtwork,
+        secondId!,
+        'enabled',
+        true,
+      ),
+      secondId!,
+      'style',
+      'rocky',
+    ),
+    secondId!,
+    'width',
+    6,
+  )
+
+  const hidden = setAdditionalArtworkEnabled(additionalArtwork, false)
+
+  assert.deepEqual(createAdditionalArtworkRenderItems(hidden), [])
+  assert.equal(hidden.elements.length, 2)
+  assert.equal(hidden.elements[0]!.imageDataUrl, importedImage.imageDataUrl)
+  assert.equal(hidden.elements[1]!.imageDataUrl, 'data:image/png;base64,second-additional')
+  assert.equal(hidden.elements[1]!.sourceLabel, 'second.png')
+  assert.equal(hidden.elements[1]!.layout.scale, 0.72)
+  assert.equal(hidden.elements[1]!.frame.enabled, true)
+  assert.equal(hidden.elements[1]!.frame.style, 'rocky')
+  assert.equal(hidden.elements[1]!.frame.width, 6)
+
+  const restored = setAdditionalArtworkEnabled(hidden, true)
+  const renderItems = createAdditionalArtworkRenderItems(restored)
+
+  assert.equal(renderItems.length, 2)
+  assert.equal(renderItems[1]!.imageDataUrl, 'data:image/png;base64,second-additional')
+  assert.equal(renderItems[1]!.frame.style, 'rocky')
+  assert.equal(renderItems[1]!.frame.width, 6)
+})
+
+test('additional artwork frame visibility preserves styling while omitting the frame', () => {
+  const withElement = addAdditionalArtworkElement(
+    createDefaultProjectAdditionalArtwork(),
+    discTemplates.standardPrintableDisc,
+  )
+  const elementId = withElement.elements[0]!.id
+  const withFrame = updateAdditionalArtworkElementFrameField(
+    updateAdditionalArtworkElementFrameField(
+      updateAdditionalArtworkElementFrameField(
+        updateAdditionalArtworkElementFrameField(
+          setAdditionalArtworkElementImage(
+            withElement,
+            elementId,
+            importedImage,
+            {
+              source: 'custom',
+              sourceId: null,
+              sourceLabel: importedImage.fileName,
+            },
+          ),
+          elementId,
+          'enabled',
+          true,
+        ),
+        elementId,
+        'style',
+        'rocky',
+      ),
+      elementId,
+      'color',
+      '#0088ff',
+    ),
+    elementId,
+    'width',
+    9,
+  )
+  const hiddenFrame = updateAdditionalArtworkElementFrameField(
+    withFrame,
+    elementId,
+    'enabled',
+    false,
+  )
+  const visibleFrame = updateAdditionalArtworkElementFrameField(
+    hiddenFrame,
+    elementId,
+    'enabled',
+    true,
+  )
+
+  assert.equal(createAdditionalArtworkRenderItems(hiddenFrame)[0]!.frame.enabled, false)
+  assert.equal(hiddenFrame.elements[0]!.frame.style, 'rocky')
+  assert.equal(hiddenFrame.elements[0]!.frame.color, '#0088ff')
+  assert.equal(hiddenFrame.elements[0]!.frame.width, 9)
+  assert.equal(createAdditionalArtworkRenderItems(visibleFrame)[0]!.frame.enabled, true)
+  assert.equal(createAdditionalArtworkRenderItems(visibleFrame)[0]!.frame.style, 'rocky')
+  assert.equal(createAdditionalArtworkRenderItems(visibleFrame)[0]!.frame.width, 9)
+})
+
 test('additional artwork render items require feature, element, and image visibility', () => {
   const withElement = addAdditionalArtworkElement(
     createDefaultProjectAdditionalArtwork(),
