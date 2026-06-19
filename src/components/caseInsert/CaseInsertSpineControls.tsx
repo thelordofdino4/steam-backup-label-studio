@@ -109,6 +109,7 @@ import {
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
 import { EditorFeaturePanel } from '../editor/EditorPanel'
+import { OptionalFeatureSection } from '../editor/OptionalFeatureSection'
 import { PlusIcon } from '../sidebar/PanelIcons'
 import { RepeatedVisualElementCard } from '../sidebar/RepeatedVisualElementCard'
 import type {
@@ -814,48 +815,37 @@ function SpineGroupedImageSlotSection({
 }) {
   return (
     <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.additionalArtwork}>
-        <div className="feature-control-body additional-artwork-control">
-          <label className="field-label">
-            <input
-              type="checkbox"
-              checked={featureEnabled}
-              onChange={(event) =>
-                actions.handleSpineAdditionalArtworkEnabledChange(
-                  side,
-                  event.target.checked,
-                )}
-            />
-            Show additional artwork
-          </label>
-
-          {featureEnabled ? (
-            <>
-              {slots.length === 0 ? (
-                <p className="hint">No additional artwork elements.</p>
-              ) : null}
-              {slots.map((slot, index) => (
-                <SpineGroupedImageSlotControls
-                  key={slot.id}
-                  side={side}
-                  slotKey="artworkSlots"
-                  slot={slot}
-                  uploadId={`${side}-spine-artwork-${slot.id}-${index + 1}-upload`}
-                  imageSources={imageSources}
-                  actions={actions}
-                />
-              ))}
-              <button
-                className="secondary-button icon-text-button spacing-top"
-                type="button"
-                onClick={() =>
-                  actions.handleAddSpineGroupedImageSlot(side, 'artworkSlots')}
-              >
-                <PlusIcon />
-                <span>Add artwork element</span>
-              </button>
-            </>
+        <OptionalFeatureSection
+          className="feature-control-body additional-artwork-control"
+          enabled={featureEnabled}
+          enableLabel="Show additional artwork"
+          onEnabledChange={(enabled) =>
+            actions.handleSpineAdditionalArtworkEnabledChange(side, enabled)}
+        >
+          {slots.length === 0 ? (
+            <p className="hint">No additional artwork elements.</p>
           ) : null}
-        </div>
+          {slots.map((slot, index) => (
+            <SpineGroupedImageSlotControls
+              key={slot.id}
+              side={side}
+              slotKey="artworkSlots"
+              slot={slot}
+              uploadId={`${side}-spine-artwork-${slot.id}-${index + 1}-upload`}
+              imageSources={imageSources}
+              actions={actions}
+            />
+          ))}
+          <button
+            className="secondary-button icon-text-button spacing-top"
+            type="button"
+            onClick={() =>
+              actions.handleAddSpineGroupedImageSlot(side, 'artworkSlots')}
+          >
+            <PlusIcon />
+            <span>Add artwork element</span>
+          </button>
+        </OptionalFeatureSection>
     </EditorFeaturePanel>
   )
 }
