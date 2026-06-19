@@ -166,6 +166,8 @@ is required:
 
 - Shared preview-mounted editor UI:
   `src/components/preview/InlinePreviewTextEditor.tsx`.
+- Shared preview-mounted adapter contract and conformance assertions:
+  `src/components/preview/inlinePreviewTextEditorContract.ts`.
 - Case insert target selection and draft/final transitions:
   `src/caseInsert/previewTextSelection.ts` and
   `src/caseInsert/previewTextEditing.ts`.

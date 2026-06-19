@@ -26,142 +26,51 @@ import {
   getInlinePreviewTextControlLayout,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
-  type InlinePreviewTextEditorMenuPlacement,
   type InlinePreviewTextRect,
   type InlinePreviewTextSize,
 } from './inlinePreviewTextEditorPositioning'
 import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
-  type ContextualTextControlGroupId,
 } from '../../text/contextualTextControlViewModel'
 import {
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from '../../editor/previewEditableRegistry'
+import type {
+  InlinePreviewTextEditorCheckboxControl,
+  InlinePreviewTextEditorColorControl,
+  InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorGeometryLine,
+  InlinePreviewTextEditorInputMode,
+  InlinePreviewTextEditorLine,
+  InlinePreviewTextEditorProps,
+  InlinePreviewTextEditorRangeControl,
+  InlinePreviewTextEditorSelectControl,
+  InlinePreviewTextEditorTab,
+  InlinePreviewTextEditorToggleControl,
+} from './inlinePreviewTextEditorContract'
 
 export {
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
 } from '../../editor/previewEditableRegistry'
 
+export type {
+  InlinePreviewTextEditorCheckboxControl,
+  InlinePreviewTextEditorColorControl,
+  InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorGeometryLine,
+  InlinePreviewTextEditorInputMode,
+  InlinePreviewTextEditorLine,
+  InlinePreviewTextEditorOption,
+  InlinePreviewTextEditorProps,
+  InlinePreviewTextEditorRangeControl,
+  InlinePreviewTextEditorSelectControl,
+  InlinePreviewTextEditorTab,
+  InlinePreviewTextEditorToggleControl,
+} from './inlinePreviewTextEditorContract'
+
 export const INLINE_PREVIEW_TEXT_HOST_CLASS = 'inline-preview-text-host'
 export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
   'data-inline-preview-text-line-index'
-
-export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
-
-export type InlinePreviewTextEditorTab = ContextualTextControlGroupId
-
-export type InlinePreviewTextEditorLine = {
-  text: string
-}
-
-export type InlinePreviewTextEditorGeometryLine = {
-  caretXRatios: number[]
-  heightRatio: number
-  text: string
-  topRatio: number
-}
-
-export type InlinePreviewTextEditorOption<T extends string = string> = {
-  label: string
-  value: T
-}
-
-export type InlinePreviewTextEditorSelectControl<T extends string = string> = {
-  label: string
-  options: readonly InlinePreviewTextEditorOption<T>[]
-  value: T
-  onChange: (value: T) => void
-}
-
-export type InlinePreviewTextEditorRangeControl = {
-  label: string
-  max: number
-  min: number
-  step: number
-  value: number
-  onChange: (value: number) => void
-}
-
-export type InlinePreviewTextEditorCheckboxControl = {
-  checked: boolean
-  label: string
-  onChange: (checked: boolean) => void
-}
-
-export type InlinePreviewTextEditorToggleControl = {
-  label: string
-  pressed: boolean
-  onChange: (pressed: boolean) => void
-}
-
-export type InlinePreviewTextEditorColorControl = {
-  label: string
-  value: string
-  onChange: (value: string) => void
-}
-
-export type InlinePreviewTextEditorControls = {
-  presets?: {
-    layout?: InlinePreviewTextEditorSelectControl
-    style?: InlinePreviewTextEditorSelectControl
-    onReset?: () => void
-  }
-  text?: {
-    alignment?: InlinePreviewTextEditorSelectControl
-    bold?: InlinePreviewTextEditorToggleControl
-    fontFamily?: InlinePreviewTextEditorSelectControl
-    italic?: InlinePreviewTextEditorToggleControl
-    size?: InlinePreviewTextEditorRangeControl
-    underline?: InlinePreviewTextEditorToggleControl
-    unsupported?: readonly string[]
-  }
-  art?: {
-    backgroundColor?: InlinePreviewTextEditorColorControl
-    backgroundEnabled?: InlinePreviewTextEditorCheckboxControl
-    backgroundOpacity?: InlinePreviewTextEditorRangeControl
-    backgroundPadding?: InlinePreviewTextEditorRangeControl
-    borderColor?: InlinePreviewTextEditorColorControl
-    borderEnabled?: InlinePreviewTextEditorCheckboxControl
-    borderRadius?: InlinePreviewTextEditorRangeControl
-    color?: InlinePreviewTextEditorColorControl
-    contrast?: InlinePreviewTextEditorSelectControl
-  }
-  utilities?: {
-    arcDegrees?: InlinePreviewTextEditorRangeControl
-    arcSide?: InlinePreviewTextEditorSelectControl
-    htmlSource?: InlinePreviewTextEditorCheckboxControl
-    mode?: InlinePreviewTextEditorSelectControl
-    respectVisualElements?: InlinePreviewTextEditorCheckboxControl
-    resetLayout?: () => void
-    width?: InlinePreviewTextEditorRangeControl
-    x?: InlinePreviewTextEditorRangeControl
-    y?: InlinePreviewTextEditorRangeControl
-  }
-  deleteAction?: {
-    ariaLabel?: string
-    label?: string
-    onDelete: () => void
-  }
-}
-
-export type InlinePreviewTextEditorProps = {
-  ariaLabel: string
-  caretValue: string
-  controls?: InlinePreviewTextEditorControls
-  inputMode?: InlinePreviewTextEditorInputMode
-  geometryLines?: InlinePreviewTextEditorGeometryLine[]
-  lines: InlinePreviewTextEditorLine[]
-  targetKey: string
-  value: string
-  textareaStyle?: CSSProperties
-  sourceMode?: boolean
-  menuPlacement: InlinePreviewTextEditorMenuPlacement
-  onValueChange: (value: string) => void
-  onMoveHandlePointerDown: (event: ReactPointerEvent<Element>) => void
-  onMoveHandlePointerMove: (event: ReactPointerEvent<Element>) => void
-  onMoveHandlePointerUp: (event: ReactPointerEvent<Element>) => void
-  onDone: () => void
-}
 
 type InlineTextControlFrame = {
   anchor: InlinePreviewTextAnchor
