@@ -240,6 +240,7 @@ Render path:
 
 - Disc geometry flows through disc template layout and safe-zone helpers.
 - Jewel case geometry flows through case-insert template and jewel-case layout helpers.
+- Neutral slider/range clamping, step rounding, finite fallback helpers, and range value precision live in `src/layout/layoutRangeMath.ts`; disc and case modules still interpret those numbers in their own geometry.
 
 Edit/export path:
 
@@ -252,11 +253,13 @@ Tests:
 - `src/layout/discTemplateGeometryGuardrail.test.ts`
 - `src/layout/discTemplateLayoutDefaults.test.ts`
 - `src/layout/jewelCaseLayout.test.ts`
+- `src/layout/caseInsertElementSafeZone.test.ts`
 - `src/layout/caseInsertPreviewLayout.test.ts`
+- `src/layout/layoutRangeMath.test.ts`
 
 Risks:
 
-- Disc and case insert editors use separate geometry paths; parity depends on shared neutral helpers and tests.
+- Disc and case insert editors use separate geometry paths; parity depends on shared neutral helpers and tests without merging circular and rectangular geometry.
 
 ## Disc Editor Modules
 
