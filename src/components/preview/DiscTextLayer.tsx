@@ -65,6 +65,20 @@ export type DiscTextLayerProps = {
     field: DiscTextStyleField,
     value: DiscTextStyleValue,
   ) => void
+  onDiscTextRichTextCommand: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: { end: number; start: number } | undefined,
+    value: boolean | string,
+  ) => void
+  getDiscTextRichTextCommandState: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: { end: number; start: number },
+  ) => 'active' | 'inactive' | 'mixed' | {
+    state: 'active' | 'inactive' | 'mixed'
+    value?: string
+  }
   onApplyDiscTextStylePreset: (key: DiscTextKey, presetId: string) => void
   onResetDiscTextStyle: (key: DiscTextKey) => void
   onDiscTextLayoutChange: (
@@ -119,6 +133,8 @@ export function DiscTextLayer({
   onDiscTextContentModeChange,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
+  onDiscTextRichTextCommand,
+  getDiscTextRichTextCommandState,
   onApplyDiscTextStylePreset,
   onResetDiscTextStyle,
   onDiscTextLayoutChange,
@@ -304,6 +320,8 @@ export function DiscTextLayer({
         onDiscTextContentModeChange={onDiscTextContentModeChange}
         onDiscTextEditComplete={onDiscTextEditComplete}
         onDiscTextStyleChange={onDiscTextStyleChange}
+        onDiscTextRichTextCommand={onDiscTextRichTextCommand}
+        getDiscTextRichTextCommandState={getDiscTextRichTextCommandState}
         onApplyDiscTextStylePreset={onApplyDiscTextStylePreset}
         onResetDiscTextStyle={onResetDiscTextStyle}
         onDiscTextLayoutChange={onDiscTextLayoutChange}

@@ -515,7 +515,7 @@ function buildStraightTextMarkup(
 
 function buildStraightTextRunStyle(run: RichTextRun) {
   const declarations = [
-    run.bold ? 'font-weight:800' : '',
+    run.bold ? 'font-weight:900' : '',
     run.italic ? 'font-style:italic' : '',
     run.underline ? 'text-decoration:underline' : '',
     run.color ? `fill:${run.color}` : '',

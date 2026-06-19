@@ -37,7 +37,7 @@ export type RichTextRunDomStyle = {
 const DEFAULT_FONT_STYLE: RichTextRunFontStyle = 'normal'
 const DEFAULT_FONT_WEIGHT = 600
 const DEFAULT_FALLBACK_COLOR = '#f8fafc'
-const BOLD_RUN_WEIGHT = 800
+const BOLD_RUN_WEIGHT = 900
 
 export function getRenderableRichTextRuns<T extends RichTextRun>(runs?: T[]) {
   return runs?.filter((run) => run.text) ?? []

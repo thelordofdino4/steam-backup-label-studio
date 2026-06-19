@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent } from 'react'
+import { useState, type CSSProperties, type PointerEvent } from 'react'
 import type {
   JewelCaseSpineImageSlotGroupKey,
   JewelCaseSpineImageSlotKey,
@@ -72,9 +72,6 @@ import {
 import {
   getCaseInsertPreviewTextEditValue,
 } from '../../caseInsert/previewTextEditing'
-import {
-  isHtmlTextEnabled,
-} from '../../text/htmlText'
 import {
   getRenderableRichTextRuns,
   getRichTextRunDomStyle,
@@ -336,11 +333,14 @@ function CaseInsertSpineTextBlock({
     textTarget,
   )
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const [htmlSourceTargetKey, setHtmlSourceTargetKey] =
+    useState<string | null>(null)
+  const isHtmlSourceEditing = isSelected && htmlSourceTargetKey === targetKey
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
+    { sourceMode: isHtmlSourceEditing },
   )
-  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -373,6 +373,7 @@ function CaseInsertSpineTextBlock({
           layoutTextBlock,
         ),
         contentMode: layoutTextBlock.contentMode,
+        htmlSourceActive: isHtmlSourceEditing,
         scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
         scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
         style: layoutTextBlock.style,
@@ -387,6 +388,8 @@ function CaseInsertSpineTextBlock({
         yMin: layoutRanges.y.min,
         yStep: 0.1,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onHtmlSourceActiveChange: (active) =>
+          setHtmlSourceTargetKey(active ? targetKey : null),
         onResetLayout: () => previewTextControlHandlers.onResetLayout(textTarget),
       })
     : undefined
@@ -491,7 +494,10 @@ function CaseInsertSpineTextBlock({
                 )}
           onMoveHandlePointerMove={pointerHandlers.handleSpinePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleSpinePointerUp}
-          onDone={() => onTextTargetEditComplete(textTarget)}
+          onDone={() => {
+            setHtmlSourceTargetKey(null)
+            onTextTargetEditComplete(textTarget)
+          }}
         />
       ) : null}
     </div>

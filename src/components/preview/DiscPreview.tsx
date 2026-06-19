@@ -86,6 +86,20 @@ export type DiscPreviewProps = {
       field: DiscTextStyleField,
       value: DiscTextStyleValue,
     ) => void
+    onTextRichTextCommand: (
+      key: DiscTextKey,
+      command: 'bold' | 'italic' | 'underline' | 'color',
+      selection: { end: number; start: number } | undefined,
+      value: boolean | string,
+    ) => void
+    getTextRichTextCommandState: (
+      key: DiscTextKey,
+      command: 'bold' | 'italic' | 'underline' | 'color',
+      selection: { end: number; start: number },
+    ) => 'active' | 'inactive' | 'mixed' | {
+      state: 'active' | 'inactive' | 'mixed'
+      value?: string
+    }
     onApplyTextStylePreset: (key: DiscTextKey, presetId: string) => void
     onResetTextStyle: (key: DiscTextKey) => void
     onTextLayoutChange: (
@@ -390,6 +404,8 @@ export function DiscPreview({
         onDiscTextContentModeChange={discText.onTextContentModeChange}
         onDiscTextEditComplete={discText.onTextEditComplete}
         onDiscTextStyleChange={discText.onTextStyleChange}
+        onDiscTextRichTextCommand={discText.onTextRichTextCommand}
+        getDiscTextRichTextCommandState={discText.getTextRichTextCommandState}
         onApplyDiscTextStylePreset={discText.onApplyTextStylePreset}
         onResetDiscTextStyle={discText.onResetTextStyle}
         onDiscTextLayoutChange={discText.onTextLayoutChange}

@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent } from 'react'
+import { useState, type CSSProperties, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   getDiscTextContent,
@@ -66,6 +66,20 @@ export type DiscInlineTextEditorLayerProps = {
     field: DiscTextStyleField,
     value: DiscTextStyleValue,
   ) => void
+  onDiscTextRichTextCommand: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: { end: number; start: number } | undefined,
+    value: boolean | string,
+  ) => void
+  getDiscTextRichTextCommandState: (
+    key: DiscTextKey,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: { end: number; start: number },
+  ) => 'active' | 'inactive' | 'mixed' | {
+    state: 'active' | 'inactive' | 'mixed'
+    value?: string
+  }
   onApplyDiscTextStylePreset: (key: DiscTextKey, presetId: string) => void
   onResetDiscTextStyle: (key: DiscTextKey) => void
   onDiscTextLayoutChange: (
@@ -172,6 +186,8 @@ export function DiscInlineTextEditorLayer({
   onDiscTextContentModeChange,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
+  onDiscTextRichTextCommand,
+  getDiscTextRichTextCommandState,
   onApplyDiscTextStylePreset,
   onResetDiscTextStyle,
   onDiscTextLayoutChange,
@@ -182,6 +198,9 @@ export function DiscInlineTextEditorLayer({
   onMoveHandlePointerMove,
   onMoveHandlePointerUp,
 }: DiscInlineTextEditorLayerProps) {
+  const [htmlSourceEditorKey, setHtmlSourceEditorKey] =
+    useState<DiscTextKey | null>(null)
+
   return (
     <>
       {DISC_TEXT_KEYS.map((key) => {
@@ -197,15 +216,19 @@ export function DiscInlineTextEditorLayer({
         }
 
         const text = getDiscTextContent(key, discTextValues, title)
-        const isHtmlSourceEditing = isDiscTextHtmlEnabled(
-          discTextHtmlSources,
-          key,
-        )
+        const hasHtmlSource = isDiscTextHtmlEnabled(discTextHtmlSources, key)
+        const isHtmlSourceEditing = htmlSourceEditorKey === key
         const editValue = isHtmlSourceEditing
           ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
-          : text
-        const renderedText = isHtmlSourceEditing
-          ? parseHtmlText(editValue).plainText
+          : hasHtmlSource
+            ? parseHtmlText(
+                getDiscTextHtmlSource(discTextHtmlSources, key, text),
+              ).plainText
+            : text
+        const renderedText = hasHtmlSource
+          ? parseHtmlText(
+              getDiscTextHtmlSource(discTextHtmlSources, key, text),
+            ).plainText
           : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
@@ -238,6 +261,8 @@ export function DiscInlineTextEditorLayer({
           onSelectedDiscTextKeyChange,
           onDiscTextEnabledChange,
           onDiscTextStyleChange,
+          onDiscTextRichTextCommand,
+          getDiscTextRichTextCommandState,
           onApplyDiscTextStylePreset,
           onResetDiscTextStyle,
           onDiscTextLayoutChange,
@@ -245,7 +270,15 @@ export function DiscInlineTextEditorLayer({
           onDiscTextVisualAvoidanceChange,
           onResetDiscTextLayout,
           isHtmlSourceEnabled: isHtmlSourceEditing,
-          onDiscTextContentModeChange,
+          onDiscTextContentModeChange: (nextKey, contentMode) => {
+            if (contentMode === 'html') {
+              onDiscTextContentModeChange(nextKey, contentMode)
+              setHtmlSourceEditorKey(nextKey)
+              return
+            }
+
+            setHtmlSourceEditorKey(null)
+          },
         })
 
         return (
@@ -296,6 +329,7 @@ export function DiscInlineTextEditorLayer({
               onDone={() => {
                 onDiscTextEditComplete(key)
                 onSelectedDiscTextKeyChange(null)
+                setHtmlSourceEditorKey(null)
               }}
             />
           </div>

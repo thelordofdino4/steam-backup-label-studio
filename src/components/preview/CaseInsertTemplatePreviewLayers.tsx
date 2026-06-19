@@ -1,4 +1,4 @@
-import type { CSSProperties, PointerEvent } from 'react'
+import { useState, type CSSProperties, type PointerEvent } from 'react'
 import type {
   CaseInsertImageSlotGroupKey,
   CaseInsertTemplatePaneId,
@@ -44,9 +44,6 @@ import {
   getCaseInsertPreviewTextEditValue,
   getCaseInsertPreviewTextListEditValue,
 } from '../../caseInsert/previewTextEditing'
-import {
-  isHtmlTextEnabled,
-} from '../../text/htmlText'
 import {
   getRenderableRichTextRuns,
   getRichTextRunDomStyle,
@@ -434,11 +431,14 @@ function CaseInsertTemplateTextBlock({
     textTarget,
   )
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
+  const [htmlSourceTargetKey, setHtmlSourceTargetKey] =
+    useState<string | null>(null)
+  const isHtmlSourceEditing = isSelected && htmlSourceTargetKey === targetKey
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
+    { sourceMode: isHtmlSourceEditing },
   )
-  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textBlock)
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
     : renderedTextBlock
@@ -492,9 +492,12 @@ function CaseInsertTemplateTextBlock({
           layoutTextBlock,
         ),
         contentMode: layoutTextBlock.contentMode,
+        htmlSourceActive: isHtmlSourceEditing,
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onHtmlSourceActiveChange: (active) =>
+          setHtmlSourceTargetKey(active ? targetKey : null),
         onResetLayout: () =>
           previewTextControlHandlers.onResetLayout(textTarget),
       })
@@ -579,7 +582,10 @@ function CaseInsertTemplateTextBlock({
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
-          onDone={() => onTextTargetEditComplete(textTarget)}
+          onDone={() => {
+            setHtmlSourceTargetKey(null)
+            onTextTargetEditComplete(textTarget)
+          }}
         />
       ) : null}
     </div>
@@ -614,16 +620,6 @@ function CaseInsertTemplateTextList({
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
-  const textListLayout = getJewelCaseBackTextListPreviewLayout(
-    textList,
-    layout,
-    avoidanceRegions,
-  )
-
-  if (!textListLayout) {
-    return null
-  }
-
   const textTarget: CaseInsertPreviewTextTarget = {
     scope: 'templateTextList',
     paneId,
@@ -634,8 +630,22 @@ function CaseInsertTemplateTextList({
     textTarget,
   )
   const targetKey = getCaseInsertPreviewTextTargetKey(textTarget)
-  const editValue = getCaseInsertPreviewTextListEditValue(textList)
-  const isHtmlSourceEditing = isSelected && isHtmlTextEnabled(textList)
+  const [htmlSourceTargetKey, setHtmlSourceTargetKey] =
+    useState<string | null>(null)
+  const isHtmlSourceEditing = isSelected && htmlSourceTargetKey === targetKey
+  const textListLayout = getJewelCaseBackTextListPreviewLayout(
+    textList,
+    layout,
+    avoidanceRegions,
+  )
+
+  if (!textListLayout) {
+    return null
+  }
+
+  const editValue = getCaseInsertPreviewTextListEditValue(textList, {
+    sourceMode: isHtmlSourceEditing,
+  })
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
     ...getCaseInsertTextCssStyle(textList.style, 600),
@@ -661,9 +671,12 @@ function CaseInsertTemplateTextList({
         layout: textList.layout,
         layoutPresets: getCaseInsertTextListLayoutPresets(paneId),
         contentMode: textList.contentMode,
+        htmlSourceActive: isHtmlSourceEditing,
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
+        onHtmlSourceActiveChange: (active) =>
+          setHtmlSourceTargetKey(active ? targetKey : null),
         onResetLayout: () =>
           previewTextControlHandlers.onResetLayout(textTarget),
       })
@@ -741,7 +754,10 @@ function CaseInsertTemplateTextList({
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
-          onDone={() => onTextTargetEditComplete(textTarget)}
+          onDone={() => {
+            setHtmlSourceTargetKey(null)
+            onTextTargetEditComplete(textTarget)
+          }}
         />
       ) : null}
     </div>

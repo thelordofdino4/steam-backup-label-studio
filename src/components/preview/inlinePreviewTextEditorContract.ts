@@ -13,6 +13,16 @@ export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
 
 export type InlinePreviewTextEditorTab = ContextualTextControlGroupId
 
+export type InlinePreviewTextEditorSelectionRange = {
+  end: number
+  start: number
+}
+
+export type InlinePreviewTextEditorToggleState =
+  | 'active'
+  | 'inactive'
+  | 'mixed'
+
 export type InlinePreviewTextEditorLine = {
   text: string
 }
@@ -54,13 +64,28 @@ export type InlinePreviewTextEditorCheckboxControl = {
 export type InlinePreviewTextEditorToggleControl = {
   label: string
   pressed: boolean
-  onChange: (pressed: boolean) => void
+  getSelectionState?: (
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => InlinePreviewTextEditorToggleState | undefined
+  onChange: (
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => void
 }
 
 export type InlinePreviewTextEditorColorControl = {
   label: string
   value: string
-  onChange: (value: string) => void
+  getSelectionValue?: (
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    state: InlinePreviewTextEditorToggleState
+    value?: string
+  } | undefined
+  onChange: (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => void
 }
 
 export type InlinePreviewTextEditorControls = {

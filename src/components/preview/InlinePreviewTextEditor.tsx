@@ -51,7 +51,9 @@ import type {
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
+  InlinePreviewTextEditorSelectionRange,
   InlinePreviewTextEditorTab,
+  InlinePreviewTextEditorToggleState,
   InlinePreviewTextEditorToggleControl,
 } from './inlinePreviewTextEditorContract'
 
@@ -70,7 +72,9 @@ export type {
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
+  InlinePreviewTextEditorSelectionRange,
   InlinePreviewTextEditorTab,
+  InlinePreviewTextEditorToggleState,
   InlinePreviewTextEditorToggleControl,
 } from './inlinePreviewTextEditorContract'
 
@@ -100,6 +104,15 @@ type InlineTextSelectionState = {
   end: number
   focus: number
   start: number
+}
+
+function getInlineTextSelectionRange(
+  selection: InlineTextSelectionState,
+): InlinePreviewTextEditorSelectionRange {
+  return {
+    end: selection.end,
+    start: selection.start,
+  }
 }
 
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
@@ -484,20 +497,27 @@ function InlinePreviewHtmlSourceTextarea({
 
 function renderInlinePreviewTextToggleControl(
   control: InlinePreviewTextEditorToggleControl | undefined,
+  selection: InlinePreviewTextEditorSelectionRange,
 ) {
   if (!control) return null
+
+  const selectionState = control.getSelectionState?.(selection)
+  const resolvedState: InlinePreviewTextEditorToggleState = selectionState ??
+    (control.pressed ? 'active' : 'inactive')
+  const isPressed = resolvedState === 'active'
 
   return (
     <button
       type="button"
       className={[
         'inline-preview-text-format-toggle',
-        control.pressed ? 'is-active' : '',
+        isPressed ? 'is-active' : '',
+        resolvedState === 'mixed' ? 'is-mixed' : '',
       ].filter(Boolean).join(' ')}
-      aria-pressed={control.pressed}
+      aria-pressed={resolvedState === 'mixed' ? 'mixed' : isPressed}
       onClick={(event) => {
         event.stopPropagation()
-        control.onChange(!control.pressed)
+        control.onChange(!isPressed, selection)
       }}
       onPointerDown={keepInlineTextEditorFocus}
     >
@@ -508,16 +528,21 @@ function renderInlinePreviewTextToggleControl(
 
 function renderInlinePreviewTextColorControl(
   control: InlinePreviewTextEditorColorControl | undefined,
+  selection: InlinePreviewTextEditorSelectionRange,
 ) {
   if (!control) return null
+
+  const selectionColor = control.getSelectionValue?.(selection)
+  const value = selectionColor?.value ?? control.value
 
   return (
     <label className="inline-preview-text-control-field">
       <span>{control.label}</span>
       <input
         type="color"
-        value={control.value}
-        onChange={(event) => control.onChange(event.target.value)}
+        value={value}
+        data-selection-state={selectionColor?.state}
+        onChange={(event) => control.onChange(event.target.value, selection)}
       />
     </label>
   )
@@ -531,9 +556,11 @@ function InlinePreviewTextEditorMenuContent({
   sourceMode,
   onSourceDraftChange,
   onSourceDraftCommit,
+  selection,
 }: {
   activeTab: InlinePreviewTextEditorTab
   controls?: InlinePreviewTextEditorControls
+  selection: InlinePreviewTextEditorSelectionRange
   sourceDraftIdentity: string
   sourceInitialValue: string
   sourceMode: boolean
@@ -581,9 +608,9 @@ function InlinePreviewTextEditorMenuContent({
         {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
         {controls.text?.bold || controls.text?.italic || controls.text?.underline ? (
           <div className="inline-preview-text-format-row">
-            {renderInlinePreviewTextToggleControl(controls.text.bold)}
-            {renderInlinePreviewTextToggleControl(controls.text.italic)}
-            {renderInlinePreviewTextToggleControl(controls.text.underline)}
+            {renderInlinePreviewTextToggleControl(controls.text.bold, selection)}
+            {renderInlinePreviewTextToggleControl(controls.text.italic, selection)}
+            {renderInlinePreviewTextToggleControl(controls.text.underline, selection)}
           </div>
         ) : null}
         {controls.text?.unsupported?.length ? (
@@ -608,14 +635,17 @@ function InlinePreviewTextEditorMenuContent({
   if (activeTab === 'art') {
     return (
       <div className="inline-preview-text-control-grid">
-        {renderInlinePreviewTextColorControl(controls.art?.color)}
+        {renderInlinePreviewTextColorControl(controls.art?.color, selection)}
         {renderInlinePreviewTextSelectControl(controls.art?.contrast)}
         {renderInlinePreviewTextCheckboxControl(controls.art?.backgroundEnabled)}
-        {renderInlinePreviewTextColorControl(controls.art?.backgroundColor)}
+        {renderInlinePreviewTextColorControl(
+          controls.art?.backgroundColor,
+          selection,
+        )}
         {renderInlinePreviewTextRangeControl(controls.art?.backgroundOpacity)}
         {renderInlinePreviewTextRangeControl(controls.art?.backgroundPadding)}
         {renderInlinePreviewTextCheckboxControl(controls.art?.borderEnabled)}
-        {renderInlinePreviewTextColorControl(controls.art?.borderColor)}
+        {renderInlinePreviewTextColorControl(controls.art?.borderColor, selection)}
         {renderInlinePreviewTextRangeControl(controls.art?.borderRadius)}
       </div>
     )
@@ -1835,6 +1865,7 @@ export function InlinePreviewTextEditor({
         <InlinePreviewTextEditorMenuContent
           activeTab={activeTab}
           controls={editorControls}
+          selection={getInlineTextSelectionRange(selection)}
           sourceDraftIdentity={sourceDraftIdentity}
           sourceInitialValue={value}
           sourceMode={sourceMode}

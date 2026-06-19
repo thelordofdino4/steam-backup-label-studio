@@ -57,6 +57,7 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
+  DISC_TEXT_RENDER_STYLES,
   createDefaultDiscTextStyles,
   applyDiscTextStylePreset,
   resetDiscTextStyle,
@@ -69,6 +70,17 @@ import {
   parseHtmlText,
   type TextContentMode,
 } from '../text/htmlText'
+import {
+  applyRichTextInlineColorCommand,
+  applyRichTextInlineToggleCommand,
+  getRichTextInlineToggleState,
+  getRichTextSelectionColorState,
+  type PlainTextSelectionRange,
+  type RichTextAmbientInlineStyle,
+  type RichTextInlineToggleCommand,
+  type RichTextSelectionColorState,
+  type RichTextSelectionStyleState,
+} from '../text/richTextCommands'
 
 type UseDiscTextStateOptions = {
   projectMetadata: ProjectMetadata
@@ -99,6 +111,25 @@ type DiscTextResolution = {
   discTextTitleValue: string
   metadataBoundDiscTextValues: DiscTextValues
   resolvedDiscTextTitle: string
+}
+
+type DiscTextRichTextCommand = RichTextInlineToggleCommand | 'color'
+type DiscTextRichTextCommandState =
+  | RichTextSelectionStyleState
+  | RichTextSelectionColorState
+
+function getDiscTextRichTextAmbientStyle(
+  key: DiscTextKey,
+  styles: DiscTextStyleSettings,
+): RichTextAmbientInlineStyle {
+  return {
+    bold: styles[key].bold,
+    boldFontWeight: 900,
+    color: styles[key].color,
+    italic: styles[key].italic,
+    normalFontWeight: DISC_TEXT_RENDER_STYLES[key].fontWeight,
+    underline: styles[key].underline,
+  }
 }
 
 export function useDiscTextState({
@@ -614,6 +645,78 @@ export function useDiscTextState({
     }))
   }
 
+  function handleDiscTextRichTextCommand(
+    key: DiscTextKey,
+    command: DiscTextRichTextCommand,
+    selection: PlainTextSelectionRange | undefined,
+    value: boolean | string,
+  ) {
+    if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
+      return
+    }
+
+    const currentText = getCurrentDiscTextContent(key)
+    const source = {
+      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      fallbackText: currentText,
+      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
+        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
+        : undefined,
+    }
+    const result = command === 'color'
+      ? applyRichTextInlineColorCommand({
+          ...source,
+          color: String(value),
+          selection,
+        })
+      : applyRichTextInlineToggleCommand({
+          ...source,
+          active: Boolean(value),
+          command,
+          selection,
+        })
+
+    if (!result) {
+      return
+    }
+
+    const nextInputUpdate = updateDiscTextInlineDraftValue(
+      discTextValues,
+      discTextValueSources,
+      key,
+      result.plainText,
+      discTextTitleValue,
+    )
+
+    setDiscTextHtmlSources((currentSources) =>
+      setDiscTextHtmlSource(currentSources, key, result.htmlSource))
+    if (isMetadataBoundDiscTextKey(key)) {
+      setDiscTextValueSources(nextInputUpdate.sources)
+    }
+    setDiscTextValues(nextInputUpdate.values)
+    setDiscTextTitleValue(nextInputUpdate.titleValue)
+    clampDiscTextLayoutForContent(key, result.plainText)
+  }
+
+  function getDiscTextRichTextCommandState(
+    key: DiscTextKey,
+    command: DiscTextRichTextCommand,
+    selection: PlainTextSelectionRange | undefined,
+  ): DiscTextRichTextCommandState {
+    const currentText = getCurrentDiscTextContent(key)
+    const source = {
+      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      fallbackText: currentText,
+      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
+        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
+        : undefined,
+    }
+
+    return command === 'color'
+      ? getRichTextSelectionColorState({ ...source, selection })
+      : getRichTextInlineToggleState({ ...source, command, selection })
+  }
+
   function handleResetDiscTextStyle(key: DiscTextKey) {
     const nextStyles = resetDiscTextStyle(discTextStyles, key)
 
@@ -755,6 +858,8 @@ export function useDiscTextState({
     handleDiscTextVisualAvoidanceChange,
     handleResetDiscTextLayout,
     handleDiscTextStyleChange,
+    handleDiscTextRichTextCommand,
+    getDiscTextRichTextCommandState,
     handleResetDiscTextStyle,
     handleApplyDiscTextStylePreset,
     handleDiscNumberArtworkModeChange,

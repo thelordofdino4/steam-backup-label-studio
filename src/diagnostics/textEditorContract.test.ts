@@ -63,7 +63,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(contract, /italic\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(contract, /underline\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(source, /renderInlinePreviewTextToggleControl/)
-  assert.match(source, /aria-pressed=\{control\.pressed\}/)
+  assert.match(source, /aria-pressed=\{resolvedState === 'mixed'/)
   assert.match(source, /inline-preview-text-format-row/)
   assert.match(source, /<textarea/)
   assert.match(source, /value=\{value\}/)

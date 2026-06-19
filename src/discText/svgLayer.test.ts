@@ -85,7 +85,7 @@ test('disc SVG renderer applies emphasis to straight text without duplicate rend
   })
 
   assert.match(svg, /font-style:italic/)
-  assert.match(svg, /font-weight:950/)
+  assert.match(svg, /font-weight:900/)
   assert.match(svg, /text-decoration:underline/)
   assert.match(svg, />Emphasized title<\/text>/)
   assert.doesNotMatch(svg, /<textarea\b/i)
@@ -116,7 +116,7 @@ test('disc SVG renderer maps straight HTML to safe tspans', () => {
     height: 100,
   })
 
-  assert.match(svg, /<tspan style="font-weight:800">bold<\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:900">bold<\/tspan>/)
   assert.match(svg, /<tspan style="font-style:italic">italic<\/tspan>/)
   assert.match(svg, /<tspan style="fill:#ff0000">red<\/tspan>/)
   assert.doesNotMatch(svg, /alert\(1\)/)
@@ -163,7 +163,7 @@ test('disc SVG renderer reflects changed straight HTML source drafts', () => {
   assert.doesNotMatch(secondSvg, /Draft one/)
   assert.match(secondSvg, /fill:#0000ff/)
   assert.match(secondSvg, /Draft two/)
-  assert.match(secondSvg, /font-weight:800/)
+  assert.match(secondSvg, /font-weight:900/)
   assert.match(secondSvg, /Next line/)
 })
 

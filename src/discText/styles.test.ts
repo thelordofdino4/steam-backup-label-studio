@@ -25,7 +25,7 @@ test('creates disc text style defaults that preserve the existing render baselin
 
   assert.equal(styles.title.fontFamily, 'arial')
   assert.equal(styles.title.color, DISC_TEXT_RENDER_STYLES.title.color)
-  assert.equal(styles.title.bold, false)
+  assert.equal(styles.title.bold, true)
   assert.equal(styles.title.italic, false)
   assert.equal(styles.title.underline, false)
   assert.equal(styles.title.contrast, 'strokeShadow')
@@ -82,6 +82,35 @@ test('updates and resets a single disc text style without touching other text el
   assert.equal(updatedStyles.title.color, '#224466')
   assert.equal(updatedStyles.subtitle.color, defaultStyles.subtitle.color)
   assert.equal(resetStyles.title.color, defaultStyles.title.color)
+})
+
+test('title bold toggles between supported visible font weights', () => {
+  const layout = createDefaultDiscTextLayout('top').title
+  const defaultStyles = createDefaultDiscTextStyles()
+  const normalStyles = updateDiscTextStyleField(
+    defaultStyles,
+    'title',
+    'bold',
+    false,
+  )
+  const defaultRenderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'Styled title',
+    layout,
+    measureText,
+    defaultStyles,
+  )
+  const normalRenderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'Styled title',
+    layout,
+    measureText,
+    normalStyles,
+  )
+
+  assert.equal(DISC_TEXT_RENDER_STYLES.title.fontWeight, 800)
+  assert.equal(defaultRenderLayout.fontWeight, 900)
+  assert.equal(normalRenderLayout.fontWeight, 800)
 })
 
 test('style preset catalog covers the issue themes with complete editable style values', () => {
@@ -204,7 +233,7 @@ test('applies font, color, contrast, and box style to the shared straight text r
   )
 
   assert.equal(renderLayout.color, '#224466')
-  assert.equal(renderLayout.fontWeight, 950)
+  assert.equal(renderLayout.fontWeight, 900)
   assert.equal(renderLayout.fontStyle, 'italic')
   assert.equal(renderLayout.style.bold, true)
   assert.equal(renderLayout.style.italic, true)
@@ -212,6 +241,6 @@ test('applies font, color, contrast, and box style to the shared straight text r
   assert.equal(renderLayout.style.contrast, 'shadow')
   assert.equal(renderLayout.style.backgroundEnabled, true)
   assert.equal(renderLayout.style.backgroundOpacity, 0.45)
-  assert.match(renderLayout.font, /^italic 950 .*Georgia/)
+  assert.match(renderLayout.font, /^italic 900 .*Georgia/)
   assert.match(renderLayout.fontFamily, /Georgia/)
 })

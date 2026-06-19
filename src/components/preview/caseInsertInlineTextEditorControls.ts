@@ -34,6 +34,7 @@ import {
   isContextualTextCustomPreset,
 } from '../../text/contextualTextControlViewModel.ts'
 import type {
+  InlinePreviewTextEditorSelectionRange,
   InlinePreviewTextEditorControls,
 } from './InlinePreviewTextEditor'
 
@@ -74,6 +75,20 @@ export type CaseInsertPreviewTextControlHandlers = {
     target: CaseInsertPreviewTextTarget,
     contentMode: TextContentMode,
   ) => void
+  onRichTextCommand?: (
+    target: CaseInsertPreviewTextTarget,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: InlinePreviewTextEditorSelectionRange | undefined,
+    value: boolean | string,
+  ) => void
+  getRichTextCommandState?: (
+    target: CaseInsertPreviewTextTarget,
+    command: 'bold' | 'italic' | 'underline' | 'color',
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => 'active' | 'inactive' | 'mixed' | {
+    state: 'active' | 'inactive' | 'mixed'
+    value?: string
+  }
 }
 
 type CaseInsertInlineTextEditorControlParams = {
@@ -84,6 +99,7 @@ type CaseInsertInlineTextEditorControlParams = {
   layout: ProjectCaseInsertLayout
   layoutPresets?: readonly CaseInsertTextLayoutPreset[]
   contentMode?: LegacyTextContentMode
+  htmlSourceActive?: boolean
   scaleMax?: number
   scaleMin?: number
   style: CaseInsertTextStyle
@@ -98,6 +114,7 @@ type CaseInsertInlineTextEditorControlParams = {
   yMin?: number
   yStep?: number
   onDeleteComplete?: () => void
+  onHtmlSourceActiveChange?: (active: boolean) => void
   onResetLayout?: () => void
 }
 
@@ -124,6 +141,12 @@ function getMatchingCaseInsertLayoutPreset({
   })
 }
 
+function hasInlineSelectionRange(
+  selection: InlinePreviewTextEditorSelectionRange,
+) {
+  return selection.start !== selection.end
+}
+
 export function createCaseInsertInlineTextEditorControls({
   align,
   avoidVisualElements,
@@ -132,6 +155,7 @@ export function createCaseInsertInlineTextEditorControls({
   layout,
   layoutPresets = [],
   contentMode = 'plain',
+  htmlSourceActive = contentMode === 'html',
   scaleMax = 1.8,
   scaleMin = 0.7,
   style,
@@ -146,6 +170,7 @@ export function createCaseInsertInlineTextEditorControls({
   yMin = 0,
   yStep = 1,
   onDeleteComplete,
+  onHtmlSourceActiveChange,
   onResetLayout,
 }: CaseInsertInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   const matchingStylePreset = findMatchingContextualTextStylePreset(
@@ -157,6 +182,31 @@ export function createCaseInsertInlineTextEditorControls({
     layout,
     layoutPresets,
   })
+
+  const handleInlineToggleChange = (
+    command: 'bold' | 'italic' | 'underline',
+    field: Extract<CaseInsertTextStyleField, 'bold' | 'italic' | 'underline'>,
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      handlers.onRichTextCommand?.(target, command, selection, pressed)
+      return
+    }
+
+    handlers.onStyleChange(target, field, pressed)
+  }
+  const handleInlineColorChange = (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      handlers.onRichTextCommand?.(target, 'color', selection, value)
+      return
+    }
+
+    handlers.onStyleChange(target, 'color', value)
+  }
 
   return {
     presets: {
@@ -225,25 +275,74 @@ export function createCaseInsertInlineTextEditorControls({
       bold: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
         pressed: style.bold,
-        onChange: (pressed) => handlers.onStyleChange(target, 'bold', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = handlers.getRichTextCommandState?.(
+            target,
+            'bold',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('bold', 'bold', pressed, selection),
       },
       italic: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
         pressed: style.italic,
-        onChange: (pressed) => handlers.onStyleChange(target, 'italic', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = handlers.getRichTextCommandState?.(
+            target,
+            'italic',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('italic', 'italic', pressed, selection),
       },
       underline: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.underline,
         pressed: style.underline,
-        onChange: (pressed) =>
-          handlers.onStyleChange(target, 'underline', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = handlers.getRichTextCommandState?.(
+            target,
+            'underline',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange(
+            'underline',
+            'underline',
+            pressed,
+            selection,
+          ),
       },
     },
     art: {
       color: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.color,
         value: style.color,
-        onChange: (value) => handlers.onStyleChange(target, 'color', value),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = handlers.getRichTextCommandState?.(
+            target,
+            'color',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state ?? { state: 'inactive' }
+        },
+        onChange: handleInlineColorChange,
       },
       contrast: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.contrast,
@@ -357,12 +456,23 @@ export function createCaseInsertInlineTextEditorControls({
       resetLayout: onResetLayout,
       htmlSource: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
-        checked: contentMode === 'html',
-        onChange: (checked) =>
-          handlers.onContentModeChange(
-            target,
-            checked ? 'html' : 'plain',
-          ),
+        checked: htmlSourceActive,
+        onChange: (checked) => {
+          if (checked) {
+            if (contentMode !== 'html') {
+              handlers.onContentModeChange(target, 'html')
+            }
+            onHtmlSourceActiveChange?.(true)
+            return
+          }
+
+          if (onHtmlSourceActiveChange) {
+            onHtmlSourceActiveChange(false)
+            return
+          }
+
+          handlers.onContentModeChange(target, 'plain')
+        },
       },
     },
     deleteAction: {

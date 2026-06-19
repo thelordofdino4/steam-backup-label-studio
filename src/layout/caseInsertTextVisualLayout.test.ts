@@ -121,7 +121,7 @@ test('case insert visual layout carries HTML rich runs through measured lines', 
       { text: 'italic', bold: false, italic: true },
     ],
   )
-  assert.ok(measuredFonts.includes('800 10px Georgia, serif'))
+  assert.ok(measuredFonts.includes('900 10px Georgia, serif'))
   assert.ok(measuredFonts.includes('italic 600 10px Georgia, serif'))
 })
 
