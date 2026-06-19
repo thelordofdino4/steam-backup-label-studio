@@ -4,12 +4,22 @@ import {
   createDiscTextPreviewEditableElementId,
   createPreviewEditableAttributes,
   createPreviewEditableElementId,
+  findPreviewEditableElementsById,
   getPreviewElementOverlayRect,
   getPreviewElementOverlayUnionRect,
+  DISC_TEXT_KEY_ATTRIBUTE,
   PREVIEW_EDITABLE_ID_ATTRIBUTE,
   PREVIEW_EDITABLE_KIND_ATTRIBUTE,
   PREVIEW_EDITABLE_LABEL_ATTRIBUTE,
 } from './previewElementOverlay.ts'
+
+function fakeElement(attributes: Record<string, string>) {
+  return {
+    getAttribute(name: string) {
+      return attributes[name] ?? null
+    },
+  } as Element
+}
 
 test('preview editable attributes expose stable id label and kind', () => {
   const attributes = createPreviewEditableAttributes({
@@ -63,5 +73,54 @@ test('overlay union rect covers multiline or multi-node elements', () => {
       ],
     ),
     { left: 80, top: 100, width: 120, height: 50 },
+  )
+})
+
+test('overlay lookup returns every node with the same preview editable id', () => {
+  const first = fakeElement({
+    [PREVIEW_EDITABLE_ID_ATTRIBUTE]: 'case:cover:text-block:title',
+  })
+  const second = fakeElement({
+    [PREVIEW_EDITABLE_ID_ATTRIBUTE]: 'case:cover:text-block:title',
+  })
+  const other = fakeElement({
+    [PREVIEW_EDITABLE_ID_ATTRIBUTE]: 'case:cover:text-block:subtitle',
+  })
+  const root = {
+    querySelectorAll(selector: string) {
+      return selector === `[${PREVIEW_EDITABLE_ID_ATTRIBUTE}]`
+        ? [first, second, other]
+        : []
+    },
+  } as unknown as ParentNode
+
+  assert.deepEqual(
+    findPreviewEditableElementsById(root, 'case:cover:text-block:title'),
+    [first, second],
+  )
+})
+
+test('overlay lookup keeps the legacy disc text SVG fallback', () => {
+  const backupDate = fakeElement({
+    [DISC_TEXT_KEY_ATTRIBUTE]: 'backupDate',
+  })
+  const copyright = fakeElement({
+    [DISC_TEXT_KEY_ATTRIBUTE]: 'copyright',
+  })
+  const root = {
+    querySelectorAll(selector: string) {
+      if (selector === `[${PREVIEW_EDITABLE_ID_ATTRIBUTE}]`) {
+        return []
+      }
+
+      return selector === `[${DISC_TEXT_KEY_ATTRIBUTE}]`
+        ? [backupDate, copyright]
+        : []
+    },
+  } as unknown as ParentNode
+
+  assert.deepEqual(
+    findPreviewEditableElementsById(root, 'disc-text:backupDate'),
+    [backupDate],
   )
 })

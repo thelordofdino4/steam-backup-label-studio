@@ -36,6 +36,7 @@ import {
   type RichTextDocument,
   type RichTextRun,
 } from '../text/htmlText.ts'
+import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
@@ -453,7 +454,7 @@ function buildCurvedCopyrightMarkup(
       <text
         class="disc-text-render-text"
         dominant-baseline="middle"
-        data-disc-text-key="${key}"
+        ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
         xml:space="preserve"
         style="${style}"
       >
@@ -500,7 +501,7 @@ function buildStraightTextMarkup(
     <text
       class="disc-text-render-text"
       dominant-baseline="middle"
-      data-disc-text-key="${key}"
+      ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
       text-anchor="${straightTextLayout.textAnchor}"
       xml:space="preserve"
       x="${line.x}"
@@ -579,7 +580,7 @@ function buildStraightTextBoxMarkup(
   return `
     <rect
       class="disc-text-render-box"
-      data-disc-text-key="${key}"
+      ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
       x="${formatSvgNumber(x)}"
       y="${formatSvgNumber(y)}"
       width="${formatSvgNumber(width)}"

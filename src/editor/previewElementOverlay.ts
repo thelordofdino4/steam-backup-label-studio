@@ -1,24 +1,35 @@
-export const PREVIEW_EDITABLE_ID_ATTRIBUTE = 'data-preview-editable-id'
-export const PREVIEW_EDITABLE_LABEL_ATTRIBUTE = 'data-preview-editable-label'
-export const PREVIEW_EDITABLE_KIND_ATTRIBUTE = 'data-preview-editable-kind'
-export const DISC_TEXT_KEY_ATTRIBUTE = 'data-disc-text-key'
+import {
+  createDiscTextPreviewEditableElementFromAttributes,
+  createExplicitPreviewEditableElement,
+  DISC_TEXT_KEY_ATTRIBUTE,
+  parseDiscTextPreviewEditableElementId,
+  PREVIEW_EDITABLE_ID_ATTRIBUTE,
+  type PreviewEditableElement,
+} from './previewEditableRegistry.ts'
 
-const DISC_TEXT_PREVIEW_ID_PREFIX = 'disc-text:'
-
-export type PreviewEditableElementKind =
-  | 'artwork'
-  | 'background'
-  | 'logo'
-  | 'mark'
-  | 'text'
-
-export type PreviewEditableElement = {
-  id: string
-  label: string
-  kind: PreviewEditableElementKind
-}
-
-export type PreviewEditableAttributes = Record<string, string>
+export {
+  createDiscInlineTextTargetKey,
+  createDiscTextPreviewEditableElement,
+  createDiscTextPreviewEditableElementId,
+  createInlinePreviewTextTargetAttributes,
+  createPreviewEditableAttributes,
+  createPreviewEditableElementId,
+  CURVED_DISC_TEXT_EXCEPTION,
+  DISC_TEXT_KEY_ATTRIBUTE,
+  INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
+  parseDiscTextPreviewEditableElementId,
+  PREVIEW_EDITABLE_DEFAULT_CAPABILITIES,
+  PREVIEW_EDITABLE_ID_ATTRIBUTE,
+  PREVIEW_EDITABLE_KIND_ATTRIBUTE,
+  PREVIEW_EDITABLE_LABEL_ATTRIBUTE,
+  PREVIEW_EDITABLE_TEXT_CAPABILITIES,
+  type CaseInsertInlineTextTargetDescriptor,
+  type PreviewEditableAttributes,
+  type PreviewEditableElement,
+  type PreviewEditableElementKind,
+  type PreviewEditableSurface,
+  type PreviewEditableTargetCapabilities,
+} from './previewEditableRegistry.ts'
 
 export type PreviewElementDomRect = {
   left: number
@@ -41,71 +52,16 @@ export type PreviewEditableElementMatch = {
   editableElement: PreviewEditableElement
 }
 
-function formatDiscTextKeyLabel(key: string) {
-  return key
-    .replace(/([A-Z])/g, ' $1')
-    .replace(/^\w/, (letter) => letter.toUpperCase())
-}
-
-export function createPreviewEditableElementId(
-  scope: string,
-  ...parts: Array<string | number | null | undefined>
-) {
-  return [scope, ...parts]
-    .filter((part): part is string | number =>
-      part !== null && part !== undefined && String(part).length > 0)
-    .map((part) => String(part))
-    .join(':')
-}
-
-export function createDiscTextPreviewEditableElementId(key: string) {
-  return `${DISC_TEXT_PREVIEW_ID_PREFIX}${key}`
-}
-
-export function createPreviewEditableAttributes(
-  editableElement: PreviewEditableElement,
-): PreviewEditableAttributes {
-  return {
-    [PREVIEW_EDITABLE_ID_ATTRIBUTE]: editableElement.id,
-    [PREVIEW_EDITABLE_LABEL_ATTRIBUTE]: editableElement.label,
-    [PREVIEW_EDITABLE_KIND_ATTRIBUTE]: editableElement.kind,
-  }
-}
-
 function getExplicitPreviewEditableElement(
   element: Element,
 ): PreviewEditableElement | null {
-  const id = element.getAttribute(PREVIEW_EDITABLE_ID_ATTRIBUTE)
-
-  if (!id) {
-    return null
-  }
-
-  return {
-    id,
-    label: element.getAttribute(PREVIEW_EDITABLE_LABEL_ATTRIBUTE) ??
-      'Preview element',
-    kind: (
-      element.getAttribute(PREVIEW_EDITABLE_KIND_ATTRIBUTE) ??
-      'artwork'
-    ) as PreviewEditableElementKind,
-  }
+  return createExplicitPreviewEditableElement(element)
 }
 
 function getDiscTextPreviewEditableElement(
   element: Element,
 ): PreviewEditableElement | null {
-  const key = element.getAttribute(DISC_TEXT_KEY_ATTRIBUTE)
-
-  if (!key) {
-    return null
-  }
-
-  return {
-    id: createDiscTextPreviewEditableElementId(key),
-    label: `${formatDiscTextKeyLabel(key)} text`,
-    kind: 'text',
-  }
+  return createDiscTextPreviewEditableElementFromAttributes(element)
 }
 
 export function getPreviewEditableElement(
@@ -156,8 +112,8 @@ export function findPreviewEditableElementsById(
     return explicitMatches
   }
 
-  if (id.startsWith(DISC_TEXT_PREVIEW_ID_PREFIX)) {
-    const textKey = id.slice(DISC_TEXT_PREVIEW_ID_PREFIX.length)
+  const textKey = parseDiscTextPreviewEditableElementId(id)
+  if (textKey) {
 
     return Array.from(root.querySelectorAll(`[${DISC_TEXT_KEY_ATTRIBUTE}]`))
       .filter((element) =>
