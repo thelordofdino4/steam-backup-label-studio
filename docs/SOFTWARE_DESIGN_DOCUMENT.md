@@ -576,6 +576,8 @@ The app supports Steam banner branding, developer/publisher/additional logos, ra
 - `src/project/projectMediaMark.ts`
 - `src/project/projectPlatformMarks.ts`
 - `src/project/projectTechnicalMarks.ts`
+- `src/components/editor/OptionalFeatureSection.tsx`
+- `src/components/editor/optionalFeatureSectionModel.ts`
 - `src/render/mediaMarkRenderModel.ts`
 - `src/render/platformMarkRenderModel.ts`
 - `src/render/technicalMarkRenderModel.ts`
@@ -597,10 +599,12 @@ The app supports Steam banner branding, developer/publisher/additional logos, ra
 - Case insert preview maps logo/mark slots into template/spine layers.
 - Disc export uses dedicated draw helpers.
 - Case insert export draws slot groups from case insert slot state.
+- `OptionalFeatureSection` only owns the neutral sidebar shell for an optional feature's show/enable control, dependent-control hiding, and slots; feature modules still own state, reset/clear semantics, rendering, save/load, and export.
 
 ### 11.5 Invariants And Future-Change Rules
 
 - Optional visual disabled behavior must hide dependent controls, preserve state, and omit preview/export rendering.
+- Shared optional feature shells must stay state-agnostic and must not flatten feature-specific reset, source, renderer, geometry, save/load, or export behavior into one domain model.
 - Source controls must not invent editor-specific duplicate source concepts when shared source behavior exists.
 - Rating badge "off" behavior is the top-level show/enable checkbox; avoid redundant visible "none" controls unless backward compatibility requires them.
 - Built-in asset expansion must route through `assetManifest.ts` or a documented successor.
