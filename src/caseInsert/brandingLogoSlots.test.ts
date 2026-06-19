@@ -176,6 +176,84 @@ test('case insert logo slots preserve selected images while disabled', () => {
   )
 })
 
+test('case insert primary logo slots preserve layout and fallback behavior while disabled', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotImage(cover, 'cover', 'developer', {
+      imageDataUrl: 'data:image/png;base64,developer',
+      imageSize: { width: 512, height: 128 },
+      imageSource: createProjectImageAssetProvenance({
+        source: 'uploaded',
+        sourceLabel: 'developer.png',
+      }),
+    }))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    updateCaseInsertPrimaryLogoSlotLayoutField(
+      cover,
+      'cover',
+      'developer',
+      'x',
+      42,
+    ))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'publisher', true))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    updateCaseInsertPrimaryLogoSlotLayoutField(
+      cover,
+      'cover',
+      'publisher',
+      'scale',
+      0.62,
+    ))
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'developer', false))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'publisher', false))
+
+  let developerLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'developer',
+  )
+  let publisherLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'publisher',
+  )
+
+  assert.equal(getCaseInsertLogoSlotRenderInfo(developerLogo!), null)
+  assert.equal(getCaseInsertLogoSlotRenderInfo(publisherLogo!), null)
+  assert.equal(developerLogo?.imageDataUrl, 'data:image/png;base64,developer')
+  assert.equal(developerLogo?.layout.x, 42)
+  assert.equal(publisherLogo?.layout.scale, 0.62)
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'developer', true))
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) =>
+    setCaseInsertPrimaryLogoSlotEnabled(cover, 'cover', 'publisher', true))
+  developerLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'developer',
+  )
+  publisherLogo = getCaseInsertPrimaryLogoSlot(
+    state.templates.cover,
+    'publisher',
+  )
+
+  assert.equal(
+    getCaseInsertLogoSlotRenderInfo(developerLogo!)?.imageDataUrl,
+    'data:image/png;base64,developer',
+  )
+  assert.equal(
+    getCaseInsertLogoSlotRenderInfo(publisherLogo!)?.isBundledFallback,
+    true,
+  )
+  assert.equal(
+    getCaseInsertLogoSlotRenderInfo(publisherLogo!)?.logoKey,
+    'publisher',
+  )
+})
+
 test('case insert logo render info uses built-in default artwork for enabled empty logo slots', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
 

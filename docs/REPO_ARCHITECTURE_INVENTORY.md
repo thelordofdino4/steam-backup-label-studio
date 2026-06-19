@@ -633,6 +633,7 @@ Edit/interaction path:
 - Case insert branding sync maps shared mark/logo sources into case insert slots.
 - Optional feature visibility uses shared optional-feature helpers where applicable.
 - `OptionalFeatureSection` provides only the neutral sidebar show/enable shell and dependent-control hiding; feature-specific controls keep ownership of values, handlers, source choices, reset/clear behavior, preview/export inclusion, and persistence.
+- Current `OptionalFeatureSection` callers include media marks, case insert game-logo/title artwork, disc game title/logo artwork, disc primary developer/publisher logos, and case insert primary developer/publisher logo slots. Background artwork, Steam banner, rating badge, platform marks, technical marks, repeated visual element cards, and text sections remain outside this shared shell in the current inventory.
 
 Save/load path:
 
@@ -651,6 +652,7 @@ Tests:
 - `src/editor/logoAsset.test.ts`
 - `src/editor/markImageSource.test.ts`
 - `src/editor/optionalVisualFeature.test.ts`
+- `src/editor/optionalVisualShellAdoption.test.ts`
 - `src/project/projectLogoAssets.test.ts`
 - `src/project/projectRatingBadge.test.ts`
 - `src/project/projectMediaMark.test.ts`

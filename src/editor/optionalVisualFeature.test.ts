@@ -144,8 +144,17 @@ test('disc title artwork omits disabled render items and restores saved image st
     template,
     'top',
   )
+  const configuredTitleArtwork = {
+    ...enabledTitleArtwork,
+    layout: {
+      ...enabledTitleArtwork.layout,
+      scale: 1.42,
+      x: 58,
+      y: 34,
+    },
+  }
   const disabledTitleArtwork = updateTitleArtworkLayoutField(
-    enabledTitleArtwork,
+    configuredTitleArtwork,
     'enabled',
     false,
   )
@@ -158,8 +167,12 @@ test('disc title artwork omits disabled render items and restores saved image st
 
   assert.equal(createTitleArtworkRenderItem(disabledTitleArtwork), null)
   assert.equal(restored.layout.enabled, false)
+  assert.equal(restored.layout.scale, 1.42)
+  assert.equal(restored.layout.x, 58)
+  assert.equal(restored.layout.y, 34)
   assert.equal(restored.imageDataUrl, image.imageDataUrl)
   assert.deepEqual(restored.imageSize, image.imageSize)
+  assert.deepEqual(reenabled.layout, configuredTitleArtwork.layout)
   assert.notEqual(createTitleArtworkRenderItem(reenabled), null)
 })
 

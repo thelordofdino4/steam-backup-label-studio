@@ -600,6 +600,7 @@ The app supports Steam banner branding, developer/publisher/additional logos, ra
 - Disc export uses dedicated draw helpers.
 - Case insert export draws slot groups from case insert slot state.
 - `OptionalFeatureSection` only owns the neutral sidebar shell for an optional feature's show/enable control, dependent-control hiding, and slots; feature modules still own state, reset/clear semantics, rendering, save/load, and export.
+- Current shell adoption covers media marks, case insert game-logo/title artwork, disc game title/logo artwork, disc primary developer/publisher logos, and case insert primary developer/publisher logo slots. More complex optional visuals such as background artwork, Steam banner, rating badge, platform marks, technical marks, repeated visual element cards, and text sections retain their existing shells unless separately migrated with their feature-owned semantics preserved.
 
 ### 11.5 Invariants And Future-Change Rules
 

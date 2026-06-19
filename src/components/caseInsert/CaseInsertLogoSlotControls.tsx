@@ -19,6 +19,7 @@ import type {
 import type { RemoteLogoCandidate } from '../../steam/steamLogoCandidates'
 import { formatLogoSize } from '../sidebar/branding/helpers'
 import { EditorLogoAssetControls } from '../editor/EditorLogoAssetControls'
+import { OptionalFeatureSection } from '../editor/OptionalFeatureSection'
 import type {
   CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
@@ -86,67 +87,59 @@ export function CaseInsertLogoSlotControls({
     : null
 
   return (
-    <div className="logo-asset-card">
-      <label className="field-label">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(event) => onEnabledChange(event.currentTarget.checked)}
-        />
-        Show {label.toLocaleLowerCase()}
-      </label>
-
-      {!enabled ? null : (
-        <>
-          <EditorLogoAssetControls
-            logoKey={logoKey}
-            label={label}
-            candidateLabel={getLogoAssetKindLabel(logoKey)}
-            fallbackImageDataUrl={fallbackRenderInfo?.imageDataUrl ?? null}
-            fallbackImageSize={fallbackRenderInfo?.imageSize ?? null}
-            fallbackImageSource={fallbackRenderInfo
-              ? createCaseInsertLogoFallbackProvenance(
-                  logoKey,
-                  slot?.imageSource?.sourceId ?? undefined,
-                )
-              : null}
-            imageDataUrl={slot?.imageDataUrl ?? null}
-            imageSource={slot?.imageSource ?? null}
-            imageSize={slot?.imageSize ?? null}
-            uploadId={uploadId}
-            controlIdPrefix={uploadId}
-            alignmentPresets={CASE_INSERT_LOGO_ALIGNMENT_PRESETS}
-            fields={fields.map((field) => ({
-              id: `${uploadId}-${field.field}`,
-              label: field.label,
-              min: field.min,
-              max: field.max,
-              step: field.step,
-              value: Number(layout[field.field]),
-              labelValue: (
-                <span>
-                  {Number(layout[field.field]).toFixed(field.step < 1 ? 2 : 0)}
-                </span>
-              ),
-              onChange: (value) => onLayoutChange(field.field, value),
-            }))}
-            formatSize={formatLogoSize}
-            logoCandidateDiscovery={logoCandidateDiscovery}
-            candidateHelpText="Searches the same Steam and official-site logo candidates used by the disc editor. Manual upload remains available here."
-            handleFindLogoCandidates={handleFindLogoCandidates}
-            handleApplyLogoCandidate={(candidate) =>
-              onUseLogoCandidate(logoKey, candidate)}
-            onUpload={onUpload}
-            onApplyAlignmentPreset={(preset) => {
-              onLayoutChange('x', preset.x)
-              onLayoutChange('y', preset.y)
-            }}
-            onResetLayout={onResetLayout}
-            onClearImage={onClearImage}
-          />
-          {children}
-        </>
-      )}
-    </div>
+    <OptionalFeatureSection
+      className="logo-asset-card"
+      enabled={enabled}
+      enableLabel={`Show ${label.toLocaleLowerCase()}`}
+      onEnabledChange={onEnabledChange}
+    >
+      <EditorLogoAssetControls
+        logoKey={logoKey}
+        label={label}
+        candidateLabel={getLogoAssetKindLabel(logoKey)}
+        fallbackImageDataUrl={fallbackRenderInfo?.imageDataUrl ?? null}
+        fallbackImageSize={fallbackRenderInfo?.imageSize ?? null}
+        fallbackImageSource={fallbackRenderInfo
+          ? createCaseInsertLogoFallbackProvenance(
+              logoKey,
+              slot?.imageSource?.sourceId ?? undefined,
+            )
+          : null}
+        imageDataUrl={slot?.imageDataUrl ?? null}
+        imageSource={slot?.imageSource ?? null}
+        imageSize={slot?.imageSize ?? null}
+        uploadId={uploadId}
+        controlIdPrefix={uploadId}
+        alignmentPresets={CASE_INSERT_LOGO_ALIGNMENT_PRESETS}
+        fields={fields.map((field) => ({
+          id: `${uploadId}-${field.field}`,
+          label: field.label,
+          min: field.min,
+          max: field.max,
+          step: field.step,
+          value: Number(layout[field.field]),
+          labelValue: (
+            <span>
+              {Number(layout[field.field]).toFixed(field.step < 1 ? 2 : 0)}
+            </span>
+          ),
+          onChange: (value) => onLayoutChange(field.field, value),
+        }))}
+        formatSize={formatLogoSize}
+        logoCandidateDiscovery={logoCandidateDiscovery}
+        candidateHelpText="Searches the same Steam and official-site logo candidates used by the disc editor. Manual upload remains available here."
+        handleFindLogoCandidates={handleFindLogoCandidates}
+        handleApplyLogoCandidate={(candidate) =>
+          onUseLogoCandidate(logoKey, candidate)}
+        onUpload={onUpload}
+        onApplyAlignmentPreset={(preset) => {
+          onLayoutChange('x', preset.x)
+          onLayoutChange('y', preset.y)
+        }}
+        onResetLayout={onResetLayout}
+        onClearImage={onClearImage}
+      />
+      {children}
+    </OptionalFeatureSection>
   )
 }
