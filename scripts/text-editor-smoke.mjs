@@ -625,6 +625,28 @@ async function getRect(page, smokeId) {
   })
 }
 
+function rectsOverlap(first, second) {
+  return !(
+    first.right <= second.left ||
+    first.left >= second.right ||
+    first.bottom <= second.top ||
+    first.top >= second.bottom
+  )
+}
+
+async function waitForInlineMenuAndTabsToSeparate(page) {
+  let tabs = await getRect(page, 'inline-text-tabs')
+  let menu = await getRect(page, 'inline-text-menu')
+
+  for (let attempt = 0; attempt < 8 && rectsOverlap(menu, tabs); attempt += 1) {
+    await page.waitForTimeout(50)
+    tabs = await getRect(page, 'inline-text-tabs')
+    menu = await getRect(page, 'inline-text-menu')
+  }
+
+  return { menu, tabs }
+}
+
 async function assertScreenshotPaintDoesNotTouchHorizontalEdges(page, smokeId, label) {
   await expectVisible(page, smokeId)
   const buffer = await smoke(page, smokeId).first().screenshot()
@@ -947,16 +969,9 @@ async function runCaseChecks(page) {
     await setInlineNumberControl(page, 'y', yMax)
     await done(page)
     await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
-    const tabs = await getRect(page, 'inline-text-tabs')
-    const menu = await getRect(page, 'inline-text-menu')
+    const { menu, tabs } = await waitForInlineMenuAndTabsToSeparate(page)
     const preview = await getRect(page, 'case-preview-cover')
-    const overlapsTabs = !(
-      menu.right <= tabs.left ||
-      menu.left >= tabs.right ||
-      menu.bottom <= tabs.top ||
-      menu.top >= tabs.bottom
-    )
-    if (overlapsTabs) {
+    if (rectsOverlap(menu, tabs)) {
       fail('Initial menu placement near the bottom overlapped the tab strip.')
     }
     if (
@@ -1012,6 +1027,11 @@ async function runCaseChecks(page) {
     await done(page)
     await setupTrayTitle(page)
     await assertTextIncludes(page, 'case-text-block-tray-tray-title-text', 'Tray Smoke Title')
+    const trayPlacementMode = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-mode')
+    if (trayPlacementMode !== 'anchored') {
+      fail(`Roomy tray title used detached contextual placement: ${trayPlacementMode}`)
+    }
     await done(page)
     await openSpineTitle(page, 'left')
     await assertTextIncludes(page, 'case-spine-title-left', 'LEFT SPINE SMOKE')

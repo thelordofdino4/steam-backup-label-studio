@@ -34,6 +34,7 @@ import {
   getInlinePreviewTextControlLayout,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
+  type InlinePreviewTextEditorMenuPlacement,
   type InlinePreviewTextObstacle,
   type InlinePreviewTextRect,
   type InlinePreviewTextSize,
@@ -100,6 +101,7 @@ export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
 type InlineTextControlFrame = {
   anchor: InlinePreviewTextAnchor
   obstacles: InlinePreviewTextObstacle[]
+  previousPlacement?: InlinePreviewTextEditorMenuPlacement
   previewRect: InlinePreviewTextRect
   workspaceRect: InlinePreviewTextRect
 }
@@ -156,9 +158,9 @@ const INLINE_PREVIEW_OBSTACLE_SELECTOR = [
 ].join(',')
 
 const INLINE_TEXT_DEFAULT_CONTROL_SIZES: InlinePreviewTextControlSizes = {
-  menu: { height: 48, width: 76 },
-  moveHandle: { height: 28, width: 48 },
-  tabs: { height: 56, width: 340 },
+  menu: { height: 178, width: 520 },
+  moveHandle: { height: 32, width: 60 },
+  tabs: { height: 46, width: 520 },
 }
 
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
@@ -353,6 +355,7 @@ function areInlineTextControlFramesEqual(
 
   return (
     areInlineTextAnchorsEqual(first.anchor, second.anchor) &&
+    first.previousPlacement === second.previousPlacement &&
     areInlineTextRectsEqual(first.previewRect, second.previewRect) &&
     areInlineTextRectsEqual(first.workspaceRect, second.workspaceRect) &&
     first.obstacles.length === second.obstacles.length &&
@@ -1780,6 +1783,8 @@ export function InlinePreviewTextEditor({
   const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
+  const previousControlPlacementRef =
+    useRef<InlinePreviewTextEditorMenuPlacement | undefined>(undefined)
   const pendingSelectionRef =
     useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
@@ -1957,6 +1962,10 @@ export function InlinePreviewTextEditor({
   }
 
   useEffect(() => {
+    previousControlPlacementRef.current = undefined
+  }, [inputMode, targetKey])
+
+  useEffect(() => {
     if (typeof document === 'undefined') {
       return undefined
     }
@@ -2082,6 +2091,7 @@ export function InlinePreviewTextEditor({
           top: rect.top,
         },
         obstacles: getInlineTextObstacleRects(workspace),
+        previousPlacement: previousControlPlacementRef.current,
         previewRect: rectToInlineTextRect(previewRect),
         workspaceRect,
       }
@@ -2419,13 +2429,22 @@ export function InlinePreviewTextEditor({
     ? getInlinePreviewTextControlLayout({
         anchor: controlFrame.anchor,
         obstacles: controlFrame.obstacles,
+        previousPlacement: controlFrame.previousPlacement,
         previewRect: controlFrame.previewRect,
         requestedMenuPlacement: menuPlacement,
         sizes: controlSizes,
         workspaceRect: controlFrame.workspaceRect,
       })
     : null
-  const resolvedMenuPlacement = controlLayout?.menu.placement ?? menuPlacement
+  const controlLayoutPlacement = controlLayout?.menu.placement
+
+  useLayoutEffect(() => {
+    if (!controlLayoutPlacement) return
+
+    previousControlPlacementRef.current = controlLayoutPlacement
+  }, [controlLayoutPlacement])
+
+  const resolvedMenuPlacement = controlLayoutPlacement ?? menuPlacement
   const tabsStyle = controlLayout
     ? ({
         left: controlLayout.tabs.left,
