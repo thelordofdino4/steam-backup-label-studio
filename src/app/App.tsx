@@ -765,6 +765,11 @@ function App() {
   function handleCaseInsertPreviewTextResetLayout(
     target: CaseInsertPreviewTextTarget,
   ) {
+    if (target.scope === 'spineTitle') {
+      jewelCaseSpineEditor.handleResetSpineTitleLayout(target.side)
+      return
+    }
+
     if (target.scope !== 'templateTextBlock') {
       return
     }

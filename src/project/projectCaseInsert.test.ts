@@ -192,8 +192,10 @@ test('creates blank jewel case saved project data with generic template panes', 
   assert.equal(project.caseInsert.spine.left.title.enabled, true)
   assert.equal(project.caseInsert.spine.left.title.value, 'Archive Case')
   assert.equal(project.caseInsert.spine.left.title.style.color, '#ffffff')
+  assert.equal(project.caseInsert.spine.left.title.layout.fontSizePt, 16)
   assert.equal(project.caseInsert.spine.left.title.layout.width, 90)
   assert.equal(project.caseInsert.spine.left.title.layout.rotation, -90)
+  assert.equal(project.caseInsert.spine.right.title.layout.fontSizePt, 16)
   assert.equal(project.caseInsert.spine.right.title.layout.rotation, 90)
   assert.deepEqual(
     project.caseInsert.spine.left.textBlocks.map(({ id }) =>
@@ -1270,6 +1272,14 @@ test('case insert text layout presets update width and alignment without changin
   )
   const spineTitle = applyCaseInsertTextBlockPresetLayout(
     'spine',
+    {
+      ...state.spine.left.title,
+      layout: { ...state.spine.left.title.layout, fontSizePt: 18 },
+    },
+    'spine-centered',
+  )
+  const narrowSpineTitle = applyCaseInsertTextBlockPresetLayout(
+    'spine',
     state.spine.left.title,
     'spine-narrow',
   )
@@ -1281,8 +1291,70 @@ test('case insert text layout presets update width and alignment without changin
   assert.equal(leftBlock.layout.width, 42)
   assert.equal(wideList.layout.x, 50)
   assert.equal(wideList.layout.width, 90)
-  assert.equal(spineTitle.layout.width, 46)
+  assert.equal(spineTitle.layout.fontSizePt, 16)
   assert.equal(spineTitle.layout.rotation, -90)
+  assert.equal(narrowSpineTitle.layout.fontSizePt, 14)
+  assert.equal(narrowSpineTitle.layout.width, 46)
+  assert.equal(narrowSpineTitle.layout.rotation, -90)
+})
+
+test('case insert spine title normalization preserves explicit saved point sizes', () => {
+  const restored = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Saved Spine Case',
+    savedAt: '2026-06-20T12:00:00.000Z',
+    game: {
+      manualTitle: 'Saved Spine Case',
+      selectedSteamGame: null,
+    },
+    template: {
+      type: 'caseInsert',
+      variant: 'jewelCase',
+    },
+    caseInsert: {
+      spine: {
+        left: {
+          title: {
+            id: 'left-spine-title-text',
+            label: 'Game title',
+            enabled: true,
+            value: 'Explicit 18pt',
+            source: 'manual',
+            layout: {
+              scale: 1,
+              fontSizePt: 18,
+              width: 90,
+              x: 50,
+              y: 50,
+              rotation: -90,
+            },
+          },
+        },
+        right: {
+          title: {
+            id: 'right-spine-title-text',
+            label: 'Game title',
+            enabled: true,
+            value: 'Legacy scale only',
+            source: 'manual',
+            layout: {
+              scale: 1,
+              width: 90,
+              x: 50,
+              y: 50,
+              rotation: 90,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  assert.equal(restored.caseInsert.spine.left.title.layout.fontSizePt, 18)
+  assert.equal(restored.caseInsert.spine.right.title.layout.fontSizePt, 7.7)
+  assert.equal(restored.caseInsert.spine.left.title.value, 'Explicit 18pt')
+  assert.equal(restored.caseInsert.spine.right.title.value, 'Legacy scale only')
 })
 
 test('restores sparse legacy jewel case projects to safe defaults', () => {

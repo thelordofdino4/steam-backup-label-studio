@@ -16,6 +16,7 @@ import {
 } from './textContent.ts'
 import {
   getLegacyCaseInsertScaleFontSizePt,
+  DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
   type CaseInsertTextSizeRole,
 } from './textSizing.ts'
 
@@ -135,7 +136,12 @@ function getSurfaceGenericTextLayoutPresets(
       {
         id: 'spine-centered',
         label: 'Spine centered',
-        layout: { x: 50, y: 50, width: 90, fontSizePt: 18 },
+        layout: {
+          x: 50,
+          y: 50,
+          width: 90,
+          fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+        },
         align: 'center',
       },
       {
