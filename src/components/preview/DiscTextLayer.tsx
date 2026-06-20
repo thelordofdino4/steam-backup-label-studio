@@ -105,6 +105,10 @@ export type DiscTextLayerProps = {
   ) => void
   onResetDiscTextLayout: (key: DiscTextKey) => void
   handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
+  handleDiscTextMoveHandlePointerDown: (
+    event: PointerEvent<Element>,
+    key: DiscTextKey,
+  ) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
 }
@@ -152,6 +156,7 @@ export function DiscTextLayer({
   onDiscTextVisualAvoidanceChange,
   onResetDiscTextLayout,
   handleDiscTextPointerDown,
+  handleDiscTextMoveHandlePointerDown,
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
 }: DiscTextLayerProps) {
@@ -346,7 +351,7 @@ export function DiscTextLayer({
         onDiscTextAlignmentChange={onDiscTextAlignmentChange}
         onDiscTextVisualAvoidanceChange={onDiscTextVisualAvoidanceChange}
         onResetDiscTextLayout={onResetDiscTextLayout}
-        onMoveHandlePointerDown={handleDiscTextPointerDown}
+        onMoveHandlePointerDown={handleDiscTextMoveHandlePointerDown}
         onMoveHandlePointerMove={handleDiscTextPointerMove}
         onMoveHandlePointerUp={handleDiscTextPointerUp}
       />

@@ -186,6 +186,10 @@ export type DiscPreviewProps = {
     }
     discText: {
       handleDiscTextPointerDown: (event: PointerEvent<Element>, key: DiscTextKey) => void
+      handleDiscTextMoveHandlePointerDown: (
+        event: PointerEvent<Element>,
+        key: DiscTextKey,
+      ) => void
       handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
       handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
     }

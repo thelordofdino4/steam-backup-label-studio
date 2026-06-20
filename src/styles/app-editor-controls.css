@@ -693,7 +693,8 @@ button.inline-preview-text-planned-control:disabled {
   transform: translate(8px, -50%);
 }
 
-.inline-preview-text-move-handle:active {
+.inline-preview-text-move-handle:active,
+.inline-preview-text-move-handle.is-dragging {
   cursor: grabbing;
 }
 

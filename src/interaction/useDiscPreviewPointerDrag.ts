@@ -78,12 +78,12 @@ import {
   usePercentPointerDrag,
   usePixelPointerDrag,
 } from './usePointerDragAdapters'
+import {
+  MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
+  TEXT_BODY_DRAG_ACTIVATION_OPTIONS,
+} from './textMoveHandleDrag'
+import type { PointerDragActivationOptions } from './usePointerDrag'
 import { clampBackgroundOffsetToImageBounds } from '../image/backgroundImage'
-
-const TEXT_DRAG_ACTIVATION_OPTIONS = {
-  activationDelayMs: 320,
-  movementTolerancePx: 6,
-}
 
 type TextDragState = {
   key: DiscTextKey
@@ -414,8 +414,12 @@ export function useDiscPreviewPointerDrag({
     [background.imageUrl, background.offset, backgroundPointerDrag],
   )
 
-  const handleDiscTextPointerDown = useCallback(
-    (event: PointerEvent<Element>, key: DiscTextKey) => {
+  const beginDiscTextDrag = useCallback(
+    (
+      event: PointerEvent<Element>,
+      key: DiscTextKey,
+      activationOptions: PointerDragActivationOptions,
+    ) => {
       discTextPointerDrag.beginPointerDrag(
         event,
         createElementPercentDragState(
@@ -426,10 +430,23 @@ export function useDiscPreviewPointerDrag({
           discText.layout[key].y,
           { key },
         ),
-        TEXT_DRAG_ACTIVATION_OPTIONS,
+        activationOptions,
       )
     },
     [discText.layout, discTextPointerDrag],
+  )
+  const handleDiscTextPointerDown = useCallback(
+    (event: PointerEvent<Element>, key: DiscTextKey) => {
+      beginDiscTextDrag(event, key, TEXT_BODY_DRAG_ACTIVATION_OPTIONS)
+    },
+    [beginDiscTextDrag],
+  )
+
+  const handleDiscTextMoveHandlePointerDown = useCallback(
+    (event: PointerEvent<Element>, key: DiscTextKey) => {
+      beginDiscTextDrag(event, key, MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS)
+    },
+    [beginDiscTextDrag],
   )
 
   const handleLogoAssetPointerDown = useCallback(
@@ -611,6 +628,7 @@ export function useDiscPreviewPointerDrag({
       },
       discText: {
         handleDiscTextPointerDown,
+        handleDiscTextMoveHandlePointerDown,
         handleDiscTextPointerMove: discTextPointerDrag.handlePointerMove,
         handleDiscTextPointerUp: discTextPointerDrag.endPointerDrag,
       },

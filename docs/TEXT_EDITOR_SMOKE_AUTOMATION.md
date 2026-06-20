@@ -147,6 +147,11 @@ The committed smoke command verifies:
 - HTML source editing updates the cover preview live.
 - Done and reopen preserve canonical HTML source.
 - Contextual menu follows selected text after a deterministic Y-control move.
+- The contextual Move handle begins dragging on the first pointer movement
+  without waiting for long-hold activation, keeps the handle in a grabbing
+  state while active, and does not move text on a simple click with no movement.
+- The committed Move-handle route covers cover, tray, left spine, right spine,
+  and straight disc text in the browser smoke harness.
 - Contextual placement locks while a Wrap width number control is actively
   edited, then releases and recomputes after commit.
 - Initial top-edge placement keeps the contextual menu below the selected text
@@ -207,17 +212,17 @@ The smoke command does not automate:
 - Full save/load persistence.
 - Full PNG export parity.
 - Native OS font installation differences.
-- Manual move-handle dragging.
+- Native pointer behavior differences in the Tauri desktop window.
 
-For menu anchoring, the committed harness uses the contextual editor's Y control
-as the deterministic movement input. The move handle remains a manual smoke item
-until the browser path can drive it without pointer-capture flakiness.
+For menu anchoring, the committed harness covers both the contextual editor's
+Y control and a deterministic Move-handle drag route.
 
 ## Manual Follow-Ups
 
 Use Tauri/manual runtime checks for:
 
-- Move-handle dragging on cover, tray, spines, and straight disc text.
+- Move-handle dragging on cover, tray, spines, and straight disc text in the
+  Tauri desktop window, including normal and emergency contextual placements.
 - Save/load using native file dialogs.
 - PNG export output inspection.
 - Desktop window focus, native shortcuts, and platform-specific behavior.

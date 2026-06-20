@@ -57,6 +57,9 @@ import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
 } from '../../text/contextualTextControlViewModel'
 import {
+  isPrimaryMoveHandlePointer,
+} from '../../interaction/textMoveHandleDrag'
+import {
   createPreviewEditableElementId,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
   PREVIEW_EDITABLE_ID_ATTRIBUTE,
@@ -1838,6 +1841,7 @@ export function InlinePreviewTextEditor({
   const tabsRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
+  const activeMoveHandlePointerIdRef = useRef<number | null>(null)
   const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
@@ -1877,6 +1881,7 @@ export function InlinePreviewTextEditor({
     } | null>(null)
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
+  const [isMoveHandleDragging, setIsMoveHandleDragging] = useState(false)
   const controlMeasurementKey =
     `${inputMode}:${targetKey}:${activeTab}:${sourceMode ? 'source' : 'wysiwyg'}`
   const [measuredControlKey, setMeasuredControlKey] =
@@ -2648,6 +2653,28 @@ export function InlinePreviewTextEditor({
 
     window.requestAnimationFrame(() => releaseControlPlacementLock('focus'))
   }
+  const handleMoveHandlePointerDown = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (!isPrimaryMoveHandlePointer(event)) {
+      return
+    }
+
+    event.preventDefault()
+    activeMoveHandlePointerIdRef.current = event.pointerId
+    setIsMoveHandleDragging(true)
+    onMoveHandlePointerDown(event)
+  }
+  const handleMoveHandlePointerRelease = (
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (activeMoveHandlePointerIdRef.current === event.pointerId) {
+      activeMoveHandlePointerIdRef.current = null
+      setIsMoveHandleDragging(false)
+    }
+
+    onMoveHandlePointerUp(event)
+  }
   const tabsStyle = controlLayout
     ? ({
         left: controlLayout.tabs.left,
@@ -2715,18 +2742,18 @@ export function InlinePreviewTextEditor({
         className={[
           'inline-preview-text-move-handle',
           controlMeasuringClass,
+          isMoveHandleDragging ? 'is-dragging' : '',
         ].filter(Boolean).join(' ')}
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
         data-inline-placement-locked={isControlPlacementLocked}
         data-smoke-id="inline-text-move-handle"
         type="button"
-        onPointerDown={(event) => {
-          event.preventDefault()
-          onMoveHandlePointerDown(event)
-        }}
+        onPointerDown={handleMoveHandlePointerDown}
         onPointerMove={onMoveHandlePointerMove}
-        onPointerUp={onMoveHandlePointerUp}
+        onPointerUp={handleMoveHandlePointerRelease}
+        onPointerCancel={handleMoveHandlePointerRelease}
+        onLostPointerCapture={handleMoveHandlePointerRelease}
         onClick={stopInlineTextEditorClick}
         style={moveHandleStyle}
       >
