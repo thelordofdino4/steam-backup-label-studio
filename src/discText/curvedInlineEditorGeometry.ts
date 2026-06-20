@@ -16,6 +16,13 @@ export type CurvedDiscTextEditorBounds = {
   halfWidth: number
 }
 
+export type CurvedDiscTextPaintBox = {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
 function degreesToRadians(degrees: number) {
   return (degrees * Math.PI) / 180
 }
@@ -36,6 +43,73 @@ function getSampledArcAngles(centerAngleDegrees: number, arcDegrees: number) {
 
   return Array.from({ length: sampleCount + 1 }, (_, index) =>
     start + ((end - start) * index) / sampleCount)
+}
+
+function clampValue(value: number, min: number, max: number) {
+  if (max < min) return min
+
+  return Math.min(Math.max(value, min), max)
+}
+
+function isFinitePaintBox(box: CurvedDiscTextPaintBox) {
+  return (
+    Number.isFinite(box.bottom) &&
+    Number.isFinite(box.left) &&
+    Number.isFinite(box.right) &&
+    Number.isFinite(box.top) &&
+    box.right > box.left &&
+    box.bottom > box.top
+  )
+}
+
+export function getCurvedDiscTextEditorBoundsFromPaintBoxes({
+  boxes,
+  minimumSizePercent = 2,
+  paintSlackPercent = 0,
+}: {
+  boxes: readonly CurvedDiscTextPaintBox[]
+  minimumSizePercent?: number
+  paintSlackPercent?: number
+}): CurvedDiscTextEditorBounds | null {
+  const validBoxes = boxes.filter(isFinitePaintBox)
+
+  if (validBoxes.length === 0) {
+    return null
+  }
+
+  const left = Math.max(
+    0,
+    Math.min(...validBoxes.map((box) => box.left)) - paintSlackPercent,
+  )
+  const right = Math.min(
+    100,
+    Math.max(...validBoxes.map((box) => box.right)) + paintSlackPercent,
+  )
+  const top = Math.max(
+    0,
+    Math.min(...validBoxes.map((box) => box.top)) - paintSlackPercent,
+  )
+  const bottom = Math.min(
+    100,
+    Math.max(...validBoxes.map((box) => box.bottom)) + paintSlackPercent,
+  )
+  const width = Math.min(
+    100,
+    Math.max(minimumSizePercent, right - left),
+  )
+  const height = Math.min(
+    100,
+    Math.max(minimumSizePercent, bottom - top),
+  )
+  const centerX = clampValue((left + right) / 2, width / 2, 100 - width / 2)
+  const centerY = clampValue((top + bottom) / 2, height / 2, 100 - height / 2)
+
+  return {
+    centerX,
+    centerY,
+    halfHeight: height / 2,
+    halfWidth: width / 2,
+  }
 }
 
 export function getCurvedDiscTextEditorBounds({

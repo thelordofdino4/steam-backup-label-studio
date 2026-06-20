@@ -370,10 +370,7 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
   assert.equal(controls.text?.bold?.label, 'Bold')
   assert.equal(controls.text?.italic?.label, 'Italic')
   assert.equal(controls.text?.underline?.label, 'Underline')
-  assert.deepEqual(controls.text?.unsupported, [
-    'Range formatting',
-    'Bulleted lists',
-  ])
+  assert.equal(controls.text?.unsupported, undefined)
   assert.equal(controls.art?.color?.label, 'Color')
   assert.equal(controls.art?.contrast?.label, 'Contrast')
   assert.equal(controls.utilities?.lineSpacing?.label, 'Line spacing')

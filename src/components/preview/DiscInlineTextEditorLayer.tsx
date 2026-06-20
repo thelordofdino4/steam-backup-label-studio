@@ -28,7 +28,11 @@ import {
 import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEditorGeometry'
 import {
   getCurvedDiscTextEditorBounds,
+  getCurvedDiscTextEditorBoundsFromPaintBoxes,
 } from '../../discText/curvedInlineEditorGeometry'
+import {
+  getCurvedDiscTextPaintBoxes,
+} from '../../discText/svgLayer'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
@@ -251,7 +255,7 @@ export function DiscInlineTextEditorLayer({
         const text = getDiscTextContent(key, discTextValues, title)
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
-          const bounds = getCurvedDiscTextEditorBounds({
+          const fallbackBounds = getCurvedDiscTextEditorBounds({
             layout,
             placement: steamLogoPlacement,
             safeZoneRadiusPercent:
@@ -259,6 +263,21 @@ export function DiscInlineTextEditorLayer({
                 selectedDiscTemplate.outerDiameterMm) * 50,
             template: selectedDiscTemplate,
           })
+          const paintBounds = getCurvedDiscTextEditorBoundsFromPaintBoxes({
+            boxes: getCurvedDiscTextPaintBoxes({
+              key,
+              layout,
+              measureText,
+              placement: steamLogoPlacement,
+              safeZoneRadiusPercent:
+                (selectedDiscTemplate.safeDiameterMm /
+                  selectedDiscTemplate.outerDiameterMm) * 50,
+              styles: discTextStyles,
+              template: selectedDiscTemplate,
+              text,
+            }),
+          })
+          const bounds = paintBounds ?? fallbackBounds
           const controls = createCurvedDiscTextEditorControls({
             key,
             layout,

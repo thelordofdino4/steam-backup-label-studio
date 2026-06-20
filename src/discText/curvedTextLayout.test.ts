@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { getCurvedDiscTextEditorBoundsFromPaintBoxes } from './curvedInlineEditorGeometry.ts'
 import { layoutCurvedText, normalizeAngleDegrees, type CurvedTextAlignment, type CurvedTextSide } from './curvedTextLayout.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
@@ -110,4 +111,50 @@ test('minimum default and maximum raw arcs still derive the block from centered 
 test('angle normalization keeps app visual convention values in 0 to 360 degrees', () => {
   assert.equal(normalizeAngleDegrees(450), 90)
   assert.equal(normalizeAngleDegrees(-90), 270)
+})
+
+test('curved editor bounds union tight painted SVG boxes instead of the full arc window', () => {
+  const bounds = getCurvedDiscTextEditorBoundsFromPaintBoxes({
+    boxes: [
+      { bottom: 15, left: 21, right: 42, top: 11 },
+      { bottom: 18, left: 28, right: 58, top: 14 },
+    ],
+    paintSlackPercent: 1,
+  })
+
+  assert.deepEqual(bounds, {
+    centerX: 39.5,
+    centerY: 14.5,
+    halfHeight: 4.5,
+    halfWidth: 19.5,
+  })
+})
+
+test('curved editor bounds include underline stroke and shadow slack while staying inside preview', () => {
+  const bounds = getCurvedDiscTextEditorBoundsFromPaintBoxes({
+    boxes: [
+      { bottom: 100.5, left: 70, right: 101.25, top: 96 },
+      { bottom: 99.4, left: 74, right: 99.8, top: 98.8 },
+    ],
+    paintSlackPercent: 2,
+  })
+
+  assert.deepEqual(bounds, {
+    centerX: 84,
+    centerY: 97,
+    halfHeight: 3,
+    halfWidth: 16,
+  })
+})
+
+test('curved editor bounds return null when SVG textPath lines are not measurable yet', () => {
+  assert.equal(
+    getCurvedDiscTextEditorBoundsFromPaintBoxes({
+      boxes: [
+        { bottom: 8, left: 8, right: 8, top: 8 },
+        { bottom: Number.NaN, left: 0, right: 10, top: 0 },
+      ],
+    }),
+    null,
+  )
 })

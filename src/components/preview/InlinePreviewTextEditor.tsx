@@ -220,6 +220,81 @@ function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
   }
 }
 
+function getInlineTextAnchorRect(
+  anchor: InlinePreviewTextAnchor,
+): InlinePreviewTextRect {
+  const left = Math.min(anchor.right, anchor.centerX * 2 - anchor.right)
+
+  return {
+    bottom: anchor.bottom,
+    left,
+    right: Math.max(left, anchor.right),
+    top: anchor.top,
+  }
+}
+
+function getInlineTextOverlapArea(
+  first: InlinePreviewTextRect,
+  second: InlinePreviewTextRect,
+) {
+  const width = Math.max(
+    0,
+    Math.min(first.right, second.right) - Math.max(first.left, second.left),
+  )
+  const height = Math.max(
+    0,
+    Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top),
+  )
+
+  return width * height
+}
+
+function getInlineTextControlLayoutRects({
+  layout,
+  sizes,
+}: {
+  layout: InlinePreviewTextControlLayout
+  sizes: InlinePreviewTextControlSizes
+}) {
+  const menuHeight = Math.min(sizes.menu.height, layout.menu.maxHeight)
+
+  return [
+    {
+      bottom: layout.tabs.top + sizes.tabs.height,
+      left: layout.tabs.left,
+      right: layout.tabs.left + sizes.tabs.width,
+      top: layout.tabs.top,
+    },
+    {
+      bottom: layout.menu.top + menuHeight,
+      left: layout.menu.left,
+      right: layout.menu.left + sizes.menu.width,
+      top: layout.menu.top,
+    },
+    {
+      bottom: layout.moveHandle.top + sizes.moveHandle.height,
+      left: layout.moveHandle.left,
+      right: layout.moveHandle.left + sizes.moveHandle.width,
+      top: layout.moveHandle.top,
+    },
+  ] satisfies InlinePreviewTextRect[]
+}
+
+function doesInlineTextControlLayoutOverlapAnchor({
+  anchor,
+  layout,
+  sizes,
+}: {
+  anchor: InlinePreviewTextAnchor
+  layout: InlinePreviewTextControlLayout
+  sizes: InlinePreviewTextControlSizes
+}) {
+  const anchorRect = getInlineTextAnchorRect(anchor)
+
+  return getInlineTextControlLayoutRects({ layout, sizes })
+    .some((rect) => getInlineTextOverlapArea(rect, anchorRect) > 1)
+}
+
 function getInlineTextPreviewSurface(host: Element) {
   return host.closest<HTMLElement>(INLINE_PREVIEW_SURFACE_SELECTOR)
 }
@@ -2640,14 +2715,26 @@ export function InlinePreviewTextEditor({
       controlPlacementLock.inputMode === inputMode
       ? controlPlacementLock.layout
       : null
-  const controlLayout =
+  const clampedLockedControlLayout =
     lockedControlLayout && controlFrame
       ? getInlinePreviewTextLockedControlLayout({
         layout: lockedControlLayout,
         sizes: controlSizes,
         workspaceRect: controlFrame.workspaceRect,
       })
-      : unlockedControlLayout
+      : null
+  const shouldEscapeLockedPlacement =
+    clampedLockedControlLayout &&
+    unlockedControlLayout &&
+    controlFrame &&
+    doesInlineTextControlLayoutOverlapAnchor({
+      anchor: controlFrame.anchor,
+      layout: clampedLockedControlLayout,
+      sizes: controlSizes,
+    })
+  const controlLayout = shouldEscapeLockedPlacement
+    ? unlockedControlLayout
+    : clampedLockedControlLayout ?? unlockedControlLayout
   const controlLayoutPlacement = controlLayout?.menu.placement
 
   useLayoutEffect(() => {
@@ -2661,7 +2748,8 @@ export function InlinePreviewTextEditor({
   }, [controlLayout])
 
   const resolvedMenuPlacement = controlLayoutPlacement ?? menuPlacement
-  const isControlPlacementLocked = Boolean(lockedControlLayout)
+  const isControlPlacementLocked =
+    Boolean(lockedControlLayout) && !shouldEscapeLockedPlacement
   const controlMeasuringClass = hasMeasuredControlSizes
     ? ''
     : 'is-measuring'
