@@ -6,6 +6,8 @@ import {
   DEFAULT_DISC_TEXT_SETTINGS,
 } from './index.ts'
 import { buildDiscTextSvgLayer } from './svgLayer.ts'
+import { discTextPointSizeToSvgPercent } from './pointSize.ts'
+import { discTemplates } from '../templates/discTemplates.ts'
 
 function measureTextAsCharacters(text: string) {
   return Array.from(text).length
@@ -121,6 +123,47 @@ test('disc SVG renderer maps straight HTML to safe tspans', () => {
   assert.match(svg, /<tspan style="fill:#ff0000">red<\/tspan>/)
   assert.doesNotMatch(svg, /alert\(1\)/)
   assert.doesNotMatch(svg, /<script>/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
+test('disc SVG renderer applies point size to curved textPath output', () => {
+  const layout = createDefaultDiscTextLayout(
+    'none',
+    discTemplates.standardPrintableDisc,
+  )
+  layout.copyright = {
+    ...layout.copyright,
+    fontSizePt: 9,
+    mode: 'curved',
+  }
+  const svg = buildDiscTextSvgLayer({
+    settings: {
+      ...DEFAULT_DISC_TEXT_SETTINGS,
+      copyright: true,
+    },
+    values: {
+      ...createDefaultDiscTextValues(),
+      copyright: 'Legal text on a curved path',
+    },
+    layoutSettings: layout,
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+    template: discTemplates.standardPrintableDisc,
+  })
+  const expectedFontSize = discTextPointSizeToSvgPercent(
+    9,
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.match(svg, /<textPath href=/)
+  assert.match(
+    svg,
+    new RegExp(`font-size:${expectedFontSize}[^;]*px`),
+  )
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 

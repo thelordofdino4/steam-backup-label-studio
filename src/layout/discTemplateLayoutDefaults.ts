@@ -26,6 +26,7 @@ import type {
   DiscTextLayoutSettings,
   SteamLogoPlacement,
 } from '../discText/types'
+import { getDefaultDiscTextPointSize } from '../discText/pointSize.ts'
 import type {
   AdditionalArtworkLayout,
   BackgroundImageSize,
@@ -291,6 +292,7 @@ export function getDefaultCopyrightStraightLayoutForTemplate(
   return textLayoutFromPoint(point, {
     width: resolvedWidths.copyright,
     scale: 1,
+    fontSizePt: getDefaultDiscTextPointSize('copyright', 1, template),
     align: 'center',
     mode: 'straight',
     arcDegrees: 210,
@@ -312,6 +314,7 @@ export function getDefaultCopyrightCurvedLayoutForTemplate(
     y: 0,
     width: resolvedWidths.copyright,
     scale: 1,
+    fontSizePt: getDefaultDiscTextPointSize('copyright', 1, _template, 'curved'),
     align: 'center',
     mode: 'curved',
     arcDegrees: 210,
@@ -335,6 +338,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       {
         width: resolvedWidths.title,
         scale: 1,
+        fontSizePt: getDefaultDiscTextPointSize('title', 1, template),
         align: 'center',
         mode: 'straight',
         arcDegrees: 210,
@@ -351,6 +355,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       {
         width: resolvedWidths.subtitle,
         scale: 0.92,
+        fontSizePt: getDefaultDiscTextPointSize('subtitle', 0.92, template),
         align: 'center',
         mode: 'straight',
         arcDegrees: 210,
@@ -361,6 +366,7 @@ export function createDefaultDiscTextLayoutForTemplate(
     discNumber: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.discNumber), {
       width: resolvedWidths.discNumber,
       scale: 1,
+      fontSizePt: getDefaultDiscTextPointSize('discNumber', 1, template),
       align: 'center',
       mode: 'straight',
       arcDegrees: 210,
@@ -370,6 +376,7 @@ export function createDefaultDiscTextLayoutForTemplate(
     backupDate: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.backupDate), {
       width: resolvedWidths.backupDate,
       scale: 1,
+      fontSizePt: getDefaultDiscTextPointSize('backupDate', 1, template),
       align: 'center',
       mode: 'straight',
       arcDegrees: 210,
@@ -379,6 +386,7 @@ export function createDefaultDiscTextLayoutForTemplate(
     appId: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.appId), {
       width: resolvedWidths.appId,
       scale: 1,
+      fontSizePt: getDefaultDiscTextPointSize('appId', 1, template),
       align: 'center',
       mode: 'straight',
       arcDegrees: 210,
@@ -388,6 +396,7 @@ export function createDefaultDiscTextLayoutForTemplate(
     developer: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.developer), {
       width: resolvedWidths.developer,
       scale: 0.86,
+      fontSizePt: getDefaultDiscTextPointSize('developer', 0.86, template),
       align: 'left',
       mode: 'straight',
       arcDegrees: 210,
@@ -397,6 +406,7 @@ export function createDefaultDiscTextLayoutForTemplate(
     publisher: textLayoutFromPoint(getPoint(DISC_TEXT_ANCHORS.publisher), {
       width: resolvedWidths.publisher,
       scale: 0.86,
+      fontSizePt: getDefaultDiscTextPointSize('publisher', 0.86, template),
       align: 'left',
       mode: 'straight',
       arcDegrees: 210,
@@ -412,6 +422,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       {
         width: resolvedWidths.installNotes,
         scale: 0.86,
+        fontSizePt: getDefaultDiscTextPointSize('installNotes', 0.86, template),
         align: 'center',
         mode: 'straight',
         arcDegrees: 210,
@@ -428,6 +439,7 @@ export function createDefaultDiscTextLayoutForTemplate(
       {
         width: resolvedWidths.customNote,
         scale: 1,
+        fontSizePt: getDefaultDiscTextPointSize('customNote', 1, template),
         align: 'center',
         mode: 'straight',
         arcDegrees: 210,

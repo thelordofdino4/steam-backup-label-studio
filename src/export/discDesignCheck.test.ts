@@ -192,6 +192,7 @@ test('disc design check keeps tiny and unsafe straight text as notes', () => {
         ...params.discTextLayout.subtitle,
         y: 98,
         scale: 0.1,
+        fontSizePt: 1,
       },
     },
   })

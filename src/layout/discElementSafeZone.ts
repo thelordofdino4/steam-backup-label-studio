@@ -47,6 +47,7 @@ import {
   getResolvedDiscTextRenderStyle,
   type DiscTextStyleInput,
 } from '../discText/styles.ts'
+import { getResolvedDiscTextFontSizePercent } from '../discText/pointSize.ts'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer.ts'
 import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 import { createDefaultProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
@@ -166,6 +167,7 @@ function getMeasuredStraightTextVisualBounds(
   layout: DiscTextLayout,
   measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
   styles?: DiscTextStyleInput,
+  template?: DiscTemplate,
 ): TextVisualBoundsPercent {
   const lines = getRenderedStraightTextLines(key)
 
@@ -174,7 +176,7 @@ function getMeasuredStraightTextVisualBounds(
   }
 
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
-  const fontSize = renderStyle.fontSizePercent * layout.scale
+  const fontSize = getResolvedDiscTextFontSizePercent(layout, key, template)
   const lineHeight = fontSize * 1.18
   const font = getDiscTextFontString(
     renderStyle.fontWeight,
@@ -221,6 +223,7 @@ function getMeasuredStraightTextVisualBoundsFromContent(
   layout: DiscTextLayout,
   measureText: TextMeasureFunction = measureDiscTextWithBrowserCanvas,
   styles?: DiscTextStyleInput,
+  template?: DiscTemplate,
 ): TextVisualBoundsPercent {
   if (!text.trim()) {
     return getFallbackTextVisualBounds(key, layout)
@@ -232,6 +235,7 @@ function getMeasuredStraightTextVisualBoundsFromContent(
     layout,
     measureText,
     styles,
+    { template },
   )
 
   if (renderLayout.lines.length === 0) {
@@ -644,6 +648,7 @@ export function getStraightDiscTextLayoutSliderRanges(
     layout,
     measureText,
     styles,
+    selectedDiscTemplate,
   )
   const visualCenter = {
     x: DISC_LAYOUT_CENTER_PERCENT + layout.x + visualBounds.centerOffsetX,
@@ -1195,8 +1200,15 @@ export function clampStraightDiscTextLayoutToSafeZone(
           layout,
           measureText,
           styles,
+          selectedDiscTemplate,
         )
-      : getMeasuredStraightTextVisualBounds(key, layout, measureText, styles)
+      : getMeasuredStraightTextVisualBounds(
+          key,
+          layout,
+          measureText,
+          styles,
+          selectedDiscTemplate,
+        )
   const visualCenter = {
     x: layoutAnchor.x + visualBounds.centerOffsetX,
     y: layoutAnchor.y + visualBounds.centerOffsetY,

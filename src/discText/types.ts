@@ -36,6 +36,7 @@ export type DiscTextLayout = {
   y: number
   width: number
   scale: number
+  fontSizePt: number
   align: DiscTextAlignment
   mode: DiscTextMode
   arcDegrees: number
@@ -44,4 +45,4 @@ export type DiscTextLayout = {
 }
 
 export type DiscTextLayoutSettings = Record<DiscTextKey, DiscTextLayout>
-export type DiscTextLayoutNumericField = 'x' | 'y' | 'width' | 'scale' | 'arcDegrees'
+export type DiscTextLayoutNumericField = 'x' | 'y' | 'width' | 'scale' | 'fontSizePt' | 'arcDegrees'

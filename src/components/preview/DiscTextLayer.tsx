@@ -188,6 +188,7 @@ export function DiscTextLayer({
         width: 100,
         height: 100,
         idPrefix: 'disc-text-preview-image',
+        template: selectedDiscTemplate,
       })
     },
     [
@@ -199,6 +200,7 @@ export function DiscTextLayer({
       metadataBoundDiscTextValues,
       steamLogoPlacement,
       safeZoneRadiusPercent,
+      selectedDiscTemplate,
       avoidanceRegions,
     ],
   )
@@ -218,6 +220,7 @@ export function DiscTextLayer({
         width: '100%',
         height: '100%',
         idPrefix: 'disc-text-preview-hit-target',
+        template: selectedDiscTemplate,
       })
     },
     [
@@ -229,6 +232,7 @@ export function DiscTextLayer({
       metadataBoundDiscTextValues,
       steamLogoPlacement,
       safeZoneRadiusPercent,
+      selectedDiscTemplate,
       avoidanceRegions,
     ],
   )
@@ -324,6 +328,7 @@ export function DiscTextLayer({
         discTextLayout={discTextLayout}
         title={manualGameTitle}
         selectedDiscTextKey={selectedDiscTextKey}
+        selectedDiscTemplate={selectedDiscTemplate}
         avoidanceRegions={avoidanceRegions}
         measureText={measureDiscTextWithBrowserCanvas}
         onSelectedDiscTextKeyChange={onSelectedDiscTextKeyChange}

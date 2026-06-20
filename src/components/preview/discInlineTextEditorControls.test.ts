@@ -9,6 +9,7 @@ import {
   createDefaultDiscTextStyle,
   DISC_TEXT_STYLE_PRESETS,
 } from '../../discText/styles.ts'
+import { getDefaultDiscTextPointSize } from '../../discText/pointSize.ts'
 import {
   createContextualTextPresetOptions,
 } from '../../text/contextualTextControlViewModel.ts'
@@ -25,6 +26,7 @@ function createControls(
   const layout = overrides.layout ?? {
     ...createDefaultDiscTextLayout('top')[key],
     scale: 1.05,
+    fontSizePt: getDefaultDiscTextPointSize(key, 1.05),
     width: 62,
   }
   const style = overrides.style ?? {
@@ -97,8 +99,8 @@ test('disc contextual controls use shared preset options and labels', () => {
     false,
   )
   assert.equal(controls.text?.fontFamily?.label, 'Font')
-  assert.equal(controls.text?.size?.label, 'Size')
-  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.size?.label, 'Font size (pt)')
+  assert.equal(controls.text?.size?.value, layout.fontSizePt)
   assert.equal(controls.text?.alignment?.label, 'Align')
   assert.equal(controls.text?.alignment?.value, layout.align)
   assert.equal(controls.text?.bold?.label, 'Bold')
@@ -182,6 +184,7 @@ test('disc custom option is inert and target-specific handlers stay in adapter',
     'layout:y:19.5',
     'layout:width:62',
     'layout:scale:1.05',
+    `layout:fontSizePt:${getDefaultDiscTextPointSize('title', 1.05)}`,
     'align:center',
     'align:right',
     'style:bold:true',

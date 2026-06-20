@@ -10,6 +10,13 @@ import {
   DISC_TEXT_WIDTH_MIN,
 } from '../../discText/constants.ts'
 import {
+  DISC_TEXT_POINT_SIZE_MAX,
+  DISC_TEXT_POINT_SIZE_MIN,
+  DISC_TEXT_POINT_SIZE_PRESETS,
+  DISC_TEXT_POINT_SIZE_STEP,
+  getDefaultDiscTextPointSize,
+} from '../../discText/pointSize.ts'
+import {
   DISC_TEXT_CONTRAST_OPTIONS,
   DISC_TEXT_FONT_OPTIONS,
   DISC_TEXT_STYLE_PRESETS,
@@ -103,15 +110,15 @@ function getMatchingDiscLayoutPreset({
       return false
     }
 
-    return (['x', 'y', 'width', 'scale', 'arcDegrees'] as const).every(
-      (field) =>
-        typeof preset.layout[field] === 'number'
-          ? contextualTextNumericValuesMatch(
-              preset.layout[field],
-              layout[field],
-            )
-          : true,
-    )
+    return (['x', 'y', 'width', 'scale', 'fontSizePt', 'arcDegrees'] as const)
+      .every((field) =>
+          typeof preset.layout[field] === 'number'
+            ? contextualTextNumericValuesMatch(
+                preset.layout[field],
+                layout[field],
+              )
+            : true,
+      )
   })
 }
 
@@ -150,6 +157,20 @@ function applyDiscTextLayoutPreset({
   }
   if (typeof layoutPreset.layout.scale === 'number') {
     onDiscTextLayoutChange(key, 'scale', layoutPreset.layout.scale)
+  }
+  if (typeof layoutPreset.layout.fontSizePt === 'number') {
+    onDiscTextLayoutChange(key, 'fontSizePt', layoutPreset.layout.fontSizePt)
+  } else if (typeof layoutPreset.layout.scale === 'number') {
+    onDiscTextLayoutChange(
+      key,
+      'fontSizePt',
+      getDefaultDiscTextPointSize(
+        key,
+        layoutPreset.layout.scale,
+        undefined,
+        layoutPreset.layout.mode ?? 'straight',
+      ),
+    )
   }
   if (layoutPreset.layout.align) {
     onDiscTextAlignmentChange(key, layoutPreset.layout.align)
@@ -274,11 +295,12 @@ export function createDiscInlineTextEditorControls({
       },
       size: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
-        min: 0.5,
-        max: 1.8,
-        step: 0.01,
-        value: layout.scale,
-        onChange: (value) => onDiscTextLayoutChange(key, 'scale', value),
+        min: DISC_TEXT_POINT_SIZE_MIN,
+        max: DISC_TEXT_POINT_SIZE_MAX,
+        options: DISC_TEXT_POINT_SIZE_PRESETS,
+        step: DISC_TEXT_POINT_SIZE_STEP,
+        value: layout.fontSizePt,
+        onChange: (value) => onDiscTextLayoutChange(key, 'fontSizePt', value),
       },
       alignment: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.alignment,

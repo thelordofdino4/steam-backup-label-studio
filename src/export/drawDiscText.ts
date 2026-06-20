@@ -15,6 +15,7 @@ import {
   getEffectiveDiscTextSettingsForDiscNumberArtwork,
 } from '../discText/discNumberArtwork'
 import type { ProjectDiscNumberArtwork } from '../project/projectTypes'
+import type { DiscTemplate } from '../types/template'
 import {
   buildDiscTextSvgLayer,
   measureDiscTextWithBrowserCanvas,
@@ -35,6 +36,7 @@ export async function drawDiscTextElements(
   htmlSources: DiscTextHtmlSources = {},
   placement: SteamLogoPlacement,
   safeZoneRadius: number,
+  selectedDiscTemplate: DiscTemplate,
   avoidanceRegions: DiscTextAvoidanceRegion[] = [],
 ) {
   const safeZoneRadiusPercent = (safeZoneRadius / discContentSize) * 100
@@ -111,6 +113,7 @@ export async function drawDiscTextElements(
     width: discContentSize,
     height: discContentSize,
     idPrefix: 'disc-text-export',
+    template: selectedDiscTemplate,
   })
   const textLayerImage = await loadImage(createSvgDataUrl(svg), 'disc text layer')
 

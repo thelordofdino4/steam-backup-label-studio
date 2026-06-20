@@ -14,6 +14,8 @@ import {
 import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
 } from '../text/richTextWeights.ts'
+import type { DiscTemplate } from '../types/template.ts'
+import { getResolvedDiscTextFontSizePercent } from './pointSize.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 
@@ -58,6 +60,7 @@ export type StraightDiscTextRenderLayout = {
 export type StraightDiscTextRenderOptions = {
   avoidanceRegions?: DiscTextAvoidanceRegion[]
   richText?: RichTextDocument
+  template?: DiscTemplate
 }
 
 type DiscTextLineSegment = {
@@ -954,7 +957,11 @@ export function getStraightDiscTextRenderLayout(
   options: StraightDiscTextRenderOptions = {},
 ): StraightDiscTextRenderLayout {
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
-  const fontSize = renderStyle.fontSizePercent * layout.scale
+  const fontSize = getResolvedDiscTextFontSizePercent(
+    layout,
+    key,
+    options.template,
+  )
   const lineHeight = fontSize * 1.18
   const font = getDiscTextFontString(
     renderStyle.fontWeight,

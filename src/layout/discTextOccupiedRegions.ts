@@ -51,6 +51,7 @@ import type {
 } from '../project/projectTypes.ts'
 import { createTechnicalMarkRenderModels } from '../render/technicalMarkRenderModel.ts'
 import { parseHtmlText } from '../text/htmlText.ts'
+import type { DiscTemplate } from '../types/template.ts'
 
 const DISC_TEXT_TO_TEXT_AVOIDANCE_GAP_PERCENT = 0.8
 
@@ -71,6 +72,7 @@ export type DiscTextOccupiedRegionParams = {
   discTextStyles: DiscTextStyleSettings
   discTextTitle: string
   measureText: TextMeasureFunction
+  selectedDiscTemplate: DiscTemplate
 }
 
 function createDiscTextRegion(
@@ -110,6 +112,7 @@ export function createDiscTextOccupiedRegions({
   discTextStyles,
   discTextTitle,
   measureText,
+  selectedDiscTemplate,
 }: DiscTextOccupiedRegionParams): DiscTextAvoidanceRegion[] {
   const regions: DiscTextAvoidanceRegion[] = []
   const titleArtwork = createTitleArtworkRenderItem(projectTitleArtwork)
@@ -294,7 +297,9 @@ export function createDiscTextOccupiedRegions({
       },
       measureText,
       discTextStyles,
-      htmlDocument ? { richText: htmlDocument } : undefined,
+      htmlDocument
+        ? { richText: htmlDocument, template: selectedDiscTemplate }
+        : { template: selectedDiscTemplate },
     )
     const bounds = getStraightDiscTextVisualBounds(renderLayout, measureText)
 

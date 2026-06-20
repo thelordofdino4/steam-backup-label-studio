@@ -42,6 +42,7 @@ import {
 import {
   createDiscInlineTextEditorControls,
 } from './discInlineTextEditorControls'
+import type { DiscTemplate } from '../../types/template'
 
 export type DiscInlineTextEditorLayerProps = {
   discTextSettings: DiscTextSettings
@@ -51,6 +52,7 @@ export type DiscInlineTextEditorLayerProps = {
   discTextLayout: DiscTextLayoutSettings
   title: string
   selectedDiscTextKey: DiscTextKey | null
+  selectedDiscTemplate: DiscTemplate
   avoidanceRegions: DiscTextAvoidanceRegion[]
   measureText: TextMeasureFunction
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
@@ -187,6 +189,7 @@ export function DiscInlineTextEditorLayer({
   discTextLayout,
   title,
   selectedDiscTextKey,
+  selectedDiscTemplate,
   avoidanceRegions,
   measureText,
   onSelectedDiscTextKeyChange,
@@ -249,7 +252,7 @@ export function DiscInlineTextEditorLayer({
           layout,
           measureText,
           discTextStyles,
-          { avoidanceRegions: textAvoidanceRegions },
+          { avoidanceRegions: textAvoidanceRegions, template: selectedDiscTemplate },
         )
         const bounds = getDiscInlineEditorBounds(
           layout,

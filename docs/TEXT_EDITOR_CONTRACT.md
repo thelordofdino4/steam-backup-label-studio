@@ -54,8 +54,12 @@ tested, and the remaining divergences are recorded.
   values. Renderers convert points to export pixels with the template export
   DPI (`fontSizePt * dpi / 72`) and then scale those pixels for preview.
 - The case insert `Font size (pt)` control replaces approximate text scale
-  sliders for cover, tray, left spine, and right spine. Disc text sizing remains
-  disc-owned and must not be converted by this case insert point-size model.
+  sliders for cover, tray, left spine, and right spine.
+- Disc text also stores canonical `fontSizePt` values, but the conversion is
+  disc-owned in `src/discText/pointSize.ts` because straight SVG/tspan and
+  curved SVG/textPath layouts use disc template geometry. Legacy disc `scale`
+  values are migrated into apparent-equivalent point sizes while scale remains
+  available for any remaining geometry responsibilities.
 - Case insert `Wrap width` is a maximum line-wrapping constraint. It must not
   become the visible collision hull or add invisible padding around the object.
 - The edit box must hug the actual visible text bounds, not the full safe-zone
@@ -185,6 +189,8 @@ is required:
   `src/caseInsert/textSizing.ts`.
 - Disc straight text measured layout:
   `src/discText/renderLayout.ts`.
+- Disc text point-size conversion and legacy scale migration:
+  `src/discText/pointSize.ts`.
 - Disc SVG/textPath renderer:
   `src/discText/svgLayer.ts` and `src/components/preview/DiscTextLayer.tsx`.
 - Disc straight-text inline adapter:
