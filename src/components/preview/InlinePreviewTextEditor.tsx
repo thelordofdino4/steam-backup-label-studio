@@ -1066,8 +1066,47 @@ function renderInlinePreviewTextColorControl(
 ) {
   if (!control) return null
 
+  return (
+    <InlinePreviewTextColorControl
+      control={control}
+      selection={selection}
+    />
+  )
+}
+
+function getInlineTextSelectionKey(
+  selection: InlinePreviewTextEditorSelectionRange,
+) {
+  return `${selection.start}:${selection.end}`
+}
+
+function InlinePreviewTextColorControl({
+  control,
+  selection,
+}: {
+  control: InlinePreviewTextEditorColorControl
+  selection: InlinePreviewTextEditorSelectionRange
+}) {
+  const selectionSnapshotRef =
+    useRef<InlinePreviewTextEditorSelectionRange>(selection)
+  const lastAppliedRef = useRef<string | null>(null)
+
   const selectionColor = control.getSelectionValue?.(selection)
   const value = selectionColor?.value ?? control.value
+  const captureSelection = useCallback(() => {
+    selectionSnapshotRef.current = selection
+  }, [selection])
+  const applyColor = useCallback((nextValue: string) => {
+    const selectedRange = selectionSnapshotRef.current ?? selection
+    const applyKey = `${nextValue}:${getInlineTextSelectionKey(selectedRange)}`
+
+    if (lastAppliedRef.current === applyKey) {
+      return
+    }
+
+    lastAppliedRef.current = applyKey
+    control.onChange(nextValue, selectedRange)
+  }, [control, selection])
 
   return (
     <label className="inline-preview-text-control-field">
@@ -1077,7 +1116,15 @@ function renderInlinePreviewTextColorControl(
         type="color"
         value={value}
         data-selection-state={selectionColor?.state}
-        onChange={(event) => control.onChange(event.target.value, selection)}
+        onBlur={() => {
+          lastAppliedRef.current = null
+        }}
+        onChange={(event) => applyColor(event.currentTarget.value)}
+        onClick={stopInlineTextEditorClick}
+        onFocus={captureSelection}
+        onInput={(event) => applyColor(event.currentTarget.value)}
+        onPointerDownCapture={captureSelection}
+        onPointerDown={stopInlineTextEditorPointer}
       />
     </label>
   )

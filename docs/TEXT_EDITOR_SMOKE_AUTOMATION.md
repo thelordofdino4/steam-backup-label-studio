@@ -170,7 +170,9 @@ The committed smoke command verifies:
 - Straight disc controls remain anchored when moved to the center-hole area;
   the center hole is not treated as a preview-consuming obstacle.
 - Straight disc HTML source updates the SVG renderer before Done.
-- Straight disc selected-range formatting updates canonical HTML.
+- Straight disc selected-range color uses the native color input `input` and
+  `change` paths, updates only the highlighted range, and writes canonical
+  `<span style="color:...">` HTML.
 - Curved copyright remains SVG/textPath and does not open a rectangular editor.
 
 ## Expected Outcomes

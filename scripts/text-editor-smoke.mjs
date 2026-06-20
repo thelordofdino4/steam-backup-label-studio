@@ -1237,7 +1237,7 @@ async function runDiscChecks(page) {
     await assertSourceIncludes(page, 'color:#ff0000')
   })
 
-  await runCheck(page, 'straight disc selection formatting and LMB drag selection work', async () => {
+  await runCheck(page, 'straight disc selected-range color and LMB drag selection work', async () => {
     await done(page)
     await openStraightDiscTitle(page)
     await setHtmlSource(page, '<p>Disc Selection Smoke</p>')
