@@ -182,6 +182,21 @@ See the `docs/` folder for:
 - `CSS_STYLE_OWNERSHIP.md` - current stylesheet ownership, import order, and manual CSS smoke checklist.
 - `TEXT_EDITOR_CONTRACT.md` - protected contract and regression gate for preview-mounted text editing.
 
+## Agent Validation
+
+13. Avoid automated runtime smoke testing by default.
+
+- Do not use browser automation, Playwright-style interaction, injected JavaScript, DOM scripting, or Tauri window automation unless the user explicitly requests automated runtime verification for the current task.
+- Source validation for normal tasks consists of:
+  - `npm run test`
+  - `npm run lint`
+  - `npm run check:cycles`
+  - `npm run build`
+- For visual/editor changes, provide a concise manual verification checklist for the user instead of attempting to operate the live application.
+- Do not repeatedly retry failed browser/runtime automation. If an explicitly requested runtime check fails because of tool limitations, stop after one reasonable attempt and report what remains unverified.
+- Reuse an existing runtime only when explicitly authorized. Do not start duplicate Vite or Tauri processes.
+- Automated helper tests and build checks do not prove visual correctness; final reports must clearly distinguish automated validation from user manual verification.
+
 ## Disclaimer
 
 Steam Backup Label Studio is an unofficial personal backup labeling tool. It is not affiliated with Valve Corporation or Steam. Game artwork, logos, ratings, and trademarks belong to their respective owners. Users are responsible for ensuring they have the right to use imported or uploaded assets.
