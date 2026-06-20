@@ -705,8 +705,8 @@ async function dragSelectVisiblePrefix(page, smokeId) {
 async function dragSelectRotatedSpineText(page, smokeId, reverse = false) {
   const targetRect = await getRect(page, smokeId)
   const x = targetRect.left + targetRect.width / 2
-  const startY = targetRect.top + targetRect.height * (reverse ? 0.78 : 0.22)
-  const endY = targetRect.top + targetRect.height * (reverse ? 0.22 : 0.78)
+  const startY = targetRect.top + targetRect.height * (reverse ? 0.62 : 0.38)
+  const endY = targetRect.top + targetRect.height * (reverse ? 0.38 : 0.62)
   await page.mouse.move(x, startY)
   await page.mouse.down()
   await page.mouse.move(x, endY, { steps: 10 })
@@ -715,6 +715,13 @@ async function dragSelectRotatedSpineText(page, smokeId, reverse = false) {
   const state = await getInlineInputState(page)
   if (state.selectionEnd <= state.selectionStart) {
     fail(`Rotated spine drag did not create a selection on ${smokeId}.`)
+  }
+  if (state.selectionStart === 0 || state.selectionEnd === state.value.length) {
+    fail(
+      `Rotated spine drag on ${smokeId} jumped to an edge instead of ` +
+      `anchoring at the pointer: selectionStart=${state.selectionStart}, ` +
+      `selectionEnd=${state.selectionEnd}, valueLength=${state.value.length}.`,
+    )
   }
 }
 

@@ -152,7 +152,8 @@ The committed smoke command verifies:
   emergency detached placement.
 - Tray, left spine, and right spine open inline editors.
 - Left and right rotated spine text support forward and reverse LMB drag
-  selection along the visible rotated text direction.
+  selection along the visible rotated text direction, and interior drags must
+  anchor at the pointer instead of jumping to a text-box edge.
 - Tray title text is screenshot-checked at 6pt, default size, and 72pt so
   visible paint does not touch the left or right element edges.
 - Straight disc text opens inline editing while the SVG image renderer remains visible.
