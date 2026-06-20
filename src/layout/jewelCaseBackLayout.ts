@@ -18,6 +18,10 @@ import {
   CASE_INSERT_TEXT_LIST_MAX_LINES,
   getCaseInsertTextLayoutWidth,
 } from '../caseInsert/textLayout.ts'
+import {
+  getCaseInsertLayoutFontSizePx,
+  type CaseInsertTextSizeRole,
+} from '../caseInsert/textSizing.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -226,7 +230,6 @@ function getTextLayoutFromConfig(
     return null
   }
 
-  const scale = normalizePositiveNumber(textBlock.layout.scale, 1)
   const centerPercent = {
     x: normalizePercent(textBlock.layout.x, config.defaultCenter.x),
     y: normalizePercent(textBlock.layout.y, config.defaultCenter.y),
@@ -234,11 +237,11 @@ function getTextLayoutFromConfig(
   const width = safeBounds.width *
     getCaseInsertTextLayoutWidth(textBlock.layout, config.widthRatio * 100) /
     100
-  const height = safeBounds.height * config.heightRatio * scale
-  const fontSizePx = clampNumber(
-    safeBounds.width * config.targetFontRatio * scale,
-    safeBounds.width * config.minFontRatio,
-    safeBounds.width * config.maxFontRatio,
+  const role = getCaseInsertBackTextBlockRoleFromConfig(config)
+  const fontSizePx = getCaseInsertLayoutFontSizePx(textBlock.layout, role)
+  const height = Math.max(
+    safeBounds.height * config.heightRatio,
+    fontSizePx * CASE_INSERT_TEXT_BLOCK_MAX_LINES * 1.22,
   )
   const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
   const lineHeightPx = fontSizePx * 1.22
@@ -279,6 +282,21 @@ function getTextLayoutFromConfig(
     fontSizePx,
     lineHeightPx,
   }
+}
+
+function getCaseInsertBackTextBlockRoleFromConfig(
+  config: typeof textBlockConfigByRole[JewelCaseBackTextBlockRole],
+): CaseInsertTextSizeRole {
+  if (config === textBlockConfigByRole.minimumRequirements ||
+    config === textBlockConfigByRole.recommendedRequirements) {
+    return 'trayRequirements'
+  }
+
+  if (config === textBlockConfigByRole.legalText) {
+    return 'trayLegal'
+  }
+
+  return 'trayDescription'
 }
 
 export function getJewelCaseBackPreviewRegionBounds(
@@ -478,7 +496,6 @@ export function getJewelCaseBackTextListPreviewLayout(
     return null
   }
 
-  const scale = normalizePositiveNumber(textList.layout.scale, 1)
   const centerPercent = {
     x: normalizePercent(textList.layout.x, featureBulletsConfig.defaultCenter.x),
     y: normalizePercent(textList.layout.y, featureBulletsConfig.defaultCenter.y),
@@ -489,11 +506,13 @@ export function getJewelCaseBackTextListPreviewLayout(
       featureBulletsConfig.widthRatio * 100,
     ) /
     100
-  const height = safeBounds.height * featureBulletsConfig.heightRatio * scale
-  const fontSizePx = clampNumber(
-    safeBounds.width * featureBulletsConfig.targetFontRatio * scale,
-    safeBounds.width * featureBulletsConfig.minFontRatio,
-    safeBounds.width * featureBulletsConfig.maxFontRatio,
+  const fontSizePx = getCaseInsertLayoutFontSizePx(
+    textList.layout,
+    'trayFeatures',
+  )
+  const height = Math.max(
+    safeBounds.height * featureBulletsConfig.heightRatio,
+    fontSizePx * CASE_INSERT_TEXT_LIST_MAX_LINES * 1.24,
   )
   const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
   const lineHeightPx = fontSizePx * 1.24

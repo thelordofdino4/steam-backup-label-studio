@@ -48,6 +48,7 @@ import type {
   InlinePreviewTextEditorGeometryLine,
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
+  InlinePreviewTextEditorNumberSelectControl,
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
@@ -401,6 +402,93 @@ function renderInlinePreviewTextRangeControl(
   )
 }
 
+function InlinePreviewTextNumberSelectControl({
+  control,
+}: {
+  control: InlinePreviewTextEditorNumberSelectControl
+}) {
+  const [draft, setDraft] = useState(String(control.value))
+  const optionListId =
+    `inline-text-options-${getInlineTextSmokeToken(control.label)}`
+
+  const commitDraft = (value: string) => {
+    const nextValue = Number(value)
+
+    if (!Number.isFinite(nextValue)) {
+      setDraft(String(control.value))
+      return
+    }
+
+    const clampedValue = Math.min(control.max, Math.max(control.min, nextValue))
+    control.onChange(clampedValue)
+    setDraft(String(clampedValue))
+  }
+
+  return (
+    <label className="inline-preview-text-control-field">
+      <span>{control.label}</span>
+      <input
+        aria-label={control.label}
+        data-smoke-id={`inline-text-number-${getInlineTextSmokeToken(control.label)}`}
+        list={optionListId}
+        type="number"
+        min={control.min}
+        max={control.max}
+        step={control.step}
+        value={draft}
+        onBlur={(event) => commitDraft(event.currentTarget.value)}
+        onChange={(event) => {
+          const nextDraft = event.target.value
+          setDraft(nextDraft)
+
+          if (nextDraft) {
+            commitDraft(nextDraft)
+          }
+        }}
+        onKeyDown={(event) => {
+          event.stopPropagation()
+
+          if (event.key === 'Enter') {
+            event.preventDefault()
+            commitDraft(event.currentTarget.value)
+          }
+        }}
+      />
+      <datalist id={optionListId}>
+        {control.options.map((option) => (
+          <option key={option} value={option} />
+        ))}
+      </datalist>
+    </label>
+  )
+}
+
+function renderInlinePreviewTextNumberSelectControl(
+  control: InlinePreviewTextEditorNumberSelectControl | undefined,
+) {
+  return control
+    ? (
+        <InlinePreviewTextNumberSelectControl
+          key={control.value}
+          control={control}
+        />
+      )
+    : null
+}
+
+function renderInlinePreviewTextSizeControl(
+  control:
+    | InlinePreviewTextEditorNumberSelectControl
+    | InlinePreviewTextEditorRangeControl
+    | undefined,
+) {
+  if (!control) return null
+
+  return 'options' in control
+    ? renderInlinePreviewTextNumberSelectControl(control)
+    : renderInlinePreviewTextRangeControl(control)
+}
+
 function renderInlinePreviewTextCheckboxControl(
   control: InlinePreviewTextEditorCheckboxControl | undefined,
 ) {
@@ -641,7 +729,7 @@ function InlinePreviewTextEditorMenuContent({
     return (
       <div className="inline-preview-text-control-grid">
         {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
-        {renderInlinePreviewTextRangeControl(controls.text?.size)}
+        {renderInlinePreviewTextSizeControl(controls.text?.size)}
         {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
         {controls.text?.bold ||
         controls.text?.italic ||

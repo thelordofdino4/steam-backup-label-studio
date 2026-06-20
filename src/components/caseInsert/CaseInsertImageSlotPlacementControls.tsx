@@ -8,8 +8,13 @@ import type {
 } from './CaseInsertImageSourceControls'
 import { EditorRangeField } from '../editor/EditorRangeField'
 
+export type CaseInsertImageLayoutField = Extract<
+  keyof ProjectCaseInsertLayout,
+  'rotation' | 'scale' | 'x' | 'y'
+>
+
 export type CaseInsertImageSlotPlacementField = {
-  field: Exclude<keyof ProjectCaseInsertLayout, 'width'>
+  field: CaseInsertImageLayoutField
   label: string
   max: number
   min: number
@@ -23,7 +28,7 @@ export type CaseInsertImageSlotPlacementControlsProps = {
   onClearImage: () => void
   onFitToRegion?: () => void
   onLayoutChange: (
-    field: Exclude<keyof ProjectCaseInsertLayout, 'width'>,
+    field: CaseInsertImageLayoutField,
     value: number,
   ) => void
   onResetLayout: () => void

@@ -38,6 +38,9 @@ import {
   getCaseInsertTextListLayoutPresets,
 } from '../../caseInsert/textLayout'
 import {
+  getCaseInsertTextSizeRoleFromId,
+} from '../../caseInsert/textSizing'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import {
@@ -183,6 +186,19 @@ function getCaseInsertTextBackplateCssStyle(
     display: 'block',
     height: '100%',
     overflow: 'hidden',
+    padding: 0,
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
+    width: '100%',
+  }
+}
+
+function getCaseInsertTextContentCssStyle(): CSSProperties {
+  return {
+    display: 'block',
+    height: '100%',
+    overflow: 'visible',
     padding: 0,
     position: 'relative',
     width: '100%',
@@ -495,6 +511,7 @@ function CaseInsertTemplateTextBlock({
         ),
         contentMode: layoutTextBlock.contentMode,
         htmlSourceActive: isHtmlSourceEditing,
+        fontSizeRole: getCaseInsertTextSizeRoleFromId(layoutTextBlock.id),
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -540,10 +557,15 @@ function CaseInsertTemplateTextBlock({
       }}
       style={style}
     >
-      <span
-        className="case-insert-text-render-content"
-        style={getCaseInsertTextBackplateCssStyle(layoutTextBlock.style)}
-      >
+        <span
+          aria-hidden="true"
+          className="case-insert-text-render-backplate"
+          style={getCaseInsertTextBackplateCssStyle(layoutTextBlock.style)}
+        />
+        <span
+          className="case-insert-text-render-content"
+          style={getCaseInsertTextContentCssStyle()}
+        >
         {textLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}
@@ -682,6 +704,10 @@ function CaseInsertTemplateTextList({
         layoutPresets: getCaseInsertTextListLayoutPresets(paneId),
         contentMode: textList.contentMode,
         htmlSourceActive: isHtmlSourceEditing,
+        fontSizeRole: getCaseInsertTextSizeRoleFromId(
+          textList.id,
+          'trayFeatures',
+        ),
         style: textList.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -725,10 +751,15 @@ function CaseInsertTemplateTextList({
       }}
       style={textListStyle}
     >
-      <span
-        className="case-insert-text-render-content"
-        style={getCaseInsertTextBackplateCssStyle(textList.style)}
-      >
+        <span
+          aria-hidden="true"
+          className="case-insert-text-render-backplate"
+          style={getCaseInsertTextBackplateCssStyle(textList.style)}
+        />
+        <span
+          className="case-insert-text-render-content"
+          style={getCaseInsertTextContentCssStyle()}
+        >
         {textListLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}

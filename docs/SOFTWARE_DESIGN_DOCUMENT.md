@@ -441,6 +441,11 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Disc straight text uses measured layout helpers and preview layers.
 - Disc curved legal text uses SVG/textPath in preview and export-oriented SVG/canvas conversion.
 - Case insert text uses computed rectangular/spine layout helpers.
+- Case insert rectangular text uses typographic point sizes as its canonical
+  sizing model. `src/caseInsert/textSizing.ts` converts points to export pixels
+  from the template DPI and provides legacy scale migration for old saved case
+  insert text layouts. Straight/curved disc text keeps its disc-owned scale
+  model.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
 - `src/components/preview/inlinePreviewTextEditorContract.ts` owns the
   neutral preview-mounted adapter contract, capability flags, normalized
@@ -479,6 +484,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
   source editors are input adapters, and normal preview/export must consume the
   parsed safe rich-text model.
 - Spaces, newlines, wrapping, caret position, final preview, save/load, and export must remain aligned.
+- For case insert text, wrap width is a wrapping maximum only. Collision,
+  clamping, and dotted edit bounds must use measured rendered glyph/ink bounds
+  plus paint slack rather than the logical wrap box.
 
 ### 9.6 Validation Expectations
 

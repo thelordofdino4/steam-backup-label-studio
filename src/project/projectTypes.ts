@@ -370,6 +370,7 @@ export type ProjectCaseInsertImageFit = 'cover' | 'contain' | 'scale' | 'crop'
 
 export type ProjectCaseInsertLayout = {
   scale: number
+  fontSizePt?: number
   width?: number
   x: number
   y: number

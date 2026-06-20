@@ -19,6 +19,9 @@ import {
   CASE_INSERT_TEXT_BLOCK_MAX_LINES,
   getCaseInsertTextLayoutWidth,
 } from '../caseInsert/textLayout.ts'
+import {
+  getCaseInsertLayoutFontSizePx,
+} from '../caseInsert/textSizing.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -78,9 +81,6 @@ export type JewelCaseSpineTitlePreviewLayout = JewelCaseSpineBoxLayout & {
 
 const SPINE_TITLE_WIDTH_RATIO = 0.92
 const SPINE_TITLE_HEIGHT_RATIO = 0.86
-const SPINE_TITLE_FONT_MIN_PX = 10
-const SPINE_TITLE_FONT_TARGET_PX = 32
-const SPINE_TITLE_FONT_FILL_RATIO = 0.68
 
 const spineOverlayConfig = {
   titleArtwork: {
@@ -562,15 +562,17 @@ function getSpineTextLayoutRequest(
     return null
   }
 
-  const scale = normalizePositiveNumber(title.layout.scale, 1)
   const rotationDegrees = normalizeRotationDegrees(
     title.layout.rotation,
     getDefaultSpineRotation(side),
   )
-  const fontSizePx = clampNumber(
-    SPINE_TITLE_FONT_TARGET_PX * scale,
-    SPINE_TITLE_FONT_MIN_PX,
-    safeBounds.width * SPINE_TITLE_FONT_FILL_RATIO,
+  const fontSizePx = getCaseInsertLayoutFontSizePx(
+    title.layout,
+    title.id.includes('legal') || title.id.includes('copyright')
+      ? 'spineLegal'
+      : title.id.endsWith('-title-text')
+        ? 'spineTitle'
+        : 'spineSecondary',
   )
   const requestedBox = getTransformedBoxLayout({
     safeBounds,

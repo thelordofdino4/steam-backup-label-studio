@@ -55,6 +55,16 @@ export type InlinePreviewTextEditorRangeControl = {
   onChange: (value: number) => void
 }
 
+export type InlinePreviewTextEditorNumberSelectControl = {
+  label: string
+  max: number
+  min: number
+  options: readonly number[]
+  step: number
+  value: number
+  onChange: (value: number) => void
+}
+
 export type InlinePreviewTextEditorCheckboxControl = {
   checked: boolean
   label: string
@@ -100,7 +110,7 @@ export type InlinePreviewTextEditorControls = {
     bulletedList?: InlinePreviewTextEditorToggleControl
     fontFamily?: InlinePreviewTextEditorSelectControl
     italic?: InlinePreviewTextEditorToggleControl
-    size?: InlinePreviewTextEditorRangeControl
+    size?: InlinePreviewTextEditorNumberSelectControl | InlinePreviewTextEditorRangeControl
     underline?: InlinePreviewTextEditorToggleControl
     unsupported?: readonly string[]
   }

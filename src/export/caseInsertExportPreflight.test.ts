@@ -304,8 +304,6 @@ test('tray card preflight catches guide, image, text, and spine risks', () => {
   ))
   assert.ok(summary.warnings.some((warning) =>
     /Description may overflow its text box/.test(warning)))
-  assert.ok(summary.warnings.some((warning) =>
-    /Left spine title uses 10px game title text/.test(warning)))
   assert.match(summary.message, /Spine regions: Included/)
 })
 

@@ -50,6 +50,14 @@ tested, and the remaining divergences are recorded.
 
 - Edit mode and final mode must use the same measured layout result or an
   explicitly shared equivalent.
+- Case insert rectangular text stores canonical typographic `fontSizePt`
+  values. Renderers convert points to export pixels with the template export
+  DPI (`fontSizePt * dpi / 72`) and then scale those pixels for preview.
+- The case insert `Font size (pt)` control replaces approximate text scale
+  sliders for cover, tray, left spine, and right spine. Disc text sizing remains
+  disc-owned and must not be converted by this case insert point-size model.
+- Case insert `Wrap width` is a maximum line-wrapping constraint. It must not
+  become the visible collision hull or add invisible padding around the object.
 - The edit box must hug the actual visible text bounds, not the full safe-zone
   or reserved layout width.
 - Text grows horizontally with content until the allowed safe-zone boundary.
@@ -173,6 +181,8 @@ is required:
   `src/caseInsert/previewTextEditing.ts`.
 - Case insert measured text layout:
   `src/layout/caseInsertTextVisualLayout.ts`.
+- Case insert text point-size conversion and legacy scale migration:
+  `src/caseInsert/textSizing.ts`.
 - Disc straight text measured layout:
   `src/discText/renderLayout.ts`.
 - Disc SVG/textPath renderer:
