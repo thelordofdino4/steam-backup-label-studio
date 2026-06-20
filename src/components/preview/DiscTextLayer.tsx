@@ -1,7 +1,6 @@
 import { useMemo, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
-  isCurvedCopyrightDiscTextLayout,
   type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
@@ -99,6 +98,10 @@ export type DiscTextLayerProps = {
     key: DiscTextKey,
     alignment: DiscTextAlignment,
   ) => void
+  onDiscTextArcSideChange: (
+    key: DiscTextKey,
+    arcSide: DiscTextLayout['arcSide'],
+  ) => void
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
     avoidVisualElements: boolean,
@@ -153,6 +156,7 @@ export function DiscTextLayer({
   onResetDiscTextStyle,
   onDiscTextLayoutChange,
   onDiscTextAlignmentChange,
+  onDiscTextArcSideChange,
   onDiscTextVisualAvoidanceChange,
   onResetDiscTextLayout,
   handleDiscTextPointerDown,
@@ -263,14 +267,9 @@ export function DiscTextLayer({
     const key = getDiscTextKeyFromEventTarget(event.target)
     if (!key) return
 
-    if (!isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
-      event.preventDefault()
-      event.stopPropagation()
-      onSelectedDiscTextKeyChange(key)
-      return
-    }
-
-    handleDiscTextPointerDown(event, key)
+    event.preventDefault()
+    event.stopPropagation()
+    onSelectedDiscTextKeyChange(key)
   }
 
   return (
@@ -331,6 +330,7 @@ export function DiscTextLayer({
         discTextHtmlSources={discTextHtmlSources}
         discTextStyles={discTextStyles}
         discTextLayout={discTextLayout}
+        steamLogoPlacement={steamLogoPlacement}
         title={manualGameTitle}
         selectedDiscTextKey={selectedDiscTextKey}
         selectedDiscTemplate={selectedDiscTemplate}
@@ -349,6 +349,7 @@ export function DiscTextLayer({
         onResetDiscTextStyle={onResetDiscTextStyle}
         onDiscTextLayoutChange={onDiscTextLayoutChange}
         onDiscTextAlignmentChange={onDiscTextAlignmentChange}
+        onDiscTextArcSideChange={onDiscTextArcSideChange}
         onDiscTextVisualAvoidanceChange={onDiscTextVisualAvoidanceChange}
         onResetDiscTextLayout={onResetDiscTextLayout}
         onMoveHandlePointerDown={handleDiscTextMoveHandlePointerDown}

@@ -94,6 +94,7 @@ Inline editor selectors:
 - `inline-text-menu`
 - `inline-text-move-handle`
 - `inline-text-input`
+- `inline-text-menu-value`
 - `inline-text-done`
 - `inline-text-delete`
 - `inline-text-html-source`
@@ -131,7 +132,8 @@ The harness enables and edits:
 - Curved disc `copyright`
 
 Curved copyright is explicitly set to `curved` mode through the existing sidebar
-mode selector before asserting SVG/textPath behavior.
+mode selector before opening its contextual shell and asserting SVG/textPath
+behavior.
 
 ## Covered Workflows
 
@@ -184,7 +186,9 @@ The committed smoke command verifies:
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
   `<span style="color:...">` HTML.
-- Curved copyright remains SVG/textPath and does not open a rectangular editor.
+- Curved copyright opens the contextual shell, edits its value through the menu,
+  updates the SVG/textPath preview live, and does not mount a rectangular
+  on-canvas textarea.
 
 ## Expected Outcomes
 

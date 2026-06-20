@@ -494,24 +494,28 @@ Edit/interaction path:
   adapter mode.
 - `src/components/preview/inlinePreviewTextEditorContract.ts` owns the shared
   preview-mounted adapter contract, normalized edit-session shape, capability
-  flags, conformance assertions, and curved-text exclusion assertion. The case
-  insert and straight-disc adapters continue to own geometry, layout, state
-  setters, renderer ownership, pointer movement, and commit/delete behavior.
+  flags, conformance assertions, and curved-text SVG/textPath guardrail. The
+  case insert, straight-disc, and curved-disc adapters continue to own geometry,
+  layout, state setters, renderer ownership, pointer movement, and commit/delete
+  behavior.
 - Contextual text-control labels, preset option construction, Custom-option
   behavior, and target capability declarations live in
   `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
   adapters still own state setters, ranges, units, geometry semantics, renderer
   paths, and commit behavior.
-- Straight-disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts`
-  to consult those contextual target capabilities instead of maintaining a
-  separate migrated-control list in the sidebar component.
+- Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
+  contextual target capabilities instead of maintaining a separate
+  migrated-control list in the sidebar component. Straight text and curved
+  copyright/legal text keep editing controls in contextual adapters, while the
+  sidebar retains setup/source/type controls.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same rectangular
   case-insert text target capabilities instead of duplicating registry policy
   in template or spine sidebar components; spine orientation remains a
   sidebar-owned structural control.
-- Curved disc text remains SVG/textPath based and is not routed through a
-  visible rectangular editor.
+- Curved disc text remains SVG/textPath based. Its contextual adapter exposes
+  whole-object menu controls and a menu-hosted text value field, but it is not
+  routed through a visible rectangular on-canvas editor.
 - Case insert preview text selection/editing helpers support adapter-based
   preview editing; broad case insert runtime behavior was not independently
   manually verified during this inventory refresh.

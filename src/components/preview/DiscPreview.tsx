@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
-import type { DiscTextAlignment, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
+import type { DiscTextAlignment, DiscTextArcSide, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } from '../../discText/styles'
 import type { TextContentMode } from '../../text/htmlText'
 import type { BackgroundImageSize, BackgroundOffset, PlatformMarkValue, ProjectAdditionalArtwork, ProjectDiscNumberArtwork, ProjectLogoAssets, ProjectMediaMark, ProjectMetadata, ProjectPlatformMarks, ProjectRatingBadge, ProjectTechnicalMarks, ProjectTitleArtwork, SelectedDiscTemplateId, SteamBannerColors, TechnicalMarkValue } from '../../project/projectTypes'
@@ -119,6 +119,10 @@ export type DiscPreviewProps = {
     onTextAlignmentChange: (
       key: DiscTextKey,
       alignment: DiscTextAlignment,
+    ) => void
+    onTextArcSideChange: (
+      key: DiscTextKey,
+      arcSide: DiscTextArcSide,
     ) => void
     onTextVisualAvoidanceChange: (
       key: DiscTextKey,
@@ -428,6 +432,7 @@ export function DiscPreview({
         onResetDiscTextStyle={discText.onResetTextStyle}
         onDiscTextLayoutChange={discText.onTextLayoutChange}
         onDiscTextAlignmentChange={discText.onTextAlignmentChange}
+        onDiscTextArcSideChange={discText.onTextArcSideChange}
         onDiscTextVisualAvoidanceChange={discText.onTextVisualAvoidanceChange}
         onResetDiscTextLayout={discText.onResetTextLayout}
         {...pointerHandlers.discText}

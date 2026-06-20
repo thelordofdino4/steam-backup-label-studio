@@ -107,6 +107,13 @@ export type InlinePreviewTextEditorColorControl = {
   ) => void
 }
 
+export type InlinePreviewTextEditorTextValueControl = {
+  label: string
+  placeholder?: string
+  value: string
+  onChange: (value: string) => void
+}
+
 export type InlinePreviewTextEditorControls = {
   presets?: {
     layout?: InlinePreviewTextEditorSelectControl
@@ -120,6 +127,7 @@ export type InlinePreviewTextEditorControls = {
     fontFamily?: InlinePreviewTextEditorSelectControl
     italic?: InlinePreviewTextEditorToggleControl
     size?: InlinePreviewTextEditorNumberSelectControl | InlinePreviewTextEditorRangeControl
+    textValue?: InlinePreviewTextEditorTextValueControl
     underline?: InlinePreviewTextEditorToggleControl
     unsupported?: readonly string[]
   }
@@ -138,6 +146,7 @@ export type InlinePreviewTextEditorControls = {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
     htmlSource?: InlinePreviewTextEditorCheckboxControl
+    lineSpacing?: InlinePreviewTextEditorRangeControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
     resetLayout?: () => void
@@ -164,6 +173,7 @@ export type InlinePreviewTextEditorProps = {
   value: string
   textareaStyle?: CSSProperties
   sourceMode?: boolean
+  suppressCanvasInput?: boolean
   menuPlacement: InlinePreviewTextEditorMenuPlacement
   onValueChange: (
     value: string,
@@ -185,6 +195,7 @@ export type InlinePreviewTextEditorAdapterSurface =
   | 'case-left-spine-text'
   | 'case-right-spine-text'
   | 'straight-disc-text'
+  | 'curved-disc-text'
 
 export type InlinePreviewTextEditorFinalRenderer =
   | 'case-insert-dom-text'
@@ -241,9 +252,9 @@ export const INLINE_PREVIEW_TEXT_RECTANGULAR_UNSUPPORTED_UTILITY_CONTROLS = [
 export const CURVED_DISC_TEXT_CONTEXTUAL_EDITOR_EXCEPTION = {
   finalRenderer: 'disc-svg-textPath',
   reason:
-    'Curved disc text remains SVG/textPath based and is not routed through the rectangular inline editor adapter.',
+    'Curved disc text remains SVG/textPath based and uses a contextual menu adapter without rectangular on-canvas text input.',
   surface: 'curved-disc-text',
-  supportsContextualEditor: false,
+  supportsContextualEditor: true,
 } as const
 
 export function createInlinePreviewTextEditorEditSession(
@@ -388,8 +399,8 @@ export function assertInlinePreviewTextEditorAdapterContract(
 export function assertCurvedDiscTextContextualEditorException(
   exception = CURVED_DISC_TEXT_CONTEXTUAL_EDITOR_EXCEPTION,
 ) {
-  if (exception.supportsContextualEditor !== false) {
-    throw new Error('Curved disc text must remain outside rectangular editing')
+  if (exception.supportsContextualEditor !== true) {
+    throw new Error('Curved disc text must use the contextual menu adapter')
   }
   if (exception.finalRenderer !== 'disc-svg-textPath') {
     throw new Error('Curved disc text must keep SVG/textPath renderer ownership')

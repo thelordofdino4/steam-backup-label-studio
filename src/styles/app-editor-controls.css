@@ -530,6 +530,43 @@
   font-weight: 700;
 }
 
+.inline-preview-text-value-field {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 5px;
+  min-width: 0;
+  color: #9ca3af;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.inline-preview-text-value-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 72px;
+  max-height: 132px;
+  padding: 8px 9px;
+  overflow: auto;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0f1117;
+  color: #f9fafb;
+  caret-color: #2aabe2;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+  resize: vertical;
+  scrollbar-width: thin;
+  text-transform: none;
+  white-space: pre-wrap;
+}
+
+.inline-preview-text-value-textarea:focus {
+  border-color: #60a5fa;
+  outline: 2px solid rgba(96, 165, 250, 0.34);
+  outline-offset: 1px;
+}
+
 .inline-preview-text-source-textarea {
   box-sizing: border-box;
   width: 100%;

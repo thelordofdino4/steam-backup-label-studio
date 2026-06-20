@@ -2324,6 +2324,7 @@ function App() {
           onResetTextStyle: handleResetDiscTextStyle,
           onTextLayoutChange: handleDiscTextLayoutChange,
           onTextAlignmentChange: handleDiscTextAlignmentChange,
+          onTextArcSideChange: handleDiscTextArcSideChange,
           onTextVisualAvoidanceChange: handleDiscTextVisualAvoidanceChange,
           onResetTextLayout: handleResetDiscTextLayout,
         }}

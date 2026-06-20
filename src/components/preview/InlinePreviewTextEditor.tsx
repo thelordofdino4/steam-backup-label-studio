@@ -76,6 +76,7 @@ import type {
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
   InlinePreviewTextEditorSelectionRange,
+  InlinePreviewTextEditorTextValueControl,
   InlinePreviewTextEditorTab,
   InlinePreviewTextEditorToggleState,
   InlinePreviewTextEditorToggleControl,
@@ -97,6 +98,7 @@ export type {
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
   InlinePreviewTextEditorSelectionRange,
+  InlinePreviewTextEditorTextValueControl,
   InlinePreviewTextEditorTab,
   InlinePreviewTextEditorToggleState,
   InlinePreviewTextEditorToggleControl,
@@ -1026,6 +1028,59 @@ function InlinePreviewHtmlSourceTextarea({
   )
 }
 
+function renderInlinePreviewTextValueControl(
+  control: InlinePreviewTextEditorTextValueControl | undefined,
+) {
+  if (!control) return null
+
+  return (
+    <InlinePreviewTextValueTextarea
+      control={control}
+    />
+  )
+}
+
+function InlinePreviewTextValueTextarea({
+  control,
+}: {
+  control: InlinePreviewTextEditorTextValueControl
+}) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    event.stopPropagation()
+
+    if (!isInlinePreviewTextSelectAllShortcut(event)) {
+      return
+    }
+
+    event.preventDefault()
+    event.currentTarget.select()
+  }
+
+  return (
+    <label className="inline-preview-text-value-field">
+      <span>{control.label}</span>
+      <textarea
+        aria-label={control.label}
+        className="inline-preview-text-value-textarea"
+        data-smoke-id="inline-text-menu-value"
+        value={control.value}
+        placeholder={control.placeholder}
+        spellCheck={false}
+        onChange={(event) => control.onChange(event.target.value)}
+        onClick={stopInlineTextEditorClick}
+        onKeyDown={handleKeyDown}
+        onKeyUp={(event) => event.stopPropagation()}
+        onPaste={(event) => event.stopPropagation()}
+        onCopy={(event) => event.stopPropagation()}
+        onCut={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onSelect={(event) => event.stopPropagation()}
+      />
+    </label>
+  )
+}
+
 function renderInlinePreviewTextToggleControl(
   control: InlinePreviewTextEditorToggleControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
@@ -1190,6 +1245,7 @@ function InlinePreviewTextEditorMenuContent({
   if (activeTab === 'text') {
     return (
       <div className="inline-preview-text-control-grid">
+        {renderInlinePreviewTextValueControl(controls.text?.textValue)}
         {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
         {renderInlinePreviewTextSizeControl(controls.text?.size, selection)}
         {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
@@ -1275,6 +1331,7 @@ function InlinePreviewTextEditorMenuContent({
         onSourceDraftChange,
         onSourceDraftCommit,
       })}
+      {renderInlinePreviewTextRangeControl(controls.utilities?.lineSpacing)}
       {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
       {controls.utilities?.resetLayout ? (
@@ -1829,6 +1886,7 @@ export function InlinePreviewTextEditor({
   value,
   textareaStyle,
   sourceMode = false,
+  suppressCanvasInput = false,
   menuPlacement,
   onValueChange,
   onMoveHandlePointerDown,
@@ -2828,6 +2886,7 @@ export function InlinePreviewTextEditor({
 
   const hasVisibleSelection =
     inputMode === 'adapter' && selection.start !== selection.end
+  const shouldRenderCanvasInput = !sourceMode && !suppressCanvasInput
   const textareaElement = (
     <textarea
       ref={textareaRef}
@@ -2865,12 +2924,12 @@ export function InlinePreviewTextEditor({
 
   return (
     <>
-      {!sourceMode ? (
+      {shouldRenderCanvasInput ? (
         inputMode === 'adapter' && typeof document !== 'undefined'
           ? createPortal(textareaElement, document.body)
           : textareaElement
       ) : null}
-      {!sourceMode ? selectionFrames.map((frame, index) => (
+      {shouldRenderCanvasInput ? selectionFrames.map((frame, index) => (
         <span
           key={`${index}-${frame.left}-${frame.width}`}
           aria-hidden="true"
@@ -2883,7 +2942,7 @@ export function InlinePreviewTextEditor({
           }}
         />
       )) : null}
-      {caretFrame && !hasVisibleSelection && !sourceMode ? (
+      {caretFrame && !hasVisibleSelection && shouldRenderCanvasInput ? (
         <span
           aria-hidden="true"
           className="inline-preview-text-caret"
