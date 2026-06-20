@@ -99,6 +99,12 @@ Inline editor selectors:
 - `inline-text-checkbox-html-source`
 - `inline-text-number-x`
 - `inline-text-number-y`
+- `inline-text-number-font-size-pt`
+- `inline-text-number-options-font-size-pt`
+- `inline-text-number-options-list-font-size-pt`
+- `inline-text-number-option-font-size-pt-{pointSize}`
+- `inline-text-number-step-up-font-size-pt`
+- `inline-text-number-step-down-font-size-pt`
 
 ## Fixture Setup
 
@@ -130,6 +136,9 @@ The committed smoke command verifies:
 - Ctrl+A selects all visible cover text.
 - LMB drag creates a non-collapsed visible cover selection.
 - Selected-range Bold, Italic, Underline, and Color update canonical HTML.
+- The contextual case-insert `Font size (pt)` control supports uninterrupted
+  typing, a temporary empty draft, Enter commit, repeated preset popup opens,
+  wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
 - Enter inside a bullet creates the next bullet item.
 - Shift+Enter inside a bullet creates a soft break.
