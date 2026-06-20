@@ -90,6 +90,7 @@ export type CaseInsertEditorShellProps = {
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers

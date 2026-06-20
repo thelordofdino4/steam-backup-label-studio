@@ -102,6 +102,7 @@ export type CaseInsertSpinePreviewLayerProps = {
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
@@ -313,6 +314,7 @@ function CaseInsertSpineTextBlock({
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
@@ -482,8 +484,8 @@ function CaseInsertSpineTextBlock({
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}
           menuPlacement="below"
-          onValueChange={(value) =>
-            onTextTargetValueChange(textTarget, value)}
+          onValueChange={(value, options) =>
+            onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>
             dragKind.kind === 'title'
               ? pointerHandlers.handleSpineTitlePointerDown(event, side)
@@ -494,6 +496,12 @@ function CaseInsertSpineTextBlock({
                 )}
           onMoveHandlePointerMove={pointerHandlers.handleSpinePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleSpinePointerUp}
+          onRichTextKeyboardCommand={(command, selection) =>
+            previewTextControlHandlers.onRichTextKeyboardCommand?.(
+              textTarget,
+              command,
+              selection,
+            )}
           onDone={() => {
             setHtmlSourceTargetKey(null)
             onTextTargetEditComplete(textTarget)
@@ -638,6 +646,7 @@ function CaseInsertSpineSidePreview({
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers

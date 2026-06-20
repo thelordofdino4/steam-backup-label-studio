@@ -4,6 +4,8 @@ import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  applyRichTextListKeyboardCommand,
+  applyRichTextPlainTextMutation,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
@@ -105,7 +107,7 @@ test('ambient bold can be removed for a selected range', () => {
   const ambientStyle = {
     bold: true,
     boldFontWeight: 900,
-    normalFontWeight: 800,
+    normalFontWeight: 400,
   }
   const state = getRichTextInlineToggleState({
     ambientStyle,
@@ -126,7 +128,7 @@ test('ambient bold can be removed for a selected range', () => {
 
   assert.equal(
     result?.htmlSource,
-    '<p><span style="font-weight:800">Untitled</span> Steam Backup Label</p>',
+    '<p><span style="font-weight:400">Untitled</span> Steam Backup Label</p>',
   )
   assert.equal(
     getRichTextInlineToggleState({
@@ -137,6 +139,35 @@ test('ambient bold can be removed for a selected range', () => {
       selection: { start: 0, end: 8 },
     }),
     'inactive',
+  )
+})
+
+test('plain text deletion preserves unrelated formatted runs', () => {
+  const result = applyRichTextPlainTextMutation({
+    fallbackText: 'Alpha Beta Gamma',
+    htmlSource:
+      '<p>Alpha <strong>Beta</strong> <span style="color:#ff0000">Gamma</span></p>',
+    nextPlainText: 'Alpha Bta Gamma',
+  })
+
+  assert.equal(result.plainText, 'Alpha Bta Gamma')
+  assert.equal(
+    result.htmlSource,
+    '<p>Alpha <strong>Bta</strong> <span style="color:#ff0000">Gamma</span></p>',
+  )
+})
+
+test('plain text insertion inside formatted run keeps that run style', () => {
+  const result = applyRichTextPlainTextMutation({
+    fallbackText: 'Alpha Beta Gamma',
+    htmlSource:
+      '<p>Alpha <strong>Beta</strong> <span style="color:#ff0000">Gamma</span></p>',
+    nextPlainText: 'Alpha BeXta Gamma',
+  })
+
+  assert.equal(
+    result.htmlSource,
+    '<p>Alpha <strong>BeXta</strong> <span style="color:#ff0000">Gamma</span></p>',
   )
 })
 
@@ -221,4 +252,65 @@ test('empty text toggles into a safe empty list item', () => {
   assert.equal(result?.plainText, '• ')
   assert.equal(result?.htmlSource, '<ul><li></li></ul>')
   assert.deepEqual(result?.selection, { start: 2, end: 2 })
+})
+
+test('Enter inside a bullet creates the next list item', () => {
+  const result = applyRichTextListKeyboardCommand({
+    command: 'enter',
+    fallbackText: '• Alpha',
+    htmlSource: '<ul><li>Alpha</li></ul>',
+    selection: { start: '• Alpha'.length, end: '• Alpha'.length },
+  })
+
+  assert.equal(result?.plainText, '• Alpha\n• ')
+  assert.equal(result?.htmlSource, '<ul><li>Alpha</li><li></li></ul>')
+  assert.deepEqual(result?.selection, { start: '• Alpha\n• '.length, end: '• Alpha\n• '.length })
+})
+
+test('Enter on an empty bullet exits the list', () => {
+  const result = applyRichTextListKeyboardCommand({
+    command: 'enter',
+    fallbackText: '• Alpha\n• ',
+    htmlSource: '<ul><li>Alpha</li><li></li></ul>',
+    selection: { start: '• Alpha\n• '.length, end: '• Alpha\n• '.length },
+  })
+
+  assert.equal(result?.plainText, '• Alpha\n')
+  assert.equal(result?.htmlSource, '<ul><li>Alpha</li></ul><p></p>')
+  assert.deepEqual(result?.selection, { start: '• Alpha\n'.length, end: '• Alpha\n'.length })
+})
+
+test('Shift+Enter inserts a soft break inside a bullet item', () => {
+  const result = applyRichTextListKeyboardCommand({
+    command: 'shiftEnter',
+    fallbackText: '• AlphaBeta',
+    htmlSource: '<ul><li>AlphaBeta</li></ul>',
+    selection: { start: '• Alpha'.length, end: '• Alpha'.length },
+  })
+
+  assert.equal(result?.plainText, '• Alpha\nBeta')
+  assert.equal(result?.htmlSource, '<ul><li>Alpha<br>Beta</li></ul>')
+  assert.deepEqual(result?.selection, { start: '• Alpha\n'.length, end: '• Alpha\n'.length })
+})
+
+test('Backspace on an empty bullet exits the list', () => {
+  const result = applyRichTextListKeyboardCommand({
+    command: 'backspace',
+    fallbackText: '• Alpha\n• ',
+    htmlSource: '<ul><li>Alpha</li><li></li></ul>',
+    selection: { start: '• Alpha\n• '.length, end: '• Alpha\n• '.length },
+  })
+
+  assert.equal(result?.plainText, '• Alpha\n')
+  assert.equal(result?.htmlSource, '<ul><li>Alpha</li></ul><p></p>')
+})
+
+test('list keyboard promotes visible bullet text to canonical HTML', () => {
+  const result = applyRichTextListKeyboardCommand({
+    command: 'enter',
+    fallbackText: '• Alpha',
+    selection: { start: '• Alpha'.length, end: '• Alpha'.length },
+  })
+
+  assert.equal(result?.htmlSource, '<ul><li>Alpha</li><li></li></ul>')
 })

@@ -55,7 +55,11 @@ export type DiscInlineTextEditorLayerProps = {
   measureText: TextMeasureFunction
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
   onDiscTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
-  onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  onDiscTextValueChange: (
+    key: DiscTextKey,
+    value: string,
+    options?: { sourceMode?: boolean },
+  ) => void
   onDiscTextContentModeChange: (
     key: DiscTextKey,
     contentMode: TextContentMode,
@@ -72,6 +76,11 @@ export type DiscInlineTextEditorLayerProps = {
     selection: { end: number; start: number } | undefined,
     value: boolean | string,
   ) => { end: number; start: number } | void
+  onDiscTextRichTextKeyboardCommand: (
+    key: DiscTextKey,
+    command: 'enter' | 'shiftEnter' | 'backspace',
+    selection: { end: number; start: number },
+  ) => { end: number; start: number } | null | void
   getDiscTextRichTextCommandState: (
     key: DiscTextKey,
     command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
@@ -187,6 +196,7 @@ export function DiscInlineTextEditorLayer({
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
+  onDiscTextRichTextKeyboardCommand,
   getDiscTextRichTextCommandState,
   onApplyDiscTextStylePreset,
   onResetDiscTextStyle,
@@ -315,17 +325,22 @@ export function DiscInlineTextEditorLayer({
               targetKey={targetKey}
               value={editValue}
               menuPlacement="below"
-              onValueChange={(value) =>
+              onValueChange={(value, options) =>
                 onDiscTextValueChange(
                   key,
                   isHtmlSourceEditing
                     ? value
-                    : getDiscInlineEditorRawValue(key, value),
+                    : hasHtmlSource
+                      ? value
+                      : getDiscInlineEditorRawValue(key, value),
+                  options,
                 )}
               onMoveHandlePointerDown={(event) =>
                 onMoveHandlePointerDown(event, key)}
               onMoveHandlePointerMove={onMoveHandlePointerMove}
               onMoveHandlePointerUp={onMoveHandlePointerUp}
+              onRichTextKeyboardCommand={(command, selection) =>
+                onDiscTextRichTextKeyboardCommand(key, command, selection)}
               onDone={() => {
                 onDiscTextEditComplete(key)
                 onSelectedDiscTextKeyChange(null)

@@ -145,10 +145,17 @@ export type InlinePreviewTextEditorProps = {
   textareaStyle?: CSSProperties
   sourceMode?: boolean
   menuPlacement: InlinePreviewTextEditorMenuPlacement
-  onValueChange: (value: string) => void
+  onValueChange: (
+    value: string,
+    options?: { sourceMode?: boolean },
+  ) => void
   onMoveHandlePointerDown: (event: ReactPointerEvent<Element>) => void
   onMoveHandlePointerMove: (event: ReactPointerEvent<Element>) => void
   onMoveHandlePointerUp: (event: ReactPointerEvent<Element>) => void
+  onRichTextKeyboardCommand?: (
+    command: 'enter' | 'shiftEnter' | 'backspace',
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => InlinePreviewTextEditorSelectionRange | null | void
   onDone: () => void
 }
 

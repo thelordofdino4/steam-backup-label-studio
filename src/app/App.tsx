@@ -99,6 +99,7 @@ import {
   updateCaseInsertPreviewTextTargetContentMode,
   getCaseInsertPreviewTextTargetRichTextCommandState,
   updateCaseInsertPreviewTextTargetRichTextCommand,
+  updateCaseInsertPreviewTextTargetRichTextKeyboardCommand,
   updateCaseInsertPreviewTextTargetLayoutField,
   updateCaseInsertPreviewTextTargetStyleField,
 } from '../caseInsert/previewTextControls'
@@ -321,6 +322,7 @@ function App() {
     handleResetDiscTextLayout,
     handleDiscTextStyleChange,
     handleDiscTextRichTextCommand,
+    handleDiscTextRichTextKeyboardCommand,
     getDiscTextRichTextCommandState,
     handleResetDiscTextStyle,
     handleApplyDiscTextStylePreset,
@@ -611,9 +613,15 @@ function App() {
   function handleCaseInsertPreviewTextValueChange(
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextDraftValue(currentCaseInsert, target, value))
+      updateCaseInsertPreviewTextDraftValue(
+        currentCaseInsert,
+        target,
+        value,
+        options,
+      ))
   }
 
   function handleCaseInsertPreviewTextEditComplete(
@@ -671,6 +679,24 @@ function App() {
 
     setProjectJewelCase(result.caseInsert)
     return result.selection
+  }
+
+  function handleCaseInsertPreviewTextRichTextKeyboardCommand(
+    target: CaseInsertPreviewTextTarget,
+    command: 'enter' | 'shiftEnter' | 'backspace',
+    selection: { end: number; start: number },
+  ) {
+    const result =
+      updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
+        projectJewelCase,
+        target,
+        command,
+        selection,
+        projectMetadata,
+      )
+
+    setProjectJewelCase(result.caseInsert)
+    return result.selection ?? null
   }
 
   function getCaseInsertPreviewTextRichTextCommandState(
@@ -2000,6 +2026,8 @@ function App() {
         onEnabledChange: handleCaseInsertPreviewTextEnabledChange,
         onStyleChange: handleCaseInsertPreviewTextStyleChange,
         onRichTextCommand: handleCaseInsertPreviewTextRichTextCommand,
+        onRichTextKeyboardCommand:
+          handleCaseInsertPreviewTextRichTextKeyboardCommand,
         getRichTextCommandState:
           getCaseInsertPreviewTextRichTextCommandState,
         onApplyStylePreset: handleCaseInsertPreviewTextApplyStylePreset,
@@ -2277,6 +2305,8 @@ function App() {
           onTextEditComplete: finalizeDiscTextInlineDraft,
           onTextStyleChange: handleDiscTextStyleChange,
           onTextRichTextCommand: handleDiscTextRichTextCommand,
+          onTextRichTextKeyboardCommand:
+            handleDiscTextRichTextKeyboardCommand,
           getTextRichTextCommandState: getDiscTextRichTextCommandState,
           onApplyTextStylePreset: handleApplyDiscTextStylePreset,
           onResetTextStyle: handleResetDiscTextStyle,

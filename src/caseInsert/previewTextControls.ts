@@ -52,10 +52,12 @@ import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  applyRichTextListKeyboardCommand,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
   type PlainTextSelectionRange,
+  type RichTextListKeyboardCommand,
   type RichTextAmbientInlineStyle,
   type RichTextInlineToggleCommand,
   type RichTextSelectionColorState,
@@ -213,7 +215,7 @@ function getRichTextAmbientStyle(
     boldFontWeight: 900,
     color: style.color,
     italic: style.italic,
-    normalFontWeight,
+    normalFontWeight: Math.min(normalFontWeight, 400),
     underline: style.underline,
   }
 }
@@ -244,6 +246,36 @@ function applyRichTextCommandToTextBlock(
           command,
           selection,
         })
+
+  if (!result) {
+    return { textBlock }
+  }
+
+  return {
+    selection: result.selection,
+    textBlock: {
+      ...textBlock,
+      contentMode: 'html' as const,
+      htmlSource: result.htmlSource,
+      markdownSource: undefined,
+      source: 'manual' as const,
+      value: result.plainText,
+    },
+  }
+}
+
+function applyRichTextKeyboardCommandToTextBlock(
+  textBlock: ProjectJewelCaseState['spine']['left']['title'],
+  command: RichTextListKeyboardCommand,
+  selection: PlainTextSelectionRange,
+  metadata?: ProjectMetadata,
+) {
+  const source = getTextBlockRichTextCommandSource(textBlock, metadata)
+  const result = applyRichTextListKeyboardCommand({
+    ...source,
+    command,
+    selection,
+  })
 
   if (!result) {
     return { textBlock }
@@ -297,6 +329,43 @@ function applyRichTextCommandToTextList(
           command,
           selection,
         })
+
+  if (!result) {
+    return { textList }
+  }
+
+  return {
+    selection: result.selection,
+    textList: updateCaseInsertTextListContentMode(
+      {
+        ...textList,
+        htmlSource: result.htmlSource,
+        markdownSource: undefined,
+      },
+      'html',
+      result.htmlSource,
+    ),
+  }
+}
+
+function applyRichTextKeyboardCommandToTextList(
+  textList: ProjectCaseInsertTextList,
+  command: RichTextListKeyboardCommand,
+  selection: PlainTextSelectionRange,
+) {
+  const fallbackText = getCaseInsertPreviewTextListEditValue(textList)
+  const result = applyRichTextListKeyboardCommand({
+    ambientStyle: getRichTextAmbientStyle(
+      textList.style,
+      600,
+    ),
+    command,
+    fallbackText,
+    htmlSource: isHtmlTextEnabled(textList)
+      ? getHtmlSource(textList, fallbackText)
+      : undefined,
+    selection,
+  })
 
   if (!result) {
     return { textList }
@@ -399,6 +468,95 @@ export function updateCaseInsertPreviewTextTargetRichTextCommand(
               command,
               selection,
               value,
+              metadata,
+            )
+            nextSelection = result.selection
+            return result.textBlock
+          },
+        ),
+        selection: nextSelection,
+      }
+  }
+}
+
+export function updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextTarget,
+  command: RichTextListKeyboardCommand,
+  selection: PlainTextSelectionRange,
+  metadata?: ProjectMetadata,
+) {
+  let nextSelection: PlainTextSelectionRange | undefined
+
+  switch (target.scope) {
+    case 'templateTextBlock':
+      return {
+        caseInsert: updateCaseInsertTemplateTextBlock(
+          caseInsert,
+          target.paneId,
+          target.textBlockId,
+          (textBlock) => {
+            const result = applyRichTextKeyboardCommandToTextBlock(
+              textBlock,
+              command,
+              selection,
+              metadata,
+            )
+            nextSelection = result.selection
+            return result.textBlock
+          },
+        ),
+        selection: nextSelection,
+      }
+    case 'templateTextList':
+      return {
+        caseInsert: updateCaseInsertTemplateTextList(
+          caseInsert,
+          target.paneId,
+          target.textListId,
+          (textList) => {
+            const result = applyRichTextKeyboardCommandToTextList(
+              textList,
+              command,
+              selection,
+            )
+            nextSelection = result.selection
+            return result.textList
+          },
+        ),
+        selection: nextSelection,
+      }
+    case 'spineTitle':
+      return {
+        caseInsert: updateProjectJewelCaseSpineSides(
+          caseInsert,
+          target.side,
+          (spineSide) => {
+            const result = applyRichTextKeyboardCommandToTextBlock(
+              spineSide.title,
+              command,
+              selection,
+              metadata,
+            )
+            nextSelection = result.selection
+            return {
+              ...spineSide,
+              title: result.textBlock,
+            }
+          },
+        ),
+        selection: nextSelection,
+      }
+    case 'spineTextBlock':
+      return {
+        caseInsert: updateSpinePreviewTextBlock(
+          caseInsert,
+          target,
+          (textBlock) => {
+            const result = applyRichTextKeyboardCommandToTextBlock(
+              textBlock,
+              command,
+              selection,
               metadata,
             )
             nextSelection = result.selection

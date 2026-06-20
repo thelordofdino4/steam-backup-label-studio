@@ -725,28 +725,47 @@ function InlinePreviewTextEditorMenuContent({
 }
 
 function getTextRangeBoundary(
-  textNode: ChildNode | null,
+  lineSpan: HTMLElement,
   offset: number,
   lineRect: DOMRect,
 ) {
   if (
-    !textNode ||
-    textNode.nodeType !== Node.TEXT_NODE ||
     typeof document === 'undefined'
   ) {
     return offset <= 0 ? lineRect.left : lineRect.right
   }
 
-  const textLength = textNode.textContent?.length ?? 0
+  const textNodes = getLineTextNodes(lineSpan)
+  const textLength = getLineTextLength(textNodes)
   const rangeOffset = Math.max(0, Math.min(offset, textLength))
 
   if (rangeOffset === 0) {
     return lineRect.left
   }
 
+  if (textNodes.length === 0) {
+    return offset <= 0 ? lineRect.left : lineRect.right
+  }
+
+  let currentOffset = 0
+  let endNode = textNodes[textNodes.length - 1]
+  let endOffset = endNode.textContent?.length ?? 0
+
+  for (const textNode of textNodes) {
+    const nodeLength = textNode.textContent?.length ?? 0
+
+    if (rangeOffset <= currentOffset + nodeLength) {
+      endNode = textNode
+      endOffset = rangeOffset - currentOffset
+      break
+    }
+
+    currentOffset += nodeLength
+  }
+
   const range = document.createRange()
-  range.setStart(textNode, 0)
-  range.setEnd(textNode, rangeOffset)
+  range.setStart(textNodes[0], 0)
+  range.setEnd(endNode, endOffset)
 
   const rects = Array.from(range.getClientRects())
   const lastRect = rects[rects.length - 1]
@@ -761,37 +780,96 @@ function getTextRangeBoundary(
   return boundary
 }
 
-function getLineTextNode(lineSpan: HTMLElement) {
-  const textNode = lineSpan.firstChild
+function getLineTextNodes(lineSpan: HTMLElement) {
+  const ownerDocument = lineSpan.ownerDocument
+  const walker = ownerDocument.createTreeWalker(
+    lineSpan,
+    NodeFilter.SHOW_TEXT,
+  )
+  const textNodes: Text[] = []
+  let currentNode = walker.nextNode()
 
-  return textNode && textNode.nodeType === Node.TEXT_NODE
-    ? textNode
-    : null
+  while (currentNode) {
+    if (currentNode.textContent) {
+      textNodes.push(currentNode as Text)
+    }
+    currentNode = walker.nextNode()
+  }
+
+  return textNodes
 }
 
-function clampTextNodeOffset(textNode: ChildNode, offset: number) {
+function getLineTextLength(textNodes: readonly Text[]) {
+  return textNodes.reduce(
+    (length, textNode) => length + (textNode.textContent?.length ?? 0),
+    0,
+  )
+}
+
+function clampTextNodeOffset(textNode: Text, offset: number) {
   const textLength = textNode.textContent?.length ?? 0
 
   return Math.max(0, Math.min(offset, textLength))
+}
+
+function getElementTextOffset(lineSpan: HTMLElement, element: Element, offset: number) {
+  let textOffset = 0
+  const childNodes = Array.from(element.childNodes)
+  const clampedOffset = Math.max(0, Math.min(offset, childNodes.length))
+
+  for (let index = 0; index < clampedOffset; index += 1) {
+    textOffset += childNodes[index].textContent?.length ?? 0
+  }
+
+  if (element !== lineSpan) {
+    let ancestor: Node | null = element
+
+    while (ancestor?.parentNode && ancestor.parentNode !== lineSpan) {
+      const parent: ParentNode = ancestor.parentNode
+      const siblings: Node[] = Array.from(parent.childNodes)
+      const ancestorIndex = siblings.findIndex((sibling) => sibling === ancestor)
+
+      for (let index = 0; index < ancestorIndex; index += 1) {
+        textOffset += siblings[index].textContent?.length ?? 0
+      }
+
+      ancestor = parent
+    }
+
+    if (ancestor?.parentNode === lineSpan) {
+      const siblings: Node[] = Array.from(lineSpan.childNodes)
+      const ancestorIndex = siblings.findIndex((sibling) => sibling === ancestor)
+
+      for (let index = 0; index < ancestorIndex; index += 1) {
+        textOffset += siblings[index].textContent?.length ?? 0
+      }
+    }
+  }
+
+  return Math.max(0, Math.min(textOffset, lineSpan.textContent?.length ?? 0))
 }
 
 function getTextNodeCaretOffset({
   lineSpan,
   offset,
   offsetNode,
-  textNode,
 }: {
   lineSpan: HTMLElement
   offset: number
   offsetNode: Node | null
-  textNode: ChildNode
 }) {
-  if (offsetNode === textNode) {
-    return clampTextNodeOffset(textNode, offset)
+  const textNodes = getLineTextNodes(lineSpan)
+  let textOffset = 0
+
+  for (const textNode of textNodes) {
+    if (offsetNode === textNode) {
+      return textOffset + clampTextNodeOffset(textNode, offset)
+    }
+    textOffset += textNode.textContent?.length ?? 0
   }
 
   if (offsetNode instanceof Element && lineSpan.contains(offsetNode)) {
-    return offset <= 0 ? 0 : clampTextNodeOffset(textNode, offset)
+    return getElementTextOffset(lineSpan, offsetNode, offset)
   }
 
   return null
@@ -802,9 +880,7 @@ function getCaretTextOffsetFromPoint(
   clientX: number,
   clientY: number,
 ) {
-  const textNode = getLineTextNode(lineSpan)
-
-  if (!textNode || typeof document === 'undefined') {
+  if (typeof document === 'undefined') {
     return null
   }
 
@@ -822,7 +898,6 @@ function getCaretTextOffsetFromPoint(
           lineSpan,
           offset: position.offset,
           offsetNode: position.offsetNode,
-          textNode,
         })
       : null
 
@@ -846,7 +921,6 @@ function getCaretTextOffsetFromPoint(
         lineSpan,
         offset: range.startOffset,
         offsetNode: range.startContainer,
-        textNode,
       })
     : null
 
@@ -867,13 +941,12 @@ function getNearestTextOffset(
   }
 
   const lineRect = lineSpan.getBoundingClientRect()
-  const textNode = getLineTextNode(lineSpan)
-  const textLength = textNode?.textContent?.length ?? 0
+  const textLength = getLineTextLength(getLineTextNodes(lineSpan))
   let nearestOffset = 0
   let nearestDistance = Math.abs(clientX - lineRect.left)
 
   for (let offset = 1; offset <= textLength; offset += 1) {
-    const boundary = getTextRangeBoundary(textNode, offset, lineRect)
+    const boundary = getTextRangeBoundary(lineSpan, offset, lineRect)
     const distance = Math.abs(clientX - boundary)
 
     if (distance <= nearestDistance) {
@@ -1141,14 +1214,13 @@ function getTextSelectionFrames({
     }
 
     const lineRect = lineSpan.getBoundingClientRect()
-    const textNode = lineSpan.firstChild
     const startBoundary = getTextRangeBoundary(
-      textNode,
+      lineSpan,
       lineOffset.startOffset,
       lineRect,
     )
     const endBoundary = getTextRangeBoundary(
-      textNode,
+      lineSpan,
       lineOffset.endOffset,
       lineRect,
     )
@@ -1242,6 +1314,7 @@ export function InlinePreviewTextEditor({
   onMoveHandlePointerDown,
   onMoveHandlePointerMove,
   onMoveHandlePointerUp,
+  onRichTextKeyboardCommand,
   onDone,
 }: InlinePreviewTextEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -1274,7 +1347,7 @@ export function InlinePreviewTextEditor({
     : `${targetKey}:wysiwyg`
 
   const updateSourceDraft = (nextDraft: string) => {
-    onValueChange(nextDraft)
+    onValueChange(nextDraft, { sourceMode: true })
   }
 
   const commitSourceDraft = () => {
@@ -1283,7 +1356,7 @@ export function InlinePreviewTextEditor({
         menuRef.current?.querySelector<HTMLTextAreaElement>(
           '.inline-preview-text-source-textarea',
         )
-      onValueChange(sourceTextarea?.value ?? value)
+      onValueChange(sourceTextarea?.value ?? value, { sourceMode: true })
     }
   }
 
@@ -1340,6 +1413,28 @@ export function InlinePreviewTextEditor({
     event: KeyboardEvent<HTMLTextAreaElement>,
   ) => {
     event.stopPropagation()
+
+    if (!sourceMode && onRichTextKeyboardCommand) {
+      const command =
+        event.key === 'Enter'
+          ? event.shiftKey ? 'shiftEnter' : 'enter'
+          : event.key === 'Backspace'
+            ? 'backspace'
+            : null
+
+      if (command) {
+        const nextSelection = onRichTextKeyboardCommand(
+          command,
+          getInlineTextSelectionRange(selection),
+        )
+
+        if (nextSelection) {
+          event.preventDefault()
+          applyInlineTextSelectionRange(nextSelection)
+          return
+        }
+      }
+    }
 
     if (!isInlinePreviewTextSelectAllShortcut(event)) {
       return
@@ -1696,29 +1791,10 @@ export function InlinePreviewTextEditor({
     }
 
     const lineRect = lineSpan.getBoundingClientRect()
-    const textNode = lineSpan.firstChild
     let caretLeft = offset <= 0 ? lineRect.left : lineRect.right
 
-    if (
-      textNode &&
-      textNode.nodeType === Node.TEXT_NODE &&
-      typeof document !== 'undefined' &&
-      offset > 0
-    ) {
-      const range = document.createRange()
-      const textLength = textNode.textContent?.length ?? 0
-      const rangeOffset = Math.max(0, Math.min(offset, textLength))
-
-      range.setStart(textNode, 0)
-      range.setEnd(textNode, rangeOffset)
-
-      const rangeRect = range.getBoundingClientRect()
-
-      if (rangeRect.width > 0 || rangeRect.height > 0) {
-        caretLeft = rangeRect.right
-      }
-
-      range.detach()
+    if (offset > 0) {
+      caretLeft = getTextRangeBoundary(lineSpan, offset, lineRect)
     }
 
     setCaretFrame({
@@ -2021,7 +2097,7 @@ export function InlinePreviewTextEditor({
       spellCheck={false}
       style={inputMode === 'overlay' ? textareaStyle : undefined}
       onChange={(event) => {
-        onValueChange(event.target.value)
+        onValueChange(event.target.value, { sourceMode: false })
         setSelection(getTextareaSelectionState(event.target))
       }}
       onClick={(event) => {

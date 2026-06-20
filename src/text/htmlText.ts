@@ -25,6 +25,7 @@ export type RichTextLine = {
   text: string
   runs: RichTextRun[]
   list?: {
+    continuation?: boolean
     type: 'ul' | 'ol'
     ordinal?: number
     prefix: string
@@ -204,11 +205,11 @@ function appendText(
   })
 }
 
-function appendLineBreak(lines: RichTextLine[]) {
+function appendLineBreak(lines: RichTextLine[], list?: RichTextLine['list']) {
   const lastLine = getLastLine(lines)
 
   if (lastLine.text || lines.length > 1) {
-    lines.push(createEmptyLine())
+    lines.push(createEmptyLine(list))
   }
 }
 
@@ -258,7 +259,11 @@ function endListItem(lines: RichTextLine[]) {
 }
 
 function trimTrailingEmptyLines(lines: RichTextLine[]) {
-  while (lines.length > 1 && lines[lines.length - 1].text === '') {
+  while (
+    lines.length > 1 &&
+    lines[lines.length - 1].text === '' &&
+    !lines[lines.length - 1].list?.continuation
+  ) {
     lines.pop()
   }
 
@@ -469,7 +474,7 @@ function serializeRun(run: RichTextRun) {
 }
 
 function getLineContentRuns(line: RichTextLine) {
-  if (!line.list?.prefix || line.runs.length === 0) {
+  if (!line.list?.prefix || line.list.continuation || line.runs.length === 0) {
     return line.runs
   }
 
@@ -495,11 +500,23 @@ function getLineContentRuns(line: RichTextLine) {
 export function richTextDocumentToHtmlSource(document: RichTextDocument) {
   const parts: string[] = []
   let openListType: 'ul' | 'ol' | null = null
+  let openListItem = false
 
   function closeList() {
+    if (openListItem) {
+      parts.push('</li>')
+      openListItem = false
+    }
     if (openListType) {
       parts.push(`</${openListType}>`)
       openListType = null
+    }
+  }
+
+  function closeListItem() {
+    if (openListItem) {
+      parts.push('</li>')
+      openListItem = false
     }
   }
 
@@ -514,7 +531,17 @@ export function richTextDocumentToHtmlSource(document: RichTextDocument) {
         openListType = line.list.type
         parts.push(`<${openListType}>`)
       }
-      parts.push(`<li>${serializedRuns}</li>`)
+      if (line.list.continuation) {
+        if (!openListItem) {
+          parts.push('<li>')
+          openListItem = true
+        }
+        parts.push(`<br>${serializedRuns}`)
+        continue
+      }
+      closeListItem()
+      parts.push(`<li>${serializedRuns}`)
+      openListItem = true
       continue
     }
 
@@ -590,7 +617,19 @@ export function parseHtmlText(source: string): RichTextDocument {
     }
 
     if (tagName === 'br') {
-      appendLineBreak(lines)
+      const currentList = listStack[listStack.length - 1]
+      const insideListItem = tagStack.some((tag) => tag.tagName === 'li')
+
+      appendLineBreak(
+        lines,
+        currentList && insideListItem
+          ? {
+              continuation: true,
+              prefix: '',
+              type: currentList.type,
+            }
+          : undefined,
+      )
       lastIndex = TOKEN_PATTERN.lastIndex
       continue
     }
