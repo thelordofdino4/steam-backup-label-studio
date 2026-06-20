@@ -60,13 +60,11 @@ import {
   type DragPointRange,
   type PercentDragState,
 } from './dragGeometry.ts'
+import {
+  MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
+} from './textMoveHandleDrag.ts'
 import { usePercentPointerDrag } from './usePointerDragAdapters.ts'
 import type { PointerDragActivationOptions } from './usePointerDrag.ts'
-
-const TEXT_DRAG_ACTIVATION_OPTIONS = {
-  activationDelayMs: 320,
-  movementTolerancePx: 6,
-} satisfies PointerDragActivationOptions
 
 type CaseInsertDragRange = 'offset' | 'percent'
 
@@ -638,7 +636,7 @@ export function useCaseInsertPreviewPointerDrag({
           paneId,
           textBlockId,
         },
-        TEXT_DRAG_ACTIVATION_OPTIONS,
+        MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],
@@ -666,7 +664,7 @@ export function useCaseInsertPreviewPointerDrag({
           paneId,
           textListId,
         },
-        TEXT_DRAG_ACTIVATION_OPTIONS,
+        MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],
@@ -737,7 +735,7 @@ export function useCaseInsertPreviewPointerDrag({
           scope: 'spineTitle',
           side,
         },
-        TEXT_DRAG_ACTIVATION_OPTIONS,
+        MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert.spine, layout],
@@ -765,7 +763,7 @@ export function useCaseInsertPreviewPointerDrag({
           side,
           textBlockId,
         },
-        TEXT_DRAG_ACTIVATION_OPTIONS,
+        MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS,
       )
     },
     [beginDrag, caseInsert, layout],

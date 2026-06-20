@@ -676,6 +676,88 @@ async function getRect(page, smokeId) {
   })
 }
 
+function getRectDelta(first, second) {
+  return {
+    left: second.left - first.left,
+    top: second.top - first.top,
+  }
+}
+
+async function dragInlineMoveHandleImmediately(
+  page,
+  targetSmokeId,
+  deltaX = 28,
+  deltaY = 18,
+) {
+  const beforeTarget = await getRect(page, targetSmokeId)
+  const beforeMenu = await getRect(page, 'inline-text-menu')
+  const handle = await getRect(page, 'inline-text-move-handle')
+  const startX = handle.left + handle.width / 2
+  const startY = handle.top + handle.height / 2
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 1 })
+  await page.waitForTimeout(80)
+
+  const duringTarget = await getRect(page, targetSmokeId)
+  const duringHandleClass = await smoke(page, 'inline-text-move-handle')
+    .first()
+    .getAttribute('class')
+  const targetDelta = getRectDelta(beforeTarget, duringTarget)
+
+  if (
+    Math.abs(targetDelta.left) < 2 &&
+    Math.abs(targetDelta.top) < 2
+  ) {
+    await page.mouse.up().catch(() => {})
+    fail(
+      `Move handle did not move ${targetSmokeId} on the first pointermove: ` +
+      JSON.stringify({ beforeTarget, duringTarget, targetDelta }),
+    )
+  }
+  if (!duringHandleClass?.includes('is-dragging')) {
+    await page.mouse.up().catch(() => {})
+    fail('Move handle did not enter its immediate dragging state.')
+  }
+
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+
+  const afterMenu = await getRect(page, 'inline-text-menu')
+  const menuDelta = getRectDelta(beforeMenu, afterMenu)
+  if (
+    Math.abs(menuDelta.left) < 2 &&
+    Math.abs(menuDelta.top) < 2
+  ) {
+    fail(
+      `Contextual menu did not follow ${targetSmokeId} after Move-handle drag: ` +
+      JSON.stringify({ beforeMenu, afterMenu, menuDelta }),
+    )
+  }
+}
+
+async function clickInlineMoveHandleWithoutMoving(page, targetSmokeId) {
+  const beforeTarget = await getRect(page, targetSmokeId)
+  const handle = await getRect(page, 'inline-text-move-handle')
+  const startX = handle.left + handle.width / 2
+  const startY = handle.top + handle.height / 2
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  await page.mouse.up()
+  await page.waitForTimeout(100)
+
+  const afterTarget = await getRect(page, targetSmokeId)
+  const delta = getRectDelta(beforeTarget, afterTarget)
+  if (Math.abs(delta.left) > 1 || Math.abs(delta.top) > 1) {
+    fail(
+      `Move-handle click without movement changed ${targetSmokeId}: ` +
+      JSON.stringify({ beforeTarget, afterTarget, delta }),
+    )
+  }
+}
+
 function rectsOverlap(first, second) {
   return !(
     first.right <= second.left ||
@@ -1037,6 +1119,19 @@ async function runCaseChecks(page) {
     }
   })
 
+  await runCheck(page, 'cover Move handle begins dragging immediately', async () => {
+    await dragInlineMoveHandleImmediately(
+      page,
+      'case-text-block-cover-cover-title-text',
+      30,
+      18,
+    )
+    await clickInlineMoveHandleWithoutMoving(
+      page,
+      'case-text-block-cover-cover-title-text',
+    )
+  })
+
   await runCheck(page, 'cover Wrap width input locks contextual placement while editing', async () => {
     await assertInlineNumberControlLocksPlacement(page, 'wrap-width', 42)
   })
@@ -1142,6 +1237,12 @@ async function runCaseChecks(page) {
     await done(page)
     await setupTrayTitle(page)
     await assertTextIncludes(page, 'case-text-block-tray-tray-title-text', 'Tray Smoke Title')
+    await dragInlineMoveHandleImmediately(
+      page,
+      'case-text-block-tray-tray-title-text',
+      22,
+      -18,
+    )
     const trayPlacementMode = await smoke(page, 'inline-text-menu')
       .getAttribute('data-inline-placement-mode')
     if (trayPlacementMode !== 'anchored') {
@@ -1166,9 +1267,11 @@ async function runCaseChecks(page) {
     await done(page)
     await openSpineTitle(page, 'left')
     await assertTextIncludes(page, 'case-spine-title-left', 'LEFT SPINE SMOKE')
+    await dragInlineMoveHandleImmediately(page, 'case-spine-title-left', 0, 24)
     await done(page)
     await openSpineTitle(page, 'right')
     await assertTextIncludes(page, 'case-spine-title-right', 'RIGHT SPINE SMOKE')
+    await dragInlineMoveHandleImmediately(page, 'case-spine-title-right', 0, -24)
     await done(page)
   })
 
@@ -1235,6 +1338,12 @@ async function runDiscChecks(page) {
     await done(page)
     await openStraightDiscTitle(page)
     await assertSourceIncludes(page, 'color:#ff0000')
+  })
+
+  await runCheck(page, 'straight disc Move handle begins dragging immediately', async () => {
+    await hideHtmlSource(page)
+    await dragInlineMoveHandleImmediately(page, 'disc-inline-text-title', 24, 18)
+    await clickInlineMoveHandleWithoutMoving(page, 'disc-inline-text-title')
   })
 
   await runCheck(page, 'straight disc selected-range color and LMB drag selection work', async () => {
