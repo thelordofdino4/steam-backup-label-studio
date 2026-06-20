@@ -63,6 +63,9 @@ import {
   type RichTextSelectionColorState,
   type RichTextSelectionStyleState,
 } from '../text/richTextCommands.ts'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from '../text/richTextWeights.ts'
 
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
 export type CaseInsertPreviewRichTextCommand =
@@ -212,7 +215,7 @@ function getRichTextAmbientStyle(
 ): RichTextAmbientInlineStyle {
   return {
     bold: style.bold,
-    boldFontWeight: 900,
+    boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
     color: style.color,
     italic: style.italic,
     normalFontWeight: Math.min(normalFontWeight, 400),

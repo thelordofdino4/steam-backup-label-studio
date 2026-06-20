@@ -11,6 +11,9 @@ import {
   type RichTextLine,
   type RichTextRun,
 } from '../text/htmlText.ts'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from '../text/richTextWeights.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 
@@ -161,7 +164,7 @@ function getDiscTextRunFontString({
   run: RichTextRun
 }) {
   return getDiscTextFontString(
-    run.fontWeight ?? (run.bold ? Math.max(baseFontWeight, 900) : baseFontWeight),
+    run.fontWeight ?? (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : baseFontWeight),
     run.fontSizePx ?? fontSize,
     run.fontFamily ?? fontFamily,
     run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),

@@ -300,6 +300,78 @@ test('HTML metadata text restores rendered default after empty completion', () =
   )
 })
 
+test('tray metadata text restores its default after empty completion', () => {
+  const state = createDefaultProjectJewelCaseState('Warframe')
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Warframe',
+  }
+  const trayTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'tray' as const,
+    textBlockId: 'tray-title-text',
+  }
+  const emptyDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    trayTitleTarget,
+    '',
+  )
+  const editingTrayTitle = emptyDraft.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+  const finalizedDraft = finalizeCaseInsertPreviewTextDraft(
+    emptyDraft,
+    trayTitleTarget,
+    metadata,
+  )
+  const finalizedTrayTitle = finalizedDraft.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+
+  assert.equal(editingTrayTitle?.value, '')
+  assert.equal(editingTrayTitle?.source, 'manual')
+  assert.equal(finalizedTrayTitle?.value, '')
+  assert.equal(finalizedTrayTitle?.source, 'metadata')
+  assert.equal(
+    finalizedTrayTitle
+      ? getCaseInsertPreviewTextEditValue(finalizedTrayTitle, metadata)
+      : '',
+    'Warframe',
+  )
+})
+
+test('case insert delete remains disabled instead of restoring empty default text', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const coverTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'cover' as const,
+    textBlockId: 'cover-title-text',
+  }
+  const emptyDraft = updateCaseInsertPreviewTextDraftValue(
+    state,
+    coverTitleTarget,
+    '',
+  )
+  const deletedDraft = setCaseInsertPreviewTextTargetEnabled(
+    emptyDraft,
+    coverTitleTarget,
+    false,
+  )
+  const finalizedDraft = finalizeCaseInsertPreviewTextDraft(
+    deletedDraft,
+    coverTitleTarget,
+    {
+      ...createDefaultProjectMetadata(),
+      title: 'Portal 2',
+    },
+  )
+  const finalizedCoverTitle = finalizedDraft.templates.cover.textBlocks.find(
+    ({ id }) => id === 'cover-title-text',
+  )
+
+  assert.equal(finalizedCoverTitle?.enabled, false)
+})
+
 test('case insert preview text edit values include metadata defaults', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
   const metadata = {

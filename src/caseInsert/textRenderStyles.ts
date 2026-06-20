@@ -61,6 +61,16 @@ export function getCaseInsertTextLayoutPaddingRatio(
     : 0
 }
 
+export function getCaseInsertTextPaintSlackPx(
+  style: CaseInsertTextStyle,
+  fontSizePx: number,
+) {
+  const strokeSlack = caseInsertTextUsesStroke(style) ? fontSizePx * 0.08 : 0
+  const shadowSlack = caseInsertTextUsesShadow(style) ? fontSizePx * 0.42 : 0
+
+  return Math.max(strokeSlack, shadowSlack)
+}
+
 export function getCaseInsertTextBorderRadiusCss(style: CaseInsertTextStyle) {
   return `${Math.max(0, style.borderRadius)}cqw`
 }

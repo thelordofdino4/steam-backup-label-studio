@@ -1,0 +1,2 @@
+export const RICH_TEXT_NORMAL_FONT_WEIGHT = 400
+export const RICH_TEXT_BOLD_FONT_WEIGHT = 700

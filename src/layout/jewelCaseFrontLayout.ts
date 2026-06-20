@@ -10,6 +10,7 @@ import {
   getCaseInsertTextFontStyle,
 } from '../caseInsert/textStyles.ts'
 import {
+  getCaseInsertTextPaintSlackPx,
   getCaseInsertTextLayoutPaddingRatio,
 } from '../caseInsert/textRenderStyles.ts'
 import {
@@ -32,7 +33,7 @@ import {
   CASE_INSERT_COVER_RATING_MARK_LAYOUT,
 } from '../caseInsert/defaultBrandingLayouts.ts'
 import {
-  getCaseInsertTextVisualLayout,
+  clampCaseInsertTextVisualLayoutToBounds,
   type CaseInsertTextVisualLine,
 } from './caseInsertTextVisualLayout.ts'
 import {
@@ -332,25 +333,24 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
     safeBounds.width * config.maxFontRatio,
   )
   const role = getJewelCaseFrontTextBlockRole(textBlock)
-  const clampedBounds = clampPixelRectToBounds(
-    getCenteredRect(safeBounds, width, height, centerPercent),
+  const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
+  const lineHeightPx = fontSizePx * 1.14
+  const { reservedBounds, visualLayout } = clampCaseInsertTextVisualLayoutToBounds(
+    requestedBounds,
     safeBounds,
-  )
-  const visualLayout = getCaseInsertTextVisualLayout(
-    clampedBounds,
     {
       align: textBlock.align,
       avoidanceRegions: textBlock.avoidVisualElements
         ? avoidanceRegions
         : [],
-      boundsLimit: safeBounds,
       fontFamily: getCaseInsertTextFontFamilyCanvas(textBlock.style.fontFamily),
       fontSizePx,
       fontStyle: getCaseInsertTextFontStyle(textBlock.style),
       fontWeight: getCaseInsertTextEffectiveFontWeight(800, textBlock.style),
-      lineHeightPx: fontSizePx * 1.14,
+      lineHeightPx,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
+      paintSlackPx: getCaseInsertTextPaintSlackPx(textBlock.style, fontSizePx),
       richText: isHtmlTextEnabled(textBlock)
         ? getRenderableRichTextDocument(textBlock, textBlock.value)
         : undefined,
@@ -362,9 +362,9 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
 
   return {
     bounds: visualLayout.bounds,
-    reservedBounds: clampedBounds,
+    reservedBounds,
     lines: visualLayout.lines,
     fontSizePx,
-    lineHeightPx: fontSizePx * 1.14,
+    lineHeightPx,
   }
 }

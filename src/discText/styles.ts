@@ -1,4 +1,8 @@
 import type { DiscTextKey } from './types'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+  RICH_TEXT_NORMAL_FONT_WEIGHT,
+} from '../text/richTextWeights.ts'
 
 export type DiscTextRenderStyle = {
   fontSizePercent: number
@@ -212,8 +216,8 @@ const DEFAULT_DISC_TEXT_BACKGROUND_OPACITY = 0.68
 const DEFAULT_DISC_TEXT_BACKGROUND_PADDING = 0.8
 const DEFAULT_DISC_TEXT_BORDER_COLOR = '#f9fafb'
 const DEFAULT_DISC_TEXT_BORDER_RADIUS = 0.6
-const NORMAL_DISC_TEXT_FONT_WEIGHT = 400
-const BOLD_DISC_TEXT_FONT_WEIGHT = 900
+const NORMAL_DISC_TEXT_FONT_WEIGHT = RICH_TEXT_NORMAL_FONT_WEIGHT
+const BOLD_DISC_TEXT_FONT_WEIGHT = RICH_TEXT_BOLD_FONT_WEIGHT
 
 function normalizeHexColor(value: unknown, fallback: string) {
   if (typeof value !== 'string') return fallback
@@ -246,7 +250,7 @@ export function createDefaultDiscTextStyle(key: DiscTextKey): DiscTextStyle {
   return {
     fontFamily: DEFAULT_DISC_TEXT_FONT_FAMILY,
     color: DISC_TEXT_RENDER_STYLES[key].color,
-    bold: key === 'title',
+    bold: false,
     italic: false,
     underline: false,
     contrast: DEFAULT_DISC_TEXT_CONTRAST,

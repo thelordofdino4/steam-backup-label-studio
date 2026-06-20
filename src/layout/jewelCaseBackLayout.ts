@@ -10,6 +10,7 @@ import {
   getCaseInsertTextFontStyle,
 } from '../caseInsert/textStyles.ts'
 import {
+  getCaseInsertTextPaintSlackPx,
   getCaseInsertTextLayoutPaddingRatio,
 } from '../caseInsert/textRenderStyles.ts'
 import {
@@ -30,7 +31,7 @@ import {
   type CaseInsertTextAvoidanceRegion,
 } from './caseInsertTextAvoidance.ts'
 import {
-  getCaseInsertTextVisualLayout,
+  clampCaseInsertTextVisualLayoutToBounds,
   type CaseInsertTextVisualLine,
 } from './caseInsertTextVisualLayout.ts'
 import {
@@ -239,19 +240,16 @@ function getTextLayoutFromConfig(
     safeBounds.width * config.minFontRatio,
     safeBounds.width * config.maxFontRatio,
   )
-  const clampedBounds = clampPixelRectToBounds(
-    getCenteredRect(safeBounds, width, height, centerPercent),
-    safeBounds,
-  )
+  const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
   const lineHeightPx = fontSizePx * 1.22
-  const visualLayout = getCaseInsertTextVisualLayout(
-    clampedBounds,
+  const { reservedBounds, visualLayout } = clampCaseInsertTextVisualLayoutToBounds(
+    requestedBounds,
+    safeBounds,
     {
       align: textBlock.align,
       avoidanceRegions: textBlock.avoidVisualElements
         ? avoidanceRegions
         : [],
-      boundsLimit: safeBounds,
       fontFamily: getCaseInsertTextFontFamilyCanvas(textBlock.style.fontFamily),
       fontSizePx,
       fontStyle: getCaseInsertTextFontStyle(textBlock.style),
@@ -265,6 +263,7 @@ function getTextLayoutFromConfig(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_BLOCK_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textBlock.style),
+      paintSlackPx: getCaseInsertTextPaintSlackPx(textBlock.style, fontSizePx),
       richText: isHtmlTextEnabled(textBlock)
         ? getRenderableRichTextDocument(textBlock, textBlock.value)
         : undefined,
@@ -275,7 +274,7 @@ function getTextLayoutFromConfig(
 
   return {
     bounds: visualLayout.bounds,
-    reservedBounds: clampedBounds,
+    reservedBounds,
     lines: visualLayout.lines,
     fontSizePx,
     lineHeightPx,
@@ -496,19 +495,16 @@ export function getJewelCaseBackTextListPreviewLayout(
     safeBounds.width * featureBulletsConfig.minFontRatio,
     safeBounds.width * featureBulletsConfig.maxFontRatio,
   )
-  const clampedBounds = clampPixelRectToBounds(
-    getCenteredRect(safeBounds, width, height, centerPercent),
-    safeBounds,
-  )
+  const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
   const lineHeightPx = fontSizePx * 1.24
-  const visualLayout = getCaseInsertTextVisualLayout(
-    clampedBounds,
+  const { reservedBounds, visualLayout } = clampCaseInsertTextVisualLayoutToBounds(
+    requestedBounds,
+    safeBounds,
     {
       align: 'left',
       avoidanceRegions: textList.avoidVisualElements
         ? avoidanceRegions
         : [],
-      boundsLimit: safeBounds,
       fontFamily: getCaseInsertTextFontFamilyCanvas(textList.style.fontFamily),
       fontSizePx,
       fontStyle: getCaseInsertTextFontStyle(textList.style),
@@ -516,6 +512,7 @@ export function getJewelCaseBackTextListPreviewLayout(
       lineHeightPx,
       maxLines: CASE_INSERT_TEXT_LIST_MAX_LINES,
       paddingRatio: getCaseInsertTextLayoutPaddingRatio(textList.style),
+      paintSlackPx: getCaseInsertTextPaintSlackPx(textList.style, fontSizePx),
       richText: htmlDocument ?? undefined,
       text: htmlDocument?.plainText ?? items.map((item) => `• ${item}`).join('\n'),
       verticalAlign: 'center',
@@ -524,7 +521,7 @@ export function getJewelCaseBackTextListPreviewLayout(
 
   return {
     bounds: visualLayout.bounds,
-    reservedBounds: clampedBounds,
+    reservedBounds,
     lines: visualLayout.lines,
     fontSizePx,
     lineHeightPx,

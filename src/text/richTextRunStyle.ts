@@ -1,4 +1,7 @@
 import type { RichTextRun } from './htmlText.ts'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from './richTextWeights.ts'
 
 export type RichTextRunFontStyle = 'normal' | 'italic'
 
@@ -37,7 +40,6 @@ export type RichTextRunDomStyle = {
 const DEFAULT_FONT_STYLE: RichTextRunFontStyle = 'normal'
 const DEFAULT_FONT_WEIGHT = 600
 const DEFAULT_FALLBACK_COLOR = '#f8fafc'
-const BOLD_RUN_WEIGHT = 900
 
 export function getRenderableRichTextRuns<T extends RichTextRun>(runs?: T[]) {
   return runs?.filter((run) => run.text) ?? []
@@ -67,7 +69,7 @@ export function getRichTextRunFontWeight(
   baseFontWeight = DEFAULT_FONT_WEIGHT,
 ) {
   return run.fontWeight ??
-    (run.bold ? Math.max(baseFontWeight, BOLD_RUN_WEIGHT) : baseFontWeight)
+    (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : baseFontWeight)
 }
 
 export function getRichTextRunFontStyle(
@@ -122,7 +124,8 @@ export function getRichTextRunDomStyle(
       ? `${run.fontSizePx / baseFontSizePx}em`
       : undefined,
     fontStyle: run.fontStyle ?? (run.italic ? 'italic' : undefined),
-    fontWeight: run.fontWeight ?? (run.bold ? BOLD_RUN_WEIGHT : undefined),
+    fontWeight: run.fontWeight ??
+      (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : undefined),
     textDecorationLine: getRichTextRunTextDecorationLine(run),
   }
 }

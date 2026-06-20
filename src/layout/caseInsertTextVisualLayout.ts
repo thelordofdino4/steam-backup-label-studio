@@ -5,6 +5,9 @@ import type {
   JewelCasePixelRect,
 } from './jewelCaseLayout.ts'
 import {
+  clampPixelRectToBounds,
+} from './jewelCaseLayout.ts'
+import {
   getCaseInsertTextAvoidanceGap,
   inflateCaseInsertTextAvoidanceRect,
   type CaseInsertTextAvoidanceRegion,
@@ -72,10 +75,12 @@ export type CaseInsertTextVisualLayoutOptions = {
   maxLines?: number
   measureText?: CaseInsertTextMeasureFunction
   paddingRatio?: number
+  paintSlackPx?: number
   richText?: RichTextDocument
   text: string
   uppercase?: boolean
   verticalAlign?: 'center' | 'top'
+  clampVisualBounds?: boolean
 }
 
 const FALLBACK_FONT_STACK = '"Segoe UI", Arial, sans-serif'
@@ -1333,22 +1338,23 @@ export function getCaseInsertTextVisualLayout(
     height: Math.max(1, contentHeight),
   }
   const boundsLimit = options.boundsLimit ?? reservedBounds
-  const visualLeft = Math.max(
-    boundsLimit.x,
-    contentBounds.x - padding,
-  )
-  const visualTop = Math.max(
-    boundsLimit.y,
-    contentBounds.y - padding,
-  )
-  const visualRight = Math.min(
-    boundsLimit.x + boundsLimit.width,
-    contentBounds.x + contentBounds.width + padding,
-  )
-  const visualBottom = Math.min(
-    boundsLimit.y + boundsLimit.height,
-    contentBounds.y + contentBounds.height + padding,
-  )
+  const visualSlack = padding + Math.max(0, options.paintSlackPx ?? 0)
+  const rawVisualLeft = contentBounds.x - visualSlack
+  const rawVisualTop = contentBounds.y - visualSlack
+  const rawVisualRight = contentBounds.x + contentBounds.width + visualSlack
+  const rawVisualBottom = contentBounds.y + contentBounds.height + visualSlack
+  const visualLeft = options.clampVisualBounds === false
+    ? rawVisualLeft
+    : Math.max(boundsLimit.x, rawVisualLeft)
+  const visualTop = options.clampVisualBounds === false
+    ? rawVisualTop
+    : Math.max(boundsLimit.y, rawVisualTop)
+  const visualRight = options.clampVisualBounds === false
+    ? rawVisualRight
+    : Math.min(boundsLimit.x + boundsLimit.width, rawVisualRight)
+  const visualBottom = options.clampVisualBounds === false
+    ? rawVisualBottom
+    : Math.min(boundsLimit.y + boundsLimit.height, rawVisualBottom)
   const visualBounds = {
     x: visualLeft,
     y: visualTop,
@@ -1362,6 +1368,56 @@ export function getCaseInsertTextVisualLayout(
     font,
     lines: visualLines,
     padding,
+  }
+}
+
+function offsetRect(
+  rect: JewelCasePixelRect,
+  offset: { x: number; y: number },
+): JewelCasePixelRect {
+  return {
+    ...rect,
+    x: rect.x + offset.x,
+    y: rect.y + offset.y,
+  }
+}
+
+export function clampCaseInsertTextVisualLayoutToBounds(
+  reservedBounds: JewelCasePixelRect,
+  boundsLimit: JewelCasePixelRect,
+  options: CaseInsertTextVisualLayoutOptions,
+): {
+  reservedBounds: JewelCasePixelRect
+  visualLayout: CaseInsertTextVisualLayout
+} {
+  const initialLayout = getCaseInsertTextVisualLayout(
+    reservedBounds,
+    {
+      ...options,
+      boundsLimit,
+      clampVisualBounds: false,
+    },
+  )
+  const clampedVisualBounds = clampPixelRectToBounds(
+    initialLayout.bounds,
+    boundsLimit,
+  )
+  const offset = {
+    x: clampedVisualBounds.x - initialLayout.bounds.x,
+    y: clampedVisualBounds.y - initialLayout.bounds.y,
+  }
+  const clampedReservedBounds = offsetRect(reservedBounds, offset)
+
+  return {
+    reservedBounds: clampedReservedBounds,
+    visualLayout: getCaseInsertTextVisualLayout(
+      clampedReservedBounds,
+      {
+        ...options,
+        boundsLimit,
+        clampVisualBounds: true,
+      },
+    ),
   }
 }
 

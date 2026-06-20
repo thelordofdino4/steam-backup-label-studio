@@ -85,7 +85,7 @@ test('disc SVG renderer applies emphasis to straight text without duplicate rend
   })
 
   assert.match(svg, /font-style:italic/)
-  assert.match(svg, /font-weight:900/)
+  assert.match(svg, /font-weight:700/)
   assert.match(svg, /text-decoration:underline/)
   assert.match(svg, />Emphasized title<\/text>/)
   assert.doesNotMatch(svg, /<textarea\b/i)
@@ -116,7 +116,7 @@ test('disc SVG renderer maps straight HTML to safe tspans', () => {
     height: 100,
   })
 
-  assert.match(svg, /<tspan style="font-weight:900">bold<\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:700">bold<\/tspan>/)
   assert.match(svg, /<tspan style="font-style:italic">italic<\/tspan>/)
   assert.match(svg, /<tspan style="fill:#ff0000">red<\/tspan>/)
   assert.doesNotMatch(svg, /alert\(1\)/)
@@ -163,7 +163,7 @@ test('disc SVG renderer reflects changed straight HTML source drafts', () => {
   assert.doesNotMatch(secondSvg, /Draft one/)
   assert.match(secondSvg, /fill:#0000ff/)
   assert.match(secondSvg, /Draft two/)
-  assert.match(secondSvg, /font-weight:900/)
+  assert.match(secondSvg, /font-weight:700/)
   assert.match(secondSvg, /Next line/)
 })
 
@@ -193,7 +193,7 @@ test('disc SVG renderer maps straight HTML bullet lists to visible tspans', () =
   })
 
   assert.match(svg, /<tspan>• <\/tspan>/)
-  assert.match(svg, /<tspan style="font-weight:900">Alpha<\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:700">Alpha<\/tspan>/)
   assert.match(svg, /<tspan style="fill:#00ff00">Beta<\/tspan>/)
   assert.doesNotMatch(svg, /<li>/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
@@ -300,7 +300,7 @@ test('curved disc copyright ignores HTML sources and remains textPath', () => {
   assert.doesNotMatch(svg, /<tspan\b/)
 })
 
-test('disc SVG renderer applies emphasis to curved copyright textPath', () => {
+test('disc SVG renderer applies emphasis to curved copyright without native textPath underline', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
     copyright: true,
@@ -337,9 +337,64 @@ test('disc SVG renderer applies emphasis to curved copyright textPath', () => {
 
   assert.match(svg, /<textPath\b/)
   assert.match(svg, /font-style:italic/)
-  assert.match(svg, /text-decoration:underline/)
+  assert.match(svg, /font-weight:700/)
+  assert.match(svg, /class="disc-text-curved-underline"/)
+  assert.doesNotMatch(svg, /disc-text-render-text[^>]*text-decoration:underline/)
   assert.doesNotMatch(svg, /<textarea\b/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
+test('curved underline follows top and bottom wrapped line arcs without stray horizontal segments', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright:
+      'Copyright 2026 Archive Copy Wrapped Legal Text Preservation Notice For Multiple Lines',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const createSvg = (arcSide: 'top' | 'bottom') =>
+    buildDiscTextSvgLayer({
+      settings,
+      values,
+      styles: {
+        copyright: {
+          underline: true,
+        },
+      },
+      layoutSettings: {
+        ...layoutSettings,
+        copyright: {
+          ...layoutSettings.copyright,
+          arcDegrees: 74,
+          arcSide,
+          mode: 'curved',
+        },
+      },
+      title: 'Portal 2',
+      placement: arcSide === 'top' ? 'bottom' : 'top',
+      safeZoneRadiusPercent: 44,
+      measureText: measureTextAsCharacters,
+      width: 100,
+      height: 100,
+    })
+
+  for (const svg of [createSvg('top'), createSvg('bottom')]) {
+    const underlinePaths =
+      svg.match(/class="disc-text-curved-underline"[\s\S]*?d="([^"]+)"/g) ?? []
+
+    assert.ok(
+      underlinePaths.length >= 2,
+      'expected one underline arc per wrapped curved line',
+    )
+    assert.doesNotMatch(svg, /text-decoration:underline/)
+    for (const path of underlinePaths) {
+      assert.match(path, /\bA\b/)
+      assert.doesNotMatch(path, /\b[HV]\b/)
+    }
+  }
 })
 
 test('curved disc copyright textPath keeps the final word visible within paint-safe path geometry', () => {
