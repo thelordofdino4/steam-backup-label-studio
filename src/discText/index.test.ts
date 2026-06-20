@@ -63,6 +63,29 @@ test('disc text layouts backfill point sizes from legacy scale values', () => {
   )
 })
 
+test('disc text layout normalization preserves explicit point sizes', () => {
+  const restored = normalizeDiscTextLayout(
+    {
+      title: {
+        fontSizePt: 18.25,
+        scale: 1.2,
+      },
+      copyright: {
+        fontSizePt: 5.25,
+        mode: 'curved',
+        scale: 1.8,
+      },
+    },
+    'top',
+    discTemplates.standardPrintableDisc,
+  )
+
+  assert.equal(restored.title.fontSizePt, 18.25)
+  assert.equal(restored.title.scale, 1.2)
+  assert.equal(restored.copyright.fontSizePt, 5.25)
+  assert.equal(restored.copyright.scale, 1.8)
+})
+
 test('updating disc text visual avoidance preserves existing layout fields', () => {
   const layout = createDefaultDiscTextLayout('top')
   const updated = updateDiscTextVisualAvoidance(layout, 'customNote', true)

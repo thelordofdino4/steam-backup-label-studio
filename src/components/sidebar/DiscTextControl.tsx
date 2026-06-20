@@ -23,6 +23,11 @@ import {
   type DiscNumberBadgeSet,
 } from '../../discText/discNumberArtwork'
 import {
+  DISC_TEXT_POINT_SIZE_MAX,
+  DISC_TEXT_POINT_SIZE_MIN,
+  DISC_TEXT_POINT_SIZE_STEP,
+} from '../../discText/pointSize'
+import {
   getDiscTextSidebarException,
   getDiscTextSidebarTargetCapability,
   shouldShowDiscTextSidebarControl,
@@ -118,7 +123,9 @@ export function DiscTextControl({
     showCurvedAlignment ||
     showCurvedArcSide ||
     (showCurvedLayoutPreset && presets.length > 0)
-  const showCurvedScale =
+  const showCurvedFontSize =
+    isCurvedCopyright && shouldShowSidebarControl('size')
+  const showCurvedLineSpacing =
     isCurvedCopyright && shouldShowSidebarControl('size')
   const showCurvedAngle =
     isCurvedCopyright && shouldShowSidebarControl('x')
@@ -127,7 +134,11 @@ export function DiscTextControl({
   const showCurvedArc =
     isCurvedCopyright && shouldShowSidebarControl('arcDegrees')
   const showCurvedFineTuningControls =
-    showCurvedScale || showCurvedAngle || showCurvedInset || showCurvedArc
+    showCurvedFontSize ||
+    showCurvedLineSpacing ||
+    showCurvedAngle ||
+    showCurvedInset ||
+    showCurvedArc
   const showCurvedResetLayout =
     isCurvedCopyright && shouldShowSidebarControl('resetLayout')
   const showCurvedResetStyle =
@@ -498,10 +509,24 @@ export function DiscTextControl({
                   aria-label={`${controlLabel} curved fine tuning controls`}
                 >
                   <div className="editor-control-grid">
-                    {showCurvedScale ? (
+                    {showCurvedFontSize ? (
+                      <EditorRangeField
+                        id={`disc-text-${key}-font-size-pt`}
+                        label="Font size (pt)"
+                        min={DISC_TEXT_POINT_SIZE_MIN}
+                        max={DISC_TEXT_POINT_SIZE_MAX}
+                        step={DISC_TEXT_POINT_SIZE_STEP}
+                        unit="pt"
+                        value={layout.fontSizePt}
+                        onChange={(value) =>
+                          handleDiscTextLayoutChange(key, 'fontSizePt', value)}
+                      />
+                    ) : null}
+
+                    {showCurvedLineSpacing ? (
                       <EditorRangeField
                         id={`disc-text-${key}-scale`}
-                        label="Scale"
+                        label="Line spacing"
                         min={0.5}
                         max={1.8}
                         step={0.01}
