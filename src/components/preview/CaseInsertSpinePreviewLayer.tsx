@@ -25,9 +25,13 @@ import {
 import {
   getCaseInsertTextDecoration,
   getCaseInsertTextEffectiveFontWeight,
+  getCaseInsertTextFontFamilyCanvas,
   getCaseInsertTextFontFamilyCss,
   getCaseInsertTextFontStyle,
 } from '../../caseInsert/textStyles'
+import {
+  getSpineInlineTextEditorGeometryLines,
+} from '../../caseInsert/spineInlineEditorGeometry'
 import {
   getCaseInsertTextBlockLayoutPresets,
 } from '../../caseInsert/textLayout'
@@ -374,6 +378,22 @@ function CaseInsertSpineTextBlock({
     layoutTextBlock,
     layout,
   )
+  const baseFontWeight = getCaseInsertTextEffectiveFontWeight(
+    dragKind.kind === 'title' ? 800 : 600,
+    layoutTextBlock.style,
+  )
+  const baseFontStyle = getCaseInsertTextFontStyle(layoutTextBlock.style)
+  const geometryLines = getSpineInlineTextEditorGeometryLines({
+    baseFontFamily: getCaseInsertTextFontFamilyCanvas(
+      layoutTextBlock.style.fontFamily,
+    ),
+    baseFontSizePx: titleLayout.fontSizePx,
+    baseFontStyle,
+    baseFontWeight,
+    lineHeightPx: titleLayout.lineHeightPx,
+    lines: titleLayout.lines,
+    textBounds: titleLayout.textBounds,
+  })
   const editorControls = isSelected
     ? createCaseInsertInlineTextEditorControls({
         align: layoutTextBlock.align,
@@ -500,8 +520,10 @@ function CaseInsertSpineTextBlock({
               : editValue
           }
           controls={editorControls}
+          geometryLines={geometryLines}
           inputMode="adapter"
           lines={titleLayout.lines}
+          rotationDegrees={titleLayout.rotationDegrees}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}

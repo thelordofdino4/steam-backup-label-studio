@@ -147,6 +147,8 @@ The committed smoke command verifies:
 - Contextual menu follows selected text after a deterministic Y-control move.
 - Initial bottom placement puts the menu above the tab strip.
 - Tray, left spine, and right spine open inline editors.
+- Left and right rotated spine text support forward and reverse LMB drag
+  selection along the visible rotated text direction.
 - Tray title text is screenshot-checked at 6pt, default size, and 72pt so
   visible paint does not touch the left or right element edges.
 - Straight disc text opens inline editing while the SVG image renderer remains visible.

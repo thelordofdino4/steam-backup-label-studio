@@ -38,6 +38,9 @@ import {
   type InlinePreviewTextSize,
 } from './inlinePreviewTextEditorPositioning'
 import {
+  mapClientPointToInlineTextHostLocalPoint,
+} from './inlinePreviewTextEditorTransform'
+import {
   formatInlinePreviewPointSizeValue,
   getInlinePreviewPointSizeCommitValue,
   getInlinePreviewPointSizeLiveValue,
@@ -1366,13 +1369,13 @@ function getNearestLineSpan({
 
 function getGeometryLineFrame({
   geometryLine,
-  hostRect,
+  hostHeight,
 }: {
   geometryLine: InlinePreviewTextEditorGeometryLine
-  hostRect: DOMRect
+  hostHeight: number
 }) {
-  const top = hostRect.top + geometryLine.topRatio * hostRect.height
-  const height = Math.max(1, geometryLine.heightRatio * hostRect.height)
+  const top = geometryLine.topRatio * hostHeight
+  const height = Math.max(1, geometryLine.heightRatio * hostHeight)
 
   return {
     bottom: top + height,
@@ -1381,30 +1384,42 @@ function getGeometryLineFrame({
   }
 }
 
+function getHostLocalSize(host: Element, hostRect: DOMRect) {
+  const htmlHost = host instanceof HTMLElement ? host : null
+  const width = htmlHost?.offsetWidth || hostRect.width
+  const height = htmlHost?.offsetHeight || hostRect.height
+
+  return {
+    height: Math.max(1, height),
+    width: Math.max(1, width),
+  }
+}
+
 function getNearestGeometryLine({
-  clientY,
   geometryLines,
   host,
+  localY,
 }: {
-  clientY: number
   geometryLines: InlinePreviewTextEditorGeometryLine[]
   host: Element
+  localY: number
 }) {
   const hostRect = host.getBoundingClientRect()
+  const hostSize = getHostLocalSize(host, hostRect)
   let nearestLineIndex = 0
   let nearestDistance = Number.POSITIVE_INFINITY
 
   for (let lineIndex = 0; lineIndex < geometryLines.length; lineIndex += 1) {
     const frame = getGeometryLineFrame({
       geometryLine: geometryLines[lineIndex],
-      hostRect,
+      hostHeight: hostSize.height,
     })
     const distance =
-      clientY >= frame.top && clientY <= frame.bottom
+      localY >= frame.top && localY <= frame.bottom
         ? 0
         : Math.min(
-            Math.abs(clientY - frame.top),
-            Math.abs(clientY - frame.bottom),
+            Math.abs(localY - frame.top),
+            Math.abs(localY - frame.bottom),
           )
 
     if (distance < nearestDistance) {
@@ -1424,23 +1439,24 @@ function getNearestGeometryLine({
 }
 
 function getNearestGeometryTextOffset({
-  clientX,
   geometryLine,
   host,
+  localX,
 }: {
-  clientX: number
   geometryLine: InlinePreviewTextEditorGeometryLine
   host: Element
+  localX: number
 }) {
   const hostRect = host.getBoundingClientRect()
+  const hostSize = getHostLocalSize(host, hostRect)
   const caretXs = geometryLine.caretXRatios.map(
-    (ratio) => hostRect.left + ratio * hostRect.width,
+    (ratio) => ratio * hostSize.width,
   )
   let nearestOffset = 0
   let nearestDistance = Number.POSITIVE_INFINITY
 
   for (let offset = 0; offset < caretXs.length; offset += 1) {
-    const distance = Math.abs(clientX - caretXs[offset])
+    const distance = Math.abs(localX - caretXs[offset])
 
     if (distance <= nearestDistance) {
       nearestOffset = offset
@@ -1458,6 +1474,7 @@ function getPointerSelectionStart({
   geometryLines,
   host,
   lines,
+  rotationDegrees,
 }: {
   caretValue: string
   clientX: number
@@ -1465,12 +1482,23 @@ function getPointerSelectionStart({
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   host: Element
   lines: InlinePreviewTextEditorLine[]
+  rotationDegrees?: number
 }) {
   if (geometryLines) {
-    const nearestGeometryLine = getNearestGeometryLine({
+    const hostRect = host.getBoundingClientRect()
+    const hostSize = getHostLocalSize(host, hostRect)
+    const localPoint = mapClientPointToInlineTextHostLocalPoint({
+      clientX,
       clientY,
+      hostHeight: hostSize.height,
+      hostRect,
+      hostWidth: hostSize.width,
+      rotationDegrees,
+    })
+    const nearestGeometryLine = getNearestGeometryLine({
       geometryLines,
       host,
+      localY: localPoint.y,
     })
 
     if (!nearestGeometryLine) {
@@ -1482,9 +1510,9 @@ function getPointerSelectionStart({
       lineIndex: nearestGeometryLine.lineIndex,
       lines,
       offset: getNearestGeometryTextOffset({
-        clientX,
         geometryLine: nearestGeometryLine.line,
         host,
+        localX: localPoint.x,
       }),
     })
   }
@@ -1532,7 +1560,11 @@ function getTextSelectionFrames({
         return []
       }
 
-      const lineFrame = getGeometryLineFrame({ geometryLine, hostRect })
+      const hostSize = getHostLocalSize(host, hostRect)
+      const lineFrame = getGeometryLineFrame({
+        geometryLine,
+        hostHeight: hostSize.height,
+      })
       const startRatio =
         geometryLine.caretXRatios[
           Math.max(
@@ -1551,7 +1583,7 @@ function getTextSelectionFrames({
           )
         ] ?? startRatio
       const leftRatio = Math.min(startRatio, endRatio)
-      const width = Math.abs(endRatio - startRatio) * hostRect.width
+      const width = Math.abs(endRatio - startRatio) * hostSize.width
 
       if (width <= 0) {
         return []
@@ -1560,8 +1592,8 @@ function getTextSelectionFrames({
       return [
         {
           height: lineFrame.height,
-          left: leftRatio * hostRect.width,
-          top: lineFrame.top - hostRect.top,
+          left: leftRatio * hostSize.width,
+          top: lineFrame.top,
           width,
         } satisfies InlineTextSelectionFrame,
       ]
@@ -1634,6 +1666,7 @@ function getGeometryCaretFrame({
   selectionFocus: number
 }): InlineTextCaretFrame | null {
   const hostRect = host.getBoundingClientRect()
+  const hostSize = getHostLocalSize(host, hostRect)
   const { lineIndex, offset } = getInlinePreviewTextCaretLineOffset({
     caretIndex: selectionFocus,
     caretValue,
@@ -1645,7 +1678,10 @@ function getGeometryCaretFrame({
     return null
   }
 
-  const frame = getGeometryLineFrame({ geometryLine, hostRect })
+  const frame = getGeometryLineFrame({
+    geometryLine,
+    hostHeight: hostSize.height,
+  })
   const caretXRatio =
     geometryLine.caretXRatios[
       Math.max(0, Math.min(offset, geometryLine.caretXRatios.length - 1))
@@ -1653,8 +1689,8 @@ function getGeometryCaretFrame({
 
   return {
     height: frame.height,
-    left: caretXRatio * hostRect.width,
-    top: frame.top - hostRect.top,
+    left: caretXRatio * hostSize.width,
+    top: frame.top,
   }
 }
 
@@ -1665,6 +1701,7 @@ export function InlinePreviewTextEditor({
   inputMode = 'overlay',
   geometryLines,
   lines,
+  rotationDegrees,
   targetKey,
   value,
   textareaStyle,
@@ -1824,6 +1861,7 @@ export function InlinePreviewTextEditor({
           geometryLines,
           host,
           lines,
+          rotationDegrees,
         })
       : null
 
@@ -2178,6 +2216,7 @@ export function InlinePreviewTextEditor({
     geometryLines,
     inputMode,
     lines,
+    rotationDegrees,
     selection,
     targetKey,
     value,
@@ -2210,6 +2249,7 @@ export function InlinePreviewTextEditor({
         geometryLines,
         host,
         lines,
+        rotationDegrees,
       })
 
       if (nextSelectionFocus === null) {
@@ -2305,7 +2345,7 @@ export function InlinePreviewTextEditor({
       host.removeEventListener('pointerup', handleAdapterPointerUp)
       host.removeEventListener('pointercancel', handleAdapterPointerUp)
     }
-  }, [caretValue, geometryLines, inputMode, lines, targetKey])
+  }, [caretValue, geometryLines, inputMode, lines, rotationDegrees, targetKey])
 
   const controlLayout = controlFrame
     ? getInlinePreviewTextControlLayout({
