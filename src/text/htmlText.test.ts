@@ -85,6 +85,20 @@ test('HTML parser canonicalizes supported tags and inline styles', () => {
   )
 })
 
+test('HTML parser canonicalizes safe point font sizes and keeps legacy px readable', () => {
+  const pointDocument = parseHtmlText(
+    '<p><span style="font-size:24pt">Large</span></p>',
+  )
+  const legacyPxDocument = parseHtmlText(
+    '<p><span style="font-size:18px">Legacy</span></p>',
+  )
+
+  assert.equal(pointDocument.source, '<p><span style="font-size:24pt">Large</span></p>')
+  assert.equal(pointDocument.lines[0]?.runs[0]?.fontSizePt, 24)
+  assert.equal(legacyPxDocument.source, '<p><span style="font-size:18px">Legacy</span></p>')
+  assert.equal(legacyPxDocument.lines[0]?.runs[0]?.fontSizePx, 18)
+})
+
 test('HTML parser supports lists and line breaks', () => {
   const document = parseHtmlText(
     '<p>Intro<br>Next</p><ul><li><strong>Co-op</strong></li><li>Workshop</li></ul>',

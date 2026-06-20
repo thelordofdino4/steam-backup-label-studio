@@ -158,6 +158,39 @@ test('disc bulleted list control routes selection command through adapter', () =
   ])
 })
 
+test('disc point-size control routes selected ranges through rich text command', () => {
+  const routedCalls: string[] = []
+  const { calls, controls } = createControls({
+    getDiscTextRichTextCommandState: (_key, command, selection) => {
+      routedCalls.push(`state:${command}:${selection.start}-${selection.end}`)
+      return command === 'fontSizePt'
+        ? { state: 'active', value: 32 }
+        : 'inactive'
+    },
+    onDiscTextRichTextCommand: (_key, command, selection, value) => {
+      routedCalls.push(
+        `command:${command}:${String(value)}:${selection?.start}-${selection?.end}`,
+      )
+    },
+  })
+  const selection = { start: 0, end: 8 }
+
+  assert.deepEqual(
+    controls.text?.size && 'getSelectionValue' in controls.text.size
+      ? controls.text.size.getSelectionValue?.(selection)
+      : undefined,
+    { state: 'active', value: 32 },
+  )
+  controls.text?.size?.onChange(40, selection)
+  controls.text?.size?.onChange(18, { start: 4, end: 4 })
+
+  assert.deepEqual(routedCalls, [
+    'state:fontSizePt:0-8',
+    'command:fontSizePt:40:0-8',
+  ])
+  assert.deepEqual(calls, ['layout:fontSizePt:18'])
+})
+
 test('disc custom option is inert and target-specific handlers stay in adapter', () => {
   const { calls, controls } = createControls()
 

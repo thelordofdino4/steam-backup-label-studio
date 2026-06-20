@@ -8,10 +8,12 @@ export type RichTextRunFontStyle = 'normal' | 'italic'
 export type RichTextRunStyleContext = {
   baseColor?: string
   baseFontFamily?: string
+  baseFontSizePt?: number
   baseFontSizePx: number
   baseFontStyle?: RichTextRunFontStyle
   baseFontWeight?: number
   fallbackColor?: string
+  pointToPx?: (pointSizePt: number) => number
 }
 
 export type ResolvedRichTextRunFont = {
@@ -53,6 +55,7 @@ export function richTextRunHasVisualStyle(run: RichTextRun) {
     run.color ||
     run.backgroundColor ||
     run.fontFamily ||
+    run.fontSizePt ||
     run.fontSizePx ||
     run.fontWeight ||
     run.fontStyle ||
@@ -91,9 +94,16 @@ export function getRichTextRunResolvedFont(
   run: RichTextRun,
   context: RichTextRunStyleContext,
 ): ResolvedRichTextRunFont {
+  const fontSizePx = typeof run.fontSizePt === 'number'
+    ? context.pointToPx?.(run.fontSizePt) ??
+      (context.baseFontSizePt
+        ? context.baseFontSizePx * run.fontSizePt / context.baseFontSizePt
+        : context.baseFontSizePx)
+    : run.fontSizePx ?? context.baseFontSizePx
+
   return {
     fontFamily: run.fontFamily ?? context.baseFontFamily,
-    fontSizePx: run.fontSizePx ?? context.baseFontSizePx,
+    fontSizePx,
     fontStyle: getRichTextRunFontStyle(run, context.baseFontStyle),
     fontWeight: getRichTextRunFontWeight(run, context.baseFontWeight),
   }
@@ -115,14 +125,19 @@ export function getRichTextRunCanvasStyle(
 export function getRichTextRunDomStyle(
   run: RichTextRun,
   baseFontSizePx: number,
+  baseFontSizePt?: number,
 ): RichTextRunDomStyle {
+  const fontSize = typeof run.fontSizePt === 'number' && baseFontSizePt
+    ? `${run.fontSizePt / baseFontSizePt}em`
+    : run.fontSizePx
+      ? `${run.fontSizePx / baseFontSizePx}em`
+      : undefined
+
   return {
     backgroundColor: run.backgroundColor,
     color: run.color,
     fontFamily: run.fontFamily,
-    fontSize: run.fontSizePx
-      ? `${run.fontSizePx / baseFontSizePx}em`
-      : undefined,
+    fontSize,
     fontStyle: run.fontStyle ?? (run.italic ? 'italic' : undefined),
     fontWeight: run.fontWeight ??
       (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : undefined),

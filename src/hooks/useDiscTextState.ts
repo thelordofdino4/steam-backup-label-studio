@@ -49,6 +49,7 @@ import {
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
+  type DiscTextLayout,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
   type DiscTextHtmlSources,
@@ -77,17 +78,20 @@ import {
 import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
+  applyRichTextInlineFontSizePtCommand,
   applyRichTextInlineToggleCommand,
   applyRichTextListKeyboardCommand,
   applyRichTextPlainTextMutation,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
+  getRichTextSelectionFontSizePtState,
   type PlainTextSelectionRange,
   type RichTextAmbientInlineStyle,
   type RichTextInlineToggleCommand,
   type RichTextListKeyboardCommand,
   type RichTextSelectionColorState,
+  type RichTextSelectionNumberState,
   type RichTextSelectionStyleState,
 } from '../text/richTextCommands'
 
@@ -126,9 +130,11 @@ type DiscTextRichTextCommand =
   | RichTextInlineToggleCommand
   | 'bulletedList'
   | 'color'
+  | 'fontSizePt'
 type DiscTextRichTextCommandState =
   | RichTextSelectionStyleState
   | RichTextSelectionColorState
+  | RichTextSelectionNumberState
 
 const DISC_TEXT_INLINE_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   appId: 'Steam App ID ',
@@ -148,11 +154,13 @@ function getDiscTextInlineStorageValue(key: DiscTextKey, value: string) {
 function getDiscTextRichTextAmbientStyle(
   key: DiscTextKey,
   styles: DiscTextStyleSettings,
+  layout?: DiscTextLayout,
 ): RichTextAmbientInlineStyle {
   return {
     bold: styles[key].bold,
     boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
     color: styles[key].color,
+    fontSizePt: layout?.fontSizePt,
     italic: styles[key].italic,
     normalFontWeight: Math.min(DISC_TEXT_RENDER_STYLES[key].fontWeight, 400),
     underline: styles[key].underline,
@@ -733,7 +741,7 @@ export function useDiscTextState({
     key: DiscTextKey,
     command: DiscTextRichTextCommand,
     selection: PlainTextSelectionRange | undefined,
-    value: boolean | string,
+    value: boolean | number | string,
   ) {
     if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
       return
@@ -741,7 +749,11 @@ export function useDiscTextState({
 
     const currentText = getCurrentDiscTextContent(key)
     const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      ambientStyle: getDiscTextRichTextAmbientStyle(
+        key,
+        discTextStyles,
+        discTextLayout[key],
+      ),
       fallbackText: currentText,
       htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
         ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
@@ -753,6 +765,12 @@ export function useDiscTextState({
           color: String(value),
           selection,
         })
+      : command === 'fontSizePt'
+        ? applyRichTextInlineFontSizePtCommand({
+            ...source,
+            fontSizePt: Number(value),
+            selection,
+          })
       : command === 'bulletedList'
         ? applyRichTextBulletedListCommand({
             ...source,
@@ -800,7 +818,11 @@ export function useDiscTextState({
 
     const currentText = getCurrentDiscTextContent(key)
     const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      ambientStyle: getDiscTextRichTextAmbientStyle(
+        key,
+        discTextStyles,
+        discTextLayout[key],
+      ),
       fallbackText: currentText,
       htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
         ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
@@ -842,7 +864,11 @@ export function useDiscTextState({
   ): DiscTextRichTextCommandState {
     const currentText = getCurrentDiscTextContent(key)
     const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      ambientStyle: getDiscTextRichTextAmbientStyle(
+        key,
+        discTextStyles,
+        discTextLayout[key],
+      ),
       fallbackText: currentText,
       htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
         ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
@@ -851,6 +877,8 @@ export function useDiscTextState({
 
     return command === 'color'
       ? getRichTextSelectionColorState({ ...source, selection })
+      : command === 'fontSizePt'
+        ? getRichTextSelectionFontSizePtState({ ...source, selection })
       : command === 'bulletedList'
         ? getRichTextBulletedListState({ ...source, selection })
         : getRichTextInlineToggleState({ ...source, command, selection })

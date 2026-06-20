@@ -667,9 +667,9 @@ function App() {
 
   function handleCaseInsertPreviewTextRichTextCommand(
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: { end: number; start: number } | undefined,
-    value: boolean | string,
+    value: boolean | number | string,
   ) {
     const result =
       updateCaseInsertPreviewTextTargetRichTextCommand(
@@ -705,7 +705,7 @@ function App() {
 
   function getCaseInsertPreviewTextRichTextCommandState(
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: { end: number; start: number },
   ) {
     return getCaseInsertPreviewTextTargetRichTextCommandState(

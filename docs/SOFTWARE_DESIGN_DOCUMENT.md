@@ -476,6 +476,11 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Case insert rich-text run style interpretation is shared through
   `src/text/richTextRunStyle.ts`; DOM preview layers, layout measurement, and
   canvas export remain separate adapters that consume the normalized run style.
+- Selection-scoped point sizing stores `fontSizePt` on shared rich-text runs.
+  The case-insert and straight-disc adapters treat their object-level
+  `fontSizePt` as the ambient size for unstyled text, convert per-run points
+  through their existing DPI/template helpers, and keep legacy `fontSizePx`
+  HTML runs readable for migration.
 - Export uses `drawDiscTextElements` for disc text and `exportCaseInsertPng.ts` for case insert text.
 
 ### 9.5 Invariants And Future-Change Rules

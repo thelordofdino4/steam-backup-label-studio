@@ -41,7 +41,10 @@ import {
 } from '../text/richTextWeights.ts'
 import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 import type { DiscTemplate } from '../types/template.ts'
-import { getResolvedDiscTextFontSizePercent } from './pointSize.ts'
+import {
+  discTextPointSizeToSvgPercent,
+  getResolvedDiscTextFontSizePercent,
+} from './pointSize.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
@@ -609,19 +612,22 @@ function buildStraightTextMarkup(
       x="${line.x}"
       y="${line.y}"
       style="${textStyle}"
-    >${buildStraightTextLineContent(line.runs, line.text)}</text>
+    >${buildStraightTextLineContent(line.runs, line.text, template)}</text>
   `).join('')
 
   return `${boxMarkup}${textMarkup}`
 }
 
-function buildStraightTextRunStyle(run: RichTextRun) {
+function buildStraightTextRunStyle(run: RichTextRun, template?: DiscTemplate) {
   const declarations = [
     run.bold ? `font-weight:${RICH_TEXT_BOLD_FONT_WEIGHT}` : '',
     run.italic ? 'font-style:italic' : '',
     run.underline ? 'text-decoration:underline' : '',
     run.color ? `fill:${run.color}` : '',
     run.fontFamily ? `font-family:${run.fontFamily}` : '',
+    run.fontSizePt
+      ? `font-size:${discTextPointSizeToSvgPercent(run.fontSizePt, template)}px`
+      : '',
     run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
     run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
     run.fontStyle === 'italic' && !run.italic ? 'font-style:italic' : '',
@@ -638,6 +644,7 @@ function buildStraightTextRunStyle(run: RichTextRun) {
 function buildStraightTextLineContent(
   runs: ReturnType<typeof getStraightDiscTextRenderLayout>['lines'][number]['runs'],
   fallbackText: string,
+  template?: DiscTemplate,
 ) {
   const visibleRuns = runs?.filter((run) => run.text)
   const hasStyledRuns = visibleRuns?.some((run) =>
@@ -646,6 +653,7 @@ function buildStraightTextLineContent(
     run.underline ||
     run.color ||
     run.fontFamily ||
+    run.fontSizePt ||
     run.fontSizePx ||
     run.fontWeight ||
     run.fontStyle ||
@@ -656,7 +664,7 @@ function buildStraightTextLineContent(
   }
 
   return visibleRuns.map((run) =>
-    `<tspan${buildStraightTextRunStyle(run)}>${escapeSvgText(run.text)}</tspan>`,
+    `<tspan${buildStraightTextRunStyle(run, template)}>${escapeSvgText(run.text)}</tspan>`,
   ).join('')
 }
 

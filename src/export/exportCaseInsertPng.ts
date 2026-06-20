@@ -72,6 +72,10 @@ import {
   getCanvasTextAlign,
 } from '../layout/caseInsertTextVisualLayout'
 import {
+  caseInsertExportPxToFontSizePt,
+  caseInsertFontSizePtToExportPx,
+} from '../caseInsert/textSizing'
+import {
   getRenderableRichTextRuns,
   getRichTextRunCanvasStyle,
   richTextRunsHaveVisualStyles,
@@ -345,9 +349,11 @@ function drawComputedTextLayout(
   const richTextRunStyleContext: RichTextRunStyleContext = {
     baseColor: options.color,
     baseFontFamily: options.fontFamily,
+    baseFontSizePt: caseInsertExportPxToFontSizePt(textLayout.fontSizePx),
     baseFontSizePx: textLayout.fontSizePx,
     baseFontStyle: options.fontStyle === 'italic' ? 'italic' : 'normal',
     baseFontWeight: options.weight,
+    pointToPx: caseInsertFontSizePtToExportPx,
   }
   const baseFont = getCaseInsertTextCanvasFont({
     fontFamily: options.fontFamily,

@@ -62,7 +62,16 @@ export type InlinePreviewTextEditorNumberSelectControl = {
   options: readonly number[]
   step: number
   value: number
-  onChange: (value: number) => void
+  getSelectionValue?: (
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    state: InlinePreviewTextEditorToggleState
+    value?: number
+  } | undefined
+  onChange: (
+    value: number,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => void
 }
 
 export type InlinePreviewTextEditorCheckboxControl = {

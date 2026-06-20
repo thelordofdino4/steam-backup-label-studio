@@ -17,7 +17,7 @@ export type PlainTextSelectionRange = {
 }
 
 export type RichTextInlineToggleCommand = 'bold' | 'italic' | 'underline'
-export type RichTextInlineCommand = RichTextInlineToggleCommand | 'color'
+export type RichTextInlineCommand = RichTextInlineToggleCommand | 'color' | 'fontSizePt'
 export type RichTextListCommand = 'bulletedList'
 export type RichTextListKeyboardCommand = 'enter' | 'shiftEnter' | 'backspace'
 export type RichTextSelectionStyleState = 'active' | 'inactive' | 'mixed'
@@ -33,10 +33,16 @@ export type RichTextSelectionColorState = {
   value?: string
 }
 
+export type RichTextSelectionNumberState = {
+  state: RichTextSelectionStyleState
+  value?: number
+}
+
 export type RichTextAmbientInlineStyle = {
   bold?: boolean
   boldFontWeight?: number
   color?: string
+  fontSizePt?: number
   italic?: boolean
   normalFontWeight?: number
   underline?: boolean
@@ -443,9 +449,18 @@ function colorRun(run: RichTextRun, color: string): RichTextRun {
   }
 }
 
+function fontSizeRun(run: RichTextRun, fontSizePt: number): RichTextRun {
+  return {
+    ...run,
+    fontSizePt,
+    fontSizePx: undefined,
+  }
+}
+
 function splitRunForRange({
   command,
   color,
+  fontSizePt,
   ambientStyle,
   rangeEnd,
   rangeStart,
@@ -455,6 +470,7 @@ function splitRunForRange({
 }: {
   command: RichTextInlineCommand
   color?: string
+  fontSizePt?: number
   ambientStyle?: RichTextAmbientInlineStyle
   rangeEnd: number
   rangeStart: number
@@ -486,6 +502,8 @@ function splitRunForRange({
   parts.push(
     command === 'color'
       ? colorRun(selectedRun, color ?? run.color ?? '#ffffff')
+      : command === 'fontSizePt'
+        ? fontSizeRun(selectedRun, fontSizePt ?? run.fontSizePt ?? ambientStyle?.fontSizePt ?? 12)
       : styleRun(ambientStyle, selectedRun, command, Boolean(toggleActive)),
   )
 
@@ -499,6 +517,7 @@ function splitRunForRange({
 function transformLinesInSelection({
   command,
   color,
+  fontSizePt,
   document,
   ambientStyle,
   selection,
@@ -506,6 +525,7 @@ function transformLinesInSelection({
 }: {
   command: RichTextInlineCommand
   color?: string
+  fontSizePt?: number
   document: RichTextDocument
   ambientStyle?: RichTextAmbientInlineStyle
   selection: PlainTextSelectionRange
@@ -520,6 +540,7 @@ function transformLinesInSelection({
       const transformedRuns = splitRunForRange({
         command,
         color,
+        fontSizePt,
         ambientStyle,
         rangeEnd: selection.end,
         rangeStart: selection.start,
@@ -558,7 +579,10 @@ function createCommandResult(
   return {
     htmlSource: normalizedDocument.source,
     plainText,
-    selection,
+    selection: {
+      end: selection.end,
+      start: selection.start,
+    },
   }
 }
 
@@ -1011,6 +1035,40 @@ export function applyRichTextInlineColorCommand({
   )
 }
 
+export function applyRichTextInlineFontSizePtCommand({
+  ambientStyle,
+  fallbackText,
+  fontSizePt,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  fontSizePt: number
+  selection?: PlainTextSelectionRange
+}): RichTextCommandResult | null {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+
+  if (normalizedSelection.isCollapsed) {
+    return null
+  }
+
+  const lines = transformLinesInSelection({
+    command: 'fontSizePt',
+    document,
+    fontSizePt,
+    ambientStyle,
+    selection: normalizedSelection,
+  })
+
+  return createCommandResult(
+    {
+      ...document,
+      lines,
+    },
+    normalizedSelection,
+  )
+}
+
 export function applyRichTextBulletedListCommand({
   active,
   fallbackText,
@@ -1105,6 +1163,39 @@ export function getRichTextSelectionColorState({
     return { state: 'active', value: [...colors][0] }
   }
   return { state: 'mixed', value: [...colors][0] }
+}
+
+export function getRichTextSelectionFontSizePtState({
+  fallbackText,
+  ambientStyle,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  selection?: PlainTextSelectionRange
+}): RichTextSelectionNumberState {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+  const runs = getRunsInSelection(document, normalizedSelection)
+
+  if (runs.length === 0) {
+    return { state: 'inactive' }
+  }
+
+  const sizes = new Set(
+    runs.map((run) => run.fontSizePt ?? ambientStyle?.fontSizePt)
+      .filter((value): value is number =>
+        typeof value === 'number' && Number.isFinite(value)),
+  )
+  const unsizedRuns = runs.some((run) =>
+    typeof (run.fontSizePt ?? ambientStyle?.fontSizePt) !== 'number')
+
+  if (sizes.size === 0) {
+    return { state: 'inactive' }
+  }
+  if (sizes.size === 1 && !unsizedRuns) {
+    return { state: 'active', value: [...sizes][0] }
+  }
+  return { state: 'mixed', value: [...sizes][0] }
 }
 
 export function getRichTextBulletedListState({
