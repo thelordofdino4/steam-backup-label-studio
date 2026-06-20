@@ -1830,6 +1830,11 @@ export function InlinePreviewTextEditor({
     } | null>(null)
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
+  const controlMeasurementKey =
+    `${inputMode}:${targetKey}:${activeTab}:${sourceMode ? 'source' : 'wysiwyg'}`
+  const [measuredControlKey, setMeasuredControlKey] =
+    useState<string | null>(null)
+  const hasMeasuredControlSizes = measuredControlKey === controlMeasurementKey
   const sourceDraftIdentity = sourceMode
     ? `${targetKey}:html-source`
     : `${targetKey}:wysiwyg`
@@ -2239,7 +2244,9 @@ export function InlinePreviewTextEditor({
   }, [inputMode, menuPlacement, targetKey, value])
 
   useLayoutEffect(() => {
-    if (!controlFrame) return
+    if (!controlFrame) {
+      return
+    }
 
     const updateControlSizes = () => {
       const nextControlSizes = {
@@ -2265,6 +2272,7 @@ export function InlinePreviewTextEditor({
           ? currentControlSizes
           : nextControlSizes,
       )
+      setMeasuredControlKey(controlMeasurementKey)
     }
 
     updateControlSizes()
@@ -2283,7 +2291,7 @@ export function InlinePreviewTextEditor({
       resizeObserver?.disconnect()
       window.removeEventListener('resize', updateControlSizes)
     }
-  }, [activeTab, controlFrame, menuPlacement, targetKey, value])
+  }, [controlFrame, controlMeasurementKey, menuPlacement, value])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
@@ -2544,6 +2552,9 @@ export function InlinePreviewTextEditor({
 
   const resolvedMenuPlacement = controlLayoutPlacement ?? menuPlacement
   const isControlPlacementLocked = Boolean(lockedControlLayout)
+  const controlMeasuringClass = hasMeasuredControlSizes
+    ? ''
+    : 'is-measuring'
   const handleControlPointerDownCapture = (
     event: ReactPointerEvent<HTMLDivElement>,
   ) => {
@@ -2621,7 +2632,10 @@ export function InlinePreviewTextEditor({
     <>
       <div
         ref={tabsRef}
-        className="inline-preview-text-tabs"
+        className={[
+          'inline-preview-text-tabs',
+          controlMeasuringClass,
+        ].filter(Boolean).join(' ')}
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
         data-inline-placement-locked={isControlPlacementLocked}
@@ -2651,7 +2665,10 @@ export function InlinePreviewTextEditor({
 
       <button
         ref={moveHandleRef}
-        className="inline-preview-text-move-handle"
+        className={[
+          'inline-preview-text-move-handle',
+          controlMeasuringClass,
+        ].filter(Boolean).join(' ')}
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
         data-inline-placement-locked={isControlPlacementLocked}
@@ -2674,6 +2691,7 @@ export function InlinePreviewTextEditor({
         className={[
           'inline-preview-text-menu',
           `inline-preview-text-menu--${resolvedMenuPlacement}`,
+          controlMeasuringClass,
         ].join(' ')}
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}

@@ -521,6 +521,13 @@ async function getInlineNumberControlMax(page, labelToken) {
   return Number(max)
 }
 
+async function getInlineNumberControlMin(page, labelToken) {
+  await clickInlineTab(page, 'utilities')
+  const min = await smoke(page, `inline-text-number-${labelToken}`).first()
+    .getAttribute('min')
+  return Number(min)
+}
+
 async function waitForInlinePlacementLocked(page, expectedValue) {
   const start = Date.now()
 
@@ -1034,6 +1041,38 @@ async function runCaseChecks(page) {
     await assertInlineNumberControlLocksPlacement(page, 'wrap-width', 42)
   })
 
+  await runCheck(page, 'cover initial top placement keeps menu below selected text', async () => {
+    const yMin = await getInlineNumberControlMin(page, 'y')
+    await setInlineNumberControl(page, 'y', yMin)
+    await done(page)
+    await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
+    const { menu, tabs } = await waitForInlineMenuAndTabsToSeparate(page)
+    const target = await getRect(page, 'case-text-block-cover-cover-title-text')
+    const preview = await getRect(page, 'case-preview-cover')
+    const mode = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-mode')
+    if (mode !== 'anchored') {
+      fail(`Top-edge text used detached contextual placement: ${mode}`)
+    }
+    if (rectsOverlap(menu, tabs)) {
+      fail('Top-edge text opened with overlapping menu and tabs.')
+    }
+    if (menu.top < target.bottom - 1) {
+      fail(
+        `Top-edge text did not place the menu below the selected text: ${
+          JSON.stringify({ menu, target })
+        }`,
+      )
+    }
+    if (menu.top < preview.top - 1 || menu.bottom > preview.bottom + 1) {
+      fail(
+        `Top-edge text opened controls outside the preview: ${
+          JSON.stringify({ menu, preview })
+        }`,
+      )
+    }
+  })
+
   await runCheck(page, 'cover initial bottom placement keeps controls accessible', async () => {
     const yMax = await getInlineNumberControlMax(page, 'y')
     await setInlineNumberControl(page, 'y', yMax)
@@ -1043,6 +1082,9 @@ async function runCaseChecks(page) {
     const preview = await getRect(page, 'case-preview-cover')
     if (rectsOverlap(menu, tabs)) {
       fail('Initial menu placement near the bottom overlapped the tab strip.')
+    }
+    if (menu.height < 118) {
+      fail(`Initial bottom menu height was not navigable: ${menu.height}`)
     }
     if (
       menu.right < preview.left ||
@@ -1111,7 +1153,10 @@ async function runCaseChecks(page) {
     if (rectsOverlap(trayMenu, trayTabs)) {
       fail('Roomy tray title opened with overlapping menu and tabs.')
     }
-    if (trayMenu.top > trayPreview.bottom || trayMenu.bottom < trayPreview.top) {
+    if (
+      trayMenu.top < trayPreview.top - 1 ||
+      trayMenu.bottom > trayPreview.bottom + 1
+    ) {
       fail(
         `Roomy tray title opened controls outside the preview: ${
           JSON.stringify({ trayMenu, trayPreview })
