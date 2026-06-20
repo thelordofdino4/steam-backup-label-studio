@@ -8,6 +8,7 @@ import {
   getResolvedDiscTextFontSizePercent,
 } from './pointSize.ts'
 import type { DiscTemplate } from '../types/template.ts'
+import type { CurvedDiscTextLineGeometry } from './svgLayer.ts'
 
 export type CurvedDiscTextEditorBounds = {
   centerX: number
@@ -21,6 +22,38 @@ export type CurvedDiscTextPaintBox = {
   left: number
   right: number
   top: number
+}
+
+export type CurvedDiscTextHostGeometry = {
+  bounds: CurvedDiscTextEditorBounds
+  lines: readonly CurvedDiscTextLineGeometry[]
+}
+
+export type CurvedDiscTextHostRect = {
+  height: number
+  left: number
+  top: number
+  width: number
+}
+
+export type CurvedDiscTextHostSize = {
+  hostHeight: number
+  hostWidth: number
+}
+
+export type CurvedDiscTextCaretFrame = {
+  height: number
+  left: number
+  rotationDegrees: number
+  top: number
+}
+
+export type CurvedDiscTextSelectionFrame = {
+  height: number
+  left: number
+  rotationDegrees: number
+  top: number
+  width: number
 }
 
 function degreesToRadians(degrees: number) {
@@ -49,6 +82,392 @@ function clampValue(value: number, min: number, max: number) {
   if (max < min) return min
 
   return Math.min(Math.max(value, min), max)
+}
+
+function normalizeAngleDegrees(angle: number) {
+  return ((angle % 360) + 360) % 360
+}
+
+function getLineRangeStart({
+  caretValue,
+  lineIndex,
+  lines,
+}: {
+  caretValue: string
+  lineIndex: number
+  lines: readonly { text: string }[]
+}) {
+  let searchStart = 0
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const lineText = lines[index]?.text ?? ''
+    const exactLineStart = lineText
+      ? caretValue.indexOf(lineText, searchStart)
+      : searchStart
+    const lineStart = exactLineStart >= 0 ? exactLineStart : searchStart
+    const lineEnd = clampValue(
+      lineStart + lineText.length,
+      lineStart,
+      caretValue.length,
+    )
+
+    if (index === lineIndex) {
+      return lineStart
+    }
+
+    searchStart = lineEnd
+    while (
+      searchStart < caretValue.length &&
+      /\s/.test(caretValue.charAt(searchStart))
+    ) {
+      searchStart += 1
+    }
+  }
+
+  return caretValue.length
+}
+
+function getLineOffsetForCaretIndex({
+  caretIndex,
+  caretValue,
+  lines,
+}: {
+  caretIndex: number
+  caretValue: string
+  lines: readonly { text: string }[]
+}) {
+  const normalizedCaret = clampValue(caretIndex, 0, caretValue.length)
+  let searchStart = 0
+
+  for (let lineIndex = 0; lineIndex < lines.length; lineIndex += 1) {
+    const lineText = lines[lineIndex]?.text ?? ''
+    const exactLineStart = lineText
+      ? caretValue.indexOf(lineText, searchStart)
+      : searchStart
+    const lineStart = exactLineStart >= 0 ? exactLineStart : searchStart
+    const lineEnd = clampValue(
+      lineStart + lineText.length,
+      lineStart,
+      caretValue.length,
+    )
+    const nextLine = lines[lineIndex + 1]
+
+    if (normalizedCaret <= lineEnd || !nextLine) {
+      return {
+        lineIndex,
+        offset: clampValue(normalizedCaret - lineStart, 0, lineText.length),
+      }
+    }
+
+    searchStart = lineEnd
+    while (
+      searchStart < caretValue.length &&
+      /\s/.test(caretValue.charAt(searchStart))
+    ) {
+      searchStart += 1
+    }
+  }
+
+  return { lineIndex: 0, offset: 0 }
+}
+
+function percentToHostLocal({
+  bounds,
+  hostHeight,
+  hostWidth,
+  x,
+  y,
+}: CurvedDiscTextHostGeometry & CurvedDiscTextHostSize & {
+  x: number
+  y: number
+}) {
+  const boundsWidth = Math.max(0.01, bounds.halfWidth * 2)
+  const boundsHeight = Math.max(0.01, bounds.halfHeight * 2)
+  const left = bounds.centerX - boundsWidth / 2
+  const top = bounds.centerY - boundsHeight / 2
+
+  return {
+    x: ((x - left) / boundsWidth) * hostWidth,
+    y: ((y - top) / boundsHeight) * hostHeight,
+  }
+}
+
+function getArcProgress(line: CurvedDiscTextLineGeometry, angleDegrees: number) {
+  const total = Math.max(0.001, line.angleWidthDegrees)
+  const intervalStart = line.isTopArc
+    ? line.startAngleDegrees
+    : line.startAngleDegrees - total
+  const intervalEnd = line.isTopArc
+    ? line.startAngleDegrees + total
+    : line.startAngleDegrees
+  const candidates = [-360, 0, 360].map((delta) => angleDegrees + delta)
+  const unwrappedAngle = candidates.reduce((best, candidate) => {
+    const distanceToInterval = candidate < intervalStart
+      ? intervalStart - candidate
+      : candidate > intervalEnd
+        ? candidate - intervalEnd
+        : 0
+    const bestDistance = best < intervalStart
+      ? intervalStart - best
+      : best > intervalEnd
+        ? best - intervalEnd
+        : 0
+
+    return distanceToInterval < bestDistance ? candidate : best
+  }, candidates[1] ?? angleDegrees)
+
+  const delta = line.isTopArc
+    ? unwrappedAngle - line.startAngleDegrees
+    : line.startAngleDegrees - unwrappedAngle
+
+  return clampValue(delta / total, 0, 1)
+}
+
+function getAngleForLineProgress(
+  line: CurvedDiscTextLineGeometry,
+  progress: number,
+) {
+  const direction = line.isTopArc ? 1 : -1
+
+  return line.startAngleDegrees +
+    direction * line.angleWidthDegrees * clampValue(progress, 0, 1)
+}
+
+function getPointOnLine(line: CurvedDiscTextLineGeometry, progress: number) {
+  return getArcPoint(line.radius, getAngleForLineProgress(line, progress))
+}
+
+function getRadialCaretRotationDegrees(angleDegrees: number) {
+  return normalizeAngleDegrees(angleDegrees - 90)
+}
+
+function getTangentSelectionRotationDegrees(angleDegrees: number) {
+  return normalizeAngleDegrees(angleDegrees + 90)
+}
+
+function getFrameHeight({
+  bounds,
+  fontSize,
+  hostHeight,
+}: CurvedDiscTextHostSize & {
+  bounds: CurvedDiscTextEditorBounds
+  fontSize: number
+}) {
+  const boundsHeight = Math.max(0.01, bounds.halfHeight * 2)
+
+  return Math.max(8, (fontSize / boundsHeight) * hostHeight * 1.35)
+}
+
+function getLineOffsetFromClientPoint({
+  clientX,
+  clientY,
+  geometry,
+  hostHeight,
+  hostRect,
+  hostWidth,
+}: {
+  clientX: number
+  clientY: number
+  geometry: CurvedDiscTextHostGeometry
+  hostHeight: number
+  hostRect: CurvedDiscTextHostRect
+  hostWidth: number
+}) {
+  if (geometry.lines.length === 0) return null
+
+  const boundsWidth = Math.max(0.01, geometry.bounds.halfWidth * 2)
+  const boundsHeight = Math.max(0.01, geometry.bounds.halfHeight * 2)
+  const localX = clientX - hostRect.left
+  const localY = clientY - hostRect.top
+  const x = geometry.bounds.centerX - boundsWidth / 2 +
+    (localX / Math.max(1, hostWidth)) * boundsWidth
+  const y = geometry.bounds.centerY - boundsHeight / 2 +
+    (localY / Math.max(1, hostHeight)) * boundsHeight
+  const radius = Math.hypot(x - 50, y - 50)
+  const angle = normalizeAngleDegrees(
+    Math.atan2(y - 50, x - 50) * (180 / Math.PI),
+  )
+  let nearestLineIndex = 0
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (let index = 0; index < geometry.lines.length; index += 1) {
+    const line = geometry.lines[index]
+    const progress = getArcProgress(line, angle)
+    const point = getPointOnLine(line, progress)
+    const distance = Math.hypot(x - point.x, y - point.y) +
+      Math.abs(radius - line.radius) * 0.4
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestLineIndex = index
+    }
+  }
+
+  const line = geometry.lines[nearestLineIndex]
+  const progress = getArcProgress(line, angle)
+
+  return {
+    lineIndex: nearestLineIndex,
+    offset: Math.round(progress * Array.from(line.text).length),
+  }
+}
+
+export function getCurvedDiscTextOffsetForClientPoint({
+  clientX,
+  clientY,
+  geometry,
+  hostHeight,
+  hostRect,
+  hostWidth,
+}: {
+  clientX: number
+  clientY: number
+  geometry: CurvedDiscTextHostGeometry
+  hostHeight: number
+  hostRect: CurvedDiscTextHostRect
+  hostWidth: number
+}) {
+  return getLineOffsetFromClientPoint({
+    clientX,
+    clientY,
+    geometry,
+    hostHeight,
+    hostRect,
+    hostWidth,
+  })
+}
+
+export function getCurvedDiscTextCaretFrame({
+  caretValue,
+  geometry,
+  hostHeight,
+  hostWidth,
+  lines,
+  selectionFocus,
+}: CurvedDiscTextHostSize & {
+  caretValue: string
+  geometry: CurvedDiscTextHostGeometry
+  lines: readonly { text: string }[]
+  selectionFocus: number
+}): CurvedDiscTextCaretFrame | null {
+  const { lineIndex, offset } = getLineOffsetForCaretIndex({
+    caretIndex: selectionFocus,
+    caretValue,
+    lines,
+  })
+  const line = geometry.lines[lineIndex]
+
+  if (!line) return null
+
+  const textLength = Math.max(1, Array.from(line.text).length)
+  const progress = clampValue(offset / textLength, 0, 1)
+  const angle = getAngleForLineProgress(line, progress)
+  const point = getPointOnLine(line, progress)
+  const localPoint = percentToHostLocal({
+    ...geometry,
+    hostHeight,
+    hostWidth,
+    x: point.x,
+    y: point.y,
+  })
+  const height = getFrameHeight({
+    bounds: geometry.bounds,
+    fontSize: line.fontSize,
+    hostHeight,
+    hostWidth,
+  })
+
+  return {
+    height,
+    left: localPoint.x,
+    rotationDegrees: getRadialCaretRotationDegrees(angle),
+    top: localPoint.y - height / 2,
+  }
+}
+
+export function getCurvedDiscTextSelectionFrames({
+  caretValue,
+  geometry,
+  hostHeight,
+  hostWidth,
+  lines,
+  selection,
+}: CurvedDiscTextHostSize & {
+  caretValue: string
+  geometry: CurvedDiscTextHostGeometry
+  lines: readonly { text: string }[]
+  selection: { end: number; start: number }
+}): CurvedDiscTextSelectionFrame[] {
+  const selectionStart = clampValue(
+    Math.min(selection.start, selection.end),
+    0,
+    caretValue.length,
+  )
+  const selectionEnd = clampValue(
+    Math.max(selection.start, selection.end),
+    0,
+    caretValue.length,
+  )
+
+  if (selectionStart === selectionEnd) return []
+
+  return geometry.lines.flatMap((line, lineIndex) => {
+    const lineStart = getLineRangeStart({ caretValue, lineIndex, lines })
+    const lineEnd = lineStart + line.text.length
+    const start = Math.max(selectionStart, lineStart)
+    const end = Math.min(selectionEnd, lineEnd)
+
+    if (start >= end) return []
+
+    const textLength = Math.max(1, Array.from(line.text).length)
+    const startProgress = clampValue((start - lineStart) / textLength, 0, 1)
+    const endProgress = clampValue((end - lineStart) / textLength, 0, 1)
+    const middleProgress = (startProgress + endProgress) / 2
+    const startPoint = getPointOnLine(line, startProgress)
+    const endPoint = getPointOnLine(line, endProgress)
+    const middlePoint = getPointOnLine(line, middleProgress)
+    const localStart = percentToHostLocal({
+      ...geometry,
+      hostHeight,
+      hostWidth,
+      x: startPoint.x,
+      y: startPoint.y,
+    })
+    const localEnd = percentToHostLocal({
+      ...geometry,
+      hostHeight,
+      hostWidth,
+      x: endPoint.x,
+      y: endPoint.y,
+    })
+    const localMiddle = percentToHostLocal({
+      ...geometry,
+      hostHeight,
+      hostWidth,
+      x: middlePoint.x,
+      y: middlePoint.y,
+    })
+    const height = getFrameHeight({
+      bounds: geometry.bounds,
+      fontSize: line.fontSize,
+      hostHeight,
+      hostWidth,
+    })
+    const width = Math.max(
+      2,
+      Math.hypot(localEnd.x - localStart.x, localEnd.y - localStart.y),
+    )
+
+    return [{
+      height,
+      left: localMiddle.x - width / 2,
+      rotationDegrees: getTangentSelectionRotationDegrees(
+        getAngleForLineProgress(line, middleProgress),
+      ),
+      top: localMiddle.y - height / 2,
+      width,
+    }]
+  })
 }
 
 function isFinitePaintBox(box: CurvedDiscTextPaintBox) {

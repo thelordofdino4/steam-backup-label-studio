@@ -655,9 +655,21 @@ async function showHtmlSource(page) {
 
 async function hideHtmlSource(page) {
   await clickInlineTab(page, 'utilities')
-  await ensureChecked(page, 'inline-text-checkbox-html-source', false)
+  const htmlSourceToggle = smoke(page, 'inline-text-checkbox-html-source').first()
+  await htmlSourceToggle.waitFor({ state: 'attached', timeout: 5_000 })
+  if (await htmlSourceToggle.isChecked()) {
+    await htmlSourceToggle.click({ force: true })
+  }
+  await smoke(page, 'inline-text-html-source').waitFor({ state: 'detached', timeout: 5_000 })
   await expectAttached(page, 'inline-text-input')
   await clickInlineTab(page, 'text')
+}
+
+async function ensureStraightDiscContextualShell(page) {
+  if ((await smoke(page, 'inline-text-menu').count()) === 0) {
+    await openStraightDiscTitle(page)
+  }
+  await expectContextualShell(page)
 }
 
 async function getHtmlSource(page) {
@@ -838,6 +850,10 @@ function rectsOverlapMeaningfully(first, second, tolerance = 6) {
   return overlap.width > tolerance && overlap.height > tolerance
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
 async function waitForInlineMenuAndTabsToSeparate(page) {
   let tabs = await getRect(page, 'inline-text-tabs')
   let menu = await getRect(page, 'inline-text-menu')
@@ -887,6 +903,39 @@ async function dragSelectVisibleText(page, smokeId) {
   const state = await getInlineInputState(page)
   if (state.selectionEnd <= state.selectionStart) {
     fail(`LMB drag did not create a visible selection on ${smokeId}.`)
+  }
+}
+
+async function dragSelectCurvedText(page, smokeId) {
+  const targetRect = await getRect(page, smokeId)
+  const textRect = await page
+    .locator('[data-smoke-id="disc-text-layer-hit-target"] text[data-disc-text-key="copyright"]')
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      }
+    })
+  const y = targetRect.bottom - Math.max(4, targetRect.height * 0.18)
+  const startX = targetRect.left + Math.max(4, targetRect.width * 0.12)
+  const endX = targetRect.left + Math.max(16, targetRect.width * 0.68)
+  await page.mouse.move(startX, y)
+  await page.mouse.down()
+  await page.mouse.move(endX, y, { steps: 12 })
+  await page.mouse.up()
+  await page.waitForTimeout(100)
+  const state = await getInlineInputState(page)
+  if (state.selectionEnd <= state.selectionStart) {
+    fail(
+      `Curved text drag did not create a visible selection on ${smokeId}: ` +
+      JSON.stringify({ endX, startX, state, targetRect, textRect, y }),
+    )
   }
 }
 
@@ -1002,30 +1051,47 @@ async function assertCurvedCopyrightGuardrail(page) {
   await curvedPath.waitFor({ state: 'attached', timeout: 5_000 })
   const beforeSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   await curvedPath.click({ force: true })
-  await expectContextualShell(page)
+  await expectInlineEditor(page)
   const copyrightEditorCount = await smoke(page, 'disc-inline-text-copyright').count()
   if (copyrightEditorCount !== 1) {
     fail(`Curved copyright did not open its contextual shell. Count: ${copyrightEditorCount}`)
   }
-  const rectangularInputCount = await smoke(page, 'inline-text-input').count()
-  if (rectangularInputCount !== 0) {
+  const canvasTextareaCount = await smoke(page, 'disc-inline-text-copyright').locator('textarea').count()
+  if (canvasTextareaCount !== 0) {
     fail('Curved copyright mounted a rectangular on-canvas textarea.')
+  }
+  const menuValueCount = await smoke(page, 'inline-text-menu-value').count()
+  if (menuValueCount !== 0) {
+    fail('Curved copyright still exposed a contextual menu Text Value field.')
   }
   const menuText = await smoke(page, 'inline-text-menu').first().textContent()
   if (/unsupported/i.test(menuText ?? '')) {
     fail(`Curved contextual menu displayed unsupported placeholder copy: ${menuText}`)
   }
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'initial curved copyright')
-  await setNativeInputValue(smoke(page, 'inline-text-menu-value').first(), 'Curved contextual smoke')
+  await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
+  const inputState = await getInlineInputState(page)
+  if (inputState.value !== 'Curved direct smoke') {
+    fail(`Curved direct edit did not update the hidden input: ${JSON.stringify(inputState)}`)
+  }
   const afterSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   if (!afterSrc || afterSrc === beforeSrc) {
-    fail('Curved copyright SVG data URL did not update from menu text editing.')
+    fail('Curved copyright SVG data URL did not update from direct text editing.')
   }
   const hitTargetMarkup = await smoke(page, 'disc-text-layer-hit-target').first().evaluate(
     (element) => element.innerHTML,
   )
-  if (!hitTargetMarkup.includes('Curved contextual smoke')) {
-    fail('Curved copyright hit-target SVG did not receive the menu-edited text.')
+  if (!hitTargetMarkup.includes('Curved direct smoke')) {
+    fail('Curved copyright hit-target SVG did not receive the directly edited text.')
+  }
+  await dragSelectCurvedText(page, 'disc-inline-text-copyright')
+  await page.keyboard.press('Control+A')
+  const selectAllState = await getInlineInputState(page)
+  if (
+    selectAllState.selectionStart !== 0 ||
+    selectAllState.selectionEnd !== selectAllState.value.length
+  ) {
+    fail(`Ctrl+A did not select all curved text: ${JSON.stringify(selectAllState)}`)
   }
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'edited curved copyright')
   await setInlineSelectControl(page, 'arc-side', 'top')
@@ -1441,13 +1507,15 @@ async function runDiscChecks(page) {
   })
 
   await runCheck(page, 'straight disc Move handle begins dragging immediately', async () => {
-    await hideHtmlSource(page)
+    await ensureStraightDiscContextualShell(page)
     await dragInlineMoveHandleImmediately(page, 'disc-inline-text-title', 24, 18)
     await clickInlineMoveHandleWithoutMoving(page, 'disc-inline-text-title')
   })
 
   await runCheck(page, 'straight disc selected-range color and LMB drag selection work', async () => {
-    await done(page)
+    if ((await smoke(page, 'inline-text-menu').count()) > 0) {
+      await done(page)
+    }
     await openStraightDiscTitle(page)
     await setHtmlSource(page, '<p>Disc Selection Smoke</p>')
     await hideHtmlSource(page)
@@ -1466,7 +1534,7 @@ async function runDiscChecks(page) {
     await dragSelectVisibleText(page, 'disc-inline-text-title')
   })
 
-  await runCheck(page, 'curved copyright edits through contextual menu while staying SVG textPath', async () => {
+  await runCheck(page, 'curved copyright edits directly while staying SVG textPath', async () => {
     await done(page)
     await assertCurvedCopyrightGuardrail(page)
   })

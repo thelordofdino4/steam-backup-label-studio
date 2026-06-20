@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { getCurvedDiscTextEditorBoundsFromPaintBoxes } from './curvedInlineEditorGeometry.ts'
+import {
+  getCurvedDiscTextCaretFrame,
+  getCurvedDiscTextEditorBoundsFromPaintBoxes,
+  getCurvedDiscTextOffsetForClientPoint,
+  getCurvedDiscTextSelectionFrames,
+  type CurvedDiscTextHostGeometry,
+} from './curvedInlineEditorGeometry.ts'
 import { layoutCurvedText, normalizeAngleDegrees, type CurvedTextAlignment, type CurvedTextSide } from './curvedTextLayout.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
@@ -157,4 +163,111 @@ test('curved editor bounds return null when SVG textPath lines are not measurabl
     }),
     null,
   )
+})
+
+function getCurvedGeometryFixture(
+  overrides: Partial<CurvedDiscTextHostGeometry['lines'][number]> = {},
+): CurvedDiscTextHostGeometry {
+  return {
+    bounds: {
+      centerX: 50,
+      centerY: 25,
+      halfHeight: 25,
+      halfWidth: 50,
+    },
+    lines: [{
+      angleWidthDegrees: 180,
+      centerAngleDegrees: 270,
+      endAngleDegrees: 360,
+      fontSize: 4,
+      isTopArc: true,
+      letterSpacing: 0,
+      radius: 40,
+      startAngleDegrees: 180,
+      text: 'ABCDE',
+      ...overrides,
+    }],
+  }
+}
+
+test('curved geometry maps pointer-down positions to nearest text offsets', () => {
+  const geometry = getCurvedGeometryFixture()
+  const common = {
+    geometry,
+    hostHeight: 50,
+    hostRect: { height: 50, left: 0, top: 0, width: 100 },
+    hostWidth: 100,
+  }
+
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForClientPoint({
+      ...common,
+      clientX: 10,
+      clientY: 50,
+    }),
+    { lineIndex: 0, offset: 0 },
+  )
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForClientPoint({
+      ...common,
+      clientX: 50,
+      clientY: 10,
+    }),
+    { lineIndex: 0, offset: 3 },
+  )
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForClientPoint({
+      ...common,
+      clientX: 90,
+      clientY: 50,
+    }),
+    { lineIndex: 0, offset: 5 },
+  )
+})
+
+test('curved geometry creates radial caret frames for top and bottom arcs', () => {
+  const topCaret = getCurvedDiscTextCaretFrame({
+    caretValue: 'ABCDE',
+    geometry: getCurvedGeometryFixture(),
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'ABCDE' }],
+    selectionFocus: 5,
+  })
+  const bottomCaret = getCurvedDiscTextCaretFrame({
+    caretValue: 'ABCDE',
+    geometry: getCurvedGeometryFixture({
+      centerAngleDegrees: 90,
+      endAngleDegrees: 0,
+      isTopArc: false,
+      startAngleDegrees: 180,
+    }),
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'ABCDE' }],
+    selectionFocus: 5,
+  })
+
+  assert.ok(topCaret)
+  assert.ok(bottomCaret)
+  assert.equal(topCaret.rotationDegrees, 270)
+  assert.equal(bottomCaret.rotationDegrees, 270)
+  assert.ok(topCaret.height >= 8)
+  assert.ok(bottomCaret.height >= 8)
+})
+
+test('curved geometry returns tangent selection frames for dragged ranges', () => {
+  const frames = getCurvedDiscTextSelectionFrames({
+    caretValue: 'ABCDE',
+    geometry: getCurvedGeometryFixture(),
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'ABCDE' }],
+    selection: { start: 1, end: 4 },
+  })
+
+  assert.equal(frames.length, 1)
+  assert.ok(frames[0].width > 2)
+  assert.ok(frames[0].height >= 8)
+  assert.ok(Number.isFinite(frames[0].rotationDegrees))
 })

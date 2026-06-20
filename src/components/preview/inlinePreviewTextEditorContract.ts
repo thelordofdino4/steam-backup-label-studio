@@ -34,6 +34,56 @@ export type InlinePreviewTextEditorGeometryLine = {
   topRatio: number
 }
 
+export type InlinePreviewTextEditorGeometryHost = {
+  hostHeight: number
+  hostRect: Pick<DOMRect, 'height' | 'left' | 'top' | 'width'>
+  hostWidth: number
+}
+
+export type InlinePreviewTextEditorGeometryOffset = {
+  lineIndex: number
+  offset: number
+}
+
+export type InlinePreviewTextEditorCaretFrame = {
+  height: number
+  left: number
+  rotationDegrees?: number
+  top: number
+}
+
+export type InlinePreviewTextEditorSelectionFrame = {
+  height: number
+  left: number
+  rotationDegrees?: number
+  top: number
+  width: number
+}
+
+export type InlinePreviewTextEditorGeometryAdapter = {
+  getInteractionElements?: () => readonly Element[]
+  getOffsetForClientPoint: (
+    input: InlinePreviewTextEditorGeometryHost & {
+      clientX: number
+      clientY: number
+    },
+  ) => InlinePreviewTextEditorGeometryOffset | null
+  getCaretFrame: (
+    input: InlinePreviewTextEditorGeometryHost & {
+      caretValue: string
+      lines: readonly InlinePreviewTextEditorLine[]
+      selectionFocus: number
+    },
+  ) => InlinePreviewTextEditorCaretFrame | null
+  getSelectionFrames: (
+    input: InlinePreviewTextEditorGeometryHost & {
+      caretValue: string
+      lines: readonly InlinePreviewTextEditorLine[]
+      selection: InlinePreviewTextEditorSelectionRange
+    },
+  ) => InlinePreviewTextEditorSelectionFrame[]
+}
+
 export type InlinePreviewTextEditorOption<T extends string = string> = {
   label: string
   value: T
@@ -166,6 +216,7 @@ export type InlinePreviewTextEditorProps = {
   caretValue: string
   controls?: InlinePreviewTextEditorControls
   inputMode?: InlinePreviewTextEditorInputMode
+  geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   lines: InlinePreviewTextEditorLine[]
   rotationDegrees?: number

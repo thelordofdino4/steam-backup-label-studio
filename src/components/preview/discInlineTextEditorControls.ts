@@ -115,9 +115,6 @@ export type CurvedDiscTextEditorControlParams = Omit<
     key: DiscTextKey,
     arcSide: DiscTextArcSide,
   ) => void
-  onDiscTextValueChange: (key: DiscTextKey, value: string) => void
-  textPlaceholder?: string
-  textValue: string
 }
 
 function getMatchingDiscLayoutPreset({
@@ -590,8 +587,6 @@ export function createCurvedDiscTextEditorControls({
   key,
   layout,
   style,
-  textPlaceholder,
-  textValue,
   onSelectedDiscTextKeyChange,
   onDiscTextEnabledChange,
   onDiscTextStyleChange,
@@ -601,7 +596,6 @@ export function createCurvedDiscTextEditorControls({
   onDiscTextAlignmentChange,
   onDiscTextArcSideChange,
   onResetDiscTextLayout,
-  onDiscTextValueChange,
 }: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode === 'curved')
@@ -654,12 +648,6 @@ export function createCurvedDiscTextEditorControls({
       onReset: () => onResetDiscTextStyle(key),
     },
     text: {
-      textValue: {
-        label: getDiscTextLabel(key),
-        value: textValue,
-        placeholder: textPlaceholder,
-        onChange: (value) => onDiscTextValueChange(key, value),
-      },
       fontFamily: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.fontFamily,
         options: DISC_TEXT_FONT_OPTIONS.map(({ label, value }) => ({
