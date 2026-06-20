@@ -4,6 +4,7 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import zlib from 'node:zlib'
 import { chromium } from 'playwright'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -151,6 +152,167 @@ async function launchBrowser() {
 
 function smokeSelector(smokeId) {
   return `[data-smoke-id="${smokeId}"]`
+}
+
+function paethPredictor(a, b, c) {
+  const p = a + b - c
+  const pa = Math.abs(p - a)
+  const pb = Math.abs(p - b)
+  const pc = Math.abs(p - c)
+
+  if (pa <= pb && pa <= pc) return a
+  if (pb <= pc) return b
+  return c
+}
+
+function decodePngRgba(buffer) {
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])
+  if (!buffer.subarray(0, 8).equals(signature)) {
+    fail('Screenshot was not a PNG.')
+  }
+
+  let offset = 8
+  let width = 0
+  let height = 0
+  let bitDepth = 0
+  let colorType = 0
+  const idatChunks = []
+
+  while (offset < buffer.length) {
+    const length = buffer.readUInt32BE(offset)
+    const type = buffer.subarray(offset + 4, offset + 8).toString('ascii')
+    const data = buffer.subarray(offset + 8, offset + 8 + length)
+    offset += 12 + length
+
+    if (type === 'IHDR') {
+      width = data.readUInt32BE(0)
+      height = data.readUInt32BE(4)
+      bitDepth = data[8]
+      colorType = data[9]
+    } else if (type === 'IDAT') {
+      idatChunks.push(data)
+    } else if (type === 'IEND') {
+      break
+    }
+  }
+
+  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
+    fail(`Unsupported screenshot PNG format: bitDepth=${bitDepth}, colorType=${colorType}.`)
+  }
+
+  const channels = colorType === 6 ? 4 : 3
+  const rowLength = width * channels
+  const inflated = zlib.inflateSync(Buffer.concat(idatChunks))
+  const rgba = new Uint8Array(width * height * 4)
+  let sourceOffset = 0
+  let previous = new Uint8Array(rowLength)
+
+  for (let y = 0; y < height; y += 1) {
+    const filter = inflated[sourceOffset]
+    sourceOffset += 1
+    const raw = inflated.subarray(sourceOffset, sourceOffset + rowLength)
+    sourceOffset += rowLength
+    const row = new Uint8Array(rowLength)
+
+    for (let x = 0; x < rowLength; x += 1) {
+      const left = x >= channels ? row[x - channels] : 0
+      const up = previous[x] ?? 0
+      const upperLeft = x >= channels ? previous[x - channels] ?? 0 : 0
+      const value = raw[x]
+
+      if (filter === 0) row[x] = value
+      else if (filter === 1) row[x] = (value + left) & 0xff
+      else if (filter === 2) row[x] = (value + up) & 0xff
+      else if (filter === 3) row[x] = (value + Math.floor((left + up) / 2)) & 0xff
+      else if (filter === 4) row[x] = (value + paethPredictor(left, up, upperLeft)) & 0xff
+      else fail(`Unsupported screenshot PNG filter ${filter}.`)
+    }
+
+    for (let x = 0; x < width; x += 1) {
+      const source = x * channels
+      const target = (y * width + x) * 4
+      rgba[target] = row[source]
+      rgba[target + 1] = row[source + 1]
+      rgba[target + 2] = row[source + 2]
+      rgba[target + 3] = channels === 4 ? row[source + 3] : 255
+    }
+
+    previous = row
+  }
+
+  return { data: rgba, height, width }
+}
+
+function getScreenshotPixel(image, x, y) {
+  const offset = (y * image.width + x) * 4
+
+  return [
+    image.data[offset],
+    image.data[offset + 1],
+    image.data[offset + 2],
+    image.data[offset + 3],
+  ]
+}
+
+function colorDistance(first, second) {
+  return Math.abs(first[0] - second[0]) +
+    Math.abs(first[1] - second[1]) +
+    Math.abs(first[2] - second[2])
+}
+
+function isGuideOverlayPixel(pixel) {
+  const [red, green, blue] = pixel
+
+  return blue > 145 && blue - red > 60 && blue - green > 35
+}
+
+function getPaintBoundsFromScreenshot(buffer) {
+  const image = decodePngRgba(buffer)
+  const background = getScreenshotPixel(
+    image,
+    Math.floor(image.width / 2),
+    image.height - 1,
+  )
+  const verticalGuideInset = Math.min(12, Math.floor(image.height / 6))
+  let minX = Number.POSITIVE_INFINITY
+  let maxX = Number.NEGATIVE_INFINITY
+  let minY = Number.POSITIVE_INFINITY
+  let maxY = Number.NEGATIVE_INFINITY
+
+  for (
+    let y = verticalGuideInset;
+    y < image.height - verticalGuideInset;
+    y += 1
+  ) {
+    for (let x = 0; x < image.width; x += 1) {
+      const pixel = getScreenshotPixel(image, x, y)
+      if (
+        pixel[3] < 24 ||
+        colorDistance(pixel, background) <= 35 ||
+        isGuideOverlayPixel(pixel)
+      ) {
+        continue
+      }
+
+      minX = Math.min(minX, x)
+      maxX = Math.max(maxX, x)
+      minY = Math.min(minY, y)
+      maxY = Math.max(maxY, y)
+    }
+  }
+
+  if (!Number.isFinite(minX)) {
+    fail('Screenshot analysis did not find visible text paint.')
+  }
+
+  return {
+    height: image.height,
+    left: minX,
+    right: maxX,
+    top: minY,
+    bottom: maxY,
+    width: image.width,
+  }
 }
 
 function smoke(page, smokeId) {
@@ -463,6 +625,29 @@ async function getRect(page, smokeId) {
   })
 }
 
+async function assertScreenshotPaintDoesNotTouchHorizontalEdges(page, smokeId, label) {
+  await expectVisible(page, smokeId)
+  const buffer = await smoke(page, smokeId).first().screenshot()
+  const bounds = getPaintBoundsFromScreenshot(buffer)
+  const leftMargin = bounds.left
+  const rightMargin = bounds.width - 1 - bounds.right
+
+  if (leftMargin < 1 || rightMargin < 1) {
+    fs.mkdirSync(artifactDir, { recursive: true })
+    const elementScreenshotPath = path.join(
+      artifactDir,
+      `${slug(label)}-element.png`,
+    )
+    fs.writeFileSync(elementScreenshotPath, buffer)
+    fail(
+      `${label} paint touched screenshot edge: ` +
+      `leftMargin=${leftMargin}, rightMargin=${rightMargin}, ` +
+      `imageWidth=${bounds.width}, paintLeft=${bounds.left}, ` +
+      `paintRight=${bounds.right}, elementScreenshot=${elementScreenshotPath}.`,
+    )
+  }
+}
+
 async function dragSelectVisibleText(page, smokeId) {
   const targetRect = await getRect(page, smokeId)
   const y = targetRect.top + targetRect.height / 2
@@ -764,6 +949,27 @@ async function runCaseChecks(page) {
     await openSpineTitle(page, 'right')
     await assertTextIncludes(page, 'case-spine-title-right', 'RIGHT SPINE SMOKE')
     await done(page)
+  })
+
+  await runCheck(page, 'tray title paint is not clipped at 6pt default or 72pt', async () => {
+    await setCasePane(page, 'tray')
+    await ensureChecked(page, 'case-sidebar-text-block-tray-tray-title-text', true)
+    await clickSmoke(page, 'case-sidebar-edit-text-block-tray-tray-title-text')
+    await expectInlineEditor(page)
+    await replaceInlineTextWithKeyboard(page, 'Untitled Steam Backup Label')
+    const defaultSize = Number(await getInlineTextNumberDraft(page, 'font-size-pt'))
+
+    for (const size of [6, defaultSize, 72]) {
+      await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', String(size))
+      await page.keyboard.press('Enter')
+      await done(page)
+      await assertScreenshotPaintDoesNotTouchHorizontalEdges(
+        page,
+        'case-text-block-tray-tray-title-text',
+        `Tray title ${size}pt`,
+      )
+      await openInlineEditorFromTarget(page, 'case-text-block-tray-tray-title-text')
+    }
   })
 }
 

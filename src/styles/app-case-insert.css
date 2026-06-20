@@ -296,7 +296,7 @@
 .case-insert-back-feature-list,
 .case-insert-template-feature-list {
   z-index: 1;
-  overflow: hidden;
+  overflow: visible;
   margin: 0;
   padding: 0.45cqw 0.65cqw;
   color: #f8fafc;

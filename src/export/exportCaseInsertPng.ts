@@ -381,14 +381,6 @@ function drawComputedTextLayout(
     )
   }
 
-  context.beginPath()
-  context.rect(
-    textLayout.bounds.x,
-    textLayout.bounds.y,
-    textLayout.bounds.width,
-    textLayout.bounds.height,
-  )
-  context.clip()
   context.fillStyle = options.color ?? '#f8fafc'
 
   if (options.shadow) {
