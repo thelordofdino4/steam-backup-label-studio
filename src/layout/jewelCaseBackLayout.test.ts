@@ -21,6 +21,9 @@ import {
 import {
   getCaseInsertBackTextBlockRole,
 } from '../caseInsert/textReadability.ts'
+import {
+  caseInsertFontSizePtToExportPx,
+} from '../caseInsert/textSizing.ts'
 import { createJewelCasePreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
   getJewelCaseBackBackgroundFit,
@@ -295,7 +298,7 @@ test('tray text visual bounds include paint slack and width controls wrapping', 
   assertTextLinesHavePaintSlack(wideLayout)
 })
 
-test('tray default metadata text is readable and paint-safe at common scales', () => {
+test('tray default metadata text is readable and paint-safe at common point sizes', () => {
   const state = createDefaultProjectJewelCaseState('Warframe')
   const layout = createJewelCasePreviewLayout('jewelCase', 'back')
   const safeBounds = getRegionBounds(layout, 'backPanelSafe')
@@ -306,7 +309,9 @@ test('tray default metadata text is readable and paint-safe at common scales', (
   assert.ok(safeBounds)
   assert.ok(titleBlock)
 
-  for (const scale of [0.7, titleBlock.layout.scale, 1.8]) {
+  const defaultFontSizePt = titleBlock.layout.fontSizePt ?? 24
+
+  for (const fontSizePt of [8, defaultFontSizePt, 72]) {
     const textBlock = {
       ...setCaseInsertTextBlockEnabled(
         updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
@@ -314,7 +319,7 @@ test('tray default metadata text is readable and paint-safe at common scales', (
       ),
       layout: {
         ...titleBlock.layout,
-        scale,
+        fontSizePt,
         x: 50,
       },
     }
@@ -326,7 +331,10 @@ test('tray default metadata text is readable and paint-safe at common scales', (
 
     assert.ok(textLayout)
     assert.equal(isPixelRectInsideBounds(textLayout.bounds, safeBounds), true)
-    assert.ok(textLayout.fontSizePx >= safeBounds.width * 0.012)
+    assert.equal(
+      Math.round(textLayout.fontSizePx * 100) / 100,
+      Math.round(caseInsertFontSizePtToExportPx(fontSizePt) * 100) / 100,
+    )
     assertTextLinesFitVisualBounds(textLayout)
     assertTextLinesHavePaintSlack(textLayout)
   }
@@ -393,7 +401,7 @@ test('tray wrap width changes reserved wrapping width without becoming the visib
       layout,
       getCaseInsertBackTextBlockRole(titleBlock),
     )
-  const narrowLayout = createTextLayout(24)
+  const narrowLayout = createTextLayout(42)
   const wideLayout = createTextLayout(74)
 
   assert.ok(narrowLayout)
@@ -537,14 +545,17 @@ test('tray text avoidance wraps around other visible text lists', () => {
               ),
               true,
             ),
-            layout: { ...textBlock.layout, x: 28, y: 31 },
+            layout: { ...textBlock.layout, fontSizePt: 10, x: 28, y: 31 },
           }
         : textBlock,
     ),
     textLists: tray.textLists.map((textList) =>
       textList.id === 'tray-feature-bullets'
         ? setCaseInsertTextListItems(
-            setCaseInsertTextListEnabled(textList, true),
+            {
+              ...setCaseInsertTextListEnabled(textList, true),
+              layout: { ...textList.layout, fontSizePt: 10 },
+            },
             ['Single-player', 'Co-op puzzles', 'Challenge rooms'],
           )
         : textList,

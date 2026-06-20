@@ -495,7 +495,13 @@ test('cover sheet text avoidance wraps opted-in text around occupied visuals', (
   const textBlock = setCaseInsertTextBlockAvoidVisualElements(
     setCaseInsertTextBlockEnabled(
       updateCaseInsertTextBlockValue(
-        customNote,
+        {
+          ...customNote,
+          layout: {
+            ...customNote.layout,
+            fontSizePt: 12,
+          },
+        },
         text,
       ),
       true,

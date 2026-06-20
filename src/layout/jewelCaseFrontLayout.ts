@@ -17,6 +17,10 @@ import {
   CASE_INSERT_TEXT_BLOCK_MAX_LINES,
   getCaseInsertTextLayoutWidth,
 } from '../caseInsert/textLayout.ts'
+import {
+  getCaseInsertLayoutFontSizePx,
+  type CaseInsertTextSizeRole,
+} from '../caseInsert/textSizing.ts'
 import type { JewelCaseRegionId } from '../templates/caseInsertTemplates.ts'
 import type { CaseInsertPreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
@@ -306,6 +310,16 @@ export function getJewelCaseFrontTextBlockRole(
   return 'callout'
 }
 
+function getFrontTextSizeRole(
+  role: JewelCaseFrontTextBlockRole,
+): CaseInsertTextSizeRole {
+  if (role === 'title') return 'coverTitle'
+  if (role === 'subtitle') return 'coverSubtitle'
+  if (role === 'legalText') return 'coverLegal'
+
+  return 'coverCallout'
+}
+
 export function getJewelCaseFrontTextBlockPreviewLayout(
   textBlock: ProjectCaseInsertTextBlock,
   layout: CaseInsertPreviewLayout,
@@ -317,7 +331,6 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
     return null
   }
 
-  const scale = normalizePositiveNumber(textBlock.layout.scale, 1)
   const config = textBlockConfigByRole[getJewelCaseFrontTextBlockRole(textBlock)]
   const centerPercent = {
     x: normalizePercent(textBlock.layout.x, config.defaultCenter.x),
@@ -326,13 +339,15 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
   const width = safeBounds.width *
     getCaseInsertTextLayoutWidth(textBlock.layout, config.widthRatio * 100) /
     100
-  const height = safeBounds.height * config.heightRatio * scale
-  const fontSizePx = clampNumber(
-    safeBounds.width * config.targetFontRatio * scale,
-    safeBounds.width * config.minFontRatio,
-    safeBounds.width * config.maxFontRatio,
-  )
   const role = getJewelCaseFrontTextBlockRole(textBlock)
+  const fontSizePx = getCaseInsertLayoutFontSizePx(
+    textBlock.layout,
+    getFrontTextSizeRole(role),
+  )
+  const height = Math.max(
+    safeBounds.height * config.heightRatio,
+    fontSizePx * CASE_INSERT_TEXT_BLOCK_MAX_LINES * 1.14,
+  )
   const requestedBounds = getCenteredRect(safeBounds, width, height, centerPercent)
   const lineHeightPx = fontSizePx * 1.14
   const { reservedBounds, visualLayout } = clampCaseInsertTextVisualLayoutToBounds(

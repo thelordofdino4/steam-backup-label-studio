@@ -430,6 +430,7 @@ Key files:
 - `src/caseInsert/textTransitions.ts`
 - `src/caseInsert/sidebarControlPolicy.ts`
 - `src/caseInsert/textLayout.ts`
+- `src/caseInsert/textSizing.ts`
 - `src/caseInsert/textStyles.ts`
 - `src/caseInsert/textRenderStyles.ts`
 - `src/caseInsert/textReadability.ts`
@@ -446,6 +447,10 @@ Source-of-truth state:
 - Disc text runtime state is owned by `useDiscTextState`.
 - Disc persisted text data lives in `SavedDiscProject.discText`.
 - Case insert text block/list state lives inside `ProjectJewelCaseState`.
+- Case insert rectangular text sizing is stored as typographic points on
+  text layout state. Legacy scale-only saved projects are normalized into point
+  sizes by `src/caseInsert/textSizing.ts`; image and disc text scale semantics
+  remain separate.
 - Metadata binding rules for disc text live in `src/project/metadataDiscText.ts`.
 
 Render path:
@@ -454,6 +459,10 @@ Render path:
   adapter for selected straight text. The SVG/final preview renderer remains
   the visible glyph source during straight-disc editing.
 - Case insert text renders through template/spine preview layers and computed visual layout helpers.
+- Case insert layout helpers convert `fontSizePt` to canonical export pixels
+  using the template export DPI before preview/export scaling. Wrap width is
+  only a maximum wrapping width; rendered ink bounds plus paint slack drive
+  visual bounds and safe-zone clamping.
 - Case insert rich-text run style interpretation is shared in
   `src/text/richTextRunStyle.ts`; DOM preview span creation, layout
   measurement, and canvas drawing remain adapter-owned.

@@ -8,9 +8,9 @@ import {
 } from '../../caseInsert/titleArtwork'
 import type {
   ProjectCaseInsertImageSlot,
-  ProjectCaseInsertLayout,
 } from '../../project/projectTypes'
 import type {
+  CaseInsertImageLayoutField,
   CaseInsertImageSlotPlacementField,
 } from './CaseInsertImageSlotPlacementControls'
 import { EditorImageAssetStatusCard } from '../editor/EditorImageAssetStatusCard'
@@ -25,7 +25,7 @@ export type CaseInsertTitleArtworkControlsProps = {
   helpText: string
   onEnabledChange: (enabled: boolean) => void
   onLayoutChange: (
-    field: Exclude<keyof ProjectCaseInsertLayout, 'width'>,
+    field: CaseInsertImageLayoutField,
     value: number,
   ) => void
   onResetLayout: () => void

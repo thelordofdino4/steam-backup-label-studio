@@ -27,6 +27,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   }
   const layout: ProjectCaseInsertLayout = {
     scale: 1.12,
+    fontSizePt: 28,
     width: 72,
     x: 35,
     y: 42,
@@ -121,7 +122,9 @@ test('case insert contextual controls expose migrated text block properties', ()
   controls.presets?.style?.onChange('metallic')
   controls.presets?.layout?.onChange('cover-top-center')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
-  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.size?.label, 'Font size (pt)')
+  assert.equal(controls.text?.size?.value, layout.fontSizePt)
+  assert.ok(controls.text?.size?.options.includes(24))
   assert.equal(controls.text?.alignment?.value, 'center')
   assert.equal(controls.text?.bold?.pressed, true)
   assert.equal(controls.text?.italic?.pressed, false)
@@ -152,6 +155,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   controls.text?.bold?.onChange(false)
   controls.text?.italic?.onChange(true)
   controls.text?.underline?.onChange(true)
+  controls.text?.size?.onChange(24)
   controls.art?.backgroundPadding?.onChange(1.8)
   controls.utilities?.width?.onChange(64)
   controls.utilities?.htmlSource?.onChange(true)
@@ -166,6 +170,7 @@ test('case insert contextual controls expose migrated text block properties', ()
     'style:bold:false',
     'style:italic:true',
     'style:underline:true',
+    'layout:fontSizePt:24',
     'style:backgroundPadding:1.8',
     'layout:width:64',
     'content-mode:html',
@@ -184,6 +189,7 @@ test('case insert bulleted list control routes selection command through handler
   }
   const layout: ProjectCaseInsertLayout = {
     scale: 1,
+    fontSizePt: 18,
     width: 80,
     x: 50,
     y: 50,
@@ -245,6 +251,7 @@ test('case insert contextual controls expose migrated text list properties', () 
   }
   const layout: ProjectCaseInsertLayout = {
     scale: 0.96,
+    fontSizePt: 12,
     width: 38,
     x: 58,
     y: 62,
@@ -324,7 +331,8 @@ test('case insert contextual controls expose migrated text list properties', () 
   controls.presets?.style?.onChange('futuristic')
   controls.presets?.layout?.onChange('tray-center')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
-  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.size?.label, 'Font size (pt)')
+  assert.equal(controls.text?.size?.value, layout.fontSizePt)
   assert.equal(controls.text?.alignment, undefined)
   assert.equal(controls.text?.bold?.pressed, false)
   assert.equal(controls.text?.italic?.pressed, true)
@@ -352,6 +360,7 @@ test('case insert contextual controls expose migrated text list properties', () 
 
   controls.art?.backgroundOpacity?.onChange(0.8)
   controls.text?.italic?.onChange(false)
+  controls.text?.size?.onChange(14)
   controls.utilities?.respectVisualElements?.onChange(true)
   controls.utilities?.htmlSource?.onChange(false)
   controls.utilities?.x?.onChange(44)
@@ -364,6 +373,7 @@ test('case insert contextual controls expose migrated text list properties', () 
     'layout-preset:tray-center',
     'style:backgroundOpacity:0.8',
     'style:italic:false',
+    'layout:fontSizePt:14',
     'avoid:true',
     'content-mode:plain',
     'layout:x:44',
@@ -382,6 +392,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
   }
   const layout: ProjectCaseInsertLayout = {
     scale: 1.08,
+    fontSizePt: 10,
     width: 64,
     x: 12.5,
     y: 74.25,
@@ -448,8 +459,6 @@ test('case insert contextual controls expose migrated spine text properties', ()
       layout,
       style,
     }),
-    scaleMax: 1.8,
-    scaleMin: 0.5,
     style,
     target,
     widthFallback: 90,
@@ -482,9 +491,9 @@ test('case insert contextual controls expose migrated spine text properties', ()
   controls.presets?.style?.onChange('horror')
   controls.presets?.layout?.onChange('spine-centered')
   assert.equal(controls.text?.fontFamily?.value, style.fontFamily)
-  assert.equal(controls.text?.size?.min, 0.5)
-  assert.equal(controls.text?.size?.max, 1.8)
-  assert.equal(controls.text?.size?.value, layout.scale)
+  assert.equal(controls.text?.size?.min, 6)
+  assert.equal(controls.text?.size?.max, 96)
+  assert.equal(controls.text?.size?.value, layout.fontSizePt)
   assert.equal(controls.text?.alignment?.value, 'right')
   assert.equal(controls.text?.bold?.pressed, false)
   assert.equal(controls.text?.italic?.pressed, false)
@@ -520,6 +529,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
 
   controls.text?.alignment?.onChange('center')
   controls.text?.underline?.onChange(false)
+  controls.text?.size?.onChange(11.5)
   controls.art?.borderRadius?.onChange(1.1)
   controls.utilities?.respectVisualElements?.onChange(true)
   controls.utilities?.htmlSource?.onChange(true)
@@ -534,6 +544,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
     'layout-preset:spine-centered',
     'align:center',
     'style:underline:false',
+    'layout:fontSizePt:11.5',
     'style:borderRadius:1.1',
     'avoid:true',
     'content-mode:html',

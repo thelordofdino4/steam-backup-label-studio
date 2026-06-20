@@ -32,6 +32,9 @@ import {
   getCaseInsertTextBlockLayoutPresets,
 } from '../../caseInsert/textLayout'
 import {
+  getCaseInsertTextSizeRoleFromId,
+} from '../../caseInsert/textSizing'
+import {
   getRenderedCaseInsertTextBlock,
 } from '../../caseInsert/textContent'
 import type { CaseInsertPreviewLayout } from '../../layout/caseInsertPreviewLayout'
@@ -139,22 +142,30 @@ function getSpineTitleTextStyle(
 function getSpineTextBackplateStyle(
   style: ProjectJewelCaseSpineSideState['title']['style'],
 ): CSSProperties {
-  const hasVisibleBackplate = style.backgroundEnabled
-
   return {
     backgroundColor: getCaseInsertTextBackgroundColor(style),
     border: getCaseInsertTextBorderCss(style),
     borderRadius: getCaseInsertTextBorderRadiusCss(style),
     boxSizing: 'border-box',
-    cursor: hasVisibleBackplate ? 'grab' : undefined,
     display: 'block',
     height: '100%',
     overflow: 'hidden',
     padding: 0,
-    pointerEvents: hasVisibleBackplate ? 'auto' : 'none',
-    position: 'relative',
-    touchAction: hasVisibleBackplate ? 'none' : undefined,
+    pointerEvents: 'none',
+    position: 'absolute',
+    inset: 0,
     userSelect: 'none',
+    width: '100%',
+  }
+}
+
+function getSpineTextContentStyle(): CSSProperties {
+  return {
+    display: 'block',
+    height: '100%',
+    overflow: 'visible',
+    padding: 0,
+    position: 'relative',
     width: '100%',
   }
 }
@@ -376,8 +387,10 @@ function CaseInsertSpineTextBlock({
         ),
         contentMode: layoutTextBlock.contentMode,
         htmlSourceActive: isHtmlSourceEditing,
-        scaleMax: dragKind.kind === 'title' ? 1.6 : 1.8,
-        scaleMin: dragKind.kind === 'title' ? 0.7 : 0.5,
+        fontSizeRole: getCaseInsertTextSizeRoleFromId(
+          layoutTextBlock.id,
+          dragKind.kind === 'title' ? 'spineTitle' : 'spineSecondary',
+        ),
         style: layoutTextBlock.style,
         target: textTarget,
         widthFallback: dragKind.kind === 'title' ? 90 : undefined,
@@ -455,10 +468,15 @@ function CaseInsertSpineTextBlock({
       }}
       style={style}
     >
-      <span
-        className="case-insert-text-render-content"
-        style={getSpineTextBackplateStyle(layoutTextBlock.style)}
-      >
+        <span
+          aria-hidden="true"
+          className="case-insert-text-render-backplate"
+          style={getSpineTextBackplateStyle(layoutTextBlock.style)}
+        />
+        <span
+          className="case-insert-text-render-content"
+          style={getSpineTextContentStyle()}
+        >
         {titleLayout.lines.map((line, index) => (
           <span
             key={`${index}-${line.text}`}

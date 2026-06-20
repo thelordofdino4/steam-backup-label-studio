@@ -65,6 +65,13 @@ import {
 import {
   normalizeCaseInsertTextWidth,
 } from './textLayout.ts'
+import {
+  getDefaultCaseInsertFontSizePt,
+  getCaseInsertTextSizeRoleFromId,
+  getLegacyCaseInsertScaleFontSizePt,
+  normalizeCaseInsertFontSizePt,
+  type CaseInsertTextSizeRole,
+} from './textSizing.ts'
 import type {
   JewelCaseGuideId,
   JewelCaseSurfaceId,
@@ -213,6 +220,15 @@ function normalizeCaseInsertLayout(
 
   return {
     scale: normalizePositiveNumber(record.scale, defaults.scale),
+    ...(defaults.fontSizePt !== undefined ||
+    (typeof record.fontSizePt === 'number' && Number.isFinite(record.fontSizePt))
+      ? {
+          fontSizePt: normalizeCaseInsertFontSizePt(
+            record.fontSizePt,
+            defaults.fontSizePt,
+          ),
+        }
+      : {}),
     ...(hasWidth
       ? {
           width: normalizeCaseInsertTextWidth(rawWidth, defaults.width),
@@ -221,6 +237,44 @@ function normalizeCaseInsertLayout(
     x: normalizeFiniteNumber(record.x, defaults.x),
     y: normalizeFiniteNumber(record.y, defaults.y),
     rotation: normalizeFiniteNumber(record.rotation, defaults.rotation),
+  }
+}
+
+function normalizeCaseInsertTextLayout(
+  value: unknown,
+  defaults: ProjectCaseInsertLayout,
+  role: CaseInsertTextSizeRole,
+): ProjectCaseInsertLayout {
+  const record = asRecord(value)
+  const layout = normalizeCaseInsertLayout(value, defaults)
+
+  if (!record) {
+    return {
+      ...layout,
+      fontSizePt: normalizeCaseInsertFontSizePt(
+        defaults.fontSizePt,
+        getDefaultCaseInsertFontSizePt(role),
+      ),
+    }
+  }
+
+  if (typeof record.fontSizePt === 'number' && Number.isFinite(record.fontSizePt)) {
+    return {
+      ...layout,
+      fontSizePt: normalizeCaseInsertFontSizePt(
+        record.fontSizePt,
+        defaults.fontSizePt ?? getDefaultCaseInsertFontSizePt(role),
+      ),
+    }
+  }
+
+  return {
+    ...layout,
+    fontSizePt: getLegacyCaseInsertScaleFontSizePt(
+      role,
+      record.scale,
+      defaults.fontSizePt ?? getDefaultCaseInsertFontSizePt(role),
+    ),
   }
 }
 
@@ -330,7 +384,14 @@ function normalizeCaseInsertTextBlock(
       defaults.avoidVisualElements,
     ),
     align: normalizeCaseInsertTextAlign(record.align, defaults.align),
-    layout: normalizeCaseInsertLayout(record.layout, defaults.layout),
+    layout: normalizeCaseInsertTextLayout(
+      record.layout,
+      defaults.layout,
+      getCaseInsertTextSizeRoleFromId(
+        normalizeString(record.id, defaults.id),
+        'trayFeatures',
+      ),
+    ),
     style: normalizeCaseInsertTextStyle(
       getCaseInsertTextBlockStyleRole({
         id,

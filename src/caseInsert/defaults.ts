@@ -73,6 +73,10 @@ export function createDefaultCaseInsertLayout(
 ): ProjectCaseInsertLayout {
   return {
     scale: layout.scale ?? 1,
+    ...(typeof layout.fontSizePt === 'number' &&
+    Number.isFinite(layout.fontSizePt)
+      ? { fontSizePt: layout.fontSizePt }
+      : {}),
     ...(typeof layout.width === 'number' && Number.isFinite(layout.width)
       ? { width: layout.width }
       : {}),
@@ -177,43 +181,43 @@ const COVER_DISC_TEXT_LAYOUTS: Record<
   title: {
     value: '',
     align: 'center',
-    layout: { scale: 1, width: 80, x: 50, y: 34 },
+    layout: { scale: 1, fontSizePt: 36, width: 80, x: 50, y: 34 },
   },
   subtitle: {
     align: 'center',
-    layout: { scale: 1, width: 72, x: 50, y: 45 },
+    layout: { scale: 1, fontSizePt: 20, width: 72, x: 50, y: 45 },
   },
   discNumber: {
     align: 'center',
-    layout: { scale: 0.9, width: 42, x: 18, y: 82 },
+    layout: { scale: 0.9, fontSizePt: 14, width: 42, x: 18, y: 82 },
   },
   backupDate: {
     align: 'center',
-    layout: { scale: 0.86, width: 48, x: 50, y: 86 },
+    layout: { scale: 0.86, fontSizePt: 12, width: 48, x: 50, y: 86 },
   },
   appId: {
     align: 'center',
-    layout: { scale: 0.82, width: 48, x: 82, y: 82 },
+    layout: { scale: 0.82, fontSizePt: 12, width: 48, x: 82, y: 82 },
   },
   developer: {
     align: 'left',
-    layout: { scale: 0.84, width: 48, x: 22, y: 88 },
+    layout: { scale: 0.84, fontSizePt: 12, width: 48, x: 22, y: 88 },
   },
   publisher: {
     align: 'right',
-    layout: { scale: 0.84, width: 48, x: 78, y: 88 },
+    layout: { scale: 0.84, fontSizePt: 12, width: 48, x: 78, y: 88 },
   },
   installNotes: {
     align: 'center',
-    layout: { scale: 0.9, width: 58, x: 50, y: 74 },
+    layout: { scale: 0.9, fontSizePt: 13, width: 58, x: 50, y: 74 },
   },
   customNote: {
     align: 'center',
-    layout: { scale: 1, width: 74, x: 50, y: 82 },
+    layout: { scale: 1, fontSizePt: 14, width: 74, x: 50, y: 82 },
   },
   copyright: {
     align: 'center',
-    layout: { scale: 1, width: 86, x: 50, y: 93 },
+    layout: { scale: 1, fontSizePt: 8, width: 86, x: 50, y: 93 },
   },
 }
 
@@ -229,43 +233,43 @@ const SPINE_DISC_TEXT_LAYOUTS: Record<
   title: {
     enabled: true,
     align: 'center',
-    layout: { scale: 1, width: 90, x: 50, y: 50 },
+    layout: { scale: 1, fontSizePt: 18, width: 90, x: 50, y: 50 },
   },
   subtitle: {
     align: 'center',
-    layout: { scale: 0.78, width: 74, x: 50, y: 42 },
+    layout: { scale: 0.78, fontSizePt: 12, width: 74, x: 50, y: 42 },
   },
   discNumber: {
     align: 'center',
-    layout: { scale: 0.7, width: 46, x: 50, y: 60 },
+    layout: { scale: 0.7, fontSizePt: 10, width: 46, x: 50, y: 60 },
   },
   backupDate: {
     align: 'center',
-    layout: { scale: 0.68, width: 48, x: 50, y: 68 },
+    layout: { scale: 0.68, fontSizePt: 10, width: 48, x: 50, y: 68 },
   },
   appId: {
     align: 'center',
-    layout: { scale: 0.66, width: 48, x: 50, y: 76 },
+    layout: { scale: 0.66, fontSizePt: 10, width: 48, x: 50, y: 76 },
   },
   developer: {
     align: 'center',
-    layout: { scale: 0.68, width: 48, x: 50, y: 84 },
+    layout: { scale: 0.68, fontSizePt: 10, width: 48, x: 50, y: 84 },
   },
   publisher: {
     align: 'center',
-    layout: { scale: 0.68, width: 48, x: 50, y: 88 },
+    layout: { scale: 0.68, fontSizePt: 10, width: 48, x: 50, y: 88 },
   },
   installNotes: {
     align: 'center',
-    layout: { scale: 0.66, width: 58, x: 50, y: 72 },
+    layout: { scale: 0.66, fontSizePt: 10, width: 58, x: 50, y: 72 },
   },
   customNote: {
     align: 'center',
-    layout: { scale: 0.72, width: 58, x: 50, y: 78 },
+    layout: { scale: 0.72, fontSizePt: 10, width: 58, x: 50, y: 78 },
   },
   copyright: {
     align: 'center',
-    layout: { scale: 0.62, width: 68, x: 50, y: 92 },
+    layout: { scale: 0.62, fontSizePt: 8, width: 68, x: 50, y: 92 },
   },
 }
 

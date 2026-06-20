@@ -24,6 +24,14 @@ import type {
 } from '../../project/projectTypes'
 import type { LegacyTextContentMode, TextContentMode } from '../../text/htmlText'
 import {
+  CASE_INSERT_TEXT_FONT_SIZE_PT_MAX,
+  CASE_INSERT_TEXT_FONT_SIZE_PT_MIN,
+  CASE_INSERT_TEXT_FONT_SIZE_PT_PRESETS,
+  getCaseInsertLayoutFontSizePt,
+  getDefaultCaseInsertFontSizePt,
+  type CaseInsertTextSizeRole,
+} from '../../caseInsert/textSizing.ts'
+import {
   CONTEXTUAL_TEXT_ALIGNMENT_OPTIONS,
   CONTEXTUAL_TEXT_CONTROL_LABELS,
   CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
@@ -105,8 +113,7 @@ type CaseInsertInlineTextEditorControlParams = {
   layoutPresets?: readonly CaseInsertTextLayoutPreset[]
   contentMode?: LegacyTextContentMode
   htmlSourceActive?: boolean
-  scaleMax?: number
-  scaleMin?: number
+  fontSizeRole?: CaseInsertTextSizeRole
   style: CaseInsertTextStyle
   target: CaseInsertPreviewTextTarget
   widthFallback?: number
@@ -139,7 +146,12 @@ function getMatchingCaseInsertLayoutPreset({
 
     return Object.entries(preset.layout).every(([field, value]) =>
       contextualTextNumericValuesMatch(
-        layout[field as keyof Pick<ProjectCaseInsertLayout, 'scale' | 'width' | 'x' | 'y'>],
+        layout[
+          field as keyof Pick<
+            ProjectCaseInsertLayout,
+            'fontSizePt' | 'scale' | 'width' | 'x' | 'y'
+          >
+        ],
         value,
       ),
     )
@@ -161,8 +173,7 @@ export function createCaseInsertInlineTextEditorControls({
   layoutPresets = [],
   contentMode = 'plain',
   htmlSourceActive = contentMode === 'html',
-  scaleMax = 1.8,
-  scaleMin = 0.7,
+  fontSizeRole = 'coverCallout',
   style,
   target,
   widthFallback = DEFAULT_CASE_INSERT_TEXT_WIDTH,
@@ -187,6 +198,7 @@ export function createCaseInsertInlineTextEditorControls({
     layout,
     layoutPresets,
   })
+  const fontSizePt = getCaseInsertLayoutFontSizePt(layout, fontSizeRole)
 
   const handleInlineToggleChange = (
     command: 'bold' | 'italic' | 'underline',
@@ -269,12 +281,18 @@ export function createCaseInsertInlineTextEditorControls({
           ),
       },
       size: {
-        label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
-        min: scaleMin,
-        max: scaleMax,
-        step: 0.01,
-        value: layout.scale,
-        onChange: (value) => handlers.onLayoutChange(target, 'scale', value),
+        label: 'Font size (pt)',
+        min: CASE_INSERT_TEXT_FONT_SIZE_PT_MIN,
+        max: CASE_INSERT_TEXT_FONT_SIZE_PT_MAX,
+        options: CASE_INSERT_TEXT_FONT_SIZE_PT_PRESETS,
+        step: 0.25,
+        value: fontSizePt,
+        onChange: (value) =>
+          handlers.onLayoutChange(
+            target,
+            'fontSizePt',
+            value || getDefaultCaseInsertFontSizePt(fontSizeRole),
+          ),
       },
       alignment: align
         ? {

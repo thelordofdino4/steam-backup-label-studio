@@ -14,6 +14,10 @@ import type {
 import {
   getCaseInsertTextBlockDiscKey,
 } from './textContent.ts'
+import {
+  getLegacyCaseInsertScaleFontSizePt,
+  type CaseInsertTextSizeRole,
+} from './textSizing.ts'
 
 export const CASE_INSERT_TEXT_WIDTH_MIN = 20
 export const CASE_INSERT_TEXT_WIDTH_MAX = 100
@@ -24,7 +28,10 @@ export const CASE_INSERT_TEXT_LIST_MAX_LINES = 14
 export type CaseInsertTextLayoutPreset = {
   id: string
   label: string
-  layout: Partial<Pick<ProjectCaseInsertLayout, 'scale' | 'width' | 'x' | 'y'>>
+  layout: Partial<Pick<
+    ProjectCaseInsertLayout,
+    'fontSizePt' | 'scale' | 'width' | 'x' | 'y'
+  >>
   align?: ProjectCaseInsertTextAlign
 }
 
@@ -66,6 +73,7 @@ function mapDiscYToCaseInsertPercent(y: number | undefined) {
 
 function getDiscTextLayoutPresetsForKey(
   key: DiscTextKey | null,
+  surface: CaseInsertTextLayoutSurface,
 ): CaseInsertTextLayoutPreset[] {
   if (!key) {
     return []
@@ -79,7 +87,12 @@ function getDiscTextLayoutPresetsForKey(
       label: preset.label,
       layout: {
         ...(typeof preset.layout.scale === 'number'
-          ? { scale: preset.layout.scale }
+          ? {
+              fontSizePt: getLegacyCaseInsertScaleFontSizePt(
+                getDiscTextCaseInsertSizeRole(key, surface),
+                preset.layout.scale,
+              ),
+            }
           : {}),
         ...(typeof preset.layout.width === 'number'
           ? { width: preset.layout.width }
@@ -91,6 +104,29 @@ function getDiscTextLayoutPresetsForKey(
     }))
 }
 
+function getDiscTextCaseInsertSizeRole(
+  key: DiscTextKey,
+  surface: CaseInsertTextLayoutSurface,
+): CaseInsertTextSizeRole {
+  if (surface === 'spine') {
+    if (key === 'title') return 'spineTitle'
+    if (key === 'copyright') return 'spineLegal'
+    return 'spineSecondary'
+  }
+
+  if (surface === 'tray') {
+    if (key === 'title') return 'trayTitle'
+    if (key === 'subtitle') return 'traySubtitle'
+    if (key === 'copyright') return 'trayLegal'
+    return 'trayMetadata'
+  }
+
+  if (key === 'title') return 'coverTitle'
+  if (key === 'subtitle') return 'coverSubtitle'
+  if (key === 'copyright') return 'coverLegal'
+  return 'coverCallout'
+}
+
 function getSurfaceGenericTextLayoutPresets(
   surface: CaseInsertTextLayoutSurface,
 ): CaseInsertTextLayoutPreset[] {
@@ -99,25 +135,25 @@ function getSurfaceGenericTextLayoutPresets(
       {
         id: 'spine-centered',
         label: 'Spine centered',
-        layout: { x: 50, y: 50, width: 90, scale: 1 },
+        layout: { x: 50, y: 50, width: 90, fontSizePt: 18 },
         align: 'center',
       },
       {
         id: 'spine-upper',
         label: 'Spine upper',
-        layout: { x: 50, y: 32, width: 74, scale: 0.9 },
+        layout: { x: 50, y: 32, width: 74, fontSizePt: 16 },
         align: 'center',
       },
       {
         id: 'spine-lower',
         label: 'Spine lower',
-        layout: { x: 50, y: 72, width: 74, scale: 0.82 },
+        layout: { x: 50, y: 72, width: 74, fontSizePt: 14 },
         align: 'center',
       },
       {
         id: 'spine-narrow',
         label: 'Narrow centered',
-        layout: { x: 50, y: 50, width: 46, scale: 0.86 },
+        layout: { x: 50, y: 50, width: 46, fontSizePt: 14 },
         align: 'center',
       },
     ]
@@ -187,7 +223,10 @@ export function getCaseInsertTextBlockLayoutPresets(
   textBlock: ProjectCaseInsertTextBlock,
 ) {
   return uniquePresets([
-    ...getDiscTextLayoutPresetsForKey(getCaseInsertTextBlockDiscKey(textBlock)),
+    ...getDiscTextLayoutPresetsForKey(
+      getCaseInsertTextBlockDiscKey(textBlock),
+      surface,
+    ),
     ...getSurfaceGenericTextLayoutPresets(surface),
   ])
 }
