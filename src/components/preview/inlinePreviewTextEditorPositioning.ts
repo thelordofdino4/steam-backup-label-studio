@@ -160,6 +160,126 @@ function getAnchorRect(anchor: InlinePreviewTextAnchor): InlinePreviewTextRect {
   }
 }
 
+function isRectAccessible(
+  rect: InlinePreviewTextRect,
+  bounds: InlinePreviewTextRect,
+  blockedRects: readonly InlinePreviewTextRect[],
+) {
+  return (
+    getOverflowArea(rect, bounds) <= 1 &&
+    blockedRects.every((blockedRect) => getOverlapArea(rect, blockedRect) <= 1)
+  )
+}
+
+function getAccessibleMoveHandlePosition({
+  anchor,
+  anchorRect,
+  bounds,
+  menuRect,
+  preferredSide,
+  sizes,
+  tabsRect,
+}: {
+  anchor: InlinePreviewTextAnchor
+  anchorRect: InlinePreviewTextRect
+  bounds: InlinePreviewTextRect
+  menuRect: InlinePreviewTextRect
+  preferredSide: 'left' | 'right'
+  sizes: InlinePreviewTextControlSizes
+  tabsRect: InlinePreviewTextRect
+}) {
+  const nearMoveHandleLeft = preferredSide === 'left'
+    ? clampLeftInsideBounds(
+      anchorRect.left - INLINE_PREVIEW_TEXT_CONTROL_GAP - sizes.moveHandle.width,
+      sizes.moveHandle,
+      bounds,
+    )
+    : clampLeftInsideBounds(
+      anchor.right + INLINE_PREVIEW_TEXT_CONTROL_GAP,
+      sizes.moveHandle,
+      bounds,
+    )
+  const nearMoveHandleTop = clampTopInsideBounds(
+    anchor.centerY - sizes.moveHandle.height / 2,
+    sizes.moveHandle,
+    bounds,
+  )
+  const nearMoveHandleRect = rectFromPosition({
+    height: sizes.moveHandle.height,
+    left: nearMoveHandleLeft,
+    top: nearMoveHandleTop,
+    width: sizes.moveHandle.width,
+  })
+
+  if (
+    isRectAccessible(
+      nearMoveHandleRect,
+      bounds,
+      [menuRect, tabsRect],
+    )
+  ) {
+    return {
+      left: nearMoveHandleLeft,
+      rect: nearMoveHandleRect,
+      top: nearMoveHandleTop,
+    }
+  }
+
+  const belowMenuLeft = clampLeftInsideBounds(
+    menuRect.left + getRectWidth(menuRect) / 2 - sizes.moveHandle.width / 2,
+    sizes.moveHandle,
+    bounds,
+  )
+  const belowMenuTop = clampTopInsideBounds(
+    menuRect.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP,
+    sizes.moveHandle,
+    bounds,
+  )
+  const belowMenuRect = rectFromPosition({
+    height: sizes.moveHandle.height,
+    left: belowMenuLeft,
+    top: belowMenuTop,
+    width: sizes.moveHandle.width,
+  })
+
+  if (
+    isRectAccessible(
+      belowMenuRect,
+      bounds,
+      [anchorRect, menuRect, tabsRect],
+    )
+  ) {
+    return {
+      left: belowMenuLeft,
+      rect: belowMenuRect,
+      top: belowMenuTop,
+    }
+  }
+
+  const aboveTabsLeft = clampLeftInsideBounds(
+    tabsRect.left + getRectWidth(tabsRect) / 2 - sizes.moveHandle.width / 2,
+    sizes.moveHandle,
+    bounds,
+  )
+  const aboveTabsTop = clampTopInsideBounds(
+    tabsRect.top - INLINE_PREVIEW_TEXT_CONTROL_GAP - sizes.moveHandle.height,
+    sizes.moveHandle,
+    bounds,
+  )
+  const aboveTabsRect = rectFromPosition({
+    height: sizes.moveHandle.height,
+    left: aboveTabsLeft,
+    top: aboveTabsTop,
+    width: sizes.moveHandle.width,
+  })
+
+  return {
+    left: aboveTabsLeft,
+    rect: aboveTabsRect,
+    top: aboveTabsTop,
+  }
+}
+
 function getPreferredVerticalMenuPlacement({
   aboveAvailableHeight,
   belowAvailableHeight,
@@ -328,16 +448,6 @@ function createAnchoredVerticalCandidate({
     { ...sizes.menu, height: menuLayoutHeight },
     previewRect,
   )
-  const moveHandleLeft = clampLeftInsideBounds(
-    anchor.right + INLINE_PREVIEW_TEXT_CONTROL_GAP,
-    sizes.moveHandle,
-    previewRect,
-  )
-  const moveHandleTop = clampTopInsideBounds(
-    anchor.centerY - sizes.moveHandle.height / 2,
-    sizes.moveHandle,
-    previewRect,
-  )
   const tabsRect = rectFromPosition({
     height: sizes.tabs.height,
     left: tabsLeft,
@@ -350,17 +460,20 @@ function createAnchoredVerticalCandidate({
     top: menuTop,
     width: sizes.menu.width,
   })
-  const moveHandleRect = rectFromPosition({
-    height: sizes.moveHandle.height,
-    left: moveHandleLeft,
-    top: moveHandleTop,
-    width: sizes.moveHandle.width,
+  const moveHandle = getAccessibleMoveHandlePosition({
+    anchor,
+    anchorRect,
+    bounds: previewRect,
+    menuRect,
+    preferredSide: 'right',
+    sizes,
+    tabsRect,
   })
   const scored = scoreCandidate({
     anchorRect,
     candidate,
     menuRect,
-    moveHandleRect,
+    moveHandleRect: moveHandle.rect,
     obstacles,
     previewRect,
     tabsRect,
@@ -380,10 +493,10 @@ function createAnchoredVerticalCandidate({
     menuRect,
     mode: 'anchored',
     moveHandle: {
-      left: moveHandleLeft,
-      top: moveHandleTop,
+      left: moveHandle.left,
+      top: moveHandle.top,
     },
-    moveHandleRect,
+    moveHandleRect: moveHandle.rect,
     obstacleOverlap: scored.obstacleOverlap,
     previewOverflow: scored.previewOverflow,
     score: scored.score,
@@ -444,23 +557,6 @@ function createAnchoredSideCandidate({
   )
   const tabsLeft = stackLeft + Math.max(0, (stackWidth - sizes.tabs.width) / 2)
   const menuLeft = stackLeft + Math.max(0, (stackWidth - sizes.menu.width) / 2)
-  const moveHandleLeft =
-    candidate === 'left'
-      ? clampLeftInsideBounds(
-        anchorRect.left - INLINE_PREVIEW_TEXT_CONTROL_GAP - sizes.moveHandle.width,
-        sizes.moveHandle,
-        previewRect,
-      )
-      : clampLeftInsideBounds(
-        anchor.right + INLINE_PREVIEW_TEXT_CONTROL_GAP,
-        sizes.moveHandle,
-        previewRect,
-      )
-  const moveHandleTop = clampTopInsideBounds(
-    anchor.centerY - sizes.moveHandle.height / 2,
-    sizes.moveHandle,
-    previewRect,
-  )
   const tabsRect = rectFromPosition({
     height: sizes.tabs.height,
     left: tabsLeft,
@@ -473,17 +569,20 @@ function createAnchoredSideCandidate({
     top: stackTop + sizes.tabs.height + INLINE_PREVIEW_TEXT_CONTROL_GAP,
     width: sizes.menu.width,
   })
-  const moveHandleRect = rectFromPosition({
-    height: sizes.moveHandle.height,
-    left: moveHandleLeft,
-    top: moveHandleTop,
-    width: sizes.moveHandle.width,
+  const moveHandle = getAccessibleMoveHandlePosition({
+    anchor,
+    anchorRect,
+    bounds: previewRect,
+    menuRect,
+    preferredSide: candidate,
+    sizes,
+    tabsRect,
   })
   const scored = scoreCandidate({
     anchorRect,
     candidate,
     menuRect,
-    moveHandleRect,
+    moveHandleRect: moveHandle.rect,
     obstacles,
     previewRect,
     tabsRect,
@@ -503,10 +602,10 @@ function createAnchoredSideCandidate({
     menuRect,
     mode: 'anchored',
     moveHandle: {
-      left: moveHandleLeft,
-      top: moveHandleTop,
+      left: moveHandle.left,
+      top: moveHandle.top,
     },
-    moveHandleRect,
+    moveHandleRect: moveHandle.rect,
     obstacleOverlap: scored.obstacleOverlap,
     previewOverflow: scored.previewOverflow,
     score: scored.score,
@@ -880,6 +979,75 @@ function getPlacementCandidateDiagnostics(
     textOverlap: candidate.textOverlap,
     usable: candidate.usable,
   }))
+}
+
+export function getInlinePreviewTextLockedControlLayout({
+  layout,
+  sizes,
+  workspaceRect,
+}: {
+  layout: InlinePreviewTextControlLayout
+  sizes: InlinePreviewTextControlSizes
+  workspaceRect: InlinePreviewTextRect
+}): InlinePreviewTextControlLayout {
+  const workspaceWidth = getRectWidth(workspaceRect)
+  const workspaceHeight = Math.max(1, getRectHeight(workspaceRect))
+  const menuMaxHeight = clampValue(
+    Math.min(layout.menu.maxHeight, workspaceHeight),
+    1,
+    workspaceHeight,
+  )
+  const menuLayoutHeight = Math.min(sizes.menu.height, menuMaxHeight)
+  const menuTop = clampTopInsideBounds(
+    layout.menu.top,
+    { ...sizes.menu, height: menuLayoutHeight },
+    workspaceRect,
+  )
+  const menuLeft = clampLeftInsideBounds(
+    layout.menu.left,
+    sizes.menu,
+    workspaceRect,
+  )
+  const tabsTop = clampTopInsideBounds(
+    layout.tabs.top,
+    sizes.tabs,
+    workspaceRect,
+  )
+  const tabsLeft = clampLeftInsideBounds(
+    layout.tabs.left,
+    sizes.tabs,
+    workspaceRect,
+  )
+  const moveHandleTop = clampTopInsideBounds(
+    layout.moveHandle.top,
+    sizes.moveHandle,
+    workspaceRect,
+  )
+  const moveHandleLeft = clampLeftInsideBounds(
+    layout.moveHandle.left,
+    sizes.moveHandle,
+    workspaceRect,
+  )
+
+  return {
+    menu: {
+      left: menuLeft,
+      maxHeight: menuMaxHeight,
+      maxWidth: workspaceWidth,
+      placement: layout.menu.placement,
+      top: menuTop,
+    },
+    mode: layout.mode,
+    moveHandle: {
+      left: moveHandleLeft,
+      top: moveHandleTop,
+    },
+    tabs: {
+      left: tabsLeft,
+      maxWidth: workspaceWidth,
+      top: tabsTop,
+    },
+  }
 }
 
 export function getInlinePreviewTextControlPlacementDiagnostics(

@@ -2,7 +2,9 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   getInlinePreviewTextControlLayout,
+  getInlinePreviewTextLockedControlLayout,
   getInlinePreviewTextControlPlacementDiagnostics,
+  inlinePreviewTextPlacementInternals,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
   type InlinePreviewTextRect,
@@ -744,4 +746,120 @@ test('inline text controls return to anchored placement below emergency threshol
   assert.equal(layout.mode, 'anchored')
   assert.equal(layout.menu.placement, 'below')
   assert.equal(layout.menu.top, 428)
+})
+
+test('inline text controls can freeze current placement during active input', () => {
+  const initialLayout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 130,
+      centerX: 250,
+      centerY: 115,
+      right: 270,
+      top: 100,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes,
+  })
+  const lockedLayout = getInlinePreviewTextLockedControlLayout({
+    layout: initialLayout,
+    sizes,
+    workspaceRect: {
+      bottom: 300,
+      left: 0,
+      right: 260,
+      top: 0,
+    },
+  })
+
+  assert.equal(lockedLayout.menu.placement, initialLayout.menu.placement)
+  assert.equal(lockedLayout.mode, initialLayout.mode)
+  assert.equal(lockedLayout.tabs.top, initialLayout.tabs.top)
+  assert.equal(lockedLayout.menu.top, initialLayout.menu.top)
+  assert.ok(lockedLayout.menu.left + sizes.menu.width <= 260)
+  assert.ok(lockedLayout.tabs.left + sizes.tabs.width <= 260)
+})
+
+test('inline text controls keep move handle accessible when the menu blocks the normal side', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 136,
+      centerX: 234,
+      centerY: 120,
+      right: 276,
+      top: 104,
+    }),
+    previewRect,
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 96, width: 160 },
+      moveHandle: { height: 28, width: 54 },
+      tabs: { height: 24, width: 160 },
+    },
+  })
+  const menuRect = {
+    bottom: layout.menu.top + 96,
+    left: layout.menu.left,
+    right: layout.menu.left + 160,
+    top: layout.menu.top,
+  }
+  const tabsRect = {
+    bottom: layout.tabs.top + 24,
+    left: layout.tabs.left,
+    right: layout.tabs.left + 160,
+    top: layout.tabs.top,
+  }
+  const handleRect = {
+    bottom: layout.moveHandle.top + 28,
+    left: layout.moveHandle.left,
+    right: layout.moveHandle.left + 54,
+    top: layout.moveHandle.top,
+  }
+
+  assert.equal(
+    inlinePreviewTextPlacementInternals.getOverlapArea(handleRect, menuRect),
+    0,
+  )
+  assert.equal(
+    inlinePreviewTextPlacementInternals.getOverlapArea(handleRect, tabsRect),
+    0,
+  )
+  assert.ok(handleRect.left >= previewRect.left)
+  assert.ok(handleRect.right <= previewRect.right)
+})
+
+test('inline text controls treat center-hole-sized obstacles as local, not emergency', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 178,
+      centerX: 150,
+      centerY: 150,
+      right: 198,
+      top: 122,
+    }),
+    obstacles: [
+      {
+        id: 'disc-center-hole',
+        rect: { bottom: 185, left: 115, right: 185, top: 115 },
+      },
+    ],
+    previewRect,
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 72, width: 112 },
+      moveHandle: { height: 24, width: 40 },
+      tabs: { height: 24, width: 112 },
+    },
+    workspaceRect: {
+      bottom: 420,
+      left: 0,
+      right: 300,
+      top: 0,
+    },
+  }
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const layout = getInlinePreviewTextControlLayout(input)
+
+  assert.equal(diagnostics.emergencyEligible, false)
+  assert.equal(layout.mode, 'anchored')
 })
