@@ -58,7 +58,7 @@ export type InlinePreviewTextObstacle = {
 
 const INLINE_PREVIEW_TEXT_CONTROL_GAP = 8
 const INLINE_PREVIEW_TEXT_EDGE_GAP = 8
-const INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT = 48
+const INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT = 118
 const INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO = 0.8
 const INLINE_PREVIEW_TEXT_PLACEMENT_HYSTERESIS = 24
 
@@ -68,6 +68,10 @@ function getRectWidth(rect: InlinePreviewTextRect) {
 
 function getRectHeight(rect: InlinePreviewTextRect) {
   return Math.max(0, rect.bottom - rect.top)
+}
+
+function getMinimumUsableMenuHeight(menuHeight: number) {
+  return Math.min(menuHeight, INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT)
 }
 
 function clampValue(value: number, min: number, max: number) {
@@ -316,6 +320,8 @@ type InlinePreviewTextCandidateLayout = InlinePreviewTextControlLayout & {
   fullHeightFits: boolean
   menuOverflow: number
   menuRect: InlinePreviewTextRect
+  menuTextOverlap: number
+  minimumUsableMenuHeight: number
   moveHandleRect: InlinePreviewTextRect
   obstacleOverlap: number
   previewOverflow: number
@@ -330,6 +336,7 @@ export type InlinePreviewTextPlacementCandidateDiagnostic = {
   fullHeightFits: boolean
   menuMaxHeight: number
   menuOverflow: number
+  menuTextOverlap: number
   obstacleOverlap: number
   previewOverflow: number
   score: number
@@ -375,6 +382,7 @@ function scoreCandidate({
     (total, rect) => total + getOverlapArea(rect, anchorRect),
     0,
   )
+  const menuTextOverlap = getOverlapArea(menuRect, anchorRect)
   const obstacleOverlap = obstacles.reduce((total, obstacle) =>
     total + controlRects.reduce(
       (controlTotal, rect) => controlTotal + getOverlapArea(rect, obstacle.rect),
@@ -385,6 +393,7 @@ function scoreCandidate({
 
   return {
     menuOverflow,
+    menuTextOverlap,
     obstacleOverlap,
     primaryTextOverlap,
     previewOverflow,
@@ -478,6 +487,7 @@ function createAnchoredVerticalCandidate({
     previewRect,
     tabsRect,
   })
+  const minimumUsableMenuHeight = getMinimumUsableMenuHeight(sizes.menu.height)
 
   return {
     candidate,
@@ -491,6 +501,8 @@ function createAnchoredVerticalCandidate({
     },
     menuOverflow: scored.menuOverflow,
     menuRect,
+    menuTextOverlap: scored.menuTextOverlap,
+    minimumUsableMenuHeight,
     mode: 'anchored',
     moveHandle: {
       left: moveHandle.left,
@@ -508,9 +520,10 @@ function createAnchoredVerticalCandidate({
     tabsRect,
     textOverlap: scored.textOverlap,
     usable:
-      menuMaxHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT &&
+      menuMaxHeight >= minimumUsableMenuHeight &&
       scored.previewOverflow <= 1 &&
-      scored.primaryTextOverlap <= 1,
+      scored.menuOverflow <= 1 &&
+      scored.menuTextOverlap <= 1,
   }
 }
 
@@ -587,6 +600,7 @@ function createAnchoredSideCandidate({
     previewRect,
     tabsRect,
   })
+  const minimumUsableMenuHeight = getMinimumUsableMenuHeight(sizes.menu.height)
 
   return {
     candidate,
@@ -600,6 +614,8 @@ function createAnchoredSideCandidate({
     },
     menuOverflow: scored.menuOverflow,
     menuRect,
+    menuTextOverlap: scored.menuTextOverlap,
+    minimumUsableMenuHeight,
     mode: 'anchored',
     moveHandle: {
       left: moveHandle.left,
@@ -617,9 +633,10 @@ function createAnchoredSideCandidate({
     tabsRect,
     textOverlap: scored.textOverlap,
     usable:
-      maxMenuHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT &&
+      maxMenuHeight >= minimumUsableMenuHeight &&
       scored.previewOverflow <= 1 &&
-      scored.primaryTextOverlap <= 1,
+      scored.menuOverflow <= 1 &&
+      scored.menuTextOverlap <= 1,
   }
 }
 
@@ -709,14 +726,19 @@ function shouldUseEmergencyPlacement({
     previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
   const hasUsableCandidate = candidates.some((candidate) => candidate.usable)
   const hasMeaningfulDetachedWorkspace =
-    workspaceArea > previewArea * 1.05
+    workspaceArea > previewArea * 1.05 || workspaceArea > 0
   const hasLargeSelectedText =
     selectedTextAreaRatio >= INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO
 
   return (
     hasMeaningfulDetachedWorkspace &&
     !hasUsableCandidate &&
-    (hasLargeSelectedText || anchoredCandidate.textOverlap > 1)
+    (
+      hasLargeSelectedText ||
+      anchoredCandidate.menu.maxHeight <
+        anchoredCandidate.minimumUsableMenuHeight ||
+      anchoredCandidate.textOverlap > 1
+    )
   )
 }
 
@@ -762,11 +784,13 @@ function createEmergencyLayout({
     workspaceRect.bottom - previewRect.bottom - INLINE_PREVIEW_TEXT_CONTROL_GAP,
   )
   const insideBottomAvailableHeight = Math.max(
-    INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT,
+    0,
     previewRect.bottom - workspaceRect.top - INLINE_PREVIEW_TEXT_EDGE_GAP,
   )
+  const workspaceHeight = Math.max(1, getRectHeight(workspaceRect))
+  const minimumUsableMenuHeight = getMinimumUsableMenuHeight(sizes.menu.height)
   const menuMaxHeight = Math.max(
-    INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT,
+    Math.min(minimumUsableMenuHeight, workspaceHeight),
     belowPreviewAvailableHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT
       ? Math.min(sizes.menu.height, belowPreviewAvailableHeight)
       : Math.min(sizes.menu.height, insideBottomAvailableHeight),
@@ -973,6 +997,7 @@ function getPlacementCandidateDiagnostics(
     fullHeightFits: candidate.fullHeightFits,
     menuMaxHeight: candidate.menu.maxHeight,
     menuOverflow: candidate.menuOverflow,
+    menuTextOverlap: candidate.menuTextOverlap,
     obstacleOverlap: candidate.obstacleOverlap,
     previewOverflow: candidate.previewOverflow,
     score: candidate.score,

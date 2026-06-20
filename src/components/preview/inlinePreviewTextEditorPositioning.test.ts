@@ -158,6 +158,42 @@ test('inline text menu falls back to internal scrolling when neither side fits o
   assert.ok(layout.menu.top + layout.menu.maxHeight <= 240)
 })
 
+test('inline text controls keep a top-edge menu below selected text on first placement', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 42,
+      centerX: 150,
+      centerY: 25,
+      right: 230,
+      top: 8,
+    }),
+    previewRect: {
+      bottom: 500,
+      left: 0,
+      right: 500,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 178, width: 220 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 220 },
+    },
+  }
+  const layout = getInlinePreviewTextControlLayout(input)
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const belowCandidate = diagnostics.candidates.find((candidate) =>
+    candidate.candidate === 'below')
+
+  assert.equal(layout.mode, 'anchored')
+  assert.equal(layout.tabs.top, 0)
+  assert.equal(layout.menu.placement, 'below')
+  assert.equal(layout.menu.top, 50)
+  assert.equal(layout.menu.maxHeight, 450)
+  assert.equal(diagnostics.emergencyEligible, false)
+  assert.equal(belowCandidate?.usable, true)
+})
+
 test('inline text menu recalculates when tab content changes menu height', () => {
   const anchor = createAnchor({
     bottom: 286,
@@ -390,7 +426,7 @@ test('inline text controls clamp after following a moved selection', () => {
   assert.equal(layout.moveHandle.top, 256)
 })
 
-test('inline text menu shrinks inside the preview when neither vertical side has full room', () => {
+test('inline text menu detaches instead of collapsing below navigable height', () => {
   const layout = getInlinePreviewTextControlLayout({
     anchor: createAnchor({
       bottom: 115,
@@ -411,9 +447,10 @@ test('inline text menu shrinks inside the preview when neither vertical side has
     },
   })
 
-  assert.equal(layout.menu.placement, 'below')
-  assert.equal(layout.menu.top, 123)
-  assert.equal(layout.menu.maxHeight, 47)
+  assert.equal(layout.mode, 'detached')
+  assert.equal(layout.menu.placement, 'detached')
+  assert.equal(layout.menu.top, 0)
+  assert.ok(layout.menu.maxHeight >= 118)
   assert.ok(layout.menu.top + layout.menu.maxHeight <= 170)
 })
 

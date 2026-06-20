@@ -279,6 +279,13 @@
     opacity 120ms ease;
 }
 
+.inline-preview-text-tabs.is-measuring,
+.inline-preview-text-menu.is-measuring,
+.inline-preview-text-move-handle.is-measuring {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .inline-preview-text-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

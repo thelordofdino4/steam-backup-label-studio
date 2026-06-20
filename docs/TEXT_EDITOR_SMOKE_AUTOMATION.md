@@ -149,6 +149,9 @@ The committed smoke command verifies:
 - Contextual menu follows selected text after a deterministic Y-control move.
 - Contextual placement locks while a Wrap width number control is actively
   edited, then releases and recomputes after commit.
+- Initial top-edge placement keeps the contextual menu below the selected text
+  once controls first become visible, instead of detaching to the bottom or
+  opening as an unusable collapsed strip.
 - Initial bottom placement keeps tabs and menu reachable without overlapping.
 - Oversized cover text triggers emergency detached placement so tabs, menu, and
   move handle remain reachable inside the editor workspace, with the move handle
