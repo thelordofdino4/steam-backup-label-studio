@@ -11,6 +11,7 @@ type HomeMenuItemProps = {
   description: string
   status: string
   onClick: () => void
+  smokeId?: string
 }
 
 function HomeMenuItem({
@@ -19,9 +20,15 @@ function HomeMenuItem({
   description,
   status,
   onClick,
+  smokeId,
 }: HomeMenuItemProps) {
   return (
-    <button className="home-menu-card" type="button" onClick={onClick}>
+    <button
+      className="home-menu-card"
+      type="button"
+      data-smoke-id={smokeId}
+      onClick={onClick}
+    >
       <span className="home-menu-card-icon" aria-hidden="true">
         {icon}
       </span>
@@ -54,6 +61,7 @@ export function HomeScreen({
             title="Load Project"
             description="Open an existing Steam Backup Label Studio project."
             status="Disc projects supported"
+            smokeId="home-load-project"
             onClick={onLoadProject}
           />
           <HomeMenuItem
@@ -61,6 +69,7 @@ export function HomeScreen({
             title="New Disc"
             description="Create a circular Steam backup disc label."
             status="Alpha"
+            smokeId="home-new-disc"
             onClick={onNewDisc}
           />
           <HomeMenuItem
@@ -68,6 +77,7 @@ export function HomeScreen({
             title="New Case Insert"
             description="Start the separate case insert editor flow."
             status="Jewel case foundation next"
+            smokeId="home-new-case-insert"
             onClick={onNewCaseInsert}
           />
         </div>

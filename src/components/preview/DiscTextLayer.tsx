@@ -301,12 +301,14 @@ export function DiscTextLayer({
       ) : null}
       <img
         className="disc-text-layer-image"
+        data-smoke-id="disc-text-layer-image"
         src={visibleTextLayerDataUrl}
         alt=""
         draggable={false}
       />
       <div
         className="disc-text-layer-hit-target"
+        data-smoke-id="disc-text-layer-hit-target"
         aria-hidden="true"
         onPointerDown={handlePointerDown}
         onPointerMove={handleDiscTextPointerMove}

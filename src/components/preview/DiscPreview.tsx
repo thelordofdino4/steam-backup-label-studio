@@ -454,6 +454,7 @@ export function DiscPreview({
         <div
           ref={discPreviewRef}
           className="disc-preview"
+          data-smoke-id="disc-preview"
           aria-label="Blank standard printable disc preview"
         >
           {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (

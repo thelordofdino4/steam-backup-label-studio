@@ -9,6 +9,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - `docs/MILESTONES.md`
    - `docs/ARCHITECTURE_GUARDRAILS.md`
    - `docs/SOFTWARE_DESIGN_DOCUMENT.md` before architecture-sensitive work, especially preview/edit/export parity, text editing, save/load serialization, PNG export, drag/selection interactions, disc or case insert renderers, hit targets, or hidden input layers
+   - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` before browser automation or text-editor runtime smoke work
    - `docs/REFACTOR_STATUS.md` if the task touches architecture or refactoring
    - `docs/PRD.md` if the task affects product direction or scope
 
@@ -111,3 +112,11 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Run `npm run lint` and `npm run build` after code changes.
    - Leave interactive UI, drag, preview/export parity, and desktop-window checks for the user to verify manually.
    - The primary checkout/runtime verification rule does not grant blanket permission to run Tauri; it requires stale runtime and build-output state to be detected and reported instead of repeatedly patching source code blindly.
+
+13. Follow the text-editor smoke automation rule.
+   - Before operating a browser against the text editor, read `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`.
+   - When a committed smoke command exists for the behavior under test, run it instead of improvising a new browser path first.
+   - When a new browser pilot path succeeds and is worth keeping, encode it in the committed smoke command and document its selectors, fixture state, assertions, and limitations.
+   - Ad-hoc browser automation gets one browser session and at most one retry for a failed action. If selectors or browser tooling continue to fail, stop and report the automation failure.
+   - Do not repeatedly try random selectors, JavaScript snippets, or coordinate guesses after tool failure.
+   - Never report an automation failure as an app regression unless the screenshot, DOM state, or manual/runtime reproduction supports that conclusion.

@@ -263,6 +263,7 @@ function CaseInsertSpineMirrorToggle({
       className={`icon-button case-insert-spine-mirror-button${
         mirrored ? ' is-active' : ''
       }`}
+      data-smoke-id="case-spine-mirror-toggle"
       type="button"
       aria-label={mirrored
         ? 'Turn off mirrored spine editing'
@@ -296,6 +297,7 @@ function CaseInsertTemplatePanel({
         </label>
         <select
           id="case-insert-active-template"
+          data-smoke-id="case-template-pane-select"
           value={activeTemplatePane}
           onChange={(event) =>
             onActiveTemplatePaneChange(
@@ -443,8 +445,14 @@ export function CaseInsertEditorShell({
   }
 
   return (
-    <main className="app-shell case-insert-app-shell">
-      <aside className="sidebar case-insert-sidebar">
+    <main
+      className="app-shell case-insert-app-shell"
+      data-smoke-id="case-insert-editor"
+    >
+      <aside
+        className="sidebar case-insert-sidebar"
+        data-smoke-id="case-insert-sidebar"
+      >
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>
 

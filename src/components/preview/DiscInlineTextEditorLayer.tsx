@@ -301,6 +301,7 @@ export function DiscInlineTextEditorLayer({
               isHtmlSourceEditing ? 'is-html-source' : '',
               isEmptyText ? 'is-empty' : '',
             ].filter(Boolean).join(' ')}
+            data-smoke-id={`disc-inline-text-${key}`}
             {...createInlinePreviewTextTargetAttributes(targetKey)}
             style={hostStyle}
             onPointerDown={(event) => {

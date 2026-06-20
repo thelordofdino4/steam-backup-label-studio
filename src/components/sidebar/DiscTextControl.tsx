@@ -145,7 +145,7 @@ export function DiscTextControl({
   const controlLabel = getDiscTextLabel(key)
 
   return (
-    <div className="editor-text-control">
+    <div className="editor-text-control" data-smoke-id={`disc-sidebar-text-${key}`}>
       <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
@@ -237,6 +237,7 @@ export function DiscTextControl({
                   <label>
                     <span>Mode</span>
                     <select
+                      data-smoke-id={`disc-sidebar-mode-${key}`}
                       value={layout.mode}
                       onChange={(event) =>
                         handleDiscTextModeChange(

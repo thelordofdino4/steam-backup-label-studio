@@ -435,6 +435,11 @@ function CaseInsertSpineTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
+      data-smoke-id={
+        dragKind.kind === 'title'
+          ? `case-spine-title-${side}`
+          : `case-spine-text-block-${side}-${dragKind.textBlockId}`
+      }
       {...(isSelected
         ? createInlinePreviewTextTargetAttributes(targetKey)
         : {})}
