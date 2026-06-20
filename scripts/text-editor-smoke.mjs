@@ -359,6 +359,65 @@ async function getInlineNumberControlMax(page, labelToken) {
   return Number(max)
 }
 
+async function getInlineTextNumberDraft(page, labelToken) {
+  await expectAttached(page, `inline-text-number-${labelToken}`)
+  return smoke(page, `inline-text-number-${labelToken}`).first().inputValue()
+}
+
+async function setInlineTextNumberDraftWithKeyboard(page, labelToken, value) {
+  await clickInlineTab(page, 'text')
+  const input = smoke(page, `inline-text-number-${labelToken}`).first()
+  await input.focus()
+  await page.keyboard.press('Control+A')
+  if (value) {
+    await page.keyboard.type(value)
+  } else {
+    await page.keyboard.press('Backspace')
+  }
+  await page.waitForTimeout(150)
+}
+
+async function selectInlineTextNumberPreset(page, labelToken, value) {
+  const optionsButton = smoke(page, `inline-text-number-options-${labelToken}`).first()
+  await optionsButton.click({ force: true })
+  await expectVisible(
+    page,
+    `inline-text-number-options-list-${labelToken}`,
+    `${labelToken} preset list`,
+  )
+  await smoke(page, `inline-text-number-option-${labelToken}-${value}`)
+    .first()
+    .click({ force: true })
+  await page.waitForTimeout(150)
+}
+
+async function wheelInlineTextNumberControl(page, labelToken, deltaY) {
+  await clickInlineTab(page, 'text')
+  const input = smoke(page, `inline-text-number-${labelToken}`).first()
+  await input.focus()
+  await input.dispatchEvent('wheel', {
+    bubbles: true,
+    cancelable: true,
+    deltaY,
+  })
+  await page.waitForTimeout(100)
+}
+
+async function holdInlineTextNumberStepper(page, labelToken, direction) {
+  await clickInlineTab(page, 'text')
+  const smokeId = direction > 0
+    ? `inline-text-number-step-up-${labelToken}`
+    : `inline-text-number-step-down-${labelToken}`
+  const rect = await getRect(page, smokeId)
+  const x = rect.left + rect.width / 2
+  const y = rect.top + rect.height / 2
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.waitForTimeout(520)
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+}
+
 async function showHtmlSource(page) {
   await clickInlineTab(page, 'utilities')
   await ensureChecked(page, 'inline-text-checkbox-html-source', true)
@@ -579,6 +638,56 @@ async function runCaseChecks(page) {
     }
     await done(page)
     await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
+  })
+
+  await runCheck(page, 'cover point-size control supports stable typing and repeated controls', async () => {
+    await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '11.5')
+    await expectInlineEditor(page)
+    let draft = await getInlineTextNumberDraft(page, 'font-size-pt')
+    if (draft !== '11.5') {
+      fail(`Font size draft changed during typing: ${draft}`)
+    }
+
+    await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '')
+    await expectInlineEditor(page)
+    draft = await getInlineTextNumberDraft(page, 'font-size-pt')
+    if (draft !== '') {
+      fail(`Font size did not preserve empty draft while editing: ${draft}`)
+    }
+    await page.keyboard.type('13')
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(150)
+    draft = await getInlineTextNumberDraft(page, 'font-size-pt')
+    if (draft !== '13') {
+      fail(`Font size did not commit typed value: ${draft}`)
+    }
+
+    await selectInlineTextNumberPreset(page, 'font-size-pt', 24)
+    await selectInlineTextNumberPreset(page, 'font-size-pt', 26)
+    draft = await getInlineTextNumberDraft(page, 'font-size-pt')
+    if (draft !== '26') {
+      fail(`Font size preset did not reopen/select repeatedly: ${draft}`)
+    }
+
+    await wheelInlineTextNumberControl(page, 'font-size-pt', -100)
+    draft = await getInlineTextNumberDraft(page, 'font-size-pt')
+    if (Number(draft) <= 26) {
+      fail(`Font size wheel step did not increase repeatedly: ${draft}`)
+    }
+
+    await page.keyboard.press('ArrowUp')
+    await page.keyboard.press('ArrowUp')
+    await page.waitForTimeout(100)
+    const afterKeyboard = Number(await getInlineTextNumberDraft(page, 'font-size-pt'))
+    if (afterKeyboard <= Number(draft)) {
+      fail(`Font size ArrowUp did not repeat: ${afterKeyboard}`)
+    }
+
+    await holdInlineTextNumberStepper(page, 'font-size-pt', 1)
+    const afterHold = Number(await getInlineTextNumberDraft(page, 'font-size-pt'))
+    if (afterHold <= afterKeyboard + 0.25) {
+      fail(`Font size held stepper only changed once: ${afterHold}`)
+    }
   })
 
   await runCheck(page, 'cover bullets and bullet keyboard behavior are canonical', async () => {

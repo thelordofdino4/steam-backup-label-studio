@@ -376,7 +376,8 @@
 }
 
 .inline-preview-text-control-field select,
-.inline-preview-text-control-field input[type="number"] {
+.inline-preview-text-control-field input[type="number"],
+.inline-preview-text-control-field input[type="text"] {
   min-width: 0;
   min-height: 32px;
   padding: 6px 8px;
@@ -385,6 +386,80 @@
   background: #0f1117;
   color: #f9fafb;
   font-size: 12px;
+}
+
+.inline-preview-text-number-select-field {
+  position: relative;
+}
+
+.inline-preview-text-number-select {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.inline-preview-text-number-select > input {
+  width: 100%;
+  text-align: right;
+}
+
+.inline-preview-text-number-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  gap: 2px;
+}
+
+.inline-preview-text-number-step,
+.inline-preview-text-number-preset-button,
+.inline-preview-text-number-option {
+  border: 1px solid #374151;
+  background: #111827;
+  color: #d1d5db;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.inline-preview-text-number-step,
+.inline-preview-text-number-preset-button {
+  min-height: 32px;
+  border-radius: 7px;
+  padding: 0;
+}
+
+.inline-preview-text-number-step:active,
+.inline-preview-text-number-preset-button[aria-expanded="true"],
+.inline-preview-text-number-option.is-active {
+  border-color: rgba(96, 165, 250, 0.95);
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.inline-preview-text-number-options {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(38px, 1fr));
+  gap: 3px;
+  width: min(184px, calc(100vw - 32px));
+  max-height: 156px;
+  padding: 5px;
+  overflow-y: auto;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #0f1117;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.36);
+}
+
+.inline-preview-text-number-option {
+  min-height: 28px;
+  border-radius: 6px;
+  padding: 3px 6px;
 }
 
 .inline-preview-text-control-field input[type="color"] {
