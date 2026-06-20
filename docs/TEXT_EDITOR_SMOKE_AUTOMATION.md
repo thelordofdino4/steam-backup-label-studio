@@ -145,7 +145,9 @@ The committed smoke command verifies:
 - HTML source editing updates the cover preview live.
 - Done and reopen preserve canonical HTML source.
 - Contextual menu follows selected text after a deterministic Y-control move.
-- Initial bottom placement puts the menu above the tab strip.
+- Initial bottom placement keeps tabs and menu reachable without overlapping.
+- Oversized cover text triggers emergency detached placement so tabs, menu, and
+  move handle remain reachable inside the editor workspace.
 - Tray, left spine, and right spine open inline editors.
 - Left and right rotated spine text support forward and reverse LMB drag
   selection along the visible rotated text direction.
