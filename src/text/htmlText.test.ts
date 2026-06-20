@@ -109,6 +109,29 @@ test('HTML parser supports lists and line breaks', () => {
   )
 })
 
+test('HTML parser preserves soft line breaks inside list items', () => {
+  const document = parseHtmlText(
+    '<ul><li>Alpha<br><strong>Beta</strong></li></ul>',
+  )
+
+  assert.equal(document.plainText, '• Alpha\nBeta')
+  assert.equal(
+    document.source,
+    '<ul><li>Alpha<br><strong>Beta</strong></li></ul>',
+  )
+  assert.deepEqual(
+    document.lines.map((line) => ({
+      continuation: Boolean(line.list?.continuation),
+      prefix: line.list?.prefix,
+      text: line.text,
+    })),
+    [
+      { continuation: false, prefix: '• ', text: '• Alpha' },
+      { continuation: true, prefix: '', text: 'Beta' },
+    ],
+  )
+})
+
 test('legacy Markdown source migrates to canonical HTML without losing supported formatting', () => {
   const htmlSource = markdownToHtmlSource(
     'Intro **bold** and *italic*\n- **Co-op** puzzles\n- *Workshop* support',

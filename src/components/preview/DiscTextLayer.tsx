@@ -57,7 +57,11 @@ export type DiscTextLayerProps = {
   selectedDiscTextKey: DiscTextKey | null
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
   onDiscTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
-  onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  onDiscTextValueChange: (
+    key: DiscTextKey,
+    value: string,
+    options?: { sourceMode?: boolean },
+  ) => void
   onDiscTextContentModeChange: (key: DiscTextKey, contentMode: TextContentMode) => void
   onDiscTextEditComplete: (key: DiscTextKey) => void
   onDiscTextStyleChange: (
@@ -71,6 +75,11 @@ export type DiscTextLayerProps = {
     selection: { end: number; start: number } | undefined,
     value: boolean | string,
   ) => { end: number; start: number } | void
+  onDiscTextRichTextKeyboardCommand: (
+    key: DiscTextKey,
+    command: 'enter' | 'shiftEnter' | 'backspace',
+    selection: { end: number; start: number },
+  ) => { end: number; start: number } | null | void
   getDiscTextRichTextCommandState: (
     key: DiscTextKey,
     command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
@@ -134,6 +143,7 @@ export function DiscTextLayer({
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
+  onDiscTextRichTextKeyboardCommand,
   getDiscTextRichTextCommandState,
   onApplyDiscTextStylePreset,
   onResetDiscTextStyle,
@@ -321,6 +331,7 @@ export function DiscTextLayer({
         onDiscTextEditComplete={onDiscTextEditComplete}
         onDiscTextStyleChange={onDiscTextStyleChange}
         onDiscTextRichTextCommand={onDiscTextRichTextCommand}
+        onDiscTextRichTextKeyboardCommand={onDiscTextRichTextKeyboardCommand}
         getDiscTextRichTextCommandState={getDiscTextRichTextCommandState}
         onApplyDiscTextStylePreset={onApplyDiscTextStylePreset}
         onResetDiscTextStyle={onResetDiscTextStyle}

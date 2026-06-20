@@ -119,6 +119,7 @@ type CaseInsertTemplateTextLayerProps = CaseInsertTemplateLayerProps & {
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
@@ -413,6 +414,7 @@ function CaseInsertTemplateTextBlock({
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
@@ -572,8 +574,8 @@ function CaseInsertTemplateTextBlock({
           value={editValue}
           textareaStyle={textareaStyle}
           menuPlacement="below"
-          onValueChange={(value) =>
-            onTextTargetValueChange(textTarget, value)}
+          onValueChange={(value, options) =>
+            onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>
             pointerHandlers.handleTemplateTextBlockPointerDown(
               event,
@@ -582,6 +584,12 @@ function CaseInsertTemplateTextBlock({
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
+          onRichTextKeyboardCommand={(command, selection) =>
+            previewTextControlHandlers.onRichTextKeyboardCommand?.(
+              textTarget,
+              command,
+              selection,
+            )}
           onDone={() => {
             setHtmlSourceTargetKey(null)
             onTextTargetEditComplete(textTarget)
@@ -616,6 +624,7 @@ function CaseInsertTemplateTextList({
   onTextTargetValueChange: (
     target: CaseInsertPreviewTextTarget,
     value: string,
+    options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
@@ -744,8 +753,8 @@ function CaseInsertTemplateTextList({
           value={editValue}
           textareaStyle={{ textAlign: 'left' }}
           menuPlacement="below"
-          onValueChange={(value) =>
-            onTextTargetValueChange(textTarget, value)}
+          onValueChange={(value, options) =>
+            onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>
             pointerHandlers.handleTemplateTextListPointerDown(
               event,
@@ -754,6 +763,12 @@ function CaseInsertTemplateTextList({
             )}
           onMoveHandlePointerMove={pointerHandlers.handleTemplatePointerMove}
           onMoveHandlePointerUp={pointerHandlers.handleTemplatePointerUp}
+          onRichTextKeyboardCommand={(command, selection) =>
+            previewTextControlHandlers.onRichTextKeyboardCommand?.(
+              textTarget,
+              command,
+              selection,
+            )}
           onDone={() => {
             setHtmlSourceTargetKey(null)
             onTextTargetEditComplete(textTarget)

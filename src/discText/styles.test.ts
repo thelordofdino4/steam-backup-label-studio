@@ -110,7 +110,11 @@ test('title bold toggles between supported visible font weights', () => {
 
   assert.equal(DISC_TEXT_RENDER_STYLES.title.fontWeight, 800)
   assert.equal(defaultRenderLayout.fontWeight, 900)
-  assert.equal(normalRenderLayout.fontWeight, 800)
+  assert.equal(normalRenderLayout.fontWeight, 400)
+  assert.ok(
+    defaultRenderLayout.fontWeight - normalRenderLayout.fontWeight >= 500,
+    'bold and normal title weights should map to visibly distinct font faces',
+  )
 })
 
 test('style preset catalog covers the issue themes with complete editable style values', () => {

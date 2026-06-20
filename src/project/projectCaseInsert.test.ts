@@ -259,6 +259,47 @@ test('case insert preview text drafts can stay empty until editing completes', (
   assert.equal(finalizedCoverTitle?.source, 'metadata')
 })
 
+test('HTML metadata text restores rendered default after empty completion', () => {
+  const state = createDefaultProjectJewelCaseState('Portal 2')
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Portal 2',
+  }
+  const coverTitleTarget = {
+    scope: 'templateTextBlock' as const,
+    paneId: 'cover' as const,
+    textBlockId: 'cover-title-text',
+  }
+  const htmlState = updateCaseInsertPreviewTextTargetContentMode(
+    state,
+    coverTitleTarget,
+    'html',
+    metadata,
+  )
+  const emptyDraft = updateCaseInsertPreviewTextDraftValue(
+    htmlState,
+    coverTitleTarget,
+    '',
+  )
+  const finalizedDraft = finalizeCaseInsertPreviewTextDraft(
+    emptyDraft,
+    coverTitleTarget,
+  )
+  const finalizedCoverTitle =
+    finalizedDraft.templates.cover.textBlocks.find(
+      ({ id }) => id === 'cover-title-text',
+    )
+
+  assert.equal(finalizedCoverTitle?.value, '')
+  assert.equal(finalizedCoverTitle?.source, 'metadata')
+  assert.equal(
+    finalizedCoverTitle
+      ? getCaseInsertPreviewTextEditValue(finalizedCoverTitle, metadata)
+      : '',
+    'Portal 2',
+  )
+})
+
 test('case insert preview text edit values include metadata defaults', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
   const metadata = {

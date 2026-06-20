@@ -212,6 +212,8 @@ const DEFAULT_DISC_TEXT_BACKGROUND_OPACITY = 0.68
 const DEFAULT_DISC_TEXT_BACKGROUND_PADDING = 0.8
 const DEFAULT_DISC_TEXT_BORDER_COLOR = '#f9fafb'
 const DEFAULT_DISC_TEXT_BORDER_RADIUS = 0.6
+const NORMAL_DISC_TEXT_FONT_WEIGHT = 400
+const BOLD_DISC_TEXT_FONT_WEIGHT = 900
 
 function normalizeHexColor(value: unknown, fallback: string) {
   if (typeof value !== 'string') return fallback
@@ -392,13 +394,10 @@ export function getDiscTextEffectiveFontWeight(
   style: Pick<DiscTextStyle, 'bold'>,
 ) {
   if (!style.bold) {
-    return baseFontWeight
+    return Math.min(baseFontWeight, NORMAL_DISC_TEXT_FONT_WEIGHT)
   }
 
-  return Math.min(
-    900,
-    Math.max(700, Math.ceil((baseFontWeight + 1) / 100) * 100),
-  )
+  return BOLD_DISC_TEXT_FONT_WEIGHT
 }
 
 export function getDiscTextFontStyle(style: Pick<DiscTextStyle, 'italic'>) {

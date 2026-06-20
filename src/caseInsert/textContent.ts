@@ -167,13 +167,6 @@ export function getCaseInsertTextBlockRenderValue(
   textBlock: ProjectCaseInsertTextBlock,
   metadata?: ProjectMetadata,
 ) {
-  if (isHtmlTextEnabled(textBlock)) {
-    return getRenderablePlainText(
-      textBlock,
-      textBlock.value,
-    )
-  }
-
   const discKey = getCaseInsertTextBlockDiscKey(textBlock)
 
   if (
@@ -185,6 +178,13 @@ export function getCaseInsertTextBlockRenderValue(
     return formatCaseInsertDiscTextValue(
       discKey,
       getProjectMetadataDiscTextValue(discKey, metadata) || textBlock.value,
+    )
+  }
+
+  if (isHtmlTextEnabled(textBlock)) {
+    return getRenderablePlainText(
+      textBlock,
+      textBlock.value,
     )
   }
 

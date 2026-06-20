@@ -81,6 +81,11 @@ export type CaseInsertPreviewTextControlHandlers = {
     selection: InlinePreviewTextEditorSelectionRange | undefined,
     value: boolean | string,
   ) => InlinePreviewTextEditorSelectionRange | void
+  onRichTextKeyboardCommand?: (
+    target: CaseInsertPreviewTextTarget,
+    command: 'enter' | 'shiftEnter' | 'backspace',
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => InlinePreviewTextEditorSelectionRange | null | void
   getRichTextCommandState?: (
     target: CaseInsertPreviewTextTarget,
     command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',

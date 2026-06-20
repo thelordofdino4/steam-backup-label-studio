@@ -28,7 +28,11 @@ import {
   getRenderablePlainText,
   getHtmlSource,
   isHtmlTextEnabled,
+  plainTextToHtmlSource,
 } from '../text/htmlText.ts'
+import {
+  applyRichTextPlainTextMutation,
+} from '../text/richTextCommands.ts'
 
 const CASE_INSERT_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   backupDate: 'Backed up ',
@@ -75,6 +79,12 @@ export function getCaseInsertPreviewTextEditValue(
     : getCaseInsertTextBlockRenderValue(textBlock, metadata)
 
   if (isHtmlTextEnabled(textBlock)) {
+    if (textBlock.source === 'metadata' && isCaseInsertMetadataTextBlock(textBlock)) {
+      return options.sourceMode
+        ? plainTextToHtmlSource(fallbackValue)
+        : fallbackValue
+    }
+
     return options.sourceMode
       ? getHtmlSource(textBlock, fallbackValue)
       : getRenderablePlainText(textBlock, fallbackValue)
@@ -86,7 +96,26 @@ export function getCaseInsertPreviewTextEditValue(
 function updatePreviewTextBlockDraft(
   textBlock: ProjectCaseInsertTextBlock,
   value: string,
+  options: { sourceMode?: boolean } = {},
 ) {
+  if (isHtmlTextEnabled(textBlock) && !options.sourceMode) {
+    const fallbackValue = getCaseInsertPreviewTextEditValue(textBlock)
+    const result = applyRichTextPlainTextMutation({
+      fallbackText: fallbackValue,
+      htmlSource: getHtmlSource(textBlock, fallbackValue),
+      nextPlainText: value,
+    })
+
+    return {
+      ...textBlock,
+      contentMode: 'html' as const,
+      htmlSource: result.htmlSource,
+      markdownSource: undefined,
+      source: 'manual' as const,
+      value: getPreviewTextBlockDraftValue(textBlock, result.plainText),
+    }
+  }
+
   return updateCaseInsertTextBlockValue(
     textBlock,
     getPreviewTextBlockDraftValue(textBlock, value),
@@ -130,6 +159,7 @@ export function updateCaseInsertPreviewTextDraftValue(
   caseInsert: ProjectJewelCaseState,
   target: CaseInsertPreviewTextTarget,
   value: string,
+  options: { sourceMode?: boolean } = {},
 ): ProjectJewelCaseState {
   switch (target.scope) {
     case 'templateTextBlock':
@@ -137,7 +167,7 @@ export function updateCaseInsertPreviewTextDraftValue(
         caseInsert,
         target.paneId,
         target.textBlockId,
-        (textBlock) => updatePreviewTextBlockDraft(textBlock, value),
+        (textBlock) => updatePreviewTextBlockDraft(textBlock, value, options),
       )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
@@ -145,7 +175,19 @@ export function updateCaseInsertPreviewTextDraftValue(
         target.paneId,
         target.textListId,
         (textList) => isHtmlTextEnabled(textList)
-          ? updateCaseInsertTextListHtmlSource(textList, value)
+          ? options.sourceMode
+            ? updateCaseInsertTextListHtmlSource(textList, value)
+            : updateCaseInsertTextListHtmlSource(
+                textList,
+                applyRichTextPlainTextMutation({
+                  fallbackText: getCaseInsertPreviewTextListEditValue(textList),
+                  htmlSource: getHtmlSource(
+                    textList,
+                    getCaseInsertPreviewTextListEditValue(textList),
+                  ),
+                  nextPlainText: value,
+                }).htmlSource,
+              )
           : setCaseInsertTextListItems(
               textList,
               getPreviewTextListItems(value),
@@ -157,7 +199,7 @@ export function updateCaseInsertPreviewTextDraftValue(
         target.side,
         (spineSide) => ({
           ...spineSide,
-          title: updatePreviewTextBlockDraft(spineSide.title, value),
+          title: updatePreviewTextBlockDraft(spineSide.title, value, options),
         }),
       )
     case 'spineTextBlock':
@@ -174,7 +216,7 @@ export function updateCaseInsertPreviewTextDraftValue(
             ...spineSide,
             textBlocks: spineSide.textBlocks.map((textBlock) =>
               textBlock.id === targetTextBlockId
-                ? updatePreviewTextBlockDraft(textBlock, value)
+                ? updatePreviewTextBlockDraft(textBlock, value, options)
                 : textBlock),
           }
         },

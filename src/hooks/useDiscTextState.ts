@@ -74,12 +74,15 @@ import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
+  applyRichTextListKeyboardCommand,
+  applyRichTextPlainTextMutation,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
   type PlainTextSelectionRange,
   type RichTextAmbientInlineStyle,
   type RichTextInlineToggleCommand,
+  type RichTextListKeyboardCommand,
   type RichTextSelectionColorState,
   type RichTextSelectionStyleState,
 } from '../text/richTextCommands'
@@ -123,6 +126,21 @@ type DiscTextRichTextCommandState =
   | RichTextSelectionStyleState
   | RichTextSelectionColorState
 
+const DISC_TEXT_INLINE_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
+  appId: 'Steam App ID ',
+  backupDate: 'Backed up ',
+  developer: 'Developer: ',
+  publisher: 'Publisher: ',
+}
+
+function getDiscTextInlineStorageValue(key: DiscTextKey, value: string) {
+  const prefix = DISC_TEXT_INLINE_RENDERED_PREFIXES[key]
+
+  return prefix && value.startsWith(prefix)
+    ? value.slice(prefix.length)
+    : value
+}
+
 function getDiscTextRichTextAmbientStyle(
   key: DiscTextKey,
   styles: DiscTextStyleSettings,
@@ -132,7 +150,7 @@ function getDiscTextRichTextAmbientStyle(
     boldFontWeight: 900,
     color: styles[key].color,
     italic: styles[key].italic,
-    normalFontWeight: DISC_TEXT_RENDER_STYLES[key].fontWeight,
+    normalFontWeight: Math.min(DISC_TEXT_RENDER_STYLES[key].fontWeight, 400),
     underline: styles[key].underline,
   }
 }
@@ -435,19 +453,50 @@ export function useDiscTextState({
     clampDiscTextLayoutForContent(key, renderedPlainText)
   }
 
-  function handleDiscTextInlineDraftChange(key: DiscTextKey, value: string) {
+  function handleDiscTextInlineDraftChange(
+    key: DiscTextKey,
+    value: string,
+    options: { sourceMode?: boolean } = {},
+  ) {
     if (isDiscTextHtmlEnabled(discTextHtmlSources, key)) {
-      const renderedPlainText = parseHtmlText(value).plainText
+      if (options.sourceMode) {
+        const renderedPlainText = parseHtmlText(value).plainText
+        const nextInputUpdate = updateDiscTextInlineDraftValue(
+          discTextValues,
+          discTextValueSources,
+          key,
+          getDiscTextInlineStorageValue(key, renderedPlainText),
+          discTextTitleValue,
+        )
+
+        setDiscTextHtmlSources((currentSources) =>
+          setDiscTextHtmlSource(currentSources, key, value))
+        if (isMetadataBoundDiscTextKey(key)) {
+          setDiscTextValueSources(nextInputUpdate.sources)
+        }
+        setDiscTextValues(nextInputUpdate.values)
+        setDiscTextTitleValue(nextInputUpdate.titleValue)
+        clampDiscTextLayoutForContent(key, renderedPlainText)
+        return
+      }
+
+      const currentText = getCurrentDiscTextContent(key)
+      const result = applyRichTextPlainTextMutation({
+        fallbackText: currentText,
+        htmlSource: getDiscTextHtmlSource(discTextHtmlSources, key, currentText),
+        nextPlainText: value,
+      })
+      const renderedPlainText = result.plainText
       const nextInputUpdate = updateDiscTextInlineDraftValue(
         discTextValues,
         discTextValueSources,
         key,
-        renderedPlainText,
+        getDiscTextInlineStorageValue(key, renderedPlainText),
         discTextTitleValue,
       )
 
       setDiscTextHtmlSources((currentSources) =>
-        setDiscTextHtmlSource(currentSources, key, value))
+        setDiscTextHtmlSource(currentSources, key, result.htmlSource))
       if (isMetadataBoundDiscTextKey(key)) {
         setDiscTextValueSources(nextInputUpdate.sources)
       }
@@ -695,7 +744,53 @@ export function useDiscTextState({
       discTextValues,
       discTextValueSources,
       key,
-      result.plainText,
+      getDiscTextInlineStorageValue(key, result.plainText),
+      discTextTitleValue,
+    )
+
+    setDiscTextHtmlSources((currentSources) =>
+      setDiscTextHtmlSource(currentSources, key, result.htmlSource))
+    if (isMetadataBoundDiscTextKey(key)) {
+      setDiscTextValueSources(nextInputUpdate.sources)
+    }
+    setDiscTextValues(nextInputUpdate.values)
+    setDiscTextTitleValue(nextInputUpdate.titleValue)
+    clampDiscTextLayoutForContent(key, result.plainText)
+    return result.selection
+  }
+
+  function handleDiscTextRichTextKeyboardCommand(
+    key: DiscTextKey,
+    command: RichTextListKeyboardCommand,
+    selection: PlainTextSelectionRange,
+  ) {
+    if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
+      return null
+    }
+
+    const currentText = getCurrentDiscTextContent(key)
+    const source = {
+      ambientStyle: getDiscTextRichTextAmbientStyle(key, discTextStyles),
+      fallbackText: currentText,
+      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
+        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
+        : undefined,
+    }
+    const result = applyRichTextListKeyboardCommand({
+      ...source,
+      command,
+      selection,
+    })
+
+    if (!result) {
+      return null
+    }
+
+    const nextInputUpdate = updateDiscTextInlineDraftValue(
+      discTextValues,
+      discTextValueSources,
+      key,
+      getDiscTextInlineStorageValue(key, result.plainText),
       discTextTitleValue,
     )
 
@@ -873,6 +968,7 @@ export function useDiscTextState({
     handleResetDiscTextLayout,
     handleDiscTextStyleChange,
     handleDiscTextRichTextCommand,
+    handleDiscTextRichTextKeyboardCommand,
     getDiscTextRichTextCommandState,
     handleResetDiscTextStyle,
     handleApplyDiscTextStylePreset,

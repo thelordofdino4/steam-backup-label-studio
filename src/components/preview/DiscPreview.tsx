@@ -75,7 +75,11 @@ export type DiscPreviewProps = {
     getPreviewTransform: (key: DiscTextKey, layout: DiscTextLayout) => string
     onSelectedKeyChange: (key: DiscTextKey | null) => void
     onTextEnabledChange: (key: DiscTextKey, enabled: boolean) => void
-    onTextValueChange: (key: DiscTextKey, value: string) => void
+    onTextValueChange: (
+      key: DiscTextKey,
+      value: string,
+      options?: { sourceMode?: boolean },
+    ) => void
     onTextContentModeChange: (
       key: DiscTextKey,
       contentMode: TextContentMode,
@@ -92,6 +96,11 @@ export type DiscPreviewProps = {
       selection: { end: number; start: number } | undefined,
       value: boolean | string,
     ) => { end: number; start: number } | void
+    onTextRichTextKeyboardCommand: (
+      key: DiscTextKey,
+      command: 'enter' | 'shiftEnter' | 'backspace',
+      selection: { end: number; start: number },
+    ) => { end: number; start: number } | null | void
     getTextRichTextCommandState: (
       key: DiscTextKey,
       command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
@@ -405,6 +414,9 @@ export function DiscPreview({
         onDiscTextEditComplete={discText.onTextEditComplete}
         onDiscTextStyleChange={discText.onTextStyleChange}
         onDiscTextRichTextCommand={discText.onTextRichTextCommand}
+        onDiscTextRichTextKeyboardCommand={
+          discText.onTextRichTextKeyboardCommand
+        }
         getDiscTextRichTextCommandState={discText.getTextRichTextCommandState}
         onApplyDiscTextStylePreset={discText.onApplyTextStylePreset}
         onResetDiscTextStyle={discText.onResetTextStyle}
