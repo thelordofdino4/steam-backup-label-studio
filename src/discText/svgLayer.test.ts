@@ -167,6 +167,57 @@ test('disc SVG renderer applies point size to curved textPath output', () => {
   assert.doesNotMatch(svg, /<foreignObject\b/i)
 })
 
+test('curved disc text uses point size for glyph size while scale stays geometry-only', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright: 'Legal text on a curved path',
+  }
+  const layout = createDefaultDiscTextLayout(
+    'none',
+    discTemplates.standardPrintableDisc,
+  )
+  const createSvg = (scale: number) =>
+    buildDiscTextSvgLayer({
+      settings,
+      values,
+      layoutSettings: {
+        ...layout,
+        copyright: {
+          ...layout.copyright,
+          fontSizePt: 9,
+          mode: 'curved',
+          scale,
+        },
+      },
+      title: 'Portal 2',
+      placement: 'none',
+      safeZoneRadiusPercent: 44,
+      measureText: measureTextAsCharacters,
+      width: 100,
+      height: 100,
+      template: discTemplates.standardPrintableDisc,
+    })
+  const smallSpacingSvg = createSvg(0.5)
+  const largeSpacingSvg = createSvg(1.8)
+  const fontSizePattern = /font-size:([^;]+)px/
+  const smallFontSize = smallSpacingSvg.match(fontSizePattern)?.[1]
+  const largeFontSize = largeSpacingSvg.match(fontSizePattern)?.[1]
+
+  assert.equal(smallFontSize, largeFontSize)
+  assert.equal(
+    Number(smallFontSize),
+    discTextPointSizeToSvgPercent(9, discTemplates.standardPrintableDisc),
+  )
+  assert.notEqual(
+    smallSpacingSvg.match(/letter-spacing:([^;]+)px/)?.[1],
+    largeSpacingSvg.match(/letter-spacing:([^;]+)px/)?.[1],
+  )
+})
+
 test('disc SVG renderer reflects changed straight HTML source drafts', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,

@@ -8,7 +8,7 @@ import {
 
 export const DISC_TEXT_POINT_SIZE_MIN = 1
 export const DISC_TEXT_POINT_SIZE_MAX = 96
-export const DISC_TEXT_POINT_SIZE_STEP = 1
+export const DISC_TEXT_POINT_SIZE_STEP = 0.25
 
 export const DISC_TEXT_POINT_SIZE_PRESETS = [
   8,

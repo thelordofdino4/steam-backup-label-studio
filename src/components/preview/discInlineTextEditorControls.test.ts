@@ -101,6 +101,7 @@ test('disc contextual controls use shared preset options and labels', () => {
   assert.equal(controls.text?.fontFamily?.label, 'Font')
   assert.equal(controls.text?.size?.label, 'Font size (pt)')
   assert.equal(controls.text?.size?.value, layout.fontSizePt)
+  assert.equal(controls.text?.size?.step, 0.25)
   assert.equal(controls.text?.alignment?.label, 'Align')
   assert.equal(controls.text?.alignment?.value, layout.align)
   assert.equal(controls.text?.bold?.label, 'Bold')

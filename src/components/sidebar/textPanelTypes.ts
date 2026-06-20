@@ -2,6 +2,7 @@ import type {
   DiscTextAlignment,
   DiscTextArcSide,
   DiscTextKey,
+  DiscTextLayoutNumericField,
   DiscTextLayoutSettings,
   DiscTextMode,
   DiscTextSettings,
@@ -42,7 +43,7 @@ export type TextPanelProps = {
   handleUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
   handleDiscTextLayoutChange: (
     key: DiscTextKey,
-    field: 'x' | 'y' | 'width' | 'scale' | 'arcDegrees',
+    field: DiscTextLayoutNumericField,
     value: number,
   ) => void
   handleDiscTextAlignmentChange: (key: DiscTextKey, align: DiscTextAlignment) => void
