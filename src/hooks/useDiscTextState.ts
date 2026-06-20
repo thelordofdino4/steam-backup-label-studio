@@ -9,6 +9,7 @@ import {
 } from '../layout/discElementSafeZone'
 import {
   createDefaultDiscTextValueSources,
+  finalizeDiscTextInlineDraftValue,
   getDiscTextKeysForProjectMetadataField,
   isMetadataBoundDiscTextKey,
   resolveMetadataBoundDiscTextTitle,
@@ -538,11 +539,37 @@ export function useDiscTextState({
   }
 
   function finalizeDiscTextInlineDraft(key: DiscTextKey) {
-    if (!isMetadataBoundDiscTextKey(key) || getCurrentDiscTextContent(key).trim()) {
+    const finalizedDraft = finalizeDiscTextInlineDraftValue(
+      discTextValues,
+      discTextValueSources,
+      key,
+      getCurrentDiscTextRenderedContent(key),
+      discTextTitleValue,
+      discTextHtmlSources,
+    )
+
+    if (!finalizedDraft) {
       return
     }
 
-    handleDiscTextContentChange(key, '')
+    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
+      discTextValues: finalizedDraft.values,
+      discTextValueSources: finalizedDraft.sources,
+      discTextTitleValue: finalizedDraft.titleValue,
+    })
+
+    setDiscTextValueSources(finalizedDraft.sources)
+    setDiscTextValues(finalizedDraft.values)
+    setDiscTextTitleValue(finalizedDraft.titleValue)
+    setDiscTextHtmlSources(finalizedDraft.htmlSources)
+    clampDiscTextLayoutForContent(
+      key,
+      getDiscTextContent(
+        key,
+        nextResolution.metadataBoundDiscTextValues,
+        nextResolution.resolvedDiscTextTitle,
+      ),
+    )
   }
 
   function handleUseMetadataDiscTextValue(key: MetadataBoundDiscTextKey) {

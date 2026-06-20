@@ -1,5 +1,5 @@
 import { updateDiscTextValue } from '../discText/index.ts'
-import type { DiscTextKey, DiscTextValues } from '../discText/types'
+import type { DiscTextHtmlSources, DiscTextKey, DiscTextValues } from '../discText/types'
 import type { ProjectMetadata } from './projectTypes'
 import type {
   DiscTextInputState,
@@ -255,6 +255,34 @@ export function updateDiscTextInlineDraftValue(
     values: updateDiscTextValue(values, key, value),
     sources: updateDiscTextValueSource(sources, key, 'manual'),
     titleValue,
+  }
+}
+
+export function finalizeDiscTextInlineDraftValue(
+  values: DiscTextValues,
+  sources: DiscTextValueSources,
+  key: DiscTextInputValueKey,
+  visibleText: string,
+  titleValue = '',
+  htmlSources: DiscTextHtmlSources = {},
+): (DiscTextInputUpdate & { htmlSources: DiscTextHtmlSources }) | null {
+  if (!isMetadataBoundDiscTextKey(key) || normalizeText(visibleText)) {
+    return null
+  }
+
+  const nextInputUpdate = updateDiscTextInputValue(
+    values,
+    sources,
+    key,
+    '',
+    titleValue,
+  )
+  const nextHtmlSources = { ...htmlSources }
+  delete nextHtmlSources[key]
+
+  return {
+    ...nextInputUpdate,
+    htmlSources: nextHtmlSources,
   }
 }
 

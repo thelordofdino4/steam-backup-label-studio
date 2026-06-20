@@ -127,7 +127,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   size: 'Size',
   stylePreset: 'Style preset',
   underline: 'Underline',
-  width: 'Width',
+  width: 'Wrap width',
   x: 'X',
   y: 'Y',
 } as const satisfies Record<ContextualTextControlLabelId, string>

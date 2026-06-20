@@ -116,7 +116,7 @@ test('disc contextual controls use shared preset options and labels', () => {
   assert.equal(controls.art?.borderColor?.value, '#eeeeee')
   assert.equal(controls.art?.borderRadius?.value, 0.75)
   assert.equal(controls.utilities?.respectVisualElements?.label, 'Respect visuals')
-  assert.equal(controls.utilities?.width?.label, 'Width')
+  assert.equal(controls.utilities?.width?.label, 'Wrap width')
   assert.equal(controls.utilities?.x?.label, 'X')
   assert.equal(controls.utilities?.y?.label, 'Y')
   assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')

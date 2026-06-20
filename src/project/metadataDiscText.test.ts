@@ -4,6 +4,7 @@ import { createDefaultDiscTextValues } from '../discText/index.ts'
 import { createDefaultProjectMetadata } from './projectMetadata.ts'
 import {
   createDefaultDiscTextValueSources,
+  finalizeDiscTextInlineDraftValue,
   getDiscTextInputState,
   normalizeDiscTextValueSources,
   resolveMetadataBoundDiscTextTitle,
@@ -249,6 +250,87 @@ test('inline metadata-bound draft can stay manually empty while editing', () => 
   assert.equal(inputUpdate.sources.appId, 'manual')
   assert.equal(inputUpdate.values.appId, '')
   assert.equal(resolvedValues.appId, '')
+})
+
+test('finalizing empty metadata-bound draft restores metadata and removes empty HTML override', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    steamAppId: '440',
+  }
+  const draft = updateDiscTextInlineDraftValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'appId',
+    '',
+  )
+  const finalizedDraft = finalizeDiscTextInlineDraftValue(
+    draft.values,
+    draft.sources,
+    'appId',
+    '',
+    draft.titleValue,
+    {
+      appId: '<p></p>',
+      customNote: '<p>Manual note</p>',
+    },
+  )
+
+  assert.ok(finalizedDraft)
+
+  const resolvedValues = resolveMetadataBoundDiscTextValues(
+    finalizedDraft.values,
+    metadata,
+    finalizedDraft.sources,
+  )
+
+  assert.equal(finalizedDraft.sources.appId, 'metadata')
+  assert.equal(finalizedDraft.values.appId, '')
+  assert.equal(finalizedDraft.htmlSources.appId, undefined)
+  assert.equal(finalizedDraft.htmlSources.customNote, '<p>Manual note</p>')
+  assert.equal(resolvedValues.appId, '440')
+})
+
+test('finalizing non-empty or non-metadata disc draft leaves manual content untouched', () => {
+  const appIdDraft = updateDiscTextInlineDraftValue(
+    createDefaultDiscTextValues(),
+    createDefaultDiscTextValueSources(),
+    'appId',
+    'Manual 440',
+  )
+  const customNoteDraft = updateDiscTextInlineDraftValue(
+    appIdDraft.values,
+    appIdDraft.sources,
+    'customNote',
+    '',
+    appIdDraft.titleValue,
+  )
+  const htmlSources = {
+    appId: '<p>Manual 440</p>',
+    customNote: '<p></p>',
+  }
+
+  assert.equal(
+    finalizeDiscTextInlineDraftValue(
+      appIdDraft.values,
+      appIdDraft.sources,
+      'appId',
+      'Manual 440',
+      appIdDraft.titleValue,
+      htmlSources,
+    ),
+    null,
+  )
+  assert.equal(
+    finalizeDiscTextInlineDraftValue(
+      customNoteDraft.values,
+      customNoteDraft.sources,
+      'customNote',
+      '',
+      customNoteDraft.titleValue,
+      htmlSources,
+    ),
+    null,
+  )
 })
 
 test('clearing title input returns it to Game metadata/default', () => {
