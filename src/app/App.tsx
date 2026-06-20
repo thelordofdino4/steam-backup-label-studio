@@ -1610,6 +1610,7 @@ function App() {
             selectedSteamGame,
             projectMetadata,
             caseInsert: projectJewelCase,
+            activeCaseInsertTemplatePane,
           })
         : createProjectSnapshot({
             manualGameTitle,
@@ -1683,7 +1684,9 @@ function App() {
         setProjectMetadata(restoredCaseProject.projectMetadata)
         setSelectedSteamGame(restoredCaseProject.selectedSteamGame)
         setProjectJewelCase(restoredCaseProject.caseInsert)
-        setActiveCaseInsertTemplatePane('cover')
+        setActiveCaseInsertTemplatePane(
+          restoredCaseProject.activeCaseInsertTemplatePane,
+        )
         setActiveWorkspace('caseInsert')
         setHomeStatusMessage(null)
         caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync({

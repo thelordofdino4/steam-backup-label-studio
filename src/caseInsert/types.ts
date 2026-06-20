@@ -131,6 +131,7 @@ export type CreateCaseInsertProjectSnapshotParams = {
   selectedSteamGame?: SteamImportedGame | null
   projectMetadata?: Partial<ProjectMetadata>
   caseInsert?: ProjectJewelCaseStateInput
+  activeCaseInsertTemplatePane?: CaseInsertTemplatePaneId
   savedAt?: string
 }
 
@@ -145,6 +146,7 @@ export type RestoredCaseInsertProjectState = {
   selectedSteamGame: SteamImportedGame | null
   template: RestoredCaseInsertTemplateState
   caseInsert: ProjectJewelCaseState
+  activeCaseInsertTemplatePane: CaseInsertTemplatePaneId
 }
 
 export type CaseInsertImageSlotImageInput = {

@@ -147,6 +147,8 @@ The jewel case state stores:
 - back surface background, title artwork, additional artwork slots, description, feature bullets, minimum/recommended requirements, legal text, logo slots, mark slots, and text blocks
 - left and right spine settings, including background, title text, logo slots, and mark slots
 - case export settings, including selected surfaces and guide IDs
+- editor-only state, including the active case insert pane, so reopening returns
+  to Cover Sheet or Tray Card without changing saved design content
 - image asset data, image size, fit/layout settings, and provenance where present
 - update helpers that can disable optional visual/text elements without dropping their remembered values or uploaded assets
 
@@ -166,6 +168,9 @@ type SavedCaseInsertProject = {
   template: {
     type: 'caseInsert'
     variant: 'jewelCase'
+  }
+  editor?: {
+    activeCaseInsertTemplatePane?: 'cover' | 'tray'
   }
   caseInsert: {
     templateType: 'jewelCase'

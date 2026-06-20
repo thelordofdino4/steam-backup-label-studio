@@ -43,10 +43,12 @@ function createDiscProjectFixture(overrides: Record<string, unknown> = {}) {
 test('case insert snapshots use the shared current project schema version', () => {
   const project = createCaseInsertProjectSnapshot({
     manualGameTitle: 'Schema Fixture Case',
+    activeCaseInsertTemplatePane: 'tray',
     savedAt: '2026-06-03T12:00:00.000Z',
   })
 
   assert.equal(project.schemaVersion, CURRENT_PROJECT_SCHEMA_VERSION)
+  assert.equal(project.editor?.activeCaseInsertTemplatePane, 'tray')
   assert.deepEqual(getSavedProjectSchemaIssues(project), [])
   assert.doesNotThrow(() => validateSavedProjectSchema(project))
 })

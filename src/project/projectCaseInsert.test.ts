@@ -984,6 +984,118 @@ test('creates case insert snapshots from generic template state', () => {
   assert.equal(project.caseInsert.templates.tray.textLists[0]?.layout.width, 36)
 })
 
+test('case insert snapshots preserve the active editor pane separately from design data', () => {
+  let state = createDefaultProjectJewelCaseState('Portal 2')
+
+  state = updateProjectCaseInsertTemplate(state, 'cover', (cover) => ({
+    ...cover,
+    textBlocks: cover.textBlocks.map((textBlock) =>
+      textBlock.id === 'cover-custom-note'
+        ? updateCaseInsertTextBlockValue(textBlock, 'Cover note stays put')
+        : textBlock,
+    ),
+  }))
+  state = updateProjectCaseInsertTemplate(state, 'tray', (tray) => ({
+    ...tray,
+    textBlocks: tray.textBlocks.map((textBlock) =>
+      textBlock.id === 'tray-description'
+        ? updateCaseInsertTextBlockValue(textBlock, 'Tray note stays put')
+        : textBlock,
+    ),
+  }))
+
+  const saved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Portal 2 Case',
+    caseInsert: state,
+    activeCaseInsertTemplatePane: 'tray',
+    savedAt: '2026-06-20T12:00:00.000Z',
+  })
+  const restored = restoreCaseInsertProjectState(saved)
+
+  assert.equal(saved.editor?.activeCaseInsertTemplatePane, 'tray')
+  assert.equal(restored.activeCaseInsertTemplatePane, 'tray')
+  assert.equal(
+    restored.caseInsert.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.value,
+    'Cover note stays put',
+  )
+  assert.equal(
+    restored.caseInsert.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.value,
+    'Tray note stays put',
+  )
+
+  const resavedFromCover = createCaseInsertProjectSnapshot({
+    manualGameTitle: restored.manualGameTitle,
+    projectMetadata: restored.projectMetadata,
+    selectedSteamGame: restored.selectedSteamGame,
+    caseInsert: restored.caseInsert,
+    activeCaseInsertTemplatePane: 'cover',
+    savedAt: '2026-06-20T12:30:00.000Z',
+  })
+  const restoredFromCover = restoreCaseInsertProjectState(resavedFromCover)
+
+  assert.equal(restoredFromCover.activeCaseInsertTemplatePane, 'cover')
+  assert.equal(
+    restoredFromCover.caseInsert.templates.cover.textBlocks.find(({ id }) =>
+      id === 'cover-custom-note')?.value,
+    'Cover note stays put',
+  )
+  assert.equal(
+    restoredFromCover.caseInsert.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.value,
+    'Tray note stays put',
+  )
+})
+
+test('case insert active pane restore defaults safely for legacy and invalid project data', () => {
+  const legacySaved = createCaseInsertProjectSnapshot({
+    manualGameTitle: 'Legacy Case',
+    savedAt: '2026-06-20T12:00:00.000Z',
+  })
+  delete legacySaved.editor
+
+  const restoredLegacy = restoreCaseInsertProjectState(legacySaved)
+
+  assert.equal(restoredLegacy.activeCaseInsertTemplatePane, 'cover')
+
+  const invalidSaved = {
+    ...createCaseInsertProjectSnapshot({
+      manualGameTitle: 'Invalid Case',
+      caseInsert: {
+        templates: {
+          tray: {
+            textBlocks: [
+              {
+                id: 'tray-description',
+                label: 'Description',
+                enabled: true,
+                value: 'Tray survives invalid pane',
+                source: 'manual',
+              },
+            ],
+          },
+        },
+      },
+      savedAt: '2026-06-20T12:00:00.000Z',
+    }),
+    editor: {
+      activeCaseInsertTemplatePane: 'spine',
+    },
+  }
+
+  const normalizedInvalid = normalizeSavedCaseInsertProject(invalidSaved)
+  const restoredInvalid = restoreCaseInsertProjectState(invalidSaved)
+
+  assert.equal(normalizedInvalid.editor?.activeCaseInsertTemplatePane, 'cover')
+  assert.equal(restoredInvalid.activeCaseInsertTemplatePane, 'cover')
+  assert.equal(
+    restoredInvalid.caseInsert.templates.tray.textBlocks.find(({ id }) =>
+      id === 'tray-description')?.value,
+    'Tray survives invalid pane',
+  )
+})
+
 test('case insert save and restore preserves spine mirror setting', () => {
   const state = setJewelCaseSpineMirrored(
     createDefaultProjectJewelCaseState('Portal 2'),
