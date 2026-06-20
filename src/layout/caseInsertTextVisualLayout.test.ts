@@ -11,6 +11,10 @@ function measureTextAsCharacters(text: string) {
   return Array.from(text).length
 }
 
+function isInside(value: number, min: number, max: number) {
+  return value >= min && value <= max
+}
+
 const reservedBounds = {
   x: 10,
   y: 20,
@@ -147,6 +151,76 @@ test('case insert visual bounds include paint-safe stroke and shadow slack', () 
   assert.equal(layout.bounds.height, 18)
 })
 
+test('case insert visual bounds use glyph ink overhang separately from wrapping width', () => {
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    clampVisualBounds: false,
+    fontSizePx: 10,
+    lineHeightPx: 12,
+    measureText: measureTextAsCharacters,
+    measureTextInk: (text, font) => ({
+      actualBoundingBoxAscent: 0,
+      actualBoundingBoxDescent: 10,
+      actualBoundingBoxLeft: font.includes('italic') ? 2 : 0,
+      actualBoundingBoxRight: Array.from(text).length +
+        (font.includes('italic') ? 3 : 0),
+      width: Array.from(text).length,
+    }),
+    paddingRatio: 0,
+    fontStyle: 'italic',
+    text: 'ITALIC',
+    verticalAlign: 'top',
+  })
+
+  assert.equal(layout.lines[0]?.width, 6)
+  assert.equal(layout.contentBounds.x, reservedBounds.x - 2)
+  assert.equal(layout.contentBounds.width, 11)
+  assert.equal(layout.bounds.x, reservedBounds.x - 2)
+  assert.equal(layout.bounds.width, 11)
+})
+
+test('case insert rich text ink bounds union mixed run overhangs', () => {
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    clampVisualBounds: false,
+    fontFamily: 'Georgia, serif',
+    fontSizePx: 10,
+    fontWeight: 600,
+    lineHeightPx: 12,
+    measureText: (text) => Array.from(text).length * 5,
+    measureTextInk: (text, font) => {
+      const width = Array.from(text).length * 5
+
+      return {
+        actualBoundingBoxAscent: 0,
+        actualBoundingBoxDescent: 10,
+        actualBoundingBoxLeft: font.includes('italic') ? 2 : 0,
+        actualBoundingBoxRight: width + (font.includes('700') ? 4 : 0),
+        width,
+      }
+    },
+    paddingRatio: 0,
+    richText: parseHtmlText('<p><em>A</em><strong>Z</strong></p>'),
+    text: 'AZ',
+    verticalAlign: 'top',
+  })
+
+  assert.deepEqual(
+    layout.lines[0]?.runs?.map(({ text, bold, italic, left }) => ({
+      text,
+      bold: Boolean(bold),
+      italic: Boolean(italic),
+      left,
+    })),
+    [
+      { text: 'A', bold: false, italic: true, left: 10 },
+      { text: 'Z', bold: true, italic: false, left: 15 },
+    ],
+  )
+  assert.equal(layout.contentBounds.x, 8)
+  assert.equal(layout.contentBounds.width, 16)
+})
+
 test('case insert text clamping uses measured visual bounds without changing wrap width', () => {
   const safeBounds = {
     x: 10,
@@ -200,6 +274,43 @@ test('case insert text clamping uses measured visual bounds without changing wra
   }).lines.map((line) => line.text)
 
   assert.deepEqual(slackLines, noSlackLines)
+})
+
+test('case insert wrap width does not become the safe-zone collision hull', () => {
+  const safeBounds = {
+    x: 10,
+    y: 20,
+    width: 30,
+    height: 70,
+  }
+  const requestedBounds = {
+    x: -125,
+    y: 30,
+    width: 300,
+    height: 30,
+  }
+  const { reservedBounds: clampedReservedBounds, visualLayout } =
+    clampCaseInsertTextVisualLayoutToBounds(requestedBounds, safeBounds, {
+      align: 'center',
+      fontSizePx: 10,
+      lineHeightPx: 12,
+      measureText: measureTextAsCharacters,
+      paddingRatio: 0,
+      text: 'HELLO',
+      verticalAlign: 'top',
+    })
+
+  assert.equal(clampedReservedBounds.x, requestedBounds.x)
+  assert.equal(clampedReservedBounds.width, requestedBounds.width)
+  assert.equal(isInside(visualLayout.bounds.x, safeBounds.x, safeBounds.x + safeBounds.width), true)
+  assert.equal(
+    isInside(
+      visualLayout.bounds.x + visualLayout.bounds.width,
+      safeBounds.x,
+      safeBounds.x + safeBounds.width,
+    ),
+    true,
+  )
 })
 
 test('case insert rich text layout renders bullet list glyphs and item styling', () => {

@@ -306,7 +306,7 @@ test('tray default metadata text is readable and paint-safe at common scales', (
   assert.ok(safeBounds)
   assert.ok(titleBlock)
 
-  for (const scale of [0.62, 0.8, 1]) {
+  for (const scale of [0.7, titleBlock.layout.scale, 1.8]) {
     const textBlock = {
       ...setCaseInsertTextBlockEnabled(
         updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
@@ -327,6 +327,42 @@ test('tray default metadata text is readable and paint-safe at common scales', (
     assert.ok(textLayout)
     assert.equal(isPixelRectInsideBounds(textLayout.bounds, safeBounds), true)
     assert.ok(textLayout.fontSizePx >= safeBounds.width * 0.012)
+    assertTextLinesFitVisualBounds(textLayout)
+    assertTextLinesHavePaintSlack(textLayout)
+  }
+})
+
+test('tray text ink-safe bounds preserve left center and right alignment', () => {
+  const state = createDefaultProjectJewelCaseState('Warframe')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const safeBounds = getRegionBounds(layout, 'backPanelSafe')
+  const titleBlock = state.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+
+  assert.ok(safeBounds)
+  assert.ok(titleBlock)
+
+  for (const align of ['left', 'center', 'right'] as const) {
+    const textBlock = {
+      ...setCaseInsertTextBlockEnabled(
+        updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
+        true,
+      ),
+      align,
+      layout: {
+        ...titleBlock.layout,
+        x: align === 'left' ? 16 : align === 'right' ? 84 : 50,
+      },
+    }
+    const textLayout = getJewelCaseBackTextBlockPreviewLayout(
+      textBlock,
+      layout,
+      getCaseInsertBackTextBlockRole(textBlock),
+    )
+
+    assert.ok(textLayout)
+    assert.equal(isPixelRectInsideBounds(textLayout.bounds, safeBounds), true)
     assertTextLinesFitVisualBounds(textLayout)
     assertTextLinesHavePaintSlack(textLayout)
   }
