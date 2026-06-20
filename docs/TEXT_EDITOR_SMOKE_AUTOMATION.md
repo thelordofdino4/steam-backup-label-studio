@@ -148,6 +148,8 @@ The committed smoke command verifies:
 - Initial bottom placement keeps tabs and menu reachable without overlapping.
 - Oversized cover text triggers emergency detached placement so tabs, menu, and
   move handle remain reachable inside the editor workspace.
+- A roomy tray title keeps anchored contextual placement instead of using
+  emergency detached placement.
 - Tray, left spine, and right spine open inline editors.
 - Left and right rotated spine text support forward and reverse LMB drag
   selection along the visible rotated text direction.

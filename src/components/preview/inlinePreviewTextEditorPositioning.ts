@@ -193,12 +193,36 @@ function getPreferredVerticalMenuPlacement({
 
 type InlinePreviewTextCandidateLayout = InlinePreviewTextControlLayout & {
   candidate: InlinePreviewTextEditorMenuPlacement
+  fullHeightFits: boolean
+  menuOverflow: number
   menuRect: InlinePreviewTextRect
   moveHandleRect: InlinePreviewTextRect
+  obstacleOverlap: number
+  previewOverflow: number
   score: number
   tabsRect: InlinePreviewTextRect
   textOverlap: number
   usable: boolean
+}
+
+export type InlinePreviewTextPlacementCandidateDiagnostic = {
+  candidate: InlinePreviewTextEditorMenuPlacement
+  fullHeightFits: boolean
+  menuMaxHeight: number
+  menuOverflow: number
+  obstacleOverlap: number
+  previewOverflow: number
+  score: number
+  textOverlap: number
+  usable: boolean
+}
+
+export type InlinePreviewTextPlacementDiagnostics = {
+  anchorRect: InlinePreviewTextRect
+  candidates: InlinePreviewTextPlacementCandidateDiagnostic[]
+  emergencyEligible: boolean
+  selectedPlacement: InlinePreviewTextEditorMenuPlacement
+  selectedTextAreaRatio: number
 }
 
 function scoreCandidate({
@@ -227,14 +251,23 @@ function scoreCandidate({
     (total, rect) => total + getOverlapArea(rect, anchorRect),
     0,
   )
+  const primaryTextOverlap = [tabsRect, menuRect].reduce(
+    (total, rect) => total + getOverlapArea(rect, anchorRect),
+    0,
+  )
   const obstacleOverlap = obstacles.reduce((total, obstacle) =>
     total + controlRects.reduce(
       (controlTotal, rect) => controlTotal + getOverlapArea(rect, obstacle.rect),
       0,
     ),
   0)
+  const menuOverflow = getOverflowArea(menuRect, previewRect)
 
   return {
+    menuOverflow,
+    obstacleOverlap,
+    primaryTextOverlap,
+    previewOverflow,
     score:
       previewOverflow * 100 +
       textOverlap * 18 +
@@ -335,6 +368,7 @@ function createAnchoredVerticalCandidate({
 
   return {
     candidate,
+    fullHeightFits: menuMaxHeight >= sizes.menu.height,
     menu: {
       left: menuLeft,
       maxHeight: menuMaxHeight,
@@ -342,6 +376,7 @@ function createAnchoredVerticalCandidate({
       placement: candidate,
       top: menuTop,
     },
+    menuOverflow: scored.menuOverflow,
     menuRect,
     mode: 'anchored',
     moveHandle: {
@@ -349,6 +384,8 @@ function createAnchoredVerticalCandidate({
       top: moveHandleTop,
     },
     moveHandleRect,
+    obstacleOverlap: scored.obstacleOverlap,
+    previewOverflow: scored.previewOverflow,
     score: scored.score,
     tabs: {
       left: tabsLeft,
@@ -357,7 +394,10 @@ function createAnchoredVerticalCandidate({
     },
     tabsRect,
     textOverlap: scored.textOverlap,
-    usable: menuMaxHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT,
+    usable:
+      menuMaxHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT &&
+      scored.previewOverflow <= 1 &&
+      scored.primaryTextOverlap <= 1,
   }
 }
 
@@ -451,6 +491,7 @@ function createAnchoredSideCandidate({
 
   return {
     candidate,
+    fullHeightFits: maxMenuHeight >= sizes.menu.height,
     menu: {
       left: menuLeft,
       maxHeight: maxMenuHeight,
@@ -458,6 +499,7 @@ function createAnchoredSideCandidate({
       placement: candidate,
       top: menuRect.top,
     },
+    menuOverflow: scored.menuOverflow,
     menuRect,
     mode: 'anchored',
     moveHandle: {
@@ -465,6 +507,8 @@ function createAnchoredSideCandidate({
       top: moveHandleTop,
     },
     moveHandleRect,
+    obstacleOverlap: scored.obstacleOverlap,
+    previewOverflow: scored.previewOverflow,
     score: scored.score,
     tabs: {
       left: tabsLeft,
@@ -473,7 +517,10 @@ function createAnchoredSideCandidate({
     },
     tabsRect,
     textOverlap: scored.textOverlap,
-    usable: maxMenuHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT,
+    usable:
+      maxMenuHeight >= INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT &&
+      scored.previewOverflow <= 1 &&
+      scored.primaryTextOverlap <= 1,
   }
 }
 
@@ -484,7 +531,16 @@ function chooseAnchoredCandidate({
   candidates: readonly InlinePreviewTextCandidateLayout[]
   previousPlacement?: InlinePreviewTextEditorMenuPlacement
 }) {
-  const sortedCandidates = [...candidates].sort((first, second) =>
+  const usableCandidates = candidates.filter((candidate) => candidate.usable)
+  const fullHeightCandidates = usableCandidates.filter((candidate) =>
+    candidate.fullHeightFits)
+  const candidatesToScore =
+    fullHeightCandidates.length > 0
+      ? fullHeightCandidates
+      : usableCandidates.length > 0
+        ? usableCandidates
+        : candidates
+  const sortedCandidates = [...candidatesToScore].sort((first, second) =>
     first.score - second.score)
   const best = sortedCandidates[0]
   const previous = previousPlacement
@@ -501,6 +557,38 @@ function chooseAnchoredCandidate({
   }
 
   return best
+}
+
+function chooseUnobstructedAnchoredCandidate({
+  alternateVerticalCandidate,
+  preferredVerticalCandidate,
+}: {
+  alternateVerticalCandidate: InlinePreviewTextCandidateLayout
+  preferredVerticalCandidate: InlinePreviewTextCandidateLayout
+}) {
+  if (
+    preferredVerticalCandidate.usable &&
+    preferredVerticalCandidate.fullHeightFits
+  ) {
+    return preferredVerticalCandidate
+  }
+
+  if (
+    alternateVerticalCandidate.usable &&
+    alternateVerticalCandidate.fullHeightFits
+  ) {
+    return alternateVerticalCandidate
+  }
+
+  if (preferredVerticalCandidate.usable) {
+    return preferredVerticalCandidate
+  }
+
+  if (alternateVerticalCandidate.usable) {
+    return alternateVerticalCandidate
+  }
+
+  return preferredVerticalCandidate
 }
 
 function shouldUseEmergencyPlacement({
@@ -520,18 +608,16 @@ function shouldUseEmergencyPlacement({
   const workspaceArea = getRectArea(workspaceRect)
   const selectedTextAreaRatio =
     previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
-  const hasUsableCandidate = candidates.some((candidate) =>
-    candidate.usable && candidate.textOverlap <= 1)
+  const hasUsableCandidate = candidates.some((candidate) => candidate.usable)
   const hasMeaningfulDetachedWorkspace =
     workspaceArea > previewArea * 1.05
+  const hasLargeSelectedText =
+    selectedTextAreaRatio >= INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO
 
   return (
-    selectedTextAreaRatio >= INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO ||
-    (
-      hasMeaningfulDetachedWorkspace &&
-      !hasUsableCandidate &&
-      anchoredCandidate.textOverlap > 1
-    )
+    hasMeaningfulDetachedWorkspace &&
+    !hasUsableCandidate &&
+    (hasLargeSelectedText || anchoredCandidate.textOverlap > 1)
   )
 }
 
@@ -674,7 +760,7 @@ function createEmergencyLayout({
   }
 }
 
-export function getInlinePreviewTextControlLayout({
+function getInlinePreviewTextControlPlacementModel({
   anchor,
   obstacles = [],
   previousPlacement,
@@ -690,7 +776,13 @@ export function getInlinePreviewTextControlLayout({
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
   workspaceRect?: InlinePreviewTextRect
-}): InlinePreviewTextControlLayout {
+}): {
+  anchoredCandidate: InlinePreviewTextCandidateLayout
+  anchorRect: InlinePreviewTextRect
+  candidates: InlinePreviewTextCandidateLayout[]
+  emergencyEligible: boolean
+  selectedTextAreaRatio: number
+} {
   const belowMenuTop = anchor.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP
   const belowAvailableHeight = Math.max(0, previewRect.bottom - belowMenuTop)
   const tabsTop = clampTopInsideBounds(
@@ -717,16 +809,17 @@ export function getInlinePreviewTextControlLayout({
     previewRect,
     sizes,
   })
+  const alternateVerticalCandidate = createAnchoredVerticalCandidate({
+    anchor,
+    anchorRect,
+    candidate: verticalPreference === 'below' ? 'above' : 'below',
+    obstacles,
+    previewRect,
+    sizes,
+  })
   const candidates = [
     preferredVerticalCandidate,
-    createAnchoredVerticalCandidate({
-      anchor,
-      anchorRect,
-      candidate: verticalPreference === 'below' ? 'above' : 'below',
-      obstacles,
-      previewRect,
-      sizes,
-    }),
+    alternateVerticalCandidate,
     createAnchoredSideCandidate({
       anchor,
       anchorRect,
@@ -744,23 +837,95 @@ export function getInlinePreviewTextControlLayout({
       sizes,
     }),
   ]
-  const shouldScoreAllCandidates = obstacles.length > 0
-  const anchoredCandidate = shouldScoreAllCandidates
+  const anchoredCandidate = obstacles.length > 0
     ? chooseAnchoredCandidate({
       candidates,
       previousPlacement,
     })
-    : preferredVerticalCandidate
-
-  if (
-    shouldUseEmergencyPlacement({
-      anchorRect,
-      anchoredCandidate,
-      candidates,
-      previewRect,
-      workspaceRect,
+    : chooseUnobstructedAnchoredCandidate({
+      alternateVerticalCandidate,
+      preferredVerticalCandidate,
     })
-  ) {
+  const previewArea = getRectArea(previewRect)
+  const selectedTextAreaRatio =
+    previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
+  const emergencyEligible = shouldUseEmergencyPlacement({
+    anchorRect,
+    anchoredCandidate,
+    candidates,
+    previewRect,
+    workspaceRect,
+  })
+
+  return {
+    anchoredCandidate,
+    anchorRect,
+    candidates,
+    emergencyEligible,
+    selectedTextAreaRatio,
+  }
+}
+
+function getPlacementCandidateDiagnostics(
+  candidates: readonly InlinePreviewTextCandidateLayout[],
+): InlinePreviewTextPlacementCandidateDiagnostic[] {
+  return candidates.map((candidate) => ({
+    candidate: candidate.candidate,
+    fullHeightFits: candidate.fullHeightFits,
+    menuMaxHeight: candidate.menu.maxHeight,
+    menuOverflow: candidate.menuOverflow,
+    obstacleOverlap: candidate.obstacleOverlap,
+    previewOverflow: candidate.previewOverflow,
+    score: candidate.score,
+    textOverlap: candidate.textOverlap,
+    usable: candidate.usable,
+  }))
+}
+
+export function getInlinePreviewTextControlPlacementDiagnostics(
+  input: Parameters<typeof getInlinePreviewTextControlLayout>[0],
+): InlinePreviewTextPlacementDiagnostics {
+  const model = getInlinePreviewTextControlPlacementModel(input)
+
+  return {
+    anchorRect: model.anchorRect,
+    candidates: getPlacementCandidateDiagnostics(model.candidates),
+    emergencyEligible: model.emergencyEligible,
+    selectedPlacement: model.emergencyEligible
+      ? 'detached'
+      : model.anchoredCandidate.menu.placement,
+    selectedTextAreaRatio: model.selectedTextAreaRatio,
+  }
+}
+
+export function getInlinePreviewTextControlLayout({
+  anchor,
+  obstacles = [],
+  previousPlacement,
+  requestedMenuPlacement,
+  previewRect,
+  sizes,
+  workspaceRect = previewRect,
+}: {
+  anchor: InlinePreviewTextAnchor
+  obstacles?: readonly InlinePreviewTextObstacle[]
+  previousPlacement?: InlinePreviewTextEditorMenuPlacement
+  requestedMenuPlacement: InlinePreviewTextEditorMenuPlacement
+  previewRect: InlinePreviewTextRect
+  sizes: InlinePreviewTextControlSizes
+  workspaceRect?: InlinePreviewTextRect
+}): InlinePreviewTextControlLayout {
+  const model = getInlinePreviewTextControlPlacementModel({
+    anchor,
+    obstacles,
+    previewRect,
+    previousPlacement,
+    requestedMenuPlacement,
+    sizes,
+    workspaceRect,
+  })
+
+  if (model.emergencyEligible) {
     return createEmergencyLayout({
       anchor,
       obstacles,
@@ -771,10 +936,10 @@ export function getInlinePreviewTextControlLayout({
   }
 
   return {
-    menu: anchoredCandidate.menu,
-    mode: anchoredCandidate.mode,
-    moveHandle: anchoredCandidate.moveHandle,
-    tabs: anchoredCandidate.tabs,
+    menu: model.anchoredCandidate.menu,
+    mode: model.anchoredCandidate.mode,
+    moveHandle: model.anchoredCandidate.moveHandle,
+    tabs: model.anchoredCandidate.tabs,
   }
 }
 

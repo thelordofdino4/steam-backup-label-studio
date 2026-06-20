@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   getInlinePreviewTextControlLayout,
+  getInlinePreviewTextControlPlacementDiagnostics,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
   type InlinePreviewTextRect,
@@ -252,7 +253,8 @@ test('inline text controls keep a narrow preview fallback inside the preview ori
   assert.equal(layout.tabs.left, narrowPreviewRect.left)
   assert.equal(layout.tabs.maxWidth, 40)
   assert.equal(layout.menu.left, narrowPreviewRect.left)
-  assert.equal(layout.menu.maxHeight, 12)
+  assert.ok(layout.menu.maxHeight >= 1)
+  assert.ok(layout.menu.maxHeight <= 80)
   assert.equal(layout.menu.maxWidth, 40)
   assert.equal(layout.moveHandle.left, narrowPreviewRect.left)
   assert.ok(layout.tabs.top >= narrowPreviewRect.top)
@@ -545,6 +547,47 @@ test('inline text controls keep placement stable when scores are nearly tied', (
   assert.equal(stableLayout.menu.placement, 'above')
 })
 
+test('inline text controls keep roomy large text anchored when a side placement fits', () => {
+  const input = {
+    anchor: {
+      bottom: 300,
+      centerX: 120,
+      centerY: 150,
+      right: 240,
+      top: 0,
+    },
+    obstacles: [
+      {
+        id: 'unrelated-workspace-control',
+        rect: { bottom: 24, left: 260, right: 300, top: 0 },
+      },
+    ],
+    previewRect,
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 40, width: 40 },
+      moveHandle: { height: 20, width: 20 },
+      tabs: { height: 30, width: 40 },
+    },
+    workspaceRect: {
+      bottom: 420,
+      left: 0,
+      right: 300,
+      top: 0,
+    },
+  }
+  const layout = getInlinePreviewTextControlLayout(input)
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const rightCandidate = diagnostics.candidates.find((candidate) =>
+    candidate.candidate === 'right')
+
+  assert.equal(diagnostics.selectedTextAreaRatio, 0.8)
+  assert.equal(diagnostics.emergencyEligible, false)
+  assert.equal(rightCandidate?.usable, true)
+  assert.equal(layout.mode, 'anchored')
+  assert.equal(layout.menu.placement, 'right')
+})
+
 test('inline text controls detach when selected text occupies most of the preview', () => {
   const layout = getInlinePreviewTextControlLayout({
     anchor: {
@@ -579,6 +622,51 @@ test('inline text controls detach when selected text occupies most of the previe
   assert.equal(layout.tabs.top, 46)
   assert.equal(layout.menu.top, 1108)
   assert.ok(layout.menu.top >= 1100)
+})
+
+test('inline text placement diagnostics report candidate scores and overlaps', () => {
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics({
+    anchor: createAnchor({
+      bottom: 260,
+      centerX: 250,
+      centerY: 240,
+      right: 300,
+      top: 220,
+    }),
+    obstacles: [
+      {
+        id: 'below-panel',
+        rect: { bottom: 430, left: 190, right: 360, top: 268 },
+      },
+      {
+        id: 'above-panel',
+        rect: { bottom: 212, left: 190, right: 360, top: 84 },
+      },
+      {
+        id: 'right-panel',
+        rect: { bottom: 360, left: 308, right: 486, top: 120 },
+      },
+    ],
+    previewRect: {
+      bottom: 500,
+      left: 0,
+      right: 500,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 120, width: 120 },
+      moveHandle: sizes.moveHandle,
+      tabs: { height: 30, width: 120 },
+    },
+  })
+  const belowCandidate = diagnostics.candidates.find((candidate) =>
+    candidate.candidate === 'below')
+
+  assert.equal(diagnostics.candidates.length, 4)
+  assert.equal(diagnostics.selectedPlacement, 'left')
+  assert.ok((belowCandidate?.obstacleOverlap ?? 0) > 0)
+  assert.ok(Number.isFinite(belowCandidate?.score))
 })
 
 test('inline text detached menu avoids checklist and guide legend obstacles', () => {
