@@ -468,9 +468,11 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
   live in `src/text/contextualTextControlViewModel.ts`; adapters keep current
   values, state setters, ranges, units, geometry semantics, renderer paths, and
   commit behavior target-specific.
-- Straight-disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts`
-  to consult those contextual target capabilities; curved copyright keeps the
-  documented sidebar exception while it remains SVG/textPath based.
+- Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
+  contextual target capabilities. Straight text and curved copyright/legal text
+  move duplicated editing controls into contextual adapters, while the sidebar
+  keeps setup/source/type responsibilities such as enable, metadata/default
+  source, and the straight/curved mode switch.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same contextual
   target capabilities for rectangular case-insert text while spine orientation
@@ -491,7 +493,10 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 
 ### 9.5 Invariants And Future-Change Rules
 
-- Curved disc text remains SVG/textPath unless a future ADR changes it.
+- Curved disc text remains SVG/textPath unless a future ADR changes it. The
+  current contextual curved-text adapter may expose whole-object controls, but
+  SVG/textPath remains the visible renderer and curved text must not be routed
+  through a rectangular on-canvas editor.
 - Edit mode may add boundaries, toolbar controls, menus, move handles, and hidden input adapters, but it must not replace the visible text with a different visual renderer.
 - Hidden inputs and measurement layers are adapters.
 - Text selection should work as text selection. Text movement should use a handle or intentional long-hold interaction.
@@ -1163,10 +1168,13 @@ Decision:
 
 - Curved disc text remains SVG/textPath based.
 - Curved disc text must not be forced into a visible rectangular textarea.
+- Curved disc text may use contextual menu controls only through a curved-disc
+  adapter that keeps SVG/textPath as the visible renderer.
 
 Consequences:
 
-- Shared text infrastructure may support straight text, but curved text keeps a disc-specific renderer.
+- Shared text infrastructure may support straight and curved menu controls, but
+  curved text keeps a disc-specific SVG/textPath renderer.
 - Any future replacement requires an explicit ADR and parity validation.
 
 ### ADR-007: Preview-Mounted Text Editing Is WYSIWYG-Protected

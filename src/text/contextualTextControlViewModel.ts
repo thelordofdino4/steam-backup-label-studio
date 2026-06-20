@@ -25,6 +25,7 @@ export type ContextualTextControlId =
   | 'borderRadius'
   | 'respectVisualElements'
   | 'width'
+  | 'lineSpacing'
   | 'x'
   | 'y'
   | 'mode'
@@ -120,6 +121,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   htmlSource: 'HTML source',
   italic: 'Italic',
   layoutPreset: 'Layout preset',
+  lineSpacing: 'Line spacing',
   mode: 'Mode',
   resetLayout: 'Reset layout',
   resetStyle: 'Reset style',
@@ -161,9 +163,6 @@ const COMMON_CONTEXTUAL_CONTROL_IDS = [
   'delete',
 ] as const satisfies readonly ContextualTextControlId[]
 
-const CURVED_DISC_SIDEBAR_EXCEPTION =
-  'Curved copyright text remains SVG/textPath based and keeps sidebar controls until a curved-safe contextual adapter exists.'
-
 export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
   alignment: {
     group: 'text',
@@ -173,13 +172,13 @@ export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
   },
   arcDegrees: {
     group: 'utilities',
-    hasContextualEquivalent: false,
+    hasContextualEquivalent: true,
     id: 'arcDegrees',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcDegrees,
   },
   arcSide: {
     group: 'utilities',
-    hasContextualEquivalent: false,
+    hasContextualEquivalent: true,
     id: 'arcSide',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
   },
@@ -273,6 +272,12 @@ export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
     id: 'italic',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
   },
+  lineSpacing: {
+    group: 'utilities',
+    hasContextualEquivalent: true,
+    id: 'lineSpacing',
+    label: CONTEXTUAL_TEXT_CONTROL_LABELS.lineSpacing,
+  },
   layoutPreset: {
     group: 'presets',
     hasContextualEquivalent: true,
@@ -362,13 +367,44 @@ export const CONTEXTUAL_TEXT_TARGET_CAPABILITIES = {
     unsupportedControlIds: ['mode', 'arcSide', 'arcDegrees'],
   },
   curvedDiscCopyrightText: {
-    contextualControlIds: [],
+    contextualControlIds: [
+      'stylePreset',
+      'layoutPreset',
+      'fontFamily',
+      'size',
+      'alignment',
+      'bold',
+      'italic',
+      'underline',
+      'color',
+      'contrast',
+      'x',
+      'y',
+      'lineSpacing',
+      'arcSide',
+      'arcDegrees',
+      'resetStyle',
+      'resetLayout',
+      'delete',
+    ],
     id: 'curvedDiscCopyrightText',
     label: 'Curved copyright text',
-    sidebarException: CURVED_DISC_SIDEBAR_EXCEPTION,
-    supportsContextualEditor: false,
+    supportsContextualEditor: true,
     targetSpecificControlIds: ['mode', 'arcSide', 'arcDegrees'],
-    unsupportedControlIds: COMMON_CONTEXTUAL_CONTROL_IDS,
+    unsupportedControlIds: [
+      'bulletedList',
+      'backgroundEnabled',
+      'backgroundColor',
+      'backgroundOpacity',
+      'backgroundPadding',
+      'borderEnabled',
+      'borderColor',
+      'borderRadius',
+      'respectVisualElements',
+      'width',
+      'htmlSource',
+      'mode',
+    ],
   },
 } as const satisfies Record<
   ContextualTextTargetCapabilityId,

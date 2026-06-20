@@ -14,6 +14,7 @@ import {
   createContextualTextPresetOptions,
 } from '../../text/contextualTextControlViewModel.ts'
 import {
+  createCurvedDiscTextEditorControls,
   createDiscInlineTextEditorControls,
   type DiscInlineTextEditorControlParams,
 } from './discInlineTextEditorControls.ts'
@@ -299,4 +300,118 @@ test('disc copyright straight controls omit curved presets without changing curv
     ),
     false,
   )
+})
+
+test('curved disc controls expose menu-owned SVG textPath editing controls', () => {
+  const calls: string[] = []
+  const key: DiscTextKey = 'copyright'
+  const layout = {
+    ...createDefaultDiscTextLayout('top').copyright,
+    arcDegrees: 180,
+    arcSide: 'bottom' as const,
+    fontSizePt: 9,
+    mode: 'curved' as const,
+    scale: 1,
+    x: 0,
+    y: 4,
+  }
+  const style = createDefaultDiscTextStyle(key)
+  const controls = createCurvedDiscTextEditorControls({
+    key,
+    layout,
+    onApplyDiscTextStylePreset: (_key, presetId) => {
+      calls.push(`style-preset:${presetId}`)
+    },
+    onDiscTextAlignmentChange: (_key, alignment) => {
+      calls.push(`align:${alignment}`)
+    },
+    onDiscTextArcSideChange: (_key, arcSide) => {
+      calls.push(`arc-side:${arcSide}`)
+    },
+    onDiscTextEnabledChange: (_key, enabled) => {
+      calls.push(`enabled:${enabled}`)
+    },
+    onDiscTextLayoutChange: (_key, field, value) => {
+      calls.push(`layout:${field}:${value}`)
+    },
+    onDiscTextStyleChange: (_key, field, value) => {
+      calls.push(`style:${field}:${String(value)}`)
+    },
+    onDiscTextValueChange: (_key, value) => {
+      calls.push(`text:${value}`)
+    },
+    onResetDiscTextLayout: () => {
+      calls.push('reset-layout')
+    },
+    onResetDiscTextStyle: () => {
+      calls.push('reset-style')
+    },
+    onSelectedDiscTextKeyChange: (selectedKey) => {
+      calls.push(`selected:${String(selectedKey)}`)
+    },
+    style,
+    textValue: 'Copyright smoke',
+  })
+
+  assert.equal(controls.presets?.style?.label, 'Style preset')
+  assert.equal(controls.presets?.layout?.label, 'Layout preset')
+  assert.equal(
+    controls.presets?.layout?.options.some(
+      (option) => option.value === 'top-arc',
+    ),
+    true,
+  )
+  assert.equal(controls.text?.textValue?.label, 'Copyright/legal text')
+  assert.equal(controls.text?.textValue?.value, 'Copyright smoke')
+  assert.equal(controls.text?.fontFamily?.label, 'Font')
+  assert.equal(controls.text?.size?.label, 'Font size (pt)')
+  assert.equal(controls.text?.size?.value, 9)
+  assert.equal(controls.text?.size?.step, 0.25)
+  assert.equal(controls.text?.bold?.label, 'Bold')
+  assert.equal(controls.text?.italic?.label, 'Italic')
+  assert.equal(controls.text?.underline?.label, 'Underline')
+  assert.deepEqual(controls.text?.unsupported, [
+    'Range formatting',
+    'Bulleted lists',
+  ])
+  assert.equal(controls.art?.color?.label, 'Color')
+  assert.equal(controls.art?.contrast?.label, 'Contrast')
+  assert.equal(controls.utilities?.lineSpacing?.label, 'Line spacing')
+  assert.equal(controls.utilities?.x?.label, 'Angle')
+  assert.equal(controls.utilities?.y?.label, 'Inset')
+  assert.equal(controls.utilities?.arcSide?.label, 'Arc side')
+  assert.equal(controls.utilities?.arcDegrees?.label, 'Arc')
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
+  assert.equal(Object.hasOwn(controls.text ?? {}, 'bulletedList'), false)
+
+  controls.text?.textValue?.onChange('Updated legal text')
+  controls.text?.bold?.onChange(true)
+  controls.text?.italic?.onChange(true)
+  controls.text?.underline?.onChange(true)
+  controls.art?.color?.onChange('#ff00aa')
+  controls.utilities?.lineSpacing?.onChange(1.2)
+  controls.utilities?.x?.onChange(12)
+  controls.utilities?.y?.onChange(6)
+  controls.utilities?.arcSide?.onChange('top')
+  controls.utilities?.arcDegrees?.onChange(220)
+  controls.utilities?.resetLayout?.()
+  controls.presets?.onReset?.()
+  controls.deleteAction?.onDelete()
+
+  assert.deepEqual(calls, [
+    'text:Updated legal text',
+    'style:bold:true',
+    'style:italic:true',
+    'style:underline:true',
+    'style:color:#ff00aa',
+    'layout:scale:1.2',
+    'layout:x:12',
+    'layout:y:6',
+    'arc-side:top',
+    'layout:arcDegrees:220',
+    'reset-layout',
+    'reset-style',
+    'enabled:false',
+    'selected:null',
+  ])
 })

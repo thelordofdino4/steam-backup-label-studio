@@ -1,5 +1,10 @@
 import {
+  CURVED_COPYRIGHT_LAYOUT_X_MAX,
+  CURVED_COPYRIGHT_LAYOUT_X_MIN,
+  CURVED_COPYRIGHT_LAYOUT_Y_MAX,
+  CURVED_COPYRIGHT_LAYOUT_Y_MIN,
   getDiscTextLabel,
+  type DiscTextArcSide,
   type DiscTextAlignment,
   type DiscTextKey,
   type DiscTextLayout,
@@ -55,6 +60,10 @@ export type DiscInlineTextEditorControlParams = {
     key: DiscTextKey,
     alignment: DiscTextAlignment,
   ) => void
+  onDiscTextArcSideChange?: (
+    key: DiscTextKey,
+    arcSide: DiscTextArcSide,
+  ) => void
   onDiscTextContentModeChange: (
     key: DiscTextKey,
     contentMode: TextContentMode,
@@ -92,6 +101,23 @@ export type DiscInlineTextEditorControlParams = {
   onResetDiscTextStyle: (key: DiscTextKey) => void
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
   style: DiscTextStyleSettings[DiscTextKey]
+}
+
+export type CurvedDiscTextEditorControlParams = Omit<
+  DiscInlineTextEditorControlParams,
+  | 'getDiscTextRichTextCommandState'
+  | 'isHtmlSourceEnabled'
+  | 'onDiscTextContentModeChange'
+  | 'onDiscTextRichTextCommand'
+  | 'onDiscTextVisualAvoidanceChange'
+> & {
+  onDiscTextArcSideChange: (
+    key: DiscTextKey,
+    arcSide: DiscTextArcSide,
+  ) => void
+  onDiscTextValueChange: (key: DiscTextKey, value: string) => void
+  textPlaceholder?: string
+  textValue: string
 }
 
 function getMatchingDiscLayoutPreset({
@@ -132,6 +158,7 @@ function applyDiscTextLayoutPreset({
   key,
   layoutPreset,
   onDiscTextAlignmentChange,
+  onDiscTextArcSideChange,
   onDiscTextLayoutChange,
 }: {
   key: DiscTextKey
@@ -139,6 +166,10 @@ function applyDiscTextLayoutPreset({
   onDiscTextAlignmentChange: (
     key: DiscTextKey,
     alignment: DiscTextAlignment,
+  ) => void
+  onDiscTextArcSideChange?: (
+    key: DiscTextKey,
+    arcSide: DiscTextArcSide,
   ) => void
   onDiscTextLayoutChange: (
     key: DiscTextKey,
@@ -158,6 +189,9 @@ function applyDiscTextLayoutPreset({
   if (typeof layoutPreset.layout.scale === 'number') {
     onDiscTextLayoutChange(key, 'scale', layoutPreset.layout.scale)
   }
+  if (typeof layoutPreset.layout.arcDegrees === 'number') {
+    onDiscTextLayoutChange(key, 'arcDegrees', layoutPreset.layout.arcDegrees)
+  }
   if (typeof layoutPreset.layout.fontSizePt === 'number') {
     onDiscTextLayoutChange(key, 'fontSizePt', layoutPreset.layout.fontSizePt)
   } else if (typeof layoutPreset.layout.scale === 'number') {
@@ -174,6 +208,9 @@ function applyDiscTextLayoutPreset({
   }
   if (layoutPreset.layout.align) {
     onDiscTextAlignmentChange(key, layoutPreset.layout.align)
+  }
+  if (layoutPreset.layout.arcSide && onDiscTextArcSideChange) {
+    onDiscTextArcSideChange(key, layoutPreset.layout.arcSide)
   }
 }
 
@@ -537,6 +574,198 @@ export function createDiscInlineTextEditorControls({
         onChange: (checked) =>
           onDiscTextContentModeChange(key, checked ? 'html' : 'plain'),
       },
+    },
+    deleteAction: {
+      label: CONTEXTUAL_TEXT_CONTROL_LABELS.delete,
+      ariaLabel: `Delete ${getDiscTextLabel(key)}`,
+      onDelete: () => {
+        onDiscTextEnabledChange(key, false)
+        onSelectedDiscTextKeyChange(null)
+      },
+    },
+  }
+}
+
+export function createCurvedDiscTextEditorControls({
+  key,
+  layout,
+  style,
+  textPlaceholder,
+  textValue,
+  onSelectedDiscTextKeyChange,
+  onDiscTextEnabledChange,
+  onDiscTextStyleChange,
+  onApplyDiscTextStylePreset,
+  onResetDiscTextStyle,
+  onDiscTextLayoutChange,
+  onDiscTextAlignmentChange,
+  onDiscTextArcSideChange,
+  onResetDiscTextLayout,
+  onDiscTextValueChange,
+}: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
+  const layoutPresets = getDiscTextLayoutPresetsForKey(key)
+    .filter((preset) => preset.layout.mode === 'curved')
+  const matchingStylePreset = findMatchingContextualTextStylePreset(
+    style,
+    DISC_TEXT_STYLE_PRESETS,
+  )
+  const matchingLayoutPreset = getMatchingDiscLayoutPreset({
+    layout,
+    layoutPresets,
+  })
+
+  return {
+    presets: {
+      style: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.stylePreset,
+        options: createContextualTextPresetOptions(DISC_TEXT_STYLE_PRESETS),
+        value: matchingStylePreset?.id ?? CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
+        onChange: (presetId) => {
+          if (!isContextualTextCustomPreset(presetId)) {
+            onApplyDiscTextStylePreset(key, presetId)
+          }
+        },
+      },
+      layout: layoutPresets.length > 0
+        ? {
+            label: CONTEXTUAL_TEXT_CONTROL_LABELS.layoutPreset,
+            options: createContextualTextPresetOptions(layoutPresets),
+            value:
+              matchingLayoutPreset?.id ?? CONTEXTUAL_TEXT_CUSTOM_PRESET_VALUE,
+            onChange: (presetId) => {
+              if (isContextualTextCustomPreset(presetId)) return
+
+              const layoutPreset = layoutPresets.find(
+                (candidate) => candidate.id === presetId,
+              )
+
+              if (layoutPreset) {
+                applyDiscTextLayoutPreset({
+                  key,
+                  layoutPreset,
+                  onDiscTextAlignmentChange,
+                  onDiscTextArcSideChange,
+                  onDiscTextLayoutChange,
+                })
+              }
+            },
+          }
+        : undefined,
+      onReset: () => onResetDiscTextStyle(key),
+    },
+    text: {
+      textValue: {
+        label: getDiscTextLabel(key),
+        value: textValue,
+        placeholder: textPlaceholder,
+        onChange: (value) => onDiscTextValueChange(key, value),
+      },
+      fontFamily: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.fontFamily,
+        options: DISC_TEXT_FONT_OPTIONS.map(({ label, value }) => ({
+          label,
+          value,
+        })),
+        value: style.fontFamily,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'fontFamily', value as DiscTextFontFamily),
+      },
+      size: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
+        min: DISC_TEXT_POINT_SIZE_MIN,
+        max: DISC_TEXT_POINT_SIZE_MAX,
+        options: DISC_TEXT_POINT_SIZE_PRESETS,
+        step: DISC_TEXT_POINT_SIZE_STEP,
+        value: layout.fontSizePt,
+        onChange: (value: number) =>
+          onDiscTextLayoutChange(key, 'fontSizePt', value),
+      },
+      alignment: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.alignment,
+        options: CONTEXTUAL_TEXT_ALIGNMENT_OPTIONS,
+        value: layout.align,
+        onChange: (value) =>
+          onDiscTextAlignmentChange(key, value as DiscTextAlignment),
+      },
+      bold: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
+        pressed: style.bold,
+        onChange: (pressed) => onDiscTextStyleChange(key, 'bold', pressed),
+      },
+      italic: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
+        pressed: style.italic,
+        onChange: (pressed) => onDiscTextStyleChange(key, 'italic', pressed),
+      },
+      underline: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.underline,
+        pressed: style.underline,
+        onChange: (pressed) => onDiscTextStyleChange(key, 'underline', pressed),
+      },
+      unsupported: ['Range formatting', 'Bulleted lists'],
+    },
+    art: {
+      color: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.color,
+        value: style.color,
+        onChange: (value) => onDiscTextStyleChange(key, 'color', value),
+      },
+      contrast: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.contrast,
+        options: DISC_TEXT_CONTRAST_OPTIONS.map(({ label, value }) => ({
+          label,
+          value,
+        })),
+        value: style.contrast,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'contrast', value as DiscTextContrastMode),
+      },
+    },
+    utilities: {
+      lineSpacing: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.lineSpacing,
+        min: 0.5,
+        max: 1.8,
+        step: 0.01,
+        value: layout.scale,
+        onChange: (value) => onDiscTextLayoutChange(key, 'scale', value),
+      },
+      x: {
+        label: 'Angle',
+        min: CURVED_COPYRIGHT_LAYOUT_X_MIN,
+        max: CURVED_COPYRIGHT_LAYOUT_X_MAX,
+        step: 0.1,
+        value: layout.x,
+        onChange: (value) => onDiscTextLayoutChange(key, 'x', value),
+      },
+      y: {
+        label: 'Inset',
+        min: CURVED_COPYRIGHT_LAYOUT_Y_MIN,
+        max: CURVED_COPYRIGHT_LAYOUT_Y_MAX,
+        step: 0.1,
+        value: layout.y,
+        onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
+      },
+      arcSide: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
+        options: [
+          { label: 'Top arc', value: 'top' },
+          { label: 'Bottom arc', value: 'bottom' },
+        ],
+        value: layout.arcSide,
+        onChange: (value) =>
+          onDiscTextArcSideChange(key, value as DiscTextArcSide),
+      },
+      arcDegrees: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcDegrees,
+        min: 80,
+        max: 320,
+        step: 1,
+        value: layout.arcDegrees,
+        onChange: (value) =>
+          onDiscTextLayoutChange(key, 'arcDegrees', value),
+      },
+      resetLayout: () => onResetDiscTextLayout(key),
     },
     deleteAction: {
       label: CONTEXTUAL_TEXT_CONTROL_LABELS.delete,

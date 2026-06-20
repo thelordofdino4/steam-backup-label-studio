@@ -389,11 +389,6 @@ async function setCopyrightText(page, text) {
   await page.waitForTimeout(100)
 }
 
-async function setDiscSidebarTextValue(page, key, value) {
-  await setNativeInputValue(page.locator(`#disc-text-value-${key}`), value)
-  await page.waitForTimeout(150)
-}
-
 async function setDiscTextMode(page, key, mode) {
   await setSelectValue(smoke(page, `disc-sidebar-mode-${key}`), mode)
   await page.waitForTimeout(150)
@@ -426,6 +421,12 @@ async function expectInlineEditor(page) {
   await expectVisible(page, 'inline-text-menu', 'inline text menu')
   await expectVisible(page, 'inline-text-move-handle', 'inline text move handle')
   await expectAttached(page, 'inline-text-input', 'inline text input')
+}
+
+async function expectContextualShell(page) {
+  await expectVisible(page, 'inline-text-tabs', 'inline text tab strip')
+  await expectVisible(page, 'inline-text-menu', 'inline text menu')
+  await expectVisible(page, 'inline-text-move-handle', 'inline text move handle')
 }
 
 async function focusInlineInput(page) {
@@ -926,14 +927,30 @@ async function openStraightDiscTitle(page) {
 async function assertCurvedCopyrightGuardrail(page) {
   await ensureChecked(page, 'disc-sidebar-text-copyright', true)
   await setDiscTextMode(page, 'copyright', 'curved')
-  await setDiscSidebarTextValue(page, 'copyright', 'Copyright 2026 Smoke')
+  await setCopyrightText(page, 'Copyright 2026 Smoke')
   const curvedPath = page.locator('[data-smoke-id="disc-text-layer-hit-target"] text[data-disc-text-key="copyright"] textPath').first()
   await curvedPath.waitFor({ state: 'attached', timeout: 5_000 })
+  const beforeSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   await curvedPath.click({ force: true })
-  await page.waitForTimeout(200)
+  await expectContextualShell(page)
   const copyrightEditorCount = await smoke(page, 'disc-inline-text-copyright').count()
-  if (copyrightEditorCount !== 0) {
-    fail('Curved copyright opened a rectangular inline editor.')
+  if (copyrightEditorCount !== 1) {
+    fail(`Curved copyright did not open its contextual shell. Count: ${copyrightEditorCount}`)
+  }
+  const rectangularInputCount = await smoke(page, 'inline-text-input').count()
+  if (rectangularInputCount !== 0) {
+    fail('Curved copyright mounted a rectangular on-canvas textarea.')
+  }
+  await setNativeInputValue(smoke(page, 'inline-text-menu-value').first(), 'Curved contextual smoke')
+  const afterSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
+  if (!afterSrc || afterSrc === beforeSrc) {
+    fail('Curved copyright SVG data URL did not update from menu text editing.')
+  }
+  const hitTargetMarkup = await smoke(page, 'disc-text-layer-hit-target').first().evaluate(
+    (element) => element.innerHTML,
+  )
+  if (!hitTargetMarkup.includes('Curved contextual smoke')) {
+    fail('Curved copyright hit-target SVG did not receive the menu-edited text.')
   }
 }
 
@@ -1366,7 +1383,7 @@ async function runDiscChecks(page) {
     await dragSelectVisibleText(page, 'disc-inline-text-title')
   })
 
-  await runCheck(page, 'curved copyright remains SVG textPath without rectangular editor', async () => {
+  await runCheck(page, 'curved copyright edits through contextual menu while staying SVG textPath', async () => {
     await done(page)
     await assertCurvedCopyrightGuardrail(page)
   })

@@ -539,19 +539,38 @@ test('curved disc text remains outside the rectangular adapter contract', () => 
   assert.deepEqual(CURVED_DISC_TEXT_CONTEXTUAL_EDITOR_EXCEPTION, {
     finalRenderer: 'disc-svg-textPath',
     reason:
-      'Curved disc text remains SVG/textPath based and is not routed through the rectangular inline editor adapter.',
+      'Curved disc text remains SVG/textPath based and uses a contextual menu adapter without rectangular on-canvas text input.',
     surface: 'curved-disc-text',
-    supportsContextualEditor: false,
+    supportsContextualEditor: true,
   })
   assert.equal(
     CONTEXTUAL_TEXT_TARGET_CAPABILITIES.curvedDiscCopyrightText
       .supportsContextualEditor,
-    false,
+    true,
   )
   assert.deepEqual(
     CONTEXTUAL_TEXT_TARGET_CAPABILITIES.curvedDiscCopyrightText
       .contextualControlIds,
-    [],
+    [
+      'stylePreset',
+      'layoutPreset',
+      'fontFamily',
+      'size',
+      'alignment',
+      'bold',
+      'italic',
+      'underline',
+      'color',
+      'contrast',
+      'x',
+      'y',
+      'lineSpacing',
+      'arcSide',
+      'arcDegrees',
+      'resetStyle',
+      'resetLayout',
+      'delete',
+    ],
   )
   assert.equal(CURVED_DISC_TEXT_EXCEPTION.renderer, 'svgTextPath')
 })
@@ -570,6 +589,8 @@ test('adapter ownership does not introduce a fake visible renderer', () => {
 
   assert.match(discAdapter, /inputMode="adapter"/)
   assert.match(discAdapter, /isCurvedCopyrightDiscTextLayout/)
+  assert.match(discAdapter, /suppressCanvasInput/)
+  assert.match(discAdapter, /createCurvedDiscTextEditorControls/)
   assert.doesNotMatch(discAdapter, /className="disc-inline-text-line"/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.doesNotMatch(discLayer, /hiddenTextKeys/)

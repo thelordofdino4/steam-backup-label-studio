@@ -14,6 +14,7 @@ import {
   type DiscTextHtmlSources,
   type DiscTextSettings,
   type DiscTextValues,
+  type SteamLogoPlacement,
 } from '../../discText/index'
 import {
   type DiscTextStyleField,
@@ -25,6 +26,9 @@ import {
   getStraightDiscTextVisualBounds,
 } from '../../discText/renderLayout'
 import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEditorGeometry'
+import {
+  getCurvedDiscTextEditorBounds,
+} from '../../discText/curvedInlineEditorGeometry'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
@@ -41,6 +45,7 @@ import {
 } from '../../editor/previewEditableRegistry'
 import {
   createDiscInlineTextEditorControls,
+  createCurvedDiscTextEditorControls,
 } from './discInlineTextEditorControls'
 import type { DiscTemplate } from '../../types/template'
 
@@ -51,6 +56,7 @@ export type DiscInlineTextEditorLayerProps = {
   discTextStyles: DiscTextStyleSettings
   discTextLayout: DiscTextLayoutSettings
   title: string
+  steamLogoPlacement: SteamLogoPlacement
   selectedDiscTextKey: DiscTextKey | null
   selectedDiscTemplate: DiscTemplate
   avoidanceRegions: DiscTextAvoidanceRegion[]
@@ -101,6 +107,10 @@ export type DiscInlineTextEditorLayerProps = {
   onDiscTextAlignmentChange: (
     key: DiscTextKey,
     alignment: DiscTextAlignment,
+  ) => void
+  onDiscTextArcSideChange: (
+    key: DiscTextKey,
+    arcSide: DiscTextLayout['arcSide'],
   ) => void
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
@@ -181,6 +191,18 @@ function getHostStyle({
   } satisfies CSSProperties
 }
 
+function getBoundsHostStyle(bounds: DiscInlineEditorBounds) {
+  const width = Math.max(0.01, bounds.halfWidth * 2)
+  const height = Math.max(0.01, bounds.halfHeight * 2)
+
+  return {
+    left: `${bounds.centerX - width / 2}%`,
+    top: `${bounds.centerY - height / 2}%`,
+    width: `${width}%`,
+    height: `${height}%`,
+  } satisfies CSSProperties
+}
+
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
@@ -188,6 +210,7 @@ export function DiscInlineTextEditorLayer({
   discTextStyles,
   discTextLayout,
   title,
+  steamLogoPlacement,
   selectedDiscTextKey,
   selectedDiscTemplate,
   avoidanceRegions,
@@ -205,6 +228,7 @@ export function DiscInlineTextEditorLayer({
   onResetDiscTextStyle,
   onDiscTextLayoutChange,
   onDiscTextAlignmentChange,
+  onDiscTextArcSideChange,
   onDiscTextVisualAvoidanceChange,
   onResetDiscTextLayout,
   onMoveHandlePointerDown,
@@ -224,11 +248,84 @@ export function DiscInlineTextEditorLayer({
           return null
         }
 
+        const text = getDiscTextContent(key, discTextValues, title)
+
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
-          return null
+          const bounds = getCurvedDiscTextEditorBounds({
+            layout,
+            placement: steamLogoPlacement,
+            safeZoneRadiusPercent:
+              (selectedDiscTemplate.safeDiameterMm /
+                selectedDiscTemplate.outerDiameterMm) * 50,
+            template: selectedDiscTemplate,
+          })
+          const controls = createCurvedDiscTextEditorControls({
+            key,
+            layout,
+            style: discTextStyles[key],
+            textValue: text,
+            onSelectedDiscTextKeyChange,
+            onDiscTextEnabledChange,
+            onDiscTextStyleChange,
+            onApplyDiscTextStylePreset,
+            onResetDiscTextStyle,
+            onDiscTextLayoutChange,
+            onDiscTextAlignmentChange,
+            onDiscTextArcSideChange,
+            onResetDiscTextLayout,
+            onDiscTextValueChange: (nextKey, value) =>
+              onDiscTextValueChange(nextKey, value),
+          })
+          const targetKey = createDiscInlineTextTargetKey(key)
+
+          return (
+            <div
+              key={key}
+              className={[
+                'disc-inline-text-host',
+                'disc-inline-text-host--curved',
+                INLINE_PREVIEW_TEXT_HOST_CLASS,
+                'is-editing',
+                text.trim().length === 0 ? 'is-empty' : '',
+              ].filter(Boolean).join(' ')}
+              data-smoke-id={`disc-inline-text-${key}`}
+              {...createInlinePreviewTextTargetAttributes(targetKey)}
+              style={getBoundsHostStyle(bounds)}
+              onPointerDown={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onSelectedDiscTextKeyChange(key)
+              }}
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                onSelectedDiscTextKeyChange(key)
+              }}
+            >
+              <InlinePreviewTextEditor
+                ariaLabel={`Edit ${getDiscTextLabel(key)}`}
+                caretValue={text}
+                controls={controls}
+                inputMode="adapter"
+                lines={[{ text }]}
+                suppressCanvasInput
+                targetKey={targetKey}
+                value={text}
+                menuPlacement="below"
+                onValueChange={(value) => onDiscTextValueChange(key, value)}
+                onMoveHandlePointerDown={(event) =>
+                  onMoveHandlePointerDown(event, key)}
+                onMoveHandlePointerMove={onMoveHandlePointerMove}
+                onMoveHandlePointerUp={onMoveHandlePointerUp}
+                onDone={() => {
+                  onDiscTextEditComplete(key)
+                  onSelectedDiscTextKeyChange(null)
+                }}
+              />
+            </div>
+          )
         }
 
-        const text = getDiscTextContent(key, discTextValues, title)
         const hasHtmlSource = isDiscTextHtmlEnabled(discTextHtmlSources, key)
         const isHtmlSourceEditing = htmlSourceEditorKey === key
         const editValue = isHtmlSourceEditing

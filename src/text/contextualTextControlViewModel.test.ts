@@ -90,7 +90,7 @@ test('shared groups, labels, and alignment options preserve contextual UI wordin
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource, 'HTML source')
 })
 
-test('target capabilities omit unsupported controls and document curved exception', () => {
+test('target capabilities omit unsupported controls and expose curved SVG controls contextually', () => {
   const caseInsert = getContextualTextTargetCapability(
     'caseInsertRectangularText',
   )
@@ -101,9 +101,28 @@ test('target capabilities omit unsupported controls and document curved exceptio
 
   assert.equal(caseInsert.supportsContextualEditor, true)
   assert.equal(straightDisc.supportsContextualEditor, true)
-  assert.equal(curvedCopyright.supportsContextualEditor, false)
-  assert.match(curvedCopyright.sidebarException ?? '', /SVG\/textPath/)
-  assert.deepEqual(curvedCopyright.contextualControlIds, [])
+  assert.equal(curvedCopyright.supportsContextualEditor, true)
+  assert.equal(curvedCopyright.sidebarException, undefined)
+  assert.deepEqual(curvedCopyright.contextualControlIds, [
+    'stylePreset',
+    'layoutPreset',
+    'fontFamily',
+    'size',
+    'alignment',
+    'bold',
+    'italic',
+    'underline',
+    'color',
+    'contrast',
+    'x',
+    'y',
+    'lineSpacing',
+    'arcSide',
+    'arcDegrees',
+    'resetStyle',
+    'resetLayout',
+    'delete',
+  ])
   assert.equal(
     isContextualTextControlSupportedForTarget(
       'caseInsertRectangularText',
@@ -129,7 +148,22 @@ test('target capabilities omit unsupported controls and document curved exceptio
     ),
     true,
   )
-  assert.equal(hasContextualTextControlEquivalent('arcDegrees'), false)
+  assert.equal(
+    isContextualTextControlSupportedForTarget(
+      'curvedDiscCopyrightText',
+      'htmlSource',
+    ),
+    false,
+  )
+  assert.equal(
+    isContextualTextControlSupportedForTarget(
+      'curvedDiscCopyrightText',
+      'arcDegrees',
+    ),
+    true,
+  )
+  assert.equal(hasContextualTextControlEquivalent('arcDegrees'), true)
+  assert.equal(hasContextualTextControlEquivalent('lineSpacing'), true)
   assert.equal(caseInsert.targetSpecificControlIds.includes('x'), true)
   assert.equal(straightDisc.targetSpecificControlIds.includes('width'), true)
   assert.equal(Object.hasOwn(caseInsert, 'sidebarMigrationComplete'), false)

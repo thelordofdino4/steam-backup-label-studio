@@ -125,11 +125,16 @@ tested, and the remaining divergences are recorded.
 - Curved disc text must not be forced into a visible rectangular textarea.
 - Straight disc text may share input infrastructure only through an adapter path
   that keeps the SVG/final preview renderer visible and correct.
+- Curved disc text may use the shared contextual shell only through a
+  curved-disc adapter: text value editing happens inside the menu, whole-object
+  controls update the SVG/textPath renderer live, and no rectangular on-canvas
+  input is mounted over the curved text.
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
 - Straight disc HTML source must render through safe SVG text/tspan output in
   preview and export.
-- Any future hidden/native input adapter for curved text must keep SVG as the
-  visible source of truth.
+- HTML source, selection-scoped formatting, and list editing remain unsupported
+  for curved disc text unless they can be mapped safely onto textPath without a
+  rectangular visible editor.
 
 ## Current Implementation Notes
 
@@ -139,9 +144,11 @@ renderer remains the visible glyph renderer during edit. The adapter may own
 keyboard input, caret placement, selection affordances, dotted boundaries, and
 menu positioning, but it must not become a second visible text renderer.
 
-Curved disc copyright/legal text remains the intentional exception: it stays
-SVG/textPath based and must not open the rectangular inline editor unless a
-future ADR defines a curved-text adapter that preserves SVG as the visible
+Curved disc copyright/legal text remains SVG/textPath based, but it now uses a
+curved-safe contextual adapter for whole-object menu controls. The sidebar owns
+only setup/source/type responsibilities for that text. The contextual shell must
+not mount a rectangular on-canvas textarea over the curved renderer; the menu's
+text-value field is the input adapter while SVG/textPath remains the visible
 source of truth.
 
 ## Protected Existing Behavior
@@ -173,7 +180,9 @@ is required:
 - Straight disc text: keeps SVG fill/stroke/shadow visible during editing and
   does not shift, grow, shrink, or show duplicate text when entering/exiting
   edit mode.
-- Curved disc text: remains SVG/textPath and does not regress.
+- Curved disc text: remains SVG/textPath, opens the contextual menu for
+  supported whole-object controls, and does not mount a rectangular on-canvas
+  textarea.
 - Spacebar: Space changes the live draft and visible preview.
 - Multiple, trailing, and leading spaces are preserved in the live draft and
   final renderer.
@@ -204,7 +213,7 @@ is required:
   `src/discText/pointSize.ts`.
 - Disc SVG/textPath renderer:
   `src/discText/svgLayer.ts` and `src/components/preview/DiscTextLayer.tsx`.
-- Disc straight-text inline adapter:
+- Disc straight and curved contextual adapters:
   `src/components/preview/DiscInlineTextEditorLayer.tsx`.
 - Editor affordance styling:
   `src/styles/app-editor-controls.css`.
