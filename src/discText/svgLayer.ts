@@ -350,9 +350,10 @@ function buildTextStyleAttribute(
   fontWeight: number,
   strokeWidth: number,
   letterSpacing?: number,
-  options: { includeTextDecoration?: boolean } = {},
+  options: { includeTextDecoration?: boolean; includeShadowFilter?: boolean } = {},
 ) {
   const includeTextDecoration = options.includeTextDecoration ?? true
+  const includeShadowFilter = options.includeShadowFilter ?? true
   const declarations = [
     `fill:${style.color}`,
     `font-family:${style.fontFamilyCss}`,
@@ -361,7 +362,7 @@ function buildTextStyleAttribute(
     `font-weight:${fontWeight}`,
     includeTextDecoration ? `text-decoration:${getDiscTextDecoration(style)}` : '',
     typeof letterSpacing === 'number' ? `letter-spacing:${letterSpacing}px` : '',
-    hasDiscTextShadow(style) ? `filter:url(#${shadowFilterId})` : '',
+    hasDiscTextShadow(style) && includeShadowFilter ? `filter:url(#${shadowFilterId})` : '',
     'paint-order:stroke fill',
     `stroke:${hasDiscTextStroke(style) ? DISC_TEXT_STROKE_COLOR : 'transparent'}`,
     `stroke-width:${hasDiscTextStroke(style) ? strokeWidth : 0}px`,
@@ -380,6 +381,28 @@ function getCurvedUnderlineRadius(
   return Math.max(1, isTopArc ? radius - offset : radius + offset)
 }
 
+function getCurvedUnderlineDeclarations({
+  renderStyle,
+  strokeWidth,
+  shadowFilterId,
+  includeShadowFilter,
+}: {
+  renderStyle: ResolvedDiscTextRenderStyle
+  strokeWidth: number
+  shadowFilterId: string
+  includeShadowFilter: boolean
+}) {
+  return [
+    'fill:none',
+    `stroke:${renderStyle.color}`,
+    'stroke-opacity:1',
+    'opacity:1',
+    `stroke-width:${formatSvgNumber(strokeWidth)}px`,
+    'stroke-linecap:round',
+    hasDiscTextShadow(renderStyle) && includeShadowFilter ? `filter:url(#${shadowFilterId})` : '',
+  ].filter(Boolean)
+}
+
 function buildCurvedUnderlineMarkup({
   isTopArc,
   key,
@@ -387,6 +410,8 @@ function buildCurvedUnderlineMarkup({
   renderStyle,
   fontSize,
   shadowFilterId,
+  includeShadowFilter = false,
+  className = 'disc-text-curved-underline',
 }: {
   isTopArc: boolean
   key: DiscTextKey
@@ -394,6 +419,8 @@ function buildCurvedUnderlineMarkup({
   renderStyle: ResolvedDiscTextRenderStyle
   fontSize: number
   shadowFilterId: string
+  includeShadowFilter?: boolean
+  className?: string
 }) {
   if (!renderStyle.underline) return ''
 
@@ -415,18 +442,15 @@ function buildCurvedUnderlineMarkup({
       isTopArc ? 1 : 0,
       getLargeArcFlag(lineLayout.angleWidthDegrees),
     )
-    const declarations = [
-      'fill:none',
-      `stroke:${renderStyle.color}`,
-      'stroke-opacity:1',
-      'opacity:1',
-      `stroke-width:${formatSvgNumber(strokeWidth)}px`,
-      'stroke-linecap:round',
-      hasDiscTextShadow(renderStyle) ? `filter:url(#${shadowFilterId})` : '',
-    ].filter(Boolean)
+    const declarations = getCurvedUnderlineDeclarations({
+      renderStyle,
+      strokeWidth,
+      shadowFilterId,
+      includeShadowFilter,
+    })
 
     return `<path
-      class="disc-text-curved-underline"
+      class="${className}"
       ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
       d="${escapeSvgAttribute(path)}"
       style="${escapeSvgAttribute(declarations.join('; '))}"
@@ -455,6 +479,7 @@ function buildCurvedCopyrightMarkup(
   measureText: TextMeasureFunction,
   idPrefix: string,
   shadowFilterId: string,
+  curvedShadowFilterId: string,
   styles?: DiscTextStyleInput,
   template?: DiscTemplate,
 ) {
@@ -534,21 +559,25 @@ function buildCurvedCopyrightMarkup(
 
     return `<path id="${pathId}" d="${path}" />`
   }).join('')
-  const textMarkup = curvedLineLayout.lines.map((lineLayout, index) => {
+  const buildCurvedTextMarkup = (
+    className: string,
+    textShadowFilterId: string,
+    includeShadowFilter: boolean,
+  ) => curvedLineLayout.lines.map((lineLayout, index) => {
     const pathId = `${idPrefix}-${key}-path-${index}`
     const style = buildTextStyleAttribute(
       renderStyle,
-      shadowFilterId,
+      textShadowFilterId,
       fontSize,
       renderStyle.fontWeight,
       DISC_TEXT_CURVED_STROKE_WIDTH,
       letterSpacing,
-      { includeTextDecoration: false },
+      { includeTextDecoration: false, includeShadowFilter },
     )
 
     return `
       <text
-        class="disc-text-render-text"
+        class="${className}"
         dominant-baseline="middle"
         ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
         xml:space="preserve"
@@ -558,6 +587,31 @@ function buildCurvedCopyrightMarkup(
       </text>
     `
   }).join('')
+  const hasShadow = hasDiscTextShadow(renderStyle)
+  const shadowTextMarkup = hasShadow
+    ? buildCurvedTextMarkup(
+        'disc-text-render-text disc-text-curved-shadow',
+        curvedShadowFilterId,
+        true,
+      )
+    : ''
+  const textMarkup = buildCurvedTextMarkup(
+    'disc-text-render-text',
+    shadowFilterId,
+    false,
+  )
+  const shadowUnderlineMarkup = hasShadow
+    ? buildCurvedUnderlineMarkup({
+        isTopArc,
+        key,
+        layout: underlineLineLayout,
+        renderStyle,
+        fontSize,
+        shadowFilterId: curvedShadowFilterId,
+        includeShadowFilter: true,
+        className: 'disc-text-curved-underline-shadow',
+      })
+    : ''
   const underlineMarkup = buildCurvedUnderlineMarkup({
     isTopArc,
     key,
@@ -565,9 +619,10 @@ function buildCurvedCopyrightMarkup(
     renderStyle,
     fontSize,
     shadowFilterId,
+    includeShadowFilter: false,
   })
 
-  return { defs: pathMarkup, body: `${underlineMarkup}${textMarkup}` }
+  return { defs: pathMarkup, body: `${shadowUnderlineMarkup}${shadowTextMarkup}${underlineMarkup}${textMarkup}` }
 }
 
 function buildStraightTextMarkup(
@@ -723,6 +778,7 @@ export function buildDiscTextSvgLayer({
   template,
 }: DiscTextSvgLayerParams) {
   const shadowFilterId = `${idPrefix}-shadow`
+  const curvedShadowFilterId = `${idPrefix}-curved-shadow-only`
   const hiddenTextKeySet = new Set(hiddenTextKeys)
   const pathDefs: string[] = []
   const textElements = DISC_TEXT_KEYS.map((key) => {
@@ -751,6 +807,7 @@ export function buildDiscTextSvgLayer({
         measureText,
         idPrefix,
         shadowFilterId,
+        curvedShadowFilterId,
         styles,
         template,
       )
@@ -786,6 +843,19 @@ export function buildDiscTextSvgLayer({
         <filter id="${shadowFilterId}" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
           <feDropShadow dx="0" dy="0.32" stdDeviation="0.62" flood-color="#000000" flood-opacity="0.85" />
           <feDropShadow dx="0" dy="0" stdDeviation="0.22" flood-color="#000000" flood-opacity="0.9" />
+        </filter>
+        <filter id="${curvedShadowFilterId}" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+          <feGaussianBlur in="SourceAlpha" stdDeviation="0.62" result="curved-shadow-blur-strong" />
+          <feOffset in="curved-shadow-blur-strong" dx="0" dy="0.32" result="curved-shadow-offset-strong" />
+          <feFlood flood-color="#000000" flood-opacity="0.85" result="curved-shadow-flood-strong" />
+          <feComposite in="curved-shadow-flood-strong" in2="curved-shadow-offset-strong" operator="in" result="curved-shadow-strong" />
+          <feGaussianBlur in="SourceAlpha" stdDeviation="0.22" result="curved-shadow-blur-tight" />
+          <feFlood flood-color="#000000" flood-opacity="0.9" result="curved-shadow-flood-tight" />
+          <feComposite in="curved-shadow-flood-tight" in2="curved-shadow-blur-tight" operator="in" result="curved-shadow-tight" />
+          <feMerge>
+            <feMergeNode in="curved-shadow-strong" />
+            <feMergeNode in="curved-shadow-tight" />
+          </feMerge>
         </filter>
         ${pathDefs.join('')}
       </defs>
