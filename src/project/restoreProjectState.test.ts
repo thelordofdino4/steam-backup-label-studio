@@ -99,6 +99,52 @@ test('restores saved built-in Steam banner lockups with the current included def
   assert.equal(restored.steamBannerLockupImageSize, null)
 })
 
+test('restores disabled rating badge source layout and supplemental USK state', async () => {
+  const restored = await restoreSavedProjectState({
+    ...baseProject,
+    metadata: {
+      ...createDefaultProjectMetadata(),
+      ratingSystem: 'PEGI',
+      ratingValue: '16',
+    },
+    ratingBadge: {
+      source: 'custom',
+      customImageDataUrl: 'data:image/png;base64,rating',
+      customImageSize: { width: 128, height: 96 },
+      layout: {
+        enabled: false,
+        scale: 1.25,
+        x: 78,
+        y: 50,
+      },
+      uskBadge: {
+        ratingValue: '12',
+        layout: {
+          enabled: true,
+          scale: 1.3,
+          x: 67,
+          y: 50,
+        },
+      },
+    },
+  })
+
+  assert.equal(restored.projectMetadata.ratingSystem, 'PEGI')
+  assert.equal(restored.projectMetadata.ratingValue, '16')
+  assert.equal(restored.projectRatingBadge.layout.enabled, false)
+  assert.equal(restored.projectRatingBadge.source, 'custom')
+  assert.equal(restored.projectRatingBadge.customImageDataUrl, 'data:image/png;base64,rating')
+  assert.deepEqual(restored.projectRatingBadge.customImageSize, { width: 128, height: 96 })
+  assert.equal(restored.projectRatingBadge.layout.scale, 1.25)
+  assert.equal(restored.projectRatingBadge.layout.x, 78)
+  assert.equal(restored.projectRatingBadge.layout.y, 50)
+  assert.equal(restored.projectRatingBadge.uskBadge.ratingValue, '12')
+  assert.equal(restored.projectRatingBadge.uskBadge.layout.enabled, true)
+  assert.equal(restored.projectRatingBadge.uskBadge.layout.scale, 1.3)
+  assert.equal(restored.projectRatingBadge.uskBadge.layout.x, 67)
+  assert.equal(restored.projectRatingBadge.uskBadge.layout.y, 50)
+})
+
 test('restores saved asset provenance and defaults legacy embedded assets safely', async () => {
   const restored = await restoreSavedProjectState({
     ...baseProject,

@@ -10,6 +10,7 @@ import {
 import type { GameRatingSystem, RatingBadgeSource } from '../../../project/projectTypes'
 import { EditorStackedRangeField } from '../../editor/EditorRangeField'
 import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourceControls'
+import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
 
@@ -55,92 +56,92 @@ export function RatingBadgeSetupControls({
   const isSupplementalUskBadgeEnabled = projectRatingBadge.uskBadge.layout.enabled
 
   return (
-    <div className="logo-asset-card">
-      <label className="field-label"><input type="checkbox" checked={isBadgeEnabled} onChange={(event) => handleRatingBadgeEnabledChange(event.target.checked)} /> Show rating badge</label>
-      {!isBadgeEnabled ? null : (
-        <>
-          <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-system')}>Rating system</label>
-          <select id={fieldId('branding-rating-system')} value={activeRatingSystem} onChange={(event) => {
-            const nextSystem = event.target.value as GameRatingSystem
-            const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
-            handleProjectMetadataFieldsChange(nextMetadata)
-          }}>
-            <option value="ESRB">ESRB</option>
-            <option value="PEGI">PEGI</option>
-            <option value="USK">USK</option>
-            <option value="custom">Custom</option>
-          </select>
+    <OptionalFeatureSection
+      className="logo-asset-card"
+      enabled={isBadgeEnabled}
+      enableLabel="Show rating badge"
+      onEnabledChange={handleRatingBadgeEnabledChange}
+    >
+      <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-system')}>Rating system</label>
+      <select id={fieldId('branding-rating-system')} value={activeRatingSystem} onChange={(event) => {
+        const nextSystem = event.target.value as GameRatingSystem
+        const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
+        handleProjectMetadataFieldsChange(nextMetadata)
+      }}>
+        <option value="ESRB">ESRB</option>
+        <option value="PEGI">PEGI</option>
+        <option value="USK">USK</option>
+        <option value="custom">Custom</option>
+      </select>
 
-          <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-value')}>Rating value</label>
-          {activeRatingSystem === 'custom' ? (
-            <input id={fieldId('branding-rating-value')} type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
-          ) : (
-            <select id={fieldId('branding-rating-value')} value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
-              {getRatingValuesForSystem(activeRatingSystem).map((value) => (
-                <option key={value} value={value}>
-                  {formatRatingValueForSystem(activeRatingSystem, value)}
-                </option>
-              ))}
-            </select>
-          )}
-
-          {shouldShowSupplementalUskControls ? (
-            <div className="platform-mark-selection-group spacing-top">
-              <label className="field-label">
-                <input type="checkbox" checked={isSupplementalUskBadgeEnabled} onChange={(event) => handleSupplementalUskRatingBadgeEnabledChange(event.target.checked)} />
-                Show additional USK badge
-              </label>
-
-              {!isSupplementalUskBadgeEnabled ? null : (
-                <>
-                  <label className="field-label spacing-top" htmlFor={fieldId('branding-usk-rating-value')}>USK rating value</label>
-                  <select id={fieldId('branding-usk-rating-value')} value={projectRatingBadge.uskBadge.ratingValue} onChange={(event) => handleSupplementalUskRatingBadgeValueChange(event.target.value)}>
-                    {getRatingValuesForSystem('USK').map((value) => (
-                      <option key={value} value={value}>
-                        {formatRatingValueForSystem('USK', value)}
-                      </option>
-                    ))}
-                  </select>
-                  {renderSupplementalUskLayoutControls?.()}
-                </>
-              )}
-            </div>
-          ) : null}
-
-          <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
-          {projectMetadata.ratingSystem === 'none' && (
-            <p className="hint">No rating badge will render while the rating system is set to None.</p>
-          )}
-          {projectMetadata.ratingSystem !== 'none' && !hasRatingValue && (
-            <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>
-          )}
-
-          <EditorMarkImageSourceControls
-            idPrefix={idPrefix}
-            source={projectRatingBadge.source}
-            sourceLabel="Badge source"
-            sourceSelectId="rating-badge-source"
-            builtInOptionLabel="Built-in artwork"
-            builtInHint="Using the built-in rating artwork."
-            customImageLabel="Custom badge image"
-            customImageDataUrl={projectRatingBadge.customImageDataUrl}
-            customImageSize={projectRatingBadge.customImageSize}
-            customActiveLabel="Custom rating badge active"
-            uploadId="rating-badge-upload"
-            uploadButtonLabel="Choose custom badge"
-            emptyCustomHint="No custom badge image is selected yet. The built-in rating artwork is used when a rating system and value are set."
-            clearCustomLabel="Clear custom badge"
-            formatSize={formatLogoSize}
-            onSourceChange={(source) =>
-              handleRatingBadgeSourceChange(source as RatingBadgeSource)}
-            onUpload={handleRatingBadgeUpload}
-            onClearCustomImage={handleClearRatingBadgeImage}
-          >
-            {children}
-          </EditorMarkImageSourceControls>
-        </>
+      <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-value')}>Rating value</label>
+      {activeRatingSystem === 'custom' ? (
+        <input id={fieldId('branding-rating-value')} type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
+      ) : (
+        <select id={fieldId('branding-rating-value')} value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
+          {getRatingValuesForSystem(activeRatingSystem).map((value) => (
+            <option key={value} value={value}>
+              {formatRatingValueForSystem(activeRatingSystem, value)}
+            </option>
+          ))}
+        </select>
       )}
-    </div>
+
+      {shouldShowSupplementalUskControls ? (
+        <div className="platform-mark-selection-group spacing-top">
+          <label className="field-label">
+            <input type="checkbox" checked={isSupplementalUskBadgeEnabled} onChange={(event) => handleSupplementalUskRatingBadgeEnabledChange(event.target.checked)} />
+            Show additional USK badge
+          </label>
+
+          {!isSupplementalUskBadgeEnabled ? null : (
+            <>
+              <label className="field-label spacing-top" htmlFor={fieldId('branding-usk-rating-value')}>USK rating value</label>
+              <select id={fieldId('branding-usk-rating-value')} value={projectRatingBadge.uskBadge.ratingValue} onChange={(event) => handleSupplementalUskRatingBadgeValueChange(event.target.value)}>
+                {getRatingValuesForSystem('USK').map((value) => (
+                  <option key={value} value={value}>
+                    {formatRatingValueForSystem('USK', value)}
+                  </option>
+                ))}
+              </select>
+              {renderSupplementalUskLayoutControls?.()}
+            </>
+          )}
+        </div>
+      ) : null}
+
+      <p className="hint">Current metadata rating: {ratingLabel}. Rating values are manual for now.</p>
+      {projectMetadata.ratingSystem === 'none' && (
+        <p className="hint">No rating badge will render while the rating system is set to None.</p>
+      )}
+      {projectMetadata.ratingSystem !== 'none' && !hasRatingValue && (
+        <p className="hint">Choose a rating value so the enabled badge has meaningful text.</p>
+      )}
+
+      <EditorMarkImageSourceControls
+        idPrefix={idPrefix}
+        source={projectRatingBadge.source}
+        sourceLabel="Badge source"
+        sourceSelectId="rating-badge-source"
+        builtInOptionLabel="Built-in artwork"
+        builtInHint="Using the built-in rating artwork."
+        customImageLabel="Custom badge image"
+        customImageDataUrl={projectRatingBadge.customImageDataUrl}
+        customImageSize={projectRatingBadge.customImageSize}
+        customActiveLabel="Custom rating badge active"
+        uploadId="rating-badge-upload"
+        uploadButtonLabel="Choose custom badge"
+        emptyCustomHint="No custom badge image is selected yet. The built-in rating artwork is used when a rating system and value are set."
+        clearCustomLabel="Clear custom badge"
+        formatSize={formatLogoSize}
+        onSourceChange={(source) =>
+          handleRatingBadgeSourceChange(source as RatingBadgeSource)}
+        onUpload={handleRatingBadgeUpload}
+        onClearCustomImage={handleClearRatingBadgeImage}
+      >
+        {children}
+      </EditorMarkImageSourceControls>
+    </OptionalFeatureSection>
   )
 }
 
