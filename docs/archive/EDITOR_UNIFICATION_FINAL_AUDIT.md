@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Final Editor Unification Audit
 
 Last refreshed: 2026-06-08.

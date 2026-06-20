@@ -1,4 +1,10 @@
 # Metadata-Bound Disc Text
+> Status: Conditional disc metadata text reference.
+> Purpose: Metadata-bound disc text defaults and fallback semantics.
+> Read when: Disc text metadata/default-source behavior.
+> Authoritative source: This document for disc metadata binding unless superseded by TEXT_EDITOR_CONTRACT.md.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-05-31.
 

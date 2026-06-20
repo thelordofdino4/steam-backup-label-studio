@@ -1,17 +1,24 @@
 # Agent Instructions
+> Status: Authoritative agent instructions.
+> Purpose: Safety, preservation, validation, parity, and workflow guardrails for agents.
+> Read when: Always, before agent work in this repository.
+> Authoritative source: Agent workflow and safety rules in this file; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Before implementing new features, refactors, bug fixes, or documentation changes in this repository:
 
 1. Read the project documentation first:
    - `README.md`
-   - `docs/CURRENT_STATUS.md`
-   - `docs/ROADMAP.md`
-   - `docs/MILESTONES.md`
-   - `docs/ARCHITECTURE_GUARDRAILS.md`
+   - `docs/README.md`
+
+   Then read the conditional reference documents that match the task:
    - `docs/SOFTWARE_DESIGN_DOCUMENT.md` before architecture-sensitive work, especially preview/edit/export parity, text editing, save/load serialization, PNG export, drag/selection interactions, disc or case insert renderers, hit targets, or hidden input layers
+   - `docs/PRD.md` for product direction, scope decisions, or feature-boundary questions
+   - `docs/PROJECT_FILE_SPEC.md` for save/load, schema, migration, or project-file work
+   - `docs/TEXT_EDITOR_CONTRACT.md` for text-editor behavior, formatting, selection, source editing, or contextual controls
    - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` before browser automation or text-editor runtime smoke work
-   - `docs/REFACTOR_STATUS.md` if the task touches architecture or refactoring
-   - `docs/PRD.md` if the task affects product direction or scope
+   - `docs/REPO_ARCHITECTURE_INVENTORY.md` for ownership lookup, repo mapping, refactors, or architecture-sensitive edits
 
 2. Review open GitHub issues before starting work.
    - Check whether the requested task already has an issue.

@@ -1,4 +1,10 @@
 # Manual Smoke Checklists
+> Status: Conditional manual runtime checklist.
+> Purpose: Manual checks for visual/editor behaviors that need runtime confidence.
+> Read when: Planning or reporting manual/Tauri verification.
+> Authoritative source: Feature contracts and SDD for behavior; this file for manual check coverage.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-16.
 

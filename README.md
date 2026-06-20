@@ -1,4 +1,10 @@
 # Steam Backup Label Studio
+> Status: Authoritative overview.
+> Purpose: Product summary, current feature surface, and top-level repository orientation.
+> Read when: Always, before repository work.
+> Authoritative source: Product/scope details defer to docs/PRD.md; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 A cross-platform desktop app for designing print-ready Steam backup disc labels and, later, case artwork for personal Steam backup media.
 
@@ -130,7 +136,7 @@ The project should not bundle official trademarked assets unless licensing is cl
 ## Near-Term Work
 
 - Treat #69 as the closed baseline for the disc-editor alpha finish line.
-- Start the jewel case editor as the next major product surface; see #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+- Start the jewel case editor as the next major product surface; see #126 and the product/architecture boundaries in `docs/PRD.md` and `docs/SOFTWARE_DESIGN_DOCUMENT.md`. The older local issue mirror is archived at `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
 - Keep built-in asset routing centralized, keep official replacements in domain folders under `src/assets/`, and keep true placeholder-named fallbacks under `src/assets/placeholders/`.
 - Keep #124 separate: move Guide Legend into the live preview only when that issue is explicitly worked.
 - Add or update fixture coverage for title artwork, additional artwork, technical marks, metadata-bound text, export preflight, and future case layouts so manual preview/export checks match the current feature set.
@@ -163,24 +169,16 @@ The original plan included Konva/React Konva for the visual editor. The current 
 
 ## Documentation
 
-See the `docs/` folder for:
+Start with `docs/README.md`. It maps active, conditional, historical, and merged documentation and explains which document wins when older notes conflict with current guidance.
 
-- `CURRENT_STATUS.md` - concise implementation status and next issues.
-- `PRD.md` - product requirements and product direction.
-- `ROADMAP.md` - completed phases, current roadmap, and future work.
-- `MILESTONES.md` - milestone boundaries and feature backlog.
-- `JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` - reviewed local planning mirror for jewel case editor issue #126.
-- `ARCHITECTURE_GUARDRAILS.md` - hard implementation guardrails for future work.
-- `REFACTOR_STATUS.md` - historical refactor status and remaining architecture risks.
-- `PROJECT_FILE_SPEC.md` - current saved-project format notes.
-- `PROJECT_PACKAGE_FORMAT_DECISION.md` - #56 decision record for current JSON embedding and future `.sbls` package direction.
-- `DISC_EDITOR_LAYER_ORDER.md` - preview/export layer order source-of-truth notes.
-- `CASE_INSERT_EDITOR_LAYER_ORDER.md` - jewel case preview/export layer order notes.
-- `METADATA_DISC_TEXT_BINDING.md` - metadata-to-rendered-text binding behavior.
-- `VISUAL_REGRESSION_WORKFLOW.md` - manual preview/export comparison workflow for fixture-based visual checks.
-- `MANUAL_SMOKE_CHECKLISTS.md` - manual runtime smoke checklists for editor, artwork, branding, preview, save/load/export, and case insert flows.
-- `CSS_STYLE_OWNERSHIP.md` - current stylesheet ownership, import order, and manual CSS smoke checklist.
-- `TEXT_EDITOR_CONTRACT.md` - protected contract and regression gate for preview-mounted text editing.
+The most common active references are:
+
+- `docs/SOFTWARE_DESIGN_DOCUMENT.md` - authoritative architecture contracts.
+- `docs/PRD.md` - product requirements and scope.
+- `docs/PROJECT_FILE_SPEC.md` - current saved-project format notes.
+- `docs/REPO_ARCHITECTURE_INVENTORY.md` - as-built source ownership map.
+- `docs/TEXT_EDITOR_CONTRACT.md` - protected contract and regression gate for preview-mounted text editing.
+- `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` - committed browser smoke automation guide.
 
 ## Disclaimer
 

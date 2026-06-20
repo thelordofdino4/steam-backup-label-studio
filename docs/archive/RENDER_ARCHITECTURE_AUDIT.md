@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Preview/Export Rendering Architecture Audit
 
 Last refreshed: 2026-06-08.
@@ -10,13 +14,13 @@ This audit records where preview/export parity is protected, where ownership is 
 
 Related current source-of-truth docs:
 
-- `docs/ARCHITECTURE_GUARDRAILS.md`
+- `docs/archive/ARCHITECTURE_GUARDRAILS.md`
 - `docs/DISC_EDITOR_LAYER_ORDER.md`
 - `docs/METADATA_DISC_TEXT_BINDING.md`
 - `docs/PROJECT_FILE_SPEC.md`
-- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`
+- `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`
 - `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
-- `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`
+- `docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`
 
 ## Current Layer Order
 

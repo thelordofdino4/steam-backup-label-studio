@@ -1,4 +1,10 @@
 # Template Specification
+> Status: Conditional template reference.
+> Purpose: Physical template concepts and template-specific notes.
+> Read when: Template geometry, dimensions, or physical output definitions.
+> Authoritative source: Current source plus SDD for implementation contracts.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-03.
 

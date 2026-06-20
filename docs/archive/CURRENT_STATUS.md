@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Current Project Status
 
 Last refreshed: 2026-06-08.
@@ -64,12 +68,12 @@ Future planned interfaces still need to become functional:
 
 Guided Start, case editors, the future `.sbls` package/container format, direct printer support, official asset packs, automatic rating lookup, visual regression automation, and broad Rust refactors are not disc-editor alpha blockers unless a specific issue shows they are needed for one of the finish-line items.
 
-Architecture guardrails remain mandatory for the next phase. Jewel case work should not add new logic to unrelated structures or make preview/export parity depend on hidden coupling. See `docs/ARCHITECTURE_GUARDRAILS.md`.
+Architecture guardrails remain mandatory for the next phase. Jewel case work should not add new logic to unrelated structures or make preview/export parity depend on hidden coupling. See `docs/archive/ARCHITECTURE_GUARDRAILS.md`.
 
-The case insert editor boundary is documented in `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`. Jewel case is the first template inside the Case Insert Editor, not a Disc Editor template, and saved project type should remain separate from concrete template/case variant choices.
+The case insert editor boundary is documented in `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`. Jewel case is the first template inside the Case Insert Editor, not a Disc Editor template, and saved project type should remain separate from concrete template/case variant choices.
 
 The staged editor unification ownership map is documented in
-`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+`docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
 
 ## Disc Editor Alpha Status
 
@@ -198,7 +202,7 @@ When disabled, optional visual features should hide dependent controls, not rend
 ## Next Recommended Work Order
 
 1. Use #69 as the closed baseline for the disc-editor alpha feature boundary.
-2. Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
+2. Use #126 and `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
 3. Use #149 as the next case insert feature implementation issue for structured tray/spine layouts.
 4. Keep the built-in asset tree organized and route new built-ins through `src/assets/assetManifest.ts` or a successor manifest if shared case assets require one.
 5. Keep #124 and #125 as separate polish/future-expansion work.
@@ -206,4 +210,4 @@ When disabled, optional visual features should hide dependent controls, not rend
 7. Continue #44, #46, #47, and #48 only where they support current implementation risk.
 8. Keep #56 as the project packaging decision point.
 
-See `docs/MILESTONES.md` for broader milestone and feature backlog context.
+See `docs/archive/MILESTONES.md` for broader milestone and feature backlog context.

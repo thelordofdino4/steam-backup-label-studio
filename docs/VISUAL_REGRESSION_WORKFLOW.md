@@ -1,4 +1,10 @@
 # Visual Regression Workflow
+> Status: Conditional visual regression guide.
+> Purpose: Fixture-based visual regression workflow and limitations.
+> Read when: Visual regression fixtures, screenshots, export/preview comparison work.
+> Authoritative source: SDD for parity rules; this guide for workflow.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 This workflow is the manual process for checking live preview and PNG export parity across saved project fixtures. It supports the closed issue #65 workflow and is intentionally documentation-only unless a separate issue asks for fixture or rendering fixes. Do not treat a mismatch found here as part of an unrelated docs task.
 

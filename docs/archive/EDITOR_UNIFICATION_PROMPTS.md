@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Editor Code Unification Prompt Plan
 
 Last refreshed: 2026-06-08.
@@ -30,7 +34,7 @@ disc hub geometry, disc-number artwork, or rotated jewel case spine layout, may
 retain editor-specific ownership and naming.
 
 The final audit artifact for the staged unification work is
-`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. That audit is the current source for
+`docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`. That audit is the current source for
 what became shared source-of-truth code, what remains editor-specific, and which
 open issues should remain open.
 

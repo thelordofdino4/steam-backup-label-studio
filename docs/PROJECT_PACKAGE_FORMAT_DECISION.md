@@ -1,4 +1,10 @@
 # Project Package Format Decision
+> Status: Conditional ADR.
+> Purpose: Decision record for future .sbls package/container format.
+> Read when: Project packaging or future container work.
+> Authoritative source: PROJECT_FILE_SPEC.md for current JSON format.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-12.
 

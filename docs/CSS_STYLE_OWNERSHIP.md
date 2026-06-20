@@ -1,4 +1,10 @@
 # CSS Style Ownership
+> Status: Conditional CSS ownership reference.
+> Purpose: Style file ownership and CSS boundary guidance.
+> Read when: CSS organization, style moves, or design-system cleanup.
+> Authoritative source: This document for style ownership; SDD/source for behavior.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-03.
 

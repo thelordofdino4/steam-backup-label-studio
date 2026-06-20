@@ -1,4 +1,10 @@
 # Product Requirements Document
+> Status: Authoritative product/scope document.
+> Purpose: Product goals, non-goals, feature surface, and scope decisions.
+> Read when: Product direction, feature-boundary, UX-scope, or roadmap-priority decisions.
+> Authoritative source: This document for product scope; SDD for implemented architecture.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-08.
 
@@ -117,7 +123,7 @@ The UI should clearly distinguish available template editors from future planned
 
 ## Jewel Case Editor Requirements
 
-The next editor surface should follow the Steam Game Covers front-cover, back-cover, and design-mistakes guides listed in `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`.
+The next editor surface should follow the Steam Game Covers front-cover, case-back, and design-mistakes guidance captured during planning. The local issue mirror that collected those links is historical and archived at `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md`; current product scope remains authoritative in this PRD.
 
 The jewel case front should support:
 

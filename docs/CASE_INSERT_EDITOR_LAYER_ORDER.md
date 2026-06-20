@@ -1,4 +1,10 @@
 # Case Insert Editor Layer Order
+> Status: Conditional case insert layer-order reference.
+> Purpose: Case insert preview/export layer order policy.
+> Read when: Case insert renderer, export, or layer-order work.
+> Authoritative source: This document for case layer order; SDD for global parity.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Issue context: #134 and #141.
 

@@ -1,4 +1,10 @@
 # Project File Specification
+> Status: Authoritative save/load schema reference.
+> Purpose: Project JSON format, compatibility behavior, and future package notes.
+> Read when: Save/load, schema, migration, project-file, or package-format work.
+> Authoritative source: This document for saved-project schema; SDD for architecture boundaries.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-12.
 
