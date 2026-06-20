@@ -273,6 +273,10 @@
   pointer-events: auto;
   font-family: "Segoe UI", Arial, sans-serif;
   text-transform: none;
+  transition:
+    left 120ms ease,
+    top 120ms ease,
+    opacity 120ms ease;
 }
 
 .inline-preview-text-tabs {
@@ -346,6 +350,12 @@
 
 .inline-preview-text-menu--above {
   transform: translate(-50%, calc(-100% - 8px));
+}
+
+.inline-preview-text-menu--left,
+.inline-preview-text-menu--right,
+.inline-preview-text-menu--detached {
+  transform: none;
 }
 
 .inline-preview-text-control-grid {
@@ -678,4 +688,12 @@ button.inline-preview-text-planned-control:disabled {
 
 .inline-preview-text-move-handle:active {
   cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inline-preview-text-tabs,
+  .inline-preview-text-menu,
+  .inline-preview-text-move-handle {
+    transition: none;
+  }
 }

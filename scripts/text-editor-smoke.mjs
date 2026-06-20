@@ -284,7 +284,7 @@ function getPaintBoundsFromScreenshot(buffer) {
     y < image.height - verticalGuideInset;
     y += 1
   ) {
-    for (let x = 0; x < image.width; x += 1) {
+    for (let x = 1; x < image.width - 1; x += 1) {
       const pixel = getScreenshotPixel(image, x, y)
       if (
         pixel[3] < 24 ||
@@ -942,15 +942,69 @@ async function runCaseChecks(page) {
     }
   })
 
-  await runCheck(page, 'cover initial bottom placement moves menu above tabs', async () => {
+  await runCheck(page, 'cover initial bottom placement keeps controls accessible', async () => {
     const yMax = await getInlineNumberControlMax(page, 'y')
     await setInlineNumberControl(page, 'y', yMax)
     await done(page)
     await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
     const tabs = await getRect(page, 'inline-text-tabs')
     const menu = await getRect(page, 'inline-text-menu')
-    if (menu.bottom > tabs.top + 1) {
-      fail('Initial menu placement near the bottom overlapped or stayed below tabs.')
+    const preview = await getRect(page, 'case-preview-cover')
+    const overlapsTabs = !(
+      menu.right <= tabs.left ||
+      menu.left >= tabs.right ||
+      menu.bottom <= tabs.top ||
+      menu.top >= tabs.bottom
+    )
+    if (overlapsTabs) {
+      fail('Initial menu placement near the bottom overlapped the tab strip.')
+    }
+    if (
+      menu.right < preview.left ||
+      menu.left > preview.right ||
+      menu.bottom < preview.top ||
+      menu.top > preview.bottom
+    ) {
+      const mode = await smoke(page, 'inline-text-menu').getAttribute('data-inline-placement-mode')
+      if (mode !== 'detached') {
+        fail(`Initial bottom menu was inaccessible without detached placement: ${mode}`)
+      }
+    }
+  })
+
+  await runCheck(page, 'cover oversized text uses emergency detached controls', async () => {
+    await setInlineNumberControl(page, 'y', 50)
+    await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '72')
+    await page.keyboard.press('Enter')
+    await setInlineTextValue(
+      page,
+      Array.from({ length: 24 }, (_, index) => `Oversized placement ${index + 1}`).join('\n'),
+    )
+    await page.waitForTimeout(120)
+    const mode = await smoke(page, 'inline-text-menu').getAttribute('data-inline-placement-mode')
+    if (mode !== 'detached') {
+      fail(`Oversized text did not use detached contextual placement: ${mode}`)
+    }
+    const viewport = page.viewportSize()
+    const tabs = await getRect(page, 'inline-text-tabs')
+    const menu = await getRect(page, 'inline-text-menu')
+    const moveHandle = await getRect(page, 'inline-text-move-handle')
+    if (!viewport) {
+      fail('Could not read viewport size for emergency placement check.')
+    }
+    for (const [label, rect] of [
+      ['tabs', tabs],
+      ['menu', menu],
+      ['move handle', moveHandle],
+    ]) {
+      if (
+        rect.right < 0 ||
+        rect.left > viewport.width ||
+        rect.bottom < 0 ||
+        rect.top > viewport.height
+      ) {
+        fail(`Emergency ${label} was offscreen: ${JSON.stringify(rect)}`)
+      }
     }
   })
 

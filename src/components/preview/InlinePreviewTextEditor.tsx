@@ -34,6 +34,7 @@ import {
   getInlinePreviewTextControlLayout,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
+  type InlinePreviewTextObstacle,
   type InlinePreviewTextRect,
   type InlinePreviewTextSize,
 } from './inlinePreviewTextEditorPositioning'
@@ -98,7 +99,9 @@ export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
 
 type InlineTextControlFrame = {
   anchor: InlinePreviewTextAnchor
+  obstacles: InlinePreviewTextObstacle[]
   previewRect: InlinePreviewTextRect
+  workspaceRect: InlinePreviewTextRect
 }
 
 type InlineTextCaretFrame = {
@@ -146,6 +149,11 @@ function getInlineTextSelectionStateFromRange(
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 
 const INLINE_PREVIEW_SURFACE_SELECTOR = '.case-insert-preview, .disc-preview'
+const INLINE_PREVIEW_OBSTACLE_SELECTOR = [
+  '.preview-guide-legend-panel',
+  '.preview-design-check-panel',
+  '.preview-element-outline',
+].join(',')
 
 const INLINE_TEXT_DEFAULT_CONTROL_SIZES: InlinePreviewTextControlSizes = {
   menu: { height: 48, width: 76 },
@@ -185,6 +193,48 @@ function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
 
 function getInlineTextPreviewSurface(host: Element) {
   return host.closest<HTMLElement>(INLINE_PREVIEW_SURFACE_SELECTOR)
+}
+
+function getInlineTextPreviewWorkspace(surface: Element | null) {
+  return (
+    surface?.closest<HTMLElement>('.preview-area') ??
+    surface?.closest<HTMLElement>('.preview-workspace') ??
+    null
+  )
+}
+
+function getViewportInlineTextRect(): InlinePreviewTextRect {
+  if (typeof window === 'undefined') {
+    return {
+      bottom: 0,
+      left: 0,
+      right: 0,
+      top: 0,
+    }
+  }
+
+  return {
+    bottom: window.innerHeight,
+    left: 0,
+    right: window.innerWidth,
+    top: 0,
+  }
+}
+
+function getInlineTextObstacleRects(
+  workspace: Element | null,
+): InlinePreviewTextObstacle[] {
+  if (!workspace) return []
+
+  return Array.from(
+    workspace.querySelectorAll<HTMLElement>(INLINE_PREVIEW_OBSTACLE_SELECTOR),
+  ).map((element, index) => ({
+    id:
+      element.getAttribute('aria-label') ??
+      element.getAttribute('data-preview-element-outline-id') ??
+      `${element.className}-${index}`,
+    rect: rectToInlineTextRect(element.getBoundingClientRect()),
+  }))
 }
 
 function getInlineTextControlSize(
@@ -303,7 +353,16 @@ function areInlineTextControlFramesEqual(
 
   return (
     areInlineTextAnchorsEqual(first.anchor, second.anchor) &&
-    areInlineTextRectsEqual(first.previewRect, second.previewRect)
+    areInlineTextRectsEqual(first.previewRect, second.previewRect) &&
+    areInlineTextRectsEqual(first.workspaceRect, second.workspaceRect) &&
+    first.obstacles.length === second.obstacles.length &&
+    first.obstacles.every((obstacle, index) => {
+      const nextObstacle = second.obstacles[index]
+      return (
+        obstacle.id === nextObstacle.id &&
+        areInlineTextRectsEqual(obstacle.rect, nextObstacle.rect)
+      )
+    })
   )
 }
 
@@ -2007,9 +2066,12 @@ export function InlinePreviewTextEditor({
       }
 
       const rect = currentHost.getBoundingClientRect()
-      const previewRect =
-        getInlineTextPreviewSurface(currentHost)?.getBoundingClientRect() ??
-        rect
+      const previewSurface = getInlineTextPreviewSurface(currentHost)
+      const previewRect = previewSurface?.getBoundingClientRect() ?? rect
+      const workspace = getInlineTextPreviewWorkspace(previewSurface)
+      const workspaceRect = workspace
+        ? rectToInlineTextRect(workspace.getBoundingClientRect())
+        : getViewportInlineTextRect()
 
       const nextControlFrame = {
         anchor: {
@@ -2019,7 +2081,9 @@ export function InlinePreviewTextEditor({
           right: rect.right,
           top: rect.top,
         },
+        obstacles: getInlineTextObstacleRects(workspace),
         previewRect: rectToInlineTextRect(previewRect),
+        workspaceRect,
       }
 
       if (
@@ -2065,6 +2129,10 @@ export function InlinePreviewTextEditor({
     const previewSurface = getInlineTextPreviewSurface(host)
     if (previewSurface && previewSurface !== host) {
       resizeObserver?.observe(previewSurface)
+    }
+    const previewWorkspace = getInlineTextPreviewWorkspace(previewSurface)
+    if (previewWorkspace && previewWorkspace !== host) {
+      resizeObserver?.observe(previewWorkspace)
     }
     window.addEventListener('resize', updateControlFrame)
     window.addEventListener('scroll', updateControlFrame, true)
@@ -2350,9 +2418,11 @@ export function InlinePreviewTextEditor({
   const controlLayout = controlFrame
     ? getInlinePreviewTextControlLayout({
         anchor: controlFrame.anchor,
+        obstacles: controlFrame.obstacles,
         previewRect: controlFrame.previewRect,
         requestedMenuPlacement: menuPlacement,
         sizes: controlSizes,
+        workspaceRect: controlFrame.workspaceRect,
       })
     : null
   const resolvedMenuPlacement = controlLayout?.menu.placement ?? menuPlacement
@@ -2388,6 +2458,8 @@ export function InlinePreviewTextEditor({
       <div
         ref={tabsRef}
         className="inline-preview-text-tabs"
+        data-inline-placement-mode={controlLayout?.mode}
+        data-inline-placement={resolvedMenuPlacement}
         data-smoke-id="inline-text-tabs"
         onClick={stopInlineTextEditorClick}
         onPointerDown={keepInlineTextEditorFocus}
@@ -2415,6 +2487,8 @@ export function InlinePreviewTextEditor({
       <button
         ref={moveHandleRef}
         className="inline-preview-text-move-handle"
+        data-inline-placement-mode={controlLayout?.mode}
+        data-inline-placement={resolvedMenuPlacement}
         data-smoke-id="inline-text-move-handle"
         type="button"
         onPointerDown={(event) => {
@@ -2435,6 +2509,8 @@ export function InlinePreviewTextEditor({
           'inline-preview-text-menu',
           `inline-preview-text-menu--${resolvedMenuPlacement}`,
         ].join(' ')}
+        data-inline-placement-mode={controlLayout?.mode}
+        data-inline-placement={resolvedMenuPlacement}
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
         onPointerDown={stopInlineTextEditorPointer}

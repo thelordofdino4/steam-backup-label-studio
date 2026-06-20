@@ -478,3 +478,182 @@ test('inline text controls use straight-disc preview coordinates without page of
   assert.equal(layout.menu.top, 463)
   assert.equal(layout.menu.maxWidth, 1280)
 })
+
+test('inline text controls choose a side candidate to avoid registered obstacles', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 260,
+      centerX: 250,
+      centerY: 240,
+      right: 300,
+      top: 220,
+    }),
+    obstacles: [
+      {
+        id: 'below-panel',
+        rect: { bottom: 430, left: 190, right: 360, top: 268 },
+      },
+      {
+        id: 'above-panel',
+        rect: { bottom: 212, left: 190, right: 360, top: 84 },
+      },
+      {
+        id: 'right-panel',
+        rect: { bottom: 360, left: 308, right: 486, top: 120 },
+      },
+    ],
+    previewRect: {
+      bottom: 500,
+      left: 0,
+      right: 500,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 120, width: 120 },
+      moveHandle: sizes.moveHandle,
+      tabs: { height: 30, width: 120 },
+    },
+  })
+
+  assert.equal(layout.mode, 'anchored')
+  assert.equal(layout.menu.placement, 'left')
+  assert.ok(layout.menu.left + 120 < 308)
+  assert.ok(layout.tabs.left + 120 < 308)
+})
+
+test('inline text controls keep placement stable when scores are nearly tied', () => {
+  const input = {
+    anchor: createAnchor(),
+    obstacles: [
+      {
+        id: 'non-overlapping-panel',
+        rect: { bottom: 20, left: 260, right: 300, top: 0 },
+      },
+    ],
+    previewRect,
+    requestedMenuPlacement: 'below' as const,
+    sizes,
+  }
+  const defaultLayout = getInlinePreviewTextControlLayout(input)
+  const stableLayout = getInlinePreviewTextControlLayout({
+    ...input,
+    previousPlacement: 'above',
+  })
+
+  assert.equal(defaultLayout.menu.placement, 'below')
+  assert.equal(stableLayout.menu.placement, 'above')
+})
+
+test('inline text controls detach when selected text occupies most of the preview', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: {
+      bottom: 1080,
+      centerX: 500,
+      centerY: 600,
+      right: 950,
+      top: 120,
+    },
+    previewRect: {
+      bottom: 1100,
+      left: 0,
+      right: 1000,
+      top: 100,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 140, width: 260 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 260 },
+    },
+    workspaceRect: {
+      bottom: 1300,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+  })
+
+  assert.equal(layout.mode, 'detached')
+  assert.equal(layout.menu.placement, 'detached')
+  assert.equal(layout.tabs.top, 46)
+  assert.equal(layout.menu.top, 1108)
+  assert.ok(layout.menu.top >= 1100)
+})
+
+test('inline text detached menu avoids checklist and guide legend obstacles', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: {
+      bottom: 1080,
+      centerX: 500,
+      centerY: 600,
+      right: 950,
+      top: 120,
+    },
+    obstacles: [
+      {
+        id: 'design-check-button',
+        rect: { bottom: 1168, left: 420, right: 468, top: 1120 },
+      },
+      {
+        id: 'guide-legend-button',
+        rect: { bottom: 1168, left: 476, right: 524, top: 1120 },
+      },
+    ],
+    previewRect: {
+      bottom: 1100,
+      left: 0,
+      right: 1000,
+      top: 100,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 140, width: 260 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 260 },
+    },
+    workspaceRect: {
+      bottom: 1300,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+  })
+
+  assert.equal(layout.mode, 'detached')
+  assert.ok(layout.menu.top + 140 <= 1112)
+})
+
+test('inline text controls return to anchored placement below emergency threshold', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: {
+      bottom: 420,
+      centerX: 500,
+      centerY: 360,
+      right: 620,
+      top: 300,
+    },
+    previewRect: {
+      bottom: 1100,
+      left: 0,
+      right: 1000,
+      top: 100,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 140, width: 260 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 260 },
+    },
+    workspaceRect: {
+      bottom: 1300,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+  })
+
+  assert.equal(layout.mode, 'anchored')
+  assert.equal(layout.menu.placement, 'below')
+  assert.equal(layout.menu.top, 428)
+})
