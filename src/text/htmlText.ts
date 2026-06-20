@@ -20,6 +20,7 @@ export type RichTextRun = {
   color?: string
   backgroundColor?: string
   fontFamily?: string
+  fontSizePt?: number
   fontSizePx?: number
   fontWeight?: number
   fontStyle?: 'normal' | 'italic'
@@ -63,6 +64,8 @@ const BLOCK_TAGS = new Set(['p', 'li'])
 const STRIPPED_CONTENT_TAGS = new Set(['script', 'style'])
 const TOKEN_PATTERN = /<!--[\s\S]*?-->|<![^>]*>|<\/?[^>]+>/g
 const BULLET_LINE_PATTERN = /^(\s*)[-*]\s+(.+)$/
+const FONT_SIZE_MIN_PT = 1
+const FONT_SIZE_MAX_PT = 96
 const FONT_SIZE_MIN_PX = 6
 const FONT_SIZE_MAX_PX = 144
 const CSS_DECLARATION_SEPARATOR = /\s*;\s*/
@@ -125,6 +128,7 @@ function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
     first.color === second.color &&
     first.backgroundColor === second.backgroundColor &&
     first.fontFamily === second.fontFamily &&
+    first.fontSizePt === second.fontSizePt &&
     first.fontSizePx === second.fontSizePx &&
     first.fontWeight === second.fontWeight &&
     first.fontStyle === second.fontStyle &&
@@ -341,12 +345,25 @@ function normalizeFontFamily(value: string | undefined) {
 function normalizeFontSize(value: string | undefined) {
   if (!value) return undefined
 
-  const match = value.trim().match(/^(\d+(?:\.\d+)?)px$/i)
+  const match = value.trim().match(/^(\d+(?:\.\d+)?)(pt|px)$/i)
 
   if (!match) return undefined
 
+  const numericValue = Number.parseFloat(match[1])
+  const unit = match[2].toLowerCase()
+
+  if (unit === 'pt') {
+    return {
+      fontSizePt: clampNumber(
+        numericValue,
+        FONT_SIZE_MIN_PT,
+        FONT_SIZE_MAX_PT,
+      ),
+    }
+  }
+
   return clampNumber(
-    Number.parseFloat(match[1]),
+    numericValue,
     FONT_SIZE_MIN_PX,
     FONT_SIZE_MAX_PX,
   )
@@ -408,7 +425,12 @@ function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
     } else if (property === 'font-family') {
       runStyle.fontFamily = normalizeFontFamily(value)
     } else if (property === 'font-size') {
-      runStyle.fontSizePx = normalizeFontSize(value)
+      const fontSize = normalizeFontSize(value)
+      if (typeof fontSize === 'number') {
+        runStyle.fontSizePx = fontSize
+      } else if (fontSize?.fontSizePt) {
+        runStyle.fontSizePt = fontSize.fontSizePt
+      }
     } else if (property === 'font-weight') {
       const fontWeight = normalizeFontWeight(value)
       if (fontWeight) {
@@ -453,6 +475,7 @@ function getSafeStyleDeclarations(run: RichTextRun) {
     run.color ? `color:${run.color}` : '',
     run.backgroundColor ? `background-color:${run.backgroundColor}` : '',
     run.fontFamily ? `font-family:${run.fontFamily}` : '',
+    run.fontSizePt ? `font-size:${run.fontSizePt}pt` : '',
     run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
     run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
     run.fontStyle && !run.italic ? `font-style:${run.fontStyle}` : '',

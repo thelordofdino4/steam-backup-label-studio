@@ -85,9 +85,9 @@ export type CaseInsertPreviewTextControlHandlers = {
   ) => void
   onRichTextCommand?: (
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange | undefined,
-    value: boolean | string,
+    value: boolean | number | string,
   ) => InlinePreviewTextEditorSelectionRange | void
   onRichTextKeyboardCommand?: (
     target: CaseInsertPreviewTextTarget,
@@ -96,11 +96,11 @@ export type CaseInsertPreviewTextControlHandlers = {
   ) => InlinePreviewTextEditorSelectionRange | null | void
   getRichTextCommandState?: (
     target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
-    value?: string
+    value?: number | string
   }
 }
 
@@ -224,6 +224,21 @@ export function createCaseInsertInlineTextEditorControls({
 
     handlers.onStyleChange(target, 'color', value)
   }
+  const handleInlineSizeChange = (
+    value: number,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      handlers.onRichTextCommand?.(target, 'fontSizePt', selection, value)
+      return
+    }
+
+    handlers.onLayoutChange(
+      target,
+      'fontSizePt',
+      value || getDefaultCaseInsertFontSizePt(fontSizeRole),
+    )
+  }
   const handleBulletedListChange = (
     pressed: boolean,
     selection?: InlinePreviewTextEditorSelectionRange,
@@ -287,12 +302,23 @@ export function createCaseInsertInlineTextEditorControls({
         options: CASE_INSERT_TEXT_FONT_SIZE_PT_PRESETS,
         step: 0.25,
         value: fontSizePt,
-        onChange: (value) =>
-          handlers.onLayoutChange(
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = handlers.getRichTextCommandState?.(
             target,
             'fontSizePt',
-            value || getDefaultCaseInsertFontSizePt(fontSizeRole),
-          ),
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'number'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineSizeChange,
       },
       alignment: align
         ? {
@@ -387,7 +413,11 @@ export function createCaseInsertInlineTextEditorControls({
           )
           return typeof state === 'string'
             ? { state }
-            : state ?? { state: 'inactive' }
+            : state && typeof state.value === 'string'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
         },
         onChange: handleInlineColorChange,
       },

@@ -66,6 +66,39 @@ test('rich text run style preserves preview/export parity for color and font ove
   )
 })
 
+test('rich text run style resolves selection-scoped point sizes through adapters', () => {
+  const run: RichTextRun = {
+    text: 'Large',
+    fontSizePt: 24,
+  }
+
+  assert.deepEqual(getRichTextRunDomStyle(run, 50, 12), {
+    backgroundColor: undefined,
+    color: undefined,
+    fontFamily: undefined,
+    fontSize: '2em',
+    fontStyle: undefined,
+    fontWeight: undefined,
+    textDecorationLine: undefined,
+  })
+  assert.deepEqual(
+    getRichTextRunCanvasStyle(run, {
+      baseFontSizePt: 12,
+      baseFontSizePx: 50,
+      pointToPx: (pointSizePt) => pointSizePt * 4,
+    }),
+    {
+      backgroundColor: undefined,
+      color: '#f8fafc',
+      fontFamily: undefined,
+      fontSizePx: 96,
+      fontStyle: 'normal',
+      fontWeight: 600,
+      underline: false,
+    },
+  )
+})
+
 test('rich text run style preserves preview/export parity for BIU', () => {
   const run: RichTextRun = {
     text: 'BIU',

@@ -3,12 +3,14 @@ import test from 'node:test'
 import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
+  applyRichTextInlineFontSizePtCommand,
   applyRichTextInlineToggleCommand,
   applyRichTextListKeyboardCommand,
   applyRichTextPlainTextMutation,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
+  getRichTextSelectionFontSizePtState,
 } from './richTextCommands.ts'
 
 test('applies selected-range bold without changing surrounding text', () => {
@@ -82,6 +84,49 @@ test('Ctrl+A-style full selection formats all visible text', () => {
 
   assert.equal(result?.htmlSource, '<p><strong>Full selection</strong></p>')
   assert.equal(state, 'active')
+})
+
+test('applies selected-range point size without changing surrounding text', () => {
+  const result = applyRichTextInlineFontSizePtCommand({
+    fallbackText: 'Untitled Steam Backup Label',
+    fontSizePt: 36,
+    selection: { start: 0, end: 8 },
+  })
+
+  assert.equal(
+    result?.htmlSource,
+    '<p><span style="font-size:36pt">Untitled</span> Steam Backup Label</p>',
+  )
+  assert.equal(result?.plainText, 'Untitled Steam Backup Label')
+  assert.deepEqual(result?.selection, { start: 0, end: 8 })
+})
+
+test('selected-range point size reports active and mixed state from ambient size', () => {
+  const result = applyRichTextInlineFontSizePtCommand({
+    ambientStyle: { fontSizePt: 18 },
+    fallbackText: 'Untitled Steam Backup Label',
+    fontSizePt: 36,
+    selection: { start: 0, end: 8 },
+  })
+
+  assert.deepEqual(
+    getRichTextSelectionFontSizePtState({
+      ambientStyle: { fontSizePt: 18 },
+      fallbackText: result?.plainText ?? '',
+      htmlSource: result?.htmlSource,
+      selection: { start: 0, end: 8 },
+    }),
+    { state: 'active', value: 36 },
+  )
+  assert.deepEqual(
+    getRichTextSelectionFontSizePtState({
+      ambientStyle: { fontSizePt: 18 },
+      fallbackText: result?.plainText ?? '',
+      htmlSource: result?.htmlSource,
+      selection: { start: 0, end: 14 },
+    }),
+    { state: 'mixed', value: 36 },
+  )
 })
 
 test('plain text is promoted to canonical HTML and adjacent runs merge', () => {

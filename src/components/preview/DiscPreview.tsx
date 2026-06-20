@@ -92,9 +92,9 @@ export type DiscPreviewProps = {
     ) => void
     onTextRichTextCommand: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
       selection: { end: number; start: number } | undefined,
-      value: boolean | string,
+      value: boolean | number | string,
     ) => { end: number; start: number } | void
     onTextRichTextKeyboardCommand: (
       key: DiscTextKey,
@@ -103,11 +103,11 @@ export type DiscPreviewProps = {
     ) => { end: number; start: number } | null | void
     getTextRichTextCommandState: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
       selection: { end: number; start: number },
     ) => 'active' | 'inactive' | 'mixed' | {
       state: 'active' | 'inactive' | 'mixed'
-      value?: string
+      value?: number | string
     }
     onApplyTextStylePreset: (key: DiscTextKey, presetId: string) => void
     onResetTextStyle: (key: DiscTextKey) => void

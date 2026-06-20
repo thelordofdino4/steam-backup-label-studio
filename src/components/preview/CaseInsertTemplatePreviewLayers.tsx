@@ -38,6 +38,7 @@ import {
   getCaseInsertTextListLayoutPresets,
 } from '../../caseInsert/textLayout'
 import {
+  caseInsertExportPxToFontSizePt,
   getCaseInsertTextSizeRoleFromId,
 } from '../../caseInsert/textSizing'
 import {
@@ -244,6 +245,7 @@ function renderCaseInsertTextLineContent(
   },
   baseFontSizePx: number,
 ) {
+  const baseFontSizePt = caseInsertExportPxToFontSizePt(baseFontSizePx)
   const runs = getRenderableRichTextRuns(line.runs)
 
   if (!richTextRunsHaveVisualStyles(runs)) {
@@ -253,7 +255,7 @@ function renderCaseInsertTextLineContent(
   return runs.map((run, index) => (
     <span
       key={`${index}-${run.text}`}
-      style={getRichTextRunDomStyle(run, baseFontSizePx)}
+      style={getRichTextRunDomStyle(run, baseFontSizePx, baseFontSizePt)}
     >
       {run.text}
     </span>

@@ -51,31 +51,40 @@ import {
 import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
+  applyRichTextInlineFontSizePtCommand,
   applyRichTextInlineToggleCommand,
   applyRichTextListKeyboardCommand,
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
+  getRichTextSelectionFontSizePtState,
   type PlainTextSelectionRange,
   type RichTextListKeyboardCommand,
   type RichTextAmbientInlineStyle,
   type RichTextInlineToggleCommand,
   type RichTextSelectionColorState,
+  type RichTextSelectionNumberState,
   type RichTextSelectionStyleState,
 } from '../text/richTextCommands.ts'
 import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
 } from '../text/richTextWeights.ts'
+import {
+  getCaseInsertLayoutFontSizePt,
+  getCaseInsertTextSizeRoleFromId,
+} from './textSizing.ts'
 
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
 export type CaseInsertPreviewRichTextCommand =
   | RichTextInlineToggleCommand
   | 'bulletedList'
   | 'color'
+  | 'fontSizePt'
 
 export type CaseInsertPreviewRichTextState =
   | RichTextSelectionStyleState
   | RichTextSelectionColorState
+  | RichTextSelectionNumberState
 
 function updateSpinePreviewTextBlock(
   caseInsert: ProjectJewelCaseState,
@@ -201,6 +210,10 @@ function getTextBlockRichTextCommandSource(
     ambientStyle: getRichTextAmbientStyle(
       textBlock.style,
       normalFontWeight,
+      getCaseInsertLayoutFontSizePt(
+        textBlock.layout,
+        getCaseInsertTextSizeRoleFromId(textBlock.id),
+      ),
     ),
     fallbackText,
     htmlSource: isHtmlTextEnabled(textBlock)
@@ -212,11 +225,13 @@ function getTextBlockRichTextCommandSource(
 function getRichTextAmbientStyle(
   style: ProjectJewelCaseState['spine']['left']['title']['style'],
   normalFontWeight: number,
+  fontSizePt?: number,
 ): RichTextAmbientInlineStyle {
   return {
     bold: style.bold,
     boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
     color: style.color,
+    fontSizePt,
     italic: style.italic,
     normalFontWeight: Math.min(normalFontWeight, 400),
     underline: style.underline,
@@ -227,7 +242,7 @@ function applyRichTextCommandToTextBlock(
   textBlock: ProjectJewelCaseState['spine']['left']['title'],
   command: CaseInsertPreviewRichTextCommand,
   selection: PlainTextSelectionRange | undefined,
-  value: boolean | string,
+  value: boolean | number | string,
   metadata?: ProjectMetadata,
 ) {
   const source = getTextBlockRichTextCommandSource(textBlock, metadata)
@@ -237,6 +252,12 @@ function applyRichTextCommandToTextBlock(
         color: String(value),
         selection,
       })
+    : command === 'fontSizePt'
+      ? applyRichTextInlineFontSizePtCommand({
+          ...source,
+          fontSizePt: Number(value),
+          selection,
+        })
     : command === 'bulletedList'
       ? applyRichTextBulletedListCommand({
           ...source,
@@ -301,13 +322,17 @@ function applyRichTextCommandToTextList(
   textList: ProjectCaseInsertTextList,
   command: CaseInsertPreviewRichTextCommand,
   selection: PlainTextSelectionRange | undefined,
-  value: boolean | string,
+  value: boolean | number | string,
 ) {
   const fallbackText = getCaseInsertPreviewTextListEditValue(textList)
   const source = {
     ambientStyle: getRichTextAmbientStyle(
       textList.style,
       600,
+      getCaseInsertLayoutFontSizePt(
+        textList.layout,
+        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
+      ),
     ),
     fallbackText,
     htmlSource: isHtmlTextEnabled(textList)
@@ -320,6 +345,12 @@ function applyRichTextCommandToTextList(
         color: String(value),
         selection,
       })
+    : command === 'fontSizePt'
+      ? applyRichTextInlineFontSizePtCommand({
+          ...source,
+          fontSizePt: Number(value),
+          selection,
+        })
     : command === 'bulletedList'
       ? applyRichTextBulletedListCommand({
           ...source,
@@ -361,6 +392,10 @@ function applyRichTextKeyboardCommandToTextList(
     ambientStyle: getRichTextAmbientStyle(
       textList.style,
       600,
+      getCaseInsertLayoutFontSizePt(
+        textList.layout,
+        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
+      ),
     ),
     command,
     fallbackText,
@@ -393,7 +428,7 @@ export function updateCaseInsertPreviewTextTargetRichTextCommand(
   target: CaseInsertPreviewTextTarget,
   command: CaseInsertPreviewRichTextCommand,
   selection: PlainTextSelectionRange | undefined,
-  value: boolean | string,
+  value: boolean | number | string,
   metadata?: ProjectMetadata,
 ) {
   let nextSelection: PlainTextSelectionRange | undefined
@@ -581,6 +616,8 @@ function getRichTextCommandStateForTextBlock(
 
   return command === 'color'
     ? getRichTextSelectionColorState({ ...source, selection })
+    : command === 'fontSizePt'
+      ? getRichTextSelectionFontSizePtState({ ...source, selection })
     : command === 'bulletedList'
       ? getRichTextBulletedListState({ ...source, selection })
       : getRichTextInlineToggleState({ ...source, command, selection })
@@ -596,6 +633,10 @@ function getRichTextCommandStateForTextList(
     ambientStyle: getRichTextAmbientStyle(
       textList.style,
       600,
+      getCaseInsertLayoutFontSizePt(
+        textList.layout,
+        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
+      ),
     ),
     fallbackText,
     htmlSource: isHtmlTextEnabled(textList)
@@ -605,6 +646,8 @@ function getRichTextCommandStateForTextList(
 
   return command === 'color'
     ? getRichTextSelectionColorState({ ...source, selection })
+    : command === 'fontSizePt'
+      ? getRichTextSelectionFontSizePtState({ ...source, selection })
     : command === 'bulletedList'
       ? getRichTextBulletedListState({ ...source, selection })
       : getRichTextInlineToggleState({ ...source, command, selection })

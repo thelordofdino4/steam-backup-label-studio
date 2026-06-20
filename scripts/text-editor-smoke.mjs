@@ -920,6 +920,21 @@ async function runCaseChecks(page) {
     }
   })
 
+  await runCheck(page, 'cover selected-range point size updates canonical HTML', async () => {
+    await replaceInlineTextWithKeyboard(page, 'Word Rest')
+    await dragSelectVisiblePrefix(page, 'case-text-block-cover-cover-title-text')
+    await clickInlineTab(page, 'text')
+    await selectInlineTextNumberPreset(page, 'font-size-pt', 36)
+    const source = await getHtmlSource(page)
+    if (!source.includes('font-size:36pt')) {
+      fail(`Selected range point size did not reach canonical HTML: ${source}`)
+    }
+    if (source.includes('Word Rest</span>')) {
+      fail(`Point size formatted the whole text instead of a selected range: ${source}`)
+    }
+    await hideHtmlSource(page)
+  })
+
   await runCheck(page, 'cover bullets and bullet keyboard behavior are canonical', async () => {
     await setInlineTextValue(page, 'Alpha\nBeta')
     await selectAllInlineText(page)

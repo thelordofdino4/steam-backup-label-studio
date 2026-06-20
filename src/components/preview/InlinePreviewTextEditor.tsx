@@ -479,28 +479,40 @@ function renderInlinePreviewTextRangeControl(
 
 function InlinePreviewTextNumberSelectControl({
   control,
+  selection,
 }: {
   control: InlinePreviewTextEditorNumberSelectControl
+  selection: InlinePreviewTextEditorSelectionRange
 }) {
   const id = useId()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const holdDelayRef = useRef<number | null>(null)
   const holdIntervalRef = useRef<number | null>(null)
-  const latestValueRef = useRef(control.value)
   const token = getInlineTextSmokeToken(control.label)
   const optionListId = `inline-text-options-${token}-${id}`
-  const controlValueText = formatInlinePreviewPointSizeValue(control.value)
+  const selectionValue = control.getSelectionValue?.(selection)
+  const displayedValue = selectionValue?.state === 'active' &&
+      typeof selectionValue.value === 'number'
+    ? selectionValue.value
+    : control.value
+  const latestValueRef = useRef(displayedValue)
+  const isMixedSelection = selectionValue?.state === 'mixed'
+  const controlValueText = formatInlinePreviewPointSizeValue(displayedValue)
   const [activeOptionIndex, setActiveOptionIndex] = useState(() =>
     getNearestInlinePreviewPointSizeOptionIndex({
       draft: controlValueText,
       options: control.options,
-      value: control.value,
+      value: displayedValue,
     }))
   const [draft, setDraft] = useState(() =>
     controlValueText)
   const [focused, setFocused] = useState(false)
   const [open, setOpen] = useState(false)
-  const renderedDraft = focused ? draft : controlValueText
+  const renderedDraft = focused
+    ? draft
+    : isMixedSelection
+      ? 'Mixed'
+      : controlValueText
 
   const config = useMemo(() => ({
     max: control.max,
@@ -533,10 +545,10 @@ function InlinePreviewTextNumberSelectControl({
     })
 
     latestValueRef.current = nextValue
-    control.onChange(nextValue)
+    control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
     setOpen(false)
-  }, [config, control, draft])
+  }, [config, control, draft, selection])
 
   const updateDraft = useCallback((nextDraft: string) => {
     setDraft(nextDraft)
@@ -544,17 +556,17 @@ function InlinePreviewTextNumberSelectControl({
 
     if (liveValue !== null && liveValue !== latestValueRef.current) {
       latestValueRef.current = liveValue
-      control.onChange(liveValue)
+      control.onChange(liveValue, selection)
     }
-  }, [config, control])
+  }, [config, control, selection])
 
   const selectValue = useCallback((value: number) => {
     latestValueRef.current = value
-    control.onChange(value)
+    control.onChange(value, selection)
     setDraft(formatInlinePreviewPointSizeValue(value))
     setOpen(false)
     focusInput()
-  }, [control, focusInput])
+  }, [control, focusInput, selection])
 
   const stepValue = useCallback((direction: -1 | 1) => {
     const draftValue = parseInlinePreviewPointSizeDraft(
@@ -567,9 +579,9 @@ function InlinePreviewTextNumberSelectControl({
     })
 
     latestValueRef.current = nextValue
-    control.onChange(nextValue)
+    control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
-  }, [config, control, draft])
+  }, [config, control, draft, selection])
 
   const startStepping = useCallback((direction: -1 | 1) => {
     clearHoldTimers()
@@ -595,8 +607,8 @@ function InlinePreviewTextNumberSelectControl({
   useEffect(() => clearHoldTimers, [clearHoldTimers])
 
   useEffect(() => {
-    latestValueRef.current = control.value
-  }, [control.value])
+    latestValueRef.current = displayedValue
+  }, [displayedValue])
 
   return (
     <label className="inline-preview-text-control-field inline-preview-text-number-select-field">
@@ -614,6 +626,7 @@ function InlinePreviewTextNumberSelectControl({
           aria-label={control.label}
           autoComplete="off"
           data-smoke-id={`inline-text-number-${token}`}
+          data-selection-state={selectionValue?.state}
           inputMode="decimal"
           max={control.max}
           min={control.min}
@@ -628,7 +641,7 @@ function InlinePreviewTextNumberSelectControl({
           onChange={(event) => updateDraft(event.target.value)}
           onClick={stopInlineTextEditorClick}
           onFocus={() => {
-            setDraft(controlValueText)
+            setDraft(isMixedSelection ? '' : controlValueText)
             setFocused(true)
           }}
           onKeyDown={(event) => {
@@ -789,10 +802,14 @@ function InlinePreviewTextNumberSelectControl({
 
 function renderInlinePreviewTextNumberSelectControl(
   control: InlinePreviewTextEditorNumberSelectControl | undefined,
+  selection: InlinePreviewTextEditorSelectionRange,
 ) {
   return control
     ? (
-        <InlinePreviewTextNumberSelectControl control={control} />
+        <InlinePreviewTextNumberSelectControl
+          control={control}
+          selection={selection}
+        />
       )
     : null
 }
@@ -802,11 +819,12 @@ function renderInlinePreviewTextSizeControl(
     | InlinePreviewTextEditorNumberSelectControl
     | InlinePreviewTextEditorRangeControl
     | undefined,
+  selection: InlinePreviewTextEditorSelectionRange,
 ) {
   if (!control) return null
 
   return 'options' in control
-    ? renderInlinePreviewTextNumberSelectControl(control)
+    ? renderInlinePreviewTextNumberSelectControl(control, selection)
     : renderInlinePreviewTextRangeControl(control)
 }
 
@@ -1050,7 +1068,7 @@ function InlinePreviewTextEditorMenuContent({
     return (
       <div className="inline-preview-text-control-grid">
         {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
-        {renderInlinePreviewTextSizeControl(controls.text?.size)}
+        {renderInlinePreviewTextSizeControl(controls.text?.size, selection)}
         {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
         {controls.text?.bold ||
         controls.text?.italic ||

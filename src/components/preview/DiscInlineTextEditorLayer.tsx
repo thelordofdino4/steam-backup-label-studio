@@ -74,9 +74,9 @@ export type DiscInlineTextEditorLayerProps = {
   ) => void
   onDiscTextRichTextCommand: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: { end: number; start: number } | undefined,
-    value: boolean | string,
+    value: boolean | number | string,
   ) => { end: number; start: number } | void
   onDiscTextRichTextKeyboardCommand: (
     key: DiscTextKey,
@@ -85,11 +85,11 @@ export type DiscInlineTextEditorLayerProps = {
   ) => { end: number; start: number } | null | void
   getDiscTextRichTextCommandState: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: { end: number; start: number },
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
-    value?: string
+    value?: number | string
   }
   onApplyDiscTextStylePreset: (key: DiscTextKey, presetId: string) => void
   onResetDiscTextStyle: (key: DiscTextKey) => void

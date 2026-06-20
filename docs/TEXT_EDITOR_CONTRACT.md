@@ -73,6 +73,11 @@ tested, and the remaining divergences are recorded.
 - Save/load and export must preserve the same rendered result.
 - Safe HTML source, parsed rich-text runs, live preview, saved project data, and
   export output must preserve the same supported formatting.
+- Selection-scoped font sizing is represented as `fontSizePt` on shared
+  rich-text runs. Object-level `fontSizePt` remains the ambient size for
+  unstyled text and collapsed-selection whole-object sizing; legacy
+  `fontSizePx` run values remain readable for older HTML but new canonical
+  source should emit `font-size:Npt`.
 
 ## Contextual Editor Positioning Contract
 

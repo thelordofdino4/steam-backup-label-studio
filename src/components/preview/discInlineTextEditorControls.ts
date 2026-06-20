@@ -72,17 +72,17 @@ export type DiscInlineTextEditorControlParams = {
   ) => void
   onDiscTextRichTextCommand?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange | undefined,
-    value: boolean | string,
+    value: boolean | number | string,
   ) => InlinePreviewTextEditorSelectionRange | void
   getDiscTextRichTextCommandState?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
-    value?: string
+    value?: number | string
   }
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
@@ -230,6 +230,17 @@ export function createDiscInlineTextEditorControls({
 
     onDiscTextStyleChange(key, 'color', value)
   }
+  const handleInlineSizeChange = (
+    value: number,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'fontSizePt', selection, value)
+      return
+    }
+
+    onDiscTextLayoutChange(key, 'fontSizePt', value)
+  }
   const handleBulletedListChange = (
     pressed: boolean,
     selection?: InlinePreviewTextEditorSelectionRange,
@@ -300,7 +311,23 @@ export function createDiscInlineTextEditorControls({
         options: DISC_TEXT_POINT_SIZE_PRESETS,
         step: DISC_TEXT_POINT_SIZE_STEP,
         value: layout.fontSizePt,
-        onChange: (value) => onDiscTextLayoutChange(key, 'fontSizePt', value),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'fontSizePt',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'number'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineSizeChange,
       },
       alignment: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.alignment,
@@ -390,7 +417,11 @@ export function createDiscInlineTextEditorControls({
           )
           return typeof state === 'string'
             ? { state }
-            : state ?? { state: 'inactive' }
+            : state && typeof state.value === 'string'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
         },
         onChange: handleInlineColorChange,
       },

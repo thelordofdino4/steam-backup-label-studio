@@ -473,6 +473,10 @@ Render path:
 - Case insert rich-text run style interpretation is shared in
   `src/text/richTextRunStyle.ts`; DOM preview span creation, layout
   measurement, and canvas drawing remain adapter-owned.
+- Selection-scoped font-size formatting is stored as `fontSizePt` on shared
+  rich-text runs. Case insert and straight-disc adapters resolve those point
+  runs through their existing point-to-render-unit helpers; legacy `fontSizePx`
+  runs remain readable but new command-generated HTML uses `font-size:Npt`.
 - Case insert inline editing uses the shared editor in adapter mode for cover,
   tray, left spine, and right spine text, keeping the existing template/spine
   preview renderers visible during editing.

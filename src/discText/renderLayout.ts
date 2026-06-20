@@ -15,7 +15,10 @@ import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
 } from '../text/richTextWeights.ts'
 import type { DiscTemplate } from '../types/template.ts'
-import { getResolvedDiscTextFontSizePercent } from './pointSize.ts'
+import {
+  discTextPointSizeToSvgPercent,
+  getResolvedDiscTextFontSizePercent,
+} from './pointSize.ts'
 
 export type TextMeasureFunction = (text: string, font: string) => number
 
@@ -35,6 +38,7 @@ export type StraightDiscTextRunLayout = {
   color?: string
   backgroundColor?: string
   fontFamily?: string
+  fontSizePt?: number
   fontSizePx?: number
   fontWeight?: number
   fontStyle?: 'normal' | 'italic'
@@ -133,6 +137,7 @@ function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
     first.color === second.color &&
     first.backgroundColor === second.backgroundColor &&
     first.fontFamily === second.fontFamily &&
+    first.fontSizePt === second.fontSizePt &&
     first.fontSizePx === second.fontSizePx &&
     first.fontWeight === second.fontWeight &&
     first.fontStyle === second.fontStyle &&
@@ -159,16 +164,22 @@ function getDiscTextRunFontString({
   fontFamily,
   fontSize,
   run,
+  template,
 }: {
   baseFontStyle: string
   baseFontWeight: number
   fontFamily: string
   fontSize: number
   run: RichTextRun
+  template?: DiscTemplate
 }) {
+  const runFontSize = typeof run.fontSizePt === 'number'
+    ? discTextPointSizeToSvgPercent(run.fontSizePt, template)
+    : run.fontSizePx ?? fontSize
+
   return getDiscTextFontString(
     run.fontWeight ?? (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : baseFontWeight),
-    run.fontSizePx ?? fontSize,
+    runFontSize,
     run.fontFamily ?? fontFamily,
     run.fontStyle ?? (run.italic ? 'italic' : baseFontStyle),
   )
@@ -182,6 +193,7 @@ function measureRichTextRun(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   return options.measureText(
@@ -192,6 +204,7 @@ function measureRichTextRun(
       fontFamily: options.fontFamily,
       fontSize: options.fontSize,
       run,
+      template: options.template,
     }),
   )
 }
@@ -204,6 +217,7 @@ function measureRichTextRuns(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   return runs.reduce(
@@ -229,6 +243,7 @@ function splitRichTextRunByMeasuredWidth(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   const chunks: RichTextRun[] = []
@@ -280,6 +295,7 @@ function normalizeWrappedRichLine(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ): RichTextWrappedLine {
   const measuredRuns = runs.map((run) => ({
@@ -371,6 +387,7 @@ function wrapRichTextDocumentLines(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   const lines: RichTextWrappedLine[] = []
@@ -672,6 +689,7 @@ function wrapRichTextDocumentLinesBySegments(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   const lines: RichTextWrappedLine[] = []
@@ -812,6 +830,7 @@ function wrapRichTextDocumentWithAvoidance(
     fontFamily: string
     fontSize: number
     measureText: TextMeasureFunction
+    template?: DiscTemplate
   },
 ) {
   let lines = wrapRichTextDocumentLines(
@@ -982,6 +1001,7 @@ export function getStraightDiscTextRenderLayout(
     fontFamily: renderStyle.fontFamilyCanvas,
     fontSize,
     measureText,
+    template: options.template,
   }
   const richAvoidanceResult = options.richText && avoidanceRegions.length > 0
     ? wrapRichTextDocumentWithAvoidance(
@@ -1064,6 +1084,7 @@ export function getStraightDiscTextRenderLayout(
             color: run.color,
             backgroundColor: run.backgroundColor,
             fontFamily: run.fontFamily,
+            fontSizePt: run.fontSizePt,
             fontSizePx: run.fontSizePx,
             fontWeight: run.fontWeight,
             fontStyle: run.fontStyle,

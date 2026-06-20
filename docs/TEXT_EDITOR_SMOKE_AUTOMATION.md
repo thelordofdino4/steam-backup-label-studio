@@ -139,6 +139,8 @@ The committed smoke command verifies:
 - The contextual case-insert `Font size (pt)` control supports uninterrupted
   typing, a temporary empty draft, Enter commit, repeated preset popup opens,
   wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
+- Selected-range case-insert `Font size (pt)` applies canonical
+  `font-size:Npt` HTML only to the highlighted characters.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
 - Enter inside a bullet creates the next bullet item.
 - Shift+Enter inside a bullet creates a soft break.

@@ -22,6 +22,10 @@ import {
 import {
   getRichTextRunResolvedFont,
 } from '../text/richTextRunStyle.ts'
+import {
+  caseInsertExportPxToFontSizePt,
+  caseInsertFontSizePtToExportPx,
+} from '../caseInsert/textSizing.ts'
 
 export type CaseInsertTextMeasureFunction = (
   text: string,
@@ -307,20 +311,24 @@ function getCaseInsertTextRunFontString({
   baseFontStyle,
   baseFontWeight,
   fontFamily,
+  baseFontSizePt,
   fontSizePx,
   run,
 }: {
   baseFontStyle: 'normal' | 'italic'
   baseFontWeight: number
+  baseFontSizePt?: number
   fontFamily: string
   fontSizePx: number
   run: RichTextRun
 }) {
   const resolvedFont = getRichTextRunResolvedFont(run, {
     baseFontFamily: fontFamily,
+    baseFontSizePt,
     baseFontSizePx: fontSizePx,
     baseFontStyle,
     baseFontWeight,
+    pointToPx: caseInsertFontSizePtToExportPx,
   })
 
   return getCaseInsertTextFontString(
@@ -336,6 +344,7 @@ function measureRichTextRun(
   options: {
     baseFontStyle: 'normal' | 'italic'
     baseFontWeight: number
+    baseFontSizePt?: number
     fontFamily: string
     fontSizePx: number
     measureText: CaseInsertTextMeasureFunction
@@ -346,6 +355,7 @@ function measureRichTextRun(
     getCaseInsertTextRunFontString({
       baseFontStyle: options.baseFontStyle,
       baseFontWeight: options.baseFontWeight,
+      baseFontSizePt: options.baseFontSizePt,
       fontFamily: options.fontFamily,
       fontSizePx: options.fontSizePx,
       run,
@@ -406,6 +416,7 @@ function measureRichTextRuns(
   options: {
     baseFontStyle: 'normal' | 'italic'
     baseFontWeight: number
+    baseFontSizePt?: number
     fontFamily: string
     fontSizePx: number
     measureText: CaseInsertTextMeasureFunction
@@ -424,6 +435,7 @@ function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
     first.color === second.color &&
     first.backgroundColor === second.backgroundColor &&
     first.fontFamily === second.fontFamily &&
+    first.fontSizePt === second.fontSizePt &&
     first.fontSizePx === second.fontSizePx &&
     first.fontWeight === second.fontWeight &&
     first.fontStyle === second.fontStyle &&
@@ -1358,6 +1370,7 @@ export function getCaseInsertTextVisualLayout(
   const richOptions = {
     baseFontStyle: fontStyle,
     baseFontWeight: fontWeight,
+    baseFontSizePt: caseInsertExportPxToFontSizePt(options.fontSizePx),
     fontFamily,
     fontSizePx: options.fontSizePx,
     measureText,
@@ -1465,6 +1478,7 @@ export function getCaseInsertTextVisualLayout(
         color: run.color,
         backgroundColor: run.backgroundColor,
         fontFamily: run.fontFamily,
+        fontSizePt: run.fontSizePt,
         fontSizePx: run.fontSizePx,
         fontWeight: run.fontWeight,
         fontStyle: run.fontStyle,
@@ -1483,6 +1497,7 @@ export function getCaseInsertTextVisualLayout(
             getCaseInsertTextRunFontString({
               baseFontStyle: fontStyle,
               baseFontWeight: fontWeight,
+              baseFontSizePt: caseInsertExportPxToFontSizePt(options.fontSizePx),
               fontFamily,
               fontSizePx: options.fontSizePx,
               run,
