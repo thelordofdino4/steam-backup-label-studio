@@ -147,11 +147,14 @@ The committed smoke command verifies:
 - HTML source editing updates the cover preview live.
 - Done and reopen preserve canonical HTML source.
 - Contextual menu follows selected text after a deterministic Y-control move.
+- Contextual placement locks while a Wrap width number control is actively
+  edited, then releases and recomputes after commit.
 - Initial bottom placement keeps tabs and menu reachable without overlapping.
 - Oversized cover text triggers emergency detached placement so tabs, menu, and
-  move handle remain reachable inside the editor workspace.
+  move handle remain reachable inside the editor workspace, with the move handle
+  not hidden behind the menu or tab strip.
 - A roomy tray title keeps anchored contextual placement instead of using
-  emergency detached placement.
+  emergency detached placement or opening the menu outside the tray preview.
 - Tray, left spine, and right spine open inline editors.
 - Left and right rotated spine text support forward and reverse LMB drag
   selection along the visible rotated text direction, and interior drags must
@@ -161,6 +164,8 @@ The committed smoke command verifies:
 - Straight disc text opens inline editing while the SVG image renderer remains visible.
 - Straight disc `Font size (pt)` uses the shared point-size combobox and keeps
   the SVG preview/export font-size model in sync.
+- Straight disc controls remain anchored when moved to the center-hole area;
+  the center hole is not treated as a preview-consuming obstacle.
 - Straight disc HTML source updates the SVG renderer before Done.
 - Straight disc selected-range formatting updates canonical HTML.
 - Curved copyright remains SVG/textPath and does not open a rectangular editor.

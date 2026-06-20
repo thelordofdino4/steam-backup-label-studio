@@ -521,6 +521,50 @@ async function getInlineNumberControlMax(page, labelToken) {
   return Number(max)
 }
 
+async function waitForInlinePlacementLocked(page, expectedValue) {
+  const start = Date.now()
+
+  while (Date.now() - start < 2_000) {
+    const actualValue = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-locked')
+    if (actualValue === expectedValue) {
+      return
+    }
+    await page.waitForTimeout(50)
+  }
+
+  const actualValue = await smoke(page, 'inline-text-menu')
+    .getAttribute('data-inline-placement-locked')
+  fail(
+    `Inline placement lock expected ${expectedValue} but read ${actualValue}.`,
+  )
+}
+
+async function assertInlineNumberControlLocksPlacement(page, labelToken, value) {
+  await clickInlineTab(page, 'utilities')
+  const input = smoke(page, `inline-text-number-${labelToken}`).first()
+  await input.focus()
+  await waitForInlinePlacementLocked(page, 'true')
+  const beforeMenu = await getRect(page, 'inline-text-menu')
+  await page.keyboard.press('Control+A')
+  await page.keyboard.type(String(value))
+  await page.waitForTimeout(150)
+  const duringMenu = await getRect(page, 'inline-text-menu')
+
+  if (
+    Math.abs(duringMenu.left - beforeMenu.left) > 1 ||
+    Math.abs(duringMenu.top - beforeMenu.top) > 1
+  ) {
+    fail(
+      `${labelToken} interaction moved the contextual menu while locked: ` +
+        `${JSON.stringify({ beforeMenu, duringMenu })}`,
+    )
+  }
+
+  await page.keyboard.press('Enter')
+  await waitForInlinePlacementLocked(page, 'false')
+}
+
 async function getInlineTextNumberDraft(page, labelToken) {
   await expectAttached(page, `inline-text-number-${labelToken}`)
   return smoke(page, `inline-text-number-${labelToken}`).first().inputValue()
@@ -986,6 +1030,10 @@ async function runCaseChecks(page) {
     }
   })
 
+  await runCheck(page, 'cover Wrap width input locks contextual placement while editing', async () => {
+    await assertInlineNumberControlLocksPlacement(page, 'wrap-width', 42)
+  })
+
   await runCheck(page, 'cover initial bottom placement keeps controls accessible', async () => {
     const yMax = await getInlineNumberControlMax(page, 'y')
     await setInlineNumberControl(page, 'y', yMax)
@@ -1043,6 +1091,9 @@ async function runCaseChecks(page) {
         fail(`Emergency ${label} was offscreen: ${JSON.stringify(rect)}`)
       }
     }
+    if (rectsOverlap(moveHandle, menu) || rectsOverlap(moveHandle, tabs)) {
+      fail('Emergency move handle was hidden behind the menu or tab strip.')
+    }
   })
 
   await runCheck(page, 'tray, left spine, and right spine open inline editors', async () => {
@@ -1053,6 +1104,19 @@ async function runCaseChecks(page) {
       .getAttribute('data-inline-placement-mode')
     if (trayPlacementMode !== 'anchored') {
       fail(`Roomy tray title used detached contextual placement: ${trayPlacementMode}`)
+    }
+    const trayMenu = await getRect(page, 'inline-text-menu')
+    const trayTabs = await getRect(page, 'inline-text-tabs')
+    const trayPreview = await getRect(page, 'case-preview-tray')
+    if (rectsOverlap(trayMenu, trayTabs)) {
+      fail('Roomy tray title opened with overlapping menu and tabs.')
+    }
+    if (trayMenu.top > trayPreview.bottom || trayMenu.bottom < trayPreview.top) {
+      fail(
+        `Roomy tray title opened controls outside the preview: ${
+          JSON.stringify({ trayMenu, trayPreview })
+        }`,
+      )
     }
     await done(page)
     await openSpineTitle(page, 'left')
@@ -1104,6 +1168,15 @@ async function runDiscChecks(page) {
     const imageSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
     if (!imageSrc?.startsWith('data:image/svg+xml')) {
       fail('Straight disc visible text layer was not the SVG image renderer.')
+    }
+  })
+
+  await runCheck(page, 'straight disc center-hole contact remains anchored', async () => {
+    await setInlineNumberControl(page, 'y', 50)
+    const mode = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-mode')
+    if (mode !== 'anchored') {
+      fail(`Straight disc controls entered emergency placement at center hole: ${mode}`)
     }
   })
 

@@ -21,6 +21,7 @@ import {
 } from './inlinePreviewTextEditorSource'
 import {
   isInlinePreviewTextEditorControlEvent,
+  isInlinePreviewTextEditorPlacementLockTarget,
   shouldKeepInlinePreviewTextEditorOpenOnBlur,
   type InlinePreviewTextEditorControlRoot,
 } from './inlinePreviewTextEditorInteraction'
@@ -32,6 +33,8 @@ import {
 } from './inlinePreviewTextEditorCaret'
 import {
   getInlinePreviewTextControlLayout,
+  getInlinePreviewTextLockedControlLayout,
+  type InlinePreviewTextControlLayout,
   type InlinePreviewTextAnchor,
   type InlinePreviewTextControlSizes,
   type InlinePreviewTextEditorMenuPlacement,
@@ -54,7 +57,9 @@ import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
 } from '../../text/contextualTextControlViewModel'
 import {
+  createPreviewEditableElementId,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
+  PREVIEW_EDITABLE_ID_ATTRIBUTE,
 } from '../../editor/previewEditableRegistry'
 import type {
   InlinePreviewTextEditorCheckboxControl,
@@ -176,6 +181,23 @@ function stopInlineTextEditorPointer(event: ReactPointerEvent<Element>) {
   event.stopPropagation()
 }
 
+function shouldKeepInlineTextPlacementLockedWhileFocused(target: unknown) {
+  if (
+    typeof HTMLInputElement !== 'undefined' &&
+    target instanceof HTMLInputElement
+  ) {
+    return !['checkbox', 'color', 'range'].includes(target.type)
+  }
+
+  return (
+    typeof HTMLTextAreaElement !== 'undefined' &&
+      target instanceof HTMLTextAreaElement
+  ) || (
+    typeof HTMLSelectElement !== 'undefined' &&
+      target instanceof HTMLSelectElement
+  )
+}
+
 function getInlineTextSmokeToken(label: string) {
   return label
     .trim()
@@ -223,20 +245,71 @@ function getViewportInlineTextRect(): InlinePreviewTextRect {
   }
 }
 
+function getPreviewEditableIdForInlineTextTargetKey(targetKey: string) {
+  const parts = targetKey.split(':')
+
+  if (parts[0] === 'disc' && parts[1]) {
+    return `disc-text:${parts[1]}`
+  }
+
+  if (parts[0] === 'templateTextBlock' && parts[1] && parts[2]) {
+    return createPreviewEditableElementId(
+      'case',
+      parts[1],
+      'text-block',
+      parts[2],
+    )
+  }
+
+  if (parts[0] === 'templateTextList' && parts[1] && parts[2]) {
+    return createPreviewEditableElementId(
+      'case',
+      parts[1],
+      'text-list',
+      parts[2],
+    )
+  }
+
+  if (parts[0] === 'spineTitle' && parts[1]) {
+    return createPreviewEditableElementId('case', 'spine', parts[1], 'title')
+  }
+
+  if (parts[0] === 'spineTextBlock' && parts[1] && parts[2]) {
+    return createPreviewEditableElementId(
+      'case',
+      'spine',
+      parts[1],
+      'text-block',
+      parts[2],
+    )
+  }
+
+  return null
+}
+
 function getInlineTextObstacleRects(
   workspace: Element | null,
+  activePreviewEditableId: string | null,
 ): InlinePreviewTextObstacle[] {
   if (!workspace) return []
 
   return Array.from(
     workspace.querySelectorAll<HTMLElement>(INLINE_PREVIEW_OBSTACLE_SELECTOR),
-  ).map((element, index) => ({
-    id:
-      element.getAttribute('aria-label') ??
-      element.getAttribute('data-preview-element-outline-id') ??
-      `${element.className}-${index}`,
-    rect: rectToInlineTextRect(element.getBoundingClientRect()),
-  }))
+  ).flatMap((element, index) => {
+    const outlineId = element.getAttribute('data-preview-element-outline-id')
+
+    if (outlineId && outlineId === activePreviewEditableId) {
+      return []
+    }
+
+    return [{
+      id:
+        element.getAttribute('aria-label') ??
+        outlineId ??
+        `${element.className}-${index}`,
+      rect: rectToInlineTextRect(element.getBoundingClientRect()),
+    }]
+  })
 }
 
 function getInlineTextControlSize(
@@ -1723,6 +1796,16 @@ export function InlinePreviewTextEditor({
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
   const previousControlPlacementRef =
     useRef<InlinePreviewTextEditorMenuPlacement | undefined>(undefined)
+  const latestControlLayoutRef =
+    useRef<InlinePreviewTextControlLayout | null>(null)
+  const controlPlacementLockRef =
+    useRef<{
+      inputMode: InlinePreviewTextEditorInputMode
+      layout: InlinePreviewTextControlLayout
+      targetKey: string
+    } | null>(null)
+  const controlFocusPlacementLockRef = useRef(false)
+  const controlPointerPlacementLockRef = useRef(false)
   const pendingSelectionRef =
     useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
@@ -1739,6 +1822,12 @@ export function InlinePreviewTextEditor({
     useState<InlinePreviewTextControlSizes>(
       INLINE_TEXT_DEFAULT_CONTROL_SIZES,
     )
+  const [controlPlacementLock, setControlPlacementLock] =
+    useState<{
+      inputMode: InlinePreviewTextEditorInputMode
+      layout: InlinePreviewTextControlLayout
+      targetKey: string
+    } | null>(null)
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
   const sourceDraftIdentity = sourceMode
@@ -1770,6 +1859,49 @@ export function InlinePreviewTextEditor({
       contains: (target: unknown) =>
         target instanceof Node && element.contains(target),
     } satisfies InlinePreviewTextEditorControlRoot))
+  }, [])
+
+  const beginControlPlacementLock = useCallback((
+    reason: 'focus' | 'pointer',
+  ) => {
+    if (reason === 'focus') {
+      controlFocusPlacementLockRef.current = true
+    } else {
+      controlPointerPlacementLockRef.current = true
+    }
+
+    const layout = latestControlLayoutRef.current
+
+    if (!layout || controlPlacementLockRef.current) {
+      return
+    }
+
+    const nextLock = { inputMode, layout, targetKey }
+    controlPlacementLockRef.current = nextLock
+    setControlPlacementLock(nextLock)
+  }, [inputMode, targetKey])
+
+  const releaseControlPlacementLock = useCallback((
+    reason?: 'all' | 'focus' | 'pointer',
+  ) => {
+    if (!reason || reason === 'all' || reason === 'focus') {
+      controlFocusPlacementLockRef.current = false
+    }
+    if (!reason || reason === 'all' || reason === 'pointer') {
+      controlPointerPlacementLockRef.current = false
+    }
+    if (
+      controlFocusPlacementLockRef.current ||
+      controlPointerPlacementLockRef.current
+    ) {
+      return
+    }
+    if (!controlPlacementLockRef.current) {
+      return
+    }
+
+    controlPlacementLockRef.current = null
+    setControlPlacementLock(null)
   }, [])
 
   const updateSelectionStart = () => {
@@ -1901,6 +2033,9 @@ export function InlinePreviewTextEditor({
 
   useEffect(() => {
     previousControlPlacementRef.current = undefined
+    controlPlacementLockRef.current = null
+    controlFocusPlacementLockRef.current = false
+    controlPointerPlacementLockRef.current = false
   }, [inputMode, targetKey])
 
   useEffect(() => {
@@ -1918,6 +2053,7 @@ export function InlinePreviewTextEditor({
     }
     const handleDocumentPointerEnd = () => {
       controlPointerStartedInsideRef.current = false
+      releaseControlPlacementLock('pointer')
     }
 
     document.addEventListener('pointerdown', handleDocumentPointerDown, true)
@@ -1937,7 +2073,7 @@ export function InlinePreviewTextEditor({
         true,
       )
     }
-  }, [getInlineControlRoots])
+  }, [getInlineControlRoots, releaseControlPlacementLock])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -2016,6 +2152,9 @@ export function InlinePreviewTextEditor({
       const previewSurface = getInlineTextPreviewSurface(currentHost)
       const previewRect = previewSurface?.getBoundingClientRect() ?? rect
       const workspace = getInlineTextPreviewWorkspace(previewSurface)
+      const activePreviewEditableId =
+        currentHost.getAttribute(PREVIEW_EDITABLE_ID_ATTRIBUTE) ??
+        getPreviewEditableIdForInlineTextTargetKey(targetKey)
       const workspaceRect = workspace
         ? rectToInlineTextRect(workspace.getBoundingClientRect())
         : getViewportInlineTextRect()
@@ -2028,7 +2167,10 @@ export function InlinePreviewTextEditor({
           right: rect.right,
           top: rect.top,
         },
-        obstacles: getInlineTextObstacleRects(workspace),
+        obstacles: getInlineTextObstacleRects(
+          workspace,
+          activePreviewEditableId,
+        ),
         previousPlacement: previousControlPlacementRef.current,
         previewRect: rectToInlineTextRect(previewRect),
         workspaceRect,
@@ -2364,7 +2506,7 @@ export function InlinePreviewTextEditor({
     }
   }, [caretValue, geometryLines, inputMode, lines, rotationDegrees, targetKey])
 
-  const controlLayout = controlFrame
+  const unlockedControlLayout = controlFrame
     ? getInlinePreviewTextControlLayout({
         anchor: controlFrame.anchor,
         obstacles: controlFrame.obstacles,
@@ -2375,6 +2517,19 @@ export function InlinePreviewTextEditor({
         workspaceRect: controlFrame.workspaceRect,
       })
     : null
+  const lockedControlLayout =
+    controlPlacementLock?.targetKey === targetKey &&
+      controlPlacementLock.inputMode === inputMode
+      ? controlPlacementLock.layout
+      : null
+  const controlLayout =
+    lockedControlLayout && controlFrame
+      ? getInlinePreviewTextLockedControlLayout({
+        layout: lockedControlLayout,
+        sizes: controlSizes,
+        workspaceRect: controlFrame.workspaceRect,
+      })
+      : unlockedControlLayout
   const controlLayoutPlacement = controlLayout?.menu.placement
 
   useLayoutEffect(() => {
@@ -2383,7 +2538,58 @@ export function InlinePreviewTextEditor({
     previousControlPlacementRef.current = controlLayoutPlacement
   }, [controlLayoutPlacement])
 
+  useLayoutEffect(() => {
+    latestControlLayoutRef.current = controlLayout
+  }, [controlLayout])
+
   const resolvedMenuPlacement = controlLayoutPlacement ?? menuPlacement
+  const isControlPlacementLocked = Boolean(lockedControlLayout)
+  const handleControlPointerDownCapture = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (!isInlinePreviewTextEditorPlacementLockTarget(event.target)) {
+      return
+    }
+
+    beginControlPlacementLock('pointer')
+  }
+  const handleControlFocusCapture = (
+    event: ReactFocusEvent<HTMLDivElement>,
+  ) => {
+    if (
+      !isInlinePreviewTextEditorPlacementLockTarget(event.target) ||
+      !shouldKeepInlineTextPlacementLockedWhileFocused(event.target)
+    ) {
+      return
+    }
+
+    beginControlPlacementLock('focus')
+  }
+  const handleControlBlurCapture = (
+    event: ReactFocusEvent<HTMLDivElement>,
+  ) => {
+    if (!isInlinePreviewTextEditorPlacementLockTarget(event.target)) {
+      return
+    }
+
+    if (isInlinePreviewTextEditorPlacementLockTarget(event.relatedTarget)) {
+      return
+    }
+
+    releaseControlPlacementLock('focus')
+  }
+  const handleControlKeyDownCapture = (
+    event: KeyboardEvent<HTMLDivElement>,
+  ) => {
+    if (
+      !isInlinePreviewTextEditorPlacementLockTarget(event.target) ||
+      (event.key !== 'Enter' && event.key !== 'Escape')
+    ) {
+      return
+    }
+
+    window.requestAnimationFrame(() => releaseControlPlacementLock('focus'))
+  }
   const tabsStyle = controlLayout
     ? ({
         left: controlLayout.tabs.left,
@@ -2418,6 +2624,7 @@ export function InlinePreviewTextEditor({
         className="inline-preview-text-tabs"
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
+        data-inline-placement-locked={isControlPlacementLocked}
         data-smoke-id="inline-text-tabs"
         onClick={stopInlineTextEditorClick}
         onPointerDown={keepInlineTextEditorFocus}
@@ -2447,6 +2654,7 @@ export function InlinePreviewTextEditor({
         className="inline-preview-text-move-handle"
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
+        data-inline-placement-locked={isControlPlacementLocked}
         data-smoke-id="inline-text-move-handle"
         type="button"
         onPointerDown={(event) => {
@@ -2469,8 +2677,13 @@ export function InlinePreviewTextEditor({
         ].join(' ')}
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
+        data-inline-placement-locked={isControlPlacementLocked}
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
+        onBlurCapture={handleControlBlurCapture}
+        onFocusCapture={handleControlFocusCapture}
+        onKeyDownCapture={handleControlKeyDownCapture}
+        onPointerDownCapture={handleControlPointerDownCapture}
         onPointerDown={stopInlineTextEditorPointer}
         style={menuStyle}
       >
