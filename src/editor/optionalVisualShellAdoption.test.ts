@@ -132,6 +132,26 @@ test('Steam banner controls use the shared shell without owning banner state', (
   assert.doesNotMatch(caseControls, /OptionalFeatureSection/)
 })
 
+test('rating badge controls use the shared shell while keeping supplemental USK feature-owned', () => {
+  const source = readRepoFile(
+    'src/components/sidebar/branding/RatingBadgeControls.tsx',
+  )
+
+  assert.match(source, /OptionalFeatureSection/)
+  assert.match(source, /className="logo-asset-card"/)
+  assert.match(source, /enableLabel="Show rating badge"/)
+  assert.match(source, /onEnabledChange=\{handleRatingBadgeEnabledChange\}/)
+  assert.match(source, /activeRatingSystem === 'PEGI'/)
+  assert.match(source, /projectRatingBadge\.uskBadge\.layout\.enabled/)
+  assert.match(source, /handleSupplementalUskRatingBadgeEnabledChange/)
+  assert.match(source, /handleSupplementalUskRatingBadgeValueChange/)
+  assert.match(source, /renderSupplementalUskLayoutControls/)
+  assert.match(source, /EditorMarkImageSourceControls/)
+  assert.match(source, /handleClearRatingBadgeImage/)
+  assert.match(source, /handleResetRatingBadgeLayout/)
+  assert.match(source, /handleResetSupplementalUskRatingBadgeLayout/)
+})
+
 test('disc title artwork keeps its reset action in the shell action slot', () => {
   const source = readRepoFile(
     'src/components/sidebar/artwork/TitleArtworkControls.tsx',
@@ -146,7 +166,6 @@ test('non-target optional visual components stay out of this mechanical migratio
   const excludedPaths = [
     'src/components/sidebar/artwork/BackgroundArtworkControls.tsx',
     'src/components/sidebar/branding/PlatformMarkControls.tsx',
-    'src/components/sidebar/branding/RatingBadgeControls.tsx',
     'src/components/sidebar/branding/TechnicalMarkControls.tsx',
     'src/components/sidebar/DiscTextControl.tsx',
     'src/components/sidebar/RepeatedVisualElementCard.tsx',

@@ -263,6 +263,67 @@ test('disabling rating badge only disables the badge state', () => {
   assert.equal(shouldRenderRatingBadge(nextState.metadata, nextState.ratingBadge), false)
 })
 
+test('disabling rating badge preserves badge source layout and supplemental USK state', () => {
+  const metadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'PEGI' as const,
+    ratingValue: '16',
+  }
+  const ratingBadge = {
+    ...createDefaultProjectRatingBadge(),
+    source: 'custom' as const,
+    customImageDataUrl: 'data:image/png;base64,AAAA',
+    customImageSize: { width: 128, height: 96 },
+    layout: {
+      enabled: true,
+      scale: 1.35,
+      x: 22,
+      y: 64,
+    },
+    uskBadge: {
+      ratingValue: '12',
+      layout: {
+        enabled: true,
+        scale: 1.4,
+        x: 12,
+        y: 66,
+      },
+    },
+  }
+
+  const disabledState = updateRatingBadgeEnabledState(metadata, ratingBadge, false)
+
+  assert.equal(disabledState.ratingBadge.layout.enabled, false)
+  assert.equal(disabledState.ratingBadge.source, 'custom')
+  assert.equal(disabledState.ratingBadge.customImageDataUrl, 'data:image/png;base64,AAAA')
+  assert.deepEqual(disabledState.ratingBadge.customImageSize, { width: 128, height: 96 })
+  assert.equal(disabledState.ratingBadge.layout.scale, 1.35)
+  assert.equal(disabledState.ratingBadge.layout.x, 22)
+  assert.equal(disabledState.ratingBadge.layout.y, 64)
+  assert.equal(disabledState.ratingBadge.uskBadge.ratingValue, '12')
+  assert.equal(disabledState.ratingBadge.uskBadge.layout.enabled, true)
+  assert.equal(disabledState.ratingBadge.uskBadge.layout.scale, 1.4)
+  assert.equal(shouldRenderRatingBadge(metadata, disabledState.ratingBadge), false)
+  assert.equal(shouldRenderSupplementalUskRatingBadge(metadata, disabledState.ratingBadge), false)
+
+  const reenabledState = updateRatingBadgeEnabledState(
+    disabledState.metadata,
+    disabledState.ratingBadge,
+    true,
+  )
+
+  assert.equal(reenabledState.ratingBadge.layout.enabled, true)
+  assert.equal(reenabledState.ratingBadge.source, 'custom')
+  assert.deepEqual(reenabledState.ratingBadge.customImageSize, { width: 128, height: 96 })
+  assert.equal(reenabledState.ratingBadge.layout.scale, 1.35)
+  assert.equal(reenabledState.ratingBadge.layout.x, 22)
+  assert.equal(reenabledState.ratingBadge.layout.y, 64)
+  assert.equal(reenabledState.ratingBadge.uskBadge.ratingValue, '12')
+  assert.equal(reenabledState.ratingBadge.uskBadge.layout.enabled, true)
+  assert.equal(shouldRenderRatingBadge(metadata, reenabledState.ratingBadge), true)
+  assert.equal(shouldRenderSupplementalUskRatingBadge(metadata, reenabledState.ratingBadge), true)
+})
+
 test('rating badge preview and export predicates agree on render and image fallback', () => {
   const metadata = {
     ...createDefaultProjectMetadata(),
