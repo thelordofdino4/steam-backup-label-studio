@@ -589,7 +589,8 @@ test('adapter ownership does not introduce a fake visible renderer', () => {
 
   assert.match(discAdapter, /inputMode="adapter"/)
   assert.match(discAdapter, /isCurvedCopyrightDiscTextLayout/)
-  assert.match(discAdapter, /suppressCanvasInput/)
+  assert.match(discAdapter, /geometryAdapter=\{geometryAdapter\}/)
+  assert.doesNotMatch(discAdapter, /suppressCanvasInput/)
   assert.match(discAdapter, /createCurvedDiscTextEditorControls/)
   assert.doesNotMatch(discAdapter, /className="disc-inline-text-line"/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)

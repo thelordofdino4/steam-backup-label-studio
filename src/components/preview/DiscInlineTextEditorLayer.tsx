@@ -29,8 +29,12 @@ import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEdito
 import {
   getCurvedDiscTextEditorBounds,
   getCurvedDiscTextEditorBoundsFromPaintBoxes,
+  getCurvedDiscTextCaretFrame,
+  getCurvedDiscTextOffsetForClientPoint,
+  getCurvedDiscTextSelectionFrames,
 } from '../../discText/curvedInlineEditorGeometry'
 import {
+  getCurvedDiscTextLineGeometry,
   getCurvedDiscTextPaintBoxes,
 } from '../../discText/svgLayer'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
@@ -42,6 +46,7 @@ import {
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
+  type InlinePreviewTextEditorGeometryAdapter,
 } from './InlinePreviewTextEditor'
 import {
   createInlinePreviewTextTargetAttributes,
@@ -282,7 +287,6 @@ export function DiscInlineTextEditorLayer({
             key,
             layout,
             style: discTextStyles[key],
-            textValue: text,
             onSelectedDiscTextKeyChange,
             onDiscTextEnabledChange,
             onDiscTextStyleChange,
@@ -292,10 +296,85 @@ export function DiscInlineTextEditorLayer({
             onDiscTextAlignmentChange,
             onDiscTextArcSideChange,
             onResetDiscTextLayout,
-            onDiscTextValueChange: (nextKey, value) =>
-              onDiscTextValueChange(nextKey, value),
           })
           const targetKey = createDiscInlineTextTargetKey(key)
+          const curvedLineGeometry = getCurvedDiscTextLineGeometry({
+            key,
+            layout,
+            measureText,
+            placement: steamLogoPlacement,
+            safeZoneRadiusPercent:
+              (selectedDiscTemplate.safeDiameterMm /
+                selectedDiscTemplate.outerDiameterMm) * 50,
+            styles: discTextStyles,
+            template: selectedDiscTemplate,
+            text,
+          })
+          const curvedLines = curvedLineGeometry.length > 0
+            ? curvedLineGeometry.map((line) => ({ text: line.text }))
+            : [{ text }]
+          const curvedGeometry = {
+            bounds,
+            lines: curvedLineGeometry,
+          }
+          const geometryAdapter: InlinePreviewTextEditorGeometryAdapter = {
+            getInteractionElements: () => {
+              if (typeof document === 'undefined') {
+                return []
+              }
+
+              return Array.from(
+                document.querySelectorAll(
+                  `[data-smoke-id="disc-text-layer-hit-target"] text[data-disc-text-key="${key}"]`,
+                ),
+              )
+            },
+            getOffsetForClientPoint: ({
+              clientX,
+              clientY,
+              hostHeight,
+              hostRect,
+              hostWidth,
+            }) =>
+              getCurvedDiscTextOffsetForClientPoint({
+                clientX,
+                clientY,
+                geometry: curvedGeometry,
+                hostHeight,
+                hostRect,
+                hostWidth,
+              }),
+            getCaretFrame: ({
+              caretValue,
+              hostHeight,
+              hostWidth,
+              lines,
+              selectionFocus,
+            }) =>
+              getCurvedDiscTextCaretFrame({
+                caretValue,
+                geometry: curvedGeometry,
+                hostHeight,
+                hostWidth,
+                lines,
+                selectionFocus,
+              }),
+            getSelectionFrames: ({
+              caretValue,
+              hostHeight,
+              hostWidth,
+              lines,
+              selection,
+            }) =>
+              getCurvedDiscTextSelectionFrames({
+                caretValue,
+                geometry: curvedGeometry,
+                hostHeight,
+                hostWidth,
+                lines,
+                selection,
+              }),
+          }
 
           return (
             <div
@@ -325,9 +404,9 @@ export function DiscInlineTextEditorLayer({
                 ariaLabel={`Edit ${getDiscTextLabel(key)}`}
                 caretValue={text}
                 controls={controls}
+                geometryAdapter={geometryAdapter}
                 inputMode="adapter"
-                lines={[{ text }]}
-                suppressCanvasInput
+                lines={curvedLines}
                 targetKey={targetKey}
                 value={text}
                 menuPlacement="below"

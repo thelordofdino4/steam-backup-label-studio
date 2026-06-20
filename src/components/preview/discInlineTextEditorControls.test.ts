@@ -302,7 +302,7 @@ test('disc copyright straight controls omit curved presets without changing curv
   )
 })
 
-test('curved disc controls expose menu-owned SVG textPath editing controls', () => {
+test('curved disc controls expose whole-object SVG textPath controls without menu text value', () => {
   const calls: string[] = []
   const key: DiscTextKey = 'copyright'
   const layout = {
@@ -337,9 +337,6 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
     onDiscTextStyleChange: (_key, field, value) => {
       calls.push(`style:${field}:${String(value)}`)
     },
-    onDiscTextValueChange: (_key, value) => {
-      calls.push(`text:${value}`)
-    },
     onResetDiscTextLayout: () => {
       calls.push('reset-layout')
     },
@@ -350,7 +347,6 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
       calls.push(`selected:${String(selectedKey)}`)
     },
     style,
-    textValue: 'Copyright smoke',
   })
 
   assert.equal(controls.presets?.style?.label, 'Style preset')
@@ -361,8 +357,7 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
     ),
     true,
   )
-  assert.equal(controls.text?.textValue?.label, 'Copyright/legal text')
-  assert.equal(controls.text?.textValue?.value, 'Copyright smoke')
+  assert.equal(controls.text?.textValue, undefined)
   assert.equal(controls.text?.fontFamily?.label, 'Font')
   assert.equal(controls.text?.size?.label, 'Font size (pt)')
   assert.equal(controls.text?.size?.value, 9)
@@ -381,7 +376,6 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.text ?? {}, 'bulletedList'), false)
 
-  controls.text?.textValue?.onChange('Updated legal text')
   controls.text?.bold?.onChange(true)
   controls.text?.italic?.onChange(true)
   controls.text?.underline?.onChange(true)
@@ -396,7 +390,6 @@ test('curved disc controls expose menu-owned SVG textPath editing controls', () 
   controls.deleteAction?.onDelete()
 
   assert.deepEqual(calls, [
-    'text:Updated legal text',
     'style:bold:true',
     'style:italic:true',
     'style:underline:true',

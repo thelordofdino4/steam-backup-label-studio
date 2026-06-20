@@ -126,9 +126,9 @@ tested, and the remaining divergences are recorded.
 - Straight disc text may share input infrastructure only through an adapter path
   that keeps the SVG/final preview renderer visible and correct.
 - Curved disc text may use the shared contextual shell only through a
-  curved-disc adapter: text value editing happens inside the menu, whole-object
-  controls update the SVG/textPath renderer live, and no rectangular on-canvas
-  input is mounted over the curved text.
+  curved-disc adapter: the rendered SVG/textPath text is the direct editing
+  surface, a hidden/native input may adapt keyboard/clipboard/IME behavior, and
+  no rectangular on-canvas input is mounted over the curved text.
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
 - Straight disc HTML source must render through safe SVG text/tspan output in
   preview and export.
@@ -145,11 +145,12 @@ keyboard input, caret placement, selection affordances, dotted boundaries, and
 menu positioning, but it must not become a second visible text renderer.
 
 Curved disc copyright/legal text remains SVG/textPath based, but it now uses a
-curved-safe contextual adapter for whole-object menu controls. The sidebar owns
-only setup/source/type responsibilities for that text. The contextual shell must
-not mount a rectangular on-canvas textarea over the curved renderer; the menu's
-text-value field is the input adapter while SVG/textPath remains the visible
-source of truth.
+curved-safe contextual adapter for direct text editing and whole-object menu
+controls. The sidebar owns only setup/source/type responsibilities for that
+text. The contextual shell must not mount a rectangular on-canvas textarea over
+the curved renderer; a hidden/native input may adapt keyboard, clipboard, IME,
+selection, and undo behavior while SVG/textPath remains the visible source of
+truth.
 
 ## Protected Existing Behavior
 

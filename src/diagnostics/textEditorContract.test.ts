@@ -210,7 +210,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
 
   assert.match(adapter, /isCurvedCopyrightDiscTextLayout/)
   assert.match(adapter, /createCurvedDiscTextEditorControls/)
-  assert.match(adapter, /suppressCanvasInput/)
+  assert.match(adapter, /geometryAdapter=\{geometryAdapter\}/)
+  assert.doesNotMatch(adapter, /suppressCanvasInput/)
   assert.match(adapter, /disc-inline-text-host--curved/)
   assert.match(adapter, /createDiscInlineTextEditorControls/)
   assert.match(controls, /createCurvedDiscTextEditorControls/)
@@ -220,7 +221,7 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.match(controls, /CONTEXTUAL_TEXT_CONTROL_LABELS\.bold/)
   assert.match(controls, /CONTEXTUAL_TEXT_CONTROL_LABELS\.italic/)
   assert.match(controls, /CONTEXTUAL_TEXT_CONTROL_LABELS\.underline/)
-  assert.match(controls, /CONTEXTUAL_TEXT_CONTROL_LABELS\.bulletedList/)
+  assert.doesNotMatch(controls, /unsupported:\s*\[/)
   assert.doesNotMatch(controls, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
   assert.match(adapter, /controls=\{controls\}/)
   assert.match(adapter, /inputMode="adapter"/)

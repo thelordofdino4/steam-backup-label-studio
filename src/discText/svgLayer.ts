@@ -477,6 +477,18 @@ type CurvedDiscTextPaintBox = {
   top: number
 }
 
+export type CurvedDiscTextLineGeometry = {
+  angleWidthDegrees: number
+  centerAngleDegrees: number
+  endAngleDegrees: number
+  fontSize: number
+  isTopArc: boolean
+  letterSpacing: number
+  radius: number
+  startAngleDegrees: number
+  text: string
+}
+
 function getArcPoint(radius: number, angleDegrees: number) {
   const radians = (angleDegrees * Math.PI) / 180
 
@@ -488,10 +500,12 @@ function getArcPoint(radius: number, angleDegrees: number) {
 
 function getCurvedLinePaintBox({
   fontSize,
+  isTopArc,
   lineLayout,
   renderStyle,
 }: {
   fontSize: number
+  isTopArc: boolean
   lineLayout: ReturnType<typeof layoutCurvedText>['lines'][number]
   renderStyle: ResolvedDiscTextRenderStyle
 }): CurvedDiscTextPaintBox | null {
@@ -525,7 +539,8 @@ function getCurvedLinePaintBox({
   for (let index = 0; index <= sampleCount; index += 1) {
     const angle =
       lineLayout.startAngleDegrees +
-      (lineLayout.angleWidthDegrees * index) / sampleCount
+      (lineLayout.angleWidthDegrees * index) / sampleCount *
+        (isTopArc ? 1 : -1)
 
     for (const radius of radii) {
       points.push(getArcPoint(radius, angle))
@@ -559,6 +574,45 @@ export function getCurvedDiscTextPaintBoxes({
   styles?: DiscTextStyleInput
   template?: DiscTemplate
 }): CurvedDiscTextPaintBox[] {
+  return getCurvedDiscTextLineGeometry({
+    key,
+    layout,
+    measureText,
+    placement,
+    safeZoneRadiusPercent,
+    styles,
+    template,
+    text,
+  })
+    .map((lineLayout) =>
+      getCurvedLinePaintBox({
+        fontSize: lineLayout.fontSize,
+        isTopArc: lineLayout.isTopArc,
+        lineLayout,
+        renderStyle: getResolvedDiscTextRenderStyle(key, styles),
+      }))
+    .filter((box): box is CurvedDiscTextPaintBox => Boolean(box))
+}
+
+export function getCurvedDiscTextLineGeometry({
+  key,
+  text,
+  placement,
+  layout,
+  safeZoneRadiusPercent,
+  measureText,
+  styles,
+  template,
+}: {
+  key: DiscTextKey
+  text: string
+  placement: SteamLogoPlacement
+  layout: DiscTextLayout
+  safeZoneRadiusPercent: number
+  measureText: TextMeasureFunction
+  styles?: DiscTextStyleInput
+  template?: DiscTemplate
+}): CurvedDiscTextLineGeometry[] {
   const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const curvedScale = getReadableCurvedTextScale(layout.scale)
@@ -609,14 +663,17 @@ export function getCurvedDiscTextPaintBoxes({
     })),
   })
 
-  return curvedLineLayout.lines
-    .map((lineLayout) =>
-      getCurvedLinePaintBox({
-        fontSize,
-        lineLayout,
-        renderStyle,
-      }))
-    .filter((box): box is CurvedDiscTextPaintBox => Boolean(box))
+  return curvedLineLayout.lines.map((lineLayout) => ({
+    angleWidthDegrees: lineLayout.angleWidthDegrees,
+    centerAngleDegrees: lineLayout.centerAngleDegrees,
+    endAngleDegrees: lineLayout.endAngleDegrees,
+    fontSize,
+    isTopArc,
+    letterSpacing,
+    radius: lineLayout.radius,
+    startAngleDegrees: lineLayout.startAngleDegrees,
+    text: lineLayout.text,
+  }))
 }
 
 function buildCurvedCopyrightMarkup(

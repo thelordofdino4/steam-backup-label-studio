@@ -240,6 +240,7 @@
   border-radius: 2px;
   background: rgba(42, 171, 226, 0.28);
   pointer-events: none;
+  transform-origin: center;
 }
 
 .inline-preview-text-caret {
@@ -251,6 +252,7 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.58);
   animation: inline-preview-text-caret-flash 1s step-end infinite;
   pointer-events: none;
+  transform-origin: center;
 }
 
 @keyframes inline-preview-text-caret-flash {

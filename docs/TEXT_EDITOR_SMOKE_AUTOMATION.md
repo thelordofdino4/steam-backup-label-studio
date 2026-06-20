@@ -94,7 +94,6 @@ Inline editor selectors:
 - `inline-text-menu`
 - `inline-text-move-handle`
 - `inline-text-input`
-- `inline-text-menu-value`
 - `inline-text-done`
 - `inline-text-delete`
 - `inline-text-html-source`
@@ -191,9 +190,11 @@ The committed smoke command verifies:
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
   `<span style="color:...">` HTML.
-- Curved copyright opens the contextual shell, edits its value through the menu,
-  updates the SVG/textPath preview live, and does not mount a rectangular
-  on-canvas textarea.
+- Curved copyright opens the contextual shell from the rendered SVG/textPath
+  text, accepts direct keyboard editing through the hidden input adapter,
+  updates the SVG/textPath preview live, supports LMB drag selection and Ctrl+A,
+  does not expose a contextual menu Text Value field, and does not mount a
+  rectangular on-canvas textarea.
 
 ## Expected Outcomes
 

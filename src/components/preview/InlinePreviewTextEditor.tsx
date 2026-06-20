@@ -66,8 +66,10 @@ import {
 } from '../../editor/previewEditableRegistry'
 import type {
   InlinePreviewTextEditorCheckboxControl,
+  InlinePreviewTextEditorCaretFrame,
   InlinePreviewTextEditorColorControl,
   InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorGeometryAdapter,
   InlinePreviewTextEditorGeometryLine,
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
@@ -75,6 +77,7 @@ import type {
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
+  InlinePreviewTextEditorSelectionFrame,
   InlinePreviewTextEditorSelectionRange,
   InlinePreviewTextEditorTextValueControl,
   InlinePreviewTextEditorTab,
@@ -90,6 +93,7 @@ export type {
   InlinePreviewTextEditorCheckboxControl,
   InlinePreviewTextEditorColorControl,
   InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorGeometryAdapter,
   InlinePreviewTextEditorGeometryLine,
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
@@ -119,14 +123,28 @@ type InlineTextControlFrame = {
 type InlineTextCaretFrame = {
   height: number
   left: number
+  rotationDegrees?: number
   top: number
 }
 
 type InlineTextSelectionFrame = {
   height: number
   left: number
+  rotationDegrees?: number
   top: number
   width: number
+}
+
+function normalizeExternalCaretFrame(
+  frame: InlinePreviewTextEditorCaretFrame | null,
+): InlineTextCaretFrame | null {
+  return frame
+}
+
+function normalizeExternalSelectionFrames(
+  frames: readonly InlinePreviewTextEditorSelectionFrame[],
+): InlineTextSelectionFrame[] {
+  return frames.map((frame) => ({ ...frame }))
 }
 
 type InlineTextSelectionState = {
@@ -1734,6 +1752,7 @@ function getPointerSelectionStart({
   caretValue,
   clientX,
   clientY,
+  geometryAdapter,
   geometryLines,
   host,
   lines,
@@ -1742,11 +1761,35 @@ function getPointerSelectionStart({
   caretValue: string
   clientX: number
   clientY: number
+  geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   host: Element
   lines: InlinePreviewTextEditorLine[]
   rotationDegrees?: number
 }) {
+  if (geometryAdapter) {
+    const hostRect = host.getBoundingClientRect()
+    const hostSize = getHostLocalSize(host, hostRect)
+    const geometryOffset = geometryAdapter.getOffsetForClientPoint({
+      clientX,
+      clientY,
+      hostHeight: hostSize.height,
+      hostRect,
+      hostWidth: hostSize.width,
+    })
+
+    if (!geometryOffset) {
+      return null
+    }
+
+    return getInlinePreviewTextCaretIndexForLineOffset({
+      caretValue,
+      lineIndex: geometryOffset.lineIndex,
+      lines,
+      offset: geometryOffset.offset,
+    })
+  }
+
   if (geometryLines) {
     const hostRect = host.getBoundingClientRect()
     const hostSize = getHostLocalSize(host, hostRect)
@@ -1788,12 +1831,14 @@ function getPointerSelectionStart({
 
 function getTextSelectionFrames({
   caretValue,
+  geometryAdapter,
   geometryLines,
   host,
   lines,
   selection,
 }: {
   caretValue: string
+  geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   host: Element
   lines: InlinePreviewTextEditorLine[]
@@ -1806,6 +1851,24 @@ function getTextSelectionFrames({
     selectionStart: selection.start,
   })
   const hostRect = host.getBoundingClientRect()
+
+  if (geometryAdapter) {
+    const hostSize = getHostLocalSize(host, hostRect)
+
+    return normalizeExternalSelectionFrames(
+      geometryAdapter.getSelectionFrames({
+        caretValue,
+        hostHeight: hostSize.height,
+        hostRect,
+        hostWidth: hostSize.width,
+        lines,
+        selection: {
+          end: selection.end,
+          start: selection.start,
+        },
+      }),
+    )
+  }
 
   return lineOffsets.flatMap((lineOffset) => {
     if (geometryLines) {
@@ -1909,25 +1972,40 @@ function getCollapsedSelectionState(
 
 function getGeometryCaretFrame({
   caretValue,
+  geometryAdapter,
   geometryLines,
   host,
   lines,
   selectionFocus,
 }: {
   caretValue: string
-  geometryLines: InlinePreviewTextEditorGeometryLine[]
+  geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
+  geometryLines?: InlinePreviewTextEditorGeometryLine[]
   host: Element
   lines: InlinePreviewTextEditorLine[]
   selectionFocus: number
 }): InlineTextCaretFrame | null {
   const hostRect = host.getBoundingClientRect()
   const hostSize = getHostLocalSize(host, hostRect)
+
+  if (geometryAdapter) {
+    return normalizeExternalCaretFrame(
+      geometryAdapter.getCaretFrame({
+        caretValue,
+        hostHeight: hostSize.height,
+        hostRect,
+        hostWidth: hostSize.width,
+        lines,
+        selectionFocus,
+      }),
+    )
+  }
   const { lineIndex, offset } = getInlinePreviewTextCaretLineOffset({
     caretIndex: selectionFocus,
     caretValue,
     lines,
   })
-  const geometryLine = geometryLines[lineIndex]
+  const geometryLine = geometryLines?.[lineIndex]
 
   if (!geometryLine) {
     return null
@@ -1954,6 +2032,7 @@ export function InlinePreviewTextEditor({
   caretValue,
   controls: editorControls,
   inputMode = 'overlay',
+  geometryAdapter,
   geometryLines,
   lines,
   rotationDegrees,
@@ -1978,6 +2057,7 @@ export function InlinePreviewTextEditor({
   const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
+  const adapterSelectionCaptureElementRef = useRef<Element | null>(null)
   const previousControlPlacementRef =
     useRef<InlinePreviewTextEditorMenuPlacement | undefined>(undefined)
   const latestControlLayoutRef =
@@ -2426,7 +2506,7 @@ export function InlinePreviewTextEditor({
       window.removeEventListener('resize', updateControlFrame)
       window.removeEventListener('scroll', updateControlFrame, true)
     }
-  }, [inputMode, menuPlacement, targetKey, value])
+  }, [geometryAdapter, inputMode, menuPlacement, targetKey, value])
 
   useLayoutEffect(() => {
     if (!controlFrame) {
@@ -2494,10 +2574,11 @@ export function InlinePreviewTextEditor({
 
     const hostRect = host.getBoundingClientRect()
 
-    if (geometryLines) {
+    if (geometryAdapter || geometryLines) {
       setCaretFrame(
         getGeometryCaretFrame({
           caretValue,
+          geometryAdapter,
           geometryLines,
           host,
           lines,
@@ -2512,6 +2593,7 @@ export function InlinePreviewTextEditor({
         inputMode === 'adapter'
           ? getTextSelectionFrames({
               caretValue,
+              geometryAdapter,
               geometryLines,
               host,
               lines,
@@ -2555,6 +2637,7 @@ export function InlinePreviewTextEditor({
       inputMode === 'adapter'
         ? getTextSelectionFrames({
             caretValue,
+            geometryAdapter,
             geometryLines,
             host,
             lines,
@@ -2564,6 +2647,7 @@ export function InlinePreviewTextEditor({
     )
   }, [
     caretValue,
+    geometryAdapter,
     geometryLines,
     inputMode,
     lines,
@@ -2597,6 +2681,7 @@ export function InlinePreviewTextEditor({
         caretValue,
         clientX: event.clientX,
         clientY: event.clientY,
+        geometryAdapter,
         geometryLines,
         host,
         lines,
@@ -2629,6 +2714,7 @@ export function InlinePreviewTextEditor({
         caretValue,
         clientX: event.clientX,
         clientY: event.clientY,
+        geometryAdapter,
         geometryLines,
         host,
         lines,
@@ -2644,8 +2730,13 @@ export function InlinePreviewTextEditor({
       adapterSelectionAnchorRef.current = nextSelectionFocus
       adapterSelectionPointerIdRef.current = event.pointerId
 
-      if (host instanceof HTMLElement && host.setPointerCapture) {
-        host.setPointerCapture(event.pointerId)
+      const captureElement = event.currentTarget instanceof Element
+        ? event.currentTarget
+        : host
+      adapterSelectionCaptureElementRef.current = captureElement
+
+      if (captureElement.setPointerCapture) {
+        captureElement.setPointerCapture(event.pointerId)
       }
 
       textarea.focus({ preventScroll: true })
@@ -2675,29 +2766,57 @@ export function InlinePreviewTextEditor({
       event.preventDefault()
       event.stopPropagation()
 
-      if (host instanceof HTMLElement && host.releasePointerCapture) {
+      const captureElement = adapterSelectionCaptureElementRef.current
+      if (captureElement?.releasePointerCapture) {
         try {
-          host.releasePointerCapture(event.pointerId)
+          captureElement.releasePointerCapture(event.pointerId)
         } catch {
           // Some browsers release capture before pointerup if the pointer leaves.
         }
       }
 
       adapterSelectionPointerIdRef.current = null
+      adapterSelectionCaptureElementRef.current = null
     }
 
-    host.addEventListener('pointerdown', handleAdapterPointerDown)
-    host.addEventListener('pointermove', handleAdapterPointerMove)
-    host.addEventListener('pointerup', handleAdapterPointerUp)
-    host.addEventListener('pointercancel', handleAdapterPointerUp)
+    const interactionElements = Array.from(new Set([
+      host,
+      ...(geometryAdapter?.getInteractionElements?.() ?? []),
+    ]))
+    const adapterPointerDownListener = handleAdapterPointerDown as EventListener
+    const adapterPointerMoveListener = handleAdapterPointerMove as EventListener
+    const adapterPointerUpListener = handleAdapterPointerUp as EventListener
+
+    for (const element of interactionElements) {
+      element.addEventListener('pointerdown', adapterPointerDownListener)
+      element.addEventListener('pointermove', adapterPointerMoveListener)
+      element.addEventListener('pointerup', adapterPointerUpListener)
+      element.addEventListener('pointercancel', adapterPointerUpListener)
+    }
+    document.addEventListener('pointermove', adapterPointerMoveListener)
+    document.addEventListener('pointerup', adapterPointerUpListener)
+    document.addEventListener('pointercancel', adapterPointerUpListener)
 
     return () => {
-      host.removeEventListener('pointerdown', handleAdapterPointerDown)
-      host.removeEventListener('pointermove', handleAdapterPointerMove)
-      host.removeEventListener('pointerup', handleAdapterPointerUp)
-      host.removeEventListener('pointercancel', handleAdapterPointerUp)
+      for (const element of interactionElements) {
+        element.removeEventListener('pointerdown', adapterPointerDownListener)
+        element.removeEventListener('pointermove', adapterPointerMoveListener)
+        element.removeEventListener('pointerup', adapterPointerUpListener)
+        element.removeEventListener('pointercancel', adapterPointerUpListener)
+      }
+      document.removeEventListener('pointermove', adapterPointerMoveListener)
+      document.removeEventListener('pointerup', adapterPointerUpListener)
+      document.removeEventListener('pointercancel', adapterPointerUpListener)
     }
-  }, [caretValue, geometryLines, inputMode, lines, rotationDegrees, targetKey])
+  }, [
+    caretValue,
+    geometryAdapter,
+    geometryLines,
+    inputMode,
+    lines,
+    rotationDegrees,
+    targetKey,
+  ])
 
   const unlockedControlLayout = controlFrame
     ? getInlinePreviewTextControlLayout({
@@ -3026,6 +3145,10 @@ export function InlinePreviewTextEditor({
             height: frame.height,
             left: frame.left,
             top: frame.top,
+            transform:
+              typeof frame.rotationDegrees === 'number'
+                ? `rotate(${frame.rotationDegrees}deg)`
+                : undefined,
             width: frame.width,
           }}
         />
@@ -3038,6 +3161,10 @@ export function InlinePreviewTextEditor({
             height: caretFrame.height,
             left: caretFrame.left,
             top: caretFrame.top,
+            transform:
+              typeof caretFrame.rotationDegrees === 'number'
+                ? `rotate(${caretFrame.rotationDegrees}deg)`
+                : undefined,
           }}
         />
       ) : null}
