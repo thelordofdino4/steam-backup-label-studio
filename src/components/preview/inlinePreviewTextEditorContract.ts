@@ -150,6 +150,7 @@ export type InlinePreviewTextEditorProps = {
   inputMode?: InlinePreviewTextEditorInputMode
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   lines: InlinePreviewTextEditorLine[]
+  rotationDegrees?: number
   targetKey: string
   value: string
   textareaStyle?: CSSProperties
@@ -204,6 +205,7 @@ export type InlinePreviewTextEditorEditSession = {
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   inputMode: InlinePreviewTextEditorInputMode
   lines: InlinePreviewTextEditorLine[]
+  rotationDegrees?: number
   sourceMode: boolean
   targetKey: string
   value: string
@@ -243,6 +245,7 @@ export function createInlinePreviewTextEditorEditSession(
     geometryLines: props.geometryLines,
     inputMode: props.inputMode ?? 'overlay',
     lines: props.lines,
+    rotationDegrees: props.rotationDegrees,
     sourceMode: props.sourceMode ?? false,
     targetKey: props.targetKey,
     value: props.value,

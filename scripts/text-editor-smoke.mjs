@@ -680,6 +680,22 @@ async function dragSelectVisiblePrefix(page, smokeId) {
   }
 }
 
+async function dragSelectRotatedSpineText(page, smokeId, reverse = false) {
+  const targetRect = await getRect(page, smokeId)
+  const x = targetRect.left + targetRect.width / 2
+  const startY = targetRect.top + targetRect.height * (reverse ? 0.78 : 0.22)
+  const endY = targetRect.top + targetRect.height * (reverse ? 0.22 : 0.78)
+  await page.mouse.move(x, startY)
+  await page.mouse.down()
+  await page.mouse.move(x, endY, { steps: 10 })
+  await page.mouse.up()
+  await page.waitForTimeout(100)
+  const state = await getInlineInputState(page)
+  if (state.selectionEnd <= state.selectionStart) {
+    fail(`Rotated spine drag did not create a selection on ${smokeId}.`)
+  }
+}
+
 async function assertTextIncludes(page, smokeId, expected) {
   const text = await getTextContent(page, smokeId)
   if (!text.includes(expected)) {
@@ -948,6 +964,18 @@ async function runCaseChecks(page) {
     await done(page)
     await openSpineTitle(page, 'right')
     await assertTextIncludes(page, 'case-spine-title-right', 'RIGHT SPINE SMOKE')
+    await done(page)
+  })
+
+  await runCheck(page, 'left and right rotated spine LMB drag selection work', async () => {
+    await openSpineTitle(page, 'left')
+    await dragSelectRotatedSpineText(page, 'case-spine-title-left')
+    await dragSelectRotatedSpineText(page, 'case-spine-title-left', true)
+    await done(page)
+
+    await openSpineTitle(page, 'right')
+    await dragSelectRotatedSpineText(page, 'case-spine-title-right')
+    await dragSelectRotatedSpineText(page, 'case-spine-title-right', true)
     await done(page)
   })
 
