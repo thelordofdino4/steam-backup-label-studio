@@ -53,6 +53,20 @@ test('case insert text roles provide readable tray defaults without affecting le
   assert.equal(
     getCaseInsertLayoutFontSizePt(
       {},
+      getCaseInsertTextSizeRoleFromId('tray-backup-date'),
+    ),
+    12,
+  )
+  assert.equal(
+    getCaseInsertLayoutFontSizePt(
+      {},
+      getCaseInsertTextSizeRoleFromId('tray-minimum-requirements'),
+    ),
+    10,
+  )
+  assert.equal(
+    getCaseInsertLayoutFontSizePt(
+      {},
       getCaseInsertTextSizeRoleFromId('tray-copyright-text'),
     ),
     8,

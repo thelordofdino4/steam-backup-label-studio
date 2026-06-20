@@ -299,7 +299,7 @@ test('tray text visual bounds include paint slack and width controls wrapping', 
 })
 
 test('tray default metadata text is readable and paint-safe at common point sizes', () => {
-  const state = createDefaultProjectJewelCaseState('Warframe')
+  const state = createDefaultProjectJewelCaseState('Untitled Steam Backup Label')
   const layout = createJewelCasePreviewLayout('jewelCase', 'back')
   const safeBounds = getRegionBounds(layout, 'backPanelSafe')
   const titleBlock = state.templates.tray.textBlocks.find(
@@ -311,10 +311,13 @@ test('tray default metadata text is readable and paint-safe at common point size
 
   const defaultFontSizePt = titleBlock.layout.fontSizePt ?? 24
 
-  for (const fontSizePt of [8, defaultFontSizePt, 72]) {
+  for (const fontSizePt of [6, defaultFontSizePt, 72]) {
     const textBlock = {
       ...setCaseInsertTextBlockEnabled(
-        updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
+        updateCaseInsertTextBlockValue(
+          titleBlock,
+          'Untitled Steam Backup Label',
+        ),
         true,
       ),
       layout: {

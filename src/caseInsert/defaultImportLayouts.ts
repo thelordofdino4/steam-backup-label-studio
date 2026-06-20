@@ -38,7 +38,7 @@ export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
     align: 'left',
     layout: {
       scale: 0.72,
-      fontSizePt: 10,
+      fontSizePt: 12,
       width: 28,
       x: 18,
       y: 91,
@@ -49,7 +49,7 @@ export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
     align: 'center',
     layout: {
       scale: 0.72,
-      fontSizePt: 10,
+      fontSizePt: 12,
       width: 32,
       x: 50,
       y: 91,
@@ -60,7 +60,7 @@ export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
     align: 'right',
     layout: {
       scale: 0.72,
-      fontSizePt: 10,
+      fontSizePt: 12,
       width: 32,
       x: 82,
       y: 91,
@@ -71,7 +71,7 @@ export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
     align: 'left',
     layout: {
       scale: 0.76,
-      fontSizePt: 11,
+      fontSizePt: 12,
       width: 36,
       x: 22,
       y: 86,
@@ -82,7 +82,7 @@ export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
     align: 'right',
     layout: {
       scale: 0.76,
-      fontSizePt: 11,
+      fontSizePt: 12,
       width: 36,
       x: 78,
       y: 86,
@@ -143,7 +143,7 @@ export const CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS: Record<
     align: 'left',
     layout: {
       scale: 0.52,
-      fontSizePt: 8,
+      fontSizePt: 10,
       width: 38,
       x: 29,
       y: 74,
@@ -154,7 +154,7 @@ export const CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS: Record<
     align: 'left',
     layout: {
       scale: 0.52,
-      fontSizePt: 8,
+      fontSizePt: 10,
       width: 38,
       x: 71,
       y: 74,
