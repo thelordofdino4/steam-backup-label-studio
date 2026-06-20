@@ -33,6 +33,7 @@ import {
   plainTextToHtmlSource,
   sanitizeHtmlSource,
 } from '../text/htmlText.ts'
+import { getDefaultDiscTextPointSize, normalizeDiscTextPointSize } from './pointSize.ts'
 
 export * from './constants.ts'
 export type * from './types.ts'
@@ -77,7 +78,7 @@ export function getDefaultCopyrightStraightLayout(
   }
 
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
+  return { x: 0, y: hasBottomBanner ? 16 : 86, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, fontSizePt: getDefaultDiscTextPointSize('copyright'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
 }
 
 export function getDefaultCopyrightCurvedLayout(
@@ -93,7 +94,7 @@ export function getDefaultCopyrightCurvedLayout(
   }
 
   const hasBottomBanner = placement === 'bottom'
-  return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
+  return { x: 0, y: 0, width: DEFAULT_DISC_TEXT_WIDTHS.copyright, scale: 1, fontSizePt: getDefaultDiscTextPointSize('copyright', 1, undefined, 'curved'), align: 'center', mode: 'curved', arcDegrees: 210, arcSide: hasBottomBanner ? 'top' : 'bottom', avoidVisualElements: false }
 }
 
 export function createDefaultDiscTextLayout(
@@ -110,15 +111,15 @@ export function createDefaultDiscTextLayout(
 
   const hasBottomBanner = placement === 'bottom'
   return {
-    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    subtitle: { x: 0, y: hasBottomBanner ? 86 : 24, width: DEFAULT_DISC_TEXT_WIDTHS.subtitle, scale: 0.92, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    developer: { x: -18, y: 56, width: DEFAULT_DISC_TEXT_WIDTHS.developer, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    publisher: { x: -18, y: 60, width: DEFAULT_DISC_TEXT_WIDTHS.publisher, scale: 0.86, align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    installNotes: { x: 0, y: hasBottomBanner ? 72 : 76, width: DEFAULT_DISC_TEXT_WIDTHS.installNotes, scale: 0.86, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
-    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    title: { x: 0, y: hasBottomBanner ? 81.5 : 19.5, width: DEFAULT_DISC_TEXT_WIDTHS.title, scale: 1, fontSizePt: getDefaultDiscTextPointSize('title'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    subtitle: { x: 0, y: hasBottomBanner ? 86 : 24, width: DEFAULT_DISC_TEXT_WIDTHS.subtitle, scale: 0.92, fontSizePt: getDefaultDiscTextPointSize('subtitle', 0.92), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    discNumber: { x: 0, y: 63.5, width: DEFAULT_DISC_TEXT_WIDTHS.discNumber, scale: 1, fontSizePt: getDefaultDiscTextPointSize('discNumber'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    backupDate: { x: 0, y: 68, width: DEFAULT_DISC_TEXT_WIDTHS.backupDate, scale: 1, fontSizePt: getDefaultDiscTextPointSize('backupDate'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    appId: { x: 0, y: 72, width: DEFAULT_DISC_TEXT_WIDTHS.appId, scale: 1, fontSizePt: getDefaultDiscTextPointSize('appId'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    developer: { x: -18, y: 56, width: DEFAULT_DISC_TEXT_WIDTHS.developer, scale: 0.86, fontSizePt: getDefaultDiscTextPointSize('developer', 0.86), align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    publisher: { x: -18, y: 60, width: DEFAULT_DISC_TEXT_WIDTHS.publisher, scale: 0.86, fontSizePt: getDefaultDiscTextPointSize('publisher', 0.86), align: 'left', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    installNotes: { x: 0, y: hasBottomBanner ? 72 : 76, width: DEFAULT_DISC_TEXT_WIDTHS.installNotes, scale: 0.86, fontSizePt: getDefaultDiscTextPointSize('installNotes', 0.86), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
+    customNote: { x: 0, y: hasBottomBanner ? 76 : 78, width: DEFAULT_DISC_TEXT_WIDTHS.customNote, scale: 1, fontSizePt: getDefaultDiscTextPointSize('customNote'), align: 'center', mode: 'straight', arcDegrees: 210, arcSide: 'bottom', avoidVisualElements: false },
     copyright: getDefaultCopyrightCurvedLayout(placement),
   }
 }
@@ -270,6 +271,12 @@ export function updateDiscTextLayoutField(
       [field]:
         field === 'width'
           ? normalizeDiscTextWidth(value, layoutSettings[key].width)
+          : field === 'fontSizePt'
+            ? normalizeDiscTextPointSize(
+                value,
+                key,
+                layoutSettings[key],
+              )
           : value,
     },
   }
@@ -368,6 +375,7 @@ export function updateDiscTextLayoutForSteamLogoPlacement(
       ...defaultCopyrightLayout,
       mode: currentCopyrightLayout.mode,
       scale: currentCopyrightLayout.scale,
+      fontSizePt: currentCopyrightLayout.fontSizePt,
       align: currentCopyrightLayout.align,
       arcDegrees: currentCopyrightLayout.arcDegrees,
       width: currentCopyrightLayout.width,
@@ -405,10 +413,17 @@ export function normalizeDiscTextLayout(
 ): DiscTextLayoutSettings {
   const defaults = createDefaultDiscTextLayout(placement, template)
   return DISC_TEXT_KEYS.reduce((normalizedLayout, key) => {
-    const mergedLayout = { ...defaults[key], ...(layout?.[key] ?? {}) }
+    const sourceLayout = layout?.[key]
+    const mergedLayout = { ...defaults[key], ...(sourceLayout ?? {}) }
     normalizedLayout[key] = {
       ...mergedLayout,
       width: normalizeDiscTextWidth(mergedLayout.width, defaults[key].width),
+      fontSizePt: normalizeDiscTextPointSize(
+        sourceLayout?.fontSizePt,
+        key,
+        mergedLayout,
+        template,
+      ),
       avoidVisualElements: mergedLayout.avoidVisualElements ?? defaults[key].avoidVisualElements,
     }
     return normalizedLayout

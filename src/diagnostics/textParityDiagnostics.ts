@@ -11,6 +11,7 @@ import {
 import { EXPORT_DPI, mmToPixels } from '../disc/geometry'
 import { getStraightDiscTextRenderLayout, type TextMeasureFunction } from '../discText/renderLayout'
 import { DISC_TEXT_RENDER_STYLES } from '../discText/styles'
+import { getResolvedDiscTextFontSizePercent } from '../discText/pointSize'
 import { resolveMetadataBoundDiscTextValues } from '../project/metadataDiscText'
 import type { ProjectMetadata } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
@@ -260,15 +261,35 @@ export function buildTextParityDiagnostics(params: {
         ...baseReport,
         curvedLayout: {
           effectiveScale: roundNumber(effectiveScale),
-          expectedFontSizeViewBoxUnits: roundNumber(1.55 * effectiveScale),
+          expectedFontSizeViewBoxUnits: roundNumber(
+            getResolvedDiscTextFontSizePercent(
+              layout,
+              key,
+              params.selectedDiscTemplate,
+            ),
+          ),
           expectedLineStepViewBoxUnits: roundNumber(2.2 * effectiveScale),
           expectedLetterSpacingViewBoxUnits: roundNumber(0.14 * effectiveScale),
         },
       }
     }
 
-    const previewMeasured = getStraightDiscTextRenderLayout(key, text, layout, previewMeasure)
-    const exportMeasured = getStraightDiscTextRenderLayout(key, text, layout, exportMeasure)
+    const previewMeasured = getStraightDiscTextRenderLayout(
+      key,
+      text,
+      layout,
+      previewMeasure,
+      undefined,
+      { template: params.selectedDiscTemplate },
+    )
+    const exportMeasured = getStraightDiscTextRenderLayout(
+      key,
+      text,
+      layout,
+      exportMeasure,
+      undefined,
+      { template: params.selectedDiscTemplate },
+    )
 
     return {
       ...baseReport,

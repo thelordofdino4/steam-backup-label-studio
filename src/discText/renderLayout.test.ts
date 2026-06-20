@@ -7,6 +7,12 @@ import {
   type StraightDiscTextLineLayout,
   type StraightDiscTextRenderLayout,
 } from './renderLayout.ts'
+import {
+  discTextPointSizeToExportPx,
+  discTextPointSizeToSvgPercent,
+  getDefaultDiscTextPointSize,
+} from './pointSize.ts'
+import { discTemplates } from '../templates/discTemplates.ts'
 
 function measureText(text: string) {
   return Array.from(text).length
@@ -18,6 +24,7 @@ function createLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
     y: 50,
     width: 60,
     scale: 1,
+    fontSizePt: getDefaultDiscTextPointSize('customNote'),
     align: 'center',
     mode: 'straight',
     arcDegrees: 210,
@@ -26,6 +33,38 @@ function createLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
     ...layout,
   }
 }
+
+test('disc text point sizes convert through the selected disc export dpi', () => {
+  const template = discTemplates.stickyLabelDisc
+  const pointSizePt = 12
+  const exportPx = discTextPointSizeToExportPx(pointSizePt, template)
+  const svgPercent = discTextPointSizeToSvgPercent(pointSizePt, template)
+
+  assert.equal(Math.round(exportPx * 100) / 100, 50)
+  assert.equal(
+    Math.round(svgPercent * 10000) / 10000,
+    Math.round((50 / ((117 / 25.4) * 300)) * 100 * 10000) / 10000,
+  )
+})
+
+test('straight disc render layout uses canonical point size values', () => {
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'Portal 2',
+    createLayout({
+      fontSizePt: 24,
+      scale: 0.2,
+    }),
+    measureText,
+    undefined,
+    { template: discTemplates.standardPrintableDisc },
+  )
+
+  assert.equal(
+    Math.round(renderLayout.fontSize * 1000) / 1000,
+    Math.round(discTextPointSizeToSvgPercent(24, discTemplates.standardPrintableDisc) * 1000) / 1000,
+  )
+})
 
 function getLineBounds(
   line: StraightDiscTextLineLayout,

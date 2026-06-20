@@ -444,8 +444,13 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Case insert rectangular text uses typographic point sizes as its canonical
   sizing model. `src/caseInsert/textSizing.ts` converts points to export pixels
   from the template DPI and provides legacy scale migration for old saved case
-  insert text layouts. Straight/curved disc text keeps its disc-owned scale
-  model.
+  insert text layouts.
+- Straight and curved disc text use disc-owned typographic point sizing through
+  `src/discText/pointSize.ts`. The disc model resolves export DPI from the
+  selected disc template, converts `fontSizePt * dpi / 72` into the shared SVG
+  viewBox geometry used by preview and PNG export, and migrates legacy
+  scale-only layouts to apparent-equivalent point sizes. Curved copyright text
+  remains SVG/textPath based.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
 - `src/components/preview/inlinePreviewTextEditorContract.ts` owns the
   neutral preview-mounted adapter contract, capability flags, normalized

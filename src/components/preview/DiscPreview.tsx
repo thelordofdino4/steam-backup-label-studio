@@ -261,6 +261,7 @@ export function DiscPreview({
       discTextStyles: discText.styles,
       discTextTitle: discText.manualGameTitle,
       measureText: measureDiscTextWithBrowserCanvas,
+      selectedDiscTemplate: discText.selectedDiscTemplate,
     }),
     [
       artwork.additionalArtwork,
@@ -270,6 +271,7 @@ export function DiscPreview({
       discText.layout,
       discText.htmlSources,
       discText.manualGameTitle,
+      discText.selectedDiscTemplate,
       discText.settings,
       discText.styles,
       marks.mediaMark,

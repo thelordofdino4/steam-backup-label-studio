@@ -103,6 +103,7 @@ export async function exportDiscLabelPngBytes(params: {
     discTextStyles: params.discTextStyles,
     discTextTitle: params.manualGameTitle,
     measureText: measureDiscTextWithBrowserCanvas,
+    selectedDiscTemplate: params.selectedDiscTemplate,
   })
 
   const discOrigin = exportOutlineWidth
@@ -220,6 +221,7 @@ export async function exportDiscLabelPngBytes(params: {
         params.discTextHtmlSources,
         params.steamLogoPlacement,
         safeZoneRadius,
+        params.selectedDiscTemplate,
         discTextOccupiedRegions,
       ),
   }

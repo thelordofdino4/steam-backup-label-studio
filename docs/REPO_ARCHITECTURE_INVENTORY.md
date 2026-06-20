@@ -449,8 +449,12 @@ Source-of-truth state:
 - Case insert text block/list state lives inside `ProjectJewelCaseState`.
 - Case insert rectangular text sizing is stored as typographic points on
   text layout state. Legacy scale-only saved projects are normalized into point
-  sizes by `src/caseInsert/textSizing.ts`; image and disc text scale semantics
-  remain separate.
+  sizes by `src/caseInsert/textSizing.ts`; image scale semantics remain
+  separate.
+- Straight and curved disc text sizing is stored as `fontSizePt` on disc text
+  layout state and resolved by `src/discText/pointSize.ts`. Legacy disc
+  scale-only layouts are normalized into apparent-equivalent point sizes while
+  disc `scale` remains available for remaining geometry responsibilities.
 - Metadata binding rules for disc text live in `src/project/metadataDiscText.ts`.
 
 Render path:
@@ -458,6 +462,9 @@ Render path:
 - Disc text renders through `DiscTextLayer`, SVG text helpers, and an inline
   adapter for selected straight text. The SVG/final preview renderer remains
   the visible glyph source during straight-disc editing.
+- Disc text render helpers convert point sizes through the selected disc
+  template export DPI before producing SVG/tspan or SVG/textPath geometry, so
+  preview and PNG export share the same resolved font-size model.
 - Case insert text renders through template/spine preview layers and computed visual layout helpers.
 - Case insert layout helpers convert `fontSizePt` to canonical export pixels
   using the template export DPI before preview/export scaling. Wrap width is

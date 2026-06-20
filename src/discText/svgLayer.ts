@@ -40,6 +40,8 @@ import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
 } from '../text/richTextWeights.ts'
 import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
+import type { DiscTemplate } from '../types/template.ts'
+import { getResolvedDiscTextFontSizePercent } from './pointSize.ts'
 
 export type DiscTextSvgLayerParams = {
   settings: DiscTextSettings
@@ -56,6 +58,7 @@ export type DiscTextSvgLayerParams = {
   height: number | string
   idPrefix?: string
   hiddenTextKeys?: readonly DiscTextKey[]
+  template?: DiscTemplate
 }
 
 type ResolvedDiscTextRenderStyle = ReturnType<typeof getResolvedDiscTextRenderStyle>
@@ -450,11 +453,12 @@ function buildCurvedCopyrightMarkup(
   idPrefix: string,
   shadowFilterId: string,
   styles?: DiscTextStyleInput,
+  template?: DiscTemplate,
 ) {
   const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
   const curvedScale = getReadableCurvedTextScale(layout.scale)
-  const fontSize = 1.55 * curvedScale
+  const fontSize = getResolvedDiscTextFontSizePercent(layout, key, template)
   const font = getDiscTextFontString(
     renderStyle.fontWeight,
     fontSize,
@@ -573,6 +577,7 @@ function buildStraightTextMarkup(
   avoidanceRegions?: DiscTextAvoidanceRegion[],
   hideText = false,
   richText?: RichTextDocument,
+  template?: DiscTemplate,
 ) {
   const textAvoidanceRegions = avoidanceRegions?.filter(
     (region) => region.sourceDiscTextKey !== key,
@@ -583,7 +588,7 @@ function buildStraightTextMarkup(
     layout,
     measureText,
     styles,
-    { avoidanceRegions: textAvoidanceRegions, richText },
+    { avoidanceRegions: textAvoidanceRegions, richText, template },
   )
   const textStyle = buildTextStyleAttribute(
     straightTextLayout.style,
@@ -707,6 +712,7 @@ export function buildDiscTextSvgLayer({
   height,
   idPrefix = 'disc-text-layer',
   hiddenTextKeys = [],
+  template,
 }: DiscTextSvgLayerParams) {
   const shadowFilterId = `${idPrefix}-shadow`
   const hiddenTextKeySet = new Set(hiddenTextKeys)
@@ -738,6 +744,7 @@ export function buildDiscTextSvgLayer({
         idPrefix,
         shadowFilterId,
         styles,
+        template,
       )
       pathDefs.push(curvedMarkup.defs)
       return curvedMarkup.body
@@ -753,6 +760,7 @@ export function buildDiscTextSvgLayer({
       avoidanceRegions,
       hiddenTextKeySet.has(key),
       htmlDocument ?? undefined,
+      template,
     )
   }).join('')
 

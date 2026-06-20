@@ -12,7 +12,6 @@ import {
   DISC_TEXT_KEYS,
   getDiscTextContent,
   getDiscTextLabel,
-  getReadableCurvedTextScale,
   type DiscTextLayoutSettings,
   type DiscTextSettings,
   type DiscTextValues,
@@ -22,7 +21,11 @@ import {
   createDiscNumberBadgeRenderModel,
   getEffectiveDiscTextSettingsForDiscNumberArtwork,
 } from '../discText/discNumberArtwork.ts'
-import { DISC_TEXT_RENDER_STYLES, type DiscTextStyleSettings } from '../discText/styles.ts'
+import type { DiscTextStyleSettings } from '../discText/styles.ts'
+import {
+  discTextPointSizeToExportPx,
+  normalizeDiscTextPointSize,
+} from '../discText/pointSize.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
 import { createAdditionalArtworkRenderItems } from '../project/projectAdditionalArtwork.ts'
 import {
@@ -109,7 +112,7 @@ export function buildDiscDesignCheckSummary(params: {
   )
   const qualityWarnings = [
     ...getDiscImageQualityWarnings(params, discContentSize),
-    ...getDiscTextQualityWarnings(params, discContentSize),
+    ...getDiscTextQualityWarnings(params),
     ...getEmptyDiscWarnings(params),
   ]
   const checklistItems = getDiscGuideChecklistItems(params)
@@ -337,7 +340,6 @@ function getPercentImageResolutionWarnings(
 
 function getDiscTextQualityWarnings(
   params: Parameters<typeof buildDiscDesignCheckSummary>[0],
-  discContentSize: number,
 ) {
   const warnings: string[] = []
   const discNumberBadge = createDiscNumberBadgeRenderModel(
@@ -378,8 +380,15 @@ function getDiscTextQualityWarnings(
       warnings.push(
         ...getCurvedTextQualityWarnings(
           label,
-          layout.scale,
-          discContentSize,
+          discTextPointSizeToExportPx(
+            normalizeDiscTextPointSize(
+              layout.fontSizePt,
+              key,
+              layout,
+              params.selectedDiscTemplate,
+            ),
+            params.selectedDiscTemplate,
+          ),
         ),
       )
       continue
@@ -390,11 +399,15 @@ function getDiscTextQualityWarnings(
       x: DISC_LAYOUT_CENTER_PERCENT + layout.x,
       y: layout.y,
     }
-    const fontSizePx =
-      (DISC_TEXT_RENDER_STYLES[key].fontSizePercent *
-        Math.max(0, layout.scale) *
-        discContentSize) /
-      100
+    const fontSizePx = discTextPointSizeToExportPx(
+      normalizeDiscTextPointSize(
+        layout.fontSizePt,
+        key,
+        layout,
+        params.selectedDiscTemplate,
+      ),
+      params.selectedDiscTemplate,
+    )
 
     if (fontSizePx < MIN_PRINT_TEXT_SIZE_PX) {
       warnings.push(
@@ -412,12 +425,8 @@ function getDiscTextQualityWarnings(
 
 function getCurvedTextQualityWarnings(
   label: string,
-  scale: number,
-  discContentSize: number,
+  fontSizePx: number,
 ) {
-  const fontSizePx =
-    (1.55 * getReadableCurvedTextScale(scale) * discContentSize) / 100
-
   return fontSizePx < MIN_CURVED_PRINT_TEXT_SIZE_PX
     ? [
         `${label} uses about ${Math.round(fontSizePx)}px curved text in the export and may be hard to read in print.`,

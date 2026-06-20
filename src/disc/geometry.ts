@@ -2,6 +2,7 @@ import type { DiscTemplate } from '../types/template'
 import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import type { DiscTextKey, DiscTextLayout } from '../discText/types'
 import { DISC_TEXT_RENDER_STYLES } from '../discText/styles.ts'
+import { getResolvedDiscTextFontSizePercent } from '../discText/pointSize.ts'
 import { getImageContentSize } from '../image/imageContentBounds.ts'
 import {
   getImageContentShapeLoops,
@@ -870,9 +871,8 @@ export function getStraightDiscTextBoundsPercent(
   layout: DiscTextLayout,
 ): RenderBoundsPercent {
   const renderStyle = DISC_TEXT_RENDER_STYLES[key]
-  const scale = Number.isFinite(layout.scale) ? Math.max(0, layout.scale) : 1
   const width = Number.isFinite(layout.width) ? Math.max(0, layout.width) : 0
-  const lineHeight = renderStyle.fontSizePercent * scale * 1.18
+  const lineHeight = getResolvedDiscTextFontSizePercent(layout, key) * 1.18
 
   return {
     halfWidth: width / 2,
