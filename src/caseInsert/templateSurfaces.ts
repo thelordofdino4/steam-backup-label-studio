@@ -70,6 +70,13 @@ export function isCaseInsertTemplatePaneId(
   return value === 'cover' || value === 'tray'
 }
 
+export function normalizeCaseInsertTemplatePaneId(
+  value: unknown,
+  fallback: CaseInsertTemplatePaneId = DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
+): CaseInsertTemplatePaneId {
+  return isCaseInsertTemplatePaneId(value) ? value : fallback
+}
+
 export function getCaseInsertTemplatePaneConfig(
   paneId: CaseInsertTemplatePaneId,
 ): CaseInsertTemplatePaneConfig {

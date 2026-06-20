@@ -484,6 +484,10 @@ export type ProjectJewelCaseState = {
   export: ProjectJewelCaseExportSettings
 }
 
+export type SavedCaseInsertEditorState = {
+  activeCaseInsertTemplatePane?: CaseInsertTemplatePaneId
+}
+
 export type SavedProjectBase = {
   schemaVersion: '0.1.0'
   projectType?: EditorProjectType
@@ -552,6 +556,7 @@ export type SavedCaseInsertProject = SavedProjectBase & {
     type: 'caseInsert'
     variant: SupportedCaseInsertTemplateType
   }
+  editor?: SavedCaseInsertEditorState
   caseInsert: ProjectJewelCaseState
 }
 

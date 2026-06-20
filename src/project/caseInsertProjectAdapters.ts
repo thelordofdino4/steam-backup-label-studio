@@ -23,6 +23,10 @@ import type {
   SavedCaseInsertProject,
 } from './projectTypes.ts'
 import {
+  DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
+  normalizeCaseInsertTemplatePaneId,
+} from '../caseInsert/templateSurfaces.ts'
+import {
   CURRENT_PROJECT_SCHEMA_VERSION,
   parseSavedProjectContents,
 } from './projectSchema.ts'
@@ -45,6 +49,9 @@ export function createCaseInsertProjectSnapshot(
     manualGameTitle,
     selectedSteamGame?.appId,
   )
+  const activeCaseInsertTemplatePane = normalizeCaseInsertTemplatePaneId(
+    params.activeCaseInsertTemplatePane,
+  )
 
   return {
     schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
@@ -59,6 +66,9 @@ export function createCaseInsertProjectSnapshot(
     template: {
       type: 'caseInsert',
       variant: caseInsert.templateType,
+    },
+    editor: {
+      activeCaseInsertTemplatePane,
     },
     caseInsert,
   }
@@ -87,6 +97,11 @@ export function normalizeSavedCaseInsertProject(
     templateRecord?.variant ?? caseInsertRecord?.templateType ?? templateRecord?.type,
   )
   const metadataRecord = asRecord(record?.metadata)
+  const editorRecord = asRecord(record?.editor)
+  const activeCaseInsertTemplatePane = normalizeCaseInsertTemplatePaneId(
+    editorRecord?.activeCaseInsertTemplatePane,
+    DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
+  )
   const caseInsert = normalizeProjectJewelCaseState(
     caseInsertRecord,
     manualGameTitle,
@@ -110,6 +125,9 @@ export function normalizeSavedCaseInsertProject(
     template: {
       type: 'caseInsert',
       variant: caseInsert.templateType,
+    },
+    editor: {
+      activeCaseInsertTemplatePane,
     },
     caseInsert,
   }
@@ -135,6 +153,9 @@ export function restoreCaseInsertProjectState(
       ),
     },
     caseInsert: savedProject.caseInsert,
+    activeCaseInsertTemplatePane:
+      savedProject.editor?.activeCaseInsertTemplatePane ??
+      DEFAULT_CASE_INSERT_TEMPLATE_PANE_ID,
   }
 }
 
