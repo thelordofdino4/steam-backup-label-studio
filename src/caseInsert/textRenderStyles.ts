@@ -65,10 +65,11 @@ export function getCaseInsertTextPaintSlackPx(
   style: CaseInsertTextStyle,
   fontSizePx: number,
 ) {
+  const glyphInkSlack = fontSizePx * 0.12
   const strokeSlack = caseInsertTextUsesStroke(style) ? fontSizePx * 0.08 : 0
   const shadowSlack = caseInsertTextUsesShadow(style) ? fontSizePx * 0.42 : 0
 
-  return Math.max(strokeSlack, shadowSlack)
+  return Math.max(glyphInkSlack, strokeSlack, shadowSlack)
 }
 
 export function getCaseInsertTextBorderRadiusCss(style: CaseInsertTextStyle) {

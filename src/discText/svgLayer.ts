@@ -412,6 +412,8 @@ function buildCurvedUnderlineMarkup({
     const declarations = [
       'fill:none',
       `stroke:${renderStyle.color}`,
+      'stroke-opacity:1',
+      'opacity:1',
       `stroke-width:${formatSvgNumber(strokeWidth)}px`,
       'stroke-linecap:round',
       hasDiscTextShadow(renderStyle) ? `filter:url(#${shadowFilterId})` : '',

@@ -14,43 +14,43 @@ export type CaseInsertDefaultTextLayoutConfig = {
 export const CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS = {
   title: {
     align: 'center',
-    layout: { scale: 0.84, width: 74, x: 50, y: 11, rotation: 0 },
+    layout: { scale: 1, width: 74, x: 50, y: 11, rotation: 0 },
   },
   subtitle: {
     align: 'center',
-    layout: { scale: 0.7, width: 66, x: 50, y: 17, rotation: 0 },
+    layout: { scale: 0.82, width: 66, x: 50, y: 17, rotation: 0 },
   },
   discNumber: {
     align: 'left',
-    layout: { scale: 0.46, width: 28, x: 18, y: 91, rotation: 0 },
+    layout: { scale: 0.62, width: 28, x: 18, y: 91, rotation: 0 },
   },
   backupDate: {
     align: 'center',
-    layout: { scale: 0.46, width: 32, x: 50, y: 91, rotation: 0 },
+    layout: { scale: 0.62, width: 32, x: 50, y: 91, rotation: 0 },
   },
   appId: {
     align: 'right',
-    layout: { scale: 0.46, width: 32, x: 82, y: 91, rotation: 0 },
+    layout: { scale: 0.62, width: 32, x: 82, y: 91, rotation: 0 },
   },
   developer: {
     align: 'left',
-    layout: { scale: 0.52, width: 36, x: 22, y: 86, rotation: 0 },
+    layout: { scale: 0.64, width: 36, x: 22, y: 86, rotation: 0 },
   },
   publisher: {
     align: 'right',
-    layout: { scale: 0.52, width: 36, x: 78, y: 86, rotation: 0 },
+    layout: { scale: 0.64, width: 36, x: 78, y: 86, rotation: 0 },
   },
   installNotes: {
     align: 'center',
-    layout: { scale: 0.58, width: 62, x: 50, y: 62, rotation: 0 },
+    layout: { scale: 0.72, width: 62, x: 50, y: 62, rotation: 0 },
   },
   customNote: {
     align: 'center',
-    layout: { scale: 0.58, width: 66, x: 50, y: 67, rotation: 0 },
+    layout: { scale: 0.72, width: 66, x: 50, y: 67, rotation: 0 },
   },
   copyright: {
     align: 'center',
-    layout: { scale: 0.42, width: 88, x: 50, y: 96, rotation: 0 },
+    layout: { scale: 0.54, width: 88, x: 50, y: 96, rotation: 0 },
   },
 } satisfies Record<DiscTextKey, CaseInsertDefaultTextLayoutConfig>
 

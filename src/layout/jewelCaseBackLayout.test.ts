@@ -18,6 +18,9 @@ import {
   addCaseInsertTemplateImageSlot,
   updateProjectCaseInsertTemplate,
 } from '../caseInsert/templateSurfaceTransitions.ts'
+import {
+  getCaseInsertBackTextBlockRole,
+} from '../caseInsert/textReadability.ts'
 import { createJewelCasePreviewLayout } from './caseInsertPreviewLayout.ts'
 import {
   getJewelCaseBackBackgroundFit,
@@ -80,6 +83,34 @@ function getJoinedTextLines(
   layout: { lines: Array<{ text: string }> },
 ) {
   return layout.lines.map((line) => line.text).join(' ').replace(/\s+/g, ' ').trim()
+}
+
+function assertTextLinesFitVisualBounds(
+  layout: {
+    bounds: { x: number; width: number }
+    lines: Array<{ left: number; right: number; width: number }>
+  },
+) {
+  for (const line of layout.lines) {
+    if (line.width <= 0) continue
+
+    assert.ok(line.left >= layout.bounds.x)
+    assert.ok(line.right <= layout.bounds.x + layout.bounds.width)
+  }
+}
+
+function assertTextLinesHavePaintSlack(
+  layout: {
+    bounds: { x: number; width: number }
+    lines: Array<{ left: number; right: number; width: number }>
+  },
+) {
+  for (const line of layout.lines) {
+    if (line.width <= 0) continue
+
+    assert.ok(line.left > layout.bounds.x)
+    assert.ok(line.right < layout.bounds.x + layout.bounds.width)
+  }
 }
 
 function createBrandingSources() {
@@ -260,11 +291,86 @@ test('tray text visual bounds include paint slack and width controls wrapping', 
   assert.equal(isPixelRectInsideBounds(wideLayout.bounds, safeBounds), true)
   assert.ok(narrowLayout.lines.length > wideLayout.lines.length)
   assert.ok(narrowLayout.fontSizePx >= safeBounds.width * 0.012)
+  assertTextLinesFitVisualBounds(narrowLayout)
+  assertTextLinesHavePaintSlack(wideLayout)
+})
 
-  for (const line of narrowLayout.lines) {
-    assert.ok(line.left >= narrowLayout.bounds.x)
-    assert.ok(line.right <= narrowLayout.bounds.x + narrowLayout.bounds.width)
+test('tray default metadata text is readable and paint-safe at common scales', () => {
+  const state = createDefaultProjectJewelCaseState('Warframe')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const safeBounds = getRegionBounds(layout, 'backPanelSafe')
+  const titleBlock = state.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+
+  assert.ok(safeBounds)
+  assert.ok(titleBlock)
+
+  for (const scale of [0.62, 0.8, 1]) {
+    const textBlock = {
+      ...setCaseInsertTextBlockEnabled(
+        updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
+        true,
+      ),
+      layout: {
+        ...titleBlock.layout,
+        scale,
+        x: 50,
+      },
+    }
+    const textLayout = getJewelCaseBackTextBlockPreviewLayout(
+      textBlock,
+      layout,
+      getCaseInsertBackTextBlockRole(textBlock),
+    )
+
+    assert.ok(textLayout)
+    assert.equal(isPixelRectInsideBounds(textLayout.bounds, safeBounds), true)
+    assert.ok(textLayout.fontSizePx >= safeBounds.width * 0.012)
+    assertTextLinesFitVisualBounds(textLayout)
+    assertTextLinesHavePaintSlack(textLayout)
   }
+})
+
+test('tray wrap width changes reserved wrapping width without becoming the visible hull', () => {
+  const state = createDefaultProjectJewelCaseState('Warframe')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const titleBlock = state.templates.tray.textBlocks.find(
+    ({ id }) => id === 'tray-title-text',
+  )
+
+  assert.ok(titleBlock)
+
+  const createTextLayout = (width: number) =>
+    getJewelCaseBackTextBlockPreviewLayout(
+      {
+        ...setCaseInsertTextBlockEnabled(
+          updateCaseInsertTextBlockValue(titleBlock, 'WARFRAME'),
+          true,
+        ),
+        layout: {
+          ...titleBlock.layout,
+          width,
+          x: 50,
+        },
+      },
+      layout,
+      getCaseInsertBackTextBlockRole(titleBlock),
+    )
+  const narrowLayout = createTextLayout(24)
+  const wideLayout = createTextLayout(74)
+
+  assert.ok(narrowLayout)
+  assert.ok(wideLayout)
+  assert.equal(getJoinedTextLines(narrowLayout), 'WARFRAME')
+  assert.equal(getJoinedTextLines(wideLayout), 'WARFRAME')
+  assert.equal(narrowLayout.lines.length, wideLayout.lines.length)
+  assert.equal(narrowLayout.lines[0]?.width, wideLayout.lines[0]?.width)
+  assert.equal(narrowLayout.reservedBounds.width < wideLayout.reservedBounds.width, true)
+  assert.ok(
+    Math.abs(narrowLayout.bounds.width - wideLayout.bounds.width) < 1,
+    'text that fits should keep the same visible bounds when wrap width changes',
+  )
 })
 
 test('tray text avoidance wraps opted-in text around occupied visuals', () => {

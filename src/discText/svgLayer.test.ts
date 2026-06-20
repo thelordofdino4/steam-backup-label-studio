@@ -318,6 +318,7 @@ test('disc SVG renderer applies emphasis to curved copyright without native text
         bold: true,
         italic: true,
         underline: true,
+        color: '#f97316',
       },
     },
     layoutSettings: {
@@ -339,9 +340,63 @@ test('disc SVG renderer applies emphasis to curved copyright without native text
   assert.match(svg, /font-style:italic/)
   assert.match(svg, /font-weight:700/)
   assert.match(svg, /class="disc-text-curved-underline"/)
+  assert.match(svg, /stroke:#f97316/)
+  assert.match(svg, /stroke-opacity:1/)
+  assert.match(svg, /opacity:1/)
   assert.doesNotMatch(svg, /disc-text-render-text[^>]*text-decoration:underline/)
   assert.doesNotMatch(svg, /<textarea\b/i)
   assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
+test('curved underline uses resolved text color and full opacity for Warframe legal text', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright:
+      'WARFRAME (C) 2026 Digital Extremes Ltd. All rights reserved. Steam backup archival copy.',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    styles: {
+      copyright: {
+        color: '#ffffff',
+        underline: true,
+      },
+    },
+    layoutSettings: {
+      ...layoutSettings,
+      copyright: {
+        ...layoutSettings.copyright,
+        arcDegrees: 82,
+        arcSide: 'bottom',
+        mode: 'curved',
+      },
+    },
+    title: 'Warframe',
+    placement: 'top',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+  const underlinePaths =
+    svg.match(/class="disc-text-curved-underline"[\s\S]*?style="([^"]+)"/g) ?? []
+
+  assert.ok(underlinePaths.length >= 1)
+  assert.match(svg, /<textPath\b/)
+  assert.match(svg, /stroke:#ffffff/)
+  assert.match(svg, /stroke-opacity:1/)
+  assert.match(svg, /opacity:1/)
+  assert.doesNotMatch(svg, /text-decoration:underline/)
+  for (const path of underlinePaths) {
+    assert.match(path, /\bA\b/)
+    assert.doesNotMatch(path, /\b[HV]\b/)
+  }
 })
 
 test('curved underline follows top and bottom wrapped line arcs without stray horizontal segments', () => {
