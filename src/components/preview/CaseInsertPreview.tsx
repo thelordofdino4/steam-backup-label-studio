@@ -312,6 +312,7 @@ export function CaseInsertPreview({
         <div
           ref={caseInsertPreviewRef}
           className="case-insert-preview"
+          data-smoke-id={`case-preview-${activeTemplatePane}`}
           style={previewStyle}
           aria-label={`${activePaneConfig.label} live preview`}
         >

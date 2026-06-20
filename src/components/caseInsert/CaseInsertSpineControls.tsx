@@ -299,7 +299,10 @@ function SpineTitleControls({
     : []
 
   return (
-    <div className="editor-text-control">
+    <div
+      className="editor-text-control"
+      data-smoke-id={`case-sidebar-spine-title-${side}`}
+    >
       <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
@@ -330,6 +333,7 @@ function SpineTitleControls({
             </p>
             <button
               className="secondary-button"
+              data-smoke-id={`case-sidebar-edit-spine-title-${side}`}
               type="button"
               onClick={() =>
                 onSelectedTextTargetChange({
@@ -414,7 +418,10 @@ function SpineTextBlockControls({
     : []
 
   return (
-    <div className="editor-text-control">
+    <div
+      className="editor-text-control"
+      data-smoke-id={`case-sidebar-spine-text-block-${side}-${textBlock.id}`}
+    >
       <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
@@ -448,6 +455,7 @@ function SpineTextBlockControls({
             </p>
             <button
               className="secondary-button"
+              data-smoke-id={`case-sidebar-edit-spine-text-block-${side}-${textBlock.id}`}
               type="button"
               onClick={() =>
                 onSelectedTextTargetChange({

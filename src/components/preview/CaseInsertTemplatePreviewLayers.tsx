@@ -524,6 +524,7 @@ function CaseInsertTemplateTextBlock({
         label: renderedTextBlock.label,
         kind: 'text',
       })}
+      data-smoke-id={`case-text-block-${paneId}-${renderedTextBlock.id}`}
       {...(isSelected
         ? createInlinePreviewTextTargetAttributes(targetKey)
         : {})}
@@ -708,6 +709,7 @@ function CaseInsertTemplateTextList({
         label: textList.label,
         kind: 'text',
       })}
+      data-smoke-id={`case-text-list-${paneId}-${textList.id}`}
       {...(isSelected
         ? createInlinePreviewTextTargetAttributes(targetKey)
         : {})}

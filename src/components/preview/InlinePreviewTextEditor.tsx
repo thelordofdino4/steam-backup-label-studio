@@ -152,6 +152,14 @@ function stopInlineTextEditorPointer(event: ReactPointerEvent<Element>) {
   event.stopPropagation()
 }
 
+function getInlineTextSmokeToken(label: string) {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'control'
+}
+
 function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
   return {
     bottom: rect.bottom,
@@ -341,6 +349,7 @@ function renderInlinePreviewTextSelectControl(
     <label className="inline-preview-text-control-field">
       <span>{control.label}</span>
       <select
+        data-smoke-id={`inline-text-select-${getInlineTextSmokeToken(control.label)}`}
         value={control.value}
         onChange={(event) => control.onChange(event.target.value)}
       >
@@ -370,6 +379,7 @@ function renderInlinePreviewTextRangeControl(
     <label className="inline-preview-text-control-field inline-preview-text-range-field">
       <span>{control.label}</span>
       <input
+        data-smoke-id={`inline-text-range-${getInlineTextSmokeToken(control.label)}`}
         type="range"
         min={control.min}
         max={control.max}
@@ -379,6 +389,7 @@ function renderInlinePreviewTextRangeControl(
       />
       <input
         aria-label={control.label}
+        data-smoke-id={`inline-text-number-${getInlineTextSmokeToken(control.label)}`}
         type="number"
         min={control.min}
         max={control.max}
@@ -398,6 +409,7 @@ function renderInlinePreviewTextCheckboxControl(
   return (
     <label className="inline-preview-text-checkbox-field">
       <input
+        data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
         type="checkbox"
         checked={control.checked}
         onChange={(event) => control.onChange(event.target.checked)}
@@ -428,6 +440,7 @@ function renderInlinePreviewHtmlSourceControl({
     <div className="inline-preview-text-source-control">
       <label className="inline-preview-text-checkbox-field">
         <input
+          data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
           type="checkbox"
           checked={control.checked}
           onChange={(event) => {
@@ -486,6 +499,7 @@ function InlinePreviewHtmlSourceTextarea({
         <textarea
           aria-label="HTML source editor"
           className="inline-preview-text-source-textarea"
+          data-smoke-id="inline-text-html-source"
           value={draft}
           spellCheck={false}
           onChange={(event) => handleChange(event.target.value)}
@@ -530,6 +544,7 @@ function renderInlinePreviewTextToggleControl(
         resolvedState === 'mixed' ? 'is-mixed' : '',
       ].filter(Boolean).join(' ')}
       aria-pressed={resolvedState === 'mixed' ? 'mixed' : isPressed}
+      data-smoke-id={`inline-text-toggle-${getInlineTextSmokeToken(control.label)}`}
       onClick={(event) => {
         event.stopPropagation()
         const nextSelection = control.onChange(!isPressed, selection)
@@ -558,6 +573,7 @@ function renderInlinePreviewTextColorControl(
     <label className="inline-preview-text-control-field">
       <span>{control.label}</span>
       <input
+        data-smoke-id={`inline-text-color-${getInlineTextSmokeToken(control.label)}`}
         type="color"
         value={value}
         data-selection-state={selectionColor?.state}
@@ -1988,6 +2004,7 @@ export function InlinePreviewTextEditor({
       <div
         ref={tabsRef}
         className="inline-preview-text-tabs"
+        data-smoke-id="inline-text-tabs"
         onClick={stopInlineTextEditorClick}
         onPointerDown={keepInlineTextEditorFocus}
         style={tabsStyle}
@@ -1999,6 +2016,7 @@ export function InlinePreviewTextEditor({
               'inline-preview-text-tab',
               activeTab === tab.id ? 'is-active' : '',
             ].filter(Boolean).join(' ')}
+            data-smoke-id={`inline-text-tab-${tab.id}`}
             type="button"
             onClick={(event) => {
               event.stopPropagation()
@@ -2013,6 +2031,7 @@ export function InlinePreviewTextEditor({
       <button
         ref={moveHandleRef}
         className="inline-preview-text-move-handle"
+        data-smoke-id="inline-text-move-handle"
         type="button"
         onPointerDown={(event) => {
           event.preventDefault()
@@ -2032,6 +2051,7 @@ export function InlinePreviewTextEditor({
           'inline-preview-text-menu',
           `inline-preview-text-menu--${resolvedMenuPlacement}`,
         ].join(' ')}
+        data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
         onPointerDown={stopInlineTextEditorPointer}
         style={menuStyle}
@@ -2053,6 +2073,7 @@ export function InlinePreviewTextEditor({
               type="button"
               className="secondary-button icon-text-button inline-preview-text-delete-button"
               aria-label={deleteAriaLabel}
+              data-smoke-id="inline-text-delete"
               title={deleteAriaLabel}
               onClick={(event) => {
                 event.stopPropagation()
@@ -2067,6 +2088,7 @@ export function InlinePreviewTextEditor({
         <button
           type="button"
           className="secondary-button inline-preview-text-done-button"
+          data-smoke-id="inline-text-done"
           onClick={(event) => {
             event.stopPropagation()
             commitSourceDraft()
@@ -2093,6 +2115,7 @@ export function InlinePreviewTextEditor({
           ? 'inline-preview-textarea--adapter'
           : '',
       ].filter(Boolean).join(' ')}
+      data-smoke-id="inline-text-input"
       value={value}
       spellCheck={false}
       style={inputMode === 'overlay' ? textareaStyle : undefined}

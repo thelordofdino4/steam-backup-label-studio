@@ -748,7 +748,10 @@ function TextBlockControls({
     : []
 
   return (
-    <div className="editor-text-control">
+    <div
+      className="editor-text-control"
+      data-smoke-id={`case-sidebar-text-block-${paneId}-${textBlock.id}`}
+    >
       <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
@@ -788,6 +791,7 @@ function TextBlockControls({
             </p>
             <button
               className="secondary-button"
+              data-smoke-id={`case-sidebar-edit-text-block-${paneId}-${textBlock.id}`}
               type="button"
               onClick={() =>
                 onSelectedTextTargetChange({
@@ -841,7 +845,10 @@ function TextListControls({
     : []
 
   return (
-    <div className="editor-text-control">
+    <div
+      className="editor-text-control"
+      data-smoke-id={`case-sidebar-text-list-${paneId}-${textList.id}`}
+    >
       <label className="checkbox-row editor-text-enable-row">
         <input
           type="checkbox"
@@ -875,6 +882,7 @@ function TextListControls({
             ) : null}
             <button
               className="secondary-button"
+              data-smoke-id={`case-sidebar-edit-text-list-${paneId}-${textList.id}`}
               type="button"
               disabled={textList.items.length === 0}
               onClick={() =>
