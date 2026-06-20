@@ -28,6 +28,19 @@ export type CaseInsertTextMeasureFunction = (
   font: string,
 ) => number
 
+export type CaseInsertTextInkMetrics = {
+  actualBoundingBoxAscent: number
+  actualBoundingBoxDescent: number
+  actualBoundingBoxLeft: number
+  actualBoundingBoxRight: number
+  width: number
+}
+
+export type CaseInsertTextInkMeasureFunction = (
+  text: string,
+  font: string,
+) => CaseInsertTextInkMetrics
+
 export type CaseInsertTextVisualLayout = {
   bounds: JewelCasePixelRect
   contentBounds: JewelCasePixelRect
@@ -62,6 +75,13 @@ export type CaseInsertTextVisualRun = {
   width: number
 }
 
+type CaseInsertTextInkBounds = {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
 export type CaseInsertTextVisualLayoutOptions = {
   align: ProjectCaseInsertTextAlign
   avoidanceRegions?: CaseInsertTextAvoidanceRegion[]
@@ -74,6 +94,7 @@ export type CaseInsertTextVisualLayoutOptions = {
   maxAvoidanceExtraLines?: number
   maxLines?: number
   measureText?: CaseInsertTextMeasureFunction
+  measureTextInk?: CaseInsertTextInkMeasureFunction
   paddingRatio?: number
   paintSlackPx?: number
   richText?: RichTextDocument
@@ -109,6 +130,77 @@ CaseInsertTextMeasureFunction = (text, font) => {
 
   context.font = font
   return context.measureText(text).width
+}
+
+function getFontSizeFromCanvasFont(font: string) {
+  const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/)
+
+  return fontSizeMatch ? Number(fontSizeMatch[1]) : 1
+}
+
+function createFallbackInkMetrics(
+  text: string,
+  font: string,
+  width: number,
+  includeOverhang = true,
+): CaseInsertTextInkMetrics {
+  const fontSize = getFontSizeFromCanvasFont(font)
+  const horizontalOverhang = includeOverhang ? fontSize * 0.08 : 0
+
+  return {
+    actualBoundingBoxAscent: 0,
+    actualBoundingBoxDescent: Math.max(1, fontSize),
+    actualBoundingBoxLeft: text ? horizontalOverhang : 0,
+    actualBoundingBoxRight: width + (text ? horizontalOverhang : 0),
+    width,
+  }
+}
+
+function normalizeInkMetrics(
+  metrics: TextMetrics,
+  text: string,
+  font: string,
+): CaseInsertTextInkMetrics {
+  const fallback = createFallbackInkMetrics(text, font, metrics.width)
+  const actualBoundingBoxLeft = Number.isFinite(metrics.actualBoundingBoxLeft)
+    ? Math.max(0, metrics.actualBoundingBoxLeft)
+    : fallback.actualBoundingBoxLeft
+  const actualBoundingBoxRight = Number.isFinite(metrics.actualBoundingBoxRight)
+    ? Math.max(metrics.width, metrics.actualBoundingBoxRight)
+    : fallback.actualBoundingBoxRight
+  const actualBoundingBoxAscent = Number.isFinite(metrics.actualBoundingBoxAscent)
+    ? metrics.actualBoundingBoxAscent
+    : fallback.actualBoundingBoxAscent
+  const actualBoundingBoxDescent = Number.isFinite(metrics.actualBoundingBoxDescent)
+    ? metrics.actualBoundingBoxDescent
+    : fallback.actualBoundingBoxDescent
+
+  return {
+    actualBoundingBoxAscent,
+    actualBoundingBoxDescent,
+    actualBoundingBoxLeft,
+    actualBoundingBoxRight,
+    width: metrics.width,
+  }
+}
+
+export const measureCaseInsertTextInkWithBrowserCanvas:
+CaseInsertTextInkMeasureFunction = (text, font) => {
+  const context = getCaseInsertTextMeasureContext()
+
+  if (!context) {
+    return createFallbackInkMetrics(
+      text,
+      font,
+      measureCaseInsertTextWithBrowserCanvas(text, font),
+    )
+  }
+
+  context.font = font
+  context.textAlign = 'left'
+  context.textBaseline = 'top'
+
+  return normalizeInkMetrics(context.measureText(text), text, font)
 }
 
 function getCanvasTextAlign(align: ProjectCaseInsertTextAlign): CanvasTextAlign {
@@ -259,6 +351,54 @@ function measureRichTextRun(
       run,
     }),
   )
+}
+
+function getInkBoundsFromMetrics({
+  lineHeightPx,
+  lineTop,
+  metrics,
+  originX,
+}: {
+  lineHeightPx: number
+  lineTop: number
+  metrics: CaseInsertTextInkMetrics
+  originX: number
+}) {
+  const left = originX - Math.max(0, metrics.actualBoundingBoxLeft)
+  const right = originX + Math.max(metrics.width, metrics.actualBoundingBoxRight)
+  const top = Math.min(
+    lineTop,
+    lineTop - Math.max(0, metrics.actualBoundingBoxAscent),
+  )
+  const bottom = Math.max(
+    lineTop + lineHeightPx,
+    lineTop + Math.max(0, metrics.actualBoundingBoxDescent),
+  )
+
+  return { bottom, left, right, top }
+}
+
+function createEmptyInkBounds(anchorX: number, lineTop: number, lineHeightPx: number) {
+  return {
+    bottom: lineTop + lineHeightPx,
+    left: anchorX,
+    right: anchorX + 1,
+    top: lineTop,
+  }
+}
+
+function unionInkBounds(
+  current: CaseInsertTextInkBounds | null,
+  next: CaseInsertTextInkBounds,
+) {
+  return current
+    ? {
+        bottom: Math.max(current.bottom, next.bottom),
+        left: Math.min(current.left, next.left),
+        right: Math.max(current.right, next.right),
+        top: Math.min(current.top, next.top),
+      }
+    : next
 }
 
 function measureRichTextRuns(
@@ -1167,6 +1307,16 @@ export function getCaseInsertTextVisualLayout(
   options: CaseInsertTextVisualLayoutOptions,
 ): CaseInsertTextVisualLayout {
   const measureText = options.measureText ?? measureCaseInsertTextWithBrowserCanvas
+  const measureTextInk = options.measureTextInk ??
+    (options.measureText
+      ? (text: string, runFont: string) =>
+          createFallbackInkMetrics(
+            text,
+            runFont,
+            measureText(text, runFont),
+            false,
+          )
+      : measureCaseInsertTextInkWithBrowserCanvas)
   const fontWeight = options.fontWeight ?? 600
   const fontFamily = options.fontFamily ?? FALLBACK_FONT_STACK
   const fontStyle = options.fontStyle ?? 'normal'
@@ -1271,6 +1421,9 @@ export function getCaseInsertTextVisualLayout(
   const anchorX = getTextAlignX(reservedBounds, options.align, padding)
   let left = Number.POSITIVE_INFINITY
   let right = Number.NEGATIVE_INFINITY
+  const inkBoundsState: { value: CaseInsertTextInkBounds | null } = {
+    value: null,
+  }
   const visualLines = visibleLines.map((line, index) => {
     const richLine = richLines?.[index]
     const lineWidth = richLine
@@ -1288,6 +1441,15 @@ export function getCaseInsertTextVisualLayout(
       options.align,
       lineWidth,
     )
+    const logicalLineStart = horizontalBounds.left
+    let lineInkBounds = richLine
+      ? null
+      : getInkBoundsFromMetrics({
+          lineHeightPx: options.lineHeightPx,
+          lineTop: lineY,
+          metrics: measureTextInk(line, font),
+          originX: logicalLineStart,
+        })
 
     left = Math.min(left, horizontalBounds.left)
     right = Math.max(right, horizontalBounds.right)
@@ -1311,9 +1473,36 @@ export function getCaseInsertTextVisualLayout(
         width: run.width,
       }
 
+      lineInkBounds = unionInkBounds(
+        lineInkBounds,
+        getInkBoundsFromMetrics({
+          lineHeightPx: options.lineHeightPx,
+          lineTop: lineY,
+          metrics: measureTextInk(
+            run.text,
+            getCaseInsertTextRunFontString({
+              baseFontStyle: fontStyle,
+              baseFontWeight: fontWeight,
+              fontFamily,
+              fontSizePx: options.fontSizePx,
+              run,
+            }),
+          ),
+          originX: runLeft,
+        }),
+      )
       runLeft += run.width
       return visualRun
     })
+
+    inkBoundsState.value = unionInkBounds(
+      inkBoundsState.value,
+      lineInkBounds ?? createEmptyInkBounds(
+        logicalLineStart,
+        lineY,
+        options.lineHeightPx,
+      ),
+    )
 
     return {
       text: line,
@@ -1331,11 +1520,15 @@ export function getCaseInsertTextVisualLayout(
     right = anchorX
   }
 
+  const inkBounds = inkBoundsState.value
   const contentBounds = {
-    x: left,
-    y: startY,
-    width: Math.max(1, right - left),
-    height: Math.max(1, contentHeight),
+    x: inkBounds?.left ?? left,
+    y: inkBounds?.top ?? startY,
+    width: Math.max(1, (inkBounds?.right ?? right) - (inkBounds?.left ?? left)),
+    height: Math.max(
+      1,
+      (inkBounds?.bottom ?? startY + contentHeight) - (inkBounds?.top ?? startY),
+    ),
   }
   const boundsLimit = options.boundsLimit ?? reservedBounds
   const visualSlack = padding + Math.max(0, options.paintSlackPx ?? 0)
