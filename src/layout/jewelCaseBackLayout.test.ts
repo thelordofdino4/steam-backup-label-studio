@@ -217,6 +217,56 @@ test('tray text layouts render readable blocks in the panel safe area', () => {
   assert.deepEqual(featureLayout.items, ['Single-player', 'Co-op puzzles'])
 })
 
+test('tray text visual bounds include paint slack and width controls wrapping', () => {
+  const state = createDefaultProjectJewelCaseState('Warframe')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const safeBounds = getRegionBounds(layout, 'backPanelSafe')
+  const baseTextBlock = state.templates.tray.textBlocks[0]!
+  const longText =
+    'WARFRAME WARFRAME WARFRAME WARFRAME WARFRAME WARFRAME WARFRAME'
+  const narrowTextBlock = {
+    ...setCaseInsertTextBlockEnabled(
+      updateCaseInsertTextBlockValue(baseTextBlock, longText),
+      true,
+    ),
+    layout: {
+      ...baseTextBlock.layout,
+      width: 24,
+      x: 96,
+    },
+  }
+  const wideTextBlock = {
+    ...narrowTextBlock,
+    layout: {
+      ...narrowTextBlock.layout,
+      width: 74,
+    },
+  }
+  const narrowLayout = getJewelCaseBackTextBlockPreviewLayout(
+    narrowTextBlock,
+    layout,
+    'description',
+  )
+  const wideLayout = getJewelCaseBackTextBlockPreviewLayout(
+    wideTextBlock,
+    layout,
+    'description',
+  )
+
+  assert.ok(safeBounds)
+  assert.ok(narrowLayout)
+  assert.ok(wideLayout)
+  assert.equal(isPixelRectInsideBounds(narrowLayout.bounds, safeBounds), true)
+  assert.equal(isPixelRectInsideBounds(wideLayout.bounds, safeBounds), true)
+  assert.ok(narrowLayout.lines.length > wideLayout.lines.length)
+  assert.ok(narrowLayout.fontSizePx >= safeBounds.width * 0.012)
+
+  for (const line of narrowLayout.lines) {
+    assert.ok(line.left >= narrowLayout.bounds.x)
+    assert.ok(line.right <= narrowLayout.bounds.x + narrowLayout.bounds.width)
+  }
+})
+
 test('tray text avoidance wraps opted-in text around occupied visuals', () => {
   let state = createDefaultProjectJewelCaseState('Portal 2')
   const layout = createJewelCasePreviewLayout('jewelCase', 'back')

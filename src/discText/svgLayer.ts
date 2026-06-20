@@ -36,6 +36,9 @@ import {
   type RichTextDocument,
   type RichTextRun,
 } from '../text/htmlText.ts'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from '../text/richTextWeights.ts'
 import { DISC_TEXT_KEY_ATTRIBUTE } from '../editor/previewEditableRegistry.ts'
 
 export type DiscTextSvgLayerParams = {
@@ -63,6 +66,8 @@ const DISC_TEXT_CURVED_STROKE_WIDTH = 0.28
 const DISC_TEXT_BOX_BORDER_WIDTH = 0.18
 const DISC_TEXT_CURVED_PATH_MIN_PAINT_PADDING = 1.2
 const DISC_TEXT_CURVED_PATH_PAINT_PADDING_FACTOR = 2.2
+const DISC_TEXT_CURVED_UNDERLINE_OFFSET_FACTOR = 0.42
+const DISC_TEXT_CURVED_UNDERLINE_STROKE_FACTOR = 0.08
 
 let discTextMeasureContext: CanvasRenderingContext2D | null = null
 
@@ -339,14 +344,16 @@ function buildTextStyleAttribute(
   fontWeight: number,
   strokeWidth: number,
   letterSpacing?: number,
+  options: { includeTextDecoration?: boolean } = {},
 ) {
+  const includeTextDecoration = options.includeTextDecoration ?? true
   const declarations = [
     `fill:${style.color}`,
     `font-family:${style.fontFamilyCss}`,
     `font-size:${fontSize}px`,
     `font-style:${getDiscTextFontStyle(style)}`,
     `font-weight:${fontWeight}`,
-    `text-decoration:${getDiscTextDecoration(style)}`,
+    includeTextDecoration ? `text-decoration:${getDiscTextDecoration(style)}` : '',
     typeof letterSpacing === 'number' ? `letter-spacing:${letterSpacing}px` : '',
     hasDiscTextShadow(style) ? `filter:url(#${shadowFilterId})` : '',
     'paint-order:stroke fill',
@@ -356,6 +363,67 @@ function buildTextStyleAttribute(
   ].filter(Boolean)
 
   return escapeSvgAttribute(declarations.join('; '))
+}
+
+function getCurvedUnderlineRadius(
+  isTopArc: boolean,
+  radius: number,
+  fontSize: number,
+) {
+  const offset = fontSize * DISC_TEXT_CURVED_UNDERLINE_OFFSET_FACTOR
+  return Math.max(1, isTopArc ? radius - offset : radius + offset)
+}
+
+function buildCurvedUnderlineMarkup({
+  isTopArc,
+  key,
+  layout,
+  renderStyle,
+  fontSize,
+  shadowFilterId,
+}: {
+  isTopArc: boolean
+  key: DiscTextKey
+  layout: ReturnType<typeof layoutCurvedText>
+  renderStyle: ResolvedDiscTextRenderStyle
+  fontSize: number
+  shadowFilterId: string
+}) {
+  if (!renderStyle.underline) return ''
+
+  const strokeWidth = Math.max(
+    0.08,
+    fontSize * DISC_TEXT_CURVED_UNDERLINE_STROKE_FACTOR,
+  )
+
+  return layout.lines.map((lineLayout) => {
+    if (lineLayout.angleWidthDegrees <= 0) return ''
+
+    const radius = getCurvedUnderlineRadius(isTopArc, lineLayout.radius, fontSize)
+    const path = createSvgArcPath(
+      50,
+      50,
+      radius,
+      lineLayout.startAngleDegrees,
+      lineLayout.endAngleDegrees,
+      isTopArc ? 1 : 0,
+      getLargeArcFlag(lineLayout.angleWidthDegrees),
+    )
+    const declarations = [
+      'fill:none',
+      `stroke:${renderStyle.color}`,
+      `stroke-width:${formatSvgNumber(strokeWidth)}px`,
+      'stroke-linecap:round',
+      hasDiscTextShadow(renderStyle) ? `filter:url(#${shadowFilterId})` : '',
+    ].filter(Boolean)
+
+    return `<path
+      class="disc-text-curved-underline"
+      ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
+      d="${escapeSvgAttribute(path)}"
+      style="${escapeSvgAttribute(declarations.join('; '))}"
+    />`
+  }).join('')
 }
 
 function formatSvgNumber(value: number) {
@@ -424,6 +492,24 @@ function buildCurvedCopyrightMarkup(
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
+  const underlineLineLayout = layoutCurvedText({
+    side: isTopArc ? 'top' : 'bottom',
+    centerAngleDegrees: arcCenterAngle,
+    arcDegrees: layout.arcDegrees,
+    align: layout.align,
+    blockWindowDegrees,
+    lines: lines.map((line, index) => ({
+      text: line,
+      measuredWidth: getCurvedLineWidth(
+        line,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      ),
+      radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
+    })),
+  })
   const textPathAnchor = getCurvedLineTextPathAnchor(layout.align)
   const pathMarkup = curvedLineLayout.lines.map((lineLayout, index) => {
     const pathId = `${idPrefix}-${key}-path-${index}`
@@ -448,6 +534,7 @@ function buildCurvedCopyrightMarkup(
       renderStyle.fontWeight,
       DISC_TEXT_CURVED_STROKE_WIDTH,
       letterSpacing,
+      { includeTextDecoration: false },
     )
 
     return `
@@ -462,8 +549,16 @@ function buildCurvedCopyrightMarkup(
       </text>
     `
   }).join('')
+  const underlineMarkup = buildCurvedUnderlineMarkup({
+    isTopArc,
+    key,
+    layout: underlineLineLayout,
+    renderStyle,
+    fontSize,
+    shadowFilterId,
+  })
 
-  return { defs: pathMarkup, body: textMarkup }
+  return { defs: pathMarkup, body: `${underlineMarkup}${textMarkup}` }
 }
 
 function buildStraightTextMarkup(
@@ -515,7 +610,7 @@ function buildStraightTextMarkup(
 
 function buildStraightTextRunStyle(run: RichTextRun) {
   const declarations = [
-    run.bold ? 'font-weight:900' : '',
+    run.bold ? `font-weight:${RICH_TEXT_BOLD_FONT_WEIGHT}` : '',
     run.italic ? 'font-style:italic' : '',
     run.underline ? 'text-decoration:underline' : '',
     run.color ? `fill:${run.color}` : '',

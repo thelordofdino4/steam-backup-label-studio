@@ -3,6 +3,7 @@ import test from 'node:test'
 import { createDefaultDiscTextLayout } from './index.ts'
 import { getStraightDiscTextRenderLayout } from './renderLayout.ts'
 import {
+  DISC_TEXT_FONT_OPTIONS,
   DISC_TEXT_RENDER_STYLES,
   DISC_TEXT_STYLE_PRESETS,
   applyDiscTextStylePreset,
@@ -25,7 +26,7 @@ test('creates disc text style defaults that preserve the existing render baselin
 
   assert.equal(styles.title.fontFamily, 'arial')
   assert.equal(styles.title.color, DISC_TEXT_RENDER_STYLES.title.color)
-  assert.equal(styles.title.bold, true)
+  assert.equal(styles.title.bold, false)
   assert.equal(styles.title.italic, false)
   assert.equal(styles.title.underline, false)
   assert.equal(styles.title.contrast, 'strokeShadow')
@@ -87,18 +88,24 @@ test('updates and resets a single disc text style without touching other text el
 test('title bold toggles between supported visible font weights', () => {
   const layout = createDefaultDiscTextLayout('top').title
   const defaultStyles = createDefaultDiscTextStyles()
+  const boldStyles = updateDiscTextStyleField(
+    defaultStyles,
+    'title',
+    'bold',
+    true,
+  )
   const normalStyles = updateDiscTextStyleField(
     defaultStyles,
     'title',
     'bold',
     false,
   )
-  const defaultRenderLayout = getStraightDiscTextRenderLayout(
+  const boldRenderLayout = getStraightDiscTextRenderLayout(
     'title',
     'Styled title',
     layout,
     measureText,
-    defaultStyles,
+    boldStyles,
   )
   const normalRenderLayout = getStraightDiscTextRenderLayout(
     'title',
@@ -109,12 +116,76 @@ test('title bold toggles between supported visible font weights', () => {
   )
 
   assert.equal(DISC_TEXT_RENDER_STYLES.title.fontWeight, 800)
-  assert.equal(defaultRenderLayout.fontWeight, 900)
+  assert.equal(defaultStyles.title.bold, false)
+  assert.equal(boldRenderLayout.fontWeight, 700)
   assert.equal(normalRenderLayout.fontWeight, 400)
   assert.ok(
-    defaultRenderLayout.fontWeight - normalRenderLayout.fontWeight >= 500,
+    boldRenderLayout.fontWeight - normalRenderLayout.fontWeight >= 300,
     'bold and normal title weights should map to visibly distinct font faces',
   )
+})
+
+test('normalizes missing title bold as the new regular default while preserving explicit bold', () => {
+  const missingBoldStyles = normalizeDiscTextStyles({
+    title: {
+      fontFamily: 'arial',
+      color: '#ffffff',
+      contrast: 'strokeShadow',
+    },
+  })
+  const explicitBoldStyles = normalizeDiscTextStyles({
+    title: {
+      fontFamily: 'arial',
+      color: '#ffffff',
+      bold: true,
+      contrast: 'strokeShadow',
+    },
+  })
+
+  assert.equal(missingBoldStyles.title.bold, false)
+  assert.equal(explicitBoldStyles.title.bold, true)
+})
+
+test('supported disc font families use regular 400 and bold 700 render weights', () => {
+  const layout = createDefaultDiscTextLayout('top').title
+
+  for (const option of DISC_TEXT_FONT_OPTIONS) {
+    const normalStyles = normalizeDiscTextStyles({
+      title: {
+        fontFamily: option.value,
+        color: '#ffffff',
+        bold: false,
+        contrast: 'strokeShadow',
+      },
+    })
+    const boldStyles = normalizeDiscTextStyles({
+      title: {
+        fontFamily: option.value,
+        color: '#ffffff',
+        bold: true,
+        contrast: 'strokeShadow',
+      },
+    })
+    const normalRenderLayout = getStraightDiscTextRenderLayout(
+      'title',
+      'Styled title',
+      layout,
+      measureText,
+      normalStyles,
+    )
+    const boldRenderLayout = getStraightDiscTextRenderLayout(
+      'title',
+      'Styled title',
+      layout,
+      measureText,
+      boldStyles,
+    )
+
+    assert.equal(normalRenderLayout.fontWeight, 400)
+    assert.equal(boldRenderLayout.fontWeight, 700)
+    assert.match(normalRenderLayout.font, /^400 /)
+    assert.match(boldRenderLayout.font, /^700 /)
+  }
 })
 
 test('style preset catalog covers the issue themes with complete editable style values', () => {
@@ -237,7 +308,7 @@ test('applies font, color, contrast, and box style to the shared straight text r
   )
 
   assert.equal(renderLayout.color, '#224466')
-  assert.equal(renderLayout.fontWeight, 900)
+  assert.equal(renderLayout.fontWeight, 700)
   assert.equal(renderLayout.fontStyle, 'italic')
   assert.equal(renderLayout.style.bold, true)
   assert.equal(renderLayout.style.italic, true)
@@ -245,6 +316,6 @@ test('applies font, color, contrast, and box style to the shared straight text r
   assert.equal(renderLayout.style.contrast, 'shadow')
   assert.equal(renderLayout.style.backgroundEnabled, true)
   assert.equal(renderLayout.style.backgroundOpacity, 0.45)
-  assert.match(renderLayout.font, /^italic 900 .*Georgia/)
+  assert.match(renderLayout.font, /^italic 700 .*Georgia/)
   assert.match(renderLayout.fontFamily, /Georgia/)
 })

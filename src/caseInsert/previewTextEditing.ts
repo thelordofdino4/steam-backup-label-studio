@@ -143,15 +143,24 @@ export function getCaseInsertPreviewTextListEditValue(
   return fallbackValue
 }
 
-function finalizePreviewTextBlockDraft(textBlock: ProjectCaseInsertTextBlock) {
-  if (!isCaseInsertMetadataTextBlock(textBlock) || textBlock.value.trim()) {
+function finalizePreviewTextBlockDraft(
+  textBlock: ProjectCaseInsertTextBlock,
+  metadata?: ProjectMetadata,
+) {
+  if (!isCaseInsertMetadataTextBlock(textBlock)) {
+    return textBlock
+  }
+
+  const visibleDraft = getCaseInsertPreviewTextEditValue(textBlock, metadata)
+
+  if (visibleDraft.trim()) {
     return textBlock
   }
 
   return updateCaseInsertTextBlockValue(
     textBlock,
-    textBlock.value,
-    getNextCaseInsertTextSource(textBlock, textBlock.value),
+    '',
+    getNextCaseInsertTextSource(textBlock, ''),
   )
 }
 
@@ -229,6 +238,7 @@ export function updateCaseInsertPreviewTextDraftValue(
 export function finalizeCaseInsertPreviewTextDraft(
   caseInsert: ProjectJewelCaseState,
   target: CaseInsertPreviewTextTarget,
+  metadata?: ProjectMetadata,
 ): ProjectJewelCaseState {
   switch (target.scope) {
     case 'templateTextBlock':
@@ -236,7 +246,7 @@ export function finalizeCaseInsertPreviewTextDraft(
         caseInsert,
         target.paneId,
         target.textBlockId,
-        finalizePreviewTextBlockDraft,
+        (textBlock) => finalizePreviewTextBlockDraft(textBlock, metadata),
       )
     case 'spineTitle':
       return updateProjectJewelCaseSpineSides(
@@ -244,7 +254,7 @@ export function finalizeCaseInsertPreviewTextDraft(
         target.side,
         (spineSide) => ({
           ...spineSide,
-          title: finalizePreviewTextBlockDraft(spineSide.title),
+          title: finalizePreviewTextBlockDraft(spineSide.title, metadata),
         }),
       )
     case 'spineTextBlock':
@@ -261,7 +271,7 @@ export function finalizeCaseInsertPreviewTextDraft(
             ...spineSide,
             textBlocks: spineSide.textBlocks.map((textBlock) =>
               textBlock.id === targetTextBlockId
-                ? finalizePreviewTextBlockDraft(textBlock)
+                ? finalizePreviewTextBlockDraft(textBlock, metadata)
                 : textBlock),
           }
         },

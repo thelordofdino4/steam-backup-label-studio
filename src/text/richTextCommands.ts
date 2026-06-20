@@ -7,6 +7,9 @@ import {
   type RichTextLine,
   type RichTextRun,
 } from './htmlText.ts'
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from './richTextWeights.ts'
 
 export type PlainTextSelectionRange = {
   end: number
@@ -403,7 +406,7 @@ function styleRun(
       ...run,
       bold: active || undefined,
       fontWeight: active
-        ? ambientStyle?.boldFontWeight ?? 900
+        ? ambientStyle?.boldFontWeight ?? RICH_TEXT_BOLD_FONT_WEIGHT
         : ambientStyle?.bold
           ? ambientStyle.normalFontWeight
           : undefined,
@@ -913,8 +916,8 @@ function runHasToggleStyle(
     if (run.bold) return true
     if (typeof run.fontWeight === 'number') {
       const activeThreshold = ambientStyle?.bold
-        ? ambientStyle.boldFontWeight ?? 900
-        : 700
+        ? ambientStyle.boldFontWeight ?? RICH_TEXT_BOLD_FONT_WEIGHT
+        : RICH_TEXT_BOLD_FONT_WEIGHT
 
       return run.fontWeight >= activeThreshold
     }

@@ -106,7 +106,7 @@ test('plain text is promoted to canonical HTML and adjacent runs merge', () => {
 test('ambient bold can be removed for a selected range', () => {
   const ambientStyle = {
     bold: true,
-    boldFontWeight: 900,
+    boldFontWeight: 700,
     normalFontWeight: 400,
   }
   const state = getRichTextInlineToggleState({

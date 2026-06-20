@@ -628,7 +628,11 @@ function App() {
     target: CaseInsertPreviewTextTarget,
   ) {
     setProjectJewelCase((currentCaseInsert) =>
-      finalizeCaseInsertPreviewTextDraft(currentCaseInsert, target))
+      finalizeCaseInsertPreviewTextDraft(
+        currentCaseInsert,
+        target,
+        projectMetadata,
+      ))
     setSelectedCaseInsertTextTarget(null)
   }
 

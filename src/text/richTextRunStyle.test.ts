@@ -74,7 +74,7 @@ test('rich text run style preserves preview/export parity for BIU', () => {
     underline: true,
   }
 
-  assert.equal(getRichTextRunFontWeight(run, 500), 900)
+  assert.equal(getRichTextRunFontWeight(run, 500), 700)
   assert.equal(getRichTextRunFontStyle(run, 'normal'), 'italic')
   assert.equal(getRichTextRunTextDecorationLine(run), 'underline')
   assert.deepEqual(getRichTextRunDomStyle(run, 20), {
@@ -83,7 +83,7 @@ test('rich text run style preserves preview/export parity for BIU', () => {
     fontFamily: undefined,
     fontSize: undefined,
     fontStyle: 'italic',
-    fontWeight: 900,
+    fontWeight: 700,
     textDecorationLine: 'underline',
   })
   assert.deepEqual(
@@ -99,7 +99,7 @@ test('rich text run style preserves preview/export parity for BIU', () => {
       fontFamily: undefined,
       fontSizePx: 20,
       fontStyle: 'italic',
-      fontWeight: 900,
+      fontWeight: 700,
       underline: true,
     },
   )

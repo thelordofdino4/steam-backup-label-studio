@@ -71,6 +71,9 @@ import {
   type TextContentMode,
 } from '../text/htmlText'
 import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+} from '../text/richTextWeights'
+import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
   applyRichTextInlineToggleCommand,
@@ -147,7 +150,7 @@ function getDiscTextRichTextAmbientStyle(
 ): RichTextAmbientInlineStyle {
   return {
     bold: styles[key].bold,
-    boldFontWeight: 900,
+    boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
     color: styles[key].color,
     italic: styles[key].italic,
     normalFontWeight: Math.min(DISC_TEXT_RENDER_STYLES[key].fontWeight, 400),

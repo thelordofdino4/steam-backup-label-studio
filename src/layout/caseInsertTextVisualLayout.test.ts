@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  clampCaseInsertTextVisualLayoutToBounds,
   getCaseInsertTextVisualLayout,
   wrapCaseInsertTextLines,
 } from './caseInsertTextVisualLayout.ts'
@@ -121,8 +122,84 @@ test('case insert visual layout carries HTML rich runs through measured lines', 
       { text: 'italic', bold: false, italic: true },
     ],
   )
-  assert.ok(measuredFonts.includes('900 10px Georgia, serif'))
+  assert.ok(measuredFonts.includes('700 10px Georgia, serif'))
   assert.ok(measuredFonts.includes('italic 600 10px Georgia, serif'))
+})
+
+test('case insert visual bounds include paint-safe stroke and shadow slack', () => {
+  const layout = getCaseInsertTextVisualLayout(reservedBounds, {
+    align: 'left',
+    clampVisualBounds: false,
+    fontSizePx: 10,
+    lineHeightPx: 12,
+    measureText: measureTextAsCharacters,
+    paddingRatio: 0,
+    paintSlackPx: 3,
+    text: 'HELLO',
+    verticalAlign: 'top',
+  })
+
+  assert.equal(layout.contentBounds.x, reservedBounds.x)
+  assert.equal(layout.contentBounds.width, 5)
+  assert.equal(layout.bounds.x, reservedBounds.x - 3)
+  assert.equal(layout.bounds.width, 11)
+  assert.equal(layout.bounds.y, reservedBounds.y - 3)
+  assert.equal(layout.bounds.height, 18)
+})
+
+test('case insert text clamping uses measured visual bounds without changing wrap width', () => {
+  const safeBounds = {
+    x: 10,
+    y: 20,
+    width: 30,
+    height: 70,
+  }
+  const requestedBounds = {
+    x: 28,
+    y: 30,
+    width: 18,
+    height: 30,
+  }
+  const { reservedBounds: clampedReservedBounds, visualLayout } =
+    clampCaseInsertTextVisualLayoutToBounds(requestedBounds, safeBounds, {
+      align: 'right',
+      fontSizePx: 10,
+      lineHeightPx: 12,
+      measureText: measureTextAsCharacters,
+      paddingRatio: 0,
+      paintSlackPx: 4,
+      text: 'HELLO',
+      verticalAlign: 'top',
+    })
+
+  assert.equal(clampedReservedBounds.width, requestedBounds.width)
+  assert.ok(
+    clampedReservedBounds.x < requestedBounds.x,
+    'reserved box should shift left because painted glyph bounds reached the safe edge',
+  )
+  assert.equal(visualLayout.bounds.x + visualLayout.bounds.width, safeBounds.x + safeBounds.width)
+
+  const noSlackLines = getCaseInsertTextVisualLayout(requestedBounds, {
+    align: 'left',
+    fontSizePx: 10,
+    lineHeightPx: 12,
+    measureText: measureTextAsCharacters,
+    paddingRatio: 0,
+    text: 'hello hello hello',
+    verticalAlign: 'top',
+  }).lines.map((line) => line.text)
+  const slackLines = getCaseInsertTextVisualLayout(requestedBounds, {
+    align: 'left',
+    fontSizePx: 10,
+    lineHeightPx: 12,
+    measureText: measureTextAsCharacters,
+    paddingRatio: 0,
+    paintSlackPx: 12,
+    text: 'hello hello hello',
+    verticalAlign: 'top',
+  }).lines.map((line) => line.text)
+
+  assert.deepEqual(slackLines, noSlackLines)
 })
 
 test('case insert rich text layout renders bullet list glyphs and item styling', () => {

@@ -727,7 +727,7 @@ test('restores saved disc text styles and backfills legacy style defaults', asyn
   })
 
   assert.equal(restoredLegacyStyles.discTextStyles.title.fontFamily, 'arial')
-  assert.equal(restoredLegacyStyles.discTextStyles.title.bold, true)
+  assert.equal(restoredLegacyStyles.discTextStyles.title.bold, false)
   assert.equal(restoredLegacyStyles.discTextStyles.title.italic, false)
   assert.equal(restoredLegacyStyles.discTextStyles.title.underline, false)
   assert.equal(restoredLegacyStyles.discTextStyles.title.contrast, 'strokeShadow')

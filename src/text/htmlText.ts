@@ -7,6 +7,11 @@ export type HtmlTextFields = {
   markdownSource?: string | null
 }
 
+import {
+  RICH_TEXT_BOLD_FONT_WEIGHT,
+  RICH_TEXT_NORMAL_FONT_WEIGHT,
+} from './richTextWeights.ts'
+
 export type RichTextRun = {
   text: string
   bold?: boolean
@@ -152,7 +157,9 @@ function mergeRunStyles(
   return {
     ...first,
     ...second,
-    bold: first.bold || second.bold || second.fontWeight === 900 ||
+    bold: first.bold || second.bold ||
+      (typeof second.fontWeight === 'number' &&
+        second.fontWeight >= RICH_TEXT_BOLD_FONT_WEIGHT) ||
       undefined,
     italic: first.italic || second.italic || second.fontStyle === 'italic' ||
       undefined,
@@ -350,8 +357,8 @@ function normalizeFontWeight(value: string | undefined) {
 
   const trimmedValue = value.trim().toLowerCase()
 
-  if (trimmedValue === 'normal') return 400
-  if (trimmedValue === 'bold') return 900
+  if (trimmedValue === 'normal') return RICH_TEXT_NORMAL_FONT_WEIGHT
+  if (trimmedValue === 'bold') return RICH_TEXT_BOLD_FONT_WEIGHT
 
   const numericValue = Number.parseInt(trimmedValue, 10)
 
@@ -406,7 +413,7 @@ function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
       const fontWeight = normalizeFontWeight(value)
       if (fontWeight) {
         runStyle.fontWeight = fontWeight
-        runStyle.bold = fontWeight >= 900 || undefined
+        runStyle.bold = fontWeight >= RICH_TEXT_BOLD_FONT_WEIGHT || undefined
       }
     } else if (property === 'font-style') {
       const fontStyle = normalizeFontStyle(value)
@@ -429,7 +436,9 @@ function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
 }
 
 function getTagStyle(tagName: string, rawTag: string): RichTextRunStyle {
-  if (tagName === 'strong' || tagName === 'b') return { bold: true, fontWeight: 900 }
+  if (tagName === 'strong' || tagName === 'b') {
+    return { bold: true, fontWeight: RICH_TEXT_BOLD_FONT_WEIGHT }
+  }
   if (tagName === 'em' || tagName === 'i') return { italic: true, fontStyle: 'italic' }
   if (tagName === 'u') return { underline: true, textDecoration: 'underline' }
   if (tagName === 'span') {
@@ -757,7 +766,11 @@ function parseInlineMarkdown(
       if (closingIndex > index + 2) {
         runs.push(...parseInlineMarkdown(
           text.slice(index + 2, closingIndex),
-          { ...inheritedStyle, bold: true, fontWeight: 900 },
+          {
+            ...inheritedStyle,
+            bold: true,
+            fontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
+          },
         ))
         index = closingIndex + 2
         continue
