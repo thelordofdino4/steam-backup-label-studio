@@ -76,12 +76,20 @@ test('case insert text roles provide readable tray defaults without affecting le
       {},
       getCaseInsertTextSizeRoleFromId('left-spine-title-text', 'spineTitle'),
     ),
-    18,
+    16,
+  )
+  assert.equal(
+    getCaseInsertLayoutFontSizePt(
+      {},
+      getCaseInsertTextSizeRoleFromId('left-spine-copyright-text', 'spineTitle'),
+    ),
+    8,
   )
 })
 
 test('legacy scale-only case insert text migrates to point sizes without using new defaults', () => {
   assert.equal(getLegacyCaseInsertScaleFontSizePt('trayTitle', 1.18), 8.496)
   assert.equal(getLegacyCaseInsertScaleFontSizePt('trayLegal', 0.42), 6)
+  assert.equal(getLegacyCaseInsertScaleFontSizePt('spineTitle', 1), 7.7)
 })
 

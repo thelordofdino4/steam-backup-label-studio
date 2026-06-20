@@ -32,6 +32,7 @@ export const CASE_INSERT_TEXT_FONT_SIZE_PT_PRESETS = [
 export const CASE_INSERT_TEXT_FONT_SIZE_PT_MIN = 6
 export const CASE_INSERT_TEXT_FONT_SIZE_PT_MAX = 96
 export const DEFAULT_CASE_INSERT_TEXT_FONT_SIZE_PT = 12
+export const DEFAULT_SPINE_TITLE_FONT_SIZE_PT = 16
 
 export type CaseInsertTextSizeRole =
   | 'coverTitle'
@@ -61,7 +62,7 @@ const DEFAULT_FONT_SIZE_PT_BY_ROLE: Record<CaseInsertTextSizeRole, number> = {
   trayRequirements: 10,
   trayFeatures: 12,
   trayLegal: 8,
-  spineTitle: 18,
+  spineTitle: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
   spineSecondary: 10,
   spineLegal: 8,
 }

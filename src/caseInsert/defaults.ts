@@ -51,6 +51,9 @@ import {
   getCaseInsertDiscTextKeys,
   type CaseInsertTextSurfaceId,
 } from './textContent.ts'
+import {
+  DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+} from './textSizing.ts'
 import type { DiscTextKey } from '../discText/types.ts'
 
 export const DEFAULT_CASE_INSERT_PROJECT_TITLE = 'Untitled Jewel Case Insert'
@@ -233,7 +236,13 @@ const SPINE_DISC_TEXT_LAYOUTS: Record<
   title: {
     enabled: true,
     align: 'center',
-    layout: { scale: 1, fontSizePt: 18, width: 90, x: 50, y: 50 },
+    layout: {
+      scale: 1,
+      fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+      width: 90,
+      x: 50,
+      y: 50,
+    },
   },
   subtitle: {
     align: 'center',

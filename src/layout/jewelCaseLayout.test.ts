@@ -482,6 +482,40 @@ test('spine preview layouts stay inside safe strips', () => {
   assert.equal(backgroundFit.hasEmptySpace, false)
 })
 
+test('default spine title text uses 16pt and stays inside both spine safe areas', () => {
+  const state = createDefaultProjectJewelCaseState('Untitled Jewel Case Insert')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'back')
+  const spineSides = [
+    { side: 'left' as const, safeRegionId: 'leftSpineSafe' },
+    { side: 'right' as const, safeRegionId: 'rightSpineSafe' },
+  ]
+
+  for (const { side, safeRegionId } of spineSides) {
+    const safeRegion = layout.regions.find(
+      ({ regionId }) => regionId === safeRegionId,
+    )
+    const title = state.spine[side].title
+    const titleLayout = getJewelCaseSpineTitlePreviewLayout(
+      side,
+      title,
+      layout,
+    )
+
+    assert.ok(safeRegion)
+    assert.ok(titleLayout)
+    assert.equal(title.layout.fontSizePt, 16)
+    assert.equal(titleLayout.fontSizePx, 200 / 3)
+    assert.equal(
+      isPixelRectInsideBounds(titleLayout.boundingRect, safeRegion.bounds),
+      true,
+    )
+    assert.equal(
+      titleLayout.boundingRect.width <= safeRegion.bounds.width,
+      true,
+    )
+  }
+})
+
 test('spine text avoidance wraps opted-in visible text around occupied visuals', () => {
   const state = createDefaultProjectJewelCaseState('Portal 2')
   const layout = createJewelCasePreviewLayout('jewelCase', 'back')

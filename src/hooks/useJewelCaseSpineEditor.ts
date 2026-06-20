@@ -112,6 +112,9 @@ import {
 import {
   getJewelCaseSpineMarkDefaultLayout,
 } from '../caseInsert/defaultBrandingLayouts'
+import {
+  DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+} from '../caseInsert/textSizing'
 
 type UseJewelCaseSpineEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -119,8 +122,22 @@ type UseJewelCaseSpineEditorOptions = {
 }
 
 const defaultSpineTitleLayouts: Record<JewelCaseSpineSide, ProjectCaseInsertLayout> = {
-  left: { scale: 1, width: 90, x: 50, y: 50, rotation: -90 },
-  right: { scale: 1, width: 90, x: 50, y: 50, rotation: 90 },
+  left: {
+    scale: 1,
+    fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+    width: 90,
+    x: 50,
+    y: 50,
+    rotation: -90,
+  },
+  right: {
+    scale: 1,
+    fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
+    width: 90,
+    x: 50,
+    y: 50,
+    rotation: 90,
+  },
 }
 
 const defaultSpineTextBlockLayouts: Record<
