@@ -1,4 +1,10 @@
 # Repository Architecture Inventory
+> Status: Conditional as-built repository inventory.
+> Purpose: File ownership and implementation map for finding existing owners.
+> Read when: Before refactors, ownership changes, or architecture-sensitive edits.
+> Authoritative source: Current source for exact facts; SDD for architecture contracts.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is evidence gathering for a future Software Design Document, not a roadmap.
 
@@ -351,8 +357,8 @@ Key files:
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertExportPreflight.ts`
 - `src/export/caseInsertDesignCheck.ts`
-- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`
 - `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
+- Historical planning context, if needed: `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`
 
 Source-of-truth state:
 

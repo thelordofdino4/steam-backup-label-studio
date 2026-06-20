@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Cleanup Readiness Plan
 
 Date: 2026-06-03
@@ -17,11 +21,11 @@ Primary checkout: `C:\Users\John Paul Keller\steam-backup-label-studio`
 Required docs reviewed before this pass:
 
 - `README.md`
-- `docs/CURRENT_STATUS.md`
-- `docs/ROADMAP.md`
-- `docs/MILESTONES.md`
-- `docs/ARCHITECTURE_GUARDRAILS.md`
-- `docs/REFACTOR_STATUS.md`
+- `docs/archive/CURRENT_STATUS.md`
+- `docs/archive/ROADMAP.md`
+- `docs/archive/MILESTONES.md`
+- `docs/archive/ARCHITECTURE_GUARDRAILS.md`
+- `docs/archive/REFACTOR_STATUS.md`
 - `docs/PRD.md`
 
 Repository state reviewed:
@@ -298,7 +302,7 @@ Fresh enough:
 
 - `docs/PROJECT_FILE_SPEC.md` and `docs/TEMPLATE_SPEC.md` were refreshed on
   2026-06-03 and reflect current case insert groundwork.
-- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md` was refreshed on 2026-06-03 and
+- `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md` was refreshed on 2026-06-03 and
   now records the current `src/caseInsert/*` owners,
   `src/project/caseInsertProjectAdapters.ts`, and the
   `src/project/projectCaseInsert.ts` compatibility barrel.
@@ -307,7 +311,7 @@ Fresh enough:
 
 Needs follow-up:
 
-- `docs/RENDER_ARCHITECTURE_AUDIT.md` was last refreshed on 2026-05-31 and may
+- `docs/archive/RENDER_ARCHITECTURE_AUDIT.md` was last refreshed on 2026-05-31 and may
   not fully describe the current case preview/front-cover paths.
 - This plan should be kept current after the next major case editor issue closes
   or after #46/#44 cleanup changes land.

@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Roadmap
 
 Last refreshed: 2026-06-08.
@@ -218,9 +222,9 @@ Goal: Define and implement the first case editor surface: jewel case front, back
 
 Planned work:
 
-- Use #126 and `docs/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
+- Use #126 and `docs/archive/JEWEL_CASE_EDITOR_ISSUE_DRAFT.md` as the jewel case editor alpha definition.
 - Use #149 for the next structured tray/spine layout implementation work.
-- Use `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md` as the #127 boundary decision for app workspace, project type, and template/case variant separation.
+- Use `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md` as the #127 boundary decision for app workspace, project type, and template/case variant separation.
 - Add a template/editor type selector that does not hide or destabilize the disc-label editor.
 - Define a jewel case template model with front, back, spine, bleed/trim, safe zones, and export dimensions.
 - Define reusable region and layout helpers for case fronts, backs, screenshots, system requirements, legal text, marks, logos, and spine content.

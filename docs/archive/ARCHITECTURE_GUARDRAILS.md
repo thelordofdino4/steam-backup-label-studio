@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Architecture Guardrails
 
 These rules exist because preview/export parity and editor interaction regressions showed that too much behavior was hidden inside large, mixed-responsibility files. The disc artwork editor has reached its alpha feature boundary, and future disc polish or jewel case work must preserve that baseline instead of adding logic to unrelated structures.
@@ -26,7 +30,7 @@ Before implementing behavior, spend a small amount of time checking whether the 
 
 Use targeted searches rather than broad archaeology. Look for:
 
-- the final unification audit in `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`
+- the final unification audit in `docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`
 - matching domain names such as `discText`, `discTextStyles`, `discTextAvoidance`, `titleArtwork`, `additionalArtwork`, `discNumberArtwork`, `ratingBadge`, `mediaMark`, `platformMark`, `technicalMark`, `logoAsset`, `steamBanner`, `background`, `projectAssetStatus`, `metadataDiscText`, `project`, `exportPreflight`, or `export`
 - existing hooks under `src/hooks/`
 - existing layout helpers under `src/layout/` or geometry helpers under `src/disc/geometry.ts`
@@ -79,7 +83,7 @@ must preserve.
 ## Shared Source-Of-Truth Rule
 
 The current shared/editor-specific ownership map lives in
-`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+`docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
 
 Use that audit before creating or renaming shared code:
 
@@ -448,4 +452,4 @@ The disc artwork editor has left indev as a feature surface, but the same standa
 
 Before jewel case editor work expands, the code should make it plain where each feature lives and how preview/export parity is protected.
 
-The case insert editor boundary is recorded in `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`: jewel case is the first case insert template, not another disc template, and project type stays separate from concrete template/case variants.
+The case insert editor boundary is recorded in `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`: jewel case is the first case insert template, not another disc template, and project type stays separate from concrete template/case variants.

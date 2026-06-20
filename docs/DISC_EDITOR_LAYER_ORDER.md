@@ -1,4 +1,10 @@
 # Disc Editor Layer Order
+> Status: Conditional disc layer-order reference.
+> Purpose: Disc preview/export layer order policy.
+> Read when: Disc renderer, export, or layer-order work.
+> Authoritative source: This document for disc layer order; SDD for global parity.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-05-31.
 

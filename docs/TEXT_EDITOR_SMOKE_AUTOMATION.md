@@ -1,4 +1,10 @@
 # Text Editor Smoke Automation
+> Status: Conditional automation guide.
+> Purpose: Committed browser smoke route and limits for contextual text-editor automation.
+> Read when: Before browser automation against the text editor or smoke harness changes.
+> Authoritative source: This document for automation process; TEXT_EDITOR_CONTRACT.md for behavior.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 This guide documents the committed browser smoke path for the contextual text
 editor. Read it before using browser automation against the preview editor.

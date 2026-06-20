@@ -1,4 +1,10 @@
 # Software Design Document
+> Status: Authoritative architecture contract.
+> Purpose: As-built architecture contracts for state, rendering, editing, save/load, export, and subsystem boundaries.
+> Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
+> Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
 
@@ -733,7 +739,8 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/export/exportCaseInsertPng.ts`
 - `src/export/caseInsertExportPreflight.ts`
 - `src/export/caseInsertDesignCheck.ts`
-- `docs/CASE_INSERT_EDITOR_ARCHITECTURE.md`
+- `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
+- Historical planning context, if needed: `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`
 
 ### 13.3 Source-Of-Truth State
 

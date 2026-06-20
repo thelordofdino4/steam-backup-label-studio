@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Case Insert Editor Architecture
 
 Last refreshed: 2026-06-08.
@@ -47,7 +51,7 @@ Case insert work should reuse existing systems when the existing system owns the
 Shared does not mean the disc editor owns case behavior. Shared systems should remain lower-level helpers or be extracted into focused modules when case work exposes a broader responsibility.
 
 The current shared/editor-specific ownership map lives in
-`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before creating a new
+`docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before creating a new
 case insert helper that might duplicate an existing shared editor contract.
 
 Shared utilities must stay neutral. A helper can live in shared template,
@@ -133,6 +137,6 @@ the disc editor:
 
 1. Finish structured tray/spine layouts in focused case modules (#149).
 2. Preserve shared artwork, branding, text, source, drag, save/load, preflight,
-   and export contracts documented in `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+   and export contracts documented in `docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
 3. Run an honest case insert alpha validation and manual smoke pass only when
    the implemented case flows can be exercised.

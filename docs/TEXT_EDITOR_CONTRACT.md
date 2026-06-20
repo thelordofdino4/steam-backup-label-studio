@@ -1,4 +1,10 @@
 # Text Editor Contract
+> Status: Authoritative text-editor subsystem contract.
+> Purpose: Expected text editor behavior, renderer ownership, parity, and regression gates.
+> Read when: Text-editor behavior, formatting, selection, source editing, contextual controls, or smoke work.
+> Authoritative source: This document for text-editor behavior; SDD for global architecture.
+> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+
 
 Last refreshed: 2026-06-16.
 

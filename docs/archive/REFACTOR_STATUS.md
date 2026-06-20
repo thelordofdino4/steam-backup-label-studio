@@ -1,3 +1,7 @@
+> [!WARNING]
+> Historical / Not Authoritative. This document is preserved for implementation context only.
+> Current guidance lives in [Documentation Map](../README.md); architecture-sensitive rules are authoritative in [Software Design Document](../SOFTWARE_DESIGN_DOCUMENT.md).
+
 # Refactor Status
 
 Last refreshed: 2026-06-08.
@@ -8,7 +12,7 @@ This document tracks controlled refactor history and current architecture expect
 
 The earlier editor-foundation refactor from issue #36 extracted many large rendering and project-file responsibilities from `App.tsx`. The later emergency rendering/parity work (#82-#85) is also closed. Do not describe those issues as active blockers.
 
-The standing rule remains documented in `docs/ARCHITECTURE_GUARDRAILS.md`:
+The standing rule remains documented in `docs/archive/ARCHITECTURE_GUARDRAILS.md`:
 
 - New logic must not be crammed into existing unrelated structures.
 - New responsibilities need focused `.ts` or `.tsx` modules.
@@ -24,7 +28,7 @@ The standing rule remains documented in `docs/ARCHITECTURE_GUARDRAILS.md`:
 - Shared utilities should contain only neutral reusable logic.
 
 The staged editor unification ownership map is recorded in
-`docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before renaming
+`docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`. Use that audit before renaming
 shared modules, creating new shared helpers, or deciding that remaining
 duplication is safe.
 
@@ -83,7 +87,7 @@ Because they are now broad enough to be real product surface, future work should
   common preflight warning builders, pointer-drag geometry, and saved-project
   normalization helpers.
 - Documented the final staged unification audit in
-  `docs/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
+  `docs/archive/EDITOR_UNIFICATION_FINAL_AUDIT.md`.
 
 ## Current Validation Status
 
