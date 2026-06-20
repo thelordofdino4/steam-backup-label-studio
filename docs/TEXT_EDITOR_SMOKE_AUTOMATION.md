@@ -178,6 +178,11 @@ The committed smoke command verifies:
 - Tray title text is screenshot-checked at 6pt, default size, and 72pt so
   visible paint does not touch the left or right element edges.
 - Straight disc text opens inline editing while the SVG image renderer remains visible.
+- Curved disc copyright text opens the contextual shell without mounting a
+  rectangular canvas textarea, hides unsupported placeholder controls, keeps the
+  renderer-derived selection host inside the preview without arc-window sizing,
+  and checks that tabs and menu do not meaningfully overlap the curved text for
+  both top and bottom arc placement.
 - Straight disc `Font size (pt)` uses the shared point-size combobox and keeps
   the SVG preview/export font-size model in sync.
 - Straight disc controls remain anchored when moved to the center-hole area;

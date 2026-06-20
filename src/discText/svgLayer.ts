@@ -470,6 +470,155 @@ function getCurvedLineTextPathAnchor(
   return { startOffset: '50%', textAnchor: 'middle' }
 }
 
+type CurvedDiscTextPaintBox = {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
+function getArcPoint(radius: number, angleDegrees: number) {
+  const radians = (angleDegrees * Math.PI) / 180
+
+  return {
+    x: 50 + Math.cos(radians) * radius,
+    y: 50 + Math.sin(radians) * radius,
+  }
+}
+
+function getCurvedLinePaintBox({
+  fontSize,
+  lineLayout,
+  renderStyle,
+}: {
+  fontSize: number
+  lineLayout: ReturnType<typeof layoutCurvedText>['lines'][number]
+  renderStyle: ResolvedDiscTextRenderStyle
+}): CurvedDiscTextPaintBox | null {
+  if (lineLayout.angleWidthDegrees <= 0) return null
+
+  const shadowSlack = hasDiscTextShadow(renderStyle) ? 1.4 : 0
+  const strokeSlack = hasDiscTextStroke(renderStyle)
+    ? DISC_TEXT_CURVED_STROKE_WIDTH / 2
+    : 0
+  const underlineSlack = renderStyle.underline
+    ? fontSize * (
+        DISC_TEXT_CURVED_UNDERLINE_OFFSET_FACTOR +
+        DISC_TEXT_CURVED_UNDERLINE_STROKE_FACTOR
+      )
+    : 0
+  const radialSlack = Math.max(
+    0.9,
+    fontSize * 0.72,
+    strokeSlack + shadowSlack + underlineSlack,
+  )
+  const sampleCount = Math.max(
+    6,
+    Math.ceil(lineLayout.angleWidthDegrees / 8),
+  )
+  const radii = [
+    Math.max(1, lineLayout.radius - radialSlack),
+    lineLayout.radius + radialSlack,
+  ]
+  const points = []
+
+  for (let index = 0; index <= sampleCount; index += 1) {
+    const angle =
+      lineLayout.startAngleDegrees +
+      (lineLayout.angleWidthDegrees * index) / sampleCount
+
+    for (const radius of radii) {
+      points.push(getArcPoint(radius, angle))
+    }
+  }
+
+  return {
+    bottom: Math.max(...points.map((point) => point.y)),
+    left: Math.min(...points.map((point) => point.x)),
+    right: Math.max(...points.map((point) => point.x)),
+    top: Math.min(...points.map((point) => point.y)),
+  }
+}
+
+export function getCurvedDiscTextPaintBoxes({
+  key,
+  text,
+  placement,
+  layout,
+  safeZoneRadiusPercent,
+  measureText,
+  styles,
+  template,
+}: {
+  key: DiscTextKey
+  text: string
+  placement: SteamLogoPlacement
+  layout: DiscTextLayout
+  safeZoneRadiusPercent: number
+  measureText: TextMeasureFunction
+  styles?: DiscTextStyleInput
+  template?: DiscTemplate
+}): CurvedDiscTextPaintBox[] {
+  const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
+  const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
+  const curvedScale = getReadableCurvedTextScale(layout.scale)
+  const fontSize = getResolvedDiscTextFontSizePercent(layout, key, template)
+  const font = getDiscTextFontString(
+    renderStyle.fontWeight,
+    fontSize,
+    renderStyle.fontFamilyCanvas,
+    getDiscTextFontStyle(renderStyle),
+  )
+  const textRadius = Math.max(1, safeZoneRadiusPercent - layout.y * 0.18)
+  const arcCenterAngle = (isTopArc ? 270 : 90) + layout.x
+  const lineStep = 2.2 * curvedScale
+  const letterSpacing = getCurvedPreviewLetterSpacing(layout.scale)
+  const { lines, blockWindowDegrees } = wrapCurvedTextBlock(
+    text,
+    textRadius,
+    lineStep,
+    layout.arcDegrees,
+    font,
+    fontSize,
+    letterSpacing,
+    isTopArc,
+    measureText,
+  )
+  const curvedLineLayout = layoutCurvedText({
+    side: isTopArc ? 'top' : 'bottom',
+    centerAngleDegrees: arcCenterAngle,
+    arcDegrees: layout.arcDegrees,
+    align: layout.align,
+    blockWindowDegrees,
+    lines: lines.map((line, index) => ({
+      text: line,
+      measuredWidth: getCurvedLinePathWidth(
+        line,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      ),
+      radius: getCurvedLineRadius(
+        isTopArc,
+        textRadius,
+        lineStep,
+        lines.length,
+        index,
+      ),
+    })),
+  })
+
+  return curvedLineLayout.lines
+    .map((lineLayout) =>
+      getCurvedLinePaintBox({
+        fontSize,
+        lineLayout,
+        renderStyle,
+      }))
+    .filter((box): box is CurvedDiscTextPaintBox => Boolean(box))
+}
+
 function buildCurvedCopyrightMarkup(
   key: DiscTextKey,
   text: string,

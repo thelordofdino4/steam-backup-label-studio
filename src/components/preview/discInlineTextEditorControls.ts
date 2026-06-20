@@ -702,7 +702,6 @@ export function createCurvedDiscTextEditorControls({
         pressed: style.underline,
         onChange: (pressed) => onDiscTextStyleChange(key, 'underline', pressed),
       },
-      unsupported: ['Range formatting', 'Bulleted lists'],
     },
     art: {
       color: {

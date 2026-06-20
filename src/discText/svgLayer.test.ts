@@ -5,7 +5,10 @@ import {
   createDefaultDiscTextValues,
   DEFAULT_DISC_TEXT_SETTINGS,
 } from './index.ts'
-import { buildDiscTextSvgLayer } from './svgLayer.ts'
+import {
+  buildDiscTextSvgLayer,
+  getCurvedDiscTextPaintBoxes,
+} from './svgLayer.ts'
 import { discTextPointSizeToSvgPercent } from './pointSize.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 
@@ -658,4 +661,87 @@ test('curved disc copyright textPath keeps the final word visible within paint-s
     pathLength > measureTextAsCharacters(text) + 1,
     `Expected curved text path ${pathLength} to include paint slack beyond text length ${measureTextAsCharacters(text)}`,
   )
+})
+
+test('curved disc paint boxes track top and bottom rendered arc text instead of the full arc window', () => {
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const topBoxes = getCurvedDiscTextPaintBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 210,
+      arcSide: 'top',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    text: 'Short legal text',
+  })
+  const bottomBoxes = getCurvedDiscTextPaintBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 210,
+      arcSide: 'bottom',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    text: 'Short legal text',
+  })
+
+  assert.ok(topBoxes.length > 0)
+  assert.ok(bottomBoxes.length > 0)
+  assert.ok(Math.max(...topBoxes.map((box) => box.bottom)) < 50)
+  assert.ok(Math.min(...bottomBoxes.map((box) => box.top)) > 50)
+  assert.ok(
+    Math.max(...topBoxes.map((box) => box.right)) -
+      Math.min(...topBoxes.map((box) => box.left)) <
+      75,
+  )
+})
+
+test('curved disc paint boxes include wrapped multiline underline stroke and shadow slack', () => {
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const plainBoxes = getCurvedDiscTextPaintBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 74,
+      arcSide: 'bottom',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    text:
+      'Copyright 2026 Archive Copy Wrapped Legal Text Preservation Notice For Multiple Lines',
+  })
+  const styledBoxes = getCurvedDiscTextPaintBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 74,
+      arcSide: 'bottom',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    styles: {
+      copyright: {
+        contrast: 'strokeShadow',
+        underline: true,
+      },
+    },
+    text:
+      'Copyright 2026 Archive Copy Wrapped Legal Text Preservation Notice For Multiple Lines',
+  })
+  const plainBottom = Math.max(...plainBoxes.map((box) => box.bottom))
+  const styledBottom = Math.max(...styledBoxes.map((box) => box.bottom))
+
+  assert.ok(styledBoxes.length >= 2)
+  assert.ok(styledBottom > plainBottom)
 })

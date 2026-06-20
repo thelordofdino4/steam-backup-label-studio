@@ -508,6 +508,21 @@ async function setInlineNumberControl(page, labelToken, value) {
   await page.waitForTimeout(250)
 }
 
+async function setInlineRangeControl(page, labelToken, value) {
+  await clickInlineTab(page, 'utilities')
+  await setNativeInputValue(
+    smoke(page, `inline-text-range-${labelToken}`).first(),
+    String(value),
+  )
+  await page.waitForTimeout(250)
+}
+
+async function setInlineSelectControl(page, labelToken, value) {
+  await clickInlineTab(page, 'utilities')
+  await smoke(page, `inline-text-select-${labelToken}`).first().selectOption(value)
+  await page.waitForTimeout(250)
+}
+
 async function getInlineNumberControlValue(page, labelToken) {
   await clickInlineTab(page, 'utilities')
   const value = await smoke(page, `inline-text-number-${labelToken}`).first()
@@ -677,6 +692,42 @@ async function getRect(page, smokeId) {
   })
 }
 
+async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
+  const host = await getRect(page, 'disc-inline-text-copyright')
+  const preview = await getRect(page, 'disc-preview')
+  const tabs = await getRect(page, 'inline-text-tabs')
+  const menu = await getRect(page, 'inline-text-menu')
+
+  if (
+    host.left < preview.left - 1 ||
+    host.right > preview.right + 1 ||
+    host.top < preview.top - 1 ||
+    host.bottom > preview.bottom + 1
+  ) {
+    fail(`${label}: curved selection bounds escaped the disc preview: ${
+      JSON.stringify({ host, preview })
+    }`)
+  }
+  if (host.width > preview.width * 0.7) {
+    fail(`${label}: curved selection bounds are too wide for the visible text: ${
+      JSON.stringify({ host, preview })
+    }`)
+  }
+  if (host.height > preview.height * 0.35) {
+    fail(`${label}: curved selection bounds are too tall for the visible text: ${
+      JSON.stringify({ host, preview })
+    }`)
+  }
+  if (
+    rectsOverlapMeaningfully(tabs, host) ||
+    rectsOverlapMeaningfully(menu, host)
+  ) {
+    fail(`${label}: contextual controls overlap curved selection bounds: ${
+      JSON.stringify({ host, menu, tabs })
+    }`)
+  }
+}
+
 function getRectDelta(first, second) {
   return {
     left: second.left - first.left,
@@ -766,6 +817,25 @@ function rectsOverlap(first, second) {
     first.bottom <= second.top ||
     first.top >= second.bottom
   )
+}
+
+function getRectOverlap(first, second) {
+  const width = Math.max(
+    0,
+    Math.min(first.right, second.right) - Math.max(first.left, second.left),
+  )
+  const height = Math.max(
+    0,
+    Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top),
+  )
+
+  return { height, width }
+}
+
+function rectsOverlapMeaningfully(first, second, tolerance = 6) {
+  const overlap = getRectOverlap(first, second)
+
+  return overlap.width > tolerance && overlap.height > tolerance
 }
 
 async function waitForInlineMenuAndTabsToSeparate(page) {
@@ -941,6 +1011,11 @@ async function assertCurvedCopyrightGuardrail(page) {
   if (rectangularInputCount !== 0) {
     fail('Curved copyright mounted a rectangular on-canvas textarea.')
   }
+  const menuText = await smoke(page, 'inline-text-menu').first().textContent()
+  if (/unsupported/i.test(menuText ?? '')) {
+    fail(`Curved contextual menu displayed unsupported placeholder copy: ${menuText}`)
+  }
+  await assertCurvedContextualPlacementUsesPaintBounds(page, 'initial curved copyright')
   await setNativeInputValue(smoke(page, 'inline-text-menu-value').first(), 'Curved contextual smoke')
   const afterSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   if (!afterSrc || afterSrc === beforeSrc) {
@@ -952,6 +1027,14 @@ async function assertCurvedCopyrightGuardrail(page) {
   if (!hitTargetMarkup.includes('Curved contextual smoke')) {
     fail('Curved copyright hit-target SVG did not receive the menu-edited text.')
   }
+  await assertCurvedContextualPlacementUsesPaintBounds(page, 'edited curved copyright')
+  await setInlineSelectControl(page, 'arc-side', 'top')
+  await setInlineNumberControl(page, 'arc', 220)
+  await setInlineNumberControl(page, 'inset', 8)
+  await setInlineRangeControl(page, 'line-spacing', 1.25)
+  await assertCurvedContextualPlacementUsesPaintBounds(page, 'top arc curved copyright')
+  await setInlineSelectControl(page, 'arc-side', 'bottom')
+  await assertCurvedContextualPlacementUsesPaintBounds(page, 'bottom arc curved copyright')
 }
 
 async function runCheck(page, name, fn) {
