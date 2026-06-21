@@ -285,25 +285,27 @@ function wrapCurvedTextBlock(
     letterSpacing,
     measureText,
   )
-  const centeredLayout = layoutCurvedText({
-    side: isTopArc ? 'top' : 'bottom',
-    centerAngleDegrees: 0,
-    arcDegrees,
-    align: 'center',
-    lines: lines.map((line, index) => ({
-      text: line,
-      measuredWidth: getCurvedLinePathWidth(
-        line,
-        font,
-        fontSize,
-        letterSpacing,
-        measureText,
-      ),
-      radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
-    })),
-  })
+  const getCenteredLayout = () =>
+    layoutCurvedText({
+      side: isTopArc ? 'top' : 'bottom',
+      centerAngleDegrees: 0,
+      arcDegrees,
+      align: 'center',
+      lines: lines.map((line, index) => ({
+        text: line,
+        measuredWidth: getCurvedLinePathWidth(
+          line,
+          font,
+          fontSize,
+          letterSpacing,
+          measureText,
+        ),
+        radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
+      })),
+    })
 
   for (let attempt = 0; attempt < 6; attempt += 1) {
+    const centeredLayout = getCenteredLayout()
     const minimumLineRadius = getMinimumCurvedLineRadius(
       isTopArc,
       textRadius,
@@ -328,6 +330,8 @@ function wrapCurvedTextBlock(
 
     lines = nextLines
   }
+
+  const centeredLayout = getCenteredLayout()
 
   return {
     lines,
@@ -462,12 +466,8 @@ function formatSvgNumber(value: number) {
   return Number(value.toFixed(3))
 }
 
-function getCurvedLineTextPathAnchor(
-  align: DiscTextLayout['align'],
-): { startOffset: string; textAnchor: 'start' | 'end' | 'middle' } {
-  if (align === 'left') return { startOffset: '0%', textAnchor: 'start' }
-  if (align === 'right') return { startOffset: '100%', textAnchor: 'end' }
-  return { startOffset: '50%', textAnchor: 'middle' }
+function getCurvedLineTextPathAnchor(): { startOffset: string; textAnchor: 'start' } {
+  return { startOffset: '0%', textAnchor: 'start' }
 }
 
 type CurvedDiscTextPaintBox = {
@@ -750,7 +750,7 @@ function buildCurvedCopyrightMarkup(
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
-  const textPathAnchor = getCurvedLineTextPathAnchor(layout.align)
+  const textPathAnchor = getCurvedLineTextPathAnchor()
   const pathMarkup = curvedLineLayout.lines.map((lineLayout, index) => {
     const pathId = `${idPrefix}-${key}-path-${index}`
     const path = createSvgArcPath(
