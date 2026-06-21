@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
+  applyRichTextInlineFontFamilyCommand,
   applyRichTextInlineFontSizePtCommand,
   applyRichTextInlineToggleCommand,
   applyRichTextListKeyboardCommand,
@@ -10,6 +11,7 @@ import {
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
+  getRichTextSelectionFontFamilyState,
   getRichTextSelectionFontSizePtState,
 } from './richTextCommands.ts'
 
@@ -99,6 +101,49 @@ test('applies selected-range point size without changing surrounding text', () =
   )
   assert.equal(result?.plainText, 'Untitled Steam Backup Label')
   assert.deepEqual(result?.selection, { start: 0, end: 8 })
+})
+
+test('applies selected-range font family without changing surrounding text', () => {
+  const result = applyRichTextInlineFontFamilyCommand({
+    fallbackText: 'Untitled Steam Backup Label',
+    fontFamily: 'Georgia, serif',
+    selection: { start: 0, end: 8 },
+  })
+
+  assert.equal(
+    result?.htmlSource,
+    '<p><span style="font-family:Georgia, serif">Untitled</span> Steam Backup Label</p>',
+  )
+  assert.equal(result?.plainText, 'Untitled Steam Backup Label')
+  assert.deepEqual(result?.selection, { start: 0, end: 8 })
+})
+
+test('selected-range font family reports active and mixed state from ambient font', () => {
+  const result = applyRichTextInlineFontFamilyCommand({
+    ambientStyle: { fontFamily: 'Arial, sans-serif' },
+    fallbackText: 'Untitled Steam Backup Label',
+    fontFamily: 'Georgia, serif',
+    selection: { start: 0, end: 8 },
+  })
+
+  assert.deepEqual(
+    getRichTextSelectionFontFamilyState({
+      ambientStyle: { fontFamily: 'Arial, sans-serif' },
+      fallbackText: result?.plainText ?? '',
+      htmlSource: result?.htmlSource,
+      selection: { start: 0, end: 8 },
+    }),
+    { state: 'active', value: 'Georgia, serif' },
+  )
+  assert.deepEqual(
+    getRichTextSelectionFontFamilyState({
+      ambientStyle: { fontFamily: 'Arial, sans-serif' },
+      fallbackText: result?.plainText ?? '',
+      htmlSource: result?.htmlSource,
+      selection: { start: 0, end: 14 },
+    }),
+    { state: 'mixed', value: 'Georgia, serif' },
+  )
 })
 
 test('selected-range point size reports active and mixed state from ambient size', () => {

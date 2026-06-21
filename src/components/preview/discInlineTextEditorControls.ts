@@ -81,13 +81,13 @@ export type DiscInlineTextEditorControlParams = {
   ) => void
   onDiscTextRichTextCommand?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontFamily' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange | undefined,
     value: boolean | number | string,
   ) => InlinePreviewTextEditorSelectionRange | void
   getDiscTextRichTextCommandState?: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontFamily' | 'fontSizePt',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
@@ -105,10 +105,8 @@ export type DiscInlineTextEditorControlParams = {
 
 export type CurvedDiscTextEditorControlParams = Omit<
   DiscInlineTextEditorControlParams,
-  | 'getDiscTextRichTextCommandState'
   | 'isHtmlSourceEnabled'
   | 'onDiscTextContentModeChange'
-  | 'onDiscTextRichTextCommand'
   | 'onDiscTextVisualAvoidanceChange'
 > & {
   onDiscTextArcSideChange: (
@@ -275,6 +273,17 @@ export function createDiscInlineTextEditorControls({
 
     onDiscTextLayoutChange(key, 'fontSizePt', value)
   }
+  const handleInlineFontFamilyChange = (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'fontFamily', selection, value)
+      return
+    }
+
+    onDiscTextStyleChange(key, 'fontFamily', value as DiscTextFontFamily)
+  }
   const handleBulletedListChange = (
     pressed: boolean,
     selection?: InlinePreviewTextEditorSelectionRange,
@@ -335,8 +344,23 @@ export function createDiscInlineTextEditorControls({
           value,
         })),
         value: style.fontFamily,
-        onChange: (value) =>
-          onDiscTextStyleChange(key, 'fontFamily', value as DiscTextFontFamily),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'fontFamily',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'string'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineFontFamilyChange,
       },
       size: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
@@ -596,6 +620,8 @@ export function createCurvedDiscTextEditorControls({
   onDiscTextAlignmentChange,
   onDiscTextArcSideChange,
   onResetDiscTextLayout,
+  onDiscTextRichTextCommand,
+  getDiscTextRichTextCommandState,
 }: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode === 'curved')
@@ -607,6 +633,52 @@ export function createCurvedDiscTextEditorControls({
     layout,
     layoutPresets,
   })
+  const handleInlineToggleChange = (
+    command: 'bold' | 'italic' | 'underline',
+    field: Extract<DiscTextStyleField, 'bold' | 'italic' | 'underline'>,
+    pressed: boolean,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      return onDiscTextRichTextCommand?.(key, command, selection, pressed)
+    }
+
+    onDiscTextStyleChange(key, field, pressed)
+    return undefined
+  }
+  const handleInlineFontFamilyChange = (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'fontFamily', selection, value)
+      return
+    }
+
+    onDiscTextStyleChange(key, 'fontFamily', value as DiscTextFontFamily)
+  }
+  const handleInlineSizeChange = (
+    value: number,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'fontSizePt', selection, value)
+      return
+    }
+
+    onDiscTextLayoutChange(key, 'fontSizePt', value)
+  }
+  const handleInlineColorChange = (
+    value: string,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (selection && selection.start !== selection.end) {
+      onDiscTextRichTextCommand?.(key, 'color', selection, value)
+      return
+    }
+
+    onDiscTextStyleChange(key, 'color', value)
+  }
 
   return {
     presets: {
@@ -655,8 +727,23 @@ export function createCurvedDiscTextEditorControls({
           value,
         })),
         value: style.fontFamily,
-        onChange: (value) =>
-          onDiscTextStyleChange(key, 'fontFamily', value as DiscTextFontFamily),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'fontFamily',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'string'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineFontFamilyChange,
       },
       size: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.size,
@@ -665,8 +752,23 @@ export function createCurvedDiscTextEditorControls({
         options: DISC_TEXT_POINT_SIZE_PRESETS,
         step: DISC_TEXT_POINT_SIZE_STEP,
         value: layout.fontSizePt,
-        onChange: (value: number) =>
-          onDiscTextLayoutChange(key, 'fontSizePt', value),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'fontSizePt',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'number'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineSizeChange,
       },
       alignment: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.alignment,
@@ -678,24 +780,78 @@ export function createCurvedDiscTextEditorControls({
       bold: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.bold,
         pressed: style.bold,
-        onChange: (pressed) => onDiscTextStyleChange(key, 'bold', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'bold',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('bold', 'bold', pressed, selection),
       },
       italic: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.italic,
         pressed: style.italic,
-        onChange: (pressed) => onDiscTextStyleChange(key, 'italic', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'italic',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange('italic', 'italic', pressed, selection),
       },
       underline: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.underline,
         pressed: style.underline,
-        onChange: (pressed) => onDiscTextStyleChange(key, 'underline', pressed),
+        getSelectionState: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'underline',
+            selection,
+          )
+          return typeof state === 'string' ? state : state?.state ?? 'inactive'
+        },
+        onChange: (pressed, selection) =>
+          handleInlineToggleChange(
+            'underline',
+            'underline',
+            pressed,
+            selection,
+          ),
       },
     },
     art: {
       color: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.color,
         value: style.color,
-        onChange: (value) => onDiscTextStyleChange(key, 'color', value),
+        getSelectionValue: (selection) => {
+          if (!hasInlineSelectionRange(selection)) return undefined
+
+          const state = getDiscTextRichTextCommandState?.(
+            key,
+            'color',
+            selection,
+          )
+          return typeof state === 'string'
+            ? { state }
+            : state && typeof state.value === 'string'
+              ? { state: state.state, value: state.value }
+              : state
+                ? { state: state.state }
+                : { state: 'inactive' }
+        },
+        onChange: handleInlineColorChange,
       },
       contrast: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.contrast,

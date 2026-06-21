@@ -101,7 +101,16 @@ export type InlinePreviewTextEditorSelectControl<T extends string = string> = {
   label: string
   options: readonly InlinePreviewTextEditorOption<T>[]
   value: T
-  onChange: (value: T) => void
+  getSelectionValue?: (
+    selection: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    state: InlinePreviewTextEditorToggleState
+    value?: T
+  } | undefined
+  onChange: (
+    value: T,
+    selection?: InlinePreviewTextEditorSelectionRange,
+  ) => void
 }
 
 export type InlinePreviewTextEditorRangeControl = {

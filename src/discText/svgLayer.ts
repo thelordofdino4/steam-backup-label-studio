@@ -32,6 +32,7 @@ import {
 } from './styles.ts'
 import { escapeSvgAttribute, escapeSvgText } from '../utils/svg.ts'
 import {
+  mergeAdjacentRichTextRuns,
   parseHtmlText,
   type RichTextDocument,
   type RichTextRun,
@@ -154,6 +155,157 @@ function getCurvedLinePathWidth(
     letterSpacing,
     measureText,
   ) + getCurvedTextPathPaintPadding(fontSize, letterSpacing)
+}
+
+type CurvedDiscTextRunLayout = RichTextRun & {
+  width: number
+}
+
+type CurvedDiscTextRichLine = {
+  runs: CurvedDiscTextRunLayout[]
+  text: string
+  width: number
+}
+
+function getCurvedRichRunFontSize(
+  run: RichTextRun,
+  baseFontSize: number,
+  template?: DiscTemplate,
+) {
+  return typeof run.fontSizePt === 'number'
+    ? discTextPointSizeToSvgPercent(run.fontSizePt, template)
+    : run.fontSizePx ?? baseFontSize
+}
+
+function getCurvedRichRunFontString({
+  baseFontSize,
+  renderStyle,
+  run,
+  template,
+}: {
+  baseFontSize: number
+  renderStyle: ResolvedDiscTextRenderStyle
+  run: RichTextRun
+  template?: DiscTemplate
+}) {
+  return getDiscTextFontString(
+    run.fontWeight ??
+      (run.bold ? RICH_TEXT_BOLD_FONT_WEIGHT : renderStyle.fontWeight),
+    getCurvedRichRunFontSize(run, baseFontSize, template),
+    run.fontFamily ?? renderStyle.fontFamilyCanvas,
+    run.fontStyle ?? (run.italic ? 'italic' : getDiscTextFontStyle(renderStyle)),
+  )
+}
+
+function measureCurvedRichRun({
+  baseFontSize,
+  letterSpacing,
+  measureText,
+  renderStyle,
+  run,
+  template,
+}: {
+  baseFontSize: number
+  letterSpacing: number
+  measureText: TextMeasureFunction
+  renderStyle: ResolvedDiscTextRenderStyle
+  run: RichTextRun
+  template?: DiscTemplate
+}) {
+  const font = getCurvedRichRunFontString({
+    baseFontSize,
+    renderStyle,
+    run,
+    template,
+  })
+  const characterCount = Array.from(run.text).length
+  const measuredWidth = measureText(run.text, font)
+  const fallbackWidth = getFallbackCurvedLineWidth(
+    run.text,
+    getCurvedRichRunFontSize(run, baseFontSize, template),
+    letterSpacing,
+  )
+
+  return (Number.isFinite(measuredWidth) ? measuredWidth : fallbackWidth) +
+    Math.max(0, characterCount - 1) * letterSpacing
+}
+
+function sliceRichRunsByRange(
+  runs: readonly RichTextRun[],
+  start: number,
+  end: number,
+) {
+  const slicedRuns: RichTextRun[] = []
+  let runStart = 0
+
+  for (const run of runs) {
+    const runEnd = runStart + run.text.length
+    const sliceStart = Math.max(start, runStart)
+    const sliceEnd = Math.min(end, runEnd)
+
+    if (sliceStart < sliceEnd) {
+      slicedRuns.push({
+        ...run,
+        text: run.text.slice(sliceStart - runStart, sliceEnd - runStart),
+      })
+    }
+
+    runStart = runEnd
+  }
+
+  return mergeAdjacentRichTextRuns(slicedRuns)
+}
+
+function getCurvedRichLines({
+  baseFontSize,
+  document,
+  fallbackLines,
+  letterSpacing,
+  measureText,
+  renderStyle,
+  template,
+}: {
+  baseFontSize: number
+  document?: RichTextDocument
+  fallbackLines: readonly string[]
+  letterSpacing: number
+  measureText: TextMeasureFunction
+  renderStyle: ResolvedDiscTextRenderStyle
+  template?: DiscTemplate
+}): CurvedDiscTextRichLine[] {
+  const flatRuns = document
+    ? document.lines.flatMap((line, index) => [
+        ...(index > 0 ? [{ text: '\n' } satisfies RichTextRun] : []),
+        ...line.runs,
+      ])
+    : []
+  let cursor = 0
+
+  return fallbackLines.map((line) => {
+    const plainText = document?.plainText ?? ''
+    const start = document
+      ? Math.max(cursor, plainText.indexOf(line, cursor))
+      : -1
+    const end = start >= 0 ? start + line.length : -1
+    cursor = end >= 0 ? end : cursor
+    const sourceRuns = start >= 0 && end >= start
+      ? sliceRichRunsByRange(flatRuns, start, end)
+      : [{ text: line } satisfies RichTextRun]
+    const runs = sourceRuns.map((run) => ({
+      ...run,
+      width: measureCurvedRichRun({
+        baseFontSize,
+        letterSpacing,
+        measureText,
+        renderStyle,
+        run,
+        template,
+      }),
+    }))
+    const width = runs.reduce((total, run) => total + run.width, 0)
+
+    return { runs, text: line, width }
+  })
 }
 
 function splitLongTokenForCurvedText(
@@ -462,6 +614,86 @@ function buildCurvedUnderlineMarkup({
   }).join('')
 }
 
+function isRichRunUnderlined(run: RichTextRun, renderStyle: ResolvedDiscTextRenderStyle) {
+  if (run.textDecoration) return run.textDecoration === 'underline'
+  return Boolean(run.underline || renderStyle.underline)
+}
+
+function buildCurvedRunUnderlineMarkup({
+  className,
+  fontSize,
+  includeShadowFilter,
+  isTopArc,
+  key,
+  lineLayout,
+  renderStyle,
+  richLine,
+  shadowFilterId,
+}: {
+  className: string
+  fontSize: number
+  includeShadowFilter: boolean
+  isTopArc: boolean
+  key: DiscTextKey
+  lineLayout: ReturnType<typeof layoutCurvedText>['lines'][number]
+  renderStyle: ResolvedDiscTextRenderStyle
+  richLine: CurvedDiscTextRichLine
+  shadowFilterId: string
+}) {
+  if (lineLayout.angleWidthDegrees <= 0 || richLine.width <= 0) return ''
+
+  const strokeWidth = Math.max(
+    0.08,
+    fontSize * DISC_TEXT_CURVED_UNDERLINE_STROKE_FACTOR,
+  )
+  const declarations = getCurvedUnderlineDeclarations({
+    renderStyle,
+    strokeWidth,
+    shadowFilterId,
+    includeShadowFilter,
+  })
+  const radius = getCurvedUnderlineRadius(isTopArc, lineLayout.radius, fontSize)
+  let runStartRatio = 0
+
+  return richLine.runs.map((run) => {
+    const runRatio = run.width / richLine.width
+    const segmentStartRatio = runStartRatio
+    const segmentEndRatio = runStartRatio + runRatio
+    runStartRatio = segmentEndRatio
+
+    if (!isRichRunUnderlined(run, renderStyle)) return ''
+
+    const startDelta = lineLayout.angleWidthDegrees * segmentStartRatio
+    const endDelta = lineLayout.angleWidthDegrees * segmentEndRatio
+    const startAngle = isTopArc
+      ? lineLayout.startAngleDegrees + startDelta
+      : lineLayout.startAngleDegrees - startDelta
+    const endAngle = isTopArc
+      ? lineLayout.startAngleDegrees + endDelta
+      : lineLayout.startAngleDegrees - endDelta
+    const angleWidth = Math.abs(endDelta - startDelta)
+
+    if (angleWidth <= 0) return ''
+
+    const path = createSvgArcPath(
+      50,
+      50,
+      radius,
+      startAngle,
+      endAngle,
+      isTopArc ? 1 : 0,
+      getLargeArcFlag(angleWidth),
+    )
+
+    return `<path
+      class="${className}"
+      ${DISC_TEXT_KEY_ATTRIBUTE}="${key}"
+      d="${escapeSvgAttribute(path)}"
+      style="${escapeSvgAttribute(declarations.join('; '))}"
+    />`
+  }).join('')
+}
+
 function formatSvgNumber(value: number) {
   return Number(value.toFixed(3))
 }
@@ -688,6 +920,7 @@ function buildCurvedCopyrightMarkup(
   curvedShadowFilterId: string,
   styles?: DiscTextStyleInput,
   template?: DiscTemplate,
+  richText?: RichTextDocument,
 ) {
   const isTopArc = getCopyrightArcSide(placement, layout) === 'top'
   const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
@@ -714,21 +947,36 @@ function buildCurvedCopyrightMarkup(
     isTopArc,
     measureText,
   )
+  const richLines = getCurvedRichLines({
+    baseFontSize: fontSize,
+    document: richText,
+    fallbackLines: lines,
+    letterSpacing,
+    measureText,
+    renderStyle,
+    template,
+  })
   const curvedLineLayout = layoutCurvedText({
     side: isTopArc ? 'top' : 'bottom',
     centerAngleDegrees: arcCenterAngle,
     arcDegrees: layout.arcDegrees,
     align: layout.align,
     blockWindowDegrees,
-    lines: lines.map((line, index) => ({
-      text: line,
+    lines: richLines.map((line, index) => ({
+      text: line.text,
       measuredWidth: getCurvedLinePathWidth(
-        line,
+        line.text,
         font,
         fontSize,
         letterSpacing,
         measureText,
-      ),
+      ) + Math.max(0, line.width - getCurvedLineWidth(
+        line.text,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      )),
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
@@ -738,15 +986,9 @@ function buildCurvedCopyrightMarkup(
     arcDegrees: layout.arcDegrees,
     align: layout.align,
     blockWindowDegrees,
-    lines: lines.map((line, index) => ({
-      text: line,
-      measuredWidth: getCurvedLineWidth(
-        line,
-        font,
-        fontSize,
-        letterSpacing,
-        measureText,
-      ),
+    lines: richLines.map((line, index) => ({
+      text: line.text,
+      measuredWidth: line.width,
       radius: getCurvedLineRadius(isTopArc, textRadius, lineStep, lines.length, index),
     })),
   })
@@ -765,6 +1007,49 @@ function buildCurvedCopyrightMarkup(
 
     return `<path id="${pathId}" d="${path}" />`
   }).join('')
+  const buildCurvedRunStyle = (run: CurvedDiscTextRunLayout) => {
+    const declarations = [
+      run.color ? `fill:${run.color}` : '',
+      run.fontFamily ? `font-family:${run.fontFamily}` : '',
+      run.fontSizePt
+        ? `font-size:${discTextPointSizeToSvgPercent(run.fontSizePt, template)}px`
+        : '',
+      run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
+      run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
+      run.bold ? `font-weight:${RICH_TEXT_BOLD_FONT_WEIGHT}` : '',
+      run.fontStyle === 'italic' && !run.italic ? 'font-style:italic' : '',
+      run.italic ? 'font-style:italic' : '',
+    ].filter(Boolean)
+
+    return declarations.length > 0
+      ? ` style="${escapeSvgAttribute(declarations.join('; '))}"`
+      : ''
+  }
+  const buildCurvedLineContent = (
+    richLine: CurvedDiscTextRichLine | undefined,
+    fallbackText: string,
+  ) => {
+    const runs = richLine?.runs.filter((run) => run.text) ?? []
+    const hasStyledRuns = runs.some((run) =>
+      run.bold ||
+      run.italic ||
+      run.underline ||
+      run.color ||
+      run.fontFamily ||
+      run.fontSizePt ||
+      run.fontSizePx ||
+      run.fontWeight ||
+      run.fontStyle ||
+      run.textDecoration)
+
+    if (!hasStyledRuns) {
+      return escapeSvgText(fallbackText)
+    }
+
+    return runs.map((run) =>
+      `<tspan${buildCurvedRunStyle(run)}>${escapeSvgText(run.text)}</tspan>`,
+    ).join('')
+  }
   const buildCurvedTextMarkup = (
     className: string,
     textShadowFilterId: string,
@@ -789,10 +1074,27 @@ function buildCurvedCopyrightMarkup(
         xml:space="preserve"
         style="${style}"
       >
-        <textPath href="#${pathId}" xlink:href="#${pathId}" startOffset="${textPathAnchor.startOffset}" text-anchor="${textPathAnchor.textAnchor}">${escapeSvgText(lineLayout.text)}</textPath>
+        <textPath href="#${pathId}" xlink:href="#${pathId}" startOffset="${textPathAnchor.startOffset}" text-anchor="${textPathAnchor.textAnchor}">${buildCurvedLineContent(richLines[index], lineLayout.text)}</textPath>
       </text>
     `
   }).join('')
+  const buildCurvedRichUnderlineMarkup = (
+    className: string,
+    textShadowFilterId: string,
+    includeShadowFilter: boolean,
+  ) => curvedLineLayout.lines.map((lineLayout, index) =>
+    buildCurvedRunUnderlineMarkup({
+      className,
+      fontSize,
+      includeShadowFilter,
+      isTopArc,
+      key,
+      lineLayout,
+      renderStyle,
+      richLine: richLines[index],
+      shadowFilterId: textShadowFilterId,
+    }),
+  ).join('')
   const hasShadow = hasDiscTextShadow(renderStyle)
   const shadowTextMarkup = hasShadow
     ? buildCurvedTextMarkup(
@@ -806,27 +1108,43 @@ function buildCurvedCopyrightMarkup(
     shadowFilterId,
     false,
   )
+  const hasRunUnderline = richText
+    ? richLines.some((line) =>
+        line.runs.some((run) => isRichRunUnderlined(run, renderStyle)))
+    : false
   const shadowUnderlineMarkup = hasShadow
-    ? buildCurvedUnderlineMarkup({
+    ? hasRunUnderline
+      ? buildCurvedRichUnderlineMarkup(
+          'disc-text-curved-underline-shadow',
+          curvedShadowFilterId,
+          true,
+        )
+      : buildCurvedUnderlineMarkup({
+          isTopArc,
+          key,
+          layout: underlineLineLayout,
+          renderStyle,
+          fontSize,
+          shadowFilterId: curvedShadowFilterId,
+          includeShadowFilter: true,
+          className: 'disc-text-curved-underline-shadow',
+        })
+    : ''
+  const underlineMarkup = hasRunUnderline
+    ? buildCurvedRichUnderlineMarkup(
+        'disc-text-curved-underline',
+        shadowFilterId,
+        false,
+      )
+    : buildCurvedUnderlineMarkup({
         isTopArc,
         key,
         layout: underlineLineLayout,
         renderStyle,
         fontSize,
-        shadowFilterId: curvedShadowFilterId,
-        includeShadowFilter: true,
-        className: 'disc-text-curved-underline-shadow',
+        shadowFilterId,
+        includeShadowFilter: false,
       })
-    : ''
-  const underlineMarkup = buildCurvedUnderlineMarkup({
-    isTopArc,
-    key,
-    layout: underlineLineLayout,
-    renderStyle,
-    fontSize,
-    shadowFilterId,
-    includeShadowFilter: false,
-  })
 
   return { defs: pathMarkup, body: `${shadowUnderlineMarkup}${shadowTextMarkup}${underlineMarkup}${textMarkup}` }
 }
@@ -992,14 +1310,11 @@ export function buildDiscTextSvgLayer({
 
     const fallbackText = getDiscTextContent(key, values, title)
     const layout = layoutSettings[key]
-    const htmlDocument =
-      key === 'copyright' && layout.mode === 'curved'
-        ? null
-        : isDiscTextHtmlEnabled(htmlSources, key)
-          ? parseHtmlText(
-              getDiscTextHtmlSource(htmlSources, key, fallbackText),
-            )
-          : null
+    const htmlDocument = isDiscTextHtmlEnabled(htmlSources, key)
+      ? parseHtmlText(
+          getDiscTextHtmlSource(htmlSources, key, fallbackText),
+        )
+      : null
     const text = htmlDocument?.plainText ?? fallbackText
     if (!text.trim()) return ''
 
@@ -1016,6 +1331,7 @@ export function buildDiscTextSvgLayer({
         curvedShadowFilterId,
         styles,
         template,
+        htmlDocument ?? undefined,
       )
       pathDefs.push(curvedMarkup.defs)
       return curvedMarkup.body
