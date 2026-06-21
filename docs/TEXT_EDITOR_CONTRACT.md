@@ -3,10 +3,10 @@
 > Purpose: Expected text editor behavior, renderer ownership, parity, and regression gates.
 > Read when: Text-editor behavior, formatting, selection, source editing, contextual controls, or smoke work.
 > Authoritative source: This document for text-editor behavior; SDD for global architecture.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
 
 
-Last refreshed: 2026-06-16.
+Last refreshed: 2026-06-21.
 
 This contract freezes the expected behavior of the preview-mounted text editor
 before more text editor feature work continues. It exists because recent text
@@ -21,26 +21,41 @@ tested, and the remaining divergences are recorded.
 ## Core UX Contract
 
 - The Text panel is an add/select entry point, not the primary editing surface.
-- Selecting text in the preview opens a compact contextual editor near the
-  selected text.
-- The selected text is the positioning anchor for the whole contextual editor.
-- Tabs appear directly above the selected text.
-- The context menu appears below the selected text by default.
-- The menu repositions upward before it would hit the bottom of the active
-  preview window.
-- The menu clamps inside the active preview window horizontally and vertically.
-- Contextual editor positioning is relative to the active preview window, not
-  the page, sidebar, or document body.
-- The editor must feel like a compact contextual toolbar attached to the
-  selected text, not like the sidebar controls were relocated onto the canvas.
+- Selecting editable text in the preview activates the stable contextual text
+  ribbon in the app shell.
+- The contextual ribbon occupies a reserved top-right app-shell region above
+  the preview. The Live Preview heading remains on the left side of that header
+  area.
+- The preview begins below the complete header/ribbon region and must never
+  encroach into, underlap, or be clipped by the reserved ribbon slot.
+- The reserved slot remains present when no text target is active, but the
+  ribbon contents disappear.
+- Row 1 of the ribbon contains the four contextual tabs. Row 2 contains the
+  active tab's controls. At narrower widths, controls may wrap into a third
+  row.
+- Ribbon position and size are based only on the app-shell container
+  dimensions. They must never depend on selected-text bounds, safe zones, arcs,
+  preview geometry, center holes, or collision scoring.
+- Toast notifications normally keep their existing top-right placement. When
+  the contextual ribbon is active, the toast stack must move below the reserved
+  ribbon region with a small gap and must never overlap ribbon tabs or controls.
+- The toast offset must be derived from the actual reserved ribbon slot height,
+  preferably through shared app-shell layout state or a CSS variable such as a
+  contextual ribbon height/offset. It must not be a hardcoded magic number and
+  must not depend on text bounds, selected module, disc geometry, or preview
+  geometry.
+- Toast animation, appearance, and disappearance must not resize or move the
+  preview.
 - There is no separate normal-mode "Text value" field replacing the preview.
 - The visible text itself remains on the canvas and is editable directly in the
   preview.
 - The editable text has a dotted boundary around the actual visible text bounds.
 - Empty selected text has a small visible minimum dotted box.
 - The text body is for typing and selecting text.
-- A separate visible move handle is used for dragging.
-- Drag uses pointer capture and a grab/grabbing cursor.
+- Text-body dragging selects text. It must never move the text object.
+- An approximately 8px selection-edge grab region moves the text object
+  immediately. It uses pointer capture and a grab/grabbing cursor.
+- A visible Move button remains available as an accessible movement fallback.
 - Delete/trash removes the text object instead of relying on a "show" checkbox.
 - HTML source is the supported source-editing mode where a text module can
   safely parse sanitized markup into the shared rich-text run model and render
@@ -85,25 +100,107 @@ tested, and the remaining divergences are recorded.
   `fontSizePx` run values remain readable for older HTML but new canonical
   source should emit `font-size:Npt`.
 
-## Contextual Editor Positioning Contract
+## Contextual Ribbon Placement Contract
 
-- The selected text box is the only anchor for tabs, editable text, move
-  handle, and the context menu.
-- Tabs sit directly above the selected text boundary, following that boundary as
-  text moves, wraps, or changes size.
-- Editable text stays in the design surface; editing must not replace the
-  selected text with a detached form field in the middle of the preview.
-- The context menu opens below the selected text when there is enough room.
-- Before the menu would collide with the active preview window bottom edge, it
-  flips above or otherwise moves upward while staying associated with the
-  selected text.
-- The menu must clamp to the active preview window on every side. It must not
-  clip into the page edge, sidebar, body viewport, or an inactive preview area.
-- Cover sheet, tray card, left spine, right spine, and straight disc text should
-  all use the same positioning contract, with target-specific geometry only
-  where the surface requires it.
-- Right spine menu clipping was reported runtime-verified in PR `#186`; keep it
-  as a required smoke scenario whenever contextual editor positioning changes.
+- The contextual text controls live in a stable app-shell ribbon, not in a
+  floating menu attached to the selected text.
+- The ribbon is shared by cover, tray, left spine, right spine, straight disc,
+  and curved disc text targets.
+- The ribbon responds to its reserved header/container width and height only.
+  Surface-specific geometry may affect preview affordances and text layout, but
+  it must not move, resize, dock, or flip the ribbon.
+- The old full-menu collision, docking, portal, and selected-text-anchored
+  positioning system is temporary compatibility code during migration. It must
+  be deleted after the ribbon fully owns contextual controls.
+- The preview still owns target-local affordances: caret, selection, dotted or
+  path-aware outlines, direct typing, edge-grab movement affordance, Move
+  fallback target where applicable, and Delete affordance where applicable.
+- Intentional setup, source, and type controls remain sidebar-owned. Examples
+  include add/enable entry points, metadata/default source selection, and
+  straight/curved mode selection where the surface still needs a pre-selection
+  setup choice.
+
+### Module And Control Ownership Matrix
+
+| Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
+| --- | --- | --- | --- |
+| Cover text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, background, border, alignment, wrap width, position, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, range selection, dotted bounds, edge-grab movement, Move fallback | Add/select entry points, metadata/default setup without contextual equivalent |
+| Tray text | Same as cover text, using tray-safe geometry and wrapping semantics | Same as cover text | Same as cover text |
+| Left spine text | Same contextual text controls that the spine target supports | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select entry points, spine orientation or structural setup where still sidebar-owned |
+| Right spine text | Same as left spine text | Same as left spine text | Same as left spine text |
+| Straight disc text | Style/layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source where supported, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
+| Curved disc text | Whole-object or supported range-safe controls for font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc side/span/inset/position, presets, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+
+### Responsive Ribbon States
+
+| State | Container behavior | Control behavior |
+| --- | --- | --- |
+| Wide | Tabs fit in one row; active controls fit in one or two balanced groups. | Full labels, normal spacing, normal sliders/inputs. |
+| Compact | Tabs may remain one row or become two-by-two if needed. | Controls reflow into fewer columns with shorter labels and smaller gaps. |
+| Narrow | Tabs may use two-by-two layout or horizontal scrolling only as a last resort. | Labels stack above controls, fields use available width, and controls may wrap into a third row. |
+
+### Migration Sequence
+
+1. Add the reserved app-shell ribbon slot above the preview while leaving the
+   inactive slot empty.
+2. Move tab rendering into the ribbon without changing target adapters or
+   renderer ownership.
+3. Move active-tab controls into the ribbon by consuming the existing
+   contextual control registry and adapter contracts.
+4. Keep preview affordances on the selected text and add the selection-edge
+   movement region.
+5. Confirm every target surface activates the ribbon and preserves WYSIWYG
+   parity.
+6. Remove migrated duplicate sidebar controls only where setup/source/type
+   ownership is not required.
+7. Delete the old floating menu, portal, docking, center-dock, emergency
+   placement, selected-text collision, and menu-size feedback code after no
+   target uses it.
+
+### Legacy-Code Deletion Map
+
+Delete or retire these responsibilities after the ribbon migration is complete:
+
+- Selected-text-anchored tab/menu placement and collision scoring.
+- Preview-bound menu flipping, clamping, emergency detached placement, and
+  center/side docking helpers.
+- Portal roots and outside-click containment code that exist only for floating
+  contextual menus.
+- Responsive shell sizing feedback used by the floating placement solver.
+- Tests that only prove the floating menu avoids safe zones, center holes, or
+  selected-text bounds.
+
+Keep these responsibilities:
+
+- Text target adapters and the contextual control registry.
+- Hidden/native input adapters.
+- Caret, selection, outline, direct typing, edge-grab movement, Move fallback,
+  and Delete affordances.
+- Renderer, layout, save/load, and export ownership.
+
+### Acceptance Criteria
+
+- The ribbon appears only when editable text is selected, while its app-shell
+  slot remains reserved when inactive.
+- The Live Preview heading remains visible on the left, and the preview begins
+  below the full header/ribbon region.
+- Row 1 contains the four contextual tabs; row 2 contains the active tab's
+  controls; narrow widths may wrap controls into row 3 without overlap.
+- Toasts keep their existing placement when the ribbon is inactive, move below
+  the measured ribbon slot while active, and return to their original placement
+  when the ribbon deactivates.
+- Toasts never overlap ribbon tabs or controls at default Tauri window size,
+  narrow widths, or wide widths.
+- Ribbon size/position does not change when selected text moves, wraps, changes
+  point size, changes arc geometry, touches a safe zone, or crosses the disc
+  center hole.
+- Cover, tray, left spine, right spine, straight disc, and curved disc targets
+  all activate the same ribbon host.
+- Text-body drag selects text; the selection-edge grab region and Move fallback
+  move the object immediately.
+- Existing sidebar setup/source/type controls remain available and are not
+  duplicated by migrated editing controls.
+- Preview, save/load, and export parity remain unchanged.
 
 ## Input And Caret Contract
 
@@ -194,6 +291,9 @@ is required:
 - Selection: Ctrl+A and pointer-drag selection operate on the visible text for
   adapter-backed insert and straight-disc editing paths.
 - Panels: cover/tray/spine feature groups remain bundled and recognizable.
+- Toast/ribbon stacking: inactive ribbon preserves current toast placement;
+  active ribbon offsets the toast stack below the measured reserved ribbon slot
+  without moving the preview.
 
 ## Current Gate Owners
 

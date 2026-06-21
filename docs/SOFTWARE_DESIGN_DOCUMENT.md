@@ -3,7 +3,7 @@
 > Purpose: As-built architecture contracts for state, rendering, editing, save/load, export, and subsystem boundaries.
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -140,12 +140,19 @@ Current implementation note:
 
 - Preview-mounted text editing is governed by this WYSIWYG contract. As of PR `#186`, cover, tray, left/right spine, and straight disc inline editing keep the final preview renderer visible during edit and use target-specific input/selection adapters instead of fake visible edit text.
 - Treat preview-mounted text editing as a protected stabilization area. Future WYSIWYG changes still need parity tests and runtime validation, especially around save/load, export, rich text, caret behavior, selection behavior, wrapping, and curved disc text.
+- The accepted next UI direction for contextual text controls is a stable
+  top-right app-shell ribbon above the preview, documented in
+  `docs/TEXT_EDITOR_CONTRACT.md`. That ribbon is a control host only. It does
+  not change the preview renderer, direct text editing, save/load, export, or
+  curved SVG/textPath ownership contracts.
 
 Contracts:
 
 - The visible text remains on the canvas and is editable directly in the preview.
 - The text body is for typing and text selection.
-- Normal drag/select over text should select text. Moving text uses a visible move handle or an intentional long-hold behavior.
+- Normal drag/select over text should select text. Moving text uses an
+  approximately 8px selection-edge grab region or a visible Move fallback; text
+  body dragging must not move the object.
 - Fake visible text rendered over a transparent input is a known violation/risk and is forbidden unless explicit parity tests prove spacing, caret, wrapping, selection, final preview, save/load, and export behavior remain equivalent.
 - Hidden/native input adapters may exist only as adapters. They must not become the visible source of truth.
 - Spaces, multiple spaces, leading/trailing spaces, newlines, and pasted multiline text must be preserved while editing and after exiting edit mode.
@@ -493,6 +500,112 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
   HTML runs readable for migration.
 - Export uses `drawDiscTextElements` for disc text and `exportCaseInsertPng.ts` for case insert text.
 
+### 9.4.1 Stable Contextual Text Ribbon Contract
+
+The planned contextual text-control host is a stable ribbon in the app shell,
+not a floating menu attached to selected text. This is a design contract for
+future migration work; it does not claim the current floating implementation has
+already been removed.
+
+Ribbon placement and layout:
+
+- The ribbon occupies a reserved top-right app-shell region above the preview.
+- The Live Preview heading remains on the left of the same header region.
+- The preview begins below the complete header/ribbon region and never
+  encroaches into the reserved slot.
+- The slot remains reserved when inactive, but ribbon contents disappear.
+- Selecting editable text activates the ribbon.
+- Row 1 contains the four contextual tabs.
+- Row 2 contains the active tab's controls.
+- At narrower widths, controls may wrap into a third row.
+- Ribbon position and size depend only on the app-shell container dimensions.
+  They must not depend on selected-text bounds, safe zones, arcs, disc center
+  holes, preview geometry, or collision scoring.
+- The ribbon applies to cover, tray, left spine, right spine, straight disc, and
+  curved disc text.
+- Toast notifications keep their current top-right placement when no ribbon is
+  active. When the ribbon is active, the toast stack moves below the reserved
+  ribbon region with a small gap. The offset must come from the actual reserved
+  ribbon slot height, preferably via shared app-shell layout state or a CSS
+  variable, not from selected text, selected module, disc geometry, preview
+  geometry, or a fragile hardcoded value.
+- Toasts must never overlap ribbon tabs or controls, and toast appearance,
+  disappearance, or animation must not resize or move the preview.
+
+Preview responsibilities remain on the preview surface:
+
+- The visible text renderer remains the visual source of truth.
+- The preview retains caret, selection, outline, direct typing, edge movement
+  affordance, Move fallback, and Delete where supported.
+- Text-body dragging selects text and never moves the object.
+- An approximately 8px selection-edge grab region moves the object
+  immediately.
+- The Move button remains an accessible movement fallback.
+
+Ownership matrix:
+
+| Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
+| --- | --- | --- | --- |
+| Cover | Contextual presets, text controls, art controls, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, selection, dotted bounds, edge-grab movement, Move fallback | Add/select, metadata/default setup without contextual equivalent |
+| Tray | Same as cover, with tray geometry and wrap semantics | Same as cover | Same as cover |
+| Left spine | Supported contextual text controls | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select and structural spine setup where needed |
+| Right spine | Same as left spine | Same as left spine | Same as left spine |
+| Straight disc | Supported contextual text controls, including HTML source where supported | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
+| Curved disc | Curved-safe text controls, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+
+Responsive states:
+
+- Wide: tabs fit in one row; active controls use full labels, normal spacing,
+  and normal sliders/inputs.
+- Compact: tabs may become two-by-two; controls reflow into fewer columns with
+  smaller gaps.
+- Narrow: labels stack above controls, fields use available width, controls may
+  wrap into a third row, and tab scrolling is a last resort.
+
+Migration sequence:
+
+1. Add the reserved app-shell ribbon slot above the preview.
+2. Move tabs into the ribbon without changing adapters or renderer ownership.
+3. Move active-tab controls into the ribbon through the existing contextual
+   control registry and target adapters.
+4. Expose the measured ribbon slot height or offset to the toast container so
+   active-ribbon toasts stack below the ribbon while inactive-ribbon toasts keep
+   their current placement.
+5. Keep caret, selection, outline, direct typing, edge-grab movement, Move
+   fallback, and Delete affordances in the preview.
+6. Confirm every text target activates the ribbon and preserves WYSIWYG parity.
+7. Remove duplicated sidebar controls only after confirming setup/source/type
+   ownership remains available.
+8. Delete the old floating full-menu collision, docking, portal, emergency
+   placement, selected-text obstacle, and menu-size feedback code after no
+   target uses it.
+
+Legacy-code deletion map:
+
+- Delete selected-text-anchored tab/menu positioning, collision scoring,
+  center/side docking, emergency detached placement, portal-only containment,
+  and responsive-shell feedback code that exists only to keep floating menus
+  usable.
+- Keep target adapters, the contextual control registry, hidden/native input
+  adapters, preview caret/selection/outline/movement affordances, renderers,
+  layout helpers, save/load, and export ownership.
+
+Acceptance criteria:
+
+- The inactive ribbon slot stays reserved with no visible contents.
+- Selecting editable text activates the ribbon across cover, tray, spines,
+  straight disc, and curved disc.
+- The preview starts below the full header/ribbon region.
+- Toasts keep their existing placement when no ribbon is active, move below the
+  actual reserved ribbon slot while active, never overlap ribbon tabs or
+  controls, and do not move or resize the preview.
+- Ribbon position does not change when text moves, wraps, changes point size,
+  changes arc geometry, touches safe zones, or crosses the disc center hole.
+- Text-body drag selects text; edge-grab and Move fallback move immediately.
+- No migrated editing control remains duplicated in the sidebar unless it is
+  intentionally sidebar-owned setup/source/type UI.
+- Preview, save/load, and export parity remain unchanged.
+
 ### 9.5 Invariants And Future-Change Rules
 
 - Curved disc text remains SVG/textPath unless a future ADR changes it. The
@@ -500,8 +613,13 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
   whole-object controls, but SVG/textPath remains the visible renderer and
   curved text must not be routed through a rectangular on-canvas editor.
 - Edit mode may add boundaries, toolbar controls, menus, move handles, and hidden input adapters, but it must not replace the visible text with a different visual renderer.
+- Contextual text controls should migrate to the stable top-right app-shell
+  ribbon. After migration, text-target geometry may control only preview
+  affordances and text layout; it must not position or resize the ribbon.
 - Hidden inputs and measurement layers are adapters.
-- Text selection should work as text selection. Text movement should use a handle or intentional long-hold interaction.
+- Text selection should work as text selection. Text movement should use an
+  edge-grab region or Move fallback; text-body drag should never move the
+  object.
 - Fake visible text over a transparent input is a known violation/risk unless explicit parity tests cover it.
 - Unsanitized HTML must never be used as the visual renderer source of truth;
   source editors are input adapters, and normal preview/export must consume the
@@ -1211,7 +1329,38 @@ Consequences:
 - Feature state must not be deleted merely because the user disables visibility.
 - Preview, export, preflight, and save/load must agree.
 
-### ADR-009: App.tsx Is Orchestration, Not A Logic Dumping Ground
+### ADR-009: Contextual Text Controls Use A Stable App-Shell Ribbon
+
+Status: Accepted design contract, pending implementation.
+
+Decision:
+
+- Replace the floating selected-text-anchored contextual menu with a stable
+  top-right app-shell contextual text ribbon.
+- Reserve the ribbon slot above the preview, keep Live Preview heading on the
+  left, and start the preview below the full header/ribbon region.
+- Keep contextual tabs and active-tab controls in the ribbon while leaving
+  caret, selection, direct typing, outlines, edge-grab movement, Move fallback,
+  and Delete affordances on the preview.
+- Give the ribbon priority over the existing top-right toast stack while it is
+  active by offsetting toasts below the measured reserved ribbon slot.
+- Keep intentional setup/source/type controls in the sidebar.
+- Delete the full-menu collision, docking, portal, and emergency-placement
+  system after the ribbon owns contextual controls.
+
+Consequences:
+
+- Contextual control placement must no longer be solved from selected-text
+  bounds, safe zones, arcs, center holes, or preview geometry.
+- The ribbon must be responsive to app-shell container dimensions only.
+- Toast offset should consume shared app-shell ribbon height/offset state or a
+  CSS variable and must not be derived from preview or text geometry.
+- Surface adapters continue to own renderer, layout, state, save/load, export,
+  and target-specific editing affordances.
+- Migration work must preserve WYSIWYG renderer parity and curved
+  SVG/textPath behavior.
+
+### ADR-010: App.tsx Is Orchestration, Not A Logic Dumping Ground
 
 Status: Accepted as a direction and guardrail, partially achieved.
 
@@ -1225,7 +1374,7 @@ Consequences:
 - Future fixes should refactor ownership boundaries when hidden coupling causes regressions.
 - Open issue `#44` remains relevant.
 
-### ADR-010: Built-In Generic Assets Are Valid Output Sources
+### ADR-011: Built-In Generic Assets Are Valid Output Sources
 
 Status: Accepted, current.
 
@@ -1240,7 +1389,7 @@ Consequences:
 - Warning logic targets missing content, invalid settings, unresolved behavior, or print/readability risks.
 - Future mark/badge/logo catalogs must preserve centralized asset routing.
 
-### ADR-011: Validation Claims Must Distinguish Source Checks From Runtime Checks
+### ADR-012: Validation Claims Must Distinguish Source Checks From Runtime Checks
 
 Status: Accepted, current.
 
