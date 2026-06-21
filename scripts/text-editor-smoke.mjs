@@ -488,6 +488,23 @@ async function clickInlineTab(page, tabId) {
   await page.waitForTimeout(100)
 }
 
+async function ensureInlineUtilitiesControl(page, smokeId) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await clickInlineTab(page, 'utilities')
+    const locator = smoke(page, smokeId).first()
+
+    try {
+      await locator.waitFor({ state: 'attached', timeout: 1_500 })
+      return locator
+    } catch (error) {
+      if (attempt === 2) throw error
+      await page.waitForTimeout(100)
+    }
+  }
+
+  return smoke(page, smokeId).first()
+}
+
 async function clickInlineToggle(page, labelToken) {
   await clickVisibleSmoke(page, `inline-text-toggle-${labelToken}`)
   await page.waitForTimeout(150)
@@ -500,47 +517,62 @@ async function setInlineColor(page, labelToken, value) {
 }
 
 async function setInlineNumberControl(page, labelToken, value) {
-  await clickInlineTab(page, 'utilities')
+  const input = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-number-${labelToken}`,
+  )
   await setNativeInputValue(
-    smoke(page, `inline-text-number-${labelToken}`).first(),
+    input,
     String(value),
   )
   await page.waitForTimeout(250)
 }
 
 async function setInlineRangeControl(page, labelToken, value) {
-  await clickInlineTab(page, 'utilities')
+  const input = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-range-${labelToken}`,
+  )
   await setNativeInputValue(
-    smoke(page, `inline-text-range-${labelToken}`).first(),
+    input,
     String(value),
   )
   await page.waitForTimeout(250)
 }
 
 async function setInlineSelectControl(page, labelToken, value) {
-  await clickInlineTab(page, 'utilities')
-  await smoke(page, `inline-text-select-${labelToken}`).first().selectOption(value)
+  const select = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-select-${labelToken}`,
+  )
+  await select.selectOption(value)
   await page.waitForTimeout(250)
 }
 
 async function getInlineNumberControlValue(page, labelToken) {
-  await clickInlineTab(page, 'utilities')
-  const value = await smoke(page, `inline-text-number-${labelToken}`).first()
-    .inputValue()
+  const input = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-number-${labelToken}`,
+  )
+  const value = await input.inputValue()
   return Number(value)
 }
 
 async function getInlineNumberControlMax(page, labelToken) {
-  await clickInlineTab(page, 'utilities')
-  const max = await smoke(page, `inline-text-number-${labelToken}`).first()
-    .getAttribute('max')
+  const input = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-number-${labelToken}`,
+  )
+  const max = await input.getAttribute('max')
   return Number(max)
 }
 
 async function getInlineNumberControlMin(page, labelToken) {
-  await clickInlineTab(page, 'utilities')
-  const min = await smoke(page, `inline-text-number-${labelToken}`).first()
-    .getAttribute('min')
+  const input = await ensureInlineUtilitiesControl(
+    page,
+    `inline-text-number-${labelToken}`,
+  )
+  const min = await input.getAttribute('min')
   return Number(min)
 }
 
@@ -704,6 +736,52 @@ async function getRect(page, smokeId) {
   })
 }
 
+async function waitForStableRect(page, smokeId) {
+  let previous = await getRect(page, smokeId)
+
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    await page.waitForTimeout(60)
+    const current = await getRect(page, smokeId)
+
+    if (
+      Math.abs(previous.left - current.left) < 0.5 &&
+      Math.abs(previous.top - current.top) < 0.5 &&
+      Math.abs(previous.width - current.width) < 0.5 &&
+      Math.abs(previous.height - current.height) < 0.5
+    ) {
+      return current
+    }
+
+    previous = current
+  }
+
+  return previous
+}
+
+async function waitForMeasuredCenterDock(page) {
+  const start = Date.now()
+
+  while (Date.now() - start < 2_500) {
+    const mode = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-mode')
+    const menu = await getRect(page, 'inline-text-menu')
+
+    if (mode === 'center-docked' && menu.width >= 360) {
+      await waitForStableRect(page, 'inline-text-menu')
+      return
+    }
+
+    await page.waitForTimeout(60)
+  }
+
+  const mode = await smoke(page, 'inline-text-menu')
+    .getAttribute('data-inline-placement-mode')
+  const menu = await getRect(page, 'inline-text-menu')
+  fail(`Center dock did not settle to measured dimensions: ${
+    JSON.stringify({ menu, mode })
+  }`)
+}
+
 async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
   const host = await getRect(page, 'disc-inline-text-copyright')
   const preview = await getRect(page, 'disc-preview')
@@ -778,7 +856,9 @@ async function dragInlineMoveHandleImmediately(
   targetSmokeId,
   deltaX = 28,
   deltaY = 18,
+  options = {},
 ) {
+  const expectMenuMovement = options.expectMenuMovement !== false
   const beforeTarget = await getRect(page, targetSmokeId)
   const beforeMenu = await getRect(page, 'inline-text-menu')
   const handle = await getRect(page, 'inline-text-move-handle')
@@ -816,12 +896,21 @@ async function dragInlineMoveHandleImmediately(
 
   const afterMenu = await getRect(page, 'inline-text-menu')
   const menuDelta = getRectDelta(beforeMenu, afterMenu)
-  if (
+  if (expectMenuMovement && (
     Math.abs(menuDelta.left) < 2 &&
     Math.abs(menuDelta.top) < 2
-  ) {
+  )) {
     fail(
       `Contextual menu did not follow ${targetSmokeId} after Move-handle drag: ` +
+      JSON.stringify({ beforeMenu, afterMenu, menuDelta }),
+    )
+  }
+  if (!expectMenuMovement && (
+    Math.abs(menuDelta.left) > 2 ||
+    Math.abs(menuDelta.top) > 2
+  )) {
+    fail(
+      `Docked contextual menu moved while dragging ${targetSmokeId}: ` +
       JSON.stringify({ beforeMenu, afterMenu, menuDelta }),
     )
   }
@@ -868,6 +957,10 @@ function getRectOverlap(first, second) {
   )
 
   return { height, width }
+}
+
+function getRectCenterX(rect) {
+  return rect.left + rect.width / 2
 }
 
 function rectsOverlapMeaningfully(first, second, tolerance = 6) {
@@ -1635,28 +1728,38 @@ async function runDiscChecks(page) {
     }
   })
 
-  await runCheck(page, 'straight disc center-hole contact remains anchored', async () => {
+  await runCheck(page, 'straight disc center workspace uses a stable side dock', async () => {
     await setInlineNumberControl(page, 'y', 50)
+    await page.waitForTimeout(250)
     const mode = await smoke(page, 'inline-text-menu')
       .getAttribute('data-inline-placement-mode')
-    if (mode !== 'anchored') {
-      fail(`Straight disc controls entered emergency placement at center hole: ${mode}`)
+    const placement = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement')
+    if (mode !== 'side-docked' || !['left', 'right'].includes(placement ?? '')) {
+      fail(`Straight disc center text did not use a stable side dock: ${
+        JSON.stringify({ mode, placement })
+      }`)
     }
   })
 
   await runCheck(page, 'outer straight disc text uses center-docked controls', async () => {
+    await done(page)
+    await openStraightDiscTitle(page)
     await setInlineNumberControl(page, 'y', 8)
+    await clickInlineTab(page, 'text')
     await page.waitForTimeout(250)
     const mode = await smoke(page, 'inline-text-menu')
       .getAttribute('data-inline-placement-mode')
     if (mode !== 'center-docked') {
       fail(`Outer straight disc text did not use center-docked controls: ${mode}`)
     }
+    await waitForMeasuredCenterDock(page)
 
     const preview = await getRect(page, 'disc-preview')
     const host = await getRect(page, 'disc-inline-text-title')
-    const tabs = await getRect(page, 'inline-text-tabs')
-    const menu = await getRect(page, 'inline-text-menu')
+    const tabs = await waitForStableRect(page, 'inline-text-tabs')
+    const menu = await waitForStableRect(page, 'inline-text-menu')
+    const moveHandle = await waitForStableRect(page, 'inline-text-move-handle')
     if (
       tabs.left < preview.left - 1 ||
       tabs.right > preview.right + 1 ||
@@ -1677,6 +1780,41 @@ async function runDiscChecks(page) {
         JSON.stringify({ host, menu, tabs })
       }`)
     }
+
+    await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '16')
+    await page.keyboard.press('Enter')
+    await page.waitForTimeout(250)
+    const resizedTabs = await waitForStableRect(page, 'inline-text-tabs')
+    const resizedMenu = await waitForStableRect(page, 'inline-text-menu')
+    const resizedMoveHandle = await waitForStableRect(
+      page,
+      'inline-text-move-handle',
+    )
+    for (const [label, before, after] of [
+      ['tabs', tabs, resizedTabs],
+      ['menu', menu, resizedMenu],
+      ['Move handle', moveHandle, resizedMoveHandle],
+    ]) {
+      if (
+        Math.abs(getRectCenterX(before) - getRectCenterX(after)) > 2 ||
+        Math.abs(before.top - after.top) > 2
+      ) {
+        fail(`Center-docked ${label} moved during point-size editing: ${
+          JSON.stringify({ after, before })
+        }`)
+      }
+    }
+
+    await clickInlineTab(page, 'art')
+    const artMenu = await waitForStableRect(page, 'inline-text-menu')
+    if (
+      Math.abs(getRectCenterX(menu) - getRectCenterX(artMenu)) > 2 ||
+      Math.abs(menu.top - artMenu.top) > 2
+    ) {
+      fail(`Center-docked menu moved when switching tabs: ${
+        JSON.stringify({ artMenu, menu })
+      }`)
+    }
   })
 
   await runCheck(page, 'straight disc HTML source updates SVG before Done', async () => {
@@ -1693,7 +1831,13 @@ async function runDiscChecks(page) {
 
   await runCheck(page, 'straight disc Move handle begins dragging immediately', async () => {
     await ensureStraightDiscContextualShell(page)
-    await dragInlineMoveHandleImmediately(page, 'disc-inline-text-title', 24, 18)
+    await dragInlineMoveHandleImmediately(
+      page,
+      'disc-inline-text-title',
+      24,
+      18,
+      { expectMenuMovement: false },
+    )
     await clickInlineMoveHandleWithoutMoving(page, 'disc-inline-text-title')
   })
 
