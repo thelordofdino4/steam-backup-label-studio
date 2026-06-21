@@ -273,11 +273,10 @@ export function DiscInlineTextEditorLayer({
 
         const text = getDiscTextContent(key, discTextValues, title)
         const hasHtmlSource = isDiscTextHtmlEnabled(discTextHtmlSources, key)
-        const renderedText = hasHtmlSource
-          ? parseHtmlText(
-              getDiscTextHtmlSource(discTextHtmlSources, key, text),
-            ).plainText
-          : text
+        const htmlDocument = hasHtmlSource
+          ? parseHtmlText(getDiscTextHtmlSource(discTextHtmlSources, key, text))
+          : null
+        const renderedText = htmlDocument?.plainText ?? text
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
           const fallbackBounds = getCurvedDiscTextEditorBounds({
@@ -294,6 +293,7 @@ export function DiscInlineTextEditorLayer({
               layout,
               measureText,
               placement: steamLogoPlacement,
+              richText: htmlDocument ?? undefined,
               safeZoneRadiusPercent:
                 (selectedDiscTemplate.safeDiameterMm /
                   selectedDiscTemplate.outerDiameterMm) * 50,
@@ -325,6 +325,7 @@ export function DiscInlineTextEditorLayer({
             layout,
             measureText,
             placement: steamLogoPlacement,
+            richText: htmlDocument ?? undefined,
             safeZoneRadiusPercent:
               (selectedDiscTemplate.safeDiameterMm /
                 selectedDiscTemplate.outerDiameterMm) * 50,

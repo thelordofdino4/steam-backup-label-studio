@@ -245,6 +245,76 @@ function getPointOnLine(line: CurvedDiscTextLineGeometry, progress: number) {
   return getArcPoint(line.radius, getAngleForLineProgress(line, progress))
 }
 
+function getFallbackLineBoundaryProgresses(line: CurvedDiscTextLineGeometry) {
+  const length = Math.max(1, line.text.length)
+
+  return Array.from({ length: length + 1 }, (_, offset) => ({
+    offset,
+    progress: offset / length,
+  }))
+}
+
+function getLineBoundaryProgresses(line: CurvedDiscTextLineGeometry) {
+  return line.boundaryProgresses?.length
+    ? line.boundaryProgresses
+    : getFallbackLineBoundaryProgresses(line)
+}
+
+function getLineTextLength(line: CurvedDiscTextLineGeometry) {
+  const boundaries = getLineBoundaryProgresses(line)
+  return boundaries[boundaries.length - 1]?.offset ?? line.text.length
+}
+
+function getLineProgressForOffset(
+  line: CurvedDiscTextLineGeometry,
+  offset: number,
+) {
+  const boundaries = getLineBoundaryProgresses(line)
+  const normalizedOffset = clampValue(offset, 0, getLineTextLength(line))
+  let previous = boundaries[0] ?? { offset: 0, progress: 0 }
+
+  for (const boundary of boundaries) {
+    if (boundary.offset === normalizedOffset) {
+      return boundary.progress
+    }
+
+    if (boundary.offset > normalizedOffset) {
+      const span = boundary.offset - previous.offset
+      const ratio = span > 0
+        ? (normalizedOffset - previous.offset) / span
+        : 0
+
+      return previous.progress +
+        (boundary.progress - previous.progress) * clampValue(ratio, 0, 1)
+    }
+
+    previous = boundary
+  }
+
+  return previous.progress
+}
+
+function getLineOffsetForProgress(
+  line: CurvedDiscTextLineGeometry,
+  progress: number,
+) {
+  const boundaries = getLineBoundaryProgresses(line)
+  const normalizedProgress = clampValue(progress, 0, 1)
+  let nearest = boundaries[0] ?? { offset: 0, progress: 0 }
+  let nearestDistance = Math.abs(nearest.progress - normalizedProgress)
+
+  for (const boundary of boundaries) {
+    const distance = Math.abs(boundary.progress - normalizedProgress)
+
+    if (distance <= nearestDistance) {
+      nearest = boundary
+      nearestDistance = distance
+    }
+  }
+
+  return nearest.offset
+}
+
 function formatPathNumber(value: number) {
   return Number.isFinite(value) ? Number(value.toFixed(3)) : 0
 }
@@ -435,7 +505,7 @@ function getLineOffsetFromClientPoint({
 
   return {
     lineIndex: nearestLineIndex,
-    offset: Math.round(progress * Array.from(line.text).length),
+    offset: getLineOffsetForProgress(line, progress),
   }
 }
 
@@ -486,8 +556,7 @@ export function getCurvedDiscTextCaretFrame({
 
   if (!line) return null
 
-  const textLength = Math.max(1, Array.from(line.text).length)
-  const progress = clampValue(offset / textLength, 0, 1)
+  const progress = getLineProgressForOffset(line, offset)
   const angle = getAngleForLineProgress(line, progress)
   const point = getPointOnLine(line, progress)
   const localPoint = percentToHostLocal({
@@ -556,9 +625,8 @@ export function getCurvedDiscTextSelectionFrames({
 
     if (start >= end) return []
 
-    const textLength = Math.max(1, Array.from(line.text).length)
-    const startProgress = clampValue((start - lineStart) / textLength, 0, 1)
-    const endProgress = clampValue((end - lineStart) / textLength, 0, 1)
+    const startProgress = getLineProgressForOffset(line, start - lineStart)
+    const endProgress = getLineProgressForOffset(line, end - lineStart)
     const middleProgress = (startProgress + endProgress) / 2
     const middlePoint = getPointOnLine(line, middleProgress)
     const localMiddle = percentToHostLocal({
