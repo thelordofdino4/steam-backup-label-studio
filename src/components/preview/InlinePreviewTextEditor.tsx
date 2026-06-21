@@ -54,6 +54,11 @@ import {
   stepInlinePreviewPointSizeValue,
 } from './inlinePreviewPointSizeControl'
 import {
+  getInlinePreviewTextShellMode,
+  INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT,
+  isInlinePreviewTextShellMenuUsable,
+} from './inlinePreviewTextEditorResponsive'
+import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
 } from '../../text/contextualTextControlViewModel'
 import {
@@ -194,9 +199,23 @@ const INLINE_PREVIEW_OBSTACLE_SELECTOR = [
 ].join(',')
 
 const INLINE_TEXT_DEFAULT_CONTROL_SIZES: InlinePreviewTextControlSizes = {
-  menu: { height: 178, width: 520 },
+  menu: {
+    height: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredHeight,
+    minHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight,
+    minWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth,
+    preferredHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredHeight,
+    preferredWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth,
+    width: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth,
+  },
   moveHandle: { height: 32, width: 60 },
-  tabs: { height: 46, width: 520 },
+  tabs: {
+    height: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredHeight,
+    minHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minHeight,
+    minWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minWidth,
+    preferredHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredHeight,
+    preferredWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth,
+    width: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth,
+  },
 }
 
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
@@ -431,6 +450,7 @@ function getInlineTextControlSize(
   }
 
   return {
+    ...fallback,
     height: rect.height,
     width: rect.width,
   }
@@ -485,7 +505,16 @@ function getInlineTextMenuControlSize(
       : 0
 
   return {
+    ...fallback,
     height: Math.max(rect.height, element.scrollHeight, intrinsicHeight),
+    preferredHeight: Math.max(
+      fallback.preferredHeight ?? fallback.height,
+      intrinsicHeight,
+    ),
+    preferredWidth: Math.max(
+      fallback.preferredWidth ?? fallback.width,
+      element.scrollWidth,
+    ),
     width: rect.width,
   }
 }
@@ -496,7 +525,15 @@ function areInlineTextSizesEqual(
 ) {
   return (
     Math.abs(first.height - second.height) < 0.5 &&
-    Math.abs(first.width - second.width) < 0.5
+    Math.abs(first.width - second.width) < 0.5 &&
+    Math.abs((first.minHeight ?? 0) - (second.minHeight ?? 0)) < 0.5 &&
+    Math.abs((first.minWidth ?? 0) - (second.minWidth ?? 0)) < 0.5 &&
+    Math.abs(
+      (first.preferredHeight ?? 0) - (second.preferredHeight ?? 0),
+    ) < 0.5 &&
+    Math.abs(
+      (first.preferredWidth ?? 0) - (second.preferredWidth ?? 0),
+    ) < 0.5
   )
 }
 
@@ -2968,20 +3005,44 @@ export function InlinePreviewTextEditor({
   const tabsStyle = controlLayout
     ? ({
         left: controlLayout.tabs.left,
+        '--inline-preview-text-tabs-min-width':
+          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minWidth}px`,
+        '--inline-preview-text-tabs-preferred-width':
+          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth}px`,
         maxWidth: controlLayout.tabs.maxWidth,
         top: controlLayout.tabs.top,
         transform: 'none',
-      } satisfies CSSProperties)
+      } as CSSProperties)
     : undefined
   const menuStyle = controlLayout
     ? ({
         left: controlLayout.menu.left,
         '--inline-preview-text-menu-max-height': `${controlLayout.menu.maxHeight}px`,
+        '--inline-preview-text-menu-min-height':
+          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight}px`,
+        '--inline-preview-text-menu-min-width':
+          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth}px`,
+        '--inline-preview-text-menu-preferred-width':
+          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth}px`,
         maxWidth: controlLayout.menu.maxWidth,
         top: controlLayout.menu.top,
         transform: 'none',
       } as CSSProperties)
     : undefined
+  const tabsResponsiveMode = getInlinePreviewTextShellMode(
+    controlLayout?.tabs.maxWidth ??
+      controlSizes.tabs.width,
+  )
+  const menuResponsiveMode = getInlinePreviewTextShellMode(
+    controlLayout?.menu.maxWidth ??
+      controlSizes.menu.width,
+  )
+  const isMenuUsable = controlLayout
+    ? isInlinePreviewTextShellMenuUsable({
+        maxHeight: controlLayout.menu.maxHeight,
+        maxWidth: controlLayout.menu.maxWidth,
+      })
+    : true
   const moveHandleStyle = controlLayout
     ? ({
         left: controlLayout.moveHandle.left,
@@ -3003,6 +3064,7 @@ export function InlinePreviewTextEditor({
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
         data-inline-placement-locked={isControlPlacementLocked}
+        data-inline-responsive-mode={tabsResponsiveMode}
         data-smoke-id="inline-text-tabs"
         onClick={stopInlineTextEditorClick}
         onPointerDown={keepInlineTextEditorFocus}
@@ -3060,6 +3122,8 @@ export function InlinePreviewTextEditor({
         data-inline-placement-mode={controlLayout?.mode}
         data-inline-placement={resolvedMenuPlacement}
         data-inline-placement-locked={isControlPlacementLocked}
+        data-inline-layout-usable={isMenuUsable}
+        data-inline-responsive-mode={menuResponsiveMode}
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
         onBlurCapture={handleControlBlurCapture}

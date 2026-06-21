@@ -1,3 +1,7 @@
+import {
+  INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT,
+} from './inlinePreviewTextEditorResponsive.ts'
+
 export type InlinePreviewTextRect = {
   bottom: number
   left: number
@@ -7,6 +11,10 @@ export type InlinePreviewTextRect = {
 
 export type InlinePreviewTextSize = {
   height: number
+  minHeight?: number
+  minWidth?: number
+  preferredHeight?: number
+  preferredWidth?: number
   width: number
 }
 
@@ -61,7 +69,8 @@ export type InlinePreviewTextObstacle = {
 
 const INLINE_PREVIEW_TEXT_CONTROL_GAP = 8
 const INLINE_PREVIEW_TEXT_EDGE_GAP = 8
-const INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT = 118
+const INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT =
+  INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight
 const INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO = 0.8
 const INLINE_PREVIEW_TEXT_PLACEMENT_HYSTERESIS = 24
 const INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_WIDTH_RATIO = 0.62

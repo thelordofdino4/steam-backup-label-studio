@@ -717,6 +717,7 @@ async function setHtmlSource(page, source) {
 }
 
 async function done(page) {
+  await waitForStableRect(page, 'inline-text-menu')
   await clickVisibleSmoke(page, 'inline-text-done')
   await smoke(page, 'inline-text-menu').waitFor({ state: 'detached', timeout: 5_000 })
 }
@@ -1006,6 +1007,302 @@ async function assertScreenshotPaintDoesNotTouchHorizontalEdges(page, smokeId, l
       `imageWidth=${bounds.width}, paintLeft=${bounds.left}, ` +
       `paintRight=${bounds.right}, elementScreenshot=${elementScreenshotPath}.`,
     )
+  }
+}
+
+async function assertResponsiveContextualShell(page) {
+  await expectContextualShell(page)
+
+  const scenarios = [
+    { height: 260, mode: 'wide', name: 'wide', width: 520 },
+    { height: 220, mode: 'compact', name: 'compact', width: 396 },
+    { height: 148, mode: 'narrow', name: 'narrow-short', width: 280 },
+  ]
+
+  for (const scenario of scenarios) {
+    const snapshot = await page.evaluate(({ height, mode, width }) => {
+      const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+      const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+
+      if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
+        return null
+      }
+
+      const previous = {
+        menuHeight: menu.style.getPropertyValue(
+          '--inline-preview-text-menu-max-height',
+        ),
+        menuMaxWidth: menu.style.maxWidth,
+        menuMode: menu.getAttribute('data-inline-responsive-mode'),
+        menuWidth: menu.style.width,
+        tabsMaxWidth: tabs.style.maxWidth,
+        tabsMode: tabs.getAttribute('data-inline-responsive-mode'),
+        tabsWidth: tabs.style.width,
+      }
+
+      menu.style.width = `${width}px`
+      menu.style.maxWidth = `${width}px`
+      menu.style.setProperty(
+        '--inline-preview-text-menu-max-height',
+        `${height}px`,
+      )
+      menu.setAttribute('data-inline-responsive-mode', mode)
+      tabs.style.width = `${width}px`
+      tabs.style.maxWidth = `${width}px`
+      tabs.setAttribute('data-inline-responsive-mode', mode)
+
+      return previous
+    }, scenario)
+
+    if (!snapshot) {
+      fail('Could not prepare contextual shell for responsive smoke check.')
+    }
+
+    let failureMessage = null
+
+    try {
+      await page.waitForTimeout(120)
+      fs.mkdirSync(artifactDir, { recursive: true })
+      fs.writeFileSync(
+        path.join(artifactDir, `responsive-shell-${scenario.name}-menu.png`),
+        await smoke(page, 'inline-text-menu').first().screenshot(),
+      )
+
+      const result = await page.evaluate(({ height, mode }) => {
+        const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+        const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+
+        if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
+          return { error: 'missing shell nodes' }
+        }
+
+        const toRect = (element) => {
+          const rect = element.getBoundingClientRect()
+
+          return {
+            bottom: rect.bottom,
+            height: rect.height,
+            left: rect.left,
+            right: rect.right,
+            top: rect.top,
+            width: rect.width,
+          }
+        }
+        const rectsOverlapLocal = (first, second) =>
+          first.left < second.right &&
+          first.right > second.left &&
+          first.top < second.bottom &&
+          first.bottom > second.top
+        const isVisible = (element) => {
+          const rect = element.getBoundingClientRect()
+          const style = window.getComputedStyle(element)
+
+          return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            style.visibility !== 'hidden' &&
+            style.display !== 'none'
+          )
+        }
+        const inside = (child, parent, tolerance = 1.5) =>
+          child.left >= parent.left - tolerance &&
+          child.right <= parent.right + tolerance &&
+          child.top >= parent.top - tolerance &&
+          child.bottom <= parent.bottom + tolerance
+        const horizontallyInside = (child, parent, tolerance = 1.5) =>
+          child.left >= parent.left - tolerance &&
+          child.right <= parent.right + tolerance
+        const centerInside = (child, parent) => {
+          const centerX = child.left + child.width / 2
+          const centerY = child.top + child.height / 2
+
+          return (
+            centerX >= parent.left &&
+            centerX <= parent.right &&
+            centerY >= parent.top &&
+            centerY <= parent.bottom
+          )
+        }
+
+        const menuRect = toRect(menu)
+        const tabsRect = toRect(tabs)
+        const focusableSelector = [
+          'button',
+          'input',
+          'select',
+          'textarea',
+        ].join(',')
+        const menuFocusables = Array.from(menu.querySelectorAll(focusableSelector))
+          .filter((element) => element instanceof HTMLElement && isVisible(element))
+          .map((element) => {
+            const grid = element.closest('.inline-preview-text-control-grid')
+
+            return {
+              clipRect: grid instanceof HTMLElement ? toRect(grid) : toRect(menu),
+              inputType: element instanceof HTMLInputElement
+                ? element.type
+                : '',
+              label: element.getAttribute('data-smoke-id') ||
+                element.getAttribute('aria-label') ||
+                element.textContent?.trim() ||
+                element.tagName,
+              rect: toRect(element),
+            }
+          })
+        const tabButtons = Array.from(tabs.querySelectorAll('button'))
+          .filter((element) => element instanceof HTMLElement && isVisible(element))
+          .map((element) => ({
+            label: element.getAttribute('data-smoke-id') ||
+              element.textContent?.trim(),
+            rect: toRect(element),
+          }))
+        const visibleMenuFocusables = menuFocusables
+          .filter((item) =>
+            centerInside(item.rect, item.clipRect) &&
+            centerInside(item.rect, menuRect))
+        const outside = [
+          ...visibleMenuFocusables
+            .filter((item) => !horizontallyInside(item.rect, menuRect))
+            .map((item) => `menu:${item.label}`),
+          ...tabButtons
+            .filter((item) => !inside(item.rect, tabsRect))
+            .map((item) => `tabs:${item.label}`),
+        ]
+        const tooSmall = visibleMenuFocusables
+          .filter((item) =>
+            item.inputType !== 'checkbox' &&
+            (item.rect.width < 24 || item.rect.height < 24))
+          .map((item) =>
+            `${item.label}:${Math.round(item.rect.width)}x${Math.round(item.rect.height)}`)
+        const overlaps = []
+
+        for (let index = 0; index < visibleMenuFocusables.length; index += 1) {
+          for (
+            let nextIndex = index + 1;
+            nextIndex < visibleMenuFocusables.length;
+            nextIndex += 1
+          ) {
+            const first = visibleMenuFocusables[index]
+            const second = visibleMenuFocusables[nextIndex]
+
+            if (rectsOverlapLocal(first.rect, second.rect)) {
+              overlaps.push(`${first.label}/${second.label}`)
+            }
+          }
+        }
+
+        for (let index = 0; index < tabButtons.length; index += 1) {
+          for (
+            let nextIndex = index + 1;
+            nextIndex < tabButtons.length;
+            nextIndex += 1
+          ) {
+            const first = tabButtons[index]
+            const second = tabButtons[nextIndex]
+
+            if (rectsOverlapLocal(first.rect, second.rect)) {
+              overlaps.push(`${first.label}/${second.label}`)
+            }
+          }
+        }
+
+        const actions = menu.querySelector('.inline-preview-text-menu-actions')
+        const grid = menu.querySelector('.inline-preview-text-control-grid')
+        const actionsRect = actions instanceof HTMLElement ? toRect(actions) : null
+        const gridScrollsInternally =
+          grid instanceof HTMLElement &&
+          grid.scrollHeight > grid.clientHeight + 1
+
+        return {
+          actionsInside: actionsRect ? inside(actionsRect, menuRect) : false,
+          expectedMode: mode,
+          gridScrollsInternally,
+          height: Math.round(menuRect.height),
+          mode: menu.getAttribute('data-inline-responsive-mode'),
+          outside,
+          overlaps,
+          shortMenuHasScroll: height < 170 ? gridScrollsInternally : true,
+          tabCount: tabButtons.length,
+          tooSmall,
+          width: Math.round(menuRect.width),
+        }
+      }, scenario)
+
+      if (result.error) {
+        failureMessage = `Responsive shell ${scenario.name} check failed: ${
+          result.error
+        }`
+      } else if (result.mode !== scenario.mode) {
+        failureMessage = `Responsive shell ${scenario.name} had wrong mode: ${
+          JSON.stringify(result)
+        }`
+      } else if (result.outside.length > 0) {
+        failureMessage =
+          `Responsive shell ${scenario.name} controls escaped their containers: ${
+            JSON.stringify(result)
+          }`
+      } else if (result.overlaps.length > 0) {
+        failureMessage = `Responsive shell ${scenario.name} controls overlapped: ${
+          JSON.stringify(result)
+        }`
+      } else if (result.tooSmall.length > 0) {
+        failureMessage =
+          `Responsive shell ${scenario.name} controls became too small: ${
+            JSON.stringify(result)
+          }`
+      } else if (!result.actionsInside) {
+        failureMessage =
+          `Responsive shell ${scenario.name} actions were not visible: ${
+            JSON.stringify(result)
+          }`
+      } else if (!result.shortMenuHasScroll) {
+        failureMessage =
+          `Responsive shell ${scenario.name} did not use internal menu scrolling: ${
+            JSON.stringify(result)
+          }`
+      } else if (result.tabCount !== 4) {
+        failureMessage = `Responsive shell ${scenario.name} lost tabs: ${
+          JSON.stringify(result)
+        }`
+      }
+    } finally {
+      await page.evaluate((previous) => {
+        const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+        const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+
+        if (menu instanceof HTMLElement) {
+          menu.style.width = previous.menuWidth
+          menu.style.maxWidth = previous.menuMaxWidth
+          if (previous.menuHeight) {
+            menu.style.setProperty(
+              '--inline-preview-text-menu-max-height',
+              previous.menuHeight,
+            )
+          } else {
+            menu.style.removeProperty('--inline-preview-text-menu-max-height')
+          }
+          if (previous.menuMode) {
+            menu.setAttribute('data-inline-responsive-mode', previous.menuMode)
+          } else {
+            menu.removeAttribute('data-inline-responsive-mode')
+          }
+        }
+        if (tabs instanceof HTMLElement) {
+          tabs.style.width = previous.tabsWidth
+          tabs.style.maxWidth = previous.tabsMaxWidth
+          if (previous.tabsMode) {
+            tabs.setAttribute('data-inline-responsive-mode', previous.tabsMode)
+          } else {
+            tabs.removeAttribute('data-inline-responsive-mode')
+          }
+        }
+      }, snapshot)
+      await page.waitForTimeout(80)
+    }
+
+    if (failureMessage) {
+      fail(failureMessage)
+    }
   }
 }
 
@@ -1577,6 +1874,23 @@ async function runCaseChecks(page) {
     const afterHold = Number(await getInlineTextNumberDraft(page, 'font-size-pt'))
     if (afterHold <= afterKeyboard + 0.25) {
       fail(`Font size held stepper only changed once: ${afterHold}`)
+    }
+  })
+
+  await runCheck(page, 'contextual shell reflows at wide compact and narrow sizes', async () => {
+    let sourceShown = false
+
+    try {
+      await clickInlineTab(page, 'text')
+      await assertResponsiveContextualShell(page)
+      await clickInlineTab(page, 'utilities')
+      await showHtmlSource(page)
+      sourceShown = true
+      await assertResponsiveContextualShell(page)
+    } finally {
+      if (sourceShown) {
+        await hideHtmlSource(page).catch(() => {})
+      }
     }
   })
 
