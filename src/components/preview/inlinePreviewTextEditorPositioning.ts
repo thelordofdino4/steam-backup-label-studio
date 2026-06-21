@@ -35,7 +35,7 @@ export type InlinePreviewTextControlSizes = {
 }
 
 export type InlinePreviewTextControlLayout = {
-  mode: 'anchored' | 'center-docked' | 'detached'
+  mode: 'anchored' | 'center-docked' | 'detached' | 'side-docked'
   menu: {
     left: number
     maxHeight: number
@@ -64,8 +64,10 @@ const INLINE_PREVIEW_TEXT_EDGE_GAP = 8
 const INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT = 118
 const INLINE_PREVIEW_TEXT_EMERGENCY_TEXT_AREA_RATIO = 0.8
 const INLINE_PREVIEW_TEXT_PLACEMENT_HYSTERESIS = 24
-const INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_WIDTH_RATIO = 0.52
+const INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_WIDTH_RATIO = 0.62
 const INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_HEIGHT_RATIO = 0.56
+const INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_MIN_WIDTH = 396
+const INLINE_PREVIEW_TEXT_DISC_SIDE_DOCK_WIDTH_RATIO = 0.4
 
 function getRectWidth(rect: InlinePreviewTextRect) {
   return Math.max(0, rect.right - rect.left)
@@ -677,7 +679,7 @@ function createDiscCenterDockCandidate({
       Math.max(sizes.menu.width, sizes.tabs.width),
       previewWidth * INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_WIDTH_RATIO,
     ),
-    Math.min(availableWidth, 260),
+    Math.min(availableWidth, INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_MIN_WIDTH),
     availableWidth,
   )
   const dockHeight = clampValue(
@@ -707,7 +709,7 @@ function createDiscCenterDockCandidate({
     previewRect,
   )
   const moveHandleTop =
-    menuTop + menuLayoutHeight + INLINE_PREVIEW_TEXT_CONTROL_GAP
+    dockTop + dockHeight - sizes.moveHandle.height
   const tabsRect = rectFromPosition({
     height: sizes.tabs.height,
     left: tabsLeft,
@@ -774,6 +776,178 @@ function createDiscCenterDockCandidate({
       scored.textOverlap <= 1 &&
       scored.obstacleOverlap <= 1,
   }
+}
+
+function createDiscSideDockCandidate({
+  anchorRect,
+  candidate,
+  obstacles,
+  previewRect,
+  sizes,
+}: {
+  anchorRect: InlinePreviewTextRect
+  candidate: 'left' | 'right'
+  obstacles: readonly InlinePreviewTextObstacle[]
+  previewRect: InlinePreviewTextRect
+  sizes: InlinePreviewTextControlSizes
+}): InlinePreviewTextCandidateLayout {
+  const previewWidth = getRectWidth(previewRect)
+  const previewHeight = getRectHeight(previewRect)
+  const availableWidth = Math.max(
+    1,
+    previewWidth - INLINE_PREVIEW_TEXT_EDGE_GAP * 2,
+  )
+  const availableHeight = Math.max(
+    1,
+    previewHeight - INLINE_PREVIEW_TEXT_EDGE_GAP * 2,
+  )
+  const dockWidth = clampValue(
+    Math.min(
+      Math.max(sizes.menu.width, sizes.tabs.width),
+      previewWidth * INLINE_PREVIEW_TEXT_DISC_SIDE_DOCK_WIDTH_RATIO,
+    ),
+    Math.min(availableWidth, 240),
+    availableWidth,
+  )
+  const dockHeight = clampValue(
+    previewHeight * INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_HEIGHT_RATIO,
+    Math.min(availableHeight, 190),
+    availableHeight,
+  )
+  const dockLeft = candidate === 'left'
+    ? previewRect.left + INLINE_PREVIEW_TEXT_EDGE_GAP
+    : previewRect.right - INLINE_PREVIEW_TEXT_EDGE_GAP - dockWidth
+  const anchorCenterY = anchorRect.top + getRectHeight(anchorRect) / 2
+  const previewCenterY = previewRect.top + previewHeight / 2
+  const dockTop = anchorCenterY >= previewCenterY
+    ? previewRect.top + INLINE_PREVIEW_TEXT_EDGE_GAP
+    : previewRect.bottom - INLINE_PREVIEW_TEXT_EDGE_GAP - dockHeight
+  const tabsWidth = Math.min(sizes.tabs.width, dockWidth)
+  const menuWidth = Math.min(sizes.menu.width, dockWidth)
+  const menuMaxHeight = Math.max(
+    1,
+    dockHeight -
+      sizes.tabs.height -
+      sizes.moveHandle.height -
+      INLINE_PREVIEW_TEXT_CONTROL_GAP * 2,
+  )
+  const menuLayoutHeight = Math.min(sizes.menu.height, menuMaxHeight)
+  const tabsLeft = dockLeft + (dockWidth - tabsWidth) / 2
+  const tabsTop = dockTop
+  const menuLeft = dockLeft + (dockWidth - menuWidth) / 2
+  const menuTop = tabsTop + sizes.tabs.height + INLINE_PREVIEW_TEXT_CONTROL_GAP
+  const moveHandleLeft = clampLeftInsideBounds(
+    dockLeft + dockWidth / 2 - sizes.moveHandle.width / 2,
+    sizes.moveHandle,
+    previewRect,
+  )
+  const moveHandleTop =
+    dockTop + dockHeight - sizes.moveHandle.height
+  const tabsRect = rectFromPosition({
+    height: sizes.tabs.height,
+    left: tabsLeft,
+    top: tabsTop,
+    width: tabsWidth,
+  })
+  const menuRect = rectFromPosition({
+    height: menuLayoutHeight,
+    left: menuLeft,
+    top: menuTop,
+    width: menuWidth,
+  })
+  const moveHandleRect = rectFromPosition({
+    height: sizes.moveHandle.height,
+    left: moveHandleLeft,
+    top: moveHandleTop,
+    width: sizes.moveHandle.width,
+  })
+  const scored = scoreCandidate({
+    anchorRect,
+    candidate,
+    menuRect,
+    moveHandleRect,
+    obstacles: getDiscCenterDockObstacles(obstacles),
+    previewRect,
+    tabsRect,
+  })
+  const minimumUsableMenuHeight = getMinimumUsableMenuHeight(sizes.menu.height)
+
+  return {
+    candidate,
+    fullHeightFits: menuMaxHeight >= sizes.menu.height,
+    menu: {
+      left: menuLeft,
+      maxHeight: menuMaxHeight,
+      maxWidth: dockWidth,
+      placement: candidate,
+      top: menuTop,
+    },
+    menuOverflow: scored.menuOverflow,
+    menuRect,
+    menuTextOverlap: scored.menuTextOverlap,
+    minimumUsableMenuHeight,
+    mode: 'side-docked',
+    moveHandle: {
+      left: moveHandleLeft,
+      top: moveHandleTop,
+    },
+    moveHandleRect,
+    obstacleOverlap: scored.obstacleOverlap,
+    previewOverflow: scored.previewOverflow,
+    score: scored.score,
+    tabs: {
+      left: tabsLeft,
+      maxWidth: dockWidth,
+      top: tabsTop,
+    },
+    tabsRect,
+    textOverlap: scored.textOverlap,
+    usable:
+      menuMaxHeight >= minimumUsableMenuHeight &&
+      scored.previewOverflow <= 1 &&
+      scored.menuOverflow <= 1 &&
+      scored.textOverlap <= 1 &&
+      scored.obstacleOverlap <= 1,
+  }
+}
+
+function chooseDiscDockCandidate({
+  anchorRect,
+  centerDockCandidate,
+  previousPlacement,
+  previewRect,
+  sideDockCandidates,
+}: {
+  anchorRect: InlinePreviewTextRect
+  centerDockCandidate: InlinePreviewTextCandidateLayout
+  previousPlacement?: InlinePreviewTextEditorMenuPlacement
+  previewRect: InlinePreviewTextRect
+  sideDockCandidates: readonly InlinePreviewTextCandidateLayout[]
+}) {
+  if (centerDockCandidate.usable) return centerDockCandidate
+
+  const previousDock = sideDockCandidates.find((candidate) =>
+    candidate.candidate === previousPlacement)
+
+  if (previousDock?.usable) return previousDock
+
+  const previewCenterX = previewRect.left + getRectWidth(previewRect) / 2
+  const preferredSide = anchorRect.left + getRectWidth(anchorRect) / 2 >=
+      previewCenterX
+    ? 'left'
+    : 'right'
+  const preferredCandidate = sideDockCandidates.find((candidate) =>
+    candidate.candidate === preferredSide)
+  const alternateCandidate = sideDockCandidates.find((candidate) =>
+    candidate.candidate !== preferredSide)
+
+  if (preferredCandidate?.usable) return preferredCandidate
+  if (alternateCandidate?.usable) return alternateCandidate
+
+  const scoredCandidates = [centerDockCandidate, ...sideDockCandidates]
+    .sort((first, second) => first.score - second.score)
+
+  return scoredCandidates[0] ?? centerDockCandidate
 }
 
 function chooseAnchoredCandidate({
@@ -847,14 +1021,14 @@ function shouldUseEmergencyPlacement({
   anchorRect,
   anchoredCandidate,
   candidates,
-  centerDockCandidate,
+  dockCandidate,
   previewRect,
   workspaceRect,
 }: {
   anchorRect: InlinePreviewTextRect
   anchoredCandidate: InlinePreviewTextCandidateLayout
   candidates: readonly InlinePreviewTextCandidateLayout[]
-  centerDockCandidate?: InlinePreviewTextCandidateLayout
+  dockCandidate?: InlinePreviewTextCandidateLayout
   previewRect: InlinePreviewTextRect
   workspaceRect: InlinePreviewTextRect
 }) {
@@ -863,7 +1037,8 @@ function shouldUseEmergencyPlacement({
   const selectedTextAreaRatio =
     previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
   const hasUsableCandidate = candidates.some((candidate) => candidate.usable)
-  const hasUsableCenterDock = Boolean(centerDockCandidate?.usable)
+  const hasUsableDock = Boolean(dockCandidate?.usable)
+  const fallbackCandidate = dockCandidate ?? anchoredCandidate
   const hasMeaningfulDetachedWorkspace =
     workspaceArea > previewArea * 1.05 || workspaceArea > 0
   const hasLargeSelectedText =
@@ -871,13 +1046,15 @@ function shouldUseEmergencyPlacement({
 
   return (
     hasMeaningfulDetachedWorkspace &&
-    !hasUsableCenterDock &&
+    !hasUsableDock &&
     !hasUsableCandidate &&
     (
       hasLargeSelectedText ||
-      anchoredCandidate.menu.maxHeight <
-        anchoredCandidate.minimumUsableMenuHeight ||
-      anchoredCandidate.textOverlap > 1
+      fallbackCandidate.menu.maxHeight <
+        fallbackCandidate.minimumUsableMenuHeight ||
+      fallbackCandidate.previewOverflow > 1 ||
+      fallbackCandidate.textOverlap > 1 ||
+      fallbackCandidate.obstacleOverlap > 1
     )
   )
 }
@@ -1046,6 +1223,7 @@ function getInlinePreviewTextControlPlacementModel({
   anchorRect: InlinePreviewTextRect
   candidates: InlinePreviewTextCandidateLayout[]
   centerDockCandidate?: InlinePreviewTextCandidateLayout
+  dockCandidate?: InlinePreviewTextCandidateLayout
   emergencyEligible: boolean
   selectedTextAreaRatio: number
 } {
@@ -1112,10 +1290,8 @@ function getInlinePreviewTextControlPlacementModel({
       alternateVerticalCandidate,
       preferredVerticalCandidate,
     })
-  const cleanAnchoredCandidate =
-    anchoredCandidate.usable && anchoredCandidate.textOverlap <= 1
   const centerDockCandidate =
-    placementStrategy === 'disc-center-dock' && !cleanAnchoredCandidate
+    placementStrategy === 'disc-center-dock'
       ? createDiscCenterDockCandidate({
           anchorRect,
           obstacles,
@@ -1123,14 +1299,47 @@ function getInlinePreviewTextControlPlacementModel({
           sizes,
         })
       : undefined
+  const sideDockCandidates =
+    placementStrategy === 'disc-center-dock'
+      ? ([
+          createDiscSideDockCandidate({
+            anchorRect,
+            candidate: 'left',
+            obstacles,
+            previewRect,
+            sizes,
+          }),
+          createDiscSideDockCandidate({
+            anchorRect,
+            candidate: 'right',
+            obstacles,
+            previewRect,
+            sizes,
+          }),
+        ] as const)
+      : []
+  const dockCandidate = centerDockCandidate
+    ? chooseDiscDockCandidate({
+        anchorRect,
+        centerDockCandidate,
+        previousPlacement,
+        previewRect,
+        sideDockCandidates,
+      })
+    : undefined
+  const dockCandidates = centerDockCandidate
+    ? [centerDockCandidate, ...sideDockCandidates]
+    : []
+  const emergencyCandidates =
+    placementStrategy === 'disc-center-dock' ? dockCandidates : candidates
   const previewArea = getRectArea(previewRect)
   const selectedTextAreaRatio =
     previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
   const emergencyEligible = shouldUseEmergencyPlacement({
     anchorRect,
     anchoredCandidate,
-    candidates,
-    centerDockCandidate,
+    candidates: emergencyCandidates,
+    dockCandidate,
     previewRect,
     workspaceRect,
   })
@@ -1138,10 +1347,9 @@ function getInlinePreviewTextControlPlacementModel({
   return {
     anchoredCandidate,
     anchorRect,
-    candidates: centerDockCandidate
-      ? [...candidates, centerDockCandidate]
-      : candidates,
+    candidates: [...candidates, ...dockCandidates],
     centerDockCandidate,
+    dockCandidate,
     emergencyEligible,
     selectedTextAreaRatio,
   }
@@ -1244,8 +1452,8 @@ export function getInlinePreviewTextControlPlacementDiagnostics(
     emergencyEligible: model.emergencyEligible,
     selectedPlacement: model.emergencyEligible
       ? 'detached'
-      : model.centerDockCandidate?.usable
-        ? 'center-docked'
+      : model.dockCandidate
+        ? model.dockCandidate.menu.placement
         : model.anchoredCandidate.menu.placement,
     selectedTextAreaRatio: model.selectedTextAreaRatio,
   }
@@ -1291,12 +1499,12 @@ export function getInlinePreviewTextControlLayout({
     })
   }
 
-  if (model.centerDockCandidate?.usable) {
+  if (model.dockCandidate) {
     return {
-      menu: model.centerDockCandidate.menu,
-      mode: model.centerDockCandidate.mode,
-      moveHandle: model.centerDockCandidate.moveHandle,
-      tabs: model.centerDockCandidate.tabs,
+      menu: model.dockCandidate.menu,
+      mode: model.dockCandidate.mode,
+      moveHandle: model.dockCandidate.moveHandle,
+      tabs: model.dockCandidate.tabs,
     }
   }
 

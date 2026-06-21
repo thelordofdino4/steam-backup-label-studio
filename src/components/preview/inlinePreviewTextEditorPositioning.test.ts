@@ -901,14 +901,14 @@ test('inline text controls treat center-hole-sized obstacles as local, not emerg
   assert.equal(layout.mode, 'anchored')
 })
 
-test('disc text controls use normal anchored placement when it avoids the selected text', () => {
+test('outer straight disc text uses deterministic center-docked controls', () => {
   const input = {
     anchor: createAnchor({
-      bottom: 455,
+      bottom: 110,
       centerX: 500,
-      centerY: 438.5,
-      right: 620,
-      top: 422,
+      centerY: 65,
+      right: 840,
+      top: 20,
     }),
     placementStrategy: 'disc-center-dock' as const,
     previewRect: {
@@ -927,9 +927,12 @@ test('disc text controls use normal anchored placement when it avoids the select
   const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
   const layout = getInlinePreviewTextControlLayout(input)
 
-  assert.equal(diagnostics.selectedPlacement, 'below')
-  assert.equal(layout.mode, 'anchored')
-  assert.equal(layout.menu.placement, 'below')
+  assert.equal(diagnostics.selectedPlacement, 'center-docked')
+  assert.equal(layout.mode, 'center-docked')
+  assert.equal(layout.menu.placement, 'center-docked')
+  assert.equal(layout.tabs.top, 220)
+  assert.equal(layout.menu.top, 274)
+  assert.equal(layout.moveHandle.top, 748)
 })
 
 test('disc text controls center-dock when top-arc anchored controls cover selected text', () => {
@@ -969,7 +972,7 @@ test('disc text controls center-dock when top-arc anchored controls cover select
   assert.equal(layout.menu.placement, 'center-docked')
   assert.equal(layout.tabs.top, 220)
   assert.equal(layout.menu.top, 274)
-  assert.equal(layout.moveHandle.top, 568)
+  assert.equal(layout.moveHandle.top, 748)
   assert.equal(layout.tabs.maxWidth, 520)
   assert.equal(layout.menu.maxWidth, 520)
   assert.equal(
@@ -989,6 +992,202 @@ test('disc text controls center-dock when top-arc anchored controls cover select
     ),
     0,
   )
+})
+
+test('bottom-arc disc text uses the same deterministic center dock', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 980,
+      centerX: 500,
+      centerY: 935,
+      right: 840,
+      top: 890,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  })
+
+  assert.equal(layout.mode, 'center-docked')
+  assert.equal(layout.menu.placement, 'center-docked')
+  assert.equal(layout.tabs.top, 220)
+  assert.equal(layout.menu.top, 274)
+  assert.equal(layout.moveHandle.top, 748)
+})
+
+test('disc dock remains fixed while selected text bounds change', () => {
+  const baseInput = {
+    anchor: createAnchor({
+      bottom: 110,
+      centerX: 500,
+      centerY: 65,
+      right: 840,
+      top: 20,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const originalLayout = getInlinePreviewTextControlLayout(baseInput)
+  const changedBoundsLayout = getInlinePreviewTextControlLayout({
+    ...baseInput,
+    anchor: createAnchor({
+      bottom: 180,
+      centerX: 580,
+      centerY: 110,
+      right: 900,
+      top: 40,
+    }),
+    previousPlacement: originalLayout.menu.placement,
+  })
+
+  assert.equal(originalLayout.mode, 'center-docked')
+  assert.deepEqual(changedBoundsLayout.tabs, originalLayout.tabs)
+  assert.deepEqual(changedBoundsLayout.menu, originalLayout.menu)
+  assert.deepEqual(changedBoundsLayout.moveHandle, originalLayout.moveHandle)
+})
+
+test('disc dock does not wander when menu content height changes', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 110,
+      centerX: 500,
+      centerY: 65,
+      right: 840,
+      top: 20,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 120, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const compactLayout = getInlinePreviewTextControlLayout(input)
+  const expandedLayout = getInlinePreviewTextControlLayout({
+    ...input,
+    previousPlacement: compactLayout.menu.placement,
+    sizes: {
+      ...input.sizes,
+      menu: { height: 480, width: 520 },
+    },
+  })
+
+  assert.equal(compactLayout.mode, 'center-docked')
+  assert.equal(expandedLayout.mode, 'center-docked')
+  assert.equal(expandedLayout.tabs.top, compactLayout.tabs.top)
+  assert.equal(expandedLayout.tabs.left, compactLayout.tabs.left)
+  assert.equal(expandedLayout.menu.top, compactLayout.menu.top)
+  assert.equal(expandedLayout.menu.left, compactLayout.menu.left)
+  assert.equal(expandedLayout.moveHandle.top, compactLayout.moveHandle.top)
+  assert.equal(expandedLayout.moveHandle.left, compactLayout.moveHandle.left)
+  assert.equal(expandedLayout.menu.maxHeight, compactLayout.menu.maxHeight)
+})
+
+test('disc text occupying the center workspace chooses a stable side dock', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 570,
+      centerX: 500,
+      centerY: 500,
+      right: 570,
+      top: 430,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const firstLayout = getInlinePreviewTextControlLayout(input)
+  const stickyLayout = getInlinePreviewTextControlLayout({
+    ...input,
+    anchor: createAnchor({
+      bottom: 560,
+      centerX: 520,
+      centerY: 490,
+      right: 590,
+      top: 420,
+    }),
+    previousPlacement: firstLayout.menu.placement,
+  })
+
+  assert.equal(firstLayout.mode, 'side-docked')
+  assert.equal(firstLayout.menu.placement, 'left')
+  assert.equal(firstLayout.menu.left, 8)
+  assert.equal(firstLayout.tabs.left, 8)
+  assert.equal(stickyLayout.mode, 'side-docked')
+  assert.equal(stickyLayout.menu.placement, 'left')
+})
+
+test('disc side dock avoids registered guide and checklist obstacles', () => {
+  const layout = getInlinePreviewTextControlLayout({
+    anchor: createAnchor({
+      bottom: 570,
+      centerX: 500,
+      centerY: 500,
+      right: 570,
+      top: 430,
+    }),
+    obstacles: [
+      {
+        id: 'guide-legend-panel',
+        rect: { bottom: 800, left: 0, right: 430, top: 190 },
+      },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below',
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  })
+
+  assert.equal(layout.mode, 'side-docked')
+  assert.equal(layout.menu.placement, 'right')
+  assert.ok(layout.menu.left >= 592)
 })
 
 test('disc center-docked controls scroll internally inside the central workspace', () => {

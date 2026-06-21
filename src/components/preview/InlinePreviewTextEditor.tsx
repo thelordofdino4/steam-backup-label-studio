@@ -2882,10 +2882,10 @@ export function InlinePreviewTextEditor({
   const controlLayoutPlacement = controlLayout?.menu.placement
 
   useLayoutEffect(() => {
-    if (!controlLayoutPlacement) return
+    if (!controlLayoutPlacement || !hasMeasuredControlSizes) return
 
     previousControlPlacementRef.current = controlLayoutPlacement
-  }, [controlLayoutPlacement])
+  }, [controlLayoutPlacement, hasMeasuredControlSizes])
 
   useLayoutEffect(() => {
     latestControlLayoutRef.current = controlLayout
