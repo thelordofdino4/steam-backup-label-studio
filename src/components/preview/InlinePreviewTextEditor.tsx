@@ -2221,7 +2221,9 @@ export function InlinePreviewTextEditor({
   const tabsRef = useRef<HTMLDivElement | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
+  const moveEdgeRef = useRef<HTMLDivElement | null>(null)
   const activeMoveHandlePointerIdRef = useRef<number | null>(null)
+  const activeMoveEdgePointerIdRef = useRef<number | null>(null)
   const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
@@ -2294,6 +2296,7 @@ export function InlinePreviewTextEditor({
     if (tabsRef.current) elements.push(tabsRef.current)
     if (menuRef.current) elements.push(menuRef.current)
     if (moveHandleRef.current) elements.push(moveHandleRef.current)
+    if (moveEdgeRef.current) elements.push(moveEdgeRef.current)
 
     return elements.map((element) => ({
       contains: (target: unknown) =>
@@ -2458,6 +2461,10 @@ export function InlinePreviewTextEditor({
   const handleInlineTextEditorBlur = (
     event: ReactFocusEvent<HTMLTextAreaElement>,
   ) => {
+    if (activeMoveHandlePointerIdRef.current !== null) {
+      return
+    }
+
     if (
       shouldKeepInlinePreviewTextEditorOpenOnBlur({
         pointerStartedInsideControls: controlPointerStartedInsideRef.current,
@@ -2545,6 +2552,64 @@ export function InlinePreviewTextEditor({
       )
     }
   }, [getInlineControlRoots, releaseControlPlacementLock])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') {
+      return undefined
+    }
+
+    const handleDocumentEdgePointerMove = (
+      event: globalThis.PointerEvent,
+    ) => {
+      if (activeMoveEdgePointerIdRef.current !== event.pointerId) {
+        return
+      }
+
+      onMoveHandlePointerMove(event as never)
+    }
+    const handleDocumentEdgePointerEnd = (
+      event: globalThis.PointerEvent,
+    ) => {
+      if (activeMoveEdgePointerIdRef.current !== event.pointerId) {
+        return
+      }
+
+      activeMoveHandlePointerIdRef.current = null
+      activeMoveEdgePointerIdRef.current = null
+      setIsMoveHandleDragging(false)
+      onMoveHandlePointerUp(event as never)
+    }
+
+    document.addEventListener(
+      'pointermove',
+      handleDocumentEdgePointerMove,
+      true,
+    )
+    document.addEventListener('pointerup', handleDocumentEdgePointerEnd, true)
+    document.addEventListener(
+      'pointercancel',
+      handleDocumentEdgePointerEnd,
+      true,
+    )
+
+    return () => {
+      document.removeEventListener(
+        'pointermove',
+        handleDocumentEdgePointerMove,
+        true,
+      )
+      document.removeEventListener(
+        'pointerup',
+        handleDocumentEdgePointerEnd,
+        true,
+      )
+      document.removeEventListener(
+        'pointercancel',
+        handleDocumentEdgePointerEnd,
+        true,
+      )
+    }
+  }, [onMoveHandlePointerMove, onMoveHandlePointerUp])
 
   useEffect(() => {
     const textarea = textareaRef.current
@@ -3142,6 +3207,7 @@ export function InlinePreviewTextEditor({
     }
 
     event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
     activeMoveHandlePointerIdRef.current = event.pointerId
     setIsMoveHandleDragging(true)
     onMoveHandlePointerDown(event)
@@ -3156,6 +3222,53 @@ export function InlinePreviewTextEditor({
 
     onMoveHandlePointerUp(event)
   }
+  const handleMoveEdgePointerRelease = (
+    event: ReactPointerEvent<HTMLSpanElement>,
+  ) => {
+    event.stopPropagation()
+
+    if (activeMoveHandlePointerIdRef.current === event.pointerId) {
+      activeMoveHandlePointerIdRef.current = null
+      activeMoveEdgePointerIdRef.current = null
+      setIsMoveHandleDragging(false)
+      onMoveHandlePointerUp(event)
+    }
+  }
+  useEffect(() => {
+    const edgeRing = moveEdgeRef.current
+
+    if (!edgeRing) {
+      return undefined
+    }
+
+    const handleEdgeRingPointerDown = (
+      event: globalThis.PointerEvent,
+    ) => {
+      const target = event.target
+
+      if (
+        !(target instanceof Element) ||
+        !target.closest('.inline-preview-text-edge-move-hit') ||
+        !isPrimaryMoveHandlePointer(event)
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      controlPointerStartedInsideRef.current = true
+      activeMoveHandlePointerIdRef.current = event.pointerId
+      activeMoveEdgePointerIdRef.current = event.pointerId
+      setIsMoveHandleDragging(true)
+      onMoveHandlePointerDown(event as never)
+    }
+
+    edgeRing.addEventListener('pointerdown', handleEdgeRingPointerDown)
+
+    return () => {
+      edgeRing.removeEventListener('pointerdown', handleEdgeRingPointerDown)
+    }
+  }, [controlFrame, onMoveHandlePointerDown])
   const tabsStyle = controlLayout
     ? ({
         left: controlLayout.tabs.left,
@@ -3395,6 +3508,41 @@ export function InlinePreviewTextEditor({
   const hasVisibleSelection =
     inputMode === 'adapter' && selection.start !== selection.end
   const shouldRenderCanvasInput = !sourceMode && !suppressCanvasInput
+  const moveEdgeControl = controlFrame ? (
+    <div
+      ref={moveEdgeRef}
+      aria-hidden="true"
+      className={[
+        'inline-preview-text-edge-move-ring',
+        isMoveHandleDragging ? 'is-dragging' : '',
+      ].filter(Boolean).join(' ')}
+      data-smoke-id="inline-text-edge-move-ring"
+    >
+      {[
+        'top',
+        'right',
+        'bottom',
+        'left',
+        'top-left',
+        'top-right',
+        'bottom-right',
+        'bottom-left',
+      ].map((edge) => (
+        <span
+          key={edge}
+          className={[
+            'inline-preview-text-edge-move-hit',
+            `inline-preview-text-edge-move-hit--${edge}`,
+          ].join(' ')}
+          data-smoke-id={`inline-text-edge-move-${edge}`}
+          onPointerUp={handleMoveEdgePointerRelease}
+          onPointerCancel={handleMoveEdgePointerRelease}
+          onLostPointerCapture={handleMoveEdgePointerRelease}
+          onClick={stopInlineTextEditorClick}
+        />
+      ))}
+    </div>
+  ) : null
   const textareaElement = (
     <textarea
       ref={textareaRef}
@@ -3437,6 +3585,7 @@ export function InlinePreviewTextEditor({
           ? createPortal(textareaElement, document.body)
           : textareaElement
       ) : null}
+      {moveEdgeControl}
       {shouldRenderCanvasInput ? selectionFrames.map((frame, index) => (
         frame.pathD ? (
           <svg

@@ -193,6 +193,126 @@
     0 0 0 4px rgba(42, 171, 226, 0.1);
 }
 
+.inline-preview-text-edge-move-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.inline-preview-text-edge-move-hit {
+  position: absolute;
+  box-sizing: border-box;
+  pointer-events: auto;
+  touch-action: none;
+  cursor: move;
+}
+
+.inline-preview-text-edge-move-hit:active,
+.inline-preview-text-edge-move-ring.is-dragging .inline-preview-text-edge-move-hit {
+  cursor: grabbing;
+}
+
+.inline-preview-text-edge-move-hit--top,
+.inline-preview-text-edge-move-hit--bottom {
+  left: -6px;
+  right: -6px;
+  height: 8px;
+}
+
+.inline-preview-text-edge-move-hit--top {
+  top: -6px;
+}
+
+.inline-preview-text-edge-move-hit--bottom {
+  bottom: -6px;
+}
+
+.inline-preview-text-edge-move-hit--left,
+.inline-preview-text-edge-move-hit--right {
+  top: 0;
+  bottom: 0;
+  width: 8px;
+}
+
+.inline-preview-text-edge-move-hit--left {
+  left: -6px;
+}
+
+.inline-preview-text-edge-move-hit--right {
+  right: -6px;
+}
+
+.inline-preview-text-edge-move-hit--top-left,
+.inline-preview-text-edge-move-hit--top-right,
+.inline-preview-text-edge-move-hit--bottom-right,
+.inline-preview-text-edge-move-hit--bottom-left {
+  width: 16px;
+  height: 16px;
+}
+
+.inline-preview-text-edge-move-hit--top-left {
+  top: -6px;
+  left: -6px;
+}
+
+.inline-preview-text-edge-move-hit--top-right {
+  top: -6px;
+  right: -6px;
+}
+
+.inline-preview-text-edge-move-hit--bottom-right {
+  right: -6px;
+  bottom: -6px;
+}
+
+.inline-preview-text-edge-move-hit--bottom-left {
+  bottom: -6px;
+  left: -6px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--top,
+.disc-inline-text-host .inline-preview-text-edge-move-hit--bottom {
+  left: -8px;
+  right: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--top {
+  top: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--bottom {
+  bottom: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--left {
+  left: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--right {
+  right: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--top-left {
+  top: -8px;
+  left: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--top-right {
+  top: -8px;
+  right: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--bottom-right {
+  right: -8px;
+  bottom: -8px;
+}
+
+.disc-inline-text-host .inline-preview-text-edge-move-hit--bottom-left {
+  bottom: -8px;
+  left: -8px;
+}
+
 .inline-preview-textarea {
   position: absolute;
   inset: 0;
