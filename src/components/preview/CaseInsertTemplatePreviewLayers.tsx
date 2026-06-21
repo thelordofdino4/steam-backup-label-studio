@@ -127,7 +127,6 @@ type CaseInsertTemplateTextLayerProps = CaseInsertTemplateLayerProps & {
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
-  ribbonSlotId?: string
 }
 
 export type CaseInsertTemplateMarkLayerKind =
@@ -419,7 +418,6 @@ function CaseInsertTemplateTextBlock({
   onTextTargetValueChange,
   onTextTargetEditComplete,
   previewTextControlHandlers,
-  ribbonSlotId,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
@@ -438,7 +436,6 @@ function CaseInsertTemplateTextBlock({
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
-  ribbonSlotId?: string
 }) {
   const renderedTextBlock = getRenderedCaseInsertTextBlock(
     textBlock,
@@ -598,7 +595,6 @@ function CaseInsertTemplateTextBlock({
           inputMode="adapter"
           lines={textLayout.lines}
           sourceMode={isHtmlSourceEditing}
-          ribbonSlotId={ribbonSlotId}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
@@ -639,7 +635,6 @@ function CaseInsertTemplateTextList({
   onTextTargetValueChange,
   onTextTargetEditComplete,
   previewTextControlHandlers,
-  ribbonSlotId,
 }: {
   paneId: CaseInsertTemplatePaneId
   textList: ProjectCaseInsertTextList
@@ -657,7 +652,6 @@ function CaseInsertTemplateTextList({
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
-  ribbonSlotId?: string
 }) {
   const textTarget: CaseInsertPreviewTextTarget = {
     scope: 'templateTextList',
@@ -789,7 +783,6 @@ function CaseInsertTemplateTextList({
           inputMode="adapter"
           lines={textListLayout.lines}
           sourceMode={isHtmlSourceEditing}
-          ribbonSlotId={ribbonSlotId}
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: 'left' }}
@@ -975,7 +968,6 @@ export function CaseInsertTemplateTextLayer({
   onTextTargetValueChange,
   onTextTargetEditComplete,
   previewTextControlHandlers,
-  ribbonSlotId,
 }: CaseInsertTemplateTextLayerProps) {
   const avoidanceRegions = createCaseInsertTemplateTextAvoidanceRegions({
     paneId,
@@ -999,7 +991,6 @@ export function CaseInsertTemplateTextLayer({
           onTextTargetValueChange={onTextTargetValueChange}
           onTextTargetEditComplete={onTextTargetEditComplete}
           previewTextControlHandlers={previewTextControlHandlers}
-          ribbonSlotId={ribbonSlotId}
         />
       ))}
       {templateState.textLists.map((textList) => {
@@ -1020,7 +1011,6 @@ export function CaseInsertTemplateTextLayer({
             onTextTargetValueChange={onTextTargetValueChange}
             onTextTargetEditComplete={onTextTargetEditComplete}
             previewTextControlHandlers={previewTextControlHandlers}
-            ribbonSlotId={ribbonSlotId}
           />
         )
       })}

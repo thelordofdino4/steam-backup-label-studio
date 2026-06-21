@@ -65,7 +65,8 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(contract, /bulletedList\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(source, /renderInlinePreviewTextToggleControl/)
   assert.match(source, /aria-pressed=\{resolvedState === 'mixed'/)
-  assert.match(source, /inline-preview-text-format-row/)
+  assert.match(source, /contextual-text-ribbon-group--format/)
+  assert.match(source, /contextual-text-ribbon-icon-button/)
   assert.match(source, /<textarea/)
   assert.match(source, /value=\{value\}/)
   assert.match(source, /onChange=\{\(event\) => \{/)
@@ -130,20 +131,33 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-controls--inline-menu\s+\.inline-preview-text-control-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(190px,\s*1fr\)\)/s,
+    /\.contextual-text-ribbon-tab\s*\{[^}]*white-space:\s*nowrap/s,
   )
   assert.match(
     ribbonCss,
-    /@media \(max-width:\s*820px\)[\s\S]*\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.contextual-text-ribbon-control-row\s*\{[^}]*flex-wrap:\s*nowrap/s,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-controls\s*\{[^}]*overflow-y:\s*auto/s,
+    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-x:\s*auto/s,
   )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group\s*\{[^}]*display:\s*flex/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-controls\s*\{[^}]*overflow:\s*hidden/s,
+  )
+  assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
+  assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)
+  assert.doesNotMatch(ribbonCss, /\.inline-preview-text-control-grid/)
   assert.doesNotMatch(editorCss, /\.inline-preview-text-tabs\s*\{/)
   assert.doesNotMatch(editorCss, /\.inline-preview-text-menu\s*\{/)
   assert.doesNotMatch(editor, /createPortal\(controls,\s*document\.body\)/)
   assert.doesNotMatch(editor, /getInlinePreviewTextControlLayout/)
+  assert.match(editor, /useContextualTextRibbonRegistration/)
+  assert.doesNotMatch(editor, /ribbonSlotId/)
 })
 
 test('case insert inline editing uses the adapter input path', () => {
@@ -216,8 +230,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.doesNotMatch(controls, /unsupported:\s*\['Bold', 'Italic', 'Underline'\]/)
   assert.match(adapter, /controls=\{controls\}/)
   assert.match(adapter, /inputMode="adapter"/)
-  assert.match(adapter, /ribbonSlotId=\{ribbonSlotId\}/)
-  assert.match(discLayer, /ribbonSlotId=\{ribbonSlotId\}/)
+  assert.doesNotMatch(adapter, /ribbonSlotId/)
+  assert.doesNotMatch(discLayer, /ribbonSlotId/)
   assert.doesNotMatch(adapter, /placementStrategy/)
   assert.doesNotMatch(adapter, /paintedCollisionRects/)
   assert.doesNotMatch(adapter, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)

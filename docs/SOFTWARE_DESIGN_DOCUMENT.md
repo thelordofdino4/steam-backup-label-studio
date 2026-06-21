@@ -515,15 +515,19 @@ Ribbon placement and layout:
 - The ribbon is visually attached to the top and right edges of the preview
   workspace, not rendered as a detached floating card.
 - The ribbon left edge must not cross into the Live Preview label column.
+- The ribbon should use a compact right-aligned maximum width; it must not
+  stretch across all available header space on wide windows.
 - The preview begins below the complete header/ribbon region and never
   encroaches into the reserved slot.
 - The slot remains reserved when inactive, but ribbon contents disappear.
 - Selecting editable text activates the ribbon.
-- Row 1 contains the four contextual tabs.
-- Row 2 contains the active tab's controls.
-- At narrower widths, controls may wrap into a third row. The reserved height
-  must stay compact and reflect the maximum supported ribbon rows, not an
-  oversized historical floating-menu allowance.
+- Row 1 contains the four contextual tabs with compact single-line labels:
+  `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 2 contains the active tab's controls rendered as native ribbon toolbar
+  groups, not as old floating-menu form markup moved into a fixed slot.
+- The ribbon uses a fixed compact height near the 60-65 px app-shell band. If
+  all controls cannot fit horizontally, the controls strip scrolls internally
+  instead of wrapping downward and pushing the editable surface lower.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
@@ -561,21 +565,27 @@ Ownership matrix:
 
 Responsive states:
 
-- Wide: tabs fit in one row; active controls use full labels, normal spacing,
-  and normal sliders/inputs.
-- Compact: tabs may become two-by-two; controls reflow into fewer columns with
-  smaller gaps.
-- Narrow: labels stack above controls, fields use available width, controls may
-  wrap into a third row, and tab scrolling is a last resort.
+- Wide: tabs fit in one row; active controls use the full available top-right
+  header column with full labels, normal spacing, and normal sliders/inputs.
+- Compact: tabs remain single-line and controls keep usable hit targets while
+  the active control row scrolls internally as needed.
+- Narrow: controls use compact grouping and horizontal/internal scrolling
+  rather than adding header height or pushing the preview surface downward.
 
 Current implementation:
 
 - The reserved app-shell ribbon slot above the preview is the production
   contextual control host for cover, tray, spine, straight-disc, and
   curved-disc text.
-- Active-tab controls render through the existing contextual control registry
-  and target adapters; the ribbon does not own renderer, layout, save/load, or
-  export behavior.
+- The ribbon is flush with the top and right edge of the preview app-shell
+  column. Preview padding must not create dead blank space above or to the
+  right of the ribbon; the ribbon may use the available header width up to the
+  Live Preview label boundary.
+- Active-tab controls consume the existing contextual control registry and
+  target adapters, but render through native ribbon presentation components.
+  Production ribbon code must not reuse portal-slot markup or
+  `.inline-preview-text-control-grid` presentation from the old full menu. The
+  ribbon does not own renderer, layout, save/load, or export behavior.
 - The measured ribbon slot height or offset is exposed to the toast container
   so active-ribbon toasts stack below the ribbon while inactive-ribbon toasts
   keep their current placement.

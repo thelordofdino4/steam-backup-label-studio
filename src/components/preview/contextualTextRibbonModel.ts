@@ -32,11 +32,23 @@ export type ContextualTextRibbonLayoutModel = {
   tabColumns: number
 }
 
-export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT = 196
+export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT = 64
 export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
+export const CONTEXTUAL_TEXT_RIBBON_NATIVE_TAB_LABELS = {
+  art: 'Artistic',
+  presets: 'Presets',
+  text: 'Text',
+  utilities: 'Utilities',
+} satisfies Record<ContextualTextControlGroupId, string>
+
+export function getContextualTextRibbonTabDisplayLabel(
+  tabId: ContextualTextControlGroupId,
+) {
+  return CONTEXTUAL_TEXT_RIBBON_NATIVE_TAB_LABELS[tabId]
+}
 
 export function getContextualTextRibbonLayoutMode(
   containerWidth: number,
@@ -71,9 +83,9 @@ export function getContextualTextRibbonLayoutModel(
 
   return {
     controlColumns: 1,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     mode,
-    tabColumns: 2,
+    tabColumns: 4,
   }
 }
 

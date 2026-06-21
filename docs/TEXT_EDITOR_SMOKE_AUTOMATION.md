@@ -150,11 +150,17 @@ The committed smoke command verifies:
   wide, compact, and narrow widths for ordinary text controls and the Utilities
   HTML source panel. The check verifies tab reflow, visible actions, usable hit
   targets, and no overlapping child controls.
+- The ribbon DOM is expected to use native ribbon rows/groups/buttons. It must
+  not mount old portal-slot full-menu content or
+  `.inline-preview-text-control-grid` presentation inside the app-shell ribbon.
+  The visible tab labels are checked as single-line `Presets`, `Text`,
+  `Artistic`, and `Utilities`.
 - The attached preview-header ribbon layout is checked at 1000x720,
   900x650, and a larger desktop viewport. The check verifies the Live Preview
-  label column boundary, top-right ribbon attachment, compact reserved header
-  height, preview fit, preview stability across activation, and active-ribbon
-  toast offset below the measured header/ribbon bottom.
+  label column boundary, flush use of the preview app-shell top-right corner,
+  compact reserved header height, preview fit, preview stability across
+  activation, and active-ribbon toast offset below the measured header/ribbon
+  bottom.
 - Selected-range case-insert `Font size (pt)` applies canonical
   `font-size:Npt` HTML only to the highlighted characters.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.

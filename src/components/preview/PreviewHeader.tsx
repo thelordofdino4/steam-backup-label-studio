@@ -1,23 +1,19 @@
-import type {
-  InlinePreviewTextEditorControls,
-} from './inlinePreviewTextEditorContract'
 import { ContextualTextRibbonHost } from './ContextualTextRibbon'
+import { useContextualTextRibbonContent } from './contextualTextRibbonBridgeContext'
 
 export type PreviewHeaderProps = {
   contextualTextRibbonActive?: boolean
-  contextualTextRibbonControls?: InlinePreviewTextEditorControls
-  contextualTextRibbonSlotId?: string
   title: string
   titleId: string
 }
 
 export function PreviewHeader({
   contextualTextRibbonActive = false,
-  contextualTextRibbonControls,
-  contextualTextRibbonSlotId,
   title,
   titleId,
 }: PreviewHeaderProps) {
+  const contextualTextRibbonContent = useContextualTextRibbonContent()
+
   return (
     <header className="preview-header">
       <div className="preview-pane-label">
@@ -25,10 +21,10 @@ export function PreviewHeader({
         <strong id={titleId}>{title}</strong>
       </div>
       <ContextualTextRibbonHost
-        active={contextualTextRibbonActive}
-        controls={contextualTextRibbonControls}
-        portalSlotId={contextualTextRibbonSlotId}
-      />
+        active={contextualTextRibbonActive && Boolean(contextualTextRibbonContent)}
+      >
+        {contextualTextRibbonContent}
+      </ContextualTextRibbonHost>
     </header>
   )
 }

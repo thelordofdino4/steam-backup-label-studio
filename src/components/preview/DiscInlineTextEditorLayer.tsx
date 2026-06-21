@@ -150,7 +150,6 @@ export type DiscInlineTextEditorLayerProps = {
   ) => void
   onMoveHandlePointerMove: (event: PointerEvent<Element>) => void
   onMoveHandlePointerUp: (event: PointerEvent<Element>) => void
-  ribbonSlotId?: string
 }
 
 type DiscInlineEditorBounds = {
@@ -262,7 +261,6 @@ export function DiscInlineTextEditorLayer({
   onMoveHandlePointerDown,
   onMoveHandlePointerMove,
   onMoveHandlePointerUp,
-  ribbonSlotId,
 }: DiscInlineTextEditorLayerProps) {
   const [htmlSourceEditorKey, setHtmlSourceEditorKey] =
     useState<DiscTextKey | null>(null)
@@ -452,7 +450,6 @@ export function DiscInlineTextEditorLayer({
                 lines={curvedLines}
                 targetKey={targetKey}
                 value={renderedText}
-                ribbonSlotId={ribbonSlotId}
                 onValueChange={(value) => onDiscTextValueChange(key, value)}
                 onMoveHandlePointerDown={(event) =>
                   onMoveHandlePointerDown(event, key)}
@@ -560,7 +557,6 @@ export function DiscInlineTextEditorLayer({
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}
-              ribbonSlotId={ribbonSlotId}
               onValueChange={(value, options) =>
                 onDiscTextValueChange(
                   key,
