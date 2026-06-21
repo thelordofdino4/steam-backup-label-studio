@@ -1,5 +1,9 @@
 .preview-area {
-  --preview-chrome-space: clamp(136px, 16vh, 172px);
+  --preview-area-padding: clamp(16px, 3vw, 32px);
+  --preview-chrome-space: calc(
+    var(--contextual-text-ribbon-reserved-height, 196px)
+    + clamp(46px, 8vh, 72px)
+  );
   position: relative;
   z-index: 1;
   height: 100vh;
@@ -9,8 +13,8 @@
   grid-template-rows: auto minmax(0, 1fr);
   align-items: center;
   justify-items: center;
-  gap: 18px;
-  padding: clamp(16px, 3vw, 32px);
+  gap: clamp(10px, 1.4vw, 16px);
+  padding: var(--preview-area-padding);
   overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 45%),
@@ -33,12 +37,14 @@
   align-items: center;
   justify-items: center;
   gap: clamp(12px, 1.4vw, 18px);
+  overflow: hidden;
+  container-type: size;
 }
 
 .disc-preview {
   width: min(
-    100%,
-    calc(100vh - var(--preview-chrome-space)),
+    100cqw,
+    100cqh,
     640px
   );
   min-width: 180px;
@@ -56,8 +62,8 @@
 
 .case-insert-preview {
   width: min(
-    100%,
-    calc((100vh - var(--preview-chrome-space)) * var(--case-insert-preview-width-ratio, 1)),
+    100cqw,
+    calc(100cqh * var(--case-insert-preview-width-ratio, 1)),
     1080px
   );
   min-width: 240px;

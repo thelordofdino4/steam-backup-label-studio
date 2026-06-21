@@ -416,6 +416,31 @@ function InlinePreviewTextNumberSelectControl({
     })
   }, [])
 
+  const keepNumberControlVisible = useCallback(() => {
+    window.requestAnimationFrame(() => {
+      const input = inputRef.current
+      const field = input?.closest('.inline-preview-text-number-select-field')
+      const menu = input?.closest('[data-smoke-id="inline-text-menu"]')
+
+      if (!(field instanceof HTMLElement) || !(menu instanceof HTMLElement)) {
+        return
+      }
+
+      const fieldRect = field.getBoundingClientRect()
+      const menuRect = menu.getBoundingClientRect()
+      const inset = 4
+
+      if (fieldRect.top < menuRect.top + inset) {
+        menu.scrollTop -= menuRect.top + inset - fieldRect.top
+        return
+      }
+
+      if (fieldRect.bottom > menuRect.bottom - inset) {
+        menu.scrollTop += fieldRect.bottom - (menuRect.bottom - inset)
+      }
+    })
+  }, [])
+
   const commitDraft = useCallback((nextDraft = draft) => {
     const nextValue = getInlinePreviewPointSizeCommitValue({
       ...config,
@@ -427,7 +452,8 @@ function InlinePreviewTextNumberSelectControl({
     control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
     setOpen(false)
-  }, [config, control, draft, selection])
+    keepNumberControlVisible()
+  }, [config, control, draft, keepNumberControlVisible, selection])
 
   const updateDraft = useCallback((nextDraft: string) => {
     setDraft(nextDraft)
@@ -437,7 +463,8 @@ function InlinePreviewTextNumberSelectControl({
       latestValueRef.current = liveValue
       control.onChange(liveValue, selection)
     }
-  }, [config, control, selection])
+    keepNumberControlVisible()
+  }, [config, control, keepNumberControlVisible, selection])
 
   const selectValue = useCallback((value: number) => {
     latestValueRef.current = value
@@ -445,7 +472,8 @@ function InlinePreviewTextNumberSelectControl({
     setDraft(formatInlinePreviewPointSizeValue(value))
     setOpen(false)
     focusInput()
-  }, [control, focusInput, selection])
+    keepNumberControlVisible()
+  }, [control, focusInput, keepNumberControlVisible, selection])
 
   const stepValue = useCallback((direction: -1 | 1) => {
     const currentInputValue = inputRef.current?.value
@@ -461,7 +489,8 @@ function InlinePreviewTextNumberSelectControl({
     latestValueRef.current = nextValue
     control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
-  }, [config, control, selection])
+    keepNumberControlVisible()
+  }, [config, control, keepNumberControlVisible, selection])
 
   useEffect(() => {
     stepValueRef.current = stepValue
@@ -489,6 +518,36 @@ function InlinePreviewTextNumberSelectControl({
     }, 180)
   }, [clearHoldTimers, stepValue])
 
+  const handleStepperPointerDown = useCallback((
+    event: ReactPointerEvent<HTMLButtonElement>,
+    direction: -1 | 1,
+  ) => {
+    keepInlineTextEditorFocus(event)
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    startStepping(direction)
+  }, [startStepping])
+
+  const handleStepperPointerEnd = useCallback((
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation()
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    clearHoldTimers()
+  }, [clearHoldTimers])
+
+  const handleStepperMouseDownFallback = useCallback((
+    event: MouseEvent<HTMLButtonElement>,
+    direction: -1 | 1,
+  ) => {
+    event.preventDefault()
+    event.stopPropagation()
+    if (holdDirectionRef.current === null) {
+      startStepping(direction)
+    }
+  }, [startStepping])
+
   const openOptions = useCallback(() => {
     setActiveOptionIndex(
       getNearestInlinePreviewPointSizeOptionIndex({
@@ -503,6 +562,8 @@ function InlinePreviewTextNumberSelectControl({
   useEffect(() => {
     latestValueRef.current = displayedValue
   }, [displayedValue])
+
+  useEffect(() => clearHoldTimers, [clearHoldTimers])
 
   return (
     <label className="inline-preview-text-control-field inline-preview-text-number-select-field">
@@ -537,6 +598,7 @@ function InlinePreviewTextNumberSelectControl({
           onFocus={() => {
             setDraft(isMixedSelection ? '' : controlValueText)
             setFocused(true)
+            keepNumberControlVisible()
           }}
           onKeyDown={(event) => {
             event.stopPropagation()
@@ -606,10 +668,11 @@ function InlinePreviewTextNumberSelectControl({
                 stepValue(1)
               }
             }}
-            onPointerDown={(event) => {
-              keepInlineTextEditorFocus(event)
-              startStepping(1)
-            }}
+            onLostPointerCapture={handleStepperPointerEnd}
+            onMouseDown={(event) => handleStepperMouseDownFallback(event, 1)}
+            onPointerCancel={handleStepperPointerEnd}
+            onPointerDown={(event) => handleStepperPointerDown(event, 1)}
+            onPointerUp={handleStepperPointerEnd}
           >
             +
           </button>
@@ -626,10 +689,11 @@ function InlinePreviewTextNumberSelectControl({
                 stepValue(-1)
               }
             }}
-            onPointerDown={(event) => {
-              keepInlineTextEditorFocus(event)
-              startStepping(-1)
-            }}
+            onLostPointerCapture={handleStepperPointerEnd}
+            onMouseDown={(event) => handleStepperMouseDownFallback(event, -1)}
+            onPointerCancel={handleStepperPointerEnd}
+            onPointerDown={(event) => handleStepperPointerDown(event, -1)}
+            onPointerUp={handleStepperPointerEnd}
           >
             -
           </button>

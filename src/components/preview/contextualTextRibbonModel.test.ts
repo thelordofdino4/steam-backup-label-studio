@@ -199,8 +199,9 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 }
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 280)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 260)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 196)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT < 210)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 180)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -274,19 +275,44 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   const appCss = readRepoFile('src/styles/App.css')
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
   const feedbackCss = readRepoFile('src/styles/app-preview-feedback.css')
+  const previewCss = readRepoFile('src/styles/app-preview-shell.css')
+  const layoutFixCss = readRepoFile('src/styles/layoutFix.css')
 
   assert.match(appCss, /@import '\.\/app-contextual-text-ribbon\.css';/)
   assert.match(ribbonCss, /\.preview-header\s*\{/)
+  assert.match(ribbonCss, /grid-template-columns:[\s\S]*--contextual-text-ribbon-label-column[\s\S]*minmax\(0,\s*1fr\)/)
   assert.match(ribbonCss, /min-height: var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-host/)
+  assert.match(ribbonCss, /width:\s*100%/)
+  assert.match(ribbonCss, /height:\s*calc\(var\(--contextual-text-ribbon-reserved-height\) - 2px\)/)
+  assert.match(ribbonCss, /border-radius:\s*0 0 0 8px/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-portal-slot\s*\{[\s\S]*grid-row:\s*1 \/ -1/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-tabs\s*\{[\s\S]*grid-row:\s*1/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*grid-row:\s*2/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*grid-row:\s*3/)
+  assert.doesNotMatch(ribbonCss, /width:\s*min\(100%,\s*820px\)/)
+  assert.doesNotMatch(ribbonCss, /280px/)
   assert.doesNotMatch(ribbonCss, /position:\s*fixed/)
   assert.doesNotMatch(ribbonCss, /position:\s*absolute/)
+  assert.match(previewCss, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/)
+  assert.match(previewCss, /--preview-area-padding:\s*clamp/)
+  assert.match(previewCss, /padding:\s*var\(--preview-area-padding\)/)
+  assert.match(previewCss, /\.preview-workspace\s*\{[\s\S]*container-type:\s*size/)
+  assert.match(previewCss, /\.disc-preview\s*\{[\s\S]*100cqh/)
+  assert.match(previewCss, /\.case-insert-preview\s*\{[\s\S]*100cqh/)
+  assert.match(layoutFixCss, /--preview-chrome-space:\s*calc\(/)
+  assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*196px\)/)
+  assert.match(layoutFixCss, /var\(--preview-area-padding,\s*32px\)/)
+  assert.doesNotMatch(layoutFixCss, /clamp\(136px,\s*16vh,\s*172px\)/)
   assert.match(
     feedbackCss,
     /\.preview-area\.has-contextual-text-ribbon-active \.preview-toast-stack/,
   )
   assert.match(
     feedbackCss,
-    /var\(--contextual-text-ribbon-reserved-height, 280px\)/,
+    /var\(--contextual-text-ribbon-reserved-height\)/,
   )
+  assert.match(feedbackCss, /var\(--preview-area-padding,\s*0px\)/)
+  assert.match(feedbackCss, /\+\s*8px/)
+  assert.doesNotMatch(feedbackCss, /280px/)
 })

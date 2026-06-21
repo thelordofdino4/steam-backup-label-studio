@@ -510,13 +510,20 @@ Ribbon placement and layout:
 
 - The ribbon occupies a reserved top-right app-shell region above the preview.
 - The Live Preview heading remains on the left of the same header region.
+- The preview header is a two-region layout: a bounded left label column and a
+  right contextual ribbon column.
+- The ribbon is visually attached to the top and right edges of the preview
+  workspace, not rendered as a detached floating card.
+- The ribbon left edge must not cross into the Live Preview label column.
 - The preview begins below the complete header/ribbon region and never
   encroaches into the reserved slot.
 - The slot remains reserved when inactive, but ribbon contents disappear.
 - Selecting editable text activates the ribbon.
 - Row 1 contains the four contextual tabs.
 - Row 2 contains the active tab's controls.
-- At narrower widths, controls may wrap into a third row.
+- At narrower widths, controls may wrap into a third row. The reserved height
+  must stay compact and reflect the maximum supported ribbon rows, not an
+  oversized historical floating-menu allowance.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
@@ -572,6 +579,8 @@ Current implementation:
 - The measured ribbon slot height or offset is exposed to the toast container
   so active-ribbon toasts stack below the ribbon while inactive-ribbon toasts
   keep their current placement.
+- The preview workspace uses the remaining viewport space and scales the canvas
+  down rather than pushing the preview bottom permanently below the window.
 - Caret, selection, outline, direct typing, edge-grab movement, Move fallback,
   and Delete affordances remain local preview responsibilities.
 - The old floating full-menu collision, docking, portal, emergency placement,

@@ -26,13 +26,19 @@ tested, and the remaining divergences are recorded.
 - The contextual ribbon occupies a reserved top-right app-shell region above
   the preview. The Live Preview heading remains on the left side of that header
   area.
+- The preview header has two regions: a bounded Live Preview label column on
+  the left and a contextual ribbon column on the right.
+- The ribbon is attached to the top-right edge of the preview workspace. It is
+  not a detached floating card, and its left edge must not cross into the Live
+  Preview label column.
 - The preview begins below the complete header/ribbon region and must never
   encroach into, underlap, or be clipped by the reserved ribbon slot.
 - The reserved slot remains present when no text target is active, but the
   ribbon contents disappear.
 - Row 1 of the ribbon contains the four contextual tabs. Row 2 contains the
   active tab's controls. At narrower widths, controls may wrap into a third
-  row.
+  row. The reserved slot must stay compact for those rows rather than preserve
+  an oversized floating-menu allowance.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
@@ -46,6 +52,9 @@ tested, and the remaining divergences are recorded.
   geometry.
 - Toast animation, appearance, and disappearance must not resize or move the
   preview.
+- The preview workspace consumes the remaining viewport and scales the preview
+  canvas down when necessary, including at default and minimum Tauri window
+  sizes.
 - There is no separate normal-mode "Text value" field replacing the preview.
 - The visible text itself remains on the canvas and is editable directly in the
   preview.
