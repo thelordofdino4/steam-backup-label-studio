@@ -215,6 +215,14 @@ The committed smoke command verifies:
   textPath, including multiple character boundaries and a larger 72pt text case
   farther along the arc, so hit-testing, caret placement, and keyboard mutation
   use the same rendered glyph boundary model.
+- Curved selection visual boundaries are checked by dragging exact rendered
+  insertion boundaries for single-character, whole-word, forward/reverse,
+  top/bottom arc, 6pt, default, and 72pt cases. The selection overlay must use
+  butt-capped arc paths whose endpoints match the selected boundaries instead
+  of round caps that visually include neighboring characters.
+- Curved copyright placement includes a Warframe/App ID 230410-style legal text
+  fixture at 15.02pt and asserts the center-docked controls do not move while
+  typing or committing that point size.
 
 ## Expected Outcomes
 

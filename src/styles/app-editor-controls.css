@@ -252,7 +252,7 @@
 .inline-preview-text-selection-path {
   fill: none;
   stroke: rgba(42, 171, 226, 0.28);
-  stroke-linecap: round;
+  stroke-linecap: butt;
   stroke-linejoin: round;
 }
 

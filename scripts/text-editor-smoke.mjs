@@ -890,7 +890,8 @@ async function assertCurvedEditorUsesPathOverlays(page, label, expectedOverlay) 
   const pathOverlay = smoke(page, pathOverlaySmokeId).first()
   await pathOverlay.waitFor({ state: 'visible', timeout: 2_000 })
 
-  const pathD = await pathOverlay.locator('path').first().getAttribute('d')
+  const path = pathOverlay.locator('path').first()
+  const pathD = await path.getAttribute('d')
   if (!pathD) {
     fail(`${label}: curved ${expectedOverlay} path overlay did not expose SVG path geometry.`)
   }
@@ -900,6 +901,17 @@ async function assertCurvedEditorUsesPathOverlays(page, label, expectedOverlay) 
   if (expectedOverlay === 'caret' && !pathD.includes(' L ')) {
     fail(`${label}: curved caret did not use a path segment: ${pathD}`)
   }
+  if (expectedOverlay === 'selection') {
+    const strokeLinecap = await path.evaluate(
+      (element) => getComputedStyle(element).strokeLinecap,
+    )
+    if (strokeLinecap !== 'butt') {
+      fail(
+        `${label}: curved selection used ${strokeLinecap} caps, which visually ` +
+        `extends the highlight beyond the selected boundaries.`,
+      )
+    }
+  }
 
   const rectangularSelectionCount = await page
     .locator('.inline-preview-text-selection:not(.inline-preview-text-selection--path)')
@@ -907,6 +919,47 @@ async function assertCurvedEditorUsesPathOverlays(page, label, expectedOverlay) 
   if (expectedOverlay === 'selection' && rectangularSelectionCount > 0) {
     fail(`${label}: curved selection fell back to rectangular editor bands.`)
   }
+}
+
+function getPointDistance(first, second) {
+  return Math.hypot(first.x - second.x, first.y - second.y)
+}
+
+function assertNearbyPoint(actual, expected, label, tolerance = 3) {
+  const distance = getPointDistance(actual, expected)
+  if (distance > tolerance) {
+    fail(`${label}: point mismatch ${JSON.stringify({ actual, distance, expected })}`)
+  }
+}
+
+async function getCurvedSelectionPathClientEndpoints(page) {
+  await assertCurvedEditorUsesPathOverlays(page, 'curved selection visual boundary', 'selection')
+  const path = smoke(page, 'inline-text-selection-path').first().locator('path').first()
+
+  return path.evaluate((element) => {
+    const svg = element.ownerSVGElement
+    const ctm = element.getScreenCTM()
+    if (!svg || !ctm || typeof element.getPointAtLength !== 'function') {
+      throw new Error('Curved selection path does not expose screen geometry.')
+    }
+    const totalLength = element.getTotalLength()
+    const start = element.getPointAtLength(0)
+    const end = element.getPointAtLength(totalLength)
+    const svgPoint = svg.createSVGPoint()
+    const toScreen = (point) => {
+      svgPoint.x = point.x
+      svgPoint.y = point.y
+      const screenPoint = svgPoint.matrixTransform(ctm)
+
+      return { x: screenPoint.x, y: screenPoint.y }
+    }
+
+    return {
+      end: toScreen(end),
+      start: toScreen(start),
+      strokeLinecap: getComputedStyle(element).strokeLinecap,
+    }
+  })
 }
 
 function getRectDelta(first, second) {
@@ -1558,12 +1611,179 @@ async function clickCurvedTextBoundary(page, boundaryOffset, label) {
   return point
 }
 
+async function dragSelectCurvedTextBoundaries(page, startOffset, endOffset, label) {
+  const startPoint = await getCurvedTextBoundaryClientPoint(page, startOffset)
+  const endPoint = await getCurvedTextBoundaryClientPoint(page, endOffset)
+  await page.mouse.move(startPoint.x, startPoint.y)
+  await page.mouse.down()
+  await page.mouse.move(endPoint.x, endPoint.y, { steps: 14 })
+  await page.mouse.up()
+  await page.waitForTimeout(140)
+  const state = await getInlineInputState(page)
+  const expectedStart = Math.min(startOffset, endOffset)
+  const expectedEnd = Math.max(startOffset, endOffset)
+
+  if (
+    state.selectionStart !== expectedStart ||
+    state.selectionEnd !== expectedEnd
+  ) {
+    fail(
+      `${label}: curved boundary drag selected the wrong range: ` +
+      JSON.stringify({
+        endOffset,
+        endPoint,
+        expectedEnd,
+        expectedStart,
+        startOffset,
+        startPoint,
+        state,
+      }),
+    )
+  }
+
+  return {
+    endPoint: await getCurvedTextBoundaryClientPoint(page, expectedEnd),
+    startPoint: await getCurvedTextBoundaryClientPoint(page, expectedStart),
+  }
+}
+
+async function assertCurvedSelectionVisualBoundaryRange(
+  page,
+  startOffset,
+  endOffset,
+  label,
+) {
+  const { endPoint, startPoint } = await dragSelectCurvedTextBoundaries(
+    page,
+    startOffset,
+    endOffset,
+    label,
+  )
+  const endpoints = await getCurvedSelectionPathClientEndpoints(page)
+
+  if (endpoints.strokeLinecap !== 'butt') {
+    fail(`${label}: curved selection path used ${endpoints.strokeLinecap} caps.`)
+  }
+  assertNearbyPoint(
+    endpoints.start,
+    startPoint,
+    `${label}: selection start should match rendered insertion boundary`,
+  )
+  assertNearbyPoint(
+    endpoints.end,
+    endPoint,
+    `${label}: selection end should match rendered insertion boundary`,
+  )
+}
+
 async function assertCurvedRenderedBoundarySelections(page, textValue, offsets, label) {
   await replaceInlineTextWithKeyboard(page, textValue)
 
   for (const offset of offsets) {
     await clickCurvedTextBoundary(page, offset, `${label} offset ${offset}`)
   }
+}
+
+async function assertCurvedSelectionVisualBoundaries(page) {
+  await clickInlineTab(page, 'text')
+  const originalPointSize = await getInlineTextNumberDraft(page, 'font-size-pt')
+
+  await setInlineSelectControl(page, 'arc-side', 'top')
+  await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '12')
+  await replaceInlineTextWithKeyboard(page, 'BOUNDARY TEST')
+  await assertCurvedSelectionVisualBoundaryRange(
+    page,
+    0,
+    1,
+    'top arc single-character curved selection',
+  )
+  await assertCurvedSelectionVisualBoundaryRange(
+    page,
+    0,
+    'BOUNDARY'.length,
+    'top arc whole-word curved selection',
+  )
+  await assertCurvedSelectionVisualBoundaryRange(
+    page,
+    'BOUNDARY'.length,
+    0,
+    'top arc reverse whole-word curved selection',
+  )
+
+  await setInlineSelectControl(page, 'arc-side', 'bottom')
+  await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '6')
+  await replaceInlineTextWithKeyboard(page, 'SMALL')
+  await assertCurvedSelectionVisualBoundaryRange(
+    page,
+    2,
+    3,
+    'bottom arc 6pt single-character curved selection',
+  )
+
+  await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '72')
+  await replaceInlineTextWithKeyboard(page, 'LARGE CURVED RANGE')
+  await assertCurvedSelectionVisualBoundaryRange(
+    page,
+    6,
+    12,
+    'bottom arc 72pt word curved selection',
+  )
+
+  await setInlineTextNumberDraftWithKeyboard(
+    page,
+    'font-size-pt',
+    originalPointSize || '12',
+  )
+  await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
+}
+
+async function assertWarframeCurvedCopyrightPointSizeDockStability(page) {
+  await clickInlineTab(page, 'text')
+  const originalPointSize = await getInlineTextNumberDraft(page, 'font-size-pt')
+  const warframeLegalText =
+    'Warframe App ID 230410 © Digital Extremes Ltd. All rights reserved.'
+
+  await setInlineSelectControl(page, 'arc-side', 'bottom')
+  await replaceInlineTextWithKeyboard(page, warframeLegalText)
+  await waitForMeasuredCenterDock(page)
+  const beforeMenu = await waitForStableRect(page, 'inline-text-menu')
+  const beforeTabs = await waitForStableRect(page, 'inline-text-tabs')
+
+  await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '15.02')
+  const duringMenu = await getRect(page, 'inline-text-menu')
+  const duringTabs = await getRect(page, 'inline-text-tabs')
+  if (
+    Math.abs(beforeMenu.left - duringMenu.left) > 2 ||
+    Math.abs(beforeMenu.top - duringMenu.top) > 2 ||
+    Math.abs(beforeTabs.left - duringTabs.left) > 2 ||
+    Math.abs(beforeTabs.top - duringTabs.top) > 2
+  ) {
+    fail(`Warframe curved copyright dock moved while typing 15.02pt: ${
+      JSON.stringify({ beforeMenu, beforeTabs, duringMenu, duringTabs })
+    }`)
+  }
+
+  await page.keyboard.press('Enter')
+  await page.waitForTimeout(160)
+  const afterMenu = await waitForStableRect(page, 'inline-text-menu')
+  const afterTabs = await waitForStableRect(page, 'inline-text-tabs')
+  if (
+    Math.abs(beforeMenu.left - afterMenu.left) > 2 ||
+    Math.abs(beforeMenu.top - afterMenu.top) > 2 ||
+    Math.abs(beforeTabs.left - afterTabs.left) > 2 ||
+    Math.abs(beforeTabs.top - afterTabs.top) > 2
+  ) {
+    fail(`Warframe curved copyright dock moved after committing 15.02pt: ${
+      JSON.stringify({ afterMenu, afterTabs, beforeMenu, beforeTabs })
+    }`)
+  }
+
+  await setInlineTextNumberDraftWithKeyboard(
+    page,
+    'font-size-pt',
+    originalPointSize || '12',
+  )
+  await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
 }
 
 function removeCharacterBeforeOffset(text, offset) {
@@ -1808,8 +2028,10 @@ async function assertCurvedCopyrightGuardrail(page) {
     fail('Curved copyright hit-target SVG did not receive the directly edited text.')
   }
   await assertCurvedCaretMutationParity(page)
+  await assertWarframeCurvedCopyrightPointSizeDockStability(page)
   await dragSelectCurvedText(page, 'disc-inline-text-copyright')
   await assertCurvedEditorUsesPathOverlays(page, 'dragged curved copyright', 'selection')
+  await assertCurvedSelectionVisualBoundaries(page)
   await page.keyboard.press('Control+A')
   const selectAllState = await getInlineInputState(page)
   if (
