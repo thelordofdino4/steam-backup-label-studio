@@ -112,6 +112,7 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
   assert.match(css, /\.inline-preview-text-source-textarea\s*\{[^}]*caret-color:\s*#2aabe2/s)
   assert.doesNotMatch(css, /\.inline-preview-text-host\.is-html-source\s+\.case-insert-text-render-content\s*\{[^}]*visibility:\s*hidden/s)
   assert.match(css, /\.inline-preview-text-selection\s*\{[^}]*background:\s*rgba\(42,\s*171,\s*226,\s*0\.28\)/s)
+  assert.match(css, /\.inline-preview-text-selection-path\s*\{[^}]*stroke-linecap:\s*butt/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*background:\s*#2aabe2/s)
   assert.match(css, /\.inline-preview-text-caret\s*\{[^}]*animation:\s*inline-preview-text-caret-flash/s)
   assert.match(css, /@keyframes inline-preview-text-caret-flash/)
