@@ -34,6 +34,10 @@ function layout(align: CurvedTextAlignment, lines = [line('top', 160), line('low
   })
 }
 
+function getVisualLineCenter(lineLayout: ReturnType<typeof layoutCurvedText>['lines'][number]) {
+  return (lineLayout.startAngleDegrees + lineLayout.endAngleDegrees) / 2
+}
+
 test('center alignment derives the stable first-line block window', () => {
   const result = layout('center')
 
@@ -41,6 +45,28 @@ test('center alignment derives the stable first-line block window', () => {
   assert.equal(result.blockEndAngleDegrees, 355)
   assert.equal(result.lines[0].startAngleDegrees, 195)
   assert.equal(result.lines[0].endAngleDegrees, 355)
+})
+
+test('first curved line remains centered for every alignment', () => {
+  for (const align of ['left', 'center', 'right'] as const) {
+    const top = layoutCurvedText({
+      side: 'top',
+      centerAngleDegrees: 275,
+      arcDegrees: 210,
+      align,
+      lines: [line('top', 160), line('lower', 90)],
+    })
+    const bottom = layoutCurvedText({
+      side: 'bottom',
+      centerAngleDegrees: 95,
+      arcDegrees: 210,
+      align,
+      lines: [line('top', 160), line('lower', 90)],
+    })
+
+    assertApproximatelyEqual(getVisualLineCenter(top.lines[0]), 275)
+    assertApproximatelyEqual(getVisualLineCenter(bottom.lines[0]), 95)
+  }
 })
 
 test('left and right align inside the center-derived block window', () => {
@@ -54,6 +80,22 @@ test('left and right align inside the center-derived block window', () => {
   assert.equal(right.blockEndAngleDegrees, 355)
   assert.equal(right.lines[0].endAngleDegrees, 355)
   assert.equal(right.lines[1].endAngleDegrees, 355)
+})
+
+test('center left and right align two and three wrapped lines from the first line arc edges', () => {
+  const lines = [line('top', 160), line('lower 1', 90), line('lower 2', 70)]
+  const center = layout('center', lines)
+  const left = layout('left', lines)
+  const right = layout('right', lines)
+
+  for (const lineLayout of center.lines) {
+    assertApproximatelyEqual(getVisualLineCenter(lineLayout), 275)
+  }
+
+  assert.equal(left.lines[1].startAngleDegrees, left.lines[0].startAngleDegrees)
+  assert.equal(left.lines[2].startAngleDegrees, left.lines[0].startAngleDegrees)
+  assert.equal(right.lines[1].endAngleDegrees, right.lines[0].endAngleDegrees)
+  assert.equal(right.lines[2].endAngleDegrees, right.lines[0].endAngleDegrees)
 })
 
 test('wrapped lines do not change the top-line block window', () => {

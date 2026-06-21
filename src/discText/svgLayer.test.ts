@@ -50,6 +50,33 @@ function getStyleForClass(svg: string, className: string) {
   return match[1]
 }
 
+function getCurvedCopyrightPaths(svg: string) {
+  return [...svg.matchAll(/<path id="[^"]+-copyright-path-(\d+)" d="([^"]+)"/g)]
+    .map((match) => ({ index: Number(match[1]), path: match[2] }))
+    .sort((first, second) => first.index - second.index)
+}
+
+function getArcAngles(path: string) {
+  const match = path.match(
+    /M ([\d.-]+) ([\d.-]+) A [\d.-]+ [\d.-]+ 0 [01] [01] ([\d.-]+) ([\d.-]+)/,
+  )
+
+  assert.ok(match, `Expected arc path, got ${path}`)
+
+  const [, startXRaw, startYRaw, endXRaw, endYRaw] = match
+  const getAngle = (xRaw: string, yRaw: string) => {
+    const angle = Math.atan2(Number(yRaw) - 50, Number(xRaw) - 50) *
+      (180 / Math.PI)
+
+    return Math.round((((angle % 360) + 360) % 360) * 1000) / 1000
+  }
+
+  return {
+    end: getAngle(endXRaw, endYRaw),
+    start: getAngle(startXRaw, startYRaw),
+  }
+}
+
 test('disc SVG renderer preserves straight text spaces for preview and export parity', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
@@ -661,6 +688,68 @@ test('curved disc copyright textPath keeps the final word visible within paint-s
     pathLength > measureTextAsCharacters(text) + 1,
     `Expected curved text path ${pathLength} to include paint slack beyond text length ${measureTextAsCharacters(text)}`,
   )
+})
+
+test('curved multiline alignment is owned by arc geometry not textPath anchors', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright:
+      'Copyright 2026 Archive Copy Wrapped Legal Text Preservation Notice For Multiple Lines',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const createSvg = (align: 'left' | 'center' | 'right') =>
+    buildDiscTextSvgLayer({
+      settings,
+      values,
+      layoutSettings: {
+        ...layoutSettings,
+        copyright: {
+          ...layoutSettings.copyright,
+          align,
+          arcDegrees: 74,
+          arcSide: 'top',
+          mode: 'curved',
+        },
+      },
+      title: 'Portal 2',
+      placement: 'bottom',
+      safeZoneRadiusPercent: 44,
+      measureText: measureTextAsCharacters,
+      width: 100,
+      height: 100,
+    })
+  const centerSvg = createSvg('center')
+  const leftSvg = createSvg('left')
+  const rightSvg = createSvg('right')
+  const centerPaths = getCurvedCopyrightPaths(centerSvg)
+  const leftPaths = getCurvedCopyrightPaths(leftSvg)
+  const rightPaths = getCurvedCopyrightPaths(rightSvg)
+
+  assert.ok(centerPaths.length >= 3)
+  assert.equal(leftPaths.length, centerPaths.length)
+  assert.equal(rightPaths.length, centerPaths.length)
+  assert.doesNotMatch(leftSvg, /text-anchor="middle"|text-anchor="end"/)
+  assert.doesNotMatch(centerSvg, /text-anchor="middle"|text-anchor="end"/)
+  assert.doesNotMatch(rightSvg, /text-anchor="middle"|text-anchor="end"/)
+
+  const centerFirst = getArcAngles(centerPaths[0].path)
+  const leftFirst = getArcAngles(leftPaths[0].path)
+  const rightFirst = getArcAngles(rightPaths[0].path)
+
+  assert.deepEqual(leftFirst, centerFirst)
+  assert.deepEqual(rightFirst, centerFirst)
+
+  const centerSecond = getArcAngles(centerPaths[1].path)
+  const leftSecond = getArcAngles(leftPaths[1].path)
+  const rightSecond = getArcAngles(rightPaths[1].path)
+
+  assert.notEqual(centerSecond.start, leftSecond.start)
+  assert.equal(leftSecond.start, leftFirst.start)
+  assert.equal(rightSecond.end, rightFirst.end)
 })
 
 test('curved disc paint boxes track top and bottom rendered arc text instead of the full arc window', () => {
