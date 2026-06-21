@@ -239,7 +239,6 @@ export type InlinePreviewTextEditorProps = {
   textareaStyle?: CSSProperties
   sourceMode?: boolean
   suppressCanvasInput?: boolean
-  ribbonSlotId?: string
   onValueChange: (
     value: string,
     options?: { sourceMode?: boolean },

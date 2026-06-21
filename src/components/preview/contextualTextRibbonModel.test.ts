@@ -13,6 +13,7 @@ import {
   CONTEXTUAL_TEXT_RIBBON_TOAST_GAP,
   getContextualTextRibbonControlDescriptors,
   getContextualTextRibbonLayoutModel,
+  getContextualTextRibbonTabDisplayLabel,
   getContextualTextRibbonToastOffset,
 } from './contextualTextRibbonModel.ts'
 
@@ -199,9 +200,9 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 }
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 196)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT < 210)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 180)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 64)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT <= 65)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 60)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -236,9 +237,9 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
     controlColumns: 1,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     mode: 'narrow',
-    tabColumns: 2,
+    tabColumns: 4,
   })
 })
 
@@ -249,6 +250,21 @@ test('contextual text ribbon reuses the shared contextual tab registry', () => {
     { id: 'art', label: 'Artistic Elements' },
     { id: 'utilities', label: 'Utilities' },
   ])
+})
+
+test('contextual text ribbon presents compact single-line tab labels', () => {
+  assert.deepEqual(
+    CONTEXTUAL_TEXT_RIBBON_TABS.map((tab) => ({
+      id: tab.id,
+      label: getContextualTextRibbonTabDisplayLabel(tab.id),
+    })),
+    [
+      { id: 'presets', label: 'Presets' },
+      { id: 'text', label: 'Text' },
+      { id: 'art', label: 'Artistic' },
+      { id: 'utilities', label: 'Utilities' },
+    ],
+  )
 })
 
 test('contextual text ribbon fixture covers each supported control type', () => {
@@ -284,25 +300,38 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /min-height: var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-host/)
   assert.match(ribbonCss, /width:\s*100%/)
-  assert.match(ribbonCss, /height:\s*calc\(var\(--contextual-text-ribbon-reserved-height\) - 2px\)/)
+  assert.match(ribbonCss, /justify-self:\s*stretch/)
+  assert.match(ribbonCss, /max-width:\s*100%/)
+  assert.match(ribbonCss, /height:\s*var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /border-radius:\s*0 0 0 8px/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-portal-slot\s*\{[\s\S]*grid-row:\s*1 \/ -1/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-tabs\s*\{[\s\S]*grid-row:\s*1/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-tab\s*\{[\s\S]*white-space:\s*nowrap/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*grid-row:\s*2/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*grid-row:\s*3/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*overflow:\s*hidden/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*flex-wrap:\s*nowrap/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*flex:\s*0 0 auto/)
+  assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
+  assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)
+  assert.doesNotMatch(ribbonCss, /\.inline-preview-text-control-grid/)
   assert.doesNotMatch(ribbonCss, /width:\s*min\(100%,\s*820px\)/)
+  assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-max-width/)
   assert.doesNotMatch(ribbonCss, /280px/)
   assert.doesNotMatch(ribbonCss, /position:\s*fixed/)
   assert.doesNotMatch(ribbonCss, /position:\s*absolute/)
   assert.match(previewCss, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/)
   assert.match(previewCss, /--preview-area-padding:\s*clamp/)
-  assert.match(previewCss, /padding:\s*var\(--preview-area-padding\)/)
+  assert.match(previewCss, /--preview-area-top-padding:\s*0px/)
+  assert.match(previewCss, /--preview-area-right-padding:\s*0px/)
+  assert.match(previewCss, /padding:[\s\S]*var\(--preview-area-top-padding\)[\s\S]*var\(--preview-area-right-padding\)[\s\S]*var\(--preview-area-bottom-padding\)[\s\S]*var\(--preview-area-left-padding\)/)
   assert.match(previewCss, /\.preview-workspace\s*\{[\s\S]*container-type:\s*size/)
   assert.match(previewCss, /\.disc-preview\s*\{[\s\S]*100cqh/)
   assert.match(previewCss, /\.case-insert-preview\s*\{[\s\S]*100cqh/)
   assert.match(layoutFixCss, /--preview-chrome-space:\s*calc\(/)
-  assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*196px\)/)
-  assert.match(layoutFixCss, /var\(--preview-area-padding,\s*32px\)/)
+  assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*64px\)/)
+  assert.match(layoutFixCss, /var\(--preview-area-top-padding,\s*0px\)/)
+  assert.match(layoutFixCss, /var\(--preview-area-bottom-padding,\s*32px\)/)
   assert.doesNotMatch(layoutFixCss, /clamp\(136px,\s*16vh,\s*172px\)/)
   assert.match(
     feedbackCss,
@@ -312,7 +341,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
     feedbackCss,
     /var\(--contextual-text-ribbon-reserved-height\)/,
   )
-  assert.match(feedbackCss, /var\(--preview-area-padding,\s*0px\)/)
+  assert.match(feedbackCss, /var\(--preview-area-top-padding,\s*0px\)/)
   assert.match(feedbackCss, /\+\s*8px/)
   assert.doesNotMatch(feedbackCss, /280px/)
 })

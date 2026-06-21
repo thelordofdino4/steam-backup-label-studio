@@ -562,6 +562,15 @@ async function clickInlineToggle(page, labelToken) {
   await page.waitForTimeout(150)
 }
 
+async function getInlineTogglePressed(page, labelToken) {
+  await expectVisible(page, `inline-text-toggle-${labelToken}`)
+  const value = await visibleSmoke(page, `inline-text-toggle-${labelToken}`)
+    .first()
+    .getAttribute('aria-pressed')
+
+  return value === 'true' || value === 'mixed'
+}
+
 async function setInlineColor(page, labelToken, value) {
   await clickInlineTab(page, 'art')
   await setNativeInputValue(smoke(page, `inline-text-color-${labelToken}`).first(), value)
@@ -1251,6 +1260,21 @@ async function assertResponsiveContextualShell(page) {
             centerY <= parent.bottom
           )
         }
+        const intersectRect = (first, second) => {
+          const left = Math.max(first.left, second.left)
+          const right = Math.min(first.right, second.right)
+          const top = Math.max(first.top, second.top)
+          const bottom = Math.min(first.bottom, second.bottom)
+
+          return {
+            bottom,
+            height: Math.max(0, bottom - top),
+            left,
+            right,
+            top,
+            width: Math.max(0, right - left),
+          }
+        }
 
         const menuRect = toRect(menu)
         const tabsRect = toRect(tabs)
@@ -1265,10 +1289,20 @@ async function assertResponsiveContextualShell(page) {
         const menuFocusables = Array.from(menu.querySelectorAll(focusableSelector))
           .filter((element) => element instanceof HTMLElement && isVisible(element))
           .map((element) => {
-            const grid = element.closest('.inline-preview-text-control-grid')
+            const controlShell =
+              element.closest('.contextual-text-ribbon-control-row') ||
+              element.closest('.contextual-text-ribbon-group')
+            const rawRect = toRect(element)
+            const clipRect = controlShell instanceof HTMLElement
+              ? toRect(controlShell)
+              : toRect(menu)
+            const visibleRect = intersectRect(
+              intersectRect(rawRect, clipRect),
+              menuRect,
+            )
 
             return {
-              clipRect: grid instanceof HTMLElement ? toRect(grid) : toRect(menu),
+              clipRect,
               inputType: element instanceof HTMLInputElement
                 ? element.type
                 : '',
@@ -1276,7 +1310,8 @@ async function assertResponsiveContextualShell(page) {
                 element.getAttribute('aria-label') ||
                 element.textContent?.trim() ||
                 element.tagName,
-              rect: toRect(element),
+              rawRect,
+              rect: visibleRect,
             }
           })
         const tabButtons = Array.from(tabs.querySelectorAll('button'))
@@ -1517,6 +1552,13 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
             const activeToastGap = active.toast.top - active.header.bottom
             const ribbonTopDelta = Math.abs(active.shell.top - active.header.top)
             const ribbonRightDelta = Math.abs(active.shell.right - active.header.right)
+            const headerTopDelta = Math.abs(active.header.top - active.previewArea.top)
+            const headerRightDelta = Math.abs(active.header.right - active.previewArea.right)
+            const shellTopDelta = Math.abs(active.shell.top - active.previewArea.top)
+            const shellRightDelta = Math.abs(active.shell.right - active.previewArea.right)
+            const compactRibbonMinHeight = 60
+            const compactRibbonMaxHeight = 65
+            const surfaceOffsetFromLabel = active.preview.top - active.label.top
 
             if (
               active.shell.left < active.label.right - 1 ||
@@ -1525,6 +1567,23 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
               failureMessage = `${scenario.name}: ribbon crossed the Live Preview label column: ${
                 JSON.stringify({ label: active.label, ribbon: active.ribbon, shell: active.shell })
               }`
+            } else if (
+              headerTopDelta > 1.5 ||
+              headerRightDelta > 1.5 ||
+              shellTopDelta > 1.5 ||
+              shellRightDelta > 1.5
+            ) {
+              failureMessage = `${scenario.name}: ribbon did not use the preview top-right app-shell corner: ${
+                JSON.stringify({
+                  header: active.header,
+                  headerRightDelta,
+                  headerTopDelta,
+                  previewArea: active.previewArea,
+                  shell: active.shell,
+                  shellRightDelta,
+                  shellTopDelta,
+                })
+              }`
             } else if (ribbonTopDelta > 1.5 || ribbonRightDelta > 1.5) {
               failureMessage = `${scenario.name}: ribbon is not attached to the header top-right: ${
                 JSON.stringify({
@@ -1532,6 +1591,32 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
                   ribbonRightDelta,
                   ribbonTopDelta,
                   shell: active.shell,
+                })
+              }`
+            } else if (
+              active.header.height < compactRibbonMinHeight ||
+              active.header.height > compactRibbonMaxHeight
+            ) {
+              failureMessage = `${scenario.name}: ribbon reserved outside the compact 60-65px toolbar band: ${
+                JSON.stringify({
+                  header: active.header,
+                  maxHeight: compactRibbonMaxHeight,
+                  minHeight: compactRibbonMinHeight,
+                  shell: active.shell,
+                })
+              }`
+            } else if (
+              surfaceOffsetFromLabel < compactRibbonMinHeight ||
+              surfaceOffsetFromLabel > compactRibbonMaxHeight + 1
+            ) {
+              failureMessage = `${scenario.name}: editable surface is not close enough under Live Preview text: ${
+                JSON.stringify({
+                  label: active.label,
+                  maxHeight: compactRibbonMaxHeight,
+                  minHeight: compactRibbonMinHeight,
+                  preview: active.preview,
+                  shell: active.shell,
+                  surfaceOffsetFromLabel,
                 })
               }`
             } else if (
@@ -2291,6 +2376,11 @@ async function runCaseChecks(page) {
 
   await runCheck(page, 'cover selected-range BIU and color update HTML source', async () => {
     await replaceInlineTextWithKeyboard(page, 'Word Rest')
+    await selectAllInlineText(page)
+    await clickInlineTab(page, 'text')
+    if (await getInlineTogglePressed(page, 'bold')) {
+      await clickInlineToggle(page, 'bold')
+    }
     await dragSelectVisiblePrefix(page, 'case-text-block-cover-cover-title-text')
     await clickInlineTab(page, 'text')
     await clickInlineToggle(page, 'bold')

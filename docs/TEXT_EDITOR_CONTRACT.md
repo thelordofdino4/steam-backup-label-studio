@@ -31,14 +31,22 @@ tested, and the remaining divergences are recorded.
 - The ribbon is attached to the top-right edge of the preview workspace. It is
   not a detached floating card, and its left edge must not cross into the Live
   Preview label column.
+- The ribbon may use the full available right-hand header column. Preview
+  padding must not create dead blank space above or to the right of the ribbon.
 - The preview begins below the complete header/ribbon region and must never
   encroach into, underlap, or be clipped by the reserved ribbon slot.
 - The reserved slot remains present when no text target is active, but the
   ribbon contents disappear.
-- Row 1 of the ribbon contains the four contextual tabs. Row 2 contains the
-  active tab's controls. At narrower widths, controls may wrap into a third
-  row. The reserved slot must stay compact for those rows rather than preserve
-  an oversized floating-menu allowance.
+- Row 1 of the ribbon contains the four contextual tabs with compact
+  single-line labels: `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 2 contains the active tab's controls rendered as native ribbon toolbar
+  groups. Production code must not reuse portal-slot content or
+  `.inline-preview-text-control-grid` presentation from the old full menu
+  inside the ribbon.
+- The reserved slot stays near the 60-65 px app-shell band. Controls must not
+  wrap downward in a way that pushes the editable surface lower; overflowing
+  controls use internal horizontal scrolling or compact grouping while keeping
+  normal usable hit targets.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
@@ -115,6 +123,10 @@ tested, and the remaining divergences are recorded.
   floating menu attached to the selected text.
 - The ribbon is shared by cover, tray, left spine, right spine, straight disc,
   and curved disc text targets.
+- The ribbon host receives active text controls through a neutral registration
+  bridge from the selected preview editor. That bridge is for app-shell
+  placement only; it is not a portal back to preview-anchored full-menu
+  markup.
 - The ribbon responds to its reserved header/container width and height only.
   Surface-specific geometry may affect preview affordances and text layout, but
   it must not move, resize, dock, or flip the ribbon.

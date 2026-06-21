@@ -1,8 +1,14 @@
 .preview-area {
   --preview-area-padding: clamp(16px, 3vw, 32px);
+  --preview-area-top-padding: 0px;
+  --preview-area-right-padding: 0px;
+  --preview-area-bottom-padding: var(--preview-area-padding);
+  --preview-area-left-padding: var(--preview-area-padding);
   --preview-chrome-space: calc(
-    var(--contextual-text-ribbon-reserved-height, 196px)
-    + clamp(46px, 8vh, 72px)
+    var(--contextual-text-ribbon-reserved-height, 64px)
+    + var(--preview-area-top-padding)
+    + var(--preview-area-bottom-padding)
+    + 1px
   );
   position: relative;
   z-index: 1;
@@ -13,8 +19,12 @@
   grid-template-rows: auto minmax(0, 1fr);
   align-items: center;
   justify-items: center;
-  gap: clamp(10px, 1.4vw, 16px);
-  padding: var(--preview-area-padding);
+  gap: 1px;
+  padding:
+    var(--preview-area-top-padding)
+    var(--preview-area-right-padding)
+    var(--preview-area-bottom-padding)
+    var(--preview-area-left-padding);
   overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(255, 255, 255, 0.08), transparent 45%),
@@ -23,7 +33,7 @@
 
 .disc-preview,
 .case-insert-preview {
-  align-self: center;
+  align-self: start;
   justify-self: center;
 }
 
@@ -34,7 +44,7 @@
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  align-items: center;
+  align-items: start;
   justify-items: center;
   gap: clamp(12px, 1.4vw, 18px);
   overflow: hidden;

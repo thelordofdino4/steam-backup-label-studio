@@ -128,7 +128,6 @@ export type DiscTextLayerProps = {
   ) => void
   handleDiscTextPointerMove: (event: PointerEvent<Element>) => void
   handleDiscTextPointerUp: (event: PointerEvent<Element>) => void
-  ribbonSlotId?: string
 }
 
 function getDiscTextKeyFromEventTarget(target: EventTarget | null) {
@@ -178,7 +177,6 @@ export function DiscTextLayer({
   handleDiscTextMoveHandlePointerDown,
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
-  ribbonSlotId,
 }: DiscTextLayerProps) {
   const safeZoneRadiusPercent =
     (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * 50
@@ -371,7 +369,6 @@ export function DiscTextLayer({
         onMoveHandlePointerDown={handleDiscTextMoveHandlePointerDown}
         onMoveHandlePointerMove={handleDiscTextPointerMove}
         onMoveHandlePointerUp={handleDiscTextPointerUp}
-        ribbonSlotId={ribbonSlotId}
       />
     </div>
   )

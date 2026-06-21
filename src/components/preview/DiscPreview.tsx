@@ -20,6 +20,7 @@ import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { PreviewHeader } from './PreviewHeader'
+import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
@@ -29,8 +30,6 @@ import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
-
-const DISC_TEXT_RIBBON_SLOT_ID = 'disc-text-ribbon'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -452,7 +451,6 @@ export function DiscPreview({
         onDiscTextArcSideChange={discText.onTextArcSideChange}
         onDiscTextVisualAvoidanceChange={discText.onTextVisualAvoidanceChange}
         onResetDiscTextLayout={discText.onResetTextLayout}
-        ribbonSlotId={DISC_TEXT_RIBBON_SLOT_ID}
         {...pointerHandlers.discText}
       />
     ),
@@ -467,51 +465,52 @@ export function DiscPreview({
   }
 
   return (
-    <section
-      ref={previewAreaRef}
-      className={[
-        'preview-area',
-        discText.selectedKey ? 'has-contextual-text-ribbon-active' : '',
-      ].filter(Boolean).join(' ')}
-      aria-labelledby="disc-preview-title"
-    >
-      <PreviewHeader
-        contextualTextRibbonActive={Boolean(discText.selectedKey)}
-        contextualTextRibbonSlotId={DISC_TEXT_RIBBON_SLOT_ID}
-        title="Disc Preview"
-        titleId="disc-preview-title"
-      />
+    <ContextualTextRibbonProvider>
+      <section
+        ref={previewAreaRef}
+        className={[
+          'preview-area',
+          discText.selectedKey ? 'has-contextual-text-ribbon-active' : '',
+        ].filter(Boolean).join(' ')}
+        aria-labelledby="disc-preview-title"
+      >
+        <PreviewHeader
+          contextualTextRibbonActive={Boolean(discText.selectedKey)}
+          title="Disc Preview"
+          titleId="disc-preview-title"
+        />
 
-      <PreviewToastStack statusToasts={statusToasts} />
+        <PreviewToastStack statusToasts={statusToasts} />
 
-      <div className="preview-workspace">
-        <div
-          ref={discPreviewRef}
-          className="disc-preview"
-          data-smoke-id="disc-preview"
-          aria-label="Blank standard printable disc preview"
-        >
-          {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-            <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-          ))}
-          <PreviewElementOverlay previewRef={discPreviewRef} />
+        <div className="preview-workspace">
+          <div
+            ref={discPreviewRef}
+            className="disc-preview"
+            data-smoke-id="disc-preview"
+            aria-label="Blank standard printable disc preview"
+          >
+            {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+              <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+            ))}
+            <PreviewElementOverlay previewRef={discPreviewRef} />
+          </div>
+
+          <PreviewDesignCheckPanel
+            closedOffset={guideLegendClosedSize + 8}
+            closedSize={guideLegendClosedSize}
+            isOpen={isDesignCheckOpen}
+            label="Disc design check"
+            onOpenChange={handleDesignCheckOpenChange}
+            summary={designCheckSummary}
+          />
+
+          <DiscGuideLegendPreviewPanel
+            closedSize={guideLegendClosedSize}
+            isOpen={isGuideLegendOpen}
+            onOpenChange={handleGuideLegendOpenChange}
+          />
         </div>
-
-        <PreviewDesignCheckPanel
-          closedOffset={guideLegendClosedSize + 8}
-          closedSize={guideLegendClosedSize}
-          isOpen={isDesignCheckOpen}
-          label="Disc design check"
-          onOpenChange={handleDesignCheckOpenChange}
-          summary={designCheckSummary}
-        />
-
-        <DiscGuideLegendPreviewPanel
-          closedSize={guideLegendClosedSize}
-          isOpen={isGuideLegendOpen}
-          onOpenChange={handleGuideLegendOpenChange}
-        />
-      </div>
-    </section>
+      </section>
+    </ContextualTextRibbonProvider>
   )
 }

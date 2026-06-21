@@ -41,6 +41,7 @@ import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { PreviewHeader } from './PreviewHeader'
+import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
   CaseInsertPreviewPointerHandlers,
@@ -52,8 +53,6 @@ import type {
 import type {
   CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
-
-const CASE_INSERT_TEXT_RIBBON_SLOT_ID = 'case-insert-text-ribbon'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
@@ -278,7 +277,6 @@ export function CaseInsertPreview({
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
         previewTextControlHandlers={previewTextControlHandlers}
-        ribbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
       />
     ),
     'case-spine-content': (
@@ -292,59 +290,59 @@ export function CaseInsertPreview({
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
         previewTextControlHandlers={previewTextControlHandlers}
-        ribbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
       />
     ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
   }
 
   return (
-    <section
-      ref={previewAreaRef}
-      className={[
-        'preview-area',
-        selectedTextTarget ? 'has-contextual-text-ribbon-active' : '',
-      ].filter(Boolean).join(' ')}
-      aria-labelledby="case-insert-preview-title"
-    >
-      <PreviewHeader
-        contextualTextRibbonActive={Boolean(selectedTextTarget)}
-        contextualTextRibbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
-        title={`${activePaneConfig.label} Preview`}
-        titleId="case-insert-preview-title"
-      />
+    <ContextualTextRibbonProvider>
+      <section
+        ref={previewAreaRef}
+        className={[
+          'preview-area',
+          selectedTextTarget ? 'has-contextual-text-ribbon-active' : '',
+        ].filter(Boolean).join(' ')}
+        aria-labelledby="case-insert-preview-title"
+      >
+        <PreviewHeader
+          contextualTextRibbonActive={Boolean(selectedTextTarget)}
+          title={`${activePaneConfig.label} Preview`}
+          titleId="case-insert-preview-title"
+        />
 
-      <PreviewToastStack statusToasts={statusToasts} />
+        <PreviewToastStack statusToasts={statusToasts} />
 
-      <div className="preview-workspace">
-        <div
-          ref={caseInsertPreviewRef}
-          className="case-insert-preview"
-          data-smoke-id={`case-preview-${activeTemplatePane}`}
-          style={previewStyle}
-          aria-label={`${activePaneConfig.label} live preview`}
-        >
-          {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-            <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-          ))}
-          <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
+        <div className="preview-workspace">
+          <div
+            ref={caseInsertPreviewRef}
+            className="case-insert-preview"
+            data-smoke-id={`case-preview-${activeTemplatePane}`}
+            style={previewStyle}
+            aria-label={`${activePaneConfig.label} live preview`}
+          >
+            {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+              <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+            ))}
+            <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
+          </div>
+
+          <PreviewDesignCheckPanel
+            closedOffset={guideLegendClosedSize + 8}
+            closedSize={guideLegendClosedSize}
+            isOpen={isDesignCheckOpen}
+            label="Case insert design check"
+            onOpenChange={handleDesignCheckOpenChange}
+            summary={designCheckSummary}
+          />
+
+          <CaseInsertGuideLegendPreviewPanel
+            closedSize={guideLegendClosedSize}
+            isOpen={isGuideLegendOpen}
+            onOpenChange={handleGuideLegendOpenChange}
+          />
         </div>
-
-        <PreviewDesignCheckPanel
-          closedOffset={guideLegendClosedSize + 8}
-          closedSize={guideLegendClosedSize}
-          isOpen={isDesignCheckOpen}
-          label="Case insert design check"
-          onOpenChange={handleDesignCheckOpenChange}
-          summary={designCheckSummary}
-        />
-
-        <CaseInsertGuideLegendPreviewPanel
-          closedSize={guideLegendClosedSize}
-          isOpen={isGuideLegendOpen}
-          onOpenChange={handleGuideLegendOpenChange}
-        />
-      </div>
-    </section>
+      </section>
+    </ContextualTextRibbonProvider>
   )
 }

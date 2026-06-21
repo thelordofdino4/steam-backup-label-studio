@@ -506,10 +506,19 @@ Edit/interaction path:
 - The contextual-control host is a stable top-right app-shell ribbon in the
   preview header, documented in `docs/TEXT_EDITOR_CONTRACT.md` and the SDD.
   The header keeps a bounded Live Preview label column on the left and an
-  attached ribbon column on the right. Migrated case and disc text surfaces
-  consume the existing contextual registry and adapters through that host; the
-  ribbon must not take ownership of text rendering, layout, save/load, export,
-  source resolution, or surface-specific geometry.
+  attached ribbon column on the right. The ribbon is flush to the preview
+  app-shell column's top and right edges, and it uses the available right-hand
+  header width up to the label boundary instead of leaving dead top/right
+  gutter space. Migrated case and disc text surfaces register their active
+  controls through
+  `src/components/preview/ContextualTextRibbonBridge.tsx` and consume the
+  existing contextual registry and adapters through that host. The production
+  ribbon renders native toolbar groups and must not reuse old
+  `.inline-preview-text-control-grid` or portal-slot full-menu presentation.
+  Its controls scroll internally when necessary instead of wrapping downward and
+  moving the editable surface; the ribbon must not take ownership of text
+  rendering, layout, save/load, export, source resolution, or surface-specific
+  geometry.
 - The ribbon host also owns the app-shell reservation that the toast container
   must respect while the ribbon is active. The toast offset should consume a
   shared app-shell ribbon height/offset signal or CSS variable; it must not be
@@ -535,8 +544,9 @@ Edit/interaction path:
   sidebar-owned structural control.
 - Curved disc text remains SVG/textPath based. Its contextual adapter exposes
   curved-safe controls through the contextual infrastructure, but it is not
-  routed through a visible rectangular on-canvas editor. Future ribbon work
-  should preserve the SVG/textPath renderer and move only the control host.
+  routed through a visible rectangular on-canvas editor. Future ribbon
+  presentation work should preserve the SVG/textPath renderer and change only
+  control presentation.
 - Case insert preview text selection/editing helpers support adapter-based
   preview editing; broad case insert runtime behavior was not independently
   manually verified during this inventory refresh.
