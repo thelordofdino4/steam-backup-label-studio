@@ -44,6 +44,8 @@ import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
 } from '../../text/contextualTextControlViewModel'
 import {
+  getRotatedLocalTextEdgePoint,
+  isPointInTextEdgeGrabBand,
   isPrimaryMoveHandlePointer,
 } from '../../interaction/textMoveHandleDrag'
 import {
@@ -162,6 +164,8 @@ function getInlineTextSelectionStateFromRange(
 }
 
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
+const INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX = 8
+const INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX = 2
 
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
   event.stopPropagation()
@@ -218,6 +222,38 @@ function getInlinePreviewTextHostForTarget({
   return candidates.find((candidate) =>
     candidate.getAttribute(INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE) === targetKey,
   ) ?? null
+}
+
+function isPointerInInlineTextEdgeGrabBand({
+  clientX,
+  clientY,
+  host,
+  rotationDegrees = 0,
+}: {
+  clientX: number
+  clientY: number
+  host: HTMLElement
+  rotationDegrees?: number
+}) {
+  const rect = host.getBoundingClientRect()
+  const width = host.offsetWidth || rect.width
+  const height = host.offsetHeight || rect.height
+  const point = getRotatedLocalTextEdgePoint({
+    clientX,
+    clientY,
+    height,
+    rect,
+    rotationDegrees,
+    width,
+  })
+
+  return isPointInTextEdgeGrabBand({
+    height,
+    inwardTolerancePx: INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX,
+    outerBandPx: INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX,
+    point,
+    width,
+  })
 }
 
 function renderInlinePreviewTextSelectControl(
@@ -2376,17 +2412,51 @@ export function InlinePreviewTextEditor({
       return undefined
     }
 
+    const getHost = () =>
+      edgeRing.closest<HTMLElement>(`.${INLINE_PREVIEW_TEXT_HOST_CLASS}`)
+    const updateEdgeGrabCursor = (event: globalThis.PointerEvent) => {
+      const target = event.target
+      const host = getHost()
+      const isEdgeHit =
+        target instanceof Element &&
+        Boolean(target.closest('.inline-preview-text-edge-move-hit')) &&
+        host !== null &&
+        isPointerInInlineTextEdgeGrabBand({
+          clientX: event.clientX,
+          clientY: event.clientY,
+          host,
+          rotationDegrees,
+        })
+
+      edgeRing.toggleAttribute('data-edge-grab-active', isEdgeHit)
+    }
+    const clearEdgeGrabCursor = () => {
+      edgeRing.removeAttribute('data-edge-grab-active')
+    }
     const handleEdgeRingPointerDown = (
       event: globalThis.PointerEvent,
     ) => {
       const target = event.target
+      const isMoveHandle = target instanceof Element &&
+        Boolean(target.closest('.inline-preview-text-move-handle'))
+      const isEdgeHit = target instanceof Element &&
+        Boolean(target.closest('.inline-preview-text-edge-move-hit'))
+      const host = getHost()
 
       if (
-        !(target instanceof Element) ||
-        !target.closest(
-          '.inline-preview-text-edge-move-hit, .inline-preview-text-move-handle',
-        ) ||
+        (!isMoveHandle && !isEdgeHit) ||
         !isPrimaryMoveHandlePointer(event)
+      ) {
+        return
+      }
+      if (
+        isEdgeHit &&
+        (!host || !isPointerInInlineTextEdgeGrabBand({
+          clientX: event.clientX,
+          clientY: event.clientY,
+          host,
+          rotationDegrees,
+        }))
       ) {
         return
       }
@@ -2394,18 +2464,23 @@ export function InlinePreviewTextEditor({
       event.preventDefault()
       event.stopPropagation()
       controlPointerStartedInsideRef.current = true
+      controlPointerStartedAtRef.current = Date.now()
       activeMoveHandlePointerIdRef.current = event.pointerId
-      activeMoveEdgePointerIdRef.current = event.pointerId
+      activeMoveEdgePointerIdRef.current = isEdgeHit ? event.pointerId : null
       setIsMoveHandleDragging(true)
       onMoveHandlePointerDown(event as never)
     }
 
+    edgeRing.addEventListener('pointermove', updateEdgeGrabCursor)
+    edgeRing.addEventListener('pointerleave', clearEdgeGrabCursor)
     edgeRing.addEventListener('pointerdown', handleEdgeRingPointerDown)
 
     return () => {
+      edgeRing.removeEventListener('pointermove', updateEdgeGrabCursor)
+      edgeRing.removeEventListener('pointerleave', clearEdgeGrabCursor)
       edgeRing.removeEventListener('pointerdown', handleEdgeRingPointerDown)
     }
-  }, [onMoveHandlePointerDown])
+  }, [onMoveHandlePointerDown, rotationDegrees])
   const deleteAction = editorControls?.deleteAction
   const deleteLabel = deleteAction?.label ?? 'Delete'
   const deleteAriaLabel = deleteAction?.ariaLabel ?? deleteLabel

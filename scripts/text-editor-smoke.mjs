@@ -930,15 +930,24 @@ async function dragInlineEdgeMoveImmediately(
   const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
   const edgeRect = await getRect(page, `inline-text-edge-move-${edge}`)
   const edgeInsetPx = 1
+  const isCorner = edge.includes('-')
   const startX = edge.includes('right')
-    ? edgeRect.left + edgeInsetPx
-    : edge.includes('left')
+    ? isCorner
       ? edgeRect.right - edgeInsetPx
+      : edgeRect.left + edgeInsetPx
+    : edge.includes('left')
+      ? isCorner
+        ? edgeRect.left + edgeInsetPx
+        : edgeRect.right - edgeInsetPx
       : edgeRect.left + edgeRect.width / 2
   const startY = edge.includes('bottom')
-    ? edgeRect.top + edgeInsetPx
-    : edge.includes('top')
+    ? isCorner
       ? edgeRect.bottom - edgeInsetPx
+      : edgeRect.top + edgeInsetPx
+    : edge.includes('top')
+      ? isCorner
+        ? edgeRect.top + edgeInsetPx
+        : edgeRect.bottom - edgeInsetPx
       : edgeRect.top + edgeRect.height / 2
   const topElement = await page.evaluate(({ x, y }) => {
     const element = document.elementFromPoint(x, y)
@@ -2293,6 +2302,7 @@ async function runCaseChecks(page) {
       18,
       16,
     )
+    await dragSelectVisibleText(page, 'case-text-block-tray-tray-title-text')
     await done(page)
     await openSpineTitle(page, 'left')
     await assertTextIncludes(page, 'case-spine-title-left', 'LEFT SPINE SMOKE')
