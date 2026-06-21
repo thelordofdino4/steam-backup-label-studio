@@ -900,3 +900,125 @@ test('inline text controls treat center-hole-sized obstacles as local, not emerg
   assert.equal(diagnostics.emergencyEligible, false)
   assert.equal(layout.mode, 'anchored')
 })
+
+test('disc text controls use normal anchored placement when it avoids the selected text', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 455,
+      centerX: 500,
+      centerY: 438.5,
+      right: 620,
+      top: 422,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 220, width: 420 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 420 },
+    },
+  }
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const layout = getInlinePreviewTextControlLayout(input)
+
+  assert.equal(diagnostics.selectedPlacement, 'below')
+  assert.equal(layout.mode, 'anchored')
+  assert.equal(layout.menu.placement, 'below')
+})
+
+test('disc text controls center-dock when top-arc anchored controls cover selected text', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 110,
+      centerX: 500,
+      centerY: 65,
+      right: 840,
+      top: 20,
+    }),
+    obstacles: [
+      {
+        id: 'disc-center-hole',
+        rect: { bottom: 570, left: 430, right: 570, top: 430 },
+      },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const layout = getInlinePreviewTextControlLayout(input)
+
+  assert.equal(diagnostics.selectedPlacement, 'center-docked')
+  assert.equal(layout.mode, 'center-docked')
+  assert.equal(layout.menu.placement, 'center-docked')
+  assert.equal(layout.tabs.top, 220)
+  assert.equal(layout.menu.top, 274)
+  assert.equal(layout.moveHandle.top, 568)
+  assert.equal(layout.tabs.maxWidth, 520)
+  assert.equal(layout.menu.maxWidth, 520)
+  assert.equal(
+    inlinePreviewTextPlacementInternals.getOverlapArea(
+      {
+        bottom: layout.menu.top + 286,
+        left: layout.menu.left,
+        right: layout.menu.left + 520,
+        top: layout.menu.top,
+      },
+      {
+        bottom: 110,
+        left: 160,
+        right: 840,
+        top: 20,
+      },
+    ),
+    0,
+  )
+})
+
+test('disc center-docked controls scroll internally inside the central workspace', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 110,
+      centerX: 300,
+      centerY: 65,
+      right: 520,
+      top: 20,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 600,
+      left: 0,
+      right: 600,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 480, width: 420 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 420 },
+    },
+  }
+  const layout = getInlinePreviewTextControlLayout(input)
+
+  assert.equal(layout.mode, 'center-docked')
+  assert.ok(Math.abs(layout.menu.maxHeight - 242) < 0.001)
+  assert.ok(layout.menu.maxHeight < input.sizes.menu.height)
+  assert.ok(layout.menu.maxHeight >= 118)
+  assert.ok(layout.moveHandle.top + input.sizes.moveHandle.height <= 468)
+})

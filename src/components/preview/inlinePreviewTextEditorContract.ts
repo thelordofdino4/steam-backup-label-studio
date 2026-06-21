@@ -7,6 +7,7 @@ import type {
 } from '../../text/contextualTextControlViewModel'
 import type {
   InlinePreviewTextEditorMenuPlacement,
+  InlinePreviewTextPlacementStrategy,
 } from './inlinePreviewTextEditorPositioning'
 
 export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
@@ -243,6 +244,7 @@ export type InlinePreviewTextEditorProps = {
   sourceMode?: boolean
   suppressCanvasInput?: boolean
   menuPlacement: InlinePreviewTextEditorMenuPlacement
+  placementStrategy?: InlinePreviewTextPlacementStrategy
   onValueChange: (
     value: string,
     options?: { sourceMode?: boolean },

@@ -186,6 +186,10 @@ The committed smoke command verifies:
   the SVG preview/export font-size model in sync.
 - Straight disc controls remain anchored when moved to the center-hole area;
   the center hole is not treated as a preview-consuming obstacle.
+- Outer-ring straight and curved disc text use compact center-docked contextual
+  controls when anchored placement would cover the selected disc text; the dock
+  keeps tabs, menu, and Move available inside the central disc workspace with
+  menu scrolling instead of extending over the text.
 - Straight disc HTML source updates the SVG renderer before Done.
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
