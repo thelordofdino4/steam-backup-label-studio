@@ -1060,15 +1060,54 @@ async function dragSelectCurvedText(page, smokeId) {
 
 async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
   const text = page
-    .locator('[data-smoke-id="disc-text-layer-hit-target"] text[data-disc-text-key="copyright"]')
+    .locator('[data-smoke-id="disc-text-layer-hit-target"] text.disc-text-render-text[data-disc-text-key="copyright"]:not(.disc-text-curved-shadow)')
     .first()
   await text.waitFor({ state: 'attached', timeout: 5_000 })
+  const inputState = await getInlineInputState(page)
 
-  return text.evaluate((element, offset) => {
-    const textElement = element
+  return text.evaluate((element, payload) => {
+    const { offset, value } = payload
+    const textElements = Array.from(
+      element.ownerDocument.querySelectorAll(
+        '[data-smoke-id="disc-text-layer-hit-target"] text.disc-text-render-text[data-disc-text-key="copyright"]:not(.disc-text-curved-shadow)',
+      ),
+    )
+    const getVisibleText = (textElement) => {
+      const rawText = textElement.textContent ?? ''
+      const visibleStart = rawText.search(/\S/)
+
+      return visibleStart >= 0 ? rawText.slice(visibleStart).trimEnd() : rawText
+    }
+    let searchStart = 0
+    let selectedTextElement = textElements[0]
+    let selectedLineStart = 0
+    let selectedLineText = getVisibleText(selectedTextElement)
+
+    for (const candidateElement of textElements) {
+      const candidateLineText = getVisibleText(candidateElement)
+      const exactLineStart = candidateLineText
+        ? value.indexOf(candidateLineText, searchStart)
+        : searchStart
+      const lineStart = exactLineStart >= 0 ? exactLineStart : searchStart
+      const lineEnd = Math.max(lineStart, lineStart + candidateLineText.length)
+
+      if (offset <= lineEnd || candidateElement === textElements[textElements.length - 1]) {
+        selectedTextElement = candidateElement
+        selectedLineStart = lineStart
+        selectedLineText = candidateLineText
+        break
+      }
+
+      searchStart = lineEnd
+      while (searchStart < value.length && /\s/.test(value.charAt(searchStart))) {
+        searchStart += 1
+      }
+    }
+
+    const textElement = selectedTextElement
     const rawText = textElement.textContent ?? ''
-    const visibleStart = rawText.search(/\S/)
-    const visibleText = visibleStart >= 0 ? rawText.slice(visibleStart).trimEnd() : rawText
+    const visibleStart = rawText.indexOf(selectedLineText)
+    const visibleText = selectedLineText
     const charCount = typeof textElement.getNumberOfChars === 'function'
       ? textElement.getNumberOfChars()
       : rawText.length
@@ -1082,7 +1121,10 @@ async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
       throw new Error('Curved SVG text does not expose measurable character positions.')
     }
 
-    const normalizedOffset = Math.max(0, Math.min(offset, visibleText.length))
+    const normalizedOffset = Math.max(
+      0,
+      Math.min(offset - selectedLineStart, visibleText.length),
+    )
     const svgOffset = Math.max(
       0,
       Math.min(visibleStart + normalizedOffset, charCount),
@@ -1106,7 +1148,8 @@ async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
       return {
         ...toScreen(textElement.getStartPositionOfChar(visibleStart)),
         charCount: visibleText.length,
-        offset: normalizedOffset,
+        lineOffset: normalizedOffset,
+        offset,
         text: visibleText,
       }
     }
@@ -1115,7 +1158,8 @@ async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
       return {
         ...toScreen(textElement.getEndPositionOfChar(svgOffset - 1)),
         charCount: visibleText.length,
-        offset: normalizedOffset,
+        lineOffset: normalizedOffset,
+        offset,
         text: visibleText,
       }
     }
@@ -1125,12 +1169,13 @@ async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
 
     return {
       charCount: visibleText.length,
-      offset: normalizedOffset,
+      lineOffset: normalizedOffset,
+      offset,
       text: visibleText,
       x: (previousEnd.x + nextStart.x) / 2,
       y: (previousEnd.y + nextStart.y) / 2,
     }
-  }, boundaryOffset)
+  }, { offset: boundaryOffset, value: inputState.value })
 }
 
 async function clickCurvedTextBoundary(page, boundaryOffset, label) {
@@ -1152,7 +1197,33 @@ async function clickCurvedTextBoundary(page, boundaryOffset, label) {
   return point
 }
 
+async function assertCurvedRenderedBoundarySelections(page, textValue, offsets, label) {
+  await replaceInlineTextWithKeyboard(page, textValue)
+
+  for (const offset of offsets) {
+    await clickCurvedTextBoundary(page, offset, `${label} offset ${offset}`)
+  }
+}
+
+function removeCharacterBeforeOffset(text, offset) {
+  return text.slice(0, Math.max(0, offset - 1)) + text.slice(offset)
+}
+
+function removeCharacterAtOffset(text, offset) {
+  return text.slice(0, offset) + text.slice(offset + 1)
+}
+
 async function assertCurvedCaretMutationParity(page) {
+  await clickInlineTab(page, 'text')
+  const originalPointSize = await getInlineTextNumberDraft(page, 'font-size-pt')
+
+  await assertCurvedRenderedBoundarySelections(
+    page,
+    'WIDE TEST',
+    [1, 4, 8],
+    'ASCII rendered boundary',
+  )
+
   await replaceInlineTextWithKeyboard(page, 'WIDE TEST')
   await clickCurvedTextBoundary(page, 1, 'Backspace parity')
   await assertCurvedEditorUsesPathOverlays(page, 'backspace boundary curved copyright', 'caret')
@@ -1177,6 +1248,53 @@ async function assertCurvedCaretMutationParity(page) {
       JSON.stringify(state),
     )
   }
+
+  await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '72')
+  const largeText = 'CURVED RENDERED BOUNDARY PARITY'
+  const largeBoundaryOffset = 23
+  await assertCurvedRenderedBoundarySelections(
+    page,
+    largeText,
+    [1, 8, largeBoundaryOffset, largeText.length - 1],
+    'large point rendered boundary',
+  )
+  await clickCurvedTextBoundary(
+    page,
+    largeBoundaryOffset,
+    'large point Backspace parity',
+  )
+  await page.keyboard.press('Backspace')
+  await page.waitForTimeout(120)
+  state = await getInlineInputState(page)
+  if (state.value !== removeCharacterBeforeOffset(largeText, largeBoundaryOffset)) {
+    fail(
+      `Large point Backspace did not delete the visible character before the curved caret: ` +
+      JSON.stringify({ expected: removeCharacterBeforeOffset(largeText, largeBoundaryOffset), state }),
+    )
+  }
+
+  await replaceInlineTextWithKeyboard(page, largeText)
+  await clickCurvedTextBoundary(
+    page,
+    largeBoundaryOffset,
+    'large point Delete parity',
+  )
+  await page.keyboard.press('Delete')
+  await page.waitForTimeout(120)
+  state = await getInlineInputState(page)
+  if (state.value !== removeCharacterAtOffset(largeText, largeBoundaryOffset)) {
+    fail(
+      `Large point Delete did not delete the visible character after the curved caret: ` +
+      JSON.stringify({ expected: removeCharacterAtOffset(largeText, largeBoundaryOffset), state }),
+    )
+  }
+
+  await setInlineTextNumberDraftWithKeyboard(
+    page,
+    'font-size-pt',
+    originalPointSize || '12',
+  )
+  await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
 }
 
 async function dragSelectVisiblePrefix(page, smokeId) {

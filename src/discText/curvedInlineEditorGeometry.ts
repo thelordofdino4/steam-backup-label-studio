@@ -509,6 +509,54 @@ function getLineOffsetFromClientPoint({
   }
 }
 
+export function getCurvedDiscTextProgressForSvgPoint(
+  line: CurvedDiscTextLineGeometry,
+  point: { x: number; y: number },
+) {
+  const angle = normalizeAngleDegrees(
+    Math.atan2(point.y - 50, point.x - 50) * (180 / Math.PI),
+  )
+
+  return getArcProgress(line, angle)
+}
+
+export function getCurvedDiscTextOffsetForSvgPoint({
+  geometry,
+  x,
+  y,
+}: {
+  geometry: CurvedDiscTextHostGeometry
+  x: number
+  y: number
+}) {
+  if (geometry.lines.length === 0) return null
+
+  const radius = Math.hypot(x - 50, y - 50)
+  let nearestLineIndex = 0
+  let nearestDistance = Number.POSITIVE_INFINITY
+
+  for (let index = 0; index < geometry.lines.length; index += 1) {
+    const line = geometry.lines[index]
+    const progress = getCurvedDiscTextProgressForSvgPoint(line, { x, y })
+    const point = getPointOnLine(line, progress)
+    const distance = Math.hypot(x - point.x, y - point.y) +
+      Math.abs(radius - line.radius) * 0.4
+
+    if (distance < nearestDistance) {
+      nearestDistance = distance
+      nearestLineIndex = index
+    }
+  }
+
+  const line = geometry.lines[nearestLineIndex]
+  const progress = getCurvedDiscTextProgressForSvgPoint(line, { x, y })
+
+  return {
+    lineIndex: nearestLineIndex,
+    offset: getLineOffsetForProgress(line, progress),
+  }
+}
+
 export function getCurvedDiscTextOffsetForClientPoint({
   clientX,
   clientY,

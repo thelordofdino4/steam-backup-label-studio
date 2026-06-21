@@ -205,6 +205,10 @@ The committed smoke command verifies:
 - Curved caret mutation parity is checked by clicking a measured SVG character
   boundary and verifying Backspace removes the character before the visible
   caret while Delete removes the character after it.
+- Curved rendered-boundary parity is checked against the main visible SVG
+  textPath, including multiple character boundaries and a larger 72pt text case
+  farther along the arc, so hit-testing, caret placement, and keyboard mutation
+  use the same rendered glyph boundary model.
 
 ## Expected Outcomes
 
