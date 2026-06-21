@@ -127,6 +127,47 @@ function getRectArea(rect: InlinePreviewTextRect) {
   return getRectWidth(rect) * getRectHeight(rect)
 }
 
+function getTextCollisionRects(
+  anchorRect: InlinePreviewTextRect,
+  paintedCollisionRects: readonly InlinePreviewTextRect[] | undefined,
+) {
+  const usablePaintedRects = (paintedCollisionRects ?? []).filter((rect) =>
+    Number.isFinite(rect.bottom) &&
+    Number.isFinite(rect.left) &&
+    Number.isFinite(rect.right) &&
+    Number.isFinite(rect.top) &&
+    getRectArea(rect) > 0.5)
+
+  return usablePaintedRects.length > 0 ? usablePaintedRects : [anchorRect]
+}
+
+function getTextCollisionOverlapArea(
+  rect: InlinePreviewTextRect,
+  textCollisionRects: readonly InlinePreviewTextRect[],
+) {
+  return textCollisionRects.reduce(
+    (total, textRect) => total + getOverlapArea(rect, textRect),
+    0,
+  )
+}
+
+function getTextCollisionAreaRatio({
+  previewRect,
+  textCollisionRects,
+}: {
+  previewRect: InlinePreviewTextRect
+  textCollisionRects: readonly InlinePreviewTextRect[]
+}) {
+  const previewArea = getRectArea(previewRect)
+
+  if (previewArea <= 0) return 0
+
+  return textCollisionRects.reduce(
+    (total, rect) => total + getOverlapArea(rect, previewRect),
+    0,
+  ) / previewArea
+}
+
 function getOverlapArea(
   first: InlinePreviewTextRect,
   second: InlinePreviewTextRect,
@@ -370,6 +411,7 @@ export type InlinePreviewTextPlacementDiagnostics = {
   anchorRect: InlinePreviewTextRect
   candidates: InlinePreviewTextPlacementCandidateDiagnostic[]
   emergencyEligible: boolean
+  paintedCollisionRects: InlinePreviewTextRect[]
   selectedPlacement: InlinePreviewTextEditorMenuPlacement
   selectedTextAreaRatio: number
 }
@@ -380,6 +422,7 @@ function scoreCandidate({
   menuRect,
   moveHandleRect,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   tabsRect,
 }: {
@@ -388,23 +431,33 @@ function scoreCandidate({
   menuRect: InlinePreviewTextRect
   moveHandleRect: InlinePreviewTextRect
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   tabsRect: InlinePreviewTextRect
 }) {
+  const textCollisionRects = getTextCollisionRects(
+    anchorRect,
+    paintedCollisionRects,
+  )
   const controlRects = [tabsRect, menuRect, moveHandleRect]
   const previewOverflow = controlRects.reduce(
     (total, rect) => total + getOverflowArea(rect, previewRect),
     0,
   )
   const textOverlap = controlRects.reduce(
-    (total, rect) => total + getOverlapArea(rect, anchorRect),
+    (total, rect) => total +
+      getTextCollisionOverlapArea(rect, textCollisionRects),
     0,
   )
   const primaryTextOverlap = [tabsRect, menuRect].reduce(
-    (total, rect) => total + getOverlapArea(rect, anchorRect),
+    (total, rect) => total +
+      getTextCollisionOverlapArea(rect, textCollisionRects),
     0,
   )
-  const menuTextOverlap = getOverlapArea(menuRect, anchorRect)
+  const menuTextOverlap = getTextCollisionOverlapArea(
+    menuRect,
+    textCollisionRects,
+  )
   const obstacleOverlap = obstacles.reduce((total, obstacle) =>
     total + controlRects.reduce(
       (controlTotal, rect) => controlTotal + getOverlapArea(rect, obstacle.rect),
@@ -433,6 +486,7 @@ function createAnchoredVerticalCandidate({
   anchorRect,
   candidate,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   sizes,
 }: {
@@ -440,6 +494,7 @@ function createAnchoredVerticalCandidate({
   anchorRect: InlinePreviewTextRect
   candidate: 'above' | 'below'
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
 }): InlinePreviewTextCandidateLayout {
@@ -506,6 +561,7 @@ function createAnchoredVerticalCandidate({
     menuRect,
     moveHandleRect: moveHandle.rect,
     obstacles,
+    paintedCollisionRects,
     previewRect,
     tabsRect,
   })
@@ -554,6 +610,7 @@ function createAnchoredSideCandidate({
   anchorRect,
   candidate,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   sizes,
 }: {
@@ -561,6 +618,7 @@ function createAnchoredSideCandidate({
   anchorRect: InlinePreviewTextRect
   candidate: 'left' | 'right'
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
 }): InlinePreviewTextCandidateLayout {
@@ -619,6 +677,7 @@ function createAnchoredSideCandidate({
     menuRect,
     moveHandleRect: moveHandle.rect,
     obstacles,
+    paintedCollisionRects,
     previewRect,
     tabsRect,
   })
@@ -665,11 +724,13 @@ function createAnchoredSideCandidate({
 function createDiscCenterDockCandidate({
   anchorRect,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   sizes,
 }: {
   anchorRect: InlinePreviewTextRect
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
 }): InlinePreviewTextCandidateLayout {
@@ -743,6 +804,7 @@ function createDiscCenterDockCandidate({
     menuRect,
     moveHandleRect,
     obstacles: getDiscCenterDockObstacles(obstacles),
+    paintedCollisionRects,
     previewRect,
     tabsRect,
   })
@@ -791,12 +853,14 @@ function createDiscSideDockCandidate({
   anchorRect,
   candidate,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   sizes,
 }: {
   anchorRect: InlinePreviewTextRect
   candidate: 'left' | 'right'
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
 }): InlinePreviewTextCandidateLayout {
@@ -876,6 +940,7 @@ function createDiscSideDockCandidate({
     menuRect,
     moveHandleRect,
     obstacles: getDiscCenterDockObstacles(obstacles),
+    paintedCollisionRects,
     previewRect,
     tabsRect,
   })
@@ -933,12 +998,12 @@ function chooseDiscDockCandidate({
   previewRect: InlinePreviewTextRect
   sideDockCandidates: readonly InlinePreviewTextCandidateLayout[]
 }) {
-  if (centerDockCandidate.usable) return centerDockCandidate
-
-  const previousDock = sideDockCandidates.find((candidate) =>
-    candidate.candidate === previousPlacement)
+  const previousDock = [centerDockCandidate, ...sideDockCandidates].find(
+    (candidate) => candidate.candidate === previousPlacement,
+  )
 
   if (previousDock?.usable) return previousDock
+  if (centerDockCandidate.usable) return centerDockCandidate
 
   const previewCenterX = previewRect.left + getRectWidth(previewRect) / 2
   const preferredSide = anchorRect.left + getRectWidth(anchorRect) / 2 >=
@@ -1027,24 +1092,22 @@ function chooseUnobstructedAnchoredCandidate({
 }
 
 function shouldUseEmergencyPlacement({
-  anchorRect,
   anchoredCandidate,
   candidates,
   dockCandidate,
   previewRect,
+  selectedTextAreaRatio,
   workspaceRect,
 }: {
-  anchorRect: InlinePreviewTextRect
   anchoredCandidate: InlinePreviewTextCandidateLayout
   candidates: readonly InlinePreviewTextCandidateLayout[]
   dockCandidate?: InlinePreviewTextCandidateLayout
   previewRect: InlinePreviewTextRect
+  selectedTextAreaRatio: number
   workspaceRect: InlinePreviewTextRect
 }) {
   const previewArea = getRectArea(previewRect)
   const workspaceArea = getRectArea(workspaceRect)
-  const selectedTextAreaRatio =
-    previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
   const hasUsableCandidate = candidates.some((candidate) => candidate.usable)
   const hasUsableDock = Boolean(dockCandidate?.usable)
   const fallbackCandidate = dockCandidate ?? anchoredCandidate
@@ -1071,12 +1134,14 @@ function shouldUseEmergencyPlacement({
 function createEmergencyLayout({
   anchor,
   obstacles,
+  paintedCollisionRects,
   previewRect,
   sizes,
   workspaceRect,
 }: {
   anchor: InlinePreviewTextAnchor
   obstacles: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   previewRect: InlinePreviewTextRect
   sizes: InlinePreviewTextControlSizes
   workspaceRect: InlinePreviewTextRect
@@ -1095,8 +1160,12 @@ function createEmergencyLayout({
     top: tabsInsideTop,
     width: sizes.tabs.width,
   })
+  const textCollisionRects = getTextCollisionRects(
+    anchorRect,
+    paintedCollisionRects,
+  )
   const shouldPlaceTabsAbovePreview =
-    getOverlapArea(tabsInsideRect, anchorRect) > 1 &&
+    getTextCollisionOverlapArea(tabsInsideRect, textCollisionRects) > 1 &&
     previewRect.top - workspaceRect.top >=
       sizes.tabs.height + INLINE_PREVIEW_TEXT_CONTROL_GAP
   const tabsTop = shouldPlaceTabsAbovePreview
@@ -1175,7 +1244,7 @@ function createEmergencyLayout({
     width: sizes.moveHandle.width,
   })
   const nearHandleAccessible =
-    getOverlapArea(nearMoveHandleRect, anchorRect) <= 1 &&
+    getTextCollisionOverlapArea(nearMoveHandleRect, textCollisionRects) <= 1 &&
     getOverflowArea(nearMoveHandleRect, previewRect) <= 1
   const moveHandleLeft = nearHandleAccessible
     ? nearMoveHandleLeft
@@ -1212,6 +1281,7 @@ function createEmergencyLayout({
 function getInlinePreviewTextControlPlacementModel({
   anchor,
   obstacles = [],
+  paintedCollisionRects,
   placementStrategy = 'default',
   previousPlacement,
   requestedMenuPlacement,
@@ -1221,6 +1291,7 @@ function getInlinePreviewTextControlPlacementModel({
 }: {
   anchor: InlinePreviewTextAnchor
   obstacles?: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   placementStrategy?: InlinePreviewTextPlacementStrategy
   previousPlacement?: InlinePreviewTextEditorMenuPlacement
   requestedMenuPlacement: InlinePreviewTextEditorMenuPlacement
@@ -1234,6 +1305,7 @@ function getInlinePreviewTextControlPlacementModel({
   centerDockCandidate?: InlinePreviewTextCandidateLayout
   dockCandidate?: InlinePreviewTextCandidateLayout
   emergencyEligible: boolean
+  paintedCollisionRects: InlinePreviewTextRect[]
   selectedTextAreaRatio: number
 } {
   const belowMenuTop = anchor.bottom + INLINE_PREVIEW_TEXT_CONTROL_GAP
@@ -1254,11 +1326,16 @@ function getInlinePreviewTextControlPlacementModel({
     requestedPlacement: requestedMenuPlacement,
   })
   const anchorRect = getAnchorRect(anchor)
+  const textCollisionRects = getTextCollisionRects(
+    anchorRect,
+    paintedCollisionRects,
+  )
   const preferredVerticalCandidate = createAnchoredVerticalCandidate({
     anchor,
     anchorRect,
     candidate: verticalPreference,
     obstacles,
+    paintedCollisionRects,
     previewRect,
     sizes,
   })
@@ -1267,6 +1344,7 @@ function getInlinePreviewTextControlPlacementModel({
     anchorRect,
     candidate: verticalPreference === 'below' ? 'above' : 'below',
     obstacles,
+    paintedCollisionRects,
     previewRect,
     sizes,
   })
@@ -1278,6 +1356,7 @@ function getInlinePreviewTextControlPlacementModel({
       anchorRect,
       candidate: 'left',
       obstacles,
+      paintedCollisionRects,
       previewRect,
       sizes,
     }),
@@ -1286,6 +1365,7 @@ function getInlinePreviewTextControlPlacementModel({
       anchorRect,
       candidate: 'right',
       obstacles,
+      paintedCollisionRects,
       previewRect,
       sizes,
     }),
@@ -1302,11 +1382,12 @@ function getInlinePreviewTextControlPlacementModel({
   const centerDockCandidate =
     placementStrategy === 'disc-center-dock'
       ? createDiscCenterDockCandidate({
-          anchorRect,
-          obstacles,
-          previewRect,
-          sizes,
-        })
+        anchorRect,
+        obstacles,
+        paintedCollisionRects,
+        previewRect,
+        sizes,
+      })
       : undefined
   const sideDockCandidates =
     placementStrategy === 'disc-center-dock'
@@ -1315,6 +1396,7 @@ function getInlinePreviewTextControlPlacementModel({
             anchorRect,
             candidate: 'left',
             obstacles,
+            paintedCollisionRects,
             previewRect,
             sizes,
           }),
@@ -1322,6 +1404,7 @@ function getInlinePreviewTextControlPlacementModel({
             anchorRect,
             candidate: 'right',
             obstacles,
+            paintedCollisionRects,
             previewRect,
             sizes,
           }),
@@ -1341,15 +1424,17 @@ function getInlinePreviewTextControlPlacementModel({
     : []
   const emergencyCandidates =
     placementStrategy === 'disc-center-dock' ? dockCandidates : candidates
-  const previewArea = getRectArea(previewRect)
   const selectedTextAreaRatio =
-    previewArea > 0 ? getRectArea(anchorRect) / previewArea : 0
+    getTextCollisionAreaRatio({
+      previewRect,
+      textCollisionRects,
+    })
   const emergencyEligible = shouldUseEmergencyPlacement({
-    anchorRect,
     anchoredCandidate,
     candidates: emergencyCandidates,
     dockCandidate,
     previewRect,
+    selectedTextAreaRatio,
     workspaceRect,
   })
 
@@ -1360,6 +1445,7 @@ function getInlinePreviewTextControlPlacementModel({
     centerDockCandidate,
     dockCandidate,
     emergencyEligible,
+    paintedCollisionRects: [...textCollisionRects],
     selectedTextAreaRatio,
   }
 }
@@ -1459,6 +1545,7 @@ export function getInlinePreviewTextControlPlacementDiagnostics(
     anchorRect: model.anchorRect,
     candidates: getPlacementCandidateDiagnostics(model.candidates),
     emergencyEligible: model.emergencyEligible,
+    paintedCollisionRects: model.paintedCollisionRects,
     selectedPlacement: model.emergencyEligible
       ? 'detached'
       : model.dockCandidate
@@ -1471,6 +1558,7 @@ export function getInlinePreviewTextControlPlacementDiagnostics(
 export function getInlinePreviewTextControlLayout({
   anchor,
   obstacles = [],
+  paintedCollisionRects,
   placementStrategy = 'default',
   previousPlacement,
   requestedMenuPlacement,
@@ -1480,6 +1568,7 @@ export function getInlinePreviewTextControlLayout({
 }: {
   anchor: InlinePreviewTextAnchor
   obstacles?: readonly InlinePreviewTextObstacle[]
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   placementStrategy?: InlinePreviewTextPlacementStrategy
   previousPlacement?: InlinePreviewTextEditorMenuPlacement
   requestedMenuPlacement: InlinePreviewTextEditorMenuPlacement
@@ -1490,6 +1579,7 @@ export function getInlinePreviewTextControlLayout({
   const model = getInlinePreviewTextControlPlacementModel({
     anchor,
     obstacles,
+    paintedCollisionRects,
     placementStrategy,
     previewRect,
     previousPlacement,
@@ -1502,6 +1592,7 @@ export function getInlinePreviewTextControlLayout({
     return createEmergencyLayout({
       anchor,
       obstacles,
+      paintedCollisionRects,
       previewRect,
       sizes,
       workspaceRect,

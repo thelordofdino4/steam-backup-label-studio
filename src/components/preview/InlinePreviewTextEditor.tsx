@@ -79,6 +79,7 @@ import type {
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
   InlinePreviewTextEditorNumberSelectControl,
+  InlinePreviewTextEditorPaintedCollisionRect,
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
@@ -103,6 +104,7 @@ export type {
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
   InlinePreviewTextEditorOption,
+  InlinePreviewTextEditorPaintedCollisionRect,
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
@@ -120,6 +122,7 @@ export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
 type InlineTextControlFrame = {
   anchor: InlinePreviewTextAnchor
   obstacles: InlinePreviewTextObstacle[]
+  paintedCollisionRects: InlinePreviewTextRect[]
   previousPlacement?: InlinePreviewTextEditorMenuPlacement
   previewRect: InlinePreviewTextRect
   workspaceRect: InlinePreviewTextRect
@@ -265,6 +268,62 @@ function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
   }
 }
 
+function paintedCollisionRectToViewportRect({
+  previewRect,
+  rect,
+}: {
+  previewRect: InlinePreviewTextRect
+  rect: InlinePreviewTextEditorPaintedCollisionRect
+}): InlinePreviewTextRect | null {
+  if (
+    !Number.isFinite(rect.bottom) ||
+    !Number.isFinite(rect.left) ||
+    !Number.isFinite(rect.right) ||
+    !Number.isFinite(rect.top)
+  ) {
+    return null
+  }
+
+  const previewWidth = Math.max(0, previewRect.right - previewRect.left)
+  const previewHeight = Math.max(0, previewRect.bottom - previewRect.top)
+  const leftPercent = Math.min(rect.left, rect.right)
+  const rightPercent = Math.max(rect.left, rect.right)
+  const topPercent = Math.min(rect.top, rect.bottom)
+  const bottomPercent = Math.max(rect.top, rect.bottom)
+  const left = previewRect.left + (leftPercent / 100) * previewWidth
+  const right = previewRect.left + (rightPercent / 100) * previewWidth
+  const top = previewRect.top + (topPercent / 100) * previewHeight
+  const bottom = previewRect.top + (bottomPercent / 100) * previewHeight
+
+  if (right - left <= 0.5 || bottom - top <= 0.5) {
+    return null
+  }
+
+  return {
+    bottom,
+    left,
+    right,
+    top,
+  }
+}
+
+function getPaintedCollisionViewportRects({
+  paintedCollisionRects,
+  previewRect,
+}: {
+  paintedCollisionRects?: readonly InlinePreviewTextEditorPaintedCollisionRect[]
+  previewRect: InlinePreviewTextRect
+}) {
+  return (paintedCollisionRects ?? []).flatMap((rect) => {
+    const viewportRect = paintedCollisionRectToViewportRect({
+      previewRect,
+      rect,
+    })
+
+    return viewportRect ? [viewportRect] : []
+  })
+}
+
 function getInlineTextAnchorRect(
   anchor: InlinePreviewTextAnchor,
 ): InlinePreviewTextRect {
@@ -328,16 +387,23 @@ function getInlineTextControlLayoutRects({
 function doesInlineTextControlLayoutOverlapAnchor({
   anchor,
   layout,
+  paintedCollisionRects,
   sizes,
 }: {
   anchor: InlinePreviewTextAnchor
   layout: InlinePreviewTextControlLayout
+  paintedCollisionRects?: readonly InlinePreviewTextRect[]
   sizes: InlinePreviewTextControlSizes
 }) {
   const anchorRect = getInlineTextAnchorRect(anchor)
+  const textCollisionRects = paintedCollisionRects?.length
+    ? paintedCollisionRects
+    : [anchorRect]
 
   return getInlineTextControlLayoutRects({ layout, sizes })
-    .some((rect) => getInlineTextOverlapArea(rect, anchorRect) > 1)
+    .some((rect) =>
+      textCollisionRects.some((textRect) =>
+        getInlineTextOverlapArea(rect, textRect) > 1))
 }
 
 function getInlineTextPreviewSurface(host: Element) {
@@ -574,6 +640,12 @@ function areInlineTextControlFramesEqual(
     first.previousPlacement === second.previousPlacement &&
     areInlineTextRectsEqual(first.previewRect, second.previewRect) &&
     areInlineTextRectsEqual(first.workspaceRect, second.workspaceRect) &&
+    first.paintedCollisionRects.length ===
+      second.paintedCollisionRects.length &&
+    first.paintedCollisionRects.every((rect, index) => {
+      const nextRect = second.paintedCollisionRects[index]
+      return Boolean(nextRect) && areInlineTextRectsEqual(rect, nextRect)
+    }) &&
     first.obstacles.length === second.obstacles.length &&
     first.obstacles.every((obstacle, index) => {
       const nextObstacle = second.obstacles[index]
@@ -2095,6 +2167,7 @@ export function InlinePreviewTextEditor({
   geometryAdapter,
   geometryLines,
   lines,
+  paintedCollisionRects,
   rotationDegrees,
   targetKey,
   value,
@@ -2482,6 +2555,7 @@ export function InlinePreviewTextEditor({
       const rect = currentHost.getBoundingClientRect()
       const previewSurface = getInlineTextPreviewSurface(currentHost)
       const previewRect = previewSurface?.getBoundingClientRect() ?? rect
+      const nextPreviewRect = rectToInlineTextRect(previewRect)
       const workspace = getInlineTextPreviewWorkspace(previewSurface)
       const activePreviewEditableId =
         currentHost.getAttribute(PREVIEW_EDITABLE_ID_ATTRIBUTE) ??
@@ -2502,8 +2576,12 @@ export function InlinePreviewTextEditor({
           workspace,
           activePreviewEditableId,
         ),
+        paintedCollisionRects: getPaintedCollisionViewportRects({
+          paintedCollisionRects,
+          previewRect: nextPreviewRect,
+        }),
         previousPlacement: previousControlPlacementRef.current,
-        previewRect: rectToInlineTextRect(previewRect),
+        previewRect: nextPreviewRect,
         workspaceRect,
       }
 
@@ -2567,7 +2645,14 @@ export function InlinePreviewTextEditor({
       window.removeEventListener('resize', updateControlFrame)
       window.removeEventListener('scroll', updateControlFrame, true)
     }
-  }, [geometryAdapter, inputMode, menuPlacement, targetKey, value])
+  }, [
+    geometryAdapter,
+    inputMode,
+    menuPlacement,
+    paintedCollisionRects,
+    targetKey,
+    value,
+  ])
 
   useLayoutEffect(() => {
     if (!controlFrame) {
@@ -2883,6 +2968,7 @@ export function InlinePreviewTextEditor({
     ? getInlinePreviewTextControlLayout({
         anchor: controlFrame.anchor,
         obstacles: controlFrame.obstacles,
+        paintedCollisionRects: controlFrame.paintedCollisionRects,
         previousPlacement: controlFrame.previousPlacement,
         placementStrategy,
         previewRect: controlFrame.previewRect,
@@ -2910,6 +2996,7 @@ export function InlinePreviewTextEditor({
     controlFrame &&
     doesInlineTextControlLayoutOverlapAnchor({
       anchor: controlFrame.anchor,
+      paintedCollisionRects: controlFrame.paintedCollisionRects,
       layout: clampedLockedControlLayout,
       sizes: controlSizes,
     })

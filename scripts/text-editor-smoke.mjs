@@ -788,6 +788,67 @@ async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
   const preview = await getRect(page, 'disc-preview')
   const tabs = await getRect(page, 'inline-text-tabs')
   const menu = await getRect(page, 'inline-text-menu')
+  const paintedRects = await page.locator(
+    [
+      '[data-smoke-id="disc-text-layer-hit-target"] text.disc-text-render-text[data-disc-text-key="copyright"]:not(.disc-text-curved-shadow)',
+      '[data-smoke-id="disc-text-layer-hit-target"] path.disc-text-curved-underline[data-disc-text-key="copyright"]',
+    ].join(', '),
+  ).evaluateAll((elements) => {
+    const svgRectToClientRect = (element, svgRect) => {
+      const matrix = element.getScreenCTM?.()
+      if (!matrix) return null
+      const points = [
+        new DOMPoint(svgRect.x, svgRect.y),
+        new DOMPoint(svgRect.x + svgRect.width, svgRect.y),
+        new DOMPoint(svgRect.x, svgRect.y + svgRect.height),
+        new DOMPoint(svgRect.x + svgRect.width, svgRect.y + svgRect.height),
+      ].map((point) => point.matrixTransform(matrix))
+
+      return {
+        bottom: Math.max(...points.map((point) => point.y)),
+        height: Math.max(...points.map((point) => point.y)) -
+          Math.min(...points.map((point) => point.y)),
+        left: Math.min(...points.map((point) => point.x)),
+        right: Math.max(...points.map((point) => point.x)),
+        top: Math.min(...points.map((point) => point.y)),
+        width: Math.max(...points.map((point) => point.x)) -
+          Math.min(...points.map((point) => point.x)),
+      }
+    }
+
+    return elements.flatMap((element) => {
+      if (
+        element instanceof SVGTextElement &&
+        typeof element.getNumberOfChars === 'function' &&
+        typeof element.getExtentOfChar === 'function'
+      ) {
+        const rects = []
+        for (let index = 0; index < element.getNumberOfChars(); index += 1) {
+          const charRect = svgRectToClientRect(element, element.getExtentOfChar(index))
+          if (charRect) rects.push(charRect)
+        }
+        return rects
+      }
+
+      if (
+        element instanceof SVGGraphicsElement &&
+        typeof element.getBBox === 'function'
+      ) {
+        const pathRect = svgRectToClientRect(element, element.getBBox())
+        return pathRect ? [pathRect] : []
+      }
+
+      const rect = element.getBoundingClientRect()
+      return {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      }
+    }).filter((rect) => rect.width > 1 && rect.height > 1)
+  })
 
   if (
     host.left < preview.left - 1 ||
@@ -809,12 +870,15 @@ async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
       JSON.stringify({ host, preview })
     }`)
   }
-  if (
-    rectsOverlapMeaningfully(tabs, host) ||
-    rectsOverlapMeaningfully(menu, host)
-  ) {
-    fail(`${label}: contextual controls overlap curved selection bounds: ${
-      JSON.stringify({ host, menu, tabs })
+  if (paintedRects.length === 0) {
+    fail(`${label}: no rendered curved SVG paint rectangles were measurable.`)
+  }
+  const overlappingPaint = paintedRects.find((rect) =>
+    rectsOverlapMeaningfully(tabs, rect) ||
+    rectsOverlapMeaningfully(menu, rect))
+  if (overlappingPaint) {
+    fail(`${label}: contextual controls overlap rendered curved paint: ${
+      JSON.stringify({ menu, paintedRect: overlappingPaint, tabs })
     }`)
   }
 }
@@ -1725,6 +1789,9 @@ async function assertCurvedCopyrightGuardrail(page) {
     fail(`Curved contextual menu displayed unsupported placeholder copy: ${menuText}`)
   }
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'initial curved copyright')
+  await waitForMeasuredCenterDock(page)
+  const initialDockMenu = await waitForStableRect(page, 'inline-text-menu')
+  const initialDockTabs = await waitForStableRect(page, 'inline-text-tabs')
   await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
   const inputState = await getInlineInputState(page)
   if (inputState.value !== 'Curved direct smoke') {
@@ -1757,6 +1824,18 @@ async function assertCurvedCopyrightGuardrail(page) {
   await setInlineNumberControl(page, 'inset', 8)
   await setInlineRangeControl(page, 'line-spacing', 1.25)
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'top arc curved copyright')
+  const editedDockMenu = await waitForStableRect(page, 'inline-text-menu')
+  const editedDockTabs = await waitForStableRect(page, 'inline-text-tabs')
+  if (
+    Math.abs(initialDockMenu.left - editedDockMenu.left) > 2 ||
+    Math.abs(initialDockMenu.top - editedDockMenu.top) > 2 ||
+    Math.abs(initialDockTabs.left - editedDockTabs.left) > 2 ||
+    Math.abs(initialDockTabs.top - editedDockTabs.top) > 2
+  ) {
+    fail(`Curved center dock moved during arc/inset edits: ${
+      JSON.stringify({ editedDockMenu, editedDockTabs, initialDockMenu, initialDockTabs })
+    }`)
+  }
   await setInlineSelectControl(page, 'arc-side', 'bottom')
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'bottom arc curved copyright')
 }
@@ -2178,6 +2257,8 @@ async function runDiscChecks(page) {
     await done(page)
     await openStraightDiscTitle(page)
     await setInlineNumberControl(page, 'y', 8)
+    await done(page)
+    await openStraightDiscTitle(page)
     await clickInlineTab(page, 'text')
     await page.waitForTimeout(250)
     const mode = await smoke(page, 'inline-text-menu')

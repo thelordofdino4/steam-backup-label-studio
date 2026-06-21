@@ -23,6 +23,7 @@ import {
 } from '../../discText/styles'
 import {
   getStraightDiscTextRenderLayout,
+  getStraightDiscTextLineVisualBounds,
   getStraightDiscTextVisualBounds,
 } from '../../discText/renderLayout'
 import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEditorGeometry'
@@ -35,6 +36,7 @@ import {
 } from '../../discText/curvedInlineEditorGeometry'
 import {
   getCurvedDiscTextLineGeometry,
+  getCurvedDiscTextPaintCollisionBoxes,
   getCurvedDiscTextPaintBoxes,
 } from '../../discText/svgLayer'
 import {
@@ -230,6 +232,14 @@ function getBoundsHostStyle(bounds: DiscInlineEditorBounds) {
   } satisfies CSSProperties
 }
 
+function getStraightDiscTextPaintedCollisionRects(
+  renderLayout: ReturnType<typeof getStraightDiscTextRenderLayout>,
+  measureText: TextMeasureFunction,
+) {
+  return renderLayout.lines.map((line) =>
+    getStraightDiscTextLineVisualBounds(line, renderLayout, measureText))
+}
+
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
@@ -283,28 +293,29 @@ export function DiscInlineTextEditorLayer({
         const renderedText = htmlDocument?.plainText ?? text
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
+          const curvedPaintBoxInput = {
+            key,
+            layout,
+            measureText,
+            placement: steamLogoPlacement,
+            richText: htmlDocument ?? undefined,
+            safeZoneRadiusPercent:
+              (selectedDiscTemplate.safeDiameterMm /
+                selectedDiscTemplate.outerDiameterMm) * 50,
+            styles: discTextStyles,
+            template: selectedDiscTemplate,
+            text: renderedText,
+          }
           const fallbackBounds = getCurvedDiscTextEditorBounds({
             layout,
             placement: steamLogoPlacement,
             safeZoneRadiusPercent:
               (selectedDiscTemplate.safeDiameterMm /
-                selectedDiscTemplate.outerDiameterMm) * 50,
+                  selectedDiscTemplate.outerDiameterMm) * 50,
             template: selectedDiscTemplate,
           })
           const paintBounds = getCurvedDiscTextEditorBoundsFromPaintBoxes({
-            boxes: getCurvedDiscTextPaintBoxes({
-              key,
-              layout,
-              measureText,
-              placement: steamLogoPlacement,
-              richText: htmlDocument ?? undefined,
-              safeZoneRadiusPercent:
-                (selectedDiscTemplate.safeDiameterMm /
-                  selectedDiscTemplate.outerDiameterMm) * 50,
-              styles: discTextStyles,
-              template: selectedDiscTemplate,
-              text: renderedText,
-            }),
+            boxes: getCurvedDiscTextPaintBoxes(curvedPaintBoxInput),
           })
           const bounds = paintBounds ?? fallbackBounds
           const controls = createCurvedDiscTextEditorControls({
@@ -447,6 +458,9 @@ export function DiscInlineTextEditorLayer({
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
+                paintedCollisionRects={
+                  getCurvedDiscTextPaintCollisionBoxes(curvedPaintBoxInput)
+                }
                 targetKey={targetKey}
                 value={renderedText}
                 menuPlacement="below"
@@ -495,6 +509,10 @@ export function DiscInlineTextEditorLayer({
           measureText,
           renderLayout,
         })
+        const paintedCollisionRects = getStraightDiscTextPaintedCollisionRects(
+          renderLayout,
+          measureText,
+        )
         const isEmptyText = renderedText.trim().length === 0
         const targetKey = createDiscInlineTextTargetKey(key)
         const controls = createDiscInlineTextEditorControls({
@@ -555,6 +573,7 @@ export function DiscInlineTextEditorLayer({
               geometryLines={geometryLines}
               inputMode="adapter"
               lines={renderLayout.lines}
+              paintedCollisionRects={paintedCollisionRects}
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}

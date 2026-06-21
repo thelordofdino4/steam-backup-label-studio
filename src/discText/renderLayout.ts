@@ -926,6 +926,26 @@ function getLineHorizontalBounds(
   }
 }
 
+export function getStraightDiscTextLineVisualBounds(
+  line: StraightDiscTextLineLayout,
+  layout: StraightDiscTextRenderLayout,
+  measureText: TextMeasureFunction,
+) {
+  const lineWidth = Math.max(0, line.width ?? measureText(line.text, layout.font))
+  const horizontalBounds = getLineHorizontalBounds(
+    line,
+    layout.textAnchor,
+    lineWidth,
+  )
+
+  return {
+    bottom: line.y + layout.lineHeight / 2,
+    left: horizontalBounds.left,
+    right: horizontalBounds.right,
+    top: line.y - layout.lineHeight / 2,
+  }
+}
+
 export function getStraightDiscTextVisualBounds(
   layout: StraightDiscTextRenderLayout,
   measureText: TextMeasureFunction,
@@ -939,24 +959,22 @@ export function getStraightDiscTextVisualBounds(
     }
   }
 
-  const font = layout.font
   let left = Number.POSITIVE_INFINITY
   let right = Number.NEGATIVE_INFINITY
   let top = Number.POSITIVE_INFINITY
   let bottom = Number.NEGATIVE_INFINITY
 
   for (const line of layout.lines) {
-    const lineWidth = Math.max(0, line.width ?? measureText(line.text, font))
-    const horizontalBounds = getLineHorizontalBounds(
+    const lineBounds = getStraightDiscTextLineVisualBounds(
       line,
-      layout.textAnchor,
-      lineWidth,
+      layout,
+      measureText,
     )
 
-    left = Math.min(left, horizontalBounds.left)
-    right = Math.max(right, horizontalBounds.right)
-    top = Math.min(top, line.y - layout.lineHeight / 2)
-    bottom = Math.max(bottom, line.y + layout.lineHeight / 2)
+    left = Math.min(left, lineBounds.left)
+    right = Math.max(right, lineBounds.right)
+    top = Math.min(top, lineBounds.top)
+    bottom = Math.max(bottom, lineBounds.bottom)
   }
 
   return {

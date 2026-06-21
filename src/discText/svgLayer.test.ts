@@ -8,6 +8,7 @@ import {
 import {
   buildDiscTextSvgLayer,
   getCurvedDiscTextPaintBoxes,
+  getCurvedDiscTextPaintCollisionBoxes,
 } from './svgLayer.ts'
 import { discTextPointSizeToSvgPercent } from './pointSize.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
@@ -834,6 +835,44 @@ test('curved disc paint boxes track top and bottom rendered arc text instead of 
       Math.min(...topBoxes.map((box) => box.left)) <
       75,
   )
+})
+
+test('curved disc collision boxes keep outer arc paint as separate segments', () => {
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const broadBoxes = getCurvedDiscTextPaintBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 210,
+      arcSide: 'top',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    text: 'Short legal text',
+  })
+  const collisionBoxes = getCurvedDiscTextPaintCollisionBoxes({
+    key: 'copyright',
+    layout: {
+      ...layoutSettings.copyright,
+      arcDegrees: 210,
+      arcSide: 'top',
+      mode: 'curved',
+    },
+    measureText: measureTextAsCharacters,
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    text: 'Short legal text',
+  })
+  const broadWidth = Math.max(...broadBoxes.map((box) => box.right)) -
+    Math.min(...broadBoxes.map((box) => box.left))
+  const widestSegment = Math.max(
+    ...collisionBoxes.map((box) => box.right - box.left),
+  )
+
+  assert.ok(collisionBoxes.length > broadBoxes.length)
+  assert.ok(widestSegment < broadWidth * 0.35)
 })
 
 test('curved disc paint boxes include wrapped multiline underline stroke and shadow slack', () => {
