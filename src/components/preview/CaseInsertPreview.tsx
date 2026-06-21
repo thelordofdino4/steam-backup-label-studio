@@ -40,6 +40,7 @@ import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import { PreviewHeader } from './PreviewHeader'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
   CaseInsertPreviewPointerHandlers,
@@ -296,15 +297,17 @@ export function CaseInsertPreview({
   return (
     <section
       ref={previewAreaRef}
-      className="preview-area"
+      className={[
+        'preview-area',
+        selectedTextTarget ? 'has-contextual-text-ribbon-active' : '',
+      ].filter(Boolean).join(' ')}
       aria-labelledby="case-insert-preview-title"
     >
-      <div className="preview-pane-label">
-        <span>Live Preview</span>
-        <strong id="case-insert-preview-title">
-          {activePaneConfig.label} Preview
-        </strong>
-      </div>
+      <PreviewHeader
+        contextualTextRibbonActive={Boolean(selectedTextTarget)}
+        title={`${activePaneConfig.label} Preview`}
+        titleId="case-insert-preview-title"
+      />
 
       <PreviewToastStack statusToasts={statusToasts} />
 

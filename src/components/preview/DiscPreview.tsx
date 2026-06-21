@@ -19,6 +19,7 @@ import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import { PreviewHeader } from './PreviewHeader'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
@@ -465,13 +466,17 @@ export function DiscPreview({
   return (
     <section
       ref={previewAreaRef}
-      className="preview-area"
+      className={[
+        'preview-area',
+        discText.selectedKey ? 'has-contextual-text-ribbon-active' : '',
+      ].filter(Boolean).join(' ')}
       aria-labelledby="disc-preview-title"
     >
-      <div className="preview-pane-label">
-        <span>Live Preview</span>
-        <strong id="disc-preview-title">Disc Preview</strong>
-      </div>
+      <PreviewHeader
+        contextualTextRibbonActive={Boolean(discText.selectedKey)}
+        title="Disc Preview"
+        titleId="disc-preview-title"
+      />
 
       <PreviewToastStack statusToasts={statusToasts} />
 
