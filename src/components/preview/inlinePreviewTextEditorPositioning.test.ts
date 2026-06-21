@@ -9,6 +9,11 @@ import {
   type InlinePreviewTextControlSizes,
   type InlinePreviewTextRect,
 } from './inlinePreviewTextEditorPositioning.ts'
+import {
+  getInlinePreviewTextShellMode,
+  INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT,
+  isInlinePreviewTextShellMenuUsable,
+} from './inlinePreviewTextEditorResponsive.ts'
 
 const previewRect: InlinePreviewTextRect = {
   bottom: 300,
@@ -22,6 +27,36 @@ const sizes: InlinePreviewTextControlSizes = {
   moveHandle: { height: 24, width: 40 },
   tabs: { height: 24, width: 100 },
 }
+
+test('inline text responsive shell exposes wide compact and narrow modes', () => {
+  assert.equal(getInlinePreviewTextShellMode(520), 'wide')
+  assert.equal(getInlinePreviewTextShellMode(396), 'compact')
+  assert.equal(getInlinePreviewTextShellMode(280), 'narrow')
+})
+
+test('inline text responsive shell reports unusable allocations below minimum size', () => {
+  assert.equal(
+    isInlinePreviewTextShellMenuUsable({
+      maxHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight,
+      maxWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth,
+    }),
+    true,
+  )
+  assert.equal(
+    isInlinePreviewTextShellMenuUsable({
+      maxHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight - 1,
+      maxWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth,
+    }),
+    false,
+  )
+  assert.equal(
+    isInlinePreviewTextShellMenuUsable({
+      maxHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight,
+      maxWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth - 1,
+    }),
+    false,
+  )
+})
 
 function createAnchor(
   input: Partial<InlinePreviewTextAnchor> = {},

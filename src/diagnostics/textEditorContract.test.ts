@@ -127,7 +127,11 @@ test('contextual text editor shell keeps tab and menu sizing stable', () => {
   )
   assert.match(
     css,
-    /\.inline-preview-text-tabs\s*\{[^}]*width:\s*min\(520px,\s*calc\(100vw - 24px\)\)/s,
+    /\.inline-preview-text-tabs\s*\{[^}]*width:\s*min\(\s*var\(--inline-preview-text-tabs-preferred-width,\s*520px\),\s*calc\(100vw - 24px\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-tabs\[data-inline-responsive-mode="compact"\][^{]*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
   )
   assert.match(
     css,
@@ -135,7 +139,7 @@ test('contextual text editor shell keeps tab and menu sizing stable', () => {
   )
   assert.match(
     css,
-    /\.inline-preview-text-menu\s*\{[^}]*width:\s*min\(520px,\s*calc\(100vw - 24px\)\)/s,
+    /\.inline-preview-text-menu\s*\{[^}]*width:\s*min\(\s*var\(--inline-preview-text-menu-preferred-width,\s*520px\),\s*calc\(100vw - 24px\)/s,
   )
   assert.match(
     css,
@@ -143,7 +147,15 @@ test('contextual text editor shell keeps tab and menu sizing stable', () => {
   )
   assert.match(
     css,
-    /\.inline-preview-text-menu\s*\{[^}]*min-height:\s*min\(\s*178px,\s*var\(--inline-preview-text-menu-max-height,\s*178px\)/s,
+    /\.inline-preview-text-menu\s*\{[^}]*min-height:\s*min\(\s*var\(--inline-preview-text-menu-min-height,\s*118px\),\s*var\(--inline-preview-text-menu-max-height,\s*178px\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\[data-inline-responsive-mode="compact"\]\s+\.inline-preview-text-control-grid,[\s\S]*\.inline-preview-text-menu\[data-inline-responsive-mode="narrow"\]\s+\.inline-preview-text-control-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
+  )
+  assert.match(
+    css,
+    /\.inline-preview-text-menu\[data-inline-responsive-mode="narrow"\]\s+\.inline-preview-text-control-field\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
   )
   assert.match(
     css,

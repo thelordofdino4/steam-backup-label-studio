@@ -146,6 +146,10 @@ The committed smoke command verifies:
 - The contextual case-insert `Font size (pt)` control supports uninterrupted
   typing, a temporary empty draft, Enter commit, repeated preset popup opens,
   wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
+- The shared contextual shell is screenshot-checked at representative wide,
+  compact, and narrow widths for ordinary text controls and the Utilities HTML
+  source panel. The check verifies tab reflow, internal menu scrolling, visible
+  menu actions, usable hit targets, and no overlapping child controls.
 - Selected-range case-insert `Font size (pt)` applies canonical
   `font-size:Npt` HTML only to the highlighted characters.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
