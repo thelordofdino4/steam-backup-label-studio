@@ -429,7 +429,7 @@ async function expectContextualShell(page) {
   await expectVisible(page, 'inline-text-move-handle', 'inline text move handle')
 }
 
-async function expectCaseRibbonEditor(page) {
+async function expectRibbonEditor(page, label = 'Text') {
   await expectInlineEditor(page)
   await expectVisible(page, 'contextual-text-ribbon-host', 'contextual text ribbon host')
 
@@ -456,17 +456,25 @@ async function expectCaseRibbonEditor(page) {
   })
 
   if (result.hostActive !== 'true') {
-    fail(`Case text did not activate the contextual ribbon: ${JSON.stringify(result)}`)
+    fail(`${label} did not activate the contextual ribbon: ${JSON.stringify(result)}`)
   }
   if (!result.tabsInsideRibbon || !result.menuInsideRibbon) {
-    fail(`Case text controls were not mounted in the ribbon: ${JSON.stringify(result)}`)
+    fail(`${label} controls were not mounted in the ribbon: ${JSON.stringify(result)}`)
   }
   if (result.moveHandleInsideRibbon) {
-    fail(`Case Move handle should stay as a local preview affordance: ${JSON.stringify(result)}`)
+    fail(`${label} Move handle should stay as a local preview affordance: ${JSON.stringify(result)}`)
   }
   if (result.oldFloatingTabs || result.oldFloatingMenu) {
-    fail(`Case text still rendered the old floating full menu: ${JSON.stringify(result)}`)
+    fail(`${label} still rendered the old floating full menu: ${JSON.stringify(result)}`)
   }
+}
+
+async function expectCaseRibbonEditor(page) {
+  await expectRibbonEditor(page, 'Case text')
+}
+
+async function expectDiscRibbonEditor(page) {
+  await expectRibbonEditor(page, 'Disc text')
 }
 
 async function focusInlineInput(page) {
@@ -741,7 +749,11 @@ async function ensureStraightDiscContextualShell(page) {
   if ((await smoke(page, 'inline-text-menu').count()) === 0) {
     await openStraightDiscTitle(page)
   }
+  if ((await smoke(page, 'inline-text-html-source').count()) > 0) {
+    await hideHtmlSource(page)
+  }
   await expectContextualShell(page)
+  await expectDiscRibbonEditor(page)
 }
 
 async function getHtmlSource(page) {
@@ -797,208 +809,6 @@ async function waitForStableRect(page, smokeId) {
   }
 
   return previous
-}
-
-async function sampleInlinePlacementFrames(page, frameCount = 20) {
-  return page.evaluate(async (count) => {
-    const readRect = (element) => {
-      const rect = element.getBoundingClientRect()
-      return {
-        height: rect.height,
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-      }
-    }
-    const readFrame = () => {
-      const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
-      const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
-
-      if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
-        return null
-      }
-
-      return {
-        menu: readRect(menu),
-        menuPlacement: menu.getAttribute('data-inline-placement'),
-        menuResponsiveMode: menu.getAttribute('data-inline-responsive-mode'),
-        mode: menu.getAttribute('data-inline-placement-mode'),
-        tabs: readRect(tabs),
-        tabsResponsiveMode: tabs.getAttribute('data-inline-responsive-mode'),
-      }
-    }
-    const frames = []
-
-    for (let index = 0; index < count; index += 1) {
-      await new Promise((resolve) => window.requestAnimationFrame(resolve))
-      const frame = readFrame()
-      if (frame) frames.push(frame)
-    }
-
-    return frames
-  }, frameCount)
-}
-
-function assertInlinePlacementFramesStable(frames, label) {
-  if (frames.length < 6) {
-    fail(`${label}: expected placement frame samples, got ${frames.length}.`)
-  }
-
-  const distinctModes = new Set(frames.map((frame) => frame.mode))
-  const distinctPlacements = new Set(
-    frames.map((frame) => frame.menuPlacement),
-  )
-  const distinctResponsiveModes = new Set(
-    frames.map((frame) => frame.menuResponsiveMode),
-  )
-  const menuWidths = frames.map((frame) => frame.menu.width)
-  const menuHeights = frames.map((frame) => frame.menu.height)
-  const widthDelta = Math.max(...menuWidths) - Math.min(...menuWidths)
-  const heightDelta = Math.max(...menuHeights) - Math.min(...menuHeights)
-
-  if (distinctModes.size > 1 || distinctPlacements.size > 1) {
-    fail(`${label}: contextual placement oscillated across frames: ${
-      JSON.stringify({
-        modes: [...distinctModes],
-        placements: [...distinctPlacements],
-        frames,
-      })
-    }`)
-  }
-  if (distinctResponsiveModes.size > 1 || widthDelta > 1 || heightDelta > 1) {
-    fail(`${label}: contextual shell size oscillated across frames: ${
-      JSON.stringify({
-        heightDelta,
-        responsiveModes: [...distinctResponsiveModes],
-        widthDelta,
-        frames,
-      })
-    }`)
-  }
-}
-
-async function waitForMeasuredCenterDock(page) {
-  const start = Date.now()
-
-  while (Date.now() - start < 2_500) {
-    const mode = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-mode')
-    const menu = await getRect(page, 'inline-text-menu')
-
-    if (mode === 'center-docked' && menu.width >= 360) {
-      await waitForStableRect(page, 'inline-text-menu')
-      return
-    }
-
-    await page.waitForTimeout(60)
-  }
-
-  const mode = await smoke(page, 'inline-text-menu')
-    .getAttribute('data-inline-placement-mode')
-  const menu = await getRect(page, 'inline-text-menu')
-  fail(`Center dock did not settle to measured dimensions: ${
-    JSON.stringify({ menu, mode })
-  }`)
-}
-
-async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
-  const host = await getRect(page, 'disc-inline-text-copyright')
-  const preview = await getRect(page, 'disc-preview')
-  const tabs = await getRect(page, 'inline-text-tabs')
-  const menu = await getRect(page, 'inline-text-menu')
-  const paintedRects = await page.locator(
-    [
-      '[data-smoke-id="disc-text-layer-hit-target"] text.disc-text-render-text[data-disc-text-key="copyright"]:not(.disc-text-curved-shadow)',
-      '[data-smoke-id="disc-text-layer-hit-target"] path.disc-text-curved-underline[data-disc-text-key="copyright"]',
-    ].join(', '),
-  ).evaluateAll((elements) => {
-    const svgRectToClientRect = (element, svgRect) => {
-      const matrix = element.getScreenCTM?.()
-      if (!matrix) return null
-      const points = [
-        new DOMPoint(svgRect.x, svgRect.y),
-        new DOMPoint(svgRect.x + svgRect.width, svgRect.y),
-        new DOMPoint(svgRect.x, svgRect.y + svgRect.height),
-        new DOMPoint(svgRect.x + svgRect.width, svgRect.y + svgRect.height),
-      ].map((point) => point.matrixTransform(matrix))
-
-      return {
-        bottom: Math.max(...points.map((point) => point.y)),
-        height: Math.max(...points.map((point) => point.y)) -
-          Math.min(...points.map((point) => point.y)),
-        left: Math.min(...points.map((point) => point.x)),
-        right: Math.max(...points.map((point) => point.x)),
-        top: Math.min(...points.map((point) => point.y)),
-        width: Math.max(...points.map((point) => point.x)) -
-          Math.min(...points.map((point) => point.x)),
-      }
-    }
-
-    return elements.flatMap((element) => {
-      if (
-        element instanceof SVGTextElement &&
-        typeof element.getNumberOfChars === 'function' &&
-        typeof element.getExtentOfChar === 'function'
-      ) {
-        const rects = []
-        for (let index = 0; index < element.getNumberOfChars(); index += 1) {
-          const charRect = svgRectToClientRect(element, element.getExtentOfChar(index))
-          if (charRect) rects.push(charRect)
-        }
-        return rects
-      }
-
-      if (
-        element instanceof SVGGraphicsElement &&
-        typeof element.getBBox === 'function'
-      ) {
-        const pathRect = svgRectToClientRect(element, element.getBBox())
-        return pathRect ? [pathRect] : []
-      }
-
-      const rect = element.getBoundingClientRect()
-      return {
-        bottom: rect.bottom,
-        height: rect.height,
-        left: rect.left,
-        right: rect.right,
-        top: rect.top,
-        width: rect.width,
-      }
-    }).filter((rect) => rect.width > 1 && rect.height > 1)
-  })
-
-  if (
-    host.left < preview.left - 1 ||
-    host.right > preview.right + 1 ||
-    host.top < preview.top - 1 ||
-    host.bottom > preview.bottom + 1
-  ) {
-    fail(`${label}: curved selection bounds escaped the disc preview: ${
-      JSON.stringify({ host, preview })
-    }`)
-  }
-  if (host.width > preview.width * 0.7) {
-    fail(`${label}: curved selection bounds are too wide for the visible text: ${
-      JSON.stringify({ host, preview })
-    }`)
-  }
-  if (host.height > preview.height * 0.35) {
-    fail(`${label}: curved selection bounds are too tall for the visible text: ${
-      JSON.stringify({ host, preview })
-    }`)
-  }
-  if (paintedRects.length === 0) {
-    fail(`${label}: no rendered curved SVG paint rectangles were measurable.`)
-  }
-  const overlappingPaint = paintedRects.find((rect) =>
-    rectsOverlapMeaningfully(tabs, rect) ||
-    rectsOverlapMeaningfully(menu, rect))
-  if (overlappingPaint) {
-    fail(`${label}: contextual controls overlap rendered curved paint: ${
-      JSON.stringify({ menu, paintedRect: overlappingPaint, tabs })
-    }`)
-  }
 }
 
 async function assertCurvedEditorUsesPathOverlays(page, label, expectedOverlay) {
@@ -1863,7 +1673,7 @@ async function assertCurvedSelectionVisualBoundaries(page) {
   await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
 }
 
-async function assertWarframeCurvedCopyrightPointSizeDockStability(page) {
+async function assertWarframeCurvedCopyrightPointSizeRibbonStability(page) {
   await clickInlineTab(page, 'text')
   const originalPointSize = await getInlineTextNumberDraft(page, 'font-size-pt')
   const warframeLegalText =
@@ -1871,44 +1681,35 @@ async function assertWarframeCurvedCopyrightPointSizeDockStability(page) {
 
   await setInlineSelectControl(page, 'arc-side', 'bottom')
   await replaceInlineTextWithKeyboard(page, warframeLegalText)
-  await waitForMeasuredCenterDock(page)
-  const beforeMenu = await waitForStableRect(page, 'inline-text-menu')
-  const beforeTabs = await waitForStableRect(page, 'inline-text-tabs')
+  await expectDiscRibbonEditor(page)
+  const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
 
   await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '15.02')
-  assertInlinePlacementFramesStable(
-    await sampleInlinePlacementFrames(page, 20),
-    'Warframe curved copyright 15.02pt active edit',
-  )
-  const duringMenu = await getRect(page, 'inline-text-menu')
-  const duringTabs = await getRect(page, 'inline-text-tabs')
+  await expectDiscRibbonEditor(page)
+  const duringRibbon = await getRect(page, 'contextual-text-ribbon-host')
   if (
-    Math.abs(beforeMenu.left - duringMenu.left) > 2 ||
-    Math.abs(beforeMenu.top - duringMenu.top) > 2 ||
-    Math.abs(beforeTabs.left - duringTabs.left) > 2 ||
-    Math.abs(beforeTabs.top - duringTabs.top) > 2
+    Math.abs(beforeRibbon.left - duringRibbon.left) > 1 ||
+    Math.abs(beforeRibbon.top - duringRibbon.top) > 1 ||
+    Math.abs(beforeRibbon.width - duringRibbon.width) > 1 ||
+    Math.abs(beforeRibbon.height - duringRibbon.height) > 1
   ) {
-    fail(`Warframe curved copyright dock moved while typing 15.02pt: ${
-      JSON.stringify({ beforeMenu, beforeTabs, duringMenu, duringTabs })
+    fail(`Warframe curved copyright ribbon moved while typing 15.02pt: ${
+      JSON.stringify({ beforeRibbon, duringRibbon })
     }`)
   }
 
   await page.keyboard.press('Enter')
   await page.waitForTimeout(160)
-  assertInlinePlacementFramesStable(
-    await sampleInlinePlacementFrames(page, 20),
-    'Warframe curved copyright 15.02pt committed edit',
-  )
-  const afterMenu = await waitForStableRect(page, 'inline-text-menu')
-  const afterTabs = await waitForStableRect(page, 'inline-text-tabs')
+  await expectDiscRibbonEditor(page)
+  const afterRibbon = await getRect(page, 'contextual-text-ribbon-host')
   if (
-    Math.abs(beforeMenu.left - afterMenu.left) > 2 ||
-    Math.abs(beforeMenu.top - afterMenu.top) > 2 ||
-    Math.abs(beforeTabs.left - afterTabs.left) > 2 ||
-    Math.abs(beforeTabs.top - afterTabs.top) > 2
+    Math.abs(beforeRibbon.left - afterRibbon.left) > 1 ||
+    Math.abs(beforeRibbon.top - afterRibbon.top) > 1 ||
+    Math.abs(beforeRibbon.width - afterRibbon.width) > 1 ||
+    Math.abs(beforeRibbon.height - afterRibbon.height) > 1
   ) {
-    fail(`Warframe curved copyright dock moved after committing 15.02pt: ${
-      JSON.stringify({ afterMenu, afterTabs, beforeMenu, beforeTabs })
+    fail(`Warframe curved copyright ribbon moved after committing 15.02pt: ${
+      JSON.stringify({ afterRibbon, beforeRibbon })
     }`)
   }
 
@@ -2125,6 +1926,7 @@ async function assertCurvedCopyrightGuardrail(page) {
   const beforeSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   await curvedPath.click({ force: true })
   await expectInlineEditor(page)
+  await expectDiscRibbonEditor(page)
   await assertCurvedEditorUsesPathOverlays(page, 'initial curved copyright', 'caret')
   const copyrightEditorCount = await smoke(page, 'disc-inline-text-copyright').count()
   if (copyrightEditorCount !== 1) {
@@ -2142,11 +1944,9 @@ async function assertCurvedCopyrightGuardrail(page) {
   if (/unsupported/i.test(menuText ?? '')) {
     fail(`Curved contextual menu displayed unsupported placeholder copy: ${menuText}`)
   }
-  await assertCurvedContextualPlacementUsesPaintBounds(page, 'initial curved copyright')
-  await waitForMeasuredCenterDock(page)
-  const initialDockMenu = await waitForStableRect(page, 'inline-text-menu')
-  const initialDockTabs = await waitForStableRect(page, 'inline-text-tabs')
+  const initialRibbon = await getRect(page, 'contextual-text-ribbon-host')
   await replaceInlineTextWithKeyboard(page, 'Curved direct smoke')
+  await expectDiscRibbonEditor(page)
   const inputState = await getInlineInputState(page)
   if (inputState.value !== 'Curved direct smoke') {
     fail(`Curved direct edit did not update the hidden input: ${JSON.stringify(inputState)}`)
@@ -2162,7 +1962,7 @@ async function assertCurvedCopyrightGuardrail(page) {
     fail('Curved copyright hit-target SVG did not receive the directly edited text.')
   }
   await assertCurvedCaretMutationParity(page)
-  await assertWarframeCurvedCopyrightPointSizeDockStability(page)
+  await assertWarframeCurvedCopyrightPointSizeRibbonStability(page)
   await dragSelectCurvedText(page, 'disc-inline-text-copyright')
   await assertCurvedEditorUsesPathOverlays(page, 'dragged curved copyright', 'selection')
   await assertCurvedSelectionVisualBoundaries(page)
@@ -2174,30 +1974,24 @@ async function assertCurvedCopyrightGuardrail(page) {
   ) {
     fail(`Ctrl+A did not select all curved text: ${JSON.stringify(selectAllState)}`)
   }
-  await assertCurvedContextualPlacementUsesPaintBounds(page, 'edited curved copyright')
   await setInlineSelectControl(page, 'arc-side', 'top')
   await setInlineNumberControl(page, 'arc', 220)
   await setInlineNumberControl(page, 'inset', 8)
   await setInlineRangeControl(page, 'line-spacing', 1.25)
-  assertInlinePlacementFramesStable(
-    await sampleInlinePlacementFrames(page, 20),
-    'curved copyright arc inset line-spacing placement',
-  )
-  await assertCurvedContextualPlacementUsesPaintBounds(page, 'top arc curved copyright')
-  const editedDockMenu = await waitForStableRect(page, 'inline-text-menu')
-  const editedDockTabs = await waitForStableRect(page, 'inline-text-tabs')
+  await expectDiscRibbonEditor(page)
+  const editedRibbon = await getRect(page, 'contextual-text-ribbon-host')
   if (
-    Math.abs(initialDockMenu.left - editedDockMenu.left) > 2 ||
-    Math.abs(initialDockMenu.top - editedDockMenu.top) > 2 ||
-    Math.abs(initialDockTabs.left - editedDockTabs.left) > 2 ||
-    Math.abs(initialDockTabs.top - editedDockTabs.top) > 2
+    Math.abs(initialRibbon.left - editedRibbon.left) > 1 ||
+    Math.abs(initialRibbon.top - editedRibbon.top) > 1 ||
+    Math.abs(initialRibbon.width - editedRibbon.width) > 1 ||
+    Math.abs(initialRibbon.height - editedRibbon.height) > 1
   ) {
-    fail(`Curved center dock moved during arc/inset edits: ${
-      JSON.stringify({ editedDockMenu, editedDockTabs, initialDockMenu, initialDockTabs })
+    fail(`Disc ribbon moved during curved arc/inset edits: ${
+      JSON.stringify({ editedRibbon, initialRibbon })
     }`)
   }
   await setInlineSelectControl(page, 'arc-side', 'bottom')
-  await assertCurvedContextualPlacementUsesPaintBounds(page, 'bottom arc curved copyright')
+  await expectDiscRibbonEditor(page)
 }
 
 async function runCheck(page, name, fn) {
@@ -2555,101 +2349,79 @@ async function runDiscChecks(page) {
   await runCheck(page, 'straight disc opens inline editor with SVG renderer visible', async () => {
     await setupDisc(page)
     await openStraightDiscTitle(page)
+    await expectDiscRibbonEditor(page)
     const imageSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
     if (!imageSrc?.startsWith('data:image/svg+xml')) {
       fail('Straight disc visible text layer was not the SVG image renderer.')
     }
   })
 
-  await runCheck(page, 'straight disc center workspace uses a stable side dock', async () => {
+  await runCheck(page, 'straight disc ribbon remains stable when text moves', async () => {
+    await ensureStraightDiscContextualShell(page)
+    const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    const beforeTarget = await getRect(page, 'disc-inline-text-title')
     await setInlineNumberControl(page, 'y', 50)
     await page.waitForTimeout(250)
-    const mode = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-mode')
-    const placement = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement')
-    if (mode !== 'side-docked' || !['left', 'right'].includes(placement ?? '')) {
-      fail(`Straight disc center text did not use a stable side dock: ${
-        JSON.stringify({ mode, placement })
+    await expectDiscRibbonEditor(page)
+    const afterRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    const afterTarget = await getRect(page, 'disc-inline-text-title')
+    if (Math.abs(afterTarget.top - beforeTarget.top) < 5) {
+      fail('Straight disc selected text did not move after changing its Y control.')
+    }
+    if (
+      Math.abs(afterRibbon.left - beforeRibbon.left) > 1 ||
+      Math.abs(afterRibbon.top - beforeRibbon.top) > 1 ||
+      Math.abs(afterRibbon.width - beforeRibbon.width) > 1 ||
+      Math.abs(afterRibbon.height - beforeRibbon.height) > 1
+    ) {
+      fail(`Disc ribbon moved or resized when selected text moved: ${
+        JSON.stringify({ afterRibbon, beforeRibbon })
       }`)
     }
   })
 
-  await runCheck(page, 'outer straight disc text uses center-docked controls', async () => {
+  await runCheck(page, 'outer straight disc uses ribbon controls without floating dock', async () => {
     await done(page)
     await openStraightDiscTitle(page)
     await setInlineNumberControl(page, 'y', 8)
     await done(page)
     await openStraightDiscTitle(page)
     await clickInlineTab(page, 'text')
-    await page.waitForTimeout(250)
-    const mode = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-mode')
-    if (mode !== 'center-docked') {
-      fail(`Outer straight disc text did not use center-docked controls: ${mode}`)
-    }
-    await waitForMeasuredCenterDock(page)
-
-    const preview = await getRect(page, 'disc-preview')
-    const host = await getRect(page, 'disc-inline-text-title')
-    const tabs = await waitForStableRect(page, 'inline-text-tabs')
-    const menu = await waitForStableRect(page, 'inline-text-menu')
-    const moveHandle = await waitForStableRect(page, 'inline-text-move-handle')
-    if (
-      tabs.left < preview.left - 1 ||
-      tabs.right > preview.right + 1 ||
-      menu.left < preview.left - 1 ||
-      menu.right > preview.right + 1 ||
-      menu.top < preview.top - 1 ||
-      menu.bottom > preview.bottom + 1
-    ) {
-      fail(`Center-docked disc controls escaped the preview: ${
-        JSON.stringify({ menu, preview, tabs })
+    await expectDiscRibbonEditor(page)
+    const ribbon = await getRect(page, 'contextual-text-ribbon-host')
+    const moveHandle = await getRect(page, 'inline-text-move-handle')
+    const tabs = await getRect(page, 'inline-text-tabs')
+    const menu = await getRect(page, 'inline-text-menu')
+    if (!rectsOverlapMeaningfully(tabs, ribbon) || !rectsOverlapMeaningfully(menu, ribbon)) {
+      fail(`Straight disc tabs/menu were not mounted in the ribbon: ${
+        JSON.stringify({ menu, ribbon, tabs })
       }`)
     }
-    if (
-      rectsOverlapMeaningfully(tabs, host) ||
-      rectsOverlapMeaningfully(menu, host)
-    ) {
-      fail(`Center-docked disc controls overlapped selected text: ${
-        JSON.stringify({ host, menu, tabs })
+    if (rectsOverlapMeaningfully(moveHandle, ribbon)) {
+      fail(`Straight disc Move handle was mounted inside or behind the ribbon: ${
+        JSON.stringify({ moveHandle, ribbon })
       }`)
     }
 
+    const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
     await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '16')
     await page.keyboard.press('Enter')
     await page.waitForTimeout(250)
-    const resizedTabs = await waitForStableRect(page, 'inline-text-tabs')
-    const resizedMenu = await waitForStableRect(page, 'inline-text-menu')
-    const resizedMoveHandle = await waitForStableRect(
-      page,
-      'inline-text-move-handle',
-    )
-    for (const [label, before, after] of [
-      ['tabs', tabs, resizedTabs],
-      ['menu', menu, resizedMenu],
-      ['Move handle', moveHandle, resizedMoveHandle],
-    ]) {
-      if (
-        Math.abs(getRectCenterX(before) - getRectCenterX(after)) > 2 ||
-        Math.abs(before.top - after.top) > 2
-      ) {
-        fail(`Center-docked ${label} moved during point-size editing: ${
-          JSON.stringify({ after, before })
-        }`)
-      }
+    await expectDiscRibbonEditor(page)
+    const resizedRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    if (
+      Math.abs(beforeRibbon.left - resizedRibbon.left) > 1 ||
+      Math.abs(beforeRibbon.top - resizedRibbon.top) > 1 ||
+      Math.abs(beforeRibbon.width - resizedRibbon.width) > 1 ||
+      Math.abs(beforeRibbon.height - resizedRibbon.height) > 1
+    ) {
+      fail(`Disc ribbon moved during point-size editing: ${
+        JSON.stringify({ beforeRibbon, resizedRibbon })
+      }`)
     }
 
     await clickInlineTab(page, 'art')
-    const artMenu = await waitForStableRect(page, 'inline-text-menu')
-    if (
-      Math.abs(getRectCenterX(menu) - getRectCenterX(artMenu)) > 2 ||
-      Math.abs(menu.top - artMenu.top) > 2
-    ) {
-      fail(`Center-docked menu moved when switching tabs: ${
-        JSON.stringify({ artMenu, menu })
-      }`)
-    }
+    await expectDiscRibbonEditor(page)
   })
 
   await runCheck(page, 'straight disc HTML source updates SVG before Done', async () => {

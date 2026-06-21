@@ -278,7 +278,7 @@ is required:
 - Straight disc text: keeps SVG fill/stroke/shadow visible during editing and
   does not shift, grow, shrink, or show duplicate text when entering/exiting
   edit mode.
-- Curved disc text: remains SVG/textPath, opens the contextual menu for
+- Curved disc text: remains SVG/textPath, activates the contextual ribbon for
   supported whole-object controls, and does not mount a rectangular on-canvas
   textarea.
 - Spacebar: Space changes the live draft and visible preview.

@@ -502,10 +502,10 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 
 ### 9.4.1 Stable Contextual Text Ribbon Contract
 
-The planned contextual text-control host is a stable ribbon in the app shell,
-not a floating menu attached to selected text. This is a design contract for
-future migration work; it does not claim the current floating implementation has
-already been removed.
+The contextual text-control host is a stable ribbon in the app shell, not a
+floating menu attached to selected text. The old floating implementation is a
+temporary legacy path and should not be used by migrated case or disc text
+surfaces.
 
 Ribbon placement and layout:
 

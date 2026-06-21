@@ -30,6 +30,8 @@ import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegi
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
 
+const DISC_TEXT_RIBBON_SLOT_ID = 'disc-text-ribbon'
+
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
   selectedDiscTemplateId: SelectedDiscTemplateId
@@ -450,6 +452,7 @@ export function DiscPreview({
         onDiscTextArcSideChange={discText.onTextArcSideChange}
         onDiscTextVisualAvoidanceChange={discText.onTextVisualAvoidanceChange}
         onResetDiscTextLayout={discText.onResetTextLayout}
+        ribbonSlotId={DISC_TEXT_RIBBON_SLOT_ID}
         {...pointerHandlers.discText}
       />
     ),
@@ -474,6 +477,7 @@ export function DiscPreview({
     >
       <PreviewHeader
         contextualTextRibbonActive={Boolean(discText.selectedKey)}
+        contextualTextRibbonSlotId={DISC_TEXT_RIBBON_SLOT_ID}
         title="Disc Preview"
         titleId="disc-preview-title"
       />

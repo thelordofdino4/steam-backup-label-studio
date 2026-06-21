@@ -503,11 +503,12 @@ Edit/interaction path:
   `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
   adapters still own state setters, ranges, units, geometry semantics, renderer
   paths, and commit behavior.
-- The accepted next contextual-control host is a stable top-right app-shell
-  ribbon above the preview, documented in `docs/TEXT_EDITOR_CONTRACT.md` and
-  the SDD. That planned host should consume the existing contextual registry and
-  adapters; it must not take ownership of text rendering, layout, save/load,
-  export, source resolution, or surface-specific geometry.
+- The contextual-control host is a stable top-right app-shell ribbon above the
+  preview, documented in `docs/TEXT_EDITOR_CONTRACT.md` and the SDD. Migrated
+  case and disc text surfaces consume the existing contextual registry and
+  adapters through that host; the ribbon must not take ownership of text
+  rendering, layout, save/load, export, source resolution, or surface-specific
+  geometry.
 - The ribbon host also owns the app-shell reservation that the toast container
   must respect while the ribbon is active. The toast offset should consume a
   shared app-shell ribbon height/offset signal or CSS variable; it must not be

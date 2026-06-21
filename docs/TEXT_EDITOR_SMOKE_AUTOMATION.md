@@ -177,22 +177,15 @@ The committed smoke command verifies:
   visible paint does not touch the left or right element edges.
 - Straight disc text opens inline editing while the SVG image renderer remains visible.
 - Curved disc copyright text opens the contextual shell without mounting a
-  rectangular canvas textarea, hides unsupported placeholder controls, keeps the
-  renderer-derived selection host inside the preview without arc-window sizing,
-  and checks that tabs and menu do not meaningfully overlap the curved text for
-  both top and bottom arc placement.
+  rectangular canvas textarea, hides unsupported placeholder controls, and keeps
+  path-aware caret/selection overlays tied to the rendered SVG/textPath text.
 - Straight disc `Font size (pt)` uses the shared point-size combobox and keeps
   the SVG preview/export font-size model in sync.
-- Straight disc text that occupies the central workspace uses a stable side dock
-  instead of treating the center hole as a preview-consuming obstacle or entering
-  emergency detached placement.
-- Outer-ring straight and curved disc text use deterministic compact
-  center-docked contextual controls by default; the dock keeps tabs, menu, and
-  Move available inside the central disc workspace with menu scrolling instead
-  of extending over the text. Straight text remains fixed through point-size and
-  tab changes. Curved copyright checks rendered SVG text/underline paint
-  rectangles instead of the broad editor host box, and the center dock remains
-  fixed through arc side, arc span, inset, and line-spacing edits.
+- Straight and curved disc text activate the stable app-shell ribbon instead of
+  the old floating full tabs/menu, center dock, or side dock. The smoke harness
+  checks that tabs/menu are mounted in the ribbon, the Move handle remains a
+  local preview affordance, and the ribbon remains stable while straight text
+  moves or curved copyright point size/arc/inset/line-spacing controls change.
 - Straight disc HTML source updates the SVG renderer before Done.
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
