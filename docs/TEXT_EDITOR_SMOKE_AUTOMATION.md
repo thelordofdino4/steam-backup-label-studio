@@ -167,6 +167,10 @@ The committed smoke command verifies:
 - The committed Move-handle drag route covers cover and straight disc text in
   the browser smoke harness; tray and both spines are checked for ribbon
   activation and local preview affordance availability.
+- The committed selection-edge drag route covers cover, tray, left spine, right
+  spine, straight disc, and curved copyright text. It verifies that edge/corner
+  strips move text immediately while an interior drag on cover text still
+  creates a text selection instead of moving the object.
 - Top-edge, bottom-edge, and oversized cover text keep controls accessible in
   the stable ribbon instead of invoking old case floating-menu placement.
 - Tray, left spine, and right spine open inline editors through the ribbon.

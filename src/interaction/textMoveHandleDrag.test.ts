@@ -89,9 +89,42 @@ test('shared text adapters route explicit move handles through immediate activat
     /onMoveHandlePointerDown=\{handleDiscTextMoveHandlePointerDown\}/,
   )
   assert.match(inlineEditor, /isPrimaryMoveHandlePointer/)
+  assert.match(inlineEditor, /inline-preview-text-edge-move-ring/)
+  assert.match(inlineEditor, /'top'/)
+  assert.match(inlineEditor, /'right'/)
+  assert.match(inlineEditor, /'bottom'/)
+  assert.match(inlineEditor, /'left'/)
+  assert.match(inlineEditor, /`inline-preview-text-edge-move-hit--\$\{edge\}`/)
+  assert.match(inlineEditor, /edgeRing\.addEventListener\('pointerdown'/)
+  assert.match(inlineEditor, /target\.closest\('\.inline-preview-text-edge-move-hit'\)/)
   assert.match(inlineEditor, /onPointerCancel=\{handleMoveHandlePointerRelease\}/)
   assert.match(
     inlineEditor,
     /onLostPointerCapture=\{handleMoveHandlePointerRelease\}/,
+  )
+  assert.match(
+    inlineEditor,
+    /onLostPointerCapture=\{handleMoveEdgePointerRelease\}/,
+  )
+})
+
+test('selection edge movement keeps the editable interior available', () => {
+  const inlineEditor = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const css = readRepoFile('src/styles/app-editor-controls.css')
+
+  assert.match(css, /\.inline-preview-text-edge-move-ring\s*\{[^}]*pointer-events:\s*none/s)
+  assert.match(css, /\.inline-preview-text-edge-move-hit\s*\{[^}]*pointer-events:\s*auto/s)
+  assert.match(css, /\.inline-preview-text-edge-move-hit--top\s*\{[^}]*top:\s*-6px/s)
+  assert.match(css, /\.inline-preview-text-edge-move-hit--bottom\s*\{[^}]*bottom:\s*-6px/s)
+  assert.match(css, /\.inline-preview-text-edge-move-hit--left\s*\{[^}]*left:\s*-6px/s)
+  assert.match(css, /\.inline-preview-text-edge-move-hit--right\s*\{[^}]*right:\s*-6px/s)
+  assert.match(css, /cursor:\s*move/)
+  assert.match(css, /cursor:\s*grabbing/)
+  assert.doesNotMatch(
+    inlineEditor,
+    /TEXT_BODY_DRAG_ACTIVATION_OPTIONS/,
+    'Inline text body should not route movement through long-hold activation',
   )
 })

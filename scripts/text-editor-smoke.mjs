@@ -962,6 +962,93 @@ async function dragInlineMoveHandleImmediately(
   }
 }
 
+async function dragInlineEdgeMoveImmediately(
+  page,
+  targetSmokeId,
+  edge = 'right',
+  deltaX = 28,
+  deltaY = 18,
+) {
+  await expectVisible(page, `inline-text-edge-move-${edge}`)
+  const beforeTarget = await getRect(page, targetSmokeId)
+  const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
+  const edgeRect = await getRect(page, `inline-text-edge-move-${edge}`)
+  const edgeInsetPx = 1
+  const startX = edge.includes('right')
+    ? edgeRect.left + edgeInsetPx
+    : edge.includes('left')
+      ? edgeRect.right - edgeInsetPx
+      : edgeRect.left + edgeRect.width / 2
+  const startY = edge.includes('bottom')
+    ? edgeRect.top + edgeInsetPx
+    : edge.includes('top')
+      ? edgeRect.bottom - edgeInsetPx
+      : edgeRect.top + edgeRect.height / 2
+  const topElement = await page.evaluate(({ x, y }) => {
+    const element = document.elementFromPoint(x, y)
+    return {
+      className: element instanceof HTMLElement ? element.className : null,
+      smokeId: element instanceof HTMLElement
+        ? element.getAttribute('data-smoke-id')
+        : null,
+      tagName: element?.nodeName ?? null,
+    }
+  }, { x: startX, y: startY })
+  if (!topElement.smokeId?.startsWith('inline-text-edge-move-')) {
+    fail(
+      `Selection edge ${edge} is not the top hit target: ${
+        JSON.stringify({ edgeRect, topElement })
+      }`,
+    )
+  }
+
+  await page.mouse.move(startX, startY)
+  await page.mouse.down()
+  const ringClassAfterDown = await smoke(page, 'inline-text-edge-move-ring')
+    .first()
+    .getAttribute('class')
+  if (!ringClassAfterDown?.includes('is-dragging')) {
+    await page.mouse.up().catch(() => {})
+    fail(
+      `Selection edge ${edge} did not arm dragging on pointer-down: ${
+        JSON.stringify({ edgeRect, ringClassAfterDown, topElement })
+      }`,
+    )
+  }
+  await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 1 })
+  await page.waitForTimeout(80)
+
+  const duringTarget = await getRect(page, targetSmokeId)
+  const targetDelta = getRectDelta(beforeTarget, duringTarget)
+
+  if (
+    Math.abs(targetDelta.left) < 2 &&
+    Math.abs(targetDelta.top) < 2
+  ) {
+    await page.mouse.up().catch(() => {})
+    fail(
+      `Selection edge did not move ${targetSmokeId} on the first pointermove: ` +
+      JSON.stringify({ beforeTarget, duringTarget, edge, targetDelta }),
+    )
+  }
+
+  await page.mouse.up()
+  await page.waitForTimeout(150)
+
+  const afterRibbon = await getRect(page, 'contextual-text-ribbon-host')
+  if (
+    Math.abs(beforeRibbon.left - afterRibbon.left) > 1 ||
+    Math.abs(beforeRibbon.top - afterRibbon.top) > 1 ||
+    Math.abs(beforeRibbon.width - afterRibbon.width) > 1 ||
+    Math.abs(beforeRibbon.height - afterRibbon.height) > 1
+  ) {
+    fail(
+      `Selection-edge movement changed the contextual ribbon: ` +
+      JSON.stringify({ afterRibbon, beforeRibbon, edge }),
+    )
+  }
+}
+
 async function clickInlineMoveHandleWithoutMoving(page, targetSmokeId) {
   const beforeTarget = await getRect(page, targetSmokeId)
   const handle = await getRect(page, 'inline-text-move-handle')
@@ -2218,6 +2305,21 @@ async function runCaseChecks(page) {
     )
   })
 
+  await runCheck(page, 'cover selection edge moves text while interior still selects', async () => {
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'case-text-block-cover-cover-title-text',
+      'right',
+      28,
+      16,
+    )
+    await dragSelectVisibleText(page, 'case-text-block-cover-cover-title-text')
+    const selectionState = await getInlineInputState(page)
+    if (selectionState.selectionStart === selectionState.selectionEnd) {
+      fail(`Interior drag did not preserve text selection: ${JSON.stringify(selectionState)}`)
+    }
+  })
+
   await runCheck(page, 'cover Wrap width input keeps ribbon stable while editing', async () => {
     await clickInlineTab(page, 'utilities')
     const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
@@ -2300,14 +2402,35 @@ async function runCaseChecks(page) {
     await setupTrayTitle(page)
     await assertTextIncludes(page, 'case-text-block-tray-tray-title-text', 'Tray Smoke Title')
     await expectCaseRibbonEditor(page)
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'case-text-block-tray-tray-title-text',
+      'bottom-right',
+      18,
+      16,
+    )
     await done(page)
     await openSpineTitle(page, 'left')
     await assertTextIncludes(page, 'case-spine-title-left', 'LEFT SPINE SMOKE')
     await expectCaseRibbonEditor(page)
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'case-spine-title-left',
+      'top',
+      0,
+      18,
+    )
     await done(page)
     await openSpineTitle(page, 'right')
     await assertTextIncludes(page, 'case-spine-title-right', 'RIGHT SPINE SMOKE')
     await expectCaseRibbonEditor(page)
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'case-spine-title-right',
+      'bottom',
+      0,
+      18,
+    )
     await done(page)
   })
 
@@ -2448,6 +2571,17 @@ async function runDiscChecks(page) {
     await clickInlineMoveHandleWithoutMoving(page, 'disc-inline-text-title')
   })
 
+  await runCheck(page, 'straight disc selection edge moves text immediately', async () => {
+    await ensureStraightDiscContextualShell(page)
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'disc-inline-text-title',
+      'left',
+      -22,
+      14,
+    )
+  })
+
   await runCheck(page, 'straight disc selected-range color and LMB drag selection work', async () => {
     if ((await smoke(page, 'inline-text-menu').count()) > 0) {
       await done(page)
@@ -2473,6 +2607,13 @@ async function runDiscChecks(page) {
   await runCheck(page, 'curved copyright edits directly while staying SVG textPath', async () => {
     await done(page)
     await assertCurvedCopyrightGuardrail(page)
+    await dragInlineEdgeMoveImmediately(
+      page,
+      'disc-inline-text-copyright',
+      'bottom-left',
+      -18,
+      16,
+    )
   })
 }
 
