@@ -1522,6 +1522,41 @@ async function runDiscChecks(page) {
     }
   })
 
+  await runCheck(page, 'outer straight disc text uses center-docked controls', async () => {
+    await setInlineNumberControl(page, 'y', 8)
+    await page.waitForTimeout(250)
+    const mode = await smoke(page, 'inline-text-menu')
+      .getAttribute('data-inline-placement-mode')
+    if (mode !== 'center-docked') {
+      fail(`Outer straight disc text did not use center-docked controls: ${mode}`)
+    }
+
+    const preview = await getRect(page, 'disc-preview')
+    const host = await getRect(page, 'disc-inline-text-title')
+    const tabs = await getRect(page, 'inline-text-tabs')
+    const menu = await getRect(page, 'inline-text-menu')
+    if (
+      tabs.left < preview.left - 1 ||
+      tabs.right > preview.right + 1 ||
+      menu.left < preview.left - 1 ||
+      menu.right > preview.right + 1 ||
+      menu.top < preview.top - 1 ||
+      menu.bottom > preview.bottom + 1
+    ) {
+      fail(`Center-docked disc controls escaped the preview: ${
+        JSON.stringify({ menu, preview, tabs })
+      }`)
+    }
+    if (
+      rectsOverlapMeaningfully(tabs, host) ||
+      rectsOverlapMeaningfully(menu, host)
+    ) {
+      fail(`Center-docked disc controls overlapped selected text: ${
+        JSON.stringify({ host, menu, tabs })
+      }`)
+    }
+  })
+
   await runCheck(page, 'straight disc HTML source updates SVG before Done', async () => {
     const beforeSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
     await setHtmlSource(page, '<p><span style="color:#ff0000">Disc</span> live</p>')

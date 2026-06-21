@@ -432,6 +432,7 @@ export function DiscInlineTextEditorLayer({
                 targetKey={targetKey}
                 value={renderedText}
                 menuPlacement="below"
+                placementStrategy="disc-center-dock"
                 onValueChange={(value) => onDiscTextValueChange(key, value)}
                 onMoveHandlePointerDown={(event) =>
                   onMoveHandlePointerDown(event, key)}
@@ -540,6 +541,7 @@ export function DiscInlineTextEditorLayer({
               targetKey={targetKey}
               value={editValue}
               menuPlacement="below"
+              placementStrategy="disc-center-dock"
               onValueChange={(value, options) =>
                 onDiscTextValueChange(
                   key,

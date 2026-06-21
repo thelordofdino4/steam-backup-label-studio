@@ -391,6 +391,7 @@
 
 .inline-preview-text-menu--left,
 .inline-preview-text-menu--right,
+.inline-preview-text-menu--center-docked,
 .inline-preview-text-menu--detached {
   transform: none;
 }
