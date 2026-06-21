@@ -397,7 +397,7 @@ test('curved disc copyright text remains SVG textPath based', () => {
   assert.doesNotMatch(svg, /disc-text-editable-preview/)
 })
 
-test('curved disc copyright ignores HTML sources and remains textPath', () => {
+test('curved disc copyright renders HTML rich runs through SVG textPath tspans', () => {
   const settings = {
     ...DEFAULT_DISC_TEXT_SETTINGS,
     copyright: true,
@@ -411,7 +411,8 @@ test('curved disc copyright ignores HTML sources and remains textPath', () => {
     settings,
     values,
     htmlSources: {
-      copyright: '<p><strong>HTML legal text</strong></p>',
+      copyright:
+        '<p><span style="color:#ff0000;font-family:Georgia, serif;font-size:12pt">HTML</span> <strong><em>legal</em></strong> text</p>',
     },
     layoutSettings: {
       ...layoutSettings,
@@ -429,9 +430,52 @@ test('curved disc copyright ignores HTML sources and remains textPath', () => {
   })
 
   assert.match(svg, /<textPath\b/)
-  assert.match(svg, />Plain legal text<\/textPath>/)
-  assert.doesNotMatch(svg, /HTML legal text/)
-  assert.doesNotMatch(svg, /<tspan\b/)
+  assert.match(svg, /<tspan style="fill:#ff0000; font-family:Georgia, serif; font-size:[^"]+px">HTML<\/tspan>/)
+  assert.match(svg, /<tspan style="font-weight:700; font-style:italic">legal<\/tspan>/)
+  assert.match(svg, /> text<\/tspan>| text<\/textPath>/)
+  assert.doesNotMatch(svg, /Plain legal text/)
+  assert.doesNotMatch(svg, /<textarea\b/i)
+  assert.doesNotMatch(svg, /<foreignObject\b/i)
+})
+
+test('curved disc copyright underlines only selected rich-text runs', () => {
+  const settings = {
+    ...DEFAULT_DISC_TEXT_SETTINGS,
+    copyright: true,
+  }
+  const values = {
+    ...createDefaultDiscTextValues(),
+    copyright: 'Alpha Beta Gamma',
+  }
+  const layoutSettings = createDefaultDiscTextLayout('none')
+  const svg = buildDiscTextSvgLayer({
+    settings,
+    values,
+    htmlSources: {
+      copyright: '<p>Alpha <u>Beta</u> Gamma</p>',
+    },
+    layoutSettings: {
+      ...layoutSettings,
+      copyright: {
+        ...layoutSettings.copyright,
+        mode: 'curved',
+      },
+    },
+    title: 'Portal 2',
+    placement: 'none',
+    safeZoneRadiusPercent: 44,
+    measureText: measureTextAsCharacters,
+    width: 100,
+    height: 100,
+  })
+  const underlinePaths =
+    svg.match(/class="disc-text-curved-underline"[\s\S]*?d="([^"]+)"/g) ?? []
+
+  assert.equal(underlinePaths.length, 1)
+  assert.match(svg, /<tspan>Alpha <\/tspan>/)
+  assert.match(svg, /<tspan>Beta<\/tspan>/)
+  assert.match(svg, /<tspan> Gamma<\/tspan>/)
+  assert.doesNotMatch(svg, /text-decoration:underline/)
 })
 
 test('disc SVG renderer applies emphasis to curved copyright without native textPath underline', () => {

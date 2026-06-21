@@ -17,7 +17,11 @@ export type PlainTextSelectionRange = {
 }
 
 export type RichTextInlineToggleCommand = 'bold' | 'italic' | 'underline'
-export type RichTextInlineCommand = RichTextInlineToggleCommand | 'color' | 'fontSizePt'
+export type RichTextInlineCommand =
+  | RichTextInlineToggleCommand
+  | 'color'
+  | 'fontFamily'
+  | 'fontSizePt'
 export type RichTextListCommand = 'bulletedList'
 export type RichTextListKeyboardCommand = 'enter' | 'shiftEnter' | 'backspace'
 export type RichTextSelectionStyleState = 'active' | 'inactive' | 'mixed'
@@ -38,10 +42,16 @@ export type RichTextSelectionNumberState = {
   value?: number
 }
 
+export type RichTextSelectionStringState = {
+  state: RichTextSelectionStyleState
+  value?: string
+}
+
 export type RichTextAmbientInlineStyle = {
   bold?: boolean
   boldFontWeight?: number
   color?: string
+  fontFamily?: string
   fontSizePt?: number
   italic?: boolean
   normalFontWeight?: number
@@ -457,9 +467,17 @@ function fontSizeRun(run: RichTextRun, fontSizePt: number): RichTextRun {
   }
 }
 
+function fontFamilyRun(run: RichTextRun, fontFamily: string): RichTextRun {
+  return {
+    ...run,
+    fontFamily,
+  }
+}
+
 function splitRunForRange({
   command,
   color,
+  fontFamily,
   fontSizePt,
   ambientStyle,
   rangeEnd,
@@ -470,6 +488,7 @@ function splitRunForRange({
 }: {
   command: RichTextInlineCommand
   color?: string
+  fontFamily?: string
   fontSizePt?: number
   ambientStyle?: RichTextAmbientInlineStyle
   rangeEnd: number
@@ -502,6 +521,8 @@ function splitRunForRange({
   parts.push(
     command === 'color'
       ? colorRun(selectedRun, color ?? run.color ?? '#ffffff')
+      : command === 'fontFamily'
+        ? fontFamilyRun(selectedRun, fontFamily ?? run.fontFamily ?? ambientStyle?.fontFamily ?? 'Arial, sans-serif')
       : command === 'fontSizePt'
         ? fontSizeRun(selectedRun, fontSizePt ?? run.fontSizePt ?? ambientStyle?.fontSizePt ?? 12)
       : styleRun(ambientStyle, selectedRun, command, Boolean(toggleActive)),
@@ -517,6 +538,7 @@ function splitRunForRange({
 function transformLinesInSelection({
   command,
   color,
+  fontFamily,
   fontSizePt,
   document,
   ambientStyle,
@@ -525,6 +547,7 @@ function transformLinesInSelection({
 }: {
   command: RichTextInlineCommand
   color?: string
+  fontFamily?: string
   fontSizePt?: number
   document: RichTextDocument
   ambientStyle?: RichTextAmbientInlineStyle
@@ -540,6 +563,7 @@ function transformLinesInSelection({
       const transformedRuns = splitRunForRange({
         command,
         color,
+        fontFamily,
         fontSizePt,
         ambientStyle,
         rangeEnd: selection.end,
@@ -1069,6 +1093,40 @@ export function applyRichTextInlineFontSizePtCommand({
   )
 }
 
+export function applyRichTextInlineFontFamilyCommand({
+  ambientStyle,
+  fallbackText,
+  fontFamily,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  fontFamily: string
+  selection?: PlainTextSelectionRange
+}): RichTextCommandResult | null {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+
+  if (normalizedSelection.isCollapsed) {
+    return null
+  }
+
+  const lines = transformLinesInSelection({
+    command: 'fontFamily',
+    document,
+    fontFamily,
+    ambientStyle,
+    selection: normalizedSelection,
+  })
+
+  return createCommandResult(
+    {
+      ...document,
+      lines,
+    },
+    normalizedSelection,
+  )
+}
+
 export function applyRichTextBulletedListCommand({
   active,
   fallbackText,
@@ -1196,6 +1254,38 @@ export function getRichTextSelectionFontSizePtState({
     return { state: 'active', value: [...sizes][0] }
   }
   return { state: 'mixed', value: [...sizes][0] }
+}
+
+export function getRichTextSelectionFontFamilyState({
+  fallbackText,
+  ambientStyle,
+  htmlSource,
+  selection,
+}: RichTextSourceInput & {
+  selection?: PlainTextSelectionRange
+}): RichTextSelectionStringState {
+  const document = getRichTextDocument({ fallbackText, htmlSource })
+  const normalizedSelection = normalizeSelection(selection, document.plainText.length)
+  const runs = getRunsInSelection(document, normalizedSelection)
+
+  if (runs.length === 0) {
+    return { state: 'inactive' }
+  }
+
+  const families = new Set(
+    runs.map((run) => run.fontFamily ?? ambientStyle?.fontFamily)
+      .filter((value): value is string => Boolean(value)),
+  )
+  const unstyledRuns = runs.some((run) =>
+    typeof (run.fontFamily ?? ambientStyle?.fontFamily) !== 'string')
+
+  if (families.size === 0) {
+    return { state: 'inactive' }
+  }
+  if (families.size === 1 && !unstyledRuns) {
+    return { state: 'active', value: [...families][0] }
+  }
+  return { state: 'mixed', value: [...families][0] }
 }
 
 export function getRichTextBulletedListState({

@@ -597,17 +597,32 @@ function getInlinePreviewTextHostForTarget({
 
 function renderInlinePreviewTextSelectControl(
   control: InlinePreviewTextEditorSelectControl | undefined,
+  selection: InlinePreviewTextEditorSelectionRange,
 ) {
   if (!control) return null
+
+  const selectionValue = control.getSelectionValue?.(selection)
+  const isMixedSelection = selectionValue?.state === 'mixed'
+  const value = selectionValue?.state === 'active' && selectionValue.value
+    ? selectionValue.value
+    : control.value
 
   return (
     <label className="inline-preview-text-control-field">
       <span>{control.label}</span>
       <select
         data-smoke-id={`inline-text-select-${getInlineTextSmokeToken(control.label)}`}
-        value={control.value}
-        onChange={(event) => control.onChange(event.target.value)}
+        data-selection-state={selectionValue?.state}
+        value={value}
+        onChange={(event) =>
+          control.onChange(
+            event.target.value as typeof control.value,
+            selection,
+          )}
       >
+        {isMixedSelection ? (
+          <option value={value}>Mixed</option>
+        ) : null}
         {control.options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -1323,8 +1338,8 @@ function InlinePreviewTextEditorMenuContent({
   if (activeTab === 'presets') {
     return (
       <div className="inline-preview-text-control-grid">
-        {renderInlinePreviewTextSelectControl(controls.presets?.style)}
-        {renderInlinePreviewTextSelectControl(controls.presets?.layout)}
+        {renderInlinePreviewTextSelectControl(controls.presets?.style, selection)}
+        {renderInlinePreviewTextSelectControl(controls.presets?.layout, selection)}
         {!controls.presets?.style && !controls.presets?.layout ? (
           <span className="inline-preview-text-planned-control">
             Style presets unavailable
@@ -1347,9 +1362,9 @@ function InlinePreviewTextEditorMenuContent({
     return (
       <div className="inline-preview-text-control-grid">
         {renderInlinePreviewTextValueControl(controls.text?.textValue)}
-        {renderInlinePreviewTextSelectControl(controls.text?.fontFamily)}
+        {renderInlinePreviewTextSelectControl(controls.text?.fontFamily, selection)}
         {renderInlinePreviewTextSizeControl(controls.text?.size, selection)}
-        {renderInlinePreviewTextSelectControl(controls.text?.alignment)}
+        {renderInlinePreviewTextSelectControl(controls.text?.alignment, selection)}
         {controls.text?.bold ||
         controls.text?.italic ||
         controls.text?.underline ||
@@ -1400,7 +1415,7 @@ function InlinePreviewTextEditorMenuContent({
     return (
       <div className="inline-preview-text-control-grid">
         {renderInlinePreviewTextColorControl(controls.art?.color, selection)}
-        {renderInlinePreviewTextSelectControl(controls.art?.contrast)}
+        {renderInlinePreviewTextSelectControl(controls.art?.contrast, selection)}
         {renderInlinePreviewTextCheckboxControl(controls.art?.backgroundEnabled)}
         {renderInlinePreviewTextColorControl(
           controls.art?.backgroundColor,
@@ -1423,7 +1438,7 @@ function InlinePreviewTextEditorMenuContent({
       {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
-      {renderInlinePreviewTextSelectControl(controls.utilities?.mode)}
+      {renderInlinePreviewTextSelectControl(controls.utilities?.mode, selection)}
       {renderInlinePreviewHtmlSourceControl({
         control: controls.utilities?.htmlSource,
         sourceDraftIdentity,
@@ -1433,7 +1448,7 @@ function InlinePreviewTextEditorMenuContent({
         onSourceDraftCommit,
       })}
       {renderInlinePreviewTextRangeControl(controls.utilities?.lineSpacing)}
-      {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide)}
+      {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide, selection)}
       {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
       {controls.utilities?.resetLayout ? (
         <button

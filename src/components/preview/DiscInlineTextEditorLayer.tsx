@@ -89,7 +89,14 @@ export type DiscInlineTextEditorLayerProps = {
   ) => void
   onDiscTextRichTextCommand: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command:
+      | 'bold'
+      | 'italic'
+      | 'underline'
+      | 'color'
+      | 'bulletedList'
+      | 'fontFamily'
+      | 'fontSizePt',
     selection: { end: number; start: number } | undefined,
     value: boolean | number | string,
   ) => { end: number; start: number } | void
@@ -100,7 +107,14 @@ export type DiscInlineTextEditorLayerProps = {
   ) => { end: number; start: number } | null | void
   getDiscTextRichTextCommandState: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command:
+      | 'bold'
+      | 'italic'
+      | 'underline'
+      | 'color'
+      | 'bulletedList'
+      | 'fontFamily'
+      | 'fontSizePt',
     selection: { end: number; start: number },
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
@@ -258,6 +272,12 @@ export function DiscInlineTextEditorLayer({
         }
 
         const text = getDiscTextContent(key, discTextValues, title)
+        const hasHtmlSource = isDiscTextHtmlEnabled(discTextHtmlSources, key)
+        const renderedText = hasHtmlSource
+          ? parseHtmlText(
+              getDiscTextHtmlSource(discTextHtmlSources, key, text),
+            ).plainText
+          : text
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
           const fallbackBounds = getCurvedDiscTextEditorBounds({
@@ -279,7 +299,7 @@ export function DiscInlineTextEditorLayer({
                   selectedDiscTemplate.outerDiameterMm) * 50,
               styles: discTextStyles,
               template: selectedDiscTemplate,
-              text,
+              text: renderedText,
             }),
           })
           const bounds = paintBounds ?? fallbackBounds
@@ -296,6 +316,8 @@ export function DiscInlineTextEditorLayer({
             onDiscTextAlignmentChange,
             onDiscTextArcSideChange,
             onResetDiscTextLayout,
+            onDiscTextRichTextCommand,
+            getDiscTextRichTextCommandState,
           })
           const targetKey = createDiscInlineTextTargetKey(key)
           const curvedLineGeometry = getCurvedDiscTextLineGeometry({
@@ -308,7 +330,7 @@ export function DiscInlineTextEditorLayer({
                 selectedDiscTemplate.outerDiameterMm) * 50,
             styles: discTextStyles,
             template: selectedDiscTemplate,
-            text,
+            text: renderedText,
           })
           const curvedLines = curvedLineGeometry.length > 0
             ? curvedLineGeometry.map((line) => ({ text: line.text }))
@@ -384,7 +406,7 @@ export function DiscInlineTextEditorLayer({
                 'disc-inline-text-host--curved',
                 INLINE_PREVIEW_TEXT_HOST_CLASS,
                 'is-editing',
-                text.trim().length === 0 ? 'is-empty' : '',
+                renderedText.trim().length === 0 ? 'is-empty' : '',
               ].filter(Boolean).join(' ')}
               data-smoke-id={`disc-inline-text-${key}`}
               {...createInlinePreviewTextTargetAttributes(targetKey)}
@@ -402,13 +424,13 @@ export function DiscInlineTextEditorLayer({
             >
               <InlinePreviewTextEditor
                 ariaLabel={`Edit ${getDiscTextLabel(key)}`}
-                caretValue={text}
+                caretValue={renderedText}
                 controls={controls}
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
                 targetKey={targetKey}
-                value={text}
+                value={renderedText}
                 menuPlacement="below"
                 onValueChange={(value) => onDiscTextValueChange(key, value)}
                 onMoveHandlePointerDown={(event) =>
@@ -424,7 +446,6 @@ export function DiscInlineTextEditorLayer({
           )
         }
 
-        const hasHtmlSource = isDiscTextHtmlEnabled(discTextHtmlSources, key)
         const isHtmlSourceEditing = htmlSourceEditorKey === key
         const editValue = isHtmlSourceEditing
           ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
@@ -433,11 +454,6 @@ export function DiscInlineTextEditorLayer({
                 getDiscTextHtmlSource(discTextHtmlSources, key, text),
               ).plainText
             : text
-        const renderedText = hasHtmlSource
-          ? parseHtmlText(
-              getDiscTextHtmlSource(discTextHtmlSources, key, text),
-            ).plainText
-          : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
         )

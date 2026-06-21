@@ -70,7 +70,14 @@ export type DiscTextLayerProps = {
   ) => void
   onDiscTextRichTextCommand: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command:
+      | 'bold'
+      | 'italic'
+      | 'underline'
+      | 'color'
+      | 'bulletedList'
+      | 'fontFamily'
+      | 'fontSizePt',
     selection: { end: number; start: number } | undefined,
     value: boolean | number | string,
   ) => { end: number; start: number } | void
@@ -81,7 +88,14 @@ export type DiscTextLayerProps = {
   ) => { end: number; start: number } | null | void
   getDiscTextRichTextCommandState: (
     key: DiscTextKey,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+    command:
+      | 'bold'
+      | 'italic'
+      | 'underline'
+      | 'color'
+      | 'bulletedList'
+      | 'fontFamily'
+      | 'fontSizePt',
     selection: { end: number; start: number },
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'

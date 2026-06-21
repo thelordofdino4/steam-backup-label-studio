@@ -78,6 +78,7 @@ import {
 import {
   applyRichTextBulletedListCommand,
   applyRichTextInlineColorCommand,
+  applyRichTextInlineFontFamilyCommand,
   applyRichTextInlineFontSizePtCommand,
   applyRichTextInlineToggleCommand,
   applyRichTextListKeyboardCommand,
@@ -85,6 +86,7 @@ import {
   getRichTextBulletedListState,
   getRichTextInlineToggleState,
   getRichTextSelectionColorState,
+  getRichTextSelectionFontFamilyState,
   getRichTextSelectionFontSizePtState,
   type PlainTextSelectionRange,
   type RichTextAmbientInlineStyle,
@@ -92,6 +94,7 @@ import {
   type RichTextListKeyboardCommand,
   type RichTextSelectionColorState,
   type RichTextSelectionNumberState,
+  type RichTextSelectionStringState,
   type RichTextSelectionStyleState,
 } from '../text/richTextCommands'
 
@@ -130,11 +133,13 @@ type DiscTextRichTextCommand =
   | RichTextInlineToggleCommand
   | 'bulletedList'
   | 'color'
+  | 'fontFamily'
   | 'fontSizePt'
 type DiscTextRichTextCommandState =
   | RichTextSelectionStyleState
   | RichTextSelectionColorState
   | RichTextSelectionNumberState
+  | RichTextSelectionStringState
 
 const DISC_TEXT_INLINE_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   appId: 'Steam App ID ',
@@ -160,6 +165,7 @@ function getDiscTextRichTextAmbientStyle(
     bold: styles[key].bold,
     boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
     color: styles[key].color,
+    fontFamily: styles[key].fontFamily,
     fontSizePt: layout?.fontSizePt,
     italic: styles[key].italic,
     normalFontWeight: Math.min(DISC_TEXT_RENDER_STYLES[key].fontWeight, 400),
@@ -743,7 +749,10 @@ export function useDiscTextState({
     selection: PlainTextSelectionRange | undefined,
     value: boolean | number | string,
   ) {
-    if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
+    if (
+      command === 'bulletedList' &&
+      isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])
+    ) {
       return
     }
 
@@ -765,6 +774,12 @@ export function useDiscTextState({
           color: String(value),
           selection,
         })
+      : command === 'fontFamily'
+        ? applyRichTextInlineFontFamilyCommand({
+            ...source,
+            fontFamily: String(value),
+            selection,
+          })
       : command === 'fontSizePt'
         ? applyRichTextInlineFontSizePtCommand({
             ...source,
@@ -877,6 +892,8 @@ export function useDiscTextState({
 
     return command === 'color'
       ? getRichTextSelectionColorState({ ...source, selection })
+      : command === 'fontFamily'
+        ? getRichTextSelectionFontFamilyState({ ...source, selection })
       : command === 'fontSizePt'
         ? getRichTextSelectionFontSizePtState({ ...source, selection })
       : command === 'bulletedList'

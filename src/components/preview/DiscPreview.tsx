@@ -92,7 +92,14 @@ export type DiscPreviewProps = {
     ) => void
     onTextRichTextCommand: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+      command:
+        | 'bold'
+        | 'italic'
+        | 'underline'
+        | 'color'
+        | 'bulletedList'
+        | 'fontFamily'
+        | 'fontSizePt',
       selection: { end: number; start: number } | undefined,
       value: boolean | number | string,
     ) => { end: number; start: number } | void
@@ -103,7 +110,14 @@ export type DiscPreviewProps = {
     ) => { end: number; start: number } | null | void
     getTextRichTextCommandState: (
       key: DiscTextKey,
-      command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
+      command:
+        | 'bold'
+        | 'italic'
+        | 'underline'
+        | 'color'
+        | 'bulletedList'
+        | 'fontFamily'
+        | 'fontSizePt',
       selection: { end: number; start: number },
     ) => 'active' | 'inactive' | 'mixed' | {
       state: 'active' | 'inactive' | 'mixed'

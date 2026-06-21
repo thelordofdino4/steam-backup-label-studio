@@ -304,6 +304,7 @@ test('disc copyright straight controls omit curved presets without changing curv
 
 test('curved disc controls expose whole-object SVG textPath controls without menu text value', () => {
   const calls: string[] = []
+  const routedCalls: string[] = []
   const key: DiscTextKey = 'copyright'
   const layout = {
     ...createDefaultDiscTextLayout('top').copyright,
@@ -337,6 +338,24 @@ test('curved disc controls expose whole-object SVG textPath controls without men
     onDiscTextStyleChange: (_key, field, value) => {
       calls.push(`style:${field}:${String(value)}`)
     },
+    getDiscTextRichTextCommandState: (_key, command, selection) => {
+      routedCalls.push(`state:${command}:${selection.start}-${selection.end}`)
+      if (command === 'fontFamily') {
+        return { state: 'active', value: 'georgia' }
+      }
+      if (command === 'fontSizePt') {
+        return { state: 'mixed', value: 12 }
+      }
+      if (command === 'color') {
+        return { state: 'active', value: '#00ffaa' }
+      }
+      return command === 'bold' ? 'mixed' : 'inactive'
+    },
+    onDiscTextRichTextCommand: (_key, command, selection, value) => {
+      routedCalls.push(
+        `command:${command}:${String(value)}:${selection?.start}-${selection?.end}`,
+      )
+    },
     onResetDiscTextLayout: () => {
       calls.push('reset-layout')
     },
@@ -366,6 +385,24 @@ test('curved disc controls expose whole-object SVG textPath controls without men
   assert.equal(controls.text?.italic?.label, 'Italic')
   assert.equal(controls.text?.underline?.label, 'Underline')
   assert.equal(controls.text?.unsupported, undefined)
+  assert.deepEqual(
+    controls.text?.fontFamily?.getSelectionValue?.({ start: 0, end: 9 }),
+    { state: 'active', value: 'georgia' },
+  )
+  assert.deepEqual(
+    controls.text?.size && 'getSelectionValue' in controls.text.size
+      ? controls.text.size.getSelectionValue?.({ start: 0, end: 9 })
+      : undefined,
+    { state: 'mixed', value: 12 },
+  )
+  assert.equal(
+    controls.text?.bold?.getSelectionState?.({ start: 0, end: 9 }),
+    'mixed',
+  )
+  assert.deepEqual(
+    controls.art?.color?.getSelectionValue?.({ start: 0, end: 9 }),
+    { state: 'active', value: '#00ffaa' },
+  )
   assert.equal(controls.art?.color?.label, 'Color')
   assert.equal(controls.art?.contrast?.label, 'Contrast')
   assert.equal(controls.utilities?.lineSpacing?.label, 'Line spacing')
@@ -376,6 +413,12 @@ test('curved disc controls expose whole-object SVG textPath controls without men
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.text ?? {}, 'bulletedList'), false)
 
+  controls.text?.fontFamily?.onChange('verdana', { start: 0, end: 9 })
+  controls.text?.size?.onChange(14, { start: 0, end: 9 })
+  controls.text?.bold?.onChange(true, { start: 0, end: 9 })
+  controls.text?.italic?.onChange(true, { start: 0, end: 9 })
+  controls.text?.underline?.onChange(true, { start: 0, end: 9 })
+  controls.art?.color?.onChange('#ff00aa', { start: 0, end: 9 })
   controls.text?.bold?.onChange(true)
   controls.text?.italic?.onChange(true)
   controls.text?.underline?.onChange(true)
@@ -403,5 +446,17 @@ test('curved disc controls expose whole-object SVG textPath controls without men
     'reset-style',
     'enabled:false',
     'selected:null',
+  ])
+  assert.deepEqual(routedCalls, [
+    'state:fontFamily:0-9',
+    'state:fontSizePt:0-9',
+    'state:bold:0-9',
+    'state:color:0-9',
+    'command:fontFamily:verdana:0-9',
+    'command:fontSizePt:14:0-9',
+    'command:bold:true:0-9',
+    'command:italic:true:0-9',
+    'command:underline:true:0-9',
+    'command:color:#ff00aa:0-9',
   ])
 })
