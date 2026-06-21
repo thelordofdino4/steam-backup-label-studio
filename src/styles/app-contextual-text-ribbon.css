@@ -143,6 +143,10 @@
   min-width: 0;
 }
 
+.contextual-text-ribbon-controls--inline-menu .inline-preview-text-range-field {
+  min-width: 0;
+}
+
 .contextual-text-ribbon-controls--inline-menu .inline-preview-text-html-source {
   grid-column: 1 / -1;
 }
@@ -291,6 +295,15 @@
   .contextual-text-ribbon-controls--inline-menu .inline-preview-text-control-grid {
     grid-template-columns: minmax(0, 1fr);
     gap: 6px;
+  }
+
+  .contextual-text-ribbon-controls--inline-menu .inline-preview-text-range-field {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextual-text-ribbon-controls--inline-menu .inline-preview-text-range-field input[type="range"],
+  .contextual-text-ribbon-controls--inline-menu .inline-preview-text-range-field input[type="number"] {
+    width: 100%;
   }
 
   .contextual-text-ribbon-field,

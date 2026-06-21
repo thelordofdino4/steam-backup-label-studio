@@ -5,10 +5,6 @@ import type {
 import type {
   ContextualTextControlGroupId,
 } from '../../text/contextualTextControlViewModel'
-import type {
-  InlinePreviewTextEditorMenuPlacement,
-  InlinePreviewTextPlacementStrategy,
-} from './inlinePreviewTextEditorPositioning'
 
 export type InlinePreviewTextEditorInputMode = 'overlay' | 'adapter'
 
@@ -26,13 +22,6 @@ export type InlinePreviewTextEditorToggleState =
 
 export type InlinePreviewTextEditorLine = {
   text: string
-}
-
-export type InlinePreviewTextEditorPaintedCollisionRect = {
-  bottom: number
-  left: number
-  right: number
-  top: number
 }
 
 export type InlinePreviewTextEditorGeometryLine = {
@@ -244,7 +233,6 @@ export type InlinePreviewTextEditorProps = {
   geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   lines: InlinePreviewTextEditorLine[]
-  paintedCollisionRects?: readonly InlinePreviewTextEditorPaintedCollisionRect[]
   rotationDegrees?: number
   targetKey: string
   value: string
@@ -252,8 +240,6 @@ export type InlinePreviewTextEditorProps = {
   sourceMode?: boolean
   suppressCanvasInput?: boolean
   ribbonSlotId?: string
-  menuPlacement: InlinePreviewTextEditorMenuPlacement
-  placementStrategy?: InlinePreviewTextPlacementStrategy
   onValueChange: (
     value: string,
     options?: { sourceMode?: boolean },

@@ -602,7 +602,6 @@ function CaseInsertTemplateTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={textareaStyle}
-          menuPlacement="below"
           onValueChange={(value, options) =>
             onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>
@@ -794,7 +793,6 @@ function CaseInsertTemplateTextList({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: 'left' }}
-          menuPlacement="below"
           onValueChange={(value, options) =>
             onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>

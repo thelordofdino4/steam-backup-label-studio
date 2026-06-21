@@ -149,8 +149,7 @@ The committed smoke command verifies:
 - The shared contextual ribbon shell is screenshot-checked at representative
   wide, compact, and narrow widths for ordinary text controls and the Utilities
   HTML source panel. The check verifies tab reflow, visible actions, usable hit
-  targets, and no overlapping child controls. Floating-shell scroll checks still
-  apply to non-ribbon surfaces.
+  targets, and no overlapping child controls.
 - Selected-range case-insert `Font size (pt)` applies canonical
   `font-size:Npt` HTML only to the highlighted characters.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
@@ -172,7 +171,7 @@ The committed smoke command verifies:
   strips move text immediately while an interior drag on cover text still
   creates a text selection instead of moving the object.
 - Top-edge, bottom-edge, and oversized cover text keep controls accessible in
-  the stable ribbon instead of invoking old case floating-menu placement.
+  the stable ribbon; no preview-anchored full menu is expected.
 - Tray, left spine, and right spine open inline editors through the ribbon.
 - Left and right rotated spine text support forward and reverse LMB drag
   selection along the visible rotated text direction, and interior drags must
@@ -186,7 +185,7 @@ The committed smoke command verifies:
 - Straight disc `Font size (pt)` uses the shared point-size combobox and keeps
   the SVG preview/export font-size model in sync.
 - Straight and curved disc text activate the stable app-shell ribbon instead of
-  the old floating full tabs/menu, center dock, or side dock. The smoke harness
+  the removed floating full tabs/menu, center dock, or side dock. The smoke harness
   checks that tabs/menu are mounted in the ribbon, the Move handle remains a
   local preview affordance, and the ribbon remains stable while straight text
   moves or curved copyright point size/arc/inset/line-spacing controls change.
@@ -212,10 +211,10 @@ The committed smoke command verifies:
   top/bottom arc, 6pt, default, and 72pt cases. The selection overlay must use
   butt-capped arc paths whose endpoints match the selected boundaries instead
   of round caps that visually include neighboring characters.
-- Curved copyright placement includes a Warframe/App ID 230410-style legal text
-  fixture at 15.02pt and samples multiple animation frames while editing and
-  committing that point size. The route fails if placement mode, responsive
-  mode, menu width, or menu height oscillates.
+- Curved copyright ribbon stability includes a Warframe/App ID 230410-style
+  legal text fixture at 15.02pt and samples multiple animation frames while
+  editing and committing that point size. The route fails if the ribbon moves or
+  resizes while text geometry changes.
 
 ## Expected Outcomes
 
@@ -258,8 +257,8 @@ Y control and a deterministic Move-handle drag route.
 
 Use Tauri/manual runtime checks for:
 
-- Move-handle dragging on cover, tray, spines, and straight disc text in the
-  Tauri desktop window, including normal and emergency contextual placements.
+- Move-handle and selection-edge dragging on cover, tray, spines, straight
+  disc, and curved disc text in the Tauri desktop window.
 - Save/load using native file dialogs.
 - PNG export output inspection.
 - Desktop window focus, native shortcuts, and platform-specific behavior.

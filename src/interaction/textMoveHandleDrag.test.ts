@@ -96,15 +96,13 @@ test('shared text adapters route explicit move handles through immediate activat
   assert.match(inlineEditor, /'left'/)
   assert.match(inlineEditor, /`inline-preview-text-edge-move-hit--\$\{edge\}`/)
   assert.match(inlineEditor, /edgeRing\.addEventListener\('pointerdown'/)
-  assert.match(inlineEditor, /target\.closest\('\.inline-preview-text-edge-move-hit'\)/)
-  assert.match(inlineEditor, /onPointerCancel=\{handleMoveHandlePointerRelease\}/)
   assert.match(
     inlineEditor,
-    /onLostPointerCapture=\{handleMoveHandlePointerRelease\}/,
+    /\.inline-preview-text-edge-move-hit, \.inline-preview-text-move-handle/,
   )
   assert.match(
     inlineEditor,
-    /onLostPointerCapture=\{handleMoveEdgePointerRelease\}/,
+    /activeMoveEdgePointerIdRef\.current = event\.pointerId/,
   )
 })
 

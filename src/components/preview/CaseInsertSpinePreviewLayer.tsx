@@ -532,7 +532,6 @@ function CaseInsertSpineTextBlock({
           targetKey={targetKey}
           value={editValue}
           textareaStyle={{ textAlign: layoutTextBlock.align }}
-          menuPlacement="below"
           onValueChange={(value, options) =>
             onTextTargetValueChange(textTarget, value, options)}
           onMoveHandlePointerDown={(event) =>

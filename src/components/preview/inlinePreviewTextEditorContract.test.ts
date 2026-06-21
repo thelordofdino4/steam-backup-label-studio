@@ -109,7 +109,6 @@ function createEditorProps({
     geometryLines,
     inputMode: 'adapter',
     lines: [{ text: 'hello hello' }],
-    menuPlacement: 'below',
     sourceMode,
     targetKey,
     value: 'hello hello',

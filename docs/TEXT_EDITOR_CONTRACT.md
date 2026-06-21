@@ -110,8 +110,8 @@ tested, and the remaining divergences are recorded.
   Surface-specific geometry may affect preview affordances and text layout, but
   it must not move, resize, dock, or flip the ribbon.
 - The old full-menu collision, docking, portal, and selected-text-anchored
-  positioning system is temporary compatibility code during migration. It must
-  be deleted after the ribbon fully owns contextual controls.
+  positioning system has been removed. Do not reintroduce it for migrated text
+  surfaces.
 - The preview still owns target-local affordances: caret, selection, dotted or
   path-aware outlines, direct typing, edge-grab movement affordance, Move
   fallback target where applicable, and Delete affordance where applicable.
@@ -139,27 +139,18 @@ tested, and the remaining divergences are recorded.
 | Compact | Tabs may remain one row or become two-by-two if needed. | Controls reflow into fewer columns with shorter labels and smaller gaps. |
 | Narrow | Tabs may use two-by-two layout or horizontal scrolling only as a last resort. | Labels stack above controls, fields use available width, and controls may wrap into a third row. |
 
-### Migration Sequence
+### Migration Status
 
-1. Add the reserved app-shell ribbon slot above the preview while leaving the
-   inactive slot empty.
-2. Move tab rendering into the ribbon without changing target adapters or
-   renderer ownership.
-3. Move active-tab controls into the ribbon by consuming the existing
-   contextual control registry and adapter contracts.
-4. Keep preview affordances on the selected text and add the selection-edge
-   movement region.
-5. Confirm every target surface activates the ribbon and preserves WYSIWYG
-   parity.
-6. Remove migrated duplicate sidebar controls only where setup/source/type
-   ownership is not required.
-7. Delete the old floating menu, portal, docking, center-dock, emergency
-   placement, selected-text collision, and menu-size feedback code after no
-   target uses it.
+The stable app-shell ribbon is the production contextual control host for
+cover, tray, spine, straight-disc, and curved-disc text. The old floating
+tabs/menu, selected-text collision solver, center/side docking, detached
+emergency placement, and placement-size feedback paths have been removed from
+production editor code.
 
-### Legacy-Code Deletion Map
+### Removed Legacy Responsibilities
 
-Delete or retire these responsibilities after the ribbon migration is complete:
+The following responsibilities are intentionally not part of the active text
+editor architecture:
 
 - Selected-text-anchored tab/menu placement and collision scoring.
 - Preview-bound menu flipping, clamping, emergency detached placement, and
@@ -167,8 +158,8 @@ Delete or retire these responsibilities after the ribbon migration is complete:
 - Portal roots and outside-click containment code that exist only for floating
   contextual menus.
 - Responsive shell sizing feedback used by the floating placement solver.
-- Tests that only prove the floating menu avoids safe zones, center holes, or
-  selected-text bounds.
+- Smoke routes and tests that only prove the floating menu avoids safe zones,
+  center holes, or selected-text bounds.
 
 Keep these responsibilities:
 

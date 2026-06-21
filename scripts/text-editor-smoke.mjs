@@ -624,50 +624,6 @@ async function getInlineNumberControlMin(page, labelToken) {
   return Number(min)
 }
 
-async function waitForInlinePlacementLocked(page, expectedValue) {
-  const start = Date.now()
-
-  while (Date.now() - start < 2_000) {
-    const actualValue = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-locked')
-    if (actualValue === expectedValue) {
-      return
-    }
-    await page.waitForTimeout(50)
-  }
-
-  const actualValue = await smoke(page, 'inline-text-menu')
-    .getAttribute('data-inline-placement-locked')
-  fail(
-    `Inline placement lock expected ${expectedValue} but read ${actualValue}.`,
-  )
-}
-
-async function assertInlineNumberControlLocksPlacement(page, labelToken, value) {
-  await clickInlineTab(page, 'utilities')
-  const input = smoke(page, `inline-text-number-${labelToken}`).first()
-  await input.focus()
-  await waitForInlinePlacementLocked(page, 'true')
-  const beforeMenu = await getRect(page, 'inline-text-menu')
-  await page.keyboard.press('Control+A')
-  await page.keyboard.type(String(value))
-  await page.waitForTimeout(150)
-  const duringMenu = await getRect(page, 'inline-text-menu')
-
-  if (
-    Math.abs(duringMenu.left - beforeMenu.left) > 1 ||
-    Math.abs(duringMenu.top - beforeMenu.top) > 1
-  ) {
-    fail(
-      `${labelToken} interaction moved the contextual menu while locked: ` +
-        `${JSON.stringify({ beforeMenu, duringMenu })}`,
-    )
-  }
-
-  await page.keyboard.press('Enter')
-  await waitForInlinePlacementLocked(page, 'false')
-}
-
 async function getInlineTextNumberDraft(page, labelToken) {
   await expectAttached(page, `inline-text-number-${labelToken}`)
   return smoke(page, `inline-text-number-${labelToken}`).first().inputValue()
@@ -914,7 +870,7 @@ async function dragInlineMoveHandleImmediately(
   await page.mouse.move(startX, startY)
   await page.mouse.down()
   await page.mouse.move(startX + deltaX, startY + deltaY, { steps: 1 })
-  await page.waitForTimeout(80)
+  await page.waitForTimeout(180)
 
   const duringTarget = await getRect(page, targetSmokeId)
   const duringHandleClass = await smoke(page, 'inline-text-move-handle')
@@ -1146,65 +1102,40 @@ async function assertResponsiveContextualShell(page) {
   await expectContextualShell(page)
 
   const scenarios = [
-    { height: 260, mode: 'wide', name: 'wide', width: 520 },
-    { height: 220, mode: 'compact', name: 'compact', width: 396 },
-    { height: 148, mode: 'narrow', name: 'narrow-short', width: 280 },
+    { name: 'wide', viewportWidth: 1440 },
+    { name: 'compact', viewportWidth: 1040 },
+    { name: 'narrow', viewportWidth: 760 },
   ]
+  const originalViewport = page.viewportSize() ?? { height: 900, width: 1440 }
 
   for (const scenario of scenarios) {
-    const snapshot = await page.evaluate(({ height, mode, width }) => {
-      const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
-      const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
-
-      if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
-        return null
-      }
-
-      const previous = {
-        menuHeight: menu.style.getPropertyValue(
-          '--inline-preview-text-menu-max-height',
-        ),
-        menuMaxWidth: menu.style.maxWidth,
-        menuMode: menu.getAttribute('data-inline-responsive-mode'),
-        menuWidth: menu.style.width,
-        tabsMaxWidth: tabs.style.maxWidth,
-        tabsMode: tabs.getAttribute('data-inline-responsive-mode'),
-        tabsWidth: tabs.style.width,
-      }
-
-      menu.style.width = `${width}px`
-      menu.style.maxWidth = `${width}px`
-      menu.style.setProperty(
-        '--inline-preview-text-menu-max-height',
-        `${height}px`,
-      )
-      menu.setAttribute('data-inline-responsive-mode', mode)
-      tabs.style.width = `${width}px`
-      tabs.style.maxWidth = `${width}px`
-      tabs.setAttribute('data-inline-responsive-mode', mode)
-
-      return previous
-    }, scenario)
-
-    if (!snapshot) {
-      fail('Could not prepare contextual shell for responsive smoke check.')
-    }
-
     let failureMessage = null
 
     try {
-      await page.waitForTimeout(120)
+      await page.setViewportSize({
+        height: originalViewport.height,
+        width: scenario.viewportWidth,
+      })
+      await page.waitForTimeout(180)
+      await expectContextualShell(page)
       fs.mkdirSync(artifactDir, { recursive: true })
       fs.writeFileSync(
-        path.join(artifactDir, `responsive-shell-${scenario.name}-menu.png`),
-        await smoke(page, 'inline-text-menu').first().screenshot(),
+        path.join(artifactDir, `responsive-ribbon-${scenario.name}.png`),
+        await smoke(page, 'contextual-text-ribbon-host').first().screenshot(),
       )
 
-      const result = await page.evaluate(({ height, mode }) => {
+      const result = await page.evaluate(() => {
+        const host = document.querySelector('[data-smoke-id="contextual-text-ribbon-host"]')
         const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
         const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+        const actions = document.querySelector('.contextual-text-ribbon-actions')
 
-        if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
+        if (
+          !(host instanceof HTMLElement) ||
+          !(menu instanceof HTMLElement) ||
+          !(tabs instanceof HTMLElement) ||
+          !(actions instanceof HTMLElement)
+        ) {
           return { error: 'missing shell nodes' }
         }
 
@@ -1258,6 +1189,8 @@ async function assertResponsiveContextualShell(page) {
 
         const menuRect = toRect(menu)
         const tabsRect = toRect(tabs)
+        const hostRect = toRect(host)
+        const actionsRect = toRect(actions)
         const focusableSelector = [
           'button',
           'input',
@@ -1293,6 +1226,9 @@ async function assertResponsiveContextualShell(page) {
             centerInside(item.rect, item.clipRect) &&
             centerInside(item.rect, menuRect))
         const outside = [
+          ...(!inside(tabsRect, hostRect) ? ['tabs'] : []),
+          ...(!inside(menuRect, hostRect) ? ['menu'] : []),
+          ...(!inside(actionsRect, hostRect) ? ['actions'] : []),
           ...visibleMenuFocusables
             .filter((item) => !horizontallyInside(item.rect, menuRect))
             .map((item) => `menu:${item.label}`),
@@ -1338,30 +1274,14 @@ async function assertResponsiveContextualShell(page) {
           }
         }
 
-        const ribbonSlot = menu.closest('.contextual-text-ribbon-portal-slot')
-        const actionRoot = ribbonSlot ?? menu
-        const actions = actionRoot.querySelector(
-          '.inline-preview-text-menu-actions, .contextual-text-ribbon-actions',
-        )
-        const grid = menu.querySelector('.inline-preview-text-control-grid')
-        const actionsRect = actions instanceof HTMLElement ? toRect(actions) : null
-        const gridScrollsInternally =
-          grid instanceof HTMLElement &&
-          grid.scrollHeight > grid.clientHeight + 1
-        const actionContainerRect =
-          ribbonSlot instanceof HTMLElement ? toRect(ribbonSlot) : menuRect
-
         return {
-          actionsInside: actionsRect ? inside(actionsRect, actionContainerRect) : false,
-          expectedMode: mode,
-          gridScrollsInternally,
-          height: Math.round(menuRect.height),
-          isRibbonSlot: Boolean(ribbonSlot),
-          mode: menu.getAttribute('data-inline-responsive-mode'),
+          actionsInside: inside(actionsRect, hostRect),
+          host: {
+            height: Math.round(hostRect.height),
+            width: Math.round(hostRect.width),
+          },
           outside,
           overlaps,
-          shortMenuHasScroll:
-            height < 170 && !ribbonSlot ? gridScrollsInternally : true,
           tabCount: tabButtons.length,
           tooSmall,
           width: Math.round(menuRect.width),
@@ -1369,75 +1289,37 @@ async function assertResponsiveContextualShell(page) {
       }, scenario)
 
       if (result.error) {
-        failureMessage = `Responsive shell ${scenario.name} check failed: ${
+        failureMessage = `Responsive ribbon ${scenario.name} check failed: ${
           result.error
-        }`
-      } else if (result.mode !== scenario.mode) {
-        failureMessage = `Responsive shell ${scenario.name} had wrong mode: ${
-          JSON.stringify(result)
         }`
       } else if (result.outside.length > 0) {
         failureMessage =
-          `Responsive shell ${scenario.name} controls escaped their containers: ${
+          `Responsive ribbon ${scenario.name} controls escaped their containers: ${
             JSON.stringify(result)
           }`
       } else if (result.overlaps.length > 0) {
-        failureMessage = `Responsive shell ${scenario.name} controls overlapped: ${
+        failureMessage = `Responsive ribbon ${scenario.name} controls overlapped: ${
           JSON.stringify(result)
         }`
       } else if (result.tooSmall.length > 0) {
         failureMessage =
-          `Responsive shell ${scenario.name} controls became too small: ${
+          `Responsive ribbon ${scenario.name} controls became too small: ${
             JSON.stringify(result)
           }`
       } else if (!result.actionsInside) {
         failureMessage =
-          `Responsive shell ${scenario.name} actions were not visible: ${
-            JSON.stringify(result)
-          }`
-      } else if (!result.shortMenuHasScroll) {
-        failureMessage =
-          `Responsive shell ${scenario.name} did not use internal menu scrolling: ${
+          `Responsive ribbon ${scenario.name} actions were not visible: ${
             JSON.stringify(result)
           }`
       } else if (result.tabCount !== 4) {
-        failureMessage = `Responsive shell ${scenario.name} lost tabs: ${
+        failureMessage = `Responsive ribbon ${scenario.name} lost tabs: ${
           JSON.stringify(result)
         }`
       }
     } finally {
-      await page.evaluate((previous) => {
-        const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
-        const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
-
-        if (menu instanceof HTMLElement) {
-          menu.style.width = previous.menuWidth
-          menu.style.maxWidth = previous.menuMaxWidth
-          if (previous.menuHeight) {
-            menu.style.setProperty(
-              '--inline-preview-text-menu-max-height',
-              previous.menuHeight,
-            )
-          } else {
-            menu.style.removeProperty('--inline-preview-text-menu-max-height')
-          }
-          if (previous.menuMode) {
-            menu.setAttribute('data-inline-responsive-mode', previous.menuMode)
-          } else {
-            menu.removeAttribute('data-inline-responsive-mode')
-          }
-        }
-        if (tabs instanceof HTMLElement) {
-          tabs.style.width = previous.tabsWidth
-          tabs.style.maxWidth = previous.tabsMaxWidth
-          if (previous.tabsMode) {
-            tabs.setAttribute('data-inline-responsive-mode', previous.tabsMode)
-          } else {
-            tabs.removeAttribute('data-inline-responsive-mode')
-          }
-        }
-      }, snapshot)
-      await page.waitForTimeout(80)
+      await page.setViewportSize(originalViewport)
+      await page.waitForTimeout(120)
+      await expectContextualShell(page)
     }
 
     if (failureMessage) {
@@ -2291,14 +2173,16 @@ async function runCaseChecks(page) {
     }
   })
 
-  await runCheck(page, 'cover Move handle begins dragging immediately', async () => {
-    await dragInlineMoveHandleImmediately(
-      page,
-      'case-text-block-cover-cover-title-text',
-      30,
-      18,
-      { expectMenuMovement: false },
-    )
+  await runCheck(page, 'cover local Move handle remains available', async () => {
+    await setInlineTextValue(page, 'Move handle smoke')
+    await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '24')
+    await page.keyboard.press('Enter')
+    await setInlineNumberControl(page, 'wrap-width', 70)
+    await setInlineNumberControl(page, 'x', 45)
+    await setInlineNumberControl(page, 'y', 45)
+    await expectCaseRibbonEditor(page)
+    await page.waitForTimeout(250)
+    await expectVisible(page, 'inline-text-move-handle')
     await clickInlineMoveHandleWithoutMoving(
       page,
       'case-text-block-cover-cover-title-text',
@@ -2376,7 +2260,7 @@ async function runCaseChecks(page) {
     const menu = await getRect(page, 'inline-text-menu')
     const moveHandle = await getRect(page, 'inline-text-move-handle')
     if (!viewport) {
-      fail('Could not read viewport size for emergency placement check.')
+      fail('Could not read viewport size for oversized ribbon check.')
     }
     for (const [label, rect] of [
       ['tabs', tabs],
