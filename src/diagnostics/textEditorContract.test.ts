@@ -118,54 +118,32 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
   assert.match(css, /@keyframes inline-preview-text-caret-flash/)
 })
 
-test('contextual text editor shell keeps tab and menu sizing stable', () => {
-  const css = readRepoFile('src/styles/app-editor-controls.css')
+test('contextual text editor shell is hosted by the stable ribbon', () => {
+  const editorCss = readRepoFile('src/styles/app-editor-controls.css')
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+  const editor = readRepoFile('src/components/preview/InlinePreviewTextEditor.tsx')
 
-  assert.match(css, /\.inline-preview-text-tabs\s*\{[^}]*display:\s*grid/s)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-host\s*\{[^}]*min-height:\s*var\(--contextual-text-ribbon-reserved-height\)/s)
   assert.match(
-    css,
-    /\.inline-preview-text-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s,
-  )
-  assert.match(
-    css,
-    /\.inline-preview-text-tabs\s*\{[^}]*width:\s*min\(\s*var\(--inline-preview-text-tabs-preferred-width,\s*520px\),\s*calc\(100vw - 24px\)/s,
+    ribbonCss,
+    /\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s,
   )
   assert.match(
-    css,
-    /\.inline-preview-text-tabs\[data-inline-responsive-mode="compact"\][^{]*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    ribbonCss,
+    /\.contextual-text-ribbon-controls--inline-menu\s+\.inline-preview-text-control-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(190px,\s*1fr\)\)/s,
   )
   assert.match(
-    css,
-    /\.inline-preview-text-menu\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)\s*auto/s,
+    ribbonCss,
+    /@media \(max-width:\s*820px\)[\s\S]*\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
   )
   assert.match(
-    css,
-    /\.inline-preview-text-menu\s*\{[^}]*width:\s*min\(\s*var\(--inline-preview-text-menu-preferred-width,\s*520px\),\s*calc\(100vw - 24px\)/s,
+    ribbonCss,
+    /\.contextual-text-ribbon-controls\s*\{[^}]*overflow-y:\s*auto/s,
   )
-  assert.match(
-    css,
-    /\.inline-preview-text-menu\s*\{[^}]*max-height:\s*min\(\s*286px,\s*calc\(100vh - 32px\),\s*var\(--inline-preview-text-menu-max-height,\s*calc\(100vh - 32px\)\)/s,
-  )
-  assert.match(
-    css,
-    /\.inline-preview-text-menu\s*\{[^}]*min-height:\s*min\(\s*var\(--inline-preview-text-menu-min-height,\s*118px\),\s*var\(--inline-preview-text-menu-max-height,\s*178px\)/s,
-  )
-  assert.match(
-    css,
-    /\.inline-preview-text-menu\[data-inline-responsive-mode="compact"\]\s+\.inline-preview-text-control-grid,[\s\S]*\.inline-preview-text-menu\[data-inline-responsive-mode="narrow"\]\s+\.inline-preview-text-control-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
-  )
-  assert.match(
-    css,
-    /\.inline-preview-text-menu\[data-inline-responsive-mode="narrow"\]\s+\.inline-preview-text-control-field\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
-  )
-  assert.match(
-    css,
-    /\.inline-preview-text-menu\s*>\s*\.inline-preview-text-control-grid\s*\{[^}]*overflow-y:\s*auto/s,
-  )
-  assert.doesNotMatch(
-    css,
-    /\.inline-preview-text-(tabs|menu)\s*\{[^}]*width:\s*max-content/s,
-  )
+  assert.doesNotMatch(editorCss, /\.inline-preview-text-tabs\s*\{/)
+  assert.doesNotMatch(editorCss, /\.inline-preview-text-menu\s*\{/)
+  assert.doesNotMatch(editor, /createPortal\(controls,\s*document\.body\)/)
+  assert.doesNotMatch(editor, /getInlinePreviewTextControlLayout/)
 })
 
 test('case insert inline editing uses the adapter input path', () => {
@@ -240,7 +218,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.match(adapter, /inputMode="adapter"/)
   assert.match(adapter, /ribbonSlotId=\{ribbonSlotId\}/)
   assert.match(discLayer, /ribbonSlotId=\{ribbonSlotId\}/)
-  assert.doesNotMatch(adapter, /placementStrategy="disc-center-dock"/)
+  assert.doesNotMatch(adapter, /placementStrategy/)
+  assert.doesNotMatch(adapter, /paintedCollisionRects/)
   assert.doesNotMatch(adapter, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(discLayer, /DiscInlineTextEditorLayer/)

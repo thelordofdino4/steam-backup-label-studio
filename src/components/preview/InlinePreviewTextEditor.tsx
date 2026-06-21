@@ -6,7 +6,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type FocusEvent as ReactFocusEvent,
   type KeyboardEvent,
   type MouseEvent,
@@ -21,7 +20,6 @@ import {
 } from './inlinePreviewTextEditorSource'
 import {
   isInlinePreviewTextEditorControlEvent,
-  isInlinePreviewTextEditorPlacementLockTarget,
   shouldKeepInlinePreviewTextEditorOpenOnBlur,
   type InlinePreviewTextEditorControlRoot,
 } from './inlinePreviewTextEditorInteraction'
@@ -31,17 +29,6 @@ import {
   getInlinePreviewTextCaretLineOffset,
   getInlinePreviewTextSelectionLineOffsets,
 } from './inlinePreviewTextEditorCaret'
-import {
-  getInlinePreviewTextControlLayout,
-  getInlinePreviewTextLockedControlLayout,
-  type InlinePreviewTextControlLayout,
-  type InlinePreviewTextAnchor,
-  type InlinePreviewTextControlSizes,
-  type InlinePreviewTextEditorMenuPlacement,
-  type InlinePreviewTextObstacle,
-  type InlinePreviewTextRect,
-  type InlinePreviewTextSize,
-} from './inlinePreviewTextEditorPositioning'
 import {
   getInlinePreviewTextGeometryOffsetForClientPoint,
 } from './inlinePreviewTextEditorTransform'
@@ -54,20 +41,13 @@ import {
   stepInlinePreviewPointSizeValue,
 } from './inlinePreviewPointSizeControl'
 import {
-  getInlinePreviewTextShellMode,
-  INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT,
-  isInlinePreviewTextShellMenuUsable,
-} from './inlinePreviewTextEditorResponsive'
-import {
   CONTEXTUAL_TEXT_CONTROL_GROUPS,
 } from '../../text/contextualTextControlViewModel'
 import {
   isPrimaryMoveHandlePointer,
 } from '../../interaction/textMoveHandleDrag'
 import {
-  createPreviewEditableElementId,
   INLINE_PREVIEW_TEXT_TARGET_ATTRIBUTE,
-  PREVIEW_EDITABLE_ID_ATTRIBUTE,
 } from '../../editor/previewEditableRegistry'
 import type {
   InlinePreviewTextEditorCheckboxControl,
@@ -79,7 +59,6 @@ import type {
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
   InlinePreviewTextEditorNumberSelectControl,
-  InlinePreviewTextEditorPaintedCollisionRect,
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
@@ -104,7 +83,6 @@ export type {
   InlinePreviewTextEditorInputMode,
   InlinePreviewTextEditorLine,
   InlinePreviewTextEditorOption,
-  InlinePreviewTextEditorPaintedCollisionRect,
   InlinePreviewTextEditorProps,
   InlinePreviewTextEditorRangeControl,
   InlinePreviewTextEditorSelectControl,
@@ -118,15 +96,6 @@ export type {
 export const INLINE_PREVIEW_TEXT_HOST_CLASS = 'inline-preview-text-host'
 export const INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE =
   'data-inline-preview-text-line-index'
-
-type InlineTextControlFrame = {
-  anchor: InlinePreviewTextAnchor
-  obstacles: InlinePreviewTextObstacle[]
-  paintedCollisionRects: InlinePreviewTextRect[]
-  previousPlacement?: InlinePreviewTextEditorMenuPlacement
-  previewRect: InlinePreviewTextRect
-  workspaceRect: InlinePreviewTextRect
-}
 
 type InlineTextCaretFrame = {
   height: number
@@ -194,33 +163,6 @@ function getInlineTextSelectionStateFromRange(
 
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 
-const INLINE_PREVIEW_SURFACE_SELECTOR = '.case-insert-preview, .disc-preview'
-const INLINE_PREVIEW_OBSTACLE_SELECTOR = [
-  '.preview-guide-legend-panel',
-  '.preview-design-check-panel',
-  '.preview-element-outline',
-].join(',')
-
-const INLINE_TEXT_DEFAULT_CONTROL_SIZES: InlinePreviewTextControlSizes = {
-  menu: {
-    height: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredHeight,
-    minHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight,
-    minWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth,
-    preferredHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredHeight,
-    preferredWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth,
-    width: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth,
-  },
-  moveHandle: { height: 32, width: 60 },
-  tabs: {
-    height: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredHeight,
-    minHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minHeight,
-    minWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minWidth,
-    preferredHeight: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredHeight,
-    preferredWidth: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth,
-    width: INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth,
-  },
-}
-
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
   event.stopPropagation()
 }
@@ -234,438 +176,12 @@ function stopInlineTextEditorPointer(event: ReactPointerEvent<Element>) {
   event.stopPropagation()
 }
 
-function shouldKeepInlineTextPlacementLockedWhileFocused(target: unknown) {
-  if (
-    typeof HTMLInputElement !== 'undefined' &&
-    target instanceof HTMLInputElement
-  ) {
-    return !['checkbox', 'color', 'range'].includes(target.type)
-  }
-
-  return (
-    typeof HTMLTextAreaElement !== 'undefined' &&
-      target instanceof HTMLTextAreaElement
-  ) || (
-    typeof HTMLSelectElement !== 'undefined' &&
-      target instanceof HTMLSelectElement
-  )
-}
-
 function getInlineTextSmokeToken(label: string) {
   return label
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '') || 'control'
-}
-
-function rectToInlineTextRect(rect: DOMRect): InlinePreviewTextRect {
-  return {
-    bottom: rect.bottom,
-    left: rect.left,
-    right: rect.right,
-    top: rect.top,
-  }
-}
-
-function paintedCollisionRectToViewportRect({
-  previewRect,
-  rect,
-}: {
-  previewRect: InlinePreviewTextRect
-  rect: InlinePreviewTextEditorPaintedCollisionRect
-}): InlinePreviewTextRect | null {
-  if (
-    !Number.isFinite(rect.bottom) ||
-    !Number.isFinite(rect.left) ||
-    !Number.isFinite(rect.right) ||
-    !Number.isFinite(rect.top)
-  ) {
-    return null
-  }
-
-  const previewWidth = Math.max(0, previewRect.right - previewRect.left)
-  const previewHeight = Math.max(0, previewRect.bottom - previewRect.top)
-  const leftPercent = Math.min(rect.left, rect.right)
-  const rightPercent = Math.max(rect.left, rect.right)
-  const topPercent = Math.min(rect.top, rect.bottom)
-  const bottomPercent = Math.max(rect.top, rect.bottom)
-  const left = previewRect.left + (leftPercent / 100) * previewWidth
-  const right = previewRect.left + (rightPercent / 100) * previewWidth
-  const top = previewRect.top + (topPercent / 100) * previewHeight
-  const bottom = previewRect.top + (bottomPercent / 100) * previewHeight
-
-  if (right - left <= 0.5 || bottom - top <= 0.5) {
-    return null
-  }
-
-  return {
-    bottom,
-    left,
-    right,
-    top,
-  }
-}
-
-function getPaintedCollisionViewportRects({
-  paintedCollisionRects,
-  previewRect,
-}: {
-  paintedCollisionRects?: readonly InlinePreviewTextEditorPaintedCollisionRect[]
-  previewRect: InlinePreviewTextRect
-}) {
-  return (paintedCollisionRects ?? []).flatMap((rect) => {
-    const viewportRect = paintedCollisionRectToViewportRect({
-      previewRect,
-      rect,
-    })
-
-    return viewportRect ? [viewportRect] : []
-  })
-}
-
-function getInlineTextAnchorRect(
-  anchor: InlinePreviewTextAnchor,
-): InlinePreviewTextRect {
-  const left = Math.min(anchor.right, anchor.centerX * 2 - anchor.right)
-
-  return {
-    bottom: anchor.bottom,
-    left,
-    right: Math.max(left, anchor.right),
-    top: anchor.top,
-  }
-}
-
-function getInlineTextOverlapArea(
-  first: InlinePreviewTextRect,
-  second: InlinePreviewTextRect,
-) {
-  const width = Math.max(
-    0,
-    Math.min(first.right, second.right) - Math.max(first.left, second.left),
-  )
-  const height = Math.max(
-    0,
-    Math.min(first.bottom, second.bottom) - Math.max(first.top, second.top),
-  )
-
-  return width * height
-}
-
-function getInlineTextControlLayoutRects({
-  layout,
-  sizes,
-}: {
-  layout: InlinePreviewTextControlLayout
-  sizes: InlinePreviewTextControlSizes
-}) {
-  const menuHeight = Math.min(sizes.menu.height, layout.menu.maxHeight)
-
-  return [
-    {
-      bottom: layout.tabs.top + sizes.tabs.height,
-      left: layout.tabs.left,
-      right: layout.tabs.left + sizes.tabs.width,
-      top: layout.tabs.top,
-    },
-    {
-      bottom: layout.menu.top + menuHeight,
-      left: layout.menu.left,
-      right: layout.menu.left + sizes.menu.width,
-      top: layout.menu.top,
-    },
-    {
-      bottom: layout.moveHandle.top + sizes.moveHandle.height,
-      left: layout.moveHandle.left,
-      right: layout.moveHandle.left + sizes.moveHandle.width,
-      top: layout.moveHandle.top,
-    },
-  ] satisfies InlinePreviewTextRect[]
-}
-
-function doesInlineTextControlLayoutOverlapAnchor({
-  anchor,
-  layout,
-  paintedCollisionRects,
-  sizes,
-}: {
-  anchor: InlinePreviewTextAnchor
-  layout: InlinePreviewTextControlLayout
-  paintedCollisionRects?: readonly InlinePreviewTextRect[]
-  sizes: InlinePreviewTextControlSizes
-}) {
-  const anchorRect = getInlineTextAnchorRect(anchor)
-  const textCollisionRects = paintedCollisionRects?.length
-    ? paintedCollisionRects
-    : [anchorRect]
-
-  return getInlineTextControlLayoutRects({ layout, sizes })
-    .some((rect) =>
-      textCollisionRects.some((textRect) =>
-        getInlineTextOverlapArea(rect, textRect) > 1))
-}
-
-function getInlineTextPreviewSurface(host: Element) {
-  return host.closest<HTMLElement>(INLINE_PREVIEW_SURFACE_SELECTOR)
-}
-
-function getInlineTextPreviewWorkspace(surface: Element | null) {
-  return (
-    surface?.closest<HTMLElement>('.preview-area') ??
-    surface?.closest<HTMLElement>('.preview-workspace') ??
-    null
-  )
-}
-
-function getViewportInlineTextRect(): InlinePreviewTextRect {
-  if (typeof window === 'undefined') {
-    return {
-      bottom: 0,
-      left: 0,
-      right: 0,
-      top: 0,
-    }
-  }
-
-  return {
-    bottom: window.innerHeight,
-    left: 0,
-    right: window.innerWidth,
-    top: 0,
-  }
-}
-
-function getPreviewEditableIdForInlineTextTargetKey(targetKey: string) {
-  const parts = targetKey.split(':')
-
-  if (parts[0] === 'disc' && parts[1]) {
-    return `disc-text:${parts[1]}`
-  }
-
-  if (parts[0] === 'templateTextBlock' && parts[1] && parts[2]) {
-    return createPreviewEditableElementId(
-      'case',
-      parts[1],
-      'text-block',
-      parts[2],
-    )
-  }
-
-  if (parts[0] === 'templateTextList' && parts[1] && parts[2]) {
-    return createPreviewEditableElementId(
-      'case',
-      parts[1],
-      'text-list',
-      parts[2],
-    )
-  }
-
-  if (parts[0] === 'spineTitle' && parts[1]) {
-    return createPreviewEditableElementId('case', 'spine', parts[1], 'title')
-  }
-
-  if (parts[0] === 'spineTextBlock' && parts[1] && parts[2]) {
-    return createPreviewEditableElementId(
-      'case',
-      'spine',
-      parts[1],
-      'text-block',
-      parts[2],
-    )
-  }
-
-  return null
-}
-
-function getInlineTextObstacleRects(
-  workspace: Element | null,
-  activePreviewEditableId: string | null,
-): InlinePreviewTextObstacle[] {
-  if (!workspace) return []
-
-  return Array.from(
-    workspace.querySelectorAll<HTMLElement>(INLINE_PREVIEW_OBSTACLE_SELECTOR),
-  ).flatMap((element, index) => {
-    const outlineId = element.getAttribute('data-preview-element-outline-id')
-
-    if (outlineId && outlineId === activePreviewEditableId) {
-      return []
-    }
-
-    return [{
-      id:
-        element.getAttribute('aria-label') ??
-        outlineId ??
-        `${element.className}-${index}`,
-      rect: rectToInlineTextRect(element.getBoundingClientRect()),
-    }]
-  })
-}
-
-function getInlineTextControlSize(
-  element: Element | null,
-  fallback: InlinePreviewTextSize,
-): InlinePreviewTextSize {
-  if (!element) return fallback
-
-  const rect = element.getBoundingClientRect()
-
-  if (rect.width <= 0 || rect.height <= 0) {
-    return fallback
-  }
-
-  return {
-    ...fallback,
-    height: rect.height,
-    width: rect.width,
-  }
-}
-
-function getCssPixelValue(style: CSSStyleDeclaration, propertyName: string) {
-  const value = Number.parseFloat(style.getPropertyValue(propertyName))
-
-  return Number.isFinite(value) ? value : 0
-}
-
-function getInlineTextMenuControlSize(
-  element: HTMLElement | null,
-  fallback: InlinePreviewTextSize,
-): InlinePreviewTextSize {
-  if (!element) return fallback
-
-  const rect = element.getBoundingClientRect()
-
-  if (rect.width <= 0 || rect.height <= 0) {
-    return fallback
-  }
-
-  const style = window.getComputedStyle(element)
-  const controlGrid = element.querySelector<HTMLElement>(
-    '.inline-preview-text-control-grid',
-  )
-  const actions = element.querySelector<HTMLElement>(
-    '.inline-preview-text-menu-actions',
-  )
-  const controlGridHeight =
-    controlGrid && controlGrid.scrollHeight > 0
-      ? controlGrid.scrollHeight
-      : 0
-  const actionsRect = actions?.getBoundingClientRect()
-  const actionsHeight = actionsRect && actionsRect.height > 0
-    ? actionsRect.height
-    : 0
-  const rowGap =
-    controlGrid && actions
-      ? getCssPixelValue(style, 'row-gap') ||
-        getCssPixelValue(style, 'gap')
-      : 0
-  const boxHeight =
-    getCssPixelValue(style, 'padding-top') +
-    getCssPixelValue(style, 'padding-bottom') +
-    getCssPixelValue(style, 'border-top-width') +
-    getCssPixelValue(style, 'border-bottom-width')
-  const intrinsicHeight =
-    controlGridHeight > 0 || actionsHeight > 0
-      ? controlGridHeight + rowGap + actionsHeight + boxHeight
-      : 0
-
-  return {
-    ...fallback,
-    height: Math.max(rect.height, element.scrollHeight, intrinsicHeight),
-    preferredHeight: Math.max(
-      fallback.preferredHeight ?? fallback.height,
-      intrinsicHeight,
-    ),
-    preferredWidth: Math.max(
-      fallback.preferredWidth ?? fallback.width,
-      element.scrollWidth,
-    ),
-    width: rect.width,
-  }
-}
-
-function areInlineTextSizesEqual(
-  first: InlinePreviewTextSize,
-  second: InlinePreviewTextSize,
-) {
-  return (
-    Math.abs(first.height - second.height) < 0.5 &&
-    Math.abs(first.width - second.width) < 0.5 &&
-    Math.abs((first.minHeight ?? 0) - (second.minHeight ?? 0)) < 0.5 &&
-    Math.abs((first.minWidth ?? 0) - (second.minWidth ?? 0)) < 0.5 &&
-    Math.abs(
-      (first.preferredHeight ?? 0) - (second.preferredHeight ?? 0),
-    ) < 0.5 &&
-    Math.abs(
-      (first.preferredWidth ?? 0) - (second.preferredWidth ?? 0),
-    ) < 0.5
-  )
-}
-
-function areInlineTextRectsEqual(
-  first: InlinePreviewTextRect,
-  second: InlinePreviewTextRect,
-) {
-  return (
-    Math.abs(first.bottom - second.bottom) < 0.5 &&
-    Math.abs(first.left - second.left) < 0.5 &&
-    Math.abs(first.right - second.right) < 0.5 &&
-    Math.abs(first.top - second.top) < 0.5
-  )
-}
-
-function areInlineTextAnchorsEqual(
-  first: InlinePreviewTextAnchor,
-  second: InlinePreviewTextAnchor,
-) {
-  return (
-    Math.abs(first.bottom - second.bottom) < 0.5 &&
-    Math.abs(first.centerX - second.centerX) < 0.5 &&
-    Math.abs(first.centerY - second.centerY) < 0.5 &&
-    Math.abs(first.right - second.right) < 0.5 &&
-    Math.abs(first.top - second.top) < 0.5
-  )
-}
-
-function areInlineTextControlFramesEqual(
-  first: InlineTextControlFrame | null,
-  second: InlineTextControlFrame | null,
-) {
-  if (first === second) return true
-  if (!first || !second) return false
-
-  return (
-    areInlineTextAnchorsEqual(first.anchor, second.anchor) &&
-    first.previousPlacement === second.previousPlacement &&
-    areInlineTextRectsEqual(first.previewRect, second.previewRect) &&
-    areInlineTextRectsEqual(first.workspaceRect, second.workspaceRect) &&
-    first.paintedCollisionRects.length ===
-      second.paintedCollisionRects.length &&
-    first.paintedCollisionRects.every((rect, index) => {
-      const nextRect = second.paintedCollisionRects[index]
-      return Boolean(nextRect) && areInlineTextRectsEqual(rect, nextRect)
-    }) &&
-    first.obstacles.length === second.obstacles.length &&
-    first.obstacles.every((obstacle, index) => {
-      const nextObstacle = second.obstacles[index]
-      return (
-        obstacle.id === nextObstacle.id &&
-        areInlineTextRectsEqual(obstacle.rect, nextObstacle.rect)
-      )
-    })
-  )
-}
-
-function areInlineTextControlSizesEqual(
-  first: InlinePreviewTextControlSizes,
-  second: InlinePreviewTextControlSizes,
-) {
-  return (
-    areInlineTextSizesEqual(first.menu, second.menu) &&
-    areInlineTextSizesEqual(first.moveHandle, second.moveHandle) &&
-    areInlineTextSizesEqual(first.tabs, second.tabs)
-  )
 }
 
 function getLineSpan(host: Element, lineIndex: number) {
@@ -2200,7 +1716,6 @@ export function InlinePreviewTextEditor({
   geometryAdapter,
   geometryLines,
   lines,
-  paintedCollisionRects,
   rotationDegrees,
   targetKey,
   value,
@@ -2208,8 +1723,6 @@ export function InlinePreviewTextEditor({
   sourceMode = false,
   suppressCanvasInput = false,
   ribbonSlotId,
-  menuPlacement,
-  placementStrategy = 'default',
   onValueChange,
   onMoveHandlePointerDown,
   onMoveHandlePointerMove,
@@ -2224,24 +1737,13 @@ export function InlinePreviewTextEditor({
   const moveEdgeRef = useRef<HTMLDivElement | null>(null)
   const activeMoveHandlePointerIdRef = useRef<number | null>(null)
   const activeMoveEdgePointerIdRef = useRef<number | null>(null)
+  const controlPointerStartedAtRef = useRef<number | null>(null)
   const controlPointerStartedInsideRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
   const adapterSelectionCaptureElementRef = useRef<Element | null>(null)
-  const previousControlPlacementRef =
-    useRef<InlinePreviewTextEditorMenuPlacement | undefined>(undefined)
-  const latestControlLayoutRef =
-    useRef<InlinePreviewTextControlLayout | null>(null)
   const [ribbonSlotElement, setRibbonSlotElement] =
     useState<HTMLElement | null>(null)
-  const controlPlacementLockRef =
-    useRef<{
-      inputMode: InlinePreviewTextEditorInputMode
-      layout: InlinePreviewTextControlLayout
-      targetKey: string
-    } | null>(null)
-  const controlFocusPlacementLockRef = useRef(false)
-  const controlPointerPlacementLockRef = useRef(false)
   const pendingSelectionRef =
     useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
@@ -2251,27 +1753,9 @@ export function InlinePreviewTextEditor({
   const [selectionFrames, setSelectionFrames] = useState<
     InlineTextSelectionFrame[]
   >([])
-  const [controlFrame, setControlFrame] =
-    useState<InlineTextControlFrame | null>(null)
-  const controlFrameRef = useRef<InlineTextControlFrame | null>(null)
-  const [controlSizes, setControlSizes] =
-    useState<InlinePreviewTextControlSizes>(
-      INLINE_TEXT_DEFAULT_CONTROL_SIZES,
-    )
-  const [controlPlacementLock, setControlPlacementLock] =
-    useState<{
-      inputMode: InlinePreviewTextEditorInputMode
-      layout: InlinePreviewTextControlLayout
-      targetKey: string
-    } | null>(null)
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
   const [isMoveHandleDragging, setIsMoveHandleDragging] = useState(false)
-  const controlMeasurementKey =
-    `${inputMode}:${targetKey}:${activeTab}:${sourceMode ? 'source' : 'wysiwyg'}`
-  const [measuredControlKey, setMeasuredControlKey] =
-    useState<string | null>(null)
-  const hasMeasuredControlSizes = measuredControlKey === controlMeasurementKey
   const sourceDraftIdentity = sourceMode
     ? `${targetKey}:html-source`
     : `${targetKey}:wysiwyg`
@@ -2302,49 +1786,6 @@ export function InlinePreviewTextEditor({
       contains: (target: unknown) =>
         target instanceof Node && element.contains(target),
     } satisfies InlinePreviewTextEditorControlRoot))
-  }, [])
-
-  const beginControlPlacementLock = useCallback((
-    reason: 'focus' | 'pointer',
-  ) => {
-    if (reason === 'focus') {
-      controlFocusPlacementLockRef.current = true
-    } else {
-      controlPointerPlacementLockRef.current = true
-    }
-
-    const layout = latestControlLayoutRef.current
-
-    if (!layout || controlPlacementLockRef.current) {
-      return
-    }
-
-    const nextLock = { inputMode, layout, targetKey }
-    controlPlacementLockRef.current = nextLock
-    setControlPlacementLock(nextLock)
-  }, [inputMode, targetKey])
-
-  const releaseControlPlacementLock = useCallback((
-    reason?: 'all' | 'focus' | 'pointer',
-  ) => {
-    if (!reason || reason === 'all' || reason === 'focus') {
-      controlFocusPlacementLockRef.current = false
-    }
-    if (!reason || reason === 'all' || reason === 'pointer') {
-      controlPointerPlacementLockRef.current = false
-    }
-    if (
-      controlFocusPlacementLockRef.current ||
-      controlPointerPlacementLockRef.current
-    ) {
-      return
-    }
-    if (!controlPlacementLockRef.current) {
-      return
-    }
-
-    controlPlacementLockRef.current = null
-    setControlPlacementLock(null)
   }, [])
 
   const updateSelectionStart = () => {
@@ -2464,6 +1905,12 @@ export function InlinePreviewTextEditor({
     if (activeMoveHandlePointerIdRef.current !== null) {
       return
     }
+    if (
+      controlPointerStartedAtRef.current !== null &&
+      Date.now() - controlPointerStartedAtRef.current < 500
+    ) {
+      return
+    }
 
     if (
       shouldKeepInlinePreviewTextEditorOpenOnBlur({
@@ -2477,13 +1924,6 @@ export function InlinePreviewTextEditor({
 
     onDone()
   }
-
-  useEffect(() => {
-    previousControlPlacementRef.current = undefined
-    controlPlacementLockRef.current = null
-    controlFocusPlacementLockRef.current = false
-    controlPointerPlacementLockRef.current = false
-  }, [inputMode, targetKey])
 
   useLayoutEffect(() => {
     let frameId: number | undefined
@@ -2528,10 +1968,12 @@ export function InlinePreviewTextEditor({
           roots: getInlineControlRoots(),
           target: event.target,
         })
+      if (controlPointerStartedInsideRef.current) {
+        controlPointerStartedAtRef.current = Date.now()
+      }
     }
     const handleDocumentPointerEnd = () => {
       controlPointerStartedInsideRef.current = false
-      releaseControlPlacementLock('pointer')
     }
 
     document.addEventListener('pointerdown', handleDocumentPointerDown, true)
@@ -2551,26 +1993,27 @@ export function InlinePreviewTextEditor({
         true,
       )
     }
-  }, [getInlineControlRoots, releaseControlPlacementLock])
+  }, [getInlineControlRoots])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
       return undefined
     }
 
-    const handleDocumentEdgePointerMove = (
+    const handleDocumentMovePointerMove = (
       event: globalThis.PointerEvent,
     ) => {
-      if (activeMoveEdgePointerIdRef.current !== event.pointerId) {
+      if (activeMoveHandlePointerIdRef.current !== event.pointerId) {
         return
       }
-
+      event.preventDefault()
+      event.stopPropagation()
       onMoveHandlePointerMove(event as never)
     }
-    const handleDocumentEdgePointerEnd = (
+    const handleDocumentMovePointerEnd = (
       event: globalThis.PointerEvent,
     ) => {
-      if (activeMoveEdgePointerIdRef.current !== event.pointerId) {
+      if (activeMoveHandlePointerIdRef.current !== event.pointerId) {
         return
       }
 
@@ -2582,30 +2025,30 @@ export function InlinePreviewTextEditor({
 
     document.addEventListener(
       'pointermove',
-      handleDocumentEdgePointerMove,
+      handleDocumentMovePointerMove,
       true,
     )
-    document.addEventListener('pointerup', handleDocumentEdgePointerEnd, true)
+    document.addEventListener('pointerup', handleDocumentMovePointerEnd, true)
     document.addEventListener(
       'pointercancel',
-      handleDocumentEdgePointerEnd,
+      handleDocumentMovePointerEnd,
       true,
     )
 
     return () => {
       document.removeEventListener(
         'pointermove',
-        handleDocumentEdgePointerMove,
+        handleDocumentMovePointerMove,
         true,
       )
       document.removeEventListener(
         'pointerup',
-        handleDocumentEdgePointerEnd,
+        handleDocumentMovePointerEnd,
         true,
       )
       document.removeEventListener(
         'pointercancel',
-        handleDocumentEdgePointerEnd,
+        handleDocumentMovePointerEnd,
         true,
       )
     }
@@ -2653,188 +2096,6 @@ export function InlinePreviewTextEditor({
     adapterSelectionAnchorRef.current = nextSelectionState.focus
     setSelection(nextSelectionState)
   }, [sourceMode, targetKey, value])
-
-  useLayoutEffect(() => {
-    const textarea = textareaRef.current
-    const getCurrentHost = () =>
-      getInlinePreviewTextHostForTarget({
-        inputMode,
-        targetKey,
-        textarea,
-      })
-    const host = getCurrentHost()
-
-    if (!host) {
-      controlFrameRef.current = null
-      setControlFrame(null)
-      return
-    }
-
-    let frameRequestId: number | null = null
-    let isFrameTrackingActive = true
-
-    const updateControlFrame = () => {
-      const currentHost = getCurrentHost()
-
-      if (!currentHost) {
-        if (controlFrameRef.current !== null) {
-          controlFrameRef.current = null
-          setControlFrame(null)
-        }
-        return
-      }
-
-      const rect = currentHost.getBoundingClientRect()
-      const previewSurface = getInlineTextPreviewSurface(currentHost)
-      const previewRect = previewSurface?.getBoundingClientRect() ?? rect
-      const nextPreviewRect = rectToInlineTextRect(previewRect)
-      const workspace = getInlineTextPreviewWorkspace(previewSurface)
-      const activePreviewEditableId =
-        currentHost.getAttribute(PREVIEW_EDITABLE_ID_ATTRIBUTE) ??
-        getPreviewEditableIdForInlineTextTargetKey(targetKey)
-      const workspaceRect = workspace
-        ? rectToInlineTextRect(workspace.getBoundingClientRect())
-        : getViewportInlineTextRect()
-
-      const nextControlFrame = {
-        anchor: {
-          bottom: rect.bottom,
-          centerX: rect.left + rect.width / 2,
-          centerY: rect.top + rect.height / 2,
-          right: rect.right,
-          top: rect.top,
-        },
-        obstacles: getInlineTextObstacleRects(
-          workspace,
-          activePreviewEditableId,
-        ),
-        paintedCollisionRects: getPaintedCollisionViewportRects({
-          paintedCollisionRects,
-          previewRect: nextPreviewRect,
-        }),
-        previousPlacement: previousControlPlacementRef.current,
-        previewRect: nextPreviewRect,
-        workspaceRect,
-      }
-
-      if (
-        areInlineTextControlFramesEqual(
-          controlFrameRef.current,
-          nextControlFrame,
-        )
-      ) {
-        return
-      }
-
-      controlFrameRef.current = nextControlFrame
-      setControlFrame(nextControlFrame)
-    }
-
-    const updateControlFrameOnAnimationFrame = () => {
-      if (!isFrameTrackingActive) {
-        return
-      }
-
-      updateControlFrame()
-      frameRequestId = window.requestAnimationFrame(
-        updateControlFrameOnAnimationFrame,
-      )
-    }
-
-    updateControlFrame()
-    if (
-      typeof window.requestAnimationFrame === 'function' &&
-      typeof window.cancelAnimationFrame === 'function'
-    ) {
-      frameRequestId = window.requestAnimationFrame(
-        updateControlFrameOnAnimationFrame,
-      )
-    }
-
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(updateControlFrame)
-
-    resizeObserver?.observe(host)
-    const previewSurface = getInlineTextPreviewSurface(host)
-    if (previewSurface && previewSurface !== host) {
-      resizeObserver?.observe(previewSurface)
-    }
-    const previewWorkspace = getInlineTextPreviewWorkspace(previewSurface)
-    if (previewWorkspace && previewWorkspace !== host) {
-      resizeObserver?.observe(previewWorkspace)
-    }
-    window.addEventListener('resize', updateControlFrame)
-    window.addEventListener('scroll', updateControlFrame, true)
-
-    return () => {
-      isFrameTrackingActive = false
-      if (frameRequestId !== null) {
-        window.cancelAnimationFrame(frameRequestId)
-      }
-      resizeObserver?.disconnect()
-      window.removeEventListener('resize', updateControlFrame)
-      window.removeEventListener('scroll', updateControlFrame, true)
-    }
-  }, [
-    geometryAdapter,
-    inputMode,
-    menuPlacement,
-    paintedCollisionRects,
-    targetKey,
-    value,
-  ])
-
-  useLayoutEffect(() => {
-    if (!controlFrame) {
-      return
-    }
-
-    const updateControlSizes = () => {
-      const nextControlSizes = {
-        menu: getInlineTextMenuControlSize(
-          menuRef.current,
-          INLINE_TEXT_DEFAULT_CONTROL_SIZES.menu,
-        ),
-        moveHandle: getInlineTextControlSize(
-          moveHandleRef.current,
-          INLINE_TEXT_DEFAULT_CONTROL_SIZES.moveHandle,
-        ),
-        tabs: getInlineTextControlSize(
-          tabsRef.current,
-          INLINE_TEXT_DEFAULT_CONTROL_SIZES.tabs,
-        ),
-      }
-
-      setControlSizes((currentControlSizes) =>
-        areInlineTextControlSizesEqual(
-          currentControlSizes,
-          nextControlSizes,
-        )
-          ? currentControlSizes
-          : nextControlSizes,
-      )
-      setMeasuredControlKey(controlMeasurementKey)
-    }
-
-    updateControlSizes()
-
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(updateControlSizes)
-
-    if (tabsRef.current) resizeObserver?.observe(tabsRef.current)
-    if (menuRef.current) resizeObserver?.observe(menuRef.current)
-    if (moveHandleRef.current) resizeObserver?.observe(moveHandleRef.current)
-    window.addEventListener('resize', updateControlSizes)
-
-    return () => {
-      resizeObserver?.disconnect()
-      window.removeEventListener('resize', updateControlSizes)
-    }
-  }, [controlFrame, controlMeasurementKey, menuPlacement, value])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
@@ -3096,132 +2357,6 @@ export function InlinePreviewTextEditor({
     targetKey,
   ])
 
-  const unlockedControlLayout = controlFrame
-    ? getInlinePreviewTextControlLayout({
-        anchor: controlFrame.anchor,
-        obstacles: controlFrame.obstacles,
-        paintedCollisionRects: controlFrame.paintedCollisionRects,
-        previousPlacement: controlFrame.previousPlacement,
-        placementStrategy,
-        previewRect: controlFrame.previewRect,
-        requestedMenuPlacement: menuPlacement,
-        sizes: controlSizes,
-        workspaceRect: controlFrame.workspaceRect,
-      })
-    : null
-  const lockedControlLayout =
-    controlPlacementLock?.targetKey === targetKey &&
-      controlPlacementLock.inputMode === inputMode
-      ? controlPlacementLock.layout
-      : null
-  const clampedLockedControlLayout =
-    lockedControlLayout && controlFrame
-      ? getInlinePreviewTextLockedControlLayout({
-        layout: lockedControlLayout,
-        sizes: controlSizes,
-        workspaceRect: controlFrame.workspaceRect,
-      })
-      : null
-  const shouldEscapeLockedPlacement =
-    clampedLockedControlLayout &&
-    unlockedControlLayout &&
-    controlFrame &&
-    doesInlineTextControlLayoutOverlapAnchor({
-      anchor: controlFrame.anchor,
-      paintedCollisionRects: controlFrame.paintedCollisionRects,
-      layout: clampedLockedControlLayout,
-      sizes: controlSizes,
-    })
-  const controlLayout = shouldEscapeLockedPlacement
-    ? unlockedControlLayout
-    : clampedLockedControlLayout ?? unlockedControlLayout
-  const controlLayoutPlacement = controlLayout?.menu.placement
-
-  useLayoutEffect(() => {
-    if (!controlLayoutPlacement || !hasMeasuredControlSizes) return
-
-    previousControlPlacementRef.current = controlLayoutPlacement
-  }, [controlLayoutPlacement, hasMeasuredControlSizes])
-
-  useLayoutEffect(() => {
-    latestControlLayoutRef.current = controlLayout
-  }, [controlLayout])
-
-  const resolvedMenuPlacement = controlLayoutPlacement ?? menuPlacement
-  const isControlPlacementLocked =
-    Boolean(lockedControlLayout) && !shouldEscapeLockedPlacement
-  const controlMeasuringClass = hasMeasuredControlSizes
-    ? ''
-    : 'is-measuring'
-  const handleControlPointerDownCapture = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (!isInlinePreviewTextEditorPlacementLockTarget(event.target)) {
-      return
-    }
-
-    beginControlPlacementLock('pointer')
-  }
-  const handleControlFocusCapture = (
-    event: ReactFocusEvent<HTMLDivElement>,
-  ) => {
-    if (
-      !isInlinePreviewTextEditorPlacementLockTarget(event.target) ||
-      !shouldKeepInlineTextPlacementLockedWhileFocused(event.target)
-    ) {
-      return
-    }
-
-    beginControlPlacementLock('focus')
-  }
-  const handleControlBlurCapture = (
-    event: ReactFocusEvent<HTMLDivElement>,
-  ) => {
-    if (!isInlinePreviewTextEditorPlacementLockTarget(event.target)) {
-      return
-    }
-
-    if (isInlinePreviewTextEditorPlacementLockTarget(event.relatedTarget)) {
-      return
-    }
-
-    releaseControlPlacementLock('focus')
-  }
-  const handleControlKeyDownCapture = (
-    event: KeyboardEvent<HTMLDivElement>,
-  ) => {
-    if (
-      !isInlinePreviewTextEditorPlacementLockTarget(event.target) ||
-      (event.key !== 'Enter' && event.key !== 'Escape')
-    ) {
-      return
-    }
-
-    window.requestAnimationFrame(() => releaseControlPlacementLock('focus'))
-  }
-  const handleMoveHandlePointerDown = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
-    if (!isPrimaryMoveHandlePointer(event)) {
-      return
-    }
-
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    activeMoveHandlePointerIdRef.current = event.pointerId
-    setIsMoveHandleDragging(true)
-    onMoveHandlePointerDown(event)
-  }
-  const handleMoveHandlePointerRelease = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
-    if (activeMoveHandlePointerIdRef.current === event.pointerId) {
-      activeMoveHandlePointerIdRef.current = null
-      setIsMoveHandleDragging(false)
-    }
-
-    onMoveHandlePointerUp(event)
-  }
   const handleMoveEdgePointerRelease = (
     event: ReactPointerEvent<HTMLSpanElement>,
   ) => {
@@ -3248,7 +2383,9 @@ export function InlinePreviewTextEditor({
 
       if (
         !(target instanceof Element) ||
-        !target.closest('.inline-preview-text-edge-move-hit') ||
+        !target.closest(
+          '.inline-preview-text-edge-move-hit, .inline-preview-text-move-handle',
+        ) ||
         !isPrimaryMoveHandlePointer(event)
       ) {
         return
@@ -3268,61 +2405,7 @@ export function InlinePreviewTextEditor({
     return () => {
       edgeRing.removeEventListener('pointerdown', handleEdgeRingPointerDown)
     }
-  }, [controlFrame, onMoveHandlePointerDown])
-  const tabsStyle = controlLayout
-    ? ({
-        left: controlLayout.tabs.left,
-        '--inline-preview-text-tabs-min-width':
-          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.minWidth}px`,
-        '--inline-preview-text-tabs-preferred-width':
-          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.tabs.preferredWidth}px`,
-        maxWidth: controlLayout.tabs.maxWidth,
-        top: controlLayout.tabs.top,
-        transform: 'none',
-        width: placementStrategy === 'disc-center-dock'
-          ? controlLayout.tabs.maxWidth
-          : undefined,
-      } as CSSProperties)
-    : undefined
-  const menuStyle = controlLayout
-    ? ({
-        left: controlLayout.menu.left,
-        '--inline-preview-text-menu-max-height': `${controlLayout.menu.maxHeight}px`,
-        '--inline-preview-text-menu-min-height':
-          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minHeight}px`,
-        '--inline-preview-text-menu-min-width':
-          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.minWidth}px`,
-        '--inline-preview-text-menu-preferred-width':
-          `${INLINE_PREVIEW_TEXT_SHELL_SIZE_CONTRACT.menu.preferredWidth}px`,
-        maxWidth: controlLayout.menu.maxWidth,
-        top: controlLayout.menu.top,
-        transform: 'none',
-        width: placementStrategy === 'disc-center-dock'
-          ? controlLayout.menu.maxWidth
-          : undefined,
-      } as CSSProperties)
-    : undefined
-  const tabsResponsiveMode = getInlinePreviewTextShellMode(
-    controlLayout?.tabs.maxWidth ??
-      controlSizes.tabs.width,
-  )
-  const menuResponsiveMode = getInlinePreviewTextShellMode(
-    controlLayout?.menu.maxWidth ??
-      controlSizes.menu.width,
-  )
-  const isMenuUsable = controlLayout
-    ? isInlinePreviewTextShellMenuUsable({
-        maxHeight: controlLayout.menu.maxHeight,
-        maxWidth: controlLayout.menu.maxWidth,
-      })
-    : true
-  const moveHandleStyle = controlLayout
-    ? ({
-        left: controlLayout.moveHandle.left,
-        top: controlLayout.moveHandle.top,
-        transform: 'none',
-      } satisfies CSSProperties)
-    : undefined
+  }, [onMoveHandlePointerDown])
   const deleteAction = editorControls?.deleteAction
   const deleteLabel = deleteAction?.label ?? 'Delete'
   const deleteAriaLabel = deleteAction?.ariaLabel ?? deleteLabel
@@ -3330,9 +2413,7 @@ export function InlinePreviewTextEditor({
     <button
       key={tab.id}
       className={[
-        ribbonSlotId
-          ? 'contextual-text-ribbon-tab'
-          : 'inline-preview-text-tab',
+        'contextual-text-ribbon-tab',
         activeTab === tab.id ? 'is-active' : '',
       ].filter(Boolean).join(' ')}
       data-smoke-id={`inline-text-tab-${tab.id}`}
@@ -3346,30 +2427,20 @@ export function InlinePreviewTextEditor({
     </button>
   ))
   const ribbonSlot = ribbonSlotElement
-  const moveHandleControl = controlFrame ? (
+  const moveHandleControl = (
     <button
       ref={moveHandleRef}
       className={[
         'inline-preview-text-move-handle',
-        controlMeasuringClass,
         isMoveHandleDragging ? 'is-dragging' : '',
       ].filter(Boolean).join(' ')}
-      data-inline-placement-mode={controlLayout?.mode}
-      data-inline-placement={resolvedMenuPlacement}
-      data-inline-placement-locked={isControlPlacementLocked}
       data-smoke-id="inline-text-move-handle"
       type="button"
-      onPointerDown={handleMoveHandlePointerDown}
-      onPointerMove={onMoveHandlePointerMove}
-      onPointerUp={handleMoveHandlePointerRelease}
-      onPointerCancel={handleMoveHandlePointerRelease}
-      onLostPointerCapture={handleMoveHandlePointerRelease}
       onClick={stopInlineTextEditorClick}
-      style={moveHandleStyle}
     >
       Move
     </button>
-  ) : null
+  )
   const menuContent = (
     <InlinePreviewTextEditorMenuContent
       activeTab={activeTab}
@@ -3417,56 +2488,6 @@ export function InlinePreviewTextEditor({
       </button>
     </>
   )
-  const floatingControls = controlFrame && !ribbonSlotId ? (
-    <>
-      <div
-        ref={tabsRef}
-        className={[
-          'inline-preview-text-tabs',
-          controlMeasuringClass,
-        ].filter(Boolean).join(' ')}
-        data-inline-placement-mode={controlLayout?.mode}
-        data-inline-placement={resolvedMenuPlacement}
-        data-inline-placement-locked={isControlPlacementLocked}
-        data-inline-responsive-mode={tabsResponsiveMode}
-        data-smoke-id="inline-text-tabs"
-        onClick={stopInlineTextEditorClick}
-        onPointerDown={keepInlineTextEditorFocus}
-        style={tabsStyle}
-      >
-        {tabButtons}
-      </div>
-
-      {moveHandleControl}
-
-      <div
-        ref={menuRef}
-        className={[
-          'inline-preview-text-menu',
-          `inline-preview-text-menu--${resolvedMenuPlacement}`,
-          controlMeasuringClass,
-        ].join(' ')}
-        data-inline-placement-mode={controlLayout?.mode}
-        data-inline-placement={resolvedMenuPlacement}
-        data-inline-placement-locked={isControlPlacementLocked}
-        data-inline-layout-usable={isMenuUsable}
-        data-inline-responsive-mode={menuResponsiveMode}
-        data-smoke-id="inline-text-menu"
-        onClick={stopInlineTextEditorClick}
-        onBlurCapture={handleControlBlurCapture}
-        onFocusCapture={handleControlFocusCapture}
-        onKeyDownCapture={handleControlKeyDownCapture}
-        onPointerDownCapture={handleControlPointerDownCapture}
-        onPointerDown={stopInlineTextEditorPointer}
-        style={menuStyle}
-      >
-        {menuContent}
-        <div className="inline-preview-text-menu-actions">
-          {menuActions}
-        </div>
-      </div>
-    </>
-  ) : null
   const ribbonControls = ribbonSlot ? createPortal(
     <>
       <div
@@ -3483,10 +2504,6 @@ export function InlinePreviewTextEditor({
         className="contextual-text-ribbon-controls contextual-text-ribbon-controls--inline-menu"
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
-        onBlurCapture={handleControlBlurCapture}
-        onFocusCapture={handleControlFocusCapture}
-        onKeyDownCapture={handleControlKeyDownCapture}
-        onPointerDownCapture={handleControlPointerDownCapture}
         onPointerDown={stopInlineTextEditorPointer}
       >
         {menuContent}
@@ -3497,18 +2514,11 @@ export function InlinePreviewTextEditor({
     </>,
     ribbonSlot,
   ) : null
-  const controls = controlFrame ? (
-    <>
-      {ribbonSlotId ? moveHandleControl : null}
-      {floatingControls}
-      {ribbonControls}
-    </>
-  ) : null
 
   const hasVisibleSelection =
     inputMode === 'adapter' && selection.start !== selection.end
   const shouldRenderCanvasInput = !sourceMode && !suppressCanvasInput
-  const moveEdgeControl = controlFrame ? (
+  const moveEdgeControl = (
     <div
       ref={moveEdgeRef}
       aria-hidden="true"
@@ -3541,8 +2551,9 @@ export function InlinePreviewTextEditor({
           onClick={stopInlineTextEditorClick}
         />
       ))}
+      {moveHandleControl}
     </div>
-  ) : null
+  )
   const textareaElement = (
     <textarea
       ref={textareaRef}
@@ -3662,7 +2673,7 @@ export function InlinePreviewTextEditor({
           />
         )
       ) : null}
-      {controls ? createPortal(controls, document.body) : null}
+      {ribbonControls}
     </>
   )
 }

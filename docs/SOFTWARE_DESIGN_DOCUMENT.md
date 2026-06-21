@@ -503,9 +503,8 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 ### 9.4.1 Stable Contextual Text Ribbon Contract
 
 The contextual text-control host is a stable ribbon in the app shell, not a
-floating menu attached to selected text. The old floating implementation is a
-temporary legacy path and should not be used by migrated case or disc text
-surfaces.
+floating menu attached to selected text. The old floating implementation has
+been removed from migrated case and disc text surfaces.
 
 Ribbon placement and layout:
 
@@ -562,33 +561,31 @@ Responsive states:
 - Narrow: labels stack above controls, fields use available width, controls may
   wrap into a third row, and tab scrolling is a last resort.
 
-Migration sequence:
+Current implementation:
 
-1. Add the reserved app-shell ribbon slot above the preview.
-2. Move tabs into the ribbon without changing adapters or renderer ownership.
-3. Move active-tab controls into the ribbon through the existing contextual
-   control registry and target adapters.
-4. Expose the measured ribbon slot height or offset to the toast container so
-   active-ribbon toasts stack below the ribbon while inactive-ribbon toasts keep
-   their current placement.
-5. Keep caret, selection, outline, direct typing, edge-grab movement, Move
-   fallback, and Delete affordances in the preview.
-6. Confirm every text target activates the ribbon and preserves WYSIWYG parity.
-7. Remove duplicated sidebar controls only after confirming setup/source/type
-   ownership remains available.
-8. Delete the old floating full-menu collision, docking, portal, emergency
-   placement, selected-text obstacle, and menu-size feedback code after no
-   target uses it.
+- The reserved app-shell ribbon slot above the preview is the production
+  contextual control host for cover, tray, spine, straight-disc, and
+  curved-disc text.
+- Active-tab controls render through the existing contextual control registry
+  and target adapters; the ribbon does not own renderer, layout, save/load, or
+  export behavior.
+- The measured ribbon slot height or offset is exposed to the toast container
+  so active-ribbon toasts stack below the ribbon while inactive-ribbon toasts
+  keep their current placement.
+- Caret, selection, outline, direct typing, edge-grab movement, Move fallback,
+  and Delete affordances remain local preview responsibilities.
+- The old floating full-menu collision, docking, portal, emergency placement,
+  selected-text obstacle, and menu-size feedback code has been removed from
+  active editor code.
 
-Legacy-code deletion map:
+Removed legacy responsibilities:
 
-- Delete selected-text-anchored tab/menu positioning, collision scoring,
-  center/side docking, emergency detached placement, portal-only containment,
-  and responsive-shell feedback code that exists only to keep floating menus
+- Selected-text-anchored tab/menu positioning, collision scoring, center/side
+  docking, emergency detached placement, portal-only containment, and
+  responsive-shell feedback code that existed only to keep floating menus
   usable.
-- Keep target adapters, the contextual control registry, hidden/native input
-  adapters, preview caret/selection/outline/movement affordances, renderers,
-  layout helpers, save/load, and export ownership.
+- Tests and smoke routes that proved the floating menu avoided safe zones,
+  center holes, or selected-text bounds.
 
 Acceptance criteria:
 
@@ -1331,11 +1328,11 @@ Consequences:
 
 ### ADR-009: Contextual Text Controls Use A Stable App-Shell Ribbon
 
-Status: Accepted design contract, pending implementation.
+Status: Implemented production contract.
 
 Decision:
 
-- Replace the floating selected-text-anchored contextual menu with a stable
+- Use the stable
   top-right app-shell contextual text ribbon.
 - Reserve the ribbon slot above the preview, keep Live Preview heading on the
   left, and start the preview below the full header/ribbon region.
@@ -1345,8 +1342,8 @@ Decision:
 - Give the ribbon priority over the existing top-right toast stack while it is
   active by offsetting toasts below the measured reserved ribbon slot.
 - Keep intentional setup/source/type controls in the sidebar.
-- Delete the full-menu collision, docking, portal, and emergency-placement
-  system after the ribbon owns contextual controls.
+- Keep the full-menu collision, docking, portal, and emergency-placement
+  system deleted now that the ribbon owns contextual controls.
 
 Consequences:
 

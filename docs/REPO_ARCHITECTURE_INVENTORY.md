@@ -514,13 +514,13 @@ Edit/interaction path:
   shared app-shell ribbon height/offset signal or CSS variable; it must not be
   computed by text targets, disc geometry, case preview geometry, or surface
   adapters.
-- During migration, preview components continue to own caret, selection,
-  outlines, direct typing adapters, edge-grab movement, Move fallback, and
-  Delete affordances. The ribbon owns tab/control presentation only.
-- After migration, the existing floating-menu placement responsibilities should
-  be deleted: selected-text-anchored menu positioning, collision scoring,
-  center/side docking, emergency detached placement, portal-only containment,
-  and responsive-shell feedback paths that exist only for floating contextual
+- Preview components continue to own caret, selection, outlines, direct typing
+  adapters, edge-grab movement, Move fallback, and Delete affordances. The
+  ribbon owns tab/control presentation only.
+- The legacy floating-menu placement responsibilities have been removed:
+  selected-text-anchored menu positioning, collision scoring, center/side
+  docking, emergency detached placement, portal-only containment, and
+  responsive-shell feedback paths that existed only for floating contextual
   controls.
 - Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
   contextual target capabilities instead of maintaining a separate
@@ -566,9 +566,8 @@ Risks:
 
 - `docs/TEXT_EDITOR_CONTRACT.md` and `textEditorContract.test.ts` show the text editor contract is actively guarded by diagnostics.
 - Browser caret measurement, wrapped text layout, metadata-bound values, and export parity are fragile areas.
-- The current floating contextual menu code has accumulated collision,
-  docking, portal, and responsive-shell responsibilities. Those are temporary
-  migration targets once the app-shell ribbon host exists.
+- The legacy floating contextual menu code has been removed; new text-control
+  work should target the app-shell ribbon and local preview affordance helpers.
 - Open issues `#178`, `#181`, and `#184` track text-system expansion and redesign.
 
 ## Image and Artwork Systems

@@ -23,7 +23,6 @@ import {
 } from '../../discText/styles'
 import {
   getStraightDiscTextRenderLayout,
-  getStraightDiscTextLineVisualBounds,
   getStraightDiscTextVisualBounds,
 } from '../../discText/renderLayout'
 import { getDiscInlineTextEditorGeometryLines } from '../../discText/inlineEditorGeometry'
@@ -36,7 +35,6 @@ import {
 } from '../../discText/curvedInlineEditorGeometry'
 import {
   getCurvedDiscTextLineGeometry,
-  getCurvedDiscTextPaintCollisionBoxes,
   getCurvedDiscTextPaintBoxes,
 } from '../../discText/svgLayer'
 import {
@@ -231,14 +229,6 @@ function getBoundsHostStyle(bounds: DiscInlineEditorBounds) {
     width: `${width}%`,
     height: `${height}%`,
   } satisfies CSSProperties
-}
-
-function getStraightDiscTextPaintedCollisionRects(
-  renderLayout: ReturnType<typeof getStraightDiscTextRenderLayout>,
-  measureText: TextMeasureFunction,
-) {
-  return renderLayout.lines.map((line) =>
-    getStraightDiscTextLineVisualBounds(line, renderLayout, measureText))
 }
 
 export function DiscInlineTextEditorLayer({
@@ -460,12 +450,8 @@ export function DiscInlineTextEditorLayer({
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
-                paintedCollisionRects={
-                  getCurvedDiscTextPaintCollisionBoxes(curvedPaintBoxInput)
-                }
                 targetKey={targetKey}
                 value={renderedText}
-                menuPlacement="below"
                 ribbonSlotId={ribbonSlotId}
                 onValueChange={(value) => onDiscTextValueChange(key, value)}
                 onMoveHandlePointerDown={(event) =>
@@ -511,10 +497,6 @@ export function DiscInlineTextEditorLayer({
           measureText,
           renderLayout,
         })
-        const paintedCollisionRects = getStraightDiscTextPaintedCollisionRects(
-          renderLayout,
-          measureText,
-        )
         const isEmptyText = renderedText.trim().length === 0
         const targetKey = createDiscInlineTextTargetKey(key)
         const controls = createDiscInlineTextEditorControls({
@@ -575,11 +557,9 @@ export function DiscInlineTextEditorLayer({
               geometryLines={geometryLines}
               inputMode="adapter"
               lines={renderLayout.lines}
-              paintedCollisionRects={paintedCollisionRects}
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}
-              menuPlacement="below"
               ribbonSlotId={ribbonSlotId}
               onValueChange={(value, options) =>
                 onDiscTextValueChange(
