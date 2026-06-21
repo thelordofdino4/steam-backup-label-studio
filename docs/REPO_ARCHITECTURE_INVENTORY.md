@@ -3,7 +3,7 @@
 > Purpose: File ownership and implementation map for finding existing owners.
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
 
 
 This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is evidence gathering for a future Software Design Document, not a roadmap.
@@ -503,6 +503,24 @@ Edit/interaction path:
   `src/text/contextualTextControlViewModel.ts`; case insert and straight-disc
   adapters still own state setters, ranges, units, geometry semantics, renderer
   paths, and commit behavior.
+- The accepted next contextual-control host is a stable top-right app-shell
+  ribbon above the preview, documented in `docs/TEXT_EDITOR_CONTRACT.md` and
+  the SDD. That planned host should consume the existing contextual registry and
+  adapters; it must not take ownership of text rendering, layout, save/load,
+  export, source resolution, or surface-specific geometry.
+- The ribbon host also owns the app-shell reservation that the toast container
+  must respect while the ribbon is active. The toast offset should consume a
+  shared app-shell ribbon height/offset signal or CSS variable; it must not be
+  computed by text targets, disc geometry, case preview geometry, or surface
+  adapters.
+- During migration, preview components continue to own caret, selection,
+  outlines, direct typing adapters, edge-grab movement, Move fallback, and
+  Delete affordances. The ribbon owns tab/control presentation only.
+- After migration, the existing floating-menu placement responsibilities should
+  be deleted: selected-text-anchored menu positioning, collision scoring,
+  center/side docking, emergency detached placement, portal-only containment,
+  and responsive-shell feedback paths that exist only for floating contextual
+  controls.
 - Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
   contextual target capabilities instead of maintaining a separate
   migrated-control list in the sidebar component. Straight text and curved
@@ -514,8 +532,9 @@ Edit/interaction path:
   in template or spine sidebar components; spine orientation remains a
   sidebar-owned structural control.
 - Curved disc text remains SVG/textPath based. Its contextual adapter exposes
-  whole-object menu controls and a menu-hosted text value field, but it is not
-  routed through a visible rectangular on-canvas editor.
+  curved-safe controls through the contextual infrastructure, but it is not
+  routed through a visible rectangular on-canvas editor. Future ribbon work
+  should preserve the SVG/textPath renderer and move only the control host.
 - Case insert preview text selection/editing helpers support adapter-based
   preview editing; broad case insert runtime behavior was not independently
   manually verified during this inventory refresh.
@@ -546,6 +565,9 @@ Risks:
 
 - `docs/TEXT_EDITOR_CONTRACT.md` and `textEditorContract.test.ts` show the text editor contract is actively guarded by diagnostics.
 - Browser caret measurement, wrapped text layout, metadata-bound values, and export parity are fragile areas.
+- The current floating contextual menu code has accumulated collision,
+  docking, portal, and responsive-shell responsibilities. Those are temporary
+  migration targets once the app-shell ribbon host exists.
 - Open issues `#178`, `#181`, and `#184` track text-system expansion and redesign.
 
 ## Image and Artwork Systems
@@ -733,6 +755,12 @@ Render path:
   paths, the final preview renderer remains visible as the glyph renderer
   during editing; the adapter supplies input, caret, selection, boundaries, and
   menu affordances.
+- Planned contextual text ribbon work moves only the control host into a
+  reserved top-right app-shell slot above the preview. Preview layers should
+  continue to supply caret, selection, outline, direct typing, edge-grab
+  movement, Move fallback, and Delete affordances; the ribbon should consume
+  the contextual control registry and adapter callbacks without becoming a
+  renderer or geometry owner.
 - Inline text host lookup uses registry-defined target keys; case insert and
   disc adapters still own their values, geometry, commit behavior, and pointer
   movement.
@@ -746,6 +774,8 @@ Edit/interaction path:
 - Shared pointer drag lifecycle is in `usePointerDrag`.
 - Disc drag adapter handles background pixel offsets plus percent-positioned visual elements and disc text.
 - Case insert drag adapter handles template/spine images, text blocks, lists, title, and slot groups.
+- Text-body pointer drag should select text. Text-object movement should use
+  the approximately 8px selection-edge grab region or the Move fallback.
 
 Save/load path:
 
