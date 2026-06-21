@@ -168,8 +168,9 @@ The committed smoke command verifies:
   activation and local preview affordance availability.
 - The committed selection-edge drag route covers cover, tray, left spine, right
   spine, straight disc, and curved copyright text. It verifies that edge/corner
-  strips move text immediately while an interior drag on cover text still
-  creates a text selection instead of moving the object.
+  strips move text immediately while interior drags on cover, tray, both
+  rotated spines, straight disc, and curved copyright text still create text
+  selections instead of moving the object.
 - Top-edge, bottom-edge, and oversized cover text keep controls accessible in
   the stable ribbon; no preview-anchored full menu is expected.
 - Tray, left spine, and right spine open inline editors through the ribbon.

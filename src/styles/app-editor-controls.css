@@ -205,6 +205,10 @@
   box-sizing: border-box;
   pointer-events: auto;
   touch-action: none;
+  cursor: text;
+}
+
+.inline-preview-text-edge-move-ring[data-edge-grab-active] .inline-preview-text-edge-move-hit {
   cursor: move;
 }
 
