@@ -970,6 +970,88 @@ test('outer straight disc text uses deterministic center-docked controls', () =>
   assert.equal(layout.moveHandle.top, 748)
 })
 
+test('disc center dock scores painted regions instead of oversized curved host bounds', () => {
+  const input = {
+    anchor: {
+      bottom: 650,
+      centerX: 500,
+      centerY: 340,
+      right: 940,
+      top: 30,
+    },
+    paintedCollisionRects: [
+      { bottom: 116, left: 120, right: 260, top: 40 },
+      { bottom: 96, left: 272, right: 430, top: 24 },
+      { bottom: 96, left: 570, right: 728, top: 24 },
+      { bottom: 116, left: 740, right: 880, top: 40 },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const layout = getInlinePreviewTextControlLayout(input)
+  const centerCandidate = diagnostics.candidates.find((candidate) =>
+    candidate.candidate === 'center-docked')
+
+  assert.equal(layout.mode, 'center-docked')
+  assert.equal(diagnostics.selectedPlacement, 'center-docked')
+  assert.equal(diagnostics.emergencyEligible, false)
+  assert.equal(diagnostics.paintedCollisionRects.length, 4)
+  assert.ok(diagnostics.selectedTextAreaRatio < 0.06)
+  assert.equal(centerCandidate?.textOverlap, 0)
+})
+
+test('disc emergency area uses painted regions instead of host area', () => {
+  const input = {
+    anchor: {
+      bottom: 1000,
+      centerX: 500,
+      centerY: 500,
+      right: 1000,
+      top: 0,
+    },
+    paintedCollisionRects: [
+      { bottom: 120, left: 240, right: 760, top: 40 },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+    workspaceRect: {
+      bottom: 1250,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+  }
+  const diagnostics = getInlinePreviewTextControlPlacementDiagnostics(input)
+  const layout = getInlinePreviewTextControlLayout(input)
+
+  assert.equal(diagnostics.selectedTextAreaRatio, 0.0416)
+  assert.equal(diagnostics.emergencyEligible, false)
+  assert.equal(layout.mode, 'center-docked')
+})
+
 test('disc text controls center-dock when top-arc anchored controls cover selected text', () => {
   const input = {
     anchor: createAnchor({
@@ -1186,6 +1268,54 @@ test('disc text occupying the center workspace chooses a stable side dock', () =
   assert.equal(firstLayout.menu.placement, 'left')
   assert.equal(firstLayout.menu.left, 8)
   assert.equal(firstLayout.tabs.left, 8)
+  assert.equal(stickyLayout.mode, 'side-docked')
+  assert.equal(stickyLayout.menu.placement, 'left')
+})
+
+test('disc side dock remains sticky when painted center text later leaves center', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 570,
+      centerX: 500,
+      centerY: 500,
+      right: 570,
+      top: 430,
+    }),
+    paintedCollisionRects: [
+      { bottom: 570, left: 430, right: 570, top: 430 },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 1000,
+      left: 0,
+      right: 1000,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: { height: 286, width: 520 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 46, width: 520 },
+    },
+  }
+  const firstLayout = getInlinePreviewTextControlLayout(input)
+  const stickyLayout = getInlinePreviewTextControlLayout({
+    ...input,
+    anchor: createAnchor({
+      bottom: 160,
+      centerX: 500,
+      centerY: 100,
+      right: 780,
+      top: 40,
+    }),
+    paintedCollisionRects: [
+      { bottom: 160, left: 220, right: 780, top: 40 },
+    ],
+    previousPlacement: firstLayout.menu.placement,
+  })
+
+  assert.equal(firstLayout.mode, 'side-docked')
+  assert.equal(firstLayout.menu.placement, 'left')
   assert.equal(stickyLayout.mode, 'side-docked')
   assert.equal(stickyLayout.menu.placement, 'left')
 })

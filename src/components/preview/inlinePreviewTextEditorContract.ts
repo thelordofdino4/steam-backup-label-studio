@@ -28,6 +28,13 @@ export type InlinePreviewTextEditorLine = {
   text: string
 }
 
+export type InlinePreviewTextEditorPaintedCollisionRect = {
+  bottom: number
+  left: number
+  right: number
+  top: number
+}
+
 export type InlinePreviewTextEditorGeometryLine = {
   caretXRatios: number[]
   heightRatio: number
@@ -237,6 +244,7 @@ export type InlinePreviewTextEditorProps = {
   geometryAdapter?: InlinePreviewTextEditorGeometryAdapter
   geometryLines?: InlinePreviewTextEditorGeometryLine[]
   lines: InlinePreviewTextEditorLine[]
+  paintedCollisionRects?: readonly InlinePreviewTextEditorPaintedCollisionRect[]
   rotationDegrees?: number
   targetKey: string
   value: string

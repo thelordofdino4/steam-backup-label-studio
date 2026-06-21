@@ -194,8 +194,10 @@ The committed smoke command verifies:
 - Outer-ring straight and curved disc text use deterministic compact
   center-docked contextual controls by default; the dock keeps tabs, menu, and
   Move available inside the central disc workspace with menu scrolling instead
-  of extending over the text, and remains fixed through point-size and tab
-  changes.
+  of extending over the text. Straight text remains fixed through point-size and
+  tab changes. Curved copyright checks rendered SVG text/underline paint
+  rectangles instead of the broad editor host box, and the center dock remains
+  fixed through arc side, arc span, inset, and line-spacing edits.
 - Straight disc HTML source updates the SVG renderer before Done.
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical

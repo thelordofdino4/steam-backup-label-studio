@@ -923,6 +923,63 @@ function getCurvedLinePaintBox({
   }
 }
 
+function getCurvedLinePaintSegmentBoxes({
+  fontSize,
+  isTopArc,
+  lineLayout,
+  renderStyle,
+}: {
+  fontSize: number
+  isTopArc: boolean
+  lineLayout: CurvedDiscTextLineGeometry
+  renderStyle: ResolvedDiscTextRenderStyle
+}): CurvedDiscTextPaintBox[] {
+  if (lineLayout.angleWidthDegrees <= 0) return []
+
+  const shadowSlack = hasDiscTextShadow(renderStyle) ? 1.4 : 0
+  const strokeSlack = hasDiscTextStroke(renderStyle)
+    ? DISC_TEXT_CURVED_STROKE_WIDTH / 2
+    : 0
+  const underlineSlack = renderStyle.underline
+    ? fontSize * (
+        DISC_TEXT_CURVED_UNDERLINE_OFFSET_FACTOR +
+        DISC_TEXT_CURVED_UNDERLINE_STROKE_FACTOR
+      )
+    : 0
+  const radialSlack = Math.max(
+    0.9,
+    fontSize * 0.72,
+    strokeSlack + shadowSlack + underlineSlack,
+  )
+  const segmentCount = Math.max(
+    1,
+    Math.ceil(lineLayout.angleWidthDegrees / 8),
+  )
+  const direction = isTopArc ? 1 : -1
+  const radii = [
+    Math.max(1, lineLayout.radius - radialSlack),
+    lineLayout.radius + radialSlack,
+  ]
+
+  return Array.from({ length: segmentCount }, (_, segmentIndex) => {
+    const startProgress = segmentIndex / segmentCount
+    const endProgress = (segmentIndex + 1) / segmentCount
+    const midProgress = (startProgress + endProgress) / 2
+    const angles = [startProgress, midProgress, endProgress].map((progress) =>
+      lineLayout.startAngleDegrees +
+        direction * lineLayout.angleWidthDegrees * progress)
+    const points = angles.flatMap((angle) =>
+      radii.map((radius) => getArcPoint(radius, angle)))
+
+    return {
+      bottom: Math.max(...points.map((point) => point.y)),
+      left: Math.min(...points.map((point) => point.x)),
+      right: Math.max(...points.map((point) => point.x)),
+      top: Math.min(...points.map((point) => point.y)),
+    }
+  })
+}
+
 export function getCurvedDiscTextPaintBoxes({
   key,
   text,
@@ -963,6 +1020,48 @@ export function getCurvedDiscTextPaintBoxes({
         renderStyle: getResolvedDiscTextRenderStyle(key, styles),
       }))
     .filter((box): box is CurvedDiscTextPaintBox => Boolean(box))
+}
+
+export function getCurvedDiscTextPaintCollisionBoxes({
+  key,
+  text,
+  placement,
+  layout,
+  safeZoneRadiusPercent,
+  measureText,
+  richText,
+  styles,
+  template,
+}: {
+  key: DiscTextKey
+  text: string
+  placement: SteamLogoPlacement
+  layout: DiscTextLayout
+  safeZoneRadiusPercent: number
+  measureText: TextMeasureFunction
+  richText?: RichTextDocument
+  styles?: DiscTextStyleInput
+  template?: DiscTemplate
+}): CurvedDiscTextPaintBox[] {
+  const renderStyle = getResolvedDiscTextRenderStyle(key, styles)
+
+  return getCurvedDiscTextLineGeometry({
+    key,
+    layout,
+    measureText,
+    placement,
+    richText,
+    safeZoneRadiusPercent,
+    styles,
+    template,
+    text,
+  }).flatMap((lineLayout) =>
+    getCurvedLinePaintSegmentBoxes({
+      fontSize: lineLayout.fontSize,
+      isTopArc: lineLayout.isTopArc,
+      lineLayout,
+      renderStyle,
+    }))
 }
 
 export function getCurvedDiscTextLineGeometry({
