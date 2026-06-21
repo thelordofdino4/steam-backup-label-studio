@@ -3,7 +3,7 @@
 > Purpose: Committed browser smoke route and limits for contextual text-editor automation.
 > Read when: Before browser automation against the text editor or smoke harness changes.
 > Authoritative source: This document for automation process; TEXT_EDITOR_CONTRACT.md for behavior.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `f1dd4b9280b90d8b125e1ce1f404ad29c231c1f3`.
 
 
 This guide documents the committed browser smoke path for the contextual text
@@ -221,8 +221,9 @@ The committed smoke command verifies:
   butt-capped arc paths whose endpoints match the selected boundaries instead
   of round caps that visually include neighboring characters.
 - Curved copyright placement includes a Warframe/App ID 230410-style legal text
-  fixture at 15.02pt and asserts the center-docked controls do not move while
-  typing or committing that point size.
+  fixture at 15.02pt and samples multiple animation frames while editing and
+  committing that point size. The route fails if placement mode, responsive
+  mode, menu width, or menu height oscillates.
 
 ## Expected Outcomes
 

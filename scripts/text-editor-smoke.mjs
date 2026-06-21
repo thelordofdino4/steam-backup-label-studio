@@ -759,6 +759,84 @@ async function waitForStableRect(page, smokeId) {
   return previous
 }
 
+async function sampleInlinePlacementFrames(page, frameCount = 20) {
+  return page.evaluate(async (count) => {
+    const readRect = (element) => {
+      const rect = element.getBoundingClientRect()
+      return {
+        height: rect.height,
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+      }
+    }
+    const readFrame = () => {
+      const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+      const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+
+      if (!(menu instanceof HTMLElement) || !(tabs instanceof HTMLElement)) {
+        return null
+      }
+
+      return {
+        menu: readRect(menu),
+        menuPlacement: menu.getAttribute('data-inline-placement'),
+        menuResponsiveMode: menu.getAttribute('data-inline-responsive-mode'),
+        mode: menu.getAttribute('data-inline-placement-mode'),
+        tabs: readRect(tabs),
+        tabsResponsiveMode: tabs.getAttribute('data-inline-responsive-mode'),
+      }
+    }
+    const frames = []
+
+    for (let index = 0; index < count; index += 1) {
+      await new Promise((resolve) => window.requestAnimationFrame(resolve))
+      const frame = readFrame()
+      if (frame) frames.push(frame)
+    }
+
+    return frames
+  }, frameCount)
+}
+
+function assertInlinePlacementFramesStable(frames, label) {
+  if (frames.length < 6) {
+    fail(`${label}: expected placement frame samples, got ${frames.length}.`)
+  }
+
+  const distinctModes = new Set(frames.map((frame) => frame.mode))
+  const distinctPlacements = new Set(
+    frames.map((frame) => frame.menuPlacement),
+  )
+  const distinctResponsiveModes = new Set(
+    frames.map((frame) => frame.menuResponsiveMode),
+  )
+  const menuWidths = frames.map((frame) => frame.menu.width)
+  const menuHeights = frames.map((frame) => frame.menu.height)
+  const widthDelta = Math.max(...menuWidths) - Math.min(...menuWidths)
+  const heightDelta = Math.max(...menuHeights) - Math.min(...menuHeights)
+
+  if (distinctModes.size > 1 || distinctPlacements.size > 1) {
+    fail(`${label}: contextual placement oscillated across frames: ${
+      JSON.stringify({
+        modes: [...distinctModes],
+        placements: [...distinctPlacements],
+        frames,
+      })
+    }`)
+  }
+  if (distinctResponsiveModes.size > 1 || widthDelta > 1 || heightDelta > 1) {
+    fail(`${label}: contextual shell size oscillated across frames: ${
+      JSON.stringify({
+        heightDelta,
+        responsiveModes: [...distinctResponsiveModes],
+        widthDelta,
+        frames,
+      })
+    }`)
+  }
+}
+
 async function waitForMeasuredCenterDock(page) {
   const start = Date.now()
 
@@ -1750,6 +1828,10 @@ async function assertWarframeCurvedCopyrightPointSizeDockStability(page) {
   const beforeTabs = await waitForStableRect(page, 'inline-text-tabs')
 
   await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '15.02')
+  assertInlinePlacementFramesStable(
+    await sampleInlinePlacementFrames(page, 20),
+    'Warframe curved copyright 15.02pt active edit',
+  )
   const duringMenu = await getRect(page, 'inline-text-menu')
   const duringTabs = await getRect(page, 'inline-text-tabs')
   if (
@@ -1765,6 +1847,10 @@ async function assertWarframeCurvedCopyrightPointSizeDockStability(page) {
 
   await page.keyboard.press('Enter')
   await page.waitForTimeout(160)
+  assertInlinePlacementFramesStable(
+    await sampleInlinePlacementFrames(page, 20),
+    'Warframe curved copyright 15.02pt committed edit',
+  )
   const afterMenu = await waitForStableRect(page, 'inline-text-menu')
   const afterTabs = await waitForStableRect(page, 'inline-text-tabs')
   if (
@@ -2045,6 +2131,10 @@ async function assertCurvedCopyrightGuardrail(page) {
   await setInlineNumberControl(page, 'arc', 220)
   await setInlineNumberControl(page, 'inset', 8)
   await setInlineRangeControl(page, 'line-spacing', 1.25)
+  assertInlinePlacementFramesStable(
+    await sampleInlinePlacementFrames(page, 20),
+    'curved copyright arc inset line-spacing placement',
+  )
   await assertCurvedContextualPlacementUsesPaintBounds(page, 'top arc curved copyright')
   const editedDockMenu = await waitForStableRect(page, 'inline-text-menu')
   const editedDockTabs = await waitForStableRect(page, 'inline-text-tabs')

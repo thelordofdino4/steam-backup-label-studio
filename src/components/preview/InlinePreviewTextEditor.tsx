@@ -3099,6 +3099,9 @@ export function InlinePreviewTextEditor({
         maxWidth: controlLayout.tabs.maxWidth,
         top: controlLayout.tabs.top,
         transform: 'none',
+        width: placementStrategy === 'disc-center-dock'
+          ? controlLayout.tabs.maxWidth
+          : undefined,
       } as CSSProperties)
     : undefined
   const menuStyle = controlLayout
@@ -3114,6 +3117,9 @@ export function InlinePreviewTextEditor({
         maxWidth: controlLayout.menu.maxWidth,
         top: controlLayout.menu.top,
         transform: 'none',
+        width: placementStrategy === 'disc-center-dock'
+          ? controlLayout.menu.maxWidth
+          : undefined,
       } as CSSProperties)
     : undefined
   const tabsResponsiveMode = getInlinePreviewTextShellMode(
