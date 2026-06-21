@@ -16,6 +16,7 @@ type PercentPointerDragOptions<TDragState extends PercentDragState> = {
 }
 
 type PixelPointerDragOptions<TDragState extends PixelDragState> = {
+  getScale?: (dragState: TDragState) => number | null | undefined
   onDraggedOffset: (dragState: TDragState, draggedOffset: DragPoint) => void
   stopPropagation?: boolean
 }
@@ -54,6 +55,7 @@ export function usePixelPointerDrag<
   TDragState extends PixelDragState,
   TElement extends Element = Element,
 >({
+  getScale,
   onDraggedOffset,
   stopPropagation = false,
 }: PixelPointerDragOptions<TDragState>) {
@@ -62,7 +64,12 @@ export function usePixelPointerDrag<
     onDragMove: (dragState, event: PointerEvent<TElement>) => {
       onDraggedOffset(
         dragState,
-        getDraggedPixelOffset(dragState, event.clientX, event.clientY),
+        getDraggedPixelOffset(
+          dragState,
+          event.clientX,
+          event.clientY,
+          getScale?.(dragState) ?? 1,
+        ),
       )
     },
   })

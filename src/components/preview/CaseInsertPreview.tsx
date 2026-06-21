@@ -41,6 +41,7 @@ import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { PreviewHeader } from './PreviewHeader'
+import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type {
@@ -314,21 +315,23 @@ export function CaseInsertPreview({
         <PreviewToastStack statusToasts={statusToasts} />
 
         <div className="preview-workspace">
-          <div
-            ref={caseInsertPreviewRef}
-            className="case-insert-preview"
-            data-smoke-id={`case-preview-${activeTemplatePane}`}
-            style={previewStyle}
-            aria-label={`${activePaneConfig.label} live preview`}
-          >
-            {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-              <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-            ))}
-            <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
-          </div>
+          <PreviewViewport label={`${activePaneConfig.label} preview`}>
+            <div
+              ref={caseInsertPreviewRef}
+              className="case-insert-preview"
+              data-smoke-id={`case-preview-${activeTemplatePane}`}
+              style={previewStyle}
+              aria-label={`${activePaneConfig.label} live preview`}
+            >
+              {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+                <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+              ))}
+              <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
+            </div>
+          </PreviewViewport>
 
           <PreviewDesignCheckPanel
-            closedOffset={guideLegendClosedSize + 8}
+            closedOffset={guideLegendClosedSize + 4}
             closedSize={guideLegendClosedSize}
             isOpen={isDesignCheckOpen}
             label="Case insert design check"

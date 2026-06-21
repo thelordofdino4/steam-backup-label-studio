@@ -58,6 +58,9 @@ Primary entry selectors:
 - `home-new-disc`
 - `case-insert-editor`
 - `case-insert-sidebar`
+- `preview-viewport`
+- `preview-viewport-stage`
+- `preview-viewport-controls`
 - `case-template-pane-select`
 - `case-preview-cover`
 - `case-preview-tray`
@@ -138,6 +141,16 @@ behavior.
 
 The committed smoke command verifies:
 
+- Shared preview viewport source/model coverage verifies Fit, zoom in/out,
+  four-direction panning, compact adaptive right-edge rail placement, surface
+  breathing room, removal of legacy preview caps that create artificial side
+  gutters, and transformed overlay/drag math. The approved rail has no visible
+  100%/percentage control and grows continuously from 48px to 96px wide only
+  when the larger size can be absorbed by residual unused gutter without
+  reducing fitted preview scale or moving the fitted design surface. Browser
+  smoke should reuse
+  `preview-viewport`, `preview-viewport-stage`, and
+  `preview-viewport-controls` if deterministic zoom/pan routes are added.
 - Cover inline editor opens from preview text.
 - Space key creates visible spaces while editing and after Done.
 - Ctrl+A selects all visible cover text.

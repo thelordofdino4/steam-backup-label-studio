@@ -743,6 +743,8 @@ Key files:
 - `src/interaction/usePointerDragAdapters.ts`
 - `src/interaction/useDiscPreviewPointerDrag.ts`
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+- `src/components/preview/PreviewViewport.tsx`
+- `src/components/preview/previewViewportModel.ts`
 - `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
@@ -754,12 +756,26 @@ Key files:
 Source-of-truth state:
 
 - Drag operations update the owning feature state through callbacks supplied by `App.tsx` and editor hooks.
+- Preview viewport zoom/pan state is local to `PreviewViewport`. It is editor
+  UI state only; it is not saved to project JSON and does not affect export
+  coordinates.
 - Overlay hover/selection UI state is local to `PreviewElementOverlay`.
 - Preview-editable element identity, DOM attribute names, stable target keys, and inline text target keys are owned by `src/editor/previewEditableRegistry.ts`; `src/editor/previewElementOverlay.ts` keeps overlay lookup and rectangle measurement.
 
 Render path:
 
 - Editable preview elements expose registry-defined data attributes.
+- `PreviewViewport` wraps both disc and case insert design surfaces. It owns
+  Ctrl+wheel zoom, middle-mouse pan, Space+left-drag pan, the right-edge
+  zoom/pan/Fit rail, and the transformed stage. The compact rail reserves a
+  minimum 48px width for Fit calculations, then its controls may grow
+  continuously from 24px to 48px only into residual unused horizontal gutter.
+  The expanded rail width is not fed back into the same Fit calculation pass,
+  so rail growth cannot reduce the fit scale or move the fitted surface. Design
+  Check and Guide Legend controls remain outside the transformed stage. The
+  stage owns the 4px surface guard, minimum right rail reservation, and bottom
+  Design Check / Guide Legend rail reservation, while the preview surfaces fill
+  the available stage instead of keeping legacy fixed-width caps.
 - `PreviewElementOverlay` measures matching DOM nodes and draws hover/selected boxes.
 - Inline text editor renders preview-mounted contextual controls and hidden
   native input/selection adapters. For case insert and straight disc WYSIWYG
@@ -785,6 +801,9 @@ Edit/interaction path:
 - Shared pointer drag lifecycle is in `usePointerDrag`.
 - Disc drag adapter handles background pixel offsets plus percent-positioned visual elements and disc text.
 - Case insert drag adapter handles template/spine images, text blocks, lists, title, and slot groups.
+- Percent-positioned drag math uses transformed preview DOM bounds. Pixel
+  offset dragging must compensate for viewport scale before updating saved
+  design-space offsets.
 - Text-body pointer drag should select text. Text-object movement should use
   the approximately 8px selection-edge grab region or the Move fallback.
 

@@ -177,16 +177,26 @@ export function useDiscPreviewPointerDrag({
     PixelDragState,
     HTMLDivElement
   >({
+    getScale: () => {
+      const previewElement = discPreviewRef.current
+      const previewRect = previewElement?.getBoundingClientRect()
+
+      return previewElement && previewRect && previewElement.offsetWidth > 0
+        ? previewRect.width / previewElement.offsetWidth
+        : 1
+    },
     onDraggedOffset: (_dragState, nextOffset) => {
-      const previewRect = discPreviewRef.current?.getBoundingClientRect()
+      const previewElement = discPreviewRef.current
+      const previewRect = previewElement?.getBoundingClientRect()
+      const previewWidth = previewElement?.offsetWidth ?? previewRect?.width
 
       background.setOffset(
-        previewRect
+        previewWidth
           ? clampBackgroundOffsetToImageBounds(
               nextOffset,
               background.imageSize,
               background.scale,
-              previewRect.width,
+              previewWidth,
             )
           : nextOffset,
       )

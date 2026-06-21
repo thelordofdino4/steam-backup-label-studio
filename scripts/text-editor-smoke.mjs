@@ -1323,8 +1323,8 @@ async function assertResponsiveContextualShell(page) {
           }))
         const visibleMenuFocusables = menuFocusables
           .filter((item) =>
-            centerInside(item.rect, item.clipRect) &&
-            centerInside(item.rect, menuRect))
+            centerInside(item.rawRect, item.clipRect) &&
+            centerInside(item.rawRect, menuRect))
         const outside = [
           ...(!inside(tabsRect, hostRect) ? ['tabs'] : []),
           ...(!inside(menuRect, hostRect) ? ['menu'] : []),

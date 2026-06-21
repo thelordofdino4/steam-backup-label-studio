@@ -47,6 +47,11 @@ export type PreviewElementOverlayRect = {
   height: number
 }
 
+export type PreviewElementOverlayLocalSize = {
+  height: number
+  width: number
+}
+
 export type PreviewEditableElementMatch = {
   element: Element
   editableElement: PreviewEditableElement
@@ -126,22 +131,33 @@ export function findPreviewEditableElementsById(
 export function getPreviewElementOverlayRect(
   previewRect: PreviewElementDomRect,
   elementRect: PreviewElementDomRect,
+  previewLocalSize?: PreviewElementOverlayLocalSize,
 ): PreviewElementOverlayRect | null {
   if (elementRect.width <= 0 || elementRect.height <= 0) {
     return null
   }
 
+  const scaleX =
+    previewLocalSize && previewLocalSize.width > 0
+      ? previewRect.width / previewLocalSize.width
+      : 1
+  const scaleY =
+    previewLocalSize && previewLocalSize.height > 0
+      ? previewRect.height / previewLocalSize.height
+      : 1
+
   return {
-    left: elementRect.left - previewRect.left,
-    top: elementRect.top - previewRect.top,
-    width: elementRect.width,
-    height: elementRect.height,
+    left: (elementRect.left - previewRect.left) / scaleX,
+    top: (elementRect.top - previewRect.top) / scaleY,
+    width: elementRect.width / scaleX,
+    height: elementRect.height / scaleY,
   }
 }
 
 export function getPreviewElementOverlayUnionRect(
   previewRect: PreviewElementDomRect,
   elementRects: PreviewElementDomRect[],
+  previewLocalSize?: PreviewElementOverlayLocalSize,
 ): PreviewElementOverlayRect | null {
   const visibleRects = elementRects.filter((rect) =>
     rect.width > 0 && rect.height > 0)
@@ -166,5 +182,5 @@ export function getPreviewElementOverlayUnionRect(
     ...unionRect,
     width: unionRect.right - unionRect.left,
     height: unionRect.bottom - unionRect.top,
-  })
+  }, previewLocalSize)
 }

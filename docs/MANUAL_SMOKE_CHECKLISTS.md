@@ -87,6 +87,31 @@ npm run tauri dev
 
 - Disc guides, center hole, printable bounds, safe zone, and exported guide
   toggles remain visually coherent.
+- Preview viewport controls sit on the right edge of the preview workspace,
+  vertically centered, with the compact two-column rail layout: zoom in/out,
+  full-width `Fit`, full-width up, left/right, and full-width down.
+- The rail defaults to 48px wide with 24px buttons and may grow continuously up
+  to 96px wide with 48px buttons only when the larger controls fit vertically,
+  consume unused horizontal gutter, and do not reduce the fitted preview scale.
+  Rail growth must not resize or move the fitted design surface. The rail has
+  no scrollbar and exposes the current zoom only through accessible labels or
+  tooltips, not visible chrome.
+- The actual disc/case design surface keeps only a 4px breathing gap from the
+  preview workspace and reserves the right-side control rail width plus that
+  same 4px gap; old fixed preview caps must not leave a larger artificial
+  gutter beside the nested panel or pan/zoom rail.
+- Design Check and Guide Legend buttons sit on the bottom-right edge of the
+  preview workspace. The visible design surface stays above the fixed closed
+  button rail, and opening either panel must not resize or move the preview
+  surface.
+- Ctrl+mouse wheel zooms around the cursor, middle-mouse drag pans, and
+  Space+left-drag pans without changing saved project coordinates.
+- `Fit` returns the surface to the available preview space and clears pan.
+  Opening or closing Design Check or Guide Legend must not change the current
+  fit, zoom, pan, or surface size.
+- Dragging editable objects while zoomed or panned still updates the same
+  design coordinates, and hover/selection outlines track the transformed
+  preview.
 - Preview layer order matches `docs/DISC_EDITOR_LAYER_ORDER.md`.
 - Drag handles or direct dragging work for background, title artwork,
   additional artwork, logos, rating badge, media marks, platform marks,
