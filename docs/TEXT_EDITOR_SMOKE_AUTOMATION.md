@@ -193,8 +193,9 @@ The committed smoke command verifies:
 - Curved copyright opens the contextual shell from the rendered SVG/textPath
   text, accepts direct keyboard editing through the hidden input adapter,
   updates the SVG/textPath preview live, supports LMB drag selection and Ctrl+A,
-  does not expose a contextual menu Text Value field, and does not mount a
-  rectangular on-canvas textarea.
+  renders path-aware curved caret and selection overlays instead of rectangular
+  editor bands, does not expose a contextual menu Text Value field, and does not
+  mount a rectangular on-canvas textarea.
 
 ## Expected Outcomes
 

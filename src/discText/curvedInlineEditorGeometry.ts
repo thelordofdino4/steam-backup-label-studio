@@ -44,15 +44,23 @@ export type CurvedDiscTextHostSize = {
 export type CurvedDiscTextCaretFrame = {
   height: number
   left: number
+  pathD?: string
   rotationDegrees: number
+  strokeWidth?: number
   top: number
+  viewportHeight?: number
+  viewportWidth?: number
 }
 
 export type CurvedDiscTextSelectionFrame = {
   height: number
   left: number
+  pathD?: string
   rotationDegrees: number
+  strokeWidth?: number
   top: number
+  viewportHeight?: number
+  viewportWidth?: number
   width: number
 }
 
@@ -237,6 +245,10 @@ function getPointOnLine(line: CurvedDiscTextLineGeometry, progress: number) {
   return getArcPoint(line.radius, getAngleForLineProgress(line, progress))
 }
 
+function formatPathNumber(value: number) {
+  return Number.isFinite(value) ? Number(value.toFixed(3)) : 0
+}
+
 function getRadialCaretRotationDegrees(angleDegrees: number) {
   return normalizeAngleDegrees(angleDegrees - 90)
 }
@@ -256,6 +268,121 @@ function getFrameHeight({
   const boundsHeight = Math.max(0.01, bounds.halfHeight * 2)
 
   return Math.max(8, (fontSize / boundsHeight) * hostHeight * 1.35)
+}
+
+function getLocalArcRadius({
+  bounds,
+  hostHeight,
+  hostWidth,
+  radius,
+}: CurvedDiscTextHostSize & {
+  bounds: CurvedDiscTextEditorBounds
+  radius: number
+}) {
+  const boundsWidth = Math.max(0.01, bounds.halfWidth * 2)
+  const boundsHeight = Math.max(0.01, bounds.halfHeight * 2)
+
+  return {
+    x: (radius / boundsWidth) * hostWidth,
+    y: (radius / boundsHeight) * hostHeight,
+  }
+}
+
+function getCurvedSelectionPath({
+  endProgress,
+  geometry,
+  hostHeight,
+  hostWidth,
+  line,
+  startProgress,
+}: CurvedDiscTextHostSize & {
+  endProgress: number
+  geometry: CurvedDiscTextHostGeometry
+  line: CurvedDiscTextLineGeometry
+  startProgress: number
+}) {
+  const startPoint = getPointOnLine(line, startProgress)
+  const endPoint = getPointOnLine(line, endProgress)
+  const localStart = percentToHostLocal({
+    ...geometry,
+    hostHeight,
+    hostWidth,
+    x: startPoint.x,
+    y: startPoint.y,
+  })
+  const localEnd = percentToHostLocal({
+    ...geometry,
+    hostHeight,
+    hostWidth,
+    x: endPoint.x,
+    y: endPoint.y,
+  })
+  const radii = getLocalArcRadius({
+    bounds: geometry.bounds,
+    hostHeight,
+    hostWidth,
+    radius: line.radius,
+  })
+  const angleSpan = Math.abs(endProgress - startProgress) *
+    line.angleWidthDegrees
+  const largeArcFlag = angleSpan > 180 ? 1 : 0
+  const sweepFlag = line.isTopArc ? 1 : 0
+
+  return [
+    'M',
+    formatPathNumber(localStart.x),
+    formatPathNumber(localStart.y),
+    'A',
+    formatPathNumber(radii.x),
+    formatPathNumber(radii.y),
+    0,
+    largeArcFlag,
+    sweepFlag,
+    formatPathNumber(localEnd.x),
+    formatPathNumber(localEnd.y),
+  ].join(' ')
+}
+
+function getCurvedCaretPath({
+  geometry,
+  height,
+  hostHeight,
+  hostWidth,
+  point,
+}: CurvedDiscTextHostSize & {
+  geometry: CurvedDiscTextHostGeometry
+  height: number
+  point: { x: number; y: number }
+}) {
+  const localPoint = percentToHostLocal({
+    ...geometry,
+    hostHeight,
+    hostWidth,
+    x: point.x,
+    y: point.y,
+  })
+  const localCenter = percentToHostLocal({
+    ...geometry,
+    hostHeight,
+    hostWidth,
+    x: 50,
+    y: 50,
+  })
+  const directionX = localPoint.x - localCenter.x
+  const directionY = localPoint.y - localCenter.y
+  const magnitude = Math.max(0.001, Math.hypot(directionX, directionY))
+  const unitX = directionX / magnitude
+  const unitY = directionY / magnitude
+  const halfHeight = height / 2
+
+  return [
+    'M',
+    formatPathNumber(localPoint.x - unitX * halfHeight),
+    formatPathNumber(localPoint.y - unitY * halfHeight),
+    'L',
+    formatPathNumber(localPoint.x + unitX * halfHeight),
+    formatPathNumber(localPoint.y + unitY * halfHeight),
+  ].join(' ')
 }
 
 function getLineOffsetFromClientPoint({
@@ -380,8 +507,18 @@ export function getCurvedDiscTextCaretFrame({
   return {
     height,
     left: localPoint.x,
+    pathD: getCurvedCaretPath({
+      geometry,
+      height,
+      hostHeight,
+      hostWidth,
+      point,
+    }),
     rotationDegrees: getRadialCaretRotationDegrees(angle),
+    strokeWidth: 2,
     top: localPoint.y - height / 2,
+    viewportHeight: hostHeight,
+    viewportWidth: hostWidth,
   }
 }
 
@@ -423,23 +560,7 @@ export function getCurvedDiscTextSelectionFrames({
     const startProgress = clampValue((start - lineStart) / textLength, 0, 1)
     const endProgress = clampValue((end - lineStart) / textLength, 0, 1)
     const middleProgress = (startProgress + endProgress) / 2
-    const startPoint = getPointOnLine(line, startProgress)
-    const endPoint = getPointOnLine(line, endProgress)
     const middlePoint = getPointOnLine(line, middleProgress)
-    const localStart = percentToHostLocal({
-      ...geometry,
-      hostHeight,
-      hostWidth,
-      x: startPoint.x,
-      y: startPoint.y,
-    })
-    const localEnd = percentToHostLocal({
-      ...geometry,
-      hostHeight,
-      hostWidth,
-      x: endPoint.x,
-      y: endPoint.y,
-    })
     const localMiddle = percentToHostLocal({
       ...geometry,
       hostHeight,
@@ -453,18 +574,37 @@ export function getCurvedDiscTextSelectionFrames({
       hostHeight,
       hostWidth,
     })
+    const radii = getLocalArcRadius({
+      bounds: geometry.bounds,
+      hostHeight,
+      hostWidth,
+      radius: line.radius,
+    })
     const width = Math.max(
       2,
-      Math.hypot(localEnd.x - localStart.x, localEnd.y - localStart.y),
+      Math.abs(endProgress - startProgress) *
+        ((radii.x + radii.y) / 2) *
+        (line.angleWidthDegrees * Math.PI / 180),
     )
 
     return [{
       height,
       left: localMiddle.x - width / 2,
+      pathD: getCurvedSelectionPath({
+        endProgress,
+        geometry,
+        hostHeight,
+        hostWidth,
+        line,
+        startProgress,
+      }),
       rotationDegrees: getTangentSelectionRotationDegrees(
         getAngleForLineProgress(line, middleProgress),
       ),
+      strokeWidth: height,
       top: localMiddle.y - height / 2,
+      viewportHeight: hostHeight,
+      viewportWidth: hostWidth,
       width,
     }]
   })

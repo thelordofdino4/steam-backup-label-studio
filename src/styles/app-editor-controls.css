@@ -243,6 +243,19 @@
   transform-origin: center;
 }
 
+.inline-preview-text-selection--path {
+  overflow: visible;
+  background: transparent;
+  border-radius: 0;
+}
+
+.inline-preview-text-selection-path {
+  fill: none;
+  stroke: rgba(42, 171, 226, 0.28);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .inline-preview-text-caret {
   position: absolute;
   z-index: 3;
@@ -253,6 +266,21 @@
   animation: inline-preview-text-caret-flash 1s step-end infinite;
   pointer-events: none;
   transform-origin: center;
+}
+
+.inline-preview-text-caret--path {
+  overflow: visible;
+  width: auto;
+  min-height: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.inline-preview-text-caret-path {
+  fill: none;
+  stroke: #2aabe2;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.88));
 }
 
 @keyframes inline-preview-text-caret-flash {
