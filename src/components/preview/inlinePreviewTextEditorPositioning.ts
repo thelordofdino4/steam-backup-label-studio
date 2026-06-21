@@ -90,6 +90,14 @@ function getMinimumUsableMenuHeight(menuHeight: number) {
   return Math.min(menuHeight, INLINE_PREVIEW_TEXT_MIN_USABLE_MENU_HEIGHT)
 }
 
+function getPreferredControlWidth(size: InlinePreviewTextSize) {
+  return Math.max(size.width, size.preferredWidth ?? size.width)
+}
+
+function getPreferredControlHeight(size: InlinePreviewTextSize) {
+  return Math.max(size.height, size.preferredHeight ?? size.height)
+}
+
 function clampValue(value: number, min: number, max: number) {
   if (max < min) return min
   return Math.min(Math.max(value, min), max)
@@ -744,9 +752,12 @@ function createDiscCenterDockCandidate({
     1,
     previewHeight - INLINE_PREVIEW_TEXT_EDGE_GAP * 2,
   )
+  const preferredMenuWidth = getPreferredControlWidth(sizes.menu)
+  const preferredTabsWidth = getPreferredControlWidth(sizes.tabs)
+  const preferredMenuHeight = getPreferredControlHeight(sizes.menu)
   const dockWidth = clampValue(
     Math.min(
-      Math.max(sizes.menu.width, sizes.tabs.width),
+      Math.max(preferredMenuWidth, preferredTabsWidth),
       previewWidth * INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_WIDTH_RATIO,
     ),
     Math.min(availableWidth, INLINE_PREVIEW_TEXT_DISC_CENTER_DOCK_MIN_WIDTH),
@@ -759,8 +770,8 @@ function createDiscCenterDockCandidate({
   )
   const dockLeft = previewRect.left + previewWidth / 2 - dockWidth / 2
   const dockTop = previewRect.top + previewHeight / 2 - dockHeight / 2
-  const tabsWidth = Math.min(sizes.tabs.width, dockWidth)
-  const menuWidth = Math.min(sizes.menu.width, dockWidth)
+  const tabsWidth = Math.min(preferredTabsWidth, dockWidth)
+  const menuWidth = Math.min(preferredMenuWidth, dockWidth)
   const menuMaxHeight = Math.max(
     1,
     dockHeight -
@@ -768,7 +779,7 @@ function createDiscCenterDockCandidate({
       sizes.moveHandle.height -
       INLINE_PREVIEW_TEXT_CONTROL_GAP * 2,
   )
-  const menuLayoutHeight = Math.min(sizes.menu.height, menuMaxHeight)
+  const menuLayoutHeight = Math.min(preferredMenuHeight, menuMaxHeight)
   const tabsLeft = dockLeft + (dockWidth - tabsWidth) / 2
   const tabsTop = dockTop
   const menuLeft = dockLeft + (dockWidth - menuWidth) / 2
@@ -812,7 +823,7 @@ function createDiscCenterDockCandidate({
 
   return {
     candidate: 'center-docked',
-    fullHeightFits: menuMaxHeight >= sizes.menu.height,
+    fullHeightFits: menuMaxHeight >= preferredMenuHeight,
     menu: {
       left: menuLeft,
       maxHeight: menuMaxHeight,
@@ -874,9 +885,12 @@ function createDiscSideDockCandidate({
     1,
     previewHeight - INLINE_PREVIEW_TEXT_EDGE_GAP * 2,
   )
+  const preferredMenuWidth = getPreferredControlWidth(sizes.menu)
+  const preferredTabsWidth = getPreferredControlWidth(sizes.tabs)
+  const preferredMenuHeight = getPreferredControlHeight(sizes.menu)
   const dockWidth = clampValue(
     Math.min(
-      Math.max(sizes.menu.width, sizes.tabs.width),
+      Math.max(preferredMenuWidth, preferredTabsWidth),
       previewWidth * INLINE_PREVIEW_TEXT_DISC_SIDE_DOCK_WIDTH_RATIO,
     ),
     Math.min(availableWidth, 240),
@@ -895,8 +909,8 @@ function createDiscSideDockCandidate({
   const dockTop = anchorCenterY >= previewCenterY
     ? previewRect.top + INLINE_PREVIEW_TEXT_EDGE_GAP
     : previewRect.bottom - INLINE_PREVIEW_TEXT_EDGE_GAP - dockHeight
-  const tabsWidth = Math.min(sizes.tabs.width, dockWidth)
-  const menuWidth = Math.min(sizes.menu.width, dockWidth)
+  const tabsWidth = Math.min(preferredTabsWidth, dockWidth)
+  const menuWidth = Math.min(preferredMenuWidth, dockWidth)
   const menuMaxHeight = Math.max(
     1,
     dockHeight -
@@ -904,7 +918,7 @@ function createDiscSideDockCandidate({
       sizes.moveHandle.height -
       INLINE_PREVIEW_TEXT_CONTROL_GAP * 2,
   )
-  const menuLayoutHeight = Math.min(sizes.menu.height, menuMaxHeight)
+  const menuLayoutHeight = Math.min(preferredMenuHeight, menuMaxHeight)
   const tabsLeft = dockLeft + (dockWidth - tabsWidth) / 2
   const tabsTop = dockTop
   const menuLeft = dockLeft + (dockWidth - menuWidth) / 2
@@ -948,7 +962,7 @@ function createDiscSideDockCandidate({
 
   return {
     candidate,
-    fullHeightFits: menuMaxHeight >= sizes.menu.height,
+    fullHeightFits: menuMaxHeight >= preferredMenuHeight,
     menu: {
       left: menuLeft,
       maxHeight: menuMaxHeight,
@@ -1519,7 +1533,7 @@ export function getInlinePreviewTextLockedControlLayout({
     menu: {
       left: menuLeft,
       maxHeight: menuMaxHeight,
-      maxWidth: workspaceWidth,
+      maxWidth: Math.min(layout.menu.maxWidth, workspaceWidth),
       placement: layout.menu.placement,
       top: menuTop,
     },
@@ -1530,7 +1544,7 @@ export function getInlinePreviewTextLockedControlLayout({
     },
     tabs: {
       left: tabsLeft,
-      maxWidth: workspaceWidth,
+      maxWidth: Math.min(layout.tabs.maxWidth, workspaceWidth),
       top: tabsTop,
     },
   }

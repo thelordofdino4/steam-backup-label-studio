@@ -852,6 +852,37 @@ test('inline text controls can freeze current placement during active input', ()
   assert.ok(lockedLayout.tabs.left + sizes.tabs.width <= 260)
 })
 
+test('inline text locked layout preserves assigned dock width', () => {
+  const lockedLayout = getInlinePreviewTextLockedControlLayout({
+    layout: {
+      menu: {
+        left: 100,
+        maxHeight: 220,
+        maxWidth: 396,
+        placement: 'center-docked',
+        top: 140,
+      },
+      mode: 'center-docked',
+      moveHandle: { left: 250, top: 330 },
+      tabs: { left: 100, maxWidth: 396, top: 90 },
+    },
+    sizes: {
+      menu: { height: 180, width: 396 },
+      moveHandle: { height: 32, width: 60 },
+      tabs: { height: 84, width: 396 },
+    },
+    workspaceRect: {
+      bottom: 700,
+      left: 0,
+      right: 1480,
+      top: 0,
+    },
+  })
+
+  assert.equal(lockedLayout.menu.maxWidth, 396)
+  assert.equal(lockedLayout.tabs.maxWidth, 396)
+})
+
 test('inline text controls keep move handle accessible when the menu blocks the normal side', () => {
   const layout = getInlinePreviewTextControlLayout({
     anchor: createAnchor({
@@ -1226,6 +1257,120 @@ test('disc dock does not wander when menu content height changes', () => {
   assert.equal(expandedLayout.moveHandle.top, compactLayout.moveHandle.top)
   assert.equal(expandedLayout.moveHandle.left, compactLayout.moveHandle.left)
   assert.equal(expandedLayout.menu.maxHeight, compactLayout.menu.maxHeight)
+})
+
+test('disc dock uses intrinsic shell size instead of constrained rendered width', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 110,
+      centerX: 400,
+      centerY: 65,
+      right: 680,
+      top: 20,
+    }),
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 800,
+      left: 0,
+      right: 800,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: {
+        height: 178,
+        preferredHeight: 286,
+        preferredWidth: 520,
+        width: 396,
+      },
+      moveHandle: { height: 32, width: 60 },
+      tabs: {
+        height: 46,
+        preferredHeight: 46,
+        preferredWidth: 520,
+        width: 396,
+      },
+    },
+  }
+  const constrainedLayout = getInlinePreviewTextControlLayout(input)
+  const preferredLayout = getInlinePreviewTextControlLayout({
+    ...input,
+    previousPlacement: constrainedLayout.menu.placement,
+    sizes: {
+      ...input.sizes,
+      menu: { ...input.sizes.menu, width: 520 },
+      tabs: { ...input.sizes.tabs, width: 520 },
+    },
+  })
+
+  assert.equal(constrainedLayout.mode, 'center-docked')
+  assert.equal(constrainedLayout.menu.maxWidth, 496)
+  assert.deepEqual(preferredLayout.menu, constrainedLayout.menu)
+  assert.deepEqual(preferredLayout.tabs, constrainedLayout.tabs)
+  assert.deepEqual(preferredLayout.moveHandle, constrainedLayout.moveHandle)
+})
+
+test('disc dock is deterministic across alternating responsive measurements', () => {
+  const input = {
+    anchor: createAnchor({
+      bottom: 112,
+      centerX: 400,
+      centerY: 68,
+      right: 720,
+      top: 24,
+    }),
+    paintedCollisionRects: [
+      { bottom: 120, left: 90, right: 710, top: 32 },
+    ],
+    placementStrategy: 'disc-center-dock' as const,
+    previewRect: {
+      bottom: 800,
+      left: 0,
+      right: 800,
+      top: 0,
+    },
+    requestedMenuPlacement: 'below' as const,
+    sizes: {
+      menu: {
+        height: 178,
+        preferredHeight: 286,
+        preferredWidth: 520,
+        width: 396,
+      },
+      moveHandle: { height: 32, width: 60 },
+      tabs: {
+        height: 46,
+        preferredHeight: 46,
+        preferredWidth: 520,
+        width: 396,
+      },
+    },
+  }
+  const firstLayout = getInlinePreviewTextControlLayout(input)
+  const layouts = Array.from({ length: 20 }, (_, index) =>
+    getInlinePreviewTextControlLayout({
+      ...input,
+      previousPlacement: firstLayout.menu.placement,
+      sizes: {
+        ...input.sizes,
+        menu: {
+          ...input.sizes.menu,
+          width: index % 2 === 0 ? 396 : 520,
+        },
+        tabs: {
+          ...input.sizes.tabs,
+          width: index % 2 === 0 ? 396 : 520,
+        },
+      },
+    }))
+
+  for (const layout of layouts) {
+    assert.equal(layout.mode, firstLayout.mode)
+    assert.equal(layout.menu.placement, firstLayout.menu.placement)
+    assert.deepEqual(layout.menu, firstLayout.menu)
+    assert.deepEqual(layout.tabs, firstLayout.tabs)
+    assert.deepEqual(layout.moveHandle, firstLayout.moveHandle)
+  }
 })
 
 test('disc text occupying the center workspace chooses a stable side dock', () => {
