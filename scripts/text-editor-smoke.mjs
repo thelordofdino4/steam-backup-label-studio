@@ -740,6 +740,32 @@ async function assertCurvedContextualPlacementUsesPaintBounds(page, label) {
   }
 }
 
+async function assertCurvedEditorUsesPathOverlays(page, label, expectedOverlay) {
+  const pathOverlaySmokeId = expectedOverlay === 'selection'
+    ? 'inline-text-selection-path'
+    : 'inline-text-caret-path'
+  const pathOverlay = smoke(page, pathOverlaySmokeId).first()
+  await pathOverlay.waitFor({ state: 'visible', timeout: 2_000 })
+
+  const pathD = await pathOverlay.locator('path').first().getAttribute('d')
+  if (!pathD) {
+    fail(`${label}: curved ${expectedOverlay} path overlay did not expose SVG path geometry.`)
+  }
+  if (expectedOverlay === 'selection' && !pathD.includes(' A ')) {
+    fail(`${label}: curved selection did not use an arc path: ${pathD}`)
+  }
+  if (expectedOverlay === 'caret' && !pathD.includes(' L ')) {
+    fail(`${label}: curved caret did not use a path segment: ${pathD}`)
+  }
+
+  const rectangularSelectionCount = await page
+    .locator('.inline-preview-text-selection:not(.inline-preview-text-selection--path)')
+    .count()
+  if (expectedOverlay === 'selection' && rectangularSelectionCount > 0) {
+    fail(`${label}: curved selection fell back to rectangular editor bands.`)
+  }
+}
+
 function getRectDelta(first, second) {
   return {
     left: second.left - first.left,
@@ -1052,6 +1078,7 @@ async function assertCurvedCopyrightGuardrail(page) {
   const beforeSrc = await smoke(page, 'disc-text-layer-image').first().getAttribute('src')
   await curvedPath.click({ force: true })
   await expectInlineEditor(page)
+  await assertCurvedEditorUsesPathOverlays(page, 'initial curved copyright', 'caret')
   const copyrightEditorCount = await smoke(page, 'disc-inline-text-copyright').count()
   if (copyrightEditorCount !== 1) {
     fail(`Curved copyright did not open its contextual shell. Count: ${copyrightEditorCount}`)
@@ -1085,6 +1112,7 @@ async function assertCurvedCopyrightGuardrail(page) {
     fail('Curved copyright hit-target SVG did not receive the directly edited text.')
   }
   await dragSelectCurvedText(page, 'disc-inline-text-copyright')
+  await assertCurvedEditorUsesPathOverlays(page, 'dragged curved copyright', 'selection')
   await page.keyboard.press('Control+A')
   const selectAllState = await getInlineInputState(page)
   if (

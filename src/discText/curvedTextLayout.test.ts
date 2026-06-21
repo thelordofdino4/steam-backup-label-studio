@@ -256,7 +256,7 @@ test('curved geometry creates radial caret frames for top and bottom arcs', () =
   assert.ok(bottomCaret.height >= 8)
 })
 
-test('curved geometry returns tangent selection frames for dragged ranges', () => {
+test('curved geometry returns arc-following selection paths for dragged ranges', () => {
   const frames = getCurvedDiscTextSelectionFrames({
     caretValue: 'ABCDE',
     geometry: getCurvedGeometryFixture(),
@@ -267,7 +267,67 @@ test('curved geometry returns tangent selection frames for dragged ranges', () =
   })
 
   assert.equal(frames.length, 1)
+  assert.ok(frames[0].pathD?.includes(' A '))
+  assert.equal(frames[0].viewportHeight, 50)
+  assert.equal(frames[0].viewportWidth, 100)
+  assert.ok(frames[0].strokeWidth >= 8)
   assert.ok(frames[0].width > 2)
   assert.ok(frames[0].height >= 8)
   assert.ok(Number.isFinite(frames[0].rotationDegrees))
+})
+
+test('curved geometry returns caret paths at beginning middle and end', () => {
+  const geometry = getCurvedGeometryFixture()
+
+  const carets = [0, 2, 5].map((selectionFocus) =>
+    getCurvedDiscTextCaretFrame({
+      caretValue: 'ABCDE',
+      geometry,
+      hostHeight: 50,
+      hostWidth: 100,
+      lines: [{ text: 'ABCDE' }],
+      selectionFocus,
+    }))
+
+  for (const caret of carets) {
+    assert.ok(caret)
+    assert.ok(caret.pathD?.startsWith('M '))
+    assert.ok(caret.pathD?.includes(' L '))
+    assert.equal(caret.viewportHeight, 50)
+    assert.equal(caret.viewportWidth, 100)
+    assert.equal(caret.strokeWidth, 2)
+  }
+
+  assert.notEqual(carets[0]?.pathD, carets[1]?.pathD)
+  assert.notEqual(carets[1]?.pathD, carets[2]?.pathD)
+})
+
+test('curved selection paths support reverse and bottom arc selections', () => {
+  const topFrames = getCurvedDiscTextSelectionFrames({
+    caretValue: 'ABCDE',
+    geometry: getCurvedGeometryFixture(),
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'ABCDE' }],
+    selection: { start: 4, end: 1 },
+  })
+  const bottomFrames = getCurvedDiscTextSelectionFrames({
+    caretValue: 'ABCDE',
+    geometry: getCurvedGeometryFixture({
+      centerAngleDegrees: 90,
+      endAngleDegrees: 0,
+      isTopArc: false,
+      startAngleDegrees: 180,
+    }),
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'ABCDE' }],
+    selection: { start: 1, end: 4 },
+  })
+
+  assert.equal(topFrames.length, 1)
+  assert.equal(bottomFrames.length, 1)
+  assert.ok(topFrames[0].pathD?.includes(' 1 '))
+  assert.ok(bottomFrames[0].pathD?.includes(' 0 '))
+  assert.notEqual(topFrames[0].pathD, bottomFrames[0].pathD)
 })

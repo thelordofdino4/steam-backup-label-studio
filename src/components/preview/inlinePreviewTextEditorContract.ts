@@ -48,15 +48,23 @@ export type InlinePreviewTextEditorGeometryOffset = {
 export type InlinePreviewTextEditorCaretFrame = {
   height: number
   left: number
+  pathD?: string
   rotationDegrees?: number
+  strokeWidth?: number
   top: number
+  viewportHeight?: number
+  viewportWidth?: number
 }
 
 export type InlinePreviewTextEditorSelectionFrame = {
   height: number
   left: number
+  pathD?: string
   rotationDegrees?: number
+  strokeWidth?: number
   top: number
+  viewportHeight?: number
+  viewportWidth?: number
   width: number
 }
 
