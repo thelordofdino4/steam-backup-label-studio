@@ -308,6 +308,86 @@ function getCurvedRichLines({
   })
 }
 
+function getCurvedRichLineBoundaryProgresses({
+  baseFontSize,
+  letterSpacing,
+  line,
+  linePathLength,
+  measureText,
+  renderStyle,
+  template,
+}: {
+  baseFontSize: number
+  letterSpacing: number
+  line: CurvedDiscTextRichLine
+  linePathLength: number
+  measureText: TextMeasureFunction
+  renderStyle: ResolvedDiscTextRenderStyle
+  template?: DiscTemplate
+}): CurvedDiscTextLineGeometry['boundaryProgresses'] {
+  const totalSegments = getGraphemeSegments(line.text).length
+  const pathLength = Math.max(1, linePathLength)
+  const boundaries: { offset: number; progress: number }[] = [{
+    offset: 0,
+    progress: 0,
+  }]
+  let lineOffset = 0
+  let measuredLinePrefix = 0
+  let segmentIndex = 0
+
+  for (const run of line.runs) {
+    const runSegments = getGraphemeSegments(run.text)
+    const fontSize = getCurvedRichRunFontSize(run, baseFontSize, template)
+    const font = getCurvedRichRunFontString({
+      baseFontSize,
+      renderStyle,
+      run,
+      template,
+    })
+
+    for (let index = 0; index < runSegments.length; index += 1) {
+      const segment = runSegments[index]
+      const boundarySegmentIndex = segmentIndex + index + 1
+      const boundaryOffset = lineOffset + segment.end
+      const measuredRunPrefix = measureCurvedTextWithoutLetterSpacing({
+        font,
+        fontSize,
+        measureText,
+        text: run.text.slice(0, segment.end),
+      })
+      const letterSpacingWidth =
+        Math.min(boundarySegmentIndex, Math.max(0, totalSegments - 1)) *
+          letterSpacing
+      const boundaryDistance =
+        measuredLinePrefix + measuredRunPrefix + letterSpacingWidth
+
+      boundaries.push({
+        offset: boundaryOffset,
+        progress: Math.min(1, Math.max(0, boundaryDistance / pathLength)),
+      })
+    }
+
+    measuredLinePrefix += measureCurvedTextWithoutLetterSpacing({
+      font,
+      fontSize,
+      measureText,
+      text: run.text,
+    })
+    segmentIndex += runSegments.length
+    lineOffset += run.text.length
+  }
+
+  const finalBoundary = boundaries[boundaries.length - 1]
+  if (!finalBoundary || finalBoundary.offset < line.text.length) {
+    boundaries.push({
+      offset: line.text.length,
+      progress: Math.min(1, Math.max(0, line.width / pathLength)),
+    })
+  }
+
+  return boundaries
+}
+
 function splitLongTokenForCurvedText(
   token: string,
   maxArcLength: number,
@@ -711,6 +791,10 @@ type CurvedDiscTextPaintBox = {
 
 export type CurvedDiscTextLineGeometry = {
   angleWidthDegrees: number
+  boundaryProgresses?: readonly {
+    offset: number
+    progress: number
+  }[]
   centerAngleDegrees: number
   endAngleDegrees: number
   fontSize: number
@@ -719,6 +803,58 @@ export type CurvedDiscTextLineGeometry = {
   radius: number
   startAngleDegrees: number
   text: string
+}
+
+function getGraphemeSegments(text: string) {
+  if (
+    typeof Intl !== 'undefined' &&
+    'Segmenter' in Intl
+  ) {
+    const SegmenterConstructor = Intl.Segmenter
+    const segmenter = new SegmenterConstructor(undefined, {
+      granularity: 'grapheme',
+    })
+
+    return Array.from(segmenter.segment(text), (segment) => ({
+      end: segment.index + segment.segment.length,
+      segment: segment.segment,
+      start: segment.index,
+    }))
+  }
+
+  const segments: { end: number; segment: string; start: number }[] = []
+  let offset = 0
+
+  for (const segment of Array.from(text)) {
+    segments.push({
+      end: offset + segment.length,
+      segment,
+      start: offset,
+    })
+    offset += segment.length
+  }
+
+  return segments
+}
+
+function measureCurvedTextWithoutLetterSpacing({
+  font,
+  fontSize,
+  measureText,
+  text,
+}: {
+  font: string
+  fontSize: number
+  measureText: TextMeasureFunction
+  text: string
+}) {
+  const measuredWidth = measureText(text, font)
+
+  if (Number.isFinite(measuredWidth)) {
+    return measuredWidth
+  }
+
+  return Array.from(text).length * fontSize * 0.68
 }
 
 function getArcPoint(radius: number, angleDegrees: number) {
@@ -794,6 +930,7 @@ export function getCurvedDiscTextPaintBoxes({
   layout,
   safeZoneRadiusPercent,
   measureText,
+  richText,
   styles,
   template,
 }: {
@@ -803,6 +940,7 @@ export function getCurvedDiscTextPaintBoxes({
   layout: DiscTextLayout
   safeZoneRadiusPercent: number
   measureText: TextMeasureFunction
+  richText?: RichTextDocument
   styles?: DiscTextStyleInput
   template?: DiscTemplate
 }): CurvedDiscTextPaintBox[] {
@@ -811,6 +949,7 @@ export function getCurvedDiscTextPaintBoxes({
     layout,
     measureText,
     placement,
+    richText,
     safeZoneRadiusPercent,
     styles,
     template,
@@ -833,6 +972,7 @@ export function getCurvedDiscTextLineGeometry({
   layout,
   safeZoneRadiusPercent,
   measureText,
+  richText,
   styles,
   template,
 }: {
@@ -842,6 +982,7 @@ export function getCurvedDiscTextLineGeometry({
   layout: DiscTextLayout
   safeZoneRadiusPercent: number
   measureText: TextMeasureFunction
+  richText?: RichTextDocument
   styles?: DiscTextStyleInput
   template?: DiscTemplate
 }): CurvedDiscTextLineGeometry[] {
@@ -870,21 +1011,36 @@ export function getCurvedDiscTextLineGeometry({
     isTopArc,
     measureText,
   )
+  const richLines = getCurvedRichLines({
+    baseFontSize: fontSize,
+    document: richText,
+    fallbackLines: lines,
+    letterSpacing,
+    measureText,
+    renderStyle,
+    template,
+  })
   const curvedLineLayout = layoutCurvedText({
     side: isTopArc ? 'top' : 'bottom',
     centerAngleDegrees: arcCenterAngle,
     arcDegrees: layout.arcDegrees,
     align: layout.align,
     blockWindowDegrees,
-    lines: lines.map((line, index) => ({
-      text: line,
+    lines: richLines.map((line, index) => ({
+      text: line.text,
       measuredWidth: getCurvedLinePathWidth(
-        line,
+        line.text,
         font,
         fontSize,
         letterSpacing,
         measureText,
-      ),
+      ) + Math.max(0, line.width - getCurvedLineWidth(
+        line.text,
+        font,
+        fontSize,
+        letterSpacing,
+        measureText,
+      )),
       radius: getCurvedLineRadius(
         isTopArc,
         textRadius,
@@ -895,17 +1051,31 @@ export function getCurvedDiscTextLineGeometry({
     })),
   })
 
-  return curvedLineLayout.lines.map((lineLayout) => ({
-    angleWidthDegrees: lineLayout.angleWidthDegrees,
-    centerAngleDegrees: lineLayout.centerAngleDegrees,
-    endAngleDegrees: lineLayout.endAngleDegrees,
-    fontSize,
-    isTopArc,
-    letterSpacing,
-    radius: lineLayout.radius,
-    startAngleDegrees: lineLayout.startAngleDegrees,
-    text: lineLayout.text,
-  }))
+  return curvedLineLayout.lines.map((lineLayout, index) => {
+    const linePathLength =
+      lineLayout.radius * (lineLayout.angleWidthDegrees * Math.PI / 180)
+
+    return {
+      angleWidthDegrees: lineLayout.angleWidthDegrees,
+      boundaryProgresses: getCurvedRichLineBoundaryProgresses({
+        baseFontSize: fontSize,
+        letterSpacing,
+        line: richLines[index] ?? { runs: [], text: lineLayout.text, width: 0 },
+        linePathLength,
+        measureText,
+        renderStyle,
+        template,
+      }),
+      centerAngleDegrees: lineLayout.centerAngleDegrees,
+      endAngleDegrees: lineLayout.endAngleDegrees,
+      fontSize,
+      isTopArc,
+      letterSpacing,
+      radius: lineLayout.radius,
+      startAngleDegrees: lineLayout.startAngleDegrees,
+      text: lineLayout.text,
+    }
+  })
 }
 
 function buildCurvedCopyrightMarkup(

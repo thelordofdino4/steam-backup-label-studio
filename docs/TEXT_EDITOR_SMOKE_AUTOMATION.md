@@ -200,6 +200,9 @@ The committed smoke command verifies:
   renders path-aware curved caret and selection overlays instead of rectangular
   editor bands, does not expose a contextual menu Text Value field, and does not
   mount a rectangular on-canvas textarea.
+- Curved caret mutation parity is checked by clicking a measured SVG character
+  boundary and verifying Backspace removes the character before the visible
+  caret while Delete removes the character after it.
 
 ## Expected Outcomes
 

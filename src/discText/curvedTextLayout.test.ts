@@ -8,6 +8,7 @@ import {
   type CurvedDiscTextHostGeometry,
 } from './curvedInlineEditorGeometry.ts'
 import { layoutCurvedText, normalizeAngleDegrees, type CurvedTextAlignment, type CurvedTextSide } from './curvedTextLayout.ts'
+import { getCurvedDiscTextLineGeometry } from './svgLayer.ts'
 
 function assertApproximatelyEqual(actual: number, expected: number) {
   assert.ok(
@@ -232,6 +233,29 @@ function getCurvedGeometryFixture(
   }
 }
 
+function getArcClientPoint({
+  geometry,
+  lineIndex = 0,
+  progress,
+}: {
+  geometry: CurvedDiscTextHostGeometry
+  lineIndex?: number
+  progress: number
+}) {
+  const lineGeometry = geometry.lines[lineIndex]
+  assert.ok(lineGeometry)
+
+  const direction = lineGeometry.isTopArc ? 1 : -1
+  const angleDegrees = lineGeometry.startAngleDegrees +
+    direction * lineGeometry.angleWidthDegrees * progress
+  const radians = (angleDegrees * Math.PI) / 180
+
+  return {
+    x: 50 + Math.cos(radians) * lineGeometry.radius,
+    y: 50 + Math.sin(radians) * lineGeometry.radius,
+  }
+}
+
 test('curved geometry maps pointer-down positions to nearest text offsets', () => {
   const geometry = getCurvedGeometryFixture()
   const common = {
@@ -264,6 +288,129 @@ test('curved geometry maps pointer-down positions to nearest text offsets', () =
       clientY: 50,
     }),
     { lineIndex: 0, offset: 5 },
+  )
+})
+
+test('curved line geometry records measured glyph boundary progress', () => {
+  const measuredWidths = new Map([
+    ['W', 30],
+    ['I', 5],
+    ['D', 18],
+    ['E', 16],
+  ])
+  const geometry = getCurvedDiscTextLineGeometry({
+    key: 'copyright',
+    layout: {
+      align: 'center',
+      arcDegrees: 220,
+      arcSide: 'top',
+      avoidVisualElements: false,
+      fontSizePt: 10,
+      mode: 'curved',
+      scale: 1,
+      width: 52,
+      x: 0,
+      y: 0,
+    },
+    measureText: (text) =>
+      Array.from(text).reduce(
+        (total, character) => total + (measuredWidths.get(character) ?? 12),
+        0,
+      ),
+    placement: 'bottom',
+    safeZoneRadiusPercent: 42,
+    text: 'WIDE',
+  })
+  const lineGeometry = geometry[0]
+
+  assert.ok(lineGeometry?.boundaryProgresses)
+  assert.equal(lineGeometry.boundaryProgresses.at(-1)?.offset, 'WIDE'.length)
+  assert.ok(
+    (lineGeometry.boundaryProgresses[1]?.progress ?? 0) > 0.25,
+    'wide first glyph should move the first boundary past equal-width progress',
+  )
+  assert.ok(
+    (lineGeometry.boundaryProgresses.at(-1)?.progress ?? 1) < 1,
+    'glyph boundaries should occupy the rendered glyph span, not the paint-safe path padding',
+  )
+})
+
+test('curved hit testing caret and keyboard mutation share measured boundaries', () => {
+  const geometry = getCurvedGeometryFixture({
+    boundaryProgresses: [
+      { offset: 0, progress: 0 },
+      { offset: 1, progress: 0.38 },
+      { offset: 2, progress: 0.48 },
+      { offset: 3, progress: 0.66 },
+      { offset: 4, progress: 0.78 },
+    ],
+    text: 'WIDE',
+  })
+  const common = {
+    geometry,
+    hostHeight: 50,
+    hostRect: { height: 50, left: 0, top: 0, width: 100 },
+    hostWidth: 100,
+  }
+  const boundaryAfterW = getArcClientPoint({ geometry, progress: 0.38 })
+  const hitOffset = getCurvedDiscTextOffsetForClientPoint({
+    ...common,
+    clientX: boundaryAfterW.x,
+    clientY: boundaryAfterW.y,
+  })
+  const caret = getCurvedDiscTextCaretFrame({
+    caretValue: 'WIDE',
+    geometry,
+    hostHeight: 50,
+    hostWidth: 100,
+    lines: [{ text: 'WIDE' }],
+    selectionFocus: 1,
+  })
+  const backspaceResult = 'WIDE'.slice(0, 0) + 'WIDE'.slice(1)
+  const deleteResult = 'WIDE'.slice(0, 1) + 'WIDE'.slice(2)
+
+  assert.deepEqual(hitOffset, { lineIndex: 0, offset: 1 })
+  assert.ok(caret?.pathD?.includes(' L '))
+  assert.equal(backspaceResult, 'IDE')
+  assert.equal(deleteResult, 'WDE')
+})
+
+test('curved boundaries preserve surrogate pairs and combining marks as UTF-16 offsets', () => {
+  const text = 'A👩‍🚀e\u0301Z'
+  const geometry = getCurvedGeometryFixture({
+    boundaryProgresses: [
+      { offset: 0, progress: 0 },
+      { offset: 1, progress: 0.2 },
+      { offset: 6, progress: 0.45 },
+      { offset: 8, progress: 0.7 },
+      { offset: 9, progress: 0.9 },
+    ],
+    text,
+  })
+  const common = {
+    geometry,
+    hostHeight: 50,
+    hostRect: { height: 50, left: 0, top: 0, width: 100 },
+    hostWidth: 100,
+  }
+  const afterEmoji = getArcClientPoint({ geometry, progress: 0.45 })
+  const afterCombiningMark = getArcClientPoint({ geometry, progress: 0.7 })
+
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForClientPoint({
+      ...common,
+      clientX: afterEmoji.x,
+      clientY: afterEmoji.y,
+    }),
+    { lineIndex: 0, offset: 6 },
+  )
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForClientPoint({
+      ...common,
+      clientX: afterCombiningMark.x,
+      clientY: afterCombiningMark.y,
+    }),
+    { lineIndex: 0, offset: 8 },
   )
 })
 

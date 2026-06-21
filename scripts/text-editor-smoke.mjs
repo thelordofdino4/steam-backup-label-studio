@@ -965,6 +965,127 @@ async function dragSelectCurvedText(page, smokeId) {
   }
 }
 
+async function getCurvedTextBoundaryClientPoint(page, boundaryOffset) {
+  const text = page
+    .locator('[data-smoke-id="disc-text-layer-hit-target"] text[data-disc-text-key="copyright"]')
+    .first()
+  await text.waitFor({ state: 'attached', timeout: 5_000 })
+
+  return text.evaluate((element, offset) => {
+    const textElement = element
+    const rawText = textElement.textContent ?? ''
+    const visibleStart = rawText.search(/\S/)
+    const visibleText = visibleStart >= 0 ? rawText.slice(visibleStart).trimEnd() : rawText
+    const charCount = typeof textElement.getNumberOfChars === 'function'
+      ? textElement.getNumberOfChars()
+      : rawText.length
+
+    if (
+      charCount < 1 ||
+      visibleStart < 0 ||
+      typeof textElement.getStartPositionOfChar !== 'function' ||
+      typeof textElement.getEndPositionOfChar !== 'function'
+    ) {
+      throw new Error('Curved SVG text does not expose measurable character positions.')
+    }
+
+    const normalizedOffset = Math.max(0, Math.min(offset, visibleText.length))
+    const svgOffset = Math.max(
+      0,
+      Math.min(visibleStart + normalizedOffset, charCount),
+    )
+    const ctm = textElement.getScreenCTM()
+    const svg = textElement.ownerSVGElement
+    if (!ctm || !svg) {
+      throw new Error('Curved SVG text does not expose a screen transform.')
+    }
+
+    const svgPoint = svg.createSVGPoint()
+    const toScreen = (point) => {
+      svgPoint.x = point.x
+      svgPoint.y = point.y
+      const screenPoint = svgPoint.matrixTransform(ctm)
+
+      return { x: screenPoint.x, y: screenPoint.y }
+    }
+
+    if (normalizedOffset === 0) {
+      return {
+        ...toScreen(textElement.getStartPositionOfChar(visibleStart)),
+        charCount: visibleText.length,
+        offset: normalizedOffset,
+        text: visibleText,
+      }
+    }
+
+    if (normalizedOffset >= visibleText.length) {
+      return {
+        ...toScreen(textElement.getEndPositionOfChar(svgOffset - 1)),
+        charCount: visibleText.length,
+        offset: normalizedOffset,
+        text: visibleText,
+      }
+    }
+
+    const previousEnd = toScreen(textElement.getEndPositionOfChar(svgOffset - 1))
+    const nextStart = toScreen(textElement.getStartPositionOfChar(svgOffset))
+
+    return {
+      charCount: visibleText.length,
+      offset: normalizedOffset,
+      text: visibleText,
+      x: (previousEnd.x + nextStart.x) / 2,
+      y: (previousEnd.y + nextStart.y) / 2,
+    }
+  }, boundaryOffset)
+}
+
+async function clickCurvedTextBoundary(page, boundaryOffset, label) {
+  const point = await getCurvedTextBoundaryClientPoint(page, boundaryOffset)
+  await page.mouse.click(point.x, point.y)
+  await page.waitForTimeout(120)
+  const state = await getInlineInputState(page)
+
+  if (
+    state.selectionStart !== boundaryOffset ||
+    state.selectionEnd !== boundaryOffset
+  ) {
+    fail(
+      `${label}: curved boundary click selected the wrong offset: ` +
+      JSON.stringify({ boundaryOffset, point, state }),
+    )
+  }
+
+  return point
+}
+
+async function assertCurvedCaretMutationParity(page) {
+  await replaceInlineTextWithKeyboard(page, 'WIDE TEST')
+  await clickCurvedTextBoundary(page, 1, 'Backspace parity')
+  await assertCurvedEditorUsesPathOverlays(page, 'backspace boundary curved copyright', 'caret')
+  await page.keyboard.press('Backspace')
+  await page.waitForTimeout(120)
+  let state = await getInlineInputState(page)
+  if (state.value !== 'IDE TEST') {
+    fail(
+      `Backspace did not delete the character before the curved caret: ` +
+      JSON.stringify(state),
+    )
+  }
+
+  await replaceInlineTextWithKeyboard(page, 'WIDE TEST')
+  await clickCurvedTextBoundary(page, 1, 'Delete parity')
+  await page.keyboard.press('Delete')
+  await page.waitForTimeout(120)
+  state = await getInlineInputState(page)
+  if (state.value !== 'WDE TEST') {
+    fail(
+      `Delete did not remove the character after the curved caret: ` +
+      JSON.stringify(state),
+    )
+  }
+}
+
 async function dragSelectVisiblePrefix(page, smokeId) {
   const targetRect = await getRect(page, smokeId)
   const y = targetRect.top + targetRect.height / 2
@@ -1111,6 +1232,7 @@ async function assertCurvedCopyrightGuardrail(page) {
   if (!hitTargetMarkup.includes('Curved direct smoke')) {
     fail('Curved copyright hit-target SVG did not receive the directly edited text.')
   }
+  await assertCurvedCaretMutationParity(page)
   await dragSelectCurvedText(page, 'disc-inline-text-copyright')
   await assertCurvedEditorUsesPathOverlays(page, 'dragged curved copyright', 'selection')
   await page.keyboard.press('Control+A')
