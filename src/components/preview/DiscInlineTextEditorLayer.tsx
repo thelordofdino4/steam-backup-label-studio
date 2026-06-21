@@ -37,6 +37,10 @@ import {
   getCurvedDiscTextLineGeometry,
   getCurvedDiscTextPaintBoxes,
 } from '../../discText/svgLayer'
+import {
+  getRenderedCurvedDiscTextGeometry,
+  getRenderedCurvedDiscTextOffsetForClientPoint,
+} from '../../discText/curvedRenderedTextBoundaries'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
 import type { TextMeasureFunction } from '../../discText/renderLayout'
 import {
@@ -359,7 +363,12 @@ export function DiscInlineTextEditorLayer({
               hostRect,
               hostWidth,
             }) =>
-              getCurvedDiscTextOffsetForClientPoint({
+              getRenderedCurvedDiscTextOffsetForClientPoint({
+                clientX,
+                clientY,
+                geometry: curvedGeometry,
+                key,
+              }) ?? getCurvedDiscTextOffsetForClientPoint({
                 clientX,
                 clientY,
                 geometry: curvedGeometry,
@@ -376,7 +385,11 @@ export function DiscInlineTextEditorLayer({
             }) =>
               getCurvedDiscTextCaretFrame({
                 caretValue,
-                geometry: curvedGeometry,
+                geometry:
+                  getRenderedCurvedDiscTextGeometry({
+                    geometry: curvedGeometry,
+                    key,
+                  }) ?? curvedGeometry,
                 hostHeight,
                 hostWidth,
                 lines,
@@ -391,7 +404,11 @@ export function DiscInlineTextEditorLayer({
             }) =>
               getCurvedDiscTextSelectionFrames({
                 caretValue,
-                geometry: curvedGeometry,
+                geometry:
+                  getRenderedCurvedDiscTextGeometry({
+                    geometry: curvedGeometry,
+                    key,
+                  }) ?? curvedGeometry,
                 hostHeight,
                 hostWidth,
                 lines,

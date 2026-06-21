@@ -4,9 +4,14 @@ import {
   getCurvedDiscTextCaretFrame,
   getCurvedDiscTextEditorBoundsFromPaintBoxes,
   getCurvedDiscTextOffsetForClientPoint,
+  getCurvedDiscTextOffsetForSvgPoint,
   getCurvedDiscTextSelectionFrames,
   type CurvedDiscTextHostGeometry,
 } from './curvedInlineEditorGeometry.ts'
+import {
+  getRenderedCurvedDiscTextBoundaryProgressesForElement,
+  getSvgTextCharacterIndexForUtf16Offset,
+} from './curvedRenderedTextBoundaries.ts'
 import { layoutCurvedText, normalizeAngleDegrees, type CurvedTextAlignment, type CurvedTextSide } from './curvedTextLayout.ts'
 import { getCurvedDiscTextLineGeometry } from './svgLayer.ts'
 
@@ -332,6 +337,103 @@ test('curved line geometry records measured glyph boundary progress', () => {
   assert.ok(
     (lineGeometry.boundaryProgresses.at(-1)?.progress ?? 1) < 1,
     'glyph boundaries should occupy the rendered glyph span, not the paint-safe path padding',
+  )
+})
+
+test('rendered curved SVG boundaries replace estimated glyph progress', () => {
+  const geometry = getCurvedGeometryFixture({ text: 'WIDE' })
+  const lineGeometry = geometry.lines[0]
+  assert.ok(lineGeometry)
+
+  const rawText = '  WIDE  '
+  const progressByCharacter = new Map([
+    [2, { end: 0.38, start: 0 }],
+    [3, { end: 0.48, start: 0.38 }],
+    [4, { end: 0.66, start: 0.48 }],
+    [5, { end: 0.78, start: 0.66 }],
+  ])
+  const pointForProgress = (progress: number) =>
+    getArcClientPoint({ geometry, progress })
+  const textElement = {
+    getEndPositionOfChar: (index: number) =>
+      pointForProgress(progressByCharacter.get(index)?.end ?? 0),
+    getExtentOfChar: (index: number) => {
+      const start = pointForProgress(
+        progressByCharacter.get(index)?.start ?? 0,
+      )
+      const end = pointForProgress(progressByCharacter.get(index)?.end ?? 0)
+
+      return {
+        height: Math.max(1, Math.abs(end.y - start.y)),
+        width: Math.max(1, Math.abs(end.x - start.x)),
+        x: Math.min(start.x, end.x),
+        y: Math.min(start.y, end.y),
+      }
+    },
+    getNumberOfChars: () => rawText.length,
+    getStartPositionOfChar: (index: number) =>
+      pointForProgress(progressByCharacter.get(index)?.start ?? 0),
+    ownerSVGElement: null,
+    textContent: rawText,
+  } as unknown as Parameters<
+    typeof getRenderedCurvedDiscTextBoundaryProgressesForElement
+  >[0]['textElement']
+
+  const boundaries = getRenderedCurvedDiscTextBoundaryProgressesForElement({
+    line: lineGeometry,
+    textElement,
+  })
+
+  assert.deepEqual(
+    boundaries?.map((boundary) => boundary.offset),
+    [0, 1, 2, 3, 4],
+  )
+  assertApproximatelyEqual(boundaries?.[1]?.progress ?? -1, 0.38)
+  assertApproximatelyEqual(boundaries?.[2]?.progress ?? -1, 0.48)
+  assertApproximatelyEqual(boundaries?.[3]?.progress ?? -1, 0.66)
+
+  const renderedGeometry = {
+    ...geometry,
+    lines: [{ ...lineGeometry, boundaryProgresses: boundaries ?? [] }],
+  }
+  const afterWideW = getArcClientPoint({ geometry, progress: 0.38 })
+
+  assert.deepEqual(
+    getCurvedDiscTextOffsetForSvgPoint({
+      geometry: renderedGeometry,
+      x: afterWideW.x,
+      y: afterWideW.y,
+    }),
+    { lineIndex: 0, offset: 1 },
+  )
+})
+
+test('rendered SVG character mapping preserves UTF-16 grapheme offsets', () => {
+  const text = 'A👩‍🚀e\u0301Z'
+
+  assert.equal(
+    getSvgTextCharacterIndexForUtf16Offset({
+      renderedCharacterCount: text.length,
+      text,
+      utf16Offset: 6,
+    }),
+    6,
+  )
+  assert.equal(
+    getSvgTextCharacterIndexForUtf16Offset({
+      renderedCharacterCount: Array.from(text).length,
+      text,
+      utf16Offset: 6,
+    }),
+    4,
+  )
+  assert.equal(
+    getSvgTextCharacterIndexForUtf16Offset({
+      renderedCharacterCount: 4,
+      text,
+      utf16Offset: 8,
+    }),
+    3,
   )
 })
 
