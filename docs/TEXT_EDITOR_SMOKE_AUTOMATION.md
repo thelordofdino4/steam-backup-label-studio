@@ -146,10 +146,11 @@ The committed smoke command verifies:
 - The contextual case-insert `Font size (pt)` control supports uninterrupted
   typing, a temporary empty draft, Enter commit, repeated preset popup opens,
   wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
-- The shared contextual shell is screenshot-checked at representative wide,
-  compact, and narrow widths for ordinary text controls and the Utilities HTML
-  source panel. The check verifies tab reflow, internal menu scrolling, visible
-  menu actions, usable hit targets, and no overlapping child controls.
+- The shared contextual ribbon shell is screenshot-checked at representative
+  wide, compact, and narrow widths for ordinary text controls and the Utilities
+  HTML source panel. The check verifies tab reflow, visible actions, usable hit
+  targets, and no overlapping child controls. Floating-shell scroll checks still
+  apply to non-ribbon surfaces.
 - Selected-range case-insert `Font size (pt)` applies canonical
   `font-size:Npt` HTML only to the highlighted characters.
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
@@ -157,24 +158,18 @@ The committed smoke command verifies:
 - Shift+Enter inside a bullet creates a soft break.
 - HTML source editing updates the cover preview live.
 - Done and reopen preserve canonical HTML source.
-- Contextual menu follows selected text after a deterministic Y-control move.
-- The contextual Move handle begins dragging on the first pointer movement
+- Cover case text activates the stable app-shell ribbon instead of the old
+  floating full tabs/menu, and the ribbon remains stable when selected text
+  moves or Wrap width is edited.
+- The local contextual Move handle begins dragging on the first pointer movement
   without waiting for long-hold activation, keeps the handle in a grabbing
   state while active, and does not move text on a simple click with no movement.
-- The committed Move-handle route covers cover, tray, left spine, right spine,
-  and straight disc text in the browser smoke harness.
-- Contextual placement locks while a Wrap width number control is actively
-  edited, then releases and recomputes after commit.
-- Initial top-edge placement keeps the contextual menu below the selected text
-  once controls first become visible, instead of detaching to the bottom or
-  opening as an unusable collapsed strip.
-- Initial bottom placement keeps tabs and menu reachable without overlapping.
-- Oversized cover text triggers emergency detached placement so tabs, menu, and
-  move handle remain reachable inside the editor workspace, with the move handle
-  not hidden behind the menu or tab strip.
-- A roomy tray title keeps anchored contextual placement instead of using
-  emergency detached placement or opening the menu outside the tray preview.
-- Tray, left spine, and right spine open inline editors.
+- The committed Move-handle drag route covers cover and straight disc text in
+  the browser smoke harness; tray and both spines are checked for ribbon
+  activation and local preview affordance availability.
+- Top-edge, bottom-edge, and oversized cover text keep controls accessible in
+  the stable ribbon instead of invoking old case floating-menu placement.
+- Tray, left spine, and right spine open inline editors through the ribbon.
 - Left and right rotated spine text support forward and reverse LMB drag
   selection along the visible rotated text direction, and interior drags must
   anchor at the pointer instead of jumping to a text-box edge.

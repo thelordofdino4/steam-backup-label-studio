@@ -429,6 +429,46 @@ async function expectContextualShell(page) {
   await expectVisible(page, 'inline-text-move-handle', 'inline text move handle')
 }
 
+async function expectCaseRibbonEditor(page) {
+  await expectInlineEditor(page)
+  await expectVisible(page, 'contextual-text-ribbon-host', 'contextual text ribbon host')
+
+  const result = await page.evaluate(() => {
+    const host = document.querySelector('[data-smoke-id="contextual-text-ribbon-host"]')
+    const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+    const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+    const moveHandle = document.querySelector('[data-smoke-id="inline-text-move-handle"]')
+    const oldFloatingTabs =
+      tabs instanceof HTMLElement && tabs.classList.contains('inline-preview-text-tabs')
+    const oldFloatingMenu =
+      menu instanceof HTMLElement && menu.classList.contains('inline-preview-text-menu')
+
+    return {
+      hostActive: host instanceof HTMLElement
+        ? host.getAttribute('data-contextual-text-ribbon-active')
+        : null,
+      menuInsideRibbon: Boolean(host && menu && host.contains(menu)),
+      moveHandleInsideRibbon: Boolean(host && moveHandle && host.contains(moveHandle)),
+      oldFloatingMenu,
+      oldFloatingTabs,
+      tabsInsideRibbon: Boolean(host && tabs && host.contains(tabs)),
+    }
+  })
+
+  if (result.hostActive !== 'true') {
+    fail(`Case text did not activate the contextual ribbon: ${JSON.stringify(result)}`)
+  }
+  if (!result.tabsInsideRibbon || !result.menuInsideRibbon) {
+    fail(`Case text controls were not mounted in the ribbon: ${JSON.stringify(result)}`)
+  }
+  if (result.moveHandleInsideRibbon) {
+    fail(`Case Move handle should stay as a local preview affordance: ${JSON.stringify(result)}`)
+  }
+  if (result.oldFloatingTabs || result.oldFloatingMenu) {
+    fail(`Case text still rendered the old floating full menu: ${JSON.stringify(result)}`)
+  }
+}
+
 async function focusInlineInput(page) {
   await expectAttached(page, 'inline-text-input')
   await smoke(page, 'inline-text-input').first().evaluate((input) => {
@@ -1401,22 +1441,30 @@ async function assertResponsiveContextualShell(page) {
           }
         }
 
-        const actions = menu.querySelector('.inline-preview-text-menu-actions')
+        const ribbonSlot = menu.closest('.contextual-text-ribbon-portal-slot')
+        const actionRoot = ribbonSlot ?? menu
+        const actions = actionRoot.querySelector(
+          '.inline-preview-text-menu-actions, .contextual-text-ribbon-actions',
+        )
         const grid = menu.querySelector('.inline-preview-text-control-grid')
         const actionsRect = actions instanceof HTMLElement ? toRect(actions) : null
         const gridScrollsInternally =
           grid instanceof HTMLElement &&
           grid.scrollHeight > grid.clientHeight + 1
+        const actionContainerRect =
+          ribbonSlot instanceof HTMLElement ? toRect(ribbonSlot) : menuRect
 
         return {
-          actionsInside: actionsRect ? inside(actionsRect, menuRect) : false,
+          actionsInside: actionsRect ? inside(actionsRect, actionContainerRect) : false,
           expectedMode: mode,
           gridScrollsInternally,
           height: Math.round(menuRect.height),
+          isRibbonSlot: Boolean(ribbonSlot),
           mode: menu.getAttribute('data-inline-responsive-mode'),
           outside,
           overlaps,
-          shortMenuHasScroll: height < 170 ? gridScrollsInternally : true,
+          shortMenuHasScroll:
+            height < 170 && !ribbonSlot ? gridScrollsInternally : true,
           tabCount: tabButtons.length,
           tooSmall,
           width: Math.round(menuRect.width),
@@ -2264,7 +2312,11 @@ async function runCaseChecks(page) {
     await holdInlineTextNumberStepper(page, 'font-size-pt', 1)
     const afterHold = Number(await getInlineTextNumberDraft(page, 'font-size-pt'))
     if (afterHold <= afterKeyboard + 0.25) {
-      fail(`Font size held stepper only changed once: ${afterHold}`)
+      fail(
+        `Font size held stepper only changed once: ${
+          JSON.stringify({ afterHold, afterKeyboard })
+        }`,
+      )
     }
   })
 
@@ -2331,23 +2383,30 @@ async function runCaseChecks(page) {
     await assertSourceIncludes(page, 'color:#00ff00')
   })
 
-  await runCheck(page, 'cover menu follows moved text and remains clamped', async () => {
+  await runCheck(page, 'cover case text uses ribbon controls without floating menu', async () => {
     await hideHtmlSource(page)
-    const beforeMenu = await getRect(page, 'inline-text-menu')
+    await expectCaseRibbonEditor(page)
+    const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
     const beforeTarget = await getRect(page, 'case-text-block-cover-cover-title-text')
     const currentY = await getInlineNumberControlValue(page, 'y')
     await setInlineNumberControl(page, 'y', currentY + 8)
-    const afterMenu = await getRect(page, 'inline-text-menu')
+    await expectCaseRibbonEditor(page)
+    const afterRibbon = await getRect(page, 'contextual-text-ribbon-host')
     const afterTarget = await getRect(page, 'case-text-block-cover-cover-title-text')
-    const preview = await getRect(page, 'case-preview-cover')
     if (Math.abs(afterTarget.top - beforeTarget.top) < 5) {
       fail('Selected text did not move after changing its Y control.')
     }
-    if (Math.abs(afterMenu.top - beforeMenu.top) < 5) {
-      fail('Menu did not move with the selected text.')
-    }
-    if (afterMenu.left < preview.left - 1 || afterMenu.right > preview.right + 1) {
-      fail('Menu was not horizontally clamped inside the cover preview.')
+    if (
+      Math.abs(afterRibbon.left - beforeRibbon.left) > 1 ||
+      Math.abs(afterRibbon.top - beforeRibbon.top) > 1 ||
+      Math.abs(afterRibbon.width - beforeRibbon.width) > 1 ||
+      Math.abs(afterRibbon.height - beforeRibbon.height) > 1
+    ) {
+      fail(
+        `Ribbon moved or resized when selected text moved: ${
+          JSON.stringify({ beforeRibbon, afterRibbon })
+        }`,
+      )
     }
   })
 
@@ -2357,6 +2416,7 @@ async function runCaseChecks(page) {
       'case-text-block-cover-cover-title-text',
       30,
       18,
+      { expectMenuMovement: false },
     )
     await clickInlineMoveHandleWithoutMoving(
       page,
@@ -2364,69 +2424,48 @@ async function runCaseChecks(page) {
     )
   })
 
-  await runCheck(page, 'cover Wrap width input locks contextual placement while editing', async () => {
-    await assertInlineNumberControlLocksPlacement(page, 'wrap-width', 42)
+  await runCheck(page, 'cover Wrap width input keeps ribbon stable while editing', async () => {
+    await clickInlineTab(page, 'utilities')
+    const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    const input = smoke(page, 'inline-text-number-wrap-width').first()
+    await input.focus()
+    await page.keyboard.press('Control+A')
+    await page.keyboard.type('42')
+    await page.waitForTimeout(150)
+    const duringRibbon = await getRect(page, 'contextual-text-ribbon-host')
+
+    if (
+      Math.abs(duringRibbon.left - beforeRibbon.left) > 1 ||
+      Math.abs(duringRibbon.top - beforeRibbon.top) > 1 ||
+      Math.abs(duringRibbon.width - beforeRibbon.width) > 1 ||
+      Math.abs(duringRibbon.height - beforeRibbon.height) > 1
+    ) {
+      fail(
+        `Wrap width editing moved or resized the ribbon: ${
+          JSON.stringify({ beforeRibbon, duringRibbon })
+        }`,
+      )
+    }
+    await page.keyboard.press('Enter')
   })
 
-  await runCheck(page, 'cover initial top placement keeps menu below selected text', async () => {
+  await runCheck(page, 'cover top-edge text opens in the stable ribbon', async () => {
     const yMin = await getInlineNumberControlMin(page, 'y')
     await setInlineNumberControl(page, 'y', yMin)
     await done(page)
     await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
-    const { menu, tabs } = await waitForInlineMenuAndTabsToSeparate(page)
-    const target = await getRect(page, 'case-text-block-cover-cover-title-text')
-    const preview = await getRect(page, 'case-preview-cover')
-    const mode = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-mode')
-    if (mode !== 'anchored') {
-      fail(`Top-edge text used detached contextual placement: ${mode}`)
-    }
-    if (rectsOverlap(menu, tabs)) {
-      fail('Top-edge text opened with overlapping menu and tabs.')
-    }
-    if (menu.top < target.bottom - 1) {
-      fail(
-        `Top-edge text did not place the menu below the selected text: ${
-          JSON.stringify({ menu, target })
-        }`,
-      )
-    }
-    if (menu.top < preview.top - 1 || menu.bottom > preview.bottom + 1) {
-      fail(
-        `Top-edge text opened controls outside the preview: ${
-          JSON.stringify({ menu, preview })
-        }`,
-      )
-    }
+    await expectCaseRibbonEditor(page)
   })
 
-  await runCheck(page, 'cover initial bottom placement keeps controls accessible', async () => {
+  await runCheck(page, 'cover bottom-edge text opens in the stable ribbon', async () => {
     const yMax = await getInlineNumberControlMax(page, 'y')
     await setInlineNumberControl(page, 'y', yMax)
     await done(page)
     await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
-    const { menu, tabs } = await waitForInlineMenuAndTabsToSeparate(page)
-    const preview = await getRect(page, 'case-preview-cover')
-    if (rectsOverlap(menu, tabs)) {
-      fail('Initial menu placement near the bottom overlapped the tab strip.')
-    }
-    if (menu.height < 118) {
-      fail(`Initial bottom menu height was not navigable: ${menu.height}`)
-    }
-    if (
-      menu.right < preview.left ||
-      menu.left > preview.right ||
-      menu.bottom < preview.top ||
-      menu.top > preview.bottom
-    ) {
-      const mode = await smoke(page, 'inline-text-menu').getAttribute('data-inline-placement-mode')
-      if (mode !== 'detached') {
-        fail(`Initial bottom menu was inaccessible without detached placement: ${mode}`)
-      }
-    }
+    await expectCaseRibbonEditor(page)
   })
 
-  await runCheck(page, 'cover oversized text uses emergency detached controls', async () => {
+  await runCheck(page, 'cover oversized text keeps ribbon controls accessible', async () => {
     await setInlineNumberControl(page, 'y', 50)
     await setInlineTextNumberDraftWithKeyboard(page, 'font-size-pt', '72')
     await page.keyboard.press('Enter')
@@ -2435,10 +2474,7 @@ async function runCaseChecks(page) {
       Array.from({ length: 24 }, (_, index) => `Oversized placement ${index + 1}`).join('\n'),
     )
     await page.waitForTimeout(120)
-    const mode = await smoke(page, 'inline-text-menu').getAttribute('data-inline-placement-mode')
-    if (mode !== 'detached') {
-      fail(`Oversized text did not use detached contextual placement: ${mode}`)
-    }
+    await expectCaseRibbonEditor(page)
     const viewport = page.viewportSize()
     const tabs = await getRect(page, 'inline-text-tabs')
     const menu = await getRect(page, 'inline-text-menu')
@@ -2457,11 +2493,11 @@ async function runCaseChecks(page) {
         rect.bottom < 0 ||
         rect.top > viewport.height
       ) {
-        fail(`Emergency ${label} was offscreen: ${JSON.stringify(rect)}`)
+        fail(`Ribbon ${label} was offscreen: ${JSON.stringify(rect)}`)
       }
     }
     if (rectsOverlap(moveHandle, menu) || rectsOverlap(moveHandle, tabs)) {
-      fail('Emergency move handle was hidden behind the menu or tab strip.')
+      fail('Move handle was hidden behind the ribbon controls.')
     }
   })
 
@@ -2469,41 +2505,15 @@ async function runCaseChecks(page) {
     await done(page)
     await setupTrayTitle(page)
     await assertTextIncludes(page, 'case-text-block-tray-tray-title-text', 'Tray Smoke Title')
-    await dragInlineMoveHandleImmediately(
-      page,
-      'case-text-block-tray-tray-title-text',
-      22,
-      -18,
-    )
-    const trayPlacementMode = await smoke(page, 'inline-text-menu')
-      .getAttribute('data-inline-placement-mode')
-    if (trayPlacementMode !== 'anchored') {
-      fail(`Roomy tray title used detached contextual placement: ${trayPlacementMode}`)
-    }
-    const trayMenu = await getRect(page, 'inline-text-menu')
-    const trayTabs = await getRect(page, 'inline-text-tabs')
-    const trayPreview = await getRect(page, 'case-preview-tray')
-    if (rectsOverlap(trayMenu, trayTabs)) {
-      fail('Roomy tray title opened with overlapping menu and tabs.')
-    }
-    if (
-      trayMenu.top < trayPreview.top - 1 ||
-      trayMenu.bottom > trayPreview.bottom + 1
-    ) {
-      fail(
-        `Roomy tray title opened controls outside the preview: ${
-          JSON.stringify({ trayMenu, trayPreview })
-        }`,
-      )
-    }
+    await expectCaseRibbonEditor(page)
     await done(page)
     await openSpineTitle(page, 'left')
     await assertTextIncludes(page, 'case-spine-title-left', 'LEFT SPINE SMOKE')
-    await dragInlineMoveHandleImmediately(page, 'case-spine-title-left', 0, 24)
+    await expectCaseRibbonEditor(page)
     await done(page)
     await openSpineTitle(page, 'right')
     await assertTextIncludes(page, 'case-spine-title-right', 'RIGHT SPINE SMOKE')
-    await dragInlineMoveHandleImmediately(page, 'case-spine-title-right', 0, -24)
+    await expectCaseRibbonEditor(page)
     await done(page)
   })
 

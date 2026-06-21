@@ -127,7 +127,7 @@
 
 .preview-area.has-contextual-text-ribbon-active .preview-toast-stack {
   top: calc(
-    var(--contextual-text-ribbon-reserved-height, 164px)
+    var(--contextual-text-ribbon-reserved-height, 280px)
     + var(--contextual-text-ribbon-toast-gap, 10px)
   );
 }

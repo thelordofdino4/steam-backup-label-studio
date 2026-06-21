@@ -791,6 +791,10 @@ function InlinePreviewTextNumberSelectControl({
   const inputRef = useRef<HTMLInputElement | null>(null)
   const holdDelayRef = useRef<number | null>(null)
   const holdIntervalRef = useRef<number | null>(null)
+  const holdAbortRef = useRef<AbortController | null>(null)
+  const holdDirectionRef = useRef<-1 | 1 | null>(null)
+  const holdRepeatTicksRef = useRef(0)
+  const holdStartTimeRef = useRef<number | null>(null)
   const token = getInlineTextSmokeToken(control.label)
   const optionListId = `inline-text-options-${token}-${id}`
   const selectionValue = control.getSelectionValue?.(selection)
@@ -799,6 +803,7 @@ function InlinePreviewTextNumberSelectControl({
     ? selectionValue.value
     : control.value
   const latestValueRef = useRef(displayedValue)
+  const stepValueRef = useRef<((direction: -1 | 1) => void) | null>(null)
   const isMixedSelection = selectionValue?.state === 'mixed'
   const controlValueText = formatInlinePreviewPointSizeValue(displayedValue)
   const [activeOptionIndex, setActiveOptionIndex] = useState(() =>
@@ -824,6 +829,25 @@ function InlinePreviewTextNumberSelectControl({
   }), [control.max, control.min, control.step])
 
   const clearHoldTimers = useCallback(() => {
+    const holdDirection = holdDirectionRef.current
+    const holdStartTime = holdStartTimeRef.current
+
+    if (holdDirection !== null && holdStartTime !== null) {
+      const heldMs = Date.now() - holdStartTime
+      const expectedRepeatTicks = Math.max(0, Math.floor((heldMs - 180) / 70))
+      const missingRepeatTicks =
+        expectedRepeatTicks - holdRepeatTicksRef.current
+
+      for (let index = 0; index < missingRepeatTicks; index += 1) {
+        stepValueRef.current?.(holdDirection)
+      }
+    }
+
+    holdDirectionRef.current = null
+    holdRepeatTicksRef.current = 0
+    holdStartTimeRef.current = null
+    holdAbortRef.current?.abort()
+    holdAbortRef.current = null
     if (holdDelayRef.current !== null) {
       window.clearTimeout(holdDelayRef.current)
       holdDelayRef.current = null
@@ -872,9 +896,10 @@ function InlinePreviewTextNumberSelectControl({
   }, [control, focusInput, selection])
 
   const stepValue = useCallback((direction: -1 | 1) => {
-    const draftValue = parseInlinePreviewPointSizeDraft(
-      inputRef.current?.value ?? draft,
-    )
+    const currentInputValue = inputRef.current?.value
+    const draftValue = currentInputValue === undefined
+      ? null
+      : parseInlinePreviewPointSizeDraft(currentInputValue)
     const nextValue = stepInlinePreviewPointSizeValue({
       ...config,
       direction,
@@ -884,16 +909,32 @@ function InlinePreviewTextNumberSelectControl({
     latestValueRef.current = nextValue
     control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
-  }, [config, control, draft, selection])
+  }, [config, control, selection])
+
+  useEffect(() => {
+    stepValueRef.current = stepValue
+  }, [stepValue])
 
   const startStepping = useCallback((direction: -1 | 1) => {
     clearHoldTimers()
+    holdDirectionRef.current = direction
+    holdRepeatTicksRef.current = 0
+    holdStartTimeRef.current = Date.now()
+    const abortController = new AbortController()
+    holdAbortRef.current = abortController
+    document.addEventListener('pointerup', clearHoldTimers, {
+      signal: abortController.signal,
+    })
+    document.addEventListener('mouseup', clearHoldTimers, {
+      signal: abortController.signal,
+    })
     stepValue(direction)
     holdDelayRef.current = window.setTimeout(() => {
       holdIntervalRef.current = window.setInterval(() => {
+        holdRepeatTicksRef.current += 1
         stepValue(direction)
       }, 70)
-    }, 320)
+    }, 180)
   }, [clearHoldTimers, stepValue])
 
   const openOptions = useCallback(() => {
@@ -906,8 +947,6 @@ function InlinePreviewTextNumberSelectControl({
     )
     setOpen(true)
   }, [control.options, renderedDraft])
-
-  useEffect(() => clearHoldTimers, [clearHoldTimers])
 
   useEffect(() => {
     latestValueRef.current = displayedValue
@@ -1015,13 +1054,10 @@ function InlinePreviewTextNumberSelectControl({
                 stepValue(1)
               }
             }}
-            onPointerCancel={clearHoldTimers}
             onPointerDown={(event) => {
               keepInlineTextEditorFocus(event)
               startStepping(1)
             }}
-            onPointerLeave={clearHoldTimers}
-            onPointerUp={clearHoldTimers}
           >
             +
           </button>
@@ -1038,13 +1074,10 @@ function InlinePreviewTextNumberSelectControl({
                 stepValue(-1)
               }
             }}
-            onPointerCancel={clearHoldTimers}
             onPointerDown={(event) => {
               keepInlineTextEditorFocus(event)
               startStepping(-1)
             }}
-            onPointerLeave={clearHoldTimers}
-            onPointerUp={clearHoldTimers}
           >
             -
           </button>
@@ -2174,6 +2207,7 @@ export function InlinePreviewTextEditor({
   textareaStyle,
   sourceMode = false,
   suppressCanvasInput = false,
+  ribbonSlotId,
   menuPlacement,
   placementStrategy = 'default',
   onValueChange,
@@ -2196,6 +2230,8 @@ export function InlinePreviewTextEditor({
     useRef<InlinePreviewTextEditorMenuPlacement | undefined>(undefined)
   const latestControlLayoutRef =
     useRef<InlinePreviewTextControlLayout | null>(null)
+  const [ribbonSlotElement, setRibbonSlotElement] =
+    useState<HTMLElement | null>(null)
   const controlPlacementLockRef =
     useRef<{
       inputMode: InlinePreviewTextEditorInputMode
@@ -2441,6 +2477,37 @@ export function InlinePreviewTextEditor({
     controlFocusPlacementLockRef.current = false
     controlPointerPlacementLockRef.current = false
   }, [inputMode, targetKey])
+
+  useLayoutEffect(() => {
+    let frameId: number | undefined
+
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return undefined
+    }
+
+    if (!ribbonSlotId) {
+      frameId = window.requestAnimationFrame(() => {
+        setRibbonSlotElement(null)
+      })
+      return () => {
+        if (frameId !== undefined) {
+          window.cancelAnimationFrame(frameId)
+        }
+      }
+    }
+
+    frameId = window.requestAnimationFrame(() => {
+      setRibbonSlotElement(document.querySelector<HTMLElement>(
+        `[data-contextual-text-ribbon-slot="${ribbonSlotId}"]`,
+      ))
+    })
+
+    return () => {
+      if (frameId !== undefined) {
+        window.cancelAnimationFrame(frameId)
+      }
+    }
+  }, [ribbonSlotId])
 
   useEffect(() => {
     if (typeof document === 'undefined') {
@@ -3146,7 +3213,98 @@ export function InlinePreviewTextEditor({
   const deleteAction = editorControls?.deleteAction
   const deleteLabel = deleteAction?.label ?? 'Delete'
   const deleteAriaLabel = deleteAction?.ariaLabel ?? deleteLabel
-  const controls = controlFrame ? (
+  const tabButtons = INLINE_TEXT_EDITOR_TABS.map((tab) => (
+    <button
+      key={tab.id}
+      className={[
+        ribbonSlotId
+          ? 'contextual-text-ribbon-tab'
+          : 'inline-preview-text-tab',
+        activeTab === tab.id ? 'is-active' : '',
+      ].filter(Boolean).join(' ')}
+      data-smoke-id={`inline-text-tab-${tab.id}`}
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation()
+        setActiveTab(tab.id)
+      }}
+    >
+      {tab.label}
+    </button>
+  ))
+  const ribbonSlot = ribbonSlotElement
+  const moveHandleControl = controlFrame ? (
+    <button
+      ref={moveHandleRef}
+      className={[
+        'inline-preview-text-move-handle',
+        controlMeasuringClass,
+        isMoveHandleDragging ? 'is-dragging' : '',
+      ].filter(Boolean).join(' ')}
+      data-inline-placement-mode={controlLayout?.mode}
+      data-inline-placement={resolvedMenuPlacement}
+      data-inline-placement-locked={isControlPlacementLocked}
+      data-smoke-id="inline-text-move-handle"
+      type="button"
+      onPointerDown={handleMoveHandlePointerDown}
+      onPointerMove={onMoveHandlePointerMove}
+      onPointerUp={handleMoveHandlePointerRelease}
+      onPointerCancel={handleMoveHandlePointerRelease}
+      onLostPointerCapture={handleMoveHandlePointerRelease}
+      onClick={stopInlineTextEditorClick}
+      style={moveHandleStyle}
+    >
+      Move
+    </button>
+  ) : null
+  const menuContent = (
+    <InlinePreviewTextEditorMenuContent
+      activeTab={activeTab}
+      controls={editorControls}
+      selection={getInlineTextSelectionRange(selection)}
+      sourceDraftIdentity={sourceDraftIdentity}
+      sourceInitialValue={value}
+      sourceMode={sourceMode}
+      onSourceDraftChange={updateSourceDraft}
+      onSourceDraftCommit={commitSourceDraft}
+      onSelectionChange={applyInlineTextSelectionRange}
+    />
+  )
+  const menuActions = (
+    <>
+      {deleteAction ? (
+        <button
+          type="button"
+          className="secondary-button icon-text-button inline-preview-text-delete-button"
+          aria-label={deleteAriaLabel}
+          data-smoke-id="inline-text-delete"
+          title={deleteAriaLabel}
+          onClick={(event) => {
+            event.stopPropagation()
+            deleteAction.onDelete()
+          }}
+          onPointerDown={keepInlineTextEditorFocus}
+        >
+          <TrashIcon />
+          <span>{deleteLabel}</span>
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="secondary-button inline-preview-text-done-button"
+        data-smoke-id="inline-text-done"
+        onClick={(event) => {
+          event.stopPropagation()
+          commitSourceDraft()
+          onDone()
+        }}
+        onPointerDown={keepInlineTextEditorFocus}
+      >
+        Done
+      </button>
+    </>
+  )
+  const floatingControls = controlFrame && !ribbonSlotId ? (
     <>
       <div
         ref={tabsRef}
@@ -3163,47 +3321,10 @@ export function InlinePreviewTextEditor({
         onPointerDown={keepInlineTextEditorFocus}
         style={tabsStyle}
       >
-        {INLINE_TEXT_EDITOR_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            className={[
-              'inline-preview-text-tab',
-              activeTab === tab.id ? 'is-active' : '',
-            ].filter(Boolean).join(' ')}
-            data-smoke-id={`inline-text-tab-${tab.id}`}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setActiveTab(tab.id)
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabButtons}
       </div>
 
-      <button
-        ref={moveHandleRef}
-        className={[
-          'inline-preview-text-move-handle',
-          controlMeasuringClass,
-          isMoveHandleDragging ? 'is-dragging' : '',
-        ].filter(Boolean).join(' ')}
-        data-inline-placement-mode={controlLayout?.mode}
-        data-inline-placement={resolvedMenuPlacement}
-        data-inline-placement-locked={isControlPlacementLocked}
-        data-smoke-id="inline-text-move-handle"
-        type="button"
-        onPointerDown={handleMoveHandlePointerDown}
-        onPointerMove={onMoveHandlePointerMove}
-        onPointerUp={handleMoveHandlePointerRelease}
-        onPointerCancel={handleMoveHandlePointerRelease}
-        onLostPointerCapture={handleMoveHandlePointerRelease}
-        onClick={stopInlineTextEditorClick}
-        style={moveHandleStyle}
-      >
-        Move
-      </button>
+      {moveHandleControl}
 
       <div
         ref={menuRef}
@@ -3226,50 +3347,48 @@ export function InlinePreviewTextEditor({
         onPointerDown={stopInlineTextEditorPointer}
         style={menuStyle}
       >
-        <InlinePreviewTextEditorMenuContent
-          activeTab={activeTab}
-          controls={editorControls}
-          selection={getInlineTextSelectionRange(selection)}
-          sourceDraftIdentity={sourceDraftIdentity}
-          sourceInitialValue={value}
-          sourceMode={sourceMode}
-          onSourceDraftChange={updateSourceDraft}
-          onSourceDraftCommit={commitSourceDraft}
-          onSelectionChange={applyInlineTextSelectionRange}
-        />
+        {menuContent}
         <div className="inline-preview-text-menu-actions">
-          {deleteAction ? (
-            <button
-              type="button"
-              className="secondary-button icon-text-button inline-preview-text-delete-button"
-              aria-label={deleteAriaLabel}
-              data-smoke-id="inline-text-delete"
-              title={deleteAriaLabel}
-              onClick={(event) => {
-                event.stopPropagation()
-                deleteAction.onDelete()
-              }}
-              onPointerDown={keepInlineTextEditorFocus}
-            >
-              <TrashIcon />
-              <span>{deleteLabel}</span>
-            </button>
-          ) : null}
-        <button
-          type="button"
-          className="secondary-button inline-preview-text-done-button"
-          data-smoke-id="inline-text-done"
-          onClick={(event) => {
-            event.stopPropagation()
-            commitSourceDraft()
-            onDone()
-          }}
-          onPointerDown={keepInlineTextEditorFocus}
-        >
-          Done
-        </button>
+          {menuActions}
         </div>
       </div>
+    </>
+  ) : null
+  const ribbonControls = ribbonSlot ? createPortal(
+    <>
+      <div
+        ref={tabsRef}
+        className="contextual-text-ribbon-tabs"
+        data-smoke-id="inline-text-tabs"
+        onClick={stopInlineTextEditorClick}
+        onPointerDown={keepInlineTextEditorFocus}
+      >
+        {tabButtons}
+      </div>
+      <div
+        ref={menuRef}
+        className="contextual-text-ribbon-controls contextual-text-ribbon-controls--inline-menu"
+        data-smoke-id="inline-text-menu"
+        onClick={stopInlineTextEditorClick}
+        onBlurCapture={handleControlBlurCapture}
+        onFocusCapture={handleControlFocusCapture}
+        onKeyDownCapture={handleControlKeyDownCapture}
+        onPointerDownCapture={handleControlPointerDownCapture}
+        onPointerDown={stopInlineTextEditorPointer}
+      >
+        {menuContent}
+      </div>
+      <div className="contextual-text-ribbon-actions">
+        {menuActions}
+      </div>
+    </>,
+    ribbonSlot,
+  ) : null
+  const controls = controlFrame ? (
+    <>
+      {ribbonSlotId ? moveHandleControl : null}
+      {floatingControls}
+      {ribbonControls}
     </>
   ) : null
 

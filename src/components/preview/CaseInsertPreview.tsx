@@ -53,6 +53,8 @@ import type {
   CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
 
+const CASE_INSERT_TEXT_RIBBON_SLOT_ID = 'case-insert-text-ribbon'
+
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
@@ -276,6 +278,7 @@ export function CaseInsertPreview({
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
         previewTextControlHandlers={previewTextControlHandlers}
+        ribbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
       />
     ),
     'case-spine-content': (
@@ -289,6 +292,7 @@ export function CaseInsertPreview({
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
         previewTextControlHandlers={previewTextControlHandlers}
+        ribbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
       />
     ),
     'case-editor-guide-overlay': <CaseInsertGuideOverlay layout={layout} />,
@@ -305,6 +309,7 @@ export function CaseInsertPreview({
     >
       <PreviewHeader
         contextualTextRibbonActive={Boolean(selectedTextTarget)}
+        contextualTextRibbonSlotId={CASE_INSERT_TEXT_RIBBON_SLOT_ID}
         title={`${activePaneConfig.label} Preview`}
         titleId="case-insert-preview-title"
       />

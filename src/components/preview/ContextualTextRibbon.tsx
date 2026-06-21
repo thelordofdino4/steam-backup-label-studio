@@ -22,6 +22,7 @@ export type ContextualTextRibbonHostProps = {
   active?: boolean
   controls?: InlinePreviewTextEditorControls
   label?: string
+  portalSlotId?: string
 }
 
 function RibbonSelectControl({
@@ -461,6 +462,7 @@ export function ContextualTextRibbonHost({
   active = false,
   controls,
   label = 'Contextual text controls',
+  portalSlotId,
 }: ContextualTextRibbonHostProps) {
   const [activeTab, setActiveTab] =
     useState<ContextualTextControlGroupId>('presets')
@@ -469,7 +471,7 @@ export function ContextualTextRibbonHost({
     [controls],
   )
   const hasControls = descriptors.length > 0
-  const isVisible = active && hasControls
+  const isVisible = active && (hasControls || Boolean(portalSlotId))
 
   return (
     <section
@@ -489,19 +491,28 @@ export function ContextualTextRibbonHost({
       } as CSSProperties}
     >
       <div className="contextual-text-ribbon-shell">
-        <ContextualTextRibbonTabStrip
-          activeTab={activeTab}
-          onActiveTabChange={setActiveTab}
-        />
-        {controls ? (
-          <ContextualTextRibbonControlGroups
-            activeTab={activeTab}
-            controls={controls}
+        {portalSlotId ? (
+          <div
+            className="contextual-text-ribbon-portal-slot"
+            data-contextual-text-ribbon-slot={portalSlotId}
           />
         ) : (
-          <div className="contextual-text-ribbon-controls" />
+          <>
+            <ContextualTextRibbonTabStrip
+              activeTab={activeTab}
+              onActiveTabChange={setActiveTab}
+            />
+            {controls ? (
+              <ContextualTextRibbonControlGroups
+                activeTab={activeTab}
+                controls={controls}
+              />
+            ) : (
+              <div className="contextual-text-ribbon-controls" />
+            )}
+            <ContextualTextRibbonActions controls={controls} />
+          </>
         )}
-        <ContextualTextRibbonActions controls={controls} />
       </div>
     </section>
   )
