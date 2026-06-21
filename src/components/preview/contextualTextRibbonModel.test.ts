@@ -199,8 +199,8 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 }
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 164)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 150)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 280)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 260)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -287,6 +287,6 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   )
   assert.match(
     feedbackCss,
-    /var\(--contextual-text-ribbon-reserved-height, 164px\)/,
+    /var\(--contextual-text-ribbon-reserved-height, 280px\)/,
   )
 })

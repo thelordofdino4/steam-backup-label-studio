@@ -32,7 +32,7 @@ export type ContextualTextRibbonLayoutModel = {
   tabColumns: number
 }
 
-export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT = 164
+export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT = 280
 export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 

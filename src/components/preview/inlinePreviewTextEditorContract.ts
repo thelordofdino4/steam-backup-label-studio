@@ -251,6 +251,7 @@ export type InlinePreviewTextEditorProps = {
   textareaStyle?: CSSProperties
   sourceMode?: boolean
   suppressCanvasInput?: boolean
+  ribbonSlotId?: string
   menuPlacement: InlinePreviewTextEditorMenuPlacement
   placementStrategy?: InlinePreviewTextPlacementStrategy
   onValueChange: (

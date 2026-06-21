@@ -6,6 +6,7 @@ import { ContextualTextRibbonHost } from './ContextualTextRibbon'
 export type PreviewHeaderProps = {
   contextualTextRibbonActive?: boolean
   contextualTextRibbonControls?: InlinePreviewTextEditorControls
+  contextualTextRibbonSlotId?: string
   title: string
   titleId: string
 }
@@ -13,6 +14,7 @@ export type PreviewHeaderProps = {
 export function PreviewHeader({
   contextualTextRibbonActive = false,
   contextualTextRibbonControls,
+  contextualTextRibbonSlotId,
   title,
   titleId,
 }: PreviewHeaderProps) {
@@ -25,6 +27,7 @@ export function PreviewHeader({
       <ContextualTextRibbonHost
         active={contextualTextRibbonActive}
         controls={contextualTextRibbonControls}
+        portalSlotId={contextualTextRibbonSlotId}
       />
     </header>
   )
