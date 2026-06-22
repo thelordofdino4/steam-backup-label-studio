@@ -44,9 +44,17 @@ tested, and the remaining divergences are recorded.
   `.inline-preview-text-control-grid` presentation from the old full menu
   inside the ribbon.
 - The reserved slot stays near the 60-65 px app-shell band. Controls must not
-  wrap downward in a way that pushes the editable surface lower; overflowing
-  controls use internal horizontal scrolling or compact grouping while keeping
-  normal usable hit targets.
+  wrap downward in a way that pushes the editable surface lower. Active control
+  rows use fixed row heights; horizontal sizes may adapt, condense, or switch
+  to compact icon/dropdown-only affordances, but the ribbon must not introduce
+  a horizontal scrollbar as the normal overflow solution.
+- Native ribbon controls are arranged as semantic boxes packed in
+  column-first order. A column has one shared width: if any box above or below
+  another box in the same column requires more usable width, every box in that
+  column expands to match the larger box. Do not shrink the larger box to match
+  smaller siblings. This rule changes horizontal sizing only; row heights stay
+  constant, and toggling enabled/disabled state must not change the column
+  width.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
@@ -156,9 +164,9 @@ tested, and the remaining divergences are recorded.
 
 | State | Container behavior | Control behavior |
 | --- | --- | --- |
-| Wide | Tabs fit in one row; active controls fit in one or two balanced groups. | Full labels, normal spacing, normal sliders/inputs. |
-| Compact | Tabs may remain one row or become two-by-two if needed. | Controls reflow into fewer columns with shorter labels and smaller gaps. |
-| Narrow | Tabs may use two-by-two layout or horizontal scrolling only as a last resort. | Labels stack above controls, fields use available width, and controls may wrap into a third row. |
+| Wide | Tabs fit in one row; active controls use the full available right-hand header column when useful. | Full labels, normal spacing, normal sliders/inputs. |
+| Compact | Tabs remain single-line where possible; active controls stay in fixed-height semantic-card rows. | Controls condense horizontally, use shorter labels, and may switch unreadable select values to button-only dropdown affordances with accessible labels. |
+| Narrow | Tabs and controls preserve the fixed ribbon height and do not add a third control row or horizontal scrollbar. | Controls keep usable hit targets, equalized column widths, and compact/icon-only affordances where text labels would become unreadable. |
 
 ### Migration Status
 
@@ -196,8 +204,10 @@ Keep these responsibilities:
   slot remains reserved when inactive.
 - The Live Preview heading remains visible on the left, and the preview begins
   below the full header/ribbon region.
-- Row 1 contains the five contextual tabs; row 2 contains the active tab's
-  controls; narrow widths may wrap controls into row 3 without overlap.
+- Row 1 contains the five contextual tabs; the active tab's controls occupy the
+  fixed control-row area without adding a third row or moving the preview.
+- Stacked semantic boxes in the same ribbon column share the widest box width
+  in that column.
 - Toasts keep their existing placement when the ribbon is inactive, move below
   the measured ribbon slot while active, and return to their original placement
   when the ribbon deactivates.

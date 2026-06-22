@@ -526,10 +526,13 @@ Edit/interaction path:
   existing contextual registry and adapters through that host. The production
   ribbon renders native toolbar groups and must not reuse old
   `.inline-preview-text-control-grid` or portal-slot full-menu presentation.
-  Its controls scroll internally when necessary instead of wrapping downward and
-  moving the editable surface; the ribbon must not take ownership of text
-  rendering, layout, save/load, export, source resolution, or surface-specific
-  geometry.
+  Its controls preserve fixed row heights instead of wrapping downward and
+  moving the editable surface; horizontal sizing is handled by semantic-card
+  sizing and compact affordances, not by reintroducing the old floating-menu
+  layout behavior. Ribbon semantic boxes are packed column-first, and every box
+  in one column must match the widest box in that column. The ribbon must not
+  take ownership of text rendering, layout, save/load, export, source
+  resolution, or surface-specific geometry.
 - The ribbon host also owns the app-shell reservation that the toast container
   must respect while the ribbon is active. The toast offset should consume a
   shared app-shell ribbon height/offset signal or CSS variable; it must not be

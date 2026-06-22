@@ -525,8 +525,9 @@ Ribbon placement and layout:
 - The ribbon is visually attached to the top and right edges of the preview
   workspace, not rendered as a detached floating card.
 - The ribbon left edge must not cross into the Live Preview label column.
-- The ribbon should use a compact right-aligned maximum width; it must not
-  stretch across all available header space on wide windows.
+- The ribbon may use the full available right-hand header column up to the Live
+  Preview label boundary. It must not leave eligible header space unused while
+  active controls are still compressed or clipped.
 - The preview begins below the complete header/ribbon region and never
   encroaches into the reserved slot.
 - The slot remains reserved when inactive, but ribbon contents disappear.
@@ -535,9 +536,15 @@ Ribbon placement and layout:
   `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups, not as old floating-menu form markup moved into a fixed slot.
-- The ribbon uses a fixed compact height near the 60-65 px app-shell band. If
-  all controls cannot fit horizontally, the controls strip scrolls internally
-  instead of wrapping downward and pushing the editable surface lower.
+- The ribbon uses a fixed compact height near the 60-65 px app-shell band.
+  Active controls must not wrap downward or push the editable surface lower.
+  Horizontal sizes may adapt, but row heights remain constant.
+- Semantic control boxes are packed in column-first order. Within one column,
+  every stacked box must use the same column width: if the top or bottom box in
+  that column requires a wider usable width, every other box in the column
+  expands to match it. Do not shrink the wider box to match smaller siblings.
+  This equalization affects horizontal sizing only; disabled/enabled state must
+  not change the column width or row height.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
@@ -576,11 +583,14 @@ Ownership matrix:
 Responsive states:
 
 - Wide: tabs fit in one row; active controls use the full available top-right
-  header column with full labels, normal spacing, and normal sliders/inputs.
-- Compact: tabs remain single-line and controls keep usable hit targets while
-  the active control row scrolls internally as needed.
-- Narrow: controls use compact grouping and horizontal/internal scrolling
-  rather than adding header height or pushing the preview surface downward.
+  header column when doing so keeps controls readable and usable.
+- Compact: tabs remain single-line where possible and controls keep usable hit
+  targets inside fixed-height semantic-card rows. Controls condense
+  horizontally and may use compact icon/dropdown-only affordances when a text
+  value would become unreadable.
+- Narrow: controls preserve the fixed ribbon height, row count, and column
+  equalization rules. Do not add a third control row, horizontal scrollbar, or
+  preview-displacing overflow escape.
 
 Current implementation:
 
@@ -627,6 +637,9 @@ Acceptance criteria:
   controls, and do not move or resize the preview.
 - Ribbon position does not change when text moves, wraps, changes point size,
   changes arc geometry, touches safe zones, or crosses the disc center hole.
+- Stacked semantic boxes in a ribbon column share the widest box width in that
+  column; smaller boxes above or below a wider box must expand horizontally to
+  match it.
 - Text-body drag selects text; edge-grab and Move fallback move immediately.
 - No migrated editing control remains duplicated in the sidebar unless it is
   intentionally sidebar-owned setup/source/type UI.
@@ -1413,6 +1426,9 @@ Consequences:
 - Contextual control placement must no longer be solved from selected-text
   bounds, safe zones, arcs, center holes, or preview geometry.
 - The ribbon must be responsive to app-shell container dimensions only.
+- Ribbon semantic boxes are packed column-first. Each column uses the width of
+  its widest box for every box in that column, so smaller boxes above or below
+  a wider box expand to match it without changing row height.
 - Toast offset should consume shared app-shell ribbon height/offset state or a
   CSS variable and must not be derived from preview or text geometry.
 - Surface adapters continue to own renderer, layout, state, save/load, export,
