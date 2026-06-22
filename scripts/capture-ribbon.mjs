@@ -396,8 +396,51 @@ async function getDomSnapshot(page, previewSmokeId) {
         width: rect.width,
       }
     }
+    const intersectRect = (first, second) => {
+      const left = Math.max(first.left, second.left)
+      const right = Math.min(first.right, second.right)
+      const top = Math.max(first.top, second.top)
+      const bottom = Math.min(first.bottom, second.bottom)
+      const width = Math.max(0, right - left)
+      const height = Math.max(0, bottom - top)
+
+      return { bottom, height, left, right, top, width }
+    }
+    const createsClip = (element) => {
+      const style = window.getComputedStyle(element)
+
+      return (
+        element.classList.contains('contextual-text-ribbon-control-row') ||
+        element.classList.contains('contextual-text-ribbon-controls') ||
+        element.classList.contains('contextual-text-ribbon-shell') ||
+        style.overflow !== 'visible' ||
+        style.overflowX !== 'visible' ||
+        style.overflowY !== 'visible'
+      )
+    }
+    const createVisibleRect = (element) => {
+      let rect = createRect(element)
+      let ancestor = element.parentElement
+      const viewportRect = {
+        bottom: window.innerHeight,
+        height: window.innerHeight,
+        left: 0,
+        right: window.innerWidth,
+        top: 0,
+        width: window.innerWidth,
+      }
+
+      while (ancestor) {
+        if (createsClip(ancestor)) {
+          rect = intersectRect(rect, createRect(ancestor))
+        }
+        ancestor = ancestor.parentElement
+      }
+
+      return intersectRect(rect, viewportRect)
+    }
     const isVisible = (element) => {
-      const rect = element.getBoundingClientRect()
+      const rect = createVisibleRect(element)
       const style = window.getComputedStyle(element)
       return (
         rect.width > 0 &&
@@ -424,7 +467,7 @@ async function getDomSnapshot(page, previewSmokeId) {
             element.getAttribute('aria-label') ??
             element.textContent?.trim().slice(0, 32) ??
             element.tagName,
-          rect: createRect(element),
+          rect: createVisibleRect(element),
         }))
     }
 

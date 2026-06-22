@@ -4,7 +4,7 @@
   --contextual-text-ribbon-tab-row-height: 24px;
   --contextual-text-ribbon-control-row-height: 28px;
   --contextual-text-ribbon-control-row-count: 1;
-  --contextual-text-ribbon-scrollbar-space: 6px;
+  --contextual-text-ribbon-scrollbar-space: 12px;
 }
 
 .preview-header {
@@ -137,6 +137,8 @@
 }
 
 .contextual-text-ribbon-control-row {
+  grid-column: 1;
+  grid-row: 1;
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;
@@ -149,6 +151,7 @@
   column-gap: 4px;
   row-gap: 3px;
   min-width: 0;
+  width: 100%;
   max-width: 100%;
   min-height: 0;
   overflow-x: auto;
@@ -160,11 +163,17 @@
   overscroll-behavior-x: contain;
 }
 
+.contextual-text-ribbon-control-row--artistic {
+  grid-template-rows: repeat(2, minmax(28px, max-content));
+  align-items: stretch;
+}
+
 .contextual-text-ribbon-group {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
   justify-self: start;
+  position: relative;
   gap: 4px;
   flex: 0 0 auto;
   min-width: max-content;
@@ -180,25 +189,42 @@
     0 1px 2px rgba(0, 0, 0, 0.22);
 }
 
-.contextual-text-ribbon-group[data-ribbon-scroll-clipped],
-.contextual-text-ribbon-command-button[data-ribbon-scroll-clipped] {
-  visibility: hidden;
-  pointer-events: none;
+.contextual-text-ribbon-group:focus-within {
+  z-index: 2;
+}
+
+.contextual-text-ribbon-group--span-rows {
+  grid-row: span 2;
+}
+
+.contextual-text-ribbon-group-header {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+  padding-right: 5px;
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .contextual-text-ribbon-group-label {
   flex: 0 0 auto;
-  max-width: 64px;
-  padding-right: 5px;
-  border-right: 1px solid rgba(148, 163, 184, 0.22);
   color: #f3f4f6;
   font-size: 10px;
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-group-header-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
 }
 
 .contextual-text-ribbon-group-body {
@@ -260,6 +286,31 @@
   width: max-content;
 }
 
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--text-color,
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--contrast {
+  width: 196px;
+  min-width: 196px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--contrast {
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--contrast
+  .contextual-text-ribbon-control select {
+  width: 124px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--contrast
+  .contextual-text-ribbon-select-control {
+  max-width: none;
+}
+
 .contextual-text-ribbon-group--layout,
 .contextual-text-ribbon-group--position {
   width: max-content;
@@ -268,6 +319,103 @@
 .contextual-text-ribbon-group--backplate,
 .contextual-text-ribbon-group--border {
   width: max-content;
+}
+
+.contextual-text-ribbon-group--artistic-feature {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  width: 132px;
+  min-width: 132px;
+  min-height: calc(
+    var(--contextual-text-ribbon-control-row-height) * 2 + 3px
+  );
+  padding: 3px 6px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-header {
+  min-height: 14px;
+  padding-right: 0;
+  padding-bottom: 1px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body {
+  display: flex;
+  flex-direction: column;
+  align-content: start;
+  align-items: stretch;
+  row-gap: 1px;
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control {
+  display: grid;
+  grid-template-columns: 35px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 13px;
+  max-width: none;
+  font-size: 9px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-control {
+  grid-template-columns: 35px minmax(38px, 1fr) 28px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control-label {
+  width: auto;
+  max-width: none;
+  clip-path: none;
+  color: #cbd5e1;
+  font-size: 8px;
+  line-height: 1;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-feature-toggle input {
+  width: 14px;
+  height: 14px;
+  min-height: 14px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control input {
+  min-height: 14px;
+  height: 14px;
+  border-radius: 4px;
+  font-size: 9px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control input[type="color"] {
+  width: 26px;
+  height: 14px;
+  padding: 1px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-control input[type="range"] {
+  height: 14px;
+  width: 100%;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-control input[type="number"] {
+  width: 28px;
+  min-height: 14px;
+  height: 14px;
+  padding: 0 3px;
 }
 
 .contextual-text-ribbon-group--reset,
@@ -372,7 +520,17 @@
 .contextual-text-ribbon-toggle-check.is-disabled input,
 .contextual-text-ribbon-toggle-check input:disabled {
   cursor: not-allowed;
-  opacity: 0.62;
+  opacity: 0.8;
+}
+
+.contextual-text-ribbon-control.is-disabled {
+  color: #94a3b8;
+}
+
+.contextual-text-ribbon-control.is-disabled input,
+.contextual-text-ribbon-control.is-disabled select {
+  cursor: not-allowed;
+  opacity: 0.78;
 }
 
 .contextual-text-ribbon-point-size {
@@ -545,6 +703,7 @@
 
 .contextual-text-ribbon-actions {
   grid-column: 2;
+  grid-row: 1;
   display: flex;
   flex-wrap: nowrap;
   align-content: flex-start;
@@ -570,6 +729,20 @@
   .contextual-text-ribbon-group--backplate,
   .contextual-text-ribbon-group--border {
     width: max-content;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast {
+    width: 196px;
+    min-width: 196px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast
+    .contextual-text-ribbon-control select {
+    width: 124px;
   }
 
   .contextual-text-ribbon-group--layout,
@@ -710,10 +883,62 @@
     min-width: 28px;
     padding-inline: 5px;
   }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast {
+    width: 176px;
+    min-width: 176px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast
+    .contextual-text-ribbon-control select {
+    width: 106px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature {
+    width: 108px;
+    min-width: 108px;
+    padding-inline: 4px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-control {
+    grid-template-columns: 28px minmax(0, 1fr);
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control {
+    grid-template-columns: 28px minmax(30px, 1fr) 22px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control input[type="number"] {
+    width: 22px;
+    padding-inline: 1px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .contextual-text-ribbon-shell {
     transition: none;
   }
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-label,
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control-label {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
 }

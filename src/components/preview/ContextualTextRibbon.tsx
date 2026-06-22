@@ -212,7 +212,7 @@ export function ContextualTextRibbonHost({
         window.cancelAnimationFrame(animationFrame)
       }
     }
-  }, [children, isVisible])
+  }, [isVisible])
 
   return (
     <section

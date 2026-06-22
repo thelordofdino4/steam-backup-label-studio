@@ -133,7 +133,7 @@ test('disc contextual controls use shared preset options and labels', () => {
 })
 
 test('straight disc border controls stay available without background fill', () => {
-  const { controls } = createControls({
+  const { controls, style } = createControls({
     style: {
       ...createDefaultDiscTextStyle('title'),
       backgroundEnabled: false,
@@ -144,9 +144,9 @@ test('straight disc border controls stay available without background fill', () 
   })
 
   assert.equal(controls.art?.backgroundEnabled?.checked, false)
-  assert.equal(controls.art?.backgroundColor, undefined)
-  assert.equal(controls.art?.backgroundOpacity, undefined)
-  assert.equal(controls.art?.backgroundPadding, undefined)
+  assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
+  assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
+  assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
   assert.equal(controls.art?.borderEnabled?.label, 'Border')
   assert.equal(controls.art?.borderEnabled?.checked, true)
   assert.equal(controls.art?.borderEnabled?.disabled, undefined)

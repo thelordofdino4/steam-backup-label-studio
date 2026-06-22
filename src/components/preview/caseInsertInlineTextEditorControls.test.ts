@@ -233,8 +233,11 @@ test('case insert border group remains identifiable while background is off', ()
     controls.art?.borderEnabled?.disabledReason,
     'Enable Background before editing the border.',
   )
-  assert.equal(controls.art?.borderColor, undefined)
-  assert.equal(controls.art?.borderRadius, undefined)
+  assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
+  assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
+  assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
+  assert.equal(controls.art?.borderColor?.value, style.borderColor)
+  assert.equal(controls.art?.borderRadius?.value, style.borderRadius)
 })
 
 test('case insert bulleted list control routes selection command through handlers', () => {

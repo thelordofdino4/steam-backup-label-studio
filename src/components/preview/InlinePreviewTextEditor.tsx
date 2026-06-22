@@ -221,27 +221,9 @@ function getContextualTextRibbonAxisRect(element: HTMLElement) {
 }
 
 function updateContextualTextRibbonScrollItemVisibility(row: HTMLElement) {
-  const rowRect = getContextualTextRibbonAxisRect(row)
-  const rowWidth = Math.max(1, rowRect.right - rowRect.left)
-  const items = Array.from(
-    row.querySelectorAll<HTMLElement>(
-      ':scope > .contextual-text-ribbon-group, :scope > .contextual-text-ribbon-command-button',
-    ),
+  row.querySelectorAll<HTMLElement>('[data-ribbon-scroll-clipped]').forEach(
+    (item) => item.removeAttribute('data-ribbon-scroll-clipped'),
   )
-
-  for (const item of items) {
-    const itemRect = getContextualTextRibbonAxisRect(item)
-    const itemWidth = Math.max(1, itemRect.right - itemRect.left)
-    const isTooWideForRow = itemWidth > rowWidth + 1.5
-    const isFullyVisible =
-      itemRect.left >= rowRect.left - 1.5 &&
-      itemRect.right <= rowRect.right + 1.5
-
-    item.toggleAttribute(
-      'data-ribbon-scroll-clipped',
-      !isTooWideForRow && !isFullyVisible,
-    )
-  }
 }
 
 function getInlineTextSmokeToken(label: string) {
@@ -290,15 +272,19 @@ function isRenderableRibbonNode(node: ReactNode): boolean {
 function renderContextualTextRibbonGroup({
   children,
   className = '',
+  headerControls,
   id,
   label,
 }: {
   children: ReactNode
   className?: string
+  headerControls?: ReactNode
   id: string
   label: string
 }) {
-  if (!isRenderableRibbonNode(children)) return null
+  if (!isRenderableRibbonNode(children) && !isRenderableRibbonNode(headerControls)) {
+    return null
+  }
 
   return (
     <div
@@ -310,7 +296,14 @@ function renderContextualTextRibbonGroup({
       ].filter(Boolean).join(' ')}
       data-ribbon-group={id}
     >
-      <span className="contextual-text-ribbon-group-label">{label}</span>
+      <span className="contextual-text-ribbon-group-header">
+        <span className="contextual-text-ribbon-group-label">{label}</span>
+        {isRenderableRibbonNode(headerControls) ? (
+          <span className="contextual-text-ribbon-group-header-controls">
+            {headerControls}
+          </span>
+        ) : null}
+      </span>
       <span className="contextual-text-ribbon-group-body">
         {children}
       </span>
@@ -320,13 +313,20 @@ function renderContextualTextRibbonGroup({
 
 function renderContextualTextRibbonRow({
   children,
+  className = '',
   emptyLabel,
 }: {
   children: ReactNode
+  className?: string
   emptyLabel: string
 }) {
   return (
-    <div className="contextual-text-ribbon-control-row">
+    <div
+      className={[
+        'contextual-text-ribbon-control-row',
+        className,
+      ].filter(Boolean).join(' ')}
+    >
       {isRenderableRibbonNode(children) ? (
         children
       ) : (
@@ -448,10 +448,13 @@ function renderInlinePreviewTextSelectControl(
 
 function renderInlinePreviewTextRangeControl(
   control: InlinePreviewTextEditorRangeControl | undefined,
+  options: { disabled?: boolean } = {},
 ) {
   if (!control) return null
 
+  const disabled = Boolean(options.disabled)
   const handleChange = (value: string) => {
+    if (disabled) return
     const nextValue = Number(value)
     if (Number.isFinite(nextValue)) {
       control.onChange(nextValue)
@@ -459,7 +462,12 @@ function renderInlinePreviewTextRangeControl(
   }
 
   return (
-    <label className="contextual-text-ribbon-control contextual-text-ribbon-range-control">
+    <label
+      className={[
+        'contextual-text-ribbon-control contextual-text-ribbon-range-control',
+        disabled ? 'is-disabled' : '',
+      ].filter(Boolean).join(' ')}
+    >
       <span className="contextual-text-ribbon-control-label">
         {control.label}
       </span>
@@ -470,6 +478,7 @@ function renderInlinePreviewTextRangeControl(
         max={control.max}
         step={control.step}
         value={control.value}
+        disabled={disabled}
         onChange={(event) => handleChange(event.target.value)}
       />
       <input
@@ -480,6 +489,7 @@ function renderInlinePreviewTextRangeControl(
         max={control.max}
         step={control.step}
         value={Number(control.value.toFixed(2))}
+        disabled={disabled}
         onChange={(event) => handleChange(event.target.value)}
       />
     </label>
@@ -966,6 +976,67 @@ function renderInlinePreviewTextCheckboxControl(
   )
 }
 
+function renderInlinePreviewTextFeatureToggleControl({
+  ariaLabel,
+  control,
+}: {
+  ariaLabel: string
+  control: InlinePreviewTextEditorCheckboxControl | undefined
+}) {
+  if (!control) return null
+
+  return (
+    <label
+      className={[
+        'contextual-text-ribbon-toggle-check',
+        'contextual-text-ribbon-feature-toggle',
+        control.disabled ? 'is-disabled' : '',
+      ].filter(Boolean).join(' ')}
+      title={control.disabledReason}
+    >
+      <input
+        data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
+        type="checkbox"
+        aria-label={ariaLabel}
+        aria-disabled={control.disabled || undefined}
+        checked={control.checked}
+        disabled={control.disabled}
+        onChange={(event) => {
+          if (!control.disabled) {
+            control.onChange(event.target.checked)
+          }
+        }}
+      />
+    </label>
+  )
+}
+
+function renderInlinePreviewTextArtisticFeatureGroup({
+  children,
+  id,
+  label,
+  toggle,
+}: {
+  children: ReactNode
+  id: 'background' | 'border'
+  label: string
+  toggle: InlinePreviewTextEditorCheckboxControl | undefined
+}) {
+  if (!toggle && !isRenderableRibbonNode(children)) return null
+
+  return renderContextualTextRibbonGroup({
+    id,
+    label,
+    className:
+      `contextual-text-ribbon-group--${id === 'background' ? 'backplate' : 'border'} contextual-text-ribbon-group--artistic-feature contextual-text-ribbon-group--span-rows`,
+    headerControls: renderInlinePreviewTextFeatureToggleControl({
+      ariaLabel: `Enable ${label.toLowerCase()}`,
+      control: toggle,
+    }),
+    children,
+  })
+}
+
 function renderInlinePreviewHtmlSourceControl({
   control,
   isCurvedText,
@@ -1102,12 +1173,14 @@ function renderInlinePreviewTextColorControl(
   control: InlinePreviewTextEditorColorControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
   getCommandSelection: () => InlinePreviewTextEditorSelectionRange,
+  options: { disabled?: boolean } = {},
 ) {
   if (!control) return null
 
   return (
     <InlinePreviewTextColorControl
       control={control}
+      disabled={options.disabled}
       getCommandSelection={getCommandSelection}
       selection={selection}
     />
@@ -1128,23 +1201,44 @@ function isInlineTextSelectionCollapsed(
 
 function InlinePreviewTextColorControl({
   control,
+  disabled = false,
   getCommandSelection,
   selection,
 }: {
   control: InlinePreviewTextEditorColorControl
+  disabled?: boolean
   getCommandSelection: () => InlinePreviewTextEditorSelectionRange
   selection: InlinePreviewTextEditorSelectionRange
 }) {
   const selectionSnapshotRef =
     useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const lastAppliedRef = useRef<string | null>(null)
+  const rafRef = useRef<number | null>(null)
+  const pendingValueRef = useRef<string | null>(null)
+  const isEditingRef = useRef(false)
 
   const selectionColor = control.getSelectionValue?.(selection)
   const value = selectionColor?.value ?? control.value
+  const [draft, setDraft] = useState(value)
+
+  useEffect(() => {
+    if (!isEditingRef.current) {
+      setDraft(value)
+    }
+  }, [value])
+
+  useEffect(() => () => {
+    if (rafRef.current !== null) {
+      window.cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
   const captureSelection = useCallback(() => {
+    isEditingRef.current = true
     selectionSnapshotRef.current = getCommandSelection()
   }, [getCommandSelection])
-  const applyColor = useCallback((nextValue: string) => {
+  const applyColorNow = useCallback((nextValue: string) => {
+    if (disabled) return
     const snapshot = selectionSnapshotRef.current
     const selectedRange =
       snapshot && !isInlineTextSelectionCollapsed(snapshot)
@@ -1158,25 +1252,66 @@ function InlinePreviewTextColorControl({
 
     lastAppliedRef.current = applyKey
     control.onChange(nextValue, selectedRange)
-  }, [control, getCommandSelection])
+  }, [control, disabled, getCommandSelection])
+  const flushPendingColor = useCallback(() => {
+    rafRef.current = null
+    const pendingValue = pendingValueRef.current
+    pendingValueRef.current = null
+
+    if (pendingValue !== null) {
+      applyColorNow(pendingValue)
+    }
+  }, [applyColorNow])
+  const applyColorDraft = useCallback((nextValue: string) => {
+    if (disabled) return
+    isEditingRef.current = true
+    setDraft(nextValue)
+    pendingValueRef.current = nextValue
+
+    if (rafRef.current === null) {
+      rafRef.current = window.requestAnimationFrame(flushPendingColor)
+    }
+  }, [disabled, flushPendingColor])
+  const commitColorDraft = useCallback(() => {
+    if (rafRef.current !== null) {
+      window.cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+
+    const pendingValue = pendingValueRef.current
+    pendingValueRef.current = null
+
+    if (pendingValue !== null) {
+      applyColorNow(pendingValue)
+    }
+
+    isEditingRef.current = false
+  }, [applyColorNow])
 
   return (
-    <label className="contextual-text-ribbon-control contextual-text-ribbon-color-control">
+    <label
+      className={[
+        'contextual-text-ribbon-control contextual-text-ribbon-color-control',
+        disabled ? 'is-disabled' : '',
+      ].filter(Boolean).join(' ')}
+    >
       <span className="contextual-text-ribbon-control-label">
         {control.label}
       </span>
       <input
         data-smoke-id={`inline-text-color-${getInlineTextSmokeToken(control.label)}`}
         type="color"
-        value={value}
+        value={draft}
+        disabled={disabled}
         data-selection-state={selectionColor?.state}
         onBlur={() => {
+          commitColorDraft()
           lastAppliedRef.current = null
         }}
-        onChange={(event) => applyColor(event.currentTarget.value)}
+        onChange={(event) => applyColorDraft(event.currentTarget.value)}
         onClick={stopInlineTextEditorClick}
         onFocus={captureSelection}
-        onInput={(event) => applyColor(event.currentTarget.value)}
+        onInput={(event) => applyColorDraft(event.currentTarget.value)}
         onPointerDownCapture={captureSelection}
         onPointerDown={stopInlineTextEditorPointer}
       />
@@ -1318,7 +1453,13 @@ function InlinePreviewTextEditorMenuContent({
   }
 
   if (activeTab === 'art') {
+    const isBackgroundEnabled = controls.art?.backgroundEnabled?.checked ?? true
+    const isBorderEnabled = controls.art?.borderEnabled?.checked ?? true
+    const isBorderAvailable = !controls.art?.borderEnabled?.disabled
+    const areBorderFieldsEnabled = isBorderAvailable && isBorderEnabled
+
     return renderContextualTextRibbonRow({
+      className: 'contextual-text-ribbon-control-row--artistic',
       emptyLabel: 'Artistic controls unavailable',
       children: (
         <>
@@ -1341,45 +1482,44 @@ function InlinePreviewTextEditorMenuContent({
               selection,
             ),
           })}
-          {renderContextualTextRibbonGroup({
+          {renderInlinePreviewTextArtisticFeatureGroup({
             id: 'background',
             label: 'Background',
-            className: 'contextual-text-ribbon-group--backplate',
+            toggle: controls.art?.backgroundEnabled,
             children: (
               <>
-                {renderInlinePreviewTextCheckboxControl(
-                  controls.art?.backgroundEnabled,
-                )}
                 {renderInlinePreviewTextColorControl(
                   controls.art?.backgroundColor,
                   selection,
                   getCommandSelection,
+                  { disabled: !isBackgroundEnabled },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.backgroundOpacity,
+                  { disabled: !isBackgroundEnabled },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.backgroundPadding,
+                  { disabled: !isBackgroundEnabled },
                 )}
               </>
             ),
           })}
-          {renderContextualTextRibbonGroup({
+          {renderInlinePreviewTextArtisticFeatureGroup({
             id: 'border',
             label: 'Border',
-            className: 'contextual-text-ribbon-group--border',
+            toggle: controls.art?.borderEnabled,
             children: (
               <>
-                {renderInlinePreviewTextCheckboxControl(
-                  controls.art?.borderEnabled,
-                )}
                 {renderInlinePreviewTextColorControl(
                   controls.art?.borderColor,
                   selection,
                   getCommandSelection,
+                  { disabled: !areBorderFieldsEnabled },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.borderRadius,
+                  { disabled: !areBorderFieldsEnabled },
                 )}
               </>
             ),
@@ -2084,6 +2224,7 @@ export function InlinePreviewTextEditor({
   const activeMoveEdgePointerIdRef = useRef<number | null>(null)
   const controlPointerStartedAtRef = useRef<number | null>(null)
   const controlPointerStartedInsideRef = useRef(false)
+  const ribbonPointerInteractionRef = useRef(false)
   const adapterSelectionAnchorRef = useRef(value.length)
   const adapterSelectionPointerIdRef = useRef<number | null>(null)
   const adapterSelectionCaptureElementRef = useRef<Element | null>(null)
@@ -2190,14 +2331,6 @@ export function InlinePreviewTextEditor({
     menuRef.current = element
   }, [])
 
-  const updateRibbonScrollVisibility = useCallback(() => {
-    const rows = menuRef.current?.querySelectorAll<HTMLElement>(
-      CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
-    )
-
-    rows?.forEach(updateContextualTextRibbonScrollItemVisibility)
-  }, [])
-
   const revealRibbonScrollItem = useCallback((target: EventTarget | null) => {
     const item = getContextualTextRibbonScrollItem(target)
     const row = getContextualTextRibbonScrollRow(item)
@@ -2206,15 +2339,24 @@ export function InlinePreviewTextEditor({
       return
     }
 
+    const itemRect = getContextualTextRibbonAxisRect(item)
+    const rowRect = getContextualTextRibbonAxisRect(row)
+    const isFullyHidden =
+      itemRect.right <= rowRect.left + 1 ||
+      itemRect.left >= rowRect.right - 1
+
+    if (!isFullyHidden) {
+      return
+    }
+
     const delta = getContextualTextRibbonScrollDeltaToReveal({
-      itemRect: getContextualTextRibbonAxisRect(item),
-      rowRect: getContextualTextRibbonAxisRect(row),
+      itemRect,
+      rowRect,
     })
 
     if (delta !== 0) {
       row.scrollLeft += delta
     }
-    updateContextualTextRibbonScrollItemVisibility(row)
   }, [])
 
   useLayoutEffect(() => {
@@ -2225,53 +2367,37 @@ export function InlinePreviewTextEditor({
       menu.querySelectorAll<HTMLElement>(CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR),
     )
 
-    updateRibbonScrollVisibility()
-
-    const handleScroll = (event: Event) => {
-      if (event.currentTarget instanceof HTMLElement) {
-        updateContextualTextRibbonScrollItemVisibility(event.currentTarget)
-      }
-    }
-
     for (const row of rows) {
-      row.addEventListener('scroll', handleScroll, { passive: true })
-    }
-
-    const resizeObserver = typeof ResizeObserver === 'function'
-      ? new ResizeObserver(updateRibbonScrollVisibility)
-      : null
-
-    if (resizeObserver) {
-      resizeObserver.observe(menu)
-      for (const row of rows) resizeObserver.observe(row)
+      updateContextualTextRibbonScrollItemVisibility(row)
     }
 
     return () => {
       for (const row of rows) {
-        row.removeEventListener('scroll', handleScroll)
+        updateContextualTextRibbonScrollItemVisibility(row)
       }
-      resizeObserver?.disconnect()
     }
-  }, [
-    activeTab,
-    editorControls,
-    sourceMode,
-    updateRibbonScrollVisibility,
-  ])
+  }, [activeTab, editorControls, sourceMode])
 
   const handleRibbonControlInteraction = useCallback(
     (event: SyntheticEvent<Element>) => {
+      if (ribbonPointerInteractionRef.current) {
+        return
+      }
       revealRibbonScrollItem(event.target)
     },
     [revealRibbonScrollItem],
   )
 
+  const handleRibbonKeyboardInteraction = useCallback(() => {
+    ribbonPointerInteractionRef.current = false
+  }, [])
+
   const handleRibbonPointerDown = useCallback(
     (event: ReactPointerEvent<Element>) => {
-      revealRibbonScrollItem(event.target)
+      ribbonPointerInteractionRef.current = true
       stopInlineTextEditorPointer(event)
     },
-    [revealRibbonScrollItem],
+    [],
   )
 
   const getInlineControlRoots = useCallback(() => {
@@ -3034,6 +3160,7 @@ export function InlinePreviewTextEditor({
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
         onFocusCapture={handleRibbonControlInteraction}
+        onKeyDownCapture={handleRibbonKeyboardInteraction}
         onPointerDownCapture={retainTextareaSelectionForCommands}
         onPointerDown={handleRibbonPointerDown}
       >
@@ -3092,6 +3219,7 @@ export function InlinePreviewTextEditor({
     editorControls,
     getCommandSelection,
     handleRibbonControlInteraction,
+    handleRibbonKeyboardInteraction,
     handleRibbonPointerDown,
     isCurvedTextSource,
     onDone,

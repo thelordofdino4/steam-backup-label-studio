@@ -333,6 +333,133 @@ test('contextual text ribbon scrolls whole groups into view', () => {
   )
 })
 
+test('contextual text ribbon artistic tab uses stable semantic cards', () => {
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+
+  assert.match(
+    editorSource,
+    /className:\s*'contextual-text-ribbon-control-row--artistic'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'text-color'[\s\S]*label:\s*'Text Color'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'contrast'[\s\S]*label:\s*'Contrast'/,
+  )
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextArtisticFeatureGroup\(\{[\s\S]*id:\s*'background'[\s\S]*label:\s*'Background'/,
+  )
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextArtisticFeatureGroup\(\{[\s\S]*id:\s*'border'[\s\S]*label:\s*'Border'/,
+  )
+  assert.match(
+    editorSource,
+    /ariaLabel:\s*`Enable \$\{label\.toLowerCase\(\)\}`/,
+  )
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.backgroundColor[\s\S]*\{\s*disabled:\s*!isBackgroundEnabled\s*\}/,
+  )
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextRangeControl\([\s\S]*controls\.art\?\.backgroundOpacity[\s\S]*\{\s*disabled:\s*!isBackgroundEnabled\s*\}/,
+  )
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.borderColor[\s\S]*\{\s*disabled:\s*!areBorderFieldsEnabled\s*\}/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--span-rows\s*\{[\s\S]*grid-row:\s*span 2/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*flex-direction:\s*column/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group:focus-within\s*\{[\s\S]*z-index:\s*2/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*196px[\s\S]*min-width:\s*196px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*124px/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width:\s*719px\)[\s\S]*\.contextual-text-ribbon-control-row--artistic[\s\S]*\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*196px[\s\S]*min-width:\s*196px/,
+  )
+  const featureToggleSource = editorSource.slice(
+    editorSource.indexOf('function renderInlinePreviewTextFeatureToggleControl'),
+    editorSource.indexOf('function renderInlinePreviewTextArtisticFeatureGroup'),
+  )
+  assert.doesNotMatch(featureToggleSource, /<span>\{control\.label\}<\/span>/)
+})
+
+test('contextual text ribbon preserves manual scroll ownership', () => {
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+
+  assert.doesNotMatch(editorSource, /scrollIntoView\(/)
+  assert.doesNotMatch(editorSource, /scrollTo\(/)
+  assert.doesNotMatch(editorSource, /scrollBy\(/)
+  assert.match(
+    editorSource,
+    /ribbonPointerInteractionRef\.current\s*=\s*true/,
+  )
+  assert.match(
+    editorSource,
+    /if\s*\(ribbonPointerInteractionRef\.current\)\s*\{[\s\S]*return[\s\S]*\}/,
+  )
+  assert.match(
+    editorSource,
+    /const isFullyHidden =[\s\S]*itemRect\.right <= rowRect\.left \+ 1[\s\S]*itemRect\.left >= rowRect\.right - 1/,
+  )
+  assert.doesNotMatch(
+    ribbonCss,
+    /data-ribbon-scroll-clipped[\s\S]*visibility:\s*hidden/,
+  )
+  assert.doesNotMatch(
+    ribbonCss,
+    /data-ribbon-scroll-clipped[\s\S]*opacity:\s*0/,
+  )
+})
+
+test('contextual text ribbon color input uses a stable draft path', () => {
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+
+  assert.match(editorSource, /const \[draft,\s*setDraft\] = useState\(value\)/)
+  assert.match(editorSource, /requestAnimationFrame\(flushPendingColor\)/)
+  assert.match(editorSource, /pendingValueRef\.current = nextValue/)
+  assert.match(editorSource, /window\.cancelAnimationFrame\(rafRef\.current\)/)
+})
+
 test('contextual text ribbon CSS keeps preview layout independent of activation', () => {
   const appCss = readRepoFile('src/styles/App.css')
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')

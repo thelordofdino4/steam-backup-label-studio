@@ -441,36 +441,30 @@ export function createCaseInsertInlineTextEditorControls({
         onChange: (checked) =>
           handlers.onStyleChange(target, 'backgroundEnabled', checked),
       },
-      backgroundColor: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundColor,
-            value: style.backgroundColor,
-            onChange: (value) =>
-              handlers.onStyleChange(target, 'backgroundColor', value),
-          }
-        : undefined,
-      backgroundOpacity: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundOpacity,
-            min: 0,
-            max: 1,
-            step: 0.05,
-            value: style.backgroundOpacity,
-            onChange: (value) =>
-              handlers.onStyleChange(target, 'backgroundOpacity', value),
-          }
-        : undefined,
-      backgroundPadding: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundPadding,
-            min: 0,
-            max: 4,
-            step: 0.1,
-            value: style.backgroundPadding,
-            onChange: (value) =>
-              handlers.onStyleChange(target, 'backgroundPadding', value),
-          }
-        : undefined,
+      backgroundColor: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundColor,
+        value: style.backgroundColor,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'backgroundColor', value),
+      },
+      backgroundOpacity: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundOpacity,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: style.backgroundOpacity,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'backgroundOpacity', value),
+      },
+      backgroundPadding: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundPadding,
+        min: 0,
+        max: 4,
+        step: 0.1,
+        value: style.backgroundPadding,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'backgroundPadding', value),
+      },
       borderEnabled: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
         checked: style.borderEnabled,
@@ -479,25 +473,21 @@ export function createCaseInsertInlineTextEditorControls({
         onChange: (checked) =>
           handlers.onStyleChange(target, 'borderEnabled', checked),
       },
-      borderColor: style.backgroundEnabled && style.borderEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
-            value: style.borderColor,
-            onChange: (value) =>
-              handlers.onStyleChange(target, 'borderColor', value),
-          }
-        : undefined,
-      borderRadius: style.backgroundEnabled && style.borderEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
-            min: 0,
-            max: 4,
-            step: 0.1,
-            value: style.borderRadius,
-            onChange: (value) =>
-              handlers.onStyleChange(target, 'borderRadius', value),
-          }
-        : undefined,
+      borderColor: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
+        value: style.borderColor,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'borderColor', value),
+      },
+      borderRadius: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
+        min: 0,
+        max: 4,
+        step: 0.1,
+        value: style.borderRadius,
+        onChange: (value) =>
+          handlers.onStyleChange(target, 'borderRadius', value),
+      },
     },
     utilities: {
       respectVisualElements: {
