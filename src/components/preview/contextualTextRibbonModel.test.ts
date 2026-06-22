@@ -7,12 +7,15 @@ import type {
   InlinePreviewTextEditorControls,
 } from './inlinePreviewTextEditorContract.ts'
 import {
+  CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT,
   CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
   CONTEXTUAL_TEXT_RIBBON_TABS,
   CONTEXTUAL_TEXT_RIBBON_TOAST_GAP,
+  CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
   getContextualTextRibbonControlDescriptors,
   getContextualTextRibbonLayoutModel,
+  getContextualTextRibbonReservedHeight,
   getContextualTextRibbonTabDisplayLabel,
   getContextualTextRibbonToastOffset,
 } from './contextualTextRibbonModel.ts'
@@ -205,8 +208,11 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
   assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 64)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT <= 65)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT >= 60)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 64)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 96)
+  assert.equal(getContextualTextRibbonReservedHeight('wide'), 64)
+  assert.equal(getContextualTextRibbonReservedHeight('medium'), 96)
+  assert.equal(getContextualTextRibbonReservedHeight('narrow'), 96)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -230,19 +236,25 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   assert.deepEqual(getContextualTextRibbonLayoutModel(900), {
     controlColumns: 4,
     controlsMayUseThirdRow: false,
+    controlRows: 1,
     mode: 'wide',
+    reservedHeight: 64,
     tabColumns: 4,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(640), {
     controlColumns: 2,
-    controlsMayUseThirdRow: false,
+    controlsMayUseThirdRow: true,
+    controlRows: 2,
     mode: 'medium',
+    reservedHeight: 96,
     tabColumns: 4,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
     controlColumns: 1,
-    controlsMayUseThirdRow: false,
+    controlsMayUseThirdRow: true,
+    controlRows: 2,
     mode: 'narrow',
+    reservedHeight: 96,
     tabColumns: 4,
   })
 })
@@ -352,26 +364,32 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
 
   assert.match(appCss, /@import '\.\/app-contextual-text-ribbon\.css';/)
   assert.match(ribbonCss, /\.preview-header\s*\{/)
-  assert.match(ribbonCss, /grid-template-columns:[\s\S]*--contextual-text-ribbon-label-column[\s\S]*minmax\(0,\s*1fr\)/)
+  assert.match(ribbonCss, /grid-template-columns:[\s\S]*fit-content\(220px\)[\s\S]*minmax\(0,\s*1fr\)/)
+  assert.match(ribbonCss, /gap:\s*0/)
   assert.match(ribbonCss, /min-height: var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-host/)
   assert.match(ribbonCss, /width:\s*100%/)
   assert.match(ribbonCss, /justify-self:\s*stretch/)
   assert.match(ribbonCss, /max-width:\s*100%/)
+  assert.match(ribbonCss, /container-type:\s*inline-size/)
   assert.match(ribbonCss, /height:\s*var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /border-radius:\s*0 0 0 8px/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-tabs\s*\{[\s\S]*grid-row:\s*1/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-tab\s*\{[\s\S]*white-space:\s*nowrap/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*grid-row:\s*2/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*overflow:\s*hidden/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*flex-wrap:\s*nowrap/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*display:\s*grid/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-auto-flow:\s*column/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\(/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*auto/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*scroll-snap-type:\s*x proximity/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*scroll-snap-align:\s*start/)
   assert.match(ribbonCss, /data-ribbon-overflow-state="clipped"/)
   assert.match(ribbonCss, /pointer-events:\s*none/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*flex:\s*0 0 auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*grid-column:\s*2/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*display:\s*flex/)
+  assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-label-column/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)
   assert.doesNotMatch(ribbonCss, /\.inline-preview-text-control-grid/)
@@ -402,6 +420,6 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
     /var\(--contextual-text-ribbon-reserved-height\)/,
   )
   assert.match(feedbackCss, /var\(--preview-area-top-padding,\s*0px\)/)
-  assert.match(feedbackCss, /\+\s*8px/)
+  assert.doesNotMatch(feedbackCss, /\+\s*8px/)
   assert.doesNotMatch(feedbackCss, /280px/)
 })

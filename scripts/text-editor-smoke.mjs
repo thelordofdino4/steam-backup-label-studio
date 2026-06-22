@@ -1549,6 +1549,7 @@ async function getAttachedRibbonLayoutSnapshot(page, previewSmokeId) {
         ribbonHeight: previewAreaStyle
           .getPropertyValue('--contextual-text-ribbon-reserved-height')
           .trim(),
+        ribbonMode: ribbon.getAttribute('data-contextual-text-ribbon-mode'),
         toastGap: previewAreaStyle
           .getPropertyValue('--contextual-text-ribbon-toast-gap')
           .trim(),
@@ -1614,8 +1615,11 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
             const headerRightDelta = Math.abs(active.header.right - active.previewArea.right)
             const shellTopDelta = Math.abs(active.shell.top - active.previewArea.top)
             const shellRightDelta = Math.abs(active.shell.right - active.previewArea.right)
-            const compactRibbonMinHeight = 60
-            const compactRibbonMaxHeight = 65
+            const reservedRibbonHeight = Number.parseFloat(
+              active.variables.ribbonHeight,
+            )
+            const expectedRibbonHeight =
+              active.variables.ribbonMode === 'wide' ? 64 : 96
             const surfaceOffsetFromLabel = active.preview.top - active.label.top
 
             if (
@@ -1623,6 +1627,10 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
               active.ribbon.left < active.label.right - 1
             ) {
               failureMessage = `${scenario.name}: ribbon crossed the Live Preview label column: ${
+                JSON.stringify({ label: active.label, ribbon: active.ribbon, shell: active.shell })
+              }`
+            } else if (active.ribbon.left - active.label.right > 1.5) {
+              failureMessage = `${scenario.name}: ribbon left a decorative gap after the Live Preview label column: ${
                 JSON.stringify({ label: active.label, ribbon: active.ribbon, shell: active.shell })
               }`
             } else if (
@@ -1652,26 +1660,26 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
                 })
               }`
             } else if (
-              active.header.height < compactRibbonMinHeight ||
-              active.header.height > compactRibbonMaxHeight
+              Math.abs(reservedRibbonHeight - expectedRibbonHeight) > 1 ||
+              Math.abs(active.header.height - expectedRibbonHeight) > 1.5
             ) {
-              failureMessage = `${scenario.name}: ribbon reserved outside the compact 60-65px toolbar band: ${
+              failureMessage = `${scenario.name}: ribbon did not reserve the expected responsive toolbar height: ${
                 JSON.stringify({
+                  expectedRibbonHeight,
                   header: active.header,
-                  maxHeight: compactRibbonMaxHeight,
-                  minHeight: compactRibbonMinHeight,
+                  reservedRibbonHeight,
                   shell: active.shell,
+                  variables: active.variables,
                 })
               }`
             } else if (
-              surfaceOffsetFromLabel < compactRibbonMinHeight ||
-              surfaceOffsetFromLabel > compactRibbonMaxHeight + 1
+              surfaceOffsetFromLabel < expectedRibbonHeight - 1 ||
+              surfaceOffsetFromLabel > expectedRibbonHeight + 2
             ) {
               failureMessage = `${scenario.name}: editable surface is not close enough under Live Preview text: ${
                 JSON.stringify({
+                  expectedRibbonHeight,
                   label: active.label,
-                  maxHeight: compactRibbonMaxHeight,
-                  minHeight: compactRibbonMinHeight,
                   preview: active.preview,
                   shell: active.shell,
                   surfaceOffsetFromLabel,

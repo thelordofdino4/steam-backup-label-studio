@@ -131,6 +131,23 @@
     +
     var(--contextual-text-ribbon-reserved-height)
     + var(--contextual-text-ribbon-toast-gap, 10px)
-    + 8px
   );
+}
+
+.preview-area.has-contextual-text-ribbon-active .preview-toast {
+  animation:
+    preview-toast-pop-below-ribbon 140ms ease-out,
+    preview-toast-fade 3600ms ease-in forwards;
+}
+
+@keyframes preview-toast-pop-below-ribbon {
+  from {
+    opacity: 0;
+    transform: translateY(0) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
