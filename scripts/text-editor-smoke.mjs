@@ -1176,7 +1176,7 @@ async function assertResponsiveContextualShell(page) {
   await expectContextualShell(page)
 
   const scenarios = [
-    { name: 'wide', viewportWidth: 1440 },
+    { name: 'wide', viewportWidth: 2200 },
     { name: 'compact', viewportWidth: 1040 },
     { name: 'narrow', viewportWidth: 760 },
   ]
@@ -1353,7 +1353,6 @@ async function assertResponsiveContextualShell(page) {
               rect,
               rowWidth: rowRect.width,
               rowRect,
-              state: element.getAttribute('data-ribbon-overflow-state'),
               visibleWidth,
             }
           })
@@ -1376,7 +1375,7 @@ async function assertResponsiveContextualShell(page) {
             !horizontallyInside(item.rect, item.rowRect) &&
             item.opacity >= 0.01 &&
             item.pointerEvents !== 'none')
-          .map((item) => `${item.label}:${Math.round(item.visibleWidth)}px/${item.state}`)
+          .map((item) => `${item.label}:${Math.round(item.visibleWidth)}px`)
         const outside = [
           ...(!inside(tabsRect, hostRect) ? ['tabs'] : []),
           ...(!inside(menuRect, hostRect) ? ['menu'] : []),
@@ -1544,6 +1543,10 @@ async function getAttachedRibbonLayoutSnapshot(page, previewSmokeId) {
       toast: toRect(toast),
       toastStack: toRect(toastStack),
       toastStackTop: Number.parseFloat(toastStackStyle.top),
+      availableHeaderWidth: Math.max(
+        0,
+        toRect(header).right - toRect(label).right,
+      ),
       variables: {
         padding: previewAreaStyle.getPropertyValue('--preview-area-padding').trim(),
         ribbonHeight: previewAreaStyle
@@ -1573,7 +1576,7 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
   const scenarios = [
     { height: 720, name: 'default-tauri', width: 1000 },
     { height: 650, name: 'minimum-tauri', width: 900 },
-    { height: 960, name: 'large-desktop', width: 1440 },
+    { height: 1080, name: 'fullscreen-wide', width: 2200 },
   ]
 
   try {
@@ -1597,6 +1600,7 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
         } else {
           await openInlineEditorFromTarget(page, textSmokeId)
           await expectContextualShell(page)
+          await clickInlineTab(page, 'presets')
           await page.waitForTimeout(120)
           const active = await getAttachedRibbonLayoutSnapshot(
             page,
@@ -1618,6 +1622,7 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
             const reservedRibbonHeight = Number.parseFloat(
               active.variables.ribbonHeight,
             )
+            const availableHeaderWidth = active.availableHeaderWidth
             const expectedRibbonHeight =
               active.variables.ribbonMode === 'wide' ? 64 : 96
             const surfaceOffsetFromLabel = active.preview.top - active.label.top
@@ -1629,9 +1634,25 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
               failureMessage = `${scenario.name}: ribbon crossed the Live Preview label column: ${
                 JSON.stringify({ label: active.label, ribbon: active.ribbon, shell: active.shell })
               }`
-            } else if (active.ribbon.left - active.label.right > 1.5) {
-              failureMessage = `${scenario.name}: ribbon left a decorative gap after the Live Preview label column: ${
-                JSON.stringify({ label: active.label, ribbon: active.ribbon, shell: active.shell })
+            } else if (active.ribbon.width > availableHeaderWidth + 1.5) {
+              failureMessage = `${scenario.name}: ribbon exceeded the header width available after Live Preview: ${
+                JSON.stringify({
+                  availableHeaderWidth,
+                  label: active.label,
+                  ribbon: active.ribbon,
+                  shell: active.shell,
+                })
+              }`
+            } else if (
+              active.variables.ribbonMode === 'wide' &&
+              active.ribbon.width > availableHeaderWidth - 48
+            ) {
+              failureMessage = `${scenario.name}: ribbon stretched across the wide header instead of shrink-wrapping: ${
+                JSON.stringify({
+                  availableHeaderWidth,
+                  ribbon: active.ribbon,
+                  shell: active.shell,
+                })
               }`
             } else if (
               headerTopDelta > 1.5 ||
@@ -1757,6 +1778,47 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
     await page.setViewportSize(originalViewport)
     await page.waitForTimeout(160)
     await openInlineEditorFromTarget(page, textSmokeId)
+    await expectContextualShell(page)
+  }
+}
+
+async function captureContextualRibbonTabScreenshots(page, surfaceName, openEditor) {
+  const originalViewport = page.viewportSize() ?? { height: 1500, width: 1800 }
+  const scenarios = [
+    { height: 720, name: 'default-tauri', width: 1000 },
+    { height: 650, name: 'minimum-tauri', width: 900 },
+    { height: 1080, name: 'fullscreen-wide', width: 2200 },
+  ]
+  const tabs = ['presets', 'text', 'art', 'utilities']
+
+  fs.mkdirSync(artifactDir, { recursive: true })
+
+  try {
+    for (const scenario of scenarios) {
+      await page.setViewportSize({
+        height: scenario.height,
+        width: scenario.width,
+      })
+      await page.waitForTimeout(180)
+      await openEditor()
+      await expectContextualShell(page)
+
+      for (const tab of tabs) {
+        await clickInlineTab(page, tab)
+        await expectContextualShell(page)
+        await page.waitForTimeout(100)
+        await smoke(page, 'contextual-text-ribbon-host').first().screenshot({
+          path: path.join(
+            artifactDir,
+            `native-ribbon-${surfaceName}-${scenario.name}-${tab}.png`,
+          ),
+        })
+      }
+    }
+  } finally {
+    await page.setViewportSize(originalViewport)
+    await page.waitForTimeout(160)
+    await openEditor()
     await expectContextualShell(page)
   }
 }
@@ -2542,6 +2604,15 @@ async function runCaseChecks(page) {
     await assertAttachedRibbonLayoutAtViewports(page)
   })
 
+  await runCheck(page, 'case native ribbon screenshots cover every tab and viewport', async () => {
+    await captureContextualRibbonTabScreenshots(page, 'case-cover', async () => {
+      await done(page).catch(() => {})
+      await setCasePane(page, 'cover')
+      await openInlineEditorFromTarget(page, 'case-text-block-cover-cover-title-text')
+      await expectCaseRibbonEditor(page)
+    })
+  })
+
   await runCheck(page, 'cover selected-range point size updates canonical HTML', async () => {
     await replaceInlineTextWithKeyboard(page, 'Word Rest')
     await dragSelectVisiblePrefix(page, 'case-text-block-cover-cover-title-text')
@@ -2689,7 +2760,6 @@ async function runCaseChecks(page) {
         opacity: Number(style.opacity),
         pointerEvents: style.pointerEvents,
         rowRect,
-        state: group.getAttribute('data-ribbon-overflow-state'),
       }
     })
 
@@ -2739,7 +2809,6 @@ async function runCaseChecks(page) {
           left: rowRect.left,
           right: rowRect.right,
         },
-        state: group.getAttribute('data-ribbon-overflow-state'),
       }
     })
 
@@ -2967,6 +3036,14 @@ async function runDiscChecks(page) {
 
     await clickInlineTab(page, 'art')
     await expectDiscRibbonEditor(page)
+  })
+
+  await runCheck(page, 'disc native ribbon screenshots cover every tab and viewport', async () => {
+    await captureContextualRibbonTabScreenshots(page, 'disc-straight', async () => {
+      await done(page).catch(() => {})
+      await openStraightDiscTitle(page)
+      await expectDiscRibbonEditor(page)
+    })
   })
 
   await runCheck(page, 'straight disc HTML source updates SVG before Done', async () => {

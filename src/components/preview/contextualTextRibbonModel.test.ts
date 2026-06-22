@@ -20,7 +20,6 @@ import {
   getContextualTextRibbonToastOffset,
 } from './contextualTextRibbonModel.ts'
 import {
-  getContextualTextRibbonOverflowState,
   getContextualTextRibbonScrollDeltaToReveal,
 } from './contextualTextRibbonOverflow.ts'
 
@@ -233,7 +232,7 @@ test('contextual text ribbon reserves a stable app-shell slot', () => {
 })
 
 test('contextual text ribbon exposes wide medium and narrow layouts', () => {
-  assert.deepEqual(getContextualTextRibbonLayoutModel(900), {
+  assert.deepEqual(getContextualTextRibbonLayoutModel(1500), {
     controlColumns: 4,
     controlsMayUseThirdRow: false,
     controlRows: 1,
@@ -241,7 +240,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     reservedHeight: 64,
     tabColumns: 4,
   })
-  assert.deepEqual(getContextualTextRibbonLayoutModel(640), {
+  assert.deepEqual(getContextualTextRibbonLayoutModel(1100), {
     controlColumns: 2,
     controlsMayUseThirdRow: true,
     controlRows: 2,
@@ -303,32 +302,6 @@ test('contextual text ribbon fixture covers each supported control type', () => 
   assert.ok(ids.includes('delete'))
 })
 
-test('contextual text ribbon classifies partial horizontal group overflow', () => {
-  const rowRect = { left: 100, right: 500 }
-
-  assert.equal(
-    getContextualTextRibbonOverflowState({
-      itemRect: { left: 120, right: 300 },
-      rowRect,
-    }),
-    'fully-visible',
-  )
-  assert.equal(
-    getContextualTextRibbonOverflowState({
-      itemRect: { left: 492, right: 700 },
-      rowRect,
-    }),
-    'clipped',
-  )
-  assert.equal(
-    getContextualTextRibbonOverflowState({
-      itemRect: { left: 520, right: 700 },
-      rowRect,
-    }),
-    'outside',
-  )
-})
-
 test('contextual text ribbon scrolls whole groups into view', () => {
   const rowRect = { left: 100, right: 500 }
 
@@ -368,8 +341,8 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /gap:\s*0/)
   assert.match(ribbonCss, /min-height: var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-host/)
-  assert.match(ribbonCss, /width:\s*100%/)
-  assert.match(ribbonCss, /justify-self:\s*stretch/)
+  assert.match(ribbonCss, /width:\s*min\(100%,\s*var\(--contextual-text-ribbon-active-width,\s*100%\)\)/)
+  assert.match(ribbonCss, /justify-self:\s*end/)
   assert.match(ribbonCss, /max-width:\s*100%/)
   assert.match(ribbonCss, /container-type:\s*inline-size/)
   assert.match(ribbonCss, /height:\s*var\(--contextual-text-ribbon-reserved-height\)/)
@@ -385,8 +358,8 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*scroll-snap-type:\s*x proximity/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*scroll-snap-align:\s*start/)
-  assert.match(ribbonCss, /data-ribbon-overflow-state="clipped"/)
-  assert.match(ribbonCss, /pointer-events:\s*none/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-group-label\s*\{/)
+  assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*grid-column:\s*2/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*display:\s*flex/)
   assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-label-column/)

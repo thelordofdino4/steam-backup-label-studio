@@ -65,7 +65,8 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(contract, /bulletedList\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(source, /renderInlinePreviewTextToggleControl/)
   assert.match(source, /aria-pressed=\{resolvedState === 'mixed'/)
-  assert.match(source, /contextual-text-ribbon-group--format/)
+  assert.match(source, /id:\s*'font'/)
+  assert.match(source, /data-ribbon-group=\{id\}/)
   assert.match(source, /contextual-text-ribbon-icon-button/)
   assert.match(source, /<textarea/)
   assert.match(source, /value=\{value\}/)
@@ -153,6 +154,11 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
     ribbonCss,
     /\.contextual-text-ribbon-group\s*\{[^}]*display:\s*flex/s,
   )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group-label\s*\{/s,
+  )
+  assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-controls\s*\{[^}]*overflow:\s*hidden/s,

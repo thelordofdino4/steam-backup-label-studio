@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
   type SyntheticEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
@@ -51,7 +52,6 @@ import {
   getContextualTextRibbonTabDisplayLabel,
 } from './contextualTextRibbonModel'
 import {
-  getContextualTextRibbonOverflowState,
   getContextualTextRibbonScrollDeltaToReveal,
 } from './contextualTextRibbonOverflow'
 import {
@@ -233,6 +233,67 @@ function getInlineTextToggleDisplayLabel(label: string) {
   if (token === 'bulleted-list') return '•'
 
   return label
+}
+
+function isRenderableRibbonNode(node: ReactNode): boolean {
+  if (node === null || node === undefined || typeof node === 'boolean') {
+    return false
+  }
+
+  if (Array.isArray(node)) {
+    return node.some(isRenderableRibbonNode)
+  }
+
+  return true
+}
+
+function renderContextualTextRibbonGroup({
+  children,
+  className = '',
+  id,
+  label,
+}: {
+  children: ReactNode
+  className?: string
+  id: string
+  label: string
+}) {
+  if (!isRenderableRibbonNode(children)) return null
+
+  return (
+    <div
+      aria-label={label}
+      className={[
+        'contextual-text-ribbon-group',
+        `contextual-text-ribbon-group--${id}`,
+        className,
+      ].filter(Boolean).join(' ')}
+      data-ribbon-group={id}
+    >
+      <span className="contextual-text-ribbon-group-label">{label}</span>
+      {children}
+    </div>
+  )
+}
+
+function renderContextualTextRibbonRow({
+  children,
+  emptyLabel,
+}: {
+  children: ReactNode
+  emptyLabel: string
+}) {
+  return (
+    <div className="contextual-text-ribbon-control-row">
+      {isRenderableRibbonNode(children) ? (
+        children
+      ) : (
+        <span className="contextual-text-ribbon-empty-control">
+          {emptyLabel}
+        </span>
+      )}
+    </div>
+  )
 }
 
 function getLineSpan(host: Element, lineIndex: number) {
@@ -869,7 +930,12 @@ function renderInlinePreviewHtmlSourceControl({
   if (!control) return null
 
   return (
-    <div className="contextual-text-ribbon-source-control">
+    <div
+      className={[
+        'contextual-text-ribbon-source-control',
+        sourceMode ? 'is-source-mode-active' : '',
+      ].filter(Boolean).join(' ')}
+    >
       <label className="contextual-text-ribbon-toggle-check">
         <input
           data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
@@ -1153,140 +1219,263 @@ function InlinePreviewTextEditorMenuContent({
   }
 
   if (activeTab === 'presets') {
-    return (
-      <div className="contextual-text-ribbon-control-row">
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--presets">
-          {renderInlinePreviewTextSelectControl(controls.presets?.style, selection)}
-          {renderInlinePreviewTextSelectControl(controls.presets?.layout, selection)}
-        </div>
-        {!controls.presets?.style && !controls.presets?.layout ? (
-          <span className="contextual-text-ribbon-empty-control">
-            Style presets unavailable
-          </span>
-        ) : null}
-        {controls.presets?.onReset ? (
-          <button
-            type="button"
-            className="contextual-text-ribbon-command-button"
-            onClick={controls.presets.onReset}
-          >
-            Reset
-          </button>
-        ) : null}
-      </div>
-    )
+    return renderContextualTextRibbonRow({
+      emptyLabel: 'Style presets unavailable',
+      children: renderContextualTextRibbonGroup({
+        id: 'presets',
+        label: 'Presets',
+        children: (
+          <>
+            {renderInlinePreviewTextSelectControl(
+              controls.presets?.style,
+              selection,
+            )}
+            {renderInlinePreviewTextSelectControl(
+              controls.presets?.layout,
+              selection,
+            )}
+            {controls.presets?.onReset ? (
+              <button
+                type="button"
+                className="contextual-text-ribbon-command-button"
+                onClick={controls.presets.onReset}
+              >
+                Reset
+              </button>
+            ) : null}
+          </>
+        ),
+      }),
+    })
   }
 
   if (activeTab === 'text') {
-    return (
-      <div className="contextual-text-ribbon-control-row">
-        {controls.text?.textValue ? (
-          <div className="contextual-text-ribbon-group contextual-text-ribbon-group--source">
-            {renderInlinePreviewTextValueControl(controls.text.textValue)}
-          </div>
-        ) : null}
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--font">
-          {renderInlinePreviewTextSelectControl(controls.text?.fontFamily, selection)}
-          {renderInlinePreviewTextSizeControl(controls.text?.size, selection)}
-        </div>
-        {controls.text?.bold ||
-        controls.text?.italic ||
-        controls.text?.underline ||
-        controls.text?.bulletedList ? (
-          <div className="contextual-text-ribbon-group contextual-text-ribbon-group--format">
-            {renderInlinePreviewTextToggleControl(
-              controls.text.bold,
-              selection,
-              onSelectionChange,
-            )}
-            {renderInlinePreviewTextToggleControl(
-              controls.text.italic,
-              selection,
-              onSelectionChange,
-            )}
-            {renderInlinePreviewTextToggleControl(
-              controls.text.underline,
-              selection,
-              onSelectionChange,
-            )}
-            {renderInlinePreviewTextToggleControl(
-              controls.text.bulletedList,
-              selection,
-              onSelectionChange,
-            )}
-          </div>
-        ) : null}
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--paragraph">
-          {renderInlinePreviewTextSelectControl(controls.text?.alignment, selection)}
-        </div>
-      </div>
-    )
+    return renderContextualTextRibbonRow({
+      emptyLabel: 'Text controls unavailable',
+      children: (
+        <>
+          {renderContextualTextRibbonGroup({
+            id: 'text-value',
+            label: 'Text',
+            className: 'contextual-text-ribbon-group--source',
+            children: renderInlinePreviewTextValueControl(
+              controls.text?.textValue,
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'font',
+            label: 'Font',
+            children: (
+              <>
+                {renderInlinePreviewTextSelectControl(
+                  controls.text?.fontFamily,
+                  selection,
+                )}
+                {renderInlinePreviewTextSizeControl(
+                  controls.text?.size,
+                  selection,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.bold,
+                  selection,
+                  onSelectionChange,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.italic,
+                  selection,
+                  onSelectionChange,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.underline,
+                  selection,
+                  onSelectionChange,
+                )}
+              </>
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'paragraph',
+            label: 'Paragraph',
+            children: (
+              <>
+                {renderInlinePreviewTextSelectControl(
+                  controls.text?.alignment,
+                  selection,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.bulletedList,
+                  selection,
+                  onSelectionChange,
+                )}
+              </>
+            ),
+          })}
+        </>
+      ),
+    })
   }
 
   if (activeTab === 'art') {
-    return (
-      <div className="contextual-text-ribbon-control-row">
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--paint">
-          {renderInlinePreviewTextColorControl(controls.art?.color, selection)}
-          {renderInlinePreviewTextSelectControl(controls.art?.contrast, selection)}
-        </div>
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--backplate">
-          {renderInlinePreviewTextCheckboxControl(controls.art?.backgroundEnabled)}
-          {renderInlinePreviewTextColorControl(
-            controls.art?.backgroundColor,
-            selection,
-          )}
-          {renderInlinePreviewTextRangeControl(controls.art?.backgroundOpacity)}
-          {renderInlinePreviewTextRangeControl(controls.art?.backgroundPadding)}
-        </div>
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--border">
-          {renderInlinePreviewTextCheckboxControl(controls.art?.borderEnabled)}
-          {renderInlinePreviewTextColorControl(controls.art?.borderColor, selection)}
-          {renderInlinePreviewTextRangeControl(controls.art?.borderRadius)}
-        </div>
-      </div>
-    )
+    return renderContextualTextRibbonRow({
+      emptyLabel: 'Artistic controls unavailable',
+      children: (
+        <>
+          {renderContextualTextRibbonGroup({
+            id: 'text-color',
+            label: 'Text Color',
+            className: 'contextual-text-ribbon-group--paint',
+            children: renderInlinePreviewTextColorControl(
+              controls.art?.color,
+              selection,
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'background',
+            label: 'Background',
+            className: 'contextual-text-ribbon-group--backplate',
+            children: (
+              <>
+                {renderInlinePreviewTextCheckboxControl(
+                  controls.art?.backgroundEnabled,
+                )}
+                {renderInlinePreviewTextColorControl(
+                  controls.art?.backgroundColor,
+                  selection,
+                )}
+                {renderInlinePreviewTextRangeControl(
+                  controls.art?.backgroundOpacity,
+                )}
+                {renderInlinePreviewTextRangeControl(
+                  controls.art?.backgroundPadding,
+                )}
+              </>
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'border',
+            label: 'Border',
+            className: 'contextual-text-ribbon-group--border',
+            children: (
+              <>
+                {renderInlinePreviewTextCheckboxControl(
+                  controls.art?.borderEnabled,
+                )}
+                {renderInlinePreviewTextColorControl(
+                  controls.art?.borderColor,
+                  selection,
+                )}
+                {renderInlinePreviewTextRangeControl(
+                  controls.art?.borderRadius,
+                )}
+              </>
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'contrast',
+            label: 'Contrast',
+            className: 'contextual-text-ribbon-group--paint',
+            children: renderInlinePreviewTextSelectControl(
+              controls.art?.contrast,
+              selection,
+            ),
+          })}
+        </>
+      ),
+    })
   }
 
-  return (
-    <div className="contextual-text-ribbon-control-row">
-      <div className="contextual-text-ribbon-group contextual-text-ribbon-group--layout">
-        {renderInlinePreviewTextCheckboxControl(
-          controls.utilities?.respectVisualElements,
-        )}
-        {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
-        {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
-        {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
-      </div>
-      <div className="contextual-text-ribbon-group contextual-text-ribbon-group--curved">
-        {renderInlinePreviewTextSelectControl(controls.utilities?.mode, selection)}
-        {renderInlinePreviewTextRangeControl(controls.utilities?.lineSpacing)}
-        {renderInlinePreviewTextSelectControl(controls.utilities?.arcSide, selection)}
-        {renderInlinePreviewTextRangeControl(controls.utilities?.arcDegrees)}
-      </div>
-      {controls.utilities?.htmlSource ? (
-        <div className="contextual-text-ribbon-group contextual-text-ribbon-group--source">
-          {renderInlinePreviewHtmlSourceControl({
-            control: controls.utilities.htmlSource,
-            sourceDraftIdentity,
-            sourceInitialValue,
-            sourceMode,
-            onSourceDraftChange,
-            onSourceDraftCommit,
-          })}
-        </div>
-      ) : null}
-      {controls.utilities?.resetLayout ? (
-        <button
-          type="button"
-          className="contextual-text-ribbon-command-button"
-          onClick={controls.utilities.resetLayout}
-        >
-          Reset
-        </button>
-      ) : null}
-    </div>
-  )
+  if (sourceMode && controls.utilities?.htmlSource) {
+    return renderContextualTextRibbonRow({
+      emptyLabel: 'HTML source unavailable',
+      children: renderContextualTextRibbonGroup({
+        id: 'source',
+        label: 'HTML',
+        className: 'contextual-text-ribbon-group--source',
+        children: renderInlinePreviewHtmlSourceControl({
+          control: controls.utilities.htmlSource,
+          sourceDraftIdentity,
+          sourceInitialValue,
+          sourceMode,
+          onSourceDraftChange,
+          onSourceDraftCommit,
+        }),
+      }),
+    })
+  }
+
+  return renderContextualTextRibbonRow({
+    emptyLabel: 'Utility controls unavailable',
+    children: (
+      <>
+        {renderContextualTextRibbonGroup({
+          id: 'position',
+          label: 'Position',
+          className: 'contextual-text-ribbon-group--position',
+          children: (
+            <>
+              {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
+              {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
+            </>
+          ),
+        })}
+        {renderContextualTextRibbonGroup({
+          id: 'layout',
+          label: 'Layout',
+          children: (
+            <>
+              {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
+              {renderInlinePreviewTextCheckboxControl(
+                controls.utilities?.respectVisualElements,
+              )}
+              {renderInlinePreviewTextSelectControl(
+                controls.utilities?.mode,
+                selection,
+              )}
+              {renderInlinePreviewTextRangeControl(
+                controls.utilities?.lineSpacing,
+              )}
+              {renderInlinePreviewTextSelectControl(
+                controls.utilities?.arcSide,
+                selection,
+              )}
+              {renderInlinePreviewTextRangeControl(
+                controls.utilities?.arcDegrees,
+              )}
+            </>
+          ),
+        })}
+        {renderContextualTextRibbonGroup({
+          id: 'source',
+          label: 'HTML',
+          className: 'contextual-text-ribbon-group--source',
+          children: controls.utilities?.htmlSource
+            ? renderInlinePreviewHtmlSourceControl({
+                control: controls.utilities.htmlSource,
+                sourceDraftIdentity,
+                sourceInitialValue,
+                sourceMode,
+                onSourceDraftChange,
+                onSourceDraftCommit,
+              })
+            : null,
+        })}
+        {renderContextualTextRibbonGroup({
+          id: 'reset',
+          label: 'Reset',
+          className: 'contextual-text-ribbon-group--reset',
+          children: controls.utilities?.resetLayout ? (
+            <button
+              type="button"
+              className="contextual-text-ribbon-command-button"
+              onClick={controls.utilities.resetLayout}
+            >
+              Reset
+            </button>
+          ) : null,
+        })}
+      </>
+    ),
+  })
 }
 
 function getTextRangeBoundary(
@@ -1902,8 +2091,6 @@ export function InlinePreviewTextEditor({
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
   const moveEdgeRef = useRef<HTMLDivElement | null>(null)
-  const [ribbonMenuElement, setRibbonMenuElement] =
-    useState<HTMLDivElement | null>(null)
   const activeMoveHandlePointerIdRef = useRef<number | null>(null)
   const activeMoveEdgePointerIdRef = useRef<number | null>(null)
   const controlPointerStartedAtRef = useRef<number | null>(null)
@@ -1943,53 +2130,13 @@ export function InlinePreviewTextEditor({
 
   const setRibbonMenuRef = useCallback((element: HTMLDivElement | null) => {
     menuRef.current = element
-    setRibbonMenuElement(element)
   }, [])
-
-  const updateRibbonOverflowStates = useCallback(() => {
-    const menu = menuRef.current
-
-    if (!menu) return
-
-    const activeElement = document.activeElement
-    const rows = menu.querySelectorAll<HTMLElement>(
-      CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
-    )
-
-    rows.forEach((row) => {
-      const rowRect = getContextualTextRibbonAxisRect(row)
-      const items = row.querySelectorAll<HTMLElement>(
-        CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR,
-      )
-
-      items.forEach((item) => {
-        const itemHasFocus =
-          activeElement instanceof Node && item.contains(activeElement)
-
-        if (itemHasFocus) {
-          item.dataset.ribbonOverflowState = 'fully-visible'
-          return
-        }
-
-        item.dataset.ribbonOverflowState =
-          getContextualTextRibbonOverflowState({
-            itemRect: getContextualTextRibbonAxisRect(item),
-            rowRect,
-          })
-      })
-    })
-  }, [])
-
-  const scheduleRibbonOverflowStateUpdate = useCallback(() => {
-    window.requestAnimationFrame(updateRibbonOverflowStates)
-  }, [updateRibbonOverflowStates])
 
   const revealRibbonScrollItem = useCallback((target: EventTarget | null) => {
     const item = getContextualTextRibbonScrollItem(target)
     const row = getContextualTextRibbonScrollRow(item)
 
     if (!item || !row) {
-      scheduleRibbonOverflowStateUpdate()
       return
     }
 
@@ -2001,9 +2148,7 @@ export function InlinePreviewTextEditor({
     if (delta !== 0) {
       row.scrollLeft += delta
     }
-
-    scheduleRibbonOverflowStateUpdate()
-  }, [scheduleRibbonOverflowStateUpdate])
+  }, [])
 
   const handleRibbonControlInteraction = useCallback(
     (event: SyntheticEvent<Element>) => {
@@ -2019,59 +2164,6 @@ export function InlinePreviewTextEditor({
     },
     [revealRibbonScrollItem],
   )
-
-  useLayoutEffect(() => {
-    if (!ribbonMenuElement) {
-      return undefined
-    }
-
-    let frame: number | null = null
-    const schedule = () => {
-      if (frame !== null) return
-
-      frame = window.requestAnimationFrame(() => {
-        frame = null
-        updateRibbonOverflowStates()
-      })
-    }
-    const rows = Array.from(
-      ribbonMenuElement.querySelectorAll<HTMLElement>(
-        CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
-      ),
-    )
-    const resizeObserver =
-      typeof ResizeObserver === 'undefined'
-        ? null
-        : new ResizeObserver(schedule)
-
-    schedule()
-    resizeObserver?.observe(ribbonMenuElement)
-    rows.forEach((row) => {
-      row.addEventListener('scroll', schedule, { passive: true })
-      resizeObserver?.observe(row)
-      row
-        .querySelectorAll<HTMLElement>(
-          CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR,
-        )
-        .forEach((item) => resizeObserver?.observe(item))
-    })
-
-    return () => {
-      rows.forEach((row) => row.removeEventListener('scroll', schedule))
-      resizeObserver?.disconnect()
-
-      if (frame !== null) {
-        window.cancelAnimationFrame(frame)
-      }
-    }
-  }, [
-    activeTab,
-    editorControls,
-    ribbonMenuElement,
-    sourceMode,
-    updateRibbonOverflowStates,
-    value,
-  ])
 
   const getInlineControlRoots = useCallback(() => {
     const elements: HTMLElement[] = []

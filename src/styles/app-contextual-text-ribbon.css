@@ -36,8 +36,8 @@
 .contextual-text-ribbon-host {
   box-sizing: border-box;
   align-self: start;
-  justify-self: stretch;
-  width: 100%;
+  justify-self: end;
+  width: min(100%, var(--contextual-text-ribbon-active-width, 100%));
   max-width: 100%;
   min-width: 0;
   min-height: var(--contextual-text-ribbon-reserved-height);
@@ -160,8 +160,10 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
+  justify-self: start;
   gap: 3px;
-  min-width: 0;
+  flex: 0 0 auto;
+  min-width: max-content;
   min-height: 28px;
   box-sizing: border-box;
   padding: 2px 5px;
@@ -170,32 +172,29 @@
   background: rgba(15, 17, 23, 0.74);
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  transition: opacity 90ms ease;
 }
 
-.contextual-text-ribbon-group[data-ribbon-overflow-state="clipped"],
-.contextual-text-ribbon-group[data-ribbon-overflow-state="outside"],
-.contextual-text-ribbon-command-button[data-ribbon-overflow-state="clipped"],
-.contextual-text-ribbon-command-button[data-ribbon-overflow-state="outside"] {
-  opacity: 0;
-  pointer-events: none;
-}
-
-.contextual-text-ribbon-group[data-ribbon-overflow-state="clipped"]:focus-within,
-.contextual-text-ribbon-group[data-ribbon-overflow-state="outside"]:focus-within,
-.contextual-text-ribbon-command-button[data-ribbon-overflow-state="clipped"]:focus-visible,
-.contextual-text-ribbon-command-button[data-ribbon-overflow-state="outside"]:focus-visible {
-  opacity: 1;
-  pointer-events: auto;
+.contextual-text-ribbon-group-label {
+  flex: 0 0 auto;
+  max-width: 76px;
+  color: #f3f4f6;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .contextual-text-ribbon-group--source {
   width: min(420px, 100cqw);
+  grid-row: span var(--contextual-text-ribbon-control-row-count);
   align-items: stretch;
 }
 
 .contextual-text-ribbon-group--font {
-  width: min(326px, 100cqw);
+  width: max-content;
 }
 
 .contextual-text-ribbon-group--font .contextual-text-ribbon-control-label {
@@ -215,17 +214,25 @@
 }
 
 .contextual-text-ribbon-group--paint,
-.contextual-text-ribbon-group--curved {
-  width: min(268px, 100cqw);
+.contextual-text-ribbon-group--contrast,
+.contextual-text-ribbon-group--text-color {
+  width: max-content;
 }
 
-.contextual-text-ribbon-group--layout {
-  width: min(430px, 100cqw);
+.contextual-text-ribbon-group--layout,
+.contextual-text-ribbon-group--position {
+  width: max-content;
 }
 
 .contextual-text-ribbon-group--backplate,
 .contextual-text-ribbon-group--border {
-  width: min(292px, 100cqw);
+  width: max-content;
+}
+
+.contextual-text-ribbon-group--reset,
+.contextual-text-ribbon-group--presets,
+.contextual-text-ribbon-group--paragraph {
+  width: max-content;
 }
 
 .contextual-text-ribbon-control,
@@ -379,9 +386,9 @@
 }
 
 .contextual-text-ribbon-command-button {
+  justify-self: start;
   scroll-snap-align: start;
   scroll-snap-stop: always;
-  transition: opacity 90ms ease;
 }
 
 .contextual-text-ribbon-icon-button {
@@ -483,18 +490,20 @@
   }
 
   .contextual-text-ribbon-group--paint,
-  .contextual-text-ribbon-group--curved,
+  .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-group--contrast,
   .contextual-text-ribbon-group--backplate,
   .contextual-text-ribbon-group--border {
-    width: min(250px, 100cqw);
+    width: max-content;
   }
 
-  .contextual-text-ribbon-group--layout {
-    width: min(340px, 100cqw);
+  .contextual-text-ribbon-group--layout,
+  .contextual-text-ribbon-group--position {
+    width: max-content;
   }
 
   .contextual-text-ribbon-group--font {
-    width: min(302px, 100cqw);
+    width: max-content;
   }
 
   .contextual-text-ribbon-shell {
@@ -535,7 +544,7 @@
   }
 
   .contextual-text-ribbon-group--font {
-    width: min(286px, 100cqw);
+    width: max-content;
   }
 
   .contextual-text-ribbon-control-label {
@@ -563,9 +572,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .contextual-text-ribbon-shell,
-  .contextual-text-ribbon-group,
-  .contextual-text-ribbon-command-button {
+  .contextual-text-ribbon-shell {
     transition: none;
   }
 }

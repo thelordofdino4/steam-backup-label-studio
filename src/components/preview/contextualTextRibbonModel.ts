@@ -58,7 +58,7 @@ export function getContextualTextRibbonTabDisplayLabel(
 export function getContextualTextRibbonLayoutMode(
   containerWidth: number,
 ): ContextualTextRibbonMode {
-  if (containerWidth >= 720) return 'wide'
+  if (containerWidth >= 1400) return 'wide'
   if (containerWidth >= 520) return 'medium'
   return 'narrow'
 }

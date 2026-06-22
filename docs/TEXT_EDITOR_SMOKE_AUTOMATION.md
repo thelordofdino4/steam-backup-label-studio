@@ -162,7 +162,11 @@ The committed smoke command verifies:
 - The shared contextual ribbon shell is screenshot-checked at representative
   wide, compact, and narrow widths for ordinary text controls and the Utilities
   HTML source panel. The check verifies tab reflow, visible actions, usable hit
-  targets, and no overlapping child controls.
+  targets, and no overlapping child controls. The harness also saves
+  tab-by-tab native ribbon screenshots for case cover text and straight disc
+  text at default Tauri, minimum Tauri, and large fullscreen-like viewports:
+  `native-ribbon-case-cover-<viewport>-<tab>.png` and
+  `native-ribbon-disc-straight-<viewport>-<tab>.png`.
 - The ribbon DOM is expected to use native ribbon rows/groups/buttons. It must
   not mount old portal-slot full-menu content or
   `.inline-preview-text-control-grid` presentation inside the app-shell ribbon.
