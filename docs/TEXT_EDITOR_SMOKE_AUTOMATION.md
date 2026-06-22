@@ -184,6 +184,10 @@ The committed smoke command verifies:
 - Cover case text activates the stable app-shell ribbon instead of the old
   floating full tabs/menu, and the ribbon remains stable when selected text
   moves or Wrap width is edited.
+- Narrow contextual ribbon overflow exposes controls at whole group boundaries:
+  hidden clipped fragments must not leave tiny unusable slivers, and focusing
+  or editing `inline-text-number-wrap-width` must scroll the full Wrap width
+  group into view while Done/Delete remain accessible.
 - The local contextual Move handle begins dragging on the first pointer movement
   without waiting for long-hold activation, keeps the handle in a grabbing
   state while active, and does not move text on a simple click with no movement.

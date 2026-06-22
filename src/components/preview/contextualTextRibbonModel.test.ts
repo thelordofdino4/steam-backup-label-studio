@@ -16,6 +16,10 @@ import {
   getContextualTextRibbonTabDisplayLabel,
   getContextualTextRibbonToastOffset,
 } from './contextualTextRibbonModel.ts'
+import {
+  getContextualTextRibbonOverflowState,
+  getContextualTextRibbonScrollDeltaToReveal,
+} from './contextualTextRibbonOverflow.ts'
 
 const currentDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(dirname(currentDir)))
@@ -287,6 +291,58 @@ test('contextual text ribbon fixture covers each supported control type', () => 
   assert.ok(ids.includes('delete'))
 })
 
+test('contextual text ribbon classifies partial horizontal group overflow', () => {
+  const rowRect = { left: 100, right: 500 }
+
+  assert.equal(
+    getContextualTextRibbonOverflowState({
+      itemRect: { left: 120, right: 300 },
+      rowRect,
+    }),
+    'fully-visible',
+  )
+  assert.equal(
+    getContextualTextRibbonOverflowState({
+      itemRect: { left: 492, right: 700 },
+      rowRect,
+    }),
+    'clipped',
+  )
+  assert.equal(
+    getContextualTextRibbonOverflowState({
+      itemRect: { left: 520, right: 700 },
+      rowRect,
+    }),
+    'outside',
+  )
+})
+
+test('contextual text ribbon scrolls whole groups into view', () => {
+  const rowRect = { left: 100, right: 500 }
+
+  assert.equal(
+    getContextualTextRibbonScrollDeltaToReveal({
+      itemRect: { left: 492, right: 700 },
+      rowRect,
+    }),
+    204,
+  )
+  assert.equal(
+    getContextualTextRibbonScrollDeltaToReveal({
+      itemRect: { left: 80, right: 260 },
+      rowRect,
+    }),
+    -24,
+  )
+  assert.equal(
+    getContextualTextRibbonScrollDeltaToReveal({
+      itemRect: { left: 120, right: 300 },
+      rowRect,
+    }),
+    0,
+  )
+})
+
 test('contextual text ribbon CSS keeps preview layout independent of activation', () => {
   const appCss = readRepoFile('src/styles/App.css')
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
@@ -310,7 +366,11 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*overflow:\s*hidden/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*flex-wrap:\s*nowrap/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*scroll-snap-type:\s*x proximity/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*scroll-snap-align:\s*start/)
+  assert.match(ribbonCss, /data-ribbon-overflow-state="clipped"/)
+  assert.match(ribbonCss, /pointer-events:\s*none/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*flex:\s*0 0 auto/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)

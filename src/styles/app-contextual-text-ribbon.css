@@ -135,6 +135,8 @@
   min-height: 0;
   overflow-x: auto;
   overflow-y: hidden;
+  scroll-padding-inline: 0 4px;
+  scroll-snap-type: x proximity;
   scrollbar-width: thin;
 }
 
@@ -151,6 +153,25 @@
   border: 1px solid rgba(75, 85, 99, 0.78);
   border-radius: 7px;
   background: rgba(15, 17, 23, 0.74);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  transition: opacity 90ms ease;
+}
+
+.contextual-text-ribbon-group[data-ribbon-overflow-state="clipped"],
+.contextual-text-ribbon-group[data-ribbon-overflow-state="outside"],
+.contextual-text-ribbon-command-button[data-ribbon-overflow-state="clipped"],
+.contextual-text-ribbon-command-button[data-ribbon-overflow-state="outside"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.contextual-text-ribbon-group[data-ribbon-overflow-state="clipped"]:focus-within,
+.contextual-text-ribbon-group[data-ribbon-overflow-state="outside"]:focus-within,
+.contextual-text-ribbon-command-button[data-ribbon-overflow-state="clipped"]:focus-visible,
+.contextual-text-ribbon-command-button[data-ribbon-overflow-state="outside"]:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .contextual-text-ribbon-group--source {
@@ -159,7 +180,23 @@
 }
 
 .contextual-text-ribbon-group--font {
-  flex: 0 0 460px;
+  flex: 0 0 326px;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-control-label {
+  max-width: 42px;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
+  width: 112px;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size input {
+  width: 38px;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size button {
+  min-width: 19px;
 }
 
 .contextual-text-ribbon-group--paint,
@@ -326,6 +363,12 @@
   cursor: pointer;
 }
 
+.contextual-text-ribbon-command-button {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  transition: opacity 90ms ease;
+}
+
 .contextual-text-ribbon-icon-button {
   width: 30px;
   padding: 0;
@@ -445,7 +488,7 @@
   }
 
   .contextual-text-ribbon-group--font {
-    flex-basis: 460px;
+    flex-basis: 326px;
   }
 }
 
@@ -477,7 +520,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .contextual-text-ribbon-shell {
+  .contextual-text-ribbon-shell,
+  .contextual-text-ribbon-group,
+  .contextual-text-ribbon-command-button {
     transition: none;
   }
 }
