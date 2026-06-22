@@ -44,8 +44,19 @@ function getHorizontalChrome(element: Element | null) {
 }
 
 function getRibbonItemPreferredWidth(element: HTMLElement) {
+  if (element.classList.contains('contextual-text-ribbon-tab')) {
+    const labelLength = element.textContent?.trim().length ?? 0
+
+    return Math.max(62, Math.ceil(labelLength * 8 + 28))
+  }
+
   if (!element.classList.contains('contextual-text-ribbon-group')) {
     return element.scrollWidth || element.getBoundingClientRect().width
+  }
+
+  const cardWidth = element.getBoundingClientRect().width
+  if (cardWidth > 0) {
+    return Math.ceil(cardWidth)
   }
 
   const children = Array.from(element.children).filter(
@@ -88,6 +99,41 @@ function getChildrenInlineWidth(element: Element | null) {
   ), 0)
 }
 
+function getColumnPackedChildrenInlineWidth(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return 0
+
+  const children = Array.from(element.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  )
+
+  if (children.length === 0) return 0
+
+  const style = window.getComputedStyle(element)
+  const gridRows = style.gridTemplateRows
+    .split(/\s+/)
+    .filter((track) => track.trim().length > 0)
+  const rowCount = Math.max(1, gridRows.length)
+
+  if (rowCount <= 1) {
+    return getChildrenInlineWidth(element)
+  }
+
+  const gap = getHorizontalGap(element)
+  const columnWidths: number[] = []
+
+  children.forEach((child, index) => {
+    const columnIndex = Math.floor(index / rowCount)
+    columnWidths[columnIndex] = Math.max(
+      columnWidths[columnIndex] ?? 0,
+      getRibbonItemPreferredWidth(child),
+    )
+  })
+
+  return columnWidths.reduce((width, columnWidth, index) => (
+    width + columnWidth + (index > 0 ? gap : 0)
+  ), 0)
+}
+
 function getRibbonPreferredWidth(host: HTMLElement) {
   const shell = host.querySelector<HTMLElement>('.contextual-text-ribbon-shell')
   const tabs = host.querySelector<HTMLElement>('.contextual-text-ribbon-tabs')
@@ -105,7 +151,9 @@ function getRibbonPreferredWidth(host: HTMLElement) {
   const controlsGap = getHorizontalGap(controls)
   const tabWidth = getChildrenInlineWidth(tabs) || tabs?.scrollWidth || 0
   const controlWidth =
-    (getChildrenInlineWidth(controlRow) || controlRow?.scrollWidth || 0)
+    (getColumnPackedChildrenInlineWidth(controlRow)
+      || controlRow?.scrollWidth
+      || 0)
     + getInlineSize(actions)
     + (actions ? controlsGap : 0)
 
@@ -212,7 +260,7 @@ export function ContextualTextRibbonHost({
         window.cancelAnimationFrame(animationFrame)
       }
     }
-  }, [isVisible])
+  }, [isVisible, mode])
 
   return (
     <section

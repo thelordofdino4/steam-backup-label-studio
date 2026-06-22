@@ -208,12 +208,12 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 }
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 64)
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 64)
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 96)
-  assert.equal(getContextualTextRibbonReservedHeight('wide'), 64)
-  assert.equal(getContextualTextRibbonReservedHeight('medium'), 96)
-  assert.equal(getContextualTextRibbonReservedHeight('narrow'), 96)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 148)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 148)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 148)
+  assert.equal(getContextualTextRibbonReservedHeight('wide'), 148)
+  assert.equal(getContextualTextRibbonReservedHeight('medium'), 148)
+  assert.equal(getContextualTextRibbonReservedHeight('narrow'), 148)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -239,7 +239,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: false,
     controlRows: 1,
     mode: 'wide',
-    reservedHeight: 64,
+    reservedHeight: 148,
     tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(1100), {
@@ -247,7 +247,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: true,
     controlRows: 2,
     mode: 'medium',
-    reservedHeight: 96,
+    reservedHeight: 148,
     tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
@@ -255,7 +255,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: true,
     controlRows: 2,
     mode: 'narrow',
-    reservedHeight: 96,
+    reservedHeight: 148,
     tabColumns: 5,
   })
 })
@@ -338,6 +338,9 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+  const ribbonHostSource = readRepoFile(
+    'src/components/preview/ContextualTextRibbon.tsx',
+  )
 
   assert.match(
     editorSource,
@@ -365,15 +368,19 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     editorSource,
-    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.backgroundColor[\s\S]*\{\s*disabled:\s*!isBackgroundEnabled\s*\}/,
+    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.backgroundColor[\s\S]*disabled:\s*!isBackgroundEnabled/,
   )
   assert.match(
     editorSource,
-    /renderInlinePreviewTextRangeControl\([\s\S]*controls\.art\?\.backgroundOpacity[\s\S]*\{\s*disabled:\s*!isBackgroundEnabled\s*\}/,
+    /renderInlinePreviewTextRangeControl\([\s\S]*controls\.art\?\.backgroundOpacity[\s\S]*presentation:\s*getInlinePreviewTextOpacityPresentation\(\)/,
   )
+  assert.match(editorSource, /label:\s*'Fill color'/)
+  assert.match(editorSource, /label:\s*'Line color'/)
+  assert.match(editorSource, /output:\s*\(value\)\s*=>\s*`\$\{Math\.round\(value \* 100\)\}%`/)
+  assert.match(editorSource, /output:\s*\(value\)\s*=>\s*`\$\{formatInlinePreviewTextCompactNumber\(value\)\}cqw`/)
   assert.match(
     editorSource,
-    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.borderColor[\s\S]*\{\s*disabled:\s*!areBorderFieldsEnabled\s*\}/,
+    /renderInlinePreviewTextColorControl\([\s\S]*controls\.art\?\.borderColor[\s\S]*disabled:\s*!areBorderFieldsEnabled/,
   )
   assert.match(
     ribbonCss,
@@ -401,15 +408,41 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*196px[\s\S]*min-width:\s*196px/,
+    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*clamp\(118px,\s*19cqw,\s*136px\)[\s\S]*min-width:\s*118px/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*124px/,
+    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(24px,\s*auto\)/,
   )
   assert.match(
     ribbonCss,
-    /@container \(max-width:\s*719px\)[\s\S]*\.contextual-text-ribbon-control-row--artistic[\s\S]*\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*196px[\s\S]*min-width:\s*196px/,
+    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*100%/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*overflow-x:\s*hidden[\s\S]*scrollbar-width:\s*none/,
+  )
+  assert.match(ribbonCss, /min-height:\s*24px/)
+  assert.doesNotMatch(ribbonCss, /min-height:\s*14px/)
+  assert.match(
+    ribbonHostSource,
+    /classList\.contains\('contextual-text-ribbon-tab'\)[\s\S]*textContent\?\.trim\(\)\.length/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /classList\.contains\('contextual-text-ribbon-group'\)[\s\S]*getBoundingClientRect\(\)\.width[\s\S]*Math\.ceil\(cardWidth\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /function getColumnPackedChildrenInlineWidth/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /Math\.floor\(index \/ rowCount\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /getColumnPackedChildrenInlineWidth\(controlRow\)/,
   )
   const featureToggleSource = editorSource.slice(
     editorSource.indexOf('function renderInlinePreviewTextFeatureToggleControl'),

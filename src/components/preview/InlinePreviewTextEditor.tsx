@@ -186,6 +186,12 @@ const CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR =
 const CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR =
   '.contextual-text-ribbon-group, .contextual-text-ribbon-command-button'
 
+type InlinePreviewTextRangeValuePresentation = {
+  ariaValueText: (value: number) => string
+  output: (value: number) => string
+  title: string
+}
+
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
   event.stopPropagation()
 }
@@ -218,12 +224,6 @@ function getContextualTextRibbonAxisRect(element: HTMLElement) {
     left: rect.left,
     right: rect.right,
   }
-}
-
-function updateContextualTextRibbonScrollItemVisibility(row: HTMLElement) {
-  row.querySelectorAll<HTMLElement>('[data-ribbon-scroll-clipped]').forEach(
-    (item) => item.removeAttribute('data-ribbon-scroll-clipped'),
-  )
 }
 
 function getInlineTextSmokeToken(label: string) {
@@ -448,11 +448,16 @@ function renderInlinePreviewTextSelectControl(
 
 function renderInlinePreviewTextRangeControl(
   control: InlinePreviewTextEditorRangeControl | undefined,
-  options: { disabled?: boolean } = {},
+  options: {
+    disabled?: boolean
+    presentation?: InlinePreviewTextRangeValuePresentation
+  } = {},
 ) {
   if (!control) return null
 
   const disabled = Boolean(options.disabled)
+  const presentation = options.presentation
+  const formattedValue = presentation?.output(control.value)
   const handleChange = (value: string) => {
     if (disabled) return
     const nextValue = Number(value)
@@ -479,21 +484,61 @@ function renderInlinePreviewTextRangeControl(
         step={control.step}
         value={control.value}
         disabled={disabled}
-        onChange={(event) => handleChange(event.target.value)}
-      />
-      <input
         aria-label={control.label}
-        data-smoke-id={`inline-text-number-${getInlineTextSmokeToken(control.label)}`}
-        type="number"
-        min={control.min}
-        max={control.max}
-        step={control.step}
-        value={Number(control.value.toFixed(2))}
-        disabled={disabled}
+        aria-valuetext={presentation?.ariaValueText(control.value)}
+        title={presentation?.title}
         onChange={(event) => handleChange(event.target.value)}
       />
+      {presentation ? (
+        <output
+          aria-label={`${control.label}: ${formattedValue}`}
+          className="contextual-text-ribbon-range-value"
+          data-smoke-id={`inline-text-value-${getInlineTextSmokeToken(control.label)}`}
+          title={presentation.title}
+        >
+          {formattedValue}
+        </output>
+      ) : (
+        <input
+          aria-label={control.label}
+          data-smoke-id={`inline-text-number-${getInlineTextSmokeToken(control.label)}`}
+          type="number"
+          min={control.min}
+          max={control.max}
+          step={control.step}
+          value={Number(control.value.toFixed(2))}
+          disabled={disabled}
+          onChange={(event) => handleChange(event.target.value)}
+        />
+      )}
     </label>
   )
+}
+
+function formatInlinePreviewTextCompactNumber(value: number) {
+  return Number(value.toFixed(2)).toLocaleString('en-US', {
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 0,
+  })
+}
+
+function getInlinePreviewTextOpacityPresentation(): InlinePreviewTextRangeValuePresentation {
+  return {
+    ariaValueText: (value) => `${Math.round(value * 100)} percent opacity`,
+    output: (value) => `${Math.round(value * 100)}%`,
+    title: 'Opacity percentage',
+  }
+}
+
+function getInlinePreviewTextCqwPresentation(
+  label: string,
+): InlinePreviewTextRangeValuePresentation {
+  return {
+    ariaValueText: (value) =>
+      `${formatInlinePreviewTextCompactNumber(value)} container query width units ${label.toLowerCase()}`,
+    output: (value) => `${formatInlinePreviewTextCompactNumber(value)}cqw`,
+    title: `${label} in renderer cqw units`,
+  }
 }
 
 function InlinePreviewTextNumberSelectControl({
@@ -1173,7 +1218,7 @@ function renderInlinePreviewTextColorControl(
   control: InlinePreviewTextEditorColorControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
   getCommandSelection: () => InlinePreviewTextEditorSelectionRange,
-  options: { disabled?: boolean } = {},
+  options: { disabled?: boolean; label?: string } = {},
 ) {
   if (!control) return null
 
@@ -1182,6 +1227,7 @@ function renderInlinePreviewTextColorControl(
       control={control}
       disabled={options.disabled}
       getCommandSelection={getCommandSelection}
+      label={options.label}
       selection={selection}
     />
   )
@@ -1203,11 +1249,13 @@ function InlinePreviewTextColorControl({
   control,
   disabled = false,
   getCommandSelection,
+  label,
   selection,
 }: {
   control: InlinePreviewTextEditorColorControl
   disabled?: boolean
   getCommandSelection: () => InlinePreviewTextEditorSelectionRange
+  label?: string
   selection: InlinePreviewTextEditorSelectionRange
 }) {
   const selectionSnapshotRef =
@@ -1296,7 +1344,7 @@ function InlinePreviewTextColorControl({
       ].filter(Boolean).join(' ')}
     >
       <span className="contextual-text-ribbon-control-label">
-        {control.label}
+        {label ?? control.label}
       </span>
       <input
         data-smoke-id={`inline-text-color-${getInlineTextSmokeToken(control.label)}`}
@@ -1492,15 +1540,25 @@ function InlinePreviewTextEditorMenuContent({
                   controls.art?.backgroundColor,
                   selection,
                   getCommandSelection,
-                  { disabled: !isBackgroundEnabled },
+                  {
+                    disabled: !isBackgroundEnabled,
+                    label: 'Fill color',
+                  },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.backgroundOpacity,
-                  { disabled: !isBackgroundEnabled },
+                  {
+                    disabled: !isBackgroundEnabled,
+                    presentation: getInlinePreviewTextOpacityPresentation(),
+                  },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.backgroundPadding,
-                  { disabled: !isBackgroundEnabled },
+                  {
+                    disabled: !isBackgroundEnabled,
+                    presentation:
+                      getInlinePreviewTextCqwPresentation('Padding'),
+                  },
                 )}
               </>
             ),
@@ -1515,11 +1573,18 @@ function InlinePreviewTextEditorMenuContent({
                   controls.art?.borderColor,
                   selection,
                   getCommandSelection,
-                  { disabled: !areBorderFieldsEnabled },
+                  {
+                    disabled: !areBorderFieldsEnabled,
+                    label: 'Line color',
+                  },
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.borderRadius,
-                  { disabled: !areBorderFieldsEnabled },
+                  {
+                    disabled: !areBorderFieldsEnabled,
+                    presentation:
+                      getInlinePreviewTextCqwPresentation('Radius'),
+                  },
                 )}
               </>
             ),
@@ -2358,25 +2423,6 @@ export function InlinePreviewTextEditor({
       row.scrollLeft += delta
     }
   }, [])
-
-  useLayoutEffect(() => {
-    const menu = menuRef.current
-    if (!menu) return
-
-    const rows = Array.from(
-      menu.querySelectorAll<HTMLElement>(CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR),
-    )
-
-    for (const row of rows) {
-      updateContextualTextRibbonScrollItemVisibility(row)
-    }
-
-    return () => {
-      for (const row of rows) {
-        updateContextualTextRibbonScrollItemVisibility(row)
-      }
-    }
-  }, [activeTab, editorControls, sourceMode])
 
   const handleRibbonControlInteraction = useCallback(
     (event: SyntheticEvent<Element>) => {
