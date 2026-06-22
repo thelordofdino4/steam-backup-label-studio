@@ -471,14 +471,14 @@ export function createCaseInsertInlineTextEditorControls({
               handlers.onStyleChange(target, 'backgroundPadding', value),
           }
         : undefined,
-      borderEnabled: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
-            checked: style.borderEnabled,
-            onChange: (checked) =>
-              handlers.onStyleChange(target, 'borderEnabled', checked),
-          }
-        : undefined,
+      borderEnabled: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
+        checked: style.borderEnabled,
+        disabled: !style.backgroundEnabled,
+        disabledReason: 'Enable Background before editing the border.',
+        onChange: (checked) =>
+          handlers.onStyleChange(target, 'borderEnabled', checked),
+      },
       borderColor: style.backgroundEnabled && style.borderEnabled
         ? {
             label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
@@ -531,7 +531,9 @@ export function createCaseInsertInlineTextEditorControls({
         onChange: (value) => handlers.onLayoutChange(target, 'y', value),
       },
       resetLayout: onResetLayout,
-      htmlSource: {
+    },
+    html: {
+      source: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
         checked: htmlSourceActive,
         onChange: (checked) => {

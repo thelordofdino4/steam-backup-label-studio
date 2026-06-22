@@ -46,7 +46,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /inlinePreviewTextEditorContract/)
   assert.match(source, /InlinePreviewTextEditorMenuContent/)
   assert.match(source, /deleteAction/)
-  assert.match(contract, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
+  assert.match(contract, /html\?:\s*\{[\s\S]*source\?:\s*InlinePreviewTextEditorCheckboxControl/)
   assert.match(contract, /sourceMode\?:\s*boolean/)
   assert.match(source, /getInlinePreviewHtmlSourceDraftStatus/)
   assert.match(source, /inline-preview-text-source-textarea/)
@@ -128,7 +128,7 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   assert.match(ribbonCss, /\.contextual-text-ribbon-host\s*\{[^}]*min-height:\s*var\(--contextual-text-ribbon-reserved-height\)/s)
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s,
   )
   assert.match(
     ribbonCss,
@@ -164,7 +164,11 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   )
   assert.match(editor, /id:\s*'style'[\s\S]*label:\s*'Style'/)
   assert.match(editor, /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'/)
-  assert.match(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
+  assert.match(editor, /id:\s*'font'[\s\S]*label:\s*'Font'/)
+  assert.match(editor, /id:\s*'paragraph'[\s\S]*label:\s*'Paragraph'/)
+  assert.doesNotMatch(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
+  assert.match(editor, /role="combobox"/)
+  assert.match(editor, /role="listbox"/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.match(

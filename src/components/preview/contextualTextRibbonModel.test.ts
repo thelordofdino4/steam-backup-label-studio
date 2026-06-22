@@ -148,11 +148,6 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
         value: 'top',
         onChange: noop,
       },
-      htmlSource: {
-        checked: false,
-        label: 'HTML source',
-        onChange: noop,
-      },
       lineSpacing: {
         label: 'Line spacing',
         max: 2,
@@ -198,6 +193,13 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
         onChange: noop,
       },
     },
+    html: {
+      source: {
+        checked: false,
+        label: 'HTML source',
+        onChange: noop,
+      },
+    },
     deleteAction: {
       label: 'Delete',
       onDelete: noop,
@@ -238,7 +240,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlRows: 1,
     mode: 'wide',
     reservedHeight: 64,
-    tabColumns: 4,
+    tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(1100), {
     controlColumns: 2,
@@ -246,7 +248,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlRows: 2,
     mode: 'medium',
     reservedHeight: 96,
-    tabColumns: 4,
+    tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
     controlColumns: 1,
@@ -254,7 +256,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlRows: 2,
     mode: 'narrow',
     reservedHeight: 96,
-    tabColumns: 4,
+    tabColumns: 5,
   })
 })
 
@@ -264,6 +266,7 @@ test('contextual text ribbon reuses the shared contextual tab registry', () => {
     { id: 'text', label: 'Text Controls' },
     { id: 'art', label: 'Artistic Elements' },
     { id: 'utilities', label: 'Utilities' },
+    { id: 'html', label: 'HTML Source' },
   ])
 })
 
@@ -278,6 +281,7 @@ test('contextual text ribbon presents compact single-line tab labels', () => {
       { id: 'text', label: 'Text' },
       { id: 'art', label: 'Artistic' },
       { id: 'utilities', label: 'Utilities' },
+      { id: 'html', label: 'HTML' },
     ],
   )
 })
@@ -299,6 +303,7 @@ test('contextual text ribbon fixture covers each supported control type', () => 
   assert.ok(ids.includes('size'))
   assert.ok(ids.includes('color'))
   assert.ok(ids.includes('width'))
+  assert.ok(ids.includes('htmlSource'))
   assert.ok(ids.includes('delete'))
 })
 
@@ -348,6 +353,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /height:\s*var\(--contextual-text-ribbon-reserved-height\)/)
   assert.match(ribbonCss, /border-radius:\s*0 0 0 8px/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-tabs\s*\{[\s\S]*grid-row:\s*1/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-tabs\s*\{[\s\S]*repeat\(5,\s*minmax\(0,\s*1fr\)\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-tab\s*\{[\s\S]*white-space:\s*nowrap/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*grid-row:\s*2/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-controls\s*\{[\s\S]*overflow:\s*hidden/)
@@ -361,6 +367,8 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*border:\s*1px solid/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group-label\s*\{/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group-body\s*\{/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-group--source-expanded\s*\{[\s\S]*grid-row:\s*span/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-source-field textarea\s*\{[\s\S]*white-space:\s*pre/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-align/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)

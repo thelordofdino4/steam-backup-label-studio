@@ -94,6 +94,7 @@ Inline editor selectors:
 - `inline-text-tab-text`
 - `inline-text-tab-art`
 - `inline-text-tab-utilities`
+- `inline-text-tab-html`
 - `inline-text-menu`
 - `inline-text-move-handle`
 - `inline-text-input`
@@ -105,7 +106,6 @@ Inline editor selectors:
 - `inline-text-toggle-underline`
 - `inline-text-toggle-bulleted-list`
 - `inline-text-color-color`
-- `inline-text-checkbox-html-source`
 - `inline-text-number-x`
 - `inline-text-number-y`
 - `inline-text-number-font-size-pt`
@@ -160,20 +160,23 @@ The committed smoke command verifies:
   typing, a temporary empty draft, Enter commit, repeated preset popup opens,
   wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
 - The shared contextual ribbon shell is screenshot-checked at representative
-  wide, compact, and narrow widths for ordinary text controls and the Utilities
-  HTML source panel. The check verifies tab reflow, visible actions, usable hit
+  wide, compact, and narrow widths for ordinary text controls and the dedicated
+  HTML source tab. The check verifies tab reflow, visible actions, usable hit
   targets, and no overlapping child controls. The harness also saves
-  tab-by-tab native ribbon screenshots for case cover text and straight disc
-  text at default Tauri, minimum Tauri, and large fullscreen-like viewports:
+  tab-by-tab native ribbon screenshots for case cover text, straight disc text,
+  and curved disc copyright text at the current default Tauri `1000x720`,
+  minimum Tauri `900x650`, and maximum client `1920x1009` viewports:
   `native-ribbon-case-cover-<viewport>-<tab>.png` and
-  `native-ribbon-disc-straight-<viewport>-<tab>.png`.
+  `native-ribbon-disc-straight-<viewport>-<tab>.png`. The HTML tab additionally
+  saves full-app screenshots named
+  `native-ribbon-full-<surface>-<viewport>-html.png`.
 - The ribbon DOM is expected to use native ribbon rows/groups/buttons. It must
   not mount old portal-slot full-menu content or
   `.inline-preview-text-control-grid` presentation inside the app-shell ribbon.
   The visible tab labels are checked as single-line `Presets`, `Text`,
-  `Artistic`, and `Utilities`.
-- The attached preview-header ribbon layout is checked at 1000x720,
-  900x650, and a larger desktop viewport. The check verifies the Live Preview
+  `Artistic`, `Utilities`, and `HTML`.
+- The attached preview-header ribbon layout is checked at client/content
+  areas of 1000x720, 900x650, and 1920x1009. The check verifies the Live Preview
   label column boundary, flush use of the preview app-shell top-right corner,
   compact reserved header height, preview fit, preview stability across
   activation, and active-ribbon toast offset below the measured header/ribbon
@@ -183,7 +186,8 @@ The committed smoke command verifies:
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
 - Enter inside a bullet creates the next bullet item.
 - Shift+Enter inside a bullet creates a soft break.
-- HTML source editing updates the cover preview live.
+- HTML source editing uses the dedicated `HTML` ribbon tab and updates the cover
+  preview live.
 - Done and reopen preserve canonical HTML source.
 - Cover case text activates the stable app-shell ribbon instead of the old
   floating full tabs/menu, and the ribbon remains stable when selected text
@@ -222,7 +226,8 @@ The committed smoke command verifies:
   checks that tabs/menu are mounted in the ribbon, the Move handle remains a
   local preview affordance, and the ribbon remains stable while straight text
   moves or curved copyright point size/arc/inset/line-spacing controls change.
-- Straight disc HTML source updates the SVG renderer before Done.
+- Straight and curved disc HTML source use the dedicated `HTML` ribbon tab and
+  update the SVG renderer before Done.
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
   `<span style="color:...">` HTML.

@@ -151,15 +151,7 @@ export function ContextualTextRibbonHost({
       const measuredMode = getContextualTextRibbonLayoutMode(
         availableWidth,
       )
-      const hasExpandedSourceEditor = Boolean(
-        host.querySelector(
-          '.contextual-text-ribbon-source-control.is-source-mode-active',
-        ),
-      )
-      const nextMode =
-        hasExpandedSourceEditor && measuredMode === 'wide'
-          ? 'medium'
-          : measuredMode
+      const nextMode = measuredMode
       const nextReservedHeight =
         getContextualTextRibbonReservedHeight(nextMode)
       const preferredWidth = isVisible

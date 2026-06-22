@@ -524,8 +524,8 @@ Ribbon placement and layout:
   encroaches into the reserved slot.
 - The slot remains reserved when inactive, but ribbon contents disappear.
 - Selecting editable text activates the ribbon.
-- Row 1 contains the four contextual tabs with compact single-line labels:
-  `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 1 contains the five contextual tabs with compact single-line labels:
+  `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups, not as old floating-menu form markup moved into a fixed slot.
 - The ribbon uses a fixed compact height near the 60-65 px app-shell band. If
@@ -563,8 +563,8 @@ Ownership matrix:
 | Tray | Same as cover, with tray geometry and wrap semantics | Same as cover | Same as cover |
 | Left spine | Supported contextual text controls | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select and structural spine setup where needed |
 | Right spine | Same as left spine | Same as left spine | Same as left spine |
-| Straight disc | Supported contextual text controls, including HTML source where supported | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc | Curved-safe text controls, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc | Supported contextual text controls, including HTML source | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
+| Curved disc | Curved-safe text controls, safe inline HTML source, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
 
 Responsive states:
 

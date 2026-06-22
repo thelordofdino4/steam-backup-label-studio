@@ -141,6 +141,11 @@ type DiscTextRichTextCommandState =
   | RichTextSelectionNumberState
   | RichTextSelectionStringState
 
+type DiscTextInlineDoneCommit = {
+  sourceMode?: boolean
+  value: string
+}
+
 const DISC_TEXT_INLINE_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
   appId: 'Steam App ID ',
   backupDate: 'Backed up ',
@@ -431,10 +436,6 @@ export function useDiscTextState({
     key: DiscTextKey,
     contentMode: TextContentMode,
   ) {
-    if (isCurvedCopyrightDiscTextLayout(key, discTextLayout[key])) {
-      return
-    }
-
     const currentText = getCurrentDiscTextContent(key)
     const currentSource = getDiscTextHtmlSource(
       discTextHtmlSources,
@@ -476,28 +477,28 @@ export function useDiscTextState({
     value: string,
     options: { sourceMode?: boolean } = {},
   ) {
-    if (isDiscTextHtmlEnabled(discTextHtmlSources, key)) {
-      if (options.sourceMode) {
-        const renderedPlainText = parseHtmlText(value).plainText
-        const nextInputUpdate = updateDiscTextInlineDraftValue(
-          discTextValues,
-          discTextValueSources,
-          key,
-          getDiscTextInlineStorageValue(key, renderedPlainText),
-          discTextTitleValue,
-        )
+    if (options.sourceMode) {
+      const renderedPlainText = parseHtmlText(value).plainText
+      const nextInputUpdate = updateDiscTextInlineDraftValue(
+        discTextValues,
+        discTextValueSources,
+        key,
+        getDiscTextInlineStorageValue(key, renderedPlainText),
+        discTextTitleValue,
+      )
 
-        setDiscTextHtmlSources((currentSources) =>
-          setDiscTextHtmlSource(currentSources, key, value))
-        if (isMetadataBoundDiscTextKey(key)) {
-          setDiscTextValueSources(nextInputUpdate.sources)
-        }
-        setDiscTextValues(nextInputUpdate.values)
-        setDiscTextTitleValue(nextInputUpdate.titleValue)
-        clampDiscTextLayoutForContent(key, renderedPlainText)
-        return
+      setDiscTextHtmlSources((currentSources) =>
+        setDiscTextHtmlSource(currentSources, key, value))
+      if (isMetadataBoundDiscTextKey(key)) {
+        setDiscTextValueSources(nextInputUpdate.sources)
       }
+      setDiscTextValues(nextInputUpdate.values)
+      setDiscTextTitleValue(nextInputUpdate.titleValue)
+      clampDiscTextLayoutForContent(key, renderedPlainText)
+      return
+    }
 
+    if (isDiscTextHtmlEnabled(discTextHtmlSources, key)) {
       const currentText = getCurrentDiscTextContent(key)
       const result = applyRichTextPlainTextMutation({
         fallbackText: currentText,
@@ -552,17 +553,66 @@ export function useDiscTextState({
     )
   }
 
-  function finalizeDiscTextInlineDraft(key: DiscTextKey) {
+  function finalizeDiscTextInlineDraft(
+    key: DiscTextKey,
+    commit?: DiscTextInlineDoneCommit,
+  ) {
+    const committedHtmlSource =
+      commit?.sourceMode === true ? commit.value : undefined
+    const committedPlainText = committedHtmlSource !== undefined
+      ? parseHtmlText(committedHtmlSource).plainText
+      : undefined
+    const committedInputUpdate = committedPlainText !== undefined
+      ? updateDiscTextInlineDraftValue(
+          discTextValues,
+          discTextValueSources,
+          key,
+          getDiscTextInlineStorageValue(key, committedPlainText),
+          discTextTitleValue,
+        )
+      : null
+    const draftDiscTextValues =
+      committedInputUpdate?.values ?? discTextValues
+    const draftDiscTextValueSources =
+      committedInputUpdate?.sources ?? discTextValueSources
+    const draftDiscTextTitleValue =
+      committedInputUpdate?.titleValue ?? discTextTitleValue
+    const draftDiscTextHtmlSources =
+      committedHtmlSource !== undefined
+        ? setDiscTextHtmlSource(discTextHtmlSources, key, committedHtmlSource)
+        : discTextHtmlSources
+    const renderedContent =
+      committedPlainText ?? getCurrentDiscTextRenderedContent(key)
     const finalizedDraft = finalizeDiscTextInlineDraftValue(
-      discTextValues,
-      discTextValueSources,
+      draftDiscTextValues,
+      draftDiscTextValueSources,
       key,
-      getCurrentDiscTextRenderedContent(key),
-      discTextTitleValue,
-      discTextHtmlSources,
+      renderedContent,
+      draftDiscTextTitleValue,
+      draftDiscTextHtmlSources,
     )
 
     if (!finalizedDraft) {
+      if (committedPlainText !== undefined) {
+        const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
+          discTextValues: draftDiscTextValues,
+          discTextValueSources: draftDiscTextValueSources,
+          discTextTitleValue: draftDiscTextTitleValue,
+        })
+
+        setDiscTextValueSources(draftDiscTextValueSources)
+        setDiscTextValues(draftDiscTextValues)
+        setDiscTextTitleValue(draftDiscTextTitleValue)
+        setDiscTextHtmlSources(draftDiscTextHtmlSources)
+        clampDiscTextLayoutForContent(
+          key,
+          getDiscTextContent(
+            key,
+            nextResolution.metadataBoundDiscTextValues,
+            nextResolution.resolvedDiscTextTitle,
+          ),
+        )
+      }
       return
     }
 

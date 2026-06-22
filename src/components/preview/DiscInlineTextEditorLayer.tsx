@@ -50,6 +50,7 @@ import {
 import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
+  type InlinePreviewTextEditorDoneCommit,
   type InlinePreviewTextEditorGeometryAdapter,
 } from './InlinePreviewTextEditor'
 import {
@@ -85,7 +86,10 @@ export type DiscInlineTextEditorLayerProps = {
     key: DiscTextKey,
     contentMode: TextContentMode,
   ) => void
-  onDiscTextEditComplete: (key: DiscTextKey) => void
+  onDiscTextEditComplete: (
+    key: DiscTextKey,
+    commit?: InlinePreviewTextEditorDoneCommit,
+  ) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
     field: DiscTextStyleField,
@@ -283,6 +287,10 @@ export function DiscInlineTextEditorLayer({
         const renderedText = htmlDocument?.plainText ?? text
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
+          const isHtmlSourceEditing = htmlSourceEditorKey === key
+          const editValue = isHtmlSourceEditing
+            ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
+            : renderedText
           const curvedPaintBoxInput = {
             key,
             layout,
@@ -312,6 +320,7 @@ export function DiscInlineTextEditorLayer({
             key,
             layout,
             style: discTextStyles[key],
+            isHtmlSourceEnabled: isHtmlSourceEditing,
             onSelectedDiscTextKeyChange,
             onDiscTextEnabledChange,
             onDiscTextStyleChange,
@@ -320,6 +329,15 @@ export function DiscInlineTextEditorLayer({
             onDiscTextLayoutChange,
             onDiscTextAlignmentChange,
             onDiscTextArcSideChange,
+            onDiscTextContentModeChange: (nextKey, contentMode) => {
+              if (contentMode === 'html') {
+                onDiscTextContentModeChange(nextKey, contentMode)
+                setHtmlSourceEditorKey(nextKey)
+                return
+              }
+
+              setHtmlSourceEditorKey(null)
+            },
             onResetDiscTextLayout,
             onDiscTextRichTextCommand,
             getDiscTextRichTextCommandState,
@@ -425,6 +443,7 @@ export function DiscInlineTextEditorLayer({
                 'disc-inline-text-host--curved',
                 INLINE_PREVIEW_TEXT_HOST_CLASS,
                 'is-editing',
+                isHtmlSourceEditing ? 'is-html-source' : '',
                 renderedText.trim().length === 0 ? 'is-empty' : '',
               ].filter(Boolean).join(' ')}
               data-smoke-id={`disc-inline-text-${key}`}
@@ -443,21 +462,24 @@ export function DiscInlineTextEditorLayer({
             >
               <InlinePreviewTextEditor
                 ariaLabel={`Edit ${getDiscTextLabel(key)}`}
-                caretValue={renderedText}
+                caretValue={editValue}
                 controls={controls}
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
+                sourceMode={isHtmlSourceEditing}
                 targetKey={targetKey}
-                value={renderedText}
-                onValueChange={(value) => onDiscTextValueChange(key, value)}
+                value={editValue}
+                onValueChange={(value, options) =>
+                  onDiscTextValueChange(key, value, options)}
                 onMoveHandlePointerDown={(event) =>
                   onMoveHandlePointerDown(event, key)}
                 onMoveHandlePointerMove={onMoveHandlePointerMove}
                 onMoveHandlePointerUp={onMoveHandlePointerUp}
-                onDone={() => {
-                  onDiscTextEditComplete(key)
+                onDone={(commit) => {
+                  onDiscTextEditComplete(key, commit)
                   onSelectedDiscTextKeyChange(null)
+                  setHtmlSourceEditorKey(null)
                 }}
               />
             </div>
@@ -573,8 +595,8 @@ export function DiscInlineTextEditorLayer({
               onMoveHandlePointerUp={onMoveHandlePointerUp}
               onRichTextKeyboardCommand={(command, selection) =>
                 onDiscTextRichTextKeyboardCommand(key, command, selection)}
-              onDone={() => {
-                onDiscTextEditComplete(key)
+              onDone={(commit) => {
+                onDiscTextEditComplete(key, commit)
                 onSelectedDiscTextKeyChange(null)
                 setHtmlSourceEditorKey(null)
               }}

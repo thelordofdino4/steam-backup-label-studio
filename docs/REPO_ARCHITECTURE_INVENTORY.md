@@ -543,10 +543,10 @@ Edit/interaction path:
   in template or spine sidebar components; spine orientation remains a
   sidebar-owned structural control.
 - Curved disc text remains SVG/textPath based. Its contextual adapter exposes
-  curved-safe controls through the contextual infrastructure, but it is not
-  routed through a visible rectangular on-canvas editor. Future ribbon
-  presentation work should preserve the SVG/textPath renderer and change only
-  control presentation.
+  curved-safe controls and safe inline HTML source through the contextual
+  infrastructure, but it is not routed through a visible rectangular on-canvas
+  editor. Ribbon presentation must preserve the SVG/textPath renderer and
+  change only control presentation.
 - Case insert preview text selection/editing helpers support adapter-based
   preview editing; broad case insert runtime behavior was not independently
   manually verified during this inventory refresh.
@@ -782,12 +782,11 @@ Render path:
   paths, the final preview renderer remains visible as the glyph renderer
   during editing; the adapter supplies input, caret, selection, boundaries, and
   menu affordances.
-- Planned contextual text ribbon work moves only the control host into a
-  reserved top-right app-shell slot above the preview. Preview layers should
-  continue to supply caret, selection, outline, direct typing, edge-grab
-  movement, Move fallback, and Delete affordances; the ribbon should consume
-  the contextual control registry and adapter callbacks without becoming a
-  renderer or geometry owner.
+- The contextual text ribbon moves only the control host into a reserved
+  top-right app-shell slot above the preview. Preview layers continue to supply
+  caret, selection, outline, direct typing, edge-grab movement, Move fallback,
+  and Delete affordances; the ribbon consumes the contextual control registry
+  and adapter callbacks without becoming a renderer or geometry owner.
 - Inline text host lookup uses registry-defined target keys; case insert and
   disc adapters still own their values, geometry, commit behavior, and pointer
   movement.

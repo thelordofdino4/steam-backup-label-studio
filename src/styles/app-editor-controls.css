@@ -531,10 +531,10 @@
   top: calc(100% + 4px);
   right: 0;
   z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(38px, 1fr));
-  gap: 3px;
-  width: min(184px, 100%, calc(100vw - 32px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: min(88px, calc(100vw - 32px));
   max-height: 156px;
   padding: 5px;
   overflow-y: auto;
@@ -548,6 +548,7 @@
   min-height: 28px;
   border-radius: 6px;
   padding: 3px 6px;
+  text-align: right;
 }
 
 .inline-preview-text-control-field input[type="color"] {

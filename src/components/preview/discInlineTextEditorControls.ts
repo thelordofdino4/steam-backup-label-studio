@@ -105,8 +105,6 @@ export type DiscInlineTextEditorControlParams = {
 
 export type CurvedDiscTextEditorControlParams = Omit<
   DiscInlineTextEditorControlParams,
-  | 'isHtmlSourceEnabled'
-  | 'onDiscTextContentModeChange'
   | 'onDiscTextVisualAvoidanceChange'
 > & {
   onDiscTextArcSideChange: (
@@ -529,15 +527,13 @@ export function createDiscInlineTextEditorControls({
               onDiscTextStyleChange(key, 'backgroundPadding', value),
           }
         : undefined,
-      borderEnabled: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
-            checked: style.borderEnabled,
-            onChange: (checked) =>
-              onDiscTextStyleChange(key, 'borderEnabled', checked),
-          }
-        : undefined,
-      borderColor: style.backgroundEnabled && style.borderEnabled
+      borderEnabled: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
+        checked: style.borderEnabled,
+        onChange: (checked) =>
+          onDiscTextStyleChange(key, 'borderEnabled', checked),
+      },
+      borderColor: style.borderEnabled
         ? {
             label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
             value: style.borderColor,
@@ -545,7 +541,7 @@ export function createDiscInlineTextEditorControls({
               onDiscTextStyleChange(key, 'borderColor', value),
           }
         : undefined,
-      borderRadius: style.backgroundEnabled && style.borderEnabled
+      borderRadius: style.borderEnabled
         ? {
             label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
             min: 0,
@@ -589,7 +585,9 @@ export function createDiscInlineTextEditorControls({
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
-      htmlSource: {
+    },
+    html: {
+      source: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
         checked: isHtmlSourceEnabled,
         onChange: (checked) =>
@@ -611,6 +609,7 @@ export function createCurvedDiscTextEditorControls({
   key,
   layout,
   style,
+  isHtmlSourceEnabled,
   onSelectedDiscTextKeyChange,
   onDiscTextEnabledChange,
   onDiscTextStyleChange,
@@ -619,6 +618,7 @@ export function createCurvedDiscTextEditorControls({
   onDiscTextLayoutChange,
   onDiscTextAlignmentChange,
   onDiscTextArcSideChange,
+  onDiscTextContentModeChange,
   onResetDiscTextLayout,
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
@@ -909,6 +909,14 @@ export function createCurvedDiscTextEditorControls({
           onDiscTextLayoutChange(key, 'arcDegrees', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
+    },
+    html: {
+      source: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
+        checked: isHtmlSourceEnabled,
+        onChange: (checked) =>
+          onDiscTextContentModeChange(key, checked ? 'html' : 'plain'),
+      },
     },
     deleteAction: {
       label: CONTEXTUAL_TEXT_CONTROL_LABELS.delete,

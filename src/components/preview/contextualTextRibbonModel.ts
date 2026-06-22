@@ -44,6 +44,7 @@ export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 export const CONTEXTUAL_TEXT_RIBBON_NATIVE_TAB_LABELS = {
   art: 'Artistic',
+  html: 'HTML',
   presets: 'Presets',
   text: 'Text',
   utilities: 'Utilities',
@@ -84,7 +85,7 @@ export function getContextualTextRibbonLayoutModel(
       controlRows: 1,
       mode,
       reservedHeight,
-      tabColumns: 4,
+      tabColumns: 5,
     }
   }
 
@@ -95,7 +96,7 @@ export function getContextualTextRibbonLayoutModel(
       controlRows: 2,
       mode,
       reservedHeight,
-      tabColumns: 4,
+      tabColumns: 5,
     }
   }
 
@@ -105,7 +106,7 @@ export function getContextualTextRibbonLayoutModel(
     controlRows: 2,
     mode,
     reservedHeight,
-    tabColumns: 4,
+    tabColumns: 5,
   }
 }
 
@@ -306,11 +307,11 @@ export function getContextualTextRibbonControlDescriptors(
     kind: 'select',
     label: controls.utilities.mode.label,
   })
-  addDescriptor(descriptors, controls?.utilities?.htmlSource && {
-    group: 'utilities',
+  addDescriptor(descriptors, controls?.html?.source && {
+    group: 'html',
     id: 'htmlSource',
     kind: 'checkbox',
-    label: controls.utilities.htmlSource.label,
+    label: controls.html.source.label,
   })
   addDescriptor(descriptors, controls?.utilities?.resetLayout && {
     group: 'utilities',

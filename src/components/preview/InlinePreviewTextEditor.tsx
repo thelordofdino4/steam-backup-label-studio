@@ -70,6 +70,7 @@ import type {
   InlinePreviewTextEditorCaretFrame,
   InlinePreviewTextEditorColorControl,
   InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorDoneCommit,
   InlinePreviewTextEditorGeometryAdapter,
   InlinePreviewTextEditorGeometryLine,
   InlinePreviewTextEditorInputMode,
@@ -93,6 +94,7 @@ export type {
   InlinePreviewTextEditorCheckboxControl,
   InlinePreviewTextEditorColorControl,
   InlinePreviewTextEditorControls,
+  InlinePreviewTextEditorDoneCommit,
   InlinePreviewTextEditorGeometryAdapter,
   InlinePreviewTextEditorGeometryLine,
   InlinePreviewTextEditorInputMode,
@@ -940,12 +942,24 @@ function renderInlinePreviewTextCheckboxControl(
   if (!control) return null
 
   return (
-    <label className="contextual-text-ribbon-toggle-check">
+    <label
+      className={[
+        'contextual-text-ribbon-toggle-check',
+        control.disabled ? 'is-disabled' : '',
+      ].filter(Boolean).join(' ')}
+      title={control.disabledReason}
+    >
       <input
         data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
         type="checkbox"
+        aria-disabled={control.disabled || undefined}
         checked={control.checked}
-        onChange={(event) => control.onChange(event.target.checked)}
+        disabled={control.disabled}
+        onChange={(event) => {
+          if (!control.disabled) {
+            control.onChange(event.target.checked)
+          }
+        }}
       />
       <span>{control.label}</span>
     </label>
@@ -954,68 +968,47 @@ function renderInlinePreviewTextCheckboxControl(
 
 function renderInlinePreviewHtmlSourceControl({
   control,
-  sourceDraftIdentity,
-  sourceInitialValue,
-  sourceMode,
+  isCurvedText,
+  sourceDraft,
   onSourceDraftChange,
-  onSourceDraftCommit,
 }: {
   control: InlinePreviewTextEditorCheckboxControl | undefined
-  sourceDraftIdentity: string
-  sourceInitialValue: string
-  sourceMode: boolean
+  isCurvedText: boolean
+  sourceDraft: string
   onSourceDraftChange: (value: string) => void
-  onSourceDraftCommit: () => void
 }) {
   if (!control) return null
 
   return (
-    <div
-      className={[
-        'contextual-text-ribbon-source-control',
-        sourceMode ? 'is-source-mode-active' : '',
-      ].filter(Boolean).join(' ')}
-    >
-      <label className="contextual-text-ribbon-toggle-check">
-        <input
-          data-smoke-id={`inline-text-checkbox-${getInlineTextSmokeToken(control.label)}`}
-          type="checkbox"
-          checked={control.checked}
-          onChange={(event) => {
-            const checked = event.target.checked
-            if (!checked) {
-              onSourceDraftCommit()
-            }
-            control.onChange(checked)
-          }}
-        />
-        <span>{control.label}</span>
-      </label>
-      {sourceMode ? (
-        <InlinePreviewHtmlSourceTextarea
-          key={sourceDraftIdentity}
-          initialValue={sourceInitialValue}
-          onDraftChange={onSourceDraftChange}
-        />
-      ) : null}
+    <div className="contextual-text-ribbon-source-control is-source-mode-active">
+      <div className="contextual-text-ribbon-source-status">
+        <span>{control.checked ? 'HTML source active' : 'HTML source ready'}</span>
+        <span>Preview updates live</span>
+      </div>
+      <InlinePreviewHtmlSourceTextarea
+        draft={sourceDraft}
+        isCurvedText={isCurvedText}
+        onDraftChange={onSourceDraftChange}
+      />
     </div>
   )
 }
 
 function InlinePreviewHtmlSourceTextarea({
-  initialValue,
+  draft,
+  isCurvedText,
   onDraftChange,
 }: {
-  initialValue: string
+  draft: string
+  isCurvedText: boolean
   onDraftChange: (value: string) => void
 }) {
-  const initialStatus = getInlinePreviewHtmlSourceDraftStatus(initialValue)
-  const [draft, setDraft] = useState(initialValue)
-  const [message, setMessage] = useState(initialStatus.message)
+  const status = getInlinePreviewHtmlSourceDraftStatus(draft, {
+    curvedText: isCurvedText,
+  })
+  const message = status.message
 
   const handleChange = (nextDraft: string) => {
-    setDraft(nextDraft)
-    setMessage(getInlinePreviewHtmlSourceDraftStatus(nextDraft).message)
     onDraftChange(nextDraft)
   }
 
@@ -1039,6 +1032,7 @@ function InlinePreviewHtmlSourceTextarea({
           className="inline-preview-text-source-textarea"
           data-smoke-id="inline-text-html-source"
           value={draft}
+          wrap="off"
           spellCheck={false}
           onChange={(event) => handleChange(event.target.value)}
           onClick={stopInlineTextEditorClick}
@@ -1064,6 +1058,7 @@ function InlinePreviewHtmlSourceTextarea({
 function renderInlinePreviewTextToggleControl(
   control: InlinePreviewTextEditorToggleControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
+  getCommandSelection: () => InlinePreviewTextEditorSelectionRange,
   onSelectionChange: (selection: InlinePreviewTextEditorSelectionRange) => void,
 ) {
   if (!control) return null
@@ -1087,7 +1082,10 @@ function renderInlinePreviewTextToggleControl(
       title={control.label}
       onClick={(event) => {
         event.stopPropagation()
-        const nextSelection = control.onChange(!isPressed, selection)
+        const nextSelection = control.onChange(
+          !isPressed,
+          getCommandSelection(),
+        )
 
         if (nextSelection) {
           onSelectionChange(nextSelection)
@@ -1103,12 +1101,14 @@ function renderInlinePreviewTextToggleControl(
 function renderInlinePreviewTextColorControl(
   control: InlinePreviewTextEditorColorControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
+  getCommandSelection: () => InlinePreviewTextEditorSelectionRange,
 ) {
   if (!control) return null
 
   return (
     <InlinePreviewTextColorControl
       control={control}
+      getCommandSelection={getCommandSelection}
       selection={selection}
     />
   )
@@ -1120,24 +1120,36 @@ function getInlineTextSelectionKey(
   return `${selection.start}:${selection.end}`
 }
 
+function isInlineTextSelectionCollapsed(
+  selection: InlinePreviewTextEditorSelectionRange,
+) {
+  return selection.start === selection.end
+}
+
 function InlinePreviewTextColorControl({
   control,
+  getCommandSelection,
   selection,
 }: {
   control: InlinePreviewTextEditorColorControl
+  getCommandSelection: () => InlinePreviewTextEditorSelectionRange
   selection: InlinePreviewTextEditorSelectionRange
 }) {
   const selectionSnapshotRef =
-    useRef<InlinePreviewTextEditorSelectionRange>(selection)
+    useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const lastAppliedRef = useRef<string | null>(null)
 
   const selectionColor = control.getSelectionValue?.(selection)
   const value = selectionColor?.value ?? control.value
   const captureSelection = useCallback(() => {
-    selectionSnapshotRef.current = selection
-  }, [selection])
+    selectionSnapshotRef.current = getCommandSelection()
+  }, [getCommandSelection])
   const applyColor = useCallback((nextValue: string) => {
-    const selectedRange = selectionSnapshotRef.current ?? selection
+    const snapshot = selectionSnapshotRef.current
+    const selectedRange =
+      snapshot && !isInlineTextSelectionCollapsed(snapshot)
+        ? snapshot
+        : getCommandSelection()
     const applyKey = `${nextValue}:${getInlineTextSelectionKey(selectedRange)}`
 
     if (lastAppliedRef.current === applyKey) {
@@ -1146,7 +1158,7 @@ function InlinePreviewTextColorControl({
 
     lastAppliedRef.current = applyKey
     control.onChange(nextValue, selectedRange)
-  }, [control, selection])
+  }, [control, getCommandSelection])
 
   return (
     <label className="contextual-text-ribbon-control contextual-text-ribbon-color-control">
@@ -1175,22 +1187,20 @@ function InlinePreviewTextColorControl({
 function InlinePreviewTextEditorMenuContent({
   activeTab,
   controls,
-  sourceDraftIdentity,
-  sourceInitialValue,
-  sourceMode,
+  getCommandSelection,
+  isCurvedText,
+  sourceDraft,
   onSourceDraftChange,
-  onSourceDraftCommit,
   onSelectionChange,
   selection,
 }: {
   activeTab: InlinePreviewTextEditorTab
   controls?: InlinePreviewTextEditorControls
+  getCommandSelection: () => InlinePreviewTextEditorSelectionRange
   selection: InlinePreviewTextEditorSelectionRange
-  sourceDraftIdentity: string
-  sourceInitialValue: string
-  sourceMode: boolean
+  isCurvedText: boolean
+  sourceDraft: string
   onSourceDraftChange: (value: string) => void
-  onSourceDraftCommit: () => void
   onSelectionChange: (selection: InlinePreviewTextEditorSelectionRange) => void
 }) {
   if (!controls) {
@@ -1263,40 +1273,40 @@ function InlinePreviewTextEditorMenuContent({
                   controls.text?.size,
                   selection,
                 )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.bold,
+                  selection,
+                  getCommandSelection,
+                  onSelectionChange,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.italic,
+                  selection,
+                  getCommandSelection,
+                  onSelectionChange,
+                )}
+                {renderInlinePreviewTextToggleControl(
+                  controls.text?.underline,
+                  selection,
+                  getCommandSelection,
+                  onSelectionChange,
+                )}
               </>
             ),
           })}
           {renderContextualTextRibbonGroup({
             id: 'paragraph',
             label: 'Paragraph',
-            children: renderInlinePreviewTextSelectControl(
-              controls.text?.alignment,
-              selection,
-            ),
-          })}
-          {renderContextualTextRibbonGroup({
-            id: 'formatting',
-            label: 'Formatting',
             children: (
               <>
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.bold,
+                {renderInlinePreviewTextSelectControl(
+                  controls.text?.alignment,
                   selection,
-                  onSelectionChange,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.italic,
-                  selection,
-                  onSelectionChange,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.underline,
-                  selection,
-                  onSelectionChange,
                 )}
                 {renderInlinePreviewTextToggleControl(
                   controls.text?.bulletedList,
                   selection,
+                  getCommandSelection,
                   onSelectionChange,
                 )}
               </>
@@ -1319,6 +1329,7 @@ function InlinePreviewTextEditorMenuContent({
             children: renderInlinePreviewTextColorControl(
               controls.art?.color,
               selection,
+              getCommandSelection,
             ),
           })}
           {renderContextualTextRibbonGroup({
@@ -1342,6 +1353,7 @@ function InlinePreviewTextEditorMenuContent({
                 {renderInlinePreviewTextColorControl(
                   controls.art?.backgroundColor,
                   selection,
+                  getCommandSelection,
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.backgroundOpacity,
@@ -1364,6 +1376,7 @@ function InlinePreviewTextEditorMenuContent({
                 {renderInlinePreviewTextColorControl(
                   controls.art?.borderColor,
                   selection,
+                  getCommandSelection,
                 )}
                 {renderInlinePreviewTextRangeControl(
                   controls.art?.borderRadius,
@@ -1376,21 +1389,19 @@ function InlinePreviewTextEditorMenuContent({
     })
   }
 
-  if (sourceMode && controls.utilities?.htmlSource) {
+  if (activeTab === 'html') {
     return renderContextualTextRibbonRow({
       emptyLabel: 'HTML source unavailable',
       children: renderContextualTextRibbonGroup({
         id: 'source',
-        label: 'Source',
+        label: 'HTML',
         className:
           'contextual-text-ribbon-group--source contextual-text-ribbon-group--source-expanded',
         children: renderInlinePreviewHtmlSourceControl({
-          control: controls.utilities.htmlSource,
-          sourceDraftIdentity,
-          sourceInitialValue,
-          sourceMode,
+          control: controls.html?.source,
+          isCurvedText,
+          sourceDraft,
           onSourceDraftChange,
-          onSourceDraftCommit,
         }),
       }),
     })
@@ -1436,22 +1447,6 @@ function InlinePreviewTextEditorMenuContent({
               )}
             </>
           ),
-        })}
-        {renderContextualTextRibbonGroup({
-          id: 'source',
-          label: 'Source',
-          className:
-            'contextual-text-ribbon-group--source contextual-text-ribbon-group--source-toggle',
-          children: controls.utilities?.htmlSource
-            ? renderInlinePreviewHtmlSourceControl({
-                control: controls.utilities.htmlSource,
-                sourceDraftIdentity,
-                sourceInitialValue,
-                sourceMode,
-                onSourceDraftChange,
-                onSourceDraftCommit,
-              })
-            : null,
         })}
         {renderContextualTextRibbonGroup({
           id: 'reset',
@@ -2094,6 +2089,8 @@ export function InlinePreviewTextEditor({
   const adapterSelectionCaptureElementRef = useRef<Element | null>(null)
   const pendingSelectionRef =
     useRef<InlinePreviewTextEditorSelectionRange | null>(null)
+  const retainedCommandSelectionRef =
+    useRef<InlinePreviewTextEditorSelectionRange | null>(null)
   const [caretFrame, setCaretFrame] = useState<InlineTextCaretFrame | null>(null)
   const [selection, setSelection] = useState<InlineTextSelectionState>(() =>
     getCollapsedSelectionState(value.length),
@@ -2104,23 +2101,90 @@ export function InlinePreviewTextEditor({
   const [activeTab, setActiveTab] =
     useState<InlinePreviewTextEditorTab>('text')
   const [isMoveHandleDragging, setIsMoveHandleDragging] = useState(false)
-  const sourceDraftIdentity = sourceMode
-    ? `${targetKey}:html-source`
-    : `${targetKey}:wysiwyg`
+  const sourceDraftIdentity = `${targetKey}:html-source`
+  const [sourceDraft, setSourceDraft] = useState(() => ({
+    identity: sourceDraftIdentity,
+    initialized: sourceMode,
+    value,
+  }))
+  const activeSourceDraft =
+    sourceDraft.identity === sourceDraftIdentity
+      ? sourceDraft
+      : {
+          identity: sourceDraftIdentity,
+          initialized: sourceMode,
+          value,
+        }
+  const sourceDraftValue = !activeSourceDraft.initialized
+    ? value
+    : activeSourceDraft.value
+  const htmlSourceControl = editorControls?.html?.source
+  const isCurvedTextSource =
+    Boolean(
+      editorControls?.utilities?.arcDegrees &&
+      editorControls.utilities.arcSide &&
+      !editorControls.text?.bulletedList,
+    )
 
   const updateSourceDraft = useCallback((nextDraft: string) => {
+    setSourceDraft({
+      identity: sourceDraftIdentity,
+      initialized: true,
+      value: nextDraft,
+    })
     onValueChange(nextDraft, { sourceMode: true })
-  }, [onValueChange])
+  }, [onValueChange, sourceDraftIdentity])
 
-  const commitSourceDraft = useCallback(() => {
-    if (sourceMode) {
-      const sourceTextarea =
-        menuRef.current?.querySelector<HTMLTextAreaElement>(
-          '.inline-preview-text-source-textarea',
-        )
-      onValueChange(sourceTextarea?.value ?? value, { sourceMode: true })
+  const commitSourceDraft = useCallback((): InlinePreviewTextEditorDoneCommit | undefined => {
+    const sourceTextarea =
+      menuRef.current?.querySelector<HTMLTextAreaElement>(
+        '.inline-preview-text-source-textarea',
+      )
+
+    if (sourceMode || (activeTab === 'html' && sourceTextarea)) {
+      const committedValue = sourceTextarea?.value ?? sourceDraftValue
+      const commit = {
+        sourceMode: true,
+        value: committedValue,
+      }
+
+      onValueChange(committedValue, {
+        sourceMode: true,
+      })
+      return commit
     }
-  }, [onValueChange, sourceMode, value])
+
+    return undefined
+  }, [activeTab, onValueChange, sourceDraftValue, sourceMode])
+
+  const changeActiveTab = useCallback((nextTab: InlinePreviewTextEditorTab) => {
+    if (nextTab === activeTab) return
+
+    if (nextTab === 'html') {
+      setSourceDraft({
+        identity: sourceDraftIdentity,
+        initialized: false,
+        value: '',
+      })
+      if (!sourceMode) {
+        htmlSourceControl?.onChange(true)
+      }
+      setActiveTab(nextTab)
+      return
+    }
+
+    if (activeTab === 'html') {
+      commitSourceDraft()
+      htmlSourceControl?.onChange(false)
+    }
+    setActiveTab(nextTab)
+  }, [
+    activeTab,
+    commitSourceDraft,
+    htmlSourceControl,
+    sourceDraftIdentity,
+    sourceMode,
+  ])
 
   const setRibbonMenuRef = useCallback((element: HTMLDivElement | null) => {
     menuRef.current = element
@@ -2224,6 +2288,54 @@ export function InlinePreviewTextEditor({
     } satisfies InlinePreviewTextEditorControlRoot))
   }, [])
 
+  const retainCommandSelection = useCallback((
+    nextSelection: InlinePreviewTextEditorSelectionRange,
+  ) => {
+    if (!isInlineTextSelectionCollapsed(nextSelection)) {
+      retainedCommandSelectionRef.current = nextSelection
+    }
+  }, [])
+
+  const clearRetainedCommandSelection = useCallback(() => {
+    retainedCommandSelectionRef.current = null
+  }, [])
+
+  const getCommandSelection = useCallback(() => {
+    const textarea = textareaRef.current
+
+    if (textarea && !sourceMode) {
+      const textareaSelection = getTextareaSelectionState(textarea)
+      const textareaSelectionRange =
+        getInlineTextSelectionRange(textareaSelection)
+
+      if (!isInlineTextSelectionCollapsed(textareaSelectionRange)) {
+        return textareaSelectionRange
+      }
+    }
+
+    const currentSelection = getInlineTextSelectionRange(selection)
+
+    if (!isInlineTextSelectionCollapsed(currentSelection)) {
+      return currentSelection
+    }
+
+    return retainedCommandSelectionRef.current ?? currentSelection
+  }, [selection, sourceMode])
+
+  const retainTextareaSelectionForCommands = useCallback(() => {
+    const textarea = textareaRef.current
+
+    if (!textarea) {
+      return
+    }
+
+    const textareaSelection = getTextareaSelectionState(textarea)
+
+    if (textareaSelection.start !== textareaSelection.end) {
+      retainCommandSelection(textareaSelection)
+    }
+  }, [retainCommandSelection])
+
   const updateSelectionStart = () => {
     const textarea = textareaRef.current
 
@@ -2231,7 +2343,13 @@ export function InlinePreviewTextEditor({
       return
     }
 
-    setSelection(getTextareaSelectionState(textarea))
+    const nextSelection = getTextareaSelectionState(textarea)
+    if (nextSelection.start === nextSelection.end) {
+      clearRetainedCommandSelection()
+    } else {
+      retainCommandSelection(nextSelection)
+    }
+    setSelection(nextSelection)
   }
 
   const applyInlineTextSelectionRange = useCallback(
@@ -2255,9 +2373,10 @@ export function InlinePreviewTextEditor({
       }
 
       adapterSelectionAnchorRef.current = nextSelectionState.focus
+      retainCommandSelection(nextSelectionState)
       setSelection(nextSelectionState)
     },
-    [value.length],
+    [retainCommandSelection, value.length],
   )
 
   const handleInlineTextEditorKeyDown = (
@@ -2295,6 +2414,10 @@ export function InlinePreviewTextEditor({
 
     const textarea = event.currentTarget
     textarea.setSelectionRange(0, textarea.value.length, 'forward')
+    retainCommandSelection({
+      end: textarea.value.length,
+      start: 0,
+    })
     setSelection({
       end: textarea.value.length,
       focus: textarea.value.length,
@@ -2332,6 +2455,7 @@ export function InlinePreviewTextEditor({
       nextSelectionStart,
       'forward',
     )
+    clearRetainedCommandSelection()
     setSelection(getCollapsedSelectionState(nextSelectionStart))
   }
 
@@ -2470,8 +2594,9 @@ export function InlinePreviewTextEditor({
     textarea.setSelectionRange(textarea.value.length, textarea.value.length)
     adapterSelectionAnchorRef.current = textarea.value.length
     adapterSelectionPointerIdRef.current = null
+    clearRetainedCommandSelection()
     setSelection(getCollapsedSelectionState(textarea.value.length))
-  }, [sourceMode, targetKey])
+  }, [clearRetainedCommandSelection, sourceMode, targetKey])
 
   useLayoutEffect(() => {
     const pendingSelection = pendingSelectionRef.current
@@ -2499,8 +2624,9 @@ export function InlinePreviewTextEditor({
     }
 
     adapterSelectionAnchorRef.current = nextSelectionState.focus
+    retainCommandSelection(nextSelectionState)
     setSelection(nextSelectionState)
-  }, [sourceMode, targetKey, value])
+  }, [retainCommandSelection, sourceMode, targetKey, value])
 
   useLayoutEffect(() => {
     const textarea = textareaRef.current
@@ -2597,6 +2723,7 @@ export function InlinePreviewTextEditor({
     lines,
     rotationDegrees,
     selection,
+    sourceMode,
     targetKey,
     value,
   ])
@@ -2642,6 +2769,7 @@ export function InlinePreviewTextEditor({
 
       textarea.focus({ preventScroll: true })
       textarea.setSelectionRange(start, end, direction)
+      retainCommandSelection({ end, start })
       setSelection({
         end,
         focus: nextSelectionFocus,
@@ -2689,6 +2817,7 @@ export function InlinePreviewTextEditor({
         nextSelectionFocus,
         'forward',
       )
+      clearRetainedCommandSelection()
       setSelection(getCollapsedSelectionState(nextSelectionFocus))
     }
 
@@ -2754,11 +2883,14 @@ export function InlinePreviewTextEditor({
     }
   }, [
     caretValue,
+    clearRetainedCommandSelection,
     geometryAdapter,
     geometryLines,
     inputMode,
     lines,
+    retainCommandSelection,
     rotationDegrees,
+    sourceMode,
     targetKey,
   ])
 
@@ -2874,6 +3006,7 @@ export function InlinePreviewTextEditor({
         className="contextual-text-ribbon-tabs"
         data-smoke-id="inline-text-tabs"
         onClick={stopInlineTextEditorClick}
+        onPointerDownCapture={retainTextareaSelectionForCommands}
         onPointerDown={keepInlineTextEditorFocus}
       >
         {INLINE_TEXT_EDITOR_TABS.map((tab) => (
@@ -2888,7 +3021,7 @@ export function InlinePreviewTextEditor({
             type="button"
             onClick={(event) => {
               event.stopPropagation()
-              setActiveTab(tab.id)
+              changeActiveTab(tab.id)
             }}
           >
             {getContextualTextRibbonTabDisplayLabel(tab.id)}
@@ -2901,17 +3034,17 @@ export function InlinePreviewTextEditor({
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
         onFocusCapture={handleRibbonControlInteraction}
+        onPointerDownCapture={retainTextareaSelectionForCommands}
         onPointerDown={handleRibbonPointerDown}
       >
         <InlinePreviewTextEditorMenuContent
           activeTab={activeTab}
           controls={editorControls}
+          getCommandSelection={getCommandSelection}
           selection={getInlineTextSelectionRange(selection)}
-          sourceDraftIdentity={sourceDraftIdentity}
-          sourceInitialValue={value}
-          sourceMode={sourceMode}
+          isCurvedText={isCurvedTextSource}
+          sourceDraft={sourceDraftValue}
           onSourceDraftChange={updateSourceDraft}
-          onSourceDraftCommit={commitSourceDraft}
           onSelectionChange={applyInlineTextSelectionRange}
         />
         <div className="contextual-text-ribbon-actions">
@@ -2938,8 +3071,8 @@ export function InlinePreviewTextEditor({
             data-smoke-id="inline-text-done"
             onClick={(event) => {
               event.stopPropagation()
-              commitSourceDraft()
-              onDone()
+              const commit = commitSourceDraft()
+              onDone(commit)
             }}
             onPointerDown={keepInlineTextEditorFocus}
           >
@@ -2951,20 +3084,22 @@ export function InlinePreviewTextEditor({
   ), [
     activeTab,
     applyInlineTextSelectionRange,
+    changeActiveTab,
     commitSourceDraft,
     deleteAction,
     deleteAriaLabel,
     deleteLabel,
     editorControls,
+    getCommandSelection,
     handleRibbonControlInteraction,
     handleRibbonPointerDown,
+    isCurvedTextSource,
     onDone,
+    retainTextareaSelectionForCommands,
     selection,
     setRibbonMenuRef,
-    sourceDraftIdentity,
-    sourceMode,
+    sourceDraftValue,
     updateSourceDraft,
-    value,
   ])
 
   useContextualTextRibbonRegistration({

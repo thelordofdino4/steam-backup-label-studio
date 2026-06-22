@@ -37,8 +37,8 @@ tested, and the remaining divergences are recorded.
   encroach into, underlap, or be clipped by the reserved ribbon slot.
 - The reserved slot remains present when no text target is active, but the
   ribbon contents disappear.
-- Row 1 of the ribbon contains the four contextual tabs with compact
-  single-line labels: `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 1 of the ribbon contains the five contextual tabs with compact
+  single-line labels: `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups. Production code must not reuse portal-slot content or
   `.inline-preview-text-control-grid` presentation from the old full menu
@@ -149,8 +149,8 @@ tested, and the remaining divergences are recorded.
 | Tray text | Same as cover text, using tray-safe geometry and wrapping semantics | Same as cover text | Same as cover text |
 | Left spine text | Same contextual text controls that the spine target supports | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select entry points, spine orientation or structural setup where still sidebar-owned |
 | Right spine text | Same as left spine text | Same as left spine text | Same as left spine text |
-| Straight disc text | Style/layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source where supported, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc text | Whole-object or supported range-safe controls for font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc side/span/inset/position, presets, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
+| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc side/span/inset/position, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
 
 ### Responsive Ribbon States
 
@@ -196,7 +196,7 @@ Keep these responsibilities:
   slot remains reserved when inactive.
 - The Live Preview heading remains visible on the left, and the preview begins
   below the full header/ribbon region.
-- Row 1 contains the four contextual tabs; row 2 contains the active tab's
+- Row 1 contains the five contextual tabs; row 2 contains the active tab's
   controls; narrow widths may wrap controls into row 3 without overlap.
 - Toasts keep their existing placement when the ribbon is inactive, move below
   the measured ribbon slot while active, and return to their original placement
@@ -241,9 +241,12 @@ Keep these responsibilities:
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
 - Straight disc HTML source must render through safe SVG text/tspan output in
   preview and export.
-- HTML source, selection-scoped formatting, and list editing remain unsupported
-  for curved disc text unless they can be mapped safely onto textPath without a
-  rectangular visible editor.
+- Curved disc HTML source must render safe inline formatting through the
+  existing SVG/textPath and tspan path. Supported inline formatting includes
+  font family, Font size (pt), BIU, underline, text color, and safe line breaks.
+  Structures that cannot be represented faithfully on curved textPath, such as
+  bulleted-list markup, must report validation clearly, preserve safe visible
+  text where appropriate, and never execute raw HTML.
 
 ## Current Implementation Notes
 

@@ -140,6 +140,8 @@ export type InlinePreviewTextEditorNumberSelectControl = {
 
 export type InlinePreviewTextEditorCheckboxControl = {
   checked: boolean
+  disabled?: boolean
+  disabledReason?: string
   label: string
   onChange: (checked: boolean) => void
 }
@@ -209,7 +211,6 @@ export type InlinePreviewTextEditorControls = {
   utilities?: {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
-    htmlSource?: InlinePreviewTextEditorCheckboxControl
     lineSpacing?: InlinePreviewTextEditorRangeControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
@@ -217,6 +218,9 @@ export type InlinePreviewTextEditorControls = {
     width?: InlinePreviewTextEditorRangeControl
     x?: InlinePreviewTextEditorRangeControl
     y?: InlinePreviewTextEditorRangeControl
+  }
+  html?: {
+    source?: InlinePreviewTextEditorCheckboxControl
   }
   deleteAction?: {
     ariaLabel?: string
@@ -250,7 +254,7 @@ export type InlinePreviewTextEditorProps = {
     command: 'enter' | 'shiftEnter' | 'backspace',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => InlinePreviewTextEditorSelectionRange | null | void
-  onDone: () => void
+  onDone: (commit?: InlinePreviewTextEditorDoneCommit) => void
 }
 
 export type InlinePreviewTextEditorAdapterSurface =
@@ -292,6 +296,11 @@ export type InlinePreviewTextEditorEditSession = {
   rotationDegrees?: number
   sourceMode: boolean
   targetKey: string
+  value: string
+}
+
+export type InlinePreviewTextEditorDoneCommit = {
+  sourceMode?: boolean
   value: string
 }
 
@@ -444,16 +453,16 @@ export function assertInlinePreviewTextEditorAdapterContract(
   }
 
   if (adapter.capabilities.htmlSource &&
-    !adapter.props.controls?.utilities?.htmlSource) {
+    !adapter.props.controls?.html?.source) {
     throw new Error('HTML-source-capable adapters must expose htmlSource')
   }
   if (!adapter.capabilities.htmlSource &&
-    adapter.props.controls?.utilities?.htmlSource) {
+    adapter.props.controls?.html?.source) {
     throw new Error(
       'Adapters without HTML source capability must omit htmlSource controls',
     )
   }
-  if (adapter.props.sourceMode && !adapter.props.controls?.utilities?.htmlSource) {
+  if (adapter.props.sourceMode && !adapter.props.controls?.html?.source) {
     throw new Error('sourceMode requires an HTML source control')
   }
 

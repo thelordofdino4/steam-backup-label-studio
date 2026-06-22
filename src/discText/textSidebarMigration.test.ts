@@ -68,13 +68,13 @@ test('disc sidebar policy omits contextual controls and keeps setup exceptions',
     'lineSpacing',
     'arcSide',
     'arcDegrees',
+    'htmlSource',
     'resetStyle',
     'resetLayout',
     'delete',
   ] as const satisfies readonly ContextualTextControlId[]
   const curvedSidebarOwnedControlIds = [
     'mode',
-    'htmlSource',
     'bulletedList',
     'width',
   ] as const satisfies readonly ContextualTextControlId[]

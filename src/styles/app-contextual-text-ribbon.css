@@ -2,9 +2,9 @@
   --contextual-text-ribbon-reserved-height: 64px;
   --contextual-text-ribbon-toast-gap: 10px;
   --contextual-text-ribbon-tab-row-height: 24px;
-  --contextual-text-ribbon-control-row-height: 24px;
+  --contextual-text-ribbon-control-row-height: 28px;
   --contextual-text-ribbon-control-row-count: 1;
-  --contextual-text-ribbon-scrollbar-space: 11px;
+  --contextual-text-ribbon-scrollbar-space: 6px;
 }
 
 .preview-header {
@@ -91,7 +91,7 @@
 .contextual-text-ribbon-tabs {
   grid-row: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 4px;
   min-width: 0;
   min-height: var(--contextual-text-ribbon-tab-row-height);
@@ -168,7 +168,7 @@
   gap: 4px;
   flex: 0 0 auto;
   min-width: max-content;
-  min-height: 24px;
+  min-height: 28px;
   box-sizing: border-box;
   padding: 1px 5px;
   border: 1px solid rgba(96, 165, 250, 0.42);
@@ -209,18 +209,16 @@
   min-width: 0;
 }
 
-.contextual-text-ribbon-group--source-toggle {
-  width: max-content;
-}
-
 .contextual-text-ribbon-group--source-expanded {
-  width: min(460px, calc(100cqw - 88px));
   grid-row: span var(--contextual-text-ribbon-control-row-count);
   align-items: stretch;
+  width: min(720px, max(260px, calc(100cqw - 92px)));
+  min-width: min(260px, calc(100cqw - 92px));
 }
 
 .contextual-text-ribbon-group--source-expanded .contextual-text-ribbon-group-body {
   flex: 1 1 auto;
+  min-width: 0;
 }
 
 .contextual-text-ribbon-group .contextual-text-ribbon-control-label {
@@ -243,7 +241,9 @@
 }
 
 .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
-  width: 112px;
+  width: 108px;
+  height: 24px;
+  min-height: 24px;
 }
 
 .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size input {
@@ -364,6 +364,17 @@
   accent-color: #60a5fa;
 }
 
+.contextual-text-ribbon-toggle-check.is-disabled {
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+.contextual-text-ribbon-toggle-check.is-disabled input,
+.contextual-text-ribbon-toggle-check input:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .contextual-text-ribbon-point-size {
   position: relative;
   display: inline-flex;
@@ -377,7 +388,7 @@
 
 .contextual-text-ribbon-point-size input {
   width: 46px;
-  min-height: 22px;
+  min-height: 24px;
   padding: 3px 4px;
   border: 0;
   border-radius: 6px 0 0 6px;
@@ -385,8 +396,10 @@
 }
 
 .contextual-text-ribbon-point-size button {
-  min-width: 22px;
-  min-height: 22px;
+  flex: 0 0 25px;
+  width: 25px;
+  min-width: 25px;
+  min-height: 24px;
   border: 0;
   border-left: 1px solid #374151;
   background: rgba(31, 41, 55, 0.9);
@@ -401,6 +414,7 @@
   top: calc(100% + 4px);
   right: 0;
   z-index: 45;
+  width: 78px;
 }
 
 .contextual-text-ribbon-icon-button,
@@ -431,8 +445,11 @@
 }
 
 .contextual-text-ribbon-icon-button {
+  flex: 0 0 24px;
   width: 24px;
   min-width: 24px;
+  height: 24px;
+  min-height: 24px;
   padding: 0;
   overflow: hidden;
   text-overflow: clip;
@@ -482,20 +499,38 @@
 
 .contextual-text-ribbon-source-control {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 6px;
-  align-items: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 3px;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
+  min-height: 0;
+}
+
+.contextual-text-ribbon-source-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  min-width: 0;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .contextual-text-ribbon-source-field textarea {
   width: 100%;
-  min-height: 24px;
-  max-height: 34px;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  max-height: 56px;
   padding: 4px 6px;
-  line-height: 1.25;
-  resize: vertical;
+  overflow: auto;
+  line-height: 1.2;
+  resize: none;
+  white-space: pre;
 }
 
 .contextual-text-ribbon-empty-control {
@@ -525,7 +560,7 @@
 
 @container (max-width: 719px) {
   .contextual-text-ribbon-group {
-    min-height: 24px;
+    min-height: 28px;
     padding: 1px 5px;
   }
 
@@ -543,7 +578,49 @@
   }
 
   .contextual-text-ribbon-group--font {
+    padding-inline: 3px;
     width: max-content;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-group-label {
+    max-width: 32px;
+    padding-right: 3px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
+    display: flex;
+    flex-wrap: nowrap;
+    align-content: center;
+    align-items: center;
+    width: max-content;
+    gap: 1px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
+    height: 24px;
+    min-height: 24px;
+    width: 73px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
+    flex: 0 0 auto;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
+    flex: 0 0 auto;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size input {
+    width: 28px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size button {
+    min-width: 25px;
+    width: 25px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-icon-button:nth-child(3) {
+    margin-left: 0;
   }
 
   .contextual-text-ribbon-group--layout .contextual-text-ribbon-control input[type="range"],
@@ -559,53 +636,6 @@
   .contextual-text-ribbon-group--layout .contextual-text-ribbon-toggle-check span {
     display: inline-block;
     max-width: 50px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
-  }
-
-  .contextual-text-ribbon-group--formatting {
-    grid-row: span var(--contextual-text-ribbon-control-row-count);
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .contextual-text-ribbon-group--formatting .contextual-text-ribbon-group-label {
-    width: 100%;
-    max-width: none;
-    padding-right: 0;
-    padding-bottom: 2px;
-    border-right: 0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
-    text-align: center;
-  }
-
-  .contextual-text-ribbon-group--formatting .contextual-text-ribbon-group-body {
-    display: grid;
-    grid-template-columns: repeat(2, 24px);
-    gap: 3px;
-  }
-
-  .contextual-text-ribbon-group--source-toggle {
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-  }
-
-  .contextual-text-ribbon-group--source-toggle .contextual-text-ribbon-group-label {
-    width: 100%;
-    max-width: 52px;
-    padding-right: 0;
-    padding-bottom: 2px;
-    border-right: 0;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.22);
-    text-align: center;
-  }
-
-  .contextual-text-ribbon-group--source-toggle .contextual-text-ribbon-toggle-check span {
-    display: inline-block;
-    max-width: 38px;
     overflow: hidden;
     text-overflow: ellipsis;
     vertical-align: bottom;
@@ -654,10 +684,7 @@
   .contextual-text-ribbon-group--source-expanded,
   .contextual-text-ribbon-group--layout {
     width: min(300px, 100cqw);
-  }
-
-  .contextual-text-ribbon-group--font {
-    width: max-content;
+    min-width: min(260px, 100cqw);
   }
 
   .contextual-text-ribbon-control-label {

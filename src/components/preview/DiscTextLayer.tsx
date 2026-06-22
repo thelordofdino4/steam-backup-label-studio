@@ -38,6 +38,7 @@ import {
 } from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 import { DiscInlineTextEditorLayer } from './DiscInlineTextEditorLayer'
+import type { InlinePreviewTextEditorDoneCommit } from './InlinePreviewTextEditor'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
@@ -62,7 +63,10 @@ export type DiscTextLayerProps = {
     options?: { sourceMode?: boolean },
   ) => void
   onDiscTextContentModeChange: (key: DiscTextKey, contentMode: TextContentMode) => void
-  onDiscTextEditComplete: (key: DiscTextKey) => void
+  onDiscTextEditComplete: (
+    key: DiscTextKey,
+    commit?: InlinePreviewTextEditorDoneCommit,
+  ) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
     field: DiscTextStyleField,

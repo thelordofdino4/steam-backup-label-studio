@@ -414,9 +414,9 @@ test('delete and HTML source controls match adapter capabilities', () => {
   }
   const controlsWithoutHtmlSource: InlinePreviewTextEditorControls = {
     ...fixture.props.controls,
-    utilities: {
-      ...fixture.props.controls?.utilities,
-      htmlSource: undefined,
+    html: {
+      ...fixture.props.controls?.html,
+      source: undefined,
     },
   }
 
@@ -566,6 +566,7 @@ test('curved disc text remains outside the rectangular adapter contract', () => 
       'lineSpacing',
       'arcSide',
       'arcDegrees',
+      'htmlSource',
       'resetStyle',
       'resetLayout',
       'delete',

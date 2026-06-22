@@ -169,8 +169,9 @@ text, and curved disc text.
   behavior.
 - Default metadata text can be deleted while editing and does not repopulate
   until the user blurs/exits while it is still empty.
-- Utilities exposes `HTML source` for cover, tray, left spine, right spine, and
-  straight disc text; it does not expose a separate Markdown mode.
+- The dedicated `HTML` ribbon tab exposes HTML source for cover, tray, left
+  spine, right spine, straight disc, and curved disc copyright/legal text; it
+  does not expose a separate Markdown mode.
 - HTML source mode shows canonical sanitized HTML for the current text, and
   leaving source mode updates the final visible renderer.
 - Inline HTML color spans render in preview, survive save/load, and appear in
