@@ -28,11 +28,16 @@ export type ContextualTextRibbonControlDescriptor = {
 export type ContextualTextRibbonLayoutModel = {
   controlColumns: number
   controlsMayUseThirdRow: boolean
+  controlRows: number
   mode: ContextualTextRibbonMode
+  reservedHeight: number
   tabColumns: number
 }
 
-export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT = 64
+export const CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT = 64
+export const CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT = 96
+export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT =
+  CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT
 export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 
@@ -53,21 +58,32 @@ export function getContextualTextRibbonTabDisplayLabel(
 export function getContextualTextRibbonLayoutMode(
   containerWidth: number,
 ): ContextualTextRibbonMode {
-  if (containerWidth >= 760) return 'wide'
+  if (containerWidth >= 720) return 'wide'
   if (containerWidth >= 520) return 'medium'
   return 'narrow'
+}
+
+export function getContextualTextRibbonReservedHeight(
+  mode: ContextualTextRibbonMode,
+) {
+  return mode === 'wide'
+    ? CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT
+    : CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT
 }
 
 export function getContextualTextRibbonLayoutModel(
   containerWidth: number,
 ): ContextualTextRibbonLayoutModel {
   const mode = getContextualTextRibbonLayoutMode(containerWidth)
+  const reservedHeight = getContextualTextRibbonReservedHeight(mode)
 
   if (mode === 'wide') {
     return {
       controlColumns: 4,
       controlsMayUseThirdRow: false,
+      controlRows: 1,
       mode,
+      reservedHeight,
       tabColumns: 4,
     }
   }
@@ -75,16 +91,20 @@ export function getContextualTextRibbonLayoutModel(
   if (mode === 'medium') {
     return {
       controlColumns: 2,
-      controlsMayUseThirdRow: false,
+      controlsMayUseThirdRow: true,
+      controlRows: 2,
       mode,
+      reservedHeight,
       tabColumns: 4,
     }
   }
 
   return {
     controlColumns: 1,
-    controlsMayUseThirdRow: false,
+    controlsMayUseThirdRow: true,
+    controlRows: 2,
     mode,
+    reservedHeight,
     tabColumns: 4,
   }
 }

@@ -1,7 +1,9 @@
 .preview-area {
   --contextual-text-ribbon-reserved-height: 64px;
   --contextual-text-ribbon-toast-gap: 10px;
-  --contextual-text-ribbon-label-column: clamp(220px, 28%, 270px);
+  --contextual-text-ribbon-tab-row-height: 24px;
+  --contextual-text-ribbon-control-row-height: 30px;
+  --contextual-text-ribbon-control-row-count: 1;
 }
 
 .preview-header {
@@ -11,9 +13,9 @@
   justify-self: stretch;
   display: grid;
   grid-template-columns:
-    minmax(0, var(--contextual-text-ribbon-label-column))
+    fit-content(220px)
     minmax(0, 1fr);
-  gap: clamp(6px, 1vw, 10px);
+  gap: 0;
   align-items: stretch;
   min-height: var(--contextual-text-ribbon-reserved-height);
   pointer-events: none;
@@ -22,7 +24,7 @@
 .preview-header .preview-pane-label {
   align-self: start;
   justify-self: start;
-  max-width: var(--contextual-text-ribbon-label-column);
+  max-width: 220px;
 }
 
 .preview-header .preview-pane-label strong {
@@ -39,18 +41,26 @@
   max-width: 100%;
   min-width: 0;
   min-height: var(--contextual-text-ribbon-reserved-height);
+  container-type: inline-size;
   pointer-events: none;
+}
+
+.contextual-text-ribbon-host[data-contextual-text-ribbon-mode="medium"],
+.contextual-text-ribbon-host[data-contextual-text-ribbon-mode="narrow"] {
+  --contextual-text-ribbon-control-row-count: 2;
 }
 
 .contextual-text-ribbon-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows:
+    var(--contextual-text-ribbon-tab-row-height)
+    minmax(0, 1fr);
   gap: 2px;
   width: 100%;
   height: var(--contextual-text-ribbon-reserved-height);
   max-height: var(--contextual-text-ribbon-reserved-height);
   box-sizing: border-box;
-  padding: 2px 8px;
+  padding: 2px 6px;
   overflow: hidden;
   border: 1px solid rgba(55, 65, 81, 0.88);
   border-top: 0;
@@ -83,6 +93,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   min-width: 0;
+  min-height: var(--contextual-text-ribbon-tab-row-height);
 }
 
 .contextual-text-ribbon-tab {
@@ -125,10 +136,15 @@
 }
 
 .contextual-text-ribbon-control-row {
-  display: flex;
-  flex-wrap: nowrap;
-  align-content: flex-start;
-  align-items: center;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: repeat(
+    var(--contextual-text-ribbon-control-row-count),
+    minmax(var(--contextual-text-ribbon-control-row-height), auto)
+  );
+  align-content: start;
+  align-items: stretch;
   gap: 4px;
   min-width: 0;
   max-width: 100%;
@@ -142,7 +158,6 @@
 
 .contextual-text-ribbon-group {
   display: flex;
-  flex: 0 0 auto;
   flex-wrap: nowrap;
   align-items: center;
   gap: 3px;
@@ -175,12 +190,12 @@
 }
 
 .contextual-text-ribbon-group--source {
-  flex: 0 0 min(420px, 100%);
+  width: min(420px, 100cqw);
   align-items: stretch;
 }
 
 .contextual-text-ribbon-group--font {
-  flex: 0 0 326px;
+  width: min(326px, 100cqw);
 }
 
 .contextual-text-ribbon-group--font .contextual-text-ribbon-control-label {
@@ -201,16 +216,16 @@
 
 .contextual-text-ribbon-group--paint,
 .contextual-text-ribbon-group--curved {
-  flex: 0 0 268px;
+  width: min(268px, 100cqw);
 }
 
 .contextual-text-ribbon-group--layout {
-  flex: 0 0 430px;
+  width: min(430px, 100cqw);
 }
 
 .contextual-text-ribbon-group--backplate,
 .contextual-text-ribbon-group--border {
-  flex: 0 0 292px;
+  width: min(292px, 100cqw);
 }
 
 .contextual-text-ribbon-control,
@@ -448,7 +463,6 @@
 
 .contextual-text-ribbon-actions {
   grid-column: 2;
-  flex: 0 0 auto;
   display: flex;
   flex-wrap: nowrap;
   align-content: flex-start;
@@ -462,15 +476,7 @@
   background: rgba(24, 27, 34, 0.96);
 }
 
-@media (max-width: 1180px) {
-  .preview-header {
-    --contextual-text-ribbon-label-column: clamp(210px, 30%, 250px);
-  }
-
-  .contextual-text-ribbon-control-row {
-    gap: 4px;
-  }
-
+@container (max-width: 719px) {
   .contextual-text-ribbon-group {
     min-height: 28px;
     padding: 2px 5px;
@@ -480,21 +486,15 @@
   .contextual-text-ribbon-group--curved,
   .contextual-text-ribbon-group--backplate,
   .contextual-text-ribbon-group--border {
-    flex-basis: 320px;
+    width: min(250px, 100cqw);
   }
 
   .contextual-text-ribbon-group--layout {
-    flex-basis: 430px;
+    width: min(340px, 100cqw);
   }
 
   .contextual-text-ribbon-group--font {
-    flex-basis: 326px;
-  }
-}
-
-@media (max-width: 820px) {
-  .preview-header {
-    --contextual-text-ribbon-label-column: clamp(188px, 32%, 220px);
+    width: min(302px, 100cqw);
   }
 
   .contextual-text-ribbon-shell {
@@ -516,6 +516,49 @@
 
   .contextual-text-ribbon-actions {
     justify-content: flex-end;
+  }
+}
+
+@container (max-width: 519px) {
+  .contextual-text-ribbon-tabs {
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-tab {
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .contextual-text-ribbon-group--source,
+  .contextual-text-ribbon-group--layout {
+    width: min(300px, 100cqw);
+  }
+
+  .contextual-text-ribbon-group--font {
+    width: min(286px, 100cqw);
+  }
+
+  .contextual-text-ribbon-control-label {
+    max-width: 58px;
+    font-size: 9px;
+  }
+
+  .contextual-text-ribbon-control select {
+    width: 112px;
+  }
+
+  .contextual-text-ribbon-control input[type="range"] {
+    width: 78px;
+  }
+
+  .contextual-text-ribbon-actions {
+    gap: 3px;
+    padding-left: 4px;
+  }
+
+  .contextual-text-ribbon-action {
+    min-width: 28px;
+    padding-inline: 6px;
   }
 }
 
