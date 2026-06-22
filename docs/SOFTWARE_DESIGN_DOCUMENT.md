@@ -256,6 +256,13 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 - `npm run build`: TypeScript build plus Vite build.
 - `npm run check:cycles`: relative import cycle detector for `src`.
 - `npm run lint`: ESLint.
+- `npm run smoke:text-editor`: native text-editor smoke policy guard. The
+  required runtime route is `npm run tauri dev` plus Any App / Computer Use
+  against the native Tauri window; this npm script must not run browser/Vite
+  acceptance.
+- `npm run diagnose:text-editor:browser`: browser-only text-editor diagnostic
+  route.
+- `npm run capture:ribbon:browser`: browser-only ribbon capture diagnostics.
 - `npm run test`: Node test runner with an explicit test-file list.
 - `npm run preview`: Vite preview.
 - `npm run tauri`: Tauri CLI.
@@ -1188,7 +1195,10 @@ Manual runtime validation should use:
 
 - `docs/MANUAL_SMOKE_CHECKLISTS.md`
 - `docs/VISUAL_REGRESSION_WORKFLOW.md`
-- `npm run tauri dev` launched manually by the user or with explicit user permission.
+- `npm run tauri dev` launched from the primary checkout by the user or with
+  explicit user permission, then the native Tauri window operated manually or
+  through Any App / Computer Use. Browser/Vite diagnostics cannot establish
+  user-visible runtime acceptance.
 
 ### 18.3 Test Coverage Summary
 
@@ -1209,7 +1219,9 @@ Current tests cover broad helper and contract areas:
 
 ### 18.4 Known Validation Gaps
 
-- No package script exposes end-to-end Playwright coverage.
+- Browser diagnostic scripts exist for selector and DOM triage, but required
+  user-visible smoke targets the native Tauri window rather than Playwright
+  against localhost.
 - Manual Tauri behavior is not validated by tests alone.
 - Current fixture coverage does not fully cover every recently added visual system.
 - This SDD task did not run validation commands because it is docs-only and did not change source or package metadata.

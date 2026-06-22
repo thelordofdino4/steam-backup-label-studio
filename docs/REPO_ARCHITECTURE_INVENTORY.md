@@ -51,7 +51,10 @@ Implemented scripts:
 - `npm run dev`: starts Vite.
 - `npm run build`: runs `tsc -b && vite build`.
 - `npm run check:cycles`: runs `node scripts/check-cycles.mjs`.
+- `npm run capture:ribbon:browser`: runs `node scripts/capture-ribbon.mjs` as a browser diagnostic-only ribbon capture.
+- `npm run diagnose:text-editor:browser`: runs `node scripts/text-editor-smoke.mjs` as a browser diagnostic-only text-editor route.
 - `npm run lint`: runs `eslint .`.
+- `npm run smoke:text-editor`: runs `node scripts/native-tauri-smoke-required.mjs`, which documents the required native `npm run tauri dev` + Any App smoke route and exits nonzero so browser diagnostics cannot satisfy runtime acceptance.
 - `npm run test`: runs Node's built-in test runner with `--experimental-strip-types` over an explicit list of `.test.ts` files.
 - `npm run preview`: starts `vite preview`.
 - `npm run tauri`: invokes the Tauri CLI.
@@ -61,6 +64,14 @@ Validation model:
 - Tests are explicit file arguments in `package.json`; newly added tests must be added there to run under `npm run test`.
 - `scripts/check-cycles.mjs` scans relative imports in `src/**/*.ts(x)` and fails on import cycles.
 - No docs-only validation command is defined.
+- User-visible runtime smoke is not repository-owned automation. It is performed
+  by launching `npm run tauri dev` from the primary checkout and operating the
+  spawned native Tauri window with Any App / Computer Use when explicitly
+  authorized.
+- `scripts/capture-ribbon.mjs` owns deterministic browser-based contextual
+  ribbon diagnostic capture. It writes full-window PNGs, a JSON manifest, and
+  an HTML contact sheet outside the repo by default. It is intentionally
+  labeled browser capture and does not claim native Tauri visual verification.
 
 Risks:
 

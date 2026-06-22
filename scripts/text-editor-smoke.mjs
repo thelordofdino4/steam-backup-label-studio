@@ -3613,6 +3613,7 @@ function printSummary() {
 }
 
 async function main() {
+  log('Browser diagnostic only; not Tauri visual verification.')
   await ensureViteRuntime()
   browser = await launchBrowser()
   const context = await browser.newContext({
