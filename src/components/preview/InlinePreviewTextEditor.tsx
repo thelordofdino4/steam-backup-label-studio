@@ -191,7 +191,12 @@ const CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR =
 
 type InlinePreviewTextRangeValuePresentation = {
   ariaValueText: (value: number) => string
+  inputMax: number
+  inputMin: number
+  inputStep: number
+  inputValue: (value: number) => number
   output: (value: number) => string
+  parseInput: (value: number) => number
   title: string
 }
 
@@ -478,10 +483,20 @@ function renderInlinePreviewTextRangeControl(
   const disabled = Boolean(options.disabled)
   const presentation = options.presentation
   const formattedValue = presentation?.output(control.value)
+  const displayedInputValue = presentation
+    ? presentation.inputValue(control.value)
+    : Number(control.value.toFixed(2))
   const handleChange = (value: string) => {
     if (disabled) return
-    const nextValue = Number(value)
-    if (Number.isFinite(nextValue)) {
+    const parsedValue = Number(value)
+    const parsedDomainValue = presentation
+      ? presentation.parseInput(parsedValue)
+      : parsedValue
+    const nextValue = Math.min(
+      control.max,
+      Math.max(control.min, parsedDomainValue),
+    )
+    if (Number.isFinite(parsedDomainValue)) {
       control.onChange(nextValue)
     }
   }
@@ -509,28 +524,28 @@ function renderInlinePreviewTextRangeControl(
         title={presentation?.title}
         onChange={(event) => handleChange(event.target.value)}
       />
+      <input
+        aria-label={`${control.label}: ${formattedValue ?? displayedInputValue}`}
+        className="contextual-text-ribbon-range-value-input"
+        data-smoke-id={`inline-text-value-${getInlineTextSmokeToken(control.label)}`}
+        type="number"
+        min={presentation?.inputMin ?? control.min}
+        max={presentation?.inputMax ?? control.max}
+        step={presentation?.inputStep ?? control.step}
+        value={displayedInputValue}
+        disabled={disabled}
+        title={presentation?.title}
+        onChange={(event) => handleChange(event.target.value)}
+      />
       {presentation ? (
-        <output
-          aria-label={`${control.label}: ${formattedValue}`}
-          className="contextual-text-ribbon-range-value"
-          data-smoke-id={`inline-text-value-${getInlineTextSmokeToken(control.label)}`}
+        <span
+          aria-hidden="true"
+          className="contextual-text-ribbon-range-unit"
           title={presentation.title}
         >
-          {formattedValue}
-        </output>
-      ) : (
-        <input
-          aria-label={control.label}
-          data-smoke-id={`inline-text-number-${getInlineTextSmokeToken(control.label)}`}
-          type="number"
-          min={control.min}
-          max={control.max}
-          step={control.step}
-          value={Number(control.value.toFixed(2))}
-          disabled={disabled}
-          onChange={(event) => handleChange(event.target.value)}
-        />
-      )}
+          {formattedValue?.replace(String(displayedInputValue), '')}
+        </span>
+      ) : null}
     </label>
   )
 }
@@ -545,7 +560,12 @@ function formatInlinePreviewTextCompactNumber(value: number) {
 function getInlinePreviewTextOpacityPresentation(): InlinePreviewTextRangeValuePresentation {
   return {
     ariaValueText: (value) => `${Math.round(value * 100)} percent opacity`,
+    inputMax: 100,
+    inputMin: 0,
+    inputStep: 1,
+    inputValue: (value) => Math.round(value * 100),
     output: (value) => `${Math.round(value * 100)}%`,
+    parseInput: (value) => value / 100,
     title: 'Opacity percentage',
   }
 }
@@ -556,7 +576,12 @@ function getInlinePreviewTextCqwPresentation(
   return {
     ariaValueText: (value) =>
       `${formatInlinePreviewTextCompactNumber(value)} container query width units ${label.toLowerCase()}`,
+    inputMax: 999,
+    inputMin: 0,
+    inputStep: 0.1,
+    inputValue: (value) => Number(value.toFixed(2)),
     output: (value) => `${formatInlinePreviewTextCompactNumber(value)}cqw`,
+    parseInput: (value) => value,
     title: `${label} in renderer cqw units`,
   }
 }

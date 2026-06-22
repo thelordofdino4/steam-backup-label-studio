@@ -57,19 +57,19 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
   'font': { min: 330, preferred: 390, max: 430, grows: true },
   'paragraph': { min: 176, preferred: 220, max: 260, grows: true },
-  'text-color': { min: 126, preferred: 138, max: 160, grows: true },
-  'contrast': { min: 126, preferred: 144, max: 168, grows: true },
+  'text-color': { min: 108, preferred: 138, max: 160, grows: true },
+  'contrast': { min: 108, preferred: 176, max: 220, grows: true },
   'background': {
-    min: 158,
-    preferred: 224,
-    max: 260,
+    min: 180,
+    preferred: 292,
+    max: 360,
     grows: true,
     rowSpan: 2,
   },
   'border': {
-    min: 150,
-    preferred: 208,
-    max: 240,
+    min: 186,
+    preferred: 264,
+    max: 328,
     grows: true,
     rowSpan: 2,
   },
@@ -117,13 +117,10 @@ export function getContextualTextRibbonActiveWidth(
   const finiteAvailable = Number.isFinite(availableWidth)
     ? Math.max(0, availableWidth)
     : 0
-  const finiteMax = Number.isFinite(profile.max)
-    ? Math.max(0, profile.max)
-    : finiteAvailable
 
-  if (finiteAvailable <= profile.min) return finiteAvailable
+  void profile
 
-  return Math.min(finiteAvailable, finiteMax)
+  return finiteAvailable
 }
 
 export function getContextualTextRibbonLayoutModel(

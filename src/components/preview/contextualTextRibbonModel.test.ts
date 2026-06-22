@@ -262,7 +262,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   })
 })
 
-test('contextual text ribbon calculates active width from declared group profiles', () => {
+test('contextual text ribbon keeps the active host width at the available header width', () => {
   const artisticMin =
     Math.max(
       CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].min,
@@ -311,7 +311,7 @@ test('contextual text ribbon calculates active width from declared group profile
       min: artisticMin,
       preferred: artisticPreferred,
     }),
-    artisticMax,
+    artisticMax + 400,
   )
 })
 
@@ -471,7 +471,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*overflow:\s*hidden/,
+    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*overflow:\s*hidden/,
   )
   assert.match(
     ribbonCss,
@@ -479,7 +479,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(24px,\s*auto\)/,
+    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control\s*\{[\s\S]*display:\s*flex[\s\S]*justify-content:\s*flex-end/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control-label\s*\{[\s\S]*clip-path:\s*inset\(50%\)/,
   )
   assert.match(
     ribbonCss,
@@ -487,7 +491,35 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*overflow-x:\s*hidden[\s\S]*scrollbar-width:\s*none/,
+    /--contextual-text-ribbon-bottom-row-gap:\s*2px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\([\s\S]*var\(--contextual-text-ribbon-control-row-height\)[\s\S]*overflow-x:\s*hidden[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*hidden[\s\S]*overflow-y:\s*auto[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)[\s\S]*scrollbar-width:\s*thin/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 519px\)[\s\S]*\.contextual-text-ribbon-group--contrast[\s\S]*\.contextual-text-ribbon-control select\s*\{[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature[\s\S]*\.contextual-text-ribbon-range-value-input\s*\{/,
+  )
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-range-value-input"/,
+  )
+  assert.match(
+    editorSource,
+    /parseInput:\s*\(value\)\s*=>\s*value \/ 100/,
   )
   assert.match(ribbonCss, /min-height:\s*24px/)
   assert.doesNotMatch(ribbonCss, /min-height:\s*14px/)
@@ -603,8 +635,9 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*display:\s*grid/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-auto-flow:\s*column/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\(/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*auto/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-scrollbar-space\)/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*hidden/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-y:\s*auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*scrollbar-gutter:\s*stable/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*border:\s*1px solid/)
