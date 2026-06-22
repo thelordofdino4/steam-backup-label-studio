@@ -63,6 +63,17 @@ test('overlay rects are relative to the preview root', () => {
   )
 })
 
+test('overlay rects compensate for transformed preview viewport scale', () => {
+  assert.deepEqual(
+    getPreviewElementOverlayRect(
+      { left: 100, top: 40, right: 900, bottom: 840, width: 800, height: 800 },
+      { left: 200, top: 140, right: 400, bottom: 340, width: 200, height: 200 },
+      { width: 400, height: 400 },
+    ),
+    { left: 50, top: 50, width: 100, height: 100 },
+  )
+})
+
 test('overlay union rect covers multiline or multi-node elements', () => {
   assert.deepEqual(
     getPreviewElementOverlayUnionRect(

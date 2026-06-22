@@ -55,6 +55,10 @@ function toOverlayBoxState(
   const rect = getPreviewElementOverlayUnionRect(
     previewElement.getBoundingClientRect(),
     elements.map((element) => element.getBoundingClientRect()),
+    {
+      width: previewElement.offsetWidth,
+      height: previewElement.offsetHeight,
+    },
   )
 
   return rect ? { element: editableElement, rect } : null

@@ -126,9 +126,16 @@ export function getDraggedPixelOffset(
   dragState: PixelDragState,
   clientX: number,
   clientY: number,
+  dragScale = 1,
 ): DragPoint {
+  const safeDragScale = Number.isFinite(dragScale) && dragScale > 0
+    ? dragScale
+    : 1
+
   return {
-    x: dragState.startOffsetX + clientX - dragState.startClientX,
-    y: dragState.startOffsetY + clientY - dragState.startClientY,
+    x: dragState.startOffsetX +
+      (clientX - dragState.startClientX) / safeDragScale,
+    y: dragState.startOffsetY +
+      (clientY - dragState.startClientY) / safeDragScale,
   }
 }

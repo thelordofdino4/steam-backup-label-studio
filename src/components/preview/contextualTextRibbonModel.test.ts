@@ -331,7 +331,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(layoutFixCss, /--preview-chrome-space:\s*calc\(/)
   assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*64px\)/)
   assert.match(layoutFixCss, /var\(--preview-area-top-padding,\s*0px\)/)
-  assert.match(layoutFixCss, /var\(--preview-area-bottom-padding,\s*32px\)/)
+  assert.match(layoutFixCss, /var\(--preview-area-bottom-padding,\s*0px\)/)
   assert.doesNotMatch(layoutFixCss, /clamp\(136px,\s*16vh,\s*172px\)/)
   assert.match(
     feedbackCss,

@@ -20,6 +20,7 @@ import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { PreviewHeader } from './PreviewHeader'
+import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
@@ -483,20 +484,22 @@ export function DiscPreview({
         <PreviewToastStack statusToasts={statusToasts} />
 
         <div className="preview-workspace">
-          <div
-            ref={discPreviewRef}
-            className="disc-preview"
-            data-smoke-id="disc-preview"
-            aria-label="Blank standard printable disc preview"
-          >
-            {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
-              <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
-            ))}
-            <PreviewElementOverlay previewRef={discPreviewRef} />
-          </div>
+          <PreviewViewport label="disc preview">
+            <div
+              ref={discPreviewRef}
+              className="disc-preview"
+              data-smoke-id="disc-preview"
+              aria-label="Blank standard printable disc preview"
+            >
+              {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
+                <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
+              ))}
+              <PreviewElementOverlay previewRef={discPreviewRef} />
+            </div>
+          </PreviewViewport>
 
           <PreviewDesignCheckPanel
-            closedOffset={guideLegendClosedSize + 8}
+            closedOffset={guideLegendClosedSize + 4}
             closedSize={guideLegendClosedSize}
             isOpen={isDesignCheckOpen}
             label="Disc design check"

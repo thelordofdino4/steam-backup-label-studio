@@ -111,6 +111,9 @@ Preview and PNG export must render the same user-visible elements in the same re
 Allowed differences:
 
 - The preview is scaled to fit the editor pane.
+- Preview viewport zoom/pan is editor-only app-shell state. It may transform
+  the visible preview surface for inspection and editing, but it must not alter
+  saved design coordinates, project JSON, export coordinates, or print scale.
 - Editor guide overlays, toast UI, labels, selection boxes, handles, and sidebar chrome are editor-only.
 - Export-only proof guides may draw last when the user enables guide export.
 - Disc export performs canvas operations such as clipping to the disc face and cutting out the physical center hole.
@@ -938,6 +941,8 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 - `src/interaction/usePointerDragAdapters.ts`
 - `src/interaction/useDiscPreviewPointerDrag.ts`
 - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+- `src/components/preview/PreviewViewport.tsx`
+- `src/components/preview/previewViewportModel.ts`
 - `src/editor/previewEditableRegistry.ts`
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
@@ -948,19 +953,46 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 
 ### 14.3 Source-Of-Truth State
 
-Pointer operations update owning feature state through callbacks. Overlay hover/selection state is local to the overlay component. Editable element identity, DOM attribute names, stable target keys, and inline text target keys are owned by `src/editor/previewEditableRegistry.ts`. `src/editor/previewElementOverlay.ts` remains the overlay lookup and rectangle-measurement facade.
+Pointer operations update owning feature state through callbacks. Preview
+viewport zoom/pan state is local editor UI state owned by `PreviewViewport`; it
+is not persisted and is not part of export geometry. Overlay hover/selection
+state is local to the overlay component. Editable element identity, DOM
+attribute names, stable target keys, and inline text target keys are owned by
+`src/editor/previewEditableRegistry.ts`. `src/editor/previewElementOverlay.ts`
+remains the overlay lookup and rectangle-measurement facade.
 
 ### 14.4 Render/Edit/Export Paths
 
 - Preview elements expose registry-defined data attributes for overlay lookup.
 - `PreviewElementOverlay` measures matching DOM nodes.
 - Drag adapters translate pointer movement into percent or pixel layout changes.
+- `PreviewViewport` transforms the preview surface as an app-shell viewport.
+  Design Check and Guide Legend controls remain outside the transformed stage.
+  Percentage-based drag math uses transformed DOM bounds; pixel-based drag math
+  must compensate for viewport scale. The transformed stage reserves only the
+  compact right control rail, the bottom Design Check / Guide Legend rail, and
+  the 4px side surface guard, and must not reintroduce old fixed preview width
+  caps that create artificial side gutters. The right rail uses the approved
+  two-column zoom out/in, Fit, and pan layout; Fit calculations reserve the
+  minimum 48px rail, then the visible rail may grow continuously up to 96px
+  only into residual unused gutter. The expanded rail width must not feed back
+  into Fit, reduce the fitted preview scale, or move the fitted design surface.
 - Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 
 ### 14.5 Invariants And Future-Change Rules
 
 - Interaction layers are adapters, not visual source-of-truth renderers.
+- Zoom/pan controls must stay outside saved design state. Fit resets viewport
+  pan/zoom to the available preview space; Ctrl+wheel, middle-drag, Space+drag,
+  and right-edge pan buttons must inspect the same preview surface without
+  changing export output. The Fit state uses the available preview stage, not a
+  legacy hard maximum preview width. Current zoom is exposed through accessible
+  control labels/tooltips; the compact rail intentionally has no visible 100%
+  or percentage control.
+- Design Check and Guide Legend are app-shell controls, not design content. Their
+  closed buttons reserve fixed bottom workspace rail space. Expanding either
+  panel must not resize, refit, or move the preview surface.
 - Drag behavior, slider/manual controls, upload/custom image, reset/clear, save/load, preview, and export must stay aligned for movable visual elements.
 - Normal text pointer behavior should allow text selection; movement uses a handle or intentional long-hold behavior.
 - Snapping, keyboard nudging, context menus, and inspector workflows should extend the existing interaction owners, not create a separate hidden state path.

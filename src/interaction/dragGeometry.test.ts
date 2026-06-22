@@ -77,3 +77,15 @@ test('pixel drag adapter preserves raw pointer pixel movement', () => {
     y: -5,
   })
 })
+
+test('pixel drag adapter can compensate for preview viewport scale', () => {
+  const dragState = createPixelDragState(12, 100, 150, {
+    x: -20,
+    y: 35,
+  })
+
+  assert.deepEqual(getDraggedPixelOffset(dragState, 130, 110, 2), {
+    x: -5,
+    y: 15,
+  })
+})
