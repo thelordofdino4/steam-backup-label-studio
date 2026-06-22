@@ -55,6 +55,12 @@ tested, and the remaining divergences are recorded.
   smaller siblings. This rule changes horizontal sizing only; row heights stay
   constant, and toggling enabled/disabled state must not change the column
   width.
+- Column-first packing fills the current column from top to bottom before
+  opening the next column. If a one-row semantic box leaves usable fixed-row
+  space below it, the next one-row box must occupy that lower slot; it must not
+  jump to the next column. A two-row/tall box may start a new column only when
+  it cannot fit in the remaining row space. This rule replaces looser
+  interpretations that balance boxes across columns or fill the top row first.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
@@ -208,6 +214,8 @@ Keep these responsibilities:
   fixed control-row area without adding a third row or moving the preview.
 - Stacked semantic boxes in the same ribbon column share the widest box width
   in that column.
+- Semantic boxes fill any available lower fixed-row slot in the current column
+  before a later box can start the next column.
 - Toasts keep their existing placement when the ribbon is inactive, move below
   the measured ribbon slot while active, and return to their original placement
   when the ribbon deactivates.

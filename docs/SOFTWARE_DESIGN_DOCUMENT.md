@@ -545,6 +545,13 @@ Ribbon placement and layout:
   expands to match it. Do not shrink the wider box to match smaller siblings.
   This equalization affects horizontal sizing only; disabled/enabled state must
   not change the column width or row height.
+- Column-first packing means the current column is filled from top to bottom
+  before the next column is opened. If a one-row semantic box leaves usable
+  fixed-row space below it, the next one-row box must use that lower slot and
+  must not reposition to the next column. Two-row/tall boxes may start a new
+  column only when they cannot fit in the remaining row space. This supersedes
+  any layout that balances boxes across columns or fills every top-row slot
+  before using the second row.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
@@ -640,6 +647,8 @@ Acceptance criteria:
 - Stacked semantic boxes in a ribbon column share the widest box width in that
   column; smaller boxes above or below a wider box must expand horizontally to
   match it.
+- Semantic boxes fill available lower fixed-row slots in their current column
+  before later boxes may start the next column.
 - Text-body drag selects text; edge-grab and Move fallback move immediately.
 - No migrated editing control remains duplicated in the sidebar unless it is
   intentionally sidebar-owned setup/source/type UI.
@@ -1429,6 +1438,9 @@ Consequences:
 - Ribbon semantic boxes are packed column-first. Each column uses the width of
   its widest box for every box in that column, so smaller boxes above or below
   a wider box expand to match it without changing row height.
+- A column must be filled from top to bottom before the next column opens; a
+  one-row box below an existing one-row box cannot be skipped in favor of
+  starting a new column when that lower slot is available.
 - Toast offset should consume shared app-shell ribbon height/offset state or a
   CSS variable and must not be derived from preview or text geometry.
 - Surface adapters continue to own renderer, layout, state, save/load, export,
