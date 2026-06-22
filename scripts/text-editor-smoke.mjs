@@ -1289,6 +1289,12 @@ async function assertResponsiveContextualShell(page) {
         const menuFocusables = Array.from(menu.querySelectorAll(focusableSelector))
           .filter((element) => element instanceof HTMLElement && isVisible(element))
           .map((element) => {
+            const scrollItem = element.closest(
+              '.contextual-text-ribbon-group, .contextual-text-ribbon-command-button',
+            )
+            const scrollItemStyle = scrollItem instanceof HTMLElement
+              ? window.getComputedStyle(scrollItem)
+              : null
             const controlShell =
               element.closest('.contextual-text-ribbon-control-row') ||
               element.closest('.contextual-text-ribbon-group')
@@ -1312,6 +1318,43 @@ async function assertResponsiveContextualShell(page) {
                 element.tagName,
               rawRect,
               rect: visibleRect,
+              scrollItemHidden: scrollItemStyle
+                ? Number(scrollItemStyle.opacity) < 0.01 ||
+                  scrollItemStyle.pointerEvents === 'none'
+                : false,
+            }
+          })
+        const ribbonScrollItems = Array.from(menu.querySelectorAll(
+          '.contextual-text-ribbon-control-row > .contextual-text-ribbon-group, ' +
+            '.contextual-text-ribbon-control-row > .contextual-text-ribbon-command-button',
+        ))
+          .filter((element) => element instanceof HTMLElement && isVisible(element))
+          .map((element) => {
+            const row = element.closest('.contextual-text-ribbon-control-row')
+            const rowRect = row instanceof HTMLElement ? toRect(row) : menuRect
+            const rect = toRect(element)
+            const visibleWidth = Math.max(
+              0,
+              Math.min(rect.right, rowRect.right) -
+                Math.max(rect.left, rowRect.left),
+            )
+            const style = window.getComputedStyle(element)
+
+            return {
+              label: Array.from(element.querySelectorAll('[data-smoke-id]'))
+                .map((child) => child.getAttribute('data-smoke-id'))
+                .filter(Boolean)
+                .join(',') ||
+                element.textContent?.trim() ||
+                element.className,
+              itemWidth: rect.width,
+              opacity: Number(style.opacity),
+              pointerEvents: style.pointerEvents,
+              rect,
+              rowWidth: rowRect.width,
+              rowRect,
+              state: element.getAttribute('data-ribbon-overflow-state'),
+              visibleWidth,
             }
           })
         const tabButtons = Array.from(tabs.querySelectorAll('button'))
@@ -1322,9 +1365,18 @@ async function assertResponsiveContextualShell(page) {
             rect: toRect(element),
           }))
         const visibleMenuFocusables = menuFocusables
+          .filter((item) => !item.scrollItemHidden)
           .filter((item) =>
             centerInside(item.rawRect, item.clipRect) &&
             centerInside(item.rawRect, menuRect))
+        const visiblePartialItems = ribbonScrollItems
+          .filter((item) =>
+            item.itemWidth <= item.rowWidth + 1.5 &&
+            item.visibleWidth > 0 &&
+            !horizontallyInside(item.rect, item.rowRect) &&
+            item.opacity >= 0.01 &&
+            item.pointerEvents !== 'none')
+          .map((item) => `${item.label}:${Math.round(item.visibleWidth)}px/${item.state}`)
         const outside = [
           ...(!inside(tabsRect, hostRect) ? ['tabs'] : []),
           ...(!inside(menuRect, hostRect) ? ['menu'] : []),
@@ -1382,6 +1434,7 @@ async function assertResponsiveContextualShell(page) {
           },
           outside,
           overlaps,
+          partialItems: visiblePartialItems,
           tabCount: tabButtons.length,
           tooSmall,
           width: Math.round(menuRect.width),
@@ -1401,6 +1454,11 @@ async function assertResponsiveContextualShell(page) {
         failureMessage = `Responsive ribbon ${scenario.name} controls overlapped: ${
           JSON.stringify(result)
         }`
+      } else if (result.partialItems.length > 0) {
+        failureMessage =
+          `Responsive ribbon ${scenario.name} exposed clipped control groups: ${
+            JSON.stringify(result)
+          }`
       } else if (result.tooSmall.length > 0) {
         failureMessage =
           `Responsive ribbon ${scenario.name} controls became too small: ${
@@ -2585,10 +2643,105 @@ async function runCaseChecks(page) {
     const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
     const input = smoke(page, 'inline-text-number-wrap-width').first()
     await input.focus()
+    const focusedWrapWidthVisibility = await page.evaluate(() => {
+      const inputElement = document.querySelector(
+        '[data-smoke-id="inline-text-number-wrap-width"]',
+      )
+      const group = inputElement?.closest('.contextual-text-ribbon-group')
+      const row = group?.closest('.contextual-text-ribbon-control-row')
+
+      if (
+        !(inputElement instanceof HTMLElement) ||
+        !(group instanceof HTMLElement) ||
+        !(row instanceof HTMLElement)
+      ) {
+        return { error: 'missing Wrap width ribbon group' }
+      }
+
+      const toRect = (element) => {
+        const rect = element.getBoundingClientRect()
+
+        return {
+          bottom: rect.bottom,
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+        }
+      }
+      const groupRect = toRect(group)
+      const rowRect = toRect(row)
+      const style = window.getComputedStyle(group)
+      const fullyVisible =
+        groupRect.left >= rowRect.left - 1.5 &&
+        groupRect.right <= rowRect.right + 1.5
+
+      return {
+        fullyVisible,
+        groupRect,
+        opacity: Number(style.opacity),
+        pointerEvents: style.pointerEvents,
+        rowRect,
+        state: group.getAttribute('data-ribbon-overflow-state'),
+      }
+    })
+
+    if (
+      focusedWrapWidthVisibility.error ||
+      !focusedWrapWidthVisibility.fullyVisible ||
+      focusedWrapWidthVisibility.opacity < 0.99 ||
+      focusedWrapWidthVisibility.pointerEvents === 'none'
+    ) {
+      fail(
+        `Focused Wrap width group was not fully visible and usable: ${
+          JSON.stringify(focusedWrapWidthVisibility)
+        }`,
+      )
+    }
     await page.keyboard.press('Control+A')
     await page.keyboard.type('42')
     await page.waitForTimeout(150)
     const duringRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    const editedWrapWidthVisibility = await page.evaluate(() => {
+      const inputElement = document.querySelector(
+        '[data-smoke-id="inline-text-number-wrap-width"]',
+      )
+      const group = inputElement?.closest('.contextual-text-ribbon-group')
+      const row = group?.closest('.contextual-text-ribbon-control-row')
+
+      if (
+        !(inputElement instanceof HTMLElement) ||
+        !(group instanceof HTMLElement) ||
+        !(row instanceof HTMLElement)
+      ) {
+        return { error: 'missing Wrap width ribbon group after edit' }
+      }
+
+      const groupRect = group.getBoundingClientRect()
+      const rowRect = row.getBoundingClientRect()
+
+      return {
+        fullyVisible:
+          groupRect.left >= rowRect.left - 1.5 &&
+          groupRect.right <= rowRect.right + 1.5,
+        groupRect: {
+          left: groupRect.left,
+          right: groupRect.right,
+        },
+        rowRect: {
+          left: rowRect.left,
+          right: rowRect.right,
+        },
+        state: group.getAttribute('data-ribbon-overflow-state'),
+      }
+    })
+
+    if (editedWrapWidthVisibility.error || !editedWrapWidthVisibility.fullyVisible) {
+      fail(
+        `Edited Wrap width group did not remain fully visible: ${
+          JSON.stringify(editedWrapWidthVisibility)
+        }`,
+      )
+    }
 
     if (
       Math.abs(duringRibbon.left - beforeRibbon.left) > 1 ||

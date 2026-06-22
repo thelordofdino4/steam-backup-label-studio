@@ -10,6 +10,7 @@ import {
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type SyntheticEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 import {
@@ -49,6 +50,10 @@ import {
 import {
   getContextualTextRibbonTabDisplayLabel,
 } from './contextualTextRibbonModel'
+import {
+  getContextualTextRibbonOverflowState,
+  getContextualTextRibbonScrollDeltaToReveal,
+} from './contextualTextRibbonOverflow'
 import {
   getRotatedLocalTextEdgePoint,
   isPointInTextEdgeGrabBand,
@@ -172,6 +177,10 @@ function getInlineTextSelectionStateFromRange(
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 const INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX = 8
 const INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX = 2
+const CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR =
+  '.contextual-text-ribbon-control-row'
+const CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR =
+  '.contextual-text-ribbon-group, .contextual-text-ribbon-command-button'
 
 function stopInlineTextEditorClick(event: MouseEvent<Element>) {
   event.stopPropagation()
@@ -184,6 +193,27 @@ function keepInlineTextEditorFocus(event: ReactPointerEvent<Element>) {
 
 function stopInlineTextEditorPointer(event: ReactPointerEvent<Element>) {
   event.stopPropagation()
+}
+
+function getContextualTextRibbonScrollItem(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return null
+
+  return target.closest<HTMLElement>(
+    CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR,
+  )
+}
+
+function getContextualTextRibbonScrollRow(item: HTMLElement | null) {
+  return item?.closest<HTMLElement>(CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR) ?? null
+}
+
+function getContextualTextRibbonAxisRect(element: HTMLElement) {
+  const rect = element.getBoundingClientRect()
+
+  return {
+    left: rect.left,
+    right: rect.right,
+  }
 }
 
 function getInlineTextSmokeToken(label: string) {
@@ -1872,6 +1902,8 @@ export function InlinePreviewTextEditor({
   const menuRef = useRef<HTMLDivElement | null>(null)
   const moveHandleRef = useRef<HTMLButtonElement | null>(null)
   const moveEdgeRef = useRef<HTMLDivElement | null>(null)
+  const [ribbonMenuElement, setRibbonMenuElement] =
+    useState<HTMLDivElement | null>(null)
   const activeMoveHandlePointerIdRef = useRef<number | null>(null)
   const activeMoveEdgePointerIdRef = useRef<number | null>(null)
   const controlPointerStartedAtRef = useRef<number | null>(null)
@@ -1908,6 +1940,138 @@ export function InlinePreviewTextEditor({
       onValueChange(sourceTextarea?.value ?? value, { sourceMode: true })
     }
   }, [onValueChange, sourceMode, value])
+
+  const setRibbonMenuRef = useCallback((element: HTMLDivElement | null) => {
+    menuRef.current = element
+    setRibbonMenuElement(element)
+  }, [])
+
+  const updateRibbonOverflowStates = useCallback(() => {
+    const menu = menuRef.current
+
+    if (!menu) return
+
+    const activeElement = document.activeElement
+    const rows = menu.querySelectorAll<HTMLElement>(
+      CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
+    )
+
+    rows.forEach((row) => {
+      const rowRect = getContextualTextRibbonAxisRect(row)
+      const items = row.querySelectorAll<HTMLElement>(
+        CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR,
+      )
+
+      items.forEach((item) => {
+        const itemHasFocus =
+          activeElement instanceof Node && item.contains(activeElement)
+
+        if (itemHasFocus) {
+          item.dataset.ribbonOverflowState = 'fully-visible'
+          return
+        }
+
+        item.dataset.ribbonOverflowState =
+          getContextualTextRibbonOverflowState({
+            itemRect: getContextualTextRibbonAxisRect(item),
+            rowRect,
+          })
+      })
+    })
+  }, [])
+
+  const scheduleRibbonOverflowStateUpdate = useCallback(() => {
+    window.requestAnimationFrame(updateRibbonOverflowStates)
+  }, [updateRibbonOverflowStates])
+
+  const revealRibbonScrollItem = useCallback((target: EventTarget | null) => {
+    const item = getContextualTextRibbonScrollItem(target)
+    const row = getContextualTextRibbonScrollRow(item)
+
+    if (!item || !row) {
+      scheduleRibbonOverflowStateUpdate()
+      return
+    }
+
+    const delta = getContextualTextRibbonScrollDeltaToReveal({
+      itemRect: getContextualTextRibbonAxisRect(item),
+      rowRect: getContextualTextRibbonAxisRect(row),
+    })
+
+    if (delta !== 0) {
+      row.scrollLeft += delta
+    }
+
+    scheduleRibbonOverflowStateUpdate()
+  }, [scheduleRibbonOverflowStateUpdate])
+
+  const handleRibbonControlInteraction = useCallback(
+    (event: SyntheticEvent<Element>) => {
+      revealRibbonScrollItem(event.target)
+    },
+    [revealRibbonScrollItem],
+  )
+
+  const handleRibbonPointerDown = useCallback(
+    (event: ReactPointerEvent<Element>) => {
+      revealRibbonScrollItem(event.target)
+      stopInlineTextEditorPointer(event)
+    },
+    [revealRibbonScrollItem],
+  )
+
+  useLayoutEffect(() => {
+    if (!ribbonMenuElement) {
+      return undefined
+    }
+
+    let frame: number | null = null
+    const schedule = () => {
+      if (frame !== null) return
+
+      frame = window.requestAnimationFrame(() => {
+        frame = null
+        updateRibbonOverflowStates()
+      })
+    }
+    const rows = Array.from(
+      ribbonMenuElement.querySelectorAll<HTMLElement>(
+        CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
+      ),
+    )
+    const resizeObserver =
+      typeof ResizeObserver === 'undefined'
+        ? null
+        : new ResizeObserver(schedule)
+
+    schedule()
+    resizeObserver?.observe(ribbonMenuElement)
+    rows.forEach((row) => {
+      row.addEventListener('scroll', schedule, { passive: true })
+      resizeObserver?.observe(row)
+      row
+        .querySelectorAll<HTMLElement>(
+          CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR,
+        )
+        .forEach((item) => resizeObserver?.observe(item))
+    })
+
+    return () => {
+      rows.forEach((row) => row.removeEventListener('scroll', schedule))
+      resizeObserver?.disconnect()
+
+      if (frame !== null) {
+        window.cancelAnimationFrame(frame)
+      }
+    }
+  }, [
+    activeTab,
+    editorControls,
+    ribbonMenuElement,
+    sourceMode,
+    updateRibbonOverflowStates,
+    value,
+  ])
 
   const getInlineControlRoots = useCallback(() => {
     const elements: HTMLElement[] = []
@@ -2595,11 +2759,15 @@ export function InlinePreviewTextEditor({
         ))}
       </div>
       <div
-        ref={menuRef}
+        ref={setRibbonMenuRef}
         className="contextual-text-ribbon-controls"
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
-        onPointerDown={stopInlineTextEditorPointer}
+        onChangeCapture={handleRibbonControlInteraction}
+        onFocusCapture={handleRibbonControlInteraction}
+        onInputCapture={handleRibbonControlInteraction}
+        onPointerDown={handleRibbonPointerDown}
+        onWheelCapture={handleRibbonControlInteraction}
       >
         <InlinePreviewTextEditorMenuContent
           activeTab={activeTab}
@@ -2654,8 +2822,11 @@ export function InlinePreviewTextEditor({
     deleteAriaLabel,
     deleteLabel,
     editorControls,
+    handleRibbonControlInteraction,
+    handleRibbonPointerDown,
     onDone,
     selection,
+    setRibbonMenuRef,
     sourceDraftIdentity,
     sourceMode,
     updateSourceDraft,
