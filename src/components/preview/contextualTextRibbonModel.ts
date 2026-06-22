@@ -55,6 +55,23 @@ export type ContextualTextRibbonColumnWidthInput = {
   gap?: number
 }
 
+export type ContextualTextRibbonPackItem<T = unknown> = {
+  id: string
+  payload: T
+  profile: ContextualTextRibbonWidthProfile
+}
+
+export type ContextualTextRibbonPackedItem<T = unknown> =
+  ContextualTextRibbonPackItem<T> & {
+    rowStart: number
+    rowSpan: 1 | 2
+  }
+
+export type ContextualTextRibbonPackedColumn<T = unknown> = {
+  items: ContextualTextRibbonPackedItem<T>[]
+  profile: ContextualTextRibbonWidthProfile
+}
+
 export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   string,
   ContextualTextRibbonWidthProfile
@@ -170,6 +187,95 @@ export function getContextualTextRibbonColumnWidths({
     column.preferred + (column.max - column.preferred) * ratio)
 }
 
+function maxRibbonWidthProfile(
+  first: ContextualTextRibbonWidthProfile,
+  second: ContextualTextRibbonWidthProfile,
+): ContextualTextRibbonWidthProfile {
+  return {
+    grows: Boolean(first.grows || second.grows),
+    max: Math.max(first.max, second.max),
+    min: Math.max(first.min, second.min),
+    preferred: Math.max(first.preferred, second.preferred),
+  }
+}
+
+function getContextualTextRibbonPackRowSpan(
+  profile: ContextualTextRibbonWidthProfile,
+  rowCount: number,
+): 1 | 2 {
+  if (rowCount <= 1) return 1
+
+  return profile.rowSpan === 2 ? 2 : 1
+}
+
+export function packContextualTextRibbonColumns<T>({
+  items,
+  rowCount,
+}: {
+  items: ContextualTextRibbonPackItem<T>[]
+  rowCount: number
+}): ContextualTextRibbonPackedColumn<T>[] {
+  const normalizedRowCount = Math.max(1, Math.floor(rowCount))
+  const remaining = items.slice()
+  const columns: ContextualTextRibbonPackedColumn<T>[] = []
+
+  while (remaining.length > 0) {
+    let nextRowStart = 1
+    let columnProfile: ContextualTextRibbonWidthProfile | null = null
+    const columnItems: ContextualTextRibbonPackedItem<T>[] = []
+
+    while (nextRowStart <= normalizedRowCount && remaining.length > 0) {
+      const availableRows = normalizedRowCount - nextRowStart + 1
+      const itemIndex = remaining.findIndex((item) =>
+        getContextualTextRibbonPackRowSpan(
+          item.profile,
+          normalizedRowCount,
+        ) <= availableRows)
+
+      if (itemIndex < 0) break
+
+      const [item] = remaining.splice(itemIndex, 1)
+      const rowSpan = getContextualTextRibbonPackRowSpan(
+        item.profile,
+        normalizedRowCount,
+      )
+      const packedItem = {
+        ...item,
+        rowStart: nextRowStart,
+        rowSpan,
+      }
+
+      columnItems.push(packedItem)
+      columnProfile = columnProfile
+        ? maxRibbonWidthProfile(columnProfile, item.profile)
+        : item.profile
+      nextRowStart += rowSpan
+    }
+
+    if (!columnProfile) {
+      const [item] = remaining.splice(0, 1)
+      const rowSpan = getContextualTextRibbonPackRowSpan(
+        item.profile,
+        normalizedRowCount,
+      )
+
+      columnItems.push({
+        ...item,
+        rowStart: 1,
+        rowSpan,
+      })
+      columnProfile = item.profile
+    }
+
+    columns.push({
+      items: columnItems,
+      profile: columnProfile,
+    })
+  }
+
+  return columns
+}
+
 export function getContextualTextRibbonLayoutModel(
   containerWidth: number,
 ): ContextualTextRibbonLayoutModel {
@@ -180,7 +286,7 @@ export function getContextualTextRibbonLayoutModel(
     return {
       controlColumns: 4,
       controlsMayUseThirdRow: false,
-      controlRows: 1,
+      controlRows: 2,
       mode,
       reservedHeight,
       tabColumns: 5,
@@ -190,7 +296,7 @@ export function getContextualTextRibbonLayoutModel(
   if (mode === 'medium') {
     return {
       controlColumns: 2,
-      controlsMayUseThirdRow: true,
+      controlsMayUseThirdRow: false,
       controlRows: 2,
       mode,
       reservedHeight,
@@ -200,7 +306,7 @@ export function getContextualTextRibbonLayoutModel(
 
   return {
     controlColumns: 1,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     controlRows: 2,
     mode,
     reservedHeight,

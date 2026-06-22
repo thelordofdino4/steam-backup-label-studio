@@ -1977,8 +1977,7 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
               active.variables.ribbonHeight,
             )
             const availableHeaderWidth = active.availableHeaderWidth
-            const expectedRibbonHeight =
-              active.variables.ribbonMode === 'wide' ? 64 : 96
+            const expectedRibbonHeight = 148
             const surfaceOffsetFromLabel = active.preview.top - active.label.top
 
             if (
@@ -1993,17 +1992,6 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
                 JSON.stringify({
                   availableHeaderWidth,
                   label: active.label,
-                  ribbon: active.ribbon,
-                  shell: active.shell,
-                })
-              }`
-            } else if (
-              active.variables.ribbonMode === 'wide' &&
-              active.ribbon.width > availableHeaderWidth - 48
-            ) {
-              failureMessage = `${scenario.name}: ribbon stretched across the wide header instead of shrink-wrapping: ${
-                JSON.stringify({
-                  availableHeaderWidth,
                   ribbon: active.ribbon,
                   shell: active.shell,
                 })

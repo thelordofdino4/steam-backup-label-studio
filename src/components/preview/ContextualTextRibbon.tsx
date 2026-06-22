@@ -11,6 +11,7 @@ import {
   getContextualTextRibbonColumnWidths,
   getContextualTextRibbonLayoutMode,
   getContextualTextRibbonReservedHeight,
+  packContextualTextRibbonColumns,
   type ContextualTextRibbonWidthProfile,
   type ContextualTextRibbonMode,
 } from './contextualTextRibbonModel'
@@ -193,7 +194,11 @@ function getActionWidthProfile(element: Element | null) {
 
 type ContextualTextRibbonColumnLayout = {
   columns: Array<{
-    elements: HTMLElement[]
+    elements: Array<{
+      element: HTMLElement
+      rowSpan: 1 | 2
+      rowStart: number
+    }>
     profile: ContextualTextRibbonWidthProfile
   }>
   gap: number
@@ -222,38 +227,21 @@ function getColumnPackedChildrenLayout(
     return { columns: [], gap, rowCount }
   }
 
-  const columns: ContextualTextRibbonColumnLayout['columns'] = []
-  let columnIndex = 0
-  let rowIndex = 0
-
-  children.forEach((child) => {
-    const childProfile = getRibbonItemWidthProfile(child)
-    const span = childProfile.rowSpan ?? 1
-
-    if (rowIndex > 0 && rowIndex + span > rowCount) {
-      columnIndex += 1
-      rowIndex = 0
-    }
-
-    const column = columns[columnIndex]
-
-    if (column) {
-      column.elements.push(child)
-      column.profile = maxWidthProfiles(column.profile, childProfile)
-    } else {
-      columns[columnIndex] = {
-        elements: [child],
-        profile: childProfile,
-      }
-    }
-
-    rowIndex += span
-
-    if (rowIndex >= rowCount) {
-      columnIndex += 1
-      rowIndex = 0
-    }
-  })
+  const columns = packContextualTextRibbonColumns({
+    rowCount,
+    items: children.map((child, index) => ({
+      id: String(index),
+      payload: child,
+      profile: getRibbonItemWidthProfile(child),
+    })),
+  }).map((column) => ({
+    elements: column.items.map((item) => ({
+      element: item.payload,
+      rowSpan: item.rowSpan,
+      rowStart: item.rowStart,
+    })),
+    profile: column.profile,
+  }))
 
   return { columns, gap, rowCount }
 }
@@ -286,7 +274,11 @@ function clearColumnPackedGroupWidths(element: Element | null) {
     child.style.removeProperty('width')
     child.style.removeProperty('max-width')
     child.style.removeProperty('--contextual-text-ribbon-column-width')
+    child.style.removeProperty('grid-column')
+    child.style.removeProperty('grid-row')
     child.removeAttribute('data-ribbon-column-index')
+    child.removeAttribute('data-ribbon-row-start')
+    child.removeAttribute('data-ribbon-row-span')
   })
 }
 
@@ -311,16 +303,22 @@ function applyColumnPackedGroupWidths(element: Element | null) {
   columns.forEach((column, columnIndex) => {
     const width = columnWidths[columnIndex]
 
-    column.elements.forEach((child) => {
+    column.elements.forEach(({ element, rowSpan, rowStart }) => {
       const widthValue = `${Math.ceil(width)}px`
 
-      child.style.setProperty(
+      element.style.setProperty(
         '--contextual-text-ribbon-column-width',
         widthValue,
       )
-      child.style.width = widthValue
-      child.style.maxWidth = widthValue
-      child.dataset.ribbonColumnIndex = String(columnIndex)
+      element.style.width = widthValue
+      element.style.maxWidth = widthValue
+      element.style.gridColumn = String(columnIndex + 1)
+      element.style.gridRow = rowSpan === 2
+        ? `${rowStart} / span ${rowSpan}`
+        : String(rowStart)
+      element.dataset.ribbonColumnIndex = String(columnIndex)
+      element.dataset.ribbonRowStart = String(rowStart)
+      element.dataset.ribbonRowSpan = String(rowSpan)
     })
   })
 }

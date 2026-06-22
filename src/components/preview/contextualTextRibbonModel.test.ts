@@ -21,6 +21,7 @@ import {
   getContextualTextRibbonReservedHeight,
   getContextualTextRibbonTabDisplayLabel,
   getContextualTextRibbonToastOffset,
+  packContextualTextRibbonColumns,
 } from './contextualTextRibbonModel.ts'
 import {
   getContextualTextRibbonScrollDeltaToReveal,
@@ -240,14 +241,14 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   assert.deepEqual(getContextualTextRibbonLayoutModel(1500), {
     controlColumns: 4,
     controlsMayUseThirdRow: false,
-    controlRows: 1,
+    controlRows: 2,
     mode: 'wide',
     reservedHeight: 148,
     tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(1100), {
     controlColumns: 2,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     controlRows: 2,
     mode: 'medium',
     reservedHeight: 148,
@@ -255,7 +256,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
     controlColumns: 1,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     controlRows: 2,
     mode: 'narrow',
     reservedHeight: 148,
@@ -335,6 +336,47 @@ test('contextual text ribbon equalizes stacked semantic boxes by column', () => 
   assert.equal(columnWidths[0], CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max)
   assert.ok(columnWidths[1] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.preferred)
   assert.ok(columnWidths[2] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred)
+})
+
+test('contextual text ribbon fills lower row slots before opening a later column', () => {
+  const fixed = (width: number) => ({
+    max: width,
+    min: width,
+    preferred: width,
+  })
+  const packed = packContextualTextRibbonColumns({
+    rowCount: 2,
+    items: [
+      { id: 'top', payload: 'top', profile: fixed(120) },
+      {
+        id: 'tall',
+        payload: 'tall',
+        profile: { ...fixed(240), rowSpan: 2 },
+      },
+      { id: 'bottom', payload: 'bottom', profile: fixed(180) },
+    ],
+  })
+
+  assert.deepEqual(
+    packed.map((column) => column.items.map((item) => ({
+      id: item.id,
+      rowSpan: item.rowSpan,
+      rowStart: item.rowStart,
+    }))),
+    [
+      [
+        { id: 'top', rowSpan: 1, rowStart: 1 },
+        { id: 'bottom', rowSpan: 1, rowStart: 2 },
+      ],
+      [
+        { id: 'tall', rowSpan: 2, rowStart: 1 },
+      ],
+    ],
+  )
+  assert.equal(packed[0].profile.min, 180)
+  assert.equal(packed[0].profile.preferred, 180)
+  assert.equal(packed[0].profile.max, 180)
+  assert.equal(packed[1].profile.min, 240)
 })
 
 test('contextual text ribbon reuses the shared contextual tab registry', () => {
@@ -567,19 +609,35 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonHostSource,
-    /const span = childProfile\.rowSpan \?\? 1/,
+    /packContextualTextRibbonColumns\(\{/,
   )
   assert.match(
     ribbonHostSource,
-    /child\.style\.width = widthValue/,
+    /element\.style\.gridColumn = String\(columnIndex \+ 1\)/,
   )
   assert.match(
     ribbonHostSource,
-    /child\.style\.maxWidth = widthValue/,
+    /element\.style\.gridRow = rowSpan === 2/,
   )
   assert.match(
     ribbonHostSource,
-    /child\.dataset\.ribbonColumnIndex = String\(columnIndex\)/,
+    /element\.dataset\.ribbonRowStart = String\(rowStart\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /element\.dataset\.ribbonRowSpan = String\(rowSpan\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /element\.style\.width = widthValue/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /element\.style\.maxWidth = widthValue/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /element\.dataset\.ribbonColumnIndex = String\(columnIndex\)/,
   )
   assert.match(
     ribbonHostSource,
@@ -667,6 +725,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
 
   assert.match(appCss, /@import '\.\/app-contextual-text-ribbon\.css';/)
   assert.match(ribbonCss, /\.preview-header\s*\{/)
+  assert.match(ribbonCss, /--contextual-text-ribbon-control-row-count:\s*2/)
   assert.match(ribbonCss, /grid-template-columns:[\s\S]*fit-content\(220px\)[\s\S]*minmax\(0,\s*1fr\)/)
   assert.match(ribbonCss, /gap:\s*0/)
   assert.match(ribbonCss, /min-height: var\(--contextual-text-ribbon-reserved-height\)/)
