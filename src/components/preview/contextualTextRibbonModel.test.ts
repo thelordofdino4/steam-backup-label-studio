@@ -15,6 +15,7 @@ import {
   CONTEXTUAL_TEXT_RIBBON_TOAST_GAP,
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
   getContextualTextRibbonActiveWidth,
+  getContextualTextRibbonColumnWidths,
   getContextualTextRibbonControlDescriptors,
   getContextualTextRibbonLayoutModel,
   getContextualTextRibbonReservedHeight,
@@ -315,6 +316,27 @@ test('contextual text ribbon keeps the active host width at the available header
   )
 })
 
+test('contextual text ribbon equalizes stacked semantic boxes by column', () => {
+  const columnWidths = getContextualTextRibbonColumnWidths({
+    availableWidth: 1000,
+    gap: 4,
+    columns: [
+      {
+        ...CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'],
+        max: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
+        preferred: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
+      },
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background,
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border,
+    ],
+  })
+
+  assert.equal(columnWidths.length, 3)
+  assert.equal(columnWidths[0], CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max)
+  assert.ok(columnWidths[1] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.preferred)
+  assert.ok(columnWidths[2] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred)
+})
+
 test('contextual text ribbon reuses the shared contextual tab registry', () => {
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_TABS, [
     { id: 'presets', label: 'Style Presets' },
@@ -499,6 +521,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
+    /\.contextual-text-ribbon-group\s*\{[\s\S]*justify-self:\s*stretch/,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*hidden[\s\S]*overflow-y:\s*auto[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)[\s\S]*scrollbar-width:\s*thin/,
   )
   assert.match(
@@ -537,11 +563,35 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonHostSource,
+    /function applyColumnPackedGroupWidths/,
+  )
+  assert.match(
+    ribbonHostSource,
     /const span = childProfile\.rowSpan \?\? 1/,
   )
   assert.match(
     ribbonHostSource,
+    /child\.style\.width = widthValue/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /child\.style\.maxWidth = widthValue/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /child\.dataset\.ribbonColumnIndex = String\(columnIndex\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /getContextualTextRibbonColumnWidths\(\{/,
+  )
+  assert.match(
+    ribbonHostSource,
     /getColumnPackedChildrenInlineWidthProfile\(controlRow\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /applyColumnPackedGroupWidths\(controlRow\)/,
   )
   assert.match(
     ribbonHostSource,

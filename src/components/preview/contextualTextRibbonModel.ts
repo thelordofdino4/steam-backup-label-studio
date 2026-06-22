@@ -49,6 +49,12 @@ export type ContextualTextRibbonWidthProfile = {
   rowSpan?: 1 | 2
 }
 
+export type ContextualTextRibbonColumnWidthInput = {
+  availableWidth: number
+  columns: ContextualTextRibbonWidthProfile[]
+  gap?: number
+}
+
 export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   string,
   ContextualTextRibbonWidthProfile
@@ -121,6 +127,47 @@ export function getContextualTextRibbonActiveWidth(
   void profile
 
   return finiteAvailable
+}
+
+export function getContextualTextRibbonColumnWidths({
+  availableWidth,
+  columns,
+  gap = 0,
+}: ContextualTextRibbonColumnWidthInput) {
+  if (columns.length === 0) return []
+
+  const finiteGap = Number.isFinite(gap) ? Math.max(0, gap) : 0
+  const availableForColumns = Math.max(
+    0,
+    (Number.isFinite(availableWidth) ? availableWidth : 0)
+      - finiteGap * Math.max(0, columns.length - 1),
+  )
+  const minTotal = columns.reduce((sum, column) => sum + column.min, 0)
+  const preferredTotal = columns.reduce(
+    (sum, column) => sum + column.preferred,
+    0,
+  )
+  const maxTotal = columns.reduce((sum, column) => sum + column.max, 0)
+
+  if (availableForColumns <= minTotal || preferredTotal <= minTotal) {
+    return columns.map((column) => column.min)
+  }
+
+  if (availableForColumns <= preferredTotal || maxTotal <= preferredTotal) {
+    const ratio = (availableForColumns - minTotal) /
+      (preferredTotal - minTotal)
+
+    return columns.map((column) =>
+      column.min + (column.preferred - column.min) * ratio)
+  }
+
+  const ratio = Math.min(
+    1,
+    (availableForColumns - preferredTotal) / (maxTotal - preferredTotal),
+  )
+
+  return columns.map((column) =>
+    column.preferred + (column.max - column.preferred) * ratio)
 }
 
 export function getContextualTextRibbonLayoutModel(

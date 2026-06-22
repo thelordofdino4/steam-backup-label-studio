@@ -8,6 +8,7 @@ import {
 import {
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
   getContextualTextRibbonActiveWidth,
+  getContextualTextRibbonColumnWidths,
   getContextualTextRibbonLayoutMode,
   getContextualTextRibbonReservedHeight,
   type ContextualTextRibbonWidthProfile,
@@ -190,27 +191,38 @@ function getActionWidthProfile(element: Element | null) {
   return getFixedWidthProfile(Math.ceil(chrome + contentWidth))
 }
 
-function getColumnPackedChildrenInlineWidthProfile(element: Element | null) {
-  if (!(element instanceof HTMLElement)) return getFixedWidthProfile(0)
+type ContextualTextRibbonColumnLayout = {
+  columns: Array<{
+    elements: HTMLElement[]
+    profile: ContextualTextRibbonWidthProfile
+  }>
+  gap: number
+  rowCount: number
+}
+
+function getColumnPackedChildrenLayout(
+  element: Element | null,
+): ContextualTextRibbonColumnLayout {
+  if (!(element instanceof HTMLElement)) {
+    return { columns: [], gap: 0, rowCount: 1 }
+  }
 
   const children = Array.from(element.children).filter(
     (child): child is HTMLElement => child instanceof HTMLElement,
   )
-
-  if (children.length === 0) return getFixedWidthProfile(0)
 
   const style = window.getComputedStyle(element)
   const gridRows = style.gridTemplateRows
     .split(/\s+/)
     .filter((track) => track.trim().length > 0)
   const rowCount = Math.max(1, gridRows.length)
+  const gap = getHorizontalGap(element)
 
-  if (rowCount <= 1) {
-    return getChildrenInlineWidthProfile(element)
+  if (children.length === 0) {
+    return { columns: [], gap, rowCount }
   }
 
-  const gap = getHorizontalGap(element)
-  const columns: ContextualTextRibbonWidthProfile[] = []
+  const columns: ContextualTextRibbonColumnLayout['columns'] = []
   let columnIndex = 0
   let rowIndex = 0
 
@@ -223,9 +235,17 @@ function getColumnPackedChildrenInlineWidthProfile(element: Element | null) {
       rowIndex = 0
     }
 
-    columns[columnIndex] = columns[columnIndex]
-      ? maxWidthProfiles(columns[columnIndex], childProfile)
-      : childProfile
+    const column = columns[columnIndex]
+
+    if (column) {
+      column.elements.push(child)
+      column.profile = maxWidthProfiles(column.profile, childProfile)
+    } else {
+      columns[columnIndex] = {
+        elements: [child],
+        profile: childProfile,
+      }
+    }
 
     rowIndex += span
 
@@ -235,14 +255,74 @@ function getColumnPackedChildrenInlineWidthProfile(element: Element | null) {
     }
   })
 
+  return { columns, gap, rowCount }
+}
+
+function getColumnPackedChildrenInlineWidthProfile(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return getFixedWidthProfile(0)
+
+  const { columns, gap, rowCount } = getColumnPackedChildrenLayout(element)
+
+  if (rowCount <= 1) {
+    return getChildrenInlineWidthProfile(element)
+  }
+
   return columns.reduce(
-    (profile, columnProfile, index) => addWidthProfiles(
+    (profile, column, index) => addWidthProfiles(
       profile,
-      columnProfile,
+      column.profile,
       index > 0 ? gap : 0,
     ),
     getFixedWidthProfile(0),
   )
+}
+
+function clearColumnPackedGroupWidths(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return
+
+  Array.from(element.children).forEach((child) => {
+    if (!(child instanceof HTMLElement)) return
+
+    child.style.removeProperty('width')
+    child.style.removeProperty('max-width')
+    child.style.removeProperty('--contextual-text-ribbon-column-width')
+    child.removeAttribute('data-ribbon-column-index')
+  })
+}
+
+function applyColumnPackedGroupWidths(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return
+
+  const { columns, gap, rowCount } = getColumnPackedChildrenLayout(element)
+
+  if (rowCount <= 1 || columns.length === 0) {
+    clearColumnPackedGroupWidths(element)
+    return
+  }
+
+  const availableWidth =
+    element.clientWidth || element.getBoundingClientRect().width
+  const columnWidths = getContextualTextRibbonColumnWidths({
+    availableWidth,
+    columns: columns.map((column) => column.profile),
+    gap,
+  })
+
+  columns.forEach((column, columnIndex) => {
+    const width = columnWidths[columnIndex]
+
+    column.elements.forEach((child) => {
+      const widthValue = `${Math.ceil(width)}px`
+
+      child.style.setProperty(
+        '--contextual-text-ribbon-column-width',
+        widthValue,
+      )
+      child.style.width = widthValue
+      child.style.maxWidth = widthValue
+      child.dataset.ribbonColumnIndex = String(columnIndex)
+    })
+  })
 }
 
 function getRibbonWidthProfile(host: HTMLElement) {
@@ -314,6 +394,9 @@ export function ContextualTextRibbonHost({
           ? headerRect.right - (labelRect?.right ?? headerRect.left)
           : host.getBoundingClientRect().width,
       )
+      const controlRow = host.querySelector<HTMLElement>(
+        '.contextual-text-ribbon-control-row',
+      )
       const measuredMode = getContextualTextRibbonLayoutMode(
         availableWidth,
       )
@@ -354,6 +437,7 @@ export function ContextualTextRibbonHost({
         '--contextual-text-ribbon-reserved-height',
         `${nextReservedHeight}px`,
       )
+      applyColumnPackedGroupWidths(controlRow)
       setMode((currentMode) =>
         currentMode === nextMode ? currentMode : nextMode)
     }

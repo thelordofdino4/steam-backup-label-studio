@@ -186,7 +186,7 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-self: start;
+  justify-self: stretch;
   position: relative;
   gap: 4px;
   flex: 0 0 auto;
@@ -288,7 +288,7 @@
 }
 
 .contextual-text-ribbon-group--font {
-  width: max-content;
+  width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
 .contextual-text-ribbon-group--font .contextual-text-ribbon-control-label {
@@ -312,7 +312,7 @@
 .contextual-text-ribbon-group--paint,
 .contextual-text-ribbon-group--contrast,
 .contextual-text-ribbon-group--text-color {
-  width: max-content;
+  width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
 .contextual-text-ribbon-control-row--artistic
@@ -320,13 +320,16 @@
 .contextual-text-ribbon-control-row--artistic
   .contextual-text-ribbon-group--contrast {
   container-type: inline-size;
-  width: clamp(
+  width: var(--contextual-text-ribbon-column-width, clamp(
     var(--contextual-text-ribbon-group-min-width),
     18cqw,
     var(--contextual-text-ribbon-group-max-width)
-  );
+  ));
   min-width: var(--contextual-text-ribbon-group-min-width);
-  max-width: var(--contextual-text-ribbon-group-max-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
   justify-content: center;
   overflow: hidden;
 }
@@ -406,25 +409,28 @@
 
 .contextual-text-ribbon-group--layout,
 .contextual-text-ribbon-group--position {
-  width: max-content;
+  width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
 .contextual-text-ribbon-group--backplate,
 .contextual-text-ribbon-group--border {
-  width: max-content;
+  width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
 .contextual-text-ribbon-group--artistic-feature {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
-  width: clamp(
+  width: var(--contextual-text-ribbon-column-width, clamp(
     var(--contextual-text-ribbon-group-min-width),
     24cqw,
     var(--contextual-text-ribbon-group-max-width)
-  );
+  ));
   min-width: var(--contextual-text-ribbon-group-min-width);
-  max-width: var(--contextual-text-ribbon-group-max-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
   min-height: calc(
     var(--contextual-text-ribbon-control-row-height) * 2 + 3px
   );
@@ -907,24 +913,27 @@
   .contextual-text-ribbon-group--contrast,
   .contextual-text-ribbon-group--backplate,
   .contextual-text-ribbon-group--border {
-    width: clamp(
+    width: var(--contextual-text-ribbon-column-width, clamp(
       var(--contextual-text-ribbon-group-min-width),
       var(--contextual-text-ribbon-group-preferred-width),
       var(--contextual-text-ribbon-group-max-width)
-    );
+    ));
   }
 
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--text-color,
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--contrast {
-    width: clamp(
+    width: var(--contextual-text-ribbon-column-width, clamp(
       var(--contextual-text-ribbon-group-min-width),
       18cqw,
       var(--contextual-text-ribbon-group-max-width)
-    );
+    ));
     min-width: var(--contextual-text-ribbon-group-min-width);
-    max-width: var(--contextual-text-ribbon-group-max-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-max-width)
+    );
   }
 
   .contextual-text-ribbon-control-row--artistic
@@ -944,11 +953,11 @@
 
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
-    width: clamp(
+    width: var(--contextual-text-ribbon-column-width, clamp(
       var(--contextual-text-ribbon-group-min-width),
       24cqw,
       var(--contextual-text-ribbon-group-max-width)
-    );
+    ));
   }
 
   .contextual-text-ribbon-control-row--artistic
@@ -1129,9 +1138,15 @@
     .contextual-text-ribbon-group--text-color,
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--contrast {
-    width: var(--contextual-text-ribbon-group-min-width);
+    width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
     min-width: var(--contextual-text-ribbon-group-min-width);
-    max-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
   }
 
   .contextual-text-ribbon-control-row--artistic
@@ -1151,9 +1166,15 @@
 
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
-    width: var(--contextual-text-ribbon-group-min-width);
+    width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
     min-width: var(--contextual-text-ribbon-group-min-width);
-    max-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
     padding-inline: 4px;
   }
 
