@@ -12,8 +12,6 @@ import {
   type ContextualTextRibbonMode,
 } from './contextualTextRibbonModel'
 
-const CONTEXTUAL_TEXT_RIBBON_MIN_ACTIVE_WIDTH_PX = 360
-
 function getInlineSize(element: Element | null) {
   if (!(element instanceof HTMLElement)) return 0
 
@@ -167,16 +165,9 @@ export function ContextualTextRibbonHost({
       const preferredWidth = isVisible
         ? getRibbonPreferredWidth(host)
         : availableWidth
-      const minimumWidth = Math.min(
-        CONTEXTUAL_TEXT_RIBBON_MIN_ACTIVE_WIDTH_PX,
+      const nextActiveWidth = Math.min(
         availableWidth,
-      )
-      const nextActiveWidth = Math.max(
-        minimumWidth,
-        Math.min(
-          availableWidth,
-          nextMode === 'wide' ? preferredWidth : availableWidth,
-        ),
+        nextMode === 'wide' ? preferredWidth : availableWidth,
       )
 
       host.style.setProperty(

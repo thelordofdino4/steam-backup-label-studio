@@ -158,7 +158,15 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
     ribbonCss,
     /\.contextual-text-ribbon-group-label\s*\{/s,
   )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group-body\s*\{/s,
+  )
+  assert.match(editor, /id:\s*'style'[\s\S]*label:\s*'Style'/)
+  assert.match(editor, /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'/)
+  assert.match(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
+  assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-controls\s*\{[^}]*overflow:\s*hidden/s,

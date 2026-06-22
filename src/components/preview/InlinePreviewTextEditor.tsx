@@ -1,4 +1,7 @@
 import {
+  Children,
+  Fragment,
+  isValidElement,
   useCallback,
   useEffect,
   useId,
@@ -77,7 +80,6 @@ import type {
   InlinePreviewTextEditorSelectControl,
   InlinePreviewTextEditorSelectionFrame,
   InlinePreviewTextEditorSelectionRange,
-  InlinePreviewTextEditorTextValueControl,
   InlinePreviewTextEditorTab,
   InlinePreviewTextEditorToggleState,
   InlinePreviewTextEditorToggleControl,
@@ -216,6 +218,30 @@ function getContextualTextRibbonAxisRect(element: HTMLElement) {
   }
 }
 
+function updateContextualTextRibbonScrollItemVisibility(row: HTMLElement) {
+  const rowRect = getContextualTextRibbonAxisRect(row)
+  const rowWidth = Math.max(1, rowRect.right - rowRect.left)
+  const items = Array.from(
+    row.querySelectorAll<HTMLElement>(
+      ':scope > .contextual-text-ribbon-group, :scope > .contextual-text-ribbon-command-button',
+    ),
+  )
+
+  for (const item of items) {
+    const itemRect = getContextualTextRibbonAxisRect(item)
+    const itemWidth = Math.max(1, itemRect.right - itemRect.left)
+    const isTooWideForRow = itemWidth > rowWidth + 1.5
+    const isFullyVisible =
+      itemRect.left >= rowRect.left - 1.5 &&
+      itemRect.right <= rowRect.right + 1.5
+
+    item.toggleAttribute(
+      'data-ribbon-scroll-clipped',
+      !isTooWideForRow && !isFullyVisible,
+    )
+  }
+}
+
 function getInlineTextSmokeToken(label: string) {
   return label
     .trim()
@@ -236,15 +262,27 @@ function getInlineTextToggleDisplayLabel(label: string) {
 }
 
 function isRenderableRibbonNode(node: ReactNode): boolean {
-  if (node === null || node === undefined || typeof node === 'boolean') {
-    return false
-  }
+  return Children.toArray(node).some((child) => {
+    if (
+      child === null ||
+      child === undefined ||
+      typeof child === 'boolean'
+    ) {
+      return false
+    }
 
-  if (Array.isArray(node)) {
-    return node.some(isRenderableRibbonNode)
-  }
+    if (typeof child === 'string') return child.trim().length > 0
+    if (typeof child === 'number') return true
 
-  return true
+    if (
+      isValidElement<{ children?: ReactNode }>(child) &&
+      child.type === Fragment
+    ) {
+      return isRenderableRibbonNode(child.props.children)
+    }
+
+    return true
+  })
 }
 
 function renderContextualTextRibbonGroup({
@@ -271,7 +309,9 @@ function renderContextualTextRibbonGroup({
       data-ribbon-group={id}
     >
       <span className="contextual-text-ribbon-group-label">{label}</span>
-      {children}
+      <span className="contextual-text-ribbon-group-body">
+        {children}
+      </span>
     </div>
   )
 }
@@ -1021,61 +1061,6 @@ function InlinePreviewHtmlSourceTextarea({
   )
 }
 
-function renderInlinePreviewTextValueControl(
-  control: InlinePreviewTextEditorTextValueControl | undefined,
-) {
-  if (!control) return null
-
-  return (
-    <InlinePreviewTextValueTextarea
-      control={control}
-    />
-  )
-}
-
-function InlinePreviewTextValueTextarea({
-  control,
-}: {
-  control: InlinePreviewTextEditorTextValueControl
-}) {
-  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    event.stopPropagation()
-
-    if (!isInlinePreviewTextSelectAllShortcut(event)) {
-      return
-    }
-
-    event.preventDefault()
-    event.currentTarget.select()
-  }
-
-  return (
-    <label className="contextual-text-ribbon-source-field">
-      <span className="contextual-text-ribbon-control-label">
-        {control.label}
-      </span>
-      <textarea
-        aria-label={control.label}
-        className="inline-preview-text-value-textarea"
-        data-smoke-id="inline-text-menu-value"
-        value={control.value}
-        placeholder={control.placeholder}
-        spellCheck={false}
-        onChange={(event) => control.onChange(event.target.value)}
-        onClick={stopInlineTextEditorClick}
-        onKeyDown={handleKeyDown}
-        onKeyUp={(event) => event.stopPropagation()}
-        onPaste={(event) => event.stopPropagation()}
-        onCopy={(event) => event.stopPropagation()}
-        onCut={(event) => event.stopPropagation()}
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-        onSelect={(event) => event.stopPropagation()}
-      />
-    </label>
-  )
-}
-
 function renderInlinePreviewTextToggleControl(
   control: InlinePreviewTextEditorToggleControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
@@ -1221,20 +1206,31 @@ function InlinePreviewTextEditorMenuContent({
   if (activeTab === 'presets') {
     return renderContextualTextRibbonRow({
       emptyLabel: 'Style presets unavailable',
-      children: renderContextualTextRibbonGroup({
-        id: 'presets',
-        label: 'Presets',
-        children: (
-          <>
-            {renderInlinePreviewTextSelectControl(
+      children: (
+        <>
+          {renderContextualTextRibbonGroup({
+            id: 'style',
+            label: 'Style',
+            className: 'contextual-text-ribbon-group--preset-style',
+            children: renderInlinePreviewTextSelectControl(
               controls.presets?.style,
               selection,
-            )}
-            {renderInlinePreviewTextSelectControl(
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'layout-preset',
+            label: 'Layout',
+            className: 'contextual-text-ribbon-group--preset-layout',
+            children: renderInlinePreviewTextSelectControl(
               controls.presets?.layout,
               selection,
-            )}
-            {controls.presets?.onReset ? (
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'reset',
+            label: 'Reset',
+            className: 'contextual-text-ribbon-group--reset',
+            children: controls.presets?.onReset ? (
               <button
                 type="button"
                 className="contextual-text-ribbon-command-button"
@@ -1242,10 +1238,10 @@ function InlinePreviewTextEditorMenuContent({
               >
                 Reset
               </button>
-            ) : null}
-          </>
-        ),
-      }),
+            ) : null,
+          })}
+        </>
+      ),
     })
   }
 
@@ -1254,14 +1250,6 @@ function InlinePreviewTextEditorMenuContent({
       emptyLabel: 'Text controls unavailable',
       children: (
         <>
-          {renderContextualTextRibbonGroup({
-            id: 'text-value',
-            label: 'Text',
-            className: 'contextual-text-ribbon-group--source',
-            children: renderInlinePreviewTextValueControl(
-              controls.text?.textValue,
-            ),
-          })}
           {renderContextualTextRibbonGroup({
             id: 'font',
             label: 'Font',
@@ -1275,6 +1263,22 @@ function InlinePreviewTextEditorMenuContent({
                   controls.text?.size,
                   selection,
                 )}
+              </>
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'paragraph',
+            label: 'Paragraph',
+            children: renderInlinePreviewTextSelectControl(
+              controls.text?.alignment,
+              selection,
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'formatting',
+            label: 'Formatting',
+            children: (
+              <>
                 {renderInlinePreviewTextToggleControl(
                   controls.text?.bold,
                   selection,
@@ -1289,18 +1293,6 @@ function InlinePreviewTextEditorMenuContent({
                   controls.text?.underline,
                   selection,
                   onSelectionChange,
-                )}
-              </>
-            ),
-          })}
-          {renderContextualTextRibbonGroup({
-            id: 'paragraph',
-            label: 'Paragraph',
-            children: (
-              <>
-                {renderInlinePreviewTextSelectControl(
-                  controls.text?.alignment,
-                  selection,
                 )}
                 {renderInlinePreviewTextToggleControl(
                   controls.text?.bulletedList,
@@ -1326,6 +1318,15 @@ function InlinePreviewTextEditorMenuContent({
             className: 'contextual-text-ribbon-group--paint',
             children: renderInlinePreviewTextColorControl(
               controls.art?.color,
+              selection,
+            ),
+          })}
+          {renderContextualTextRibbonGroup({
+            id: 'contrast',
+            label: 'Contrast',
+            className: 'contextual-text-ribbon-group--paint',
+            children: renderInlinePreviewTextSelectControl(
+              controls.art?.contrast,
               selection,
             ),
           })}
@@ -1370,15 +1371,6 @@ function InlinePreviewTextEditorMenuContent({
               </>
             ),
           })}
-          {renderContextualTextRibbonGroup({
-            id: 'contrast',
-            label: 'Contrast',
-            className: 'contextual-text-ribbon-group--paint',
-            children: renderInlinePreviewTextSelectControl(
-              controls.art?.contrast,
-              selection,
-            ),
-          })}
         </>
       ),
     })
@@ -1389,8 +1381,9 @@ function InlinePreviewTextEditorMenuContent({
       emptyLabel: 'HTML source unavailable',
       children: renderContextualTextRibbonGroup({
         id: 'source',
-        label: 'HTML',
-        className: 'contextual-text-ribbon-group--source',
+        label: 'Source',
+        className:
+          'contextual-text-ribbon-group--source contextual-text-ribbon-group--source-expanded',
         children: renderInlinePreviewHtmlSourceControl({
           control: controls.utilities.htmlSource,
           sourceDraftIdentity,
@@ -1446,8 +1439,9 @@ function InlinePreviewTextEditorMenuContent({
         })}
         {renderContextualTextRibbonGroup({
           id: 'source',
-          label: 'HTML',
-          className: 'contextual-text-ribbon-group--source',
+          label: 'Source',
+          className:
+            'contextual-text-ribbon-group--source contextual-text-ribbon-group--source-toggle',
           children: controls.utilities?.htmlSource
             ? renderInlinePreviewHtmlSourceControl({
                 control: controls.utilities.htmlSource,
@@ -2132,6 +2126,14 @@ export function InlinePreviewTextEditor({
     menuRef.current = element
   }, [])
 
+  const updateRibbonScrollVisibility = useCallback(() => {
+    const rows = menuRef.current?.querySelectorAll<HTMLElement>(
+      CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR,
+    )
+
+    rows?.forEach(updateContextualTextRibbonScrollItemVisibility)
+  }, [])
+
   const revealRibbonScrollItem = useCallback((target: EventTarget | null) => {
     const item = getContextualTextRibbonScrollItem(target)
     const row = getContextualTextRibbonScrollRow(item)
@@ -2148,7 +2150,50 @@ export function InlinePreviewTextEditor({
     if (delta !== 0) {
       row.scrollLeft += delta
     }
+    updateContextualTextRibbonScrollItemVisibility(row)
   }, [])
+
+  useLayoutEffect(() => {
+    const menu = menuRef.current
+    if (!menu) return
+
+    const rows = Array.from(
+      menu.querySelectorAll<HTMLElement>(CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR),
+    )
+
+    updateRibbonScrollVisibility()
+
+    const handleScroll = (event: Event) => {
+      if (event.currentTarget instanceof HTMLElement) {
+        updateContextualTextRibbonScrollItemVisibility(event.currentTarget)
+      }
+    }
+
+    for (const row of rows) {
+      row.addEventListener('scroll', handleScroll, { passive: true })
+    }
+
+    const resizeObserver = typeof ResizeObserver === 'function'
+      ? new ResizeObserver(updateRibbonScrollVisibility)
+      : null
+
+    if (resizeObserver) {
+      resizeObserver.observe(menu)
+      for (const row of rows) resizeObserver.observe(row)
+    }
+
+    return () => {
+      for (const row of rows) {
+        row.removeEventListener('scroll', handleScroll)
+      }
+      resizeObserver?.disconnect()
+    }
+  }, [
+    activeTab,
+    editorControls,
+    sourceMode,
+    updateRibbonScrollVisibility,
+  ])
 
   const handleRibbonControlInteraction = useCallback(
     (event: SyntheticEvent<Element>) => {
@@ -2855,11 +2900,8 @@ export function InlinePreviewTextEditor({
         className="contextual-text-ribbon-controls"
         data-smoke-id="inline-text-menu"
         onClick={stopInlineTextEditorClick}
-        onChangeCapture={handleRibbonControlInteraction}
         onFocusCapture={handleRibbonControlInteraction}
-        onInputCapture={handleRibbonControlInteraction}
         onPointerDown={handleRibbonPointerDown}
-        onWheelCapture={handleRibbonControlInteraction}
       >
         <InlinePreviewTextEditorMenuContent
           activeTab={activeTab}

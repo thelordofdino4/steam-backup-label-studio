@@ -315,6 +315,13 @@ function getPaintBoundsFromScreenshot(buffer) {
   }
 }
 
+const expectedContextualRibbonGroupsByTab = {
+  art: ['Text Color', 'Contrast', 'Background', 'Border'],
+  presets: ['Style', 'Layout', 'Reset'],
+  text: ['Font', 'Paragraph', 'Formatting'],
+  utilities: ['Position', 'Layout', 'Source', 'Reset'],
+}
+
 function smoke(page, smokeId) {
   return page.locator(smokeSelector(smokeId))
 }
@@ -1172,6 +1179,232 @@ async function assertScreenshotPaintDoesNotTouchHorizontalEdges(page, smokeId, l
   }
 }
 
+async function getContextualRibbonGeometrySnapshot(page) {
+  return page.evaluate(() => {
+    const host = document.querySelector('[data-smoke-id="contextual-text-ribbon-host"]')
+    const menu = document.querySelector('[data-smoke-id="inline-text-menu"]')
+    const tabs = document.querySelector('[data-smoke-id="inline-text-tabs"]')
+    const row = document.querySelector('.contextual-text-ribbon-control-row')
+
+    const toRect = (element) => {
+      const rect = element.getBoundingClientRect()
+
+      return {
+        bottom: rect.bottom,
+        height: rect.height,
+        left: rect.left,
+        right: rect.right,
+        top: rect.top,
+        width: rect.width,
+      }
+    }
+    const isVisible = (element) => {
+      const rect = element.getBoundingClientRect()
+      const style = window.getComputedStyle(element)
+
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity) >= 0.01
+      )
+    }
+
+    if (
+      !(host instanceof HTMLElement) ||
+      !(menu instanceof HTMLElement) ||
+      !(tabs instanceof HTMLElement) ||
+      !(row instanceof HTMLElement)
+    ) {
+      return { error: 'missing contextual ribbon geometry nodes' }
+    }
+
+    const rowStyle = window.getComputedStyle(row)
+    const rowRect = toRect(row)
+    const scrollbarSpace = Number.parseFloat(rowStyle.paddingBottom) || 0
+    const rowUsableBottom = rowRect.bottom - scrollbarSpace
+    const groups = Array.from(row.querySelectorAll(':scope > .contextual-text-ribbon-group'))
+      .filter((element) => element instanceof HTMLElement && isVisible(element))
+      .map((element) => {
+        const label = element.querySelector('.contextual-text-ribbon-group-label')
+        const body = element.querySelector('.contextual-text-ribbon-group-body')
+        const rect = toRect(element)
+        const visibleWidth = Math.max(
+          0,
+          Math.min(rect.right, rowRect.right) -
+            Math.max(rect.left, rowRect.left),
+        )
+        const redundantInnerLabels = Array.from(
+          element.querySelectorAll('.contextual-text-ribbon-control-label'),
+        )
+          .filter((innerLabel) => innerLabel instanceof HTMLElement)
+          .map((innerLabel) => {
+            const innerRect = innerLabel.getBoundingClientRect()
+
+            return {
+              rect: {
+                height: innerRect.height,
+                width: innerRect.width,
+              },
+              text: innerLabel.textContent?.trim() ?? '',
+            }
+          })
+          .filter((innerLabel) =>
+            innerLabel.text &&
+            innerLabel.rect.width > 1 &&
+            innerLabel.rect.height > 1)
+
+        return {
+          bodyChildCount: body instanceof HTMLElement
+            ? Array.from(body.children).filter((child) =>
+                child instanceof HTMLElement && isVisible(child)).length
+            : 0,
+          id: element.getAttribute('data-ribbon-group') ?? '',
+          label: label?.textContent?.trim() ?? '',
+          rect,
+          redundantInnerLabels,
+          rowIndex: Math.round(
+            (rect.top - rowRect.top) /
+              Math.max(1, Number.parseFloat(rowStyle.rowGap) || 1),
+          ),
+          text: element.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+          visibleWidth,
+        }
+      })
+    const topGroups = groups
+      .filter((group) => group.rect.top <= rowRect.top + 3)
+      .map((group) => group.label)
+    const bottomGroups = groups
+      .filter((group) => group.rect.top > rowRect.top + 3)
+      .map((group) => group.label)
+    const rowTwoCovered = groups
+      .filter((group) => group.rect.top > rowRect.top + 3)
+      .filter((group) => group.rect.bottom > rowUsableBottom + 1.5)
+      .map((group) => ({
+        bottom: group.rect.bottom,
+        label: group.label,
+        rowUsableBottom,
+      }))
+    const clippedGroups = groups
+      .filter((group) =>
+        group.visibleWidth > 0 &&
+        group.visibleWidth < group.rect.width - 1.5)
+      .map((group) => ({
+        label: group.label,
+        visibleWidth: group.visibleWidth,
+        width: group.rect.width,
+      }))
+    const emptyGroups = groups
+      .filter((group) => group.bodyChildCount < 1)
+      .map((group) => group.label)
+
+    return {
+      groups,
+      host: toRect(host),
+      menu: toRect(menu),
+      mode: host.getAttribute('data-contextual-text-ribbon-mode'),
+      row: {
+        clientWidth: row.clientWidth,
+        rect: rowRect,
+        scrollLeft: row.scrollLeft,
+        scrollWidth: row.scrollWidth,
+        scrollbarSpace,
+        rowUsableBottom,
+      },
+      tabs: toRect(tabs),
+      topGroups,
+      bottomGroups,
+      clippedGroups,
+      emptyGroups,
+      rowTwoCovered,
+    }
+  })
+}
+
+function validateContextualRibbonSemanticGeometry(snapshot, tab, contextLabel) {
+  if (snapshot.error) {
+    fail(`${contextLabel}: ${snapshot.error}`)
+  }
+
+  const expectedLabels = expectedContextualRibbonGroupsByTab[tab]
+  const actualLabels = snapshot.groups.map((group) => group.label)
+  const unexpectedLabels = expectedLabels
+    ? actualLabels.filter((label) => !expectedLabels.includes(label))
+    : []
+  const redundantLabels = snapshot.groups
+    .flatMap((group) =>
+      group.redundantInnerLabels.map((innerLabel) =>
+        `${group.label}/${innerLabel.text}`))
+  const expectedOrder = expectedLabels
+    ? expectedLabels.filter((label) => actualLabels.includes(label))
+    : []
+  const wrongOrder = expectedOrder.some((label, index) =>
+    actualLabels[index] !== label)
+  const hasTwoRows = snapshot.groups
+    .some((group) => group.rect.top > snapshot.row.rect.top + 3)
+  const columnFirstBroken = hasTwoRows && snapshot.groups.length >= 3 &&
+    (
+      Math.abs(snapshot.groups[0].rect.left - snapshot.groups[1].rect.left) > 2 ||
+      snapshot.groups[1].rect.top <= snapshot.groups[0].rect.top + 3 ||
+      snapshot.groups[2].rect.left <= snapshot.groups[0].rect.left + 2
+    )
+
+  if (unexpectedLabels.length > 0) {
+    fail(
+      `${contextLabel}: semantic ribbon groups did not match ${tab}: ` +
+      JSON.stringify({ actualLabels, expectedLabels, unexpectedLabels }),
+    )
+  }
+
+  if (wrongOrder) {
+    fail(
+      `${contextLabel}: ribbon groups are not in semantic order: ` +
+      JSON.stringify({ actualLabels, expectedOrder }),
+    )
+  }
+
+  if (redundantLabels.length > 0) {
+    fail(
+      `${contextLabel}: redundant visible labels remain inside groups: ` +
+      JSON.stringify({ redundantLabels }),
+    )
+  }
+
+  if (snapshot.emptyGroups.length > 0) {
+    fail(
+      `${contextLabel}: empty ribbon group wrappers are visible: ` +
+      JSON.stringify(snapshot.emptyGroups),
+    )
+  }
+
+  if (snapshot.clippedGroups.length > 0) {
+    fail(
+      `${contextLabel}: ribbon exposed clipped group slivers: ` +
+      JSON.stringify(snapshot.clippedGroups),
+    )
+  }
+
+  if (snapshot.rowTwoCovered.length > 0) {
+    fail(
+      `${contextLabel}: horizontal scrollbar covered row-two groups: ` +
+      JSON.stringify(snapshot.rowTwoCovered),
+    )
+  }
+
+  if (columnFirstBroken) {
+    fail(
+      `${contextLabel}: ribbon did not pack groups column-first: ` +
+      JSON.stringify({
+        groups: snapshot.groups.map((group) => ({
+          label: group.label,
+          rect: group.rect,
+        })),
+      }),
+    )
+  }
+}
+
 async function assertResponsiveContextualShell(page) {
   await expectContextualShell(page)
 
@@ -1576,7 +1809,7 @@ async function assertAttachedRibbonLayoutAtViewports(page) {
   const scenarios = [
     { height: 720, name: 'default-tauri', width: 1000 },
     { height: 650, name: 'minimum-tauri', width: 900 },
-    { height: 1080, name: 'fullscreen-wide', width: 2200 },
+    { height: 1080, name: 'fullscreen-wide', width: 1920 },
   ]
 
   try {
@@ -1787,9 +2020,10 @@ async function captureContextualRibbonTabScreenshots(page, surfaceName, openEdit
   const scenarios = [
     { height: 720, name: 'default-tauri', width: 1000 },
     { height: 650, name: 'minimum-tauri', width: 900 },
-    { height: 1080, name: 'fullscreen-wide', width: 2200 },
+    { height: 1080, name: 'fullscreen-wide', width: 1920 },
   ]
   const tabs = ['presets', 'text', 'art', 'utilities']
+  const geometryReports = []
 
   fs.mkdirSync(artifactDir, { recursive: true })
 
@@ -1807,6 +2041,18 @@ async function captureContextualRibbonTabScreenshots(page, surfaceName, openEdit
         await clickInlineTab(page, tab)
         await expectContextualShell(page)
         await page.waitForTimeout(100)
+        const geometry = await getContextualRibbonGeometrySnapshot(page)
+        validateContextualRibbonSemanticGeometry(
+          geometry,
+          tab,
+          `${surfaceName} ${scenario.name} ${tab}`,
+        )
+        geometryReports.push({
+          scenario,
+          surfaceName,
+          tab,
+          geometry,
+        })
         await smoke(page, 'contextual-text-ribbon-host').first().screenshot({
           path: path.join(
             artifactDir,
@@ -1815,6 +2061,11 @@ async function captureContextualRibbonTabScreenshots(page, surfaceName, openEdit
         })
       }
     }
+
+    fs.writeFileSync(
+      path.join(artifactDir, `native-ribbon-${surfaceName}-geometry.json`),
+      JSON.stringify(geometryReports, null, 2),
+    )
   } finally {
     await page.setViewportSize(originalViewport)
     await page.waitForTimeout(160)
@@ -2775,10 +3026,44 @@ async function runCaseChecks(page) {
         }`,
       )
     }
+    const manualScrollBeforeEdit = await page.evaluate(() => {
+      const inputElement = document.querySelector(
+        '[data-smoke-id="inline-text-number-wrap-width"]',
+      )
+      const group = inputElement?.closest('.contextual-text-ribbon-group')
+      const row = group?.closest('.contextual-text-ribbon-control-row')
+
+      if (!(row instanceof HTMLElement)) {
+        return { error: 'missing Wrap width ribbon row before edit' }
+      }
+
+      row.scrollLeft = row.scrollWidth
+
+      return {
+        maxScrollLeft: Math.max(0, row.scrollWidth - row.clientWidth),
+        scrollLeft: row.scrollLeft,
+      }
+    })
     await page.keyboard.press('Control+A')
     await page.keyboard.type('42')
     await page.waitForTimeout(150)
     const duringRibbon = await getRect(page, 'contextual-text-ribbon-host')
+    const manualScrollAfterEdit = await page.evaluate(() => {
+      const inputElement = document.querySelector(
+        '[data-smoke-id="inline-text-number-wrap-width"]',
+      )
+      const group = inputElement?.closest('.contextual-text-ribbon-group')
+      const row = group?.closest('.contextual-text-ribbon-control-row')
+
+      if (!(row instanceof HTMLElement)) {
+        return { error: 'missing Wrap width ribbon row after edit' }
+      }
+
+      return {
+        maxScrollLeft: Math.max(0, row.scrollWidth - row.clientWidth),
+        scrollLeft: row.scrollLeft,
+      }
+    })
     const editedWrapWidthVisibility = await page.evaluate(() => {
       const inputElement = document.querySelector(
         '[data-smoke-id="inline-text-number-wrap-width"]',
@@ -2816,6 +3101,25 @@ async function runCaseChecks(page) {
       fail(
         `Edited Wrap width group did not remain fully visible: ${
           JSON.stringify(editedWrapWidthVisibility)
+        }`,
+      )
+    }
+
+    if (
+      manualScrollBeforeEdit.error ||
+      manualScrollAfterEdit.error ||
+      (
+        manualScrollBeforeEdit.maxScrollLeft > 4 &&
+        manualScrollAfterEdit.scrollLeft <
+          Math.min(
+            manualScrollBeforeEdit.scrollLeft,
+            manualScrollAfterEdit.maxScrollLeft,
+          ) - 2
+      )
+    ) {
+      fail(
+        `Wrap width editing reset manual ribbon scroll position: ${
+          JSON.stringify({ manualScrollAfterEdit, manualScrollBeforeEdit })
         }`,
       )
     }
