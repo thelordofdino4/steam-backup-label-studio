@@ -10,6 +10,7 @@ import {
   useRef,
   useState,
   type FocusEvent as ReactFocusEvent,
+  type CSSProperties,
   type KeyboardEvent,
   type MouseEvent,
   type PointerEvent as ReactPointerEvent,
@@ -52,7 +53,9 @@ import {
   useContextualTextRibbonRegistration,
 } from './contextualTextRibbonBridgeContext'
 import {
+  CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS,
   getContextualTextRibbonTabDisplayLabel,
+  type ContextualTextRibbonWidthProfile,
 } from './contextualTextRibbonModel'
 import {
   getContextualTextRibbonScrollDeltaToReveal,
@@ -275,16 +278,27 @@ function renderContextualTextRibbonGroup({
   headerControls,
   id,
   label,
+  size = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS[id],
 }: {
   children: ReactNode
   className?: string
   headerControls?: ReactNode
   id: string
   label: string
+  size?: ContextualTextRibbonWidthProfile
 }) {
   if (!isRenderableRibbonNode(children) && !isRenderableRibbonNode(headerControls)) {
     return null
   }
+
+  const sizeStyle = size
+    ? {
+      '--contextual-text-ribbon-group-max-width': `${size.max}px`,
+      '--contextual-text-ribbon-group-min-width': `${size.min}px`,
+      '--contextual-text-ribbon-group-preferred-width':
+        `${size.preferred}px`,
+    } as CSSProperties
+    : undefined
 
   return (
     <div
@@ -294,7 +308,13 @@ function renderContextualTextRibbonGroup({
         `contextual-text-ribbon-group--${id}`,
         className,
       ].filter(Boolean).join(' ')}
+      data-ribbon-group-grows={size?.grows || undefined}
+      data-ribbon-group-max-width={size?.max}
+      data-ribbon-group-min-width={size?.min}
+      data-ribbon-group-preferred-width={size?.preferred}
+      data-ribbon-group-row-span={size?.rowSpan}
       data-ribbon-group={id}
+      style={sizeStyle}
     >
       <span className="contextual-text-ribbon-group-header">
         <span className="contextual-text-ribbon-group-label">{label}</span>

@@ -7,16 +7,12 @@ import {
 } from 'react'
 import {
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
+  getContextualTextRibbonActiveWidth,
   getContextualTextRibbonLayoutMode,
   getContextualTextRibbonReservedHeight,
+  type ContextualTextRibbonWidthProfile,
   type ContextualTextRibbonMode,
 } from './contextualTextRibbonModel'
-
-function getInlineSize(element: Element | null) {
-  if (!(element instanceof HTMLElement)) return 0
-
-  return element.getBoundingClientRect().width
-}
 
 function getHorizontalGap(element: Element | null) {
   if (!(element instanceof HTMLElement)) return 0
@@ -43,20 +39,86 @@ function getHorizontalChrome(element: Element | null) {
   ), 0)
 }
 
-function getRibbonItemPreferredWidth(element: HTMLElement) {
+function getFiniteDataNumber(value: string | undefined) {
+  const parsed = Number(value)
+
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function getFixedWidthProfile(width: number): ContextualTextRibbonWidthProfile {
+  const finiteWidth = Number.isFinite(width) ? Math.max(0, width) : 0
+
+  return {
+    max: finiteWidth,
+    min: finiteWidth,
+    preferred: finiteWidth,
+  }
+}
+
+function addWidthProfiles(
+  first: ContextualTextRibbonWidthProfile,
+  second: ContextualTextRibbonWidthProfile,
+  gap = 0,
+): ContextualTextRibbonWidthProfile {
+  return {
+    max: first.max + second.max + gap,
+    min: first.min + second.min + gap,
+    preferred: first.preferred + second.preferred + gap,
+  }
+}
+
+function maxWidthProfiles(
+  first: ContextualTextRibbonWidthProfile,
+  second: ContextualTextRibbonWidthProfile,
+): ContextualTextRibbonWidthProfile {
+  return {
+    max: Math.max(first.max, second.max),
+    min: Math.max(first.min, second.min),
+    preferred: Math.max(first.preferred, second.preferred),
+  }
+}
+
+function getRibbonGroupWidthProfile(
+  element: HTMLElement,
+): ContextualTextRibbonWidthProfile | null {
+  if (!element.classList.contains('contextual-text-ribbon-group')) {
+    return null
+  }
+
+  const min = getFiniteDataNumber(element.dataset.ribbonGroupMinWidth)
+  const preferred =
+    getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth)
+  const max = getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth)
+
+  if (min > 0 && preferred >= min && max >= preferred) {
+    return {
+      grows: element.dataset.ribbonGroupGrows === 'true',
+      max,
+      min,
+      preferred,
+      rowSpan: element.dataset.ribbonGroupRowSpan === '2' ? 2 : 1,
+    }
+  }
+
+  return null
+}
+
+function getRibbonItemWidthProfile(
+  element: HTMLElement,
+): ContextualTextRibbonWidthProfile {
   if (element.classList.contains('contextual-text-ribbon-tab')) {
     const labelLength = element.textContent?.trim().length ?? 0
 
-    return Math.max(62, Math.ceil(labelLength * 8 + 28))
+    return getFixedWidthProfile(Math.max(62, Math.ceil(labelLength * 8 + 28)))
   }
+
+  const groupProfile = getRibbonGroupWidthProfile(element)
+  if (groupProfile) return groupProfile
 
   if (!element.classList.contains('contextual-text-ribbon-group')) {
-    return element.scrollWidth || element.getBoundingClientRect().width
-  }
-
-  const cardWidth = element.getBoundingClientRect().width
-  if (cardWidth > 0) {
-    return Math.ceil(cardWidth)
+    return getFixedWidthProfile(
+      element.scrollWidth || element.getBoundingClientRect().width,
+    )
   }
 
   const children = Array.from(element.children).filter(
@@ -64,12 +126,14 @@ function getRibbonItemPreferredWidth(element: HTMLElement) {
   )
 
   if (children.length === 0) {
-    return element.scrollWidth || element.getBoundingClientRect().width
+    return getFixedWidthProfile(
+      element.scrollWidth || element.getBoundingClientRect().width,
+    )
   }
 
   const gap = getHorizontalGap(element)
 
-  return Math.ceil(
+  return getFixedWidthProfile(Math.ceil(
     getHorizontalChrome(element)
     + children.reduce((width, child, index) => (
       width + (() => {
@@ -83,30 +147,57 @@ function getRibbonItemPreferredWidth(element: HTMLElement) {
         return Math.max(scrollWidth, rectWidth, 0)
       })() + (index > 0 ? gap : 0)
     ), 0),
-  )
+  ))
 }
 
-function getChildrenInlineWidth(element: Element | null) {
-  if (!(element instanceof HTMLElement)) return 0
+function getChildrenInlineWidthProfile(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return getFixedWidthProfile(0)
 
   const children = Array.from(element.children).filter(
     (child): child is HTMLElement => child instanceof HTMLElement,
   )
   const gap = getHorizontalGap(element)
 
-  return children.reduce((width, child, index) => (
-    width + getRibbonItemPreferredWidth(child) + (index > 0 ? gap : 0)
-  ), 0)
+  return children.reduce(
+    (profile, child, index) => addWidthProfiles(
+      profile,
+      getRibbonItemWidthProfile(child),
+      index > 0 ? gap : 0,
+    ),
+    getFixedWidthProfile(0),
+  )
 }
 
-function getColumnPackedChildrenInlineWidth(element: Element | null) {
-  if (!(element instanceof HTMLElement)) return 0
+function getActionWidthProfile(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return getFixedWidthProfile(0)
+
+  const children = Array.from(element.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  )
+  const gap = getHorizontalGap(element)
+  const chrome = getHorizontalChrome(element)
+  const style = window.getComputedStyle(element)
+  const isColumn = style.flexDirection.startsWith('column')
+  const childWidths = children.map((child) => (
+    child.scrollWidth || child.getBoundingClientRect().width
+  ))
+  const contentWidth = isColumn
+    ? Math.max(0, ...childWidths)
+    : childWidths.reduce((sum, width, index) => (
+      sum + width + (index > 0 ? gap : 0)
+    ), 0)
+
+  return getFixedWidthProfile(Math.ceil(chrome + contentWidth))
+}
+
+function getColumnPackedChildrenInlineWidthProfile(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return getFixedWidthProfile(0)
 
   const children = Array.from(element.children).filter(
     (child): child is HTMLElement => child instanceof HTMLElement,
   )
 
-  if (children.length === 0) return 0
+  if (children.length === 0) return getFixedWidthProfile(0)
 
   const style = window.getComputedStyle(element)
   const gridRows = style.gridTemplateRows
@@ -115,26 +206,46 @@ function getColumnPackedChildrenInlineWidth(element: Element | null) {
   const rowCount = Math.max(1, gridRows.length)
 
   if (rowCount <= 1) {
-    return getChildrenInlineWidth(element)
+    return getChildrenInlineWidthProfile(element)
   }
 
   const gap = getHorizontalGap(element)
-  const columnWidths: number[] = []
+  const columns: ContextualTextRibbonWidthProfile[] = []
+  let columnIndex = 0
+  let rowIndex = 0
 
-  children.forEach((child, index) => {
-    const columnIndex = Math.floor(index / rowCount)
-    columnWidths[columnIndex] = Math.max(
-      columnWidths[columnIndex] ?? 0,
-      getRibbonItemPreferredWidth(child),
-    )
+  children.forEach((child) => {
+    const childProfile = getRibbonItemWidthProfile(child)
+    const span = childProfile.rowSpan ?? 1
+
+    if (rowIndex > 0 && rowIndex + span > rowCount) {
+      columnIndex += 1
+      rowIndex = 0
+    }
+
+    columns[columnIndex] = columns[columnIndex]
+      ? maxWidthProfiles(columns[columnIndex], childProfile)
+      : childProfile
+
+    rowIndex += span
+
+    if (rowIndex >= rowCount) {
+      columnIndex += 1
+      rowIndex = 0
+    }
   })
 
-  return columnWidths.reduce((width, columnWidth, index) => (
-    width + columnWidth + (index > 0 ? gap : 0)
-  ), 0)
+  return columns.reduce(
+    (profile, columnProfile, index) => addWidthProfiles(
+      profile,
+      columnProfile,
+      index > 0 ? gap : 0,
+    ),
+    getFixedWidthProfile(0),
+  )
 }
 
-function getRibbonPreferredWidth(host: HTMLElement) {
+function getRibbonWidthProfile(host: HTMLElement) {
   const shell = host.querySelector<HTMLElement>('.contextual-text-ribbon-shell')
   const tabs = host.querySelector<HTMLElement>('.contextual-text-ribbon-tabs')
   const controls = host.querySelector<HTMLElement>(
@@ -149,15 +260,22 @@ function getRibbonPreferredWidth(host: HTMLElement) {
 
   const shellChrome = getHorizontalChrome(shell)
   const controlsGap = getHorizontalGap(controls)
-  const tabWidth = getChildrenInlineWidth(tabs) || tabs?.scrollWidth || 0
-  const controlWidth =
-    (getColumnPackedChildrenInlineWidth(controlRow)
-      || controlRow?.scrollWidth
-      || 0)
-    + getInlineSize(actions)
-    + (actions ? controlsGap : 0)
+  const tabsProfile = getChildrenInlineWidthProfile(tabs)
+  const controlRowProfile =
+    getColumnPackedChildrenInlineWidthProfile(controlRow)
+  const actionProfile = getActionWidthProfile(actions)
+  const controlsProfile = addWidthProfiles(
+    controlRowProfile,
+    actionProfile,
+    actions ? controlsGap : 0,
+  )
+  const contentProfile = maxWidthProfiles(tabsProfile, controlsProfile)
 
-  return Math.ceil(Math.max(tabWidth, controlWidth) + shellChrome)
+  return {
+    max: Math.ceil(contentProfile.max + shellChrome),
+    min: Math.ceil(contentProfile.min + shellChrome),
+    preferred: Math.ceil(contentProfile.preferred + shellChrome),
+  }
 }
 
 export type ContextualTextRibbonHostProps = {
@@ -202,12 +320,14 @@ export function ContextualTextRibbonHost({
       const nextMode = measuredMode
       const nextReservedHeight =
         getContextualTextRibbonReservedHeight(nextMode)
-      const preferredWidth = isVisible
-        ? getRibbonPreferredWidth(host)
-        : availableWidth
+      const widthProfile = isVisible
+        ? getRibbonWidthProfile(host)
+        : getFixedWidthProfile(availableWidth)
       const nextActiveWidth = Math.min(
         availableWidth,
-        nextMode === 'wide' ? preferredWidth : availableWidth,
+        isVisible
+          ? getContextualTextRibbonActiveWidth(availableWidth, widthProfile)
+          : availableWidth,
       )
 
       host.style.setProperty(
@@ -217,6 +337,18 @@ export function ContextualTextRibbonHost({
       host.style.setProperty(
         '--contextual-text-ribbon-active-width',
         `${Math.ceil(nextActiveWidth)}px`,
+      )
+      host.style.setProperty(
+        '--contextual-text-ribbon-min-width',
+        `${Math.ceil(widthProfile.min)}px`,
+      )
+      host.style.setProperty(
+        '--contextual-text-ribbon-preferred-width',
+        `${Math.ceil(widthProfile.preferred)}px`,
+      )
+      host.style.setProperty(
+        '--contextual-text-ribbon-max-width',
+        `${Math.ceil(widthProfile.max)}px`,
       )
       previewArea?.style.setProperty(
         '--contextual-text-ribbon-reserved-height',

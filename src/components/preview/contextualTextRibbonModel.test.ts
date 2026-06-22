@@ -8,11 +8,13 @@ import type {
 } from './inlinePreviewTextEditorContract.ts'
 import {
   CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT,
+  CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS,
   CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
   CONTEXTUAL_TEXT_RIBBON_TABS,
   CONTEXTUAL_TEXT_RIBBON_TOAST_GAP,
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
+  getContextualTextRibbonActiveWidth,
   getContextualTextRibbonControlDescriptors,
   getContextualTextRibbonLayoutModel,
   getContextualTextRibbonReservedHeight,
@@ -260,6 +262,59 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
   })
 })
 
+test('contextual text ribbon calculates active width from declared group profiles', () => {
+  const artisticMin =
+    Math.max(
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].min,
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
+    )
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.min
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.min
+  const artisticPreferred =
+    Math.max(
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].preferred,
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
+    )
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.preferred
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred
+  const artisticMax =
+    Math.max(
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].max,
+      CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
+    )
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.max
+    + CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.max
+
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.rowSpan, 2)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.rowSpan, 2)
+  assert.ok(artisticMin < artisticPreferred)
+  assert.ok(artisticPreferred < artisticMax)
+  assert.equal(
+    getContextualTextRibbonActiveWidth(artisticMin - 16, {
+      max: artisticMax,
+      min: artisticMin,
+      preferred: artisticPreferred,
+    }),
+    artisticMin - 16,
+  )
+  assert.equal(
+    getContextualTextRibbonActiveWidth(artisticPreferred - 8, {
+      max: artisticMax,
+      min: artisticMin,
+      preferred: artisticPreferred,
+    }),
+    artisticPreferred - 8,
+  )
+  assert.equal(
+    getContextualTextRibbonActiveWidth(artisticMax + 400, {
+      max: artisticMax,
+      min: artisticMin,
+      preferred: artisticPreferred,
+    }),
+    artisticMax,
+  )
+})
+
 test('contextual text ribbon reuses the shared contextual tab registry', () => {
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_TABS, [
     { id: 'presets', label: 'Style Presets' },
@@ -400,6 +455,18 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature[\s\S]*\.contextual-text-ribbon-group-header\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 24px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group-header-controls\s*\{[\s\S]*min-width:\s*24px[\s\S]*min-height:\s*24px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature[\s\S]*\.contextual-text-ribbon-feature-toggle input\s*\{[\s\S]*width:\s*24px[\s\S]*height:\s*24px/,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-group:focus-within\s*\{[\s\S]*z-index:\s*2/,
   )
   assert.match(
@@ -408,7 +475,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*clamp\(118px,\s*19cqw,\s*136px\)[\s\S]*min-width:\s*118px/,
+    /\.contextual-text-ribbon-group--contrast\s*\{[\s\S]*width:\s*clamp\([\s\S]*var\(--contextual-text-ribbon-group-min-width\)[\s\S]*18cqw[\s\S]*var\(--contextual-text-ribbon-group-max-width\)/,
   )
   assert.match(
     ribbonCss,
@@ -430,19 +497,35 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonHostSource,
-    /classList\.contains\('contextual-text-ribbon-group'\)[\s\S]*getBoundingClientRect\(\)\.width[\s\S]*Math\.ceil\(cardWidth\)/,
+    /dataset\.ribbonGroupPreferredWidth/,
   )
   assert.match(
     ribbonHostSource,
-    /function getColumnPackedChildrenInlineWidth/,
+    /function getColumnPackedChildrenInlineWidthProfile/,
   )
   assert.match(
     ribbonHostSource,
-    /Math\.floor\(index \/ rowCount\)/,
+    /const span = childProfile\.rowSpan \?\? 1/,
   )
   assert.match(
     ribbonHostSource,
-    /getColumnPackedChildrenInlineWidth\(controlRow\)/,
+    /getColumnPackedChildrenInlineWidthProfile\(controlRow\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /getContextualTextRibbonActiveWidth\(availableWidth,\s*widthProfile\)/,
+  )
+  assert.match(
+    editorSource,
+    /data-ribbon-group-min-width=\{size\?\.min\}/,
+  )
+  assert.match(
+    editorSource,
+    /data-ribbon-group-preferred-width=\{size\?\.preferred\}/,
+  )
+  assert.match(
+    editorSource,
+    /data-ribbon-group-max-width=\{size\?\.max\}/,
   )
   const featureToggleSource = editorSource.slice(
     editorSource.indexOf('function renderInlinePreviewTextFeatureToggleControl'),

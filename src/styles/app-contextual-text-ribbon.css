@@ -177,6 +177,9 @@
 }
 
 .contextual-text-ribbon-group {
+  --contextual-text-ribbon-group-max-width: max-content;
+  --contextual-text-ribbon-group-min-width: max-content;
+  --contextual-text-ribbon-group-preferred-width: max-content;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
@@ -184,7 +187,13 @@
   position: relative;
   gap: 4px;
   flex: 0 0 auto;
-  min-width: max-content;
+  width: clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(--contextual-text-ribbon-group-max-width);
   min-height: 28px;
   box-sizing: border-box;
   padding: 1px 5px;
@@ -214,6 +223,15 @@
   min-width: 0;
   padding-right: 5px;
   border-right: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-group-header-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
 }
 
 .contextual-text-ribbon-group-label {
@@ -298,9 +316,13 @@
   .contextual-text-ribbon-group--text-color,
 .contextual-text-ribbon-control-row--artistic
   .contextual-text-ribbon-group--contrast {
-  width: clamp(118px, 19cqw, 136px);
-  min-width: 118px;
-  max-width: 136px;
+  width: clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    18cqw,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(--contextual-text-ribbon-group-max-width);
   justify-content: center;
   overflow: hidden;
 }
@@ -385,9 +407,13 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
-  width: clamp(130px, 22cqw, 154px);
-  min-width: 130px;
-  max-width: 154px;
+  width: clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    34cqw,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(--contextual-text-ribbon-group-max-width);
   min-height: calc(
     var(--contextual-text-ribbon-control-row-height) * 2 + 3px
   );
@@ -397,11 +423,27 @@
 
 .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-group-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  column-gap: 5px;
   min-height: 24px;
   padding-right: 0;
   padding-bottom: 2px;
   border-right: 0;
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-label {
+  min-width: 0;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-header-controls {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
 }
 
 .contextual-text-ribbon-group--artistic-feature
@@ -418,7 +460,7 @@
 .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-control {
   display: grid;
-  grid-template-columns: minmax(40px, 0.85fr) minmax(42px, 1fr) max-content;
+  grid-template-columns: minmax(48px, 0.72fr) minmax(64px, 1fr) max-content;
   align-items: center;
   gap: 4px;
   width: 100%;
@@ -429,7 +471,10 @@
 
 .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-range-control {
-  grid-template-columns: minmax(40px, 0.85fr) minmax(42px, 1fr) minmax(36px, max-content);
+  grid-template-columns:
+    minmax(48px, 0.72fr)
+    minmax(64px, 1fr)
+    minmax(42px, max-content);
 }
 
 .contextual-text-ribbon-group--artistic-feature
@@ -446,9 +491,9 @@
 
 .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-feature-toggle input {
-  width: 16px;
-  height: 16px;
-  min-height: 16px;
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
 }
 
 .contextual-text-ribbon-group--artistic-feature
@@ -469,7 +514,7 @@
 .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-range-control input[type="range"] {
   width: 100%;
-  min-width: 42px;
+  min-width: 64px;
   height: 24px;
 }
 
@@ -478,8 +523,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-end;
-  min-width: 36px;
-  max-width: 44px;
+  min-width: 42px;
+  max-width: 52px;
   min-height: 24px;
   color: #e5e7eb;
   font-size: 9px;
@@ -842,16 +887,24 @@
   .contextual-text-ribbon-group--contrast,
   .contextual-text-ribbon-group--backplate,
   .contextual-text-ribbon-group--border {
-    width: max-content;
+    width: clamp(
+      var(--contextual-text-ribbon-group-min-width),
+      var(--contextual-text-ribbon-group-preferred-width),
+      var(--contextual-text-ribbon-group-max-width)
+    );
   }
 
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--text-color,
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--contrast {
-    width: clamp(118px, 19cqw, 136px);
-    min-width: 118px;
-    max-width: 136px;
+    width: clamp(
+      var(--contextual-text-ribbon-group-min-width),
+      18cqw,
+      var(--contextual-text-ribbon-group-max-width)
+    );
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(--contextual-text-ribbon-group-max-width);
   }
 
   .contextual-text-ribbon-control-row--artistic
@@ -1003,9 +1056,9 @@
     .contextual-text-ribbon-group--text-color,
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--contrast {
-    width: 118px;
-    min-width: 118px;
-    max-width: 118px;
+    width: var(--contextual-text-ribbon-group-min-width);
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(--contextual-text-ribbon-group-min-width);
   }
 
   .contextual-text-ribbon-control-row--artistic
@@ -1016,9 +1069,9 @@
 
   .contextual-text-ribbon-control-row--artistic
     .contextual-text-ribbon-group--artistic-feature {
-    width: 130px;
-    min-width: 130px;
-    max-width: 136px;
+    width: var(--contextual-text-ribbon-group-min-width);
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(--contextual-text-ribbon-group-min-width);
     padding-inline: 4px;
   }
 
@@ -1051,7 +1104,12 @@
 
 .contextual-text-ribbon-control-row--artistic
   .contextual-text-ribbon-group--artistic-feature
-  .contextual-text-ribbon-group-label,
+  .contextual-text-ribbon-group-label {
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .contextual-text-ribbon-control-row--artistic
   .contextual-text-ribbon-group--artistic-feature
   .contextual-text-ribbon-control-label {

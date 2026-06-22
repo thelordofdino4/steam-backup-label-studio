@@ -41,6 +41,44 @@ export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT =
 export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 
+export type ContextualTextRibbonWidthProfile = {
+  grows?: boolean
+  max: number
+  min: number
+  preferred: number
+  rowSpan?: 1 | 2
+}
+
+export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
+  string,
+  ContextualTextRibbonWidthProfile
+> = {
+  'style': { min: 148, preferred: 184, max: 220, grows: true },
+  'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
+  'font': { min: 330, preferred: 390, max: 430, grows: true },
+  'paragraph': { min: 176, preferred: 220, max: 260, grows: true },
+  'text-color': { min: 126, preferred: 138, max: 160, grows: true },
+  'contrast': { min: 126, preferred: 144, max: 168, grows: true },
+  'background': {
+    min: 158,
+    preferred: 224,
+    max: 260,
+    grows: true,
+    rowSpan: 2,
+  },
+  'border': {
+    min: 150,
+    preferred: 208,
+    max: 240,
+    grows: true,
+    rowSpan: 2,
+  },
+  'source': { min: 420, preferred: 720, max: 960, grows: true },
+  'position': { min: 250, preferred: 320, max: 400, grows: true },
+  'layout': { min: 320, preferred: 470, max: 560, grows: true },
+  'reset': { min: 76, preferred: 86, max: 96 },
+}
+
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 export const CONTEXTUAL_TEXT_RIBBON_NATIVE_TAB_LABELS = {
   art: 'Artistic',
@@ -70,6 +108,22 @@ export function getContextualTextRibbonReservedHeight(
   return mode === 'wide'
     ? CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT
     : CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT
+}
+
+export function getContextualTextRibbonActiveWidth(
+  availableWidth: number,
+  profile: ContextualTextRibbonWidthProfile,
+) {
+  const finiteAvailable = Number.isFinite(availableWidth)
+    ? Math.max(0, availableWidth)
+    : 0
+  const finiteMax = Number.isFinite(profile.max)
+    ? Math.max(0, profile.max)
+    : finiteAvailable
+
+  if (finiteAvailable <= profile.min) return finiteAvailable
+
+  return Math.min(finiteAvailable, finiteMax)
 }
 
 export function getContextualTextRibbonLayoutModel(
