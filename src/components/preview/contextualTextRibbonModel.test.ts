@@ -379,6 +379,22 @@ test('contextual text ribbon fills lower row slots before opening a later column
   assert.equal(packed[1].profile.min, 240)
 })
 
+test('contextual text ribbon dense text groups remain content fitted', () => {
+  const fontProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font
+  const paragraphProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.paragraph
+
+  assert.equal(fontProfile.fit, 'content')
+  assert.equal(paragraphProfile.fit, 'content')
+  assert.ok(
+    fontProfile.min < 360,
+    'font card minimum should not preserve the old oversized 388px floor',
+  )
+  assert.ok(
+    fontProfile.max - fontProfile.min <= 70,
+    'font card content-fit envelope should stay close to its actual controls',
+  )
+})
+
 test('contextual text ribbon reuses the shared contextual tab registry', () => {
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_TABS, [
     { id: 'presets', label: 'Style Presets' },
