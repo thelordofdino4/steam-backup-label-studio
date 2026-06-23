@@ -77,6 +77,13 @@ tested, and the remaining divergences are recorded.
   Artistic > Background and Border, may use the separate header-checkbox plus
   mounted-dependent-field pattern instead, but they must still preserve stable
   internal geometry.
+- Text-tab dense-box rationale: the Text tab owns the highest-frequency
+  typography commands and must remain usable inside the fixed two-control-row
+  ribbon without creating a third row or pushing the preview down. Field
+  columns keep selectable/editable values readable; companion command columns
+  keep compact actions close to the values they affect. This is why Text >
+  Font and Text > Paragraph are not allowed to degrade into a single long row,
+  nor into unrelated buttons spread across spare ribbon space.
 - Dense group command columns must remain visually associated with their field
   column. Use the same vertical divider language as the box title/function
   separator between the field column and companion buttons, and place the
@@ -101,6 +108,10 @@ tested, and the remaining divergences are recorded.
   that new content-derived width up to the group's maximum useful width. Extra
   ribbon/header space must not stretch dense boxes such as Text > Font or Text
   > Paragraph after their contained controls have reached their target widths.
+  This keeps the border visually attached to the controls instead of creating
+  dead interior space. Extra app-shell width belongs to groups that can use it
+  meaningfully, or to whole-group overflow, not to stretching dense text boxes
+  after their fields and command clusters have reached usable dimensions.
 - Compact select fields in dense groups follow the same target-width rule even
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,
@@ -114,16 +125,21 @@ tested, and the remaining divergences are recorded.
 - Text > Font uses `STYLES` as the visible row label for the font-family
   dropdown and `POINTS` as the visible row label for the point-size dropdown.
   Both labels live in the same stacked label column so the two dropdown fields
-  stay aligned.
+  stay aligned. These compact labels are intentionally visible: icon-only or
+  unlabeled controls were too ambiguous, while full form labels consumed too
+  much width for the fixed-height ribbon.
 - Text > Font uses an underlined `FORMAT` heading above the BIU buttons. The
   B/I/U buttons are centered inside that format section rather than stretched
-  across the available card width.
+  across the available card width. `FORMAT` explains that the buttons are one
+  command cluster, not three separate value fields.
 - Text > Paragraph uses `ALIGN` as the visible label beside the alignment
   dropdown. Its list command section uses `LIST` above the bulleted-list
   button, and the `LIST` label/button stack is centered in the available area
   between the command divider and the right edge of the Paragraph box. This
   centering must come from the command column's available space, not from a
-  hardcoded pixel offset.
+  hardcoded pixel offset. The right-side command column is the extensible owner
+  of paragraph actions; future list, indent, or related paragraph commands
+  should join that column instead of requiring new one-off spacing rules.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

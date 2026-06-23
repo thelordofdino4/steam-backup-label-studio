@@ -560,6 +560,11 @@ Ribbon placement and layout:
   into one long row. Enabled feature boxes such as Artistic > Background and
   Border keep their separate header-checkbox plus stable dependent-field
   hierarchy.
+- Text-tab dense boxes use this hierarchy to protect the fixed app-shell
+  header: the Text tab contains common typography controls, but it must not
+  grow vertically, create a third control row, or push the editable preview
+  down. Field columns preserve readable values, while companion command columns
+  keep compact actions beside the fields they affect.
 - Dense command columns stay adjacent to their field column and use the same
   vertical divider language as the semantic-box label/function separator.
   Command buttons must not drift to the far edge of unused ribbon or card
@@ -577,7 +582,9 @@ Ribbon placement and layout:
   value set grows, the owning box and any stacked sibling in the same column
   follow that content-derived width up to the group's maximum useful width.
   Extra header/ribbon width must not stretch Text > Font or Text > Paragraph
-  once their contained controls have reached their target sizes.
+  once their contained controls have reached their target sizes. This prevents
+  dead card interiors and keeps extra header width available for groups that
+  can use it meaningfully.
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.
@@ -590,13 +597,17 @@ Ribbon placement and layout:
   question.
 - Text > Font uses a stacked label column with `STYLES` beside the font-family
   dropdown and `POINTS` beside the point-size dropdown so the two fields remain
-  aligned.
+  aligned. These labels are intentionally compact and visible: they identify
+  the value fields without the width cost of full form labels.
 - Text > Font uses an underlined `FORMAT` heading above the BIU command
-  buttons, and those buttons remain centered in that format section.
+  buttons, and those buttons remain centered in that format section so the
+  buttons read as one formatting command cluster.
 - Text > Paragraph uses `ALIGN` beside the alignment dropdown and a `LIST`
   heading above the bulleted-list button. The `LIST` label/button stack is
   centered in the available command-column space between the divider and the
-  Paragraph box's right edge, not by a hardcoded pixel offset.
+  Paragraph box's right edge, not by a hardcoded pixel offset. That command
+  column is the extension point for future paragraph actions, so spacing must
+  be relative to the column rather than tuned to today's single button.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
