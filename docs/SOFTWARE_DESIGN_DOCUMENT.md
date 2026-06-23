@@ -553,6 +553,12 @@ Ribbon placement and layout:
   column only when they cannot fit in the remaining row space. This supersedes
   any layout that balances boxes across columns or fills every top-row slot
   before using the second row.
+- Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
+  must follow the native dropdown visual contract in
+  `docs/TEXT_EDITOR_CONTRACT.md`: unit label outside the field, value left of
+  the chevron inside one shared bordered field, no nested chevron box, matching
+  field height, and matching chevron-to-right-border spacing verified from a
+  native Tauri screenshot when visual parity is in question.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

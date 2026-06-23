@@ -68,6 +68,25 @@ tested, and the remaining divergences are recorded.
   jump to the next column. A two-row/tall box may start a new column only when
   it cannot fit in the remaining row space. This rule replaces looser
   interpretations that balance boxes across columns or fill the top row first.
+- Composite value/dropdown controls, such as `Font size (pt)`, must visually
+  behave as one native ribbon dropdown field. The external unit label, for
+  example `PT`, sits outside the bordered field on the left. Inside the field,
+  the editable/current value sits to the left and the chevron sits to the right.
+  The chevron must not be rendered as a separate bordered button or nested box.
+- Composite value/dropdown fields must share the same visual metrics as nearby
+  native dropdowns: border-box height, top and bottom border rows, border
+  radius, background, font sizing, focus treatment, and chevron asset. The
+  chevron must use the same effective right inset as ordinary ribbon selects.
+  If a custom overlay is needed to preserve typing, presets, or native popup
+  behavior, the overlay must not paint a second value, create a second border,
+  or change the field's measured box.
+- Composite dropdown verification must be pixel-based in native Tauri whenever
+  visual parity is in question. At minimum, compare the composite field against
+  a neighboring native select and record: field top border row, field bottom
+  border row, right border x-coordinate, rightmost visible chevron pixel, and
+  the gap between that chevron pixel and the right border. The top/bottom rows
+  and chevron-to-border gap must match the native select within the same
+  captured client area before the control is considered visually aligned.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
