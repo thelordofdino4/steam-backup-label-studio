@@ -334,6 +334,7 @@ function renderContextualTextRibbonGroup({
         className,
       ].filter(Boolean).join(' ')}
       data-ribbon-group-grows={size?.grows || undefined}
+      data-ribbon-group-fit={size?.fit}
       data-ribbon-group-max-width={size?.max}
       data-ribbon-group-min-width={size?.min}
       data-ribbon-group-preferred-width={size?.preferred}

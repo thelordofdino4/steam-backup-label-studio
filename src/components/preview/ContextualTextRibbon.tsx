@@ -57,6 +57,12 @@ function getFixedWidthProfile(width: number): ContextualTextRibbonWidthProfile {
   }
 }
 
+function clampWidth(width: number, min: number, max: number) {
+  const finiteWidth = Number.isFinite(width) ? width : min
+
+  return Math.min(max, Math.max(min, finiteWidth))
+}
+
 function addWidthProfiles(
   first: ContextualTextRibbonWidthProfile,
   second: ContextualTextRibbonWidthProfile,
@@ -80,6 +86,29 @@ function maxWidthProfiles(
   }
 }
 
+function getRibbonGroupContentWidth(element: HTMLElement) {
+  const children = Array.from(element.children).filter(
+    (child): child is HTMLElement => child instanceof HTMLElement,
+  )
+
+  if (children.length === 0) {
+    return element.scrollWidth || element.getBoundingClientRect().width
+  }
+
+  const gap = getHorizontalGap(element)
+
+  return Math.ceil(
+    getHorizontalChrome(element)
+    + children.reduce((width, child, index) => {
+      const scrollWidth = child.scrollWidth
+      const rectWidth = child.getBoundingClientRect().width
+      const contentWidth = Math.max(scrollWidth, rectWidth, 0)
+
+      return width + contentWidth + (index > 0 ? gap : 0)
+    }, 0),
+  )
+}
+
 function getRibbonGroupWidthProfile(
   element: HTMLElement,
 ): ContextualTextRibbonWidthProfile | null {
@@ -93,6 +122,21 @@ function getRibbonGroupWidthProfile(
   const max = getFiniteDataNumber(element.dataset.ribbonGroupMaxWidth)
 
   if (min > 0 && preferred >= min && max >= preferred) {
+    if (element.dataset.ribbonGroupFit === 'content') {
+      const contentWidth = clampWidth(
+        getRibbonGroupContentWidth(element),
+        min,
+        max,
+      )
+
+      return {
+        max: contentWidth,
+        min: contentWidth,
+        preferred: contentWidth,
+        rowSpan: element.dataset.ribbonGroupRowSpan === '2' ? 2 : 1,
+      }
+    }
+
     return {
       grows: element.dataset.ribbonGroupGrows === 'true',
       max,

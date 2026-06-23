@@ -93,6 +93,14 @@ tested, and the remaining divergences are recorded.
   stacked fields must not expand just because the card has extra horizontal
   slack unless a group-specific contract says that field is intentionally
   flexible.
+- Dense semantic boxes that contain matched stacked fields are content-fitted.
+  The outer bordered box ends after the last contained control plus its normal
+  padding, separator, and border. If a contained field legitimately expands
+  because the matched-width contract requires a wider selectable or enterable
+  value, the owning box and any stacked sibling in the same column expand to
+  that new content-derived width up to the group's maximum useful width. Extra
+  ribbon/header space must not stretch dense boxes such as Text > Font or Text
+  > Paragraph after their contained controls have reached their target widths.
 - Compact select fields in dense groups follow the same target-width rule even
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,

@@ -571,6 +571,13 @@ Ribbon placement and layout:
   its maximum useful width. These fields should not stretch beyond that target
   merely because the card has spare horizontal space unless the group has an
   explicit flexible-field contract.
+- Dense semantic boxes that own matched stacked fields are content-fitted: the
+  bordered box ends after the last contained control plus normal padding,
+  separator, and border. If a contained field expands because its matched-width
+  value set grows, the owning box and any stacked sibling in the same column
+  follow that content-derived width up to the group's maximum useful width.
+  Extra header/ribbon width must not stretch Text > Font or Text > Paragraph
+  once their contained controls have reached their target sizes.
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.

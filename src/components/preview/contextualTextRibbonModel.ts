@@ -42,6 +42,7 @@ export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 
 export type ContextualTextRibbonWidthProfile = {
+  fit?: 'content'
   grows?: boolean
   max: number
   min: number
@@ -78,8 +79,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
 > = {
   'style': { min: 148, preferred: 184, max: 220, grows: true },
   'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
-  'font': { min: 384, preferred: 660, max: 860, grows: true },
-  'paragraph': { min: 220, preferred: 300, max: 420, grows: true },
+  'font': { min: 320, preferred: 348, max: 388, fit: 'content' },
+  'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
   'text-color': { min: 108, preferred: 138, max: 160, grows: true },
   'contrast': { min: 108, preferred: 176, max: 220, grows: true },
   'background': {

@@ -682,8 +682,23 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     editorSource,
     /data-ribbon-group-max-width=\{size\?\.max\}/,
   )
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.preferred >= 600)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max >= 800)
+  assert.match(
+    editorSource,
+    /data-ribbon-group-fit=\{size\?\.fit\}/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /element\.dataset\.ribbonGroupFit === 'content'/,
+  )
+  assert.match(ribbonHostSource, /getRibbonGroupContentWidth\(element\)/)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.fit, 'content')
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.paragraph.fit, 'content')
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.min > 319)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max < 420)
+  assert.ok(
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.paragraph.max
+      < CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max,
+  )
   assert.match(
     editorSource,
     /className="contextual-text-ribbon-point-size-presets inline-preview-text-number-preset-select"/,
