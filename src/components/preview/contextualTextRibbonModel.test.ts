@@ -852,7 +852,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*max-content max-content[\s\S]*justify-content:\s*start[\s\S]*flex:\s*0 0 auto[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*max-content minmax\(max-content,\s*1fr\)[\s\S]*justify-content:\s*start[\s\S]*flex:\s*1 1 auto[\s\S]*justify-self:\s*start[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,
@@ -876,7 +876,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-button-cluster--paragraph\s*\{[\s\S]*padding-left:\s*5px[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-button-cluster--paragraph\s*\{[\s\S]*box-sizing:\s*border-box[\s\S]*justify-self:\s*stretch[\s\S]*padding-left:\s*5px[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)[\s\S]*width:\s*100%/,
   )
   assert.match(
     ribbonCss,

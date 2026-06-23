@@ -120,7 +120,10 @@ tested, and the remaining divergences are recorded.
   across the available card width.
 - Text > Paragraph uses `ALIGN` as the visible label beside the alignment
   dropdown. Its list command section uses `LIST` above the bulleted-list
-  button, and the button is centered under that label.
+  button, and the `LIST` label/button stack is centered in the available area
+  between the command divider and the right edge of the Paragraph box. This
+  centering must come from the command column's available space, not from a
+  hardcoded pixel offset.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The
