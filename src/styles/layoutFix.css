@@ -56,7 +56,7 @@
 
   .preview-area {
     --preview-chrome-space: calc(
-      var(--contextual-text-ribbon-reserved-height, 64px)
+      var(--contextual-text-ribbon-reserved-height, 158px)
       + var(--preview-area-top-padding, 0px)
       + var(--preview-area-bottom-padding, 0px)
       + 1px

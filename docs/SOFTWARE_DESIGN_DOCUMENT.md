@@ -536,9 +536,10 @@ Ribbon placement and layout:
   `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups, not as old floating-menu form markup moved into a fixed slot.
-- The ribbon uses a fixed compact height near the 60-65 px app-shell band.
-  Active controls must not wrap downward or push the editable surface lower.
-  Horizontal sizes may adapt, but row heights remain constant.
+- The ribbon uses a fixed compact app-shell height sized for the tab row, two
+  fixed control rows, a horizontal overflow lane, and the documented bottom
+  clearance. Active controls must not wrap downward or push the editable
+  surface lower. Horizontal sizes may adapt, but row heights remain constant.
 - Semantic control boxes are packed in column-first order. Within one column,
   every stacked box must use the same column width: if the top or bottom box in
   that column requires a wider usable width, every other box in the column
@@ -598,10 +599,10 @@ Responsive states:
 - Narrow: controls preserve the fixed ribbon height, row count, and column
   equalization rules. Do not add a third control row, vertical scrollbar, or
   preview-displacing overflow escape.
-- Horizontal overflow may scroll inside the fixed control-row area. That
-  scrollbar is the fallback after the two-row semantic-card layout has used the
-  available width; it must not trigger vertical remeasurement, change fixed row
-  heights, or move the preview.
+- Horizontal overflow may scroll inside a dedicated lane below the fixed
+  control rows. That scrollbar is the fallback after the two-row semantic-card
+  layout has used the available width; it must not cover the bottom row, trigger
+  vertical remeasurement, change fixed row heights, or move the preview.
 
 Current implementation:
 

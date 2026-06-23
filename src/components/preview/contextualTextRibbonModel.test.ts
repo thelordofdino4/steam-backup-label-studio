@@ -212,12 +212,12 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
 }
 
 test('contextual text ribbon reserves a stable app-shell slot', () => {
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 148)
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 148)
-  assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 148)
-  assert.equal(getContextualTextRibbonReservedHeight('wide'), 148)
-  assert.equal(getContextualTextRibbonReservedHeight('medium'), 148)
-  assert.equal(getContextualTextRibbonReservedHeight('narrow'), 148)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 158)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 158)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 158)
+  assert.equal(getContextualTextRibbonReservedHeight('wide'), 158)
+  assert.equal(getContextualTextRibbonReservedHeight('medium'), 158)
+  assert.equal(getContextualTextRibbonReservedHeight('narrow'), 158)
   assert.equal(
     getContextualTextRibbonToastOffset({ isRibbonActive: false }),
     CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP,
@@ -243,7 +243,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: false,
     controlRows: 2,
     mode: 'wide',
-    reservedHeight: 148,
+    reservedHeight: 158,
     tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(1100), {
@@ -251,7 +251,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: false,
     controlRows: 2,
     mode: 'medium',
-    reservedHeight: 148,
+    reservedHeight: 158,
     tabColumns: 5,
   })
   assert.deepEqual(getContextualTextRibbonLayoutModel(420), {
@@ -259,7 +259,7 @@ test('contextual text ribbon exposes wide medium and narrow layouts', () => {
     controlsMayUseThirdRow: false,
     controlRows: 2,
     mode: 'narrow',
-    reservedHeight: 148,
+    reservedHeight: 158,
     tabColumns: 5,
   })
 })
@@ -559,6 +559,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
+    /--contextual-text-ribbon-reserved-height:\s*158px/,
+  )
+  assert.match(
+    ribbonCss,
     /--contextual-text-ribbon-horizontal-scrollbar-height:\s*10px/,
   )
   assert.match(
@@ -791,7 +795,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(previewCss, /\.disc-preview\s*\{[\s\S]*100cqh/)
   assert.match(previewCss, /\.case-insert-preview\s*\{[\s\S]*100cqh/)
   assert.match(layoutFixCss, /--preview-chrome-space:\s*calc\(/)
-  assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*64px\)/)
+  assert.match(layoutFixCss, /var\(--contextual-text-ribbon-reserved-height,\s*158px\)/)
   assert.match(layoutFixCss, /var\(--preview-area-top-padding,\s*0px\)/)
   assert.match(layoutFixCss, /var\(--preview-area-bottom-padding,\s*0px\)/)
   assert.doesNotMatch(layoutFixCss, /clamp\(136px,\s*16vh,\s*172px\)/)

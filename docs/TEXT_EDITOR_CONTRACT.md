@@ -43,14 +43,17 @@ tested, and the remaining divergences are recorded.
   groups. Production code must not reuse portal-slot content or
   `.inline-preview-text-control-grid` presentation from the old full menu
   inside the ribbon.
-- The reserved slot stays near the 60-65 px app-shell band. Controls must not
-  wrap downward in a way that pushes the editable surface lower. Active control
-  rows use fixed row heights; horizontal sizes may adapt, condense, or switch
-  to compact icon/dropdown-only affordances. When the complete semantic-card
-  set still exceeds the available width, the fixed control-row area may expose
-  horizontal scrolling at whole-card columns.
+- The reserved slot uses a fixed compact app-shell height sized for the tab
+  row, two fixed control rows, a horizontal overflow lane, and the documented
+  bottom clearance. Controls must not wrap downward in a way that pushes the
+  editable surface lower. Active control rows use fixed row heights; horizontal
+  sizes may adapt, condense, or switch to compact icon/dropdown-only
+  affordances. When the complete semantic-card set still exceeds the available
+  width, the fixed control area may expose horizontal scrolling at whole-card
+  columns.
 - The ribbon must not introduce vertical scrolling as the overflow solution.
-  Horizontal overflow must not change fixed row heights, push the preview, or
+  Horizontal overflow must use a dedicated lane below the fixed rows; it must
+  not cover the bottom row, change fixed row heights, push the preview, or
   reflow controls into a third row.
 - Native ribbon controls are arranged as semantic boxes packed in
   column-first order. A column has one shared width: if any box above or below
@@ -216,6 +219,8 @@ Keep these responsibilities:
   below the full header/ribbon region.
 - Row 1 contains the five contextual tabs; the active tab's controls occupy the
   fixed control-row area without adding a third row or moving the preview.
+- Horizontal overflow uses a lane below the fixed control rows and must not
+  cover, clip, or reduce the usable height of the bottom row.
 - Stacked semantic boxes in the same ribbon column share the widest box width
   in that column.
 - Semantic boxes fill any available lower fixed-row slot in the current column
