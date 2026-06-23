@@ -48,6 +48,9 @@ tested, and the remaining divergences are recorded.
   rows use fixed row heights; horizontal sizes may adapt, condense, or switch
   to compact icon/dropdown-only affordances, but the ribbon must not introduce
   a horizontal scrollbar as the normal overflow solution.
+- Vertical overflow is handled inside the fixed control-row area with a stable
+  vertical scrollbar lane. The lane must not cause horizontal column widths,
+  ribbon width, or preview geometry to change when overflow appears.
 - Native ribbon controls are arranged as semantic boxes packed in
   column-first order. A column has one shared width: if any box above or below
   another box in the same column requires more usable width, every box in that

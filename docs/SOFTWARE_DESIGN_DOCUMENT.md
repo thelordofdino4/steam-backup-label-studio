@@ -598,6 +598,9 @@ Responsive states:
 - Narrow: controls preserve the fixed ribbon height, row count, and column
   equalization rules. Do not add a third control row, horizontal scrollbar, or
   preview-displacing overflow escape.
+- Vertical overflow may scroll inside the fixed control-row area through a
+  stable vertical scrollbar lane. That lane must not trigger horizontal
+  remeasurement, change semantic column widths, or move the preview.
 
 Current implementation:
 

@@ -559,7 +559,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\([\s\S]*var\(--contextual-text-ribbon-control-row-height\)[\s\S]*overflow-x:\s*hidden[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)/,
+    /--contextual-text-ribbon-vertical-scrollbar-width:\s*10px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\([\s\S]*var\(--contextual-text-ribbon-control-row-height\)[\s\S]*height:\s*100%[\s\S]*max-height:\s*100%[\s\S]*overflow-x:\s*hidden[\s\S]*overflow-y:\s*auto[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)[\s\S]*scrollbar-gutter:\s*stable/,
   )
   assert.match(
     ribbonCss,
@@ -567,7 +571,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*hidden[\s\S]*overflow-y:\s*auto[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)[\s\S]*scrollbar-width:\s*thin/,
+    /\.contextual-text-ribbon-control-row--artistic\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*hidden[\s\S]*overflow-y:\s*auto[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)[\s\S]*scrollbar-gutter:\s*stable[\s\S]*scrollbar-width:\s*thin/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row::-webkit-scrollbar\s*\{[\s\S]*width:\s*var\(--contextual-text-ribbon-vertical-scrollbar-width\)[\s\S]*height:\s*0/,
   )
   assert.match(
     ribbonCss,
@@ -746,8 +754,11 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*grid-template-rows:\s*repeat\(/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-x:\s*hidden/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*overflow-y:\s*auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*height:\s*100%/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*max-height:\s*100%/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*padding-bottom:\s*var\(--contextual-text-ribbon-bottom-row-gap\)/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-control-row\s*\{[\s\S]*scrollbar-gutter:\s*stable/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-control-row::-webkit-scrollbar\s*\{[\s\S]*height:\s*0/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*display:\s*flex/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*border:\s*1px solid/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group-label\s*\{/)
