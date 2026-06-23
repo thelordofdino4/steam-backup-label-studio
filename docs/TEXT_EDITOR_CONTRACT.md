@@ -118,6 +118,9 @@ tested, and the remaining divergences are recorded.
 - Text > Font uses an underlined `FORMAT` heading above the BIU buttons. The
   B/I/U buttons are centered inside that format section rather than stretched
   across the available card width.
+- Text > Paragraph uses `ALIGN` as the visible label beside the alignment
+  dropdown. Its list command section uses `LIST` above the bulleted-list
+  button, and the button is centered under that label.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

@@ -593,6 +593,8 @@ Ribbon placement and layout:
   aligned.
 - Text > Font uses an underlined `FORMAT` heading above the BIU command
   buttons, and those buttons remain centered in that format section.
+- Text > Paragraph uses `ALIGN` beside the alignment dropdown and a `LIST`
+  heading above the centered bulleted-list button.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

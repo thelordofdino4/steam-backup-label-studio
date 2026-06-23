@@ -1492,6 +1492,7 @@ function InlinePreviewTextEditorMenuContent({
     const alignmentControl = renderInlinePreviewTextSelectControl(
       controls.text?.alignment,
       selection,
+      'ALIGN',
     )
     const bulletedListControl = renderInlinePreviewTextToggleControl(
       controls.text?.bulletedList,
@@ -1564,6 +1565,12 @@ function InlinePreviewTextEditorMenuContent({
           aria-label="Paragraph commands"
           className="contextual-text-ribbon-button-cluster contextual-text-ribbon-button-cluster--paragraph"
         >
+          <span
+            aria-hidden="true"
+            className="contextual-text-ribbon-button-cluster-caption"
+          >
+            LIST
+          </span>
           {bulletedListControl}
         </span>
       )

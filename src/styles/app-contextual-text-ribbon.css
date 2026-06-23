@@ -532,9 +532,11 @@
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-button-cluster--paragraph {
   display: grid;
-  grid-template-rows: 24px;
+  grid-template-rows: max-content 24px;
   align-content: center;
   align-items: center;
+  justify-content: center;
+  justify-items: center;
   gap: 3px;
 }
 
@@ -542,11 +544,39 @@
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-control-stack--paragraph-fields {
   grid-template-columns:
+    max-content
     minmax(
       0,
       min(100%, var(--contextual-text-ribbon-stacked-field-width, 8ch))
     );
   justify-content: start;
+  justify-items: start;
+  column-gap: 4px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control {
+  display: contents;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control
+  select {
+  grid-column: 2;
+  grid-row: 1 / span 2;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -560,7 +590,7 @@
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-icon-button {
-  justify-self: start;
+  justify-self: center;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -568,6 +598,18 @@
   .contextual-text-ribbon-button-cluster--paragraph {
   padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster-caption {
+  grid-column: 1;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -592,6 +634,10 @@
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-control-label,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-select-control
   .contextual-text-ribbon-control-label {
   display: inline-flex;
   align-items: center;
