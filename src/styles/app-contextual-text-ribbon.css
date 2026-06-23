@@ -501,6 +501,17 @@
 
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields {
+  grid-template-columns:
+    minmax(
+      0,
+      min(100%, var(--contextual-text-ribbon-stacked-field-width, 8ch))
+    );
+  justify-content: start;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-select-control {
   width: 100%;
   max-width: 100%;

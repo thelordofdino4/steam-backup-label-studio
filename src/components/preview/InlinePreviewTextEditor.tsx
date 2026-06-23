@@ -183,6 +183,7 @@ const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 const INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX = 8
 const INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX = 2
 const CONTEXTUAL_TEXT_RIBBON_FIELD_MIN_CH = 12
+const CONTEXTUAL_TEXT_RIBBON_COMPACT_FIELD_MIN_CH = 9
 const CONTEXTUAL_TEXT_RIBBON_FIELD_MAX_CH = 18
 const CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH = 2
 const CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR =
@@ -492,6 +493,7 @@ function renderInlinePreviewTextSelectControl(
 
 function getContextualTextRibbonMatchedFieldWidthCh(
   controls: Array<InlinePreviewTextEditorSelectControl | undefined>,
+  minCh = CONTEXTUAL_TEXT_RIBBON_FIELD_MIN_CH,
 ) {
   const widestLabelLength = controls.reduce((maxLength, control) => {
     if (!control) return maxLength
@@ -505,7 +507,7 @@ function getContextualTextRibbonMatchedFieldWidthCh(
   return Math.min(
     CONTEXTUAL_TEXT_RIBBON_FIELD_MAX_CH,
     Math.max(
-      CONTEXTUAL_TEXT_RIBBON_FIELD_MIN_CH,
+      minCh,
       widestLabelLength + CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH,
     ),
   )
@@ -1500,6 +1502,15 @@ function InlinePreviewTextEditorMenuContent({
       '--contextual-text-ribbon-stacked-field-width':
         `${fontMatchedFieldWidthCh}ch`,
     } as CSSProperties
+    const paragraphMatchedFieldWidthCh =
+      getContextualTextRibbonMatchedFieldWidthCh(
+        [controls.text?.alignment],
+        CONTEXTUAL_TEXT_RIBBON_COMPACT_FIELD_MIN_CH,
+      )
+    const paragraphFieldStyle = {
+      '--contextual-text-ribbon-stacked-field-width':
+        `${paragraphMatchedFieldWidthCh}ch`,
+    } as CSSProperties
     const fontFieldControls =
       isRenderableRibbonNode(fontFamilyControl) ||
       isRenderableRibbonNode(fontSizeControl)
@@ -1530,7 +1541,10 @@ function InlinePreviewTextEditorMenuContent({
         : null
     const paragraphFieldControls = isRenderableRibbonNode(alignmentControl)
       ? (
-        <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--paragraph-fields">
+        <span
+          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--paragraph-fields"
+          style={paragraphFieldStyle}
+        >
           {alignmentControl}
         </span>
       )

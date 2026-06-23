@@ -88,6 +88,10 @@ tested, and the remaining divergences are recorded.
   stacked fields must not expand just because the card has extra horizontal
   slack unless a group-specific contract says that field is intentionally
   flexible.
+- Compact select fields in dense groups follow the same target-width rule even
+  when they do not have a paired field. For example, Text > Paragraph alignment
+  sizes from the widest supported alignment label plus the dropdown affordance,
+  not from the available card width.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label, for
   example `PT`, sits outside the bordered field on the left. Inside the field,

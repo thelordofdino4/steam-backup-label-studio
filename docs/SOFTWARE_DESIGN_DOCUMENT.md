@@ -567,6 +567,9 @@ Ribbon placement and layout:
   its maximum useful width. These fields should not stretch beyond that target
   merely because the card has spare horizontal space unless the group has an
   explicit flexible-field contract.
+- Compact select fields in dense text-ribbon groups use the same target-width
+  rule even when they are unpaired; for example, Paragraph alignment is sized
+  from the widest supported alignment label, not from leftover card width.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: unit label outside the field, value left of

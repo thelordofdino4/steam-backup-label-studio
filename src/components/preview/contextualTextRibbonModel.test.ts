@@ -729,6 +729,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     editorSource,
+    /CONTEXTUAL_TEXT_RIBBON_COMPACT_FIELD_MIN_CH/,
+  )
+  assert.match(
+    editorSource,
     /--contextual-text-ribbon-stacked-field-width/,
   )
   assert.match(
@@ -738,6 +742,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.match(
     editorSource,
     /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--paragraph-fields/,
+  )
+  assert.match(
+    editorSource,
+    /getContextualTextRibbonMatchedFieldWidthCh\(\s*\[controls\.text\?\.alignment\],\s*CONTEXTUAL_TEXT_RIBBON_COMPACT_FIELD_MIN_CH/,
   )
   assert.match(
     editorSource,
@@ -790,6 +798,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(118px,\s*1fr\) max-content[\s\S]*flex:\s*1 1 auto[\s\S]*width:\s*100%/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-control-stack--paragraph-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\([\s\S]*0,[\s\S]*min\(100%,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*8ch\)\)[\s\S]*justify-content:\s*start/,
   )
   assert.match(
     ribbonCss,
