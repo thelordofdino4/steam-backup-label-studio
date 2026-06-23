@@ -106,9 +106,9 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     rowSpan: 2,
   },
   'layout': {
-    min: 450,
-    preferred: 568,
-    max: 700,
+    min: 360,
+    preferred: 504,
+    max: 620,
     grows: true,
     rowSpan: 2,
   },

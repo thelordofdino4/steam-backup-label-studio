@@ -819,7 +819,7 @@
 }
 
 .contextual-text-ribbon-control-stack--utility-layout-options {
-  flex: 0 0 clamp(172px, 34cqw, 220px);
+  flex: 0 0 min(154px, 38cqw);
   padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.22);
 }

@@ -1073,14 +1073,13 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
 
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.position.rowSpan, 2)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.rowSpan, 2)
-  assert.ok(
-    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.min >= 450,
-    'layout card must reserve room for Wrap width and Respect visual elements',
-  )
-  assert.ok(
-    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.preferred >= 568,
-    'layout card preferred width must keep utility labels readable',
-  )
+  assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout, {
+    min: 360,
+    preferred: 504,
+    max: 620,
+    grows: true,
+    rowSpan: 2,
+  })
   assert.deepEqual(
     packed.map((column) => column.items.map((item) => ({
       id: item.id,
