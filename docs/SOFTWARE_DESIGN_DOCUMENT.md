@@ -593,9 +593,10 @@ Ribbon placement and layout:
   the same column when both are available; their width is calculated from the
   complete card contents, not only from the select element. The visible card
   title is the purpose label, so inner select labels remain accessibility
-  labels and must not duplicate the card title in visible text. Reset is a
-  command card with a simple visible `Reset` button; do not replace it with a
-  clever target label while the command remains unambiguous.
+  labels and must not duplicate the card title in visible text. The reset
+  action is the Presets-tab exception: it renders as a standalone `Reset`
+  button without a second visible `Reset` label beside it, while Style and
+  Layout continue to follow the semantic-card contract.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,

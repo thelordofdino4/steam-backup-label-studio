@@ -123,10 +123,11 @@ tested, and the remaining divergences are recorded.
   group title is the visible purpose label; the inner select label remains
   available for accessibility but must not appear as redundant visible text
   such as `Style Style preset` or `Layout Layout preset`.
-- The Presets `Reset` group is a command group, not another dropdown. Its
-  reset action should be a simple button visibly labeled `Reset`; do not add a
-  secondary visible target label, icon-only substitute, or alternate command
-  wording unless the reset behavior later becomes ambiguous.
+- Presets reset exception: the reset action is the only Presets control that
+  may render outside a labeled semantic card. It should be a standalone button
+  visibly labeled `Reset`, without an additional `Reset` group title to its
+  left or any secondary visible target label to its right. `Style` and
+  `Layout` must continue to follow the normal semantic-card contract.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label for the
   point-size field is `POINTS`, and it sits outside the bordered field on the

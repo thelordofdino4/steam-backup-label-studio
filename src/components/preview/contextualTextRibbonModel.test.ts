@@ -398,17 +398,21 @@ test('contextual text ribbon dense text groups remain content fitted', () => {
 test('contextual text ribbon presets tab uses stable semantic cards', () => {
   const styleProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.style
   const layoutProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-preset']
-  const resetProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.reset
+  const resetCommandProfile = { min: 52, preferred: 52, max: 52 }
   const packed = packContextualTextRibbonColumns({
     rowCount: 2,
     items: [
       { id: 'style', payload: 'style', profile: styleProfile },
       { id: 'layout-preset', payload: 'layout', profile: layoutProfile },
-      { id: 'reset', payload: 'reset', profile: resetProfile },
+      { id: 'reset-command', payload: 'reset', profile: resetCommandProfile },
     ],
   })
   const editorSource = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const presetsBlock = editorSource.slice(
+    editorSource.indexOf("if (activeTab === 'presets')"),
+    editorSource.indexOf("if (activeTab === 'text')"),
   )
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
 
@@ -433,7 +437,7 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
         { id: 'layout-preset', rowSpan: 1, rowStart: 2 },
       ],
       [
-        { id: 'reset', rowSpan: 1, rowStart: 1 },
+        { id: 'reset-command', rowSpan: 1, rowStart: 1 },
       ],
     ],
   )
@@ -450,11 +454,15 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
     /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'[\s\S]*className:\s*'contextual-text-ribbon-group--preset-layout'/,
   )
   assert.match(
-    editorSource,
-    /className="contextual-text-ribbon-command-button"[\s\S]*onClick=\{controls\.presets\.onReset\}[\s\S]*>\s*Reset\s*<\/button>/,
+    presetsBlock,
+    /className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset"[\s\S]*onClick=\{controls\.presets\.onReset\}[\s\S]*>\s*Reset\s*<\/button>/,
   )
   assert.doesNotMatch(
-    editorSource,
+    presetsBlock,
+    /renderContextualTextRibbonGroup\(\{[\s\S]*id:\s*'reset'/,
+  )
+  assert.doesNotMatch(
+    presetsBlock,
     /aria-label="Reset style preset"/,
   )
   assert.match(
@@ -468,6 +476,10 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-style[\s\S]*\.contextual-text-ribbon-select-control select,[\s\S]*\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-layout[\s\S]*\.contextual-text-ribbon-select-control select\s*\{[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-command-button--preset-reset\s*\{[\s\S]*min-width:\s*52px/,
   )
 })
 

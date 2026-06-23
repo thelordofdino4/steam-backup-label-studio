@@ -1443,20 +1443,15 @@ function InlinePreviewTextEditorMenuContent({
               selection,
             ),
           })}
-          {renderContextualTextRibbonGroup({
-            id: 'reset',
-            label: 'Reset',
-            className: 'contextual-text-ribbon-group--reset',
-            children: controls.presets?.onReset ? (
-              <button
-                type="button"
-                className="contextual-text-ribbon-command-button"
-                onClick={controls.presets.onReset}
-              >
-                Reset
-              </button>
-            ) : null,
-          })}
+          {controls.presets?.onReset ? (
+            <button
+              type="button"
+              className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset"
+              onClick={controls.presets.onReset}
+            >
+              Reset
+            </button>
+          ) : null}
         </>
       ),
     })

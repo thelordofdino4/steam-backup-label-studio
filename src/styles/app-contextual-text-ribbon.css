@@ -1018,8 +1018,7 @@
 }
 
 .contextual-text-ribbon-control-row--presets
-  .contextual-text-ribbon-group--reset
-  .contextual-text-ribbon-command-button {
+  .contextual-text-ribbon-command-button--preset-reset {
   min-width: 52px;
 }
 
