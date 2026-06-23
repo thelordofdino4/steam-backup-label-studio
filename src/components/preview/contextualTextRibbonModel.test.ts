@@ -1111,6 +1111,14 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
+    /const layoutOptionControls =[\s\S]*controls\.utilities\?\.respectVisualElements[\s\S]*contextual-text-ribbon-control-stack--utility-layout-options[\s\S]*renderInlinePreviewTextCheckboxControl\(\s*controls\.utilities\?\.respectVisualElements/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'layout'[\s\S]*\{layoutRangeControls\}[\s\S]*\{layoutOptionControls\}/,
+  )
+  assert.match(
+    editorSource,
     /id:\s*'reset'[\s\S]*label:\s*'Reset'[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Layout\s*<\/button>/,
   )
   assert.match(
