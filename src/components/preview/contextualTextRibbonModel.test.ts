@@ -694,7 +694,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.fit, 'content')
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.paragraph.fit, 'content')
   assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.min > 319)
-  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max < 420)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max <= 460)
   assert.ok(
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.paragraph.max
       < CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max,
@@ -715,7 +715,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     editorSource,
     /data-smoke-id=\{`inline-text-number-options-\$\{token\}`\}/,
   )
-  assert.match(editorSource, /<span className="contextual-text-ribbon-control-label">\s*PT\s*<\/span>/)
+  assert.match(editorSource, /<span className="contextual-text-ribbon-control-label">\s*POINTS\s*<\/span>/)
+  assert.match(
+    editorSource,
+    /renderInlinePreviewTextSelectControl\(\s*controls\.text\?\.fontFamily,\s*selection,\s*'STYLES'/,
+  )
   assert.match(editorSource, /onPointerDown=\{stopInlineTextEditorPointer\}/)
   assert.doesNotMatch(
     editorSource,
@@ -784,7 +788,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*20px[\s\S]*minmax\(0,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*12ch\)\)[\s\S]*48px[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*max-content[\s\S]*minmax\(0,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*12ch\)\)[\s\S]*48px[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,
@@ -840,7 +844,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-control-label\s*\{[\s\S]*clip-path:\s*none/,
+    /\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-select-control[\s\S]*\.contextual-text-ribbon-control-label,[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-control-label\s*\{[\s\S]*clip-path:\s*none/,
   )
   assert.match(
     ribbonCss,

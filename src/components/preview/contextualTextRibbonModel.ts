@@ -79,7 +79,7 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
 > = {
   'style': { min: 148, preferred: 184, max: 220, grows: true },
   'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
-  'font': { min: 320, preferred: 348, max: 388, fit: 'content' },
+  'font': { min: 388, preferred: 410, max: 460, fit: 'content' },
   'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
   'text-color': { min: 108, preferred: 138, max: 160, grows: true },
   'contrast': { min: 108, preferred: 176, max: 220, grows: true },

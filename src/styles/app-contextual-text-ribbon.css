@@ -371,7 +371,7 @@
   .contextual-text-ribbon-control-stack--font-fields {
   display: grid;
   grid-template-columns:
-    20px
+    max-content
     minmax(0, var(--contextual-text-ribbon-stacked-field-width, 12ch))
     48px;
   grid-template-rows: repeat(2, 24px);
@@ -567,6 +567,10 @@
   min-width: 24px;
 }
 
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label,
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-point-size-control

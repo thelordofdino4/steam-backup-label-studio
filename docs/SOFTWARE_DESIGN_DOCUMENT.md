@@ -583,10 +583,14 @@ Ribbon placement and layout:
   from the widest supported alignment label, not from leftover card width.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
-  `docs/TEXT_EDITOR_CONTRACT.md`: unit label outside the field, value left of
-  the chevron inside one shared bordered field, no nested chevron box, matching
-  field height, and matching chevron-to-right-border spacing verified from a
-  native Tauri screenshot when visual parity is in question.
+  `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,
+  value left of the chevron inside one shared bordered field, no nested
+  chevron box, matching field height, and matching chevron-to-right-border
+  spacing verified from a native Tauri screenshot when visual parity is in
+  question.
+- Text > Font uses a stacked label column with `STYLES` beside the font-family
+  dropdown and `POINTS` beside the point-size dropdown so the two fields remain
+  aligned.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

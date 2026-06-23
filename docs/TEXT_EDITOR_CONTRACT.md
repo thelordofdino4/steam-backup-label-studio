@@ -106,10 +106,15 @@ tested, and the remaining divergences are recorded.
   sizes from the widest supported alignment label plus the dropdown affordance,
   not from the available card width.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
-  behave as one native ribbon dropdown field. The external unit label, for
-  example `PT`, sits outside the bordered field on the left. Inside the field,
-  the editable/current value sits to the left and the chevron sits to the right.
-  The chevron must not be rendered as a separate bordered button or nested box.
+  behave as one native ribbon dropdown field. The external unit label for the
+  point-size field is `POINTS`, and it sits outside the bordered field on the
+  left. Inside the field, the editable/current value sits to the left and the
+  chevron sits to the right. The chevron must not be rendered as a separate
+  bordered button or nested box.
+- Text > Font uses `STYLES` as the visible row label for the font-family
+  dropdown and `POINTS` as the visible row label for the point-size dropdown.
+  Both labels live in the same stacked label column so the two dropdown fields
+  stay aligned.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

@@ -455,6 +455,7 @@ function isPointerInInlineTextEdgeGrabBand({
 function renderInlinePreviewTextSelectControl(
   control: InlinePreviewTextEditorSelectControl | undefined,
   selection: InlinePreviewTextEditorSelectionRange,
+  displayLabel = control?.label,
 ) {
   if (!control) return null
 
@@ -467,7 +468,7 @@ function renderInlinePreviewTextSelectControl(
   return (
     <label className="contextual-text-ribbon-control contextual-text-ribbon-select-control">
       <span className="contextual-text-ribbon-control-label">
-        {control.label}
+        {displayLabel}
       </span>
       <select
         data-smoke-id={`inline-text-select-${getInlineTextSmokeToken(control.label)}`}
@@ -845,7 +846,7 @@ function InlinePreviewTextNumberSelectControl({
   return (
     <label className="contextual-text-ribbon-control contextual-text-ribbon-point-size-control inline-preview-text-number-select-field">
       <span className="contextual-text-ribbon-control-label">
-        PT
+        POINTS
       </span>
       <span className="contextual-text-ribbon-point-size inline-preview-text-number-select">
         <input
@@ -1464,6 +1465,7 @@ function InlinePreviewTextEditorMenuContent({
     const fontFamilyControl = renderInlinePreviewTextSelectControl(
       controls.text?.fontFamily,
       selection,
+      'STYLES',
     )
     const fontSizeControl = renderInlinePreviewTextSizeControl(
       controls.text?.size,
