@@ -124,10 +124,9 @@ tested, and the remaining divergences are recorded.
   available for accessibility but must not appear as redundant visible text
   such as `Style Style preset` or `Layout Layout preset`.
 - The Presets `Reset` group is a command group, not another dropdown. Its
-  visible button label should name the target being reset, such as `Style`,
-  while the accessible name preserves the full command, such as `Reset style
-  preset`. This avoids a visible `Reset Reset` label while keeping screen
-  reader and test output explicit.
+  reset action should be a simple button visibly labeled `Reset`; do not add a
+  secondary visible target label, icon-only substitute, or alternate command
+  wording unless the reset behavior later becomes ambiguous.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label for the
   point-size field is `POINTS`, and it sits outside the bordered field on the

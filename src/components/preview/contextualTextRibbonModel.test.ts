@@ -451,7 +451,11 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
   )
   assert.match(
     editorSource,
-    /aria-label="Reset style preset"[\s\S]*>\s*Style\s*<\/button>/,
+    /className="contextual-text-ribbon-command-button"[\s\S]*onClick=\{controls\.presets\.onReset\}[\s\S]*>\s*Reset\s*<\/button>/,
+  )
+  assert.doesNotMatch(
+    editorSource,
+    /aria-label="Reset style preset"/,
   )
   assert.match(
     ribbonCss,

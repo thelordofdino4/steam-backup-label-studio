@@ -1451,10 +1451,9 @@ function InlinePreviewTextEditorMenuContent({
               <button
                 type="button"
                 className="contextual-text-ribbon-command-button"
-                aria-label="Reset style preset"
                 onClick={controls.presets.onReset}
               >
-                Style
+                Reset
               </button>
             ) : null,
           })}
