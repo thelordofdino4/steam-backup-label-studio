@@ -437,7 +437,7 @@
 
 .contextual-text-ribbon-group--artistic-feature {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto;
   align-items: stretch;
   width: var(--contextual-text-ribbon-column-width, clamp(
     var(--contextual-text-ribbon-group-min-width),
@@ -452,7 +452,8 @@
   min-height: calc(
     var(--contextual-text-ribbon-control-row-height) * 2 + 3px
   );
-  overflow: hidden;
+  align-self: start;
+  overflow: visible;
   padding: 3px 5px;
 }
 

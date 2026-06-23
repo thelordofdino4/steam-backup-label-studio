@@ -513,7 +513,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--artistic-feature\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/,
+    /\.contextual-text-ribbon-group--artistic-feature\s*\{[\s\S]*grid-template-rows:\s*auto auto/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--artistic-feature\s*\{[\s\S]*align-self:\s*start[\s\S]*overflow:\s*visible/,
   )
   assert.match(
     ribbonCss,
