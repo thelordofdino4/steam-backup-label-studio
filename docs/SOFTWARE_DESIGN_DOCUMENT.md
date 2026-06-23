@@ -588,6 +588,14 @@ Ribbon placement and layout:
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.
+- The Presets tab is modeled as native semantic cards: `Style`, `Layout`, and
+  `Reset`. Style and Layout are matched one-row dropdown cards that stack in
+  the same column when both are available; their width is calculated from the
+  complete card contents, not only from the select element. The visible card
+  title is the purpose label, so inner select labels remain accessibility
+  labels and must not duplicate the card title in visible text. Reset is a
+  command card whose button names the target being reset rather than repeating
+  the group title.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,

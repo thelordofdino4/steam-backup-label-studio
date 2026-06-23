@@ -116,6 +116,18 @@ tested, and the remaining divergences are recorded.
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,
   not from the available card width.
+- The Presets tab uses three semantic groups: `Style`, `Layout`, and `Reset`.
+  `Style` and `Layout` are one-row dropdown cards stacked in the same column
+  when both are available, and the column width must reserve the full bordered
+  card contents: title, divider, padding, dropdown field, and chevron. The
+  group title is the visible purpose label; the inner select label remains
+  available for accessibility but must not appear as redundant visible text
+  such as `Style Style preset` or `Layout Layout preset`.
+- The Presets `Reset` group is a command group, not another dropdown. Its
+  visible button label should name the target being reset, such as `Style`,
+  while the accessible name preserves the full command, such as `Reset style
+  preset`. This avoids a visible `Reset Reset` label while keeping screen
+  reader and test output explicit.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label for the
   point-size field is `POINTS`, and it sits outside the bordered field on the

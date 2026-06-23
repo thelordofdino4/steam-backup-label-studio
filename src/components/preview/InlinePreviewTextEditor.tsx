@@ -1421,6 +1421,7 @@ function InlinePreviewTextEditorMenuContent({
 
   if (activeTab === 'presets') {
     return renderContextualTextRibbonRow({
+      className: 'contextual-text-ribbon-control-row--presets',
       emptyLabel: 'Style presets unavailable',
       children: (
         <>
@@ -1450,9 +1451,10 @@ function InlinePreviewTextEditorMenuContent({
               <button
                 type="button"
                 className="contextual-text-ribbon-command-button"
+                aria-label="Reset style preset"
                 onClick={controls.presets.onReset}
               >
-                Reset
+                Style
               </button>
             ) : null,
           })}

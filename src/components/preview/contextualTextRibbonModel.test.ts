@@ -395,6 +395,78 @@ test('contextual text ribbon dense text groups remain content fitted', () => {
   )
 })
 
+test('contextual text ribbon presets tab uses stable semantic cards', () => {
+  const styleProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.style
+  const layoutProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-preset']
+  const resetProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.reset
+  const packed = packContextualTextRibbonColumns({
+    rowCount: 2,
+    items: [
+      { id: 'style', payload: 'style', profile: styleProfile },
+      { id: 'layout-preset', payload: 'layout', profile: layoutProfile },
+      { id: 'reset', payload: 'reset', profile: resetProfile },
+    ],
+  })
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+
+  assert.equal(styleProfile.fit, 'content')
+  assert.equal(layoutProfile.fit, 'content')
+  assert.equal(styleProfile.min, layoutProfile.min)
+  assert.equal(styleProfile.preferred, layoutProfile.preferred)
+  assert.equal(styleProfile.max, layoutProfile.max)
+  assert.ok(
+    styleProfile.min >= 214,
+    'preset cards must reserve title, divider, padding, and dropdown width',
+  )
+  assert.deepEqual(
+    packed.map((column) => column.items.map((item) => ({
+      id: item.id,
+      rowSpan: item.rowSpan,
+      rowStart: item.rowStart,
+    }))),
+    [
+      [
+        { id: 'style', rowSpan: 1, rowStart: 1 },
+        { id: 'layout-preset', rowSpan: 1, rowStart: 2 },
+      ],
+      [
+        { id: 'reset', rowSpan: 1, rowStart: 1 },
+      ],
+    ],
+  )
+  assert.match(
+    editorSource,
+    /className:\s*'contextual-text-ribbon-control-row--presets'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'style'[\s\S]*label:\s*'Style'[\s\S]*className:\s*'contextual-text-ribbon-group--preset-style'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'[\s\S]*className:\s*'contextual-text-ribbon-group--preset-layout'/,
+  )
+  assert.match(
+    editorSource,
+    /aria-label="Reset style preset"[\s\S]*>\s*Style\s*<\/button>/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--presets\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*auto[\s\S]*overflow-y:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-style,[\s\S]*\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-layout\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*width:\s*var\(--contextual-text-ribbon-column-width/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-style[\s\S]*\.contextual-text-ribbon-select-control select,[\s\S]*\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-group--preset-layout[\s\S]*\.contextual-text-ribbon-select-control select\s*\{[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%/,
+  )
+})
+
 test('contextual text ribbon reuses the shared contextual tab registry', () => {
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_TABS, [
     { id: 'presets', label: 'Style Presets' },

@@ -77,8 +77,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   string,
   ContextualTextRibbonWidthProfile
 > = {
-  'style': { min: 148, preferred: 184, max: 220, grows: true },
-  'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
+  'style': { min: 214, preferred: 230, max: 260, fit: 'content' },
+  'layout-preset': { min: 214, preferred: 230, max: 260, fit: 'content' },
   'font': { min: 342, preferred: 360, max: 408, fit: 'content' },
   'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
   'text-color': { min: 108, preferred: 138, max: 160, grows: true },
