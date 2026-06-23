@@ -187,6 +187,16 @@
   scrollbar-width: thin;
 }
 
+.contextual-text-ribbon-control-row--utilities {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
 .contextual-text-ribbon-control-row::-webkit-scrollbar {
   width: 0;
   height: var(--contextual-text-ribbon-horizontal-scrollbar-height);
@@ -760,6 +770,166 @@
 .contextual-text-ribbon-group--layout,
 .contextual-text-ribbon-group--position {
   width: var(--contextual-text-ribbon-column-width, max-content);
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--position,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--layout {
+  container-type: inline-size;
+  align-items: stretch;
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--position
+  .contextual-text-ribbon-group-body,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--layout
+  .contextual-text-ribbon-group-body {
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+}
+
+.contextual-text-ribbon-control-stack--utility-position,
+.contextual-text-ribbon-control-stack--utility-layout-ranges,
+.contextual-text-ribbon-control-stack--utility-layout-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-stack--utility-position,
+.contextual-text-ribbon-control-stack--utility-layout-ranges {
+  flex: 1 1 auto;
+}
+
+.contextual-text-ribbon-control-stack--utility-layout-options {
+  flex: 0 0 min(154px, 38cqw);
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control {
+  display: grid;
+  grid-template-columns:
+    minmax(42px, 0.64fr)
+    minmax(68px, 1fr)
+    minmax(46px, max-content)
+    max-content;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  input[type="range"] {
+  width: 100%;
+  min-width: 68px;
+  max-width: none;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  input[type="number"] {
+  width: 46px;
+  min-width: 46px;
+  padding-inline: 3px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control {
+  display: grid;
+  grid-template-columns: minmax(42px, max-content) minmax(74px, 1fr);
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 58px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control
+  select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-toggle-check {
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-toggle-check
+  span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .contextual-text-ribbon-group--backplate,
@@ -1502,11 +1672,6 @@
     padding-inline: 1px;
   }
 
-  .contextual-text-ribbon-group--layout,
-  .contextual-text-ribbon-group--position {
-    width: max-content;
-  }
-
   .contextual-text-ribbon-group--font {
     padding-inline: 3px;
     width: var(--contextual-text-ribbon-column-width, max-content);
@@ -1548,17 +1713,35 @@
     min-width: 0;
   }
 
-  .contextual-text-ribbon-group--layout .contextual-text-ribbon-control input[type="range"],
-  .contextual-text-ribbon-group--position .contextual-text-ribbon-control input[type="range"] {
-    width: 64px;
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control {
+    grid-template-columns:
+      minmax(36px, 0.56fr)
+      minmax(54px, 1fr)
+      minmax(42px, max-content)
+      max-content;
   }
 
-  .contextual-text-ribbon-group--layout .contextual-text-ribbon-control input[type="number"],
-  .contextual-text-ribbon-group--position .contextual-text-ribbon-control input[type="number"] {
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control
+    input[type="range"] {
+    min-width: 54px;
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control
+    input[type="number"] {
     width: 44px;
+    min-width: 44px;
   }
 
-  .contextual-text-ribbon-group--layout .contextual-text-ribbon-toggle-check span {
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-select-control {
+    grid-template-columns: minmax(36px, max-content) minmax(62px, 1fr);
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-toggle-check span {
     display: inline-block;
     max-width: 50px;
     overflow: hidden;
@@ -1606,8 +1789,7 @@
     font-size: 11px;
   }
 
-  .contextual-text-ribbon-group--source-expanded,
-  .contextual-text-ribbon-group--layout {
+  .contextual-text-ribbon-group--source-expanded {
     width: min(300px, 100cqw);
     min-width: min(260px, 100cqw);
   }

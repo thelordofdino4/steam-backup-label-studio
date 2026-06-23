@@ -98,8 +98,20 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     rowSpan: 2,
   },
   'source': { min: 420, preferred: 720, max: 960, grows: true },
-  'position': { min: 250, preferred: 320, max: 400, grows: true },
-  'layout': { min: 320, preferred: 470, max: 560, grows: true },
+  'position': {
+    min: 230,
+    preferred: 292,
+    max: 360,
+    grows: true,
+    rowSpan: 2,
+  },
+  'layout': {
+    min: 360,
+    preferred: 504,
+    max: 620,
+    grows: true,
+    rowSpan: 2,
+  },
   'reset': { min: 76, preferred: 86, max: 96 },
 }
 

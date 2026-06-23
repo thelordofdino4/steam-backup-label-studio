@@ -617,6 +617,12 @@ Ribbon placement and layout:
   Paragraph box's right edge, not by a hardcoded pixel offset. That command
   column is the extension point for future paragraph actions, so spacing must
   be relative to the column rather than tuned to today's single button.
+- The Utilities tab follows the same semantic-card model. Position controls
+  are grouped as a two-row X/Y field card. Layout controls are grouped as a
+  two-row card with measurement controls and option controls kept in separate
+  internal columns. HTML source remains in the dedicated `HTML` tab, and
+  Utilities must not render empty placeholder cards for unavailable source or
+  unsupported target-specific controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

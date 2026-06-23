@@ -1045,6 +1045,96 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.doesNotMatch(featureToggleSource, /<span>\{control\.label\}<\/span>/)
 })
 
+test('contextual text ribbon utilities tab uses semantic native cards', () => {
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+  const packed = packContextualTextRibbonColumns({
+    rowCount: 2,
+    items: [
+      {
+        id: 'position',
+        payload: null,
+        profile: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.position,
+      },
+      {
+        id: 'layout',
+        payload: null,
+        profile: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout,
+      },
+      {
+        id: 'reset',
+        payload: null,
+        profile: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.reset,
+      },
+    ],
+  })
+
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.position.rowSpan, 2)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.rowSpan, 2)
+  assert.deepEqual(
+    packed.map((column) => column.items.map((item) => ({
+      id: item.id,
+      rowSpan: item.rowSpan,
+      rowStart: item.rowStart,
+    }))),
+    [
+      [{ id: 'position', rowSpan: 2, rowStart: 1 }],
+      [{ id: 'layout', rowSpan: 2, rowStart: 1 }],
+      [{ id: 'reset', rowSpan: 1, rowStart: 1 }],
+    ],
+  )
+  assert.match(
+    editorSource,
+    /className:\s*'contextual-text-ribbon-control-row--utilities'/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-position/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-ranges/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'position'[\s\S]*label:\s*'Position'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'layout'[\s\S]*label:\s*'Layout'/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'reset'[\s\S]*label:\s*'Reset'[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Layout\s*<\/button>/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*auto[\s\S]*overflow-y:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--position,[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--layout\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*align-items:\s*stretch[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-position,[\s\S]*\.contextual-text-ribbon-control-stack--utility-layout-ranges,[\s\S]*\.contextual-text-ribbon-control-stack--utility-layout-options\s*\{[\s\S]*flex-direction:\s*column/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-layout-options\s*\{[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:/,
+  )
+})
+
 test('contextual text ribbon preserves manual scroll ownership', () => {
   const editorSource = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',

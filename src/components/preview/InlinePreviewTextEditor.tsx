@@ -1714,7 +1714,61 @@ function InlinePreviewTextEditorMenuContent({
     })
   }
 
+  const positionControls =
+    controls.utilities?.x ||
+    controls.utilities?.y
+      ? (
+        <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-position">
+          {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
+          {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
+        </span>
+      )
+      : null
+  const layoutRangeControls =
+    controls.utilities?.width ||
+    controls.utilities?.lineSpacing ||
+    controls.utilities?.arcDegrees
+      ? (
+        <span
+          aria-label="Layout measurements"
+          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-ranges"
+        >
+          {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
+          {renderInlinePreviewTextRangeControl(
+            controls.utilities?.lineSpacing,
+          )}
+          {renderInlinePreviewTextRangeControl(
+            controls.utilities?.arcDegrees,
+          )}
+        </span>
+      )
+      : null
+  const layoutOptionControls =
+    controls.utilities?.mode ||
+    controls.utilities?.arcSide ||
+    controls.utilities?.respectVisualElements
+      ? (
+        <span
+          aria-label="Layout options"
+          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options"
+        >
+          {renderInlinePreviewTextSelectControl(
+            controls.utilities?.mode,
+            selection,
+          )}
+          {renderInlinePreviewTextSelectControl(
+            controls.utilities?.arcSide,
+            selection,
+          )}
+          {renderInlinePreviewTextCheckboxControl(
+            controls.utilities?.respectVisualElements,
+          )}
+        </span>
+      )
+      : null
+
   return renderContextualTextRibbonRow({
+    className: 'contextual-text-ribbon-control-row--utilities',
     emptyLabel: 'Utility controls unavailable',
     children: (
       <>
@@ -1722,36 +1776,15 @@ function InlinePreviewTextEditorMenuContent({
           id: 'position',
           label: 'Position',
           className: 'contextual-text-ribbon-group--position',
-          children: (
-            <>
-              {renderInlinePreviewTextRangeControl(controls.utilities?.x)}
-              {renderInlinePreviewTextRangeControl(controls.utilities?.y)}
-            </>
-          ),
+          children: positionControls,
         })}
         {renderContextualTextRibbonGroup({
           id: 'layout',
           label: 'Layout',
           children: (
             <>
-              {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
-              {renderInlinePreviewTextCheckboxControl(
-                controls.utilities?.respectVisualElements,
-              )}
-              {renderInlinePreviewTextSelectControl(
-                controls.utilities?.mode,
-                selection,
-              )}
-              {renderInlinePreviewTextRangeControl(
-                controls.utilities?.lineSpacing,
-              )}
-              {renderInlinePreviewTextSelectControl(
-                controls.utilities?.arcSide,
-                selection,
-              )}
-              {renderInlinePreviewTextRangeControl(
-                controls.utilities?.arcDegrees,
-              )}
+              {layoutRangeControls}
+              {layoutOptionControls}
             </>
           ),
         })}
@@ -1764,8 +1797,9 @@ function InlinePreviewTextEditorMenuContent({
               type="button"
               className="contextual-text-ribbon-command-button"
               onClick={controls.utilities.resetLayout}
+              aria-label="Reset layout"
             >
-              Reset
+              Layout
             </button>
           ) : null,
         })}

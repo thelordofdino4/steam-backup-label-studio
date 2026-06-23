@@ -533,7 +533,10 @@ Edit/interaction path:
   in one column must match the widest box in that column. Column-first packing
   fills available lower fixed-row slots before opening a new column; a later
   one-row box must not move to the next column while usable space remains below
-  the previous one-row box. The ribbon must not take ownership of text
+  the previous one-row box. Utilities uses this same ownership split: Position
+  and Layout render as semantic cards in the ribbon, while their values and
+  handlers remain owned by the active case/disc adapter. The ribbon must not
+  take ownership of text
   rendering, layout, save/load, export, source resolution, or surface-specific
   geometry.
 - The ribbon host also owns the app-shell reservation that the toast container
