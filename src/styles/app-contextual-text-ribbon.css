@@ -340,11 +340,14 @@
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-group-body {
   display: grid;
-  grid-template-columns: minmax(166px, 1fr) max-content;
+  grid-template-columns: max-content max-content;
   align-items: stretch;
+  justify-content: start;
   gap: 4px;
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 0 0 auto;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -448,6 +451,8 @@
   align-content: center;
   align-items: center;
   gap: 3px;
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .contextual-text-ribbon-control-row--text
@@ -478,11 +483,14 @@
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-group-body {
   display: grid;
-  grid-template-columns: minmax(118px, 1fr) max-content;
+  grid-template-columns: max-content max-content;
   align-items: stretch;
+  justify-content: start;
   gap: 4px;
-  flex: 1 1 auto;
-  width: 100%;
+  flex: 0 0 auto;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -521,7 +529,14 @@
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-icon-button {
-  justify-self: end;
+  justify-self: start;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster--paragraph {
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
 }
 
 .contextual-text-ribbon-control-row--text
@@ -1359,8 +1374,10 @@
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
-    grid-template-columns: minmax(146px, 1fr) max-content;
-    width: 100%;
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+    width: max-content;
+    max-width: 100%;
     gap: 3px;
   }
 
@@ -1563,7 +1580,7 @@
   .contextual-text-ribbon-control-row--text
     .contextual-text-ribbon-group--font
     .contextual-text-ribbon-group-body {
-    grid-template-columns: minmax(34px, 1fr) max-content;
+    grid-template-columns: max-content max-content;
     justify-content: start;
   }
 

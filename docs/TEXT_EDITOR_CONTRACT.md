@@ -77,6 +77,11 @@ tested, and the remaining divergences are recorded.
   Artistic > Background and Border, may use the separate header-checkbox plus
   mounted-dependent-field pattern instead, but they must still preserve stable
   internal geometry.
+- Dense group command columns must remain visually associated with their field
+  column. Use the same vertical divider language as the box title/function
+  separator between the field column and companion buttons, and place the
+  buttons adjacent to that divider. Buttons must not drift to the far edge of
+  unused ribbon/card space.
 - Comparable stacked input/select boxes inside the same semantic group must
   share the same visual field dimensions. Their shared target field width is
   derived from the widest reasonable enterable or selectable value in that

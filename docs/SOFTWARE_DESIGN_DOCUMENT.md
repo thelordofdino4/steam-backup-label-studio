@@ -560,6 +560,10 @@ Ribbon placement and layout:
   into one long row. Enabled feature boxes such as Artistic > Background and
   Border keep their separate header-checkbox plus stable dependent-field
   hierarchy.
+- Dense command columns stay adjacent to their field column and use the same
+  vertical divider language as the semantic-box label/function separator.
+  Command buttons must not drift to the far edge of unused ribbon or card
+  space.
 - Comparable stacked input/select fields in one semantic group share matched
   visual dimensions. The shared target field width is based on the widest
   reasonable selectable or enterable value for that group rather than the

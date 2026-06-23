@@ -761,7 +761,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(166px,\s*1fr\) max-content[\s\S]*flex:\s*1 1 auto[\s\S]*width:\s*100%/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*max-content max-content[\s\S]*justify-content:\s*start[\s\S]*flex:\s*0 0 auto[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,
@@ -793,11 +793,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-button-cluster--emphasis\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*24px\)/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-button-cluster--emphasis\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*24px\)[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(118px,\s*1fr\) max-content[\s\S]*flex:\s*1 1 auto[\s\S]*width:\s*100%/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*max-content max-content[\s\S]*justify-content:\s*start[\s\S]*flex:\s*0 0 auto[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,
@@ -809,7 +809,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /@container \(max-width: 319px\)[\s\S]*\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(34px,\s*1fr\) max-content[\s\S]*\.contextual-text-ribbon-select-control select[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-button-cluster--paragraph\s*\{[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 319px\)[\s\S]*\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*max-content max-content[\s\S]*\.contextual-text-ribbon-select-control select[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
   )
   assert.match(
     ribbonCss,
