@@ -1434,6 +1434,85 @@ function InlinePreviewTextEditorMenuContent({
   }
 
   if (activeTab === 'text') {
+    const fontFamilyControl = renderInlinePreviewTextSelectControl(
+      controls.text?.fontFamily,
+      selection,
+    )
+    const fontSizeControl = renderInlinePreviewTextSizeControl(
+      controls.text?.size,
+      selection,
+    )
+    const boldControl = renderInlinePreviewTextToggleControl(
+      controls.text?.bold,
+      selection,
+      getCommandSelection,
+      onSelectionChange,
+    )
+    const italicControl = renderInlinePreviewTextToggleControl(
+      controls.text?.italic,
+      selection,
+      getCommandSelection,
+      onSelectionChange,
+    )
+    const underlineControl = renderInlinePreviewTextToggleControl(
+      controls.text?.underline,
+      selection,
+      getCommandSelection,
+      onSelectionChange,
+    )
+    const alignmentControl = renderInlinePreviewTextSelectControl(
+      controls.text?.alignment,
+      selection,
+    )
+    const bulletedListControl = renderInlinePreviewTextToggleControl(
+      controls.text?.bulletedList,
+      selection,
+      getCommandSelection,
+      onSelectionChange,
+    )
+    const fontFieldControls =
+      isRenderableRibbonNode(fontFamilyControl) ||
+      isRenderableRibbonNode(fontSizeControl)
+        ? (
+          <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--font-fields">
+            {fontFamilyControl}
+            {fontSizeControl}
+          </span>
+        )
+        : null
+    const emphasisControls =
+      isRenderableRibbonNode(boldControl) ||
+      isRenderableRibbonNode(italicControl) ||
+      isRenderableRibbonNode(underlineControl)
+        ? (
+          <span
+            aria-label="Text emphasis"
+            className="contextual-text-ribbon-button-cluster contextual-text-ribbon-button-cluster--emphasis"
+          >
+            {boldControl}
+            {italicControl}
+            {underlineControl}
+          </span>
+        )
+        : null
+    const paragraphFieldControls = isRenderableRibbonNode(alignmentControl)
+      ? (
+        <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--paragraph-fields">
+          {alignmentControl}
+        </span>
+      )
+      : null
+    const paragraphCommandControls = isRenderableRibbonNode(bulletedListControl)
+      ? (
+        <span
+          aria-label="Paragraph commands"
+          className="contextual-text-ribbon-button-cluster contextual-text-ribbon-button-cluster--paragraph"
+        >
+          {bulletedListControl}
+        </span>
+      )
+      : null
+
     return renderContextualTextRibbonRow({
       className: 'contextual-text-ribbon-control-row--text',
       emptyLabel: 'Text controls unavailable',
@@ -1444,32 +1523,8 @@ function InlinePreviewTextEditorMenuContent({
             label: 'Font',
             children: (
               <>
-                {renderInlinePreviewTextSelectControl(
-                  controls.text?.fontFamily,
-                  selection,
-                )}
-                {renderInlinePreviewTextSizeControl(
-                  controls.text?.size,
-                  selection,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.bold,
-                  selection,
-                  getCommandSelection,
-                  onSelectionChange,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.italic,
-                  selection,
-                  getCommandSelection,
-                  onSelectionChange,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.underline,
-                  selection,
-                  getCommandSelection,
-                  onSelectionChange,
-                )}
+                {fontFieldControls}
+                {emphasisControls}
               </>
             ),
           })}
@@ -1478,16 +1533,8 @@ function InlinePreviewTextEditorMenuContent({
             label: 'Paragraph',
             children: (
               <>
-                {renderInlinePreviewTextSelectControl(
-                  controls.text?.alignment,
-                  selection,
-                )}
-                {renderInlinePreviewTextToggleControl(
-                  controls.text?.bulletedList,
-                  selection,
-                  getCommandSelection,
-                  onSelectionChange,
-                )}
+                {paragraphFieldControls}
+                {paragraphCommandControls}
               </>
             ),
           })}

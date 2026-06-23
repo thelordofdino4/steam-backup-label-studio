@@ -340,15 +340,47 @@
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-group-body {
   display: grid;
-  grid-template-columns:
-    minmax(34px, 1fr)
-    auto
-    repeat(3, 24px);
+  grid-template-columns: minmax(166px, 1fr) max-content;
+  align-items: stretch;
+  gap: 4px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster {
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields {
+  display: grid;
+  grid-template-rows: repeat(2, 24px);
+  align-content: center;
   align-items: center;
   gap: 3px;
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster--emphasis {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  align-content: center;
+  align-items: center;
+  gap: 3px;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -357,14 +389,8 @@
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-point-size-control {
-  width: max-content;
-  max-width: none;
-}
-
-.contextual-text-ribbon-control-row--text
-  .contextual-text-ribbon-group--font
-  .contextual-text-ribbon-select-control {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
 }
 
@@ -385,12 +411,25 @@
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-group-body {
   display: grid;
-  grid-template-columns: minmax(104px, 1fr) 24px;
+  grid-template-columns: minmax(118px, 1fr) max-content;
+  align-items: stretch;
+  gap: 4px;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster--paragraph {
+  display: grid;
+  grid-template-rows: 24px;
+  align-content: center;
   align-items: center;
   gap: 3px;
-  flex: 1 1 auto;
-  width: auto;
-  min-width: 0;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -405,7 +444,6 @@
   .contextual-text-ribbon-group--paragraph
   .contextual-text-ribbon-icon-button {
   justify-self: end;
-  flex-basis: 24px;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -419,7 +457,8 @@
 .contextual-text-ribbon-control-row--text
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-icon-button {
-  flex-basis: 24px;
+  width: 24px;
+  min-width: 24px;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -1242,12 +1281,9 @@
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
-    grid-template-columns:
-      minmax(80px, 1fr)
-      auto
-      repeat(3, 24px);
+    grid-template-columns: minmax(146px, 1fr) max-content;
     width: 100%;
-    gap: 1px;
+    gap: 3px;
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
@@ -1271,10 +1307,6 @@
   .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size {
     grid-template-columns: minmax(0, 1fr) 24px;
     width: 78px;
-  }
-
-  .contextual-text-ribbon-group--font .contextual-text-ribbon-icon-button:nth-child(3) {
-    margin-left: 0;
   }
 
   .contextual-text-ribbon-group--layout .contextual-text-ribbon-control input[type="range"],
@@ -1454,14 +1486,11 @@
   }
 }
 
-@container (max-width: 439px) {
+@container (max-width: 319px) {
   .contextual-text-ribbon-control-row--text
     .contextual-text-ribbon-group--font
     .contextual-text-ribbon-group-body {
-    grid-template-columns:
-      34px
-      auto
-      repeat(3, 24px);
+    grid-template-columns: minmax(34px, 1fr) max-content;
     justify-content: start;
   }
 

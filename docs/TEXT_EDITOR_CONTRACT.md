@@ -68,6 +68,15 @@ tested, and the remaining divergences are recorded.
   jump to the next column. A two-row/tall box may start a new column only when
   it cannot fit in the remaining row space. This rule replaces looser
   interpretations that balance boxes across columns or fill the top row first.
+- Dense semantic boxes with several independent controls must use an internal
+  hierarchy before any label hiding, icon-only fallback, or horizontal
+  compression. Primary fields and dropdowns should stack in a field column;
+  secondary command buttons, toggles, or steppers should occupy a companion
+  command column. Do not render dense groups such as Text > Font or Text >
+  Paragraph as one long row. Feature boxes with enablement state, such as
+  Artistic > Background and Border, may use the separate header-checkbox plus
+  mounted-dependent-field pattern instead, but they must still preserve stable
+  internal geometry.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label, for
   example `PT`, sits outside the bordered field on the left. Inside the field,

@@ -553,6 +553,13 @@ Ribbon placement and layout:
   column only when they cannot fit in the remaining row space. This supersedes
   any layout that balances boxes across columns or fills every top-row slot
   before using the second row.
+- Dense semantic boxes with multiple independent controls use internal columns
+  before labels or values are hidden. Primary fields and dropdowns stack in a
+  field column; secondary command buttons, toggles, or steppers sit in a
+  companion command column. Text > Font and Text > Paragraph must not collapse
+  into one long row. Enabled feature boxes such as Artistic > Background and
+  Border keep their separate header-checkbox plus stable dependent-field
+  hierarchy.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: unit label outside the field, value left of
