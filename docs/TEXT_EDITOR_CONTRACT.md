@@ -77,6 +77,17 @@ tested, and the remaining divergences are recorded.
   Artistic > Background and Border, may use the separate header-checkbox plus
   mounted-dependent-field pattern instead, but they must still preserve stable
   internal geometry.
+- Comparable stacked input/select boxes inside the same semantic group must
+  share the same visual field dimensions. Their shared target field width is
+  derived from the widest reasonable enterable or selectable value in that
+  group, not from the currently selected value. For example, Text > Font must
+  size its font-family and point-size fields from the longest supported normal
+  font label plus the point-size field contract. Very long future labels may
+  be capped with ellipsis or an icon-only fallback only after this matched
+  field width has reached the group's documented maximum useful width. Matched
+  stacked fields must not expand just because the card has extra horizontal
+  slack unless a group-specific contract says that field is intentionally
+  flexible.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label, for
   example `PT`, sits outside the bordered field on the left. Inside the field,

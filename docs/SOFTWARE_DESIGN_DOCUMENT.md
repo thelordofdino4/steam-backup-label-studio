@@ -560,6 +560,13 @@ Ribbon placement and layout:
   into one long row. Enabled feature boxes such as Artistic > Background and
   Border keep their separate header-checkbox plus stable dependent-field
   hierarchy.
+- Comparable stacked input/select fields in one semantic group share matched
+  visual dimensions. The shared target field width is based on the widest
+  reasonable selectable or enterable value for that group rather than the
+  current value; long future labels may be capped only after the group reaches
+  its maximum useful width. These fields should not stretch beyond that target
+  merely because the card has spare horizontal space unless the group has an
+  explicit flexible-field contract.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: unit label outside the field, value left of

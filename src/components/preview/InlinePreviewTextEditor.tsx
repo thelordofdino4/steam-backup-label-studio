@@ -182,6 +182,9 @@ function getInlineTextSelectionStateFromRange(
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 const INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX = 8
 const INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX = 2
+const CONTEXTUAL_TEXT_RIBBON_FIELD_MIN_CH = 12
+const CONTEXTUAL_TEXT_RIBBON_FIELD_MAX_CH = 18
+const CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH = 2
 const CONTEXTUAL_TEXT_RIBBON_ROW_SELECTOR =
   '.contextual-text-ribbon-control-row'
 const CONTEXTUAL_TEXT_RIBBON_SCROLL_ITEM_SELECTOR =
@@ -484,6 +487,27 @@ function renderInlinePreviewTextSelectControl(
         ))}
       </select>
     </label>
+  )
+}
+
+function getContextualTextRibbonMatchedFieldWidthCh(
+  controls: Array<InlinePreviewTextEditorSelectControl | undefined>,
+) {
+  const widestLabelLength = controls.reduce((maxLength, control) => {
+    if (!control) return maxLength
+
+    return Math.max(
+      maxLength,
+      ...control.options.map((option) => option.label.length),
+    )
+  }, 0)
+
+  return Math.min(
+    CONTEXTUAL_TEXT_RIBBON_FIELD_MAX_CH,
+    Math.max(
+      CONTEXTUAL_TEXT_RIBBON_FIELD_MIN_CH,
+      widestLabelLength + CONTEXTUAL_TEXT_RIBBON_FIELD_LABEL_BREATHING_CH,
+    ),
   )
 }
 
@@ -1470,11 +1494,20 @@ function InlinePreviewTextEditorMenuContent({
       getCommandSelection,
       onSelectionChange,
     )
+    const fontMatchedFieldWidthCh =
+      getContextualTextRibbonMatchedFieldWidthCh([controls.text?.fontFamily])
+    const fontFieldStyle = {
+      '--contextual-text-ribbon-stacked-field-width':
+        `${fontMatchedFieldWidthCh}ch`,
+    } as CSSProperties
     const fontFieldControls =
       isRenderableRibbonNode(fontFamilyControl) ||
       isRenderableRibbonNode(fontSizeControl)
         ? (
-          <span className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--font-fields">
+          <span
+            className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--font-fields"
+            style={fontFieldStyle}
+          >
             {fontFamilyControl}
             {fontSizeControl}
           </span>

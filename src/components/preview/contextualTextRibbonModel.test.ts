@@ -721,6 +721,18 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     editorSource,
+    /function getContextualTextRibbonMatchedFieldWidthCh/,
+  )
+  assert.match(
+    editorSource,
+    /CONTEXTUAL_TEXT_RIBBON_FIELD_MAX_CH/,
+  )
+  assert.match(
+    editorSource,
+    /--contextual-text-ribbon-stacked-field-width/,
+  )
+  assert.match(
+    editorSource,
     /contextual-text-ribbon-button-cluster contextual-text-ribbon-button-cluster--emphasis/,
   )
   assert.match(
@@ -746,6 +758,30 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*24px\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*20px[\s\S]*minmax\([\s\S]*0,[\s\S]*min\(100%,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*12ch\)\)[\s\S]*48px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*justify-content:\s*start/,
+  )
+  assert.doesNotMatch(
+    ribbonCss,
+    /minmax\([\s\S]{0,120}var\(--contextual-text-ribbon-stacked-field-width[\s\S]{0,80}1fr/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields[\s\S]*>\s*\.contextual-text-ribbon-select-control,[\s\S]*>\s*\.contextual-text-ribbon-point-size-control\s*\{[\s\S]*display:\s*contents/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--font-fields[\s\S]*>\s*\.contextual-text-ribbon-select-control[\s\S]*select\s*\{[\s\S]*grid-column:\s*2[\s\S]*grid-row:\s*1/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--font-fields[\s\S]*>\s*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-point-size\s*\{[\s\S]*grid-column:\s*2[\s\S]*grid-row:\s*2[\s\S]*width:\s*100%/,
   )
   assert.match(
     ribbonCss,

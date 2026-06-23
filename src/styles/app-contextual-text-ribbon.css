@@ -367,10 +367,77 @@
   .contextual-text-ribbon-group--font
   .contextual-text-ribbon-control-stack--font-fields {
   display: grid;
+  grid-template-columns:
+    20px
+    minmax(
+      0,
+      min(100%, var(--contextual-text-ribbon-stacked-field-width, 12ch))
+    )
+    48px;
   grid-template-rows: repeat(2, 24px);
   align-content: center;
   align-items: center;
+  justify-content: start;
+  column-gap: 4px;
   gap: 3px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control {
+  display: contents;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control
+  select {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-point-size {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .inline-preview-text-number-buttons {
+  grid-column: 3;
+  grid-row: 2;
 }
 
 .contextual-text-ribbon-control-row--text
@@ -1302,11 +1369,6 @@
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
     min-width: 0;
-  }
-
-  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size {
-    grid-template-columns: minmax(0, 1fr) 24px;
-    width: 78px;
   }
 
   .contextual-text-ribbon-group--layout .contextual-text-ribbon-control input[type="range"],
