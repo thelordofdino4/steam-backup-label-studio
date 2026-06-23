@@ -177,6 +177,16 @@
   scrollbar-width: thin;
 }
 
+.contextual-text-ribbon-control-row--text {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
 .contextual-text-ribbon-control-row::-webkit-scrollbar {
   width: 0;
   height: var(--contextual-text-ribbon-horizontal-scrollbar-height);
@@ -304,49 +314,116 @@
   white-space: nowrap;
 }
 
-.contextual-text-ribbon-group--font {
+.contextual-text-ribbon-group--font,
+.contextual-text-ribbon-group--paragraph {
   container-type: inline-size;
-  width: var(--contextual-text-ribbon-column-width, max-content);
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  overflow: hidden;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-control-label {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-label {
   max-width: 42px;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-group-body {
   display: grid;
   grid-template-columns:
-    minmax(120px, 1fr)
+    minmax(34px, 1fr)
     auto
     repeat(3, 24px);
   align-items: center;
   gap: 3px;
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   min-width: 0;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-select-control,
-.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-point-size-control {
   width: max-content;
   max-width: none;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-select-control {
   width: 100%;
+  min-width: 0;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control select,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control select {
   width: 100%;
+  max-width: 100%;
   min-width: 0;
   height: 24px;
   min-height: 24px;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-icon-button {
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns: minmax(104px, 1fr) 24px;
+  align-items: center;
+  gap: 3px;
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-select-control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-icon-button {
+  justify-self: end;
   flex-basis: 24px;
 }
 
-.contextual-text-ribbon-group--font
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control select {
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-icon-button {
+  flex-basis: 24px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
   .contextual-text-ribbon-point-size-control
   .contextual-text-ribbon-control-label {
   display: inline-flex;
@@ -660,8 +737,7 @@
 }
 
 .contextual-text-ribbon-group--reset,
-.contextual-text-ribbon-group--presets,
-.contextual-text-ribbon-group--paragraph {
+.contextual-text-ribbon-group--presets {
   width: max-content;
 }
 
@@ -1155,6 +1231,11 @@
     width: var(--contextual-text-ribbon-column-width, max-content);
   }
 
+  .contextual-text-ribbon-group--paragraph {
+    padding-inline: 3px;
+    width: var(--contextual-text-ribbon-column-width, max-content);
+  }
+
   .contextual-text-ribbon-group--font .contextual-text-ribbon-group-label {
     max-width: 32px;
     padding-right: 3px;
@@ -1176,6 +1257,10 @@
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
+    min-width: 0;
+  }
+
+  .contextual-text-ribbon-group--paragraph .contextual-text-ribbon-select-control {
     min-width: 0;
   }
 
@@ -1357,6 +1442,59 @@
     min-width: 42px;
     width: 42px;
     padding-inline: 1px;
+  }
+
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-control select,
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--paragraph
+    .contextual-text-ribbon-control select {
+    min-width: 34px;
+  }
+}
+
+@container (max-width: 439px) {
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-group-body {
+    grid-template-columns:
+      34px
+      auto
+      repeat(3, 24px);
+    justify-content: start;
+  }
+
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-select-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
+  }
+}
+
+@container (max-width: 239px) {
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--paragraph
+    .contextual-text-ribbon-select-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
   }
 }
 

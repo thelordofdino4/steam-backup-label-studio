@@ -1,4 +1,4 @@
-import { useMemo, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   type DiscTextAlignment,
@@ -182,6 +182,7 @@ export function DiscTextLayer({
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
 }: DiscTextLayerProps) {
+  const hitTargetRef = useRef<HTMLDivElement | null>(null)
   const safeZoneRadiusPercent =
     (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * 50
   const metadataBoundDiscTextValues = useMemo(
@@ -290,6 +291,28 @@ export function DiscTextLayer({
     onSelectedDiscTextKeyChange(key)
   }
 
+  useEffect(() => {
+    const hitTarget = hitTargetRef.current
+    if (!hitTarget) {
+      return undefined
+    }
+
+    function handleNativePointerDown(event: globalThis.PointerEvent) {
+      const key = getDiscTextKeyFromEventTarget(event.target)
+      if (!key) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectedDiscTextKeyChange(key)
+    }
+
+    hitTarget.addEventListener('pointerdown', handleNativePointerDown)
+
+    return () => {
+      hitTarget.removeEventListener('pointerdown', handleNativePointerDown)
+    }
+  }, [onSelectedDiscTextKeyChange])
+
   return (
     <div className="disc-text-layer" aria-label="Disc text elements">
       {discNumberBadgeRenderModel ? (
@@ -333,6 +356,7 @@ export function DiscTextLayer({
         draggable={false}
       />
       <div
+        ref={hitTargetRef}
         className="disc-text-layer-hit-target"
         data-smoke-id="disc-text-layer-hit-target"
         aria-hidden="true"

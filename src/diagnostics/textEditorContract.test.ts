@@ -269,6 +269,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.doesNotMatch(adapter, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(discLayer, /DiscInlineTextEditorLayer/)
+  assert.match(discLayer, /addEventListener\('pointerdown', handleNativePointerDown\)/)
+  assert.match(discLayer, /onSelectedDiscTextKeyChange\(key\)/)
 })
 
 test('disc sidebar keeps setup controls while curved editing moves contextually', () => {

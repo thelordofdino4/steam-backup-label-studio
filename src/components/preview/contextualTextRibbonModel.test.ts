@@ -712,12 +712,36 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(editorSource, /function InlinePreviewTextBulletedListIcon/)
   assert.match(
-    ribbonCss,
-    /\.contextual-text-ribbon-group--font\s*\{[\s\S]*container-type:\s*inline-size/,
+    editorSource,
+    /className:\s*'contextual-text-ribbon-control-row--text'/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-group--font \.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\(120px,\s*1fr\)[\s\S]*auto[\s\S]*repeat\(3,\s*24px\)/,
+    /\.contextual-text-ribbon-control-row--text\s*\{[\s\S]*grid-template-rows:\s*repeat\(2,\s*var\(--contextual-text-ribbon-control-row-height\)\)[\s\S]*overflow-x:\s*auto[\s\S]*overflow-y:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--font,\s*\.contextual-text-ribbon-group--paragraph\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\(34px,\s*1fr\)[\s\S]*auto[\s\S]*repeat\(3,\s*24px\)[\s\S]*flex:\s*1 1 auto[\s\S]*width:\s*auto/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:\s*minmax\(104px,\s*1fr\) 24px[\s\S]*flex:\s*1 1 auto[\s\S]*width:\s*auto/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-select-control\s*\{[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%[\s\S]*min-width:\s*0/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 439px\)[\s\S]*\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:[\s\S]*34px[\s\S]*auto[\s\S]*repeat\(3,\s*24px\)[\s\S]*\.contextual-text-ribbon-select-control select[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 239px\)[\s\S]*\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--paragraph[\s\S]*\.contextual-text-ribbon-select-control select[\s\S]*width:\s*34px[\s\S]*color:\s*transparent/,
   )
   assert.match(
     ribbonCss,

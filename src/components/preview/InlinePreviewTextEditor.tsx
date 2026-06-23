@@ -1435,6 +1435,7 @@ function InlinePreviewTextEditorMenuContent({
 
   if (activeTab === 'text') {
     return renderContextualTextRibbonRow({
+      className: 'contextual-text-ribbon-control-row--text',
       emptyLabel: 'Text controls unavailable',
       children: (
         <>
