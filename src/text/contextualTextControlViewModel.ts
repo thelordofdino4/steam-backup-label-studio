@@ -127,7 +127,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   mode: 'Mode',
   resetLayout: 'Reset layout',
   resetStyle: 'Reset style',
-  respectVisualElements: 'Respect visuals',
+  respectVisualElements: 'Respect visual elements',
   size: 'Font size (pt)',
   stylePreset: 'Style preset',
   underline: 'Underline',

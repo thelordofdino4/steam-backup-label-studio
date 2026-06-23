@@ -168,7 +168,7 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
       },
       respectVisualElements: {
         checked: true,
-        label: 'Respect visuals',
+        label: 'Respect visual elements',
         onChange: noop,
       },
       resetLayout: noop,
@@ -1073,6 +1073,14 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
 
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.position.rowSpan, 2)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.rowSpan, 2)
+  assert.ok(
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.min >= 450,
+    'layout card must reserve room for Wrap width and Respect visual elements',
+  )
+  assert.ok(
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.preferred >= 568,
+    'layout card preferred width must keep utility labels readable',
+  )
   assert.deepEqual(
     packed.map((column) => column.items.map((item) => ({
       id: item.id,
@@ -1139,7 +1147,19 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:/,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(68px,\s*1fr\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(54px,\s*1fr\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-toggle-check[\s\S]*span\s*\{[\s\S]*max-width:\s*none[\s\S]*overflow:\s*visible[\s\S]*text-overflow:\s*clip/,
+  )
+  assert.match(
+    ribbonCss,
+    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-toggle-check span\s*\{[\s\S]*max-width:\s*none[\s\S]*overflow:\s*visible[\s\S]*text-overflow:\s*clip/,
   )
 })
 

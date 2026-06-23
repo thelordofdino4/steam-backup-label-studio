@@ -87,6 +87,10 @@ test('shared groups, labels, and alignment options preserve contextual UI wordin
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.stylePreset, 'Style preset')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.layoutPreset, 'Layout preset')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.width, 'Wrap width')
+  assert.equal(
+    CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
+    'Respect visual elements',
+  )
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList, 'Bulleted List')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource, 'HTML source')
 })

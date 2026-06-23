@@ -155,12 +155,15 @@ tested, and the remaining divergences are recorded.
 - The Utilities tab uses native semantic cards for the available utility
   responsibilities. `Position` is a two-row card with X/Y controls stacked as
   a matched field set. `Layout` is a two-row card with measurement controls
-  stacked separately from layout option controls, including `Respect visuals`,
-  using the same internal divider language as dense Text-tab boxes. `Reset`
-  remains a compact semantic reset card unless a tab-specific exception
-  explicitly says otherwise. HTML source does not live in Utilities; it is
-  owned by the dedicated `HTML` tab. Do not add unsupported or empty Utilities
-  cards merely to satisfy a group name.
+  stacked separately from layout option controls, including the fully visible
+  `Respect visual elements` checkbox, using the same internal divider language
+  as dense Text-tab boxes. The `Wrap width` label must remain fully readable
+  at minimum and default sizes; whole-card horizontal scrolling is preferred
+  over truncating those utility labels. `Reset` remains a compact semantic
+  reset card unless a tab-specific exception explicitly says otherwise. HTML
+  source does not live in Utilities; it is owned by the dedicated `HTML` tab.
+  Do not add unsupported or empty Utilities cards merely to satisfy a group
+  name.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

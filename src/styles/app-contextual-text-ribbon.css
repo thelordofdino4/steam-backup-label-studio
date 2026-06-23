@@ -819,7 +819,7 @@
 }
 
 .contextual-text-ribbon-control-stack--utility-layout-options {
-  flex: 0 0 min(154px, 38cqw);
+  flex: 0 0 clamp(172px, 34cqw, 220px);
   padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.22);
 }
@@ -828,7 +828,7 @@
   .contextual-text-ribbon-range-control {
   display: grid;
   grid-template-columns:
-    minmax(42px, 0.64fr)
+    max-content
     minmax(68px, 1fr)
     minmax(46px, max-content)
     max-content;
@@ -849,13 +849,13 @@
   margin: 0;
   padding: 0;
   border: 0;
-  overflow: hidden;
+  overflow: visible;
   clip-path: none;
   color: #9ca3af;
   font-size: 10px;
   font-weight: 900;
   line-height: 1;
-  text-overflow: ellipsis;
+  text-overflow: clip;
   text-transform: uppercase;
 }
 
@@ -927,9 +927,11 @@
 .contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-toggle-check
   span {
+  flex: 0 0 auto;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .contextual-text-ribbon-group--backplate,
@@ -1716,7 +1718,7 @@
   .contextual-text-ribbon-control-row--utilities
     .contextual-text-ribbon-range-control {
     grid-template-columns:
-      minmax(36px, 0.56fr)
+      max-content
       minmax(54px, 1fr)
       minmax(42px, max-content)
       max-content;
@@ -1743,9 +1745,9 @@
   .contextual-text-ribbon-control-row--utilities
     .contextual-text-ribbon-toggle-check span {
     display: inline-block;
-    max-width: 50px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
     vertical-align: bottom;
   }
 
