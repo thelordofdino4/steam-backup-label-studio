@@ -4,7 +4,6 @@ import {
   isValidElement,
   useCallback,
   useEffect,
-  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -42,7 +41,6 @@ import {
   formatInlinePreviewPointSizeValue,
   getInlinePreviewPointSizeCommitValue,
   getInlinePreviewPointSizeLiveValue,
-  getNearestInlinePreviewPointSizeOptionIndex,
   parseInlinePreviewPointSizeDraft,
   stepInlinePreviewPointSizeValue,
 } from './inlinePreviewPointSizeControl'
@@ -248,9 +246,27 @@ function getInlineTextToggleDisplayLabel(label: string) {
   if (token === 'bold') return 'B'
   if (token === 'italic') return 'I'
   if (token === 'underline') return 'U'
-  if (token === 'bulleted-list') return '•'
+  if (token === 'bulleted-list') return <InlinePreviewTextBulletedListIcon />
 
   return label
+}
+
+function InlinePreviewTextBulletedListIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="contextual-text-ribbon-list-icon"
+      focusable="false"
+      viewBox="0 0 24 24"
+    >
+      <circle cx="5" cy="7" r="1.7" />
+      <circle cx="5" cy="12" r="1.7" />
+      <circle cx="5" cy="17" r="1.7" />
+      <path d="M9 7h10" />
+      <path d="M9 12h10" />
+      <path d="M9 17h10" />
+    </svg>
+  )
 }
 
 function isRenderableRibbonNode(node: ReactNode): boolean {
@@ -593,7 +609,6 @@ function InlinePreviewTextNumberSelectControl({
   control: InlinePreviewTextEditorNumberSelectControl
   selection: InlinePreviewTextEditorSelectionRange
 }) {
-  const id = useId()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const holdDelayRef = useRef<number | null>(null)
   const holdIntervalRef = useRef<number | null>(null)
@@ -602,7 +617,6 @@ function InlinePreviewTextNumberSelectControl({
   const holdRepeatTicksRef = useRef(0)
   const holdStartTimeRef = useRef<number | null>(null)
   const token = getInlineTextSmokeToken(control.label)
-  const optionListId = `inline-text-options-${token}-${id}`
   const selectionValue = control.getSelectionValue?.(selection)
   const displayedValue = selectionValue?.state === 'active' &&
       typeof selectionValue.value === 'number'
@@ -612,21 +626,16 @@ function InlinePreviewTextNumberSelectControl({
   const stepValueRef = useRef<((direction: -1 | 1) => void) | null>(null)
   const isMixedSelection = selectionValue?.state === 'mixed'
   const controlValueText = formatInlinePreviewPointSizeValue(displayedValue)
-  const [activeOptionIndex, setActiveOptionIndex] = useState(() =>
-    getNearestInlinePreviewPointSizeOptionIndex({
-      draft: controlValueText,
-      options: control.options,
-      value: displayedValue,
-    }))
   const [draft, setDraft] = useState(() =>
     controlValueText)
   const [focused, setFocused] = useState(false)
-  const [open, setOpen] = useState(false)
   const renderedDraft = focused
     ? draft
     : isMixedSelection
       ? 'Mixed'
       : controlValueText
+  const matchingPreset = control.options.find((option) =>
+    option === displayedValue)
 
   const config = useMemo(() => ({
     max: control.max,
@@ -705,7 +714,6 @@ function InlinePreviewTextNumberSelectControl({
     latestValueRef.current = nextValue
     control.onChange(nextValue, selection)
     setDraft(formatInlinePreviewPointSizeValue(nextValue))
-    setOpen(false)
     keepNumberControlVisible()
   }, [config, control, draft, keepNumberControlVisible, selection])
 
@@ -724,7 +732,6 @@ function InlinePreviewTextNumberSelectControl({
     latestValueRef.current = value
     control.onChange(value, selection)
     setDraft(formatInlinePreviewPointSizeValue(value))
-    setOpen(false)
     focusInput()
     keepNumberControlVisible()
   }, [control, focusInput, keepNumberControlVisible, selection])
@@ -802,17 +809,6 @@ function InlinePreviewTextNumberSelectControl({
     }
   }, [startStepping])
 
-  const openOptions = useCallback(() => {
-    setActiveOptionIndex(
-      getNearestInlinePreviewPointSizeOptionIndex({
-        draft: inputRef.current?.value ?? renderedDraft,
-        options: control.options,
-        value: latestValueRef.current,
-      }),
-    )
-    setOpen(true)
-  }, [control.options, renderedDraft])
-
   useEffect(() => {
     latestValueRef.current = displayedValue
   }, [displayedValue])
@@ -822,18 +818,11 @@ function InlinePreviewTextNumberSelectControl({
   return (
     <label className="contextual-text-ribbon-control contextual-text-ribbon-point-size-control inline-preview-text-number-select-field">
       <span className="contextual-text-ribbon-control-label">
-        {control.label}
+        PT
       </span>
       <span className="contextual-text-ribbon-point-size inline-preview-text-number-select">
         <input
           ref={inputRef}
-          aria-activedescendant={
-            open
-              ? `${optionListId}-option-${control.options[activeOptionIndex]}`
-              : undefined
-          }
-          aria-controls={optionListId}
-          aria-expanded={open}
           aria-label={control.label}
           autoComplete="off"
           data-smoke-id={`inline-text-number-${token}`}
@@ -841,7 +830,6 @@ function InlinePreviewTextNumberSelectControl({
           inputMode="decimal"
           max={control.max}
           min={control.min}
-          role="combobox"
           step={control.step}
           type="text"
           value={renderedDraft}
@@ -861,43 +849,24 @@ function InlinePreviewTextNumberSelectControl({
 
             if (event.key === 'Enter') {
               event.preventDefault()
-              if (open) {
-                selectValue(control.options[activeOptionIndex])
-                return
-              }
               commitDraft(event.currentTarget.value)
               return
             }
 
             if (event.key === 'Escape') {
               event.preventDefault()
-              setOpen(false)
               setDraft(formatInlinePreviewPointSizeValue(latestValueRef.current))
               return
             }
 
             if (event.key === 'ArrowDown') {
               event.preventDefault()
-              if (open || event.altKey) {
-                if (!open) {
-                  openOptions()
-                  return
-                }
-                setActiveOptionIndex((currentIndex) =>
-                  Math.min(control.options.length - 1, currentIndex + 1))
-                return
-              }
               stepValue(-1)
               return
             }
 
             if (event.key === 'ArrowUp') {
               event.preventDefault()
-              if (open) {
-                setActiveOptionIndex((currentIndex) =>
-                  Math.max(0, currentIndex - 1))
-                return
-              }
               stepValue(1)
             }
           }}
@@ -910,99 +879,82 @@ function InlinePreviewTextNumberSelectControl({
             stepValue(event.deltaY < 0 ? 1 : -1)
           }}
         />
-        <span className="inline-preview-text-number-buttons">
-          <button
-            type="button"
-            aria-label={`Increase ${control.label}`}
-            className="inline-preview-text-number-step"
-            data-smoke-id={`inline-text-number-step-up-${token}`}
-            onClick={stopInlineTextEditorClick}
-            onKeyDown={(event) => {
-              event.stopPropagation()
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                stepValue(1)
-              }
-            }}
-            onLostPointerCapture={handleStepperPointerEnd}
-            onMouseDown={(event) => handleStepperMouseDownFallback(event, 1)}
-            onPointerCancel={handleStepperPointerEnd}
-            onPointerDown={(event) => handleStepperPointerDown(event, 1)}
-            onPointerUp={handleStepperPointerEnd}
-          >
-            +
-          </button>
-          <button
-            type="button"
-            aria-label={`Decrease ${control.label}`}
-            className="inline-preview-text-number-step"
-            data-smoke-id={`inline-text-number-step-down-${token}`}
-            onClick={stopInlineTextEditorClick}
-            onKeyDown={(event) => {
-              event.stopPropagation()
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault()
-                stepValue(-1)
-              }
-            }}
-            onLostPointerCapture={handleStepperPointerEnd}
-            onMouseDown={(event) => handleStepperMouseDownFallback(event, -1)}
-            onPointerCancel={handleStepperPointerEnd}
-            onPointerDown={(event) => handleStepperPointerDown(event, -1)}
-            onPointerUp={handleStepperPointerEnd}
-          >
-            -
-          </button>
-          <button
-            type="button"
+        <span className="contextual-text-ribbon-point-size-chevron-hit">
+          <select
             aria-label={`${control.label} presets`}
-            className="inline-preview-text-number-preset-button"
+            className="contextual-text-ribbon-point-size-presets inline-preview-text-number-preset-select"
             data-smoke-id={`inline-text-number-options-${token}`}
-            aria-expanded={open}
-            onClick={(event) => {
+            value={matchingPreset === undefined ? 'custom' : String(matchingPreset)}
+            onChange={(event) => {
               event.stopPropagation()
-              if (open) {
-                setOpen(false)
-                return
+              const value = Number(event.target.value)
+              if (Number.isFinite(value)) {
+                selectValue(value)
               }
-              openOptions()
-              focusInput()
             }}
-            onPointerDown={keepInlineTextEditorFocus}
+            onClick={stopInlineTextEditorClick}
+            onFocus={keepNumberControlVisible}
+            onKeyDown={(event) => event.stopPropagation()}
+            onPointerDown={stopInlineTextEditorPointer}
           >
-            ▾
-          </button>
-        </span>
-        {open ? (
-          <span
-            id={optionListId}
-            className="inline-preview-text-number-options"
-            data-smoke-id={`inline-text-number-options-list-${token}`}
-            role="listbox"
-          >
-            {control.options.map((option, index) => (
-              <button
-                key={option}
-                id={`${optionListId}-option-${option}`}
-                type="button"
-                aria-selected={index === activeOptionIndex}
-                className={[
-                  'inline-preview-text-number-option',
-                  index === activeOptionIndex ? 'is-active' : '',
-                ].filter(Boolean).join(' ')}
-                data-smoke-id={`inline-text-number-option-${token}-${option}`}
-                role="option"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  selectValue(option)
-                }}
-                onPointerDown={keepInlineTextEditorFocus}
-              >
+            <option value="custom">
+              {isMixedSelection ? 'Mixed' : renderedDraft}
+            </option>
+            {control.options.map((option) => (
+              <option key={option} value={option}>
                 {option}
-              </button>
+              </option>
             ))}
-          </span>
-        ) : null}
+          </select>
+          <span
+            aria-hidden="true"
+            className="contextual-text-ribbon-point-size-chevron"
+          />
+        </span>
+      </span>
+      <span className="inline-preview-text-number-buttons">
+        <button
+          type="button"
+          aria-label={`Increase ${control.label}`}
+          className="inline-preview-text-number-step"
+          data-smoke-id={`inline-text-number-step-up-${token}`}
+          onClick={stopInlineTextEditorClick}
+          onKeyDown={(event) => {
+            event.stopPropagation()
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              stepValue(1)
+            }
+          }}
+          onLostPointerCapture={handleStepperPointerEnd}
+          onMouseDown={(event) => handleStepperMouseDownFallback(event, 1)}
+          onPointerCancel={handleStepperPointerEnd}
+          onPointerDown={(event) => handleStepperPointerDown(event, 1)}
+          onPointerUp={handleStepperPointerEnd}
+        >
+          +
+        </button>
+        <button
+          type="button"
+          aria-label={`Decrease ${control.label}`}
+          className="inline-preview-text-number-step"
+          data-smoke-id={`inline-text-number-step-down-${token}`}
+          onClick={stopInlineTextEditorClick}
+          onKeyDown={(event) => {
+            event.stopPropagation()
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              stepValue(-1)
+            }
+          }}
+          onLostPointerCapture={handleStepperPointerEnd}
+          onMouseDown={(event) => handleStepperMouseDownFallback(event, -1)}
+          onPointerCancel={handleStepperPointerEnd}
+          onPointerDown={(event) => handleStepperPointerDown(event, -1)}
+          onPointerUp={handleStepperPointerEnd}
+        >
+          -
+        </button>
       </span>
     </label>
   )

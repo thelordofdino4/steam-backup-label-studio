@@ -304,6 +304,7 @@
 }
 
 .contextual-text-ribbon-group--font {
+  container-type: inline-size;
   width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
@@ -311,18 +312,56 @@
   max-width: 42px;
 }
 
+.contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns:
+    minmax(120px, 1fr)
+    auto
+    repeat(3, 24px);
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
+  width: max-content;
+  max-width: none;
+}
+
+.contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
+  width: 100%;
+}
+
 .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
-  width: 108px;
+  width: 100%;
+  min-width: 0;
   height: 24px;
   min-height: 24px;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size input {
-  width: 38px;
+.contextual-text-ribbon-group--font .contextual-text-ribbon-icon-button {
+  flex-basis: 24px;
 }
 
-.contextual-text-ribbon-group--font .contextual-text-ribbon-point-size button {
-  min-width: 19px;
+.contextual-text-ribbon-group--font
+  .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .contextual-text-ribbon-group--paint,
@@ -736,31 +775,49 @@
 
 .contextual-text-ribbon-point-size {
   position: relative;
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: minmax(54px, 68px) 24px;
   align-items: center;
+  gap: 0;
   min-width: 0;
+  width: 92px;
   border: 1px solid #374151;
   border-radius: 7px;
   background: #0f1117;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .contextual-text-ribbon-point-size input {
-  width: 46px;
+  width: 100%;
   min-height: 24px;
-  padding: 3px 4px;
+  padding: 3px 6px 3px 7px;
   border: 0;
   border-radius: 6px 0 0 6px;
   text-align: right;
 }
 
-.contextual-text-ribbon-point-size button {
-  flex: 0 0 25px;
-  width: 25px;
-  min-width: 25px;
+.contextual-text-ribbon-point-size-chevron-hit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  align-self: stretch;
+}
+
+.contextual-text-ribbon-point-size-control .inline-preview-text-number-buttons {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 24px);
+  align-self: stretch;
+  flex: 0 0 auto;
+}
+
+.contextual-text-ribbon-point-size-control .inline-preview-text-number-step {
+  width: 24px;
+  min-width: 24px;
   min-height: 24px;
-  border: 0;
-  border-left: 1px solid #374151;
+  border: 1px solid #374151;
   background: rgba(31, 41, 55, 0.9);
   color: #e5e7eb;
   font: inherit;
@@ -769,11 +826,46 @@
   cursor: pointer;
 }
 
-.contextual-text-ribbon-point-size .inline-preview-text-number-options {
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 45;
-  width: 78px;
+.contextual-text-ribbon-point-size-presets {
+  appearance: none;
+  grid-area: 1 / 1;
+  z-index: 2;
+  width: 24px;
+  min-width: 24px;
+  height: 100%;
+  min-height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: transparent;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.contextual-text-ribbon-point-size-chevron {
+  display: block;
+  grid-area: 1 / 1;
+  z-index: 1;
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23d1d5db' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 12px 12px;
+  pointer-events: none;
+}
+
+.contextual-text-ribbon-list-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
 }
 
 .contextual-text-ribbon-icon-button,
@@ -1018,7 +1110,7 @@
 
   .contextual-text-ribbon-group--font {
     padding-inline: 3px;
-    width: max-content;
+    width: var(--contextual-text-ribbon-column-width, max-content);
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-group-label {
@@ -1027,35 +1119,31 @@
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
-    display: flex;
-    flex-wrap: nowrap;
-    align-content: center;
-    align-items: center;
-    width: max-content;
+    grid-template-columns:
+      minmax(80px, 1fr)
+      auto
+      repeat(3, 24px);
+    width: 100%;
     gap: 1px;
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
     height: 24px;
     min-height: 24px;
-    width: 73px;
+    width: 100%;
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
-    flex: 0 0 auto;
+    min-width: 0;
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
-    flex: 0 0 auto;
+    min-width: 0;
   }
 
-  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size input {
-    width: 28px;
-  }
-
-  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size button {
-    min-width: 25px;
-    width: 25px;
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size {
+    grid-template-columns: minmax(48px, 54px) 24px;
+    width: 78px;
   }
 
   .contextual-text-ribbon-group--font .contextual-text-ribbon-icon-button:nth-child(3) {

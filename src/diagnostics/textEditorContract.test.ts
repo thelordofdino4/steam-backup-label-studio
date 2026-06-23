@@ -171,8 +171,10 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   assert.match(editor, /id:\s*'font'[\s\S]*label:\s*'Font'/)
   assert.match(editor, /id:\s*'paragraph'[\s\S]*label:\s*'Paragraph'/)
   assert.doesNotMatch(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
-  assert.match(editor, /role="combobox"/)
-  assert.match(editor, /role="listbox"/)
+  assert.match(editor, /contextual-text-ribbon-point-size-presets/)
+  assert.match(editor, /inline-preview-text-number-preset-select/)
+  assert.doesNotMatch(editor, /inline-preview-text-number-preset-button/)
+  assert.doesNotMatch(editor, /className="inline-preview-text-number-options"/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.match(

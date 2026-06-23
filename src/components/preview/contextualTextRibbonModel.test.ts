@@ -682,6 +682,75 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     editorSource,
     /data-ribbon-group-max-width=\{size\?\.max\}/,
   )
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.preferred >= 600)
+  assert.ok(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.font.max >= 800)
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-point-size-presets inline-preview-text-number-preset-select"/,
+  )
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-point-size-chevron-hit"/,
+  )
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-point-size-chevron"/,
+  )
+  assert.match(
+    editorSource,
+    /data-smoke-id=\{`inline-text-number-options-\$\{token\}`\}/,
+  )
+  assert.match(editorSource, /<span className="contextual-text-ribbon-control-label">\s*PT\s*<\/span>/)
+  assert.match(editorSource, /onPointerDown=\{stopInlineTextEditorPointer\}/)
+  assert.doesNotMatch(
+    editorSource,
+    /inline-preview-text-number-preset-button/,
+  )
+  assert.doesNotMatch(
+    editorSource,
+    /className="inline-preview-text-number-options"/,
+  )
+  assert.match(editorSource, /function InlinePreviewTextBulletedListIcon/)
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--font\s*\{[\s\S]*container-type:\s*inline-size/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--font \.contextual-text-ribbon-group-body\s*\{[\s\S]*grid-template-columns:[\s\S]*minmax\(120px,\s*1fr\)[\s\S]*auto[\s\S]*repeat\(3,\s*24px\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-point-size-control[\s\S]*\.contextual-text-ribbon-control-label\s*\{[\s\S]*clip-path:\s*none/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*minmax\(54px,\s*68px\) 24px[\s\S]*width:\s*92px[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-chevron-hit\s*\{[\s\S]*position:\s*relative[\s\S]*place-items:\s*center[\s\S]*width:\s*24px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-presets\s*\{[\s\S]*appearance:\s*none[\s\S]*grid-area:\s*1 \/ 1[\s\S]*opacity:\s*0[\s\S]*cursor:\s*pointer/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-chevron\s*\{[\s\S]*display:\s*block[\s\S]*grid-area:\s*1 \/ 1[\s\S]*background-image:\s*url[\s\S]*pointer-events:\s*none/,
+  )
+  assert.doesNotMatch(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-presets\s*\{[^}]*border-left:/,
+  )
+  assert.doesNotMatch(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-presets\s*\{[^}]*text-indent:/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-list-icon\s*\{[\s\S]*width:\s*16px[\s\S]*height:\s*16px/,
+  )
   const featureToggleSource = editorSource.slice(
     editorSource.indexOf('function renderInlinePreviewTextFeatureToggleControl'),
     editorSource.indexOf('function renderInlinePreviewTextArtisticFeatureGroup'),

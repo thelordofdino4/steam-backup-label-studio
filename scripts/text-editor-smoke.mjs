@@ -669,6 +669,25 @@ async function setInlineTextNumberDraftWithKeyboard(page, labelToken, value) {
 async function selectInlineTextNumberPreset(page, labelToken, value) {
   const optionsButton = visibleSmoke(page, `inline-text-number-options-${labelToken}`).first()
   const beforeRibbon = await getRect(page, 'contextual-text-ribbon-host')
+  const tagName = await optionsButton.evaluate((element) =>
+    element.tagName.toLowerCase())
+
+  if (tagName === 'select') {
+    await optionsButton.selectOption(String(value))
+    const afterNativeSelectRibbon = await getRect(page, 'contextual-text-ribbon-host')
+
+    if (
+      Math.abs(beforeRibbon.width - afterNativeSelectRibbon.width) > 1.5 ||
+      Math.abs(beforeRibbon.height - afterNativeSelectRibbon.height) > 1.5
+    ) {
+      fail(
+        `${labelToken} native preset select resized the contextual ribbon: ` +
+        JSON.stringify({ afterNativeSelectRibbon, beforeRibbon }),
+      )
+    }
+    return
+  }
+
   await optionsButton.click({ force: true })
   await expectVisible(
     page,

@@ -78,8 +78,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
 > = {
   'style': { min: 148, preferred: 184, max: 220, grows: true },
   'layout-preset': { min: 148, preferred: 184, max: 220, grows: true },
-  'font': { min: 330, preferred: 390, max: 430, grows: true },
-  'paragraph': { min: 176, preferred: 220, max: 260, grows: true },
+  'font': { min: 520, preferred: 660, max: 860, grows: true },
+  'paragraph': { min: 220, preferred: 300, max: 420, grows: true },
   'text-color': { min: 108, preferred: 138, max: 160, grows: true },
   'contrast': { min: 108, preferred: 176, max: 220, grows: true },
   'background': {
