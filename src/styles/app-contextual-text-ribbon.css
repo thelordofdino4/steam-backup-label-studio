@@ -887,16 +887,17 @@
 
 .contextual-text-ribbon-point-size-chevron {
   display: block;
-  grid-area: 1 / 1;
+  position: absolute;
+  top: 50%;
+  right: 7px;
   z-index: 1;
-  justify-self: end;
   width: 12px;
   height: 12px;
-  margin-right: 7px;
   background-image: var(--contextual-text-ribbon-select-chevron);
   background-position: center;
   background-repeat: no-repeat;
   background-size: 12px 12px;
+  transform: translateY(-50%);
   pointer-events: none;
 }
 

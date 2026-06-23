@@ -761,7 +761,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-point-size-chevron\s*\{[\s\S]*display:\s*block[\s\S]*justify-self:\s*end[\s\S]*margin-right:\s*7px[\s\S]*background-image:\s*var\(--contextual-text-ribbon-select-chevron\)[\s\S]*pointer-events:\s*none/,
+    /\.contextual-text-ribbon-point-size-chevron\s*\{[\s\S]*display:\s*block[\s\S]*position:\s*absolute[\s\S]*top:\s*50%[\s\S]*right:\s*7px[\s\S]*background-image:\s*var\(--contextual-text-ribbon-select-chevron\)[\s\S]*transform:\s*translateY\(-50%\)[\s\S]*pointer-events:\s*none/,
   )
   assert.doesNotMatch(
     ribbonCss,
@@ -878,7 +878,10 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-max-width/)
   assert.doesNotMatch(ribbonCss, /280px/)
   assert.doesNotMatch(ribbonCss, /position:\s*fixed/)
-  assert.doesNotMatch(ribbonCss, /position:\s*absolute/)
+  assert.doesNotMatch(
+    ribbonCss,
+    /\.contextual-text-ribbon-(?:host|shell|tabs|controls|control-row|group)\s*\{[^}]*position:\s*absolute/,
+  )
   assert.match(previewCss, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/)
   assert.match(previewCss, /--preview-area-padding:\s*clamp/)
   assert.match(previewCss, /--preview-area-top-padding:\s*0px/)
