@@ -1727,10 +1727,11 @@ function InlinePreviewTextEditorMenuContent({
   const layoutRangeControls =
     controls.utilities?.width ||
     controls.utilities?.lineSpacing ||
-    controls.utilities?.arcDegrees
+    controls.utilities?.arcDegrees ||
+    controls.utilities?.respectVisualElements
       ? (
         <span
-          aria-label="Layout measurements"
+          aria-label="Layout measurements and visual avoidance"
           className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-ranges"
         >
           {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
@@ -1740,13 +1741,15 @@ function InlinePreviewTextEditorMenuContent({
           {renderInlinePreviewTextRangeControl(
             controls.utilities?.arcDegrees,
           )}
+          {renderInlinePreviewTextCheckboxControl(
+            controls.utilities?.respectVisualElements,
+          )}
         </span>
       )
       : null
   const layoutOptionControls =
     controls.utilities?.mode ||
-    controls.utilities?.arcSide ||
-    controls.utilities?.respectVisualElements
+    controls.utilities?.arcSide
       ? (
         <span
           aria-label="Layout options"
@@ -1759,9 +1762,6 @@ function InlinePreviewTextEditorMenuContent({
           {renderInlinePreviewTextSelectControl(
             controls.utilities?.arcSide,
             selection,
-          )}
-          {renderInlinePreviewTextCheckboxControl(
-            controls.utilities?.respectVisualElements,
           )}
         </span>
       )

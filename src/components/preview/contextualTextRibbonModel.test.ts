@@ -1119,7 +1119,11 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
-    /const layoutOptionControls =[\s\S]*controls\.utilities\?\.respectVisualElements[\s\S]*contextual-text-ribbon-control-stack--utility-layout-options[\s\S]*renderInlinePreviewTextCheckboxControl\(\s*controls\.utilities\?\.respectVisualElements/,
+    /const layoutRangeControls =[\s\S]*controls\.utilities\?\.respectVisualElements[\s\S]*contextual-text-ribbon-control-stack--utility-layout-ranges[\s\S]*renderInlinePreviewTextRangeControl\(controls\.utilities\?\.width\)[\s\S]*renderInlinePreviewTextCheckboxControl\(\s*controls\.utilities\?\.respectVisualElements/,
+  )
+  assert.doesNotMatch(
+    editorSource,
+    /const layoutOptionControls =[\s\S]*renderInlinePreviewTextCheckboxControl\(\s*controls\.utilities\?\.respectVisualElements/,
   )
   assert.match(
     editorSource,
@@ -1144,6 +1148,13 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-stack--utility-layout-options\s*\{[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
+  )
+  const utilityLayoutRangesRule = ribbonCss.match(
+    /\.contextual-text-ribbon-control-stack--utility-layout-ranges\s*\{[^}]*\}/,
+  )
+  assert.equal(
+    utilityLayoutRangesRule?.[0].includes('border-left') ?? false,
+    false,
   )
   assert.match(
     ribbonCss,
