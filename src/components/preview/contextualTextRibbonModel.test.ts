@@ -725,19 +725,43 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-point-size\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*minmax\(54px,\s*68px\) 24px[\s\S]*width:\s*92px[\s\S]*overflow:\s*hidden/,
+    /\.contextual-text-ribbon-point-size\s*\{[\s\S]*box-sizing:\s*border-box[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) 24px[\s\S]*width:\s*92px[\s\S]*height:\s*24px[\s\S]*border:\s*1px solid #374151[\s\S]*background:\s*#0f1117[\s\S]*overflow:\s*hidden/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-point-size-chevron-hit\s*\{[\s\S]*position:\s*relative[\s\S]*place-items:\s*center[\s\S]*width:\s*24px/,
+    /\.contextual-text-ribbon-point-size:focus-within\s*\{[\s\S]*border-color:\s*rgba\(96,\s*165,\s*250,\s*0\.92\)/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-point-size-presets\s*\{[\s\S]*appearance:\s*none[\s\S]*grid-area:\s*1 \/ 1[\s\S]*opacity:\s*0[\s\S]*cursor:\s*pointer/,
+    /\.contextual-text-ribbon-point-size input:focus,\s*\.contextual-text-ribbon-point-size-presets:focus\s*\{[\s\S]*outline:\s*0/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-point-size-chevron\s*\{[\s\S]*display:\s*block[\s\S]*grid-area:\s*1 \/ 1[\s\S]*background-image:\s*url[\s\S]*pointer-events:\s*none/,
+    /\.contextual-text-ribbon-point-size input\s*\{[\s\S]*position:\s*relative[\s\S]*grid-column:\s*1[\s\S]*grid-row:\s*1[\s\S]*z-index:\s*3[\s\S]*width:\s*100%[\s\S]*height:\s*100%[\s\S]*min-height:\s*0[\s\S]*background:\s*transparent/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-chevron-hit\s*\{[\s\S]*position:\s*relative[\s\S]*place-items:\s*center[\s\S]*grid-column:\s*2[\s\S]*grid-row:\s*1[\s\S]*width:\s*24px[\s\S]*height:\s*100%[\s\S]*min-height:\s*0/,
+  )
+  assert.match(
+    ribbonCss,
+    /--contextual-text-ribbon-select-chevron:\s*url/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select\s*\{[\s\S]*appearance:\s*none[\s\S]*-webkit-appearance:\s*none[\s\S]*background-image:\s*var\(--contextual-text-ribbon-select-chevron\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-presets\s*\{[\s\S]*appearance:\s*none[\s\S]*-webkit-appearance:\s*none[\s\S]*grid-area:\s*1 \/ 1[\s\S]*width:\s*24px[\s\S]*border:\s*0[\s\S]*background:\s*transparent[\s\S]*color:\s*transparent[\s\S]*opacity:\s*0[\s\S]*cursor:\s*pointer/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-presets option\s*\{[\s\S]*font-size:\s*12px[\s\S]*-webkit-text-fill-color:\s*#f9fafb/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-point-size-chevron\s*\{[\s\S]*display:\s*block[\s\S]*justify-self:\s*end[\s\S]*margin-right:\s*7px[\s\S]*background-image:\s*var\(--contextual-text-ribbon-select-chevron\)[\s\S]*pointer-events:\s*none/,
   )
   assert.doesNotMatch(
     ribbonCss,

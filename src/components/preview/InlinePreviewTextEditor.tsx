@@ -897,9 +897,7 @@ function InlinePreviewTextNumberSelectControl({
             onKeyDown={(event) => event.stopPropagation()}
             onPointerDown={stopInlineTextEditorPointer}
           >
-            <option value="custom">
-              {isMixedSelection ? 'Mixed' : renderedDraft}
-            </option>
+            <option value="custom" hidden aria-label="Custom point size" />
             {control.options.map((option) => (
               <option key={option} value={option}>
                 {option}
