@@ -720,6 +720,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
     editorSource,
     /renderInlinePreviewTextSelectControl\(\s*controls\.text\?\.fontFamily,\s*selection,\s*'STYLES'/,
   )
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-button-cluster-heading"[\s\S]*FORMAT/,
+  )
   assert.match(editorSource, /onPointerDown=\{stopInlineTextEditorPointer\}/)
   assert.doesNotMatch(
     editorSource,
@@ -812,7 +816,11 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-button-cluster--emphasis\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*24px\)[\s\S]*position:\s*relative[\s\S]*padding-left:\s*5px/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-button-cluster--emphasis\s*\{[\s\S]*grid-template-columns:\s*repeat\(3,\s*24px\)[\s\S]*grid-template-rows:\s*max-content 24px[\s\S]*justify-content:\s*center[\s\S]*justify-items:\s*center[\s\S]*padding-left:\s*5px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-button-cluster-heading\s*\{[\s\S]*grid-column:\s*1 \/ -1[\s\S]*text-decoration:\s*underline[\s\S]*text-underline-offset:\s*2px/,
   )
   assert.match(
     ribbonCss,

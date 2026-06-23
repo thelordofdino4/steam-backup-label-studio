@@ -1536,6 +1536,12 @@ function InlinePreviewTextEditorMenuContent({
             aria-label="Text emphasis"
             className="contextual-text-ribbon-button-cluster contextual-text-ribbon-button-cluster--emphasis"
           >
+            <span
+              aria-hidden="true"
+              className="contextual-text-ribbon-button-cluster-heading"
+            >
+              FORMAT
+            </span>
             {boldControl}
             {italicControl}
             {underlineControl}

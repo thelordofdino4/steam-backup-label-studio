@@ -591,6 +591,8 @@ Ribbon placement and layout:
 - Text > Font uses a stacked label column with `STYLES` beside the font-family
   dropdown and `POINTS` beside the point-size dropdown so the two fields remain
   aligned.
+- Text > Font uses an underlined `FORMAT` heading above the BIU command
+  buttons, and those buttons remain centered in that format section.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

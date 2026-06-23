@@ -448,11 +448,29 @@
   .contextual-text-ribbon-button-cluster--emphasis {
   display: grid;
   grid-template-columns: repeat(3, 24px);
+  grid-template-rows: max-content 24px;
   position: relative;
   align-content: center;
   align-items: center;
+  justify-content: center;
+  justify-items: center;
   gap: 3px;
   padding-left: 5px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster-heading {
+  grid-column: 1 / -1;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .contextual-text-ribbon-control-row--text

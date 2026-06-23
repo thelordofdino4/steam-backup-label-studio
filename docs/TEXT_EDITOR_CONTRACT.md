@@ -115,6 +115,9 @@ tested, and the remaining divergences are recorded.
   dropdown and `POINTS` as the visible row label for the point-size dropdown.
   Both labels live in the same stacked label column so the two dropdown fields
   stay aligned.
+- Text > Font uses an underlined `FORMAT` heading above the BIU buttons. The
+  B/I/U buttons are centered inside that format section rather than stretched
+  across the available card width.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The
