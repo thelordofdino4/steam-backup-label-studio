@@ -769,7 +769,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*20px[\s\S]*minmax\([\s\S]*0,[\s\S]*min\(100%,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*12ch\)\)[\s\S]*48px/,
+    /\.contextual-text-ribbon-control-row--text[\s\S]*\.contextual-text-ribbon-group--font[\s\S]*\.contextual-text-ribbon-control-stack--font-fields\s*\{[\s\S]*grid-template-columns:[\s\S]*20px[\s\S]*minmax\(0,\s*var\(--contextual-text-ribbon-stacked-field-width,\s*12ch\)\)[\s\S]*48px[\s\S]*justify-self:\s*start[\s\S]*width:\s*max-content[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,

@@ -372,17 +372,17 @@
   display: grid;
   grid-template-columns:
     20px
-    minmax(
-      0,
-      min(100%, var(--contextual-text-ribbon-stacked-field-width, 12ch))
-    )
+    minmax(0, var(--contextual-text-ribbon-stacked-field-width, 12ch))
     48px;
   grid-template-rows: repeat(2, 24px);
   align-content: center;
   align-items: center;
   justify-content: start;
+  justify-self: start;
   column-gap: 4px;
   gap: 3px;
+  width: max-content;
+  max-width: 100%;
 }
 
 .contextual-text-ribbon-control-row--text
