@@ -7,6 +7,7 @@ import {
 } from 'react'
 import {
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
+  CONTEXTUAL_TEXT_RIBBON_VERTICAL_SCROLLBAR_WIDTH,
   getContextualTextRibbonActiveWidth,
   getContextualTextRibbonColumnWidths,
   getContextualTextRibbonLayoutMode,
@@ -39,6 +40,46 @@ function getHorizontalChrome(element: Element | null) {
   return values.reduce((sum, value) => (
     sum + (Number.isFinite(value) ? value : 0)
   ), 0)
+}
+
+function getCssLength(value: string | undefined, fallback = 0) {
+  const parsed = Number.parseFloat(value ?? '')
+
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : fallback
+}
+
+function getVerticalScrollbarInlineSize(element: Element | null) {
+  if (!(element instanceof HTMLElement)) return 0
+
+  const style = window.getComputedStyle(element)
+
+  return getCssLength(
+    style.getPropertyValue('--contextual-text-ribbon-vertical-scrollbar-width'),
+    CONTEXTUAL_TEXT_RIBBON_VERTICAL_SCROLLBAR_WIDTH,
+  )
+}
+
+function getRibbonScrollableContentWidth(element: HTMLElement) {
+  const reservedScrollbarWidth = getVerticalScrollbarInlineSize(element)
+  const rectWidth = element.getBoundingClientRect().width
+  const measuredWidth = Number.isFinite(rectWidth) && rectWidth > 0
+    ? rectWidth
+    : element.clientWidth
+  const clientWidth = Number.isFinite(element.clientWidth)
+    ? element.clientWidth
+    : measuredWidth
+
+  if (reservedScrollbarWidth <= 0) {
+    return Math.max(0, clientWidth || measuredWidth)
+  }
+
+  const nativeScrollbarDelta = Math.max(0, measuredWidth - clientWidth)
+
+  if (nativeScrollbarDelta >= reservedScrollbarWidth - 1) {
+    return Math.max(0, clientWidth)
+  }
+
+  return Math.max(0, measuredWidth - reservedScrollbarWidth)
 }
 
 function getFiniteDataNumber(value: string | undefined) {
@@ -292,8 +333,7 @@ function applyColumnPackedGroupWidths(element: Element | null) {
     return
   }
 
-  const availableWidth =
-    element.clientWidth || element.getBoundingClientRect().width
+  const availableWidth = getRibbonScrollableContentWidth(element)
   const columnWidths = getContextualTextRibbonColumnWidths({
     availableWidth,
     columns: columns.map((column) => column.profile),
@@ -341,9 +381,12 @@ function getRibbonWidthProfile(host: HTMLElement) {
   const tabsProfile = getChildrenInlineWidthProfile(tabs)
   const controlRowProfile =
     getColumnPackedChildrenInlineWidthProfile(controlRow)
+  const controlRowReservedScrollbarProfile = getFixedWidthProfile(
+    getVerticalScrollbarInlineSize(controlRow),
+  )
   const actionProfile = getActionWidthProfile(actions)
   const controlsProfile = addWidthProfiles(
-    controlRowProfile,
+    addWidthProfiles(controlRowProfile, controlRowReservedScrollbarProfile),
     actionProfile,
     actions ? controlsGap : 0,
   )

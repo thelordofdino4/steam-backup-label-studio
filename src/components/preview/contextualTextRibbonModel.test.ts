@@ -13,6 +13,7 @@ import {
   CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT,
   CONTEXTUAL_TEXT_RIBBON_TABS,
   CONTEXTUAL_TEXT_RIBBON_TOAST_GAP,
+  CONTEXTUAL_TEXT_RIBBON_VERTICAL_SCROLLBAR_WIDTH,
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT,
   getContextualTextRibbonActiveWidth,
   getContextualTextRibbonColumnWidths,
@@ -215,6 +216,7 @@ test('contextual text ribbon reserves a stable app-shell slot', () => {
   assert.equal(CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT, 148)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT, 148)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT, 148)
+  assert.equal(CONTEXTUAL_TEXT_RIBBON_VERTICAL_SCROLLBAR_WIDTH, 10)
   assert.equal(getContextualTextRibbonReservedHeight('wide'), 148)
   assert.equal(getContextualTextRibbonReservedHeight('medium'), 148)
   assert.equal(getContextualTextRibbonReservedHeight('narrow'), 148)
@@ -610,6 +612,26 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   assert.match(
     ribbonHostSource,
     /function getColumnPackedChildrenInlineWidthProfile/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /function getVerticalScrollbarInlineSize/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /function getRibbonScrollableContentWidth/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /getFixedWidthProfile\(\s*getVerticalScrollbarInlineSize\(controlRow\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /addWidthProfiles\(controlRowProfile,\s*controlRowReservedScrollbarProfile\)/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /const availableWidth = getRibbonScrollableContentWidth\(element\)/,
   )
   assert.match(
     ribbonHostSource,
