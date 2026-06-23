@@ -596,11 +596,12 @@ Responsive states:
   horizontally and may use compact icon/dropdown-only affordances when a text
   value would become unreadable.
 - Narrow: controls preserve the fixed ribbon height, row count, and column
-  equalization rules. Do not add a third control row, horizontal scrollbar, or
+  equalization rules. Do not add a third control row, vertical scrollbar, or
   preview-displacing overflow escape.
-- Vertical overflow may scroll inside the fixed control-row area through a
-  stable vertical scrollbar lane. That lane must not trigger horizontal
-  remeasurement, change semantic column widths, or move the preview.
+- Horizontal overflow may scroll inside the fixed control-row area. That
+  scrollbar is the fallback after the two-row semantic-card layout has used the
+  available width; it must not trigger vertical remeasurement, change fixed row
+  heights, or move the preview.
 
 Current implementation:
 

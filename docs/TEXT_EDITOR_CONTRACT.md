@@ -46,11 +46,12 @@ tested, and the remaining divergences are recorded.
 - The reserved slot stays near the 60-65 px app-shell band. Controls must not
   wrap downward in a way that pushes the editable surface lower. Active control
   rows use fixed row heights; horizontal sizes may adapt, condense, or switch
-  to compact icon/dropdown-only affordances, but the ribbon must not introduce
-  a horizontal scrollbar as the normal overflow solution.
-- Vertical overflow is handled inside the fixed control-row area with a stable
-  vertical scrollbar lane. The lane must not cause horizontal column widths,
-  ribbon width, or preview geometry to change when overflow appears.
+  to compact icon/dropdown-only affordances. When the complete semantic-card
+  set still exceeds the available width, the fixed control-row area may expose
+  horizontal scrolling at whole-card columns.
+- The ribbon must not introduce vertical scrolling as the overflow solution.
+  Horizontal overflow must not change fixed row heights, push the preview, or
+  reflow controls into a third row.
 - Native ribbon controls are arranged as semantic boxes packed in
   column-first order. A column has one shared width: if any box above or below
   another box in the same column requires more usable width, every box in that
@@ -175,7 +176,7 @@ tested, and the remaining divergences are recorded.
 | --- | --- | --- |
 | Wide | Tabs fit in one row; active controls use the full available right-hand header column when useful. | Full labels, normal spacing, normal sliders/inputs. |
 | Compact | Tabs remain single-line where possible; active controls stay in fixed-height semantic-card rows. | Controls condense horizontally, use shorter labels, and may switch unreadable select values to button-only dropdown affordances with accessible labels. |
-| Narrow | Tabs and controls preserve the fixed ribbon height and do not add a third control row or horizontal scrollbar. | Controls keep usable hit targets, equalized column widths, and compact/icon-only affordances where text labels would become unreadable. |
+| Narrow | Tabs and controls preserve the fixed ribbon height and do not add a third control row or vertical scrollbar. | Controls keep usable hit targets, equalized column widths, compact/icon-only affordances where text labels would become unreadable, and horizontal scrolling only when whole-card columns still exceed the available width. |
 
 ### Migration Status
 

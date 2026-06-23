@@ -5,7 +5,7 @@
   --contextual-text-ribbon-control-row-height: 56px;
   --contextual-text-ribbon-control-row-count: 2;
   --contextual-text-ribbon-bottom-row-gap: 2px;
-  --contextual-text-ribbon-vertical-scrollbar-width: 10px;
+  --contextual-text-ribbon-horizontal-scrollbar-height: 10px;
 }
 
 .preview-header {
@@ -157,11 +157,10 @@
   min-height: 0;
   height: 100%;
   max-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
   scroll-padding-inline: 0 4px;
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
   scrollbar-color: rgba(148, 163, 184, 0.72) rgba(15, 23, 42, 0.82);
   overscroll-behavior-x: contain;
@@ -171,16 +170,15 @@
   grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
   align-content: start;
   align-items: stretch;
-  overflow-x: hidden;
-  overflow-y: auto;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
-  scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
 .contextual-text-ribbon-control-row::-webkit-scrollbar {
-  width: var(--contextual-text-ribbon-vertical-scrollbar-width);
-  height: 0;
+  width: 0;
+  height: var(--contextual-text-ribbon-horizontal-scrollbar-height);
 }
 
 .contextual-text-ribbon-control-row::-webkit-scrollbar-track {
@@ -437,7 +435,7 @@
 
 .contextual-text-ribbon-group--artistic-feature {
   display: grid;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
   width: var(--contextual-text-ribbon-column-width, clamp(
     var(--contextual-text-ribbon-group-min-width),
@@ -452,8 +450,7 @@
   min-height: calc(
     var(--contextual-text-ribbon-control-row-height) * 2 + 3px
   );
-  align-self: start;
-  overflow: visible;
+  overflow: hidden;
   padding: 3px 5px;
 }
 

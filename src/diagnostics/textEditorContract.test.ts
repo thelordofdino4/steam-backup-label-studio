@@ -148,11 +148,11 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-x:\s*hidden/s,
+    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-x:\s*auto/s,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-y:\s*auto/s,
+    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-y:\s*hidden/s,
   )
   assert.match(
     ribbonCss,
