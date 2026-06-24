@@ -112,6 +112,13 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     grows: true,
     rowSpan: 2,
   },
+  'layout-compact': {
+    min: 292,
+    preferred: 292,
+    max: 292,
+    rowSpan: 2,
+    fit: 'content',
+  },
   'reset': { min: 76, preferred: 86, max: 96 },
 }
 

@@ -1766,6 +1766,9 @@ function InlinePreviewTextEditorMenuContent({
         </span>
       )
       : null
+  const layoutGroupSize = layoutOptionControls
+    ? CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout
+    : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact']
 
   return renderContextualTextRibbonRow({
     className: 'contextual-text-ribbon-control-row--utilities',
@@ -1781,6 +1784,7 @@ function InlinePreviewTextEditorMenuContent({
         {renderContextualTextRibbonGroup({
           id: 'layout',
           label: 'Layout',
+          size: layoutGroupSize,
           children: (
             <>
               {layoutRangeControls}

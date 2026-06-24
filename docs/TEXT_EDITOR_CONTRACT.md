@@ -169,7 +169,10 @@ tested, and the remaining divergences are recorded.
   semantic reset card unless a tab-specific exception explicitly says
   otherwise. HTML source does not live in Utilities; it is owned by the
   dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
-  to satisfy a group name.
+  to satisfy a group name. A range-only `Layout` card uses a compact content
+  width so its right border sits near the rightmost visible control; only
+  layouts with additional mode/arc option columns may use the wider Layout
+  profile.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

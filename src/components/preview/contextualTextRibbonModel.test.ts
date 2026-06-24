@@ -1080,6 +1080,13 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     grows: true,
     rowSpan: 2,
   })
+  assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact'], {
+    min: 292,
+    preferred: 292,
+    max: 292,
+    rowSpan: 2,
+    fit: 'content',
+  })
   assert.deepEqual(
     packed.map((column) => column.items.map((item) => ({
       id: item.id,
@@ -1127,6 +1134,14 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   assert.match(
     editorSource,
     /id:\s*'layout'[\s\S]*\{layoutRangeControls\}[\s\S]*\{layoutOptionControls\}/,
+  )
+  assert.match(
+    editorSource,
+    /const layoutGroupSize = layoutOptionControls[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\.layout[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-compact'\]/,
+  )
+  assert.match(
+    editorSource,
+    /id:\s*'layout'[\s\S]*size:\s*layoutGroupSize/,
   )
   assert.match(
     editorSource,

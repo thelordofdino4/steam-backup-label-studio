@@ -632,7 +632,9 @@ Ribbon placement and layout:
   even when their semantic cards receive different horizontal space. HTML
   source remains in the dedicated `HTML` tab, and Utilities must not render
   empty placeholder cards for unavailable source or unsupported target-specific
-  controls.
+  controls. A range-only `Layout` card uses a compact content width so its
+  right border remains near the last visible control; the wider Layout profile
+  is reserved for targets with additional mode or arc option columns.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
