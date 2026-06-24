@@ -1291,12 +1291,28 @@
 .contextual-text-ribbon-control select {
   appearance: none;
   -webkit-appearance: none;
+  color-scheme: dark;
   width: min(100%, 142px);
   padding: 2px 24px 2px 7px;
   background-image: var(--contextual-text-ribbon-select-chevron);
   background-position: right 7px center;
   background-repeat: no-repeat;
   background-size: 12px 12px;
+}
+
+.contextual-text-ribbon-control select option,
+.contextual-text-ribbon-point-size-presets option {
+  color: #f9fafb;
+  background-color: #0f1117;
+  font-size: 12px;
+  -webkit-text-fill-color: #f9fafb;
+}
+
+.contextual-text-ribbon-control select option:checked,
+.contextual-text-ribbon-point-size-presets option:checked {
+  color: #ffffff;
+  background-color: #1d4ed8;
+  -webkit-text-fill-color: #ffffff;
 }
 
 .contextual-text-ribbon-control input[type="range"] {
@@ -1435,6 +1451,7 @@
 .contextual-text-ribbon-point-size-presets {
   appearance: none;
   -webkit-appearance: none;
+  color-scheme: dark;
   grid-area: 1 / 1;
   z-index: 2;
   width: 24px;
@@ -1452,13 +1469,6 @@
   -webkit-text-fill-color: transparent;
   opacity: 0;
   cursor: pointer;
-}
-
-.contextual-text-ribbon-point-size-presets option {
-  color: #f9fafb;
-  background: #0f1117;
-  font-size: 12px;
-  -webkit-text-fill-color: #f9fafb;
 }
 
 .contextual-text-ribbon-point-size-chevron {

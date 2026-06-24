@@ -156,6 +156,18 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   )
   assert.match(
     ribbonCss,
+    /\.contextual-text-ribbon-control select\s*\{[^}]*color-scheme:\s*dark/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select option,\s*\.contextual-text-ribbon-point-size-presets option\s*\{[^}]*color:\s*#f9fafb[^}]*background-color:\s*#0f1117/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select option:checked,\s*\.contextual-text-ribbon-point-size-presets option:checked\s*\{[^}]*background-color:\s*#1d4ed8/s,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-group\s*\{[^}]*display:\s*flex/s,
   )
   assert.match(
