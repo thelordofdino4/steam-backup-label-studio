@@ -37,6 +37,7 @@ export type StraightDiscTextRunLayout = {
   underline?: boolean
   color?: string
   backgroundColor?: string
+  font: string
   fontFamily?: string
   fontSizePt?: number
   fontSizePx?: number
@@ -158,7 +159,7 @@ function appendRichTextRun(runs: RichTextRun[], run: RichTextRun) {
   return runs
 }
 
-function getDiscTextRunFontString({
+export function getDiscTextRunFontString({
   baseFontStyle,
   baseFontWeight,
   fontFamily,
@@ -1101,6 +1102,14 @@ export function getStraightDiscTextRenderLayout(
             underline: run.underline,
             color: run.color,
             backgroundColor: run.backgroundColor,
+            font: getDiscTextRunFontString({
+              baseFontStyle: getDiscTextFontStyle(renderStyle),
+              baseFontWeight: renderStyle.fontWeight,
+              fontFamily: renderStyle.fontFamilyCanvas,
+              fontSize,
+              run,
+              template: options.template,
+            }),
             fontFamily: run.fontFamily,
             fontSizePt: run.fontSizePt,
             fontSizePx: run.fontSizePx,

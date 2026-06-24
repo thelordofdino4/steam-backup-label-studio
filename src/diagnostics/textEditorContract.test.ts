@@ -306,6 +306,10 @@ test('straight disc inline editing keeps the SVG renderer visible', () => {
   assert.doesNotMatch(discLayer, /isDiscTextHtmlEnabled/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(adapter, /geometryLines=\{geometryLines\}/)
+  assert.match(
+    adapter,
+    /getStraightDiscTextRenderLayout\([\s\S]*richText:\s*htmlDocument \?\? undefined[\s\S]*const geometryLines = getDiscInlineTextEditorGeometryLines/,
+  )
   assert.doesNotMatch(adapter, /className="disc-inline-text-line"/)
   assert.doesNotMatch(discCss, /\.disc-inline-text-line/)
 })

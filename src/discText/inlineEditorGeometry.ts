@@ -30,6 +30,63 @@ function toHostRatio(value: number, hostStart: number, hostSize: number) {
   return (value - hostStart) / hostSize
 }
 
+function getLineCaretAdvances({
+  line,
+  measureText,
+  renderLayout,
+}: {
+  line: StraightDiscTextRenderLayout['lines'][number]
+  measureText: TextMeasureFunction
+  renderLayout: StraightDiscTextRenderLayout
+}) {
+  if (!line.runs?.length) {
+    return Array.from(
+      { length: line.text.length + 1 },
+      (_, offset) => Math.max(
+        0,
+        measureText(line.text.slice(0, offset), renderLayout.font),
+      ),
+    )
+  }
+
+  const joinedRunText = line.runs.map((run) => run.text).join('')
+
+  if (joinedRunText !== line.text) {
+    return Array.from(
+      { length: line.text.length + 1 },
+      (_, offset) => Math.max(
+        0,
+        measureText(line.text.slice(0, offset), renderLayout.font),
+      ),
+    )
+  }
+
+  const advances = Array.from({ length: line.text.length + 1 }, () => 0)
+  let runStartOffset = 0
+  let runStartAdvance = 0
+
+  for (const run of line.runs) {
+    const runFont = run.font || renderLayout.font
+    const runWidth = Math.max(
+      0,
+      Number.isFinite(run.width)
+        ? run.width
+        : measureText(run.text, runFont),
+    )
+
+    for (let offset = 1; offset <= run.text.length; offset += 1) {
+      advances[runStartOffset + offset] = runStartAdvance +
+        Math.max(0, measureText(run.text.slice(0, offset), runFont))
+    }
+
+    runStartOffset += run.text.length
+    runStartAdvance += runWidth
+    advances[runStartOffset] = runStartAdvance
+  }
+
+  return advances
+}
+
 export function getDiscInlineTextEditorGeometryLines({
   bounds,
   measureText,
@@ -55,19 +112,12 @@ export function getDiscInlineTextEditorGeometryLines({
       renderLayout,
       x: line.x,
     })
-    const caretXRatios = Array.from(
-      { length: line.text.length + 1 },
-      (_, offset) =>
-        toHostRatio(
-          lineLeft +
-            Math.max(
-              0,
-              measureText(line.text.slice(0, offset), renderLayout.font),
-            ),
-          hostLeft,
-          hostWidth,
-        ),
-    )
+    const caretXRatios = getLineCaretAdvances({
+      line,
+      measureText,
+      renderLayout,
+    }).map((advance) =>
+      toHostRatio(lineLeft + advance, hostLeft, hostWidth))
 
     return {
       caretXRatios,

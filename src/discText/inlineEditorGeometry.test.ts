@@ -12,6 +12,11 @@ function measureText(text: string) {
   return text.length
 }
 
+function measureTextByFont(text: string, font: string) {
+  if (/Verdana/i.test(font)) return text.length * 4
+  return text.length
+}
+
 function createRenderLayout(
   overrides: Partial<StraightDiscTextRenderLayout> = {},
 ): StraightDiscTextRenderLayout {
@@ -23,7 +28,7 @@ function createRenderLayout(
     fontSize: 4,
     fontWeight: 700,
     lineHeight: 2,
-    lines: [{ text: 'abcd', x: 50, y: 50 }],
+    lines: [{ text: 'abcd', width: 4, x: 50, y: 50 }],
     maxWidth: 20,
     style: {
       backgroundColor: '#000000',
@@ -85,4 +90,42 @@ test('disc inline editor geometry respects start anchored SVG text', () => {
   })
 
   assert.deepEqual(geometryLines[0]?.caretXRatios, [0, 0.25, 0.5, 0.75, 1])
+})
+
+test('disc inline editor geometry uses rich-text run fonts for caret positions', () => {
+  const bounds: StraightDiscTextVisualBounds = {
+    centerX: 50,
+    centerY: 50,
+    halfHeight: 1,
+    halfWidth: 5,
+  }
+  const geometryLines = getDiscInlineTextEditorGeometryLines({
+    bounds,
+    measureText: measureTextByFont,
+    renderLayout: createRenderLayout({
+      font: '400 4px Arial',
+      lines: [
+        {
+          text: 'abcd',
+          width: 10,
+          x: 50,
+          y: 50,
+          runs: [
+            {
+              font: '400 4px Arial',
+              text: 'ab',
+              width: 2,
+            },
+            {
+              font: '400 4px Verdana',
+              text: 'cd',
+              width: 8,
+            },
+          ],
+        },
+      ],
+    }),
+  })
+
+  assert.deepEqual(geometryLines[0]?.caretXRatios, [0, 0.1, 0.2, 0.6, 1])
 })

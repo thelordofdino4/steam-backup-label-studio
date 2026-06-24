@@ -18,6 +18,11 @@ function measureText(text: string) {
   return Array.from(text).length
 }
 
+function measureTextByFont(text: string, font: string) {
+  const width = /Verdana/i.test(font) ? 4 : 1
+  return Array.from(text).length * width
+}
+
 function createLayout(layout: Partial<DiscTextLayout> = {}): DiscTextLayout {
   return {
     x: 0,
@@ -232,4 +237,34 @@ test('straight disc text preserves typed whitespace for live editing', () => {
     renderLayout.lines.map((line) => line.text),
     ['hello  world '],
   )
+})
+
+test('straight disc rich-text layout exposes run-specific fonts and widths', () => {
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'title',
+    'abcd',
+    createLayout({ width: 60 }),
+    measureTextByFont,
+    undefined,
+    {
+      richText: {
+        lines: [
+          {
+            text: 'abcd',
+            runs: [
+              { text: 'ab' },
+              { fontFamily: 'Verdana, Arial, sans-serif', text: 'cd' },
+            ],
+          },
+        ],
+      },
+    },
+  )
+  const line = renderLayout.lines[0]
+
+  assert.equal(line?.text, 'abcd')
+  assert.equal(line?.width, 10)
+  assert.equal(line?.runs?.[0]?.width, 2)
+  assert.equal(line?.runs?.[1]?.width, 8)
+  assert.match(line?.runs?.[1]?.font ?? '', /Verdana/)
 })

@@ -508,7 +508,11 @@ export function DiscInlineTextEditorLayer({
           layout,
           measureText,
           discTextStyles,
-          { avoidanceRegions: textAvoidanceRegions, template: selectedDiscTemplate },
+          {
+            avoidanceRegions: textAvoidanceRegions,
+            richText: htmlDocument ?? undefined,
+            template: selectedDiscTemplate,
+          },
         )
         const bounds = getDiscInlineEditorBounds(
           layout,
