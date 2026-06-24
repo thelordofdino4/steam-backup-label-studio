@@ -134,9 +134,9 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     fit: 'content',
   },
   'metadata-source': {
-    min: 184,
-    preferred: 220,
-    max: 260,
+    min: 248,
+    preferred: 268,
+    max: 288,
     rowSpan: 2,
     fit: 'content',
   },
