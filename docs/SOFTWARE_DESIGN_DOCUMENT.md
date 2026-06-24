@@ -624,9 +624,12 @@ Ribbon placement and layout:
   the separate divider column, but that divider must not split the checkbox
   away from `Wrap width`. `Wrap width` and `Respect visual elements` remain
   fully readable; the fixed-height ribbon should use whole-card horizontal
-  overflow rather than truncate those utility labels. HTML source remains in
-  the dedicated `HTML` tab, and Utilities must not render empty placeholder
-  cards for unavailable source or unsupported target-specific controls.
+  overflow rather than truncate those utility labels. Utilities range sliders
+  share the Artistic range-slider compression metrics: 72px normal track
+  minimum with a 48px numeric field, and 58px compact track minimum with a
+  42px numeric field. HTML source remains in the dedicated `HTML` tab, and
+  Utilities must not render empty placeholder cards for unavailable source or
+  unsupported target-specific controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

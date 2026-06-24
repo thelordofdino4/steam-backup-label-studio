@@ -160,7 +160,10 @@ tested, and the remaining divergences are recorded.
   must not be split away behind the divider used for unrelated mode/arc
   options. The `Wrap width` label must remain fully readable at minimum and
   default sizes; whole-card horizontal scrolling is preferred over truncating
-  those utility labels. `Reset` remains a compact semantic reset card unless a
+  those utility labels. Utilities range sliders use the same ribbon slider
+  compression contract as Artistic range sliders: the normal track minimum is
+  72px with a 48px numeric field, and the compact track minimum is 58px with a
+  42px numeric field. `Reset` remains a compact semantic reset card unless a
   tab-specific exception explicitly says otherwise. HTML source does not live
   in Utilities; it is owned by the dedicated `HTML` tab. Do not add unsupported
   or empty Utilities cards merely to satisfy a group name.

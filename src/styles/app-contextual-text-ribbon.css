@@ -829,8 +829,8 @@
   display: grid;
   grid-template-columns:
     max-content
-    minmax(68px, 1fr)
-    minmax(46px, max-content)
+    minmax(72px, 1fr)
+    minmax(48px, max-content)
     max-content;
   align-items: center;
   gap: 4px;
@@ -863,15 +863,15 @@
   .contextual-text-ribbon-range-control
   input[type="range"] {
   width: 100%;
-  min-width: 68px;
+  min-width: 72px;
   max-width: none;
 }
 
 .contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-range-control
   input[type="number"] {
-  width: 46px;
-  min-width: 46px;
+  width: 48px;
+  min-width: 48px;
   padding-inline: 3px;
 }
 
@@ -1719,7 +1719,7 @@
     .contextual-text-ribbon-range-control {
     grid-template-columns:
       max-content
-      minmax(54px, 1fr)
+      minmax(58px, 1fr)
       minmax(42px, max-content)
       max-content;
   }
@@ -1727,14 +1727,14 @@
   .contextual-text-ribbon-control-row--utilities
     .contextual-text-ribbon-range-control
     input[type="range"] {
-    min-width: 54px;
+    min-width: 58px;
   }
 
   .contextual-text-ribbon-control-row--utilities
     .contextual-text-ribbon-range-control
     input[type="number"] {
-    width: 44px;
-    min-width: 44px;
+    width: 42px;
+    min-width: 42px;
   }
 
   .contextual-text-ribbon-control-row--utilities
