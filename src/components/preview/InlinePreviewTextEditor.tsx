@@ -1849,7 +1849,9 @@ function InlinePreviewTextEditorMenuContent({
       )
       : null
   const layoutGroupSize = layoutOptionControls
-    ? CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout
+    ? isCurvedLayoutRangeStack
+      ? CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved']
+      : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout
     : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact']
 
   return renderContextualTextRibbonRow({

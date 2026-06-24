@@ -184,7 +184,12 @@ tested, and the remaining divergences are recorded.
   Curved Layout option controls such as `Arc side` use a separate compact
   options column with enough select-field width for the current value and
   chevron; the select must remain fully inside the Layout card and may not be
-  clipped by the card edge or reset command.
+  clipped by the card edge or reset command. Curved Layout uses its own
+  content-fitted card width profile instead of the straight-text Layout width
+  profile because preserving readable `Line spacing`, `Arc`, and `Arc side`
+  controls is more important than forcing the whole curved Layout card into the
+  straight-text minimum. At constrained widths, whole-card horizontal scrolling
+  is the expected fallback.
   Utilities layout reset uses
   the Presets reset visual language: a standalone `Reset` command button
   without an extra `Reset` card title or a secondary `Layout` label, except it

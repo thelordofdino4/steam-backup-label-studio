@@ -1115,6 +1115,13 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     grows: true,
     rowSpan: 2,
   })
+  assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved'], {
+    min: 430,
+    preferred: 430,
+    max: 430,
+    rowSpan: 2,
+    fit: 'content',
+  })
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact'], {
     min: 292,
     preferred: 292,
@@ -1192,7 +1199,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
-    /const layoutGroupSize = layoutOptionControls[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\.layout[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-compact'\]/,
+    /const layoutGroupSize = layoutOptionControls[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-curved'\][\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\.layout[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-compact'\]/,
   )
   assert.match(
     editorSource,
@@ -1279,7 +1286,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options\s*\{[\s\S]*flex:\s*0 0 134px[\s\S]*align-items:\s*stretch[\s\S]*padding-left:\s*4px/,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options\s*\{[\s\S]*flex:\s*0 0 160px[\s\S]*align-items:\s*stretch[\s\S]*padding-left:\s*4px/,
   )
   assert.match(
     ribbonCss,
@@ -1303,7 +1310,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options[\s\S]*\.contextual-text-ribbon-select-control\s*\{[\s\S]*grid-template-columns:\s*42px minmax\(86px,\s*1fr\)[\s\S]*width:\s*100%/,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options[\s\S]*\.contextual-text-ribbon-select-control\s*\{[\s\S]*grid-template-columns:\s*54px minmax\(96px,\s*1fr\)[\s\S]*width:\s*100%/,
   )
   assert.match(
     ribbonCss,
