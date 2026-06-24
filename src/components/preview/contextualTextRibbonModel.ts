@@ -81,8 +81,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   'layout-preset': { min: 214, preferred: 230, max: 260, fit: 'content' },
   'font': { min: 342, preferred: 360, max: 408, fit: 'content' },
   'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
-  'text-color': { min: 108, preferred: 138, max: 160, grows: true },
-  'contrast': { min: 108, preferred: 176, max: 220, grows: true },
+  'text-color': { min: 108, preferred: 138, max: 160 },
+  'contrast': { min: 108, preferred: 176, max: 220 },
   'background': {
     min: 180,
     preferred: 292,
@@ -198,13 +198,31 @@ export function getContextualTextRibbonColumnWidths({
       column.min + (column.preferred - column.min) * ratio)
   }
 
+  const growingColumns = columns.filter((column) => column.grows)
+  const growableTotal = growingColumns.reduce(
+    (sum, column) => sum + Math.max(0, column.max - column.preferred),
+    0,
+  )
+
+  if (growingColumns.length === 0 || growableTotal <= 0) {
+    return columns.map((column) => column.preferred)
+  }
+
+  const growableMaxTotal = preferredTotal + growableTotal
+  if (availableForColumns >= growableMaxTotal) {
+    return columns.map((column) =>
+      column.grows ? column.max : column.preferred)
+  }
+
   const ratio = Math.min(
     1,
-    (availableForColumns - preferredTotal) / (maxTotal - preferredTotal),
+    (availableForColumns - preferredTotal) / growableTotal,
   )
 
   return columns.map((column) =>
-    column.preferred + (column.max - column.preferred) * ratio)
+    column.grows
+      ? column.preferred + (column.max - column.preferred) * ratio
+      : column.preferred)
 }
 
 function maxRibbonWidthProfile(
