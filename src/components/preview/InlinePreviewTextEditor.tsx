@@ -1166,6 +1166,7 @@ function renderInlinePreviewHtmlSourcePanel({
       data-ribbon-group-min-width={size.min}
       data-ribbon-group-preferred-width={size.preferred}
       data-ribbon-group-row-span="2"
+      data-ribbon-fill-row="true"
       data-ribbon-html-panel
     >
       {renderInlinePreviewHtmlSourceControl({

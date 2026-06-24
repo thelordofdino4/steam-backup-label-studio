@@ -732,7 +732,7 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonHostSource,
-    /element\.style\.gridColumn = String\(columnIndex \+ 1\)/,
+    /element\.style\.gridColumn = fillsRow \? '1 \/ -1' : String\(columnIndex \+ 1\)/,
   )
   assert.match(
     ribbonHostSource,
@@ -1223,6 +1223,9 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   const editorSource = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
+  const ribbonHostSource = readRepoFile(
+    'src/components/preview/ContextualTextRibbon.tsx',
+  )
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
 
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.source, {
@@ -1237,7 +1240,7 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   )
   assert.match(
     editorSource,
-    /className="contextual-text-ribbon-html-panel"[\s\S]*data-ribbon-group="source"[\s\S]*data-ribbon-group-row-span="2"[\s\S]*data-ribbon-html-panel/,
+    /className="contextual-text-ribbon-html-panel"[\s\S]*data-ribbon-group="source"[\s\S]*data-ribbon-group-row-span="2"[\s\S]*data-ribbon-fill-row="true"[\s\S]*data-ribbon-html-panel/,
   )
   assert.match(
     editorSource,
@@ -1249,7 +1252,11 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*display:\s*grid[\s\S]*grid-row:\s*span 2[\s\S]*overflow:\s*hidden/,
+    /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*display:\s*grid[\s\S]*grid-row:\s*span 2[\s\S]*width:\s*100%[\s\S]*max-width:\s*100%[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /dataset\.ribbonFillRow === 'true'[\s\S]*fillsRow \? '100%' : `\$\{Math\.ceil\(width\)\}px`[\s\S]*fillsRow \? '1 \/ -1'/,
   )
   assert.match(
     ribbonCss,
@@ -1258,6 +1265,10 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--html::-webkit-scrollbar\s*\{[\s\S]*display:\s*none/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*grid-column:\s*1 \/ -1[\s\S]*justify-self:\s*stretch/,
   )
   assert.match(
     ribbonCss,

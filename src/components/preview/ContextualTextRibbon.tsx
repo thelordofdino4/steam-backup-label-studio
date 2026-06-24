@@ -370,7 +370,8 @@ function applyColumnPackedGroupWidths(element: Element | null) {
     const width = columnWidths[columnIndex]
 
     column.elements.forEach(({ element, rowSpan, rowStart }) => {
-      const widthValue = `${Math.ceil(width)}px`
+      const fillsRow = element.dataset.ribbonFillRow === 'true'
+      const widthValue = fillsRow ? '100%' : `${Math.ceil(width)}px`
 
       element.style.setProperty(
         '--contextual-text-ribbon-column-width',
@@ -378,7 +379,7 @@ function applyColumnPackedGroupWidths(element: Element | null) {
       )
       element.style.width = widthValue
       element.style.maxWidth = widthValue
-      element.style.gridColumn = String(columnIndex + 1)
+      element.style.gridColumn = fillsRow ? '1 / -1' : String(columnIndex + 1)
       element.style.gridRow = rowSpan === 2
         ? `${rowStart} / span ${rowSpan}`
         : String(rowStart)
