@@ -799,14 +799,17 @@
 }
 
 .contextual-text-ribbon-group--layout,
-.contextual-text-ribbon-group--position {
+.contextual-text-ribbon-group--position,
+.contextual-text-ribbon-group--metadata-source {
   width: var(--contextual-text-ribbon-column-width, max-content);
 }
 
 .contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-group--position,
 .contextual-text-ribbon-control-row--utilities
-  .contextual-text-ribbon-group--layout {
+  .contextual-text-ribbon-group--layout,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--metadata-source {
   container-type: inline-size;
   align-items: stretch;
   width: var(--contextual-text-ribbon-column-width, clamp(
@@ -827,11 +830,53 @@
   .contextual-text-ribbon-group-body,
 .contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-group--layout
+  .contextual-text-ribbon-group-body,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--metadata-source
   .contextual-text-ribbon-group-body {
   flex: 1 1 auto;
   align-items: stretch;
   min-width: 0;
   width: 100%;
+}
+
+.contextual-text-ribbon-metadata-source {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-metadata-status {
+  color: #e5e7eb;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.contextual-text-ribbon-metadata-source--metadata
+  .contextual-text-ribbon-metadata-status {
+  color: #bfdbfe;
+}
+
+.contextual-text-ribbon-metadata-source--manual
+  .contextual-text-ribbon-metadata-status {
+  color: #fde68a;
+}
+
+.contextual-text-ribbon-metadata-source--unavailable
+  .contextual-text-ribbon-metadata-status {
+  color: #cbd5e1;
+}
+
+.contextual-text-ribbon-metadata-action {
+  justify-self: stretch;
+  width: 100%;
+  min-height: 24px;
+  padding-inline: 8px;
+  white-space: normal;
 }
 
 .contextual-text-ribbon-control-stack--utility-position,
@@ -1673,13 +1718,43 @@
 
 .contextual-text-ribbon-action--danger {
   border-color: rgba(248, 113, 113, 0.84);
-  background: #7f1d1d;
-  color: #fee2e2;
+  background:
+    linear-gradient(180deg, rgba(185, 28, 28, 0.98), rgba(127, 29, 29, 0.96));
+  color: #ffffff;
 }
 
 .contextual-text-ribbon-action svg {
   width: 14px;
   height: 14px;
+}
+
+.contextual-text-ribbon-action--danger:hover,
+.contextual-text-ribbon-action--danger:focus-visible {
+  border-color: rgba(252, 165, 165, 0.95);
+  background:
+    linear-gradient(180deg, rgba(220, 38, 38, 0.98), rgba(153, 27, 27, 0.96));
+  color: #ffffff;
+}
+
+.contextual-text-ribbon-action--danger svg {
+  width: min(24px, 100%);
+  max-width: 48px;
+  height: min(24px, 100%);
+  max-height: 48px;
+  fill: currentColor;
+  stroke: none;
+}
+
+.contextual-text-ribbon-action-label--visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .contextual-text-ribbon-source-control {
@@ -1752,11 +1827,12 @@
   grid-column: 2;
   grid-row: 1;
   display: flex;
+  flex-direction: column;
   flex-wrap: nowrap;
   align-content: flex-start;
-  align-items: flex-start;
-  justify-content: flex-end;
-  gap: 4px;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 8px;
   min-width: 0;
   min-height: 0;
   padding-left: 5px;

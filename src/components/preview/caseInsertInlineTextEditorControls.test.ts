@@ -15,8 +15,10 @@ import type {
 } from '../../project/projectTypes.ts'
 import {
   createCaseInsertInlineTextEditorControls,
+  createCaseInsertInlineTextMetadataSourceControl,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls.ts'
+import { createDefaultProjectMetadata } from '../../project/projectMetadata.ts'
 
 test('case insert contextual controls expose migrated text block properties', () => {
   const calls: string[] = []
@@ -238,6 +240,62 @@ test('case insert border group remains identifiable while background is off', ()
   assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
   assert.equal(controls.art?.borderColor?.value, style.borderColor)
   assert.equal(controls.art?.borderRadius?.value, style.borderRadius)
+})
+
+test('case insert metadata source control reflects manual, metadata, and unavailable states', () => {
+  const projectMetadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Portal 2',
+  }
+  const textBlock = {
+    id: 'cover-title-text',
+    label: 'Title',
+    enabled: true,
+    value: 'Manual title',
+    source: 'manual' as const,
+    align: 'center' as const,
+    avoidVisualElements: false,
+    layout: {
+      scale: 1,
+      fontSizePt: 24,
+      width: 80,
+      x: 50,
+      y: 30,
+      rotation: 0,
+    },
+    style: createDefaultCaseInsertTextStyle('title'),
+  }
+  let restored = false
+
+  const manual = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock,
+    projectMetadata,
+    onUseMetadataValue: () => {
+      restored = true
+    },
+  })
+
+  assert.equal(manual?.label, 'Game metadata')
+  assert.equal(manual?.status, 'manual')
+  assert.equal(manual?.statusLabel, 'Manual override')
+  assert.equal(manual?.actionLabel, 'Use Game metadata value')
+  manual?.onAction?.()
+  assert.equal(restored, true)
+
+  const metadata = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock: { ...textBlock, source: 'metadata', value: '' },
+    projectMetadata,
+  })
+  assert.equal(metadata?.status, 'metadata')
+  assert.equal(metadata?.statusLabel, 'Using Game metadata/default')
+  assert.equal(metadata?.onAction, undefined)
+
+  const unavailable = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock: { ...textBlock, source: 'metadata', value: '' },
+    projectMetadata: { ...projectMetadata, title: '' },
+  })
+  assert.equal(unavailable?.status, 'unavailable')
+  assert.equal(unavailable?.statusLabel, 'Metadata unavailable')
 })
 
 test('case insert bulleted list control routes selection command through handlers', () => {

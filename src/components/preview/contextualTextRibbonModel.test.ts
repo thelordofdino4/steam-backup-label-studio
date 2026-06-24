@@ -166,6 +166,13 @@ function createFixtureControls(): InlinePreviewTextEditorControls {
         value: 'default',
         onChange: noop,
       },
+      metadataSource: {
+        label: 'Game metadata',
+        status: 'manual',
+        statusLabel: 'Manual override',
+        actionLabel: 'Use Game metadata value',
+        onAction: noop,
+      },
       respectVisualElements: {
         checked: true,
         label: 'Respect visual elements',
@@ -557,6 +564,7 @@ test('contextual text ribbon fixture covers each supported control type', () => 
   assert.ok(ids.includes('size'))
   assert.ok(ids.includes('color'))
   assert.ok(ids.includes('width'))
+  assert.ok(ids.includes('metadataSource'))
   assert.ok(ids.includes('htmlSource'))
   assert.ok(ids.includes('delete'))
 })
@@ -1236,7 +1244,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--position,[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--layout\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*align-items:\s*stretch[\s\S]*overflow:\s*hidden/,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--position,[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--layout,[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-group--metadata-source\s*\{[\s\S]*container-type:\s*inline-size[\s\S]*align-items:\s*stretch[\s\S]*overflow:\s*hidden/,
   )
   assert.match(
     ribbonCss,

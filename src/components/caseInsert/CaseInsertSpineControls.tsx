@@ -60,7 +60,6 @@ import type {
   ProjectPlatformMarkAsset,
   ProjectTechnicalMarkAsset,
   ProjectCaseInsertTextBlock,
-  ProjectCaseInsertTextSource,
   ProjectMetadata,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseSpineState,
@@ -68,7 +67,6 @@ import type {
 } from '../../project/projectTypes'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
-  getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
 } from '../../caseInsert/textContent'
 import {
@@ -103,9 +101,6 @@ import type {
 } from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
-import {
-  CaseInsertTextSourceControls,
-} from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import { EditorArtworkFrameControls } from '../editor/EditorArtworkFrameControls'
 import { EditorFeaturePanel } from '../editor/EditorPanel'
@@ -278,22 +273,16 @@ function SpineTextLayoutPresetControl({
 function SpineTitleControls({
   side,
   title,
-  projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: {
   side: JewelCaseSpineSide
   title: ProjectCaseInsertTextBlock
-  projectMetadata: ProjectMetadata
   actions: JewelCaseSpineEditorActions
   onSelectedTextTargetChange: (
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const inputState = getCaseInsertTextBlockInputState(
-    title,
-    projectMetadata,
-  )
   const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
     ? getCaseInsertTextBlockLayoutPresets('spine', title)
     : []
@@ -315,15 +304,6 @@ function SpineTitleControls({
 
       {!title.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextSourceControls
-            label={title.label}
-            source={title.source}
-            isMetadataBacked={inputState.isMetadataBacked}
-            isManualOverride={inputState.isManualOverride}
-            onUseMetadataValue={() =>
-              actions.handleSpineTitleValueChange(side, '', 'metadata')}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${title.label} text controls`}
@@ -388,31 +368,16 @@ function SpineTitleControls({
 function SpineTextBlockControls({
   side,
   textBlock,
-  projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: {
   side: JewelCaseSpineSide
   textBlock: ProjectCaseInsertTextBlock
-  projectMetadata: ProjectMetadata
   actions: JewelCaseSpineEditorActions
   onSelectedTextTargetChange: (
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const onValueChange = (
-    value: string,
-    source?: ProjectCaseInsertTextSource,
-  ) => actions.handleSpineTextBlockValueChange(
-    side,
-    textBlock.id,
-    value,
-    source,
-  )
-  const inputState = getCaseInsertTextBlockInputState(
-    textBlock,
-    projectMetadata,
-  )
   const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
     ? getCaseInsertTextBlockLayoutPresets('spine', textBlock)
     : []
@@ -438,14 +403,6 @@ function SpineTextBlockControls({
 
       {!textBlock.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextSourceControls
-            label={textBlock.label}
-            source={textBlock.source}
-            isMetadataBacked={inputState.isMetadataBacked}
-            isManualOverride={inputState.isManualOverride}
-            onUseMetadataValue={() => onValueChange('', 'metadata')}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
@@ -1467,7 +1424,6 @@ export function CaseInsertSpineBrandingControls({
 
 export function CaseInsertSpineTextControls({
   spine,
-  projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: CaseInsertSpineControlsProps) {
@@ -1481,7 +1437,6 @@ export function CaseInsertSpineTextControls({
           <SpineTitleControls
             side={side}
             title={state.title}
-            projectMetadata={projectMetadata}
             actions={actions}
             onSelectedTextTargetChange={onSelectedTextTargetChange}
           />
@@ -1490,7 +1445,6 @@ export function CaseInsertSpineTextControls({
               key={textBlock.id}
               side={side}
               textBlock={textBlock}
-              projectMetadata={projectMetadata}
               actions={actions}
               onSelectedTextTargetChange={onSelectedTextTargetChange}
             />

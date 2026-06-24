@@ -133,6 +133,13 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     rowSpan: 2,
     fit: 'content',
   },
+  'metadata-source': {
+    min: 184,
+    preferred: 220,
+    max: 260,
+    rowSpan: 2,
+    fit: 'content',
+  },
 }
 
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
@@ -561,6 +568,12 @@ export function getContextualTextRibbonControlDescriptors(
     id: 'mode',
     kind: 'select',
     label: controls.utilities.mode.label,
+  })
+  addDescriptor(descriptors, controls?.utilities?.metadataSource && {
+    group: 'utilities',
+    id: 'metadataSource',
+    kind: 'action',
+    label: controls.utilities.metadataSource.label,
   })
   addDescriptor(descriptors, controls?.html?.source && {
     group: 'html',

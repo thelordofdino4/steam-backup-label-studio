@@ -21,7 +21,13 @@ import type {
 import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
+  ProjectCaseInsertTextBlock,
+  ProjectMetadata,
 } from '../../project/projectTypes'
+import {
+  getCaseInsertTextBlockInputState,
+  getCaseInsertTextBlockMetadataInputValue,
+} from '../../caseInsert/textContent.ts'
 import type { LegacyTextContentMode, TextContentMode } from '../../text/htmlText'
 import {
   CASE_INSERT_TEXT_FONT_SIZE_PT_MAX,
@@ -83,6 +89,7 @@ export type CaseInsertPreviewTextControlHandlers = {
     target: CaseInsertPreviewTextTarget,
     contentMode: TextContentMode,
   ) => void
+  onUseMetadataValue?: (target: CaseInsertPreviewTextTarget) => void
   onRichTextCommand?: (
     target: CaseInsertPreviewTextTarget,
     command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
@@ -128,6 +135,51 @@ type CaseInsertInlineTextEditorControlParams = {
   onDeleteComplete?: () => void
   onHtmlSourceActiveChange?: (active: boolean) => void
   onResetLayout?: () => void
+  metadataSource?: NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource']
+}
+
+export function createCaseInsertInlineTextMetadataSourceControl({
+  onUseMetadataValue,
+  projectMetadata,
+  textBlock,
+}: {
+  onUseMetadataValue?: () => void
+  projectMetadata: ProjectMetadata
+  textBlock: ProjectCaseInsertTextBlock
+}): NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource'] {
+  const inputState = getCaseInsertTextBlockInputState(
+    textBlock,
+    projectMetadata,
+  )
+
+  if (!inputState.isMetadataBacked) {
+    return undefined
+  }
+
+  const metadataValue = getCaseInsertTextBlockMetadataInputValue(
+    textBlock,
+    projectMetadata,
+  )
+
+  if (!metadataValue) {
+    return {
+      label: 'Game metadata',
+      status: 'unavailable',
+      statusLabel: 'Metadata unavailable',
+    }
+  }
+
+  return {
+    actionLabel: inputState.isManualOverride
+      ? 'Use Game metadata value'
+      : undefined,
+    label: 'Game metadata',
+    onAction: inputState.isManualOverride ? onUseMetadataValue : undefined,
+    status: inputState.isManualOverride ? 'manual' : 'metadata',
+    statusLabel: inputState.isManualOverride
+      ? 'Manual override'
+      : 'Using Game metadata/default',
+  }
 }
 
 function getMatchingCaseInsertLayoutPreset({
@@ -144,17 +196,12 @@ function getMatchingCaseInsertLayoutPreset({
       return false
     }
 
-    return Object.entries(preset.layout).every(([field, value]) =>
-      contextualTextNumericValuesMatch(
-        layout[
-          field as keyof Pick<
-            ProjectCaseInsertLayout,
-            'fontSizePt' | 'scale' | 'width' | 'x' | 'y'
-          >
-        ],
-        value,
-      ),
-    )
+    return (['width', 'x', 'y'] as const).every((field) => {
+      const value = preset.layout[field]
+
+      return typeof value !== 'number' ||
+        contextualTextNumericValuesMatch(layout[field], value)
+    })
   })
 }
 
@@ -188,6 +235,7 @@ export function createCaseInsertInlineTextEditorControls({
   onDeleteComplete,
   onHtmlSourceActiveChange,
   onResetLayout,
+  metadataSource,
 }: CaseInsertInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   const matchingStylePreset = findMatchingContextualTextStylePreset(
     style,
@@ -490,6 +538,7 @@ export function createCaseInsertInlineTextEditorControls({
       },
     },
     utilities: {
+      metadataSource,
       respectVisualElements: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
         checked: avoidVisualElements,

@@ -101,6 +101,7 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import {
+  createCaseInsertInlineTextMetadataSourceControl,
   createCaseInsertInlineTextEditorControls,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
@@ -518,6 +519,13 @@ function CaseInsertTemplateTextBlock({
         contentMode: layoutTextBlock.contentMode,
         htmlSourceActive: isHtmlSourceEditing,
         fontSizeRole: getCaseInsertTextSizeRoleFromId(layoutTextBlock.id),
+        metadataSource: createCaseInsertInlineTextMetadataSourceControl({
+          textBlock,
+          projectMetadata: brandingSources.projectMetadata,
+          onUseMetadataValue: previewTextControlHandlers.onUseMetadataValue
+            ? () => previewTextControlHandlers.onUseMetadataValue?.(textTarget)
+            : undefined,
+        }),
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),

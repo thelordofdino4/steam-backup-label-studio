@@ -247,12 +247,19 @@ function applyLayoutPreset(
   layout: ProjectCaseInsertLayout,
   preset: CaseInsertTextLayoutPreset,
 ): ProjectCaseInsertLayout {
-  return {
+  const nextLayout = {
     ...layout,
-    ...preset.layout,
+    ...(typeof preset.layout.x === 'number' ? { x: preset.layout.x } : {}),
+    ...(typeof preset.layout.y === 'number' ? { y: preset.layout.y } : {}),
     ...(typeof preset.layout.width === 'number'
       ? { width: normalizeCaseInsertTextWidth(preset.layout.width) }
       : {}),
+  }
+
+  return {
+    ...nextLayout,
+    fontSizePt: layout.fontSizePt,
+    scale: layout.scale,
   }
 }
 

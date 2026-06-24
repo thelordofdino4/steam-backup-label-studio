@@ -218,6 +218,25 @@ test('straight disc border controls stay available without background fill', () 
   assert.equal(controls.art?.borderRadius?.value, 0.75)
 })
 
+test('disc contextual controls expose metadata source status when provided', () => {
+  const { controls } = createControls({
+    metadataSource: {
+      label: 'Game metadata',
+      status: 'manual',
+      statusLabel: 'Manual override',
+      actionLabel: 'Use Game metadata value',
+      onAction: () => undefined,
+    },
+  })
+
+  assert.equal(controls.utilities?.metadataSource?.label, 'Game metadata')
+  assert.equal(controls.utilities?.metadataSource?.status, 'manual')
+  assert.equal(
+    controls.utilities?.metadataSource?.actionLabel,
+    'Use Game metadata value',
+  )
+})
+
 test('curved disc artistic controls omit unsupported background and border groups', () => {
   const key: DiscTextKey = 'copyright'
   const layout = {
@@ -404,8 +423,6 @@ test('disc custom option is inert and target-specific handlers stay in adapter',
     'layout:x:0',
     'layout:y:19.5',
     'layout:width:62',
-    'layout:scale:1.05',
-    `layout:fontSizePt:${getDefaultDiscTextPointSize('title', 1.05)}`,
     'align:center',
     'align:right',
     'style:bold:true',

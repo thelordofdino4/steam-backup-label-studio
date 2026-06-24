@@ -25,6 +25,7 @@ import {
   setCaseInsertTextBlockEnabled,
   setCaseInsertTextListAvoidVisualElements,
   setCaseInsertTextListEnabled,
+  updateCaseInsertTextBlockValue,
   updateCaseInsertTextBlockLayoutField,
   updateCaseInsertTextBlockContentMode,
   updateCaseInsertTextBlockStyleField,
@@ -147,6 +148,50 @@ export function setCaseInsertPreviewTextTargetEnabled(
         caseInsert,
         target,
         (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
+      )
+  }
+}
+
+export function restoreCaseInsertPreviewTextTargetMetadataValue(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextTarget,
+) {
+  switch (target.scope) {
+    case 'templateTextBlock':
+      return updateCaseInsertTemplateTextBlock(
+        caseInsert,
+        target.paneId,
+        target.textBlockId,
+        (textBlock) => updateCaseInsertTextBlockValue(
+          textBlock,
+          '',
+          'metadata',
+        ),
+      )
+    case 'templateTextList':
+      return caseInsert
+    case 'spineTitle':
+      return updateProjectJewelCaseSpineSides(
+        caseInsert,
+        target.side,
+        (spineSide) => ({
+          ...spineSide,
+          title: updateCaseInsertTextBlockValue(
+            spineSide.title,
+            '',
+            'metadata',
+          ),
+        }),
+      )
+    case 'spineTextBlock':
+      return updateSpinePreviewTextBlock(
+        caseInsert,
+        target,
+        (textBlock) => updateCaseInsertTextBlockValue(
+          textBlock,
+          '',
+          'metadata',
+        ),
       )
   }
 }

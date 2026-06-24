@@ -1136,6 +1136,42 @@ function renderInlinePreviewTextFeatureToggleControl({
   )
 }
 
+function renderInlinePreviewTextMetadataSourceControl(
+  control: NonNullable<
+    InlinePreviewTextEditorControls['utilities']
+  >['metadataSource'],
+) {
+  if (!control) return null
+
+  return (
+    <span
+      className={[
+        'contextual-text-ribbon-metadata-source',
+        `contextual-text-ribbon-metadata-source--${control.status}`,
+      ].join(' ')}
+      data-smoke-id="inline-text-metadata-source"
+    >
+      <span className="contextual-text-ribbon-metadata-status">
+        {control.statusLabel}
+      </span>
+      {control.onAction && control.actionLabel ? (
+        <button
+          type="button"
+          className="contextual-text-ribbon-card-reset-button contextual-text-ribbon-metadata-action"
+          data-smoke-id="inline-text-use-metadata-source"
+          onClick={(event) => {
+            event.stopPropagation()
+            control.onAction?.()
+          }}
+          onPointerDown={keepInlineTextEditorFocus}
+        >
+          {control.actionLabel}
+        </button>
+      ) : null}
+    </span>
+  )
+}
+
 function renderInlinePreviewTextArtisticFeatureGroup({
   children,
   id,
@@ -1905,6 +1941,14 @@ function InlinePreviewTextEditorMenuContent({
                 onClick: controls.utilities?.resetLayout,
               })}
             </>
+          ),
+        })}
+        {renderContextualTextRibbonGroup({
+          id: 'metadata-source',
+          label: 'Source',
+          className: 'contextual-text-ribbon-group--metadata-source contextual-text-ribbon-group--span-rows',
+          children: renderInlinePreviewTextMetadataSourceControl(
+            controls.utilities?.metadataSource,
           ),
         })}
       </>
@@ -3481,7 +3525,9 @@ export function InlinePreviewTextEditor({
               onPointerDown={keepInlineTextEditorFocus}
             >
               <TrashIcon />
-              <span>{deleteLabel}</span>
+              <span className="contextual-text-ribbon-action-label--visually-hidden">
+                {deleteLabel}
+              </span>
             </button>
           ) : null}
           <button

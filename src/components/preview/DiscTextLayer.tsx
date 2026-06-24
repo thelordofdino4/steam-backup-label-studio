@@ -27,7 +27,7 @@ import {
 } from '../../discText/svgLayer'
 import type { TextContentMode } from '../../text/htmlText'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
-import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
+import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources, type MetadataBoundDiscTextKey } from '../../project/metadataDiscText'
 import type { ProjectDiscNumberArtwork, ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { createSvgDataUrl } from '../../utils/svg'
@@ -63,6 +63,7 @@ export type DiscTextLayerProps = {
     options?: { sourceMode?: boolean },
   ) => void
   onDiscTextContentModeChange: (key: DiscTextKey, contentMode: TextContentMode) => void
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
   onDiscTextEditComplete: (
     key: DiscTextKey,
     commit?: InlinePreviewTextEditorDoneCommit,
@@ -165,6 +166,7 @@ export function DiscTextLayer({
   onDiscTextEnabledChange,
   onDiscTextValueChange,
   onDiscTextContentModeChange,
+  onUseMetadataDiscTextValue,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
@@ -369,8 +371,10 @@ export function DiscTextLayer({
       <DiscInlineTextEditorLayer
         discTextSettings={effectiveSettings}
         discTextValues={metadataBoundDiscTextValues}
+        discTextValueSources={discTextValueSources}
         discTextHtmlSources={discTextHtmlSources}
         discTextStyles={discTextStyles}
+        projectMetadata={projectMetadata}
         discTextLayout={discTextLayout}
         steamLogoPlacement={steamLogoPlacement}
         title={manualGameTitle}
@@ -382,6 +386,7 @@ export function DiscTextLayer({
         onDiscTextEnabledChange={onDiscTextEnabledChange}
         onDiscTextValueChange={onDiscTextValueChange}
         onDiscTextContentModeChange={onDiscTextContentModeChange}
+        onUseMetadataDiscTextValue={onUseMetadataDiscTextValue}
         onDiscTextEditComplete={onDiscTextEditComplete}
         onDiscTextStyleChange={onDiscTextStyleChange}
         onDiscTextRichTextCommand={onDiscTextRichTextCommand}

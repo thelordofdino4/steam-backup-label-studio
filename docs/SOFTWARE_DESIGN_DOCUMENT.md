@@ -488,8 +488,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
   contextual target capabilities. Straight text and curved copyright/legal text
   move duplicated editing controls into contextual adapters, while the sidebar
-  keeps setup/source/type responsibilities such as enable, metadata/default
-  source, and the straight/curved mode switch.
+  keeps setup/type responsibilities such as enable and the straight/curved
+  mode switch. Metadata/default status and restore actions for selected
+  metadata-backed text live in the ribbon Utilities `Source` card.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same contextual
   target capabilities for rectangular case-insert text while spine orientation
@@ -603,6 +604,10 @@ Ribbon placement and layout:
   the purpose label, so inner select labels remain accessibility labels and
   must not duplicate the card title in visible text. Style reset belongs inside
   the `Style` card on the right side behind the card divider.
+- Layout presets are placement/layout-geometry commands only. Applying one may
+  update supported position, wrapping width, arc, or alignment geometry, but it
+  must preserve typography and style values such as font family, point size,
+  legacy scale-derived size, BIU, color, contrast, background, and border.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,
@@ -640,9 +645,11 @@ Ribbon placement and layout:
   Utilities layout reset belongs inside the `Layout` card on the right side,
   separated from the layout ranges/options by the same divider language used
   for utility layout option columns. It spans the two-row card body visually
-  without becoming a separate reset card or detached command. HTML source
-  remains in the dedicated `HTML` tab, and Utilities must not render empty placeholder cards
-  for unavailable source or unsupported target-specific controls. A range-only
+  without becoming a separate reset card or detached command. Metadata/default
+  status and manual override restoration use a full-height Utilities `Source`
+  card. HTML source remains in the dedicated `HTML` tab, and Utilities must
+  not render empty placeholder cards for unavailable source or unsupported
+  target-specific controls. A range-only
   `Layout` card uses a compact content width so its right border remains near
   the last visible control; the wider Layout profile is reserved for targets
   with additional mode or arc option columns.
@@ -687,12 +694,12 @@ Ownership matrix:
 
 | Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
 | --- | --- | --- | --- |
-| Cover | Contextual presets, text controls, art controls, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, selection, dotted bounds, edge-grab movement, Move fallback | Add/select, metadata/default setup without contextual equivalent |
+| Cover | Contextual presets, text controls, art controls, metadata source status/restore, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, selection, dotted bounds, edge-grab movement, Move fallback | Add/select |
 | Tray | Same as cover, with tray geometry and wrap semantics | Same as cover | Same as cover |
 | Left spine | Supported contextual text controls | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select and structural spine setup where needed |
 | Right spine | Same as left spine | Same as left spine | Same as left spine |
-| Straight disc | Supported contextual text controls, including HTML source | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc | Curved-safe text controls, safe inline HTML source, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc | Supported contextual text controls, including metadata source status/restore and HTML source | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add and straight/curved setup where needed |
+| Curved disc | Curved-safe text controls, metadata source status/restore, safe inline HTML source, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add and straight/curved mode selection |
 
 Responsive states:
 
@@ -762,7 +769,8 @@ Acceptance criteria:
   before later boxes may start the next column.
 - Text-body drag selects text; edge-grab and Move fallback move immediately.
 - No migrated editing control remains duplicated in the sidebar unless it is
-  intentionally sidebar-owned setup/source/type UI.
+  intentionally sidebar-owned setup/type UI. Metadata/default status and
+  manual-override restoration are contextual ribbon Source-card responsibilities.
 - Preview, save/load, and export parity remain unchanged.
 
 ### 9.5 Invariants And Future-Change Rules
@@ -1544,7 +1552,9 @@ Decision:
   and Delete affordances on the preview.
 - Give the ribbon priority over the existing top-right toast stack while it is
   active by offsetting toasts below the measured reserved ribbon slot.
-- Keep intentional setup/source/type controls in the sidebar.
+- Keep intentional setup/type controls in the sidebar. Metadata/default status
+  and manual-override restoration are contextual ribbon Source-card
+  responsibilities for selected text.
 - Keep the full-menu collision, docking, portal, and emergency-placement
   system deleted now that the ribbon owns contextual controls.
 

@@ -556,7 +556,9 @@ Edit/interaction path:
   contextual target capabilities instead of maintaining a separate
   migrated-control list in the sidebar component. Straight text and curved
   copyright/legal text keep editing controls in contextual adapters, while the
-  sidebar retains setup/source/type controls.
+  sidebar retains setup/type controls. Metadata/default status and manual
+  override restoration are exposed by the contextual ribbon Utilities `Source`
+  card for selected metadata-backed text.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same rectangular
   case-insert text target capabilities instead of duplicating registry policy

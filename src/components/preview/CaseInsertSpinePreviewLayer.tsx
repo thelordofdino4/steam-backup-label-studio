@@ -90,6 +90,7 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import {
+  createCaseInsertInlineTextMetadataSourceControl,
   createCaseInsertInlineTextEditorControls,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
@@ -426,6 +427,13 @@ function CaseInsertSpineTextBlock({
         yMax: layoutRanges.y.max,
         yMin: layoutRanges.y.min,
         yStep: 0.1,
+        metadataSource: createCaseInsertInlineTextMetadataSourceControl({
+          textBlock,
+          projectMetadata: brandingSources.projectMetadata,
+          onUseMetadataValue: previewTextControlHandlers.onUseMetadataValue
+            ? () => previewTextControlHandlers.onUseMetadataValue?.(textTarget)
+            : undefined,
+        }),
         onDeleteComplete: () => onSelectedTextTargetChange(null),
         onHtmlSourceActiveChange: (active) =>
           setHtmlSourceTargetKey(active ? targetKey : null),

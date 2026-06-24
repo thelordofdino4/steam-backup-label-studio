@@ -48,8 +48,16 @@ import {
   type TextContentMode,
 } from '../../text/htmlText'
 import {
+  getProjectMetadataDiscTextValue,
+  isMetadataBoundDiscTextKey,
+  type DiscTextValueSources,
+  type MetadataBoundDiscTextKey,
+} from '../../project/metadataDiscText'
+import type { ProjectMetadata } from '../../project/projectTypes'
+import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
+  type InlinePreviewTextEditorControls,
   type InlinePreviewTextEditorDoneCommit,
   type InlinePreviewTextEditorGeometryAdapter,
 } from './InlinePreviewTextEditor'
@@ -66,8 +74,10 @@ import type { DiscTemplate } from '../../types/template'
 export type DiscInlineTextEditorLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   discTextHtmlSources: DiscTextHtmlSources
   discTextStyles: DiscTextStyleSettings
+  projectMetadata: ProjectMetadata
   discTextLayout: DiscTextLayoutSettings
   title: string
   steamLogoPlacement: SteamLogoPlacement
@@ -86,6 +96,7 @@ export type DiscInlineTextEditorLayerProps = {
     key: DiscTextKey,
     contentMode: TextContentMode,
   ) => void
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
   onDiscTextEditComplete: (
     key: DiscTextKey,
     commit?: InlinePreviewTextEditorDoneCommit,
@@ -154,6 +165,46 @@ export type DiscInlineTextEditorLayerProps = {
   ) => void
   onMoveHandlePointerMove: (event: PointerEvent<Element>) => void
   onMoveHandlePointerUp: (event: PointerEvent<Element>) => void
+}
+
+function createDiscTextMetadataSourceControl({
+  key,
+  onUseMetadataDiscTextValue,
+  projectMetadata,
+  sources,
+}: {
+  key: DiscTextKey
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
+  projectMetadata: ProjectMetadata
+  sources: DiscTextValueSources
+}): NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource'] {
+  if (!isMetadataBoundDiscTextKey(key)) {
+    return undefined
+  }
+
+  const metadataValue = getProjectMetadataDiscTextValue(key, projectMetadata)
+
+  if (!metadataValue) {
+    return {
+      label: 'Game metadata',
+      status: 'unavailable',
+      statusLabel: 'Metadata unavailable',
+    }
+  }
+
+  const isManualOverride = sources[key] === 'manual'
+
+  return {
+    actionLabel: isManualOverride ? 'Use Game metadata value' : undefined,
+    label: 'Game metadata',
+    onAction: isManualOverride
+      ? () => onUseMetadataDiscTextValue(key)
+      : undefined,
+    status: isManualOverride ? 'manual' : 'metadata',
+    statusLabel: isManualOverride
+      ? 'Manual override'
+      : 'Using Game metadata/default',
+  }
 }
 
 type DiscInlineEditorBounds = {
@@ -237,8 +288,10 @@ function getBoundsHostStyle(bounds: DiscInlineEditorBounds) {
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
+  discTextValueSources,
   discTextHtmlSources,
   discTextStyles,
+  projectMetadata,
   discTextLayout,
   title,
   steamLogoPlacement,
@@ -250,6 +303,7 @@ export function DiscInlineTextEditorLayer({
   onDiscTextEnabledChange,
   onDiscTextValueChange,
   onDiscTextContentModeChange,
+  onUseMetadataDiscTextValue,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
@@ -323,6 +377,12 @@ export function DiscInlineTextEditorLayer({
             key,
             layout,
             style: discTextStyles[key],
+            metadataSource: createDiscTextMetadataSourceControl({
+              key,
+              onUseMetadataDiscTextValue,
+              projectMetadata,
+              sources: discTextValueSources,
+            }),
             isHtmlSourceEnabled: isHtmlSourceEditing,
             canChangeArcSide: steamLogoPlacement === 'none',
             onSelectedDiscTextKeyChange,
@@ -532,6 +592,12 @@ export function DiscInlineTextEditorLayer({
           key,
           layout,
           style: discTextStyles[key],
+          metadataSource: createDiscTextMetadataSourceControl({
+            key,
+            onUseMetadataDiscTextValue,
+            projectMetadata,
+            sources: discTextValueSources,
+          }),
           onSelectedDiscTextKeyChange,
           onDiscTextEnabledChange,
           onDiscTextStyleChange,

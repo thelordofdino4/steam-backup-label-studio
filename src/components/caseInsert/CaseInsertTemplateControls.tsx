@@ -62,7 +62,6 @@ import type {
 } from '../../project/projectTypes'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import {
-  getCaseInsertTextBlockInputState,
   getCaseInsertTextBlockPriority,
 } from '../../caseInsert/textContent'
 import {
@@ -101,9 +100,6 @@ import {
 } from './CaseInsertBrandingSetupControls'
 import { CaseInsertLogoSlotControls } from './CaseInsertLogoSlotControls'
 import { CaseInsertSteamBannerControls } from './CaseInsertSteamBannerControls'
-import {
-  CaseInsertTextSourceControls,
-} from './CaseInsertTextStyleControls'
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import type {
   CaseInsertPreviewTextTarget,
@@ -727,22 +723,16 @@ function CaseInsertArtworkFeatureSection({
 function TextBlockControls({
   paneId,
   textBlock,
-  projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: {
   paneId: CaseInsertTemplatePaneId
   textBlock: ProjectCaseInsertTextBlock
-  projectMetadata: ProjectMetadata
   actions: CaseInsertTemplateEditorActions
   onSelectedTextTargetChange: (
     target: CaseInsertPreviewTextTarget | null,
   ) => void
 }) {
-  const inputState = getCaseInsertTextBlockInputState(
-    textBlock,
-    projectMetadata,
-  )
   const layoutPresets = shouldShowCaseInsertTextSidebarControl('layoutPreset')
     ? getCaseInsertTextBlockLayoutPresets(paneId, textBlock)
     : []
@@ -768,20 +758,6 @@ function TextBlockControls({
 
       {!textBlock.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextSourceControls
-            label={textBlock.label}
-            source={textBlock.source}
-            isMetadataBacked={inputState.isMetadataBacked}
-            isManualOverride={inputState.isManualOverride}
-            onUseMetadataValue={() =>
-              actions.handleTextBlockValueChange(
-                paneId,
-                textBlock.id,
-                '',
-                'metadata',
-              )}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${textBlock.label} text controls`}
@@ -865,11 +841,6 @@ function TextListControls({
 
       {!textList.enabled ? null : (
         <div className="editor-text-control-body">
-          <CaseInsertTextSourceControls
-            label={textList.label}
-            source={textList.source}
-          />
-
           <div
             className="editor-control-group"
             aria-label={`${textList.label} text controls`}
@@ -1368,7 +1339,6 @@ export function CaseInsertTemplateBrandingControls({
 export function CaseInsertTemplateTextControls({
   paneId,
   templateState,
-  projectMetadata,
   actions,
   onSelectedTextTargetChange,
 }: CaseInsertTemplateControlsProps) {
@@ -1389,7 +1359,6 @@ export function CaseInsertTemplateTextControls({
           key={textBlock.id}
           paneId={paneId}
           textBlock={textBlock}
-          projectMetadata={projectMetadata}
           actions={actions}
           onSelectedTextTargetChange={onSelectedTextTargetChange}
         />
@@ -1408,7 +1377,6 @@ export function CaseInsertTemplateTextControls({
           key={textBlock.id}
           paneId={paneId}
           textBlock={textBlock}
-          projectMetadata={projectMetadata}
           actions={actions}
           onSelectedTextTargetChange={onSelectedTextTargetChange}
         />

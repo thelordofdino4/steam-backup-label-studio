@@ -12,10 +12,6 @@ import {
   getDiscTextSidebarTargetCapability,
   shouldShowDiscTextSidebarControl,
 } from '../../discText/sidebarControlPolicy'
-import {
-  getDiscTextInputState,
-  isMetadataBoundDiscTextKey,
-} from '../../project/metadataDiscText'
 import type { ContextualTextControlId } from '../../text/contextualTextControlViewModel'
 import type { TextPanelProps } from './textPanelTypes'
 
@@ -28,15 +24,9 @@ export function DiscTextControl({
   discTextSettings,
   discTextLayout,
   projectDiscNumberArtwork,
-  discTextValues,
   selectedDiscTextKey,
-  discTextValueSources,
-  metadataBoundDiscTextValues,
-  discTextTitleValue,
-  resolvedDiscTextTitle,
   handleDiscTextToggle,
   handleDiscTextPreviewEditStart,
-  handleUseMetadataDiscTextValue,
   handleDiscTextModeChange,
   handleDiscNumberArtworkModeChange,
   handleDiscNumberArtworkBadgeSetChange,
@@ -49,14 +39,6 @@ export function DiscTextControl({
   const shouldShowSidebarControl = (controlId: ContextualTextControlId) =>
     shouldShowDiscTextSidebarControl({ controlId, key, layout })
   const showModeControl = isCopyright && shouldShowSidebarControl('mode')
-  const inputState = getDiscTextInputState(
-    key,
-    discTextValues,
-    metadataBoundDiscTextValues,
-    discTextValueSources,
-    discTextTitleValue,
-    resolvedDiscTextTitle,
-  )
   const controlLabel = getDiscTextLabel(key)
 
   return (
@@ -72,34 +54,6 @@ export function DiscTextControl({
 
       {!isTextEnabled ? null : (
         <div className="editor-text-control-body">
-          {inputState.isMetadataBacked && (
-            <div
-              className="editor-control-group"
-              aria-label={`${controlLabel} source controls`}
-            >
-              <div className="editor-source-row">
-                <span>
-                  {inputState.isManualOverride
-                    ? 'Manual override'
-                    : 'Using Game metadata/default'}
-                </span>
-                {inputState.isManualOverride && (
-                  <button
-                    className="secondary-button editor-source-button"
-                    type="button"
-                    onClick={() => {
-                      if (isMetadataBoundDiscTextKey(key)) {
-                        handleUseMetadataDiscTextValue(key)
-                      }
-                    }}
-                  >
-                    Use Game metadata value
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
           {key === 'discNumber' || isCopyright ? (
             <div
               className="editor-control-group"

@@ -47,7 +47,7 @@ function getFunctionSource(
   return source.slice(start, end)
 }
 
-test('cover and tray text block sidebars keep entry/source controls only', () => {
+test('cover and tray text block sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
     'src/components/caseInsert/CaseInsertTemplateControls.tsx',
   )
@@ -58,11 +58,11 @@ test('cover and tray text block sidebars keep entry/source controls only', () =>
   )
 
   assert.match(textBlockControls, /handleTextBlockEnabledChange/)
-  assert.match(textBlockControls, /CaseInsertTextSourceControls/)
-  assert.match(textBlockControls, /onUseMetadataValue/)
   assert.match(textBlockControls, /Edit in preview/)
   assert.match(textBlockControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(textBlockControls, /Select this text in the preview/)
+  assert.doesNotMatch(textBlockControls, /CaseInsertTextSourceControls/)
+  assert.doesNotMatch(textBlockControls, /onUseMetadataValue/)
 
   assert.doesNotMatch(
     textBlockControls,
@@ -98,7 +98,7 @@ test('cover and tray text block contextual editor keeps layout preset ownership'
   assert.match(editor, /layoutPresets\.length > 0/)
 })
 
-test('cover and tray text list sidebars keep entry/source controls only', () => {
+test('cover and tray text list sidebars keep setup and item-management controls only', () => {
   const source = readRepoFile(
     'src/components/caseInsert/CaseInsertTemplateControls.tsx',
   )
@@ -109,13 +109,13 @@ test('cover and tray text list sidebars keep entry/source controls only', () => 
   )
 
   assert.match(textListControls, /handleTextListEnabledChange/)
-  assert.match(textListControls, /CaseInsertTextSourceControls/)
   assert.match(textListControls, /No list items yet/)
   assert.match(textListControls, /Select this list in the preview/)
   assert.match(textListControls, /Edit in preview/)
   assert.match(textListControls, /Add item/)
   assert.match(textListControls, /handleAddTextListItem/)
   assert.match(textListControls, /shouldShowCaseInsertTextSidebarControl/)
+  assert.doesNotMatch(textListControls, /CaseInsertTextSourceControls/)
 
   assert.doesNotMatch(textListControls, /CaseInsertTextOptionalStyleControls/)
   assert.doesNotMatch(textListControls, /CaseInsertTextStyleControls/)
@@ -192,7 +192,7 @@ test('case insert sidebar policy omits contextual equivalents', () => {
   }
 })
 
-test('left and right spine title sidebars keep entry/source controls only', () => {
+test('left and right spine title sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
     'src/components/caseInsert/CaseInsertSpineControls.tsx',
   )
@@ -203,13 +203,13 @@ test('left and right spine title sidebars keep entry/source controls only', () =
   )
 
   assert.match(titleControls, /handleSpineTitleEnabledChange/)
-  assert.match(titleControls, /CaseInsertTextSourceControls/)
-  assert.match(titleControls, /onUseMetadataValue/)
   assert.match(titleControls, /Select this text in the preview/)
   assert.match(titleControls, /Edit in preview/)
   assert.match(titleControls, /Orientation/)
   assert.match(titleControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(titleControls, /handleSpineTitleOrientationChange/)
+  assert.doesNotMatch(titleControls, /CaseInsertTextSourceControls/)
+  assert.doesNotMatch(titleControls, /onUseMetadataValue/)
 
   assert.doesNotMatch(
     titleControls,
@@ -234,7 +234,7 @@ test('left and right spine title sidebars keep entry/source controls only', () =
   assert.doesNotMatch(titleControls, /handleResetSpineTitleStyle/)
 })
 
-test('left and right spine text block sidebars keep entry/source controls only', () => {
+test('left and right spine text block sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
     'src/components/caseInsert/CaseInsertSpineControls.tsx',
   )
@@ -245,13 +245,13 @@ test('left and right spine text block sidebars keep entry/source controls only',
   )
 
   assert.match(textBlockControls, /handleSpineTextBlockEnabledChange/)
-  assert.match(textBlockControls, /CaseInsertTextSourceControls/)
-  assert.match(textBlockControls, /onUseMetadataValue/)
   assert.match(textBlockControls, /Select this text in the preview/)
   assert.match(textBlockControls, /Edit in preview/)
   assert.match(textBlockControls, /Orientation/)
   assert.match(textBlockControls, /shouldShowCaseInsertTextSidebarControl/)
   assert.match(textBlockControls, /handleSpineTextBlockOrientationChange/)
+  assert.doesNotMatch(textBlockControls, /CaseInsertTextSourceControls/)
+  assert.doesNotMatch(textBlockControls, /onUseMetadataValue/)
 
   assert.doesNotMatch(
     textBlockControls,

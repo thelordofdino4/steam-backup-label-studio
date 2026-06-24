@@ -132,6 +132,11 @@ tested, and the remaining divergences are recorded.
   for accessibility but must not appear as redundant visible text such as
   `Style Style preset` or `Layout Layout preset`. Style reset belongs inside
   the `Style` card on the right side behind the card divider.
+- Layout presets are placement/layout-geometry commands only. Applying one may
+  update the target's supported position, wrapping width, arc, or alignment
+  geometry, but it must preserve current typography and style values including
+  font family, point size, scale-derived legacy size, BIU, color, contrast,
+  background, and border settings.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label for the
   point-size field is `POINTS`, and it sits outside the bordered field on the
@@ -203,9 +208,14 @@ tested, and the remaining divergences are recorded.
   Utilities layout reset belongs inside the `Layout` card on the right side,
   separated from the layout ranges/options by the same divider language used
   for utility layout option columns. It spans the two-row card body visually
-  without becoming a separate reset card or detached command. HTML source does
-  not live in Utilities; it is owned by the dedicated `HTML` tab. Do not add
-  unsupported or empty Utilities cards merely to satisfy a group name. A
+  without becoming a separate reset card or detached command. Metadata/default
+  status and manual override restoration use a full-height Utilities `Source`
+  card, not sidebar duplicate rows and not a half-column text-card layout. The
+  Source card shows `Using Game metadata/default`, `Manual override`, or
+  `Metadata unavailable`; when manual, it contains the `Use Game metadata
+  value` action. HTML source does not live in Utilities; it is owned by the
+  dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
+  to satisfy a group name. A
   range-only `Layout` card uses a compact content width so its right border
   sits near the rightmost visible control; only layouts with additional
   mode/arc option columns may use the wider Layout profile.
@@ -264,6 +274,11 @@ tested, and the remaining divergences are recorded.
   immediately. It uses pointer capture and a grab/grabbing cursor.
 - A visible Move button remains available as an accessible movement fallback.
 - Delete/trash removes the text object instead of relying on a "show" checkbox.
+- Delete is a destructive ribbon action and must be visually distinct from
+  Done. In the ribbon action column, Delete uses the approved white trash icon
+  on a red button with an accessible label, is placed above Done, and is spaced
+  away from Done to reduce accidental activation. Done remains below it with
+  the same action-column width.
 - HTML source is the supported source-editing mode where a text module can
   safely parse sanitized markup into the shared rich-text run model and render
   the parsed result through its final visible renderer.
@@ -326,21 +341,22 @@ tested, and the remaining divergences are recorded.
 - The preview still owns target-local affordances: caret, selection, dotted or
   path-aware outlines, direct typing, edge-grab movement affordance, Move
   fallback target where applicable, and Delete affordance where applicable.
-- Intentional setup, source, and type controls remain sidebar-owned. Examples
-  include add/enable entry points, metadata/default source selection, and
-  straight/curved mode selection where the surface still needs a pre-selection
-  setup choice.
+- Intentional setup and type controls remain sidebar-owned. Examples include
+  add/enable entry points and straight/curved mode selection where the surface
+  still needs a pre-selection setup choice. Metadata/default status and
+  manual-override restore actions for selected metadata-backed text belong in
+  the ribbon Utilities tab as a full-height `Source` card.
 
 ### Module And Control Ownership Matrix
 
 | Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
 | --- | --- | --- | --- |
-| Cover text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, background, border, alignment, wrap width, position, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, range selection, dotted bounds, edge-grab movement, Move fallback | Add/select entry points, metadata/default setup without contextual equivalent |
+| Cover text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, background, border, alignment, wrap width, position, metadata source status/restore, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, range selection, dotted bounds, edge-grab movement, Move fallback | Add/select entry points |
 | Tray text | Same as cover text, using tray-safe geometry and wrapping semantics | Same as cover text | Same as cover text |
 | Left spine text | Same contextual text controls that the spine target supports | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select entry points, spine orientation or structural setup where still sidebar-owned |
 | Right spine text | Same as left spine text | Same as left spine text | Same as left spine text |
-| Straight disc text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc span/inset/position, conditional arc side when the Steam banner is hidden, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, metadata source status/restore, HTML source, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add and straight/curved setup where needed |
+| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc span/inset/position, conditional arc side when the Steam banner is hidden, metadata source status/restore, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add and straight/curved mode selection |
 
 ### Responsive Ribbon States
 
@@ -406,8 +422,10 @@ Keep these responsibilities:
   all activate the same ribbon host.
 - Text-body drag selects text; the selection-edge grab region and Move fallback
   move the object immediately.
-- Existing sidebar setup/source/type controls remain available and are not
-  duplicated by migrated editing controls.
+- Existing sidebar setup/type controls remain available and are not duplicated
+  by migrated editing controls. Metadata/default status and manual-override
+  restore actions are ribbon-owned while a metadata-backed text target is
+  selected.
 - Preview, save/load, and export parity remain unchanged.
 
 ## Input And Caret Contract
@@ -454,8 +472,9 @@ menu positioning, but it must not become a second visible text renderer.
 
 Curved disc copyright/legal text remains SVG/textPath based, but it now uses a
 curved-safe contextual adapter for direct text editing and whole-object menu
-controls. The sidebar owns only setup/source/type responsibilities for that
-text. The contextual shell must not mount a rectangular on-canvas textarea over
+controls. The sidebar owns only setup/type responsibilities for that text, with
+metadata/default status and restore actions surfaced by the ribbon Source card.
+The contextual shell must not mount a rectangular on-canvas textarea over
 the curved renderer; a hidden/native input may adapt keyboard, clipboard, IME,
 selection, and undo behavior while SVG/textPath remains the visible source of
 truth.

@@ -19,7 +19,6 @@ import {
   DISC_TEXT_POINT_SIZE_MIN,
   DISC_TEXT_POINT_SIZE_PRESETS,
   DISC_TEXT_POINT_SIZE_STEP,
-  getDefaultDiscTextPointSize,
 } from '../../discText/pointSize.ts'
 import {
   DISC_TEXT_CONTRAST_OPTIONS,
@@ -92,11 +91,12 @@ export type DiscInlineTextEditorControlParams = {
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
     value?: number | string
-  }
+    }
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
     avoidVisualElements: boolean,
   ) => void
+  metadataSource?: NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource']
   onResetDiscTextLayout: (key: DiscTextKey) => void
   onResetDiscTextStyle: (key: DiscTextKey) => void
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
@@ -130,7 +130,7 @@ function getMatchingDiscLayoutPreset({
       return false
     }
 
-    return (['x', 'y', 'width', 'scale', 'fontSizePt', 'arcDegrees'] as const)
+    return (['x', 'y', 'width', 'arcDegrees'] as const)
       .every((field) =>
           typeof preset.layout[field] === 'number'
             ? contextualTextNumericValuesMatch(
@@ -180,25 +180,8 @@ function applyDiscTextLayoutPreset({
   if (typeof layoutPreset.layout.width === 'number') {
     onDiscTextLayoutChange(key, 'width', layoutPreset.layout.width)
   }
-  if (typeof layoutPreset.layout.scale === 'number') {
-    onDiscTextLayoutChange(key, 'scale', layoutPreset.layout.scale)
-  }
   if (typeof layoutPreset.layout.arcDegrees === 'number') {
     onDiscTextLayoutChange(key, 'arcDegrees', layoutPreset.layout.arcDegrees)
-  }
-  if (typeof layoutPreset.layout.fontSizePt === 'number') {
-    onDiscTextLayoutChange(key, 'fontSizePt', layoutPreset.layout.fontSizePt)
-  } else if (typeof layoutPreset.layout.scale === 'number') {
-    onDiscTextLayoutChange(
-      key,
-      'fontSizePt',
-      getDefaultDiscTextPointSize(
-        key,
-        layoutPreset.layout.scale,
-        undefined,
-        layoutPreset.layout.mode ?? 'straight',
-      ),
-    )
   }
   if (layoutPreset.layout.align) {
     onDiscTextAlignmentChange(key, layoutPreset.layout.align)
@@ -225,6 +208,7 @@ export function createDiscInlineTextEditorControls({
   onDiscTextContentModeChange,
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
+  metadataSource,
 }: DiscInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode !== 'curved')
@@ -545,6 +529,7 @@ export function createDiscInlineTextEditorControls({
       },
     },
     utilities: {
+      metadataSource,
       respectVisualElements: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
         checked: layout.avoidVisualElements,
@@ -614,6 +599,7 @@ export function createCurvedDiscTextEditorControls({
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
   canChangeArcSide = true,
+  metadataSource,
 }: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode === 'curved')
@@ -857,6 +843,7 @@ export function createCurvedDiscTextEditorControls({
       },
     },
     utilities: {
+      metadataSource,
       lineSpacing: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.lineSpacing,
         min: 0.5,

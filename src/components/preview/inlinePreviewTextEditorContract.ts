@@ -180,6 +180,14 @@ export type InlinePreviewTextEditorTextValueControl = {
   onChange: (value: string) => void
 }
 
+export type InlinePreviewTextEditorMetadataSourceControl = {
+  actionLabel?: string
+  label: string
+  onAction?: () => void
+  status: 'metadata' | 'manual' | 'unavailable'
+  statusLabel: string
+}
+
 export type InlinePreviewTextEditorControls = {
   presets?: {
     layout?: InlinePreviewTextEditorSelectControl
@@ -212,6 +220,7 @@ export type InlinePreviewTextEditorControls = {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
     lineSpacing?: InlinePreviewTextEditorRangeControl
+    metadataSource?: InlinePreviewTextEditorMetadataSourceControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
     resetLayout?: () => void

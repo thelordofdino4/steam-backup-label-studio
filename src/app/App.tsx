@@ -93,6 +93,7 @@ import {
   applyCaseInsertPreviewTextTargetLayoutPreset,
   applyCaseInsertPreviewTextTargetStylePreset,
   resetCaseInsertPreviewTextTargetStyle,
+  restoreCaseInsertPreviewTextTargetMetadataValue,
   setCaseInsertPreviewTextTargetEnabled,
   updateCaseInsertPreviewTextTargetAlign,
   updateCaseInsertPreviewTextTargetAvoidVisualElements,
@@ -810,6 +811,16 @@ function App() {
         target,
         contentMode,
         projectMetadata,
+      ))
+  }
+
+  function handleCaseInsertPreviewTextUseMetadataValue(
+    target: CaseInsertPreviewTextTarget,
+  ) {
+    setProjectJewelCase((currentCaseInsert) =>
+      restoreCaseInsertPreviewTextTargetMetadataValue(
+        currentCaseInsert,
+        target,
       ))
   }
 
@@ -2051,6 +2062,7 @@ function App() {
           onAvoidVisualElementsChange:
             handleCaseInsertPreviewTextAvoidVisualElementsChange,
           onContentModeChange: handleCaseInsertPreviewTextContentModeChange,
+          onUseMetadataValue: handleCaseInsertPreviewTextUseMetadataValue,
         }}
       />
     )
@@ -2314,6 +2326,7 @@ function App() {
           onTextEnabledChange: handleDiscTextToggle,
           onTextValueChange: handleDiscTextInlineDraftChange,
           onTextContentModeChange: handleDiscTextContentModeChange,
+          onUseMetadataTextValue: handleUseMetadataDiscTextValue,
           onTextEditComplete: finalizeDiscTextInlineDraft,
           onTextStyleChange: handleDiscTextStyleChange,
           onTextRichTextCommand: handleDiscTextRichTextCommand,
