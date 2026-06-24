@@ -173,7 +173,19 @@ tested, and the remaining divergences are recorded.
   coordinate-safe numeric field so signed and decimal X/Y values can display
   without clipping. Utility range tracks share a 96px useful maximum so X/Y
   position sliders and `Wrap width` remain visually matched even when their
-  semantic cards have different available widths. Utilities layout reset uses
+  semantic cards have different available widths. Curved-text Layout ranges
+  such as `Line spacing` and `Arc` use a compact sibling-matched numeric value
+  field instead of the coordinate-safe X/Y field. Their labels are centered in
+  a shared label column, their sliders share a centered track column, and their
+  numeric fields align to the end of the slider column. The numeric field width
+  is derived from the largest min/max/current entry among those sibling ranges;
+  compact curved Layout value fields must not display native number spinners
+  because the spinner chrome can cover the value at the required compact width.
+  Curved Layout option controls such as `Arc side` use a separate compact
+  options column with enough select-field width for the current value and
+  chevron; the select must remain fully inside the Layout card and may not be
+  clipped by the card edge or reset command.
+  Utilities layout reset uses
   the Presets reset visual language: a standalone `Reset` command button
   without an extra `Reset` card title or a secondary `Layout` label, except it
   spans the same two-row height as the Layout card. HTML source does not live

@@ -7,6 +7,9 @@
   --contextual-text-ribbon-bottom-row-gap: 2px;
   --contextual-text-ribbon-horizontal-scrollbar-height: 10px;
   --contextual-text-ribbon-utility-range-value-width: 62px;
+  --contextual-text-ribbon-curved-layout-value-width: 44px;
+  --contextual-text-ribbon-curved-layout-label-width: 72px;
+  --contextual-text-ribbon-curved-layout-slider-width: 76px;
   --contextual-text-ribbon-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23d1d5db' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -846,10 +849,22 @@
   flex: 1 1 auto;
 }
 
+.contextual-text-ribbon-control-stack--utility-curved-layout-ranges {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
 .contextual-text-ribbon-control-stack--utility-layout-options {
   flex: 0 0 min(154px, 38cqw);
   padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-control-stack--utility-curved-layout-options {
+  flex: 0 0 134px;
+  align-items: stretch;
+  padding-left: 4px;
 }
 
 .contextual-text-ribbon-control-row--utilities
@@ -904,6 +919,62 @@
 }
 
 .contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control {
+  grid-template-columns:
+    var(--contextual-text-ribbon-curved-layout-label-width)
+    var(--contextual-text-ribbon-curved-layout-slider-width)
+    var(--contextual-text-ribbon-curved-layout-value-width);
+  justify-content: center;
+  width: max-content;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  .contextual-text-ribbon-control-label {
+  justify-content: center;
+  text-align: center;
+  width: var(--contextual-text-ribbon-curved-layout-label-width);
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="range"] {
+  justify-self: center;
+  width: var(--contextual-text-ribbon-curved-layout-slider-width);
+  min-width: var(--contextual-text-ribbon-curved-layout-slider-width);
+  max-width: var(--contextual-text-ribbon-curved-layout-slider-width);
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: none;
+  justify-self: end;
+  width: var(--contextual-text-ribbon-curved-layout-value-width);
+  min-width: var(--contextual-text-ribbon-curved-layout-value-width);
+  max-width: var(--contextual-text-ribbon-curved-layout-value-width);
+  padding-inline: 4px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"]::-webkit-inner-spin-button,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-select-control {
   display: grid;
   grid-template-columns: minmax(42px, max-content) minmax(74px, 1fr);
@@ -912,6 +983,30 @@
   width: 100%;
   max-width: 100%;
   min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control {
+  grid-template-columns: 42px minmax(86px, 1fr);
+  width: 100%;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  max-width: 42px;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control
+  select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .contextual-text-ribbon-control-row--utilities

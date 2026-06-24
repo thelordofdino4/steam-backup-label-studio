@@ -1148,6 +1148,26 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
+    /function getContextualTextRibbonRangeValueWidthCss\([\s\S]*control\.min[\s\S]*control\.max[\s\S]*control\.value[\s\S]*return `calc\(\$\{fieldCh\}ch \+ 12px\)`/,
+  )
+  assert.match(
+    editorSource,
+    /const isCurvedLayoutRangeStack = Boolean\([\s\S]*isCurvedText[\s\S]*controls\.utilities\?\.lineSpacing[\s\S]*controls\.utilities\?\.arcDegrees/,
+  )
+  assert.match(
+    editorSource,
+    /--contextual-text-ribbon-curved-layout-value-width'[\s\S]*getContextualTextRibbonRangeValueWidthCss\(\[[\s\S]*controls\.utilities\?\.lineSpacing,[\s\S]*controls\.utilities\?\.arcDegrees/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-control-stack--utility-curved-layout-ranges/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options'[\s\S]*contextual-text-ribbon-control-stack--utility-curved-layout-options/,
+  )
+  assert.match(
+    editorSource,
     /contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options/,
   )
   assert.match(
@@ -1231,6 +1251,18 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
+    /--contextual-text-ribbon-curved-layout-value-width:\s*44px/,
+  )
+  assert.match(
+    ribbonCss,
+    /--contextual-text-ribbon-curved-layout-label-width:\s*72px/,
+  )
+  assert.match(
+    ribbonCss,
+    /--contextual-text-ribbon-curved-layout-slider-width:\s*76px/,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(72px,\s*96px\)[\s\S]*minmax\(var\(--contextual-text-ribbon-utility-range-value-width\),\s*max-content\)/,
   )
   assert.match(
@@ -1240,6 +1272,42 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*input\[type="number"\]\s*\{[\s\S]*width:\s*var\(--contextual-text-ribbon-utility-range-value-width\)[\s\S]*min-width:\s*var\(--contextual-text-ribbon-utility-range-value-width\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges\s*\{[\s\S]*align-items:\s*center[\s\S]*justify-content:\s*center/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options\s*\{[\s\S]*flex:\s*0 0 134px[\s\S]*align-items:\s*stretch[\s\S]*padding-left:\s*4px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*grid-template-columns:[\s\S]*var\(--contextual-text-ribbon-curved-layout-label-width\)[\s\S]*var\(--contextual-text-ribbon-curved-layout-slider-width\)[\s\S]*var\(--contextual-text-ribbon-curved-layout-value-width\)[\s\S]*justify-content:\s*center/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*\.contextual-text-ribbon-control-label\s*\{[\s\S]*justify-content:\s*center[\s\S]*text-align:\s*center[\s\S]*width:\s*var\(--contextual-text-ribbon-curved-layout-label-width\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*input\[type="range"\]\s*\{[\s\S]*justify-self:\s*center[\s\S]*width:\s*var\(--contextual-text-ribbon-curved-layout-slider-width\)[\s\S]*max-width:\s*var\(--contextual-text-ribbon-curved-layout-slider-width\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*input\[type="number"\]\s*\{[\s\S]*appearance:\s*textfield[\s\S]*-webkit-appearance:\s*none[\s\S]*justify-self:\s*end[\s\S]*width:\s*var\(--contextual-text-ribbon-curved-layout-value-width\)[\s\S]*max-width:\s*var\(--contextual-text-ribbon-curved-layout-value-width\)[\s\S]*padding-inline:\s*4px/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*input\[type="number"\]::-webkit-inner-spin-button,[\s\S]*\.contextual-text-ribbon-control-stack--utility-curved-layout-ranges[\s\S]*input\[type="number"\]::-webkit-outer-spin-button\s*\{[\s\S]*-webkit-appearance:\s*none[\s\S]*margin:\s*0/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options[\s\S]*\.contextual-text-ribbon-select-control\s*\{[\s\S]*grid-template-columns:\s*42px minmax\(86px,\s*1fr\)[\s\S]*width:\s*100%/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-stack--utility-curved-layout-options[\s\S]*\.contextual-text-ribbon-select-control[\s\S]*select\s*\{[\s\S]*width:\s*100%[\s\S]*min-width:\s*0[\s\S]*max-width:\s*100%/,
   )
   assert.match(
     ribbonCss,

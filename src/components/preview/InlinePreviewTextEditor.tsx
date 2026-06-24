@@ -526,6 +526,26 @@ function getContextualTextRibbonMatchedFieldWidthCh(
   )
 }
 
+function getContextualTextRibbonRangeValueWidthCss(
+  controls: Array<InlinePreviewTextEditorRangeControl | undefined>,
+) {
+  const valueLength = (value: number) =>
+    Number(value.toFixed(2)).toString().length
+  const widestValueLength = controls.reduce((maxLength, control) => {
+    if (!control) return maxLength
+
+    return Math.max(
+      maxLength,
+      valueLength(control.min),
+      valueLength(control.max),
+      valueLength(control.value),
+    )
+  }, 0)
+  const fieldCh = Math.min(7, Math.max(4, widestValueLength + 1))
+
+  return `calc(${fieldCh}ch + 12px)`
+}
+
 function renderInlinePreviewTextRangeControl(
   control: InlinePreviewTextEditorRangeControl | undefined,
   options: {
@@ -1762,6 +1782,19 @@ function InlinePreviewTextEditorMenuContent({
         </span>
       )
       : null
+  const isCurvedLayoutRangeStack = Boolean(
+    isCurvedText &&
+    (controls.utilities?.lineSpacing || controls.utilities?.arcDegrees),
+  )
+  const layoutRangeStyle = isCurvedLayoutRangeStack
+    ? {
+      '--contextual-text-ribbon-curved-layout-value-width':
+        getContextualTextRibbonRangeValueWidthCss([
+          controls.utilities?.lineSpacing,
+          controls.utilities?.arcDegrees,
+        ]),
+    } as CSSProperties
+    : undefined
   const layoutRangeControls =
     controls.utilities?.width ||
     controls.utilities?.lineSpacing ||
@@ -1770,7 +1803,13 @@ function InlinePreviewTextEditorMenuContent({
       ? (
         <span
           aria-label="Layout measurements and visual avoidance"
-          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-ranges"
+          className={[
+            'contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-ranges',
+            isCurvedLayoutRangeStack
+              ? 'contextual-text-ribbon-control-stack--utility-curved-layout-ranges'
+              : '',
+          ].filter(Boolean).join(' ')}
+          style={layoutRangeStyle}
         >
           {renderInlinePreviewTextRangeControl(controls.utilities?.width)}
           {renderInlinePreviewTextRangeControl(
@@ -1791,7 +1830,12 @@ function InlinePreviewTextEditorMenuContent({
       ? (
         <span
           aria-label="Layout options"
-          className="contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options"
+          className={[
+            'contextual-text-ribbon-control-stack contextual-text-ribbon-control-stack--utility-layout-options',
+            isCurvedLayoutRangeStack
+              ? 'contextual-text-ribbon-control-stack--utility-curved-layout-options'
+              : '',
+          ].filter(Boolean).join(' ')}
         >
           {renderInlinePreviewTextSelectControl(
             controls.utilities?.mode,
