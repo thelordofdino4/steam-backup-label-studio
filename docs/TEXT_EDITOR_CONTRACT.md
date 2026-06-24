@@ -160,10 +160,11 @@ tested, and the remaining divergences are recorded.
   must not be split away behind the divider used for unrelated mode/arc
   options. The `Wrap width` label must remain fully readable at minimum and
   default sizes; whole-card horizontal scrolling is preferred over truncating
-  those utility labels. Utilities range sliders use the same ribbon slider
-  compression contract as Artistic range sliders: the normal track minimum is
-  72px with a 48px numeric field, and the compact track minimum is 58px with a
-  42px numeric field. Utility range tracks share a 96px useful maximum so X/Y
+  those utility labels. Utilities range sliders use the same track compression
+  contract as Artistic range sliders: the normal track minimum is 72px and the
+  compact track minimum is 58px. Utilities value boxes use a wider
+  coordinate-safe numeric field so signed and decimal X/Y values can display
+  without clipping. Utility range tracks share a 96px useful maximum so X/Y
   position sliders and `Wrap width` remain visually matched even when their
   semantic cards have different available widths. Utilities layout reset uses
   the Presets reset visual language: a standalone `Reset` command button

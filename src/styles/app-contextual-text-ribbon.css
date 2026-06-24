@@ -6,6 +6,7 @@
   --contextual-text-ribbon-control-row-count: 2;
   --contextual-text-ribbon-bottom-row-gap: 2px;
   --contextual-text-ribbon-horizontal-scrollbar-height: 10px;
+  --contextual-text-ribbon-utility-range-value-width: 62px;
   --contextual-text-ribbon-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23d1d5db' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
@@ -855,7 +856,7 @@
   grid-template-columns:
     max-content
     minmax(72px, 96px)
-    minmax(48px, max-content)
+    minmax(var(--contextual-text-ribbon-utility-range-value-width), max-content)
     max-content;
   align-items: center;
   gap: 4px;
@@ -895,8 +896,8 @@
 .contextual-text-ribbon-control-row--utilities
   .contextual-text-ribbon-range-control
   input[type="number"] {
-  width: 48px;
-  min-width: 48px;
+  width: var(--contextual-text-ribbon-utility-range-value-width);
+  min-width: var(--contextual-text-ribbon-utility-range-value-width);
   padding-inline: 3px;
 }
 
@@ -1797,7 +1798,7 @@
     grid-template-columns:
       max-content
       minmax(58px, 96px)
-      minmax(42px, max-content)
+      minmax(var(--contextual-text-ribbon-utility-range-value-width), max-content)
       max-content;
   }
 
@@ -1810,8 +1811,8 @@
   .contextual-text-ribbon-control-row--utilities
     .contextual-text-ribbon-range-control
     input[type="number"] {
-    width: 42px;
-    min-width: 42px;
+    width: var(--contextual-text-ribbon-utility-range-value-width);
+    min-width: var(--contextual-text-ribbon-utility-range-value-width);
   }
 
   .contextual-text-ribbon-control-row--utilities

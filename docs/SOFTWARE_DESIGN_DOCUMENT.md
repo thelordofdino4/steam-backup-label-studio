@@ -625,12 +625,13 @@ Ribbon placement and layout:
   away from `Wrap width`. `Wrap width` and `Respect visual elements` remain
   fully readable; the fixed-height ribbon should use whole-card horizontal
   overflow rather than truncate those utility labels. Utilities range sliders
-  share the Artistic range-slider compression metrics: 72px normal track
-  minimum with a 48px numeric field, and 58px compact track minimum with a
-  42px numeric field. Utility range tracks share a 96px useful maximum so
-  Position X/Y and Layout `Wrap width` controls keep matched slider lengths
-  even when their semantic cards receive different horizontal space. Utilities
-  layout reset uses the Presets reset visual language as a standalone `Reset`
+  share the Artistic range-slider track compression metrics: 72px normal
+  track minimum and 58px compact track minimum. Utilities value boxes keep a
+  wider coordinate-safe numeric field so signed and decimal Position values
+  can display without clipping. Utility range tracks share a 96px useful
+  maximum so Position X/Y and Layout `Wrap width` controls keep matched slider
+  lengths even when their semantic cards receive different horizontal space.
+  Utilities layout reset uses the Presets reset visual language as a standalone `Reset`
   command button without an extra title or secondary target label, but spans
   the same two-row height as the Layout card. HTML source remains in the
   dedicated `HTML` tab, and Utilities must not render empty placeholder cards
