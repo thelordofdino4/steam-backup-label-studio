@@ -1112,7 +1112,11 @@ remains the overlay lookup and rectangle-measurement facade.
   calculations reserve the minimum 48px rail, then the visible rail may grow
   continuously up to 96px only into residual unused gutter. The collapsed or
   expanded rail presentation must not feed back into Fit, reduce the fitted
-  preview scale, or move the fitted design surface.
+  preview scale, or move the fitted design surface. The zoomed viewport may
+  render the transformed preview surface behind otherwise empty header/ribbon
+  space, while the fitted stage still reserves the header height and the
+  app-shell header/ribbon controls remain visually and interactively above the
+  preview.
 - Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 

@@ -793,8 +793,11 @@ Render path:
   hovered or keyboard-focused. Its controls may grow continuously from 24px to
   48px only into residual unused horizontal gutter. The expanded rail width is
   not fed back into the same Fit calculation pass, so rail growth or collapse
-  cannot reduce the fit scale or move the fitted surface. Design Check and
-  Guide Legend controls remain outside the transformed stage. The
+  cannot reduce the fit scale or move the fitted surface. The viewport spans
+  behind the preview header so zoomed/panned content can use empty header space,
+  but the fitted stage keeps the header-height top inset and the header/ribbon
+  controls remain above the transformed preview. Design Check and Guide Legend
+  controls remain outside the transformed stage. The
   stage owns the 4px surface guard, minimum right rail reservation, and bottom
   Design Check / Guide Legend rail reservation, while the preview surfaces fill
   the available stage instead of keeping legacy fixed-width caps.

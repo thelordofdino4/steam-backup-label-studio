@@ -1412,12 +1412,16 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
     ribbonCss,
     /\.contextual-text-ribbon-(?:host|shell|tabs|controls|control-row|group)\s*\{[^}]*position:\s*absolute/,
   )
+  assert.match(ribbonCss, /\.preview-header\s*\{[\s\S]*grid-row:\s*1/)
+  assert.match(ribbonCss, /\.preview-header\s*\{[\s\S]*grid-column:\s*1/)
   assert.match(previewCss, /grid-template-rows:\s*auto minmax\(0,\s*1fr\)/)
   assert.match(previewCss, /--preview-area-padding:\s*clamp/)
   assert.match(previewCss, /--preview-area-top-padding:\s*0px/)
   assert.match(previewCss, /--preview-area-right-padding:\s*0px/)
   assert.match(previewCss, /padding:[\s\S]*var\(--preview-area-top-padding\)[\s\S]*var\(--preview-area-right-padding\)[\s\S]*var\(--preview-area-bottom-padding\)[\s\S]*var\(--preview-area-left-padding\)/)
   assert.match(previewCss, /\.preview-workspace\s*\{[\s\S]*container-type:\s*size/)
+  assert.match(previewCss, /\.preview-workspace\s*\{[\s\S]*grid-row:\s*1 \/ -1/)
+  assert.match(previewCss, /--preview-viewport-stage-top-inset:[\s\S]*var\(--contextual-text-ribbon-reserved-height,\s*158px\)/)
   assert.match(previewCss, /\.disc-preview\s*\{[\s\S]*100cqh/)
   assert.match(previewCss, /\.case-insert-preview\s*\{[\s\S]*100cqh/)
   assert.match(layoutFixCss, /--preview-chrome-space:\s*calc\(/)

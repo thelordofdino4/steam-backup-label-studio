@@ -195,6 +195,7 @@ test('preview viewport controls use the right-edge compact rail presentation', (
   assert.match(css, /--preview-viewport-rail-collapsed-width:\s*14px/)
   assert.match(css, /--preview-viewport-rail-button-size:\s*24px/)
   assert.match(css, /--preview-viewport-rail-width:\s*48px/)
+  assert.match(css, /--preview-viewport-stage-top-inset:[\s\S]*var\(--contextual-text-ribbon-reserved-height,\s*158px\)[\s\S]*\+\s*1px/)
   assert.match(css, /--preview-area-bottom-padding:\s*0px/)
   assert.match(css, /--preview-bottom-control-closed-height:\s*40px/)
   assert.match(css, /--preview-bottom-control-rail-height:[\s\S]*var\(--preview-bottom-control-closed-height\)[\s\S]*var\(--preview-surface-window-gap\)/)
@@ -206,9 +207,11 @@ test('preview viewport controls use the right-edge compact rail presentation', (
   assert.doesNotMatch(layoutFixCss, /100vh - var\(--preview-chrome-space\)/)
   assert.match(layoutFixCss, /var\(--preview-area-left-padding,\s*4px\)/)
   assert.match(layoutFixCss, /var\(--preview-area-bottom-padding,\s*0px\)/)
+  assert.match(css, /\.preview-workspace\s*\{[\s\S]*grid-row:\s*1 \/ -1/)
+  assert.match(css, /\.preview-workspace\s*\{[\s\S]*grid-column:\s*1/)
   assert.match(
     css,
-    /inset:[\s\S]*0[\s\S]*calc\([\s\S]*var\(--preview-viewport-min-rail-width\)[\s\S]*var\(--preview-surface-window-gap\)[\s\S]*\)[\s\S]*var\(--preview-bottom-control-rail-height\)[\s\S]*var\(--preview-surface-window-gap\)/,
+    /inset:[\s\S]*var\(--preview-viewport-stage-top-inset\)[\s\S]*calc\([\s\S]*var\(--preview-viewport-min-rail-width\)[\s\S]*var\(--preview-surface-window-gap\)[\s\S]*\)[\s\S]*var\(--preview-bottom-control-rail-height\)[\s\S]*var\(--preview-surface-window-gap\)/,
   )
   assert.doesNotMatch(
     css,
