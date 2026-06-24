@@ -1194,6 +1194,13 @@
   min-width: 52px;
 }
 
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-command-button--utility-reset {
+  align-self: stretch;
+  min-width: 52px;
+  height: 100%;
+}
+
 .contextual-text-ribbon-control,
 .contextual-text-ribbon-source-field {
   display: flex;

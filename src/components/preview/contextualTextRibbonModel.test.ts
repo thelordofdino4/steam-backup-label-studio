@@ -560,10 +560,10 @@ test('contextual text ribbon artistic tab uses stable semantic cards', () => {
   const editorSource = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
-  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
   const ribbonHostSource = readRepoFile(
     'src/components/preview/ContextualTextRibbon.tsx',
   )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
 
   assert.match(
     editorSource,
@@ -1049,6 +1049,9 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   const editorSource = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
+  const ribbonHostSource = readRepoFile(
+    'src/components/preview/ContextualTextRibbon.tsx',
+  )
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
   const packed = packContextualTextRibbonColumns({
     rowCount: 2,
@@ -1145,7 +1148,23 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
+    /className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset contextual-text-ribbon-command-button--utility-reset"[\s\S]*data-ribbon-group-row-span="2"[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Reset\s*<\/button>/,
+  )
+  assert.doesNotMatch(
+    editorSource,
     /id:\s*'reset'[\s\S]*label:\s*'Reset'[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Layout\s*<\/button>/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /function getRibbonElementRowSpan\(element: HTMLElement\): 1 \| 2[\s\S]*dataset\.ribbonGroupRowSpan === '2'/,
+  )
+  assert.match(
+    ribbonHostSource,
+    /withRibbonElementRowSpan\([\s\S]*getFixedWidthProfile/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-command-button--utility-reset\s*\{[\s\S]*align-self:\s*stretch[\s\S]*min-width:\s*52px[\s\S]*height:\s*100%/,
   )
   assert.match(
     ribbonCss,

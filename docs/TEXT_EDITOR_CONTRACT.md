@@ -165,14 +165,15 @@ tested, and the remaining divergences are recorded.
   72px with a 48px numeric field, and the compact track minimum is 58px with a
   42px numeric field. Utility range tracks share a 96px useful maximum so X/Y
   position sliders and `Wrap width` remain visually matched even when their
-  semantic cards have different available widths. `Reset` remains a compact
-  semantic reset card unless a tab-specific exception explicitly says
-  otherwise. HTML source does not live in Utilities; it is owned by the
-  dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
-  to satisfy a group name. A range-only `Layout` card uses a compact content
-  width so its right border sits near the rightmost visible control; only
-  layouts with additional mode/arc option columns may use the wider Layout
-  profile.
+  semantic cards have different available widths. Utilities layout reset uses
+  the Presets reset visual language: a standalone `Reset` command button
+  without an extra `Reset` card title or a secondary `Layout` label, except it
+  spans the same two-row height as the Layout card. HTML source does not live
+  in Utilities; it is owned by the dedicated `HTML` tab. Do not add
+  unsupported or empty Utilities cards merely to satisfy a group name. A
+  range-only `Layout` card uses a compact content width so its right border
+  sits near the rightmost visible control; only layouts with additional
+  mode/arc option columns may use the wider Layout profile.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

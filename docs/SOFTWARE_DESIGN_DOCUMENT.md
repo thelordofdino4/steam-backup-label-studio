@@ -629,12 +629,15 @@ Ribbon placement and layout:
   minimum with a 48px numeric field, and 58px compact track minimum with a
   42px numeric field. Utility range tracks share a 96px useful maximum so
   Position X/Y and Layout `Wrap width` controls keep matched slider lengths
-  even when their semantic cards receive different horizontal space. HTML
-  source remains in the dedicated `HTML` tab, and Utilities must not render
-  empty placeholder cards for unavailable source or unsupported target-specific
-  controls. A range-only `Layout` card uses a compact content width so its
-  right border remains near the last visible control; the wider Layout profile
-  is reserved for targets with additional mode or arc option columns.
+  even when their semantic cards receive different horizontal space. Utilities
+  layout reset uses the Presets reset visual language as a standalone `Reset`
+  command button without an extra title or secondary target label, but spans
+  the same two-row height as the Layout card. HTML source remains in the
+  dedicated `HTML` tab, and Utilities must not render empty placeholder cards
+  for unavailable source or unsupported target-specific controls. A range-only
+  `Layout` card uses a compact content width so its right border remains near
+  the last visible control; the wider Layout profile is reserved for targets
+  with additional mode or arc option columns.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

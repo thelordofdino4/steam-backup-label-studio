@@ -63,6 +63,20 @@ function clampWidth(width: number, min: number, max: number) {
   return Math.min(max, Math.max(min, finiteWidth))
 }
 
+function getRibbonElementRowSpan(element: HTMLElement): 1 | 2 {
+  return element.dataset.ribbonGroupRowSpan === '2' ? 2 : 1
+}
+
+function withRibbonElementRowSpan(
+  element: HTMLElement,
+  profile: ContextualTextRibbonWidthProfile,
+): ContextualTextRibbonWidthProfile {
+  return {
+    ...profile,
+    rowSpan: getRibbonElementRowSpan(element),
+  }
+}
+
 function addWidthProfiles(
   first: ContextualTextRibbonWidthProfile,
   second: ContextualTextRibbonWidthProfile,
@@ -155,15 +169,21 @@ function getRibbonItemWidthProfile(
   if (element.classList.contains('contextual-text-ribbon-tab')) {
     const labelLength = element.textContent?.trim().length ?? 0
 
-    return getFixedWidthProfile(Math.max(62, Math.ceil(labelLength * 8 + 28)))
+    return withRibbonElementRowSpan(
+      element,
+      getFixedWidthProfile(Math.max(62, Math.ceil(labelLength * 8 + 28))),
+    )
   }
 
   const groupProfile = getRibbonGroupWidthProfile(element)
   if (groupProfile) return groupProfile
 
   if (!element.classList.contains('contextual-text-ribbon-group')) {
-    return getFixedWidthProfile(
-      element.scrollWidth || element.getBoundingClientRect().width,
+    return withRibbonElementRowSpan(
+      element,
+      getFixedWidthProfile(
+        element.scrollWidth || element.getBoundingClientRect().width,
+      ),
     )
   }
 
@@ -172,28 +192,34 @@ function getRibbonItemWidthProfile(
   )
 
   if (children.length === 0) {
-    return getFixedWidthProfile(
-      element.scrollWidth || element.getBoundingClientRect().width,
+    return withRibbonElementRowSpan(
+      element,
+      getFixedWidthProfile(
+        element.scrollWidth || element.getBoundingClientRect().width,
+      ),
     )
   }
 
   const gap = getHorizontalGap(element)
 
-  return getFixedWidthProfile(Math.ceil(
-    getHorizontalChrome(element)
-    + children.reduce((width, child, index) => (
-      width + (() => {
-        const scrollWidth = child.scrollWidth
-        const rectWidth = child.getBoundingClientRect().width
+  return withRibbonElementRowSpan(
+    element,
+    getFixedWidthProfile(Math.ceil(
+      getHorizontalChrome(element)
+      + children.reduce((width, child, index) => (
+        width + (() => {
+          const scrollWidth = child.scrollWidth
+          const rectWidth = child.getBoundingClientRect().width
 
-        if (scrollWidth > 0 && rectWidth > 0) {
-          return Math.min(scrollWidth, rectWidth)
-        }
+          if (scrollWidth > 0 && rectWidth > 0) {
+            return Math.min(scrollWidth, rectWidth)
+          }
 
-        return Math.max(scrollWidth, rectWidth, 0)
-      })() + (index > 0 ? gap : 0)
-    ), 0),
-  ))
+          return Math.max(scrollWidth, rectWidth, 0)
+        })() + (index > 0 ? gap : 0)
+      ), 0),
+    )),
+  )
 }
 
 function getChildrenInlineWidthProfile(element: Element | null) {
