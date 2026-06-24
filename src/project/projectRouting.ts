@@ -4,7 +4,7 @@ import {
   type CaseInsertTemplateType,
   type EditorProjectType,
 } from '../editor/editorTypes.ts'
-import { parseProjectJsonRecord } from './projectSchema.ts'
+import { parseSavedProjectContents } from './projectSchema.ts'
 
 export type SavedProjectRoute = {
   projectType: EditorProjectType
@@ -85,5 +85,5 @@ export function resolveSavedProjectRoute(project: unknown): SavedProjectRoute {
 export function resolveSavedProjectRouteFromContents(
   contents: string,
 ): SavedProjectRoute {
-  return resolveSavedProjectRoute(parseProjectJsonRecord(contents))
+  return resolveSavedProjectRoute(parseSavedProjectContents(contents))
 }

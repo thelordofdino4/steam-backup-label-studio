@@ -90,6 +90,14 @@ export function getSavedProjectSchemaIssues(project: unknown): string[] {
   const issues: string[] = []
 
   validateStringField(record, 'schemaVersion', 'schemaVersion', issues)
+  validateOptionalEditorProjectTypeField(
+    record,
+    'projectType',
+    'projectType',
+    issues,
+  )
+
+  const editorRecord = validateOptionalEditorRecord(record, issues)
 
   if (
     typeof record.schemaVersion === 'string' &&
@@ -111,7 +119,7 @@ export function getSavedProjectSchemaIssues(project: unknown): string[] {
     return issues
   }
 
-  const projectType = resolveSchemaProjectType(record, templateRecord)
+  const projectType = resolveSchemaProjectType(record, templateRecord, editorRecord)
 
   if (!projectType) {
     issues.push(
@@ -281,8 +289,8 @@ function isCaseInsertTemplateType(value: unknown): value is CaseInsertTemplateTy
 function resolveSchemaProjectType(
   record: JsonRecord,
   templateRecord: JsonRecord,
+  editorRecord: JsonRecord | null,
 ): EditorProjectType | null {
-  const editorRecord = asRecord(record.editor)
   const templateType = templateRecord.type
 
   return (
@@ -292,6 +300,52 @@ function resolveSchemaProjectType(
     normalizeEditorProjectType(templateType) ??
     (isCaseInsertTemplateType(templateType) ? 'caseInsert' : null)
   )
+}
+
+function validateOptionalEditorRecord(
+  record: JsonRecord,
+  issues: string[],
+): JsonRecord | null {
+  if (record.editor === undefined) {
+    return null
+  }
+
+  const editorRecord = asRecord(record.editor)
+
+  if (!editorRecord) {
+    issues.push('editor must be an object when present.')
+    return null
+  }
+
+  validateOptionalEditorProjectTypeField(
+    editorRecord,
+    'projectType',
+    'editor.projectType',
+    issues,
+  )
+  validateOptionalEditorProjectTypeField(
+    editorRecord,
+    'workspace',
+    'editor.workspace',
+    issues,
+  )
+
+  return editorRecord
+}
+
+function validateOptionalEditorProjectTypeField(
+  record: JsonRecord,
+  key: string,
+  path: string,
+  issues: string[],
+) {
+  if (record[key] === undefined) {
+    return
+  }
+
+  if (!normalizeEditorProjectType(record[key])) {
+    issues.push(`${path} must be "disc" or "caseInsert" when present.`)
+  }
 }
 
 function validateDiscProjectRecord(

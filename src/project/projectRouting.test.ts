@@ -1,6 +1,41 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { resolveSavedProjectRoute } from './projectRouting.ts'
+import {
+  resolveSavedProjectRoute,
+  resolveSavedProjectRouteFromContents,
+} from './projectRouting.ts'
+import {
+  CURRENT_PROJECT_SCHEMA_VERSION,
+  ProjectSchemaError,
+} from './projectSchema.ts'
+
+function createDiscProjectFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+    projectType: 'disc',
+    title: 'Saved Disc',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Saved Disc',
+      selectedSteamGame: null,
+    },
+    template: {
+      type: 'disc',
+      variant: 'standardPrintableDisc',
+      customDimensions: null,
+    },
+    steamBackupLogo: {
+      placement: 'top',
+    },
+    background: {
+      scale: 1,
+      offset: { x: 0, y: 0 },
+      imageDataUrl: null,
+      note: 'route fixture',
+    },
+    ...overrides,
+  }
+}
 
 test('routes current explicit disc projects to the disc editor', () => {
   assert.deepEqual(
@@ -75,5 +110,25 @@ test('routes future case insert projects by case template type', () => {
       projectType: 'caseInsert',
       workspace: 'caseInsert',
     },
+  )
+})
+
+test('routes saved project contents through schema validation', () => {
+  assert.deepEqual(
+    resolveSavedProjectRouteFromContents(JSON.stringify(createDiscProjectFixture())),
+    {
+      projectType: 'disc',
+      workspace: 'disc',
+    },
+  )
+
+  assert.throws(
+    () =>
+      resolveSavedProjectRouteFromContents(
+        JSON.stringify(createDiscProjectFixture({ projectType: 'poster' })),
+      ),
+    (error) =>
+      error instanceof ProjectSchemaError &&
+      /projectType must be "disc" or "caseInsert"/.test(error.message),
   )
 })

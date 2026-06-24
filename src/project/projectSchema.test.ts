@@ -92,6 +92,30 @@ test('project parser rejects unsupported schema versions before restore', () => 
   )
 })
 
+test('project validation rejects invalid optional route metadata', () => {
+  const issues = getSavedProjectSchemaIssues(createDiscProjectFixture({
+    projectType: 'poster',
+    editor: {
+      projectType: 'poster',
+      workspace: 'home',
+    },
+  }))
+
+  assert.ok(
+    issues.includes('projectType must be "disc" or "caseInsert" when present.'),
+  )
+  assert.ok(
+    issues.includes(
+      'editor.projectType must be "disc" or "caseInsert" when present.',
+    ),
+  )
+  assert.ok(
+    issues.includes(
+      'editor.workspace must be "disc" or "caseInsert" when present.',
+    ),
+  )
+})
+
 test('project schema migrations apply before current validation', () => {
   const legacyProject = createDiscProjectFixture({
     schemaVersion: '0.0.9',
