@@ -588,15 +588,21 @@ Ribbon placement and layout:
 - Compact select fields in dense text-ribbon groups use the same target-width
   rule even when they are unpaired; for example, Paragraph alignment is sized
   from the widest supported alignment label, not from leftover card width.
-- The Presets tab is modeled as native semantic cards: `Style`, `Layout`, and
-  `Reset`. Style and Layout are matched one-row dropdown cards that stack in
-  the same column when both are available; their width is calculated from the
-  complete card contents, not only from the select element. The visible card
-  title is the purpose label, so inner select labels remain accessibility
-  labels and must not duplicate the card title in visible text. The reset
-  action is the Presets-tab exception: it renders as a standalone `Reset`
-  button without a second visible `Reset` label beside it, while Style and
-  Layout continue to follow the semantic-card contract.
+- Reset actions that are semantically associated with a card live inside that
+  card. The reset control sits on the right side of the associated card,
+  separated from the primary controls by the same vertical divider language
+  used by that card type. It must not render as a separate `Reset` card or as
+  a detached standalone button when its reset target is a specific card
+  responsibility. The card's width profile reserves the reset divider and
+  button so reset availability does not clip or steal space from sibling
+  controls.
+- The Presets tab is modeled as native semantic `Style` and `Layout` cards.
+  Style and Layout are matched one-row dropdown cards that stack in the same
+  column when both are available; their width is calculated from the complete
+  card contents, not only from the select element. The visible card title is
+  the purpose label, so inner select labels remain accessibility labels and
+  must not duplicate the card title in visible text. Style reset belongs inside
+  the `Style` card on the right side behind the card divider.
 - Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
   must follow the native dropdown visual contract in
   `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,
@@ -631,10 +637,11 @@ Ribbon placement and layout:
   can display without clipping. Utility range tracks share a 96px useful
   maximum so Position X/Y and Layout `Wrap width` controls keep matched slider
   lengths even when their semantic cards receive different horizontal space.
-  Utilities layout reset uses the Presets reset visual language as a standalone `Reset`
-  command button without an extra title or secondary target label, but spans
-  the same two-row height as the Layout card. HTML source remains in the
-  dedicated `HTML` tab, and Utilities must not render empty placeholder cards
+  Utilities layout reset belongs inside the `Layout` card on the right side,
+  separated from the layout ranges/options by the same divider language used
+  for utility layout option columns. It spans the two-row card body visually
+  without becoming a separate reset card or detached command. HTML source
+  remains in the dedicated `HTML` tab, and Utilities must not render empty placeholder cards
   for unavailable source or unsupported target-specific controls. A range-only
   `Layout` card uses a compact content width so its right border remains near
   the last visible control; the wider Layout profile is reserved for targets

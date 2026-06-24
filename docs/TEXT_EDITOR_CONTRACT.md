@@ -116,18 +116,22 @@ tested, and the remaining divergences are recorded.
   when they do not have a paired field. For example, Text > Paragraph alignment
   sizes from the widest supported alignment label plus the dropdown affordance,
   not from the available card width.
-- The Presets tab uses three semantic groups: `Style`, `Layout`, and `Reset`.
-  `Style` and `Layout` are one-row dropdown cards stacked in the same column
-  when both are available, and the column width must reserve the full bordered
-  card contents: title, divider, padding, dropdown field, and chevron. The
-  group title is the visible purpose label; the inner select label remains
-  available for accessibility but must not appear as redundant visible text
-  such as `Style Style preset` or `Layout Layout preset`.
-- Presets reset exception: the reset action is the only Presets control that
-  may render outside a labeled semantic card. It should be a standalone button
-  visibly labeled `Reset`, without an additional `Reset` group title to its
-  left or any secondary visible target label to its right. `Style` and
-  `Layout` must continue to follow the normal semantic-card contract.
+- Reset actions that are semantically associated with a card live inside that
+  card. The reset control sits on the right side of the associated card,
+  separated from the primary controls by the same vertical divider language
+  used by that card type. It must not render as a separate `Reset` card or as
+  a detached standalone button when its reset target is a specific card
+  responsibility. The card's width profile must reserve the reset divider and
+  button so reset availability does not clip or steal space from sibling
+  controls.
+- The Presets tab uses semantic `Style` and `Layout` cards. They are one-row
+  dropdown cards stacked in the same column when both are available, and the
+  column width must reserve the full bordered card contents: title, divider,
+  padding, dropdown field, chevron, and any card-owned reset slot. The group
+  title is the visible purpose label; the inner select label remains available
+  for accessibility but must not appear as redundant visible text such as
+  `Style Style preset` or `Layout Layout preset`. Style reset belongs inside
+  the `Style` card on the right side behind the card divider.
 - Composite value/dropdown controls, such as `Font size (pt)`, must visually
   behave as one native ribbon dropdown field. The external unit label for the
   point-size field is `POINTS`, and it sits outside the bordered field on the
@@ -196,11 +200,11 @@ tested, and the remaining divergences are recorded.
   important than forcing the whole curved Layout card into the straight-text
   minimum. At constrained widths, whole-card horizontal scrolling is the
   expected fallback.
-  Utilities layout reset uses
-  the Presets reset visual language: a standalone `Reset` command button
-  without an extra `Reset` card title or a secondary `Layout` label, except it
-  spans the same two-row height as the Layout card. HTML source does not live
-  in Utilities; it is owned by the dedicated `HTML` tab. Do not add
+  Utilities layout reset belongs inside the `Layout` card on the right side,
+  separated from the layout ranges/options by the same divider language used
+  for utility layout option columns. It spans the two-row card body visually
+  without becoming a separate reset card or detached command. HTML source does
+  not live in Utilities; it is owned by the dedicated `HTML` tab. Do not add
   unsupported or empty Utilities cards merely to satisfy a group name. A
   range-only `Layout` card uses a compact content width so its right border
   sits near the rightmost visible control; only layouts with additional

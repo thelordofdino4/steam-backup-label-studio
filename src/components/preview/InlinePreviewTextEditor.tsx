@@ -368,6 +368,32 @@ function renderContextualTextRibbonGroup({
   )
 }
 
+function renderContextualTextRibbonCardResetButton({
+  ariaLabel,
+  onClick,
+}: {
+  ariaLabel: string
+  onClick?: () => void
+}) {
+  if (!onClick) return null
+
+  return (
+    <span
+      className="contextual-text-ribbon-card-reset-slot"
+      data-ribbon-card-reset
+    >
+      <button
+        type="button"
+        className="contextual-text-ribbon-command-button contextual-text-ribbon-card-reset-button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+      >
+        Reset
+      </button>
+    </span>
+  )
+}
+
 function renderContextualTextRibbonRow({
   children,
   className = '',
@@ -1492,9 +1518,17 @@ function InlinePreviewTextEditorMenuContent({
             id: 'style',
             label: 'Style',
             className: 'contextual-text-ribbon-group--preset-style',
-            children: renderInlinePreviewTextSelectControl(
-              controls.presets?.style,
-              selection,
+            children: (
+              <>
+                {renderInlinePreviewTextSelectControl(
+                  controls.presets?.style,
+                  selection,
+                )}
+                {renderContextualTextRibbonCardResetButton({
+                  ariaLabel: 'Reset style',
+                  onClick: controls.presets?.onReset,
+                })}
+              </>
             ),
           })}
           {renderContextualTextRibbonGroup({
@@ -1506,15 +1540,6 @@ function InlinePreviewTextEditorMenuContent({
               selection,
             ),
           })}
-          {controls.presets?.onReset ? (
-            <button
-              type="button"
-              className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset"
-              onClick={controls.presets.onReset}
-            >
-              Reset
-            </button>
-          ) : null}
         </>
       ),
     })
@@ -1875,20 +1900,13 @@ function InlinePreviewTextEditorMenuContent({
             <>
               {layoutRangeControls}
               {layoutOptionControls}
+              {renderContextualTextRibbonCardResetButton({
+                ariaLabel: 'Reset layout',
+                onClick: controls.utilities?.resetLayout,
+              })}
             </>
           ),
         })}
-        {controls.utilities?.resetLayout ? (
-          <button
-            type="button"
-            className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset contextual-text-ribbon-command-button--utility-reset"
-            data-ribbon-group-row-span="2"
-            onClick={controls.utilities.resetLayout}
-            aria-label="Reset layout"
-          >
-            Reset
-          </button>
-        ) : null}
       </>
     ),
   })

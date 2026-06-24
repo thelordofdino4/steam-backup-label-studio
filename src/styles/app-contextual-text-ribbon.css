@@ -1312,16 +1312,24 @@
   max-width: 100%;
 }
 
-.contextual-text-ribbon-control-row--presets
-  .contextual-text-ribbon-command-button--preset-reset {
-  min-width: 52px;
+.contextual-text-ribbon-card-reset-slot {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  min-height: 24px;
+  margin-left: 3px;
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
 }
 
-.contextual-text-ribbon-control-row--utilities
-  .contextual-text-ribbon-command-button--utility-reset {
-  align-self: stretch;
+.contextual-text-ribbon-card-reset-button {
   min-width: 52px;
-  height: 100%;
+  height: 24px;
+  padding-inline: 8px;
 }
 
 .contextual-text-ribbon-control,

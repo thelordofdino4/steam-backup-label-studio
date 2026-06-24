@@ -430,13 +430,11 @@ test('contextual text ribbon dense text groups remain content fitted', () => {
 test('contextual text ribbon presets tab uses stable semantic cards', () => {
   const styleProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.style
   const layoutProfile = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-preset']
-  const resetCommandProfile = { min: 52, preferred: 52, max: 52 }
   const packed = packContextualTextRibbonColumns({
     rowCount: 2,
     items: [
       { id: 'style', payload: 'style', profile: styleProfile },
       { id: 'layout-preset', payload: 'layout', profile: layoutProfile },
-      { id: 'reset-command', payload: 'reset', profile: resetCommandProfile },
     ],
   })
   const editorSource = readRepoFile(
@@ -454,8 +452,8 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
   assert.equal(styleProfile.preferred, layoutProfile.preferred)
   assert.equal(styleProfile.max, layoutProfile.max)
   assert.ok(
-    styleProfile.min >= 214,
-    'preset cards must reserve title, divider, padding, and dropdown width',
+    styleProfile.min >= 282,
+    'preset cards must reserve title, divider, padding, dropdown width, and reset slot',
   )
   assert.deepEqual(
     packed.map((column) => column.items.map((item) => ({
@@ -467,9 +465,6 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
       [
         { id: 'style', rowSpan: 1, rowStart: 1 },
         { id: 'layout-preset', rowSpan: 1, rowStart: 2 },
-      ],
-      [
-        { id: 'reset-command', rowSpan: 1, rowStart: 1 },
       ],
     ],
   )
@@ -487,11 +482,15 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
   )
   assert.match(
     presetsBlock,
-    /className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset"[\s\S]*onClick=\{controls\.presets\.onReset\}[\s\S]*>\s*Reset\s*<\/button>/,
+    /id:\s*'style'[\s\S]*renderContextualTextRibbonCardResetButton\(\{[\s\S]*ariaLabel:\s*'Reset style'[\s\S]*onClick:\s*controls\.presets\?\.onReset/,
   )
   assert.doesNotMatch(
     presetsBlock,
     /renderContextualTextRibbonGroup\(\{[\s\S]*id:\s*'reset'/,
+  )
+  assert.doesNotMatch(
+    presetsBlock,
+    /contextual-text-ribbon-command-button--preset-reset/,
   )
   assert.doesNotMatch(
     presetsBlock,
@@ -511,7 +510,7 @@ test('contextual text ribbon presets tab uses stable semantic cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--presets[\s\S]*\.contextual-text-ribbon-command-button--preset-reset\s*\{[\s\S]*min-width:\s*52px/,
+    /\.contextual-text-ribbon-card-reset-slot\s*\{[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)[\s\S]*\.contextual-text-ribbon-card-reset-button\s*\{[\s\S]*min-width:\s*52px/,
   )
 })
 
@@ -1098,44 +1097,39 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
         payload: null,
         profile: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout,
       },
-      {
-        id: 'reset',
-        payload: null,
-        profile: CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.reset,
-      },
     ],
   })
 
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.position.rowSpan, 2)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout.rowSpan, 2)
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout, {
-    min: 360,
-    preferred: 504,
-    max: 620,
+    min: 424,
+    preferred: 568,
+    max: 684,
     grows: true,
     rowSpan: 2,
   })
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved'], {
-    min: 430,
-    preferred: 430,
-    max: 430,
+    min: 494,
+    preferred: 494,
+    max: 494,
     rowSpan: 2,
     fit: 'content',
   })
   assert.deepEqual(
     CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved-compact'],
     {
-      min: 270,
-      preferred: 270,
-      max: 270,
+      min: 334,
+      preferred: 334,
+      max: 334,
       rowSpan: 2,
       fit: 'content',
     },
   )
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact'], {
-    min: 292,
-    preferred: 292,
-    max: 292,
+    min: 356,
+    preferred: 356,
+    max: 356,
     rowSpan: 2,
     fit: 'content',
   })
@@ -1148,7 +1142,6 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     [
       [{ id: 'position', rowSpan: 2, rowStart: 1 }],
       [{ id: 'layout', rowSpan: 2, rowStart: 1 }],
-      [{ id: 'reset', rowSpan: 1, rowStart: 1 }],
     ],
   )
   assert.match(
@@ -1205,7 +1198,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
-    /id:\s*'layout'[\s\S]*\{layoutRangeControls\}[\s\S]*\{layoutOptionControls\}/,
+    /id:\s*'layout'[\s\S]*\{layoutRangeControls\}[\s\S]*\{layoutOptionControls\}[\s\S]*renderContextualTextRibbonCardResetButton\(\{[\s\S]*ariaLabel:\s*'Reset layout'[\s\S]*onClick:\s*controls\.utilities\?\.resetLayout/,
   )
   assert.match(
     editorSource,
@@ -1215,10 +1208,8 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     editorSource,
     /id:\s*'layout'[\s\S]*size:\s*layoutGroupSize/,
   )
-  assert.match(
-    editorSource,
-    /className="contextual-text-ribbon-command-button contextual-text-ribbon-command-button--preset-reset contextual-text-ribbon-command-button--utility-reset"[\s\S]*data-ribbon-group-row-span="2"[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Reset\s*<\/button>/,
-  )
+  assert.doesNotMatch(editorSource, /contextual-text-ribbon-command-button--utility-reset/)
+  assert.doesNotMatch(editorSource, /contextual-text-ribbon-command-button--preset-reset/)
   assert.doesNotMatch(
     editorSource,
     /id:\s*'reset'[\s\S]*label:\s*'Reset'[\s\S]*aria-label="Reset layout"[\s\S]*>\s*Layout\s*<\/button>/,
@@ -1237,7 +1228,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-command-button--utility-reset\s*\{[\s\S]*align-self:\s*stretch[\s\S]*min-width:\s*52px[\s\S]*height:\s*100%/,
+    /\.contextual-text-ribbon-card-reset-slot\s*\{[\s\S]*align-self:\s*stretch[\s\S]*min-width:\s*58px[\s\S]*border-left:\s*1px solid rgba\(148,\s*163,\s*184,\s*0\.22\)/,
   )
   assert.match(
     ribbonCss,

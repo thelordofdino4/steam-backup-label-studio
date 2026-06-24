@@ -77,8 +77,8 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
   string,
   ContextualTextRibbonWidthProfile
 > = {
-  'style': { min: 214, preferred: 230, max: 260, fit: 'content' },
-  'layout-preset': { min: 214, preferred: 230, max: 260, fit: 'content' },
+  'style': { min: 282, preferred: 302, max: 332, fit: 'content' },
+  'layout-preset': { min: 282, preferred: 302, max: 332, fit: 'content' },
   'font': { min: 342, preferred: 360, max: 408, fit: 'content' },
   'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
   'text-color': { min: 108, preferred: 108, max: 108 },
@@ -106,34 +106,33 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     rowSpan: 2,
   },
   'layout': {
-    min: 360,
-    preferred: 504,
-    max: 620,
+    min: 424,
+    preferred: 568,
+    max: 684,
     grows: true,
     rowSpan: 2,
   },
   'layout-curved': {
-    min: 430,
-    preferred: 430,
-    max: 430,
+    min: 494,
+    preferred: 494,
+    max: 494,
     rowSpan: 2,
     fit: 'content',
   },
   'layout-curved-compact': {
-    min: 270,
-    preferred: 270,
-    max: 270,
+    min: 334,
+    preferred: 334,
+    max: 334,
     rowSpan: 2,
     fit: 'content',
   },
   'layout-compact': {
-    min: 292,
-    preferred: 292,
-    max: 292,
+    min: 356,
+    preferred: 356,
+    max: 356,
     rowSpan: 2,
     fit: 'content',
   },
-  'reset': { min: 76, preferred: 86, max: 96 },
 }
 
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
