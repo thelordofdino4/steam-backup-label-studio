@@ -37,16 +37,216 @@ tested, and the remaining divergences are recorded.
   encroach into, underlap, or be clipped by the reserved ribbon slot.
 - The reserved slot remains present when no text target is active, but the
   ribbon contents disappear.
-- Row 1 of the ribbon contains the four contextual tabs with compact
-  single-line labels: `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 1 of the ribbon contains the five contextual tabs with compact
+  single-line labels: `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups. Production code must not reuse portal-slot content or
   `.inline-preview-text-control-grid` presentation from the old full menu
   inside the ribbon.
-- The reserved slot stays near the 60-65 px app-shell band. Controls must not
-  wrap downward in a way that pushes the editable surface lower; overflowing
-  controls use internal horizontal scrolling or compact grouping while keeping
-  normal usable hit targets.
+- The reserved slot uses a fixed compact app-shell height sized for the tab
+  row, two fixed control rows, a horizontal overflow lane, and the documented
+  bottom clearance. Controls must not wrap downward in a way that pushes the
+  editable surface lower. Active control rows use fixed row heights; horizontal
+  sizes may adapt, condense, or switch to compact icon/dropdown-only
+  affordances. When the complete semantic-card set still exceeds the available
+  width, the fixed control area may expose horizontal scrolling at whole-card
+  columns.
+- The ribbon must not introduce vertical scrolling as the overflow solution.
+  Horizontal overflow must use a dedicated lane below the fixed rows; it must
+  not cover the bottom row, change fixed row heights, push the preview, or
+  reflow controls into a third row.
+- Native ribbon controls are arranged as semantic boxes packed in
+  column-first order. A column has one shared width: if any box above or below
+  another box in the same column requires more usable width, every box in that
+  column expands to match the larger box. Do not shrink the larger box to match
+  smaller siblings. This rule changes horizontal sizing only; row heights stay
+  constant, and toggling enabled/disabled state must not change the column
+  width.
+- Column-first packing fills the current column from top to bottom before
+  opening the next column. If a one-row semantic box leaves usable fixed-row
+  space below it, the next one-row box must occupy that lower slot; it must not
+  jump to the next column. A two-row/tall box may start a new column only when
+  it cannot fit in the remaining row space. This rule replaces looser
+  interpretations that balance boxes across columns or fill the top row first.
+- Dense semantic boxes with several independent controls must use an internal
+  hierarchy before any label hiding, icon-only fallback, or horizontal
+  compression. Primary fields and dropdowns should stack in a field column;
+  secondary command buttons, toggles, or steppers should occupy a companion
+  command column. Do not render dense groups such as Text > Font or Text >
+  Paragraph as one long row. Feature boxes with enablement state, such as
+  Artistic > Background and Border, may use the separate header-checkbox plus
+  mounted-dependent-field pattern instead, but they must still preserve stable
+  internal geometry.
+- Text-tab dense-box rationale: the Text tab owns the highest-frequency
+  typography commands and must remain usable inside the fixed two-control-row
+  ribbon without creating a third row or pushing the preview down. Field
+  columns keep selectable/editable values readable; companion command columns
+  keep compact actions close to the values they affect. This is why Text >
+  Font and Text > Paragraph are not allowed to degrade into a single long row,
+  nor into unrelated buttons spread across spare ribbon space.
+- Dense group command columns must remain visually associated with their field
+  column. Use the same vertical divider language as the box title/function
+  separator between the field column and companion buttons, and place the
+  buttons adjacent to that divider. Buttons must not drift to the far edge of
+  unused ribbon/card space.
+- Comparable stacked input/select boxes inside the same semantic group must
+  share the same visual field dimensions. Their shared target field width is
+  derived from the widest reasonable enterable or selectable value in that
+  group, not from the currently selected value. For example, Text > Font must
+  size its font-family and point-size fields from the longest supported normal
+  font label plus the point-size field contract. Very long future labels may
+  be capped with ellipsis or an icon-only fallback only after this matched
+  field width has reached the group's documented maximum useful width. Matched
+  stacked fields must not expand just because the card has extra horizontal
+  slack unless a group-specific contract says that field is intentionally
+  flexible.
+- Dense semantic boxes that contain matched stacked fields are content-fitted.
+  The outer bordered box ends after the last contained control plus its normal
+  padding, separator, and border. If a contained field legitimately expands
+  because the matched-width contract requires a wider selectable or enterable
+  value, the owning box and any stacked sibling in the same column expand to
+  that new content-derived width up to the group's maximum useful width. Extra
+  ribbon/header space must not stretch dense boxes such as Text > Font or Text
+  > Paragraph after their contained controls have reached their target widths.
+  This keeps the border visually attached to the controls instead of creating
+  dead interior space. Extra app-shell width belongs to groups that can use it
+  meaningfully, or to whole-group overflow, not to stretching dense text boxes
+  after their fields and command clusters have reached usable dimensions.
+- Compact select fields in dense groups follow the same target-width rule even
+  when they do not have a paired field. For example, Text > Paragraph alignment
+  sizes from the widest supported alignment label plus the dropdown affordance,
+  not from the available card width.
+- Reset actions that are semantically associated with a card live inside that
+  card. The reset control sits on the right side of the associated card,
+  separated from the primary controls by the same vertical divider language
+  used by that card type. It must not render as a separate `Reset` card or as
+  a detached standalone button when its reset target is a specific card
+  responsibility. The card's width profile must reserve the reset divider and
+  button so reset availability does not clip or steal space from sibling
+  controls.
+- The Presets tab uses semantic `Style` and `Layout` cards. They are one-row
+  dropdown cards stacked in the same column when both are available, and the
+  column width must reserve the full bordered card contents: title, divider,
+  padding, dropdown field, chevron, and any card-owned reset slot. The group
+  title is the visible purpose label; the inner select label remains available
+  for accessibility but must not appear as redundant visible text such as
+  `Style Style preset` or `Layout Layout preset`. Style reset belongs inside
+  the `Style` card on the right side behind the card divider.
+- Layout presets are placement/layout-geometry commands only. Applying one may
+  update the target's supported position, wrapping width, arc, or alignment
+  geometry, but it must preserve current typography and style values including
+  font family, point size, scale-derived legacy size, BIU, color, contrast,
+  background, and border settings.
+- Composite value/dropdown controls, such as `Font size (pt)`, must visually
+  behave as one native ribbon dropdown field. The external unit label for the
+  point-size field is `POINTS`, and it sits outside the bordered field on the
+  left. Inside the field, the editable/current value sits to the left and the
+  chevron sits to the right. The chevron must not be rendered as a separate
+  bordered button or nested box.
+- Text > Font uses `STYLES` as the visible row label for the font-family
+  dropdown and `POINTS` as the visible row label for the point-size dropdown.
+  Both labels live in the same stacked label column so the two dropdown fields
+  stay aligned. These compact labels are intentionally visible: icon-only or
+  unlabeled controls were too ambiguous, while full form labels consumed too
+  much width for the fixed-height ribbon.
+- Text > Font uses an underlined `FORMAT` heading above the BIU buttons. The
+  B/I/U buttons are centered inside that format section rather than stretched
+  across the available card width. `FORMAT` explains that the buttons are one
+  command cluster, not three separate value fields.
+- Text > Paragraph uses `ALIGN` as the visible label beside the alignment
+  dropdown. Its list command section uses `LIST` above the bulleted-list
+  button, and the `LIST` label/button stack is centered in the available area
+  between the command divider and the right edge of the Paragraph box. This
+  centering must come from the command column's available space, not from a
+  hardcoded pixel offset. The right-side command column is the extensible owner
+  of paragraph actions; future list, indent, or related paragraph commands
+  should join that column instead of requiring new one-off spacing rules.
+- Artistic > Text Color and Artistic > Contrast are shared compact paint
+  cards. They must keep the same card dimensions and internal control geometry
+  across straight disc text, curved disc text, and case-insert text. Their
+  width is not allowed to change merely because a target omits unsupported
+  Artistic siblings such as Background or Border. Flexible Artistic cards, such
+  as Background and Border, may consume useful extra width; compact paint cards
+  must remain target-parity sized.
+- The Utilities tab uses native semantic cards for the available utility
+  responsibilities. `Position` is a two-row card with X/Y controls stacked as
+  a matched field set. `Layout` is a two-row card with measurement controls
+  and closely related layout toggles kept in the same internal box. The fully
+  visible `Respect visual elements` checkbox belongs with `Wrap width`; it
+  must not be split away behind the divider used for unrelated mode/arc
+  options. The `Wrap width` label must remain fully readable at minimum and
+  default sizes; whole-card horizontal scrolling is preferred over truncating
+  those utility labels. Utilities range sliders use the same track compression
+  contract as Artistic range sliders: the normal track minimum is 72px and the
+  compact track minimum is 58px. Utilities value boxes use a wider
+  coordinate-safe numeric field so signed and decimal X/Y values can display
+  without clipping. Utility range tracks share a 96px useful maximum so X/Y
+  position sliders and `Wrap width` remain visually matched even when their
+  semantic cards have different available widths. Curved-text Layout ranges
+  such as `Line spacing` and `Arc` use a compact sibling-matched numeric value
+  field instead of the coordinate-safe X/Y field. Their labels are centered in
+  a shared label column, their sliders share a centered track column, and their
+  numeric fields align to the end of the slider column. The numeric field width
+  is derived from the largest min/max/current entry among those sibling ranges;
+  compact curved Layout value fields must not display native number spinners
+  because the spinner chrome can cover the value at the required compact width.
+  Curved Layout option controls such as `Arc side` use a separate compact
+  options column with enough select-field width for the current value and
+  chevron; the select must remain fully inside the Layout card and may not be
+  clipped by the card edge or reset command. `Arc side` is visible in Utilities
+  only when the Steam banner is hidden, because top/bottom arc switching is the
+  user-facing side control for the no-banner disc layout. When the Steam banner
+  is visible, the saved arc-side value and renderer geometry remain intact, but
+  the Utilities Layout card omits the option column and uses a curved
+  range-only width so the card edge stops near the former range/options
+  divider. Curved Layout uses its own content-fitted card width profiles instead
+  of the straight-text Layout width profile because preserving readable
+  `Line spacing`, `Arc`, and, when available, `Arc side` controls is more
+  important than forcing the whole curved Layout card into the straight-text
+  minimum. At constrained widths, whole-card horizontal scrolling is the
+  expected fallback.
+  Utilities layout reset belongs inside the `Layout` card on the right side,
+  separated from the layout ranges/options by the same divider language used
+  for utility layout option columns. It spans the two-row card body visually
+  without becoming a separate reset card or detached command. Metadata/default
+  status and manual override restoration use a full-height Utilities `Source`
+  card, not sidebar duplicate rows and not a half-column text-card layout. The
+  Source card shows `Using Game metadata/default`, `Manual override`, or
+  `Metadata unavailable`; when manual, it contains the `Use Game metadata
+  value` action. HTML source does not live in Utilities; it is owned by the
+  dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
+  to satisfy a group name. A
+  range-only `Layout` card uses a compact content width so its right border
+  sits near the rightmost visible control; only layouts with additional
+  mode/arc option columns may use the wider Layout profile.
+- The HTML tab is a dedicated source-editing panel, not a normal labeled
+  semantic card and not a Utilities checkbox. It spans the two fixed control
+  rows, shows source/status and validation messaging, and gives the monospaced
+  source editor the remaining panel height. The editor uses `white-space: pre`,
+  its own horizontal and vertical scrolling, native typing/selection/clipboard
+  behavior, and must remain at least two visible source rows tall at supported
+  window sizes. The status row is the visible panel label; do not spend editor
+  width on an additional visible `Source` label. Unlike ordinary semantic
+  card tabs, the HTML tab fills the available active control area and must not
+  expose the ribbon-level horizontal scrollbar. Long source scrolls inside the
+  textarea itself. Source validation text lives in the status row, not in a
+  separate row below the editor, so typing newlines cannot shrink the textarea
+  or its panel. The HTML panel must not create a third ribbon row, vertical
+  ribbon scrolling, preview movement, or a one-line collapsed editor.
+- Composite value/dropdown fields must share the same visual metrics as nearby
+  native dropdowns: border-box height, top and bottom border rows, border
+  radius, background, font sizing, focus treatment, and chevron asset. The
+  chevron must use the same effective right inset as ordinary ribbon selects.
+  If a custom overlay is needed to preserve typing, presets, or native popup
+  behavior, the overlay must not paint a second value, create a second border,
+  or change the field's measured box.
+- Composite dropdown verification must be pixel-based in native Tauri whenever
+  visual parity is in question. At minimum, compare the composite field against
+  a neighboring native select and record: field top border row, field bottom
+  border row, right border x-coordinate, rightmost visible chevron pixel, and
+  the gap between that chevron pixel and the right border. The top/bottom rows
+  and chevron-to-border gap must match the native select within the same
+  captured client area before the control is considered visually aligned.
 - Ribbon position and size are based only on the app-shell container
   dimensions. They must never depend on selected-text bounds, safe zones, arcs,
   preview geometry, center holes, or collision scoring.
@@ -74,6 +274,12 @@ tested, and the remaining divergences are recorded.
   immediately. It uses pointer capture and a grab/grabbing cursor.
 - A visible Move button remains available as an accessible movement fallback.
 - Delete/trash removes the text object instead of relying on a "show" checkbox.
+- Delete is a destructive ribbon action and must be visually distinct from
+  Done. In the ribbon action column, Delete uses the approved white trash icon
+  on a red button with an accessible label, is placed above Done, and is spaced
+  away from Done to reduce accidental activation. Done remains below it with
+  the same action-column width and fills the remaining action-column height so
+  the safe completion target is larger than the destructive action.
 - HTML source is the supported source-editing mode where a text module can
   safely parse sanitized markup into the shared rich-text run model and render
   the parsed result through its final visible renderer.
@@ -136,29 +342,30 @@ tested, and the remaining divergences are recorded.
 - The preview still owns target-local affordances: caret, selection, dotted or
   path-aware outlines, direct typing, edge-grab movement affordance, Move
   fallback target where applicable, and Delete affordance where applicable.
-- Intentional setup, source, and type controls remain sidebar-owned. Examples
-  include add/enable entry points, metadata/default source selection, and
-  straight/curved mode selection where the surface still needs a pre-selection
-  setup choice.
+- Intentional setup and type controls remain sidebar-owned. Examples include
+  add/enable entry points and straight/curved mode selection where the surface
+  still needs a pre-selection setup choice. Metadata/default status and
+  manual-override restore actions for selected metadata-backed text belong in
+  the ribbon Utilities tab as a full-height `Source` card.
 
 ### Module And Control Ownership Matrix
 
 | Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
 | --- | --- | --- | --- |
-| Cover text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, background, border, alignment, wrap width, position, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, range selection, dotted bounds, edge-grab movement, Move fallback | Add/select entry points, metadata/default setup without contextual equivalent |
+| Cover text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, background, border, alignment, wrap width, position, metadata source status/restore, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, range selection, dotted bounds, edge-grab movement, Move fallback | Add/select entry points |
 | Tray text | Same as cover text, using tray-safe geometry and wrapping semantics | Same as cover text | Same as cover text |
 | Left spine text | Same contextual text controls that the spine target supports | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select entry points, spine orientation or structural setup where still sidebar-owned |
 | Right spine text | Same as left spine text | Same as left spine text | Same as left spine text |
-| Straight disc text | Style/layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source where supported, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc text | Whole-object or supported range-safe controls for font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc side/span/inset/position, presets, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, metadata source status/restore, HTML source, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add and straight/curved setup where needed |
+| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc span/inset/position, conditional arc side when the Steam banner is hidden, metadata source status/restore, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add and straight/curved mode selection |
 
 ### Responsive Ribbon States
 
 | State | Container behavior | Control behavior |
 | --- | --- | --- |
-| Wide | Tabs fit in one row; active controls fit in one or two balanced groups. | Full labels, normal spacing, normal sliders/inputs. |
-| Compact | Tabs may remain one row or become two-by-two if needed. | Controls reflow into fewer columns with shorter labels and smaller gaps. |
-| Narrow | Tabs may use two-by-two layout or horizontal scrolling only as a last resort. | Labels stack above controls, fields use available width, and controls may wrap into a third row. |
+| Wide | Tabs fit in one row; active controls use the full available right-hand header column when useful. | Full labels, normal spacing, normal sliders/inputs. |
+| Compact | Tabs remain single-line where possible; active controls stay in fixed-height semantic-card rows. | Controls condense horizontally, use shorter labels, and may switch unreadable select values to button-only dropdown affordances with accessible labels. |
+| Narrow | Tabs and controls preserve the fixed ribbon height and do not add a third control row or vertical scrollbar. | Controls keep usable hit targets, equalized column widths, compact/icon-only affordances where text labels would become unreadable, and horizontal scrolling only when whole-card columns still exceed the available width. |
 
 ### Migration Status
 
@@ -196,8 +403,14 @@ Keep these responsibilities:
   slot remains reserved when inactive.
 - The Live Preview heading remains visible on the left, and the preview begins
   below the full header/ribbon region.
-- Row 1 contains the four contextual tabs; row 2 contains the active tab's
-  controls; narrow widths may wrap controls into row 3 without overlap.
+- Row 1 contains the five contextual tabs; the active tab's controls occupy the
+  fixed control-row area without adding a third row or moving the preview.
+- Horizontal overflow uses a lane below the fixed control rows and must not
+  cover, clip, or reduce the usable height of the bottom row.
+- Stacked semantic boxes in the same ribbon column share the widest box width
+  in that column.
+- Semantic boxes fill any available lower fixed-row slot in the current column
+  before a later box can start the next column.
 - Toasts keep their existing placement when the ribbon is inactive, move below
   the measured ribbon slot while active, and return to their original placement
   when the ribbon deactivates.
@@ -210,8 +423,10 @@ Keep these responsibilities:
   all activate the same ribbon host.
 - Text-body drag selects text; the selection-edge grab region and Move fallback
   move the object immediately.
-- Existing sidebar setup/source/type controls remain available and are not
-  duplicated by migrated editing controls.
+- Existing sidebar setup/type controls remain available and are not duplicated
+  by migrated editing controls. Metadata/default status and manual-override
+  restore actions are ribbon-owned while a metadata-backed text target is
+  selected.
 - Preview, save/load, and export parity remain unchanged.
 
 ## Input And Caret Contract
@@ -241,9 +456,12 @@ Keep these responsibilities:
 - Disc preview and export preserve the current SVG/textPath renderer behavior.
 - Straight disc HTML source must render through safe SVG text/tspan output in
   preview and export.
-- HTML source, selection-scoped formatting, and list editing remain unsupported
-  for curved disc text unless they can be mapped safely onto textPath without a
-  rectangular visible editor.
+- Curved disc HTML source must render safe inline formatting through the
+  existing SVG/textPath and tspan path. Supported inline formatting includes
+  font family, Font size (pt), BIU, underline, text color, and safe line breaks.
+  Structures that cannot be represented faithfully on curved textPath, such as
+  bulleted-list markup, must report validation clearly, preserve safe visible
+  text where appropriate, and never execute raw HTML.
 
 ## Current Implementation Notes
 
@@ -255,8 +473,9 @@ menu positioning, but it must not become a second visible text renderer.
 
 Curved disc copyright/legal text remains SVG/textPath based, but it now uses a
 curved-safe contextual adapter for direct text editing and whole-object menu
-controls. The sidebar owns only setup/source/type responsibilities for that
-text. The contextual shell must not mount a rectangular on-canvas textarea over
+controls. The sidebar owns only setup/type responsibilities for that text, with
+metadata/default status and restore actions surfaced by the ribbon Source card.
+The contextual shell must not mount a rectangular on-canvas textarea over
 the curved renderer; a hidden/native input may adapt keyboard, clipboard, IME,
 selection, and undo behavior while SVG/textPath remains the visible source of
 truth.

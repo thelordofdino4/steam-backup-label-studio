@@ -19,7 +19,6 @@ import {
   DISC_TEXT_POINT_SIZE_MIN,
   DISC_TEXT_POINT_SIZE_PRESETS,
   DISC_TEXT_POINT_SIZE_STEP,
-  getDefaultDiscTextPointSize,
 } from '../../discText/pointSize.ts'
 import {
   DISC_TEXT_CONTRAST_OPTIONS,
@@ -92,11 +91,12 @@ export type DiscInlineTextEditorControlParams = {
   ) => 'active' | 'inactive' | 'mixed' | {
     state: 'active' | 'inactive' | 'mixed'
     value?: number | string
-  }
+    }
   onDiscTextVisualAvoidanceChange: (
     key: DiscTextKey,
     avoidVisualElements: boolean,
   ) => void
+  metadataSource?: NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource']
   onResetDiscTextLayout: (key: DiscTextKey) => void
   onResetDiscTextStyle: (key: DiscTextKey) => void
   onSelectedDiscTextKeyChange: (key: DiscTextKey | null) => void
@@ -105,10 +105,9 @@ export type DiscInlineTextEditorControlParams = {
 
 export type CurvedDiscTextEditorControlParams = Omit<
   DiscInlineTextEditorControlParams,
-  | 'isHtmlSourceEnabled'
-  | 'onDiscTextContentModeChange'
   | 'onDiscTextVisualAvoidanceChange'
 > & {
+  canChangeArcSide?: boolean
   onDiscTextArcSideChange: (
     key: DiscTextKey,
     arcSide: DiscTextArcSide,
@@ -131,7 +130,7 @@ function getMatchingDiscLayoutPreset({
       return false
     }
 
-    return (['x', 'y', 'width', 'scale', 'fontSizePt', 'arcDegrees'] as const)
+    return (['x', 'y', 'width', 'arcDegrees'] as const)
       .every((field) =>
           typeof preset.layout[field] === 'number'
             ? contextualTextNumericValuesMatch(
@@ -181,25 +180,8 @@ function applyDiscTextLayoutPreset({
   if (typeof layoutPreset.layout.width === 'number') {
     onDiscTextLayoutChange(key, 'width', layoutPreset.layout.width)
   }
-  if (typeof layoutPreset.layout.scale === 'number') {
-    onDiscTextLayoutChange(key, 'scale', layoutPreset.layout.scale)
-  }
   if (typeof layoutPreset.layout.arcDegrees === 'number') {
     onDiscTextLayoutChange(key, 'arcDegrees', layoutPreset.layout.arcDegrees)
-  }
-  if (typeof layoutPreset.layout.fontSizePt === 'number') {
-    onDiscTextLayoutChange(key, 'fontSizePt', layoutPreset.layout.fontSizePt)
-  } else if (typeof layoutPreset.layout.scale === 'number') {
-    onDiscTextLayoutChange(
-      key,
-      'fontSizePt',
-      getDefaultDiscTextPointSize(
-        key,
-        layoutPreset.layout.scale,
-        undefined,
-        layoutPreset.layout.mode ?? 'straight',
-      ),
-    )
   }
   if (layoutPreset.layout.align) {
     onDiscTextAlignmentChange(key, layoutPreset.layout.align)
@@ -226,6 +208,7 @@ export function createDiscInlineTextEditorControls({
   onDiscTextContentModeChange,
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
+  metadataSource,
 }: DiscInlineTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode !== 'curved')
@@ -499,65 +482,54 @@ export function createDiscInlineTextEditorControls({
         onChange: (checked) =>
           onDiscTextStyleChange(key, 'backgroundEnabled', checked),
       },
-      backgroundColor: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundColor,
-            value: style.backgroundColor,
-            onChange: (value) =>
-              onDiscTextStyleChange(key, 'backgroundColor', value),
-          }
-        : undefined,
-      backgroundOpacity: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundOpacity,
-            min: 0,
-            max: 1,
-            step: 0.05,
-            value: style.backgroundOpacity,
-            onChange: (value) =>
-              onDiscTextStyleChange(key, 'backgroundOpacity', value),
-          }
-        : undefined,
-      backgroundPadding: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundPadding,
-            min: 0,
-            max: 4,
-            step: 0.1,
-            value: style.backgroundPadding,
-            onChange: (value) =>
-              onDiscTextStyleChange(key, 'backgroundPadding', value),
-          }
-        : undefined,
-      borderEnabled: style.backgroundEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
-            checked: style.borderEnabled,
-            onChange: (checked) =>
-              onDiscTextStyleChange(key, 'borderEnabled', checked),
-          }
-        : undefined,
-      borderColor: style.backgroundEnabled && style.borderEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
-            value: style.borderColor,
-            onChange: (value) =>
-              onDiscTextStyleChange(key, 'borderColor', value),
-          }
-        : undefined,
-      borderRadius: style.backgroundEnabled && style.borderEnabled
-        ? {
-            label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
-            min: 0,
-            max: 4,
-            step: 0.1,
-            value: style.borderRadius,
-            onChange: (value) =>
-              onDiscTextStyleChange(key, 'borderRadius', value),
-          }
-        : undefined,
+      backgroundColor: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundColor,
+        value: style.backgroundColor,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'backgroundColor', value),
+      },
+      backgroundOpacity: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundOpacity,
+        min: 0,
+        max: 1,
+        step: 0.05,
+        value: style.backgroundOpacity,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'backgroundOpacity', value),
+      },
+      backgroundPadding: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.backgroundPadding,
+        min: 0,
+        max: 4,
+        step: 0.1,
+        value: style.backgroundPadding,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'backgroundPadding', value),
+      },
+      borderEnabled: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderEnabled,
+        checked: style.borderEnabled,
+        onChange: (checked) =>
+          onDiscTextStyleChange(key, 'borderEnabled', checked),
+      },
+      borderColor: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderColor,
+        value: style.borderColor,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'borderColor', value),
+      },
+      borderRadius: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.borderRadius,
+        min: 0,
+        max: 4,
+        step: 0.1,
+        value: style.borderRadius,
+        onChange: (value) =>
+          onDiscTextStyleChange(key, 'borderRadius', value),
+      },
     },
     utilities: {
+      metadataSource,
       respectVisualElements: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
         checked: layout.avoidVisualElements,
@@ -589,7 +561,9 @@ export function createDiscInlineTextEditorControls({
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
-      htmlSource: {
+    },
+    html: {
+      source: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
         checked: isHtmlSourceEnabled,
         onChange: (checked) =>
@@ -611,6 +585,7 @@ export function createCurvedDiscTextEditorControls({
   key,
   layout,
   style,
+  isHtmlSourceEnabled,
   onSelectedDiscTextKeyChange,
   onDiscTextEnabledChange,
   onDiscTextStyleChange,
@@ -619,9 +594,12 @@ export function createCurvedDiscTextEditorControls({
   onDiscTextLayoutChange,
   onDiscTextAlignmentChange,
   onDiscTextArcSideChange,
+  onDiscTextContentModeChange,
   onResetDiscTextLayout,
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
+  canChangeArcSide = true,
+  metadataSource,
 }: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode === 'curved')
@@ -865,6 +843,7 @@ export function createCurvedDiscTextEditorControls({
       },
     },
     utilities: {
+      metadataSource,
       lineSpacing: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.lineSpacing,
         min: 0.5,
@@ -889,16 +868,20 @@ export function createCurvedDiscTextEditorControls({
         value: layout.y,
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
-      arcSide: {
-        label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
-        options: [
-          { label: 'Top arc', value: 'top' },
-          { label: 'Bottom arc', value: 'bottom' },
-        ],
-        value: layout.arcSide,
-        onChange: (value) =>
-          onDiscTextArcSideChange(key, value as DiscTextArcSide),
-      },
+      ...(canChangeArcSide
+        ? {
+            arcSide: {
+              label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
+              options: [
+                { label: 'Top arc', value: 'top' },
+                { label: 'Bottom arc', value: 'bottom' },
+              ],
+              value: layout.arcSide,
+              onChange: (value) =>
+                onDiscTextArcSideChange(key, value as DiscTextArcSide),
+            },
+          }
+        : {}),
       arcDegrees: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcDegrees,
         min: 80,
@@ -909,6 +892,14 @@ export function createCurvedDiscTextEditorControls({
           onDiscTextLayoutChange(key, 'arcDegrees', value),
       },
       resetLayout: () => onResetDiscTextLayout(key),
+    },
+    html: {
+      source: {
+        label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
+        checked: isHtmlSourceEnabled,
+        onChange: (checked) =>
+          onDiscTextContentModeChange(key, checked ? 'html' : 'plain'),
+      },
     },
     deleteAction: {
       label: CONTEXTUAL_TEXT_CONTROL_LABELS.delete,

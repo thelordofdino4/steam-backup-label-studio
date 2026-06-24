@@ -140,6 +140,8 @@ export type InlinePreviewTextEditorNumberSelectControl = {
 
 export type InlinePreviewTextEditorCheckboxControl = {
   checked: boolean
+  disabled?: boolean
+  disabledReason?: string
   label: string
   onChange: (checked: boolean) => void
 }
@@ -178,6 +180,14 @@ export type InlinePreviewTextEditorTextValueControl = {
   onChange: (value: string) => void
 }
 
+export type InlinePreviewTextEditorMetadataSourceControl = {
+  actionLabel?: string
+  label: string
+  onAction?: () => void
+  status: 'metadata' | 'manual' | 'unavailable'
+  statusLabel: string
+}
+
 export type InlinePreviewTextEditorControls = {
   presets?: {
     layout?: InlinePreviewTextEditorSelectControl
@@ -209,14 +219,17 @@ export type InlinePreviewTextEditorControls = {
   utilities?: {
     arcDegrees?: InlinePreviewTextEditorRangeControl
     arcSide?: InlinePreviewTextEditorSelectControl
-    htmlSource?: InlinePreviewTextEditorCheckboxControl
     lineSpacing?: InlinePreviewTextEditorRangeControl
+    metadataSource?: InlinePreviewTextEditorMetadataSourceControl
     mode?: InlinePreviewTextEditorSelectControl
     respectVisualElements?: InlinePreviewTextEditorCheckboxControl
     resetLayout?: () => void
     width?: InlinePreviewTextEditorRangeControl
     x?: InlinePreviewTextEditorRangeControl
     y?: InlinePreviewTextEditorRangeControl
+  }
+  html?: {
+    source?: InlinePreviewTextEditorCheckboxControl
   }
   deleteAction?: {
     ariaLabel?: string
@@ -236,6 +249,7 @@ export type InlinePreviewTextEditorProps = {
   rotationDegrees?: number
   targetKey: string
   value: string
+  sourceValue?: string
   textareaStyle?: CSSProperties
   sourceMode?: boolean
   suppressCanvasInput?: boolean
@@ -250,7 +264,7 @@ export type InlinePreviewTextEditorProps = {
     command: 'enter' | 'shiftEnter' | 'backspace',
     selection: InlinePreviewTextEditorSelectionRange,
   ) => InlinePreviewTextEditorSelectionRange | null | void
-  onDone: () => void
+  onDone: (commit?: InlinePreviewTextEditorDoneCommit) => void
 }
 
 export type InlinePreviewTextEditorAdapterSurface =
@@ -291,7 +305,13 @@ export type InlinePreviewTextEditorEditSession = {
   lines: InlinePreviewTextEditorLine[]
   rotationDegrees?: number
   sourceMode: boolean
+  sourceValue?: string
   targetKey: string
+  value: string
+}
+
+export type InlinePreviewTextEditorDoneCommit = {
+  sourceMode?: boolean
   value: string
 }
 
@@ -331,6 +351,7 @@ export function createInlinePreviewTextEditorEditSession(
     lines: props.lines,
     rotationDegrees: props.rotationDegrees,
     sourceMode: props.sourceMode ?? false,
+    sourceValue: props.sourceValue,
     targetKey: props.targetKey,
     value: props.value,
   }
@@ -444,16 +465,16 @@ export function assertInlinePreviewTextEditorAdapterContract(
   }
 
   if (adapter.capabilities.htmlSource &&
-    !adapter.props.controls?.utilities?.htmlSource) {
+    !adapter.props.controls?.html?.source) {
     throw new Error('HTML-source-capable adapters must expose htmlSource')
   }
   if (!adapter.capabilities.htmlSource &&
-    adapter.props.controls?.utilities?.htmlSource) {
+    adapter.props.controls?.html?.source) {
     throw new Error(
       'Adapters without HTML source capability must omit htmlSource controls',
     )
   }
-  if (adapter.props.sourceMode && !adapter.props.controls?.utilities?.htmlSource) {
+  if (adapter.props.sourceMode && !adapter.props.controls?.html?.source) {
     throw new Error('sourceMode requires an HTML source control')
   }
 

@@ -256,6 +256,13 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 - `npm run build`: TypeScript build plus Vite build.
 - `npm run check:cycles`: relative import cycle detector for `src`.
 - `npm run lint`: ESLint.
+- `npm run smoke:text-editor`: native text-editor smoke policy guard. The
+  required runtime route is `npm run tauri dev` plus Any App / Computer Use
+  against the native Tauri window; this npm script must not run browser/Vite
+  acceptance.
+- `npm run diagnose:text-editor:browser`: browser-only text-editor diagnostic
+  route.
+- `npm run capture:ribbon:browser`: browser-only ribbon capture diagnostics.
 - `npm run test`: Node test runner with an explicit test-file list.
 - `npm run preview`: Vite preview.
 - `npm run tauri`: Tauri CLI.
@@ -481,8 +488,9 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - Disc sidebar demotion uses `src/discText/sidebarControlPolicy.ts` to consult
   contextual target capabilities. Straight text and curved copyright/legal text
   move duplicated editing controls into contextual adapters, while the sidebar
-  keeps setup/source/type responsibilities such as enable, metadata/default
-  source, and the straight/curved mode switch.
+  keeps setup/type responsibilities such as enable and the straight/curved
+  mode switch. Metadata/default status and restore actions for selected
+  metadata-backed text live in the ribbon Utilities `Source` card.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same contextual
   target capabilities for rectangular case-insert text while spine orientation
@@ -518,19 +526,146 @@ Ribbon placement and layout:
 - The ribbon is visually attached to the top and right edges of the preview
   workspace, not rendered as a detached floating card.
 - The ribbon left edge must not cross into the Live Preview label column.
-- The ribbon should use a compact right-aligned maximum width; it must not
-  stretch across all available header space on wide windows.
+- The ribbon may use the full available right-hand header column up to the Live
+  Preview label boundary. It must not leave eligible header space unused while
+  active controls are still compressed or clipped.
 - The preview begins below the complete header/ribbon region and never
   encroaches into the reserved slot.
 - The slot remains reserved when inactive, but ribbon contents disappear.
 - Selecting editable text activates the ribbon.
-- Row 1 contains the four contextual tabs with compact single-line labels:
-  `Presets`, `Text`, `Artistic`, and `Utilities`.
+- Row 1 contains the five contextual tabs with compact single-line labels:
+  `Presets`, `Text`, `Artistic`, `Utilities`, and `HTML`.
 - Row 2 contains the active tab's controls rendered as native ribbon toolbar
   groups, not as old floating-menu form markup moved into a fixed slot.
-- The ribbon uses a fixed compact height near the 60-65 px app-shell band. If
-  all controls cannot fit horizontally, the controls strip scrolls internally
-  instead of wrapping downward and pushing the editable surface lower.
+- The ribbon uses a fixed compact app-shell height sized for the tab row, two
+  fixed control rows, a horizontal overflow lane, and the documented bottom
+  clearance. Active controls must not wrap downward or push the editable
+  surface lower. Horizontal sizes may adapt, but row heights remain constant.
+- Semantic control boxes are packed in column-first order. Within one column,
+  every stacked box must use the same column width: if the top or bottom box in
+  that column requires a wider usable width, every other box in the column
+  expands to match it. Do not shrink the wider box to match smaller siblings.
+  This equalization affects horizontal sizing only; disabled/enabled state must
+  not change the column width or row height.
+- Column-first packing means the current column is filled from top to bottom
+  before the next column is opened. If a one-row semantic box leaves usable
+  fixed-row space below it, the next one-row box must use that lower slot and
+  must not reposition to the next column. Two-row/tall boxes may start a new
+  column only when they cannot fit in the remaining row space. This supersedes
+  any layout that balances boxes across columns or fills every top-row slot
+  before using the second row.
+- Dense semantic boxes with multiple independent controls use internal columns
+  before labels or values are hidden. Primary fields and dropdowns stack in a
+  field column; secondary command buttons, toggles, or steppers sit in a
+  companion command column. Text > Font and Text > Paragraph must not collapse
+  into one long row. Enabled feature boxes such as Artistic > Background and
+  Border keep their separate header-checkbox plus stable dependent-field
+  hierarchy.
+- Text-tab dense boxes use this hierarchy to protect the fixed app-shell
+  header: the Text tab contains common typography controls, but it must not
+  grow vertically, create a third control row, or push the editable preview
+  down. Field columns preserve readable values, while companion command columns
+  keep compact actions beside the fields they affect.
+- Dense command columns stay adjacent to their field column and use the same
+  vertical divider language as the semantic-box label/function separator.
+  Command buttons must not drift to the far edge of unused ribbon or card
+  space.
+- Comparable stacked input/select fields in one semantic group share matched
+  visual dimensions. The shared target field width is based on the widest
+  reasonable selectable or enterable value for that group rather than the
+  current value; long future labels may be capped only after the group reaches
+  its maximum useful width. These fields should not stretch beyond that target
+  merely because the card has spare horizontal space unless the group has an
+  explicit flexible-field contract.
+- Dense semantic boxes that own matched stacked fields are content-fitted: the
+  bordered box ends after the last contained control plus normal padding,
+  separator, and border. If a contained field expands because its matched-width
+  value set grows, the owning box and any stacked sibling in the same column
+  follow that content-derived width up to the group's maximum useful width.
+  Extra header/ribbon width must not stretch Text > Font or Text > Paragraph
+  once their contained controls have reached their target sizes. This prevents
+  dead card interiors and keeps extra header width available for groups that
+  can use it meaningfully.
+- Compact select fields in dense text-ribbon groups use the same target-width
+  rule even when they are unpaired; for example, Paragraph alignment is sized
+  from the widest supported alignment label, not from leftover card width.
+- Reset actions that are semantically associated with a card live inside that
+  card. The reset control sits on the right side of the associated card,
+  separated from the primary controls by the same vertical divider language
+  used by that card type. It must not render as a separate `Reset` card or as
+  a detached standalone button when its reset target is a specific card
+  responsibility. The card's width profile reserves the reset divider and
+  button so reset availability does not clip or steal space from sibling
+  controls.
+- The Presets tab is modeled as native semantic `Style` and `Layout` cards.
+  Style and Layout are matched one-row dropdown cards that stack in the same
+  column when both are available; their width is calculated from the complete
+  card contents, not only from the select element. The visible card title is
+  the purpose label, so inner select labels remain accessibility labels and
+  must not duplicate the card title in visible text. Style reset belongs inside
+  the `Style` card on the right side behind the card divider.
+- Layout presets are placement/layout-geometry commands only. Applying one may
+  update supported position, wrapping width, arc, or alignment geometry, but it
+  must preserve typography and style values such as font family, point size,
+  legacy scale-derived size, BIU, color, contrast, background, and border.
+- Composite value/dropdown controls in the ribbon, such as `Font size (pt)`,
+  must follow the native dropdown visual contract in
+  `docs/TEXT_EDITOR_CONTRACT.md`: the `POINTS` unit label outside the field,
+  value left of the chevron inside one shared bordered field, no nested
+  chevron box, matching field height, and matching chevron-to-right-border
+  spacing verified from a native Tauri screenshot when visual parity is in
+  question.
+- Text > Font uses a stacked label column with `STYLES` beside the font-family
+  dropdown and `POINTS` beside the point-size dropdown so the two fields remain
+  aligned. These labels are intentionally compact and visible: they identify
+  the value fields without the width cost of full form labels.
+- Text > Font uses an underlined `FORMAT` heading above the BIU command
+  buttons, and those buttons remain centered in that format section so the
+  buttons read as one formatting command cluster.
+- Text > Paragraph uses `ALIGN` beside the alignment dropdown and a `LIST`
+  heading above the bulleted-list button. The `LIST` label/button stack is
+  centered in the available command-column space between the divider and the
+  Paragraph box's right edge, not by a hardcoded pixel offset. That command
+  column is the extension point for future paragraph actions, so spacing must
+  be relative to the column rather than tuned to today's single button.
+- The Utilities tab follows the same semantic-card model. Position controls
+  are grouped as a two-row X/Y field card. Layout controls are grouped as a
+  two-row card with `Wrap width` and its related `Respect visual elements`
+  toggle kept inside the same internal box. Unrelated mode/arc options may use
+  the separate divider column, but that divider must not split the checkbox
+  away from `Wrap width`. `Wrap width` and `Respect visual elements` remain
+  fully readable; the fixed-height ribbon should use whole-card horizontal
+  overflow rather than truncate those utility labels. Utilities range sliders
+  share the Artistic range-slider track compression metrics: 72px normal
+  track minimum and 58px compact track minimum. Utilities value boxes keep a
+  wider coordinate-safe numeric field so signed and decimal Position values
+  can display without clipping. Utility range tracks share a 96px useful
+  maximum so Position X/Y and Layout `Wrap width` controls keep matched slider
+  lengths even when their semantic cards receive different horizontal space.
+  Utilities layout reset belongs inside the `Layout` card on the right side,
+  separated from the layout ranges/options by the same divider language used
+  for utility layout option columns. It spans the two-row card body visually
+  without becoming a separate reset card or detached command. Metadata/default
+  status and manual override restoration use a full-height Utilities `Source`
+  card. HTML source remains in the dedicated `HTML` tab, and Utilities must
+  not render empty placeholder cards for unavailable source or unsupported
+  target-specific controls. A range-only
+  `Layout` card uses a compact content width so its right border remains near
+  the last visible control; the wider Layout profile is reserved for targets
+  with additional mode or arc option columns.
+- The HTML tab is rendered as a dedicated two-row source panel rather than a
+  titled semantic-card group. It owns source/status text, validation feedback,
+  and a monospaced source textarea with native typing, selection, clipboard,
+  undo/redo behavior, `white-space: pre`, and editor-owned horizontal/vertical
+  scrolling. The source/status row is the visible label for the panel, so the
+  textarea does not spend horizontal space on a second visible `Source` label.
+  The HTML tab fills the available active control area instead of using the
+  ordinary ribbon horizontal scrollbar; long source scrolls inside the
+  textarea. Validation text stays in the status row rather than adding a row
+  beneath the textarea, so newlines in the source draft cannot shrink the
+  editor or its panel. The panel must not add a third ribbon row, collapse into
+  a one-line strip, move the preview, or reintroduce Utilities-owned HTML
+  source controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.
@@ -559,21 +694,28 @@ Ownership matrix:
 
 | Surface | Ribbon-owned editing controls | Preview-owned affordances | Sidebar-owned setup/source controls |
 | --- | --- | --- | --- |
-| Cover | Contextual presets, text controls, art controls, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, selection, dotted bounds, edge-grab movement, Move fallback | Add/select, metadata/default setup without contextual equivalent |
+| Cover | Contextual presets, text controls, art controls, metadata source status/restore, utilities, reset style/layout, Done, Delete where supported | Direct typing, caret, selection, dotted bounds, edge-grab movement, Move fallback | Add/select |
 | Tray | Same as cover, with tray geometry and wrap semantics | Same as cover | Same as cover |
 | Left spine | Supported contextual text controls | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select and structural spine setup where needed |
 | Right spine | Same as left spine | Same as left spine | Same as left spine |
-| Straight disc | Supported contextual text controls, including HTML source where supported | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc | Curved-safe text controls, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Straight disc | Supported contextual text controls, including metadata source status/restore and HTML source | SVG/tspan renderer, direct typing adapter, caret, selection, bounds, edge-grab movement, Move fallback | Enable/add and straight/curved setup where needed |
+| Curved disc | Curved-safe text controls, metadata source status/restore, safe inline HTML source, arc controls, presets, Done, Delete where supported | SVG/textPath renderer, path-aware caret/selection, arc-aware bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add and straight/curved mode selection |
 
 Responsive states:
 
 - Wide: tabs fit in one row; active controls use the full available top-right
-  header column with full labels, normal spacing, and normal sliders/inputs.
-- Compact: tabs remain single-line and controls keep usable hit targets while
-  the active control row scrolls internally as needed.
-- Narrow: controls use compact grouping and horizontal/internal scrolling
-  rather than adding header height or pushing the preview surface downward.
+  header column when doing so keeps controls readable and usable.
+- Compact: tabs remain single-line where possible and controls keep usable hit
+  targets inside fixed-height semantic-card rows. Controls condense
+  horizontally and may use compact icon/dropdown-only affordances when a text
+  value would become unreadable.
+- Narrow: controls preserve the fixed ribbon height, row count, and column
+  equalization rules. Do not add a third control row, vertical scrollbar, or
+  preview-displacing overflow escape.
+- Horizontal overflow may scroll inside a dedicated lane below the fixed
+  control rows. That scrollbar is the fallback after the two-row semantic-card
+  layout has used the available width; it must not cover the bottom row, trigger
+  vertical remeasurement, change fixed row heights, or move the preview.
 
 Current implementation:
 
@@ -620,9 +762,15 @@ Acceptance criteria:
   controls, and do not move or resize the preview.
 - Ribbon position does not change when text moves, wraps, changes point size,
   changes arc geometry, touches safe zones, or crosses the disc center hole.
+- Stacked semantic boxes in a ribbon column share the widest box width in that
+  column; smaller boxes above or below a wider box must expand horizontally to
+  match it.
+- Semantic boxes fill available lower fixed-row slots in their current column
+  before later boxes may start the next column.
 - Text-body drag selects text; edge-grab and Move fallback move immediately.
 - No migrated editing control remains duplicated in the sidebar unless it is
-  intentionally sidebar-owned setup/source/type UI.
+  intentionally sidebar-owned setup/type UI. Metadata/default status and
+  manual-override restoration are contextual ribbon Source-card responsibilities.
 - Preview, save/load, and export parity remain unchanged.
 
 ### 9.5 Invariants And Future-Change Rules
@@ -973,10 +1121,17 @@ remains the overlay lookup and rectangle-measurement facade.
   compact right control rail, the bottom Design Check / Guide Legend rail, and
   the 4px side surface guard, and must not reintroduce old fixed preview width
   caps that create artificial side gutters. The right rail uses the approved
-  two-column zoom out/in, Fit, and pan layout; Fit calculations reserve the
-  minimum 48px rail, then the visible rail may grow continuously up to 96px
-  only into residual unused gutter. The expanded rail width must not feed back
-  into Fit, reduce the fitted preview scale, or move the fitted design surface.
+  two-column zoom out/in, Fit, and pan layout. It normally collapses to a slim
+  right-edge hover/focus handle so zoomed previews can use the viewable area;
+  hovering the handle or focusing any rail control opens the full panel. Fit
+  calculations reserve the minimum 48px rail, then the visible rail may grow
+  continuously up to 96px only into residual unused gutter. The collapsed or
+  expanded rail presentation must not feed back into Fit, reduce the fitted
+  preview scale, or move the fitted design surface. The zoomed viewport may
+  render the transformed preview surface behind otherwise empty header/ribbon
+  space, while the fitted stage still reserves the header height and the
+  app-shell header/ribbon controls remain visually and interactively above the
+  preview.
 - Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 
@@ -1188,7 +1343,10 @@ Manual runtime validation should use:
 
 - `docs/MANUAL_SMOKE_CHECKLISTS.md`
 - `docs/VISUAL_REGRESSION_WORKFLOW.md`
-- `npm run tauri dev` launched manually by the user or with explicit user permission.
+- `npm run tauri dev` launched from the primary checkout by the user or with
+  explicit user permission, then the native Tauri window operated manually or
+  through Any App / Computer Use. Browser/Vite diagnostics cannot establish
+  user-visible runtime acceptance.
 
 ### 18.3 Test Coverage Summary
 
@@ -1209,7 +1367,9 @@ Current tests cover broad helper and contract areas:
 
 ### 18.4 Known Validation Gaps
 
-- No package script exposes end-to-end Playwright coverage.
+- Browser diagnostic scripts exist for selector and DOM triage, but required
+  user-visible smoke targets the native Tauri window rather than Playwright
+  against localhost.
 - Manual Tauri behavior is not validated by tests alone.
 - Current fixture coverage does not fully cover every recently added visual system.
 - This SDD task did not run validation commands because it is docs-only and did not change source or package metadata.
@@ -1392,7 +1552,9 @@ Decision:
   and Delete affordances on the preview.
 - Give the ribbon priority over the existing top-right toast stack while it is
   active by offsetting toasts below the measured reserved ribbon slot.
-- Keep intentional setup/source/type controls in the sidebar.
+- Keep intentional setup/type controls in the sidebar. Metadata/default status
+  and manual-override restoration are contextual ribbon Source-card
+  responsibilities for selected text.
 - Keep the full-menu collision, docking, portal, and emergency-placement
   system deleted now that the ribbon owns contextual controls.
 
@@ -1401,6 +1563,12 @@ Consequences:
 - Contextual control placement must no longer be solved from selected-text
   bounds, safe zones, arcs, center holes, or preview geometry.
 - The ribbon must be responsive to app-shell container dimensions only.
+- Ribbon semantic boxes are packed column-first. Each column uses the width of
+  its widest box for every box in that column, so smaller boxes above or below
+  a wider box expand to match it without changing row height.
+- A column must be filled from top to bottom before the next column opens; a
+  one-row box below an existing one-row box cannot be skipped in favor of
+  starting a new column when that lower slot is available.
 - Toast offset should consume shared app-shell ribbon height/offset state or a
   CSS variable and must not be derived from preview or text geometry.
 - Surface adapters continue to own renderer, layout, state, save/load, export,

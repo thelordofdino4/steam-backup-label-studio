@@ -46,7 +46,7 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(source, /inlinePreviewTextEditorContract/)
   assert.match(source, /InlinePreviewTextEditorMenuContent/)
   assert.match(source, /deleteAction/)
-  assert.match(contract, /htmlSource\?:\s*InlinePreviewTextEditorCheckboxControl/)
+  assert.match(contract, /html\?:\s*\{[\s\S]*source\?:\s*InlinePreviewTextEditorCheckboxControl/)
   assert.match(contract, /sourceMode\?:\s*boolean/)
   assert.match(source, /getInlinePreviewHtmlSourceDraftStatus/)
   assert.match(source, /inline-preview-text-source-textarea/)
@@ -65,7 +65,8 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   assert.match(contract, /bulletedList\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(source, /renderInlinePreviewTextToggleControl/)
   assert.match(source, /aria-pressed=\{resolvedState === 'mixed'/)
-  assert.match(source, /contextual-text-ribbon-group--format/)
+  assert.match(source, /id:\s*'font'/)
+  assert.match(source, /data-ribbon-group=\{id\}/)
   assert.match(source, /contextual-text-ribbon-icon-button/)
   assert.match(source, /<textarea/)
   assert.match(source, /value=\{value\}/)
@@ -127,7 +128,7 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   assert.match(ribbonCss, /\.contextual-text-ribbon-host\s*\{[^}]*min-height:\s*var\(--contextual-text-ribbon-reserved-height\)/s)
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(4,\s*minmax\(0,\s*1fr\)\)/s,
+    /\.contextual-text-ribbon-tabs\s*\{[^}]*grid-template-columns:\s*repeat\(5,\s*minmax\(0,\s*1fr\)\)/s,
   )
   assert.match(
     ribbonCss,
@@ -151,8 +152,43 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
   )
   assert.match(
     ribbonCss,
+    /\.contextual-text-ribbon-control-row\s*\{[^}]*overflow-y:\s*hidden/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select\s*\{[^}]*color-scheme:\s*dark/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select option,\s*\.contextual-text-ribbon-point-size-presets option\s*\{[^}]*color:\s*#f9fafb[^}]*background-color:\s*#0f1117/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control select option:checked,\s*\.contextual-text-ribbon-point-size-presets option:checked\s*\{[^}]*background-color:\s*#1d4ed8/s,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-group\s*\{[^}]*display:\s*flex/s,
   )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group-label\s*\{/s,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-group-body\s*\{/s,
+  )
+  assert.match(editor, /id:\s*'style'[\s\S]*label:\s*'Style'/)
+  assert.match(editor, /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'/)
+  assert.match(editor, /id:\s*'font'[\s\S]*label:\s*'Font'/)
+  assert.match(editor, /id:\s*'paragraph'[\s\S]*label:\s*'Paragraph'/)
+  assert.doesNotMatch(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
+  assert.match(editor, /contextual-text-ribbon-point-size-presets/)
+  assert.match(editor, /inline-preview-text-number-preset-select/)
+  assert.doesNotMatch(editor, /inline-preview-text-number-preset-button/)
+  assert.doesNotMatch(editor, /className="inline-preview-text-number-options"/)
+  assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
+  assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-controls\s*\{[^}]*overflow:\s*hidden/s,
@@ -245,6 +281,8 @@ test('curved disc text is not routed through a visible rectangular editor layer'
   assert.doesNotMatch(adapter, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(discLayer, /DiscInlineTextEditorLayer/)
+  assert.match(discLayer, /addEventListener\('pointerdown', handleNativePointerDown\)/)
+  assert.match(discLayer, /onSelectedDiscTextKeyChange\(key\)/)
 })
 
 test('disc sidebar keeps setup controls while curved editing moves contextually', () => {
@@ -280,6 +318,10 @@ test('straight disc inline editing keeps the SVG renderer visible', () => {
   assert.doesNotMatch(discLayer, /isDiscTextHtmlEnabled/)
   assert.match(discLayer, /buildDiscTextSvgLayer/)
   assert.match(adapter, /geometryLines=\{geometryLines\}/)
+  assert.match(
+    adapter,
+    /getStraightDiscTextRenderLayout\([\s\S]*richText:\s*htmlDocument \?\? undefined[\s\S]*const geometryLines = getDiscInlineTextEditorGeometryLines/,
+  )
   assert.doesNotMatch(adapter, /className="disc-inline-text-line"/)
   assert.doesNotMatch(discCss, /\.disc-inline-text-line/)
 })

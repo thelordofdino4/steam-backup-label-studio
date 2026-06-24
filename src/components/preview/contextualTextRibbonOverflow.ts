@@ -3,38 +3,7 @@ export type ContextualTextRibbonAxisRect = {
   right: number
 }
 
-export type ContextualTextRibbonOverflowState =
-  | 'clipped'
-  | 'fully-visible'
-  | 'outside'
-
 export const CONTEXTUAL_TEXT_RIBBON_REVEAL_GAP_PX = 4
-
-export function getContextualTextRibbonOverflowState({
-  itemRect,
-  rowRect,
-  tolerancePx = 1,
-}: {
-  itemRect: ContextualTextRibbonAxisRect
-  rowRect: ContextualTextRibbonAxisRect
-  tolerancePx?: number
-}): ContextualTextRibbonOverflowState {
-  if (
-    itemRect.right <= rowRect.left + tolerancePx ||
-    itemRect.left >= rowRect.right - tolerancePx
-  ) {
-    return 'outside'
-  }
-
-  if (
-    itemRect.left >= rowRect.left - tolerancePx &&
-    itemRect.right <= rowRect.right + tolerancePx
-  ) {
-    return 'fully-visible'
-  }
-
-  return 'clipped'
-}
 
 export function getContextualTextRibbonScrollDeltaToReveal({
   gapPx = CONTEXTUAL_TEXT_RIBBON_REVEAL_GAP_PX,

@@ -39,7 +39,7 @@ Before implementing new features, refactors, bug fixes, or documentation changes
 4. Prefer small, reviewable changes.
    - Do not combine unrelated refactors, bug fixes, and features in the same change.
    - Run `npm run build` and `npm run lint` after code changes.
-   - For visual/editor changes, ask the user to verify with `npm run tauri dev`.
+   - For visual/editor changes, verify against the native Tauri window opened by `npm run tauri dev` when the user explicitly authorizes runtime verification, or ask the user to do that verification.
 
 5. Follow the architecture guardrails. This is a hard rule, not a preference.
    - Architecture-sensitive work must preserve the SDD contracts. In particular, the visible preview/final renderer remains the visual source of truth; hidden inputs, hit targets, measurement layers, and export renderers are adapters; save/load/export parity is required; and WYSIWYG-sensitive changes require runtime validation.
@@ -119,11 +119,19 @@ Before implementing new features, refactors, bug fixes, or documentation changes
    - Run `npm run lint` and `npm run build` after code changes.
    - Leave interactive UI, drag, preview/export parity, and desktop-window checks for the user to verify manually.
    - The primary checkout/runtime verification rule does not grant blanket permission to run Tauri; it requires stale runtime and build-output state to be detected and reported instead of repeatedly patching source code blindly.
+   - When the user explicitly asks Codex to perform user-visible runtime smoke, the required target is the native Tauri window opened from the primary checkout with `npm run tauri dev`.
+   - Any App / Computer Use is the preferred Codex interaction path for that native window. Do not use a standalone Vite page, Brave, Chrome, Edge, or Playwright against localhost as runtime approval.
+   - Browser-only diagnostics may still be useful for DOM assertions, selector checks, and fast regression triage, but browser screenshots cannot establish visual acceptance.
+   - If Any App cannot operate the native Tauri window, report the exact native blocker instead of silently falling back to browser testing.
+   - Successful Any App pilot routes that are worth repeating should be documented in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`.
 
 13. Follow the text-editor smoke automation rule.
-   - Before operating a browser against the text editor, read `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`.
-   - When a committed smoke command exists for the behavior under test, run it instead of improvising a new browser path first.
-   - When a new browser pilot path succeeds and is worth keeping, encode it in the committed smoke command and document its selectors, fixture state, assertions, and limitations.
-   - Ad-hoc browser automation gets one browser session and at most one retry for a failed action. If selectors or browser tooling continue to fail, stop and report the automation failure.
-   - Do not repeatedly try random selectors, JavaScript snippets, or coordinate guesses after tool failure.
+   - Before operating browser diagnostics or native Any App smoke against the text editor, read `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`.
+   - `npm run smoke:text-editor` is a native-smoke policy guard, not a browser harness. It must not open Vite or claim runtime verification from a browser.
+   - Browser-only commands such as `npm run diagnose:text-editor:browser` and `npm run capture:ribbon:browser` are diagnostic-only and must not be cited as visual acceptance.
+   - Required user-visible smoke starts from `npm run tauri dev` in the primary checkout and targets the spawned native Tauri window.
+   - Identify the native app by the process spawned from this repository or by its exact executable path, not by a window title that a browser tab can mimic.
+   - Reject Brave, Chrome, Edge, and other browser windows even when their title contains the application name.
+   - Any App automation gets one session and at most one retry after a tool or bridge failure. If it still fails, stop and report the native bridge failure.
+   - Do not repeatedly try random selectors, JavaScript snippets, window-title guesses, or coordinate guesses after tool failure.
    - Never report an automation failure as an app regression unless the screenshot, DOM state, or manual/runtime reproduction supports that conclusion.

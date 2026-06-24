@@ -101,6 +101,7 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import {
+  createCaseInsertInlineTextMetadataSourceControl,
   createCaseInsertInlineTextEditorControls,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
@@ -457,7 +458,11 @@ function CaseInsertTemplateTextBlock({
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
-    { sourceMode: isHtmlSourceEditing },
+  )
+  const sourceValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+    { sourceMode: true },
   )
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
@@ -514,6 +519,13 @@ function CaseInsertTemplateTextBlock({
         contentMode: layoutTextBlock.contentMode,
         htmlSourceActive: isHtmlSourceEditing,
         fontSizeRole: getCaseInsertTextSizeRoleFromId(layoutTextBlock.id),
+        metadataSource: createCaseInsertInlineTextMetadataSourceControl({
+          textBlock,
+          projectMetadata: brandingSources.projectMetadata,
+          onUseMetadataValue: previewTextControlHandlers.onUseMetadataValue
+            ? () => previewTextControlHandlers.onUseMetadataValue?.(textTarget)
+            : undefined,
+        }),
         style: layoutTextBlock.style,
         target: textTarget,
         onDeleteComplete: () => onSelectedTextTargetChange(null),
@@ -594,6 +606,7 @@ function CaseInsertTemplateTextBlock({
           controls={editorControls}
           inputMode="adapter"
           lines={textLayout.lines}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
@@ -676,8 +689,9 @@ function CaseInsertTemplateTextList({
     return null
   }
 
-  const editValue = getCaseInsertPreviewTextListEditValue(textList, {
-    sourceMode: isHtmlSourceEditing,
+  const editValue = getCaseInsertPreviewTextListEditValue(textList)
+  const sourceValue = getCaseInsertPreviewTextListEditValue(textList, {
+    sourceMode: true,
   })
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
@@ -782,6 +796,7 @@ function CaseInsertTemplateTextList({
           controls={editorControls}
           inputMode="adapter"
           lines={textListLayout.lines}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}

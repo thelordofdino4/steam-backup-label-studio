@@ -51,7 +51,10 @@ Implemented scripts:
 - `npm run dev`: starts Vite.
 - `npm run build`: runs `tsc -b && vite build`.
 - `npm run check:cycles`: runs `node scripts/check-cycles.mjs`.
+- `npm run capture:ribbon:browser`: runs `node scripts/capture-ribbon.mjs` as a browser diagnostic-only ribbon capture.
+- `npm run diagnose:text-editor:browser`: runs `node scripts/text-editor-smoke.mjs` as a browser diagnostic-only text-editor route.
 - `npm run lint`: runs `eslint .`.
+- `npm run smoke:text-editor`: runs `node scripts/native-tauri-smoke-required.mjs`, which documents the required native `npm run tauri dev` + Any App smoke route and exits nonzero so browser diagnostics cannot satisfy runtime acceptance.
 - `npm run test`: runs Node's built-in test runner with `--experimental-strip-types` over an explicit list of `.test.ts` files.
 - `npm run preview`: starts `vite preview`.
 - `npm run tauri`: invokes the Tauri CLI.
@@ -61,6 +64,14 @@ Validation model:
 - Tests are explicit file arguments in `package.json`; newly added tests must be added there to run under `npm run test`.
 - `scripts/check-cycles.mjs` scans relative imports in `src/**/*.ts(x)` and fails on import cycles.
 - No docs-only validation command is defined.
+- User-visible runtime smoke is not repository-owned automation. It is performed
+  by launching `npm run tauri dev` from the primary checkout and operating the
+  spawned native Tauri window with Any App / Computer Use when explicitly
+  authorized.
+- `scripts/capture-ribbon.mjs` owns deterministic browser-based contextual
+  ribbon diagnostic capture. It writes full-window PNGs, a JSON manifest, and
+  an HTML contact sheet outside the repo by default. It is intentionally
+  labeled browser capture and does not claim native Tauri visual verification.
 
 Risks:
 
@@ -515,8 +526,17 @@ Edit/interaction path:
   existing contextual registry and adapters through that host. The production
   ribbon renders native toolbar groups and must not reuse old
   `.inline-preview-text-control-grid` or portal-slot full-menu presentation.
-  Its controls scroll internally when necessary instead of wrapping downward and
-  moving the editable surface; the ribbon must not take ownership of text
+  Its controls preserve fixed row heights instead of wrapping downward and
+  moving the editable surface; horizontal sizing is handled by semantic-card
+  sizing and compact affordances, not by reintroducing the old floating-menu
+  layout behavior. Ribbon semantic boxes are packed column-first, and every box
+  in one column must match the widest box in that column. Column-first packing
+  fills available lower fixed-row slots before opening a new column; a later
+  one-row box must not move to the next column while usable space remains below
+  the previous one-row box. Utilities uses this same ownership split: Position
+  and Layout render as semantic cards in the ribbon, while their values and
+  handlers remain owned by the active case/disc adapter. The ribbon must not
+  take ownership of text
   rendering, layout, save/load, export, source resolution, or surface-specific
   geometry.
 - The ribbon host also owns the app-shell reservation that the toast container
@@ -536,17 +556,19 @@ Edit/interaction path:
   contextual target capabilities instead of maintaining a separate
   migrated-control list in the sidebar component. Straight text and curved
   copyright/legal text keep editing controls in contextual adapters, while the
-  sidebar retains setup/source/type controls.
+  sidebar retains setup/type controls. Metadata/default status and manual
+  override restoration are exposed by the contextual ribbon Utilities `Source`
+  card for selected metadata-backed text.
 - Cover/tray single text-block, text-list, and spine text sidebar demotion uses
   `src/caseInsert/sidebarControlPolicy.ts` to consult the same rectangular
   case-insert text target capabilities instead of duplicating registry policy
   in template or spine sidebar components; spine orientation remains a
   sidebar-owned structural control.
 - Curved disc text remains SVG/textPath based. Its contextual adapter exposes
-  curved-safe controls through the contextual infrastructure, but it is not
-  routed through a visible rectangular on-canvas editor. Future ribbon
-  presentation work should preserve the SVG/textPath renderer and change only
-  control presentation.
+  curved-safe controls and safe inline HTML source through the contextual
+  infrastructure, but it is not routed through a visible rectangular on-canvas
+  editor. Ribbon presentation must preserve the SVG/textPath renderer and
+  change only control presentation.
 - Case insert preview text selection/editing helpers support adapter-based
   preview editing; broad case insert runtime behavior was not independently
   manually verified during this inventory refresh.
@@ -768,11 +790,16 @@ Render path:
 - `PreviewViewport` wraps both disc and case insert design surfaces. It owns
   Ctrl+wheel zoom, middle-mouse pan, Space+left-drag pan, the right-edge
   zoom/pan/Fit rail, and the transformed stage. The compact rail reserves a
-  minimum 48px width for Fit calculations, then its controls may grow
-  continuously from 24px to 48px only into residual unused horizontal gutter.
-  The expanded rail width is not fed back into the same Fit calculation pass,
-  so rail growth cannot reduce the fit scale or move the fitted surface. Design
-  Check and Guide Legend controls remain outside the transformed stage. The
+  minimum 48px width for Fit calculations, normally collapses to a slim
+  right-edge hover/focus handle, and expands its full control panel only while
+  hovered or keyboard-focused. Its controls may grow continuously from 24px to
+  48px only into residual unused horizontal gutter. The expanded rail width is
+  not fed back into the same Fit calculation pass, so rail growth or collapse
+  cannot reduce the fit scale or move the fitted surface. The viewport spans
+  behind the preview header so zoomed/panned content can use empty header space,
+  but the fitted stage keeps the header-height top inset and the header/ribbon
+  controls remain above the transformed preview. Design Check and Guide Legend
+  controls remain outside the transformed stage. The
   stage owns the 4px surface guard, minimum right rail reservation, and bottom
   Design Check / Guide Legend rail reservation, while the preview surfaces fill
   the available stage instead of keeping legacy fixed-width caps.
@@ -782,12 +809,11 @@ Render path:
   paths, the final preview renderer remains visible as the glyph renderer
   during editing; the adapter supplies input, caret, selection, boundaries, and
   menu affordances.
-- Planned contextual text ribbon work moves only the control host into a
-  reserved top-right app-shell slot above the preview. Preview layers should
-  continue to supply caret, selection, outline, direct typing, edge-grab
-  movement, Move fallback, and Delete affordances; the ribbon should consume
-  the contextual control registry and adapter callbacks without becoming a
-  renderer or geometry owner.
+- The contextual text ribbon moves only the control host into a reserved
+  top-right app-shell slot above the preview. Preview layers continue to supply
+  caret, selection, outline, direct typing, edge-grab movement, Move fallback,
+  and Delete affordances; the ribbon consumes the contextual control registry
+  and adapter callbacks without becoming a renderer or geometry owner.
 - Inline text host lookup uses registry-defined target keys; case insert and
   disc adapters still own their values, geometry, commit behavior, and pointer
   movement.

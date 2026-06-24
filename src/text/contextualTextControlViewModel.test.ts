@@ -77,6 +77,7 @@ test('shared groups, labels, and alignment options preserve contextual UI wordin
     { id: 'text', label: 'Text Controls' },
     { id: 'art', label: 'Artistic Elements' },
     { id: 'utilities', label: 'Utilities' },
+    { id: 'html', label: 'HTML Source' },
   ])
   assert.deepEqual(CONTEXTUAL_TEXT_ALIGNMENT_OPTIONS, [
     { value: 'left', label: 'Left' },
@@ -86,6 +87,10 @@ test('shared groups, labels, and alignment options preserve contextual UI wordin
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.stylePreset, 'Style preset')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.layoutPreset, 'Layout preset')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.width, 'Wrap width')
+  assert.equal(
+    CONTEXTUAL_TEXT_CONTROL_LABELS.respectVisualElements,
+    'Respect visual elements',
+  )
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.bulletedList, 'Bulleted List')
   assert.equal(CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource, 'HTML source')
 })
@@ -119,6 +124,7 @@ test('target capabilities omit unsupported controls and expose curved SVG contro
     'lineSpacing',
     'arcSide',
     'arcDegrees',
+    'htmlSource',
     'resetStyle',
     'resetLayout',
     'delete',
@@ -153,7 +159,7 @@ test('target capabilities omit unsupported controls and expose curved SVG contro
       'curvedDiscCopyrightText',
       'htmlSource',
     ),
-    false,
+    true,
   )
   assert.equal(
     isContextualTextControlSupportedForTarget(

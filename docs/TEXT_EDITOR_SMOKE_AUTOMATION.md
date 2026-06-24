@@ -1,13 +1,39 @@
 # Text Editor Smoke Automation
 > Status: Conditional automation guide.
-> Purpose: Committed browser smoke route and limits for contextual text-editor automation.
-> Read when: Before browser automation against the text editor or smoke harness changes.
+> Purpose: Native Tauri text-editor smoke pilot plus diagnostic-only browser automation notes.
+> Read when: Before Any App/native smoke, browser diagnostics, or text-editor smoke/capture script updates.
 > Authoritative source: This document for automation process; TEXT_EDITOR_CONTRACT.md for behavior.
 > Last reviewed against commit: `f1dd4b9280b90d8b125e1ce1f404ad29c231c1f3`.
 
 
-This guide documents the committed browser smoke path for the contextual text
-editor. Read it before using browser automation against the preview editor.
+This guide documents the required native Tauri smoke route and the remaining
+browser-only diagnostic routes for contextual text-editor work. Read it before
+using Any App / Computer Use, browser automation, or smoke/capture scripts
+against the preview editor.
+
+## Runtime Source Of Truth
+
+User-visible runtime smoke targets the native Tauri application window opened
+from the primary checkout:
+
+```powershell
+cd "$env:USERPROFILE\steam-backup-label-studio"
+npm run tauri dev
+```
+
+The visible native Tauri window is the source of truth. A standalone Vite page,
+Brave, Chrome, Edge, Playwright against localhost, or any other browser window
+cannot approve or reject user-visible UI behavior.
+
+Important distinction:
+
+- `npm run tauri dev` may start Vite internally as a development dependency.
+- Smoke must interact with the native Tauri window, not the localhost page.
+- Identify the app by the process spawned from this checkout or by the exact
+  executable path, never only by the window title.
+- Explicitly reject browser processes whose tab title contains the app name.
+- If Any App / Computer Use cannot operate the native Tauri window, report the
+  native smoke as blocked instead of falling back to browser diagnostics.
 
 ## Command
 
@@ -17,7 +43,139 @@ Run:
 npm run smoke:text-editor
 ```
 
-The command runs `scripts/text-editor-smoke.mjs`.
+The command runs `scripts/native-tauri-smoke-required.mjs`. It intentionally
+prints the native-smoke instructions and exits nonzero because Any App /
+Computer Use is a Codex runtime capability, not a repository-owned npm
+automation API.
+
+Do not wire `npm run smoke:text-editor` to Playwright, Vite, Brave, Chrome, or
+Edge. Required runtime smoke is the Any App route against the Tauri window
+opened by `npm run tauri dev`.
+
+## Native Any App Pilot
+
+Use this pilot when the user has explicitly authorized Codex to perform native
+runtime smoke.
+
+1. Start the runtime from the primary checkout:
+
+   ```powershell
+   cd "$env:USERPROFILE\steam-backup-label-studio"
+   npm run tauri dev
+   ```
+
+2. Record:
+   - branch
+   - HEAD SHA
+   - command used
+   - native app PID
+   - exact executable path
+   - outer window dimensions
+   - measured client dimensions when available
+
+3. Identify the native app by one of these sources:
+   - the process tree spawned by the `npm run tauri dev` command from this repo
+   - the exact Tauri executable path under this checkout
+
+4. Reject window matches from:
+   - Brave
+   - Chrome
+   - Edge
+   - Firefox
+   - any other browser process
+
+   A browser tab title containing `Steam Backup Label Studio` is not evidence
+   that the native app was selected.
+
+5. Bring the Tauri window to the foreground and ensure no Codex, terminal,
+   browser, or other window covers the tested area before screenshots.
+
+6. Use Any App / Computer Use for interactions and screenshots. Use one native
+   session and at most one retry after a tool or bridge failure. If the retry
+   fails, stop and report `Tauri Any App blocked` with the exact bridge/tooling
+   error.
+
+7. Label results explicitly as one of:
+   - `Tauri Any App verified`
+   - `Tauri Any App blocked`
+   - `manual verification required`
+
+### Window Size Procedure
+
+Required client/content areas:
+
+- `900x650`
+- `1000x720`
+- `1920x1009`
+
+When exact client sizing cannot be automated reliably:
+
+- use the closest verified native size
+- record actual outer and client dimensions
+- do not claim that the requested size was tested
+- leave exact-size approval for manual verification
+
+Do not assume outer window dimensions equal client dimensions.
+
+### Screenshot Procedure
+
+- Capture the native Tauri window, not a browser frontend.
+- Prefer screenshots from the exact app PID/process path.
+- Never match a window solely by the title `Steam Backup Label Studio`.
+- Record whether screenshots are native Tauri Any App screenshots or manual
+  verification screenshots.
+
+### Verified Native Routes
+
+Keep this section current when a native pilot route succeeds.
+
+- Disc editor: Any App successfully targeted the exact Tauri process-backed
+  window
+  `process:C:\Users\John Paul Keller\steam-backup-label-studio\src-tauri\target\debug\app.exe`
+  and captured the native disc editor window. Browser windows were explicitly
+  excluded even when Brave exposed a matching tab title.
+- Case insert editor: still requires a current native Any App pilot.
+- Ribbon tab checks: native screenshot capture succeeded for the active disc
+  editor ribbon state; full tab-by-tab native checks still require manual or
+  future Any App pilot coverage.
+- Window-size checks: current Any App route recorded native outer screenshot
+  dimensions. Exact `window.innerWidth` / `window.innerHeight` client sizing was
+  not available through the native bridge and remains manual verification unless
+  a reliable route is documented later.
+
+### Known Any App Bridge Failures
+
+- If Any App captures Brave/Chrome/Edge because a browser tab title contains
+  the app name, refine the target to the exact Tauri process path and retry
+  once.
+- If Any App cannot determine the current browser URL after a browser window
+  was accidentally targeted, stop browser targeting and retry once against the
+  exact Tauri process path only.
+- If the retry still fails, report the native bridge blocker. Do not switch to
+  Vite/Playwright as a fallback.
+
+### Manual-Only Native Dialog Checks
+
+Native Save/Open/Export destination dialogs may remain manual if Any App cannot
+operate them reliably. Document them as manual checks. Do not substitute browser
+behavior for native dialogs.
+
+## Browser Diagnostics
+
+Browser diagnostics are still useful for DOM assertions, selector checks, and
+fast regression triage. They are not runtime acceptance.
+
+Run:
+
+```powershell
+npm run diagnose:text-editor:browser
+```
+
+The command runs `scripts/text-editor-smoke.mjs` and prints:
+
+```text
+Browser diagnostic only; not Tauri visual verification.
+```
 
 Default runtime behavior:
 
@@ -35,9 +193,97 @@ Default runtime behavior:
 Last verified source baseline when this guide was introduced:
 `563f0fde238bdbad100125ef61d3c9c607729460`.
 
-## Startup State
+## Diagnostic Ribbon Capture
 
-The smoke harness starts from a fresh web app load, not a native Tauri window.
+Run:
+
+```powershell
+npm run capture:ribbon:browser
+```
+
+The command runs `scripts/capture-ribbon.mjs`. It is browser diagnostic
+evidence only, not Tauri visual verification. It prints:
+
+```text
+Browser diagnostic only; not Tauri visual verification.
+```
+
+Default runtime behavior:
+
+- Uses Vite at `http://127.0.0.1:5178/`.
+- Reuses that URL if it already serves this app.
+- Starts a local Vite process only when the URL is not serving the app.
+- Stops only the Vite process it started.
+- Uses `RIBBON_CAPTURE_PORT` to override the port.
+- Uses `RIBBON_CAPTURE_BROWSER`, `TEXT_EDITOR_SMOKE_BROWSER`, or
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE` when set.
+- Otherwise prefers installed Chrome, then Edge, then Playwright Chromium.
+- Writes artifacts outside the repo by default:
+  `%TEMP%\steam-backup-label-studio-ribbon-capture`.
+- Uses `RIBBON_CAPTURE_ARTIFACT_DIR` to override the artifact folder.
+
+The capture route creates deterministic fixture states for:
+
+- Case insert cover title text.
+- Straight disc title text.
+- Curved disc copyright text.
+
+It captures every contextual ribbon tab for each target:
+
+- `Presets`
+- `Text`
+- `Artistic`
+- `Utilities`
+- `HTML`
+
+It captures the required client/content areas:
+
+- `900x650`
+- `1000x720`
+- `1920x1009`
+
+Each screenshot is a full browser viewport capture. The command intentionally
+does not use ribbon crops for acceptance evidence.
+
+Generated artifacts:
+
+- `ribbon-capture-browser-<surface>-<size>-<tab>.png`
+- `ribbon-capture-manifest.json`
+- `ribbon-capture-contact-sheet.html`
+
+Each manifest entry records:
+
+- Git branch and commit SHA.
+- Capture method, currently `browser` for repository-owned captures.
+- Requested and actual `window.innerWidth` / `window.innerHeight`.
+- `window.outerWidth` / `window.outerHeight` where Chromium exposes them.
+- `devicePixelRatio`.
+- Screenshot pixel dimensions.
+- Editor module, selected text target, and active ribbon tab.
+- Timestamp.
+- PNG validation results and DOM validation results.
+
+Self-validation fails the command when:
+
+- Requested and actual client dimensions differ.
+- The PNG cannot be decoded.
+- The screenshot is fully transparent, nearly all black, or visually empty.
+- A full-window capture does not match the actual client size.
+- The app root, contextual ribbon, preview viewport, or preview surface is
+  absent.
+- Visible ribbon controls overlap.
+- The ribbon, preview surface, or preview viewport lies outside the captured
+  client area.
+
+Browser captures must stay labeled as browser captures. They are useful for
+layout evidence and regression triage, but they are not native Tauri visual
+approval. Do not cite them as approval for PR #263 or any user-visible ribbon
+layout.
+
+## Diagnostic Browser Startup State
+
+The browser diagnostic harness starts from a fresh web app load, not a native
+Tauri window.
 It creates deterministic blank projects through the app's own home-screen entry
 points:
 
@@ -45,7 +291,7 @@ points:
 - `home-new-disc`
 
 It does not open project files, invoke native save/load dialogs, choose PNG
-destinations, or use Tauri APIs.
+destinations, use Tauri APIs, or establish runtime visual acceptance.
 
 ## Stable Selectors
 
@@ -94,6 +340,7 @@ Inline editor selectors:
 - `inline-text-tab-text`
 - `inline-text-tab-art`
 - `inline-text-tab-utilities`
+- `inline-text-tab-html`
 - `inline-text-menu`
 - `inline-text-move-handle`
 - `inline-text-input`
@@ -105,7 +352,6 @@ Inline editor selectors:
 - `inline-text-toggle-underline`
 - `inline-text-toggle-bulleted-list`
 - `inline-text-color-color`
-- `inline-text-checkbox-html-source`
 - `inline-text-number-x`
 - `inline-text-number-y`
 - `inline-text-number-font-size-pt`
@@ -137,9 +383,9 @@ Curved copyright is explicitly set to `curved` mode through the existing sidebar
 mode selector before opening its contextual shell and asserting SVG/textPath
 behavior.
 
-## Covered Workflows
+## Browser-Diagnostic Covered Workflows
 
-The committed smoke command verifies:
+The browser diagnostic command checks:
 
 - Shared preview viewport source/model coverage verifies Fit, zoom in/out,
   four-direction panning, compact adaptive right-edge rail placement, surface
@@ -147,8 +393,13 @@ The committed smoke command verifies:
   gutters, and transformed overlay/drag math. The approved rail has no visible
   100%/percentage control and grows continuously from 48px to 96px wide only
   when the larger size can be absorbed by residual unused gutter without
-  reducing fitted preview scale or moving the fitted design surface. Browser
-  smoke should reuse
+  reducing fitted preview scale or moving the fitted design surface. The rail
+  normally collapses to a slim right-edge hover/focus handle and opens the full
+  controls on hover or keyboard focus; this presentation must not resize, refit,
+  or move the preview stage. Zoomed/panned preview content may render behind
+  otherwise empty header/ribbon space, but Fit still reserves the header-height
+  top inset and header/ribbon controls stay above the transformed surface.
+  Browser smoke should reuse
   `preview-viewport`, `preview-viewport-stage`, and
   `preview-viewport-controls` if deterministic zoom/pan routes are added.
 - Cover inline editor opens from preview text.
@@ -160,16 +411,20 @@ The committed smoke command verifies:
   typing, a temporary empty draft, Enter commit, repeated preset popup opens,
   wheel stepping, Arrow Up repeat, and press-and-hold stepper repeat.
 - The shared contextual ribbon shell is screenshot-checked at representative
-  wide, compact, and narrow widths for ordinary text controls and the Utilities
-  HTML source panel. The check verifies tab reflow, visible actions, usable hit
-  targets, and no overlapping child controls.
+  wide, compact, and narrow widths for ordinary text controls and the dedicated
+  HTML source tab. The check verifies tab reflow, visible actions, usable hit
+  targets, and no overlapping child controls. The harness also saves
+  tab-by-tab browser diagnostic ribbon screenshots for case cover text,
+  straight disc text, and curved disc copyright text at the required client
+  areas `1000x720`, `900x650`, and `1920x1009`. These screenshots are
+  diagnostic-only and do not approve the native Tauri layout.
 - The ribbon DOM is expected to use native ribbon rows/groups/buttons. It must
   not mount old portal-slot full-menu content or
   `.inline-preview-text-control-grid` presentation inside the app-shell ribbon.
   The visible tab labels are checked as single-line `Presets`, `Text`,
-  `Artistic`, and `Utilities`.
-- The attached preview-header ribbon layout is checked at 1000x720,
-  900x650, and a larger desktop viewport. The check verifies the Live Preview
+  `Artistic`, `Utilities`, and `HTML`.
+- The attached preview-header ribbon layout is checked at client/content
+  areas of 1000x720, 900x650, and 1920x1009. The check verifies the Live Preview
   label column boundary, flush use of the preview app-shell top-right corner,
   compact reserved header height, preview fit, preview stability across
   activation, and active-ribbon toast offset below the measured header/ribbon
@@ -179,7 +434,8 @@ The committed smoke command verifies:
 - Bulleted List converts selected multiline text to canonical `<ul><li>`.
 - Enter inside a bullet creates the next bullet item.
 - Shift+Enter inside a bullet creates a soft break.
-- HTML source editing updates the cover preview live.
+- HTML source editing uses the dedicated `HTML` ribbon tab and updates the cover
+  preview live.
 - Done and reopen preserve canonical HTML source.
 - Cover case text activates the stable app-shell ribbon instead of the old
   floating full tabs/menu, and the ribbon remains stable when selected text
@@ -192,7 +448,7 @@ The committed smoke command verifies:
   without waiting for long-hold activation, keeps the handle in a grabbing
   state while active, and does not move text on a simple click with no movement.
 - The committed Move-handle drag route covers cover and straight disc text in
-  the browser smoke harness; tray and both spines are checked for ribbon
+  the browser diagnostic harness; tray and both spines are checked for ribbon
   activation and local preview affordance availability.
 - The committed selection-edge drag route covers cover, tray, left spine, right
   spine, straight disc, and curved copyright text. It verifies that edge/corner
@@ -218,7 +474,8 @@ The committed smoke command verifies:
   checks that tabs/menu are mounted in the ribbon, the Move handle remains a
   local preview affordance, and the ribbon remains stable while straight text
   moves or curved copyright point size/arc/inset/line-spacing controls change.
-- Straight disc HTML source updates the SVG renderer before Done.
+- Straight and curved disc HTML source use the dedicated `HTML` ribbon tab and
+  update the SVG renderer before Done.
 - Straight disc selected-range color uses the native color input `input` and
   `change` paths, updates only the highlighted range, and writes canonical
   `<span style="color:...">` HTML.
@@ -245,9 +502,10 @@ The committed smoke command verifies:
   editing and committing that point size. The route fails if the ribbon moves or
   resizes while text geometry changes.
 
-## Expected Outcomes
+## Browser-Diagnostic Expected Outcomes
 
-A passing run prints one `PASS` line for each workflow and exits with code `0`.
+A passing browser-diagnostic run prints one `PASS` line for each workflow and
+exits with code `0`. This does not establish native visual acceptance.
 
 A failing run:
 
@@ -255,7 +513,7 @@ A failing run:
 - Saves a screenshot for that failed workflow.
 - Exits with code `1`.
 
-Treat a failure as a triage signal. It may be:
+Treat a browser-diagnostic failure as a triage signal. It may be:
 
 - a product regression,
 - a selector contract change,
@@ -267,9 +525,9 @@ Do not report a smoke automation failure as an app regression until the failure
 has supporting evidence from the screenshot, DOM state, or a manual/runtime
 reproduction.
 
-## Limitations
+## Browser-Diagnostic Limitations
 
-The smoke command does not automate:
+The browser diagnostic command does not automate:
 
 - Tauri desktop windows.
 - Native Save/Open dialogs.
@@ -282,9 +540,9 @@ The smoke command does not automate:
 For menu anchoring, the committed harness covers both the contextual editor's
 Y control and a deterministic Move-handle drag route.
 
-## Manual Follow-Ups
+## Native Follow-Ups
 
-Use Tauri/manual runtime checks for:
+Use native Tauri Any App or manual runtime checks for:
 
 - Move-handle and selection-edge dragging on cover, tray, spines, straight
   disc, and curved disc text in the Tauri desktop window.
@@ -293,14 +551,15 @@ Use Tauri/manual runtime checks for:
 - Desktop window focus, native shortcuts, and platform-specific behavior.
 - Any bug that only appears in `npm run tauri dev`.
 
-## Updating This Pilot
+## Updating Browser Diagnostics
 
-When a new browser workflow succeeds and is useful beyond one investigation:
+When a new browser diagnostic workflow succeeds and is useful beyond one
+investigation:
 
 1. Add or reuse stable `data-smoke-id` selectors.
 2. Encode the workflow in `scripts/text-editor-smoke.mjs`.
 3. Document the entry path, fixture state, assertions, and limitations here.
-4. Run `npm run smoke:text-editor`.
+4. Run `npm run diagnose:text-editor:browser`.
 5. Include the result in the final validation report.
 
 For ad-hoc browser automation that is not yet encoded, use one browser session

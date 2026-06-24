@@ -3,6 +3,7 @@ export type ContextualTextControlGroupId =
   | 'text'
   | 'art'
   | 'utilities'
+  | 'html'
 
 export type ContextualTextControlId =
   | 'stylePreset'
@@ -95,6 +96,7 @@ export const CONTEXTUAL_TEXT_CONTROL_GROUPS = [
   { id: 'text', label: 'Text Controls' },
   { id: 'art', label: 'Artistic Elements' },
   { id: 'utilities', label: 'Utilities' },
+  { id: 'html', label: 'HTML Source' },
 ] as const satisfies readonly {
   id: ContextualTextControlGroupId
   label: string
@@ -125,7 +127,7 @@ export const CONTEXTUAL_TEXT_CONTROL_LABELS = {
   mode: 'Mode',
   resetLayout: 'Reset layout',
   resetStyle: 'Reset style',
-  respectVisualElements: 'Respect visuals',
+  respectVisualElements: 'Respect visual elements',
   size: 'Font size (pt)',
   stylePreset: 'Style preset',
   underline: 'Underline',
@@ -261,7 +263,7 @@ export const CONTEXTUAL_TEXT_CONTROL_CAPABILITIES = {
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.fontFamily,
   },
   htmlSource: {
-    group: 'utilities',
+    group: 'html',
     hasContextualEquivalent: true,
     id: 'htmlSource',
     label: CONTEXTUAL_TEXT_CONTROL_LABELS.htmlSource,
@@ -383,6 +385,7 @@ export const CONTEXTUAL_TEXT_TARGET_CAPABILITIES = {
       'lineSpacing',
       'arcSide',
       'arcDegrees',
+      'htmlSource',
       'resetStyle',
       'resetLayout',
       'delete',
@@ -402,7 +405,6 @@ export const CONTEXTUAL_TEXT_TARGET_CAPABILITIES = {
       'borderRadius',
       'respectVisualElements',
       'width',
-      'htmlSource',
       'mode',
     ],
   },

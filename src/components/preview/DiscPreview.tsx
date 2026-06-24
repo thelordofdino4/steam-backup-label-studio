@@ -25,7 +25,7 @@ import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
 import { usePreviewGuideLegendPlacement } from './usePreviewGuideLegendPlacement'
 import type { SteamBannerLockupLayout } from '../../project/projectTypes'
 import { DISC_EDITOR_PREVIEW_LAYER_ORDER, type DiscEditorPreviewLayerId } from '../../editor/layerOrder'
-import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
+import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources, type MetadataBoundDiscTextKey } from '../../project/metadataDiscText'
 import type { LogoAssetKey } from '../../project/projectLogoAssets'
 import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
@@ -87,6 +87,7 @@ export type DiscPreviewProps = {
       key: DiscTextKey,
       contentMode: TextContentMode,
     ) => void
+    onUseMetadataTextValue: (key: MetadataBoundDiscTextKey) => void
     onTextEditComplete: (key: DiscTextKey) => void
     onTextStyleChange: (
       key: DiscTextKey,
@@ -438,6 +439,7 @@ export function DiscPreview({
         onDiscTextEnabledChange={discText.onTextEnabledChange}
         onDiscTextValueChange={discText.onTextValueChange}
         onDiscTextContentModeChange={discText.onTextContentModeChange}
+        onUseMetadataDiscTextValue={discText.onUseMetadataTextValue}
         onDiscTextEditComplete={discText.onTextEditComplete}
         onDiscTextStyleChange={discText.onTextStyleChange}
         onDiscTextRichTextCommand={discText.onTextRichTextCommand}

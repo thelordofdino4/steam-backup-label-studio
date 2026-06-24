@@ -34,16 +34,118 @@ export type ContextualTextRibbonLayoutModel = {
   tabColumns: number
 }
 
-export const CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT = 64
-export const CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT = 96
+export const CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT = 158
+export const CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT = 158
 export const CONTEXTUAL_TEXT_RIBBON_RESERVED_HEIGHT =
   CONTEXTUAL_TEXT_RIBBON_WIDE_RESERVED_HEIGHT
 export const CONTEXTUAL_TEXT_RIBBON_TOAST_GAP = 10
 export const CONTEXTUAL_TEXT_RIBBON_INACTIVE_TOAST_TOP = 18
 
+export type ContextualTextRibbonWidthProfile = {
+  fit?: 'content'
+  grows?: boolean
+  max: number
+  min: number
+  preferred: number
+  rowSpan?: 1 | 2
+}
+
+export type ContextualTextRibbonColumnWidthInput = {
+  availableWidth: number
+  columns: ContextualTextRibbonWidthProfile[]
+  gap?: number
+}
+
+export type ContextualTextRibbonPackItem<T = unknown> = {
+  id: string
+  payload: T
+  profile: ContextualTextRibbonWidthProfile
+}
+
+export type ContextualTextRibbonPackedItem<T = unknown> =
+  ContextualTextRibbonPackItem<T> & {
+    rowStart: number
+    rowSpan: 1 | 2
+  }
+
+export type ContextualTextRibbonPackedColumn<T = unknown> = {
+  items: ContextualTextRibbonPackedItem<T>[]
+  profile: ContextualTextRibbonWidthProfile
+}
+
+export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
+  string,
+  ContextualTextRibbonWidthProfile
+> = {
+  'style': { min: 282, preferred: 302, max: 332, fit: 'content' },
+  'layout-preset': { min: 282, preferred: 302, max: 332, fit: 'content' },
+  'font': { min: 342, preferred: 360, max: 408, fit: 'content' },
+  'paragraph': { min: 176, preferred: 214, max: 280, fit: 'content' },
+  'text-color': { min: 108, preferred: 108, max: 108 },
+  'contrast': { min: 108, preferred: 108, max: 108 },
+  'background': {
+    min: 180,
+    preferred: 292,
+    max: 360,
+    grows: true,
+    rowSpan: 2,
+  },
+  'border': {
+    min: 186,
+    preferred: 264,
+    max: 328,
+    grows: true,
+    rowSpan: 2,
+  },
+  'source': { min: 1, preferred: 960, max: 4096, grows: true },
+  'position': {
+    min: 230,
+    preferred: 292,
+    max: 360,
+    grows: true,
+    rowSpan: 2,
+  },
+  'layout': {
+    min: 424,
+    preferred: 568,
+    max: 684,
+    grows: true,
+    rowSpan: 2,
+  },
+  'layout-curved': {
+    min: 494,
+    preferred: 494,
+    max: 494,
+    rowSpan: 2,
+    fit: 'content',
+  },
+  'layout-curved-compact': {
+    min: 334,
+    preferred: 334,
+    max: 334,
+    rowSpan: 2,
+    fit: 'content',
+  },
+  'layout-compact': {
+    min: 356,
+    preferred: 356,
+    max: 356,
+    rowSpan: 2,
+    fit: 'content',
+  },
+  'metadata-source': {
+    min: 184,
+    preferred: 220,
+    max: 260,
+    rowSpan: 2,
+    fit: 'content',
+  },
+}
+
 export const CONTEXTUAL_TEXT_RIBBON_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 export const CONTEXTUAL_TEXT_RIBBON_NATIVE_TAB_LABELS = {
   art: 'Artistic',
+  html: 'HTML',
   presets: 'Presets',
   text: 'Text',
   utilities: 'Utilities',
@@ -58,7 +160,7 @@ export function getContextualTextRibbonTabDisplayLabel(
 export function getContextualTextRibbonLayoutMode(
   containerWidth: number,
 ): ContextualTextRibbonMode {
-  if (containerWidth >= 720) return 'wide'
+  if (containerWidth >= 1400) return 'wide'
   if (containerWidth >= 520) return 'medium'
   return 'narrow'
 }
@@ -71,6 +173,167 @@ export function getContextualTextRibbonReservedHeight(
     : CONTEXTUAL_TEXT_RIBBON_COMPACT_RESERVED_HEIGHT
 }
 
+export function getContextualTextRibbonActiveWidth(
+  availableWidth: number,
+  profile: ContextualTextRibbonWidthProfile,
+) {
+  const finiteAvailable = Number.isFinite(availableWidth)
+    ? Math.max(0, availableWidth)
+    : 0
+
+  void profile
+
+  return finiteAvailable
+}
+
+export function getContextualTextRibbonColumnWidths({
+  availableWidth,
+  columns,
+  gap = 0,
+}: ContextualTextRibbonColumnWidthInput) {
+  if (columns.length === 0) return []
+
+  const finiteGap = Number.isFinite(gap) ? Math.max(0, gap) : 0
+  const availableForColumns = Math.max(
+    0,
+    (Number.isFinite(availableWidth) ? availableWidth : 0)
+      - finiteGap * Math.max(0, columns.length - 1),
+  )
+  const minTotal = columns.reduce((sum, column) => sum + column.min, 0)
+  const preferredTotal = columns.reduce(
+    (sum, column) => sum + column.preferred,
+    0,
+  )
+  const maxTotal = columns.reduce((sum, column) => sum + column.max, 0)
+
+  if (availableForColumns <= minTotal || preferredTotal <= minTotal) {
+    return columns.map((column) => column.min)
+  }
+
+  if (availableForColumns <= preferredTotal || maxTotal <= preferredTotal) {
+    const ratio = (availableForColumns - minTotal) /
+      (preferredTotal - minTotal)
+
+    return columns.map((column) =>
+      column.min + (column.preferred - column.min) * ratio)
+  }
+
+  const growingColumns = columns.filter((column) => column.grows)
+  const growableTotal = growingColumns.reduce(
+    (sum, column) => sum + Math.max(0, column.max - column.preferred),
+    0,
+  )
+
+  if (growingColumns.length === 0 || growableTotal <= 0) {
+    return columns.map((column) => column.preferred)
+  }
+
+  const growableMaxTotal = preferredTotal + growableTotal
+  if (availableForColumns >= growableMaxTotal) {
+    return columns.map((column) =>
+      column.grows ? column.max : column.preferred)
+  }
+
+  const ratio = Math.min(
+    1,
+    (availableForColumns - preferredTotal) / growableTotal,
+  )
+
+  return columns.map((column) =>
+    column.grows
+      ? column.preferred + (column.max - column.preferred) * ratio
+      : column.preferred)
+}
+
+function maxRibbonWidthProfile(
+  first: ContextualTextRibbonWidthProfile,
+  second: ContextualTextRibbonWidthProfile,
+): ContextualTextRibbonWidthProfile {
+  return {
+    grows: Boolean(first.grows || second.grows),
+    max: Math.max(first.max, second.max),
+    min: Math.max(first.min, second.min),
+    preferred: Math.max(first.preferred, second.preferred),
+  }
+}
+
+function getContextualTextRibbonPackRowSpan(
+  profile: ContextualTextRibbonWidthProfile,
+  rowCount: number,
+): 1 | 2 {
+  if (rowCount <= 1) return 1
+
+  return profile.rowSpan === 2 ? 2 : 1
+}
+
+export function packContextualTextRibbonColumns<T>({
+  items,
+  rowCount,
+}: {
+  items: ContextualTextRibbonPackItem<T>[]
+  rowCount: number
+}): ContextualTextRibbonPackedColumn<T>[] {
+  const normalizedRowCount = Math.max(1, Math.floor(rowCount))
+  const remaining = items.slice()
+  const columns: ContextualTextRibbonPackedColumn<T>[] = []
+
+  while (remaining.length > 0) {
+    let nextRowStart = 1
+    let columnProfile: ContextualTextRibbonWidthProfile | null = null
+    const columnItems: ContextualTextRibbonPackedItem<T>[] = []
+
+    while (nextRowStart <= normalizedRowCount && remaining.length > 0) {
+      const availableRows = normalizedRowCount - nextRowStart + 1
+      const itemIndex = remaining.findIndex((item) =>
+        getContextualTextRibbonPackRowSpan(
+          item.profile,
+          normalizedRowCount,
+        ) <= availableRows)
+
+      if (itemIndex < 0) break
+
+      const [item] = remaining.splice(itemIndex, 1)
+      const rowSpan = getContextualTextRibbonPackRowSpan(
+        item.profile,
+        normalizedRowCount,
+      )
+      const packedItem = {
+        ...item,
+        rowStart: nextRowStart,
+        rowSpan,
+      }
+
+      columnItems.push(packedItem)
+      columnProfile = columnProfile
+        ? maxRibbonWidthProfile(columnProfile, item.profile)
+        : item.profile
+      nextRowStart += rowSpan
+    }
+
+    if (!columnProfile) {
+      const [item] = remaining.splice(0, 1)
+      const rowSpan = getContextualTextRibbonPackRowSpan(
+        item.profile,
+        normalizedRowCount,
+      )
+
+      columnItems.push({
+        ...item,
+        rowStart: 1,
+        rowSpan,
+      })
+      columnProfile = item.profile
+    }
+
+    columns.push({
+      items: columnItems,
+      profile: columnProfile,
+    })
+  }
+
+  return columns
+}
+
 export function getContextualTextRibbonLayoutModel(
   containerWidth: number,
 ): ContextualTextRibbonLayoutModel {
@@ -81,31 +344,31 @@ export function getContextualTextRibbonLayoutModel(
     return {
       controlColumns: 4,
       controlsMayUseThirdRow: false,
-      controlRows: 1,
+      controlRows: 2,
       mode,
       reservedHeight,
-      tabColumns: 4,
+      tabColumns: 5,
     }
   }
 
   if (mode === 'medium') {
     return {
       controlColumns: 2,
-      controlsMayUseThirdRow: true,
+      controlsMayUseThirdRow: false,
       controlRows: 2,
       mode,
       reservedHeight,
-      tabColumns: 4,
+      tabColumns: 5,
     }
   }
 
   return {
     controlColumns: 1,
-    controlsMayUseThirdRow: true,
+    controlsMayUseThirdRow: false,
     controlRows: 2,
     mode,
     reservedHeight,
-    tabColumns: 4,
+    tabColumns: 5,
   }
 }
 
@@ -306,11 +569,17 @@ export function getContextualTextRibbonControlDescriptors(
     kind: 'select',
     label: controls.utilities.mode.label,
   })
-  addDescriptor(descriptors, controls?.utilities?.htmlSource && {
+  addDescriptor(descriptors, controls?.utilities?.metadataSource && {
     group: 'utilities',
+    id: 'metadataSource',
+    kind: 'action',
+    label: controls.utilities.metadataSource.label,
+  })
+  addDescriptor(descriptors, controls?.html?.source && {
+    group: 'html',
     id: 'htmlSource',
     kind: 'checkbox',
-    label: controls.utilities.htmlSource.label,
+    label: controls.html.source.label,
   })
   addDescriptor(descriptors, controls?.utilities?.resetLayout && {
     group: 'utilities',

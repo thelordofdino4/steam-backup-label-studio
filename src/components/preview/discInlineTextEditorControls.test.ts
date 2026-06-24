@@ -16,6 +16,7 @@ import {
 import {
   createCurvedDiscTextEditorControls,
   createDiscInlineTextEditorControls,
+  type CurvedDiscTextEditorControlParams,
   type DiscInlineTextEditorControlParams,
 } from './discInlineTextEditorControls.ts'
 
@@ -82,6 +83,66 @@ function createControls(
   return { calls, controls, layout, style }
 }
 
+function createCurvedControls(
+  overrides: Partial<CurvedDiscTextEditorControlParams> = {},
+) {
+  const calls: string[] = []
+  const key: DiscTextKey = overrides.key ?? 'copyright'
+  const layout = overrides.layout ?? {
+    ...createDefaultDiscTextLayout('top').copyright,
+    arcDegrees: 180,
+    arcSide: 'bottom' as const,
+    fontSizePt: 9,
+    mode: 'curved' as const,
+    scale: 1,
+    x: 0,
+    y: 4,
+  }
+  const style = overrides.style ?? createDefaultDiscTextStyle(key)
+  const noop = () => undefined
+
+  const controls = createCurvedDiscTextEditorControls({
+    isHtmlSourceEnabled: false,
+    key,
+    layout,
+    onApplyDiscTextStylePreset: (_key, presetId) => {
+      calls.push(`style-preset:${presetId}`)
+    },
+    onDiscTextAlignmentChange: (_key, alignment) => {
+      calls.push(`align:${alignment}`)
+    },
+    onDiscTextArcSideChange: (_key, arcSide) => {
+      calls.push(`arc-side:${arcSide}`)
+    },
+    onDiscTextContentModeChange: (_key, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
+    },
+    onDiscTextEnabledChange: (_key, enabled) => {
+      calls.push(`enabled:${enabled}`)
+    },
+    onDiscTextLayoutChange: (_key, field, value) => {
+      calls.push(`layout:${field}:${value}`)
+    },
+    onDiscTextRichTextCommand: noop,
+    onDiscTextStyleChange: (_key, field, value) => {
+      calls.push(`style:${field}:${String(value)}`)
+    },
+    onResetDiscTextLayout: () => {
+      calls.push('reset-layout')
+    },
+    onResetDiscTextStyle: () => {
+      calls.push('reset-style')
+    },
+    onSelectedDiscTextKeyChange: (selectedKey) => {
+      calls.push(`selected:${String(selectedKey)}`)
+    },
+    style,
+    ...overrides,
+  })
+
+  return { calls, controls, layout, style }
+}
+
 test('disc contextual controls use shared preset options and labels', () => {
   const { controls, layout, style } = createControls()
 
@@ -119,16 +180,129 @@ test('disc contextual controls use shared preset options and labels', () => {
   assert.equal(controls.art?.borderEnabled?.checked, true)
   assert.equal(controls.art?.borderColor?.value, '#eeeeee')
   assert.equal(controls.art?.borderRadius?.value, 0.75)
-  assert.equal(controls.utilities?.respectVisualElements?.label, 'Respect visuals')
+  assert.equal(
+    controls.utilities?.respectVisualElements?.label,
+    'Respect visual elements',
+  )
   assert.equal(controls.utilities?.width?.label, 'Wrap width')
   assert.equal(controls.utilities?.x?.label, 'X')
   assert.equal(controls.utilities?.y?.label, 'Y')
-  assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')
+  assert.equal(controls.html?.source?.label, 'HTML source')
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'mode'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'arcSide'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'arcDegrees'), false)
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Game title')
   assert.equal(style.backgroundEnabled, true)
+})
+
+test('straight disc border controls stay available without background fill', () => {
+  const { controls, style } = createControls({
+    style: {
+      ...createDefaultDiscTextStyle('title'),
+      backgroundEnabled: false,
+      borderEnabled: true,
+      borderColor: '#eeeeee',
+      borderRadius: 0.75,
+    },
+  })
+
+  assert.equal(controls.art?.backgroundEnabled?.checked, false)
+  assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
+  assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
+  assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
+  assert.equal(controls.art?.borderEnabled?.label, 'Border')
+  assert.equal(controls.art?.borderEnabled?.checked, true)
+  assert.equal(controls.art?.borderEnabled?.disabled, undefined)
+  assert.equal(controls.art?.borderColor?.value, '#eeeeee')
+  assert.equal(controls.art?.borderRadius?.value, 0.75)
+})
+
+test('disc contextual controls expose metadata source status when provided', () => {
+  const { controls } = createControls({
+    metadataSource: {
+      label: 'Game metadata',
+      status: 'manual',
+      statusLabel: 'Manual override',
+      actionLabel: 'Use Game metadata value',
+      onAction: () => undefined,
+    },
+  })
+
+  assert.equal(controls.utilities?.metadataSource?.label, 'Game metadata')
+  assert.equal(controls.utilities?.metadataSource?.status, 'manual')
+  assert.equal(
+    controls.utilities?.metadataSource?.actionLabel,
+    'Use Game metadata value',
+  )
+})
+
+test('curved disc artistic controls omit unsupported background and border groups', () => {
+  const key: DiscTextKey = 'copyright'
+  const layout = {
+    ...createDefaultDiscTextLayout('top').copyright,
+    arcDegrees: 180,
+    arcSide: 'bottom' as const,
+    fontSizePt: 9,
+    mode: 'curved' as const,
+    scale: 1,
+    x: 0,
+    y: 4,
+  }
+  const style = {
+    ...createDefaultDiscTextStyle(key),
+    backgroundEnabled: true,
+    borderEnabled: true,
+  }
+  const noop = () => undefined
+  const controls = createCurvedDiscTextEditorControls({
+    isHtmlSourceEnabled: false,
+    key,
+    layout,
+    onApplyDiscTextStylePreset: noop,
+    onDiscTextAlignmentChange: noop,
+    onDiscTextArcSideChange: noop,
+    onDiscTextEnabledChange: noop,
+    onDiscTextLayoutChange: noop,
+    onDiscTextStyleChange: noop,
+    onDiscTextContentModeChange: noop,
+    onDiscTextRichTextCommand: noop,
+    onResetDiscTextLayout: noop,
+    onResetDiscTextStyle: noop,
+    onSelectedDiscTextKeyChange: noop,
+    style,
+  })
+
+  assert.equal(controls.art?.color?.label, 'Color')
+  assert.equal(controls.art?.contrast?.label, 'Contrast')
+  assert.equal(controls.art?.backgroundEnabled, undefined)
+  assert.equal(controls.art?.backgroundColor, undefined)
+  assert.equal(controls.art?.backgroundOpacity, undefined)
+  assert.equal(controls.art?.backgroundPadding, undefined)
+  assert.equal(controls.art?.borderEnabled, undefined)
+  assert.equal(controls.art?.borderColor, undefined)
+  assert.equal(controls.art?.borderRadius, undefined)
+})
+
+test('curved arc side control is only exposed when the Steam banner is hidden', () => {
+  const hiddenBanner = createCurvedControls({
+    canChangeArcSide: true,
+  })
+  const visibleBanner = createCurvedControls({
+    canChangeArcSide: false,
+  })
+
+  assert.equal(hiddenBanner.controls.utilities?.arcSide?.label, 'Arc side')
+  hiddenBanner.controls.utilities?.arcSide?.onChange('top')
+  assert.deepEqual(hiddenBanner.calls, ['arc-side:top'])
+
+  assert.equal(visibleBanner.controls.utilities?.lineSpacing?.label, 'Line spacing')
+  assert.equal(visibleBanner.controls.utilities?.arcDegrees?.label, 'Arc')
+  assert.equal(
+    Object.hasOwn(visibleBanner.controls.utilities ?? {}, 'arcSide'),
+    false,
+  )
+  assert.deepEqual(visibleBanner.calls, [])
 })
 
 test('disc bulleted list control routes selection command through adapter', () => {
@@ -238,7 +412,7 @@ test('disc custom option is inert and target-specific handlers stay in adapter',
   controls.text?.underline?.onChange(true)
   controls.art?.backgroundPadding?.onChange(2)
   controls.utilities?.respectVisualElements?.onChange(true)
-  controls.utilities?.htmlSource?.onChange(true)
+  controls.html?.source?.onChange(true)
   controls.utilities?.width?.onChange(70)
   controls.utilities?.resetLayout?.()
   controls.deleteAction?.onDelete()
@@ -249,8 +423,6 @@ test('disc custom option is inert and target-specific handlers stay in adapter',
     'layout:x:0',
     'layout:y:19.5',
     'layout:width:62',
-    'layout:scale:1.05',
-    `layout:fontSizePt:${getDefaultDiscTextPointSize('title', 1.05)}`,
     'align:center',
     'align:right',
     'style:bold:true',
@@ -318,6 +490,7 @@ test('curved disc controls expose whole-object SVG textPath controls without men
   }
   const style = createDefaultDiscTextStyle(key)
   const controls = createCurvedDiscTextEditorControls({
+    isHtmlSourceEnabled: false,
     key,
     layout,
     onApplyDiscTextStylePreset: (_key, presetId) => {
@@ -337,6 +510,9 @@ test('curved disc controls expose whole-object SVG textPath controls without men
     },
     onDiscTextStyleChange: (_key, field, value) => {
       calls.push(`style:${field}:${String(value)}`)
+    },
+    onDiscTextContentModeChange: (_key, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
     },
     getDiscTextRichTextCommandState: (_key, command, selection) => {
       routedCalls.push(`state:${command}:${selection.start}-${selection.end}`)
@@ -411,6 +587,7 @@ test('curved disc controls expose whole-object SVG textPath controls without men
   assert.equal(controls.utilities?.arcSide?.label, 'Arc side')
   assert.equal(controls.utilities?.arcDegrees?.label, 'Arc')
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
+  assert.equal(controls.html?.source?.label, 'HTML source')
   assert.equal(Object.hasOwn(controls.text ?? {}, 'bulletedList'), false)
 
   controls.text?.fontFamily?.onChange('verdana', { start: 0, end: 9 })
@@ -428,6 +605,7 @@ test('curved disc controls expose whole-object SVG textPath controls without men
   controls.utilities?.y?.onChange(6)
   controls.utilities?.arcSide?.onChange('top')
   controls.utilities?.arcDegrees?.onChange(220)
+  controls.html?.source?.onChange(true)
   controls.utilities?.resetLayout?.()
   controls.presets?.onReset?.()
   controls.deleteAction?.onDelete()
@@ -442,6 +620,7 @@ test('curved disc controls expose whole-object SVG textPath controls without men
     'layout:y:6',
     'arc-side:top',
     'layout:arcDegrees:220',
+    'content-mode:html',
     'reset-layout',
     'reset-style',
     'enabled:false',

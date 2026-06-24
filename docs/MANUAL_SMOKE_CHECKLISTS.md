@@ -8,9 +8,12 @@
 
 Last refreshed: 2026-06-16.
 
-These checklists are for human verification after visual/editor changes. They
-do not replace `npm run check:cycles`, lint, tests, or build, and agents should
-not run `npm run tauri dev` unless the user explicitly asks.
+These checklists are for native runtime verification after visual/editor
+changes. They do not replace `npm run check:cycles`, lint, tests, or build, and
+agents should not run `npm run tauri dev` unless the user explicitly asks.
+When explicitly authorized, Codex may use Any App / Computer Use against the
+native Tauri window opened by `npm run tauri dev`; browser diagnostics do not
+count as manual/runtime approval.
 
 Use the checklists that match the changed surface. Record the commit SHA, dirty
 state, command set, tester, date, and any skipped sections in run notes.
@@ -26,7 +29,7 @@ state, command set, tester, date, and any skipped sections in run notes.
 2. Check for stale Vite, Tauri, or other dev-server processes tied to this
    repository before judging runtime behavior.
 3. Run the required non-interactive validation for the change scope.
-4. Launch the app manually only for the runtime pass:
+4. Launch the app for the native runtime pass:
 
 ```powershell
 npm run tauri dev
@@ -169,8 +172,9 @@ text, and curved disc text.
   behavior.
 - Default metadata text can be deleted while editing and does not repopulate
   until the user blurs/exits while it is still empty.
-- Utilities exposes `HTML source` for cover, tray, left spine, right spine, and
-  straight disc text; it does not expose a separate Markdown mode.
+- The dedicated `HTML` ribbon tab exposes HTML source for cover, tray, left
+  spine, right spine, straight disc, and curved disc copyright/legal text; it
+  does not expose a separate Markdown mode.
 - HTML source mode shows canonical sanitized HTML for the current text, and
   leaving source mode updates the final visible renderer.
 - Inline HTML color spans render in preview, survive save/load, and appear in

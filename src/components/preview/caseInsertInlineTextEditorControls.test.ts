@@ -15,8 +15,10 @@ import type {
 } from '../../project/projectTypes.ts'
 import {
   createCaseInsertInlineTextEditorControls,
+  createCaseInsertInlineTextMetadataSourceControl,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls.ts'
+import { createDefaultProjectMetadata } from '../../project/projectMetadata.ts'
 
 test('case insert contextual controls expose migrated text block properties', () => {
   const calls: string[] = []
@@ -145,8 +147,9 @@ test('case insert contextual controls expose migrated text block properties', ()
   assert.equal(controls.utilities?.x?.value, layout.x)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')
-  assert.equal(controls.utilities?.htmlSource?.checked, false)
+  assert.equal(controls.html?.source?.label, 'HTML source')
+  assert.equal(controls.html?.source?.checked, false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdown'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Title')
@@ -158,7 +161,7 @@ test('case insert contextual controls expose migrated text block properties', ()
   controls.text?.size?.onChange(24)
   controls.art?.backgroundPadding?.onChange(1.8)
   controls.utilities?.width?.onChange(64)
-  controls.utilities?.htmlSource?.onChange(true)
+  controls.html?.source?.onChange(true)
   controls.utilities?.resetLayout?.()
   controls.deleteAction?.onDelete()
 
@@ -178,6 +181,121 @@ test('case insert contextual controls expose migrated text block properties', ()
     'enabled:false',
     'delete-complete',
   ])
+})
+
+test('case insert border group remains identifiable while background is off', () => {
+  const target: CaseInsertPreviewTextTarget = {
+    scope: 'templateTextBlock',
+    paneId: 'cover',
+    textBlockId: 'cover-title-text',
+  }
+  const layout: ProjectCaseInsertLayout = {
+    scale: 1,
+    fontSizePt: 18,
+    width: 70,
+    x: 50,
+    y: 50,
+    rotation: 0,
+  }
+  const style = {
+    ...createDefaultCaseInsertTextStyle('title'),
+    backgroundEnabled: false,
+    borderEnabled: true,
+  }
+  const noop = () => undefined
+  const controls = createCaseInsertInlineTextEditorControls({
+    align: 'center',
+    avoidVisualElements: true,
+    handlers: {
+      onAlignChange: noop,
+      onApplyLayoutPreset: noop,
+      onApplyStylePreset: noop,
+      onAvoidVisualElementsChange: noop,
+      onContentModeChange: noop,
+      onEnabledChange: noop,
+      onLayoutChange: noop,
+      onResetLayout: noop,
+      onResetStyle: noop,
+      onStyleChange: noop,
+    },
+    label: 'Title',
+    layout,
+    layoutPresets: [],
+    onDeleteComplete: noop,
+    onResetLayout: noop,
+    style,
+    target,
+  })
+
+  assert.equal(controls.art?.backgroundEnabled?.checked, false)
+  assert.equal(controls.art?.borderEnabled?.label, 'Border')
+  assert.equal(controls.art?.borderEnabled?.checked, true)
+  assert.equal(controls.art?.borderEnabled?.disabled, true)
+  assert.equal(
+    controls.art?.borderEnabled?.disabledReason,
+    'Enable Background before editing the border.',
+  )
+  assert.equal(controls.art?.backgroundColor?.value, style.backgroundColor)
+  assert.equal(controls.art?.backgroundOpacity?.value, style.backgroundOpacity)
+  assert.equal(controls.art?.backgroundPadding?.value, style.backgroundPadding)
+  assert.equal(controls.art?.borderColor?.value, style.borderColor)
+  assert.equal(controls.art?.borderRadius?.value, style.borderRadius)
+})
+
+test('case insert metadata source control reflects manual, metadata, and unavailable states', () => {
+  const projectMetadata = {
+    ...createDefaultProjectMetadata(),
+    title: 'Portal 2',
+  }
+  const textBlock = {
+    id: 'cover-title-text',
+    label: 'Title',
+    enabled: true,
+    value: 'Manual title',
+    source: 'manual' as const,
+    align: 'center' as const,
+    avoidVisualElements: false,
+    layout: {
+      scale: 1,
+      fontSizePt: 24,
+      width: 80,
+      x: 50,
+      y: 30,
+      rotation: 0,
+    },
+    style: createDefaultCaseInsertTextStyle('title'),
+  }
+  let restored = false
+
+  const manual = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock,
+    projectMetadata,
+    onUseMetadataValue: () => {
+      restored = true
+    },
+  })
+
+  assert.equal(manual?.label, 'Game metadata')
+  assert.equal(manual?.status, 'manual')
+  assert.equal(manual?.statusLabel, 'Manual override')
+  assert.equal(manual?.actionLabel, 'Use Game metadata value')
+  manual?.onAction?.()
+  assert.equal(restored, true)
+
+  const metadata = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock: { ...textBlock, source: 'metadata', value: '' },
+    projectMetadata,
+  })
+  assert.equal(metadata?.status, 'metadata')
+  assert.equal(metadata?.statusLabel, 'Using Game metadata/default')
+  assert.equal(metadata?.onAction, undefined)
+
+  const unavailable = createCaseInsertInlineTextMetadataSourceControl({
+    textBlock: { ...textBlock, source: 'metadata', value: '' },
+    projectMetadata: { ...projectMetadata, title: '' },
+  })
+  assert.equal(unavailable?.status, 'unavailable')
+  assert.equal(unavailable?.statusLabel, 'Metadata unavailable')
 })
 
 test('case insert bulleted list control routes selection command through handlers', () => {
@@ -420,8 +538,9 @@ test('case insert contextual controls expose migrated text list properties', () 
   assert.equal(controls.utilities?.x?.value, layout.x)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')
-  assert.equal(controls.utilities?.htmlSource?.checked, true)
+  assert.equal(controls.html?.source?.label, 'HTML source')
+  assert.equal(controls.html?.source?.checked, true)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdown'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Feature bullets')
@@ -430,7 +549,7 @@ test('case insert contextual controls expose migrated text list properties', () 
   controls.text?.italic?.onChange(false)
   controls.text?.size?.onChange(14)
   controls.utilities?.respectVisualElements?.onChange(true)
-  controls.utilities?.htmlSource?.onChange(false)
+  controls.html?.source?.onChange(false)
   controls.utilities?.x?.onChange(44)
   controls.utilities?.resetLayout?.()
   controls.deleteAction?.onDelete()
@@ -589,8 +708,9 @@ test('case insert contextual controls expose migrated spine text properties', ()
   assert.equal(controls.utilities?.y?.step, 0.1)
   assert.equal(controls.utilities?.y?.value, layout.y)
   assert.equal(typeof controls.utilities?.resetLayout, 'function')
-  assert.equal(controls.utilities?.htmlSource?.label, 'HTML source')
-  assert.equal(controls.utilities?.htmlSource?.checked, false)
+  assert.equal(controls.html?.source?.label, 'HTML source')
+  assert.equal(controls.html?.source?.checked, false)
+  assert.equal(Object.hasOwn(controls.utilities ?? {}, 'htmlSource'), false)
   assert.equal(Object.hasOwn(controls.utilities ?? {}, 'markdown'), false)
   assert.equal(controls.deleteAction?.label, 'Delete')
   assert.equal(controls.deleteAction?.ariaLabel, 'Delete Right spine note')
@@ -600,7 +720,7 @@ test('case insert contextual controls expose migrated spine text properties', ()
   controls.text?.size?.onChange(11.5)
   controls.art?.borderRadius?.onChange(1.1)
   controls.utilities?.respectVisualElements?.onChange(true)
-  controls.utilities?.htmlSource?.onChange(true)
+  controls.html?.source?.onChange(true)
   controls.utilities?.x?.onChange(-4.5)
   controls.utilities?.y?.onChange(84)
   controls.utilities?.resetLayout?.()

@@ -48,8 +48,17 @@ import {
   type TextContentMode,
 } from '../../text/htmlText'
 import {
+  getProjectMetadataDiscTextValue,
+  isMetadataBoundDiscTextKey,
+  type DiscTextValueSources,
+  type MetadataBoundDiscTextKey,
+} from '../../project/metadataDiscText'
+import type { ProjectMetadata } from '../../project/projectTypes'
+import {
   InlinePreviewTextEditor,
   INLINE_PREVIEW_TEXT_HOST_CLASS,
+  type InlinePreviewTextEditorControls,
+  type InlinePreviewTextEditorDoneCommit,
   type InlinePreviewTextEditorGeometryAdapter,
 } from './InlinePreviewTextEditor'
 import {
@@ -65,8 +74,10 @@ import type { DiscTemplate } from '../../types/template'
 export type DiscInlineTextEditorLayerProps = {
   discTextSettings: DiscTextSettings
   discTextValues: DiscTextValues
+  discTextValueSources: DiscTextValueSources
   discTextHtmlSources: DiscTextHtmlSources
   discTextStyles: DiscTextStyleSettings
+  projectMetadata: ProjectMetadata
   discTextLayout: DiscTextLayoutSettings
   title: string
   steamLogoPlacement: SteamLogoPlacement
@@ -85,7 +96,11 @@ export type DiscInlineTextEditorLayerProps = {
     key: DiscTextKey,
     contentMode: TextContentMode,
   ) => void
-  onDiscTextEditComplete: (key: DiscTextKey) => void
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
+  onDiscTextEditComplete: (
+    key: DiscTextKey,
+    commit?: InlinePreviewTextEditorDoneCommit,
+  ) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
     field: DiscTextStyleField,
@@ -150,6 +165,46 @@ export type DiscInlineTextEditorLayerProps = {
   ) => void
   onMoveHandlePointerMove: (event: PointerEvent<Element>) => void
   onMoveHandlePointerUp: (event: PointerEvent<Element>) => void
+}
+
+function createDiscTextMetadataSourceControl({
+  key,
+  onUseMetadataDiscTextValue,
+  projectMetadata,
+  sources,
+}: {
+  key: DiscTextKey
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
+  projectMetadata: ProjectMetadata
+  sources: DiscTextValueSources
+}): NonNullable<InlinePreviewTextEditorControls['utilities']>['metadataSource'] {
+  if (!isMetadataBoundDiscTextKey(key)) {
+    return undefined
+  }
+
+  const metadataValue = getProjectMetadataDiscTextValue(key, projectMetadata)
+
+  if (!metadataValue) {
+    return {
+      label: 'Game metadata',
+      status: 'unavailable',
+      statusLabel: 'Metadata unavailable',
+    }
+  }
+
+  const isManualOverride = sources[key] === 'manual'
+
+  return {
+    actionLabel: isManualOverride ? 'Use Game metadata value' : undefined,
+    label: 'Game metadata',
+    onAction: isManualOverride
+      ? () => onUseMetadataDiscTextValue(key)
+      : undefined,
+    status: isManualOverride ? 'manual' : 'metadata',
+    statusLabel: isManualOverride
+      ? 'Manual override'
+      : 'Using Game metadata/default',
+  }
 }
 
 type DiscInlineEditorBounds = {
@@ -233,8 +288,10 @@ function getBoundsHostStyle(bounds: DiscInlineEditorBounds) {
 export function DiscInlineTextEditorLayer({
   discTextSettings,
   discTextValues,
+  discTextValueSources,
   discTextHtmlSources,
   discTextStyles,
+  projectMetadata,
   discTextLayout,
   title,
   steamLogoPlacement,
@@ -246,6 +303,7 @@ export function DiscInlineTextEditorLayer({
   onDiscTextEnabledChange,
   onDiscTextValueChange,
   onDiscTextContentModeChange,
+  onUseMetadataDiscTextValue,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
@@ -283,6 +341,13 @@ export function DiscInlineTextEditorLayer({
         const renderedText = htmlDocument?.plainText ?? text
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
+          const isHtmlSourceEditing = htmlSourceEditorKey === key
+          const htmlSourceValue = getDiscTextHtmlSource(
+            discTextHtmlSources,
+            key,
+            text,
+          )
+          const editValue = renderedText
           const curvedPaintBoxInput = {
             key,
             layout,
@@ -312,6 +377,14 @@ export function DiscInlineTextEditorLayer({
             key,
             layout,
             style: discTextStyles[key],
+            metadataSource: createDiscTextMetadataSourceControl({
+              key,
+              onUseMetadataDiscTextValue,
+              projectMetadata,
+              sources: discTextValueSources,
+            }),
+            isHtmlSourceEnabled: isHtmlSourceEditing,
+            canChangeArcSide: steamLogoPlacement === 'none',
             onSelectedDiscTextKeyChange,
             onDiscTextEnabledChange,
             onDiscTextStyleChange,
@@ -320,6 +393,15 @@ export function DiscInlineTextEditorLayer({
             onDiscTextLayoutChange,
             onDiscTextAlignmentChange,
             onDiscTextArcSideChange,
+            onDiscTextContentModeChange: (nextKey, contentMode) => {
+              if (contentMode === 'html') {
+                onDiscTextContentModeChange(nextKey, contentMode)
+                setHtmlSourceEditorKey(nextKey)
+                return
+              }
+
+              setHtmlSourceEditorKey(null)
+            },
             onResetDiscTextLayout,
             onDiscTextRichTextCommand,
             getDiscTextRichTextCommandState,
@@ -425,6 +507,7 @@ export function DiscInlineTextEditorLayer({
                 'disc-inline-text-host--curved',
                 INLINE_PREVIEW_TEXT_HOST_CLASS,
                 'is-editing',
+                isHtmlSourceEditing ? 'is-html-source' : '',
                 renderedText.trim().length === 0 ? 'is-empty' : '',
               ].filter(Boolean).join(' ')}
               data-smoke-id={`disc-inline-text-${key}`}
@@ -443,21 +526,25 @@ export function DiscInlineTextEditorLayer({
             >
               <InlinePreviewTextEditor
                 ariaLabel={`Edit ${getDiscTextLabel(key)}`}
-                caretValue={renderedText}
+                caretValue={editValue}
                 controls={controls}
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
+                sourceValue={htmlSourceValue}
+                sourceMode={isHtmlSourceEditing}
                 targetKey={targetKey}
-                value={renderedText}
-                onValueChange={(value) => onDiscTextValueChange(key, value)}
+                value={editValue}
+                onValueChange={(value, options) =>
+                  onDiscTextValueChange(key, value, options)}
                 onMoveHandlePointerDown={(event) =>
                   onMoveHandlePointerDown(event, key)}
                 onMoveHandlePointerMove={onMoveHandlePointerMove}
                 onMoveHandlePointerUp={onMoveHandlePointerUp}
-                onDone={() => {
-                  onDiscTextEditComplete(key)
+                onDone={(commit) => {
+                  onDiscTextEditComplete(key, commit)
                   onSelectedDiscTextKeyChange(null)
+                  setHtmlSourceEditorKey(null)
                 }}
               />
             </div>
@@ -465,13 +552,14 @@ export function DiscInlineTextEditorLayer({
         }
 
         const isHtmlSourceEditing = htmlSourceEditorKey === key
-        const editValue = isHtmlSourceEditing
-          ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
-          : hasHtmlSource
-            ? parseHtmlText(
-                getDiscTextHtmlSource(discTextHtmlSources, key, text),
-              ).plainText
-            : text
+        const htmlSourceValue = getDiscTextHtmlSource(
+          discTextHtmlSources,
+          key,
+          text,
+        )
+        const editValue = hasHtmlSource
+          ? parseHtmlText(htmlSourceValue).plainText
+          : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
         )
@@ -481,7 +569,11 @@ export function DiscInlineTextEditorLayer({
           layout,
           measureText,
           discTextStyles,
-          { avoidanceRegions: textAvoidanceRegions, template: selectedDiscTemplate },
+          {
+            avoidanceRegions: textAvoidanceRegions,
+            richText: htmlDocument ?? undefined,
+            template: selectedDiscTemplate,
+          },
         )
         const bounds = getDiscInlineEditorBounds(
           layout,
@@ -500,6 +592,12 @@ export function DiscInlineTextEditorLayer({
           key,
           layout,
           style: discTextStyles[key],
+          metadataSource: createDiscTextMetadataSourceControl({
+            key,
+            onUseMetadataDiscTextValue,
+            projectMetadata,
+            sources: discTextValueSources,
+          }),
           onSelectedDiscTextKeyChange,
           onDiscTextEnabledChange,
           onDiscTextStyleChange,
@@ -554,6 +652,7 @@ export function DiscInlineTextEditorLayer({
               geometryLines={geometryLines}
               inputMode="adapter"
               lines={renderLayout.lines}
+              sourceValue={htmlSourceValue}
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}
@@ -573,8 +672,8 @@ export function DiscInlineTextEditorLayer({
               onMoveHandlePointerUp={onMoveHandlePointerUp}
               onRichTextKeyboardCommand={(command, selection) =>
                 onDiscTextRichTextKeyboardCommand(key, command, selection)}
-              onDone={() => {
-                onDiscTextEditComplete(key)
+              onDone={(commit) => {
+                onDiscTextEditComplete(key, commit)
                 onSelectedDiscTextKeyChange(null)
                 setHtmlSourceEditorKey(null)
               }}

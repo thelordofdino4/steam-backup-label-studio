@@ -94,12 +94,14 @@ function createEditorProps({
   controls,
   geometryLines,
   sourceMode = false,
+  sourceValue,
   targetKey,
 }: {
   ariaLabel: string
   controls: InlinePreviewTextEditorControls
   geometryLines?: InlinePreviewTextEditorProps['geometryLines']
   sourceMode?: boolean
+  sourceValue?: string
   targetKey: string
 }): InlinePreviewTextEditorProps {
   return {
@@ -109,6 +111,7 @@ function createEditorProps({
     geometryLines,
     inputMode: 'adapter',
     lines: [{ text: 'hello hello' }],
+    sourceValue,
     sourceMode,
     targetKey,
     value: 'hello hello',
@@ -322,6 +325,23 @@ test('supported contextual text adapters satisfy the shared contract', () => {
   }
 })
 
+test('HTML source mode keeps raw source separate from rendered preview text', () => {
+  const fixture = createStraightDiscContractFixture()
+  const session = assertInlinePreviewTextEditorAdapterContract({
+    ...fixture,
+    props: {
+      ...fixture.props,
+      sourceMode: true,
+      sourceValue: '<p>hello hello</p>',
+      value: 'hello hello',
+    },
+  })
+
+  assert.equal(session.sourceMode, true)
+  assert.equal(session.value, 'hello hello')
+  assert.equal(session.sourceValue, '<p>hello hello</p>')
+})
+
 test('adapter target keys and editable registry identities remain stable', () => {
   const coverTarget: CaseInsertPreviewTextTarget = {
     scope: 'templateTextBlock',
@@ -414,9 +434,9 @@ test('delete and HTML source controls match adapter capabilities', () => {
   }
   const controlsWithoutHtmlSource: InlinePreviewTextEditorControls = {
     ...fixture.props.controls,
-    utilities: {
-      ...fixture.props.controls?.utilities,
-      htmlSource: undefined,
+    html: {
+      ...fixture.props.controls?.html,
+      source: undefined,
     },
   }
 
@@ -566,6 +586,7 @@ test('curved disc text remains outside the rectangular adapter contract', () => 
       'lineSpacing',
       'arcSide',
       'arcDegrees',
+      'htmlSource',
       'resetStyle',
       'resetLayout',
       'delete',

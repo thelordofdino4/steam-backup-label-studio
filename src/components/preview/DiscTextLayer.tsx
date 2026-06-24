@@ -1,4 +1,4 @@
-import { useMemo, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, type PointerEvent } from 'react'
 import {
   DISC_TEXT_KEYS,
   type DiscTextAlignment,
@@ -27,7 +27,7 @@ import {
 } from '../../discText/svgLayer'
 import type { TextContentMode } from '../../text/htmlText'
 import type { DiscTextAvoidanceRegion } from '../../discText/avoidance'
-import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources } from '../../project/metadataDiscText'
+import { resolveMetadataBoundDiscTextValues, type DiscTextValueSources, type MetadataBoundDiscTextKey } from '../../project/metadataDiscText'
 import type { ProjectDiscNumberArtwork, ProjectMetadata } from '../../project/projectTypes'
 import type { DiscTemplate } from '../../types/template'
 import { createSvgDataUrl } from '../../utils/svg'
@@ -38,6 +38,7 @@ import {
 } from '../../editor/previewElementOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 import { DiscInlineTextEditorLayer } from './DiscInlineTextEditorLayer'
+import type { InlinePreviewTextEditorDoneCommit } from './InlinePreviewTextEditor'
 
 export type DiscTextLayerProps = {
   discTextSettings: DiscTextSettings
@@ -62,7 +63,11 @@ export type DiscTextLayerProps = {
     options?: { sourceMode?: boolean },
   ) => void
   onDiscTextContentModeChange: (key: DiscTextKey, contentMode: TextContentMode) => void
-  onDiscTextEditComplete: (key: DiscTextKey) => void
+  onUseMetadataDiscTextValue: (key: MetadataBoundDiscTextKey) => void
+  onDiscTextEditComplete: (
+    key: DiscTextKey,
+    commit?: InlinePreviewTextEditorDoneCommit,
+  ) => void
   onDiscTextStyleChange: (
     key: DiscTextKey,
     field: DiscTextStyleField,
@@ -161,6 +166,7 @@ export function DiscTextLayer({
   onDiscTextEnabledChange,
   onDiscTextValueChange,
   onDiscTextContentModeChange,
+  onUseMetadataDiscTextValue,
   onDiscTextEditComplete,
   onDiscTextStyleChange,
   onDiscTextRichTextCommand,
@@ -178,6 +184,7 @@ export function DiscTextLayer({
   handleDiscTextPointerMove,
   handleDiscTextPointerUp,
 }: DiscTextLayerProps) {
+  const hitTargetRef = useRef<HTMLDivElement | null>(null)
   const safeZoneRadiusPercent =
     (selectedDiscTemplate.safeDiameterMm / selectedDiscTemplate.outerDiameterMm) * 50
   const metadataBoundDiscTextValues = useMemo(
@@ -286,6 +293,28 @@ export function DiscTextLayer({
     onSelectedDiscTextKeyChange(key)
   }
 
+  useEffect(() => {
+    const hitTarget = hitTargetRef.current
+    if (!hitTarget) {
+      return undefined
+    }
+
+    function handleNativePointerDown(event: globalThis.PointerEvent) {
+      const key = getDiscTextKeyFromEventTarget(event.target)
+      if (!key) return
+
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectedDiscTextKeyChange(key)
+    }
+
+    hitTarget.addEventListener('pointerdown', handleNativePointerDown)
+
+    return () => {
+      hitTarget.removeEventListener('pointerdown', handleNativePointerDown)
+    }
+  }, [onSelectedDiscTextKeyChange])
+
   return (
     <div className="disc-text-layer" aria-label="Disc text elements">
       {discNumberBadgeRenderModel ? (
@@ -329,6 +358,7 @@ export function DiscTextLayer({
         draggable={false}
       />
       <div
+        ref={hitTargetRef}
         className="disc-text-layer-hit-target"
         data-smoke-id="disc-text-layer-hit-target"
         aria-hidden="true"
@@ -341,8 +371,10 @@ export function DiscTextLayer({
       <DiscInlineTextEditorLayer
         discTextSettings={effectiveSettings}
         discTextValues={metadataBoundDiscTextValues}
+        discTextValueSources={discTextValueSources}
         discTextHtmlSources={discTextHtmlSources}
         discTextStyles={discTextStyles}
+        projectMetadata={projectMetadata}
         discTextLayout={discTextLayout}
         steamLogoPlacement={steamLogoPlacement}
         title={manualGameTitle}
@@ -354,6 +386,7 @@ export function DiscTextLayer({
         onDiscTextEnabledChange={onDiscTextEnabledChange}
         onDiscTextValueChange={onDiscTextValueChange}
         onDiscTextContentModeChange={onDiscTextContentModeChange}
+        onUseMetadataDiscTextValue={onUseMetadataDiscTextValue}
         onDiscTextEditComplete={onDiscTextEditComplete}
         onDiscTextStyleChange={onDiscTextStyleChange}
         onDiscTextRichTextCommand={onDiscTextRichTextCommand}

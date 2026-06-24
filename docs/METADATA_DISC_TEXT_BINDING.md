@@ -43,7 +43,7 @@ Metadata-backed text shows the Game metadata/default as input placeholder text u
 
 When a user types a non-empty value into a metadata-backed text input, that element switches to a manual override. Clearing the manual override returns that element to the Game metadata/default value.
 
-The Text panel exposes a "Use Game metadata value" action for manual overrides where appropriate.
+The contextual ribbon Utilities `Source` card exposes a "Use Game metadata value" action for selected manual overrides where appropriate.
 
 ## Preview/Export Parity
 

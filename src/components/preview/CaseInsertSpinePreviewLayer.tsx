@@ -90,6 +90,7 @@ import {
   INLINE_PREVIEW_TEXT_LINE_INDEX_ATTRIBUTE,
 } from './InlinePreviewTextEditor'
 import {
+  createCaseInsertInlineTextMetadataSourceControl,
   createCaseInsertInlineTextEditorControls,
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
@@ -356,7 +357,11 @@ function CaseInsertSpineTextBlock({
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
-    { sourceMode: isHtmlSourceEditing },
+  )
+  const sourceValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+    { sourceMode: true },
   )
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
@@ -422,6 +427,13 @@ function CaseInsertSpineTextBlock({
         yMax: layoutRanges.y.max,
         yMin: layoutRanges.y.min,
         yStep: 0.1,
+        metadataSource: createCaseInsertInlineTextMetadataSourceControl({
+          textBlock,
+          projectMetadata: brandingSources.projectMetadata,
+          onUseMetadataValue: previewTextControlHandlers.onUseMetadataValue
+            ? () => previewTextControlHandlers.onUseMetadataValue?.(textTarget)
+            : undefined,
+        }),
         onDeleteComplete: () => onSelectedTextTargetChange(null),
         onHtmlSourceActiveChange: (active) =>
           setHtmlSourceTargetKey(active ? targetKey : null),
@@ -524,6 +536,7 @@ function CaseInsertSpineTextBlock({
           inputMode="adapter"
           lines={titleLayout.lines}
           rotationDegrees={titleLayout.rotationDegrees}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
