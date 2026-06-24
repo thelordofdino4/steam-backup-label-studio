@@ -1,13 +1,17 @@
 import { useMemo, useState } from 'react'
 import {
+  CUSTOM_OUTER_DIAMETER_MAX_MM,
   buildCustomDiscTemplate,
-  getGuideInsetPercent,
   normalizeCustomDiscTemplate,
 } from '../disc/geometry'
 import { validateDiscTemplateGeometryGuardrail, type DiscTemplateGeometryGuardrailState } from '../layout/discTemplateGeometryGuardrail'
-import { discTemplates } from '../templates/discTemplates'
+import { discTemplates, discTemplateOptions } from '../templates/discTemplates'
 import type { DiscTemplate } from '../types/template'
 import type { SelectedDiscTemplateId } from '../project/projectTypes'
+import {
+  createDiscTemplateGuideOverlay,
+  getDiscTemplateExportPreviewFallbackSize,
+} from '../templates/discTemplateStateModel'
 
 type CustomDimensionKey =
   | 'outerDiameterMm'
@@ -43,20 +47,11 @@ export function useDiscTemplateState({
       : discTemplates[selectedDiscTemplateId]
   const isCustomDiscTemplate = selectedDiscTemplateId === 'custom'
   const guideOverlay = useMemo(
-    () => ({
-      innerPrintableBoundaryPercent:
-        (selectedDiscTemplate.innerHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100,
-      physicalCenterHolePercent:
-        (selectedDiscTemplate.physicalCenterHoleDiameterMm / selectedDiscTemplate.outerDiameterMm) * 100,
-      printableInsetPercent: getGuideInsetPercent(
-        selectedDiscTemplate.outerDiameterMm,
-        selectedDiscTemplate.printableDiameterMm,
-      ),
-      safeInsetPercent: getGuideInsetPercent(
-        selectedDiscTemplate.outerDiameterMm,
-        selectedDiscTemplate.safeDiameterMm,
-      ),
-    }),
+    () => createDiscTemplateGuideOverlay(selectedDiscTemplate),
+    [selectedDiscTemplate],
+  )
+  const discExportPreviewFallbackSize = useMemo(
+    () => getDiscTemplateExportPreviewFallbackSize(selectedDiscTemplate),
     [selectedDiscTemplate],
   )
 
@@ -123,8 +118,12 @@ export function useDiscTemplateState({
     selectedDiscTemplateId,
     customDiscTemplate,
     selectedDiscTemplate,
+    defaultDiscTemplate: discTemplates.standardPrintableDisc,
+    discTemplateOptions,
+    customOuterDiameterMaxMm: CUSTOM_OUTER_DIAMETER_MAX_MM,
     isCustomDiscTemplate,
     guideOverlay,
+    discExportPreviewFallbackSize,
     resetDiscTemplateState,
     restoreDiscTemplateState,
     handleTemplateChange,

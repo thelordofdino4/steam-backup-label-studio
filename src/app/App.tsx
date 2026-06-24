@@ -17,18 +17,13 @@ import {
   createSteamGameImport,
 } from '../steam/steamGameImport'
 import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
-import { discTemplates, discTemplateOptions } from '../templates/discTemplates'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
 import {
   getCaseInsertTemplatePaneConfig,
   type CaseInsertTemplatePaneId,
 } from '../caseInsert/templateSurfaces'
 import type { DiscTemplate } from '../types/template'
-import {
-  CUSTOM_OUTER_DIAMETER_MAX_MM,
-  EXPORT_DPI,
-  mmToPixels,
-} from '../disc/geometry'
+import { EXPORT_DPI } from '../disc/geometry'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from '../export/exportGuides'
 import '../styles/App.css'
@@ -174,8 +169,12 @@ function App() {
     selectedDiscTemplateId,
     customDiscTemplate,
     selectedDiscTemplate,
+    defaultDiscTemplate,
+    discTemplateOptions,
+    customOuterDiameterMaxMm,
     isCustomDiscTemplate,
     guideOverlay,
+    discExportPreviewFallbackSize,
     resetDiscTemplateState,
     restoreDiscTemplateState,
     handleTemplateChange,
@@ -1211,14 +1210,14 @@ function App() {
     setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
-    resetProjectLogoAssets(discTemplates.standardPrintableDisc)
-    resetProjectTitleArtwork(discTemplates.standardPrintableDisc, 'top')
+    resetProjectLogoAssets(defaultDiscTemplate)
+    resetProjectTitleArtwork(defaultDiscTemplate, 'top')
     resetProjectAdditionalArtwork()
-    resetProjectRatingBadge(discTemplates.standardPrintableDisc)
-    resetProjectMediaMark(discTemplates.standardPrintableDisc)
+    resetProjectRatingBadge(defaultDiscTemplate)
+    resetProjectMediaMark(defaultDiscTemplate)
     resetProjectPlatformMarks()
     resetProjectTechnicalMarks()
-    resetDiscTextState(discTemplates.standardPrintableDisc, 'top')
+    resetDiscTextState(defaultDiscTemplate, 'top')
     setSteamSearchResults([])
     setSelectedSteamGame(null)
     setIsSteamSearchLoading(false)
@@ -1242,9 +1241,9 @@ function App() {
     setProjectJewelCase(
       createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
     )
-    resetProjectLogoAssets(discTemplates.standardPrintableDisc)
-    resetProjectRatingBadge(discTemplates.standardPrintableDisc)
-    resetProjectMediaMark(discTemplates.standardPrintableDisc)
+    resetProjectLogoAssets(defaultDiscTemplate)
+    resetProjectRatingBadge(defaultDiscTemplate)
+    resetProjectMediaMark(defaultDiscTemplate)
     resetProjectPlatformMarks()
     resetProjectTechnicalMarks()
     resetProjectAdditionalArtwork()
@@ -1898,7 +1897,7 @@ function App() {
 
       const previewSize =
         discPreviewRef.current?.getBoundingClientRect().width ??
-        mmToPixels(selectedDiscTemplate.outerDiameterMm)
+        discExportPreviewFallbackSize
       const result = await exportDiscLabelPngBytes({
         selectedDiscTemplate,
         backgroundImageUrl: effectiveBackgroundImageUrl,
@@ -2097,7 +2096,7 @@ function App() {
           isCustomDiscTemplate={isCustomDiscTemplate}
           customDiscTemplate={customDiscTemplate}
           discTemplateOptions={discTemplateOptions}
-          customOuterDiameterMaxMm={CUSTOM_OUTER_DIAMETER_MAX_MM}
+          customOuterDiameterMaxMm={customOuterDiameterMaxMm}
           handleTemplateChange={handleTemplateChange}
           handleCustomDimensionChange={handleCustomDimensionChange}
         />

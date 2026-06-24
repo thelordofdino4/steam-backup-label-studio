@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { EXPORT_DPI, MM_PER_INCH, buildCustomDiscTemplate } from '../disc/geometry.ts'
+import {
+  createDiscTemplateGuideOverlay,
+  getDiscTemplateExportPreviewFallbackSize,
+} from './discTemplateStateModel.ts'
 import { discTemplates } from './discTemplates.ts'
 import {
   getTemplatePhysicalSize,
@@ -9,6 +14,13 @@ import {
   validateRectangularPrintTemplate,
 } from './templateModel.ts'
 import type { RectangularPrintTemplate } from '../types/template.ts'
+
+function assertApproximatelyEqual(actual: number, expected: number) {
+  assert.ok(
+    Math.abs(actual - expected) < 0.000001,
+    `Expected ${actual} to approximately equal ${expected}`,
+  )
+}
 
 function createRectangularFixture(): RectangularPrintTemplate {
   return {
@@ -103,6 +115,32 @@ test('shared physical size helper preserves disc dimensions', () => {
     widthMm: 120,
     heightMm: 120,
   })
+})
+
+test('disc template guide overlay derives printable guide geometry from the selected template', () => {
+  const template = buildCustomDiscTemplate(discTemplates.standardPrintableDisc, {
+    outerDiameterMm: 100,
+    physicalCenterHoleDiameterMm: 20,
+    innerHoleDiameterMm: 30,
+    printableDiameterMm: 90,
+    safeDiameterMm: 80,
+  })
+
+  const overlay = createDiscTemplateGuideOverlay(template)
+
+  assertApproximatelyEqual(overlay.innerPrintableBoundaryPercent, 30)
+  assertApproximatelyEqual(overlay.physicalCenterHolePercent, 20)
+  assertApproximatelyEqual(overlay.printableInsetPercent, 5)
+  assertApproximatelyEqual(overlay.safeInsetPercent, 10)
+})
+
+test('disc template export preview fallback follows print geometry at export DPI', () => {
+  const template = discTemplates.standardPrintableDisc
+
+  assert.equal(
+    getDiscTemplateExportPreviewFallbackSize(template),
+    Math.round((template.outerDiameterMm / MM_PER_INCH) * EXPORT_DPI),
+  )
 })
 
 test('rectangular template model expresses front, back, spine, trim, bleed, and safe regions', () => {
