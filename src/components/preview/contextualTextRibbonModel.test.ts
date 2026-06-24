@@ -1516,6 +1516,8 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*grid-column:\s*2/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*display:\s*flex/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s+\.inline-preview-text-delete-button\s*\{[\s\S]*flex:\s*0 0 auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s+\.inline-preview-text-done-button\s*\{[\s\S]*flex:\s*1 1 auto/)
   assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-label-column/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)

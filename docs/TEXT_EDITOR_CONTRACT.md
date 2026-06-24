@@ -278,7 +278,8 @@ tested, and the remaining divergences are recorded.
   Done. In the ribbon action column, Delete uses the approved white trash icon
   on a red button with an accessible label, is placed above Done, and is spaced
   away from Done to reduce accidental activation. Done remains below it with
-  the same action-column width.
+  the same action-column width and fills the remaining action-column height so
+  the safe completion target is larger than the destructive action.
 - HTML source is the supported source-editing mode where a text module can
   safely parse sanitized markup into the shared rich-text run model and render
   the parsed result through its final visible renderer.

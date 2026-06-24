@@ -1826,9 +1826,19 @@
   gap: 8px;
   min-width: 0;
   min-height: 0;
+  height: 100%;
   padding-left: 5px;
   border-left: 1px solid rgba(148, 163, 184, 0.22);
   background: rgba(24, 27, 34, 0.96);
+}
+
+.contextual-text-ribbon-actions .inline-preview-text-delete-button {
+  flex: 0 0 auto;
+}
+
+.contextual-text-ribbon-actions .inline-preview-text-done-button {
+  flex: 1 1 auto;
+  min-height: 40px;
 }
 
 @container (max-width: 719px) {
