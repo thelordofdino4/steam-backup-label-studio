@@ -333,15 +333,12 @@ test('contextual text ribbon equalizes stacked semantic boxes by column', () => 
   })
 
   assert.equal(columnWidths.length, 3)
-  assert.equal(
-    columnWidths[0],
-    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
-  )
+  assert.equal(columnWidths[0], CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min)
   assert.ok(columnWidths[1] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.preferred)
   assert.ok(columnWidths[2] > CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.border.preferred)
 })
 
-test('contextual text ribbon keeps compact paint columns from absorbing flexible space', () => {
+test('contextual text ribbon keeps compact paint columns target-parity sized', () => {
   const compactOnlyWidths = getContextualTextRibbonColumnWidths({
     availableWidth: 900,
     gap: 4,
@@ -355,8 +352,18 @@ test('contextual text ribbon keeps compact paint columns from absorbing flexible
   })
 
   assert.deepEqual(compactOnlyWidths, [
-    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
   ])
+  assert.deepEqual([
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].min,
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].preferred,
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].max,
+  ], [108, 108, 108])
+  assert.deepEqual([
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.min,
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.preferred,
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.max,
+  ], [108, 108, 108])
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['text-color'].grows, undefined)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.contrast.grows, undefined)
   assert.equal(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.background.grows, true)

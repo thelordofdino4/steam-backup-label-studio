@@ -152,6 +152,13 @@ tested, and the remaining divergences are recorded.
   hardcoded pixel offset. The right-side command column is the extensible owner
   of paragraph actions; future list, indent, or related paragraph commands
   should join that column instead of requiring new one-off spacing rules.
+- Artistic > Text Color and Artistic > Contrast are shared compact paint
+  cards. They must keep the same card dimensions and internal control geometry
+  across straight disc text, curved disc text, and case-insert text. Their
+  width is not allowed to change merely because a target omits unsupported
+  Artistic siblings such as Background or Border. Flexible Artistic cards, such
+  as Background and Border, may consume useful extra width; compact paint cards
+  must remain target-parity sized.
 - The Utilities tab uses native semantic cards for the available utility
   responsibilities. `Position` is a two-row card with X/Y controls stacked as
   a matched field set. `Layout` is a two-row card with measurement controls
