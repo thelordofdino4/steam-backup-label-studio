@@ -644,10 +644,13 @@ Ribbon placement and layout:
   undo/redo behavior, `white-space: pre`, and editor-owned horizontal/vertical
   scrolling. The source/status row is the visible label for the panel, so the
   textarea does not spend horizontal space on a second visible `Source` label.
-  The panel participates in the same horizontal whole-card overflow lane as
-  other ribbon items, but it must not add a third ribbon row, collapse into a
-  one-line strip, move the preview, or reintroduce Utilities-owned HTML source
-  controls.
+  The HTML tab fills the available active control area instead of using the
+  ordinary ribbon horizontal scrollbar; long source scrolls inside the
+  textarea. Validation text stays in the status row rather than adding a row
+  beneath the textarea, so newlines in the source draft cannot shrink the
+  editor or its panel. The panel must not add a third ribbon row, collapse into
+  a one-line strip, move the preview, or reintroduce Utilities-owned HTML
+  source controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

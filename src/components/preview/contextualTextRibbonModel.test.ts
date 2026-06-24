@@ -1226,9 +1226,9 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
 
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.source, {
-    min: 420,
+    min: 1,
     preferred: 960,
-    max: 1440,
+    max: 4096,
     grows: true,
   })
   assert.match(
@@ -1253,7 +1253,27 @@ test('html ribbon tab uses a dedicated source panel instead of a semantic card',
   )
   assert.match(
     ribbonCss,
+    /\.contextual-text-ribbon-control-row--html\s*\{[\s\S]*grid-auto-columns:\s*minmax\(0,\s*1fr\)[\s\S]*overflow-x:\s*hidden[\s\S]*padding-bottom:\s*0[\s\S]*scrollbar-width:\s*none/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-control-row--html::-webkit-scrollbar\s*\{[\s\S]*display:\s*none/,
+  )
+  assert.match(
+    ribbonCss,
     /\.contextual-text-ribbon-source-control\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-source-status\s*\{[\s\S]*flex-wrap:\s*nowrap[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    editorSource,
+    /contextual-text-ribbon-source-validation[\s\S]*\{status\.message\}/,
+  )
+  assert.doesNotMatch(
+    editorSource,
+    /inline-preview-text-source-message/,
   )
   assert.match(
     ribbonCss,

@@ -181,10 +181,13 @@ tested, and the remaining divergences are recorded.
   its own horizontal and vertical scrolling, native typing/selection/clipboard
   behavior, and must remain at least two visible source rows tall at supported
   window sizes. The status row is the visible panel label; do not spend editor
-  width on an additional visible `Source` label. The HTML panel may
-  horizontally overflow as one whole-card item with the ribbon lane, but it
-  must not create a third ribbon row, vertical ribbon scrolling, preview
-  movement, or a one-line collapsed editor.
+  width on an additional visible `Source` label. Unlike ordinary semantic
+  card tabs, the HTML tab fills the available active control area and must not
+  expose the ribbon-level horizontal scrollbar. Long source scrolls inside the
+  textarea itself. Source validation text lives in the status row, not in a
+  separate row below the editor, so typing newlines cannot shrink the textarea
+  or its panel. The HTML panel must not create a third ribbon row, vertical
+  ribbon scrolling, preview movement, or a one-line collapsed editor.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The

@@ -303,6 +303,16 @@
 
 .contextual-text-ribbon-control-row--html {
   grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  grid-auto-columns: minmax(0, 1fr);
+  overflow-x: hidden;
+  padding-bottom: 0;
+  scrollbar-width: none;
+}
+
+.contextual-text-ribbon-control-row--html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .contextual-text-ribbon-html-panel {
@@ -1230,6 +1240,7 @@
   align-items: stretch;
   max-width: none;
   min-height: 0;
+  overflow: hidden;
 }
 
 .contextual-text-ribbon-html-panel .contextual-text-ribbon-control-label {
@@ -1561,15 +1572,29 @@
 
 .contextual-text-ribbon-source-status {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 4px 8px;
   min-width: 0;
+  overflow: hidden;
   color: #9ca3af;
   font-size: 10px;
   font-weight: 800;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.contextual-text-ribbon-source-status span {
+  flex: 0 0 auto;
+}
+
+.contextual-text-ribbon-source-status .contextual-text-ribbon-source-validation {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: #fbbf24;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .contextual-text-ribbon-source-field textarea {

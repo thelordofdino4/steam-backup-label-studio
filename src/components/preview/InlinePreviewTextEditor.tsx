@@ -1118,15 +1118,23 @@ function renderInlinePreviewHtmlSourceControl({
 }) {
   if (!control) return null
 
+  const status = getInlinePreviewHtmlSourceDraftStatus(sourceDraft, {
+    curvedText: isCurvedText,
+  })
+
   return (
     <div className="contextual-text-ribbon-source-control is-source-mode-active">
       <div className="contextual-text-ribbon-source-status">
         <span>{control.checked ? 'HTML source active' : 'HTML source ready'}</span>
         <span>Preview updates live</span>
+        {status.message ? (
+          <span className="contextual-text-ribbon-source-validation">
+            {status.message}
+          </span>
+        ) : null}
       </div>
       <InlinePreviewHtmlSourceTextarea
         draft={sourceDraft}
-        isCurvedText={isCurvedText}
         onDraftChange={onSourceDraftChange}
       />
     </div>
@@ -1172,18 +1180,11 @@ function renderInlinePreviewHtmlSourcePanel({
 
 function InlinePreviewHtmlSourceTextarea({
   draft,
-  isCurvedText,
   onDraftChange,
 }: {
   draft: string
-  isCurvedText: boolean
   onDraftChange: (value: string) => void
 }) {
-  const status = getInlinePreviewHtmlSourceDraftStatus(draft, {
-    curvedText: isCurvedText,
-  })
-  const message = status.message
-
   const handleChange = (nextDraft: string) => {
     onDraftChange(nextDraft)
   }
@@ -1200,34 +1201,27 @@ function InlinePreviewHtmlSourceTextarea({
   }
 
   return (
-    <>
-      <label className="contextual-text-ribbon-source-field">
-        <span className="contextual-text-ribbon-control-label">Source</span>
-        <textarea
-          aria-label="HTML source editor"
-          className="inline-preview-text-source-textarea"
-          data-smoke-id="inline-text-html-source"
-          value={draft}
-          wrap="off"
-          spellCheck={false}
-          onChange={(event) => handleChange(event.target.value)}
-          onClick={stopInlineTextEditorClick}
-          onKeyDown={handleKeyDown}
-          onKeyUp={(event) => event.stopPropagation()}
-          onPaste={(event) => event.stopPropagation()}
-          onCopy={(event) => event.stopPropagation()}
-          onCut={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
-          onPointerUp={(event) => event.stopPropagation()}
-          onSelect={(event) => event.stopPropagation()}
-        />
-      </label>
-      {message ? (
-        <p className="inline-preview-text-source-message">
-          {message}
-        </p>
-      ) : null}
-    </>
+    <label className="contextual-text-ribbon-source-field">
+      <span className="contextual-text-ribbon-control-label">Source</span>
+      <textarea
+        aria-label="HTML source editor"
+        className="inline-preview-text-source-textarea"
+        data-smoke-id="inline-text-html-source"
+        value={draft}
+        wrap="off"
+        spellCheck={false}
+        onChange={(event) => handleChange(event.target.value)}
+        onClick={stopInlineTextEditorClick}
+        onKeyDown={handleKeyDown}
+        onKeyUp={(event) => event.stopPropagation()}
+        onPaste={(event) => event.stopPropagation()}
+        onCopy={(event) => event.stopPropagation()}
+        onCut={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onSelect={(event) => event.stopPropagation()}
+      />
+    </label>
   )
 }
 
