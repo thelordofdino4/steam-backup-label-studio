@@ -788,11 +788,13 @@ Render path:
 - `PreviewViewport` wraps both disc and case insert design surfaces. It owns
   Ctrl+wheel zoom, middle-mouse pan, Space+left-drag pan, the right-edge
   zoom/pan/Fit rail, and the transformed stage. The compact rail reserves a
-  minimum 48px width for Fit calculations, then its controls may grow
-  continuously from 24px to 48px only into residual unused horizontal gutter.
-  The expanded rail width is not fed back into the same Fit calculation pass,
-  so rail growth cannot reduce the fit scale or move the fitted surface. Design
-  Check and Guide Legend controls remain outside the transformed stage. The
+  minimum 48px width for Fit calculations, normally collapses to a slim
+  right-edge hover/focus handle, and expands its full control panel only while
+  hovered or keyboard-focused. Its controls may grow continuously from 24px to
+  48px only into residual unused horizontal gutter. The expanded rail width is
+  not fed back into the same Fit calculation pass, so rail growth or collapse
+  cannot reduce the fit scale or move the fitted surface. Design Check and
+  Guide Legend controls remain outside the transformed stage. The
   stage owns the 4px surface guard, minimum right rail reservation, and bottom
   Design Check / Guide Legend rail reservation, while the preview surfaces fill
   the available stage instead of keeping legacy fixed-width caps.

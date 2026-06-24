@@ -566,81 +566,87 @@ export function PreviewViewport({
         onPointerDownCapture={handleRailControlPointerDownCapture}
         onPointerUpCapture={handleRailControlPointerEndCapture}
       >
-        <button
-          type="button"
-          className="preview-viewport-icon-button"
-          aria-label={`Zoom in ${label} from ${zoomPercent} percent`}
-          title={`Zoom in from ${zoomPercent}%`}
-          onClick={handleZoomIn}
+        <div
+          className="preview-viewport-controls-panel"
+          role="group"
+          aria-label={`${label} zoom and pan controls`}
         >
-          <MagnifierIcon kind="in" />
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-icon-button"
-          aria-label={`Zoom out ${label} from ${zoomPercent} percent`}
-          title={`Zoom out from ${zoomPercent}%`}
-          onClick={handleZoomOut}
-        >
-          <MagnifierIcon kind="out" />
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-fit-button preview-viewport-button--span"
-          aria-label={`Fit ${label} to available space from ${zoomPercent} percent`}
-          title={`Fit from ${zoomPercent}%`}
-          onClick={handleFit}
-        >
-          Fit
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-icon-button preview-viewport-button--span"
-          aria-label={`Pan ${label} up, current zoom ${zoomPercent} percent`}
-          title="Pan up"
-          onClick={() => handlePanBy({
-            x: 0,
-            y: PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
-          })}
-        >
-          <ArrowIcon direction="up" />
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-icon-button"
-          aria-label={`Pan ${label} left, current zoom ${zoomPercent} percent`}
-          title="Pan left"
-          onClick={() => handlePanBy({
-            x: PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
-            y: 0,
-          })}
-        >
-          <ArrowIcon direction="left" />
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-icon-button"
-          aria-label={`Pan ${label} right, current zoom ${zoomPercent} percent`}
-          title="Pan right"
-          onClick={() => handlePanBy({
-            x: -PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
-            y: 0,
-          })}
-        >
-          <ArrowIcon direction="right" />
-        </button>
-        <button
-          type="button"
-          className="preview-viewport-icon-button preview-viewport-button--span"
-          aria-label={`Pan ${label} down, current zoom ${zoomPercent} percent`}
-          title="Pan down"
-          onClick={() => handlePanBy({
-            x: 0,
-            y: -PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
-          })}
-        >
-          <ArrowIcon direction="down" />
-        </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button"
+            aria-label={`Zoom in ${label} from ${zoomPercent} percent`}
+            title={`Zoom in from ${zoomPercent}%`}
+            onClick={handleZoomIn}
+          >
+            <MagnifierIcon kind="in" />
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button"
+            aria-label={`Zoom out ${label} from ${zoomPercent} percent`}
+            title={`Zoom out from ${zoomPercent}%`}
+            onClick={handleZoomOut}
+          >
+            <MagnifierIcon kind="out" />
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-fit-button preview-viewport-button--span"
+            aria-label={`Fit ${label} to available space from ${zoomPercent} percent`}
+            title={`Fit from ${zoomPercent}%`}
+            onClick={handleFit}
+          >
+            Fit
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button preview-viewport-button--span"
+            aria-label={`Pan ${label} up, current zoom ${zoomPercent} percent`}
+            title="Pan up"
+            onClick={() => handlePanBy({
+              x: 0,
+              y: PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
+            })}
+          >
+            <ArrowIcon direction="up" />
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button"
+            aria-label={`Pan ${label} left, current zoom ${zoomPercent} percent`}
+            title="Pan left"
+            onClick={() => handlePanBy({
+              x: PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
+              y: 0,
+            })}
+          >
+            <ArrowIcon direction="left" />
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button"
+            aria-label={`Pan ${label} right, current zoom ${zoomPercent} percent`}
+            title="Pan right"
+            onClick={() => handlePanBy({
+              x: -PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
+              y: 0,
+            })}
+          >
+            <ArrowIcon direction="right" />
+          </button>
+          <button
+            type="button"
+            className="preview-viewport-icon-button preview-viewport-button--span"
+            aria-label={`Pan ${label} down, current zoom ${zoomPercent} percent`}
+            title="Pan down"
+            onClick={() => handlePanBy({
+              x: 0,
+              y: -PREVIEW_VIEWPORT_BUTTON_PAN_STEP,
+            })}
+          >
+            <ArrowIcon direction="down" />
+          </button>
+        </div>
       </div>
     </div>
   )

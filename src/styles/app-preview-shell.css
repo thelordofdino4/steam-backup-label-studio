@@ -40,6 +40,7 @@
 .preview-workspace {
   --preview-surface-window-gap: 4px;
   --preview-viewport-min-rail-width: 48px;
+  --preview-viewport-rail-collapsed-width: 14px;
   --preview-viewport-rail-button-size: 24px;
   --preview-viewport-rail-width: 48px;
   --preview-bottom-control-closed-height: 40px;
@@ -117,6 +118,50 @@
   top: 50%;
   transform: translateY(-50%);
   z-index: 38;
+  width: var(--preview-viewport-rail-collapsed-width);
+  height: calc(var(--preview-viewport-rail-button-size) * 5);
+  overflow: visible;
+  pointer-events: auto;
+  transition: width 140ms ease;
+}
+
+.preview-viewport-controls::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--preview-viewport-rail-collapsed-width);
+  border: 1px solid rgba(55, 65, 81, 0.82);
+  border-right: 0;
+  border-radius: 8px 0 0 8px;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent calc(50% - 18px),
+      rgba(148, 163, 184, 0.8) calc(50% - 18px),
+      rgba(148, 163, 184, 0.8) calc(50% - 14px),
+      transparent calc(50% - 14px),
+      transparent calc(50% - 2px),
+      rgba(148, 163, 184, 0.8) calc(50% - 2px),
+      rgba(148, 163, 184, 0.8) calc(50% + 2px),
+      transparent calc(50% + 2px),
+      transparent calc(50% + 14px),
+      rgba(148, 163, 184, 0.8) calc(50% + 14px),
+      rgba(148, 163, 184, 0.8) calc(50% + 18px),
+      transparent calc(50% + 18px)
+    ),
+    rgba(17, 24, 39, 0.86);
+  box-shadow:
+    0 10px 26px rgba(0, 0, 0, 0.24),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.preview-viewport-controls-panel {
+  position: absolute;
+  right: 0;
+  top: 0;
   display: grid;
   grid-template-columns: repeat(2, var(--preview-viewport-rail-button-size));
   grid-auto-rows: var(--preview-viewport-rail-button-size);
@@ -125,6 +170,10 @@
   width: var(--preview-viewport-rail-width);
   padding: 0;
   overflow: hidden;
+  transform: translateX(
+    calc(var(--preview-viewport-rail-width) - var(--preview-viewport-rail-collapsed-width))
+  );
+  opacity: 0;
   border: 1px solid rgba(55, 65, 81, 0.82);
   border-right: 0;
   border-radius: 8px 0 0 8px;
@@ -133,11 +182,31 @@
     0 10px 26px rgba(0, 0, 0, 0.28),
     inset 0 0 0 1px rgba(148, 163, 184, 0.08);
   backdrop-filter: blur(10px);
-  pointer-events: auto;
+  pointer-events: none;
   scrollbar-width: none;
+  transition:
+    opacity 120ms ease,
+    transform 140ms ease;
 }
 
-.preview-viewport-controls::-webkit-scrollbar {
+.preview-viewport-controls:hover::before,
+.preview-viewport-controls:focus-within::before {
+  opacity: 0;
+}
+
+.preview-viewport-controls:hover,
+.preview-viewport-controls:focus-within {
+  width: var(--preview-viewport-rail-width);
+}
+
+.preview-viewport-controls:hover .preview-viewport-controls-panel,
+.preview-viewport-controls:focus-within .preview-viewport-controls-panel {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.preview-viewport-controls-panel::-webkit-scrollbar {
   display: none;
 }
 
@@ -164,12 +233,12 @@
   cursor: pointer;
 }
 
-.preview-viewport-controls > button:nth-child(1),
-.preview-viewport-controls > button:nth-child(2) {
+.preview-viewport-controls-panel > button:nth-child(1),
+.preview-viewport-controls-panel > button:nth-child(2) {
   border-top: 0;
 }
 
-.preview-viewport-controls > button:nth-child(odd),
+.preview-viewport-controls-panel > button:nth-child(odd),
 .preview-viewport-button--span {
   border-left: 0;
 }
@@ -289,6 +358,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .preview-viewport-stage {
+    transition: none;
+  }
+
+  .preview-viewport-controls,
+  .preview-viewport-controls::before,
+  .preview-viewport-controls-panel {
     transition: none;
   }
 

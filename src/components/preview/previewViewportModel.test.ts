@@ -192,6 +192,7 @@ test('preview viewport controls use the right-edge compact rail presentation', (
   assert.match(css, /\.preview-viewport-controls\s*\{[\s\S]*top:\s*50%/)
   assert.match(css, /--preview-surface-window-gap:\s*4px/)
   assert.match(css, /--preview-viewport-min-rail-width:\s*48px/)
+  assert.match(css, /--preview-viewport-rail-collapsed-width:\s*14px/)
   assert.match(css, /--preview-viewport-rail-button-size:\s*24px/)
   assert.match(css, /--preview-viewport-rail-width:\s*48px/)
   assert.match(css, /--preview-area-bottom-padding:\s*0px/)
@@ -218,19 +219,33 @@ test('preview viewport controls use the right-edge compact rail presentation', (
     css,
     /\.preview-viewport-controls\s*\{[\s\S]*transform:\s*translateY\(-50%\)/,
   )
-  assert.match(css, /\.preview-viewport-controls\s*\{[\s\S]*display:\s*grid/)
   assert.match(
     css,
-    /\.preview-viewport-controls\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*var\(--preview-viewport-rail-button-size\)\)/,
+    /\.preview-viewport-controls\s*\{[\s\S]*width:\s*var\(--preview-viewport-rail-collapsed-width\)/,
+  )
+  assert.match(css, /\.preview-viewport-controls\s*\{[\s\S]*overflow:\s*visible/)
+  assert.match(
+    css,
+    /\.preview-viewport-controls:hover,\s*\.preview-viewport-controls:focus-within\s*\{[\s\S]*width:\s*var\(--preview-viewport-rail-width\)/,
+  )
+  assert.match(css, /\.preview-viewport-controls-panel\s*\{[\s\S]*display:\s*grid/)
+  assert.match(
+    css,
+    /\.preview-viewport-controls-panel\s*\{[\s\S]*grid-template-columns:\s*repeat\(2,\s*var\(--preview-viewport-rail-button-size\)\)/,
   )
   assert.match(
     css,
-    /\.preview-viewport-controls\s*\{[\s\S]*grid-auto-rows:\s*var\(--preview-viewport-rail-button-size\)/,
+    /\.preview-viewport-controls-panel\s*\{[\s\S]*grid-auto-rows:\s*var\(--preview-viewport-rail-button-size\)/,
   )
   assert.match(css, /\.preview-viewport-button--span\s*\{[\s\S]*grid-column:\s*1 \/ span 2/)
-  assert.match(css, /\.preview-viewport-controls\s*\{[\s\S]*overflow:\s*hidden/)
-  assert.match(css, /\.preview-viewport-controls\s*\{[\s\S]*scrollbar-width:\s*none/)
-  assert.match(css, /\.preview-viewport-controls::-webkit-scrollbar\s*\{[\s\S]*display:\s*none/)
+  assert.match(css, /\.preview-viewport-controls-panel\s*\{[\s\S]*overflow:\s*hidden/)
+  assert.match(css, /\.preview-viewport-controls-panel\s*\{[\s\S]*pointer-events:\s*none/)
+  assert.match(css, /\.preview-viewport-controls-panel\s*\{[\s\S]*scrollbar-width:\s*none/)
+  assert.match(
+    css,
+    /\.preview-viewport-controls:hover \.preview-viewport-controls-panel,\s*\.preview-viewport-controls:focus-within \.preview-viewport-controls-panel\s*\{[\s\S]*transform:\s*translateX\(0\)[\s\S]*opacity:\s*1[\s\S]*pointer-events:\s*auto/,
+  )
+  assert.match(css, /\.preview-viewport-controls-panel::-webkit-scrollbar\s*\{[\s\S]*display:\s*none/)
   assert.doesNotMatch(css, /\.preview-viewport-controls\s*\{[\s\S]*overflow-x:\s*auto/)
   assert.match(css, /\.preview-viewport-icon-button\s*\{[\s\S]*min-width:\s*24px/)
   assert.match(css, /\.preview-viewport-icon-button\s*\{[\s\S]*min-height:\s*24px/)

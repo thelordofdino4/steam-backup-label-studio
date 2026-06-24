@@ -393,8 +393,10 @@ The browser diagnostic command checks:
   gutters, and transformed overlay/drag math. The approved rail has no visible
   100%/percentage control and grows continuously from 48px to 96px wide only
   when the larger size can be absorbed by residual unused gutter without
-  reducing fitted preview scale or moving the fitted design surface. Browser
-  smoke should reuse
+  reducing fitted preview scale or moving the fitted design surface. The rail
+  normally collapses to a slim right-edge hover/focus handle and opens the full
+  controls on hover or keyboard focus; this presentation must not resize, refit,
+  or move the preview stage. Browser smoke should reuse
   `preview-viewport`, `preview-viewport-stage`, and
   `preview-viewport-controls` if deterministic zoom/pan routes are added.
 - Cover inline editor opens from preview text.

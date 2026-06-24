@@ -1106,10 +1106,13 @@ remains the overlay lookup and rectangle-measurement facade.
   compact right control rail, the bottom Design Check / Guide Legend rail, and
   the 4px side surface guard, and must not reintroduce old fixed preview width
   caps that create artificial side gutters. The right rail uses the approved
-  two-column zoom out/in, Fit, and pan layout; Fit calculations reserve the
-  minimum 48px rail, then the visible rail may grow continuously up to 96px
-  only into residual unused gutter. The expanded rail width must not feed back
-  into Fit, reduce the fitted preview scale, or move the fitted design surface.
+  two-column zoom out/in, Fit, and pan layout. It normally collapses to a slim
+  right-edge hover/focus handle so zoomed previews can use the viewable area;
+  hovering the handle or focusing any rail control opens the full panel. Fit
+  calculations reserve the minimum 48px rail, then the visible rail may grow
+  continuously up to 96px only into residual unused gutter. The collapsed or
+  expanded rail presentation must not feed back into Fit, reduce the fitted
+  preview scale, or move the fitted design surface.
 - Inline text adapters use registry-defined target keys while surface adapters continue to own geometry, values, commit behavior, and move handling.
 - Export consumes saved layout state and does not reuse DOM overlay measurements.
 
