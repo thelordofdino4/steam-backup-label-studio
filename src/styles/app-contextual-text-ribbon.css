@@ -829,7 +829,7 @@
   display: grid;
   grid-template-columns:
     max-content
-    minmax(72px, 1fr)
+    minmax(72px, 96px)
     minmax(48px, max-content)
     max-content;
   align-items: center;
@@ -864,7 +864,7 @@
   input[type="range"] {
   width: 100%;
   min-width: 72px;
-  max-width: none;
+  max-width: 96px;
 }
 
 .contextual-text-ribbon-control-row--utilities
@@ -1719,7 +1719,7 @@
     .contextual-text-ribbon-range-control {
     grid-template-columns:
       max-content
-      minmax(58px, 1fr)
+      minmax(58px, 96px)
       minmax(42px, max-content)
       max-content;
   }

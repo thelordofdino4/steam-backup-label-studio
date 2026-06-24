@@ -1157,15 +1157,15 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(72px,\s*1fr\)[\s\S]*minmax\(48px,\s*max-content\)/,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*display:\s*grid[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(72px,\s*96px\)[\s\S]*minmax\(48px,\s*max-content\)/,
   )
   assert.match(
     ribbonCss,
-    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*input\[type="range"\]\s*\{[\s\S]*min-width:\s*72px/,
+    /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control[\s\S]*input\[type="range"\]\s*\{[\s\S]*min-width:\s*72px[\s\S]*max-width:\s*96px/,
   )
   assert.match(
     ribbonCss,
-    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(58px,\s*1fr\)[\s\S]*minmax\(42px,\s*max-content\)/,
+    /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-range-control\s*\{[\s\S]*grid-template-columns:\s*max-content[\s\S]*minmax\(58px,\s*96px\)[\s\S]*minmax\(42px,\s*max-content\)/,
   )
   assert.match(
     ribbonCss,

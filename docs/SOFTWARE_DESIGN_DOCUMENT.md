@@ -627,9 +627,12 @@ Ribbon placement and layout:
   overflow rather than truncate those utility labels. Utilities range sliders
   share the Artistic range-slider compression metrics: 72px normal track
   minimum with a 48px numeric field, and 58px compact track minimum with a
-  42px numeric field. HTML source remains in the dedicated `HTML` tab, and
-  Utilities must not render empty placeholder cards for unavailable source or
-  unsupported target-specific controls.
+  42px numeric field. Utility range tracks share a 96px useful maximum so
+  Position X/Y and Layout `Wrap width` controls keep matched slider lengths
+  even when their semantic cards receive different horizontal space. HTML
+  source remains in the dedicated `HTML` tab, and Utilities must not render
+  empty placeholder cards for unavailable source or unsupported target-specific
+  controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

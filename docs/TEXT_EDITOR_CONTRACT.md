@@ -163,10 +163,13 @@ tested, and the remaining divergences are recorded.
   those utility labels. Utilities range sliders use the same ribbon slider
   compression contract as Artistic range sliders: the normal track minimum is
   72px with a 48px numeric field, and the compact track minimum is 58px with a
-  42px numeric field. `Reset` remains a compact semantic reset card unless a
-  tab-specific exception explicitly says otherwise. HTML source does not live
-  in Utilities; it is owned by the dedicated `HTML` tab. Do not add unsupported
-  or empty Utilities cards merely to satisfy a group name.
+  42px numeric field. Utility range tracks share a 96px useful maximum so X/Y
+  position sliders and `Wrap width` remain visually matched even when their
+  semantic cards have different available widths. `Reset` remains a compact
+  semantic reset card unless a tab-specific exception explicitly says
+  otherwise. HTML source does not live in Utilities; it is owned by the
+  dedicated `HTML` tab. Do not add unsupported or empty Utilities cards merely
+  to satisfy a group name.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The
