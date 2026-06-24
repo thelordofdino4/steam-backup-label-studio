@@ -356,7 +356,11 @@ function CaseInsertSpineTextBlock({
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
-    { sourceMode: isHtmlSourceEditing },
+  )
+  const sourceValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+    { sourceMode: true },
   )
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
@@ -524,6 +528,7 @@ function CaseInsertSpineTextBlock({
           inputMode="adapter"
           lines={titleLayout.lines}
           rotationDegrees={titleLayout.rotationDegrees}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}

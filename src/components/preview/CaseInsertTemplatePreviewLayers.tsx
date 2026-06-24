@@ -457,7 +457,11 @@ function CaseInsertTemplateTextBlock({
   const editValue = getCaseInsertPreviewTextEditValue(
     textBlock,
     brandingSources.projectMetadata,
-    { sourceMode: isHtmlSourceEditing },
+  )
+  const sourceValue = getCaseInsertPreviewTextEditValue(
+    textBlock,
+    brandingSources.projectMetadata,
+    { sourceMode: true },
   )
   const layoutTextBlock = isSelected && !isHtmlSourceEditing
     ? { ...renderedTextBlock, value: editValue }
@@ -594,6 +598,7 @@ function CaseInsertTemplateTextBlock({
           controls={editorControls}
           inputMode="adapter"
           lines={textLayout.lines}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}
@@ -676,8 +681,9 @@ function CaseInsertTemplateTextList({
     return null
   }
 
-  const editValue = getCaseInsertPreviewTextListEditValue(textList, {
-    sourceMode: isHtmlSourceEditing,
+  const editValue = getCaseInsertPreviewTextListEditValue(textList)
+  const sourceValue = getCaseInsertPreviewTextListEditValue(textList, {
+    sourceMode: true,
   })
   const textListStyle = {
     ...getRectStyle(textListLayout.bounds, layout),
@@ -782,6 +788,7 @@ function CaseInsertTemplateTextList({
           controls={editorControls}
           inputMode="adapter"
           lines={textListLayout.lines}
+          sourceValue={sourceValue}
           sourceMode={isHtmlSourceEditing}
           targetKey={targetKey}
           value={editValue}

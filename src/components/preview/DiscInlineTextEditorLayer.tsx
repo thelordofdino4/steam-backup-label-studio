@@ -288,9 +288,12 @@ export function DiscInlineTextEditorLayer({
 
         if (isCurvedCopyrightDiscTextLayout(key, layout)) {
           const isHtmlSourceEditing = htmlSourceEditorKey === key
-          const editValue = isHtmlSourceEditing
-            ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
-            : renderedText
+          const htmlSourceValue = getDiscTextHtmlSource(
+            discTextHtmlSources,
+            key,
+            text,
+          )
+          const editValue = renderedText
           const curvedPaintBoxInput = {
             key,
             layout,
@@ -467,6 +470,7 @@ export function DiscInlineTextEditorLayer({
                 geometryAdapter={geometryAdapter}
                 inputMode="adapter"
                 lines={curvedLines}
+                sourceValue={htmlSourceValue}
                 sourceMode={isHtmlSourceEditing}
                 targetKey={targetKey}
                 value={editValue}
@@ -487,13 +491,14 @@ export function DiscInlineTextEditorLayer({
         }
 
         const isHtmlSourceEditing = htmlSourceEditorKey === key
-        const editValue = isHtmlSourceEditing
-          ? getDiscTextHtmlSource(discTextHtmlSources, key, text)
-          : hasHtmlSource
-            ? parseHtmlText(
-                getDiscTextHtmlSource(discTextHtmlSources, key, text),
-              ).plainText
-            : text
+        const htmlSourceValue = getDiscTextHtmlSource(
+          discTextHtmlSources,
+          key,
+          text,
+        )
+        const editValue = hasHtmlSource
+          ? parseHtmlText(htmlSourceValue).plainText
+          : text
         const textAvoidanceRegions = avoidanceRegions.filter(
           (region) => region.sourceDiscTextKey !== key,
         )
@@ -576,6 +581,7 @@ export function DiscInlineTextEditorLayer({
               geometryLines={geometryLines}
               inputMode="adapter"
               lines={renderLayout.lines}
+              sourceValue={htmlSourceValue}
               sourceMode={isHtmlSourceEditing}
               targetKey={targetKey}
               value={editValue}

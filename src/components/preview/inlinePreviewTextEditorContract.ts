@@ -240,6 +240,7 @@ export type InlinePreviewTextEditorProps = {
   rotationDegrees?: number
   targetKey: string
   value: string
+  sourceValue?: string
   textareaStyle?: CSSProperties
   sourceMode?: boolean
   suppressCanvasInput?: boolean
@@ -295,6 +296,7 @@ export type InlinePreviewTextEditorEditSession = {
   lines: InlinePreviewTextEditorLine[]
   rotationDegrees?: number
   sourceMode: boolean
+  sourceValue?: string
   targetKey: string
   value: string
 }
@@ -340,6 +342,7 @@ export function createInlinePreviewTextEditorEditSession(
     lines: props.lines,
     rotationDegrees: props.rotationDegrees,
     sourceMode: props.sourceMode ?? false,
+    sourceValue: props.sourceValue,
     targetKey: props.targetKey,
     value: props.value,
   }

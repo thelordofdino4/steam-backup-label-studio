@@ -179,6 +179,17 @@ function getInlineTextSelectionStateFromRange(
   }
 }
 
+function clampInlineTextSelectionState(
+  selection: InlineTextSelectionState,
+  valueLength: number,
+): InlineTextSelectionState {
+  return {
+    end: Math.max(0, Math.min(selection.end, valueLength)),
+    focus: Math.max(0, Math.min(selection.focus, valueLength)),
+    start: Math.max(0, Math.min(selection.start, valueLength)),
+  }
+}
+
 const INLINE_TEXT_EDITOR_TABS = CONTEXTUAL_TEXT_CONTROL_GROUPS
 const INLINE_TEXT_EDGE_GRAB_OUTER_BAND_PX = 8
 const INLINE_TEXT_EDGE_GRAB_INWARD_TOLERANCE_PX = 2
@@ -2433,6 +2444,7 @@ export function InlinePreviewTextEditor({
   rotationDegrees,
   targetKey,
   value,
+  sourceValue,
   textareaStyle,
   sourceMode = false,
   suppressCanvasInput = false,
@@ -2464,6 +2476,10 @@ export function InlinePreviewTextEditor({
   const [selection, setSelection] = useState<InlineTextSelectionState>(() =>
     getCollapsedSelectionState(value.length),
   )
+  const boundedSelection = useMemo(
+    () => clampInlineTextSelectionState(selection, value.length),
+    [selection, value.length],
+  )
   const [selectionFrames, setSelectionFrames] = useState<
     InlineTextSelectionFrame[]
   >([])
@@ -2471,10 +2487,11 @@ export function InlinePreviewTextEditor({
     useState<InlinePreviewTextEditorTab>('text')
   const [isMoveHandleDragging, setIsMoveHandleDragging] = useState(false)
   const sourceDraftIdentity = `${targetKey}:html-source`
+  const sourceDraftFallbackValue = sourceValue ?? value
   const [sourceDraft, setSourceDraft] = useState(() => ({
     identity: sourceDraftIdentity,
     initialized: sourceMode,
-    value,
+    value: sourceDraftFallbackValue,
   }))
   const activeSourceDraft =
     sourceDraft.identity === sourceDraftIdentity
@@ -2482,10 +2499,10 @@ export function InlinePreviewTextEditor({
       : {
           identity: sourceDraftIdentity,
           initialized: sourceMode,
-          value,
+          value: sourceDraftFallbackValue,
         }
   const sourceDraftValue = !activeSourceDraft.initialized
-    ? value
+    ? sourceDraftFallbackValue
     : activeSourceDraft.value
   const htmlSourceControl = editorControls?.html?.source
   const isCurvedTextSource =
@@ -2638,7 +2655,7 @@ export function InlinePreviewTextEditor({
   const getCommandSelection = useCallback(() => {
     const textarea = textareaRef.current
 
-    if (textarea && !sourceMode) {
+    if (textarea) {
       const textareaSelection = getTextareaSelectionState(textarea)
       const textareaSelectionRange =
         getInlineTextSelectionRange(textareaSelection)
@@ -2648,14 +2665,14 @@ export function InlinePreviewTextEditor({
       }
     }
 
-    const currentSelection = getInlineTextSelectionRange(selection)
+    const currentSelection = getInlineTextSelectionRange(boundedSelection)
 
     if (!isInlineTextSelectionCollapsed(currentSelection)) {
       return currentSelection
     }
 
     return retainedCommandSelectionRef.current ?? currentSelection
-  }, [selection, sourceMode])
+  }, [boundedSelection])
 
   const retainTextareaSelectionForCommands = useCallback(() => {
     const textarea = textareaRef.current
@@ -2730,7 +2747,7 @@ export function InlinePreviewTextEditor({
       if (command) {
         const nextSelection = onRichTextKeyboardCommand(
           command,
-          getInlineTextSelectionRange(selection),
+          getInlineTextSelectionRange(boundedSelection),
         )
 
         if (nextSelection) {
@@ -2987,7 +3004,7 @@ export function InlinePreviewTextEditor({
           geometryLines,
           host,
           lines,
-          selectionFocus: selection.focus,
+          selectionFocus: boundedSelection.focus,
         }) ?? {
           height: hostRect.height,
           left: 0,
@@ -3002,7 +3019,7 @@ export function InlinePreviewTextEditor({
               geometryLines,
               host,
               lines,
-              selection,
+              selection: boundedSelection,
             })
           : [],
       )
@@ -3010,7 +3027,7 @@ export function InlinePreviewTextEditor({
     }
 
     const { lineIndex, offset } = getInlinePreviewTextCaretLineOffset({
-      caretIndex: selection.focus,
+      caretIndex: boundedSelection.focus,
       caretValue,
       lines,
     })
@@ -3046,7 +3063,7 @@ export function InlinePreviewTextEditor({
             geometryLines,
             host,
             lines,
-            selection,
+            selection: boundedSelection,
           })
         : [],
     )
@@ -3057,7 +3074,7 @@ export function InlinePreviewTextEditor({
     inputMode,
     lines,
     rotationDegrees,
-    selection,
+    boundedSelection,
     sourceMode,
     targetKey,
     value,
@@ -3377,7 +3394,7 @@ export function InlinePreviewTextEditor({
           activeTab={activeTab}
           controls={editorControls}
           getCommandSelection={getCommandSelection}
-          selection={getInlineTextSelectionRange(selection)}
+          selection={getInlineTextSelectionRange(boundedSelection)}
           isCurvedText={isCurvedTextSource}
           sourceDraft={sourceDraftValue}
           onSourceDraftChange={updateSourceDraft}
@@ -3433,7 +3450,7 @@ export function InlinePreviewTextEditor({
     isCurvedTextSource,
     onDone,
     retainTextareaSelectionForCommands,
-    selection,
+    boundedSelection,
     setRibbonMenuRef,
     sourceDraftValue,
     updateSourceDraft,
@@ -3445,8 +3462,9 @@ export function InlinePreviewTextEditor({
   })
 
   const hasVisibleSelection =
-    inputMode === 'adapter' && selection.start !== selection.end
-  const shouldRenderCanvasInput = !sourceMode && !suppressCanvasInput
+    inputMode === 'adapter' && boundedSelection.start !== boundedSelection.end
+  const shouldRenderCanvasInput =
+    !suppressCanvasInput && (inputMode === 'adapter' || !sourceMode)
   const moveEdgeControl = (
     <div
       ref={moveEdgeRef}
@@ -3494,10 +3512,14 @@ export function InlinePreviewTextEditor({
           : '',
       ].filter(Boolean).join(' ')}
       data-smoke-id="inline-text-input"
+      readOnly={sourceMode || undefined}
       value={value}
       spellCheck={false}
       style={inputMode === 'overlay' ? textareaStyle : undefined}
       onChange={(event) => {
+        if (sourceMode) {
+          return
+        }
         onValueChange(event.target.value, { sourceMode: false })
         setSelection(getTextareaSelectionState(event.target))
       }}

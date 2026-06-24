@@ -123,6 +123,30 @@ test('HTML parser supports lists and line breaks', () => {
   )
 })
 
+test('HTML parser ignores source-formatting whitespace outside supported tags', () => {
+  const document = parseHtmlText(
+    '<p>Untitled Steam Backup Label</p>\n\n<p>Manual subtitle</p>\n\n',
+  )
+
+  assert.equal(document.plainText, 'Untitled Steam Backup Label\nManual subtitle')
+  assert.equal(
+    document.source,
+    '<p>Untitled Steam Backup Label</p><p>Manual subtitle</p>',
+  )
+})
+
+test('HTML parser preserves visible whitespace inside supported tags', () => {
+  const document = parseHtmlText(
+    '<p>Alpha <strong>Beta</strong> Gamma</p>',
+  )
+
+  assert.equal(document.plainText, 'Alpha Beta Gamma')
+  assert.deepEqual(
+    document.lines[0]?.runs.map((run) => run.text),
+    ['Alpha ', 'Beta', ' Gamma'],
+  )
+})
+
 test('HTML parser preserves soft line breaks inside list items', () => {
   const document = parseHtmlText(
     '<ul><li>Alpha<br><strong>Beta</strong></li></ul>',

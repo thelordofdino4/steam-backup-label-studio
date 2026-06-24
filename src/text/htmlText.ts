@@ -216,6 +216,21 @@ function appendText(
   })
 }
 
+function appendHtmlLiteralText(
+  lines: RichTextLine[],
+  literalText: string,
+  styleStack: RichTextRunStyle[],
+  hasOpenTag: boolean,
+) {
+  if (!literalText) return
+
+  if (!hasOpenTag && /^\s+$/.test(literalText)) {
+    return
+  }
+
+  appendText(lines, decodeHtmlEntities(literalText), styleStack)
+}
+
 function appendLineBreak(lines: RichTextLine[], list?: RichTextLine['list']) {
   const lastLine = getLastLine(lines)
 
@@ -596,7 +611,12 @@ export function parseHtmlText(source: string): RichTextDocument {
 
   while ((match = TOKEN_PATTERN.exec(normalizedSource)) !== null) {
     const literalText = normalizedSource.slice(lastIndex, match.index)
-    appendText(lines, decodeHtmlEntities(literalText), styleStack)
+    appendHtmlLiteralText(
+      lines,
+      literalText,
+      styleStack,
+      tagStack.length > 0,
+    )
 
     const rawTag = match[0]
     const tagName = parseTagName(rawTag)
@@ -689,10 +709,11 @@ export function parseHtmlText(source: string): RichTextDocument {
     lastIndex = TOKEN_PATTERN.lastIndex
   }
 
-  appendText(
+  appendHtmlLiteralText(
     lines,
-    decodeHtmlEntities(normalizedSource.slice(lastIndex)),
+    normalizedSource.slice(lastIndex),
     styleStack,
+    tagStack.length > 0,
   )
 
   const normalizedLines = trimTrailingEmptyLines(lines).map((line) => ({
