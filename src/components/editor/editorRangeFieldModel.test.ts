@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import {
   formatEditorRangeFieldValue,
+  getEditorRangeFieldNumberInputCharacterCapacity,
   getEditorRangeFieldValue,
   getEditorRangeFieldPrecision,
   normalizeEditorRangeFieldValue,
@@ -24,6 +25,27 @@ test('formatEditorRangeFieldValue keeps compact numeric input text', () => {
   assert.equal(formatEditorRangeFieldValue(1.2, 0.01), '1.2')
   assert.equal(formatEditorRangeFieldValue(0.30000000000000004, 0.1), '0.3')
   assert.equal(formatEditorRangeFieldValue(4.6, 1), '4.6')
+})
+
+test('getEditorRangeFieldNumberInputCharacterCapacity fits range boundaries and current values', () => {
+  assert.equal(
+    getEditorRangeFieldNumberInputCharacterCapacity({
+      min: -12.5,
+      max: 1000,
+      step: 0.1,
+      value: 999.9,
+    }),
+    6,
+  )
+  assert.equal(
+    getEditorRangeFieldNumberInputCharacterCapacity({
+      min: 'not-a-number',
+      max: 10,
+      step: 1,
+      value: -100,
+    }),
+    5,
+  )
 })
 
 test('normalizeEditorRangeFieldValue clamps and snaps typed values', () => {

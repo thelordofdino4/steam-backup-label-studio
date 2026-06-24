@@ -33,6 +33,39 @@ export function formatEditorRangeFieldValue(
   return String(value)
 }
 
+function getFormattedRangeBoundary(value: number | string, step: number | string) {
+  const parsedValue = getFiniteNumber(value)
+
+  return parsedValue === null
+    ? null
+    : formatEditorRangeFieldValue(parsedValue, step)
+}
+
+export function getEditorRangeFieldNumberInputCharacterCapacity({
+  max,
+  min,
+  step,
+  value,
+}: {
+  max: number | string
+  min: number | string
+  step: number | string
+  value: number
+}) {
+  const formattedValues = [
+    formatEditorRangeFieldValue(value, step),
+    getFormattedRangeBoundary(min, step),
+    getFormattedRangeBoundary(max, step),
+  ].filter((formattedValue): formattedValue is string => formattedValue !== null)
+  const longestFormattedValue = formattedValues.reduce(
+    (longestValue, formattedValue) =>
+      Math.max(longestValue, formattedValue.length),
+    0,
+  )
+
+  return Math.max(3, longestFormattedValue + 1)
+}
+
 export function normalizeEditorRangeFieldValue({
   max,
   min,

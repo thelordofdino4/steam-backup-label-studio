@@ -1,10 +1,12 @@
 import {
   useMemo,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from 'react'
 import {
   formatEditorRangeFieldValue,
+  getEditorRangeFieldNumberInputCharacterCapacity,
   getEditorRangeFieldValue,
   normalizeEditorRangeFieldValue,
 } from './editorRangeFieldModel'
@@ -46,6 +48,20 @@ function EditorRangeInput({
     () => formatEditorRangeFieldValue(value, step),
     [step, value],
   )
+  const numberInputCharacterCapacity = useMemo(
+    () =>
+      getEditorRangeFieldNumberInputCharacterCapacity({
+        max,
+        min,
+        step,
+        value,
+      }),
+    [max, min, step, value],
+  )
+  const numberInputStyle = {
+    '--editor-range-number-input-character-capacity':
+      String(numberInputCharacterCapacity),
+  } as CSSProperties
   const numberInputId = `${id}-number`
   const unitId = unit ? `${numberInputId}-unit` : undefined
   const [draftState, setDraftState] = useState<RangeNumberDraftState>({
@@ -129,7 +145,7 @@ function EditorRangeInput({
         onChange={(event) =>
           onChange(getEditorRangeFieldValue(event.currentTarget.value))}
       />
-      <span className="editor-range-number-control">
+      <span className="editor-range-number-control" style={numberInputStyle}>
         <input
           id={numberInputId}
           className="editor-range-number-input"

@@ -126,7 +126,7 @@
 
 .editor-range-field-control {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(64px, 76px);
+  grid-template-columns: minmax(0, 1fr) max-content;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -137,11 +137,17 @@
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 4px;
+  justify-self: end;
   min-width: 0;
 }
 
 .editor-range-number-input {
-  min-width: 0;
+  width: calc(
+    (var(--editor-range-number-input-character-capacity, 4) * 1ch) + 28px
+  );
+  min-width: calc(
+    (var(--editor-range-number-input-character-capacity, 4) * 1ch) + 28px
+  );
   min-height: 32px;
   padding: 6px 8px;
   border-radius: 8px;
