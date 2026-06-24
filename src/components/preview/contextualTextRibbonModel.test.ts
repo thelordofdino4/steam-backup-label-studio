@@ -1163,6 +1163,10 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     /withRibbonElementRowSpan\([\s\S]*getFixedWidthProfile/,
   )
   assert.match(
+    ribbonHostSource,
+    /function getRibbonDeclaredWidthProfile\([\s\S]*dataset\.ribbonGroupMinWidth[\s\S]*dataset\.ribbonGroupPreferredWidth[\s\S]*dataset\.ribbonGroupMaxWidth/,
+  )
+  assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-command-button--utility-reset\s*\{[\s\S]*align-self:\s*stretch[\s\S]*min-width:\s*52px[\s\S]*height:\s*100%/,
   )
@@ -1212,6 +1216,52 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   assert.match(
     ribbonCss,
     /@container \(max-width: 719px\)[\s\S]*\.contextual-text-ribbon-control-row--utilities[\s\S]*\.contextual-text-ribbon-toggle-check span\s*\{[\s\S]*max-width:\s*none[\s\S]*overflow:\s*visible[\s\S]*text-overflow:\s*clip/,
+  )
+})
+
+test('html ribbon tab uses a dedicated source panel instead of a semantic card', () => {
+  const editorSource = readRepoFile(
+    'src/components/preview/InlinePreviewTextEditor.tsx',
+  )
+  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+
+  assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.source, {
+    min: 420,
+    preferred: 960,
+    max: 1440,
+    grows: true,
+  })
+  assert.match(
+    editorSource,
+    /function renderInlinePreviewHtmlSourcePanel\(/,
+  )
+  assert.match(
+    editorSource,
+    /className="contextual-text-ribbon-html-panel"[\s\S]*data-ribbon-group="source"[\s\S]*data-ribbon-group-row-span="2"[\s\S]*data-ribbon-html-panel/,
+  )
+  assert.match(
+    editorSource,
+    /activeTab === 'html'[\s\S]*className:\s*'contextual-text-ribbon-control-row--html'[\s\S]*children:\s*renderInlinePreviewHtmlSourcePanel/,
+  )
+  assert.doesNotMatch(
+    editorSource,
+    /activeTab === 'html'[\s\S]*renderContextualTextRibbonGroup\(\{[\s\S]*label:\s*'HTML'/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*display:\s*grid[\s\S]*grid-row:\s*span 2[\s\S]*overflow:\s*hidden/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-source-control\s*\{[\s\S]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-source-field textarea\s*\{[\s\S]*height:\s*100%[\s\S]*min-height:\s*44px[\s\S]*overflow:\s*auto[\s\S]*white-space:\s*pre/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-html-panel \.contextual-text-ribbon-control-label\s*\{[\s\S]*clip-path:\s*inset\(50%\)/,
   )
 })
 
@@ -1296,8 +1346,12 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-group\s*\{[\s\S]*border:\s*1px solid/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group-label\s*\{/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-group-body\s*\{/)
-  assert.match(ribbonCss, /\.contextual-text-ribbon-group--source-expanded\s*\{[\s\S]*grid-row:\s*span/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*grid-row:\s*span 2/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-html-panel\s*\{[\s\S]*height:\s*100%/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-source-field textarea\s*\{[\s\S]*white-space:\s*pre/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-source-field textarea\s*\{[\s\S]*font-family:[\s\S]*monospace/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-source-field textarea\s*\{[\s\S]*min-height:\s*44px/)
+  assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-group--source-expanded/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-align/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)

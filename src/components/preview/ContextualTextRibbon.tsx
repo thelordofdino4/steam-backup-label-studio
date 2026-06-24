@@ -123,13 +123,9 @@ function getRibbonGroupContentWidth(element: HTMLElement) {
   )
 }
 
-function getRibbonGroupWidthProfile(
+function getRibbonDeclaredWidthProfile(
   element: HTMLElement,
 ): ContextualTextRibbonWidthProfile | null {
-  if (!element.classList.contains('contextual-text-ribbon-group')) {
-    return null
-  }
-
   const min = getFiniteDataNumber(element.dataset.ribbonGroupMinWidth)
   const preferred =
     getFiniteDataNumber(element.dataset.ribbonGroupPreferredWidth)
@@ -147,7 +143,7 @@ function getRibbonGroupWidthProfile(
         max: contentWidth,
         min: contentWidth,
         preferred: contentWidth,
-        rowSpan: element.dataset.ribbonGroupRowSpan === '2' ? 2 : 1,
+        rowSpan: getRibbonElementRowSpan(element),
       }
     }
 
@@ -156,7 +152,7 @@ function getRibbonGroupWidthProfile(
       max,
       min,
       preferred,
-      rowSpan: element.dataset.ribbonGroupRowSpan === '2' ? 2 : 1,
+      rowSpan: getRibbonElementRowSpan(element),
     }
   }
 
@@ -175,8 +171,8 @@ function getRibbonItemWidthProfile(
     )
   }
 
-  const groupProfile = getRibbonGroupWidthProfile(element)
-  if (groupProfile) return groupProfile
+  const declaredProfile = getRibbonDeclaredWidthProfile(element)
+  if (declaredProfile) return declaredProfile
 
   if (!element.classList.contains('contextual-text-ribbon-group')) {
     return withRibbonElementRowSpan(

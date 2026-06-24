@@ -1133,6 +1133,43 @@ function renderInlinePreviewHtmlSourceControl({
   )
 }
 
+function renderInlinePreviewHtmlSourcePanel({
+  control,
+  isCurvedText,
+  sourceDraft,
+  onSourceDraftChange,
+}: {
+  control: InlinePreviewTextEditorCheckboxControl | undefined
+  isCurvedText: boolean
+  sourceDraft: string
+  onSourceDraftChange: (value: string) => void
+}) {
+  if (!control) return null
+
+  const size = CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.source
+
+  return (
+    <div
+      aria-label="HTML source"
+      className="contextual-text-ribbon-html-panel"
+      data-ribbon-group="source"
+      data-ribbon-group-grows={size.grows || undefined}
+      data-ribbon-group-max-width={size.max}
+      data-ribbon-group-min-width={size.min}
+      data-ribbon-group-preferred-width={size.preferred}
+      data-ribbon-group-row-span="2"
+      data-ribbon-html-panel
+    >
+      {renderInlinePreviewHtmlSourceControl({
+        control,
+        isCurvedText,
+        sourceDraft,
+        onSourceDraftChange,
+      })}
+    </div>
+  )
+}
+
 function InlinePreviewHtmlSourceTextarea({
   draft,
   isCurvedText,
@@ -1698,18 +1735,13 @@ function InlinePreviewTextEditorMenuContent({
 
   if (activeTab === 'html') {
     return renderContextualTextRibbonRow({
+      className: 'contextual-text-ribbon-control-row--html',
       emptyLabel: 'HTML source unavailable',
-      children: renderContextualTextRibbonGroup({
-        id: 'source',
-        label: 'HTML',
-        className:
-          'contextual-text-ribbon-group--source contextual-text-ribbon-group--source-expanded',
-        children: renderInlinePreviewHtmlSourceControl({
-          control: controls.html?.source,
-          isCurvedText,
-          sourceDraft,
-          onSourceDraftChange,
-        }),
+      children: renderInlinePreviewHtmlSourcePanel({
+        control: controls.html?.source,
+        isCurvedText,
+        sourceDraft,
+        onSourceDraftChange,
       }),
     })
   }

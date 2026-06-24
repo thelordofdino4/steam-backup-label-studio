@@ -638,6 +638,16 @@ Ribbon placement and layout:
   `Layout` card uses a compact content width so its right border remains near
   the last visible control; the wider Layout profile is reserved for targets
   with additional mode or arc option columns.
+- The HTML tab is rendered as a dedicated two-row source panel rather than a
+  titled semantic-card group. It owns source/status text, validation feedback,
+  and a monospaced source textarea with native typing, selection, clipboard,
+  undo/redo behavior, `white-space: pre`, and editor-owned horizontal/vertical
+  scrolling. The source/status row is the visible label for the panel, so the
+  textarea does not spend horizontal space on a second visible `Source` label.
+  The panel participates in the same horizontal whole-card overflow lane as
+  other ribbon items, but it must not add a third ribbon row, collapse into a
+  one-line strip, move the preview, or reintroduce Utilities-owned HTML source
+  controls.
 - Ribbon position and size depend only on the app-shell container dimensions.
   They must not depend on selected-text bounds, safe zones, arcs, disc center
   holes, preview geometry, or collision scoring.

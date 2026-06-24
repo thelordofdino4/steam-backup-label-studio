@@ -97,7 +97,7 @@ export const CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS: Record<
     grows: true,
     rowSpan: 2,
   },
-  'source': { min: 420, preferred: 720, max: 960, grows: true },
+  'source': { min: 420, preferred: 960, max: 1440, grows: true },
   'position': {
     min: 230,
     preferred: 292,

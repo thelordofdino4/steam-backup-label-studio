@@ -174,6 +174,17 @@ tested, and the remaining divergences are recorded.
   range-only `Layout` card uses a compact content width so its right border
   sits near the rightmost visible control; only layouts with additional
   mode/arc option columns may use the wider Layout profile.
+- The HTML tab is a dedicated source-editing panel, not a normal labeled
+  semantic card and not a Utilities checkbox. It spans the two fixed control
+  rows, shows source/status and validation messaging, and gives the monospaced
+  source editor the remaining panel height. The editor uses `white-space: pre`,
+  its own horizontal and vertical scrolling, native typing/selection/clipboard
+  behavior, and must remain at least two visible source rows tall at supported
+  window sizes. The status row is the visible panel label; do not spend editor
+  width on an additional visible `Source` label. The HTML panel may
+  horizontally overflow as one whole-card item with the ribbon lane, but it
+  must not create a third ribbon row, vertical ribbon scrolling, preview
+  movement, or a one-line collapsed editor.
 - Composite value/dropdown fields must share the same visual metrics as nearby
   native dropdowns: border-box height, top and bottom border rows, border
   radius, background, font sizing, focus treatment, and chevron asset. The
