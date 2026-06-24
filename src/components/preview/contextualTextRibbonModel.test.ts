@@ -1141,6 +1141,13 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     rowSpan: 2,
     fit: 'content',
   })
+  assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['metadata-source'], {
+    min: 248,
+    preferred: 268,
+    max: 288,
+    rowSpan: 2,
+    fit: 'content',
+  })
   assert.deepEqual(
     packed.map((column) => column.items.map((item) => ({
       id: item.id,
@@ -1518,6 +1525,7 @@ test('contextual text ribbon CSS keeps preview layout independent of activation'
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s*\{[\s\S]*display:\s*flex/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s+\.inline-preview-text-delete-button\s*\{[\s\S]*flex:\s*0 0 auto/)
   assert.match(ribbonCss, /\.contextual-text-ribbon-actions\s+\.inline-preview-text-done-button\s*\{[\s\S]*flex:\s*1 1 auto/)
+  assert.match(ribbonCss, /\.contextual-text-ribbon-metadata-action\s*\{[\s\S]*width:\s*max-content[\s\S]*white-space:\s*nowrap/)
   assert.doesNotMatch(ribbonCss, /--contextual-text-ribbon-label-column/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-portal-slot/)
   assert.doesNotMatch(ribbonCss, /\.contextual-text-ribbon-controls--inline-menu/)

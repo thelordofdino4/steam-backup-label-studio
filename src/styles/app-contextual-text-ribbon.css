@@ -863,11 +863,11 @@
 
 .contextual-text-ribbon-metadata-action {
   justify-self: center;
-  width: auto;
+  width: max-content;
   max-width: 100%;
   min-height: 24px;
   padding-inline: 8px;
-  white-space: normal;
+  white-space: nowrap;
 }
 
 .contextual-text-ribbon-control-stack--utility-position,
