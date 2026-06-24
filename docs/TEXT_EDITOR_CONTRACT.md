@@ -184,12 +184,18 @@ tested, and the remaining divergences are recorded.
   Curved Layout option controls such as `Arc side` use a separate compact
   options column with enough select-field width for the current value and
   chevron; the select must remain fully inside the Layout card and may not be
-  clipped by the card edge or reset command. Curved Layout uses its own
-  content-fitted card width profile instead of the straight-text Layout width
-  profile because preserving readable `Line spacing`, `Arc`, and `Arc side`
-  controls is more important than forcing the whole curved Layout card into the
-  straight-text minimum. At constrained widths, whole-card horizontal scrolling
-  is the expected fallback.
+  clipped by the card edge or reset command. `Arc side` is visible in Utilities
+  only when the Steam banner is hidden, because top/bottom arc switching is the
+  user-facing side control for the no-banner disc layout. When the Steam banner
+  is visible, the saved arc-side value and renderer geometry remain intact, but
+  the Utilities Layout card omits the option column and uses a curved
+  range-only width so the card edge stops near the former range/options
+  divider. Curved Layout uses its own content-fitted card width profiles instead
+  of the straight-text Layout width profile because preserving readable
+  `Line spacing`, `Arc`, and, when available, `Arc side` controls is more
+  important than forcing the whole curved Layout card into the straight-text
+  minimum. At constrained widths, whole-card horizontal scrolling is the
+  expected fallback.
   Utilities layout reset uses
   the Presets reset visual language: a standalone `Reset` command button
   without an extra `Reset` card title or a secondary `Layout` label, except it
@@ -330,7 +336,7 @@ tested, and the remaining divergences are recorded.
 | Left spine text | Same contextual text controls that the spine target supports | Rotated caret/selection, rotated bounds, edge-grab movement, Move fallback | Add/select entry points, spine orientation or structural setup where still sidebar-owned |
 | Right spine text | Same as left spine text | Same as left spine text | Same as left spine text |
 | Straight disc text | Style presets, layout presets, font family, Font size (pt), BIU, underline, color, contrast, alignment, line/wrap controls, HTML source, reset style/layout, Done, Delete where supported | SVG/tspan renderer, direct typing adapter, caret, range selection, bounds, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved setup where needed |
-| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc side/span/inset/position, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
+| Curved disc text | Font family, Font size (pt), BIU, underline, color, contrast, alignment, line spacing, arc span/inset/position, conditional arc side when the Steam banner is hidden, presets, safe inline HTML source, reset style/layout, Done, Delete where supported | SVG/textPath renderer, path-aware caret, path-aware selection, arc-aware outline/bounds, direct typing adapter, edge-grab movement, Move fallback | Enable/add, metadata/default source, straight/curved mode selection |
 
 ### Responsive Ribbon States
 

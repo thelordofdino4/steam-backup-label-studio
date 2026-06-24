@@ -324,6 +324,7 @@ export function DiscInlineTextEditorLayer({
             layout,
             style: discTextStyles[key],
             isHtmlSourceEnabled: isHtmlSourceEditing,
+            canChangeArcSide: steamLogoPlacement === 'none',
             onSelectedDiscTextKeyChange,
             onDiscTextEnabledChange,
             onDiscTextStyleChange,

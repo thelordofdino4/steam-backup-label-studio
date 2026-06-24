@@ -107,6 +107,7 @@ export type CurvedDiscTextEditorControlParams = Omit<
   DiscInlineTextEditorControlParams,
   | 'onDiscTextVisualAvoidanceChange'
 > & {
+  canChangeArcSide?: boolean
   onDiscTextArcSideChange: (
     key: DiscTextKey,
     arcSide: DiscTextArcSide,
@@ -612,6 +613,7 @@ export function createCurvedDiscTextEditorControls({
   onResetDiscTextLayout,
   onDiscTextRichTextCommand,
   getDiscTextRichTextCommandState,
+  canChangeArcSide = true,
 }: CurvedDiscTextEditorControlParams): InlinePreviewTextEditorControls {
   const layoutPresets = getDiscTextLayoutPresetsForKey(key)
     .filter((preset) => preset.layout.mode === 'curved')
@@ -879,16 +881,20 @@ export function createCurvedDiscTextEditorControls({
         value: layout.y,
         onChange: (value) => onDiscTextLayoutChange(key, 'y', value),
       },
-      arcSide: {
-        label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
-        options: [
-          { label: 'Top arc', value: 'top' },
-          { label: 'Bottom arc', value: 'bottom' },
-        ],
-        value: layout.arcSide,
-        onChange: (value) =>
-          onDiscTextArcSideChange(key, value as DiscTextArcSide),
-      },
+      ...(canChangeArcSide
+        ? {
+            arcSide: {
+              label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcSide,
+              options: [
+                { label: 'Top arc', value: 'top' },
+                { label: 'Bottom arc', value: 'bottom' },
+              ],
+              value: layout.arcSide,
+              onChange: (value) =>
+                onDiscTextArcSideChange(key, value as DiscTextArcSide),
+            },
+          }
+        : {}),
       arcDegrees: {
         label: CONTEXTUAL_TEXT_CONTROL_LABELS.arcDegrees,
         min: 80,

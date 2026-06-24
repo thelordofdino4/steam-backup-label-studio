@@ -1852,7 +1852,9 @@ function InlinePreviewTextEditorMenuContent({
     ? isCurvedLayoutRangeStack
       ? CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved']
       : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS.layout
-    : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact']
+    : isCurvedLayoutRangeStack
+      ? CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved-compact']
+      : CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact']
 
   return renderContextualTextRibbonRow({
     className: 'contextual-text-ribbon-control-row--utilities',
@@ -2554,7 +2556,7 @@ export function InlinePreviewTextEditor({
   const isCurvedTextSource =
     Boolean(
       editorControls?.utilities?.arcDegrees &&
-      editorControls.utilities.arcSide &&
+      editorControls.utilities.lineSpacing &&
       !editorControls.text?.bulletedList,
     )
 

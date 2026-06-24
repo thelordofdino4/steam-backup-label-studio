@@ -1122,6 +1122,16 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
     rowSpan: 2,
     fit: 'content',
   })
+  assert.deepEqual(
+    CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-curved-compact'],
+    {
+      min: 270,
+      preferred: 270,
+      max: 270,
+      rowSpan: 2,
+      fit: 'content',
+    },
+  )
   assert.deepEqual(CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS['layout-compact'], {
     min: 292,
     preferred: 292,
@@ -1199,7 +1209,7 @@ test('contextual text ribbon utilities tab uses semantic native cards', () => {
   )
   assert.match(
     editorSource,
-    /const layoutGroupSize = layoutOptionControls[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-curved'\][\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\.layout[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-compact'\]/,
+    /const layoutGroupSize = layoutOptionControls[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-curved'\][\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\.layout[\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-curved-compact'\][\s\S]*CONTEXTUAL_TEXT_RIBBON_GROUP_WIDTHS\['layout-compact'\]/,
   )
   assert.match(
     editorSource,

@@ -16,6 +16,7 @@ import {
 import {
   createCurvedDiscTextEditorControls,
   createDiscInlineTextEditorControls,
+  type CurvedDiscTextEditorControlParams,
   type DiscInlineTextEditorControlParams,
 } from './discInlineTextEditorControls.ts'
 
@@ -65,6 +66,66 @@ function createControls(
     },
     onDiscTextVisualAvoidanceChange: (_key, avoidVisualElements) => {
       calls.push(`avoid:${avoidVisualElements}`)
+    },
+    onResetDiscTextLayout: () => {
+      calls.push('reset-layout')
+    },
+    onResetDiscTextStyle: () => {
+      calls.push('reset-style')
+    },
+    onSelectedDiscTextKeyChange: (selectedKey) => {
+      calls.push(`selected:${String(selectedKey)}`)
+    },
+    style,
+    ...overrides,
+  })
+
+  return { calls, controls, layout, style }
+}
+
+function createCurvedControls(
+  overrides: Partial<CurvedDiscTextEditorControlParams> = {},
+) {
+  const calls: string[] = []
+  const key: DiscTextKey = overrides.key ?? 'copyright'
+  const layout = overrides.layout ?? {
+    ...createDefaultDiscTextLayout('top').copyright,
+    arcDegrees: 180,
+    arcSide: 'bottom' as const,
+    fontSizePt: 9,
+    mode: 'curved' as const,
+    scale: 1,
+    x: 0,
+    y: 4,
+  }
+  const style = overrides.style ?? createDefaultDiscTextStyle(key)
+  const noop = () => undefined
+
+  const controls = createCurvedDiscTextEditorControls({
+    isHtmlSourceEnabled: false,
+    key,
+    layout,
+    onApplyDiscTextStylePreset: (_key, presetId) => {
+      calls.push(`style-preset:${presetId}`)
+    },
+    onDiscTextAlignmentChange: (_key, alignment) => {
+      calls.push(`align:${alignment}`)
+    },
+    onDiscTextArcSideChange: (_key, arcSide) => {
+      calls.push(`arc-side:${arcSide}`)
+    },
+    onDiscTextContentModeChange: (_key, contentMode) => {
+      calls.push(`content-mode:${contentMode}`)
+    },
+    onDiscTextEnabledChange: (_key, enabled) => {
+      calls.push(`enabled:${enabled}`)
+    },
+    onDiscTextLayoutChange: (_key, field, value) => {
+      calls.push(`layout:${field}:${value}`)
+    },
+    onDiscTextRichTextCommand: noop,
+    onDiscTextStyleChange: (_key, field, value) => {
+      calls.push(`style:${field}:${String(value)}`)
     },
     onResetDiscTextLayout: () => {
       calls.push('reset-layout')
@@ -202,6 +263,27 @@ test('curved disc artistic controls omit unsupported background and border group
   assert.equal(controls.art?.borderEnabled, undefined)
   assert.equal(controls.art?.borderColor, undefined)
   assert.equal(controls.art?.borderRadius, undefined)
+})
+
+test('curved arc side control is only exposed when the Steam banner is hidden', () => {
+  const hiddenBanner = createCurvedControls({
+    canChangeArcSide: true,
+  })
+  const visibleBanner = createCurvedControls({
+    canChangeArcSide: false,
+  })
+
+  assert.equal(hiddenBanner.controls.utilities?.arcSide?.label, 'Arc side')
+  hiddenBanner.controls.utilities?.arcSide?.onChange('top')
+  assert.deepEqual(hiddenBanner.calls, ['arc-side:top'])
+
+  assert.equal(visibleBanner.controls.utilities?.lineSpacing?.label, 'Line spacing')
+  assert.equal(visibleBanner.controls.utilities?.arcDegrees?.label, 'Arc')
+  assert.equal(
+    Object.hasOwn(visibleBanner.controls.utilities ?? {}, 'arcSide'),
+    false,
+  )
+  assert.deepEqual(visibleBanner.calls, [])
 })
 
 test('disc bulleted list control routes selection command through adapter', () => {
