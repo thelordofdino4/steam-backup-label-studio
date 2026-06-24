@@ -835,18 +835,22 @@
   .contextual-text-ribbon-group--metadata-source
   .contextual-text-ribbon-group-body {
   flex: 1 1 auto;
-  align-items: stretch;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
   width: 100%;
 }
 
 .contextual-text-ribbon-metadata-source {
   display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-rows: repeat(2, max-content);
+  place-content: center;
+  justify-items: center;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
   min-width: 0;
+  text-align: center;
 }
 
 .contextual-text-ribbon-metadata-status {
@@ -854,26 +858,13 @@
   font-size: 11px;
   font-weight: 800;
   line-height: 1.2;
-}
-
-.contextual-text-ribbon-metadata-source--metadata
-  .contextual-text-ribbon-metadata-status {
-  color: #bfdbfe;
-}
-
-.contextual-text-ribbon-metadata-source--manual
-  .contextual-text-ribbon-metadata-status {
-  color: #fde68a;
-}
-
-.contextual-text-ribbon-metadata-source--unavailable
-  .contextual-text-ribbon-metadata-status {
-  color: #cbd5e1;
+  text-wrap: balance;
 }
 
 .contextual-text-ribbon-metadata-action {
-  justify-self: stretch;
-  width: 100%;
+  justify-self: center;
+  width: auto;
+  max-width: 100%;
   min-height: 24px;
   padding-inline: 8px;
   white-space: normal;
