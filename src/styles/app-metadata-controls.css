@@ -10,6 +10,43 @@
   font-size: 0.85rem;
 }
 
+.search-results {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.search-result-button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #111827;
+  color: #f9fafb;
+  cursor: pointer;
+  text-align: left;
+}
+
+.search-result-button:hover:not(:disabled),
+.search-result-button:focus-visible {
+  border-color: rgba(147, 197, 253, 0.82);
+  background: #1f2937;
+}
+
+.search-result-button:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+.search-result-button span {
+  color: #9ca3af;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .logo-asset-card {
   border-top: 1px solid rgba(148, 163, 184, 0.18);
   margin-top: 0.9rem;

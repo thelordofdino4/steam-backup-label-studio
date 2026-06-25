@@ -273,12 +273,19 @@
 }
 
 .preview-viewport-fit-button:hover,
-.preview-viewport-icon-button:hover,
+.preview-viewport-icon-button:hover {
+  border-color: rgba(96, 165, 250, 0.95);
+  background: #1f2937;
+}
+
 .preview-viewport-fit-button:focus-visible,
 .preview-viewport-icon-button:focus-visible {
   border-color: rgba(96, 165, 250, 0.95);
   background: #1f2937;
   outline: none;
+  box-shadow:
+    inset 0 0 0 2px rgba(147, 197, 253, 0.78),
+    0 0 0 2px rgba(59, 130, 246, 0.22);
 }
 
 .disc-preview {

@@ -199,6 +199,17 @@ textarea {
   cursor: pointer;
 }
 
+.secondary-button:hover:not(:disabled),
+.icon-button:hover:not(:disabled) {
+  border-color: rgba(147, 197, 253, 0.82);
+  background: #1f2937;
+}
+
+.secondary-button:focus-visible,
+.icon-button:focus-visible {
+  border-color: #93c5fd;
+}
+
 .icon-text-button {
   display: inline-flex;
   align-items: center;
