@@ -13,15 +13,6 @@ export type ImageCandidatePickerItem = {
   isSelected?: boolean
 }
 
-export type ImageCandidatePickerProps = {
-  buttonLabel: string
-  title: string
-  items: ImageCandidatePickerItem[]
-  disabled?: boolean
-  selectLabel?: string
-  onSelect: (itemId: string) => void | Promise<void>
-}
-
 export type ImageCandidatePreviewPickerProps = {
   ariaLabel: string
   title: string
@@ -235,61 +226,6 @@ export function ImageCandidatePreviewPicker({
         <span className="image-candidate-preview-picker-status" aria-hidden="true">
           {items.length} option{items.length === 1 ? '' : 's'}
         </span>
-      </button>
-
-      {isOpen ? (
-        <ImageCandidatePickerDialog
-          titleId={titleId}
-          title={title}
-          items={items}
-          selectLabel={selectLabel}
-          selectingItemId={selectingItemId}
-          closePicker={closePicker}
-          handleSelect={(itemId) => void handleSelect(itemId)}
-        />
-      ) : null}
-    </>
-  )
-}
-
-export function ImageCandidatePicker({
-  buttonLabel,
-  title,
-  items,
-  disabled = false,
-  selectLabel = 'Use image',
-  onSelect,
-}: ImageCandidatePickerProps) {
-  const titleId = useId()
-  const [isOpen, setIsOpen] = useState(false)
-  const [selectingItemId, setSelectingItemId] = useState<string | null>(null)
-
-  const closePicker = () => {
-    if (!selectingItemId) {
-      setIsOpen(false)
-    }
-  }
-
-  const handleSelect = async (itemId: string) => {
-    setSelectingItemId(itemId)
-
-    try {
-      await onSelect(itemId)
-      setIsOpen(false)
-    } finally {
-      setSelectingItemId(null)
-    }
-  }
-
-  return (
-    <>
-      <button
-        className="secondary-button"
-        type="button"
-        disabled={disabled || items.length === 0}
-        onClick={() => setIsOpen(true)}
-      >
-        {buttonLabel}
       </button>
 
       {isOpen ? (

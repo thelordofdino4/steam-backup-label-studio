@@ -104,7 +104,7 @@ export function decodePngRgba(buffer) {
   return { bitDepth, colorType, data: rgba, height, width }
 }
 
-export function hashBuffer(buffer) {
+function hashBuffer(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex')
 }
 
