@@ -1,9 +1,16 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { EXPORT_DPI, MM_PER_INCH, buildCustomDiscTemplate } from '../disc/geometry.ts'
+import type { DiscTemplateGeometryGuardrailState } from '../layout/discTemplateGeometryGuardrail.ts'
 import {
+  CUSTOM_OUTER_DIAMETER_MAX_MM,
+  createDefaultDiscTemplateState,
   createDiscTemplateGuideOverlay,
+  createDiscTemplateSelectionChange,
   getDiscTemplateExportPreviewFallbackSize,
+  getSelectedDiscTemplate,
+  restoreDiscTemplateRuntimeState,
+  updateCustomDiscTemplateDimension,
 } from './discTemplateStateModel.ts'
 import { discTemplates } from './discTemplates.ts'
 import {
@@ -140,6 +147,117 @@ test('disc template export preview fallback follows print geometry at export DPI
   assert.equal(
     getDiscTemplateExportPreviewFallbackSize(template),
     Math.round((template.outerDiameterMm / MM_PER_INCH) * EXPORT_DPI),
+  )
+})
+
+test('disc template state defaults to the standard template with custom dimensions prepared', () => {
+  const state = createDefaultDiscTemplateState()
+
+  assert.equal(state.selectedDiscTemplateId, 'standardPrintableDisc')
+  assert.equal(getSelectedDiscTemplate(state), discTemplates.standardPrintableDisc)
+  assert.equal(state.customDiscTemplate.id, 'custom')
+  assert.equal(
+    state.customDiscTemplate.outerDiameterMm,
+    discTemplates.standardPrintableDisc.outerDiameterMm,
+  )
+})
+
+test('disc template selection returns the selected template and status copy', () => {
+  const customDiscTemplate = buildCustomDiscTemplate(
+    discTemplates.standardPrintableDisc,
+    { safeDiameterMm: 90 },
+  )
+  const change = createDiscTemplateSelectionChange(
+    {
+      selectedDiscTemplateId: 'standardPrintableDisc',
+      customDiscTemplate,
+    },
+    'custom',
+  )
+
+  assert.equal(change.state.selectedDiscTemplateId, 'custom')
+  assert.equal(change.selectedTemplate, customDiscTemplate)
+  assert.equal(
+    change.statusMessage,
+    'Custom disc dimensions enabled. Edit the numeric fields below.',
+  )
+})
+
+test('disc template restore preserves existing custom dimensions when a standard project has none', () => {
+  const customDiscTemplate = buildCustomDiscTemplate(
+    discTemplates.standardPrintableDisc,
+    { outerDiameterMm: 110 },
+  )
+  const restored = restoreDiscTemplateRuntimeState(
+    {
+      selectedDiscTemplateId: 'custom',
+      customDiscTemplate,
+    },
+    {
+      selectedDiscTemplateId: 'standardPrintableDisc',
+    },
+  )
+
+  assert.equal(restored.selectedDiscTemplateId, 'standardPrintableDisc')
+  assert.equal(restored.customDiscTemplate, customDiscTemplate)
+})
+
+test('custom disc dimension updates normalize values and defer clamping until custom is selected', () => {
+  const result = updateCustomDiscTemplateDimension({
+    state: createDefaultDiscTemplateState(),
+    field: 'outerDiameterMm',
+    value: '400',
+    geometryGuardrailState: {} as DiscTemplateGeometryGuardrailState,
+    validateGeometry: () => ({ allowed: true, blockingElementLabels: [] }),
+  })
+
+  assert.equal(result.changed, true)
+  assert.equal(result.statusMessage, null)
+  assert.equal(result.selectedTemplateToClamp, null)
+  assert.equal(
+    result.state.customDiscTemplate.outerDiameterMm,
+    CUSTOM_OUTER_DIAMETER_MAX_MM,
+  )
+})
+
+test('custom disc dimension updates return a clamp target when custom is active', () => {
+  const result = updateCustomDiscTemplateDimension({
+    state: {
+      ...createDefaultDiscTemplateState(),
+      selectedDiscTemplateId: 'custom',
+    },
+    field: 'safeDiameterMm',
+    value: '90',
+    geometryGuardrailState: {} as DiscTemplateGeometryGuardrailState,
+    validateGeometry: () => ({ allowed: true, blockingElementLabels: [] }),
+  })
+
+  assert.equal(result.changed, true)
+  assert.equal(
+    result.selectedTemplateToClamp,
+    result.state.customDiscTemplate,
+  )
+})
+
+test('custom disc dimension updates keep prior state when guardrails block geometry', () => {
+  const state = createDefaultDiscTemplateState()
+  const result = updateCustomDiscTemplateDimension({
+    state,
+    field: 'safeDiameterMm',
+    value: '40',
+    geometryGuardrailState: {} as DiscTemplateGeometryGuardrailState,
+    validateGeometry: () => ({
+      allowed: false,
+      blockingElementLabels: ['rating badge', 'developer logo'],
+    }),
+  })
+
+  assert.equal(result.changed, false)
+  assert.equal(result.state, state)
+  assert.equal(result.selectedTemplateToClamp, null)
+  assert.equal(
+    result.statusMessage,
+    'Custom geometry needs more printable space for rating badge and 1 more.',
   )
 })
 

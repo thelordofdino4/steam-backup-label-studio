@@ -1,15 +1,17 @@
-import { useEffect, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 import type { EditorWorkspace } from '../editor/editorTypes'
+
+const DEFAULT_DISC_PREVIEW_SIZE = 640
 
 export function useDiscPreviewSize({
   activeWorkspace,
   discPreviewRef,
-  setDiscPreviewSize,
 }: {
   activeWorkspace: EditorWorkspace
   discPreviewRef: RefObject<HTMLDivElement | null>
-  setDiscPreviewSize: (size: number) => void
 }) {
+  const [discPreviewSize, setDiscPreviewSize] = useState(DEFAULT_DISC_PREVIEW_SIZE)
+
   useEffect(() => {
     if (activeWorkspace !== 'disc') {
       return
@@ -40,4 +42,6 @@ export function useDiscPreviewSize({
 
     return () => resizeObserver.disconnect()
   }, [activeWorkspace, discPreviewRef, setDiscPreviewSize])
+
+  return discPreviewSize
 }

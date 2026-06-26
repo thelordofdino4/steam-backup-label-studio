@@ -1,13 +1,7 @@
 import type { DiscTemplate } from '../../types/template'
 import type { SelectedDiscTemplateId } from '../../project/projectTypes'
+import type { CustomDiscDimensionKey } from '../../templates/discTemplateStateModel'
 import { EditorPanel } from '../editor/EditorPanel'
-
-type CustomDimensionKey =
-  | 'outerDiameterMm'
-  | 'physicalCenterHoleDiameterMm'
-  | 'innerHoleDiameterMm'
-  | 'printableDiameterMm'
-  | 'safeDiameterMm'
 
 type TemplatePanelProps = {
   selectedDiscTemplateId: SelectedDiscTemplateId
@@ -17,7 +11,7 @@ type TemplatePanelProps = {
   discTemplateOptions: DiscTemplate[]
   customOuterDiameterMaxMm: number
   handleTemplateChange: (templateId: SelectedDiscTemplateId) => void
-  handleCustomDimensionChange: (dimensionKey: CustomDimensionKey, rawValue: string) => void
+  handleCustomDimensionChange: (dimensionKey: CustomDiscDimensionKey, rawValue: string) => void
 }
 
 export function TemplatePanel({

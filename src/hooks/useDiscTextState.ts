@@ -201,6 +201,8 @@ export function useDiscTextState({
   const [discTextStyles, setDiscTextStyles] = useState<DiscTextStyleSettings>(() =>
     createDefaultDiscTextStyles(),
   )
+  const [selectedDiscTextKey, setSelectedDiscTextKey] =
+    useState<DiscTextKey | null>(null)
   const [projectDiscNumberArtwork, setProjectDiscNumberArtwork] = useState(() =>
     createDefaultProjectDiscNumberArtwork(),
   )
@@ -341,6 +343,14 @@ export function useDiscTextState({
     setDiscTextSettings((currentSettings) =>
       updateDiscTextSetting(currentSettings, key, checked),
     )
+  }
+
+  function handleDiscTextPreviewEditStart(key: DiscTextKey) {
+    if (!discTextSettings[key]) {
+      handleDiscTextToggle(key, true)
+    }
+
+    setSelectedDiscTextKey(key)
   }
 
   function clampDiscTextLayoutForContent(key: DiscTextKey, renderedText: string) {
@@ -1067,6 +1077,8 @@ export function useDiscTextState({
     discTextHtmlSources,
     discTextLayout,
     discTextStyles,
+    selectedDiscTextKey,
+    setSelectedDiscTextKey,
     metadataBoundDiscTextValues,
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
@@ -1080,6 +1092,7 @@ export function useDiscTextState({
     clampMetadataBoundDiscTextLayoutsForContent,
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
+    handleDiscTextPreviewEditStart,
     handleDiscTextContentChange,
     handleDiscTextContentModeChange,
     handleDiscTextInlineDraftChange,

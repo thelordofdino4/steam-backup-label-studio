@@ -1,20 +1,7 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
-import { useEffect, useRef, useState } from 'react'
-import {
-  searchSteamStore,
-  type SteamArtworkAsset,
-  type SteamImportedGame,
-  type SteamSearchResult,
-} from '../steam/steamApi'
-import {
-  openLocalFolder,
-  type LocalSteamScreenshotAsset,
-} from '../local/localArtwork'
-import { createLocalSteamScreenshotDiscovery } from '../local/localSteamScreenshotDiscovery'
-import { loadMissingLocalSteamScreenshotThumbnails } from '../local/localSteamScreenshotThumbnails'
+import { useRef, useState } from 'react'
 import {
   applySteamGameImportToProjectMetadata,
-  createSteamGameImport,
 } from '../steam/steamGameImport'
 import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
@@ -25,7 +12,6 @@ import {
 import type { DiscTemplate } from '../types/template'
 import { EXPORT_DPI } from '../disc/geometry'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
-import { DEFAULT_EXPORT_GUIDES, setExportGuideSelection, type ExportGuideKey, type ExportGuideSelection } from '../export/exportGuides'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
@@ -40,11 +26,13 @@ import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { TextPanel } from '../components/sidebar/TextPanel'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
+import { useDiscExportGuides } from '../hooks/useDiscExportGuides'
 import { useDiscPreviewSize } from '../hooks/useDiscPreviewSize'
-import { useDiscTemplateState } from '../hooks/useDiscTemplateState'
-import { useDiscTextState } from '../hooks/useDiscTextState'
+import { useDiscTemplate } from '../hooks/useDiscTemplate'
+import { useDiscTextEditor } from '../hooks/useDiscTextEditor'
 import { useLogoAssetDiscovery } from '../hooks/useLogoAssetDiscovery'
-import { useBackgroundArtwork } from '../hooks/useBackgroundArtwork'
+import { useLocalSteamScreenshots } from '../hooks/useLocalSteamScreenshots'
+import { useBackgroundImage } from '../hooks/useBackgroundImage'
 import { useCaseInsertBrandingMarkSync } from '../hooks/useCaseInsertBrandingMarkSync'
 import { useCaseInsertTemplateEditor } from '../hooks/useCaseInsertTemplateEditor'
 import { useJewelCaseSpineEditor } from '../hooks/useJewelCaseSpineEditor'
@@ -55,13 +43,10 @@ import { useRatingBadgeState } from '../hooks/useRatingBadgeState'
 import { useStatusToasts } from '../hooks/useStatusToasts'
 import { useSteamMetadataAssistance } from '../hooks/useSteamMetadataAssistance'
 import { useSteamBannerState } from '../hooks/useSteamBannerState'
+import { useSteamImport } from '../hooks/useSteamImport'
 import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
 import { useTitleArtwork } from '../hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
-import {
-  createLocalSteamScreenshotBackgroundImport,
-  createSteamArtworkBackgroundImport,
-} from '../image/backgroundImageImport'
 import { createProjectSnapshot } from '../project/createProjectSnapshot'
 import { resolveSavedProjectRouteFromContents } from '../project/projectRouting'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
@@ -146,7 +131,6 @@ import { useCaseInsertPreviewPointerDrag } from '../interaction/useCaseInsertPre
 import { useDiscPreviewPointerDrag } from '../interaction/useDiscPreviewPointerDrag'
 import {
   getDiscTextPreviewTransform,
-  type DiscTextKey,
   type SteamLogoPlacement,
 } from '../discText/index'
 
@@ -165,6 +149,12 @@ function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
+  const discPreviewRef = useRef<HTMLDivElement | null>(null)
+  const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
+  const discPreviewSize = useDiscPreviewSize({
+    activeWorkspace,
+    discPreviewRef,
+  })
   const {
     selectedDiscTemplateId,
     customDiscTemplate,
@@ -179,18 +169,19 @@ function App() {
     restoreDiscTemplateState,
     handleTemplateChange,
     handleCustomDimensionChange,
-  } = useDiscTemplateState({
+  } = useDiscTemplate({
     announceStatus,
     clampForegroundElementLayoutsToTemplate,
     getGeometryGuardrailState,
   })
   const [steamLogoPlacement, setSteamLogoPlacement] =
     useState<SteamLogoPlacement>('top')
-  const [exportGuides, setExportGuides] = useState<ExportGuideSelection>(
-    DEFAULT_EXPORT_GUIDES,
-  )
-  const [discPreviewSize, setDiscPreviewSize] = useState(640)
-  const [gameSearchQuery, setGameSearchQuery] = useState('')
+  const {
+    exportGuides,
+    resetExportGuides,
+    restoreExportGuides,
+    handleExportGuideToggle,
+  } = useDiscExportGuides()
   const [manualGameTitle, setManualGameTitle] = useState('Untitled Steam Backup Label')
   const [projectJewelCase, setProjectJewelCase] = useState(() =>
     createDefaultProjectJewelCaseState(DEFAULT_CASE_INSERT_PROJECT_TITLE),
@@ -210,11 +201,21 @@ function App() {
   const [projectMetadata, setProjectMetadata] = useState<ProjectMetadata>(() =>
     createDefaultProjectMetadata(),
   )
-  const [steamSearchResults, setSteamSearchResults] = useState<SteamSearchResult[]>([])
-  const [selectedSteamGame, setSelectedSteamGame] = useState<SteamImportedGame | null>(null)
-  const [isSteamSearchLoading, setIsSteamSearchLoading] = useState(false)
-  const [isSteamImportLoading, setIsSteamImportLoading] = useState(false)
-  const [selectedArtworkId, setSelectedArtworkId] = useState<string | null>(null)
+  const {
+    gameSearchQuery,
+    setGameSearchQuery,
+    steamSearchResults,
+    selectedSteamGame,
+    setSelectedSteamGame,
+    isSteamSearchLoading,
+    isSteamImportLoading,
+    resetSteamImportState,
+    clearSteamSearchResults,
+    runSteamImport,
+    handleSteamSearch,
+  } = useSteamImport({
+    announceStatus,
+  })
   const {
     steamBannerColors,
     setSteamBannerColors,
@@ -244,51 +245,51 @@ function App() {
   })
   const {
     backgroundImageUrl,
-    setBackgroundImageUrl,
     backgroundImageSource,
-    setBackgroundImageSource,
     backgroundImageSize,
-    setBackgroundImageSize,
     backgroundScale,
-    setBackgroundScale,
     backgroundOffset,
     setBackgroundOffset,
     isBackgroundArtworkEnabled,
-    setIsBackgroundArtworkEnabled,
+    selectedArtworkId,
+    setSelectedArtworkId,
+    isArtworkLoading,
     backgroundPreviewSize,
     backgroundOffsetSliderRanges,
     effectiveBackgroundImageUrl,
     effectiveBackgroundImageSize,
     applyBackgroundImageImport,
     resetBackgroundArtwork,
+    clearSelectedArtwork,
     handleBackgroundUpload,
     handleResetBackground,
+    handleUseSteamArtwork,
     handleBackgroundArtworkEnabledChange,
     handleBackgroundScaleChange,
     handleBackgroundOffsetChange,
     handleFitBackgroundToSteamBannerOpenArea,
-  } = useBackgroundArtwork({
+    restoreBackgroundImageState,
+  } = useBackgroundImage({
     discPreviewSize,
     steamLogoPlacement,
+    announceStatus,
+  })
+  const {
+    localSteamScreenshots,
+    localSteamScreenshotThumbnails,
+    hasCheckedLocalSteamScreenshots,
+    isLocalSteamScreenshotsLoading,
+    resetLocalSteamScreenshotSearch,
+    clearLocalSteamScreenshotResults,
+    handleFindLocalSteamScreenshots,
+    handleUseLocalSteamScreenshot,
+    handleOpenLocalSteamScreenshotFolder,
+  } = useLocalSteamScreenshots({
+    selectedSteamGame,
+    applyBackgroundImageImport,
     setSelectedArtworkId,
     announceStatus,
   })
-  const [localSteamScreenshots, setLocalSteamScreenshots] = useState<
-    LocalSteamScreenshotAsset[]
-  >([])
-  const [localSteamScreenshotThumbnails, setLocalSteamScreenshotThumbnails] = useState<
-    Record<string, string>
-  >({})
-  const [hasCheckedLocalSteamScreenshots, setHasCheckedLocalSteamScreenshots] =
-    useState(false)
-  const [isLocalSteamScreenshotsLoading, setIsLocalSteamScreenshotsLoading] =
-    useState(false)
-  const [isArtworkLoading, setIsArtworkLoading] = useState(false)
-
-  const discPreviewRef = useRef<HTMLDivElement | null>(null)
-  const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
-  const [selectedDiscTextKey, setSelectedDiscTextKey] =
-    useState<DiscTextKey | null>(null)
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -298,6 +299,8 @@ function App() {
     discTextHtmlSources,
     discTextLayout,
     discTextStyles,
+    selectedDiscTextKey,
+    setSelectedDiscTextKey,
     metadataBoundDiscTextValues,
     resolvedDiscTextTitle,
     getCurrentDiscTextContent,
@@ -309,6 +312,7 @@ function App() {
     clampDiscTextLayoutForContent,
     clampMetadataBoundDiscTextLayoutsForProjectMetadataFields,
     handleDiscTextToggle,
+    handleDiscTextPreviewEditStart,
     handleDiscTextContentChange,
     handleDiscTextContentModeChange,
     handleDiscTextInlineDraftChange,
@@ -331,18 +335,11 @@ function App() {
     enableCurvedCopyrightDiscText,
     setCopyrightDiscTextEnabled,
     applySteamImportedDiscTextValues,
-  } = useDiscTextState({
+  } = useDiscTextEditor({
     projectMetadata,
     selectedDiscTemplate,
     steamLogoPlacement,
   })
-
-  function handleDiscTextPreviewEditStart(key: DiscTextKey) {
-    if (!discTextSettings[key]) {
-      handleDiscTextToggle(key, true)
-    }
-    setSelectedDiscTextKey(key)
-  }
   const {
     projectLogoAssets,
     setProjectLogoAssets,
@@ -500,12 +497,6 @@ function App() {
     applyBackgroundImageImport,
     announceStatus,
   })
-  useDiscPreviewSize({
-    activeWorkspace,
-    discPreviewRef,
-    setDiscPreviewSize,
-  })
-
   const caseInsertBrandingSources = {
     projectMetadata,
     projectLogoAssets,
@@ -850,36 +841,6 @@ function App() {
     }
   }
 
-  useEffect(() => {
-    let isCancelled = false
-
-    async function loadLocalSteamScreenshotThumbnails() {
-      const loadedThumbnails = await loadMissingLocalSteamScreenshotThumbnails(
-        localSteamScreenshots,
-        localSteamScreenshotThumbnails,
-      )
-
-      if (isCancelled) {
-        return
-      }
-
-      if (Object.keys(loadedThumbnails).length === 0) {
-        return
-      }
-
-      setLocalSteamScreenshotThumbnails((currentThumbnails) => ({
-        ...currentThumbnails,
-        ...loadedThumbnails,
-      }))
-    }
-
-    void loadLocalSteamScreenshotThumbnails()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [localSteamScreenshots, localSteamScreenshotThumbnails])
-
   function handleRatingBadgeEnabledChange(enabled: boolean) {
     const nextState = updateRatingBadgeEnabledState(
       projectMetadata,
@@ -919,12 +880,6 @@ function App() {
 
     repositionDiscTextForSteamLogoPlacement(placement)
     resetTitleArtworkLayoutForPlacement(placement)
-  }
-
-  function handleExportGuideToggle(guide: ExportGuideKey, checked: boolean) {
-    setExportGuides((currentGuides) =>
-      setExportGuideSelection(currentGuides, guide, checked),
-    )
   }
 
   function handleCaseInsertExportGuideToggle(
@@ -1205,9 +1160,8 @@ function App() {
     resetDiscTemplateState()
     setSteamLogoPlacement('top')
     resetSteamBannerState()
-    setExportGuides(DEFAULT_EXPORT_GUIDES)
+    resetExportGuides()
     resetBackgroundArtwork()
-    setGameSearchQuery('')
     setManualGameTitle('Untitled Steam Backup Label')
     setProjectMetadata(createDefaultProjectMetadata())
     resetProjectLogoAssets(defaultDiscTemplate)
@@ -1218,15 +1172,8 @@ function App() {
     resetProjectPlatformMarks()
     resetProjectTechnicalMarks()
     resetDiscTextState(defaultDiscTemplate, 'top')
-    setSteamSearchResults([])
-    setSelectedSteamGame(null)
-    setIsSteamSearchLoading(false)
-    setIsSteamImportLoading(false)
-    setSelectedArtworkId(null)
-    setLocalSteamScreenshots([])
-    setHasCheckedLocalSteamScreenshots(false)
-    setIsLocalSteamScreenshotsLoading(false)
-    setIsArtworkLoading(false)
+    resetSteamImportState()
+    resetLocalSteamScreenshotSearch()
   }
 
   function resetCaseInsertProjectState() {
@@ -1318,47 +1265,16 @@ function App() {
     handleOpenCaseInsertEditor()
   }
 
-  async function handleSteamSearch() {
-    const trimmedQuery = gameSearchQuery.trim()
-
-    if (!trimmedQuery) {
-      announceStatus('Enter a Steam game title or App ID to search.')
-      return
-    }
-
-    setIsSteamSearchLoading(true)
-    announceStatus(`Searching Steam for "${trimmedQuery}"...`)
-
-    try {
-      const results = await searchSteamStore(trimmedQuery)
-      setSteamSearchResults(results)
-      announceStatus(
-        results.length > 0
-          ? `Found ${results.length} Steam result${results.length === 1 ? '' : 's'}.`
-          : 'Steam returned no results. Manual title entry is still available.',
-      )
-    } catch (error) {
-      announceStatus(`Steam search failed: ${String(error)}`)
-    } finally {
-      setIsSteamSearchLoading(false)
-    }
-  }
-
   async function handleSteamImport(
     appId: number,
     options: SteamImportOptions = {},
   ) {
     const applyDiscVisualDefaults = options.applyDiscVisualDefaults ?? true
 
-    setIsSteamImportLoading(true)
-    setSelectedArtworkId(null)
-    setLocalSteamScreenshots([])
-    setLocalSteamScreenshotThumbnails({})
-    setHasCheckedLocalSteamScreenshots(false)
-    announceStatus(`Importing Steam App ID ${appId}...`)
+    clearSelectedArtwork()
+    clearLocalSteamScreenshotResults()
 
-    try {
-      const importedState = await createSteamGameImport(appId)
+    await runSteamImport(appId, async (importedState) => {
       const metadataCandidateResult = loadImportedSteamMetadataCandidates(
         importedState.importedGame,
       )
@@ -1449,7 +1365,7 @@ function App() {
         : null
 
       setSelectedSteamGame(importedState.importedGame)
-      setSteamSearchResults([])
+      clearSteamSearchResults()
       setManualGameTitle(importedState.manualGameTitle)
       setProjectMetadata(nextProjectMetadataWithAutoApply)
       if (options.applyCaseInsertBackCoverDefaults) {
@@ -1526,77 +1442,7 @@ function App() {
       announceAutoAppliedMetadataCandidates(autoRatingCandidate, autoLegalCandidate, {
         applyDiscVisualDefaults,
       })
-    } catch (error) {
-      announceStatus(`Steam import failed: ${String(error)}`)
-    } finally {
-      setIsSteamImportLoading(false)
-    }
-  }
-
-  async function handleUseSteamArtwork(asset: SteamArtworkAsset) {
-    setIsArtworkLoading(true)
-    setSelectedArtworkId(asset.id)
-    announceStatus(`Downloading ${asset.label}...`)
-
-    try {
-      applyBackgroundImageImport(await createSteamArtworkBackgroundImport(asset))
-    } catch (error) {
-      setSelectedArtworkId(null)
-      announceStatus(`Steam artwork download failed: ${String(error)}`)
-    } finally {
-      setIsArtworkLoading(false)
-    }
-  }
-
-  async function handleFindLocalSteamScreenshots() {
-    if (!selectedSteamGame) {
-      announceStatus('Select or import a Steam game before checking local screenshots.')
-      return
-    }
-
-    setIsLocalSteamScreenshotsLoading(true)
-    setHasCheckedLocalSteamScreenshots(true)
-    announceStatus(`Checking local Steam screenshots for ${selectedSteamGame.title}...`)
-
-    try {
-      const discovery = await createLocalSteamScreenshotDiscovery(selectedSteamGame)
-      setLocalSteamScreenshots(discovery.screenshots)
-      announceStatus(discovery.statusMessage)
-    } catch (error) {
-      setLocalSteamScreenshots([])
-      setLocalSteamScreenshotThumbnails({})
-      announceStatus(`Local Steam screenshot check failed: ${String(error)}`)
-    } finally {
-      setIsLocalSteamScreenshotsLoading(false)
-    }
-  }
-
-  async function handleUseLocalSteamScreenshot(asset: LocalSteamScreenshotAsset) {
-    setSelectedArtworkId(asset.id)
-    announceStatus(`Loading ${asset.label}...`)
-
-    try {
-      applyBackgroundImageImport(await createLocalSteamScreenshotBackgroundImport(asset))
-    } catch (error) {
-      setSelectedArtworkId(null)
-      announceStatus(`Local screenshot could not be applied: ${String(error)}`)
-    }
-  }
-
-  async function handleOpenLocalSteamScreenshotFolder() {
-    const folderPath = localSteamScreenshots[0]?.folderPath
-
-    if (!folderPath) {
-      announceStatus('No local Steam screenshot folder is available yet.')
-      return
-    }
-
-    try {
-      await openLocalFolder(folderPath)
-      announceStatus('Opened local Steam screenshot folder.')
-    } catch (error) {
-      announceStatus(`Could not open screenshot folder: ${String(error)}`)
-    }
+    })
   }
 
   async function handleSaveProject() {
@@ -1729,10 +1575,8 @@ function App() {
       setProjectPlatformMarks(restoredProject.projectPlatformMarks)
       setProjectTechnicalMarks(restoredProject.projectTechnicalMarks)
       setSelectedSteamGame(restoredProject.selectedSteamGame)
-      setSelectedArtworkId(null)
-      setLocalSteamScreenshots([])
-      setLocalSteamScreenshotThumbnails({})
-      setHasCheckedLocalSteamScreenshots(false)
+      clearSelectedArtwork()
+      clearLocalSteamScreenshotResults()
 
       restoreDiscTemplateState(restoredProject.template)
       setSteamLogoPlacement(restoredProject.steamLogoPlacement)
@@ -1743,7 +1587,7 @@ function App() {
       setSteamBannerLockupLayout(restoredProject.steamBannerLockupLayout)
       setSteamBannerUseTextFallback(restoredProject.steamBannerUseTextFallback)
       setSteamBannerFallbackText(restoredProject.steamBannerFallbackText)
-      setExportGuides(restoredProject.exportGuides)
+      restoreExportGuides(restoredProject.exportGuides)
       restoreDiscTextState({
         projectDiscNumberArtwork: restoredProject.projectDiscNumberArtwork,
         discTextSettings: restoredProject.discTextSettings,
@@ -1754,12 +1598,14 @@ function App() {
         discTextLayout: restoredProject.discTextLayout,
         discTextStyles: restoredProject.discTextStyles,
       })
-      setBackgroundScale(restoredProject.backgroundScale)
-      setBackgroundOffset(restoredProject.backgroundOffset)
-      setBackgroundImageUrl(restoredProject.backgroundImageUrl)
-      setBackgroundImageSource(restoredProject.backgroundImageSource)
-      setBackgroundImageSize(restoredProject.backgroundImageSize)
-      setIsBackgroundArtworkEnabled(restoredProject.isBackgroundArtworkEnabled)
+      restoreBackgroundImageState({
+        backgroundScale: restoredProject.backgroundScale,
+        backgroundOffset: restoredProject.backgroundOffset,
+        backgroundImageUrl: restoredProject.backgroundImageUrl,
+        backgroundImageSource: restoredProject.backgroundImageSource,
+        backgroundImageSize: restoredProject.backgroundImageSize,
+        isBackgroundArtworkEnabled: restoredProject.isBackgroundArtworkEnabled,
+      })
       setActiveWorkspace('disc')
       setHomeStatusMessage(null)
 
