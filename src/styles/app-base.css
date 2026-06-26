@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+:root {
+  --editor-control-target-min: 24px;
+  --editor-focus-outline: #93c5fd;
+  --editor-focus-shadow: rgba(59, 130, 246, 0.24);
+}
+
 html,
 body,
 #root {
@@ -25,16 +31,27 @@ textarea {
   font: inherit;
 }
 
+button,
+summary,
+.logo-upload-button,
+input[type="checkbox"],
+input[type="radio"],
+input[type="range"],
+input[type="color"] {
+  min-width: var(--editor-control-target-min);
+  min-height: var(--editor-control-target-min);
+}
+
 button:focus-visible,
-input:focus-visible,
+input:not([type="checkbox"]):not([type="radio"]):focus-visible,
 select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 .logo-upload-button:focus-visible,
 .logo-upload-button:has(+ .logo-file-input:focus-visible) {
-  outline: 2px solid #93c5fd;
+  outline: 2px solid var(--editor-focus-outline);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.24);
+  box-shadow: 0 0 0 4px var(--editor-focus-shadow);
 }
 
 .app-shell {
@@ -152,7 +169,16 @@ textarea {
   align-items: center;
   gap: 10px;
   min-height: 32px;
+  border-radius: 8px;
   cursor: pointer;
+}
+
+.checkbox-row:has(input:focus-visible),
+.field-label:has(> input[type="checkbox"]:focus-visible) {
+  outline: 2px solid var(--editor-focus-outline);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--editor-focus-shadow);
+  color: #f9fafb;
 }
 
 .field-label > input[type="checkbox"],

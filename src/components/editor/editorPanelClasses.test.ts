@@ -46,7 +46,19 @@ test('shared editor styles preserve keyboard focus and target floors', () => {
 
   assert.match(
     baseCss,
-    /button:focus-visible,[\s\S]*input:focus-visible,[\s\S]*select:focus-visible,[\s\S]*textarea:focus-visible,[\s\S]*summary:focus-visible/,
+    /--editor-control-target-min:\s*24px/,
+  )
+  assert.match(
+    baseCss,
+    /button,[\s\S]*summary,[\s\S]*\.logo-upload-button,[\s\S]*input\[type="checkbox"\],[\s\S]*input\[type="radio"\],[\s\S]*input\[type="range"\],[\s\S]*input\[type="color"\]\s*\{[\s\S]*min-width:\s*var\(--editor-control-target-min\);[\s\S]*min-height:\s*var\(--editor-control-target-min\);/,
+  )
+  assert.match(
+    baseCss,
+    /button:focus-visible,[\s\S]*input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\):focus-visible,[\s\S]*select:focus-visible,[\s\S]*textarea:focus-visible,[\s\S]*summary:focus-visible/,
+  )
+  assert.match(
+    baseCss,
+    /\.checkbox-row:has\(input:focus-visible\),[\s\S]*\.field-label:has\(> input\[type="checkbox"\]:focus-visible\)\s*\{[\s\S]*outline:\s*2px solid var\(--editor-focus-outline\);[\s\S]*box-shadow:\s*0 0 0 4px var\(--editor-focus-shadow\);/,
   )
   assert.match(
     baseCss,
@@ -68,6 +80,10 @@ test('shared editor styles preserve keyboard focus and target floors', () => {
   assert.match(
     ribbonCss,
     /\.contextual-text-ribbon-toggle-check input\s*\{[\s\S]*width:\s*24px;[\s\S]*height:\s*24px;/,
+  )
+  assert.match(
+    ribbonCss,
+    /\.contextual-text-ribbon-toggle-check:has\(input:focus-visible\)\s*\{[\s\S]*outline:\s*2px solid var\(--editor-focus-outline\);[\s\S]*box-shadow:\s*0 0 0 4px var\(--editor-focus-shadow\);/,
   )
   assert.match(
     previewCss,
