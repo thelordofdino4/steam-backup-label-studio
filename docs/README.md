@@ -24,6 +24,7 @@ This map is the entry point for repository documentation. If two documents disag
 | [`PRD.md`](PRD.md) | Authoritative | Product scope, goals, non-goals, and product direction. | Product decisions, scope tradeoffs, UX direction, or feature prioritization. | Product/scope conflicts defer to the PRD; implemented architecture conflicts defer to the SDD. |
 | [`PROJECT_FILE_SPEC.md`](PROJECT_FILE_SPEC.md) | Authoritative | Current project JSON save/load schema, compatibility behavior, and future package notes. | Save/load, schema, migration, compatibility, or project-file work. | Schema conflicts defer to this spec; architecture boundary conflicts defer to the SDD. |
 | [`TEXT_EDITOR_CONTRACT.md`](TEXT_EDITOR_CONTRACT.md) | Authoritative subsystem contract | Required text editor behavior, renderer ownership, parity, and regression gates. | Text-editor behavior, formatting, selection, source editing, contextual controls, or text smoke checks. | Text-editor behavior conflicts defer to this contract unless the SDD is stricter. |
+| [`ARTWORK_FRAME_MATERIAL_CONTRACT.md`](ARTWORK_FRAME_MATERIAL_CONTRACT.md) | Authoritative subsystem contract | Failed artwork-frame material branch postmortem, restart guardrails, and future material-rendering merge gates. | Artwork-frame material rendering, steel/metal frame rendering, material texture generation, preview/export material parity, or issue #165 restart work. | Material-rendering conflicts defer to this contract unless the SDD or `AGENTS.md` is stricter. |
 
 ## Conditional Reference Documents
 
