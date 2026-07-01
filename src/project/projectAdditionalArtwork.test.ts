@@ -360,6 +360,198 @@ test('additional artwork frame visibility preserves styling while omitting the f
   assert.equal(createAdditionalArtworkRenderItems(visibleFrame)[0]!.frame.width, 9)
 })
 
+test('additional artwork metal frame settings persist through render and normalization', () => {
+  const withElement = addAdditionalArtworkElement(
+    createDefaultProjectAdditionalArtwork(),
+    discTemplates.standardPrintableDisc,
+  )
+  const elementId = withElement.elements[0]!.id
+  let withMetalFrame = setAdditionalArtworkElementImage(
+    withElement,
+    elementId,
+    importedImage,
+    {
+      source: 'custom',
+      sourceId: null,
+      sourceLabel: importedImage.fileName,
+    },
+  )
+
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'enabled',
+    true,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'style',
+    'metal',
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalType',
+    'copper',
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalProfile',
+    'double',
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalPattern',
+    'rivets',
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalDepth',
+    88,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalBevelWidth',
+    34,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalLightAngle',
+    225,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalBrushAngle',
+    47,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalPolish',
+    72,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalTarnish',
+    41,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalPatternScale',
+    132,
+  )
+  withMetalFrame = updateAdditionalArtworkElementFrameField(
+    withMetalFrame,
+    elementId,
+    'metalPatternStrength',
+    64,
+  )
+
+  const renderFrame = createAdditionalArtworkRenderItems(withMetalFrame)[0]!.frame
+
+  assert.equal(renderFrame.style, 'metal')
+  assert.equal(renderFrame.metalType, 'copper')
+  assert.equal(renderFrame.metalProfile, 'double')
+  assert.equal(renderFrame.metalPattern, 'rivets')
+  assert.equal(renderFrame.metalDepth, 88)
+  assert.equal(renderFrame.metalBevelWidth, 34)
+  assert.equal('metalLightAngle' in renderFrame, false)
+  assert.equal(renderFrame.metalBrushAngle, 47)
+  assert.equal(renderFrame.metalPolish, 72)
+  assert.equal(renderFrame.metalTarnish, 41)
+  assert.equal(renderFrame.metalPatternScale, 132)
+  assert.equal(renderFrame.metalPatternStrength, 64)
+
+  const restored = normalizeProjectAdditionalArtwork(
+    {
+      enabled: true,
+      elements: [
+        {
+          imageDataUrl: importedImage.imageDataUrl,
+          imageSize: importedImage.imageSize,
+          frame: {
+            enabled: true,
+            color: '#f9fafb',
+            width: 2,
+            shape: 'rectangle',
+            style: 'metal',
+            lumpiness: 50,
+            jaggedness: 50,
+            roughnessOffset: 0,
+            metalType: 'gold',
+            metalProfile: 'stepped',
+            metalPattern: 'hammered',
+            metalDepth: 150,
+            metalBevelWidth: -12,
+            metalLightAngle: 999,
+            metalBrushAngle: 240,
+            metalPolish: 25,
+            metalTarnish: 150,
+            metalPatternScale: 5,
+            metalPatternStrength: 200,
+          },
+        },
+      ],
+    },
+    discTemplates.standardPrintableDisc,
+  )
+  const restoredFrame = restored.elements[0]!.frame
+
+  assert.equal(restoredFrame.style, 'metal')
+  assert.equal(restoredFrame.metalType, 'gold')
+  assert.equal(restoredFrame.metalProfile, 'stepped')
+  assert.equal(restoredFrame.metalPattern, 'hammered')
+  assert.equal(restoredFrame.metalDepth, 100)
+  assert.equal(restoredFrame.metalBevelWidth, 0)
+  assert.equal('metalLightAngle' in restoredFrame, false)
+  assert.equal(restoredFrame.metalBrushAngle, 180)
+  assert.equal(restoredFrame.metalPolish, 25)
+  assert.equal(restoredFrame.metalTarnish, 100)
+  assert.equal(restoredFrame.metalPatternScale, 20)
+  assert.equal(restoredFrame.metalPatternStrength, 100)
+})
+
+test('additional artwork frame normalization keeps light editor vector state transient', () => {
+  const restored = normalizeProjectAdditionalArtwork(
+    {
+      enabled: true,
+      elements: [
+        {
+          imageDataUrl: importedImage.imageDataUrl,
+          imageSize: importedImage.imageSize,
+          frame: {
+            enabled: true,
+            style: 'metal',
+            metalLightAngle: 90,
+            lightVector: { x: 0, y: 0, z: 1 },
+            materialLightVector: { x: 1, y: 0, z: 0 },
+            materialLightSource: {
+              mode: 'hemisphere-editor',
+              version: 'future',
+            },
+          },
+        },
+      ],
+    } as unknown as ProjectAdditionalArtworkInput,
+    discTemplates.standardPrintableDisc,
+  )
+  const restoredFrame = restored.elements[0]!.frame as Record<string, unknown>
+
+  assert.equal('metalLightAngle' in restoredFrame, false)
+  assert.equal('lightVector' in restoredFrame, false)
+  assert.equal('materialLightVector' in restoredFrame, false)
+  assert.equal('materialLightSource' in restoredFrame, false)
+})
+
 test('additional artwork render items require feature, element, and image visibility', () => {
   const withElement = addAdditionalArtworkElement(
     createDefaultProjectAdditionalArtwork(),

@@ -133,6 +133,10 @@ import {
   getDiscTextPreviewTransform,
   type SteamLogoPlacement,
 } from '../discText/index'
+import type {
+  ArtworkFrameMaterialLightOverride,
+  ArtworkFrameMaterialLightOverrideMap,
+} from '../render/artworkFrameMaterialLightEditor'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -190,6 +194,19 @@ function App() {
     useState<CaseInsertTemplatePaneId>('cover')
   const [selectedCaseInsertTextTarget, setSelectedCaseInsertTextTarget] =
     useState<CaseInsertPreviewTextTarget | null>(null)
+  const [
+    materialLightOverridesByEditableId,
+    setMaterialLightOverridesByEditableId,
+  ] = useState<ArtworkFrameMaterialLightOverrideMap>({})
+  function handleMaterialLightChange(
+    editableId: string,
+    lightOverride: ArtworkFrameMaterialLightOverride,
+  ) {
+    setMaterialLightOverridesByEditableId((current) => ({
+      ...current,
+      [editableId]: lightOverride,
+    }))
+  }
   const caseInsertTemplateEditor = useCaseInsertTemplateEditor({
     setProjectJewelCase,
     announceStatus,
@@ -1174,6 +1191,7 @@ function App() {
     resetDiscTextState(defaultDiscTemplate, 'top')
     resetSteamImportState()
     resetLocalSteamScreenshotSearch()
+    setMaterialLightOverridesByEditableId({})
   }
 
   function resetCaseInsertProjectState() {
@@ -1195,6 +1213,7 @@ function App() {
     resetProjectTechnicalMarks()
     resetProjectAdditionalArtwork()
     setActiveCaseInsertTemplatePane('cover')
+    setMaterialLightOverridesByEditableId({})
   }
 
   async function handleNewProject() {
@@ -1548,6 +1567,7 @@ function App() {
         setActiveCaseInsertTemplatePane(
           restoredCaseProject.activeCaseInsertTemplatePane,
         )
+        setMaterialLightOverridesByEditableId({})
         setActiveWorkspace('caseInsert')
         setHomeStatusMessage(null)
         caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync({
@@ -1606,6 +1626,7 @@ function App() {
         backgroundImageSize: restoredProject.backgroundImageSize,
         isBackgroundArtworkEnabled: restoredProject.isBackgroundArtworkEnabled,
       })
+      setMaterialLightOverridesByEditableId({})
       setActiveWorkspace('disc')
       setHomeStatusMessage(null)
 
@@ -1762,6 +1783,7 @@ function App() {
         projectTitleArtwork,
         projectDiscNumberArtwork,
         projectAdditionalArtwork,
+        materialLightOverridesByEditableId,
         projectMetadata,
         projectRatingBadge,
         projectMediaMark,
@@ -1879,6 +1901,8 @@ function App() {
         gamePanelProps={caseInsertGamePanelProps}
         projectStatus={projectStatus}
         statusToasts={statusToasts}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
+        onMaterialLightChange={handleMaterialLightChange}
         onMainMenu={handleReturnToHome}
         onNewCaseInsert={handleOpenCaseInsertEditor}
         onNewDisc={handleStartNewDiscProject}
@@ -2188,6 +2212,8 @@ function App() {
         }}
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
+        onMaterialLightChange={handleMaterialLightChange}
       />
     </main>
   )

@@ -106,6 +106,9 @@ import {
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
+import type {
+  ArtworkFrameMaterialPreviewLightOverride,
+} from './ArtworkFrameMaterialLightEditorOverlay'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
 export type CaseInsertTemplateLayerProps = {
@@ -114,6 +117,10 @@ export type CaseInsertTemplateLayerProps = {
   layout: CaseInsertPreviewLayout
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
   brandingSources: CaseInsertBrandingSourceCatalog
+  materialLightOverridesByEditableId?: Record<
+    string,
+    ArtworkFrameMaterialPreviewLightOverride
+  >
 }
 
 type CaseInsertTemplateTextLayerProps = CaseInsertTemplateLayerProps & {
@@ -281,6 +288,7 @@ function CaseInsertTemplateImageSlot({
   layout,
   group,
   dragTarget,
+  materialLightOverridesByEditableId = {},
   pointerHandlers,
 }: {
   paneId: CaseInsertTemplatePaneId
@@ -297,6 +305,10 @@ function CaseInsertTemplateImageSlot({
         slotKey: CaseInsertImageSlotGroupKey
         slotId: string
       }
+  materialLightOverridesByEditableId?: Record<
+    string,
+    ArtworkFrameMaterialPreviewLightOverride
+  >
   pointerHandlers: CaseInsertTemplatePreviewPointerHandlers
 }) {
   const rect = paneId === 'cover'
@@ -347,15 +359,16 @@ function CaseInsertTemplateImageSlot({
     onPointerMove: pointerHandlers.handleTemplatePointerMove,
     onPointerUp: pointerHandlers.handleTemplatePointerUp,
   }
+  const editableId = dragTarget.kind === 'primary'
+    ? createPreviewEditableElementId('case', paneId, dragTarget.slotKey)
+    : createPreviewEditableElementId(
+        'case',
+        paneId,
+        dragTarget.slotKey,
+        dragTarget.slotId,
+      )
   const editableAttributes = createPreviewEditableAttributes({
-    id: dragTarget.kind === 'primary'
-      ? createPreviewEditableElementId('case', paneId, dragTarget.slotKey)
-      : createPreviewEditableElementId(
-          'case',
-          paneId,
-          dragTarget.slotKey,
-          dragTarget.slotId,
-        ),
+    id: editableId,
     label: slot.label,
     kind: group === 'logo' ? 'logo' : group === 'mark' ? 'mark' : 'artwork',
   })
@@ -388,7 +401,10 @@ function CaseInsertTemplateImageSlot({
           imageSize={imageSize}
           src={artifact.imageDataUrl}
         />
-        <CaseInsertImageSlotFrame slot={slot} />
+        <CaseInsertImageSlotFrame
+          slot={slot}
+          materialLightOverride={materialLightOverridesByEditableId[editableId]}
+        />
       </div>
     )
   }
@@ -879,6 +895,7 @@ export function CaseInsertTemplateArtworkLayer({
   paneId,
   templateState,
   layout,
+  materialLightOverridesByEditableId = {},
   pointerHandlers,
 }: CaseInsertTemplateLayerProps) {
   const artworkSlots = getFeatureVisibleRepeatedArtworkItems(
@@ -894,6 +911,7 @@ export function CaseInsertTemplateArtworkLayer({
         layout={layout}
         group="titleArtwork"
         dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
         pointerHandlers={pointerHandlers}
       />
       {artworkSlots.map((slot) => (
@@ -908,6 +926,7 @@ export function CaseInsertTemplateArtworkLayer({
             slotKey: 'artworkSlots',
             slotId: slot.id,
           }}
+          materialLightOverridesByEditableId={materialLightOverridesByEditableId}
           pointerHandlers={pointerHandlers}
         />
       ))}

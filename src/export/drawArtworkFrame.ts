@@ -5,14 +5,30 @@ import type {
 } from '../project/projectTypes.ts'
 import {
   createBasicArtworkFramePath,
+  createMetalArtworkFramePathData,
   createScaledImageContentShapePathData,
   createTexturedArtworkFramePathData,
   getArtworkFrameStrokeWidth,
   getArtworkFrameTextureUrl,
+  isMetalArtworkFrame,
   isTexturedArtworkFrame,
   type ArtworkFrameRect,
 } from '../render/artworkFrame.ts'
+import { buildMetalArtworkFrameMaterialPlan } from '../render/artworkFrameMaterialPlan.ts'
+import { renderArtworkFrameCanvasMaterialTexture } from '../render/artworkFrameMaterialCanvas.ts'
+import type { ArtworkFrameMaterialSeed } from '../render/artworkFrameMaterialSeed.ts'
+import {
+  getActiveArtworkFrameMaterialLightOverride,
+  type ArtworkFrameMaterialLightOverride,
+} from '../render/artworkFrameMaterialLightEditor.ts'
 import { loadCanvasSafeImage } from './canvasImage.ts'
+
+const exportCanvasMaterialTextureCache = new Map()
+
+export type DrawArtworkFrameOptions = {
+  materialLightOverride?: ArtworkFrameMaterialLightOverride | null
+  materialSeed?: ArtworkFrameMaterialSeed | null
+}
 
 export function createArtworkFrameClipPath(
   context: CanvasRenderingContext2D,
@@ -22,11 +38,56 @@ export function createArtworkFrameClipPath(
   createBasicArtworkFramePath(context, frame, bounds)
 }
 
+function drawCanvasMetalFrameSurface(
+  context: CanvasRenderingContext2D,
+  framePath: Path2D,
+  materialPlan: ReturnType<typeof buildMetalArtworkFrameMaterialPlan>,
+  originalAlpha: number,
+) {
+  if (
+    materialPlan.backend !== 'canvas-texture' ||
+    !materialPlan.canvasTexture
+  ) {
+    return false
+  }
+
+  try {
+    const rendered = renderArtworkFrameCanvasMaterialTexture(
+      materialPlan.canvasTexture,
+      { cache: exportCanvasMaterialTextureCache },
+    )
+    const textureBounds = materialPlan.canvasTexture.bounds
+
+    context.save()
+    context.globalAlpha = originalAlpha
+    context.globalCompositeOperation = 'source-over'
+    context.filter = 'none'
+
+    if (materialPlan.canvasTexture.clipMode === 'fill') {
+      context.clip(framePath, 'evenodd')
+    }
+
+    context.drawImage(
+      rendered.imageSource as CanvasImageSource,
+      textureBounds.x,
+      textureBounds.y,
+      textureBounds.width,
+      textureBounds.height,
+    )
+    context.restore()
+
+    return true
+  } catch {
+    return false
+  }
+}
+
 export async function drawArtworkFrame(
   context: CanvasRenderingContext2D,
   frame: AdditionalArtworkFrame,
   bounds: ArtworkFrameRect,
   imageSize?: BackgroundImageSize | null,
+  options: DrawArtworkFrameOptions = {},
 ) {
   if (!frame.enabled) {
     return
@@ -44,6 +105,40 @@ export async function drawArtworkFrame(
   )
 
   context.save()
+
+  if (isMetalArtworkFrame(frame)) {
+    const pathData = contentShapePathData ||
+      createMetalArtworkFramePathData(frame, bounds, strokeWidth)
+
+    if (!pathData) {
+      context.restore()
+      return
+    }
+
+    const framePath = new Path2D(pathData)
+    const originalAlpha = context.globalAlpha
+    const materialPlan = buildMetalArtworkFrameMaterialPlan({
+      bounds,
+      clipMode: contentShapePathData ? 'stroke' : 'fill',
+      clipPathData: pathData,
+      frame,
+      lightVector: getActiveArtworkFrameMaterialLightOverride(
+        options.materialLightOverride,
+      )?.lightVector ?? null,
+      materialSeed: options.materialSeed ?? null,
+      pathData,
+      strokeWidth,
+    })
+
+    drawCanvasMetalFrameSurface(
+      context,
+      framePath,
+      materialPlan,
+      originalAlpha,
+    )
+    context.restore()
+    return
+  }
 
   if (isTexturedArtworkFrame(frame)) {
     const textureUrl = getArtworkFrameTextureUrl(frame)

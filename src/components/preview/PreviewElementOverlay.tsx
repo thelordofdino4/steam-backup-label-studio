@@ -7,6 +7,9 @@ import {
   type RefObject,
 } from 'react'
 import {
+  ARTWORK_FRAME_MATERIAL_LIGHT_EDITOR_CONTROL_ATTRIBUTE,
+} from './ArtworkFrameMaterialLightEditorOverlay'
+import {
   findClosestPreviewEditableElement,
   findPreviewEditableElementsById,
   getPreviewElementOverlayUnionRect,
@@ -15,6 +18,7 @@ import {
 } from '../../editor/previewElementOverlay'
 
 export type PreviewElementOverlayProps = {
+  onSelectedElementChange?: (element: PreviewEditableElement | null) => void
   previewRef: RefObject<HTMLElement | null>
 }
 
@@ -38,6 +42,11 @@ function setEditableElementState(
 ) {
   setter((current) =>
     isSameEditableElement(current, nextElement) ? current : nextElement)
+}
+
+function isPreviewOverlayControlTarget(target: EventTarget | null) {
+  return target instanceof Element &&
+    Boolean(target.closest(`[${ARTWORK_FRAME_MATERIAL_LIGHT_EDITOR_CONTROL_ATTRIBUTE}]`))
 }
 
 function toOverlayBoxState(
@@ -64,7 +73,10 @@ function toOverlayBoxState(
   return rect ? { element: editableElement, rect } : null
 }
 
-function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>) {
+function usePreviewElementOverlayState({
+  onSelectedElementChange,
+  previewRef,
+}: PreviewElementOverlayProps) {
   const [hoveredElement, setHoveredElement] =
     useState<PreviewEditableElement | null>(null)
   const [selectedElement, setSelectedElement] =
@@ -125,6 +137,10 @@ function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>
     }
 
     function handlePointerOver(event: PointerEvent | MouseEvent) {
+      if (isPreviewOverlayControlTarget(event.target)) {
+        return
+      }
+
       const match = findClosestPreviewEditableElement(event.target)
 
       setEditableElementState(setHoveredElement, match?.editableElement ?? null)
@@ -132,6 +148,10 @@ function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>
     }
 
     function handlePointerOut(event: PointerEvent | MouseEvent) {
+      if (isPreviewOverlayControlTarget(event.target)) {
+        return
+      }
+
       const currentMatch = findClosestPreviewEditableElement(event.target)
       if (!currentMatch) {
         return
@@ -149,9 +169,14 @@ function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>
     }
 
     function handlePointerDown(event: PointerEvent) {
+      if (isPreviewOverlayControlTarget(event.target)) {
+        return
+      }
+
       const match = findClosestPreviewEditableElement(event.target)
 
       setEditableElementState(setSelectedElement, match?.editableElement ?? null)
+      onSelectedElementChange?.(match?.editableElement ?? null)
       scheduleMeasure()
     }
 
@@ -163,6 +188,10 @@ function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>
     }
 
     function handlePointerMove(event: PointerEvent | MouseEvent) {
+      if (isPreviewOverlayControlTarget(event.target)) {
+        return
+      }
+
       const match = findClosestPreviewEditableElement(event.target)
 
       setEditableElementState(setHoveredElement, match?.editableElement ?? null)
@@ -232,7 +261,7 @@ function usePreviewElementOverlayState(previewRef: RefObject<HTMLElement | null>
       window.removeEventListener('resize', scheduleMeasure)
       resizeObserver?.disconnect()
     }
-  }, [previewRef, scheduleMeasure])
+  }, [onSelectedElementChange, previewRef, scheduleMeasure])
 
   return { hoveredBox, selectedBox }
 }
@@ -260,9 +289,13 @@ function OverlayBox({
 }
 
 export function PreviewElementOverlay({
+  onSelectedElementChange,
   previewRef,
 }: PreviewElementOverlayProps) {
-  const { hoveredBox, selectedBox } = usePreviewElementOverlayState(previewRef)
+  const { hoveredBox, selectedBox } = usePreviewElementOverlayState({
+    onSelectedElementChange,
+    previewRef,
+  })
   const shouldRenderHoveredBox =
     hoveredBox && hoveredBox.element.id !== selectedBox?.element.id
 

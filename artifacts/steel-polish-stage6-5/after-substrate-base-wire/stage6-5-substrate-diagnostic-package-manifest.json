@@ -1,0 +1,184 @@
+{
+  "checkpoints": [
+    0,
+    10,
+    25,
+    30,
+    50
+  ],
+  "files": [
+    {
+      "fileName": "substrate-albedo-contact-sheet.png",
+      "panels": [
+        "0% overhead substrate albedo",
+        "0% 45-degree substrate albedo",
+        "0% grazing substrate albedo",
+        "10% overhead substrate albedo",
+        "10% 45-degree substrate albedo",
+        "10% grazing substrate albedo",
+        "25% overhead substrate albedo",
+        "25% 45-degree substrate albedo",
+        "25% grazing substrate albedo",
+        "30% overhead substrate albedo",
+        "30% 45-degree substrate albedo",
+        "30% grazing substrate albedo",
+        "50% overhead substrate albedo",
+        "50% 45-degree substrate albedo",
+        "50% grazing substrate albedo"
+      ]
+    },
+    {
+      "fileName": "substrate-height-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate height",
+        "0% 45-degree false-color substrate height",
+        "0% grazing false-color substrate height",
+        "10% overhead false-color substrate height",
+        "10% 45-degree false-color substrate height",
+        "10% grazing false-color substrate height",
+        "25% overhead false-color substrate height",
+        "25% 45-degree false-color substrate height",
+        "25% grazing false-color substrate height",
+        "30% overhead false-color substrate height",
+        "30% 45-degree false-color substrate height",
+        "30% grazing false-color substrate height",
+        "50% overhead false-color substrate height",
+        "50% 45-degree false-color substrate height",
+        "50% grazing false-color substrate height"
+      ]
+    },
+    {
+      "fileName": "substrate-ao-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate AO",
+        "0% 45-degree false-color substrate AO",
+        "0% grazing false-color substrate AO",
+        "10% overhead false-color substrate AO",
+        "10% 45-degree false-color substrate AO",
+        "10% grazing false-color substrate AO",
+        "25% overhead false-color substrate AO",
+        "25% 45-degree false-color substrate AO",
+        "25% grazing false-color substrate AO",
+        "30% overhead false-color substrate AO",
+        "30% 45-degree false-color substrate AO",
+        "30% grazing false-color substrate AO",
+        "50% overhead false-color substrate AO",
+        "50% 45-degree false-color substrate AO",
+        "50% grazing false-color substrate AO"
+      ]
+    },
+    {
+      "fileName": "substrate-roughness-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate roughness",
+        "0% 45-degree false-color substrate roughness",
+        "0% grazing false-color substrate roughness",
+        "10% overhead false-color substrate roughness",
+        "10% 45-degree false-color substrate roughness",
+        "10% grazing false-color substrate roughness",
+        "25% overhead false-color substrate roughness",
+        "25% 45-degree false-color substrate roughness",
+        "25% grazing false-color substrate roughness",
+        "30% overhead false-color substrate roughness",
+        "30% 45-degree false-color substrate roughness",
+        "30% grazing false-color substrate roughness",
+        "50% overhead false-color substrate roughness",
+        "50% 45-degree false-color substrate roughness",
+        "50% grazing false-color substrate roughness"
+      ]
+    },
+    {
+      "fileName": "substrate-gloss-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate gloss",
+        "0% 45-degree false-color substrate gloss",
+        "0% grazing false-color substrate gloss",
+        "10% overhead false-color substrate gloss",
+        "10% 45-degree false-color substrate gloss",
+        "10% grazing false-color substrate gloss",
+        "25% overhead false-color substrate gloss",
+        "25% 45-degree false-color substrate gloss",
+        "25% grazing false-color substrate gloss",
+        "30% overhead false-color substrate gloss",
+        "30% 45-degree false-color substrate gloss",
+        "30% grazing false-color substrate gloss",
+        "50% overhead false-color substrate gloss",
+        "50% 45-degree false-color substrate gloss",
+        "50% grazing false-color substrate gloss"
+      ]
+    },
+    {
+      "fileName": "substrate-anisotropy-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color anisotropy direction/aspect",
+        "0% 45-degree false-color anisotropy direction/aspect",
+        "0% grazing false-color anisotropy direction/aspect",
+        "10% overhead false-color anisotropy direction/aspect",
+        "10% 45-degree false-color anisotropy direction/aspect",
+        "10% grazing false-color anisotropy direction/aspect",
+        "25% overhead false-color anisotropy direction/aspect",
+        "25% 45-degree false-color anisotropy direction/aspect",
+        "25% grazing false-color anisotropy direction/aspect",
+        "30% overhead false-color anisotropy direction/aspect",
+        "30% 45-degree false-color anisotropy direction/aspect",
+        "30% grazing false-color anisotropy direction/aspect",
+        "50% overhead false-color anisotropy direction/aspect",
+        "50% 45-degree false-color anisotropy direction/aspect",
+        "50% grazing false-color anisotropy direction/aspect"
+      ]
+    },
+    {
+      "fileName": "substrate-normals-contact-sheet.png",
+      "panels": [
+        "0% overhead diagnostic substrate normals",
+        "0% 45-degree diagnostic substrate normals",
+        "0% grazing diagnostic substrate normals",
+        "10% overhead diagnostic substrate normals",
+        "10% 45-degree diagnostic substrate normals",
+        "10% grazing diagnostic substrate normals",
+        "25% overhead diagnostic substrate normals",
+        "25% 45-degree diagnostic substrate normals",
+        "25% grazing diagnostic substrate normals",
+        "30% overhead diagnostic substrate normals",
+        "30% 45-degree diagnostic substrate normals",
+        "30% grazing diagnostic substrate normals",
+        "50% overhead diagnostic substrate normals",
+        "50% 45-degree diagnostic substrate normals",
+        "50% grazing diagnostic substrate normals"
+      ]
+    },
+    {
+      "fileName": "substrate-only-shaded-steel-contact-sheet.png",
+      "panels": [
+        "0% overhead substrate-only shaded steel",
+        "0% 45-degree substrate-only shaded steel",
+        "0% grazing substrate-only shaded steel",
+        "10% overhead substrate-only shaded steel",
+        "10% 45-degree substrate-only shaded steel",
+        "10% grazing substrate-only shaded steel",
+        "25% overhead substrate-only shaded steel",
+        "25% 45-degree substrate-only shaded steel",
+        "25% grazing substrate-only shaded steel",
+        "30% overhead substrate-only shaded steel",
+        "30% 45-degree substrate-only shaded steel",
+        "30% grazing substrate-only shaded steel",
+        "50% overhead substrate-only shaded steel",
+        "50% 45-degree substrate-only shaded steel",
+        "50% grazing substrate-only shaded steel"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T17:15:50.049Z",
+  "lightPositions": [
+    "overhead",
+    "45-degree",
+    "grazing"
+  ],
+  "note": [
+    "Diagnostic Stage 6.5 substrate-only visual package.",
+    "Panels cover polish 0, 10, 25, 30, and 50 across overhead, 45-degree, and grazing light positions.",
+    "False-color sheets show substrate maps only: albedo, height, AO, roughness, gloss, anisotropy direction/aspect, and diagnostic normals.",
+    "Substrate-only shaded steel disables active decals and sets tarnish to 0; it is diagnostic-only and does not change production rendering.",
+    "These generated assets do not store copyrighted reference images and do not claim native Tauri visual acceptance."
+  ]
+}

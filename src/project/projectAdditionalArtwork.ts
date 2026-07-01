@@ -347,6 +347,10 @@ export function updateAdditionalArtworkElementFrameField(
   field: AdditionalArtworkFrameField,
   value: boolean | number | string,
 ): ProjectAdditionalArtwork {
+  if (!Object.hasOwn(DEFAULT_ADDITIONAL_ARTWORK_FRAME, field)) {
+    return additionalArtwork
+  }
+
   return updateAdditionalArtworkElement(
     additionalArtwork,
     elementId,

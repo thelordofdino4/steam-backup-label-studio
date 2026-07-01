@@ -95,6 +95,9 @@ import {
   type CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
 import { CaseInsertImageSlotFrame } from './CaseInsertImageSlotFrame'
+import type {
+  ArtworkFrameMaterialPreviewLightOverride,
+} from './ArtworkFrameMaterialLightEditorOverlay'
 import { CaseInsertSteamBannerPreviewLayer } from './CaseInsertSteamBannerPreviewLayer'
 import { ContentBoundedImage } from './ContentBoundedImage'
 
@@ -114,6 +117,10 @@ export type CaseInsertSpinePreviewLayerProps = {
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
+  materialLightOverridesByEditableId?: Record<
+    string,
+    ArtworkFrameMaterialPreviewLightOverride
+  >
 }
 
 function getRectStyle(rect: JewelCasePixelRect, layout: CaseInsertPreviewLayout) {
@@ -575,6 +582,7 @@ function CaseInsertSpineOverlaySlot({
   role,
   layout,
   dragTarget,
+  materialLightOverridesByEditableId = {},
   pointerHandlers,
 }: {
   side: 'left' | 'right'
@@ -591,6 +599,10 @@ function CaseInsertSpineOverlaySlot({
         slotKey: JewelCaseSpineImageSlotGroupKey
         slotId: string
       }
+  materialLightOverridesByEditableId?: Record<
+    string,
+    ArtworkFrameMaterialPreviewLightOverride
+  >
   pointerHandlers: CaseInsertSpinePreviewPointerHandlers
 }) {
   const slotLayout = getJewelCaseSpineImageSlotPreviewLayout(
@@ -647,16 +659,17 @@ function CaseInsertSpineOverlaySlot({
     onPointerMove: pointerHandlers.handleSpinePointerMove,
     onPointerUp: pointerHandlers.handleSpinePointerUp,
   }
+  const editableId = dragTarget.kind === 'primary'
+    ? createPreviewEditableElementId('case', 'spine', side, dragTarget.slotKey)
+    : createPreviewEditableElementId(
+        'case',
+        'spine',
+        side,
+        dragTarget.slotKey,
+        dragTarget.slotId,
+      )
   const editableAttributes = createPreviewEditableAttributes({
-    id: dragTarget.kind === 'primary'
-      ? createPreviewEditableElementId('case', 'spine', side, dragTarget.slotKey)
-      : createPreviewEditableElementId(
-          'case',
-          'spine',
-          side,
-          dragTarget.slotKey,
-          dragTarget.slotId,
-        ),
+    id: editableId,
     label: slot.label,
     kind: role === 'logo' ? 'logo' : role === 'mark' ? 'mark' : 'artwork',
   })
@@ -674,7 +687,12 @@ function CaseInsertSpineOverlaySlot({
         imageSize={artifact.imageSize}
         draggable={false}
       />
-      {role === 'artwork' ? <CaseInsertImageSlotFrame slot={slot} /> : null}
+      {role === 'artwork' ? (
+        <CaseInsertImageSlotFrame
+          slot={slot}
+          materialLightOverride={materialLightOverridesByEditableId[editableId]}
+        />
+      ) : null}
     </div>
   )
 }
@@ -689,6 +707,7 @@ function CaseInsertSpineSidePreview({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  materialLightOverridesByEditableId = {},
   previewTextControlHandlers,
 }: {
   side: 'left' | 'right'
@@ -706,6 +725,10 @@ function CaseInsertSpineSidePreview({
     options?: { sourceMode?: boolean },
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
+  materialLightOverridesByEditableId?: Record<
+    string,
+    ArtworkFrameMaterialPreviewLightOverride
+  >
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
 }) {
   const artworkSlots = state.additionalArtworkEnabled
@@ -742,6 +765,7 @@ function CaseInsertSpineSidePreview({
         role="titleArtwork"
         layout={layout}
         dragTarget={{ kind: 'primary', slotKey: 'titleArtwork' }}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
         pointerHandlers={pointerHandlers}
       />
       {artworkSlots.map((slot) => (
@@ -752,6 +776,7 @@ function CaseInsertSpineSidePreview({
           role="artwork"
           layout={layout}
           dragTarget={{ kind: 'group', slotKey: 'artworkSlots', slotId: slot.id }}
+          materialLightOverridesByEditableId={materialLightOverridesByEditableId}
           pointerHandlers={pointerHandlers}
         />
       ))}
@@ -794,6 +819,7 @@ function CaseInsertSpineSidePreview({
           role="logo"
           layout={layout}
           dragTarget={{ kind: 'group', slotKey: 'logoSlots', slotId: slot.id }}
+          materialLightOverridesByEditableId={materialLightOverridesByEditableId}
           pointerHandlers={pointerHandlers}
         />
       ))}
@@ -810,6 +836,7 @@ function CaseInsertSpineSidePreview({
               slotKey: 'markSlots',
               slotId: slot.id,
             }}
+            materialLightOverridesByEditableId={materialLightOverridesByEditableId}
             pointerHandlers={pointerHandlers}
           />
         )),
@@ -827,6 +854,7 @@ export function CaseInsertSpinePreviewLayer({
   onSelectedTextTargetChange,
   onTextTargetValueChange,
   onTextTargetEditComplete,
+  materialLightOverridesByEditableId = {},
   previewTextControlHandlers,
 }: CaseInsertSpinePreviewLayerProps) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
@@ -845,6 +873,7 @@ export function CaseInsertSpinePreviewLayer({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
         previewTextControlHandlers={previewTextControlHandlers}
       />
       <CaseInsertSpineSidePreview
@@ -857,6 +886,7 @@ export function CaseInsertSpinePreviewLayer({
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
         previewTextControlHandlers={previewTextControlHandlers}
       />
     </div>

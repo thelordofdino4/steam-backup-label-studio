@@ -1,0 +1,574 @@
+{
+  "generatedAt": "2026-06-28T09:17:33.895Z",
+  "materialSeed": {
+    "algorithm": "sha256-image-v1",
+    "key": "sha256-image-v1:preview-export-light-vector-contact-sheet",
+    "seed32": 2129510622
+  },
+  "sections": [
+    {
+      "title": "Flat steel polish sweep, tarnish 0",
+      "rows": [
+        {
+          "label": "polish 0",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 0,
+            "metalProfile": "flat",
+            "metalTarnish": 0,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "polish 50",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 50,
+            "metalProfile": "flat",
+            "metalTarnish": 0,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "polish 85",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 85,
+            "metalProfile": "flat",
+            "metalTarnish": 0,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "polish 100",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 100,
+            "metalProfile": "flat",
+            "metalTarnish": 0,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        }
+      ]
+    },
+    {
+      "title": "Flat steel tarnish sweep, polish 50",
+      "rows": [
+        {
+          "label": "tarnish 0",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 50,
+            "metalProfile": "flat",
+            "metalTarnish": 0,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "tarnish 45",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 50,
+            "metalProfile": "flat",
+            "metalTarnish": 45,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "tarnish 80",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 50,
+            "metalProfile": "flat",
+            "metalTarnish": 80,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        },
+        {
+          "label": "tarnish 100",
+          "frame": {
+            "color": "#ffffff",
+            "enabled": true,
+            "jaggedness": 50,
+            "lumpiness": 50,
+            "metalBevelWidth": 64,
+            "metalBrushAngle": 12,
+            "metalDepth": 72,
+            "metalLightAngle": 0,
+            "metalPattern": "brushed",
+            "metalPatternScale": 90,
+            "metalPatternStrength": 55,
+            "metalPolish": 50,
+            "metalProfile": "flat",
+            "metalTarnish": 100,
+            "metalType": "steel",
+            "roughnessOffset": 0,
+            "shape": "rectangle",
+            "style": "metal",
+            "width": 9
+          }
+        }
+      ]
+    }
+  ],
+  "cells": [
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.000|0.000|12.000|595|395|16.200|roughDamaged:1.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "polish 0",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.000|0.000|12.000|595|395|16.200|roughDamaged:1.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "polish 0",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.000|0.000|12.000|595|395|16.200|roughDamaged:1.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "polish 0",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "polish 50",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "polish 50",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "polish 50",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.850|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:1.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "polish 85",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.850|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:1.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "polish 85",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.850|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:1.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "polish 85",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|1.000|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:1.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "polish 100",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|1.000|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:1.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "polish 100",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|1.000|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:1.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "polish 100",
+      "section": "Flat steel polish sweep, tarnish 0",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "tarnish 0",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "tarnish 0",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "tarnish 0",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.450|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.450|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "tarnish 45",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.450|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "tarnish 45",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.450|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.450|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "tarnish 45",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.800|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.800|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "tarnish 80",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.800|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.800|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "tarnish 80",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|0.800|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|0.800|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "tarnish 80",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|1.000|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|1.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "overhead",
+      "lightVector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "row": "tarnish 100",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|1.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|1.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "45 degree",
+      "lightVector": {
+        "x": 0.7071067811865475,
+        "y": 0,
+        "z": 0.7071067811865476
+      },
+      "row": "tarnish 100",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    },
+    {
+      "descriptorKey": "metal-surface-maps|quality:full|-8.748|-8.748|297.496|197.496|16.200|595|395|fill|no-stroke-clip|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:preview-export-light-vector-contact-sheet:z7uswu|1.000|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1k7f418|1k7f418|steel-finish-field-v1|material-seed:sha256-image-v1:preview-export-light-vector-contact-sheet|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1r75ik5|0.500|1.000|12.000|595|395|16.200|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "light": "grazing",
+      "lightVector": {
+        "x": 1,
+        "y": 0,
+        "z": 6.123233995736766e-17
+      },
+      "row": "tarnish 100",
+      "section": "Flat steel tarnish sweep, polish 50",
+      "textureSize": {
+        "width": 595,
+        "height": 395
+      }
+    }
+  ]
+}

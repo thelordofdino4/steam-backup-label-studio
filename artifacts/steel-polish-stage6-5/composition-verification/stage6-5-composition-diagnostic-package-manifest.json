@@ -1,0 +1,273 @@
+{
+  "acceptanceChecks": {
+    "lightChangesShadingOnly": {
+      "mapDiffMax": 0,
+      "shadedRgbDiffMax": 84
+    },
+    "noBleedOutsideFrameRing": {
+      "0-polish-0-tarnish:substrate": 0,
+      "0-polish-0-tarnish:activeDecal": 0,
+      "0-polish-0-tarnish:physicalDecal": 0,
+      "0-polish-0-tarnish:rust": 0,
+      "0-polish-0-tarnish:finalAlpha": 0,
+      "50-polish-100-tarnish:substrate": 0,
+      "50-polish-100-tarnish:activeDecal": 0,
+      "50-polish-100-tarnish:physicalDecal": 0,
+      "50-polish-100-tarnish:rust": 0,
+      "50-polish-100-tarnish:finalAlpha": 0
+    },
+    "polish50LowStagePhysicalContributions": {
+      "scratch": {
+        "max": 0.04812493920326233,
+        "sum": 26.2970758692245
+      },
+      "gouge": {
+        "max": 0,
+        "sum": 0
+      },
+      "dent": {
+        "max": 0,
+        "sum": 0
+      },
+      "pit": {
+        "max": 0.005402581300586462,
+        "sum": 0.12614173541078344
+      },
+      "scuff": {
+        "max": 0,
+        "sum": 0
+      },
+      "burrNick": {
+        "max": 0,
+        "sum": 0
+      }
+    },
+    "tarnishDoesNotMovePlacement": {
+      "decalDiffMax": 0,
+      "substrateDiffMax": 0
+    }
+  },
+  "checkpoints": [
+    0,
+    10,
+    25,
+    30,
+    50
+  ],
+  "files": [
+    {
+      "fileName": "substrate-decal-composition-contact-sheet.png",
+      "panels": [
+        "0% substrate-only steel",
+        "0% active decal body maps",
+        "0% active decal physical maps",
+        "0% steel with decals disabled",
+        "0% full composed steel with decals enabled",
+        "10% substrate-only steel",
+        "10% active decal body maps",
+        "10% active decal physical maps",
+        "10% steel with decals disabled",
+        "10% full composed steel with decals enabled",
+        "25% substrate-only steel",
+        "25% active decal body maps",
+        "25% active decal physical maps",
+        "25% steel with decals disabled",
+        "25% full composed steel with decals enabled",
+        "30% substrate-only steel",
+        "30% active decal body maps",
+        "30% active decal physical maps",
+        "30% steel with decals disabled",
+        "30% full composed steel with decals enabled",
+        "50% substrate-only steel",
+        "50% active decal body maps",
+        "50% active decal physical maps",
+        "50% steel with decals disabled",
+        "50% full composed steel with decals enabled"
+      ]
+    },
+    {
+      "fileName": "same-substrate-decals-disabled-enabled-contact-sheet.png",
+      "panels": [
+        "0% decals disabled",
+        "0% decals enabled",
+        "0% disabled/enabled RGB diff",
+        "10% decals disabled",
+        "10% decals enabled",
+        "10% disabled/enabled RGB diff",
+        "25% decals disabled",
+        "25% decals enabled",
+        "25% disabled/enabled RGB diff",
+        "30% decals disabled",
+        "30% decals enabled",
+        "30% disabled/enabled RGB diff",
+        "50% decals disabled",
+        "50% decals enabled",
+        "50% disabled/enabled RGB diff"
+      ]
+    },
+    {
+      "fileName": "same-substrate-decals-disabled-enabled-light-contact-sheet.png",
+      "panels": [
+        "0% overhead decals disabled",
+        "0% overhead decals enabled",
+        "0% overhead disabled/enabled RGB diff",
+        "0% 45-degree decals disabled",
+        "0% 45-degree decals enabled",
+        "0% 45-degree disabled/enabled RGB diff",
+        "0% grazing decals disabled",
+        "0% grazing decals enabled",
+        "0% grazing disabled/enabled RGB diff",
+        "10% overhead decals disabled",
+        "10% overhead decals enabled",
+        "10% overhead disabled/enabled RGB diff",
+        "10% 45-degree decals disabled",
+        "10% 45-degree decals enabled",
+        "10% 45-degree disabled/enabled RGB diff",
+        "10% grazing decals disabled",
+        "10% grazing decals enabled",
+        "10% grazing disabled/enabled RGB diff",
+        "25% overhead decals disabled",
+        "25% overhead decals enabled",
+        "25% overhead disabled/enabled RGB diff",
+        "25% 45-degree decals disabled",
+        "25% 45-degree decals enabled",
+        "25% 45-degree disabled/enabled RGB diff",
+        "25% grazing decals disabled",
+        "25% grazing decals enabled",
+        "25% grazing disabled/enabled RGB diff",
+        "30% overhead decals disabled",
+        "30% overhead decals enabled",
+        "30% overhead disabled/enabled RGB diff",
+        "30% 45-degree decals disabled",
+        "30% 45-degree decals enabled",
+        "30% 45-degree disabled/enabled RGB diff",
+        "30% grazing decals disabled",
+        "30% grazing decals enabled",
+        "30% grazing disabled/enabled RGB diff",
+        "50% overhead decals disabled",
+        "50% overhead decals enabled",
+        "50% overhead disabled/enabled RGB diff",
+        "50% 45-degree decals disabled",
+        "50% 45-degree decals enabled",
+        "50% 45-degree disabled/enabled RGB diff",
+        "50% grazing decals disabled",
+        "50% grazing decals enabled",
+        "50% grazing disabled/enabled RGB diff"
+      ]
+    },
+    {
+      "fileName": "substrate-speckle-guard-contact-sheet.png",
+      "panels": [
+        "0% fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "10% fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "25% fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "30% fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "50% fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast"
+      ]
+    },
+    {
+      "fileName": "active-pit-decal-ownership-contact-sheet.png",
+      "panels": [
+        "0% fixed-threshold substrate speckle guard",
+        "0% stable pit candidates only",
+        "0% active pit body maps",
+        "0% active pit physical response",
+        "10% fixed-threshold substrate speckle guard",
+        "10% stable pit candidates only",
+        "10% active pit body maps",
+        "10% active pit physical response",
+        "25% fixed-threshold substrate speckle guard",
+        "25% stable pit candidates only",
+        "25% active pit body maps",
+        "25% active pit physical response",
+        "30% fixed-threshold substrate speckle guard",
+        "30% stable pit candidates only",
+        "30% active pit body maps",
+        "30% active pit physical response",
+        "50% fixed-threshold substrate speckle guard",
+        "50% stable pit candidates only",
+        "50% active pit body maps",
+        "50% active pit physical response"
+      ]
+    },
+    {
+      "fileName": "tarnish-stability-guard-contact-sheet.png",
+      "panels": [
+        "0% tarnish substrate map diff",
+        "0% tarnish decal map diff",
+        "0% tarnish disabled final",
+        "0% tarnish 100 final",
+        "25% tarnish substrate map diff",
+        "25% tarnish decal map diff",
+        "25% tarnish disabled final",
+        "25% tarnish 100 final",
+        "50% tarnish substrate map diff",
+        "50% tarnish decal map diff",
+        "50% tarnish disabled final",
+        "50% tarnish 100 final"
+      ]
+    },
+    {
+      "fileName": "light-stability-guard-contact-sheet.png",
+      "panels": [
+        "0% overhead final",
+        "0% 45-degree final",
+        "0% grazing final",
+        "0% light substrate map diff",
+        "0% light decal map diff",
+        "10% overhead final",
+        "10% 45-degree final",
+        "10% grazing final",
+        "10% light substrate map diff",
+        "10% light decal map diff",
+        "25% overhead final",
+        "25% 45-degree final",
+        "25% grazing final",
+        "25% light substrate map diff",
+        "25% light decal map diff",
+        "30% overhead final",
+        "30% 45-degree final",
+        "30% grazing final",
+        "30% light substrate map diff",
+        "30% light decal map diff",
+        "50% overhead final",
+        "50% 45-degree final",
+        "50% grazing final",
+        "50% light substrate map diff",
+        "50% light decal map diff"
+      ]
+    },
+    {
+      "fileName": "frame-ring-clipping-guard-contact-sheet.png",
+      "panels": [
+        "0% substrate bleed guard",
+        "0% active decal bleed guard",
+        "0% physical decal bleed guard",
+        "0% rust bleed guard",
+        "0% final alpha bleed guard",
+        "50% tarnish 100 substrate bleed guard",
+        "50% tarnish 100 active decal bleed guard",
+        "50% tarnish 100 physical decal bleed guard",
+        "50% tarnish 100 rust bleed guard",
+        "50% tarnish 100 final alpha bleed guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T20:22:13.900Z",
+  "lightPositions": [
+    "overhead",
+    "45-degree",
+    "grazing"
+  ],
+  "note": [
+    "Stage 6.5 composition verification diagnostics.",
+    "Panels are diagnostic-only and do not claim native Tauri acceptance.",
+    "Substrate-only panels use substrate maps with active decals and tarnish disabled.",
+    "Decals-disabled/enabled panels use the shared steel finish map and shader path.",
+    "Substrate speckle guard panels are fixed-threshold local AO/height/normal contrast views; hot pixels mean dot-like substrate regression risk.",
+    "Active pit decal ownership panels separate stable pit candidates, active pit bodies, and active pit physical response from substrate false-color maps.",
+    "AO panels and guard panels are intentionally exaggerated diagnostics, not final material color.",
+    "Tarnish and light guard panels compare map stability separately from final shaded pixels.",
+    "Red pixels in clipping guards indicate detected bleed outside the frame ring."
+  ]
+}

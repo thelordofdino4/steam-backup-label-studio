@@ -1,0 +1,340 @@
+{
+  "generatedAt": "2026-06-29T00:09:51.747Z",
+  "columns": [
+    "overhead",
+    "bottom-left-handle",
+    "bottom-right-handle"
+  ],
+  "rows": [
+    "polish-0",
+    "polish-50",
+    "polish-85",
+    "polish-100"
+  ],
+  "tiles": [
+    {
+      "label": "polish-0-overhead",
+      "metrics": {
+        "polish": 0,
+        "light": "overhead",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.9969683289527893,
+          "mean": 0.7153442800622648
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.697877824306488,
+          "mean": 0.5007409960825757
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 1,
+          "mean": 0.9828238455365457
+        }
+      }
+    },
+    {
+      "label": "polish-0-bottom-left-handle",
+      "metrics": {
+        "polish": 0,
+        "light": "bottom-left-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.9969683289527893,
+          "mean": 0.7153442800622648
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.697877824306488,
+          "mean": 0.5007409960825757
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 1,
+          "mean": 0.9828238455365457
+        }
+      }
+    },
+    {
+      "label": "polish-0-bottom-right-handle",
+      "metrics": {
+        "polish": 0,
+        "light": "bottom-right-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.9969683289527893,
+          "mean": 0.7153442800622648
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.697877824306488,
+          "mean": 0.5007409960825757
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 1,
+          "mean": 0.9828238455365457
+        }
+      }
+    },
+    {
+      "label": "polish-50-overhead",
+      "metrics": {
+        "polish": 50,
+        "light": "overhead",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.03421349078416824,
+          "mean": 0.024548850382262472
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.026492107659578323,
+          "mean": 0.01900860580859953
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.07398230582475662,
+          "mean": 0.05308375041175979
+        }
+      }
+    },
+    {
+      "label": "polish-50-bottom-left-handle",
+      "metrics": {
+        "polish": 50,
+        "light": "bottom-left-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.03421349078416824,
+          "mean": 0.024548850382262472
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.026492107659578323,
+          "mean": 0.01900860580859953
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.07398230582475662,
+          "mean": 0.05308375041175979
+        }
+      }
+    },
+    {
+      "label": "polish-50-bottom-right-handle",
+      "metrics": {
+        "polish": 50,
+        "light": "bottom-right-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.03421349078416824,
+          "mean": 0.024548850382262472
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.026492107659578323,
+          "mean": 0.01900860580859953
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.07398230582475662,
+          "mean": 0.05308375041175979
+        }
+      }
+    },
+    {
+      "label": "polish-85-overhead",
+      "metrics": {
+        "polish": 85,
+        "light": "overhead",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.0015123938210308552,
+          "mean": 0.0010851721913296547
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0021237297914922237,
+          "mean": 0.001523817611959363
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0041468022391200066,
+          "mean": 0.002975411881872654
+        }
+      }
+    },
+    {
+      "label": "polish-85-bottom-left-handle",
+      "metrics": {
+        "polish": 85,
+        "light": "bottom-left-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.0015123938210308552,
+          "mean": 0.0010851721913296547
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0021237297914922237,
+          "mean": 0.001523817611959363
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0041468022391200066,
+          "mean": 0.002975411881872654
+        }
+      }
+    },
+    {
+      "label": "polish-85-bottom-right-handle",
+      "metrics": {
+        "polish": 85,
+        "light": "bottom-right-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.0015123938210308552,
+          "mean": 0.0010851721913296547
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0021237297914922237,
+          "mean": 0.001523817611959363
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0041468022391200066,
+          "mean": 0.002975411881872654
+        }
+      }
+    },
+    {
+      "label": "polish-100-overhead",
+      "metrics": {
+        "polish": 100,
+        "light": "overhead",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.001091082114726305,
+          "mean": 0.0007828727804393993
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0010300676804035902,
+          "mean": 0.0007390937100826418
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0025297312531620264,
+          "mean": 0.001815131744443197
+        }
+      }
+    },
+    {
+      "label": "polish-100-bottom-left-handle",
+      "metrics": {
+        "polish": 100,
+        "light": "bottom-left-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.001091082114726305,
+          "mean": 0.0007828727804393993
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0010300676804035902,
+          "mean": 0.0007390937100826418
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0025297312531620264,
+          "mean": 0.001815131744443197
+        }
+      }
+    },
+    {
+      "label": "polish-100-bottom-right-handle",
+      "metrics": {
+        "polish": 100,
+        "light": "bottom-right-handle",
+        "rawPit": {
+          "max": 0.9969683289527893,
+          "mean": 0.07436446099635344,
+          "min": 0
+        },
+        "visiblePitDepth": {
+          "count": 16510,
+          "max": 0.001091082114726305,
+          "mean": 0.0007828727804393993
+        },
+        "visiblePitAo": {
+          "count": 16510,
+          "max": 0.0010300676804035902,
+          "mean": 0.0007390937100826418
+        },
+        "visiblePitShadow": {
+          "count": 16510,
+          "max": 0.0025297312531620264,
+          "mean": 0.001815131744443197
+        }
+      }
+    }
+  ]
+}

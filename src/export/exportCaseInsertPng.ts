@@ -44,6 +44,9 @@ import {
   type CaseInsertEditorExportLayerId,
 } from '../editor/layerOrder'
 import {
+  createPreviewEditableElementId,
+} from '../editor/previewElementOverlay'
+import {
   getFeatureVisibleRepeatedArtworkItems,
 } from '../editor/repeatedArtwork'
 import { hasImageContentShape } from '../image/imageContentShape'
@@ -106,6 +109,10 @@ import {
 import { createArtworkFrameClipPath, drawArtworkFrame } from './drawArtworkFrame'
 import { drawCaseInsertExportGuides } from './drawCaseInsertGuides'
 import { drawCaseInsertSteamBanner } from './drawCaseInsertSteamBanner'
+import { resolveArtworkFrameMaterialSeed } from '../render/artworkFrameMaterialSeed'
+import type {
+  ArtworkFrameMaterialLightOverrideMap,
+} from '../render/artworkFrameMaterialLightEditor'
 
 type CaseInsertExportLayerRenderer = Record<
   CaseInsertEditorExportLayerId,
@@ -210,6 +217,8 @@ async function drawImageSlotInRect(
   slot: ProjectCaseInsertImageSlot,
   rect: JewelCasePixelRect | null,
   description: string,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
+  editableId?: string,
 ) {
   if (!rect || !slot.imageDataUrl) {
     return
@@ -229,7 +238,22 @@ async function drawImageSlotInRect(
   drawImageContent(context, image, slot.imageSize, rect)
   context.restore()
 
-  await drawArtworkFrame(context, slot.frame, rect, slot.imageSize)
+  const materialSeed = slot.frame.enabled
+    ? await resolveArtworkFrameMaterialSeed(slot.imageDataUrl)
+    : null
+
+  await drawArtworkFrame(
+    context,
+    slot.frame,
+    rect,
+    slot.imageSize,
+    {
+      materialLightOverride: editableId
+        ? materialLightOverridesByEditableId[editableId] ?? null
+        : null,
+      materialSeed,
+    },
+  )
 }
 
 async function drawContainImageInLocalBox(
@@ -556,6 +580,7 @@ async function drawTemplateImageSlot(
   slot: ProjectCaseInsertImageSlot,
   layout: CaseInsertPreviewLayout,
   group: 'titleArtwork' | 'artwork' | 'logo' | 'mark',
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   if (group === 'artwork') {
     await drawImageSlotInRect(
@@ -563,6 +588,13 @@ async function drawTemplateImageSlot(
       slot,
       getTemplateImageSlotRect(paneId, slot, layout, group),
       slot.label,
+      materialLightOverridesByEditableId,
+      createPreviewEditableElementId(
+        'case',
+        paneId,
+        'artworkSlots',
+        slot.id,
+      ),
     )
     return
   }
@@ -617,6 +649,7 @@ async function drawTemplateArtwork(
   caseInsert: ProjectJewelCaseState,
   paneId: CaseInsertTemplatePaneId,
   layout: CaseInsertPreviewLayout,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   const templateState = getTemplateState(caseInsert, paneId)
 
@@ -626,13 +659,21 @@ async function drawTemplateArtwork(
     templateState.titleArtwork,
     layout,
     'titleArtwork',
+    materialLightOverridesByEditableId,
   )
 
   for (const slot of getFeatureVisibleRepeatedArtworkItems(
     templateState,
     templateState.artworkSlots,
   )) {
-    await drawTemplateImageSlot(context, paneId, slot, layout, 'artwork')
+    await drawTemplateImageSlot(
+      context,
+      paneId,
+      slot,
+      layout,
+      'artwork',
+      materialLightOverridesByEditableId,
+    )
   }
 }
 
@@ -830,6 +871,7 @@ async function drawSpineSide(
   state: ProjectJewelCaseSpineSideState,
   layout: CaseInsertPreviewLayout,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   await drawImageFit(
     context,
@@ -905,10 +947,32 @@ async function drawSpineSide(
     })
 
     if (role === 'artwork') {
+      const materialSeed = slot.frame.enabled
+        ? await resolveArtworkFrameMaterialSeed(slot.imageDataUrl)
+        : null
+
       context.save()
       context.translate(artifact.box.center.x, artifact.box.center.y)
       context.rotate(artifact.box.rotationDegrees * Math.PI / 180)
-      await drawArtworkFrame(context, slot.frame, localRect, slot.imageSize)
+      await drawArtworkFrame(
+        context,
+        slot.frame,
+        localRect,
+        slot.imageSize,
+        {
+          materialLightOverride:
+            materialLightOverridesByEditableId[
+              createPreviewEditableElementId(
+                'case',
+                'spine',
+                side,
+                'artworkSlots',
+                slot.id,
+              )
+            ] ?? null,
+          materialSeed,
+        },
+      )
       context.restore()
     }
   }
@@ -978,6 +1042,7 @@ async function drawSpineContent(
   caseInsert: ProjectJewelCaseState,
   layout: CaseInsertPreviewLayout,
   brandingSources: CaseInsertBrandingSourceCatalog,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   if (!layout.surfaces.some(({ surfaceId }) => surfaceId === 'back')) {
     return
@@ -989,6 +1054,7 @@ async function drawSpineContent(
     caseInsert.spine.left,
     layout,
     brandingSources,
+    materialLightOverridesByEditableId,
   )
   await drawSpineSide(
     context,
@@ -996,6 +1062,7 @@ async function drawSpineContent(
     caseInsert.spine.right,
     layout,
     brandingSources,
+    materialLightOverridesByEditableId,
   )
 }
 
@@ -1003,6 +1070,7 @@ export async function exportCaseInsertPngBytes(params: {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
   brandingSources: CaseInsertBrandingSourceCatalog
+  materialLightOverridesByEditableId?: ArtworkFrameMaterialLightOverrideMap
   dpi?: number
 }) {
   const dpi = params.dpi ?? DEFAULT_TEMPLATE_EXPORT_DPI
@@ -1037,6 +1105,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.caseInsert,
         params.activeTemplatePane,
         layout,
+        params.materialLightOverridesByEditableId,
       ),
     'case-steam-banner': () =>
       drawTemplateSteamBanner(
@@ -1110,6 +1179,7 @@ export async function exportCaseInsertPngBytes(params: {
         params.caseInsert,
         layout,
         params.brandingSources,
+        params.materialLightOverridesByEditableId,
       ),
     'case-export-guides': () =>
       drawCaseInsertExportGuides(

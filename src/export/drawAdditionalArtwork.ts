@@ -4,8 +4,15 @@ import {
 } from '../project/projectAdditionalArtwork'
 import { hasImageContentShape } from '../image/imageContentShape'
 import type { ProjectAdditionalArtwork } from '../project/projectTypes'
+import {
+  createPreviewEditableElementId,
+} from '../editor/previewElementOverlay'
 import { drawImageContent, loadCanvasSafeImage } from './canvasImage'
 import { createArtworkFrameClipPath, drawArtworkFrame } from './drawArtworkFrame'
+import { resolveArtworkFrameMaterialSeed } from '../render/artworkFrameMaterialSeed'
+import type {
+  ArtworkFrameMaterialLightOverrideMap,
+} from '../render/artworkFrameMaterialLightEditor'
 
 type AdditionalArtworkCanvasBounds = {
   centerX: number
@@ -45,6 +52,7 @@ async function drawAdditionalArtworkItem(
   discContentSize: number,
   discOrigin: number,
   renderItem: AdditionalArtworkRenderItem,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   const image = await loadCanvasSafeImage(
     renderItem.imageDataUrl,
@@ -76,7 +84,27 @@ async function drawAdditionalArtworkItem(
   )
   context.restore()
 
-  await drawArtworkFrame(context, renderItem.frame, bounds, renderItem.imageSize)
+  const materialSeed = renderItem.frame.enabled
+    ? await resolveArtworkFrameMaterialSeed(renderItem.imageDataUrl)
+    : null
+
+  await drawArtworkFrame(
+    context,
+    renderItem.frame,
+    bounds,
+    renderItem.imageSize,
+    {
+      materialLightOverride:
+        materialLightOverridesByEditableId[
+          createPreviewEditableElementId(
+            'disc',
+            'additional-artwork',
+            renderItem.id,
+          )
+        ] ?? null,
+      materialSeed,
+    },
+  )
 }
 
 export async function drawAdditionalArtwork(
@@ -84,6 +112,7 @@ export async function drawAdditionalArtwork(
   discContentSize: number,
   discOrigin: number,
   additionalArtwork: ProjectAdditionalArtwork,
+  materialLightOverridesByEditableId: ArtworkFrameMaterialLightOverrideMap = {},
 ) {
   for (const renderItem of createAdditionalArtworkRenderItems(additionalArtwork)) {
     await drawAdditionalArtworkItem(
@@ -91,6 +120,7 @@ export async function drawAdditionalArtwork(
       discContentSize,
       discOrigin,
       renderItem,
+      materialLightOverridesByEditableId,
     )
   }
 }

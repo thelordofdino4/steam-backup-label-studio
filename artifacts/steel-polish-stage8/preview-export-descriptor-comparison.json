@@ -1,0 +1,53 @@
+{
+  "displayPreview": {
+    "cacheKey": "metal-surface-maps|quality:full|-2.430|-2.430|104.860|61.110|4.500|671|391|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|3owbtw|3owbtw|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|671|391|4.500|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+    "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+    "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+    "textureBounds": {
+      "x": -2.43,
+      "y": -2.43,
+      "width": 104.86,
+      "height": 61.11
+    },
+    "textureSize": {
+      "height": 391,
+      "scale": 6.4,
+      "width": 671
+    }
+  },
+  "export": {
+    "cacheKey": "metal-surface-maps|quality:full|-15.552|-15.552|671.104|391.104|28.800|1342|782|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|bjj2zc|bjj2zc|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|1342|782|28.800|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+    "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+    "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+    "textureBounds": {
+      "x": -15.552000000000001,
+      "y": -15.552000000000001,
+      "width": 671.104,
+      "height": 391.104
+    },
+    "textureSize": {
+      "height": 782,
+      "scale": 2,
+      "width": 1342
+    }
+  },
+  "normalizedPreview": {
+    "cacheKey": "metal-surface-maps|quality:full|-2.430|-2.430|104.860|61.110|4.500|210|122|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|3owbtw|3owbtw|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|210|122|4.500|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+    "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+    "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+    "textureBounds": {
+      "x": -2.43,
+      "y": -2.43,
+      "width": 104.86,
+      "height": 61.11
+    },
+    "textureSize": {
+      "height": 122,
+      "scale": 2,
+      "width": 210
+    }
+  }
+}

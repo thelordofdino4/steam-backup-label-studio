@@ -1,0 +1,209 @@
+{
+  "files": [
+    {
+      "fileName": "before-after-final-shaded-contact-sheet.png",
+      "panels": [
+        "top: previously generated Stage 6 before final shaded sheet",
+        "bottom: current Stage 6 after final shaded sheet"
+      ]
+    },
+    {
+      "fileName": "active-body-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead active body map",
+        "0% 45-degree active body map",
+        "0% grazing active body map",
+        "10% overhead active body map",
+        "10% 45-degree active body map",
+        "10% grazing active body map",
+        "25% overhead active body map",
+        "25% 45-degree active body map",
+        "25% grazing active body map",
+        "30% overhead active body map",
+        "30% 45-degree active body map",
+        "30% grazing active body map",
+        "50% overhead active body map",
+        "50% 45-degree active body map",
+        "50% grazing active body map"
+      ]
+    },
+    {
+      "fileName": "physical-contribution-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead physical contribution map",
+        "0% 45-degree physical contribution map",
+        "0% grazing physical contribution map",
+        "10% overhead physical contribution map",
+        "10% 45-degree physical contribution map",
+        "10% grazing physical contribution map",
+        "25% overhead physical contribution map",
+        "25% 45-degree physical contribution map",
+        "25% grazing physical contribution map",
+        "30% overhead physical contribution map",
+        "30% 45-degree physical contribution map",
+        "30% grazing physical contribution map",
+        "50% overhead physical contribution map",
+        "50% 45-degree physical contribution map",
+        "50% grazing physical contribution map"
+      ]
+    },
+    {
+      "fileName": "final-shaded-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish0-active-physical-final-light-contact-sheet.png",
+      "panels": [
+        "overhead active body map",
+        "overhead physical contribution map",
+        "overhead final shaded steel",
+        "45-degree active body map",
+        "45-degree physical contribution map",
+        "45-degree final shaded steel",
+        "grazing active body map",
+        "grazing physical contribution map",
+        "grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "low-polish-ramp-final-light-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish0-10-25-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish10-25-30-50-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish25-30-50-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "inactive-zero-guard-contact-sheet.png",
+      "panels": [
+        "50% old low-polish families active body exact-zero guard",
+        "50% old low-polish families physical contribution exact-zero guard",
+        "100% all-family active body exact-zero guard",
+        "100% all-family physical contribution exact-zero guard"
+      ]
+    },
+    {
+      "fileName": "frame-ring-clipping-guard-contact-sheet.png",
+      "panels": [
+        "active decal bleed guard",
+        "physical contribution bleed guard",
+        "self-shadow receiver bleed guard"
+      ]
+    },
+    {
+      "fileName": "light-stability-contact-sheet.png",
+      "panels": [
+        "30% overhead active body map",
+        "30% overhead physical contribution map",
+        "30% overhead final shaded steel",
+        "30% 45-degree active body map",
+        "30% 45-degree physical contribution map",
+        "30% 45-degree final shaded steel",
+        "30% grazing active body map",
+        "30% grazing physical contribution map",
+        "30% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "tarnish-stability-contact-sheet.png",
+      "panels": [
+        "30% polish 0% tarnish active body map",
+        "30% polish 0% tarnish physical contribution map",
+        "30% polish 0% tarnish final clean-steel shading",
+        "30% polish 50% tarnish active body map",
+        "30% polish 50% tarnish physical contribution map",
+        "30% polish 50% tarnish final clean-steel shading",
+        "30% polish 100% tarnish active body map",
+        "30% polish 100% tarnish physical contribution map",
+        "30% polish 100% tarnish final clean-steel shading"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T04:10:22.656Z",
+  "note": [
+    "Diagnostic Stage 6 after-state visual package.",
+    "Panels use active decal physical contribution maps and existing steel finish maps.",
+    "Rows are active body maps, physical contribution maps, and final shaded steel; columns are overhead, 45-degree, and grazing light.",
+    "The low-polish ramp sheet shows final shaded steel for polish 0, 10, 25, 30, and 50 across the same light positions.",
+    "The 0/10/25 comparison sheet isolates the polish 10 overlap tune against rough damaged and medium scuffed checkpoints.",
+    "The 10/25/30/50 comparison sheet isolates the polish 25 overlap tune against the low-polish and brushed-baseline guards.",
+    "The 25/30/50 comparison sheet isolates the polish 30 handoff into the brushed baseline.",
+    "Inactive-zero guards turn red if old low-polish damage families contribute at 50% or if any family contributes at 100%.",
+    "Light and tarnish stability sheets visualize that placement and physical maps stay anchored while final shading is the only light-dependent response.",
+    "The before/after sheet uses the existing Stage 6 before artifact when present and the current after render.",
+    "These generated assets do not claim native Tauri visual acceptance."
+  ]
+}

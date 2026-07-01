@@ -1,0 +1,218 @@
+{
+  "acceptanceChecks": {
+    "highPolishDamageSurvival": {
+      "50%": {
+        "heavyNonScratchPhysicalMax": 0,
+        "scratchPhysicalMax": 0.05250685289502144
+      }
+    },
+    "lightChangesShadingOnly": {
+      "mapDiffMax": 0,
+      "shadedRgbDiffMax": 0.34509803921568627
+    },
+    "noBleedOutsideFrameRing": {
+      "50%:activeDecal": 0,
+      "50%:decalsDisabledAlpha": 0,
+      "50%:decalsEnabledAlpha": 0,
+      "50%:physicalDecal": 0,
+      "50%:selfShadow": 0,
+      "50%:substrate": 0
+    }
+  },
+  "checkpoints": [
+    50
+  ],
+  "files": [
+    {
+      "fileName": "substrate-only-shaded-steel-contact-sheet.png",
+      "panels": [
+        "50% overhead substrate-only shaded steel",
+        "50% 45-degree substrate-only shaded steel",
+        "50% grazing substrate-only shaded steel",
+        "50% bottom-left substrate-only shaded steel",
+        "50% bottom-right substrate-only shaded steel",
+        "50% top-left substrate-only shaded steel",
+        "50% top-right substrate-only shaded steel"
+      ]
+    },
+    {
+      "fileName": "final-shaded-decals-disabled-contact-sheet.png",
+      "panels": [
+        "50% overhead final shaded steel with decals disabled",
+        "50% 45-degree final shaded steel with decals disabled",
+        "50% grazing final shaded steel with decals disabled",
+        "50% bottom-left final shaded steel with decals disabled",
+        "50% bottom-right final shaded steel with decals disabled",
+        "50% top-left final shaded steel with decals disabled",
+        "50% top-right final shaded steel with decals disabled"
+      ]
+    },
+    {
+      "fileName": "final-shaded-decals-enabled-contact-sheet.png",
+      "panels": [
+        "50% overhead final shaded steel with decals enabled",
+        "50% 45-degree final shaded steel with decals enabled",
+        "50% grazing final shaded steel with decals enabled",
+        "50% bottom-left final shaded steel with decals enabled",
+        "50% bottom-right final shaded steel with decals enabled",
+        "50% top-left final shaded steel with decals enabled",
+        "50% top-right final shaded steel with decals enabled"
+      ]
+    },
+    {
+      "fileName": "substrate-albedo-contact-sheet.png",
+      "panels": [
+        "50% overhead substrate albedo",
+        "50% 45-degree substrate albedo",
+        "50% grazing substrate albedo",
+        "50% bottom-left substrate albedo",
+        "50% bottom-right substrate albedo",
+        "50% top-left substrate albedo",
+        "50% top-right substrate albedo"
+      ]
+    },
+    {
+      "fileName": "substrate-height-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color substrate height",
+        "50% 45-degree false-color substrate height",
+        "50% grazing false-color substrate height",
+        "50% bottom-left false-color substrate height",
+        "50% bottom-right false-color substrate height",
+        "50% top-left false-color substrate height",
+        "50% top-right false-color substrate height"
+      ]
+    },
+    {
+      "fileName": "substrate-ao-contact-sheet.png",
+      "panels": [
+        "50% overhead normalized false-color substrate AO",
+        "50% 45-degree normalized false-color substrate AO",
+        "50% grazing normalized false-color substrate AO",
+        "50% bottom-left normalized false-color substrate AO",
+        "50% bottom-right normalized false-color substrate AO",
+        "50% top-left normalized false-color substrate AO",
+        "50% top-right normalized false-color substrate AO"
+      ]
+    },
+    {
+      "fileName": "substrate-roughness-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color substrate roughness",
+        "50% 45-degree false-color substrate roughness",
+        "50% grazing false-color substrate roughness",
+        "50% bottom-left false-color substrate roughness",
+        "50% bottom-right false-color substrate roughness",
+        "50% top-left false-color substrate roughness",
+        "50% top-right false-color substrate roughness"
+      ]
+    },
+    {
+      "fileName": "substrate-gloss-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color substrate gloss",
+        "50% 45-degree false-color substrate gloss",
+        "50% grazing false-color substrate gloss",
+        "50% bottom-left false-color substrate gloss",
+        "50% bottom-right false-color substrate gloss",
+        "50% top-left false-color substrate gloss",
+        "50% top-right false-color substrate gloss"
+      ]
+    },
+    {
+      "fileName": "substrate-anisotropy-normals-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color substrate anisotropy left half, normals right half",
+        "50% 45-degree false-color substrate anisotropy left half, normals right half",
+        "50% grazing false-color substrate anisotropy left half, normals right half",
+        "50% bottom-left false-color substrate anisotropy left half, normals right half",
+        "50% bottom-right false-color substrate anisotropy left half, normals right half",
+        "50% top-left false-color substrate anisotropy left half, normals right half",
+        "50% top-right false-color substrate anisotropy left half, normals right half"
+      ]
+    },
+    {
+      "fileName": "active-decal-body-maps-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color active decal body maps",
+        "50% 45-degree false-color active decal body maps",
+        "50% grazing false-color active decal body maps",
+        "50% bottom-left false-color active decal body maps",
+        "50% bottom-right false-color active decal body maps",
+        "50% top-left false-color active decal body maps",
+        "50% top-right false-color active decal body maps"
+      ]
+    },
+    {
+      "fileName": "active-physical-contribution-maps-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color active physical contribution maps",
+        "50% 45-degree false-color active physical contribution maps",
+        "50% grazing false-color active physical contribution maps",
+        "50% bottom-left false-color active physical contribution maps",
+        "50% bottom-right false-color active physical contribution maps",
+        "50% top-left false-color active physical contribution maps",
+        "50% top-right false-color active physical contribution maps"
+      ]
+    },
+    {
+      "fileName": "high-polish-damage-survival-contact-sheet.png",
+      "panels": [
+        "50% overhead false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% 45-degree false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% grazing false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% bottom-left false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% bottom-right false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% top-left false-color high-polish damage survival: red non-scratch, blue scratch",
+        "50% top-right false-color high-polish damage survival: red non-scratch, blue scratch"
+      ]
+    },
+    {
+      "fileName": "light-stability-guard-contact-sheet.png",
+      "panels": [
+        "50% overhead final shaded",
+        "50% 45-degree final shaded",
+        "50% grazing final shaded",
+        "50% bottom-left final shaded",
+        "50% bottom-right final shaded",
+        "50% top-left final shaded",
+        "50% top-right final shaded",
+        "50% overhead/grazing substrate map diff",
+        "50% overhead/grazing active decal map diff"
+      ]
+    },
+    {
+      "fileName": "frame-ring-clipping-guard-contact-sheet.png",
+      "panels": [
+        "50% substrate bleed guard",
+        "50% active decal bleed guard",
+        "50% physical decal bleed guard",
+        "50% self-shadow bleed guard",
+        "50% decals-disabled alpha bleed guard",
+        "50% decals-enabled alpha bleed guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T23:39:04.347Z",
+  "lightPositions": [
+    "overhead",
+    "45-degree",
+    "grazing",
+    "bottom-left",
+    "bottom-right",
+    "top-left",
+    "top-right"
+  ],
+  "note": [
+    "Stage 7 after-50-baseline diagnostics.",
+    "Flat steel only: metalType steel, metalProfile flat, tarnish 0.",
+    "False-color panels are diagnostics, not final material color.",
+    "Substrate albedo is RGB; substrate height, AO, roughness, gloss, anisotropy/normals, active bodies, physical contributions, damage survival, light stability, and clipping guards are false-color diagnostics.",
+    "Substrate-only shaded steel uses substrate maps with decals and tarnish disabled for inspection.",
+    "Decals-disabled/enabled final sheets use the shared steel finish map and shader path.",
+    "High-polish damage survival colors red for non-scratch physical contribution, blue for scratch physical contribution, and dim purple for active body without physical contribution.",
+    "Light stability guard shows final shaded steel for all light positions plus substrate/decal map diffs between overhead and grazing.",
+    "Red pixels in clipping guards indicate detected bleed outside the frame ring.",
+    "Generated diagnostics do not store reference images and do not claim native Tauri visual acceptance."
+  ]
+}

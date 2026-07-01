@@ -1,0 +1,700 @@
+{
+  "generatedAt": "2026-06-29T01:28:33.614Z",
+  "columns": [
+    "overhead",
+    "bottom-left-handle",
+    "bottom-right-handle"
+  ],
+  "rows": [
+    "polish-25",
+    "polish-50",
+    "polish-75",
+    "polish-100"
+  ],
+  "tiles": [
+    {
+      "label": "polish-25-overhead",
+      "metrics": {
+        "polish": 25,
+        "light": "overhead",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.915262758731842,
+          "mean": 0.023078768278016262,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.5347985625267029,
+          "mean": 0.3808241929734369
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.5620599985122681,
+          "mean": 0.44776066804244635
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.3830620050430298,
+          "mean": 0.276842038028902
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.3044593334197998,
+          "mean": 0.21934556327557636
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.25171342492103577,
+          "mean": 0.13220611088687464
+        }
+      }
+    },
+    {
+      "label": "polish-25-bottom-left-handle",
+      "metrics": {
+        "polish": 25,
+        "light": "bottom-left-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.915262758731842,
+          "mean": 0.023078768278016262,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.5347985625267029,
+          "mean": 0.3808241929734369
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.5620599985122681,
+          "mean": 0.44776066804244635
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.3830620050430298,
+          "mean": 0.276842038028902
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.3044593334197998,
+          "mean": 0.21934556327557636
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.25171342492103577,
+          "mean": 0.13220611088687464
+        }
+      }
+    },
+    {
+      "label": "polish-25-bottom-right-handle",
+      "metrics": {
+        "polish": 25,
+        "light": "bottom-right-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.915262758731842,
+          "mean": 0.023078768278016262,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.5347985625267029,
+          "mean": 0.3808241929734369
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.5620599985122681,
+          "mean": 0.44776066804244635
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.3830620050430298,
+          "mean": 0.276842038028902
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.3044593334197998,
+          "mean": 0.21934556327557636
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.25171342492103577,
+          "mean": 0.13220611088687464
+        }
+      }
+    },
+    {
+      "label": "polish-50-overhead",
+      "metrics": {
+        "polish": 50,
+        "light": "overhead",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.12728053331375122,
+          "mean": 0.0017240627784350139,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.06537952274084091,
+          "mean": 0.046556040975845515
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.09321378916501999,
+          "mean": 0.07425803288577064
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.06001528725028038,
+          "mean": 0.04337353939302715
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.012208926491439342,
+          "mean": 0.00879583436691869
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.06719383597373962,
+          "mean": 0.03529186155647039
+        }
+      }
+    },
+    {
+      "label": "polish-50-bottom-left-handle",
+      "metrics": {
+        "polish": 50,
+        "light": "bottom-left-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.12728053331375122,
+          "mean": 0.0017240627784350139,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.06537952274084091,
+          "mean": 0.046556040975845515
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.09321378916501999,
+          "mean": 0.07425803288577064
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.06001528725028038,
+          "mean": 0.04337353939302715
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.012208926491439342,
+          "mean": 0.00879583436691869
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.06719383597373962,
+          "mean": 0.03529186155647039
+        }
+      }
+    },
+    {
+      "label": "polish-50-bottom-right-handle",
+      "metrics": {
+        "polish": 50,
+        "light": "bottom-right-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.12728053331375122,
+          "mean": 0.0017240627784350139,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.06537952274084091,
+          "mean": 0.046556040975845515
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.09321378916501999,
+          "mean": 0.07425803288577064
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.06001528725028038,
+          "mean": 0.04337353939302715
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.012208926491439342,
+          "mean": 0.00879583436691869
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.06719383597373962,
+          "mean": 0.03529186155647039
+        }
+      }
+    },
+    {
+      "label": "polish-75-overhead",
+      "metrics": {
+        "polish": 75,
+        "light": "overhead",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.00384613499045372,
+          "mean": 0.000047900667127586096,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0018987867515534163,
+          "mean": 0.0013521052500668992
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0028488035313785076,
+          "mean": 0.0022694769360250867
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0018400120316073298,
+          "mean": 0.0013297917208037891
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.0002804023097269237,
+          "mean": 0.00020201385516810142
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0037302435375750065,
+          "mean": 0.0019592159779720187
+        }
+      }
+    },
+    {
+      "label": "polish-75-bottom-left-handle",
+      "metrics": {
+        "polish": 75,
+        "light": "bottom-left-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.00384613499045372,
+          "mean": 0.000047900667127586096,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0018987867515534163,
+          "mean": 0.0013521052500668992
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0028488035313785076,
+          "mean": 0.0022694769360250867
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0018400120316073298,
+          "mean": 0.0013297917208037891
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.0002804023097269237,
+          "mean": 0.00020201385516810142
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0037302435375750065,
+          "mean": 0.0019592159779720187
+        }
+      }
+    },
+    {
+      "label": "polish-75-bottom-right-handle",
+      "metrics": {
+        "polish": 75,
+        "light": "bottom-right-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.00384613499045372,
+          "mean": 0.000047900667127586096,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0018987867515534163,
+          "mean": 0.0013521052500668992
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0028488035313785076,
+          "mean": 0.0022694769360250867
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0018400120316073298,
+          "mean": 0.0013297917208037891
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.0002804023097269237,
+          "mean": 0.00020201385516810142
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0037302435375750065,
+          "mean": 0.0019592159779720187
+        }
+      }
+    },
+    {
+      "label": "polish-100-overhead",
+      "metrics": {
+        "polish": 100,
+        "light": "overhead",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.000894657161552459,
+          "mean": 0.000011843322213630831,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0009780278196558356,
+          "mean": 0.0006964428763090714
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0006659775972366333,
+          "mean": 0.0005305458156315933
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0004239387344568968,
+          "mean": 0.00030638398555671905
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.00006469827349064872,
+          "mean": 0.00004661140728560227
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0012760000536218286,
+          "mean": 0.0006701866942291548
+        }
+      }
+    },
+    {
+      "label": "polish-100-bottom-left-handle",
+      "metrics": {
+        "polish": 100,
+        "light": "bottom-left-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.000894657161552459,
+          "mean": 0.000011843322213630831,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0009780278196558356,
+          "mean": 0.0006964428763090714
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0006659775972366333,
+          "mean": 0.0005305458156315933
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0004239387344568968,
+          "mean": 0.00030638398555671905
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.00006469827349064872,
+          "mean": 0.00004661140728560227
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0012760000536218286,
+          "mean": 0.0006701866942291548
+        }
+      }
+    },
+    {
+      "label": "polish-100-bottom-right-handle",
+      "metrics": {
+        "polish": 100,
+        "light": "bottom-right-handle",
+        "rawScratch": {
+          "max": 1,
+          "mean": 0.003016064278630009,
+          "min": 0
+        },
+        "rawGouge": {
+          "max": 1,
+          "mean": 0.002326812252774358,
+          "min": 0
+        },
+        "rawDent": {
+          "max": 0.9934946894645691,
+          "mean": 0.018769399100658436,
+          "min": 0
+        },
+        "rawPit": {
+          "max": 0.9954181909561157,
+          "mean": 0.07460091347034767,
+          "min": 0
+        },
+        "visibleDefectShadow": {
+          "max": 0.000894657161552459,
+          "mean": 0.000011843322213630831,
+          "min": 0
+        },
+        "visibleScratchShadow": {
+          "count": 658,
+          "max": 0.0009780278196558356,
+          "mean": 0.0006964428763090714
+        },
+        "visibleGougeShadow": {
+          "count": 496,
+          "max": 0.0006659775972366333,
+          "mean": 0.0005305458156315933
+        },
+        "visibleDentShadow": {
+          "count": 4316,
+          "max": 0.0004239387344568968,
+          "mean": 0.00030638398555671905
+        },
+        "visiblePitShadow": {
+          "count": 16550,
+          "max": 0.00006469827349064872,
+          "mean": 0.00004661140728560227
+        },
+        "visibleRimShadow": {
+          "count": 420,
+          "max": 0.0012760000536218286,
+          "mean": 0.0006701866942291548
+        }
+      }
+    }
+  ]
+}

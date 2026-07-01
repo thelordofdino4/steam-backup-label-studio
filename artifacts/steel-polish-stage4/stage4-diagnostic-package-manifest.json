@@ -1,0 +1,108 @@
+{
+  "files": [
+    {
+      "fileName": "polish-checkpoint-active-body-contact-sheet.png",
+      "panels": [
+        "0% bodyMask",
+        "10% bodyMask",
+        "25% bodyMask",
+        "30% bodyMask",
+        "50% bodyMask",
+        "75% bodyMask",
+        "100% bodyMask"
+      ]
+    },
+    {
+      "fileName": "presence-mask-by-kind-contact-sheet.png",
+      "panels": [
+        "scratch presenceMask at 30%",
+        "gouge presenceMask at 30%",
+        "dent presenceMask at 30%",
+        "pit presenceMask at 30%",
+        "scuff presenceMask at 30%",
+        "burrNick presenceMask at 30%"
+      ]
+    },
+    {
+      "fileName": "body-mask-by-kind-contact-sheet.png",
+      "panels": [
+        "scratch bodyMask at 30%",
+        "gouge bodyMask at 30%",
+        "dent bodyMask at 30%",
+        "pit bodyMask at 30%",
+        "scuff bodyMask at 30%",
+        "burrNick bodyMask at 30%"
+      ]
+    },
+    {
+      "fileName": "core-mask-by-kind-contact-sheet.png",
+      "panels": [
+        "scratch coreMask at 30%",
+        "gouge coreMask at 30%",
+        "dent coreMask at 30%",
+        "pit coreMask at 30%",
+        "scuff coreMask at 30%",
+        "burrNick coreMask at 30%"
+      ]
+    },
+    {
+      "fileName": "edge-mask-by-kind-contact-sheet.png",
+      "panels": [
+        "scratch edgeMask at 30%",
+        "gouge edgeMask at 30%",
+        "dent edgeMask at 30%",
+        "pit edgeMask at 30%",
+        "scuff edgeMask at 30%",
+        "burrNick edgeMask at 30%"
+      ]
+    },
+    {
+      "fileName": "inactive-zero-guard-contact-sheet.png",
+      "panels": [
+        "100% stable placement candidates",
+        "100% inactive active-body zero guard",
+        "30% active body reference",
+        "30% physical contribution zero guard"
+      ]
+    },
+    {
+      "fileName": "same-seed-light-active-body-stability-contact-sheet.png",
+      "panels": [
+        "center light bodyMask",
+        "bottom-left light bodyMask",
+        "top-right light bodyMask",
+        "center vs top-right bodyMask difference"
+      ]
+    },
+    {
+      "fileName": "same-seed-tarnish-active-body-stability-contact-sheet.png",
+      "panels": [
+        "tarnish 0 bodyMask",
+        "tarnish 50 bodyMask",
+        "tarnish 100 bodyMask",
+        "tarnish 0 vs 100 bodyMask difference"
+      ]
+    },
+    {
+      "fileName": "image-seed-active-body-comparison-contact-sheet.png",
+      "panels": [
+        "image seed A bodyMask",
+        "image seed B bodyMask",
+        "A vs B bodyMask difference",
+        "image seed A presenceMask",
+        "image seed B presenceMask",
+        "A stable candidates",
+        "B stable candidates",
+        "physical contribution zero guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-29T23:07:59.554Z",
+  "note": [
+    "Diagnostic active body mask assets only.",
+    "Panels visualize false-color active decal body maps for Stage 4.",
+    "These assets are not final shaded steel and do not claim native visual acceptance.",
+    "Stable placement candidates may remain populated while inactive active-body masks are exactly zero.",
+    "Physical contribution channels are expected to remain zero in every panel."
+  ]
+}

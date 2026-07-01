@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seed Uncoupling Visual Verification</title>
+<style>
+body{font-family:Arial,Helvetica,sans-serif;background:#eef2f4;color:#172028;margin:24px;line-height:1.45}
+h1{font-size:26px;margin:0 0 8px}
+h2{font-size:18px;margin:28px 0 8px}
+.audit{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:18px 0}
+.pass{background:#f7fbf8;border:1px solid #a8d4b6;padding:10px;border-radius:6px}
+.fail{background:#fff7f7;border:1px solid #e0a8a8;padding:10px;border-radius:6px}
+img{max-width:100%;height:auto;border:1px solid #c8d0d7;background:#fff}
+code{background:#dde5ea;padding:2px 4px;border-radius:3px}
+</style>
+</head>
+<body>
+<h1>Seed Uncoupling Visual Verification</h1>
+<p>Generated contact sheets for image-derived corrosion seed behavior. PNG sheets are label-free raster companions; SVG sheets include labels and metrics.</p>
+<div class="audit">
+<div class="pass"><strong>differentImagesMovePlacement</strong><br>PASS</div>
+<div class="pass"><strong>lightChangesFinalPixelsOnly</strong><br>PASS</div>
+<div class="pass"><strong>noRustOrAlphaBleed</strong><br>PASS</div>
+<div class="pass"><strong>polishKeepsPlacementStable</strong><br>PASS</div>
+<div class="pass"><strong>tarnishKeepsGeometryStable</strong><br>PASS</div>
+<div class="pass"><strong>tarnishGrowsCoverage</strong><br>PASS</div>
+</div>
+<h2>Polish Response Without Rust Reseeding</h2>
+<p>Same image seed, tarnish 80, polish values 0, 50, and 100.</p>
+<p><code>C:\Users\John Paul Keller\steam-backup-label-studio\artifacts\seed-uncoupling-visual-verification\package-2026-06-27\sheets\01-polish-0-50-100-same-image.svg</code></p>
+<img src="sheets/01-polish-0-50-100-same-image.svg" alt="Polish Response Without Rust Reseeding">
+<h2>Tarnish Stage Growth Over Stable Geometry</h2>
+<p>Same image seed, polish 50, tarnish values 15, 30, 45, 65, 80, and 100.</p>
+<p><code>C:\Users\John Paul Keller\steam-backup-label-studio\artifacts\seed-uncoupling-visual-verification\package-2026-06-27\sheets\02-tarnish-15-30-45-65-80-100-same-image.svg</code></p>
+<img src="sheets/02-tarnish-15-30-45-65-80-100-same-image.svg" alt="Tarnish Stage Growth Over Stable Geometry">
+<h2>Light Angle Shading Only</h2>
+<p>Same image seed, polish 65, tarnish 88, light angles 0, 90, and 180.</p>
+<p><code>C:\Users\John Paul Keller\steam-backup-label-studio\artifacts\seed-uncoupling-visual-verification\package-2026-06-27\sheets\03-light-0-90-180-same-image.svg</code></p>
+<img src="sheets/03-light-0-90-180-same-image.svg" alt="Light Angle Shading Only">
+<h2>Different Images Produce Different Placement</h2>
+<p>Two different image-derived SHA-256 seeds at the same frame settings.</p>
+<p><code>C:\Users\John Paul Keller\steam-backup-label-studio\artifacts\seed-uncoupling-visual-verification\package-2026-06-27\sheets\04-different-images-same-settings.svg</code></p>
+<img src="sheets/04-different-images-same-settings.svg" alt="Different Images Produce Different Placement">
+</body>
+</html>

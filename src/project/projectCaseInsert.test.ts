@@ -1753,10 +1753,21 @@ test('case insert additional artwork frame helpers match disc defaults', () => {
                 shape: 'circle',
                 color: '#0f172a',
                 width: 999,
-                style: 'rocky',
+                style: 'metal',
                 lumpiness: -5,
                 jaggedness: 999,
                 roughnessOffset: 44,
+                metalType: 'brass',
+                metalProfile: 'rounded',
+                metalPattern: 'engraved',
+                metalDepth: 101,
+                metalBevelWidth: -1,
+                metalLightAngle: 480,
+                metalBrushAngle: -20,
+                metalPolish: 33,
+                metalTarnish: 88,
+                metalPatternScale: 12,
+                metalPatternStrength: 125,
               },
             },
           ],
@@ -1771,11 +1782,70 @@ test('case insert additional artwork frame helpers match disc defaults', () => {
     shape: 'circle',
     color: '#0f172a',
     width: 8,
-    style: 'rocky',
+    style: 'metal',
     lumpiness: 0,
     jaggedness: 100,
     roughnessOffset: 44,
+    metalType: 'brass',
+    metalProfile: 'rounded',
+    metalPattern: 'engraved',
+    metalDepth: 100,
+    metalBevelWidth: 0,
+    metalPolish: 33,
+    metalTarnish: 88,
+    metalPatternScale: 20,
+    metalPatternStrength: 100,
   })
+  assert.equal(
+    'metalLightAngle' in restored.templates.cover.artworkSlots[0]!.frame,
+    false,
+  )
+})
+
+test('case insert frame restore keeps light editor vector state transient', () => {
+  const restored = restoreCaseInsertProjectState({
+    schemaVersion: '0.1.0',
+    projectType: 'caseInsert',
+    title: 'Transient Light',
+    savedAt: '2026-06-03T12:00:00.000Z',
+    game: {
+      manualTitle: 'Transient Light',
+      selectedSteamGame: null,
+    },
+    caseInsert: {
+      templates: {
+        cover: {
+          artworkSlots: [
+            {
+              id: 'frame-slot',
+              label: 'Frame slot',
+              enabled: true,
+              imageDataUrl: 'data:image/png;base64,case',
+              frame: {
+                enabled: true,
+                style: 'metal',
+                metalLightAngle: 135,
+                lightVector: { x: 0, y: 0, z: 1 },
+                materialLightVector: { x: -1, y: 0, z: 0 },
+                materialLightSource: {
+                  mode: 'hemisphere-editor',
+                  version: 'future',
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  } as unknown as Parameters<typeof restoreCaseInsertProjectState>[0])
+    .caseInsert
+  const frame = restored.templates.cover.artworkSlots[0]!
+    .frame as Record<string, unknown>
+
+  assert.equal('metalLightAngle' in frame, false)
+  assert.equal('lightVector' in frame, false)
+  assert.equal('materialLightVector' in frame, false)
+  assert.equal('materialLightSource' in frame, false)
 })
 
 test('case insert source provenance survives save/load for tray slots', () => {

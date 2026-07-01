@@ -1,0 +1,124 @@
+{
+  "files": [
+    {
+      "fileName": "scratch-placement-contact-sheet.png",
+      "panels": [
+        "scratch candidate",
+        "scratch centerline",
+        "scratch tangent",
+        "scratch size class",
+        "scratch depth limit",
+        "scratch edge roughness",
+        "scratch stage affinity",
+        "active/physical zero guard"
+      ]
+    },
+    {
+      "fileName": "gouge-burr-placement-contact-sheet.png",
+      "panels": [
+        "gouge candidate",
+        "burr/nick candidate",
+        "gouge+burr/nick centerline",
+        "gouge+burr/nick tangent",
+        "gouge+burr/nick depth limit",
+        "gouge+burr/nick edge roughness",
+        "gouge+burr/nick stage affinity",
+        "active/physical zero guard"
+      ]
+    },
+    {
+      "fileName": "dent-pit-placement-contact-sheet.png",
+      "panels": [
+        "dent candidate",
+        "pit candidate",
+        "dent+pit centerline",
+        "dent+pit tangent",
+        "dent+pit depth limit",
+        "dent+pit size class",
+        "dent+pit stage affinity",
+        "active/physical zero guard"
+      ]
+    },
+    {
+      "fileName": "scuff-placement-contact-sheet.png",
+      "panels": [
+        "scuff candidate",
+        "scuff centerline",
+        "scuff tangent",
+        "scuff size class",
+        "scuff depth limit",
+        "scuff edge roughness",
+        "scuff stage affinity",
+        "active/physical zero guard"
+      ]
+    },
+    {
+      "fileName": "all-placement-map-contact-sheet.png",
+      "panels": [
+        "all candidate",
+        "all centerline",
+        "all tangent",
+        "all size class",
+        "all depth limit",
+        "all edge roughness",
+        "all stage affinity",
+        "active/physical zero guard",
+        "scratch candidate",
+        "gouge candidate",
+        "dent candidate",
+        "pit candidate",
+        "scuff candidate",
+        "burr/nick candidate"
+      ]
+    },
+    {
+      "fileName": "same-seed-polish-stability-contact-sheet.png",
+      "panels": [
+        "polish 0 candidate",
+        "polish 50 candidate",
+        "polish 100 candidate",
+        "polish 0 vs 100 candidate difference"
+      ]
+    },
+    {
+      "fileName": "same-seed-tarnish-stability-contact-sheet.png",
+      "panels": [
+        "tarnish 0 candidate",
+        "tarnish 45 candidate",
+        "tarnish 100 candidate",
+        "tarnish 0 vs 100 candidate difference"
+      ]
+    },
+    {
+      "fileName": "same-seed-light-stability-contact-sheet.png",
+      "panels": [
+        "center light candidate",
+        "bottom-left light candidate",
+        "bottom-right light candidate",
+        "top-left light candidate",
+        "top-right light candidate",
+        "center vs top-right candidate difference"
+      ]
+    },
+    {
+      "fileName": "image-seed-comparison-contact-sheet.png",
+      "panels": [
+        "image seed A candidate",
+        "image seed B candidate",
+        "A vs B candidate difference",
+        "image seed A tangent",
+        "image seed B tangent",
+        "A centerline",
+        "B centerline",
+        "active/physical zero guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-29T05:11:34.545Z",
+  "note": [
+    "Diagnostic placement assets only.",
+    "Panels visualize stable placement candidates and map channels.",
+    "Active body and physical contribution channels are expected to remain zero.",
+    "These assets are not final shaded steel and do not claim native visual acceptance."
+  ]
+}

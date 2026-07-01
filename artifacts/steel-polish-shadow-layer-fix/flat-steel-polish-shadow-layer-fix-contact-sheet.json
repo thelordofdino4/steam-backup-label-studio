@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-06-29T01:44:26.014Z",
+  "profile": "flat",
+  "tarnish": 0,
+  "polishes": [
+    25,
+    50,
+    75,
+    100
+  ],
+  "lights": [
+    {
+      "name": "overhead",
+      "vector": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    },
+    {
+      "name": "bottom-left-45",
+      "vector": {
+        "x": -0.6335810656653996,
+        "y": -0.6335810656653996,
+        "z": 0.44401584032621333
+      }
+    },
+    {
+      "name": "bottom-left-grazing",
+      "vector": {
+        "x": -0.7071067811865475,
+        "y": -0.7071067811865475,
+        "z": 6.123233995736766e-17
+      }
+    }
+  ],
+  "cellSize": {
+    "width": 508,
+    "height": 348
+  },
+  "sheet": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\steel-polish-shadow-layer-fix\\flat-steel-polish-shadow-layer-fix-contact-sheet.bmp",
+  "cells": [
+    {
+      "polish": 25,
+      "lightName": "overhead",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 147.03377418955236,
+        "lumaMin": 84.5118,
+        "lumaMax": 163.5158
+      }
+    },
+    {
+      "polish": 25,
+      "lightName": "bottom-left-45",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 119.23836248082354,
+        "lumaMin": 32.0774,
+        "lumaMax": 152.7284
+      }
+    },
+    {
+      "polish": 25,
+      "lightName": "bottom-left-grazing",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 106.27607738646962,
+        "lumaMin": 22.578799999999998,
+        "lumaMax": 138.8688
+      }
+    },
+    {
+      "polish": 50,
+      "lightName": "overhead",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 146.35539250425367,
+        "lumaMin": 135.1668,
+        "lumaMax": 173.51979999999998
+      }
+    },
+    {
+      "polish": 50,
+      "lightName": "bottom-left-45",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 115.9277357175138,
+        "lumaMin": 76.8728,
+        "lumaMax": 154.4476
+      }
+    },
+    {
+      "polish": 50,
+      "lightName": "bottom-left-grazing",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 94.75419287456778,
+        "lumaMin": 58.298,
+        "lumaMax": 132.8728
+      }
+    },
+    {
+      "polish": 75,
+      "lightName": "overhead",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 155.4312345163783,
+        "lumaMin": 136.0224,
+        "lumaMax": 174.4476
+      }
+    },
+    {
+      "polish": 75,
+      "lightName": "bottom-left-45",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 137.46510551347237,
+        "lumaMin": 98.588,
+        "lumaMax": 164.6602
+      }
+    },
+    {
+      "polish": 75,
+      "lightName": "bottom-left-grazing",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 122.38557490746075,
+        "lumaMin": 84.58800000000001,
+        "lumaMax": 147.87279999999998
+      }
+    },
+    {
+      "polish": 100,
+      "lightName": "overhead",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 180.4328170504911,
+        "lumaMin": 143.3794,
+        "lumaMax": 207.3754
+      }
+    },
+    {
+      "polish": 100,
+      "lightName": "bottom-left-45",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 165.53973135557897,
+        "lumaMin": 100.66019999999999,
+        "lumaMax": 209.4476
+      }
+    },
+    {
+      "polish": 100,
+      "lightName": "bottom-left-grazing",
+      "summary": {
+        "count": 44292,
+        "lumaMean": 153.5101434841862,
+        "lumaMin": 88.8728,
+        "lumaMax": 196.588
+      }
+    }
+  ]
+}

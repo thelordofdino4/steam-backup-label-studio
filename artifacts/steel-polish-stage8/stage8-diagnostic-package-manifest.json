@@ -1,0 +1,183 @@
+{
+  "checkpoints": [
+    0,
+    10,
+    25,
+    30,
+    50,
+    75,
+    85,
+    100
+  ],
+  "descriptorComparison": {
+    "displayPreview": {
+      "cacheKey": "metal-surface-maps|quality:full|-2.430|-2.430|104.860|61.110|4.500|671|391|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|3owbtw|3owbtw|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|671|391|4.500|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+      "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+      "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+      "textureBounds": {
+        "x": -2.43,
+        "y": -2.43,
+        "width": 104.86,
+        "height": 61.11
+      },
+      "textureSize": {
+        "height": 391,
+        "scale": 6.4,
+        "width": 671
+      }
+    },
+    "export": {
+      "cacheKey": "metal-surface-maps|quality:full|-15.552|-15.552|671.104|391.104|28.800|1342|782|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|bjj2zc|bjj2zc|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|1342|782|28.800|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+      "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+      "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+      "textureBounds": {
+        "x": -15.552000000000001,
+        "y": -15.552000000000001,
+        "width": 671.104,
+        "height": 391.104
+      },
+      "textureSize": {
+        "height": 782,
+        "scale": 2,
+        "width": 1342
+      }
+    },
+    "normalizedPreview": {
+      "cacheKey": "metal-surface-maps|quality:full|-2.430|-2.430|104.860|61.110|4.500|210|122|fill|no-stroke-clip|material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:stage8-display-preview-diagnostic-image-a:134oqxh|0.000|-0.505470,0.404376,0.762220|3owbtw|3owbtw|steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|x25mqh|0.500|0.000|0.000|210|122|4.500|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "corrosionGeometrySeedKey": "material-seed:stage8-display-preview-diagnostic-image-a|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000",
+      "materialSeedKey": "stage8-display-preview-diagnostic-image-a",
+      "steelFinishGeometrySeedKey": "steel-finish-field-v1|material-seed:stage8-display-preview-diagnostic-image-a|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1",
+      "textureBounds": {
+        "x": -2.43,
+        "y": -2.43,
+        "width": 104.86,
+        "height": 61.11
+      },
+      "textureSize": {
+        "height": 122,
+        "scale": 2,
+        "width": 210
+      }
+    }
+  },
+  "displaySize": {
+    "height": 360,
+    "width": 640
+  },
+  "files": [
+    "texture-size-comparison.png",
+    "substrate-only-contact-sheet.png",
+    "decals-disabled-enabled-contact-sheet.png",
+    "final-shaded-steel-contact-sheet.png",
+    "no-dot-guard-contact-sheet.png",
+    "active-pit-ownership-contact-sheet.png",
+    "preview-export-descriptor-comparison.png",
+    "frame-ring-clipping-guard-contact-sheet.png",
+    "preview-export-descriptor-comparison.json",
+    "stage8-diagnostic-package-manifest.json"
+  ],
+  "fixedVisualizationRanges": {
+    "aoGuardScale": "AO value * 2200, red = isolated peak",
+    "heightDepressionGuardScale": "negative substrate height * 3200, red = isolated peak",
+    "normalStrengthGuardScale": "substrate normal strength * 760, red = isolated peak",
+    "substrateAlbedo": "raw substrate albedo RGB, no normalization"
+  },
+  "generatedAt": "2026-07-01T07:24:49.112Z",
+  "noDotMetrics": {
+    "0%": {
+      "aoIsolatedPeaks": 0,
+      "heightIsolatedPeaks": 0,
+      "normalStrengthIsolatedPeaks": 0,
+      "subtleLift": {
+        "checkedCount": 59880,
+        "isolatedLiftCount": 0,
+        "maxChannelDelta": 15.25,
+        "maxLocalLumaDelta": 14.596924999999992
+      }
+    },
+    "10%": {
+      "aoIsolatedPeaks": 0,
+      "heightIsolatedPeaks": 0,
+      "normalStrengthIsolatedPeaks": 0,
+      "subtleLift": {
+        "checkedCount": 59880,
+        "isolatedLiftCount": 0,
+        "maxChannelDelta": 6.875,
+        "maxLocalLumaDelta": 6.500500000000002
+      }
+    },
+    "25%": {
+      "aoIsolatedPeaks": 0,
+      "heightIsolatedPeaks": 0,
+      "normalStrengthIsolatedPeaks": 0,
+      "subtleLift": {
+        "checkedCount": 59880,
+        "isolatedLiftCount": 0,
+        "maxChannelDelta": 1,
+        "maxLocalLumaDelta": 0.7954250000000087
+      }
+    },
+    "30%": {
+      "aoIsolatedPeaks": 0,
+      "heightIsolatedPeaks": 0,
+      "normalStrengthIsolatedPeaks": 0,
+      "subtleLift": {
+        "checkedCount": 59880,
+        "isolatedLiftCount": 0,
+        "maxChannelDelta": 2.875,
+        "maxLocalLumaDelta": 2.4279999999999973
+      }
+    },
+    "50%": {
+      "aoIsolatedPeaks": 0,
+      "heightIsolatedPeaks": 0,
+      "normalStrengthIsolatedPeaks": 0,
+      "subtleLift": {
+        "checkedCount": 59880,
+        "isolatedLiftCount": 0,
+        "maxChannelDelta": 2.25,
+        "maxLocalLumaDelta": 2.1081000000000074
+      }
+    }
+  },
+  "normalizedPreviewBounds": {
+    "height": 56.25,
+    "width": 100,
+    "x": 0,
+    "y": 0
+  },
+  "note": [
+    "Stage 8 diagnostics only. These generated sheets are not native Tauri visual acceptance.",
+    "Flat steel, flat bezel, tarnish 0 unless otherwise implied by descriptor labels.",
+    "No-dot guard panels use fixed thresholds and fixed color scales; red pixels mark isolated peak detections.",
+    "Substrate-only panels show raw substrate albedo maps, while decals disabled/enabled panels show shaded steel."
+  ],
+  "ringLeakMetrics": {
+    "0%": {
+      "leakCount": 0
+    },
+    "10%": {
+      "leakCount": 0
+    },
+    "25%": {
+      "leakCount": 0
+    },
+    "30%": {
+      "leakCount": 0
+    },
+    "50%": {
+      "leakCount": 0
+    },
+    "75%": {
+      "leakCount": 0
+    },
+    "85%": {
+      "leakCount": 0
+    },
+    "100%": {
+      "leakCount": 0
+    }
+  }
+}

@@ -1,0 +1,1071 @@
+{
+  "adapterProbe": {
+    "offscreen": {
+      "error": null,
+      "timeMs": 298,
+      "textureSize": {
+        "width": 213,
+        "height": 146
+      }
+    },
+    "worker": {
+      "error": "Failed to execute 'putImageData' on 'OffscreenCanvasRenderingContext2D': parameter 1 is not of type 'ImageData'.",
+      "timeMs": 54.4
+    }
+  },
+  "capabilities": {
+    "canFallbackToMainThreadCanvas2d": true,
+    "canUseWorkerOffscreenCanvas2d": true,
+    "createImageBitmap": true,
+    "imageBitmap": true,
+    "imageBitmapConstructor": true,
+    "mainThreadCanvas2d": true,
+    "offscreenCanvas": true,
+    "offscreenCanvas2d": true,
+    "preferredExecutionTarget": "worker-offscreen-canvas-2d",
+    "worker": true
+  },
+  "generatedAt": "2026-06-28T09:29:30.020Z",
+  "integratedCurrentPath": {
+    "exportCold": {
+      "cacheKey": "metal-surface-maps|quality:full|-29.160|-29.160|958.320|658.320|54.000|1536|1055|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|fu0460|fu0460|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|1536|1055|54.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "hrefBytes": 0,
+      "label": "png-export-sized-current-cold",
+      "phases": {
+        "descriptor-material-plan": {
+          "count": 1,
+          "maxMs": 0,
+          "totalMs": 0
+        },
+        "steel-finish-field": {
+          "count": 1,
+          "maxMs": 1952.5,
+          "totalMs": 1952.5
+        },
+        "steel-derived-maps": {
+          "count": 1,
+          "maxMs": 340.2,
+          "totalMs": 340.2
+        },
+        "corrosion-field": {
+          "count": 1,
+          "maxMs": 732.7,
+          "totalMs": 732.7
+        },
+        "corrosion-derived-maps": {
+          "count": 1,
+          "maxMs": 3782.1,
+          "totalMs": 3782.1
+        },
+        "normal-generation": {
+          "count": 2,
+          "maxMs": 24.3,
+          "totalMs": 45.7
+        },
+        "final-shading": {
+          "count": 2,
+          "maxMs": 97.2,
+          "totalMs": 187
+        },
+        "self-shadow-pass": {
+          "count": 2,
+          "maxMs": 66.5,
+          "totalMs": 120.1
+        },
+        "image-canvas-output-conversion": {
+          "count": 2,
+          "maxMs": 2.3,
+          "totalMs": 2.8
+        }
+      },
+      "textureSize": {
+        "height": 1055,
+        "scale": 1.603,
+        "width": 1536
+      },
+      "timeMs": 7164.7,
+      "toDataUrlMs": 0
+    },
+    "exportWarmLightOnly": {
+      "cacheKey": "metal-surface-maps|quality:full|-29.160|-29.160|958.320|658.320|54.000|1536|1055|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|1.000000,0.000000,0.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|fu0460|fu0460|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|1536|1055|54.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "hrefBytes": 0,
+      "label": "png-export-sized-current-light-only-warm-maps",
+      "phases": {
+        "descriptor-material-plan": {
+          "count": 1,
+          "maxMs": 0,
+          "totalMs": 0
+        },
+        "final-shading": {
+          "count": 2,
+          "maxMs": 108.5,
+          "totalMs": 187.6
+        },
+        "self-shadow-pass": {
+          "count": 2,
+          "maxMs": 50.8,
+          "totalMs": 100.3
+        },
+        "image-canvas-output-conversion": {
+          "count": 2,
+          "maxMs": 2.3,
+          "totalMs": 2.6
+        }
+      },
+      "textureSize": {
+        "height": 1055,
+        "scale": 1.603,
+        "width": 1536
+      },
+      "timeMs": 291.5,
+      "toDataUrlMs": 0
+    },
+    "initialRender": {
+      "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "hrefBytes": 0,
+      "label": "initial-current-preview-full-quality",
+      "phases": {
+        "descriptor-material-plan": {
+          "count": 1,
+          "maxMs": 0.4,
+          "totalMs": 0.4
+        },
+        "steel-finish-field": {
+          "count": 1,
+          "maxMs": 47.6,
+          "totalMs": 47.6
+        },
+        "steel-derived-maps": {
+          "count": 1,
+          "maxMs": 23.7,
+          "totalMs": 23.7
+        },
+        "corrosion-field": {
+          "count": 1,
+          "maxMs": 20.6,
+          "totalMs": 20.6
+        },
+        "corrosion-derived-maps": {
+          "count": 1,
+          "maxMs": 130.9,
+          "totalMs": 130.9
+        },
+        "normal-generation": {
+          "count": 2,
+          "maxMs": 2.2,
+          "totalMs": 3.7
+        },
+        "final-shading": {
+          "count": 2,
+          "maxMs": 9,
+          "totalMs": 12.7
+        },
+        "self-shadow-pass": {
+          "count": 2,
+          "maxMs": 3.2,
+          "totalMs": 5.7
+        },
+        "image-canvas-output-conversion": {
+          "count": 2,
+          "maxMs": 0.6,
+          "totalMs": 0.6
+        }
+      },
+      "textureSize": {
+        "height": 146,
+        "scale": 2,
+        "width": 213
+      },
+      "timeMs": 247.7,
+      "toDataUrlMs": 0
+    },
+    "lightDragSeries": {
+      "label": "light-drag-current-preview-interaction-quality",
+      "measurements": [
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.000000,0.000000,1.000000|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-0",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-finish-field": {
+              "count": 1,
+              "maxMs": 41,
+              "totalMs": 41
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 6.1,
+              "totalMs": 6.1
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 13.5,
+              "totalMs": 13.5
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 75,
+              "totalMs": 75
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 0.8,
+              "totalMs": 1.3
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.6,
+              "totalMs": 3.1
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 0.6,
+              "totalMs": 1.2
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 141.6,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.277839,0.154355,0.948146|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-1",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.7,
+              "totalMs": 3.3
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 0.9,
+              "totalMs": 1.7
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.4,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.526864,0.292702,0.797960|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-2",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.8
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1,
+              "totalMs": 1.9
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.1,
+              "totalMs": 0.1
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.1,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-3",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.6,
+              "totalMs": 3
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1,
+              "totalMs": 1.9
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.2,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.586654,-0.446975,0.675315|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-4",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.7,
+              "totalMs": 3.2
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.8,
+              "totalMs": 2.7
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 6.1,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.168659,-0.702744,0.691162|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-5",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.8
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.3,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|-0.453170,-0.538140,0.710664|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-6",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.9
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.1,
+              "totalMs": 0.1
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.1,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|-0.705166,0.112827,0.700008|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-7",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.9
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.2,
+              "totalMs": 2.2
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.3,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|-0.309793,0.647750,0.696023|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-8",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0.1,
+              "totalMs": 0.1
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.6,
+              "totalMs": 2.9
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.4,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:interaction-preview|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.779040,0.241771,0.578484|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "drag-9",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.9
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.2,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 5.3,
+          "toDataUrlMs": 0
+        }
+      ],
+      "summary": {
+        "averageMs": 18.98,
+        "maxMs": 141.6,
+        "medianMs": 5.3,
+        "minMs": 5.1,
+        "p90Ms": 6.1
+      },
+      "toDataUrlSummary": {
+        "averageMs": 0,
+        "maxMs": 0,
+        "medianMs": 0,
+        "minMs": 0,
+        "p90Ms": 0
+      }
+    },
+    "polishSeries": {
+      "label": "polish-slider-current-preview-full-quality",
+      "measurements": [
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.000|0.450|12.000|213|146|6.000|roughDamaged:1.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "polish-0",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-finish-field": {
+              "count": 1,
+              "maxMs": 43.1,
+              "totalMs": 43.1
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 12.9,
+              "totalMs": 12.9
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 15.5,
+              "totalMs": 15.5
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 85.7,
+              "totalMs": 85.7
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 1.9
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 6.1,
+              "totalMs": 11.2
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.3,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 173,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "polish-50",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0.1,
+              "totalMs": 0.1
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 6.1,
+              "totalMs": 6.1
+            },
+            "normal-generation": {
+              "count": 1,
+              "maxMs": 1.2,
+              "totalMs": 1.2
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.8,
+              "totalMs": 3.3
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1,
+              "totalMs": 1.9
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.3,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 13.1,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.850|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:1.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "polish-85",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 8.4,
+              "totalMs": 8.4
+            },
+            "normal-generation": {
+              "count": 1,
+              "maxMs": 0.6,
+              "totalMs": 0.6
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 4.8,
+              "totalMs": 6.6
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.3,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 18.5,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|1.000|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:0.000,fineSatin:0.000,semiBright:0.000,nearMirror:1.000",
+          "hrefBytes": 0,
+          "label": "polish-100",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 9.1,
+              "totalMs": 9.1
+            },
+            "normal-generation": {
+              "count": 1,
+              "maxMs": 0.6,
+              "totalMs": 0.6
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 5.1,
+              "totalMs": 6.4
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.3,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 18.5,
+          "toDataUrlMs": 0
+        }
+      ],
+      "summary": {
+        "averageMs": 55.775,
+        "maxMs": 173,
+        "medianMs": 18.5,
+        "minMs": 13.1,
+        "p90Ms": 18.5
+      },
+      "toDataUrlSummary": {
+        "averageMs": 0,
+        "maxMs": 0,
+        "medianMs": 0,
+        "minMs": 0,
+        "p90Ms": 0
+      }
+    },
+    "previewFullQuality": {
+      "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.507109,0.507109,0.696908|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+      "hrefBytes": 0,
+      "label": "preview-full-quality-light-change-current",
+      "phases": {
+        "descriptor-material-plan": {
+          "count": 1,
+          "maxMs": 0,
+          "totalMs": 0
+        },
+        "final-shading": {
+          "count": 2,
+          "maxMs": 5.6,
+          "totalMs": 8.8
+        },
+        "self-shadow-pass": {
+          "count": 2,
+          "maxMs": 2,
+          "totalMs": 3.1
+        },
+        "image-canvas-output-conversion": {
+          "count": 2,
+          "maxMs": 0.6,
+          "totalMs": 0.7
+        }
+      },
+      "textureSize": {
+        "height": 146,
+        "scale": 2,
+        "width": 213
+      },
+      "timeMs": 13,
+      "toDataUrlMs": 0
+    },
+    "tarnishSeries": {
+      "label": "tarnish-slider-current-preview-full-quality",
+      "measurements": [
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.000|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "tarnish-0",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-finish-field": {
+              "count": 1,
+              "maxMs": 41.1,
+              "totalMs": 41.1
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 6,
+              "totalMs": 6
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 16.5,
+              "totalMs": 16.5
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 66.6,
+              "totalMs": 66.6
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 0.5,
+              "totalMs": 1
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 1.3,
+              "totalMs": 1.6
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.5,
+              "totalMs": 2.6
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.3,
+              "totalMs": 0.3
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 136.1,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.450|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.450|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "tarnish-45",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 5.9,
+              "totalMs": 5.9
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 14.1,
+              "totalMs": 14.1
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 75.5,
+              "totalMs": 75.5
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 1.2,
+              "totalMs": 1.7
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 8.8,
+              "totalMs": 15.3
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.1
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 116.4,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|0.800|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|0.800|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "tarnish-80",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 5.7,
+              "totalMs": 5.7
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 14.6,
+              "totalMs": 14.6
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 85.5,
+              "totalMs": 85.5
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 0.5,
+              "totalMs": 1
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 7.7,
+              "totalMs": 9.2
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1.1,
+              "totalMs": 2.2
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.2,
+              "totalMs": 0.2
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 118.9,
+          "toDataUrlMs": 0
+        },
+        {
+          "cacheKey": "metal-surface-maps|quality:full|-3.240|-3.240|106.480|73.147|6.000|213|146|fill|no-stroke-clip|material-seed:sha256-image-v1:performance-evaluation|metal|steel|rectangle|36.000|brushed|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:performance-evaluation:17yw45a|1.000|0.000|0.707107,0.000000,0.707107|angle-compat-v1:angle-compat:0.000000:1.000000,0.000000,0.000000|1njbogc|1njbogc|steel-finish-field-v1|material-seed:sha256-image-v1:performance-evaluation|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|131xev3|0.500|1.000|12.000|213|146|6.000|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+          "hrefBytes": 0,
+          "label": "tarnish-100",
+          "phases": {
+            "descriptor-material-plan": {
+              "count": 1,
+              "maxMs": 0,
+              "totalMs": 0
+            },
+            "steel-derived-maps": {
+              "count": 1,
+              "maxMs": 5.9,
+              "totalMs": 5.9
+            },
+            "corrosion-field": {
+              "count": 1,
+              "maxMs": 13.6,
+              "totalMs": 13.6
+            },
+            "corrosion-derived-maps": {
+              "count": 1,
+              "maxMs": 67.4,
+              "totalMs": 67.4
+            },
+            "normal-generation": {
+              "count": 2,
+              "maxMs": 0.8,
+              "totalMs": 1.2
+            },
+            "final-shading": {
+              "count": 2,
+              "maxMs": 8.6,
+              "totalMs": 10.3
+            },
+            "self-shadow-pass": {
+              "count": 2,
+              "maxMs": 1,
+              "totalMs": 1.9
+            },
+            "image-canvas-output-conversion": {
+              "count": 2,
+              "maxMs": 0.4,
+              "totalMs": 0.4
+            }
+          },
+          "textureSize": {
+            "height": 146,
+            "scale": 2,
+            "width": 213
+          },
+          "timeMs": 101,
+          "toDataUrlMs": 0
+        }
+      ],
+      "summary": {
+        "averageMs": 118.1,
+        "maxMs": 136.1,
+        "medianMs": 116.4,
+        "minMs": 101,
+        "p90Ms": 118.9
+      },
+      "toDataUrlSummary": {
+        "averageMs": 0,
+        "maxMs": 0,
+        "medianMs": 0,
+        "minMs": 0,
+        "p90Ms": 0
+      }
+    }
+  },
+  "notes": {
+    "exportBounds": {
+      "x": 0,
+      "y": 0,
+      "width": 900,
+      "height": 600
+    },
+    "materialSeed": {
+      "algorithm": "sha256-image-v1",
+      "key": "sha256-image-v1:performance-evaluation",
+      "seed32": 2658650878
+    },
+    "previewBounds": {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 66.667
+    },
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.7778.96 Safari/537.36"
+  }
+}

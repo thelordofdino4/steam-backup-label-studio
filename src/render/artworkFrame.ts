@@ -52,6 +52,8 @@ const TEXTURED_FRAME_TOOTH_AMPLITUDE_VARIATION = 0.25
 const TEXTURED_FRAME_MIN_ROUGH_AMPLITUDE = 0.35
 const TEXTURED_FRAME_OUTER_WIDTH_SHARE = 0.5
 const TEXTURED_FRAME_INNER_WIDTH_SHARE = 0.5
+const METAL_FRAME_OUTER_WIDTH_SHARE = 0.54
+const METAL_FRAME_INNER_WIDTH_SHARE = 0.54
 
 function clampNumber(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
@@ -85,6 +87,7 @@ function getNoise(seed: number, index: number) {
 function wrapUnit(value: number) {
   return ((value % 1) + 1) % 1
 }
+
 
 function getControlUnit(value: number, min: number, max: number) {
   if (max <= min) {
@@ -637,6 +640,49 @@ function createRoughEllipsePoints(
   return points
 }
 
+function createInsetBasicArtworkFramePathData(
+  frame: Pick<AdditionalArtworkFrame, 'shape'>,
+  bounds: ArtworkFrameRect,
+  inset: number,
+) {
+  if (frame.shape === 'circle') {
+    const centerX = bounds.x + bounds.width / 2
+    const centerY = bounds.y + bounds.height / 2
+    const radiusX = Math.max(0, bounds.width / 2 - inset)
+    const radiusY = Math.max(0, bounds.height / 2 - inset)
+
+    if (radiusX <= 0 || radiusY <= 0) {
+      return ''
+    }
+
+    return [
+      `M ${formatPathNumber(centerX + radiusX)} ${formatPathNumber(centerY)}`,
+      `A ${formatPathNumber(radiusX)} ${formatPathNumber(radiusY)} 0 1 0 ${
+        formatPathNumber(centerX - radiusX)
+      } ${formatPathNumber(centerY)}`,
+      `A ${formatPathNumber(radiusX)} ${formatPathNumber(radiusY)} 0 1 0 ${
+        formatPathNumber(centerX + radiusX)
+      } ${formatPathNumber(centerY)}`,
+      'Z',
+    ].join(' ')
+  }
+
+  const left = bounds.x + inset
+  const top = bounds.y + inset
+  const width = Math.max(0, bounds.width - inset * 2)
+  const height = Math.max(0, bounds.height - inset * 2)
+
+  return width > 0 && height > 0
+    ? [
+        `M ${formatPathNumber(left)} ${formatPathNumber(top)}`,
+        `L ${formatPathNumber(left + width)} ${formatPathNumber(top)}`,
+        `L ${formatPathNumber(left + width)} ${formatPathNumber(top + height)}`,
+        `L ${formatPathNumber(left)} ${formatPathNumber(top + height)}`,
+        'Z',
+      ].join(' ')
+    : ''
+}
+
 export function getArtworkFrameStrokeWidth(
   frame: Pick<AdditionalArtworkFrame, 'width'>,
   width: number,
@@ -652,6 +698,12 @@ export function isTexturedArtworkFrame(
   frame: Pick<AdditionalArtworkFrame, 'style'>,
 ) {
   return frame.style === 'rocky'
+}
+
+export function isMetalArtworkFrame(
+  frame: Pick<AdditionalArtworkFrame, 'style'>,
+) {
+  return frame.style === 'metal'
 }
 
 export function getArtworkFrameTextureUrl(
@@ -688,6 +740,46 @@ export function createTexturedArtworkFramePathData(
   return [pointsToPath(outerPoints), pointsToPath(innerPoints)]
     .filter(Boolean)
     .join(' ')
+}
+
+export function createMetalArtworkFrameRingPathData(
+  frame: Pick<AdditionalArtworkFrame, 'shape'>,
+  bounds: ArtworkFrameRect,
+  outerInset: number,
+  innerInset: number,
+) {
+  return [
+    createInsetBasicArtworkFramePathData(frame, bounds, outerInset),
+    createInsetBasicArtworkFramePathData(frame, bounds, innerInset),
+  ].filter(Boolean).join(' ')
+}
+
+export function createMetalArtworkFramePathData(
+  frame: Pick<AdditionalArtworkFrame, 'shape'>,
+  bounds: ArtworkFrameRect,
+  strokeWidth: number,
+) {
+  const { innerInset, outerInset } = getMetalArtworkFrameEdgeInsets(strokeWidth)
+
+  return createMetalArtworkFrameRingPathData(
+    frame,
+    bounds,
+    outerInset,
+    innerInset,
+  )
+}
+
+export function getMetalArtworkFrameEdgeInsets(strokeWidth: number) {
+  return {
+    innerInset: Math.max(
+      0.5,
+      strokeWidth * METAL_FRAME_INNER_WIDTH_SHARE,
+    ),
+    outerInset: -Math.max(
+      0.5,
+      strokeWidth * METAL_FRAME_OUTER_WIDTH_SHARE,
+    ),
+  }
 }
 
 export function createBasicArtworkFramePathData(

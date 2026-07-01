@@ -1,0 +1,90 @@
+{
+  "files": [
+    {
+      "fileName": "active-body-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead active bodyMask",
+        "0% 45-degree active bodyMask",
+        "0% grazing active bodyMask",
+        "10% overhead active bodyMask",
+        "10% 45-degree active bodyMask",
+        "10% grazing active bodyMask",
+        "25% overhead active bodyMask",
+        "25% 45-degree active bodyMask",
+        "25% grazing active bodyMask",
+        "30% overhead active bodyMask",
+        "30% 45-degree active bodyMask",
+        "30% grazing active bodyMask",
+        "50% overhead active bodyMask",
+        "50% 45-degree active bodyMask",
+        "50% grazing active bodyMask"
+      ]
+    },
+    {
+      "fileName": "physical-contribution-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead combined physical contribution",
+        "0% 45-degree combined physical contribution",
+        "0% grazing combined physical contribution",
+        "10% overhead combined physical contribution",
+        "10% 45-degree combined physical contribution",
+        "10% grazing combined physical contribution",
+        "25% overhead combined physical contribution",
+        "25% 45-degree combined physical contribution",
+        "25% grazing combined physical contribution",
+        "30% overhead combined physical contribution",
+        "30% 45-degree combined physical contribution",
+        "30% grazing combined physical contribution",
+        "50% overhead combined physical contribution",
+        "50% 45-degree combined physical contribution",
+        "50% grazing combined physical contribution"
+      ]
+    },
+    {
+      "fileName": "final-shaded-polish-light-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "inactive-zero-guard-contact-sheet.png",
+      "panels": [
+        "50% low-polish inactive-family active body guard",
+        "50% low-polish inactive-family physical guard",
+        "100% all-family active body exact-zero guard",
+        "100% all-family physical exact-zero guard"
+      ]
+    },
+    {
+      "fileName": "frame-ring-clipping-guard-contact-sheet.png",
+      "panels": [
+        "active decal bleed guard",
+        "physical contribution bleed guard",
+        "self-shadow receiver bleed guard",
+        "final alpha bleed guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T01:34:08.193Z",
+  "note": [
+    "Diagnostic Stage 6 before-state visual package.",
+    "These panels use the existing Stage 5 renderer state as the baseline.",
+    "Active body maps gate defect presence, physical contribution maps own defect material response, and stable placement maps do not shade steel.",
+    "Final shaded steel panels cover polish 0, 10, 25, 30, and 50 with overhead, 45-degree, and grazing light.",
+    "Inactive-zero and clipping guards are diagnostics only and do not claim native Tauri visual acceptance."
+  ]
+}

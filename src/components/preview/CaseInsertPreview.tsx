@@ -3,6 +3,7 @@ import {
   type CSSProperties,
   type ReactNode,
   type RefObject,
+  useCallback,
   useMemo,
   useState,
 } from 'react'
@@ -40,6 +41,10 @@ import { PreviewToastStack, type PreviewToast } from './PreviewToastStack'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { CaseInsertGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import {
+  ArtworkFrameMaterialLightEditorOverlay,
+  type ArtworkFrameMaterialPreviewLightOverride,
+} from './ArtworkFrameMaterialLightEditorOverlay'
 import { PreviewHeader } from './PreviewHeader'
 import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
@@ -54,6 +59,18 @@ import type {
 import type {
   CaseInsertPreviewTextControlHandlers,
 } from './caseInsertInlineTextEditorControls'
+import type { PreviewEditableElement } from '../../editor/previewElementOverlay'
+import {
+  getCaseInsertArtworkFrameMaterialLightEditorTarget,
+  type ArtworkFrameMaterialLightOverride,
+  type ArtworkFrameMaterialLightOverrideMap,
+} from '../../render/artworkFrameMaterialLightEditor'
+import type {
+  ArtworkFrameMaterialLightVector,
+} from '../../render/artworkFrameMaterialLighting'
+import type {
+  ArtworkFrameCanvasMaterialQualityMode,
+} from '../../render/artworkFrameMaterialPlan'
 
 export type CaseInsertPreviewProps = {
   caseInsert: ProjectJewelCaseState
@@ -73,6 +90,11 @@ export type CaseInsertPreviewProps = {
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
+  materialLightOverridesByEditableId?: ArtworkFrameMaterialLightOverrideMap
+  onMaterialLightChange?: (
+    editableId: string,
+    lightOverride: ArtworkFrameMaterialLightOverride,
+  ) => void
 }
 
 type PreviewLayerMap = Record<CaseInsertEditorPreviewLayerId, ReactNode>
@@ -138,9 +160,19 @@ export function CaseInsertPreview({
   onTextTargetValueChange,
   onTextTargetEditComplete,
   previewTextControlHandlers,
+  materialLightOverridesByEditableId = {},
+  onMaterialLightChange,
 }: CaseInsertPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
+  const [
+    selectedMaterialLightElement,
+    setSelectedMaterialLightElement,
+  ] = useState<PreviewEditableElement | null>(null)
+  const [
+    materialLightQualityModesByEditableId,
+    setMaterialLightQualityModesByEditableId,
+  ] = useState<Record<string, ArtworkFrameCanvasMaterialQualityMode>>({})
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
       closedButtonCount: 2,
@@ -161,6 +193,42 @@ export function CaseInsertPreview({
       setIsDesignCheckOpen(false)
     }
   }
+  const materialLightEditorTarget = useMemo(
+    () => getCaseInsertArtworkFrameMaterialLightEditorTarget(
+      caseInsert,
+      activeTemplatePane,
+      selectedMaterialLightElement,
+    ),
+    [activeTemplatePane, caseInsert, selectedMaterialLightElement],
+  )
+  const previewMaterialLightOverridesByEditableId = useMemo(() => {
+    const previewOverrides:
+      Record<string, ArtworkFrameMaterialPreviewLightOverride> = {}
+
+    for (const [editableId, lightOverride] of Object.entries(
+      materialLightOverridesByEditableId,
+    )) {
+      previewOverrides[editableId] = {
+        ...lightOverride,
+        qualityMode: materialLightQualityModesByEditableId[editableId] ?? 'full',
+      }
+    }
+
+    return previewOverrides
+  }, [materialLightOverridesByEditableId, materialLightQualityModesByEditableId])
+  const handleMaterialLightChange = useCallback((
+    editableId: string,
+    lightVector: ArtworkFrameMaterialLightVector,
+    qualityMode: ArtworkFrameCanvasMaterialQualityMode,
+  ) => {
+    setMaterialLightQualityModesByEditableId((current) => ({
+      ...current,
+      [editableId]: qualityMode,
+    }))
+    onMaterialLightChange?.(editableId, {
+      lightVector,
+    })
+  }, [onMaterialLightChange])
   const activePaneConfig = getCaseInsertTemplatePaneConfig(activeTemplatePane)
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const layout = useMemo(
@@ -205,6 +273,9 @@ export function CaseInsertPreview({
         templateState={activeTemplateState}
         layout={layout}
         brandingSources={brandingSources}
+        materialLightOverridesByEditableId={
+          previewMaterialLightOverridesByEditableId
+        }
         pointerHandlers={pointerHandlers.template}
       />
     ),
@@ -287,6 +358,9 @@ export function CaseInsertPreview({
         brandingSources={brandingSources}
         selectedTextTarget={selectedTextTarget}
         pointerHandlers={pointerHandlers.spine}
+        materialLightOverridesByEditableId={
+          previewMaterialLightOverridesByEditableId
+        }
         onSelectedTextTargetChange={onSelectedTextTargetChange}
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
@@ -326,7 +400,22 @@ export function CaseInsertPreview({
               {CASE_INSERT_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
                 <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
               ))}
-              <PreviewElementOverlay previewRef={caseInsertPreviewRef} />
+              <PreviewElementOverlay
+                previewRef={caseInsertPreviewRef}
+                onSelectedElementChange={setSelectedMaterialLightElement}
+              />
+              <ArtworkFrameMaterialLightEditorOverlay
+                lightOverride={
+                  materialLightEditorTarget
+                    ? previewMaterialLightOverridesByEditableId[
+                        materialLightEditorTarget.editableId
+                      ] ?? null
+                    : null
+                }
+                onLightChange={handleMaterialLightChange}
+                previewRef={caseInsertPreviewRef}
+                target={materialLightEditorTarget}
+              />
             </div>
           </PreviewViewport>
 

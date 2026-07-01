@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-06-28T08:31:36.577Z",
+  "notes": [
+    "Left panel in the contact sheet is interaction-preview, scaled to full panel dimensions for visual comparison.",
+    "Right panel is full-quality deterministic output.",
+    "Export/full-quality descriptors do not use interaction-preview mode."
+  ],
+  "cap": 384,
+  "drag": {
+    "file": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\frame-material-interaction-quality\\drag-preview-quality.png",
+    "qualityMode": "interaction-preview",
+    "textureSize": {
+      "height": 271,
+      "scale": 1.1327166320558808,
+      "width": 384
+    },
+    "textureKey": "metal-surface-maps|quality:interaction-preview|-1.504|2.496|339.008|239.008|17.600|384|271|fill|no-stroke-clip|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:interaction-quality-visual-comparison:ikn8n2|0.800|45.000|0.562972,0.562972,0.605083|angle-compat-v1:angle-compat:45.000000:0.562972,0.562972,0.605083|13tdyvk|13tdyvk|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|384|271|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "shadedCacheKey": "final-light-shaded-pixels-cache-v1|metal-surface-maps|quality:interaction-preview|-1.504|2.496|339.008|239.008|17.600|384|271|fill|no-stroke-clip|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:interaction-quality-visual-comparison:ikn8n2|0.800|45.000|0.562972,0.562972,0.605083|angle-compat-v1:angle-compat:45.000000:0.562972,0.562972,0.605083|13tdyvk|13tdyvk|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|384|271|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "corrosionDerivedMapsCacheKey": "corrosion-derived-maps-cache-v2|corrosion-geometry-field-cache-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sgvnfz|tarnish:0.800|clean:0.000,seed:1.000,young:1.000,patch:1.000,scale:1.000,flake:0.539,advanced:0.000|field:384x271|stroke:17.600|bounds:8.000:12.000:320.000:220.000|sample:-1.504:2.496:339.008:239.008",
+    "steelFinishDerivedMapsCacheKey": "steel-finish-derived-maps-cache-v1|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|384|271|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "imageHash": "7d11a60195f23a864152547dcf7cfcd4afb11ec719f3af1ac1fd8f286351fbe9"
+  },
+  "full": {
+    "file": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\frame-material-interaction-quality\\final-full-quality.png",
+    "qualityMode": "full",
+    "textureSize": {
+      "height": 478,
+      "scale": 2,
+      "width": 678
+    },
+    "textureKey": "metal-surface-maps|quality:full|-1.504|2.496|339.008|239.008|17.600|678|478|fill|no-stroke-clip|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:interaction-quality-visual-comparison:ikn8n2|0.800|45.000|0.562972,0.562972,0.605083|angle-compat-v1:angle-compat:45.000000:0.562972,0.562972,0.605083|13tdyvk|13tdyvk|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|678|478|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "shadedCacheKey": "final-light-shaded-pixels-cache-v1|metal-surface-maps|quality:full|-1.504|2.496|339.008|239.008|17.600|678|478|fill|no-stroke-clip|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sha256-image-v1:sha256-image-v1:interaction-quality-visual-comparison:ikn8n2|0.800|45.000|0.562972,0.562972,0.605083|angle-compat-v1:angle-compat:45.000000:0.562972,0.562972,0.605083|13tdyvk|13tdyvk|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|678|478|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "corrosionDerivedMapsCacheKey": "corrosion-derived-maps-cache-v2|corrosion-geometry-field-cache-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal|steel|rectangle|36.000|none|90.000|55.000|128.000|96.000|sgvnfz|tarnish:0.800|clean:0.000,seed:1.000,young:1.000,patch:1.000,scale:1.000,flake:0.539,advanced:0.000|field:678x478|stroke:17.600|bounds:8.000:12.000:320.000:220.000|sample:-1.504:2.496:339.008:239.008",
+    "steelFinishDerivedMapsCacheKey": "steel-finish-derived-maps-cache-v1|steel-finish-field-v1|material-seed:sha256-image-v1:interaction-quality-visual-comparison|metal:steel|style:metal|shape:rectangle|canonical-frame-space-v1|1xlso71|0.500|0.800|18.000|678|478|17.600|roughDamaged:0.000,scuffedLow:0.000,brushedBaseline:1.000,fineSatin:0.000,semiBright:0.000,nearMirror:0.000",
+    "imageHash": "eb49266927f4cc856efef885868280531bdbe516f4f4d848b3f98cb5292486d6"
+  },
+  "sheet": {
+    "file": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\frame-material-interaction-quality\\drag-vs-final-contact-sheet.png",
+    "textureSize": {
+      "width": 1428,
+      "height": 526
+    },
+    "imageHash": "d1eb300fa5fc7c1942865ceed8c30217f5f39085b7be798de0572f295cddd6ce"
+  }
+}

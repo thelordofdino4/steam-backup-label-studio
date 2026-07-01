@@ -1,0 +1,15 @@
+{
+  "generatedWith": "renderArtworkFrameCanvasMaterialTextureWithWorkerShading",
+  "labels": [
+    "overhead",
+    "east-45",
+    "east-grazing",
+    "south-grazing"
+  ],
+  "note": "Generated through the worker-shading adapter with deterministic mocked Worker/OffscreenCanvas capability in Node.",
+  "path": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\frame-material-worker-light-contact-sheet.bmp",
+  "size": {
+    "height": 374,
+    "width": 1924
+  }
+}

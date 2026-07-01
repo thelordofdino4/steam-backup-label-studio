@@ -1,0 +1,122 @@
+[
+  {
+    "polish": 0,
+    "light": "overhead",
+    "lumaMean": 61.45778739727133,
+    "roughnessMean": 0.9364130384691856,
+    "glossMean": 0.05772776915301114,
+    "heightEnergyMean": 0.3407011510407747
+  },
+  {
+    "polish": 0,
+    "light": "45deg-right",
+    "lumaMean": 47.86788085432251,
+    "roughnessMean": 0.9364130384691856,
+    "glossMean": 0.05772776915301114,
+    "heightEnergyMean": 0.3407011510407747
+  },
+  {
+    "polish": 0,
+    "light": "grazing-right",
+    "lumaMean": 33.03993881060199,
+    "roughnessMean": 0.9364130384691856,
+    "glossMean": 0.05772776915301114,
+    "heightEnergyMean": 0.3407011510407747
+  },
+  {
+    "polish": 25,
+    "light": "overhead",
+    "lumaMean": 141.7073991963119,
+    "roughnessMean": 0.7568507266003707,
+    "glossMean": 0.24299858760360854,
+    "heightEnergyMean": 0.16247726270125104
+  },
+  {
+    "polish": 25,
+    "light": "45deg-right",
+    "lumaMean": 123.54576036306001,
+    "roughnessMean": 0.7568507266003707,
+    "glossMean": 0.24299858760360854,
+    "heightEnergyMean": 0.16247726270125104
+  },
+  {
+    "polish": 25,
+    "light": "grazing-right",
+    "lumaMean": 99.43476119391823,
+    "roughnessMean": 0.7568507266003707,
+    "glossMean": 0.24299858760360854,
+    "heightEnergyMean": 0.16247726270125104
+  },
+  {
+    "polish": 50,
+    "light": "overhead",
+    "lumaMean": 143.59010141781454,
+    "roughnessMean": 0.5402570479926858,
+    "glossMean": 0.48257750493112556,
+    "heightEnergyMean": 0.08230357399551
+  },
+  {
+    "polish": 50,
+    "light": "45deg-right",
+    "lumaMean": 127.57674093736895,
+    "roughnessMean": 0.5402570479926858,
+    "glossMean": 0.48257750493112556,
+    "heightEnergyMean": 0.08230357399551
+  },
+  {
+    "polish": 50,
+    "light": "grazing-right",
+    "lumaMean": 91.08384461754561,
+    "roughnessMean": 0.5402570479926858,
+    "glossMean": 0.48257750493112556,
+    "heightEnergyMean": 0.08230357399551
+  },
+  {
+    "polish": 75,
+    "light": "overhead",
+    "lumaMean": 154.55695989795404,
+    "roughnessMean": 0.2989475945256207,
+    "glossMean": 0.782152321572163,
+    "heightEnergyMean": 0.0739592594158947
+  },
+  {
+    "polish": 75,
+    "light": "45deg-right",
+    "lumaMean": 151.39481625581053,
+    "roughnessMean": 0.2989475945256207,
+    "glossMean": 0.782152321572163,
+    "heightEnergyMean": 0.0739592594158947
+  },
+  {
+    "polish": 75,
+    "light": "grazing-right",
+    "lumaMean": 122.3138243926798,
+    "roughnessMean": 0.2989475945256207,
+    "glossMean": 0.782152321572163,
+    "heightEnergyMean": 0.0739592594158947
+  },
+  {
+    "polish": 100,
+    "light": "overhead",
+    "lumaMean": 179.23640573014566,
+    "roughnessMean": 0.0921605971905011,
+    "glossMean": 0.9936071828130159,
+    "heightEnergyMean": 0.012856705424768959
+  },
+  {
+    "polish": 100,
+    "light": "45deg-right",
+    "lumaMean": 171.97719664952672,
+    "roughnessMean": 0.0921605971905011,
+    "glossMean": 0.9936071828130159,
+    "heightEnergyMean": 0.012856705424768959
+  },
+  {
+    "polish": 100,
+    "light": "grazing-right",
+    "lumaMean": 152.00308993498214,
+    "roughnessMean": 0.0921605971905011,
+    "glossMean": 0.9936071828130159,
+    "heightEnergyMean": 0.012856705424768959
+  }
+]

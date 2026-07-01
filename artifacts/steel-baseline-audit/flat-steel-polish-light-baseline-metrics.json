@@ -1,0 +1,452 @@
+{
+  "generatedAt": "2026-06-28T23:01:32.704Z",
+  "description": "Current renderer baseline: flat steel, tarnish 0, polish 0/25/50/75/100 under overhead, bottom-left 45-degree, and bottom-left grazing light.",
+  "inputs": {
+    "bounds": {
+      "x": 0,
+      "y": 0,
+      "width": 240,
+      "height": 160
+    },
+    "materialSeed": {
+      "algorithm": "sha256-image-v1",
+      "key": "sha256-image-v1:steel-baseline-audit",
+      "seed32": 1373552367
+    },
+    "frameBase": {
+      "enabled": true,
+      "color": "#ffffff",
+      "width": 8,
+      "shape": "rectangle",
+      "style": "metal",
+      "lumpiness": 50,
+      "jaggedness": 50,
+      "roughnessOffset": 0,
+      "metalType": "steel",
+      "metalProfile": "flat",
+      "metalPattern": "none",
+      "metalDepth": 72,
+      "metalBevelWidth": 64,
+      "metalLightAngle": 0,
+      "metalBrushAngle": 0,
+      "metalPolish": 50,
+      "metalTarnish": 0,
+      "metalPatternScale": 90,
+      "metalPatternStrength": 55
+    },
+    "lights": [
+      {
+        "key": "overhead",
+        "label": "overhead",
+        "position": {
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "key": "bottom-left-45",
+        "label": "BL 45deg",
+        "position": {
+          "x": -0.5,
+          "y": -0.5
+        }
+      },
+      {
+        "key": "bottom-left-grazing",
+        "label": "BL grazing",
+        "position": {
+          "x": -1,
+          "y": -1
+        }
+      }
+    ],
+    "polishes": [
+      0,
+      25,
+      50,
+      75,
+      100
+    ]
+  },
+  "sheet": {
+    "png": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\steel-baseline-audit\\flat-steel-polish-light-baseline-contact-sheet.png",
+    "svg": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\steel-baseline-audit\\flat-steel-polish-light-baseline-contact-sheet.svg"
+  },
+  "rows": [
+    {
+      "polish": 0,
+      "light": "overhead",
+      "fileName": "flat-steel-polish-0-overhead.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 63.5150896143815,
+        "roughnessMean": 1,
+        "glossMean": 0.10014304420167686,
+        "heightEnergyMean": 0.3427995487667466,
+        "normalEnergyMean": 0.14113565818103493,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 62.58274442857461,
+          "topRight": 66.76803171428867,
+          "bottomLeft": 62.589807893295905,
+          "bottomRight": 62.06592537913466
+        },
+        "bottomLeftShadowSplit": 4.178223820992763
+      }
+    },
+    {
+      "polish": 0,
+      "light": "bottom-left-45",
+      "fileName": "flat-steel-polish-0-bottom-left-45.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 31.09569747584865,
+        "roughnessMean": 1,
+        "glossMean": 0.10014304420167686,
+        "heightEnergyMean": 0.3427995487667466,
+        "normalEnergyMean": 0.14113565818103493,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 30.249944874998402,
+          "topRight": 40.949104910714986,
+          "bottomLeft": 19.438767586332187,
+          "bottomRight": 33.535951489128514
+        },
+        "bottomLeftShadowSplit": 21.5103373243828
+      }
+    },
+    {
+      "polish": 0,
+      "light": "bottom-left-grazing",
+      "fileName": "flat-steel-polish-0-bottom-left-grazing.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 19.303464169609704,
+        "roughnessMean": 1,
+        "glossMean": 0.10014304420167686,
+        "heightEnergyMean": 0.3427995487667466,
+        "normalEnergyMean": 0.14113565818103493,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 18.0850870000019,
+          "topRight": 25.911123464285946,
+          "bottomLeft": 12.22926696510012,
+          "bottomRight": 20.86332190754652
+        },
+        "bottomLeftShadowSplit": 13.681856499185827
+      }
+    },
+    {
+      "polish": 25,
+      "light": "overhead",
+      "fileName": "flat-steel-polish-25-overhead.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 157.17294252242675,
+        "roughnessMean": 0.9357390387800772,
+        "glossMean": 0.1464974846745395,
+        "heightEnergyMean": 0.1536024998104878,
+        "normalEnergyMean": 0.08177297367569869,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 152.0008714464372,
+          "topRight": 161.87530005356527,
+          "bottomLeft": 156.51614728667778,
+          "bottomRight": 158.31035092270866
+        },
+        "bottomLeftShadowSplit": 5.35915276688749
+      }
+    },
+    {
+      "polish": 25,
+      "light": "bottom-left-45",
+      "fileName": "flat-steel-polish-25-bottom-left-45.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 126.27450069989882,
+        "roughnessMean": 0.9357390387800772,
+        "glossMean": 0.1464974846745395,
+        "heightEnergyMean": 0.1536024998104878,
+        "normalEnergyMean": 0.08177297367569869,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 121.12978162501855,
+          "topRight": 146.24863342856403,
+          "bottomLeft": 104.04150851453228,
+          "bottomRight": 133.3339653024014
+        },
+        "bottomLeftShadowSplit": 42.20712491403175
+      }
+    },
+    {
+      "polish": 25,
+      "light": "bottom-left-grazing",
+      "fileName": "flat-steel-polish-25-bottom-left-grazing.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 111.99141765557077,
+        "roughnessMean": 0.9357390387800772,
+        "glossMean": 0.1464974846745395,
+        "heightEnergyMean": 0.1536024998104878,
+        "normalEnergyMean": 0.08177297367569869,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 106.92247967857394,
+          "topRight": 131.67100742858017,
+          "bottomLeft": 89.74332064681683,
+          "bottomRight": 119.28982526951772
+        },
+        "bottomLeftShadowSplit": 41.92768678176334
+      }
+    },
+    {
+      "polish": 50,
+      "light": "overhead",
+      "fileName": "flat-steel-polish-50-overhead.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 126.11128653928104,
+        "roughnessMean": 0.9233727581771443,
+        "glossMean": 0.23897074553420805,
+        "heightEnergyMean": 0.15365910596600307,
+        "normalEnergyMean": 0.06767729490065363,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 124.88508474998646,
+          "topRight": 126.56796876783882,
+          "bottomLeft": 125.98095980265255,
+          "bottomRight": 127.02898940250844
+        },
+        "bottomLeftShadowSplit": 0.5870089651862713
+      }
+    },
+    {
+      "polish": 50,
+      "light": "bottom-left-45",
+      "fileName": "flat-steel-polish-50-bottom-left-45.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 94.67241817032995,
+        "roughnessMean": 0.9233727581771443,
+        "glossMean": 0.23897074553420805,
+        "heightEnergyMean": 0.15365910596600307,
+        "normalEnergyMean": 0.06767729490065363,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 91.8299752857159,
+          "topRight": 113.37658233928485,
+          "bottomLeft": 72.51553150009315,
+          "bottomRight": 100.59951511054518
+        },
+        "bottomLeftShadowSplit": 40.861050839191705
+      }
+    },
+    {
+      "polish": 50,
+      "light": "bottom-left-grazing",
+      "fileName": "flat-steel-polish-50-bottom-left-grazing.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 76.23700688613197,
+        "roughnessMean": 0.9233727581771443,
+        "glossMean": 0.23897074553420805,
+        "heightEnergyMean": 0.15365910596600307,
+        "normalEnergyMean": 0.06767729490065363,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 73.70335298214475,
+          "topRight": 93.76733953571814,
+          "bottomLeft": 54.85146610634155,
+          "bottomRight": 82.27787363420694
+        },
+        "bottomLeftShadowSplit": 38.91587342937659
+      }
+    },
+    {
+      "polish": 75,
+      "light": "overhead",
+      "fileName": "flat-steel-polish-75-overhead.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 142.06729293778244,
+        "roughnessMean": 0.15146882265804854,
+        "glossMean": 0.822420711192827,
+        "heightEnergyMean": 0.06102622565117139,
+        "normalEnergyMean": 0.009381582998582752,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 139.95625173215524,
+          "topRight": 142.26210612501617,
+          "bottomLeft": 142.21648536453057,
+          "bottomRight": 143.8787942627505
+        },
+        "bottomLeftShadowSplit": 0.045620760485604706
+      }
+    },
+    {
+      "polish": 75,
+      "light": "bottom-left-45",
+      "fileName": "flat-steel-polish-75-bottom-left-45.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 124.69328275086299,
+        "roughnessMean": 0.15146882265804854,
+        "glossMean": 0.822420711192827,
+        "heightEnergyMean": 0.06102622565117139,
+        "normalEnergyMean": 0.009381582998582752,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 120.50873646427154,
+          "topRight": 139.77860428572737,
+          "bottomLeft": 108.51600264937126,
+          "bottomRight": 129.71683703634915
+        },
+        "bottomLeftShadowSplit": 31.26260163635611
+      }
+    },
+    {
+      "polish": 75,
+      "light": "bottom-left-grazing",
+      "fileName": "flat-steel-polish-75-bottom-left-grazing.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 111.08055216745038,
+        "roughnessMean": 0.15146882265804854,
+        "glossMean": 0.822420711192827,
+        "heightEnergyMean": 0.06102622565117139,
+        "normalEnergyMean": 0.009381582998582752,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 107.10772869644127,
+          "topRight": 125.43822812499954,
+          "bottomLeft": 95.41526416956906,
+          "bottomRight": 116.12000900785993
+        },
+        "bottomLeftShadowSplit": 30.022963955430484
+      }
+    },
+    {
+      "polish": 100,
+      "light": "overhead",
+      "fileName": "flat-steel-polish-100-overhead.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 167.51566435022528,
+        "roughnessMean": 0.012000000104308128,
+        "glossMean": 0.9752590173772494,
+        "heightEnergyMean": 0.00727735568708129,
+        "normalEnergyMean": 0.0048491648721279736,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 164.32685603571616,
+          "topRight": 168.2542830893091,
+          "bottomLeft": 167.41200067604802,
+          "bottomRight": 170.12637381691508
+        },
+        "bottomLeftShadowSplit": 0.8422824132610742
+      }
+    },
+    {
+      "polish": 100,
+      "light": "bottom-left-45",
+      "fileName": "flat-steel-polish-100-bottom-left-45.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 153.794586607077,
+        "roughnessMean": 0.012000000104308128,
+        "glossMean": 0.9752590173772494,
+        "heightEnergyMean": 0.00727735568708129,
+        "normalEnergyMean": 0.0048491648721279736,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 146.34645185714274,
+          "topRight": 178.61182671425763,
+          "bottomLeft": 128.82433911932168,
+          "bottomRight": 160.99268171021694
+        },
+        "bottomLeftShadowSplit": 49.78748759493595
+      }
+    },
+    {
+      "polish": 100,
+      "light": "bottom-left-grazing",
+      "fileName": "flat-steel-polish-100-bottom-left-grazing.png",
+      "summary": {
+        "framePixels": 44292,
+        "lumaMean": 142.65096011470746,
+        "roughnessMean": 0.012000000104308128,
+        "glossMean": 0.9752590173772494,
+        "heightEnergyMean": 0.00727735568708129,
+        "normalEnergyMean": 0.0048491648721279736,
+        "pitMean": 0.2940841132980845,
+        "pitCoverageOver01": 0.489636954754809,
+        "dentMean": 0.07422448133104584,
+        "scratchMean": 0.010673064541977405,
+        "gougeMean": 0.01239484093952995,
+        "cornerLuma": {
+          "topLeft": 135.57521151786813,
+          "topRight": 166.42611628573758,
+          "bottomLeft": 118.3397346976122,
+          "bottomRight": 149.87527114928162
+        },
+        "bottomLeftShadowSplit": 48.08638158812538
+      }
+    }
+  ]
+}

@@ -53,6 +53,10 @@ import type {
 import type {
   CaseInsertPreviewTextControlHandlers,
 } from '../preview/caseInsertInlineTextEditorControls'
+import type {
+  ArtworkFrameMaterialLightOverride,
+  ArtworkFrameMaterialLightOverrideMap,
+} from '../../render/artworkFrameMaterialLightEditor'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
@@ -94,6 +98,11 @@ export type CaseInsertEditorShellProps = {
   ) => void
   onTextTargetEditComplete: (target: CaseInsertPreviewTextTarget) => void
   previewTextControlHandlers: CaseInsertPreviewTextControlHandlers
+  materialLightOverridesByEditableId?: ArtworkFrameMaterialLightOverrideMap
+  onMaterialLightChange?: (
+    editableId: string,
+    lightOverride: ArtworkFrameMaterialLightOverride,
+  ) => void
 }
 
 function getSurfaceMetrics(
@@ -355,6 +364,8 @@ export function CaseInsertEditorShell({
   onTextTargetValueChange,
   onTextTargetEditComplete,
   previewTextControlHandlers,
+  materialLightOverridesByEditableId,
+  onMaterialLightChange,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
@@ -471,6 +482,8 @@ export function CaseInsertEditorShell({
         onTextTargetValueChange={onTextTargetValueChange}
         onTextTargetEditComplete={onTextTargetEditComplete}
         previewTextControlHandlers={previewTextControlHandlers}
+        materialLightOverridesByEditableId={materialLightOverridesByEditableId}
+        onMaterialLightChange={onMaterialLightChange}
       />
     </main>
   )

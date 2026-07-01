@@ -1,0 +1,312 @@
+{
+  "generatedAt": "2026-06-27T22:47:22.225Z",
+  "generator": "artifacts/seed-uncoupling-visual-verification/generate-contact-sheets.mjs",
+  "notes": [
+    "Panels use the real corrosion field, derived maps, normal pass, and software shading.",
+    "Each panel includes a shaded frame plus a bottom strip visualizing stage coverage and corrosion potential clipped to the frame mask.",
+    "This package is diagnostic and does not claim native Tauri preview/export manual verification."
+  ],
+  "packageDir": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27",
+  "seeds": {
+    "imageSeedA": {
+      "algorithm": "sha256-image-v1",
+      "key": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+      "seed32": 937687355
+    },
+    "imageSeedB": {
+      "algorithm": "sha256-image-v1",
+      "key": "sha256-image-v1:a2ef7cc831b585fe7fe17aa68d179d628ef310276b2aa072f441218c0d33a953",
+      "seed32": 2733604040
+    }
+  },
+  "acceptanceAudit": {
+    "differentImagesMovePlacement": true,
+    "lightChangesFinalPixelsOnly": true,
+    "noRustOrAlphaBleed": true,
+    "polishKeepsPlacementStable": true,
+    "tarnishKeepsGeometryStable": true,
+    "tarnishGrowsCoverage": true
+  },
+  "sheets": [
+    {
+      "acceptance": [
+        "Same image seed and tarnish",
+        "Rust placement should stay anchored",
+        "Finish, roughness, and highlight response may change"
+      ],
+      "description": "Same image seed, tarnish 80, polish values 0, 50, and 100.",
+      "panels": [
+        {
+          "coverageHash": "1ef9116a559b1d6b93110833bf9272806b51a1eae9e78f733e3c9c15b0d4b828",
+          "coverageMean": 0.25563474909747563,
+          "derivedMapsHash": "0ff0a722e9e7e1cde1e4009888f891e2985c1d44e6ebac7f0164a80cb83ab0f8",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "b5c337d3b34a4d7b62431ce579b91fb038ca34c0370c18fc9c8ec2ecf0657941",
+          "label": "polish 0",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\polish-0.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "5ec1c6ab48586ce59c8ca097c64734c2134dc025f72a6f50748f76dcaf6674ec",
+          "slug": "polish-0"
+        },
+        {
+          "coverageHash": "1ef9116a559b1d6b93110833bf9272806b51a1eae9e78f733e3c9c15b0d4b828",
+          "coverageMean": 0.25563474909747563,
+          "derivedMapsHash": "ddf10d2e769b83e76b43838b048bceb5ada5cf4281e5078ff1f5d3df7df3e28a",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "5e42348d8e829b72201ca527e12b3c91472966d8e6b028ca0e27fe61974805cc",
+          "label": "polish 50",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\polish-50.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "5ec1c6ab48586ce59c8ca097c64734c2134dc025f72a6f50748f76dcaf6674ec",
+          "slug": "polish-50"
+        },
+        {
+          "coverageHash": "1ef9116a559b1d6b93110833bf9272806b51a1eae9e78f733e3c9c15b0d4b828",
+          "coverageMean": 0.25563474909747563,
+          "derivedMapsHash": "2656b053d4e43b4be9a0c1e3f5976a3b553dc8dc0278f7804812d891a2a0a475",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "ecfbdaa3ebd35d96ada2f1bea87321c53f61c53be6ddb1f1d10afe869ba521ca",
+          "label": "polish 100",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\polish-100.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "5ec1c6ab48586ce59c8ca097c64734c2134dc025f72a6f50748f76dcaf6674ec",
+          "slug": "polish-100"
+        }
+      ],
+      "pngPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\01-polish-0-50-100-same-image.png",
+      "slug": "01-polish-0-50-100-same-image",
+      "svgPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\01-polish-0-50-100-same-image.svg",
+      "title": "Polish Response Without Rust Reseeding"
+    },
+    {
+      "acceptance": [
+        "Same image seed and polish",
+        "Coverage should grow over stable corrosion sites",
+        "No large unrelated placement jump between tarnish stages"
+      ],
+      "description": "Same image seed, polish 50, tarnish values 15, 30, 45, 65, 80, and 100.",
+      "panels": [
+        {
+          "coverageHash": "945207177a95ff2ceaf4b9c5554c683d7ee2c830d4fcedd46a5b32a7c922a489",
+          "coverageMean": 0.01861678279862987,
+          "derivedMapsHash": "88bcb03d17285055ccd3a91104e63d0af89a564a0f0939a0e8cb2ca966a320f3",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "d66c4af6ffb7862423fdc670f42ac9baaac751d78a8141d353764c3b14fef220",
+          "label": "tarnish 15",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-15.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "8b6b69834a44764d54f0584155d85351c9f4f3d3b77208c33101a9818613f641",
+          "slug": "tarnish-15"
+        },
+        {
+          "coverageHash": "e7f604bd481fdcbfc8929caff511e8869202b74a70d2600b6c212d77f3185305",
+          "coverageMean": 0.037234805267509795,
+          "derivedMapsHash": "33529e7e6622c0f3aa61f78406fd7f6e13b6abe9f55999d85ca4298b3eb6d5c3",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "04426f7adf22c4a04e13eeed2440fcf1aef9f55010dfa54a8bf15573999cd0b5",
+          "label": "tarnish 30",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-30.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "0679980683e7f650e1d32dfc63d7a1edc09485c9edeab7e3d040e7e5fa289ef1",
+          "slug": "tarnish-30"
+        },
+        {
+          "coverageHash": "b8f987c97088f2f74809ea4db96f0ef673fbcef11e6e18d65f601535150119a5",
+          "coverageMean": 0.03781751662566031,
+          "derivedMapsHash": "fc5042111ea18fb8a76dcfebbf4775e6f5abb9f7240b3643bde01cd994c24300",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "93615466e6d2599b2b41ef9bf4b9d3effaf0b30aefbe03fa00bfea9d142f69c4",
+          "label": "tarnish 45",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-45.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "3d1d9f96735eb1dd8c40d142eadd734b891faf5466acf191a05bd3c24834268d",
+          "slug": "tarnish-45"
+        },
+        {
+          "coverageHash": "48a610e7b789e63e7c7cd01675636eadfd36d2e9c90ace9fe88c8770f87ac7e4",
+          "coverageMean": 0.09334941970315475,
+          "derivedMapsHash": "4c02729a83edaad557f5e14f7ec4e44a5dddf318e185a83313ef072e52eab655",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "00d8c913b5678d19635a7121d08924eb41f483998cc3e01be2417ecaf8194b35",
+          "label": "tarnish 65",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-65.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "4d1bac9eae81bd383da16d105893ca53a7aea8dffe162f2eae040362833e3082",
+          "slug": "tarnish-65"
+        },
+        {
+          "coverageHash": "1ef9116a559b1d6b93110833bf9272806b51a1eae9e78f733e3c9c15b0d4b828",
+          "coverageMean": 0.25563474909747563,
+          "derivedMapsHash": "ddf10d2e769b83e76b43838b048bceb5ada5cf4281e5078ff1f5d3df7df3e28a",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "5e42348d8e829b72201ca527e12b3c91472966d8e6b028ca0e27fe61974805cc",
+          "label": "tarnish 80",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-80.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "5ec1c6ab48586ce59c8ca097c64734c2134dc025f72a6f50748f76dcaf6674ec",
+          "slug": "tarnish-80"
+        },
+        {
+          "coverageHash": "0396b2aba4457837d9dba941f056c3e5a67031242caae591ac2c526e45542c24",
+          "coverageMean": 0.3481573984307893,
+          "derivedMapsHash": "72a1e321bee12b2cf87ea4c4be39b6e8f8aec9d27deaa516efeeec1cfc90a6d1",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "9e240ae4fb8996cd3359ba6c5ad2da70f306d0061df77fc4ddfb0dfdc6beafd2",
+          "label": "tarnish 100",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\tarnish-100.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "d2cfa4569b92ea6b10603ec84ec82c66e641343b99257876fd2427494e14066c",
+          "slug": "tarnish-100"
+        }
+      ],
+      "pngPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\02-tarnish-15-30-45-65-80-100-same-image.png",
+      "slug": "02-tarnish-15-30-45-65-80-100-same-image",
+      "svgPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\02-tarnish-15-30-45-65-80-100-same-image.svg",
+      "title": "Tarnish Stage Growth Over Stable Geometry"
+    },
+    {
+      "acceptance": [
+        "Same image seed, polish, and tarnish",
+        "Fields and maps should stay fixed",
+        "Only final shading should change with light angle"
+      ],
+      "description": "Same image seed, polish 65, tarnish 88, light angles 0, 90, and 180.",
+      "panels": [
+        {
+          "coverageHash": "76b70304a60e445f52d3a9b4dd42b1879130c1f41159f705eca394c200a0a799",
+          "coverageMean": 0.316626534788401,
+          "derivedMapsHash": "42006937eacbaa39d06c76905fe31a82ce1ce75c5a88da0044451582d1f4a132",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "7b2f220cc4cef20e2b5be7b8904cdd2c307c6f2411572638b605317c4e2b32ec",
+          "label": "light 0 deg",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\light-0.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "b70275d92a7583ee7799f0007a7869cce25676a3632085febc1d57d7e7595891",
+          "slug": "light-0"
+        },
+        {
+          "coverageHash": "76b70304a60e445f52d3a9b4dd42b1879130c1f41159f705eca394c200a0a799",
+          "coverageMean": 0.316626534788401,
+          "derivedMapsHash": "42006937eacbaa39d06c76905fe31a82ce1ce75c5a88da0044451582d1f4a132",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "08260bf7fc4369b22520db171f6d4711e8e36fbf6e0e0a52e20ae66a490b7f67",
+          "label": "light 90 deg",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\light-90.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "b70275d92a7583ee7799f0007a7869cce25676a3632085febc1d57d7e7595891",
+          "slug": "light-90"
+        },
+        {
+          "coverageHash": "76b70304a60e445f52d3a9b4dd42b1879130c1f41159f705eca394c200a0a799",
+          "coverageMean": 0.316626534788401,
+          "derivedMapsHash": "42006937eacbaa39d06c76905fe31a82ce1ce75c5a88da0044451582d1f4a132",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "849031ed87a85372c705e952cdb25c7557c1224420f1f8eb0ff81f292deb358e",
+          "label": "light 180 deg",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\light-180.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "b70275d92a7583ee7799f0007a7869cce25676a3632085febc1d57d7e7595891",
+          "slug": "light-180"
+        }
+      ],
+      "pngPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\03-light-0-90-180-same-image.png",
+      "slug": "03-light-0-90-180-same-image",
+      "svgPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\03-light-0-90-180-same-image.svg",
+      "title": "Light Angle Shading Only"
+    },
+    {
+      "acceptance": [
+        "Same frame settings",
+        "Different image seeds should produce different rust placement",
+        "Frame clipping should still prevent bleed"
+      ],
+      "description": "Two different image-derived SHA-256 seeds at the same frame settings.",
+      "panels": [
+        {
+          "coverageHash": "1ef9116a559b1d6b93110833bf9272806b51a1eae9e78f733e3c9c15b0d4b828",
+          "coverageMean": 0.25563474909747563,
+          "derivedMapsHash": "ddf10d2e769b83e76b43838b048bceb5ada5cf4281e5078ff1f5d3df7df3e28a",
+          "framePixels": 31284,
+          "geometryHash": "6ed016e3d1f8ca45a11eced1d69e3f0497f3d1be5770adbda8b166980bcbd827",
+          "imageHash": "5e42348d8e829b72201ca527e12b3c91472966d8e6b028ca0e27fe61974805cc",
+          "label": "image seed A",
+          "materialSeedKey": "sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\image-a.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:37e3f93bf992e4717f3cbb420a743deddf9000c03ba89539d2a659ab530ec8c0|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "5ec1c6ab48586ce59c8ca097c64734c2134dc025f72a6f50748f76dcaf6674ec",
+          "slug": "image-a"
+        },
+        {
+          "coverageHash": "8618d43a1de493178b9fc338af0ffbe19b3fa6317ce73decb5cdf73232c0e3d2",
+          "coverageMean": 0.3124765385625438,
+          "derivedMapsHash": "a30c61a29ed722611cbb30762b35293e1b01f7d80eda685060c1abe763ee24e7",
+          "framePixels": 31284,
+          "geometryHash": "a2057d20c6f72a6ccb7aa68b5f52d25e5e2ddd400fb0c8ac832d75203ab38ba5",
+          "imageHash": "6ddc694003eeef06f6754ce9d44b47de68463b165a48d1bd3d952e666385e1df",
+          "label": "image seed B",
+          "materialSeedKey": "sha256-image-v1:a2ef7cc831b585fe7fe17aa68d179d628ef310276b2aa072f441218c0d33a953",
+          "outsideAlphaPixels": 0,
+          "outsideRustPixels": 0,
+          "panelPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\panels\\image-b.png",
+          "requestGeometrySeedKey": "material-seed:sha256-image-v1:a2ef7cc831b585fe7fe17aa68d179d628ef310276b2aa072f441218c0d33a953|metal|steel|rectangle|15.000|36.000|18.000|none|90.000|55.000|320.000|220.000|33.000|320|220",
+          "scalarHash": "84c3840d9ab0249b7643926d0efa7b6c7e5e0ded7faa8c4dbad7a29e88f0e4fb",
+          "slug": "image-b"
+        }
+      ],
+      "pngPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\04-different-images-same-settings.png",
+      "slug": "04-different-images-same-settings",
+      "svgPath": "C:\\Users\\John Paul Keller\\steam-backup-label-studio\\artifacts\\seed-uncoupling-visual-verification\\package-2026-06-27\\sheets\\04-different-images-same-settings.svg",
+      "title": "Different Images Produce Different Placement"
+    }
+  ]
+}

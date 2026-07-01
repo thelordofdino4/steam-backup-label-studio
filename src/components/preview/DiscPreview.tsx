@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
+import { Fragment, useCallback, useMemo, useState, type PointerEvent, type ReactNode, type RefObject } from 'react'
 import type { DiscTextAlignment, DiscTextArcSide, DiscTextKey, DiscTextLayout, DiscTextLayoutNumericField, DiscTextLayoutSettings, DiscTextHtmlSources, DiscTextSettings, DiscTextValues, SteamLogoPlacement } from '../../discText/index'
 import type { DiscTextStyleField, DiscTextStyleSettings, DiscTextStyleValue } from '../../discText/styles'
 import type { TextContentMode } from '../../text/htmlText'
@@ -19,6 +19,10 @@ import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import {
+  ArtworkFrameMaterialLightEditorOverlay,
+  type ArtworkFrameMaterialPreviewLightOverride,
+} from './ArtworkFrameMaterialLightEditorOverlay'
 import { PreviewHeader } from './PreviewHeader'
 import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
@@ -31,6 +35,14 @@ import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
+import type { PreviewEditableElement } from '../../editor/previewElementOverlay'
+import {
+  getDiscArtworkFrameMaterialLightEditorTarget,
+  type ArtworkFrameMaterialLightOverride,
+  type ArtworkFrameMaterialLightOverrideMap,
+} from '../../render/artworkFrameMaterialLightEditor'
+import type { ArtworkFrameMaterialLightVector } from '../../render/artworkFrameMaterialLighting'
+import type { ArtworkFrameCanvasMaterialQualityMode } from '../../render/artworkFrameMaterialPlan'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -222,6 +234,11 @@ export type DiscPreviewProps = {
     safeInsetPercent: number
     physicalCenterHolePercent: number
   }
+  materialLightOverridesByEditableId?: ArtworkFrameMaterialLightOverrideMap
+  onMaterialLightChange?: (
+    editableId: string,
+    lightOverride: ArtworkFrameMaterialLightOverride,
+  ) => void
 }
 
 type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
@@ -238,9 +255,19 @@ export function DiscPreview({
   discText,
   pointerHandlers,
   guideOverlay,
+  materialLightOverridesByEditableId = {},
+  onMaterialLightChange,
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
+  const [
+    selectedMaterialLightElement,
+    setSelectedMaterialLightElement,
+  ] = useState<PreviewEditableElement | null>(null)
+  const [
+    materialLightQualityModesByEditableId,
+    setMaterialLightQualityModesByEditableId,
+  ] = useState<Record<string, ArtworkFrameCanvasMaterialQualityMode>>({})
   const { guideLegendClosedSize, previewAreaRef } =
     usePreviewGuideLegendPlacement({
       closedButtonCount: 2,
@@ -261,6 +288,41 @@ export function DiscPreview({
       setIsDesignCheckOpen(false)
     }
   }
+  const materialLightEditorTarget = useMemo(
+    () => getDiscArtworkFrameMaterialLightEditorTarget(
+      artwork.additionalArtwork,
+      selectedMaterialLightElement,
+    ),
+    [artwork.additionalArtwork, selectedMaterialLightElement],
+  )
+  const previewMaterialLightOverridesByEditableId = useMemo(() => {
+    const previewOverrides:
+      Record<string, ArtworkFrameMaterialPreviewLightOverride> = {}
+
+    for (const [editableId, lightOverride] of Object.entries(
+      materialLightOverridesByEditableId,
+    )) {
+      previewOverrides[editableId] = {
+        ...lightOverride,
+        qualityMode: materialLightQualityModesByEditableId[editableId] ?? 'full',
+      }
+    }
+
+    return previewOverrides
+  }, [materialLightOverridesByEditableId, materialLightQualityModesByEditableId])
+  const handleMaterialLightChange = useCallback((
+    editableId: string,
+    lightVector: ArtworkFrameMaterialLightVector,
+    qualityMode: ArtworkFrameCanvasMaterialQualityMode,
+  ) => {
+    setMaterialLightQualityModesByEditableId((current) => ({
+      ...current,
+      [editableId]: qualityMode,
+    }))
+    onMaterialLightChange?.(editableId, {
+      lightVector,
+    })
+  }, [onMaterialLightChange])
   const metadataBoundDiscTextValues = useMemo(
     () => resolveMetadataBoundDiscTextValues(
       discText.values,
@@ -379,6 +441,9 @@ export function DiscPreview({
     'additional-artwork': (
       <AdditionalArtworkLayer
         projectAdditionalArtwork={artwork.additionalArtwork}
+        materialLightOverridesByEditableId={
+          previewMaterialLightOverridesByEditableId
+        }
         {...pointerHandlers.additionalArtwork}
       />
     ),
@@ -496,7 +561,22 @@ export function DiscPreview({
               {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
                 <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
               ))}
-              <PreviewElementOverlay previewRef={discPreviewRef} />
+              <PreviewElementOverlay
+                previewRef={discPreviewRef}
+                onSelectedElementChange={setSelectedMaterialLightElement}
+              />
+              <ArtworkFrameMaterialLightEditorOverlay
+                lightOverride={
+                  materialLightEditorTarget
+                    ? previewMaterialLightOverridesByEditableId[
+                        materialLightEditorTarget.editableId
+                      ] ?? null
+                    : null
+                }
+                onLightChange={handleMaterialLightChange}
+                previewRef={discPreviewRef}
+                target={materialLightEditorTarget}
+              />
             </div>
           </PreviewViewport>
 

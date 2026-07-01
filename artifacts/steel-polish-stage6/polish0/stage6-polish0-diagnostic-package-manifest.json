@@ -1,0 +1,94 @@
+{
+  "files": [
+    {
+      "fileName": "polish0-active-physical-final-light-contact-sheet.png",
+      "panels": [
+        "overhead active body map",
+        "overhead physical contribution map",
+        "overhead final shaded steel",
+        "45-degree active body map",
+        "45-degree physical contribution map",
+        "45-degree final shaded steel",
+        "grazing active body map",
+        "grazing physical contribution map",
+        "grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "low-polish-ramp-final-light-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish0-10-25-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "0% overhead final shaded steel",
+        "0% 45-degree final shaded steel",
+        "0% grazing final shaded steel",
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish10-25-30-50-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "10% overhead final shaded steel",
+        "10% 45-degree final shaded steel",
+        "10% grazing final shaded steel",
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    },
+    {
+      "fileName": "polish25-30-50-final-light-comparison-contact-sheet.png",
+      "panels": [
+        "25% overhead final shaded steel",
+        "25% 45-degree final shaded steel",
+        "25% grazing final shaded steel",
+        "30% overhead final shaded steel",
+        "30% 45-degree final shaded steel",
+        "30% grazing final shaded steel",
+        "50% overhead final shaded steel",
+        "50% 45-degree final shaded steel",
+        "50% grazing final shaded steel"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T03:25:27.847Z",
+  "note": [
+    "Diagnostic Stage 6 polish 0 tuning package.",
+    "Panels use active decal physical contribution maps and existing steel finish maps.",
+    "Rows are active body maps, physical contribution maps, and final shaded steel; columns are overhead, 45-degree, and grazing light.",
+    "The low-polish ramp sheet shows final shaded steel for polish 0, 10, 25, 30, and 50 across the same light positions.",
+    "The 0/10/25 comparison sheet isolates the polish 10 overlap tune against rough damaged and medium scuffed checkpoints.",
+    "The 10/25/30/50 comparison sheet isolates the polish 25 overlap tune against the low-polish and brushed-baseline guards.",
+    "The 25/30/50 comparison sheet isolates the polish 30 handoff into the brushed baseline.",
+    "These generated assets do not claim native Tauri visual acceptance."
+  ]
+}

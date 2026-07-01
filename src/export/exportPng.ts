@@ -23,6 +23,9 @@ import { drawTitleArtwork } from './drawTitleArtwork'
 import { drawAdditionalArtwork } from './drawAdditionalArtwork'
 import { createDiscTextOccupiedRegions } from '../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../discText/svgLayer'
+import type {
+  ArtworkFrameMaterialLightOverrideMap,
+} from '../render/artworkFrameMaterialLightEditor'
 import {
   DISC_EDITOR_CLIPPED_EXPORT_LAYER_ORDER,
   DISC_EDITOR_POST_CLIP_EXPORT_LAYER_ORDER,
@@ -58,6 +61,7 @@ export async function exportDiscLabelPngBytes(params: {
   projectTitleArtwork: ProjectTitleArtwork
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
   projectAdditionalArtwork: ProjectAdditionalArtwork
+  materialLightOverridesByEditableId?: ArtworkFrameMaterialLightOverrideMap
   projectMetadata: ProjectMetadata
   projectRatingBadge: ProjectRatingBadge
   projectMediaMark: ProjectMediaMark
@@ -172,6 +176,7 @@ export async function exportDiscLabelPngBytes(params: {
         discContentSize,
         discOrigin,
         params.projectAdditionalArtwork,
+        params.materialLightOverridesByEditableId,
       ),
     'steam-banner': () =>
       drawSteamBrandBanner(

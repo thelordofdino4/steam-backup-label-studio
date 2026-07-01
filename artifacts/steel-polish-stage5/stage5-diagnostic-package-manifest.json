@@ -1,0 +1,217 @@
+{
+  "files": [
+    {
+      "fileName": "polish-checkpoint-active-body-contact-sheet.png",
+      "panels": [
+        "0% active bodyMask",
+        "10% active bodyMask",
+        "25% active bodyMask",
+        "30% active bodyMask",
+        "50% active bodyMask",
+        "75% active bodyMask",
+        "100% active bodyMask"
+      ]
+    },
+    {
+      "fileName": "polish-checkpoint-physical-contribution-contact-sheet.png",
+      "panels": [
+        "0% combined physical contribution",
+        "10% combined physical contribution",
+        "25% combined physical contribution",
+        "30% combined physical contribution",
+        "50% combined physical contribution",
+        "75% combined physical contribution",
+        "100% combined physical contribution"
+      ]
+    },
+    {
+      "fileName": "final-shaded-polish-checkpoint-contact-sheet.png",
+      "panels": [
+        "0% final shaded steel",
+        "10% final shaded steel",
+        "25% final shaded steel",
+        "30% final shaded steel",
+        "50% final shaded steel",
+        "75% final shaded steel",
+        "100% final shaded steel"
+      ]
+    },
+    {
+      "fileName": "same-seed-light-final-shaded-contact-sheet.png",
+      "panels": [
+        "center light final shaded steel",
+        "bottom-left light final shaded steel",
+        "bottom-right light final shaded steel",
+        "top-left light final shaded steel",
+        "top-right light final shaded steel"
+      ]
+    },
+    {
+      "fileName": "same-seed-light-physical-stability-contact-sheet.png",
+      "panels": [
+        "center light physical maps",
+        "bottom-left light physical maps",
+        "bottom-right light physical maps",
+        "top-left light physical maps",
+        "top-right light physical maps"
+      ]
+    },
+    {
+      "fileName": "same-seed-tarnish-final-shaded-contact-sheet.png",
+      "panels": [
+        "tarnish 0 final shaded steel",
+        "tarnish 50 final shaded steel",
+        "tarnish 100 final shaded steel"
+      ]
+    },
+    {
+      "fileName": "same-seed-tarnish-physical-stability-contact-sheet.png",
+      "panels": [
+        "tarnish 0 physical maps",
+        "tarnish 50 physical maps",
+        "tarnish 100 physical maps"
+      ]
+    },
+    {
+      "fileName": "scratch-physical-contribution-contact-sheet.png",
+      "panels": [
+        "scratch presenceMask",
+        "scratch bodyMask",
+        "scratch coreMask",
+        "scratch edgeMask",
+        "scratch height",
+        "scratch ambientOcclusion",
+        "scratch rimLight",
+        "scratch rimShadow",
+        "scratch selfShadowReceiver",
+        "scratch roughnessResponse",
+        "scratch glossResponse"
+      ]
+    },
+    {
+      "fileName": "gouge-physical-contribution-contact-sheet.png",
+      "panels": [
+        "gouge presenceMask",
+        "gouge bodyMask",
+        "gouge coreMask",
+        "gouge edgeMask",
+        "gouge height",
+        "gouge ambientOcclusion",
+        "gouge rimLight",
+        "gouge rimShadow",
+        "gouge selfShadowReceiver",
+        "gouge roughnessResponse",
+        "gouge glossResponse"
+      ]
+    },
+    {
+      "fileName": "dent-physical-contribution-contact-sheet.png",
+      "panels": [
+        "dent presenceMask",
+        "dent bodyMask",
+        "dent coreMask",
+        "dent edgeMask",
+        "dent height",
+        "dent ambientOcclusion",
+        "dent rimLight",
+        "dent rimShadow",
+        "dent selfShadowReceiver",
+        "dent roughnessResponse",
+        "dent glossResponse"
+      ]
+    },
+    {
+      "fileName": "pit-physical-contribution-contact-sheet.png",
+      "panels": [
+        "pit presenceMask",
+        "pit bodyMask",
+        "pit coreMask",
+        "pit edgeMask",
+        "pit height",
+        "pit ambientOcclusion",
+        "pit rimLight",
+        "pit rimShadow",
+        "pit selfShadowReceiver",
+        "pit roughnessResponse",
+        "pit glossResponse"
+      ]
+    },
+    {
+      "fileName": "scuff-physical-contribution-contact-sheet.png",
+      "panels": [
+        "scuff presenceMask",
+        "scuff bodyMask",
+        "scuff coreMask",
+        "scuff edgeMask",
+        "scuff height",
+        "scuff ambientOcclusion",
+        "scuff rimLight",
+        "scuff rimShadow",
+        "scuff selfShadowReceiver",
+        "scuff roughnessResponse",
+        "scuff glossResponse"
+      ]
+    },
+    {
+      "fileName": "burrNick-physical-contribution-contact-sheet.png",
+      "panels": [
+        "burrNick presenceMask",
+        "burrNick bodyMask",
+        "burrNick coreMask",
+        "burrNick edgeMask",
+        "burrNick height",
+        "burrNick ambientOcclusion",
+        "burrNick rimLight",
+        "burrNick rimShadow",
+        "burrNick selfShadowReceiver",
+        "burrNick roughnessResponse",
+        "burrNick glossResponse"
+      ]
+    },
+    {
+      "fileName": "roughness-gloss-response-by-kind-contact-sheet.png",
+      "panels": [
+        "scratch roughnessResponse",
+        "scratch glossResponse",
+        "gouge roughnessResponse",
+        "gouge glossResponse",
+        "dent roughnessResponse",
+        "dent glossResponse",
+        "pit roughnessResponse",
+        "pit glossResponse",
+        "scuff roughnessResponse",
+        "scuff glossResponse",
+        "burrNick roughnessResponse",
+        "burrNick glossResponse"
+      ]
+    },
+    {
+      "fileName": "inactive-zero-guard-contact-sheet.png",
+      "panels": [
+        "100% active body zero guard",
+        "100% physical contribution zero guard",
+        "0% active body reference",
+        "0% physical contribution reference"
+      ]
+    },
+    {
+      "fileName": "frame-ring-clipping-guard-contact-sheet.png",
+      "panels": [
+        "clean active decal bleed guard",
+        "clean physical contribution bleed guard",
+        "clean self-shadow bleed guard",
+        "clean final alpha bleed guard",
+        "rusted corrosion bleed guard",
+        "rusted final alpha bleed guard"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T00:41:29.744Z",
+  "note": [
+    "Diagnostic Stage 5 visual package.",
+    "Panels include false-color active body maps, active physical contribution maps, final shaded steel diagnostics, stability checks, inactive-zero guards, and frame-ring clipping guards.",
+    "Final shaded steel panels are generated from Stage 5 active decal physical contribution maps, not legacy transition masks.",
+    "Red pixels in guard sheets indicate detected bleed outside the frame ring; dark outside-frame regions indicate no bleed.",
+    "These generated assets do not claim native Tauri visual acceptance."
+  ]
+}

@@ -185,7 +185,32 @@ export type AdditionalArtworkLayout = {
 
 export type AdditionalArtworkFrameShape = 'rectangle' | 'circle'
 
-export type AdditionalArtworkFrameStyle = 'solid' | 'rocky'
+export type AdditionalArtworkFrameStyle = 'solid' | 'rocky' | 'metal'
+
+export type AdditionalArtworkMetalType =
+  | 'steel'
+  | 'chrome'
+  | 'gunmetal'
+  | 'brass'
+  | 'bronze'
+  | 'gold'
+  | 'copper'
+  | 'blackIron'
+
+export type AdditionalArtworkMetalProfile =
+  | 'flat'
+  | 'raised'
+  | 'inset'
+  | 'double'
+  | 'rounded'
+  | 'stepped'
+
+export type AdditionalArtworkMetalPattern =
+  | 'none'
+  | 'rivets'
+  | 'engraved'
+  | 'hammered'
+  | 'brushed'
 
 export type AdditionalArtworkFrame = {
   enabled: boolean
@@ -196,6 +221,16 @@ export type AdditionalArtworkFrame = {
   lumpiness: number
   jaggedness: number
   roughnessOffset: number
+  metalType: AdditionalArtworkMetalType
+  metalProfile: AdditionalArtworkMetalProfile
+  metalPattern: AdditionalArtworkMetalPattern
+  metalDepth: number
+  metalBevelWidth: number
+  metalBrushAngle: number
+  metalPolish: number
+  metalTarnish: number
+  metalPatternScale: number
+  metalPatternStrength: number
 }
 
 export type ProjectAdditionalArtworkElement = {

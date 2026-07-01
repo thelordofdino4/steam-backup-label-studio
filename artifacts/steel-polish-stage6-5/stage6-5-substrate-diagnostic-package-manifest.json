@@ -1,0 +1,227 @@
+{
+  "checkpoints": [
+    0,
+    10,
+    25,
+    30,
+    50
+  ],
+  "files": [
+    {
+      "fileName": "substrate-albedo-contact-sheet.png",
+      "panels": [
+        "0% overhead substrate albedo",
+        "0% 45-degree substrate albedo",
+        "0% grazing substrate albedo",
+        "10% overhead substrate albedo",
+        "10% 45-degree substrate albedo",
+        "10% grazing substrate albedo",
+        "25% overhead substrate albedo",
+        "25% 45-degree substrate albedo",
+        "25% grazing substrate albedo",
+        "30% overhead substrate albedo",
+        "30% 45-degree substrate albedo",
+        "30% grazing substrate albedo",
+        "50% overhead substrate albedo",
+        "50% 45-degree substrate albedo",
+        "50% grazing substrate albedo"
+      ]
+    },
+    {
+      "fileName": "substrate-height-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate height",
+        "0% 45-degree false-color substrate height",
+        "0% grazing false-color substrate height",
+        "10% overhead false-color substrate height",
+        "10% 45-degree false-color substrate height",
+        "10% grazing false-color substrate height",
+        "25% overhead false-color substrate height",
+        "25% 45-degree false-color substrate height",
+        "25% grazing false-color substrate height",
+        "30% overhead false-color substrate height",
+        "30% 45-degree false-color substrate height",
+        "30% grazing false-color substrate height",
+        "50% overhead false-color substrate height",
+        "50% 45-degree false-color substrate height",
+        "50% grazing false-color substrate height"
+      ]
+    },
+    {
+      "fileName": "substrate-ao-contact-sheet.png",
+      "panels": [
+        "0% overhead normalized false-color substrate AO",
+        "0% 45-degree normalized false-color substrate AO",
+        "0% grazing normalized false-color substrate AO",
+        "10% overhead normalized false-color substrate AO",
+        "10% 45-degree normalized false-color substrate AO",
+        "10% grazing normalized false-color substrate AO",
+        "25% overhead normalized false-color substrate AO",
+        "25% 45-degree normalized false-color substrate AO",
+        "25% grazing normalized false-color substrate AO",
+        "30% overhead normalized false-color substrate AO",
+        "30% 45-degree normalized false-color substrate AO",
+        "30% grazing normalized false-color substrate AO",
+        "50% overhead normalized false-color substrate AO",
+        "50% 45-degree normalized false-color substrate AO",
+        "50% grazing normalized false-color substrate AO"
+      ]
+    },
+    {
+      "fileName": "substrate-speckle-guard-contact-sheet.png",
+      "panels": [
+        "0% overhead fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "0% 45-degree fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "0% grazing fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "10% overhead fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "10% 45-degree fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "10% grazing fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "25% overhead fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "25% 45-degree fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "25% grazing fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "30% overhead fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "30% 45-degree fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "30% grazing fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "50% overhead fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "50% 45-degree fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast",
+        "50% grazing fixed-threshold substrate speckle guard; hot pixels mean local AO/height/normal dot contrast"
+      ]
+    },
+    {
+      "fileName": "substrate-roughness-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate roughness",
+        "0% 45-degree false-color substrate roughness",
+        "0% grazing false-color substrate roughness",
+        "10% overhead false-color substrate roughness",
+        "10% 45-degree false-color substrate roughness",
+        "10% grazing false-color substrate roughness",
+        "25% overhead false-color substrate roughness",
+        "25% 45-degree false-color substrate roughness",
+        "25% grazing false-color substrate roughness",
+        "30% overhead false-color substrate roughness",
+        "30% 45-degree false-color substrate roughness",
+        "30% grazing false-color substrate roughness",
+        "50% overhead false-color substrate roughness",
+        "50% 45-degree false-color substrate roughness",
+        "50% grazing false-color substrate roughness"
+      ]
+    },
+    {
+      "fileName": "substrate-gloss-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color substrate gloss",
+        "0% 45-degree false-color substrate gloss",
+        "0% grazing false-color substrate gloss",
+        "10% overhead false-color substrate gloss",
+        "10% 45-degree false-color substrate gloss",
+        "10% grazing false-color substrate gloss",
+        "25% overhead false-color substrate gloss",
+        "25% 45-degree false-color substrate gloss",
+        "25% grazing false-color substrate gloss",
+        "30% overhead false-color substrate gloss",
+        "30% 45-degree false-color substrate gloss",
+        "30% grazing false-color substrate gloss",
+        "50% overhead false-color substrate gloss",
+        "50% 45-degree false-color substrate gloss",
+        "50% grazing false-color substrate gloss"
+      ]
+    },
+    {
+      "fileName": "substrate-anisotropy-contact-sheet.png",
+      "panels": [
+        "0% overhead false-color anisotropy direction/aspect",
+        "0% 45-degree false-color anisotropy direction/aspect",
+        "0% grazing false-color anisotropy direction/aspect",
+        "10% overhead false-color anisotropy direction/aspect",
+        "10% 45-degree false-color anisotropy direction/aspect",
+        "10% grazing false-color anisotropy direction/aspect",
+        "25% overhead false-color anisotropy direction/aspect",
+        "25% 45-degree false-color anisotropy direction/aspect",
+        "25% grazing false-color anisotropy direction/aspect",
+        "30% overhead false-color anisotropy direction/aspect",
+        "30% 45-degree false-color anisotropy direction/aspect",
+        "30% grazing false-color anisotropy direction/aspect",
+        "50% overhead false-color anisotropy direction/aspect",
+        "50% 45-degree false-color anisotropy direction/aspect",
+        "50% grazing false-color anisotropy direction/aspect"
+      ]
+    },
+    {
+      "fileName": "substrate-normals-contact-sheet.png",
+      "panels": [
+        "0% overhead diagnostic substrate normals",
+        "0% 45-degree diagnostic substrate normals",
+        "0% grazing diagnostic substrate normals",
+        "10% overhead diagnostic substrate normals",
+        "10% 45-degree diagnostic substrate normals",
+        "10% grazing diagnostic substrate normals",
+        "25% overhead diagnostic substrate normals",
+        "25% 45-degree diagnostic substrate normals",
+        "25% grazing diagnostic substrate normals",
+        "30% overhead diagnostic substrate normals",
+        "30% 45-degree diagnostic substrate normals",
+        "30% grazing diagnostic substrate normals",
+        "50% overhead diagnostic substrate normals",
+        "50% 45-degree diagnostic substrate normals",
+        "50% grazing diagnostic substrate normals"
+      ]
+    },
+    {
+      "fileName": "substrate-only-shaded-steel-contact-sheet.png",
+      "panels": [
+        "0% overhead substrate-only shaded steel",
+        "0% 45-degree substrate-only shaded steel",
+        "0% grazing substrate-only shaded steel",
+        "10% overhead substrate-only shaded steel",
+        "10% 45-degree substrate-only shaded steel",
+        "10% grazing substrate-only shaded steel",
+        "25% overhead substrate-only shaded steel",
+        "25% 45-degree substrate-only shaded steel",
+        "25% grazing substrate-only shaded steel",
+        "30% overhead substrate-only shaded steel",
+        "30% 45-degree substrate-only shaded steel",
+        "30% grazing substrate-only shaded steel",
+        "50% overhead substrate-only shaded steel",
+        "50% 45-degree substrate-only shaded steel",
+        "50% grazing substrate-only shaded steel"
+      ]
+    },
+    {
+      "fileName": "active-pit-decal-diagnostic-contact-sheet.png",
+      "panels": [
+        "0% overhead active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "0% 45-degree active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "0% grazing active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "10% overhead active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "10% 45-degree active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "10% grazing active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "25% overhead active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "25% 45-degree active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "25% grazing active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "30% overhead active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "30% 45-degree active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "30% grazing active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "50% overhead active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "50% 45-degree active pit decal ownership; blue stable candidates, purple active bodies, amber physical response",
+        "50% grazing active pit decal ownership; blue stable candidates, purple active bodies, amber physical response"
+      ]
+    }
+  ],
+  "generatedAt": "2026-06-30T20:21:37.193Z",
+  "lightPositions": [
+    "overhead",
+    "45-degree",
+    "grazing"
+  ],
+  "note": [
+    "Diagnostic Stage 6.5 substrate-only visual package.",
+    "Panels cover polish 0, 10, 25, 30, and 50 across overhead, 45-degree, and grazing light positions.",
+    "False-color sheets show substrate maps only: albedo, height, AO, roughness, gloss, anisotropy direction/aspect, and diagnostic normals.",
+    "Substrate AO and speckle guard sheets are diagnostic false-color views; AO is normalized or locally exaggerated to make regressions visible, not to represent final color.",
+    "The substrate speckle guard uses fixed local AO/height/normal contrast thresholds so dots cannot be hidden by changing only the visualization range.",
+    "The active pit decal sheet separates stable pit candidates, active pit bodies, and physical pit response from substrate maps.",
+    "Substrate-only shaded steel disables active decals and sets tarnish to 0; it is diagnostic-only and does not change production rendering.",
+    "These generated assets do not store copyrighted reference images and do not claim native Tauri visual acceptance."
+  ]
+}
