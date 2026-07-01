@@ -178,6 +178,7 @@ The most common active references are:
 - `docs/PROJECT_FILE_SPEC.md` - current saved-project format notes.
 - `docs/REPO_ARCHITECTURE_INVENTORY.md` - as-built source ownership map.
 - `docs/TEXT_EDITOR_CONTRACT.md` - protected contract and regression gate for preview-mounted text editing.
+- `docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md` - failed material-branch postmortem and restart guardrails for artwork-frame material rendering.
 - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` - native Tauri text-editor smoke pilot guide and diagnostic browser route notes.
 
 ## Disclaimer

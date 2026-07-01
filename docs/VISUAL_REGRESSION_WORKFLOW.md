@@ -38,6 +38,12 @@ save/load/export flows, or case insert flows. This document focuses on
 preview/export fixture comparison; the smoke checklist covers broader runtime
 behavior.
 
+For procedural artwork-frame material work, also read
+`docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md`. Generated contact sheets,
+false-color maps, and browser-only captures are useful diagnostic artifacts, but
+they are not live-app visual acceptance. Material changes must still be checked
+in the native Tauri preview and exported PNG path from the primary checkout.
+
 ## Preparation
 
 1. Start from a clean, current `main`.
@@ -111,6 +117,10 @@ For each fixture:
 6. Compare the expected layers:
    - Background placement, scale, clipping, and center-hole treatment.
    - Additional artwork image, frame, placement, scale, and visibility.
+   - Artwork-frame material appearance when material rendering changed:
+     baseline flat profile, preview/export material parity, absence of ghost
+     shadows or stray dots, and control responsiveness noted separately in the
+     smoke checklist.
    - Steam banner placement, color, lockup scale, and top/bottom alignment.
    - Game title/logo artwork source, placement, scale, and visibility.
    - Developer and publisher logo placement, scale, and visibility.
@@ -147,6 +157,22 @@ Record new known differences here only when they are expected and acceptable for
 | Preview guide overlay is editor-only. Clean PNG exports should not include guides unless export guide options are enabled. | All fixtures | Expected per `docs/DISC_EDITOR_LAYER_ORDER.md`. |
 | Minor anti-aliasing differences may appear around text, SVG placeholder edges, and circular clipping. | Text, logo, badge, mark, and guide layers | Acceptable only when content, placement, scale, and layer order still match. |
 | Optional exported guides draw last and may cover artwork or text in proof exports. | Guide-enabled exports | Expected proof behavior. Clean exports should be checked separately when artwork visibility matters. |
+
+## Material Diagnostic Artifacts
+
+Procedural material work may produce contact sheets, false-color map panels,
+timing reports, or preview/export descriptor summaries. Keep these artifacts
+scoped and reviewable:
+
+- Store generated diagnostics only when they are intentionally part of the
+  review, and summarize them in the run notes.
+- Do not let generated artifacts replace native preview/export verification.
+- Do not claim a material is fixed because a contact sheet looks correct if the
+  live preview still shows stale code, undersampled textures, flat color, layout
+  breakage, or unusable controls.
+- If generated artifacts are large, keep them out of normal source commits
+  unless the branch explicitly exists to add reviewed fixtures or expected
+  images.
 
 ## Run Record Template
 

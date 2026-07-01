@@ -68,6 +68,37 @@ npm run tauri dev
   labels, frames where available, drag, scale, reset/clear, preview, export,
   disabled-state preservation, and save/load.
 
+### Artwork Frame Material Changes
+
+Use this subsection for artwork-frame material, steel/metal frame, or issue
+`#165` restart work. Read `docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md` before
+running or reporting these checks.
+
+- Confirm the checkout is the primary checkout and that stale Vite, Tauri,
+  native `app.exe`, or built/static `dist/` output is not serving an older
+  branch.
+- Use the flat frame profile as the baseline material test until raised/profile
+  rendering is separately repaired and accepted.
+- Verify the selected frame surface visibly changes in the native Tauri preview
+  when material settings change; do not rely on generated contact sheets alone.
+- Verify PNG export uses the same intended material appearance as the preview
+  for the same project state.
+- Verify preview/export parity with at least one normal preview size and one
+  large displayed preview size when texture resolution or material descriptors
+  are touched.
+- Move material sliders and menu controls through representative values and
+  confirm the sidebar remains usable and responsive.
+- Confirm all enabled material controls fit, remain readable, and remain
+  reachable in the sidebar at normal desktop width and a narrower window.
+- Confirm material geometry does not move when changing light, polish, tarnish,
+  brush angle, frame width, preview zoom, preview size, or export size unless
+  that movement is an intentional documented feature.
+- Confirm disabled or inactive defect/rust/material features do not leave
+  shadows, AO, height, dots, strokes, or other ghost artifacts behind.
+- Record whether native Tauri preview, PNG export, performance/interaction,
+  sidebar fit, and generated diagnostics were each checked. Do not collapse
+  those into one "visual test passed" statement.
+
 ## Branding Flow
 
 - Steam Backup banner supports top, bottom, and hidden placement, and hidden

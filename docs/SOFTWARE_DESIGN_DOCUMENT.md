@@ -172,6 +172,13 @@ Non-interactive tests are necessary but insufficient for visual/editor claims. F
 
 Agents must not run `npm run tauri dev` unless the user explicitly asks.
 
+Artwork-frame material rendering is covered by the stricter reset contract in
+`docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md`. Future material work must not claim
+visual acceptance from unit tests, generated contact sheets, browser-only
+diagnostics, or shared-source assertions alone. The native Tauri preview and
+PNG export must be checked from the primary checkout before reporting
+user-visible material behavior as fixed.
+
 ## 5. App Architecture Overview
 
 ### 5.1 Current Implementation Summary
@@ -395,18 +402,39 @@ The source-of-truth design state is runtime project/editor state. Layer order is
 - Keep editor-only affordances out of clean export.
 - Keep measurement/hit-target layers separate from visual artifacts.
 - Do not allow hidden CSS business logic to override the rendering model.
+- For procedural/material rendering, refactor ownership boundaries before
+  adding visual complexity. Material planning, stable geometry fields, response
+  maps, preview adapters, export adapters, controls, diagnostics, caching, and
+  performance scheduling must have clear owners before tuning appearance.
+- Preview/export material parity must be proven at effective runtime inputs, not
+  only by sharing a helper. Preview texture scale, export pixel bounds,
+  descriptor values, seed inputs, light inputs, quality modes, and cached maps
+  must be comparable and documented.
+- Expensive procedural rendering must define interaction-quality and cache
+  boundaries before live controls are wired. Live sliders and menus must not
+  synchronously regenerate large textures or serialize images on every input
+  event without a reviewed performance plan.
+- Adding renderer controls is also a layout change. Sidebar fit, control
+  reachability, and narrow-width behavior must be tested when material controls
+  are added or expanded.
 
 ### 8.6 Validation Expectations
 
 - Unit tests should cover render models, export helpers, preflight, and layer-sensitive helpers where deterministic.
 - Visual changes need preview and exported PNG comparison.
 - WYSIWYG-sensitive changes need runtime validation.
+- Material-rendering changes additionally need native flat-profile smoke before
+  visual acceptance is claimed, because generated diagnostics can diverge from
+  the live preview path.
 
 ### 8.7 Known Risks
 
 - DOM preview and canvas export are separate renderers in several subsystems.
 - CSS can create visual behavior that export cannot reproduce.
 - Actual PNG output was not visually inspected during this SDD task.
+- Procedural material systems can easily couple geometry to response inputs or
+  create performance regressions if preview/export/runtime ownership is not
+  designed first.
 
 ## 9. Text System Design
 

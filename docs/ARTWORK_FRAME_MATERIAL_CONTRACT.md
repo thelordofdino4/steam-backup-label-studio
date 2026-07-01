@@ -110,6 +110,60 @@ The restart must keep these boundaries:
   or worker-backed boundary.
 - **UI fit:** adding material controls must include sidebar reachability checks.
 
+## Lessons For The Restart
+
+The failed branch produced useful research, but the next attempt must treat
+those lessons as process constraints:
+
+- **Material rendering is architecture work first.** Do not begin with
+  photorealistic rust, polish, lighting, or texture goals. First establish the
+  owners for material planning, map generation, preview consumption, export
+  consumption, editor controls, diagnostics, caching, and runtime performance.
+- **A visual diagnostic is not a live-app verdict.** Contact sheets,
+  generated images, browser screenshots, and unit tests can explain behavior,
+  but they cannot prove native preview acceptance. Native Tauri verification is
+  required before reporting a user-visible material fix as accepted.
+- **Source parity is not enough.** A shared renderer function does not prove
+  that preview and export use equivalent descriptors, texture scale, quality
+  mode, seed inputs, or light values. Parity must be tested at the descriptor,
+  map, shaded-pixel, and native-output levels.
+- **Performance boundaries must exist before heavy maps.** If a material needs
+  high-resolution procedural fields, normal maps, self-shadowing, or software
+  shading, the first implementation must define cache boundaries and
+  interaction-quality behavior. Sliders and menus must stay usable while the
+  visual result updates.
+- **UI fit is part of the feature.** A material system that adds controls must
+  prove those controls remain readable and reachable in the sidebar at normal
+  desktop and narrow widths.
+- **Generated artifacts must not swamp review.** Diagnostic output should be
+  intentionally scoped, ignored unless deliberately promoted, and summarized by
+  manifests or screenshots. Do not let artifacts balloon a feature branch.
+- **Legacy removal must be explicit.** When replacing a rendering owner, remove
+  or disable the old owner in the same reviewed slice. Do not leave old fills,
+  vector layers, canvas layers, or fallback paths competing for the same
+  surface.
+- **One visual system per branch slice.** Rust staging, polish staging, light
+  editors, performance workers, profile geometry, sidebar controls, and export
+  parity are separate concerns. Combining them should be treated as a planning
+  failure unless a prior refactor made the combined change trivial.
+
+## Restart Branch Discipline
+
+Future issue #165 work must use small branches that can be reviewed and merged
+independently. Each branch should have one primary purpose, such as:
+
+- ownership audit and refactor only;
+- descriptor/parity groundwork only;
+- live preview texture sizing only;
+- sidebar control fit only;
+- performance/cache boundary only;
+- one material-map family only;
+- one visual tuning checkpoint only.
+
+Every branch summary must state whether generated diagnostics were produced,
+where they live, whether native Tauri verification was performed, and what was
+intentionally left out.
+
 ## Steel Material Restart Targets
 
 These are visual goals, not implemented behavior in `main`:
