@@ -1,0 +1,84 @@
+.contextual-text-ribbon-group--reset,
+.contextual-text-ribbon-group--presets {
+  width: max-content;
+}
+
+.contextual-text-ribbon-control-row--presets {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-style,
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-layout {
+  container-type: inline-size;
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-style
+  .contextual-text-ribbon-group-body,
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-layout
+  .contextual-text-ribbon-group-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-style
+  .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-layout
+  .contextual-text-ribbon-select-control {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-style
+  .contextual-text-ribbon-select-control select,
+.contextual-text-ribbon-control-row--presets
+  .contextual-text-ribbon-group--preset-layout
+  .contextual-text-ribbon-select-control select {
+  width: 100%;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-card-reset-slot {
+  box-sizing: border-box;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-self: stretch;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  min-height: 24px;
+  margin-left: 3px;
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-card-reset-button {
+  min-width: 52px;
+  height: 24px;
+  padding-inline: 8px;
+}
+

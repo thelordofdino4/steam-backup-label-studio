@@ -3,7 +3,6 @@ import test from 'node:test'
 import {
   clampCaseInsertTextVisualLayoutToBounds,
   getCaseInsertTextVisualLayout,
-  wrapCaseInsertTextLines,
 } from './caseInsertTextVisualLayout.ts'
 import { parseHtmlText } from '../text/htmlText.ts'
 
@@ -21,38 +20,6 @@ const reservedBounds = {
   width: 120,
   height: 160,
 }
-
-test('case insert live text wrapping preserves typed whitespace and newlines', () => {
-  assert.deepEqual(
-    wrapCaseInsertTextLines(
-      ' hello  world ',
-      80,
-      '10px test',
-      measureTextAsCharacters,
-    ),
-    [' hello  world '],
-  )
-  assert.deepEqual(
-    wrapCaseInsertTextLines(
-      'alpha\n\n beta ',
-      80,
-      '10px test',
-      measureTextAsCharacters,
-    ),
-    ['alpha', '', ' beta '],
-  )
-})
-
-test('case insert live text wraps at the measured boundary without dropping words', () => {
-  const lines = wrapCaseInsertTextLines(
-    'hello hello hello hello',
-    11,
-    '10px test',
-    measureTextAsCharacters,
-  )
-
-  assert.deepEqual(lines, ['hello hello', 'hello hello'])
-})
 
 test('case insert editable bounds hug visible text instead of the reserved box', () => {
   const layout = getCaseInsertTextVisualLayout(reservedBounds, {

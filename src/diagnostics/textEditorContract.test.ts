@@ -12,6 +12,19 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), 'utf8')
 }
 
+function readContextualTextRibbonCss() {
+  const manifestPath = 'src/styles/app-contextual-text-ribbon.css'
+  const manifest = readRepoFile(manifestPath)
+  const imports = [...manifest.matchAll(/@import\s+['"](.+)['"];/g)]
+
+  if (imports.length === 0) return manifest
+
+  const manifestDir = dirname(join(repoRoot, manifestPath))
+  return imports
+    .map(([, importPath]) => readFileSync(join(manifestDir, importPath), 'utf8'))
+    .join('\n')
+}
+
 function walkSourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((entry) => {
     const path = join(dir, entry)
@@ -38,39 +51,60 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   const source = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
+  const ribbonControlsSource = readRepoFile(
+    'src/components/preview/inlinePreviewTextRibbonControls.tsx',
+  )
+  const menuSource = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorMenuContent.tsx',
+  )
+  const editorRibbonSource = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorRibbon.tsx',
+  )
+  const textareaSource = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorTextarea.tsx',
+  )
+  const geometrySource = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorTextGeometry.ts',
+  )
   const contract = readRepoFile(
     'src/components/preview/inlinePreviewTextEditorContract.ts',
   )
 
   assert.match(contract, /controls\?:\s*InlinePreviewTextEditorControls/)
   assert.match(source, /inlinePreviewTextEditorContract/)
-  assert.match(source, /InlinePreviewTextEditorMenuContent/)
-  assert.match(source, /deleteAction/)
+  assert.match(source, /InlinePreviewTextEditorRibbon/)
+  assert.match(editorRibbonSource, /InlinePreviewTextEditorMenuContent/)
+  assert.match(editorRibbonSource, /deleteAction/)
   assert.match(contract, /html\?:\s*\{[\s\S]*source\?:\s*InlinePreviewTextEditorCheckboxControl/)
   assert.match(contract, /sourceMode\?:\s*boolean/)
-  assert.match(source, /getInlinePreviewHtmlSourceDraftStatus/)
-  assert.match(source, /inline-preview-text-source-textarea/)
-  assert.match(source, /HTML source editor/)
+  assert.match(ribbonControlsSource, /getInlinePreviewHtmlSourceDraftStatus/)
+  assert.match(ribbonControlsSource, /inline-preview-text-source-textarea/)
+  assert.match(ribbonControlsSource, /HTML source editor/)
   assert.match(
-    source,
+    ribbonControlsSource,
     /event\.currentTarget\.select\(\)/,
   )
   assert.doesNotMatch(source, /Markdown planned/)
-  assert.match(source, /controls\.presets\?\.style/)
-  assert.match(source, /controls\.presets\?\.layout/)
+  assert.match(menuSource, /controls\.presets\?\.style/)
+  assert.match(menuSource, /controls\.presets\?\.layout/)
   assert.doesNotMatch(source, /inline-preview-text-preset-list/)
   assert.match(contract, /bold\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(contract, /italic\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(contract, /underline\?:\s*InlinePreviewTextEditorToggleControl/)
   assert.match(contract, /bulletedList\?:\s*InlinePreviewTextEditorToggleControl/)
-  assert.match(source, /renderInlinePreviewTextToggleControl/)
-  assert.match(source, /aria-pressed=\{resolvedState === 'mixed'/)
-  assert.match(source, /id:\s*'font'/)
-  assert.match(source, /data-ribbon-group=\{id\}/)
-  assert.match(source, /contextual-text-ribbon-icon-button/)
-  assert.match(source, /<textarea/)
-  assert.match(source, /value=\{value\}/)
-  assert.match(source, /onChange=\{\(event\) => \{/)
+  assert.match(menuSource, /renderInlinePreviewTextToggleControl/)
+  assert.match(ribbonControlsSource, /aria-pressed=\{resolvedState === 'mixed'/)
+  assert.match(menuSource, /id:\s*'font'/)
+  assert.match(ribbonControlsSource, /data-ribbon-group=\{id\}/)
+  assert.match(ribbonControlsSource, /contextual-text-ribbon-icon-button/)
+  assert.match(editorRibbonSource, /data-smoke-id="inline-text-tabs"/)
+  assert.match(editorRibbonSource, /data-smoke-id="inline-text-menu"/)
+  assert.match(editorRibbonSource, /data-smoke-id="inline-text-delete"/)
+  assert.match(editorRibbonSource, /data-smoke-id="inline-text-done"/)
+  assert.match(source, /InlinePreviewTextEditorTextarea/)
+  assert.match(textareaSource, /<textarea/)
+  assert.match(textareaSource, /value=\{value\}/)
+  assert.match(textareaSource, /onChange=\{onChange\}/)
   assert.match(source, /onKeyDown=\{handleInlineTextEditorKeyDown\}/)
   assert.match(source, /event\.stopPropagation\(\)/)
   assert.match(source, /isInlinePreviewTextSelectAllShortcut\(event\)/)
@@ -87,14 +121,14 @@ test('inline text editor keeps keyboard input inside the native textarea', () =>
   )
   assert.match(contract, /inputMode\?:\s*InlinePreviewTextEditorInputMode/)
   assert.match(source, /inputMode = 'overlay'/)
-  assert.match(source, /inline-preview-textarea--adapter/)
-  assert.doesNotMatch(source, /inline-preview-textarea--source/)
-  assert.match(source, /getInlinePreviewTextSelectionLineOffsets/)
+  assert.match(textareaSource, /inline-preview-textarea--adapter/)
+  assert.doesNotMatch(textareaSource, /inline-preview-textarea--source/)
+  assert.match(geometrySource, /getInlinePreviewTextSelectionLineOffsets/)
   assert.match(source, /createPortal\(textareaElement,\s*document\.body\)/)
   assert.match(source, /adapterSelectionAnchorRef/)
   assert.match(source, /adapterSelectionPointerIdRef/)
-  assert.match(source, /caretPositionFromPoint/)
-  assert.match(source, /caretRangeFromPoint/)
+  assert.match(geometrySource, /caretPositionFromPoint/)
+  assert.match(geometrySource, /caretRangeFromPoint/)
   assert.match(source, /setPointerCapture\(event\.pointerId\)/)
   assert.match(source, /releasePointerCapture\(event\.pointerId\)/)
   assert.doesNotMatch(
@@ -122,8 +156,14 @@ test('editor styling exposes a dotted boundary and blue blinking caret', () => {
 
 test('contextual text editor shell is hosted by the stable ribbon', () => {
   const editorCss = readRepoFile('src/styles/app-editor-controls.css')
-  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+  const ribbonCss = readContextualTextRibbonCss()
   const editor = readRepoFile('src/components/preview/InlinePreviewTextEditor.tsx')
+  const menuSource = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorMenuContent.tsx',
+  )
+  const pointColorControls = readRepoFile(
+    'src/components/preview/inlinePreviewTextPointColorControls.tsx',
+  )
 
   assert.match(ribbonCss, /\.contextual-text-ribbon-host\s*\{[^}]*min-height:\s*var\(--contextual-text-ribbon-reserved-height\)/s)
   assert.match(
@@ -178,15 +218,15 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
     ribbonCss,
     /\.contextual-text-ribbon-group-body\s*\{/s,
   )
-  assert.match(editor, /id:\s*'style'[\s\S]*label:\s*'Style'/)
-  assert.match(editor, /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'/)
-  assert.match(editor, /id:\s*'font'[\s\S]*label:\s*'Font'/)
-  assert.match(editor, /id:\s*'paragraph'[\s\S]*label:\s*'Paragraph'/)
-  assert.doesNotMatch(editor, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
-  assert.match(editor, /contextual-text-ribbon-point-size-presets/)
-  assert.match(editor, /inline-preview-text-number-preset-select/)
-  assert.doesNotMatch(editor, /inline-preview-text-number-preset-button/)
-  assert.doesNotMatch(editor, /className="inline-preview-text-number-options"/)
+  assert.match(menuSource, /id:\s*'style'[\s\S]*label:\s*'Style'/)
+  assert.match(menuSource, /id:\s*'layout-preset'[\s\S]*label:\s*'Layout'/)
+  assert.match(menuSource, /id:\s*'font'[\s\S]*label:\s*'Font'/)
+  assert.match(menuSource, /id:\s*'paragraph'[\s\S]*label:\s*'Paragraph'/)
+  assert.doesNotMatch(menuSource, /id:\s*'formatting'[\s\S]*label:\s*'Formatting'/)
+  assert.match(pointColorControls, /contextual-text-ribbon-point-size-presets/)
+  assert.match(pointColorControls, /inline-preview-text-number-preset-select/)
+  assert.doesNotMatch(pointColorControls, /inline-preview-text-number-preset-button/)
+  assert.doesNotMatch(pointColorControls, /className="inline-preview-text-number-options"/)
   assert.doesNotMatch(ribbonCss, /data-ribbon-overflow-state/)
   assert.doesNotMatch(ribbonCss, /scroll-snap-type/)
   assert.match(
@@ -205,8 +245,8 @@ test('contextual text editor shell is hosted by the stable ribbon', () => {
 })
 
 test('case insert inline editing uses the adapter input path', () => {
-  const templateLayer = readRepoFile(
-    'src/components/preview/CaseInsertTemplatePreviewLayers.tsx',
+  const templateTextLayer = readRepoFile(
+    'src/components/preview/CaseInsertTemplateTextLayer.tsx',
   )
   const spineLayer = readRepoFile(
     'src/components/preview/CaseInsertSpinePreviewLayer.tsx',
@@ -215,9 +255,9 @@ test('case insert inline editing uses the adapter input path', () => {
     'src/components/preview/caseInsertInlineTextEditorControls.ts',
   )
 
-  assert.match(templateLayer, /createInlinePreviewTextTargetAttributes/)
+  assert.match(templateTextLayer, /createInlinePreviewTextTargetAttributes/)
   assert.match(spineLayer, /createInlinePreviewTextTargetAttributes/)
-  assert.match(templateLayer, /createCaseInsertInlineTextEditorControls/)
+  assert.match(templateTextLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(spineLayer, /createCaseInsertInlineTextEditorControls/)
   assert.match(previewControls, /CASE_INSERT_TEXT_STYLE_PRESETS/)
   assert.match(previewControls, /layoutPresets\?:\s*readonly CaseInsertTextLayoutPreset\[\]/)
@@ -238,13 +278,13 @@ test('case insert inline editing uses the adapter input path', () => {
   assert.match(previewControls, /CONTEXTUAL_TEXT_CONTROL_LABELS\.htmlSource/)
   assert.match(previewControls, /onContentModeChange/)
   assert.doesNotMatch(previewControls, /markdownPlanned:\s*true/)
-  assert.equal((templateLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
+  assert.equal((templateTextLayer.match(/inputMode="adapter"/g) ?? []).length, 2)
   assert.equal((spineLayer.match(/inputMode="adapter"/g) ?? []).length, 1)
-  assert.doesNotMatch(templateLayer, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
+  assert.doesNotMatch(templateTextLayer, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
   assert.doesNotMatch(spineLayer, /inputMode=\{isHtmlSourceEditing \? 'overlay' : 'adapter'\}/)
-  assert.match(templateLayer, /isSelected && !isHtmlSourceEditing/)
+  assert.match(templateTextLayer, /isSelected && !isHtmlSourceEditing/)
   assert.match(spineLayer, /isSelected && !isHtmlSourceEditing/)
-  assert.match(templateLayer, /sourceMode=\{isHtmlSourceEditing\}/)
+  assert.match(templateTextLayer, /sourceMode=\{isHtmlSourceEditing\}/)
   assert.match(spineLayer, /sourceMode=\{isHtmlSourceEditing\}/)
 })
 

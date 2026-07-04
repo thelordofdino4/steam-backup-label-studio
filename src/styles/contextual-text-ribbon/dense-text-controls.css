@@ -1,0 +1,345 @@
+.contextual-text-ribbon-group--font,
+.contextual-text-ribbon-group--paragraph {
+  container-type: inline-size;
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-label {
+  max-width: 42px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns: max-content max-content;
+  align-items: stretch;
+  justify-content: start;
+  gap: 4px;
+  flex: 0 0 auto;
+  justify-self: start;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster {
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields {
+  display: grid;
+  grid-template-columns:
+    max-content
+    minmax(0, var(--contextual-text-ribbon-stacked-field-width, 12ch))
+    48px;
+  grid-template-rows: repeat(2, 24px);
+  align-content: center;
+  align-items: center;
+  justify-content: start;
+  justify-self: start;
+  column-gap: 4px;
+  gap: 3px;
+  width: max-content;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control {
+  display: contents;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-select-control
+  select {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-point-size {
+  grid-column: 2;
+  grid-row: 2;
+  width: 100%;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control-stack--font-fields
+  > .contextual-text-ribbon-point-size-control
+  .inline-preview-text-number-buttons {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster--emphasis {
+  display: grid;
+  grid-template-columns: repeat(3, 24px);
+  grid-template-rows: max-content 24px;
+  position: relative;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  gap: 3px;
+  padding-left: 5px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster-heading {
+  grid-column: 1 / -1;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-button-cluster--emphasis::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 24px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-select-control,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-point-size-control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control select,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-group-body {
+  display: grid;
+  grid-template-columns: max-content minmax(max-content, 1fr);
+  align-items: stretch;
+  justify-content: start;
+  gap: 4px;
+  flex: 1 1 auto;
+  justify-self: start;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster--paragraph {
+  display: grid;
+  grid-template-rows: max-content 24px;
+  align-content: center;
+  align-items: center;
+  justify-content: center;
+  justify-items: center;
+  gap: 3px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields {
+  grid-template-columns:
+    max-content
+    minmax(
+      0,
+      min(100%, var(--contextual-text-ribbon-stacked-field-width, 8ch))
+    );
+  justify-content: start;
+  justify-items: start;
+  column-gap: 4px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control {
+  display: contents;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-control-stack--paragraph-fields
+  > .contextual-text-ribbon-select-control
+  select {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-select-control {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-icon-button {
+  justify-self: center;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster--paragraph {
+  box-sizing: border-box;
+  justify-self: stretch;
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+  width: 100%;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-button-cluster-caption {
+  grid-column: 1;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-control select {
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-icon-button {
+  width: 24px;
+  min-width: 24px;
+}
+
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--font
+  .contextual-text-ribbon-point-size-control
+  .contextual-text-ribbon-control-label,
+.contextual-text-ribbon-control-row--text
+  .contextual-text-ribbon-group--paragraph
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+}
+

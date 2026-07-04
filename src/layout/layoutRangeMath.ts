@@ -19,8 +19,21 @@ export function clampLayoutNumber(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value))
 }
 
+export function normalizePercentLayoutValue(value: number, fallback: number) {
+  return Number.isFinite(value) ? clampLayoutNumber(value, 0, 100) : fallback
+}
+
 export function getFiniteLayoutNumber(value: number, fallback: number) {
   return Number.isFinite(value) ? value : fallback
+}
+
+export function getPositiveFiniteLayoutNumber(
+  value: number | undefined,
+  fallback: number,
+) {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0
+    ? value
+    : fallback
 }
 
 export function normalizeLayoutAxisRange(

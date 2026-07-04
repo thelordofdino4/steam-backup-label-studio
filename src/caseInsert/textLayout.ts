@@ -2,6 +2,9 @@ import type { DiscTextKey } from '../discText/types.ts'
 import {
   DISC_TEXT_LAYOUT_PRESETS,
 } from '../layout/presets.ts'
+import {
+  clampLayoutNumber,
+} from '../layout/layoutRangeMath.ts'
 import type {
   CaseInsertTemplatePaneId,
 } from './templateSurfaces.ts'
@@ -38,22 +41,22 @@ export type CaseInsertTextLayoutPreset = {
 
 export type CaseInsertTextLayoutSurface = CaseInsertTemplatePaneId | 'spine'
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
 export function normalizeCaseInsertTextWidth(
   value: unknown,
   fallback = DEFAULT_CASE_INSERT_TEXT_WIDTH,
 ) {
-  const normalizedFallback = clampNumber(
+  const normalizedFallback = clampLayoutNumber(
     fallback,
     CASE_INSERT_TEXT_WIDTH_MIN,
     CASE_INSERT_TEXT_WIDTH_MAX,
   )
 
   return typeof value === 'number' && Number.isFinite(value)
-    ? clampNumber(value, CASE_INSERT_TEXT_WIDTH_MIN, CASE_INSERT_TEXT_WIDTH_MAX)
+    ? clampLayoutNumber(
+        value,
+        CASE_INSERT_TEXT_WIDTH_MIN,
+        CASE_INSERT_TEXT_WIDTH_MAX,
+      )
     : normalizedFallback
 }
 
@@ -65,11 +68,11 @@ export function getCaseInsertTextLayoutWidth(
 }
 
 function mapDiscXToCaseInsertPercent(x: number | undefined) {
-  return clampNumber(50 + (x ?? 0), 0, 100)
+  return clampLayoutNumber(50 + (x ?? 0), 0, 100)
 }
 
 function mapDiscYToCaseInsertPercent(y: number | undefined) {
-  return clampNumber(y ?? 50, 0, 100)
+  return clampLayoutNumber(y ?? 50, 0, 100)
 }
 
 function getDiscTextLayoutPresetsForKey(

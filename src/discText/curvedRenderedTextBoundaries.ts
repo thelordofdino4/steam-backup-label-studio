@@ -6,6 +6,9 @@ import {
   getCurvedDiscTextProgressForSvgPoint,
   type CurvedDiscTextHostGeometry,
 } from './curvedInlineEditorGeometry.ts'
+import {
+  clampCurvedTextRangeValue,
+} from './curvedTextRangeMath.ts'
 import type { DiscTextKey } from './index.ts'
 
 type SvgPointLike = {
@@ -30,11 +33,6 @@ type SvgTextContentElementLike = Element & {
 }
 
 type RenderedCharacterMode = 'codePoint' | 'grapheme' | 'utf16'
-
-function clampNumber(value: number, min: number, max: number) {
-  if (max < min) return min
-  return Math.min(Math.max(value, min), max)
-}
 
 function getGraphemeSegments(text: string) {
   if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
@@ -87,7 +85,7 @@ export function getSvgTextCharacterIndexForUtf16Offset({
   text: string
   utf16Offset: number
 }) {
-  const clampedOffset = clampNumber(
+  const clampedOffset = clampCurvedTextRangeValue(
     utf16Offset,
     0,
     Math.max(0, text.length),
@@ -95,11 +93,11 @@ export function getSvgTextCharacterIndexForUtf16Offset({
   const mode = getRenderedCharacterMode(text, renderedCharacterCount)
 
   if (mode === 'utf16') {
-    return clampNumber(clampedOffset, 0, renderedCharacterCount)
+    return clampCurvedTextRangeValue(clampedOffset, 0, renderedCharacterCount)
   }
 
   if (mode === 'codePoint') {
-    return clampNumber(
+    return clampCurvedTextRangeValue(
       Array.from(text.slice(0, clampedOffset)).length,
       0,
       renderedCharacterCount,
@@ -107,7 +105,7 @@ export function getSvgTextCharacterIndexForUtf16Offset({
   }
 
   if (mode === 'grapheme') {
-    return clampNumber(
+    return clampCurvedTextRangeValue(
       getGraphemeSegments(text)
         .filter((segment) => segment.end <= clampedOffset)
         .length,
@@ -118,7 +116,7 @@ export function getSvgTextCharacterIndexForUtf16Offset({
 
   if (text.length === 0) return 0
 
-  return clampNumber(
+  return clampCurvedTextRangeValue(
     Math.round((clampedOffset / text.length) * renderedCharacterCount),
     0,
     renderedCharacterCount,
@@ -318,7 +316,7 @@ export function getRenderedCurvedDiscTextBoundaryProgressesForElement({
 
     return [{
       offset,
-      progress: clampNumber(
+      progress: clampCurvedTextRangeValue(
         getCurvedDiscTextProgressForSvgPoint(line, point),
         0,
         1,

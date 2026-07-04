@@ -1,0 +1,98 @@
+.preview-area {
+  --contextual-text-ribbon-reserved-height: 158px;
+  --contextual-text-ribbon-toast-gap: 10px;
+  --contextual-text-ribbon-tab-row-height: 24px;
+  --contextual-text-ribbon-control-row-height: 56px;
+  --contextual-text-ribbon-control-row-count: 2;
+  --contextual-text-ribbon-bottom-row-gap: 2px;
+  --contextual-text-ribbon-horizontal-scrollbar-height: 10px;
+  --contextual-text-ribbon-utility-range-value-width: 62px;
+  --contextual-text-ribbon-curved-layout-value-width: 44px;
+  --contextual-text-ribbon-curved-layout-label-width: 72px;
+  --contextual-text-ribbon-curved-layout-slider-width: 76px;
+  --contextual-text-ribbon-select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' fill='none' stroke='%23d1d5db' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.preview-header {
+  position: relative;
+  z-index: 35;
+  grid-row: 1;
+  grid-column: 1;
+  align-self: stretch;
+  justify-self: stretch;
+  display: grid;
+  grid-template-columns:
+    fit-content(220px)
+    minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+  min-height: var(--contextual-text-ribbon-reserved-height);
+  pointer-events: none;
+}
+
+.preview-header .preview-pane-label {
+  align-self: start;
+  justify-self: start;
+  max-width: 220px;
+}
+
+.preview-header .preview-pane-label strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-host {
+  box-sizing: border-box;
+  align-self: start;
+  justify-self: end;
+  width: min(100%, var(--contextual-text-ribbon-active-width, 100%));
+  max-width: 100%;
+  min-width: 0;
+  min-height: var(--contextual-text-ribbon-reserved-height);
+  container-type: inline-size;
+  pointer-events: none;
+}
+
+.contextual-text-ribbon-host[data-contextual-text-ribbon-mode="medium"],
+.contextual-text-ribbon-host[data-contextual-text-ribbon-mode="narrow"] {
+  --contextual-text-ribbon-control-row-count: 2;
+}
+
+.contextual-text-ribbon-shell {
+  display: grid;
+  grid-template-rows:
+    var(--contextual-text-ribbon-tab-row-height)
+    minmax(0, 1fr);
+  gap: 2px;
+  width: 100%;
+  height: var(--contextual-text-ribbon-reserved-height);
+  max-height: var(--contextual-text-ribbon-reserved-height);
+  box-sizing: border-box;
+  padding: 2px 6px;
+  overflow: hidden;
+  border: 1px solid rgba(55, 65, 81, 0.88);
+  border-top: 0;
+  border-right: 0;
+  border-radius: 0 0 0 8px;
+  background: rgba(24, 27, 34, 0.96);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(148, 163, 184, 0.08);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-1px);
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    visibility 140ms ease;
+  pointer-events: none;
+}
+
+.contextual-text-ribbon-host.has-controls .contextual-text-ribbon-shell {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+}
+

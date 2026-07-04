@@ -1,16 +1,9 @@
 import {
   createCaseInsertPngExportLayout,
 } from '../caseInsert/exportLayout.ts'
-import {
-  getCaseInsertMarkLayerKind,
-  type CaseInsertBrandingSourceCatalog,
+import type {
+  CaseInsertBrandingSourceCatalog,
 } from '../caseInsert/brandingSlotSources.ts'
-import {
-  isCaseInsertMarkSlotVisible,
-} from '../caseInsert/brandingVisibility.ts'
-import {
-  getCaseInsertLogoSlotRenderInfo,
-} from '../caseInsert/brandingLogoSlots.ts'
 import {
   getCaseInsertBackTextBlockReadabilityRole,
   getCaseInsertBackTextBlockRole,
@@ -47,7 +40,6 @@ import {
 } from '../layout/jewelCaseSpineLayout.ts'
 import {
   isOptionalVisualFeatureEnabled,
-  shouldRenderOptionalVisualFeature,
 } from '../editor/optionalVisualFeature.ts'
 import {
   getFeatureVisibleRepeatedArtworkItems,
@@ -56,18 +48,14 @@ import type {
   CaseInsertPreviewLayout,
 } from '../layout/caseInsertPreviewLayout.ts'
 import type {
-  JewelCaseImageFitResult,
   JewelCasePixelRect,
   JewelCaseSpineSideId,
 } from '../layout/jewelCaseLayout.ts'
 import type {
-  ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
-  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertSurfaceState,
   ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextList,
-  ProjectMetadata,
   ProjectJewelCaseSpineSideState,
   ProjectJewelCaseState,
 } from '../project/projectTypes.ts'
@@ -80,17 +68,27 @@ import { DEFAULT_TEMPLATE_EXPORT_DPI } from '../templates/templateModel.ts'
 import {
   buildGuideExportWarnings,
   buildLayoutValueWarnings,
-  buildUpscaleWarnings,
   createMissingBackgroundWarning,
-  createMissingImageSizeWarning,
-  createMissingImageWarning,
-  createUnresolvedFitWarning,
-  createUnresolvedPlacementWarning,
+  formatMillimeters,
 } from './preflightWarnings.ts'
-
-type EdgeWarningOptions = {
-  regionLabel: string
-}
+import {
+  getImageFitWarnings,
+  getRenderedImageSlotWarnings,
+  getRenderedLogoSlotWarnings,
+  getSafeEdgeWarnings,
+  getSpineImageSlotWarnings,
+  getSpineLogoSlotWarnings,
+  type EdgeWarningOptions,
+} from './caseInsertPreflightImageWarnings.ts'
+import {
+  formatImageSlotStatus,
+  formatVisibleElementStatus,
+  getVisibleMarkSlots,
+  getVisibleSpineMarkSlots,
+  slotWillRender,
+  spineSideHasVisibleContent,
+  surfaceHasVisibleContent,
+} from './caseInsertPreflightVisibility.ts'
 
 export type CaseInsertExportPreflightSummary = {
   message: string
@@ -102,9 +100,6 @@ const TEMPLATE_SAFE_REGION_BY_PANE: Record<CaseInsertTemplatePaneId, JewelCaseRe
   cover: 'frontSafe',
   tray: 'backPanelSafe',
 }
-
-const SAFE_EDGE_WARNING_MIN_PX = 8
-const SAFE_EDGE_WARNING_RATIO = 0.015
 
 export function buildCaseInsertExportPreflightSummary(params: {
   caseInsert: ProjectJewelCaseState
@@ -137,7 +132,7 @@ export function buildCaseInsertExportPreflightSummary(params: {
   const summaryLines = [
     `Template: ${paneConfig.label}`,
     `Physical size: ${surface
-      ? `${formatMm(surface.widthMm)} x ${formatMm(surface.heightMm)} mm`
+      ? `${formatMillimeters(surface.widthMm)} x ${formatMillimeters(surface.heightMm)} mm`
       : 'Unknown'}`,
     `PNG output: ${layout.width} x ${layout.height} px at ${dpi} DPI`,
     `Spine regions: ${paneConfig.hasSpine ? 'Included' : 'Not applicable'}`,
@@ -652,241 +647,6 @@ function getSpineSideWarnings(
   return warnings
 }
 
-function getRenderedLogoSlotWarnings(params: {
-  slot: ProjectCaseInsertImageSlot
-  label: string
-  rect: JewelCasePixelRect | null
-  safeBounds: JewelCasePixelRect | null
-  edge?: EdgeWarningOptions
-}) {
-  const { slot, label, rect } = params
-  const renderInfo = getCaseInsertLogoSlotRenderInfo(slot)
-  const warnings = getLogoSlotDataWarnings(label, slot, renderInfo)
-
-  warnings.push(...getLayoutValueWarnings(label, slot.layout))
-
-  if (!isOptionalVisualFeatureEnabled(slot) || !renderInfo) {
-    return warnings
-  }
-
-  if (!rect) {
-    warnings.push(createUnresolvedPlacementWarning(label))
-    return warnings
-  }
-
-  warnings.push(...buildUpscaleWarnings(label, renderInfo.imageSize, rect))
-
-  if (params.safeBounds && params.edge) {
-    warnings.push(
-      ...getSafeEdgeWarnings(label, rect, params.safeBounds, params.edge),
-    )
-  }
-
-  return warnings
-}
-
-function getRenderedImageSlotWarnings(params: {
-  slot: ProjectCaseInsertImageSlot
-  label: string
-  rect: JewelCasePixelRect | null
-  safeBounds: JewelCasePixelRect | null
-  edge?: EdgeWarningOptions
-}) {
-  const { slot, label, rect } = params
-  const warnings = getImageSlotDataWarnings(label, slot)
-  const imageSize = slot.imageSize
-
-  warnings.push(...getLayoutValueWarnings(label, slot.layout))
-
-  if (
-    !shouldRenderOptionalVisualFeature(
-      slot,
-      Boolean(slot.imageDataUrl && imageSize),
-    ) ||
-    !imageSize
-  ) {
-    return warnings
-  }
-
-  if (!rect) {
-    warnings.push(createUnresolvedPlacementWarning(label))
-    return warnings
-  }
-
-  warnings.push(...buildUpscaleWarnings(label, imageSize, rect))
-
-  if (params.safeBounds && params.edge) {
-    warnings.push(
-      ...getSafeEdgeWarnings(label, rect, params.safeBounds, params.edge),
-    )
-  }
-
-  return warnings
-}
-
-function getSpineLogoSlotWarnings(params: {
-  slot: ProjectCaseInsertImageSlot
-  label: string
-  layout: { width: number; height: number } | null
-}) {
-  const renderInfo = getCaseInsertLogoSlotRenderInfo(params.slot)
-  const warnings = getLogoSlotDataWarnings(
-    params.label,
-    params.slot,
-    renderInfo,
-  )
-
-  warnings.push(...getLayoutValueWarnings(params.label, params.slot.layout))
-
-  if (
-    !isOptionalVisualFeatureEnabled(params.slot) ||
-    !renderInfo ||
-    !params.layout
-  ) {
-    return warnings
-  }
-
-  warnings.push(
-    ...buildUpscaleWarnings(params.label, renderInfo.imageSize, {
-      width: params.layout.width,
-      height: params.layout.height,
-    }),
-  )
-
-  return warnings
-}
-
-function getSpineImageSlotWarnings(params: {
-  slot: ProjectCaseInsertImageSlot
-  label: string
-  layout: { width: number; height: number } | null
-  hasTextFallback: boolean
-}) {
-  const warnings = getImageSlotDataWarnings(
-    params.label,
-    params.slot,
-    params.hasTextFallback,
-  )
-
-  warnings.push(...getLayoutValueWarnings(params.label, params.slot.layout))
-
-  if (
-    !isOptionalVisualFeatureEnabled(params.slot) ||
-    !params.slot.imageDataUrl ||
-    !params.slot.imageSize ||
-    !params.layout
-  ) {
-    return warnings
-  }
-
-  warnings.push(
-    ...buildUpscaleWarnings(params.label, params.slot.imageSize, {
-      width: params.layout.width,
-      height: params.layout.height,
-    }),
-  )
-
-  return warnings
-}
-
-function getLogoSlotDataWarnings(
-  label: string,
-  slot: ProjectCaseInsertImageSlot,
-  renderInfo: ReturnType<typeof getCaseInsertLogoSlotRenderInfo>,
-) {
-  if (!isOptionalVisualFeatureEnabled(slot)) {
-    return []
-  }
-
-  if (!renderInfo) {
-    return [createMissingImageWarning(label)]
-  }
-
-  if (renderInfo.isBundledFallback) {
-    return []
-  }
-
-  if (!slot.imageSize) {
-    return [createMissingImageSizeWarning(label)]
-  }
-
-  return []
-}
-
-function getImageSlotDataWarnings(
-  label: string,
-  slot: ProjectCaseInsertImageSlot,
-  hasTextFallback = false,
-  options: {
-    warnMissingImage?: boolean
-  } = {},
-) {
-  if (!isOptionalVisualFeatureEnabled(slot)) {
-    return []
-  }
-
-  if (!slot.imageDataUrl) {
-    if (options.warnMissingImage === false) {
-      return []
-    }
-
-    return hasTextFallback
-      ? [`${label} has no image selected; text fallback will export instead.`]
-      : [createMissingImageWarning(label)]
-  }
-
-  if (!slot.imageSize) {
-    return [createMissingImageSizeWarning(label)]
-  }
-
-  return []
-}
-
-function getImageFitWarnings(
-  label: string,
-  slot: ProjectCaseInsertImageSlot,
-  fit: JewelCaseImageFitResult | null,
-  options: {
-    allowEmptySpaceWarning?: boolean
-    warnMissingImage?: boolean
-  } = {},
-) {
-  const warnings = getImageSlotDataWarnings(
-    label,
-    slot,
-    false,
-    { warnMissingImage: options.warnMissingImage },
-  )
-  const imageSize = slot.imageSize
-
-  warnings.push(...getLayoutValueWarnings(label, slot.layout))
-
-  if (
-    !shouldRenderOptionalVisualFeature(
-      slot,
-      Boolean(slot.imageDataUrl && imageSize),
-    ) ||
-    !imageSize
-  ) {
-    return warnings
-  }
-
-  if (!fit) {
-    warnings.push(createUnresolvedFitWarning(label))
-    return warnings
-  }
-
-  warnings.push(...buildUpscaleWarnings(label, imageSize, fit.visibleRect))
-
-  if (options.allowEmptySpaceWarning && fit.hasEmptySpace) {
-    warnings.push(
-      `${label} does not cover its print region; blank paper will remain visible.`,
-    )
-  }
-
-  return warnings
-}
-
 function getTextBlockWarnings(params: {
   textBlock: ProjectCaseInsertTextBlock
   label: string
@@ -998,36 +758,6 @@ function getLayoutValueWarnings(label: string, layout: ProjectCaseInsertLayout) 
   return buildLayoutValueWarnings(label, layout)
 }
 
-function getSafeEdgeWarnings(
-  label: string,
-  rect: JewelCasePixelRect,
-  safeBounds: JewelCasePixelRect,
-  options: EdgeWarningOptions,
-) {
-  const threshold = Math.max(
-    SAFE_EDGE_WARNING_MIN_PX,
-    Math.min(safeBounds.width, safeBounds.height) * SAFE_EDGE_WARNING_RATIO,
-  )
-  const closeEdges = [
-    safeBounds.x + threshold >= rect.x ? 'left' : '',
-    safeBounds.y + threshold >= rect.y ? 'top' : '',
-    safeBounds.x + safeBounds.width - threshold <= rect.x + rect.width
-      ? 'right'
-      : '',
-    safeBounds.y + safeBounds.height - threshold <= rect.y + rect.height
-      ? 'bottom'
-      : '',
-  ].filter(Boolean)
-
-  if (closeEdges.length === 0) {
-    return []
-  }
-
-  return [
-    `${label} is very close to the ${closeEdges.join('/')} edge of the ${options.regionLabel}; inspect trim and fold clearance before printing.`,
-  ]
-}
-
 function getRegionBounds(
   layout: CaseInsertPreviewLayout,
   regionId: JewelCaseRegionId,
@@ -1046,162 +776,6 @@ function getEnabledGuideNames(
     .map((guide) => guide.name)
 }
 
-function slotWillRender(slot: ProjectCaseInsertImageSlot) {
-  return shouldRenderOptionalVisualFeature(
-    slot,
-    Boolean(slot.imageDataUrl && slot.imageSize),
-  )
-}
-
-function logoSlotWillRender(slot: ProjectCaseInsertImageSlot) {
-  return Boolean(getCaseInsertLogoSlotRenderInfo(slot))
-}
-
-function steamBannerWillRender(banner: ProjectCaseInsertSteamBanner) {
-  return shouldRenderOptionalVisualFeature(
-    banner,
-    Boolean(banner.useTextFallback || banner.lockupImageDataUrl),
-  )
-}
-
-function getVisibleMarkSlots(
-  surface: ProjectCaseInsertSurfaceState,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  return surface.markSlots.filter((slot) => {
-    const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
-
-    return isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
-  })
-}
-
-function markSlotWillRender(
-  slot: ProjectCaseInsertImageSlot,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
-
-  return slotWillRender(slot) &&
-    isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
-}
-
-function textBlockWillRender(
-  textBlock: ProjectCaseInsertTextBlock,
-  metadata: ProjectMetadata,
-) {
-  return Boolean(
-    isOptionalVisualFeatureEnabled(textBlock) &&
-      getRenderedCaseInsertTextBlock(textBlock, metadata).value.trim(),
-  )
-}
-
-function textListWillRender(textList: ProjectCaseInsertTextList) {
-  return Boolean(
-    isOptionalVisualFeatureEnabled(textList) &&
-    textList.items.some((item) => item.trim()),
-  )
-}
-
-function surfaceHasVisibleContent(
-  surface: ProjectCaseInsertSurfaceState,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  return (
-    slotWillRender(surface.background) ||
-    steamBannerWillRender(surface.steamBanner) ||
-    slotWillRender(surface.titleArtwork) ||
-    getFeatureVisibleRepeatedArtworkItems(
-      surface,
-      surface.artworkSlots,
-    ).some(slotWillRender) ||
-    surface.logoSlots.some(logoSlotWillRender) ||
-    surface.markSlots.some((slot) => markSlotWillRender(slot, brandingSources)) ||
-    surface.textBlocks.some((textBlock) =>
-      textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
-    surface.textLists.some(textListWillRender)
-  )
-}
-
-function getVisibleSpineMarkSlots(
-  spineSide: ProjectJewelCaseSpineSideState,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  return spineSide.markSlots.filter((slot) => {
-    const kind = getCaseInsertMarkLayerKind(slot.imageSource?.sourceId)
-
-    return isCaseInsertMarkSlotVisible(slot, kind, brandingSources)
-  })
-}
-
-function spineSideHasVisibleContent(
-  spineSide: ProjectJewelCaseSpineSideState,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  return (
-    slotWillRender(spineSide.background) ||
-    steamBannerWillRender(spineSide.steamBanner) ||
-    slotWillRender(spineSide.titleArtwork) ||
-    getFeatureVisibleRepeatedArtworkItems(
-      spineSide,
-      spineSide.artworkSlots,
-    ).some(slotWillRender) ||
-    textBlockWillRender(spineSide.title, brandingSources.projectMetadata) ||
-    spineSide.textBlocks.some((textBlock) =>
-      textBlockWillRender(textBlock, brandingSources.projectMetadata)) ||
-    spineSide.logoSlots.some(logoSlotWillRender) ||
-    getVisibleSpineMarkSlots(
-      spineSide,
-      brandingSources,
-    ).some(slotWillRender)
-  )
-}
-
-function formatVisibleElementStatus(
-  surface: ProjectCaseInsertSurfaceState,
-  spine: ProjectJewelCaseState['spine'] | null,
-  brandingSources: CaseInsertBrandingSourceCatalog,
-) {
-  const visibleCount =
-    Number(slotWillRender(surface.background)) +
-    Number(steamBannerWillRender(surface.steamBanner)) +
-    Number(slotWillRender(surface.titleArtwork)) +
-    getFeatureVisibleRepeatedArtworkItems(
-      surface,
-      surface.artworkSlots,
-    ).filter(slotWillRender).length +
-    surface.logoSlots.filter(logoSlotWillRender).length +
-    surface.markSlots.filter((slot) =>
-      markSlotWillRender(slot, brandingSources)).length +
-    surface.textBlocks.filter((textBlock) =>
-      textBlockWillRender(textBlock, brandingSources.projectMetadata)).length +
-    surface.textLists.filter(textListWillRender).length +
-    (spine
-      ? (['left', 'right'] as const).reduce(
-          (count, side) =>
-            count + (
-              spineSideHasVisibleContent(spine[side], brandingSources)
-                ? 1
-                : 0
-            ),
-          0,
-        )
-      : 0)
-
-  return visibleCount > 0 ? String(visibleCount) : 'None'
-}
-
-function formatImageSlotStatus(slot: ProjectCaseInsertImageSlot) {
-  if (!isOptionalVisualFeatureEnabled(slot)) return 'Disabled'
-  if (!slot.imageDataUrl) return 'None'
-  if (!slot.imageSize) return 'Present'
-
-  return `Present (${slot.imageSize.width} x ${slot.imageSize.height}px)`
-}
-
 function getSpineSideLabel(side: JewelCaseSpineSideId) {
   return side === 'left' ? 'Left spine' : 'Right spine'
-}
-
-function formatMm(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

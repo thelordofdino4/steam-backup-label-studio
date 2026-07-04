@@ -1,7 +1,6 @@
 import type {
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
-  ProjectCaseInsertTextList,
   ProjectJewelCaseState,
   ProjectMetadata,
 } from '../project/projectTypes.ts'
@@ -41,51 +40,28 @@ import type {
   CaseInsertTextStyleValue,
 } from './textStyles.ts'
 import {
-  getCaseInsertTextBlockStyleRole,
-  getCaseInsertTextStyleRoleBaseFontWeight,
-} from './textStyles.ts'
-import {
-  getHtmlSource,
-  isHtmlTextEnabled,
   type TextContentMode,
 } from '../text/htmlText.ts'
 import {
-  applyRichTextBulletedListCommand,
-  applyRichTextInlineColorCommand,
-  applyRichTextInlineFontSizePtCommand,
-  applyRichTextInlineToggleCommand,
-  applyRichTextListKeyboardCommand,
-  getRichTextBulletedListState,
-  getRichTextInlineToggleState,
-  getRichTextSelectionColorState,
-  getRichTextSelectionFontSizePtState,
   type PlainTextSelectionRange,
   type RichTextListKeyboardCommand,
-  type RichTextAmbientInlineStyle,
-  type RichTextInlineToggleCommand,
-  type RichTextSelectionColorState,
-  type RichTextSelectionNumberState,
-  type RichTextSelectionStyleState,
 } from '../text/richTextCommands.ts'
 import {
-  RICH_TEXT_BOLD_FONT_WEIGHT,
-} from '../text/richTextWeights.ts'
-import {
-  getCaseInsertLayoutFontSizePt,
-  getCaseInsertTextSizeRoleFromId,
-} from './textSizing.ts'
+  applyRichTextCommandToTextBlock,
+  applyRichTextCommandToTextList,
+  applyRichTextKeyboardCommandToTextBlock,
+  applyRichTextKeyboardCommandToTextList,
+  getRichTextCommandStateForTextBlock,
+  getRichTextCommandStateForTextList,
+  type CaseInsertPreviewRichTextCommand,
+  type CaseInsertPreviewRichTextState,
+} from './previewTextRichText.ts'
 
 type CaseInsertLayoutField = keyof ProjectCaseInsertLayout
-export type CaseInsertPreviewRichTextCommand =
-  | RichTextInlineToggleCommand
-  | 'bulletedList'
-  | 'color'
-  | 'fontSizePt'
-
-export type CaseInsertPreviewRichTextState =
-  | RichTextSelectionStyleState
-  | RichTextSelectionColorState
-  | RichTextSelectionNumberState
+export type {
+  CaseInsertPreviewRichTextCommand,
+  CaseInsertPreviewRichTextState,
+} from './previewTextRichText.ts'
 
 function updateSpinePreviewTextBlock(
   caseInsert: ProjectJewelCaseState,
@@ -114,10 +90,18 @@ function updateSpinePreviewTextBlock(
   )
 }
 
-export function setCaseInsertPreviewTextTargetEnabled(
+type CaseInsertPreviewTextBlockTarget = Extract<
+  CaseInsertPreviewTextTarget,
+  { scope: 'templateTextBlock' | 'spineTitle' | 'spineTextBlock' }
+>
+
+type CaseInsertPreviewTextBlock =
+  ProjectJewelCaseState['templates']['cover']['textBlocks'][number]
+
+function updateCaseInsertPreviewTextBlockTarget(
   caseInsert: ProjectJewelCaseState,
-  target: CaseInsertPreviewTextTarget,
-  enabled: boolean,
+  target: CaseInsertPreviewTextBlockTarget,
+  updater: (textBlock: CaseInsertPreviewTextBlock) => CaseInsertPreviewTextBlock,
 ) {
   switch (target.scope) {
     case 'templateTextBlock':
@@ -125,14 +109,7 @@ export function setCaseInsertPreviewTextTargetEnabled(
         caseInsert,
         target.paneId,
         target.textBlockId,
-        (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
-      )
-    case 'templateTextList':
-      return updateCaseInsertTemplateTextList(
-        caseInsert,
-        target.paneId,
-        target.textListId,
-        (textList) => setCaseInsertTextListEnabled(textList, enabled),
+        updater,
       )
     case 'spineTitle':
       return updateProjectJewelCaseSpineSides(
@@ -140,11 +117,55 @@ export function setCaseInsertPreviewTextTargetEnabled(
         target.side,
         (spineSide) => ({
           ...spineSide,
-          title: setCaseInsertTextBlockEnabled(spineSide.title, enabled),
+          title: updater(spineSide.title),
         }),
       )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateSpinePreviewTextBlock(caseInsert, target, updater)
+  }
+}
+
+function getCaseInsertPreviewTextBlockTarget(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextBlockTarget,
+): CaseInsertPreviewTextBlock | undefined {
+  switch (target.scope) {
+    case 'templateTextBlock':
+      return caseInsert.templates[target.paneId].textBlocks.find(
+        (candidate) => candidate.id === target.textBlockId,
+      )
+    case 'spineTitle':
+      return caseInsert.spine[target.side].title
+    case 'spineTextBlock': {
+      const targetTextBlockId = getJewelCaseSpineSideScopedId(
+        target.side,
+        target.textBlockId,
+      )
+
+      return caseInsert.spine[target.side].textBlocks.find(
+        (candidate) => candidate.id === targetTextBlockId,
+      )
+    }
+  }
+}
+
+export function setCaseInsertPreviewTextTargetEnabled(
+  caseInsert: ProjectJewelCaseState,
+  target: CaseInsertPreviewTextTarget,
+  enabled: boolean,
+) {
+  switch (target.scope) {
+    case 'templateTextList':
+      return updateCaseInsertTemplateTextList(
+        caseInsert,
+        target.paneId,
+        target.textListId,
+        (textList) => setCaseInsertTextListEnabled(textList, enabled),
+      )
+    case 'templateTextBlock':
+    case 'spineTitle':
+    case 'spineTextBlock':
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
@@ -157,34 +178,12 @@ export function restoreCaseInsertPreviewTextTargetMetadataValue(
   target: CaseInsertPreviewTextTarget,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) => updateCaseInsertTextBlockValue(
-          textBlock,
-          '',
-          'metadata',
-        ),
-      )
     case 'templateTextList':
       return caseInsert
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: updateCaseInsertTextBlockValue(
-            spineSide.title,
-            '',
-            'metadata',
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) => updateCaseInsertTextBlockValue(
@@ -203,14 +202,6 @@ export function updateCaseInsertPreviewTextTargetStyleField(
   value: CaseInsertTextStyleValue,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          updateCaseInsertTextBlockStyleField(textBlock, field, value),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -219,252 +210,15 @@ export function updateCaseInsertPreviewTextTargetStyleField(
         (textList) =>
           updateCaseInsertTextListStyleField(textList, field, value),
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: updateCaseInsertTextBlockStyleField(
-            spineSide.title,
-            field,
-            value,
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) =>
           updateCaseInsertTextBlockStyleField(textBlock, field, value),
       )
-  }
-}
-
-function getTextBlockRichTextCommandSource(
-  textBlock: ProjectJewelCaseState['spine']['left']['title'],
-  metadata?: ProjectMetadata,
-) {
-  const fallbackText = getCaseInsertPreviewTextEditValue(textBlock, metadata)
-  const normalFontWeight = getCaseInsertTextStyleRoleBaseFontWeight(
-    getCaseInsertTextBlockStyleRole(textBlock),
-  )
-
-  return {
-    ambientStyle: getRichTextAmbientStyle(
-      textBlock.style,
-      normalFontWeight,
-      getCaseInsertLayoutFontSizePt(
-        textBlock.layout,
-        getCaseInsertTextSizeRoleFromId(textBlock.id),
-      ),
-    ),
-    fallbackText,
-    htmlSource: isHtmlTextEnabled(textBlock)
-      ? getHtmlSource(textBlock, fallbackText)
-      : undefined,
-  }
-}
-
-function getRichTextAmbientStyle(
-  style: ProjectJewelCaseState['spine']['left']['title']['style'],
-  normalFontWeight: number,
-  fontSizePt?: number,
-): RichTextAmbientInlineStyle {
-  return {
-    bold: style.bold,
-    boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
-    color: style.color,
-    fontSizePt,
-    italic: style.italic,
-    normalFontWeight: Math.min(normalFontWeight, 400),
-    underline: style.underline,
-  }
-}
-
-function applyRichTextCommandToTextBlock(
-  textBlock: ProjectJewelCaseState['spine']['left']['title'],
-  command: CaseInsertPreviewRichTextCommand,
-  selection: PlainTextSelectionRange | undefined,
-  value: boolean | number | string,
-  metadata?: ProjectMetadata,
-) {
-  const source = getTextBlockRichTextCommandSource(textBlock, metadata)
-  const result = command === 'color'
-    ? applyRichTextInlineColorCommand({
-        ...source,
-        color: String(value),
-        selection,
-      })
-    : command === 'fontSizePt'
-      ? applyRichTextInlineFontSizePtCommand({
-          ...source,
-          fontSizePt: Number(value),
-          selection,
-        })
-    : command === 'bulletedList'
-      ? applyRichTextBulletedListCommand({
-          ...source,
-          active: Boolean(value),
-          selection,
-        })
-      : applyRichTextInlineToggleCommand({
-          ...source,
-          active: Boolean(value),
-          command,
-          selection,
-        })
-
-  if (!result) {
-    return { textBlock }
-  }
-
-  return {
-    selection: result.selection,
-    textBlock: {
-      ...textBlock,
-      contentMode: 'html' as const,
-      htmlSource: result.htmlSource,
-      markdownSource: undefined,
-      source: 'manual' as const,
-      value: result.plainText,
-    },
-  }
-}
-
-function applyRichTextKeyboardCommandToTextBlock(
-  textBlock: ProjectJewelCaseState['spine']['left']['title'],
-  command: RichTextListKeyboardCommand,
-  selection: PlainTextSelectionRange,
-  metadata?: ProjectMetadata,
-) {
-  const source = getTextBlockRichTextCommandSource(textBlock, metadata)
-  const result = applyRichTextListKeyboardCommand({
-    ...source,
-    command,
-    selection,
-  })
-
-  if (!result) {
-    return { textBlock }
-  }
-
-  return {
-    selection: result.selection,
-    textBlock: {
-      ...textBlock,
-      contentMode: 'html' as const,
-      htmlSource: result.htmlSource,
-      markdownSource: undefined,
-      source: 'manual' as const,
-      value: result.plainText,
-    },
-  }
-}
-
-function applyRichTextCommandToTextList(
-  textList: ProjectCaseInsertTextList,
-  command: CaseInsertPreviewRichTextCommand,
-  selection: PlainTextSelectionRange | undefined,
-  value: boolean | number | string,
-) {
-  const fallbackText = getCaseInsertPreviewTextListEditValue(textList)
-  const source = {
-    ambientStyle: getRichTextAmbientStyle(
-      textList.style,
-      600,
-      getCaseInsertLayoutFontSizePt(
-        textList.layout,
-        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
-      ),
-    ),
-    fallbackText,
-    htmlSource: isHtmlTextEnabled(textList)
-      ? getHtmlSource(textList, fallbackText)
-      : undefined,
-  }
-  const result = command === 'color'
-    ? applyRichTextInlineColorCommand({
-        ...source,
-        color: String(value),
-        selection,
-      })
-    : command === 'fontSizePt'
-      ? applyRichTextInlineFontSizePtCommand({
-          ...source,
-          fontSizePt: Number(value),
-          selection,
-        })
-    : command === 'bulletedList'
-      ? applyRichTextBulletedListCommand({
-          ...source,
-          active: Boolean(value),
-          selection,
-        })
-      : applyRichTextInlineToggleCommand({
-          ...source,
-          active: Boolean(value),
-          command,
-          selection,
-        })
-
-  if (!result) {
-    return { textList }
-  }
-
-  return {
-    selection: result.selection,
-    textList: updateCaseInsertTextListContentMode(
-      {
-        ...textList,
-        htmlSource: result.htmlSource,
-        markdownSource: undefined,
-      },
-      'html',
-      result.htmlSource,
-    ),
-  }
-}
-
-function applyRichTextKeyboardCommandToTextList(
-  textList: ProjectCaseInsertTextList,
-  command: RichTextListKeyboardCommand,
-  selection: PlainTextSelectionRange,
-) {
-  const fallbackText = getCaseInsertPreviewTextListEditValue(textList)
-  const result = applyRichTextListKeyboardCommand({
-    ambientStyle: getRichTextAmbientStyle(
-      textList.style,
-      600,
-      getCaseInsertLayoutFontSizePt(
-        textList.layout,
-        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
-      ),
-    ),
-    command,
-    fallbackText,
-    htmlSource: isHtmlTextEnabled(textList)
-      ? getHtmlSource(textList, fallbackText)
-      : undefined,
-    selection,
-  })
-
-  if (!result) {
-    return { textList }
-  }
-
-  return {
-    selection: result.selection,
-    textList: updateCaseInsertTextListContentMode(
-      {
-        ...textList,
-        htmlSource: result.htmlSource,
-        markdownSource: undefined,
-      },
-      'html',
-      result.htmlSource,
-    ),
   }
 }
 
@@ -479,26 +233,6 @@ export function updateCaseInsertPreviewTextTargetRichTextCommand(
   let nextSelection: PlainTextSelectionRange | undefined
 
   switch (target.scope) {
-    case 'templateTextBlock':
-      return {
-        caseInsert: updateCaseInsertTemplateTextBlock(
-          caseInsert,
-          target.paneId,
-          target.textBlockId,
-          (textBlock) => {
-            const result = applyRichTextCommandToTextBlock(
-              textBlock,
-              command,
-              selection,
-              value,
-              metadata,
-            )
-            nextSelection = result.selection
-            return result.textBlock
-          },
-        ),
-        selection: nextSelection,
-      }
     case 'templateTextList':
       return {
         caseInsert: updateCaseInsertTemplateTextList(
@@ -518,31 +252,11 @@ export function updateCaseInsertPreviewTextTargetRichTextCommand(
         ),
         selection: nextSelection,
       }
+    case 'templateTextBlock':
     case 'spineTitle':
-      return {
-        caseInsert: updateProjectJewelCaseSpineSides(
-          caseInsert,
-          target.side,
-          (spineSide) => {
-            const result = applyRichTextCommandToTextBlock(
-              spineSide.title,
-              command,
-              selection,
-              value,
-              metadata,
-            )
-            nextSelection = result.selection
-            return {
-              ...spineSide,
-              title: result.textBlock,
-            }
-          },
-        ),
-        selection: nextSelection,
-      }
     case 'spineTextBlock':
       return {
-        caseInsert: updateSpinePreviewTextBlock(
+        caseInsert: updateCaseInsertPreviewTextBlockTarget(
           caseInsert,
           target,
           (textBlock) => {
@@ -572,25 +286,6 @@ export function updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
   let nextSelection: PlainTextSelectionRange | undefined
 
   switch (target.scope) {
-    case 'templateTextBlock':
-      return {
-        caseInsert: updateCaseInsertTemplateTextBlock(
-          caseInsert,
-          target.paneId,
-          target.textBlockId,
-          (textBlock) => {
-            const result = applyRichTextKeyboardCommandToTextBlock(
-              textBlock,
-              command,
-              selection,
-              metadata,
-            )
-            nextSelection = result.selection
-            return result.textBlock
-          },
-        ),
-        selection: nextSelection,
-      }
     case 'templateTextList':
       return {
         caseInsert: updateCaseInsertTemplateTextList(
@@ -609,30 +304,11 @@ export function updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
         ),
         selection: nextSelection,
       }
+    case 'templateTextBlock':
     case 'spineTitle':
-      return {
-        caseInsert: updateProjectJewelCaseSpineSides(
-          caseInsert,
-          target.side,
-          (spineSide) => {
-            const result = applyRichTextKeyboardCommandToTextBlock(
-              spineSide.title,
-              command,
-              selection,
-              metadata,
-            )
-            nextSelection = result.selection
-            return {
-              ...spineSide,
-              title: result.textBlock,
-            }
-          },
-        ),
-        selection: nextSelection,
-      }
     case 'spineTextBlock':
       return {
-        caseInsert: updateSpinePreviewTextBlock(
+        caseInsert: updateCaseInsertPreviewTextBlockTarget(
           caseInsert,
           target,
           (textBlock) => {
@@ -651,53 +327,6 @@ export function updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
   }
 }
 
-function getRichTextCommandStateForTextBlock(
-  textBlock: ProjectJewelCaseState['spine']['left']['title'],
-  command: CaseInsertPreviewRichTextCommand,
-  selection: PlainTextSelectionRange | undefined,
-  metadata?: ProjectMetadata,
-): CaseInsertPreviewRichTextState {
-  const source = getTextBlockRichTextCommandSource(textBlock, metadata)
-
-  return command === 'color'
-    ? getRichTextSelectionColorState({ ...source, selection })
-    : command === 'fontSizePt'
-      ? getRichTextSelectionFontSizePtState({ ...source, selection })
-    : command === 'bulletedList'
-      ? getRichTextBulletedListState({ ...source, selection })
-      : getRichTextInlineToggleState({ ...source, command, selection })
-}
-
-function getRichTextCommandStateForTextList(
-  textList: ProjectCaseInsertTextList,
-  command: CaseInsertPreviewRichTextCommand,
-  selection: PlainTextSelectionRange | undefined,
-): CaseInsertPreviewRichTextState {
-  const fallbackText = getCaseInsertPreviewTextListEditValue(textList)
-  const source = {
-    ambientStyle: getRichTextAmbientStyle(
-      textList.style,
-      600,
-      getCaseInsertLayoutFontSizePt(
-        textList.layout,
-        getCaseInsertTextSizeRoleFromId(textList.id, 'trayMetadata'),
-      ),
-    ),
-    fallbackText,
-    htmlSource: isHtmlTextEnabled(textList)
-      ? getHtmlSource(textList, fallbackText)
-      : undefined,
-  }
-
-  return command === 'color'
-    ? getRichTextSelectionColorState({ ...source, selection })
-    : command === 'fontSizePt'
-      ? getRichTextSelectionFontSizePtState({ ...source, selection })
-    : command === 'bulletedList'
-      ? getRichTextBulletedListState({ ...source, selection })
-      : getRichTextInlineToggleState({ ...source, command, selection })
-}
-
 export function getCaseInsertPreviewTextTargetRichTextCommandState(
   caseInsert: ProjectJewelCaseState,
   target: CaseInsertPreviewTextTarget,
@@ -706,19 +335,6 @@ export function getCaseInsertPreviewTextTargetRichTextCommandState(
   metadata?: ProjectMetadata,
 ): CaseInsertPreviewRichTextState {
   switch (target.scope) {
-    case 'templateTextBlock': {
-      const textBlock = caseInsert.templates[target.paneId].textBlocks.find(
-        (candidate) => candidate.id === target.textBlockId,
-      )
-      return textBlock
-        ? getRichTextCommandStateForTextBlock(
-            textBlock,
-            command,
-            selection,
-            metadata,
-          )
-        : 'inactive'
-    }
     case 'templateTextList':
       {
         const textList = caseInsert.templates[target.paneId].textLists.find(
@@ -728,30 +344,21 @@ export function getCaseInsertPreviewTextTargetRichTextCommandState(
           ? getRichTextCommandStateForTextList(textList, command, selection)
           : 'inactive'
       }
+    case 'templateTextBlock':
     case 'spineTitle':
-      return getRichTextCommandStateForTextBlock(
-        caseInsert.spine[target.side].title,
-        command,
-        selection,
-        metadata,
-      )
-    case 'spineTextBlock': {
-      const targetTextBlockId = getJewelCaseSpineSideScopedId(
-        target.side,
-        target.textBlockId,
-      )
-      const textBlock = caseInsert.spine[target.side].textBlocks.find(
-        (candidate) => candidate.id === targetTextBlockId,
-      )
-      return textBlock
-        ? getRichTextCommandStateForTextBlock(
-            textBlock,
-            command,
-            selection,
-            metadata,
-          )
-        : 'inactive'
-    }
+    case 'spineTextBlock':
+      {
+        const textBlock = getCaseInsertPreviewTextBlockTarget(caseInsert, target)
+
+        return textBlock
+          ? getRichTextCommandStateForTextBlock(
+              textBlock,
+              command,
+              selection,
+              metadata,
+            )
+          : 'inactive'
+      }
   }
 }
 
@@ -762,18 +369,6 @@ export function updateCaseInsertPreviewTextTargetContentMode(
   metadata?: ProjectMetadata,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          updateCaseInsertTextBlockContentMode(
-            textBlock,
-            contentMode,
-            getCaseInsertPreviewTextEditValue(textBlock, metadata),
-          ),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -786,21 +381,10 @@ export function updateCaseInsertPreviewTextTargetContentMode(
             getCaseInsertPreviewTextListEditValue(textList),
           ),
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: updateCaseInsertTextBlockContentMode(
-            spineSide.title,
-            contentMode,
-            getCaseInsertPreviewTextEditValue(spineSide.title, metadata),
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) =>
@@ -819,14 +403,6 @@ export function applyCaseInsertPreviewTextTargetStylePreset(
   presetId: string,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          applyCaseInsertTextBlockStylePreset(textBlock, presetId),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -835,20 +411,10 @@ export function applyCaseInsertPreviewTextTargetStylePreset(
         (textList) =>
           applyCaseInsertTextListStylePreset(textList, presetId),
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: applyCaseInsertTextBlockStylePreset(
-            spineSide.title,
-            presetId,
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) => applyCaseInsertTextBlockStylePreset(textBlock, presetId),
@@ -862,18 +428,6 @@ export function applyCaseInsertPreviewTextTargetLayoutPreset(
   presetId: string,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          applyCaseInsertTextBlockPresetLayout(
-            target.paneId,
-            textBlock,
-            presetId,
-          ),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -886,21 +440,20 @@ export function applyCaseInsertPreviewTextTargetLayoutPreset(
             presetId,
           ),
       )
-    case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
+    case 'templateTextBlock':
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: applyCaseInsertTextBlockPresetLayout(
-            'spine',
-            spineSide.title,
+        target,
+        (textBlock) =>
+          applyCaseInsertTextBlockPresetLayout(
+            target.paneId,
+            textBlock,
             presetId,
           ),
-        }),
       )
+    case 'spineTitle':
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) =>
@@ -914,13 +467,6 @@ export function resetCaseInsertPreviewTextTargetStyle(
   target: CaseInsertPreviewTextTarget,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        resetCaseInsertTextBlockStyle,
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -928,17 +474,10 @@ export function resetCaseInsertPreviewTextTargetStyle(
         target.textListId,
         resetCaseInsertTextListStyle,
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: resetCaseInsertTextBlockStyle(spineSide.title),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         resetCaseInsertTextBlockStyle,
@@ -953,14 +492,6 @@ export function updateCaseInsertPreviewTextTargetLayoutField(
   value: number,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) =>
-          updateCaseInsertTextBlockLayoutField(textBlock, field, value),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -974,21 +505,10 @@ export function updateCaseInsertPreviewTextTargetLayoutField(
           },
         }),
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: updateCaseInsertTextBlockLayoutField(
-            spineSide.title,
-            field,
-            value,
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) =>
@@ -1003,30 +523,16 @@ export function updateCaseInsertPreviewTextTargetAlign(
   align: ProjectCaseInsertTextAlign,
 ) {
   switch (target.scope) {
+    case 'templateTextList':
+      return caseInsert
     case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) => ({ ...textBlock, align }),
-      )
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: { ...spineSide.title, align },
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) => ({ ...textBlock, align }),
       )
-    case 'templateTextList':
-      return caseInsert
   }
 }
 
@@ -1036,16 +542,6 @@ export function updateCaseInsertPreviewTextTargetAvoidVisualElements(
   avoidVisualElements: boolean,
 ) {
   switch (target.scope) {
-    case 'templateTextBlock':
-      return updateCaseInsertTemplateTextBlock(
-        caseInsert,
-        target.paneId,
-        target.textBlockId,
-        (textBlock) => setCaseInsertTextBlockAvoidVisualElements(
-          textBlock,
-          avoidVisualElements,
-        ),
-      )
     case 'templateTextList':
       return updateCaseInsertTemplateTextList(
         caseInsert,
@@ -1056,20 +552,10 @@ export function updateCaseInsertPreviewTextTargetAvoidVisualElements(
           avoidVisualElements,
         ),
       )
+    case 'templateTextBlock':
     case 'spineTitle':
-      return updateProjectJewelCaseSpineSides(
-        caseInsert,
-        target.side,
-        (spineSide) => ({
-          ...spineSide,
-          title: setCaseInsertTextBlockAvoidVisualElements(
-            spineSide.title,
-            avoidVisualElements,
-          ),
-        }),
-      )
     case 'spineTextBlock':
-      return updateSpinePreviewTextBlock(
+      return updateCaseInsertPreviewTextBlockTarget(
         caseInsert,
         target,
         (textBlock) => setCaseInsertTextBlockAvoidVisualElements(

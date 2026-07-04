@@ -1,7 +1,13 @@
 import {
   clampPixelRectToBounds,
+  getPixelRectBottom,
+  getPixelRectRight,
+  intersectPixelRects,
   type JewelCasePixelRect,
 } from './jewelCaseLayout.ts'
+import {
+  clampLayoutNumber,
+} from './layoutRangeMath.ts'
 
 export type CaseInsertTextAvoidanceRegion = {
   id: string
@@ -31,30 +37,12 @@ const MIN_TEXT_SEGMENT_RATIO = 0.35
 const DEFAULT_TEXT_AVOIDANCE_GAP_RATIO = 0.018
 const DEFAULT_TEXT_AVOIDANCE_MIN_GAP_PX = 6
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function getRectRight(rect: JewelCasePixelRect) {
-  return rect.x + rect.width
-}
-
-function getRectBottom(rect: JewelCasePixelRect) {
-  return rect.y + rect.height
-}
-
 function rangesOverlap(a: Range, b: Range) {
   return a.start < b.end && a.end > b.start
 }
 
 function rectsOverlap(a: JewelCasePixelRect, b: JewelCasePixelRect) {
-  return rangesOverlap(
-    { start: a.x, end: getRectRight(a) },
-    { start: b.x, end: getRectRight(b) },
-  ) && rangesOverlap(
-    { start: a.y, end: getRectBottom(a) },
-    { start: b.y, end: getRectBottom(b) },
-  )
+  return intersectPixelRects(a, b) !== null
 }
 
 export function getCaseInsertTextAvoidanceGap(safeBounds: JewelCasePixelRect) {
@@ -80,8 +68,8 @@ export function inflateCaseInsertTextAvoidanceRect(
 function subtractRanges(base: Range, blockers: Range[]) {
   const sortedBlockers = blockers
     .map((blocker) => ({
-      start: clampNumber(blocker.start, base.start, base.end),
-      end: clampNumber(blocker.end, base.start, base.end),
+      start: clampLayoutNumber(blocker.start, base.start, base.end),
+      end: clampLayoutNumber(blocker.end, base.start, base.end),
     }))
     .filter((blocker) => blocker.end > blocker.start)
     .sort((a, b) => a.start - b.start)
@@ -144,7 +132,7 @@ function chooseSegment(
   }
 
   const length = preserveSize ? desiredLength : Math.min(desiredLength, best.length)
-  const center = clampNumber(
+  const center = clampLayoutNumber(
     desiredCenter,
     best.start + length / 2,
     best.end - length / 2,
@@ -182,14 +170,17 @@ export function applyCaseInsertTextRectAvoidance(
 
   const preserveSize = options.preserveSize ?? false
   const horizontalSegments = subtractRanges(
-    { start: safeBounds.x, end: getRectRight(safeBounds) },
+    { start: safeBounds.x, end: getPixelRectRight(safeBounds) },
     blockers
       .filter((blocker) =>
         rangesOverlap(
-          { start: clampedRect.y, end: getRectBottom(clampedRect) },
-          { start: blocker.y, end: getRectBottom(blocker) },
+          { start: clampedRect.y, end: getPixelRectBottom(clampedRect) },
+          { start: blocker.y, end: getPixelRectBottom(blocker) },
         ))
-      .map((blocker) => ({ start: blocker.x, end: getRectRight(blocker) })),
+      .map((blocker) => ({
+        start: blocker.x,
+        end: getPixelRectRight(blocker),
+      })),
   )
   const horizontalChoice = chooseSegment(
     horizontalSegments,
@@ -210,14 +201,17 @@ export function applyCaseInsertTextRectAvoidance(
   }
 
   const verticalSegments = subtractRanges(
-    { start: safeBounds.y, end: getRectBottom(safeBounds) },
+    { start: safeBounds.y, end: getPixelRectBottom(safeBounds) },
     blockers
       .filter((blocker) =>
         rangesOverlap(
-          { start: clampedRect.x, end: getRectRight(clampedRect) },
-          { start: blocker.x, end: getRectRight(blocker) },
+          { start: clampedRect.x, end: getPixelRectRight(clampedRect) },
+          { start: blocker.x, end: getPixelRectRight(blocker) },
         ))
-      .map((blocker) => ({ start: blocker.y, end: getRectBottom(blocker) })),
+      .map((blocker) => ({
+        start: blocker.y,
+        end: getPixelRectBottom(blocker),
+      })),
   )
   const verticalChoice = chooseSegment(
     verticalSegments,

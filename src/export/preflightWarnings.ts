@@ -130,6 +130,10 @@ export function ensureLabelDescriptor(label: string, descriptor: string) {
   return descriptorPattern.test(label) ? label : `${label} ${descriptor}`
 }
 
+export function formatMillimeters(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(1)
+}
+
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

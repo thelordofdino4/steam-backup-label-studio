@@ -12,6 +12,12 @@ import {
   getCaseInsertRatingBadgeForSteamImport,
 } from './steamImportBrandingDefaults.ts'
 import {
+  applySteamImportDefaultsToCaseInsert,
+} from './steamImportDefaults.ts'
+import type {
+  CaseInsertTitleArtworkImportSeed,
+} from './titleArtwork.ts'
+import {
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
   CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
 } from './defaultImportLayouts.ts'
@@ -376,4 +382,70 @@ test('Steam import branding broad sync does not create tray or spine ESRB badges
   assert.equal(syncedState.templates.tray.markSlots.length, 0)
   assert.equal(syncedState.spine.left.markSlots.length, 0)
   assert.equal(syncedState.spine.right.markSlots.length, 0)
+})
+
+test('Steam import defaults apply tray copy, title artwork seed, and cover rating defaults together', () => {
+  const ratingCandidate = createEsrbRatingCandidate()
+  const projectMetadata = {
+    ...createDefaultProjectMetadata(),
+    ratingSystem: 'ESRB' as const,
+    ratingValue: 'M',
+    copyrightText: 'Copyright 2011 Valve Corporation.',
+  }
+  const projectRatingBadge = getCaseInsertRatingBadgeForSteamImport({
+    projectMetadata,
+    projectRatingBadge: createDefaultProjectRatingBadge(),
+    ratingCandidate,
+  })
+  const titleArtworkSeed: CaseInsertTitleArtworkImportSeed = {
+    status: 'seeded',
+    statusMessage: 'Using Steam logo as the case insert game logo.',
+    image: {
+      imageDataUrl: 'data:image/png;base64,title-logo',
+      imageSize: { width: 320, height: 120 },
+    },
+    steamArtworkAsset: {
+      id: 'steam-logo',
+      label: 'Steam logo',
+      url: 'https://cdn.example.test/logo.png',
+      kind: 'logo',
+    },
+  }
+  const state = applySteamImportDefaultsToCaseInsert({
+    caseInsert: createDefaultProjectJewelCaseState('Portal 2'),
+    importedGame: createSteamGame(),
+    legalText: projectMetadata.copyrightText,
+    replaceExisting: true,
+    titleArtworkSeed,
+    ratingCandidate,
+    brandingSources: createBrandingSources({
+      projectMetadata,
+      projectRatingBadge,
+    }),
+  })
+  const coverRatingSlot = getEnabledCaseInsertMarkSlotForKind(
+    state.templates.cover.markSlots,
+    'rating',
+  )
+
+  assert.equal(getTrayTextBlock(state, 'tray-description').source, 'steam')
+  assert.equal(
+    getTrayTextBlock(state, 'tray-copyright-text').value,
+    'Copyright 2011 Valve Corporation.',
+  )
+  assert.equal(
+    state.templates.cover.titleArtwork.imageDataUrl,
+    'data:image/png;base64,title-logo',
+  )
+  assert.equal(
+    state.templates.tray.titleArtwork.imageSource?.sourceId,
+    'steam-logo',
+  )
+  assert.equal(state.spine.left.title.enabled, false)
+  assert.equal(state.spine.right.title.enabled, false)
+  assert.equal(coverRatingSlot?.enabled, true)
+  assert.equal(coverRatingSlot?.imageSource?.sourceId, 'case-rating:ESRB:M')
+  assert.equal(state.templates.tray.markSlots.length, 0)
+  assert.equal(state.spine.left.markSlots.length, 0)
+  assert.equal(state.spine.right.markSlots.length, 0)
 })

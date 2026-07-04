@@ -1,16 +1,8 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { useRef, useState } from 'react'
-import {
-  applySteamGameImportToProjectMetadata,
-} from '../steam/steamGameImport'
-import { applySteamPlatformMarksImport } from '../steam/steamPlatformMarks'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
-import {
-  getCaseInsertTemplatePaneConfig,
-  type CaseInsertTemplatePaneId,
-} from '../caseInsert/templateSurfaces'
+import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces'
 import type { DiscTemplate } from '../types/template'
-import { EXPORT_DPI } from '../disc/geometry'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import '../styles/App.css'
 import '../styles/layoutFix.css'
@@ -47,67 +39,38 @@ import { useSteamImport } from '../hooks/useSteamImport'
 import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
 import { useTitleArtwork } from '../hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
-import { createProjectSnapshot } from '../project/createProjectSnapshot'
-import { resolveSavedProjectRouteFromContents } from '../project/projectRouting'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
   DEFAULT_CASE_INSERT_PROJECT_TITLE,
-  createCaseInsertProjectSnapshot,
   createDefaultProjectJewelCaseState,
   restoreCaseInsertProjectStateFromContents,
   setProjectJewelCaseExportGuideIds,
 } from '../project/projectCaseInsert'
 import {
   applyCaseInsertBackCoverLegalText,
-  applySteamBackCoverImportToCaseInsert,
 } from '../caseInsert/steamBackCoverImport'
 import type {
   CaseInsertPreviewTextTarget,
 } from '../caseInsert/previewTextSelection'
-import {
-  finalizeCaseInsertPreviewTextDraft,
-  updateCaseInsertPreviewTextDraftValue,
-} from '../caseInsert/previewTextEditing'
-import {
-  applyCaseInsertPreviewTextTargetLayoutPreset,
-  applyCaseInsertPreviewTextTargetStylePreset,
-  resetCaseInsertPreviewTextTargetStyle,
-  restoreCaseInsertPreviewTextTargetMetadataValue,
-  setCaseInsertPreviewTextTargetEnabled,
-  updateCaseInsertPreviewTextTargetAlign,
-  updateCaseInsertPreviewTextTargetAvoidVisualElements,
-  updateCaseInsertPreviewTextTargetContentMode,
-  getCaseInsertPreviewTextTargetRichTextCommandState,
-  updateCaseInsertPreviewTextTargetRichTextCommand,
-  updateCaseInsertPreviewTextTargetRichTextKeyboardCommand,
-  updateCaseInsertPreviewTextTargetLayoutField,
-  updateCaseInsertPreviewTextTargetStyleField,
-} from '../caseInsert/previewTextControls'
 import { createFittedSteamBackCoverCopy } from '../caseInsert/backCoverCopyFit'
 import {
-  applyCaseInsertSteamImportBrandingDefaults,
   getCaseInsertRatingBadgeForSteamImport,
 } from '../caseInsert/steamImportBrandingDefaults'
 import {
-  applySteamCaseInsertTitleArtworkSeedToProject,
   createSteamCaseInsertTitleArtworkSeed,
 } from '../caseInsert/titleArtwork'
+import {
+  applySteamImportDefaultsToCaseInsert,
+} from '../caseInsert/steamImportDefaults'
 import {
   updateRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeEnabledState,
   updateSupplementalUskRatingBadgeValue,
 } from '../project/projectRatingBadge'
 import type {
-  ProjectCaseInsertLayout,
-  ProjectCaseInsertTextAlign,
   ProjectMetadata,
 } from '../project/projectTypes'
-import type {
-  CaseInsertTextStyleField,
-  CaseInsertTextStyleValue,
-} from '../caseInsert/textStyles'
-import type { TextContentMode } from '../text/htmlText'
 import { readProjectFile, writeBinaryFile, writeProjectFile } from '../tauri/fileSystem'
 import {
   type LegalTextCandidate,
@@ -115,10 +78,8 @@ import {
   type SteamMetadataCandidateDiscoveryResult,
 } from '../steam/steamMetadataCandidates'
 import {
-  getAutoApplyLegalCandidateForMetadata,
-  getAutoApplyRatingCandidateForMetadata,
-} from '../steam/steamMetadataAutoApply'
-import { loadImage } from '../export/canvasImage'
+  loadImage,
+} from '../export/canvasImage'
 import { buildCaseInsertExportPreflightSummary } from '../export/caseInsertExportPreflight'
 import { exportCaseInsertPngBytes } from '../export/exportCaseInsertPng'
 import { exportDiscLabelPngBytes } from '../export/exportPng'
@@ -133,6 +94,31 @@ import {
   getDiscTextPreviewTransform,
   type SteamLogoPlacement,
 } from '../discText/index'
+import {
+  runCaseInsertPngExport,
+  runDiscPngExport,
+} from './appPngExport'
+import {
+  createCaseInsertPngExportInput,
+  createDiscPngExportInput,
+} from './appPngExportInputs'
+import {
+  createCaseInsertPreviewTextHandlers,
+} from './appCaseInsertPreviewTextHandlers'
+import {
+  createSteamMetadataAutoApplyPlan,
+  createSteamImportMetadataPlan,
+  getAutoAppliedMetadataCandidateStatusMessage,
+} from './appSteamImportPlan'
+import {
+  runSteamDiscVisualDefaultImport,
+} from './appSteamDiscVisualImport'
+import {
+  runAppProjectSave,
+} from './appProjectSave'
+import {
+  runAppProjectLoad,
+} from './appProjectLoad'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -601,218 +587,32 @@ function App() {
     setProjectJewelCase,
   })
 
-  function handleCaseInsertPreviewTextValueChange(
-    target: CaseInsertPreviewTextTarget,
-    value: string,
-    options?: { sourceMode?: boolean },
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextDraftValue(
-        currentCaseInsert,
-        target,
-        value,
-        options,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextEditComplete(
-    target: CaseInsertPreviewTextTarget,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      finalizeCaseInsertPreviewTextDraft(
-        currentCaseInsert,
-        target,
-        projectMetadata,
-      ))
-    setSelectedCaseInsertTextTarget(null)
-  }
-
-  function handleCaseInsertPreviewTextEnabledChange(
-    target: CaseInsertPreviewTextTarget,
-    enabled: boolean,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      setCaseInsertPreviewTextTargetEnabled(
-        currentCaseInsert,
-        target,
-        enabled,
-      ))
-    if (!enabled) {
-      setSelectedCaseInsertTextTarget(null)
-    }
-  }
-
-  function handleCaseInsertPreviewTextStyleChange(
-    target: CaseInsertPreviewTextTarget,
-    field: CaseInsertTextStyleField,
-    value: CaseInsertTextStyleValue,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextTargetStyleField(
-        currentCaseInsert,
-        target,
-        field,
-        value,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextRichTextCommand(
-    target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
-    selection: { end: number; start: number } | undefined,
-    value: boolean | number | string,
-  ) {
-    const result =
-      updateCaseInsertPreviewTextTargetRichTextCommand(
-        projectJewelCase,
-        target,
-        command,
-        selection,
-        value,
-        projectMetadata,
-      )
-
-    setProjectJewelCase(result.caseInsert)
-    return result.selection
-  }
-
-  function handleCaseInsertPreviewTextRichTextKeyboardCommand(
-    target: CaseInsertPreviewTextTarget,
-    command: 'enter' | 'shiftEnter' | 'backspace',
-    selection: { end: number; start: number },
-  ) {
-    const result =
-      updateCaseInsertPreviewTextTargetRichTextKeyboardCommand(
-        projectJewelCase,
-        target,
-        command,
-        selection,
-        projectMetadata,
-      )
-
-    setProjectJewelCase(result.caseInsert)
-    return result.selection ?? null
-  }
-
-  function getCaseInsertPreviewTextRichTextCommandState(
-    target: CaseInsertPreviewTextTarget,
-    command: 'bold' | 'italic' | 'underline' | 'color' | 'bulletedList' | 'fontSizePt',
-    selection: { end: number; start: number },
-  ) {
-    return getCaseInsertPreviewTextTargetRichTextCommandState(
-      projectJewelCase,
-      target,
-      command,
-      selection,
-      projectMetadata,
-    )
-  }
-
-  function handleCaseInsertPreviewTextApplyStylePreset(
-    target: CaseInsertPreviewTextTarget,
-    presetId: string,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      applyCaseInsertPreviewTextTargetStylePreset(
-        currentCaseInsert,
-        target,
-        presetId,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextApplyLayoutPreset(
-    target: CaseInsertPreviewTextTarget,
-    presetId: string,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      applyCaseInsertPreviewTextTargetLayoutPreset(
-        currentCaseInsert,
-        target,
-        presetId,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextResetStyle(
-    target: CaseInsertPreviewTextTarget,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      resetCaseInsertPreviewTextTargetStyle(currentCaseInsert, target))
-  }
-
-  function handleCaseInsertPreviewTextLayoutChange(
-    target: CaseInsertPreviewTextTarget,
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextTargetLayoutField(
-        currentCaseInsert,
-        target,
-        field,
-        value,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextResetLayout(
-    target: CaseInsertPreviewTextTarget,
-  ) {
-    if (target.scope === 'spineTitle') {
-      jewelCaseSpineEditor.handleResetSpineTitleLayout(target.side)
-      return
-    }
-
-    if (target.scope !== 'templateTextBlock') {
-      return
-    }
-
-    caseInsertTemplateEditor.handleResetTextBlockLayout(
-      target.paneId,
-      target.textBlockId,
-    )
-  }
-
-  function handleCaseInsertPreviewTextAlignChange(
-    target: CaseInsertPreviewTextTarget,
-    align: ProjectCaseInsertTextAlign,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextTargetAlign(currentCaseInsert, target, align))
-  }
-
-  function handleCaseInsertPreviewTextAvoidVisualElementsChange(
-    target: CaseInsertPreviewTextTarget,
-    avoidVisualElements: boolean,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextTargetAvoidVisualElements(
-        currentCaseInsert,
-        target,
-        avoidVisualElements,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextContentModeChange(
-    target: CaseInsertPreviewTextTarget,
-    contentMode: TextContentMode,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertPreviewTextTargetContentMode(
-        currentCaseInsert,
-        target,
-        contentMode,
-        projectMetadata,
-      ))
-  }
-
-  function handleCaseInsertPreviewTextUseMetadataValue(
-    target: CaseInsertPreviewTextTarget,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      restoreCaseInsertPreviewTextTargetMetadataValue(
-        currentCaseInsert,
-        target,
-      ))
-  }
+  const {
+    getCaseInsertPreviewTextRichTextCommandState,
+    handleCaseInsertPreviewTextAlignChange,
+    handleCaseInsertPreviewTextApplyLayoutPreset,
+    handleCaseInsertPreviewTextApplyStylePreset,
+    handleCaseInsertPreviewTextAvoidVisualElementsChange,
+    handleCaseInsertPreviewTextContentModeChange,
+    handleCaseInsertPreviewTextEditComplete,
+    handleCaseInsertPreviewTextEnabledChange,
+    handleCaseInsertPreviewTextLayoutChange,
+    handleCaseInsertPreviewTextResetLayout,
+    handleCaseInsertPreviewTextResetStyle,
+    handleCaseInsertPreviewTextRichTextCommand,
+    handleCaseInsertPreviewTextRichTextKeyboardCommand,
+    handleCaseInsertPreviewTextStyleChange,
+    handleCaseInsertPreviewTextUseMetadataValue,
+    handleCaseInsertPreviewTextValueChange,
+  } = createCaseInsertPreviewTextHandlers({
+    projectJewelCase,
+    projectMetadata,
+    setProjectJewelCase,
+    setSelectedCaseInsertTextTarget,
+    resetSpineTitleLayout: jewelCaseSpineEditor.handleResetSpineTitleLayout,
+    resetTemplateTextBlockLayout:
+      caseInsertTemplateEditor.handleResetTextBlockLayout,
+  })
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
@@ -1029,28 +829,13 @@ function App() {
     legalCandidate: LegalTextCandidate | null,
     options: { applyDiscVisualDefaults?: boolean } = {},
   ) {
-    const applyDiscVisualDefaults = options.applyDiscVisualDefaults ?? true
-    const appliedLabels: string[] = []
+    const statusMessage = getAutoAppliedMetadataCandidateStatusMessage(
+      ratingCandidate,
+      legalCandidate,
+      options,
+    )
 
-    if (ratingCandidate) {
-      appliedLabels.push(
-        applyDiscVisualDefaults
-          ? `${ratingCandidate.boardLabel} ${ratingCandidate.displayRating} rating badge`
-          : `${ratingCandidate.boardLabel} ${ratingCandidate.displayRating} rating metadata`,
-      )
-    }
-
-    if (legalCandidate) {
-      appliedLabels.push(
-        applyDiscVisualDefaults
-          ? 'curved copyright/legal text'
-          : 'copyright/legal metadata',
-      )
-    }
-
-    if (appliedLabels.length > 0) {
-      announceStatus(`Auto-applied ${appliedLabels.join(' and ')}.`)
-    }
+    if (statusMessage) announceStatus(statusMessage)
   }
 
   function autoApplySteamMetadataCandidates(
@@ -1058,29 +843,14 @@ function App() {
     options: { applyDiscVisualDefaults?: boolean } = {},
   ) {
     const applyDiscVisualDefaults = options.applyDiscVisualDefaults ?? true
-    const ratingCandidate = getAutoApplyRatingCandidateForMetadata(
-      result,
+    const {
+      ratingCandidate,
+      legalCandidate,
+      metadataFields,
+    } = createSteamMetadataAutoApplyPlan({
+      metadataCandidateResult: result,
       projectMetadata,
-      false,
-    )
-    const legalCandidate = getAutoApplyLegalCandidateForMetadata(
-      result,
-      projectMetadata,
-      false,
-    )
-    const metadataFields: Partial<ProjectMetadata> = {
-      ...(ratingCandidate
-        ? {
-            ratingSystem: ratingCandidate.ratingSystem,
-            ratingValue: ratingCandidate.ratingValue,
-          }
-        : {}),
-      ...(legalCandidate
-        ? {
-            copyrightText: legalCandidate.text,
-          }
-        : {}),
-    }
+    })
 
     if (Object.keys(metadataFields).length > 0) {
       handleProjectMetadataFieldsChange(metadataFields)
@@ -1278,74 +1048,31 @@ function App() {
       const metadataCandidateResult = loadImportedSteamMetadataCandidates(
         importedState.importedGame,
       )
-      const isDifferentSelectedSteamGame =
-        selectedSteamGame !== null &&
-        selectedSteamGame.appId !== importedState.importedGame.appId
-      const autoRatingCandidate = getAutoApplyRatingCandidateForMetadata(
-        metadataCandidateResult,
-        projectMetadata,
+      const {
         isDifferentSelectedSteamGame,
-      )
-      const autoLegalCandidate = getAutoApplyLegalCandidateForMetadata(
+        autoRatingCandidate,
+        autoLegalCandidate,
+        nextProjectMetadata,
+        shouldResetGameScopedRating,
+        shouldResetGameScopedLegal,
+        shouldUpdateCopyrightDiscTextSource,
+      } = createSteamImportMetadataPlan({
+        importedGame: importedState.importedGame,
+        selectedSteamGame,
+        projectMetadata,
         metadataCandidateResult,
-        projectMetadata,
-        isDifferentSelectedSteamGame,
-      )
-      const nextProjectMetadata = applySteamGameImportToProjectMetadata(
-        importedState.importedGame,
-        projectMetadata,
-      )
-      const shouldResetGameScopedRating = isDifferentSelectedSteamGame
-      const shouldResetGameScopedLegal = isDifferentSelectedSteamGame
-      const nextProjectMetadataWithAutoApply = {
-        ...nextProjectMetadata,
-        ...(autoRatingCandidate
-          ? {
-              ratingSystem: autoRatingCandidate.ratingSystem,
-              ratingValue: autoRatingCandidate.ratingValue,
-            }
-          : shouldResetGameScopedRating
-            ? {
-                ratingSystem: 'none' as const,
-                ratingValue: '',
-              }
-            : {}),
-        ...(autoLegalCandidate
-          ? {
-              copyrightText: autoLegalCandidate.text,
-            }
-          : shouldResetGameScopedLegal
-            ? {
-                copyrightText: '',
-              }
-            : {}),
-      }
+      })
       const discVisualImport = applyDiscVisualDefaults
-        ? await (async () => {
-            const shouldUpdateCopyrightDiscTextSource =
-              Boolean(autoLegalCandidate) || shouldResetGameScopedLegal
-            const nextDiscTextResolution = applySteamImportedDiscTextValues(
-              importedState.importedGame,
-              nextProjectMetadataWithAutoApply,
-              { useMetadataCopyright: shouldUpdateCopyrightDiscTextSource },
-            )
-            const titleArtworkImport = await applySteamTitleArtworkImport(
-              importedState.importedGame,
-            )
-            const platformMarkImport = applySteamPlatformMarksImport({
-              importedGame: importedState.importedGame,
-              currentPlatformMarks: projectPlatformMarks,
-              selectedDiscTemplate,
-              previousSelectedSteamGame: selectedSteamGame,
-            })
-
-            return {
-              nextDiscTextResolution,
-              titleArtworkStatusMessage: titleArtworkImport.statusMessage,
-              platformMarkStatusMessage: platformMarkImport.statusMessage,
-              platformMarks: platformMarkImport.platformMarks,
-            }
-          })()
+        ? await runSteamDiscVisualDefaultImport({
+            importedGame: importedState.importedGame,
+            nextProjectMetadata,
+            shouldUpdateCopyrightDiscTextSource,
+            projectPlatformMarks,
+            selectedDiscTemplate,
+            selectedSteamGame,
+            applySteamImportedDiscTextValues,
+            applySteamTitleArtworkImport,
+          })
         : null
       const caseInsertTitleArtworkSeed = options.applyCaseInsertBackCoverDefaults
         ? await createSteamCaseInsertTitleArtworkSeed(importedState.importedGame)
@@ -1353,21 +1080,21 @@ function App() {
       const caseInsertRatingBadgeForImport =
         options.applyCaseInsertBackCoverDefaults
           ? getCaseInsertRatingBadgeForSteamImport({
-              projectMetadata: nextProjectMetadataWithAutoApply,
+              projectMetadata: nextProjectMetadata,
               projectRatingBadge,
               ratingCandidate: autoRatingCandidate,
             })
           : projectRatingBadge
       const caseInsertBackCoverCopyFit = options.applyCaseInsertBackCoverDefaults
         ? createFittedSteamBackCoverCopy(importedState.importedGame, {
-            legalText: nextProjectMetadataWithAutoApply.copyrightText,
+            legalText: nextProjectMetadata.copyrightText,
           })
         : null
 
       setSelectedSteamGame(importedState.importedGame)
       clearSteamSearchResults()
       setManualGameTitle(importedState.manualGameTitle)
-      setProjectMetadata(nextProjectMetadataWithAutoApply)
+      setProjectMetadata(nextProjectMetadata)
       if (options.applyCaseInsertBackCoverDefaults) {
         setProjectRatingBadge(caseInsertRatingBadgeForImport)
       }
@@ -1376,27 +1103,15 @@ function App() {
 
       if (options.applyCaseInsertBackCoverDefaults) {
         setProjectJewelCase((currentCaseInsert) => {
-          const caseInsertWithSteamText = applySteamBackCoverImportToCaseInsert(
-            currentCaseInsert,
-            importedState.importedGame,
-            {
-              legalText: nextProjectMetadataWithAutoApply.copyrightText,
-              replaceExisting: isDifferentSelectedSteamGame,
-            },
-          )
-
-          const caseInsertWithTitleArtwork = caseInsertTitleArtworkSeed
-            ? applySteamCaseInsertTitleArtworkSeedToProject(
-                caseInsertWithSteamText,
-                caseInsertTitleArtworkSeed,
-              )
-            : caseInsertWithSteamText
-
-          return applyCaseInsertSteamImportBrandingDefaults({
-            caseInsert: caseInsertWithTitleArtwork,
+          return applySteamImportDefaultsToCaseInsert({
+            caseInsert: currentCaseInsert,
+            importedGame: importedState.importedGame,
+            legalText: nextProjectMetadata.copyrightText,
+            replaceExisting: isDifferentSelectedSteamGame,
+            titleArtworkSeed: caseInsertTitleArtworkSeed,
             ratingCandidate: autoRatingCandidate,
             brandingSources: {
-              projectMetadata: nextProjectMetadataWithAutoApply,
+              projectMetadata: nextProjectMetadata,
               projectLogoAssets,
               projectRatingBadge: caseInsertRatingBadgeForImport,
               projectMediaMark,
@@ -1432,7 +1147,7 @@ function App() {
         )
         clampMetadataBoundDiscTextLayoutsForProjectMetadataFields(
           ['steamAppId', 'developer', 'publisher', 'copyrightText'],
-          nextProjectMetadataWithAutoApply,
+          nextProjectMetadata,
           discVisualImport.nextDiscTextResolution,
         )
         announceStatus(discVisualImport.titleArtworkStatusMessage)
@@ -1446,269 +1161,137 @@ function App() {
   }
 
   async function handleSaveProject() {
-    try {
-      const path = await save({
-        defaultPath:
-          activeWorkspace === 'caseInsert'
-            ? 'steam-backup-case-insert.sbls.json'
-            : 'steam-backup-label.sbls.json',
-        filters: [
-          {
-            name: 'Steam Backup Label Studio Project',
-            extensions: ['json'],
-          },
-        ],
-      })
-
-      if (!path) {
-        announceStatus('Save cancelled.')
-        return
-      }
-
-      const project = activeWorkspace === 'caseInsert'
-        ? createCaseInsertProjectSnapshot({
-            manualGameTitle,
-            selectedSteamGame,
-            projectMetadata,
-            caseInsert: projectJewelCase,
-            activeCaseInsertTemplatePane,
-          })
-        : createProjectSnapshot({
-            manualGameTitle,
-            selectedSteamGame,
-            projectMetadata,
-            projectLogoAssets,
-            projectTitleArtwork,
-            projectDiscNumberArtwork,
-            projectAdditionalArtwork,
-            projectRatingBadge,
-            projectMediaMark,
-            projectPlatformMarks,
-            projectTechnicalMarks,
-            selectedDiscTemplateId,
-            customDiscTemplate,
-            steamLogoPlacement,
-            steamBannerColors,
-            steamBannerLockupImageUrl,
-            steamBannerLockupImageSource,
-            steamBannerLockupImageSize,
-            steamBannerLockupLayout,
-            steamBannerUseTextFallback,
-            steamBannerFallbackText,
-            exportGuides,
-            backgroundScale,
-            backgroundOffset,
-            backgroundImageUrl,
-            backgroundImageSource,
-            backgroundImageSize,
-            isBackgroundArtworkEnabled,
-            discTextSettings,
-            discTextValues,
-            discTextValueSources,
-            discTextTitleValue,
-            discTextHtmlSources,
-            discTextLayout,
-            discTextStyles,
-          })
-      await writeProjectFile(path, JSON.stringify(project, null, 2))
-
-      announceStatus(`Saved project to ${path}`)
-    } catch (error) {
-      announceStatus(`Save failed: ${String(error)}`)
-    }
+    await runAppProjectSave({
+      activeWorkspace,
+      caseInsertProject: {
+        manualGameTitle,
+        selectedSteamGame,
+        projectMetadata,
+        caseInsert: projectJewelCase,
+        activeCaseInsertTemplatePane,
+      },
+      discProject: {
+        manualGameTitle,
+        selectedSteamGame,
+        projectMetadata,
+        projectLogoAssets,
+        projectTitleArtwork,
+        projectDiscNumberArtwork,
+        projectAdditionalArtwork,
+        projectRatingBadge,
+        projectMediaMark,
+        projectPlatformMarks,
+        projectTechnicalMarks,
+        selectedDiscTemplateId,
+        customDiscTemplate,
+        steamLogoPlacement,
+        steamBannerColors,
+        steamBannerLockupImageUrl,
+        steamBannerLockupImageSource,
+        steamBannerLockupImageSize,
+        steamBannerLockupLayout,
+        steamBannerUseTextFallback,
+        steamBannerFallbackText,
+        exportGuides,
+        backgroundScale,
+        backgroundOffset,
+        backgroundImageUrl,
+        backgroundImageSource,
+        backgroundImageSize,
+        isBackgroundArtworkEnabled,
+        discTextSettings,
+        discTextValues,
+        discTextValueSources,
+        discTextTitleValue,
+        discTextHtmlSources,
+        discTextLayout,
+        discTextStyles,
+      },
+      saveDialog: save,
+      writeProjectFileCommand: writeProjectFile,
+      announceStatus,
+    })
   }
 
   async function handleLoadProject() {
-    try {
-      const selected = await open({
-        multiple: false,
-        filters: [
-          {
-            name: 'Steam Backup Label Studio Project',
-            extensions: ['json'],
-          },
-        ],
-      })
-
-      if (!selected || Array.isArray(selected)) {
-        announceStatus('Load cancelled.')
-        return
-      }
-
-      const contents = await readProjectFile(selected)
-      const projectRoute = resolveSavedProjectRouteFromContents(contents)
-
-      if (projectRoute.projectType === 'caseInsert') {
-        const restoredCaseProject = restoreCaseInsertProjectStateFromContents(contents)
-
-        setManualGameTitle(restoredCaseProject.manualGameTitle)
-        setProjectMetadata(restoredCaseProject.projectMetadata)
-        setSelectedSteamGame(restoredCaseProject.selectedSteamGame)
-        setProjectJewelCase(restoredCaseProject.caseInsert)
-        setActiveCaseInsertTemplatePane(
-          restoredCaseProject.activeCaseInsertTemplatePane,
-        )
-        setActiveWorkspace('caseInsert')
-        setHomeStatusMessage(null)
-        caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync({
-          projectMetadata: restoredCaseProject.projectMetadata,
-        })
-        announceStatus(
-          'Loaded case insert project template, metadata, and preview geometry.',
-        )
-        return
-      }
-
-      const restoredProject = await restoreProjectStateFromContents(contents, {
-        defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
-        resolveBackgroundImageSize: async (imageDataUrl) =>
-          createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
-      })
-
-      setManualGameTitle(restoredProject.manualGameTitle)
-      setProjectMetadata(restoredProject.projectMetadata)
-      setProjectLogoAssets(restoredProject.projectLogoAssets)
-      setProjectTitleArtwork(restoredProject.projectTitleArtwork)
-      setProjectAdditionalArtwork(restoredProject.projectAdditionalArtwork)
-      setProjectRatingBadge(restoredProject.projectRatingBadge)
-      setProjectMediaMark(restoredProject.projectMediaMark)
-      setProjectPlatformMarks(restoredProject.projectPlatformMarks)
-      setProjectTechnicalMarks(restoredProject.projectTechnicalMarks)
-      setSelectedSteamGame(restoredProject.selectedSteamGame)
-      clearSelectedArtwork()
-      clearLocalSteamScreenshotResults()
-
-      restoreDiscTemplateState(restoredProject.template)
-      setSteamLogoPlacement(restoredProject.steamLogoPlacement)
-      setSteamBannerColors(restoredProject.steamBannerColors)
-      setSteamBannerLockupImageUrl(restoredProject.steamBannerLockupImageUrl)
-      setSteamBannerLockupImageSource(restoredProject.steamBannerLockupImageSource)
-      setSteamBannerLockupImageSize(restoredProject.steamBannerLockupImageSize)
-      setSteamBannerLockupLayout(restoredProject.steamBannerLockupLayout)
-      setSteamBannerUseTextFallback(restoredProject.steamBannerUseTextFallback)
-      setSteamBannerFallbackText(restoredProject.steamBannerFallbackText)
-      restoreExportGuides(restoredProject.exportGuides)
-      restoreDiscTextState({
-        projectDiscNumberArtwork: restoredProject.projectDiscNumberArtwork,
-        discTextSettings: restoredProject.discTextSettings,
-        discTextValues: restoredProject.discTextValues,
-        discTextValueSources: restoredProject.discTextValueSources,
-        discTextTitleValue: restoredProject.discTextTitleValue,
-        discTextHtmlSources: restoredProject.discTextHtmlSources,
-        discTextLayout: restoredProject.discTextLayout,
-        discTextStyles: restoredProject.discTextStyles,
-      })
-      restoreBackgroundImageState({
-        backgroundScale: restoredProject.backgroundScale,
-        backgroundOffset: restoredProject.backgroundOffset,
-        backgroundImageUrl: restoredProject.backgroundImageUrl,
-        backgroundImageSource: restoredProject.backgroundImageSource,
-        backgroundImageSize: restoredProject.backgroundImageSize,
-        isBackgroundArtworkEnabled: restoredProject.isBackgroundArtworkEnabled,
-      })
-      setActiveWorkspace('disc')
-      setHomeStatusMessage(null)
-
-      announceStatus(
-        restoredProject.backgroundImageUrl
-          ? 'Loaded project layout, game metadata, embedded background image, and template geometry.'
-          : 'Loaded project layout, game metadata, and template geometry. No embedded background image was found.',
-      )
-    } catch (error) {
-      announceStatus(`Load failed: ${String(error)}`)
-    }
+    await runAppProjectLoad({
+      openDialog: open,
+      readProjectFileCommand: readProjectFile,
+      restoreCaseInsertProjectState: restoreCaseInsertProjectStateFromContents,
+      restoreDiscProjectState: (contents) =>
+        restoreProjectStateFromContents(contents, {
+          defaultSteamBannerLockupImageUrl: DEFAULT_STEAM_BANNER_LOCKUP_IMAGE_URL,
+          resolveBackgroundImageSize: async (imageDataUrl) =>
+            createImageSizeWithDetectedContentBounds(await loadImage(imageDataUrl)),
+        }),
+      caseInsertRestore: {
+          setManualGameTitle,
+          setProjectMetadata,
+          setSelectedSteamGame,
+          setProjectJewelCase,
+          setActiveCaseInsertTemplatePane,
+          setActiveWorkspace,
+          setHomeStatusMessage,
+          scheduleCaseInsertBrandingMarkSlotSync:
+            caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync,
+      },
+      discRestore: {
+        setManualGameTitle,
+        setProjectMetadata,
+        setProjectLogoAssets,
+        setProjectTitleArtwork,
+        setProjectAdditionalArtwork,
+        setProjectRatingBadge,
+        setProjectMediaMark,
+        setProjectPlatformMarks,
+        setProjectTechnicalMarks,
+        setSelectedSteamGame,
+        clearSelectedArtwork,
+        clearLocalSteamScreenshotResults,
+        restoreDiscTemplateState,
+        setSteamLogoPlacement,
+        setSteamBannerColors,
+        setSteamBannerLockupImageUrl,
+        setSteamBannerLockupImageSource,
+        setSteamBannerLockupImageSize,
+        setSteamBannerLockupLayout,
+        setSteamBannerUseTextFallback,
+        setSteamBannerFallbackText,
+        restoreExportGuides,
+        restoreDiscTextState,
+        restoreBackgroundImageState,
+        setActiveWorkspace,
+        setHomeStatusMessage,
+      },
+      announceStatus,
+    })
   }
 
   async function handleExportPng() {
     if (activeWorkspace === 'caseInsert') {
-      try {
-        const activePaneLabel =
-          getCaseInsertTemplatePaneConfig(activeCaseInsertTemplatePane).label
-        const activePaneFileSlug = activeCaseInsertTemplatePane === 'tray'
-          ? 'tray-card'
-          : 'cover-sheet'
-        const path = await save({
-          defaultPath: `steam-backup-${activePaneFileSlug}.png`,
-          filters: [
-            {
-              name: 'PNG Image',
-              extensions: ['png'],
-            },
-          ],
-        })
-
-        if (!path) {
-          announceStatus('Export cancelled.')
-          return
-        }
-
-        const preflight = buildCaseInsertExportPreflightSummary({
+      await runCaseInsertPngExport({
+        ...createCaseInsertPngExportInput({
           caseInsert: projectJewelCase,
           activeTemplatePane: activeCaseInsertTemplatePane,
-          brandingSources: {
-            projectMetadata,
-            projectLogoAssets,
-            projectRatingBadge,
-            projectMediaMark,
-            projectPlatformMarks,
-            projectTechnicalMarks,
-          },
-          dpi: EXPORT_DPI,
-        })
-        const shouldExport = await confirm(preflight.message, {
-          title: 'Export PNG preflight',
-          kind: preflight.hasWarnings ? 'warning' : 'info',
-          okLabel: 'Export PNG',
-          cancelLabel: 'Cancel',
-        })
-
-        if (!shouldExport) {
-          announceStatus('Export cancelled after preflight.')
-          return
-        }
-
-        const result = await exportCaseInsertPngBytes({
-          caseInsert: projectJewelCase,
-          activeTemplatePane: activeCaseInsertTemplatePane,
-          brandingSources: {
-            projectMetadata,
-            projectLogoAssets,
-            projectRatingBadge,
-            projectMediaMark,
-            projectPlatformMarks,
-            projectTechnicalMarks,
-          },
-          dpi: EXPORT_DPI,
-        })
-
-        await writeBinaryFile(path, result.bytes)
-
-        announceStatus(
-          `Exported ${activePaneLabel} ${result.width} × ${result.height}px PNG at ${result.dpi} DPI.`,
-        )
-      } catch (error) {
-        announceStatus(`Export failed: ${String(error)}`)
-      }
+          projectMetadata,
+          projectLogoAssets,
+          projectRatingBadge,
+          projectMediaMark,
+          projectPlatformMarks,
+          projectTechnicalMarks,
+        }),
+        saveDialog: save,
+        confirmDialog: confirm,
+        writeBinaryFileCommand: writeBinaryFile,
+        buildPreflightSummary: buildCaseInsertExportPreflightSummary,
+        exportPngBytes: exportCaseInsertPngBytes,
+        announceStatus,
+      })
       return
     }
 
-    try {
-      const path = await save({
-        defaultPath: 'steam-backup-label.png',
-        filters: [
-          {
-            name: 'PNG Image',
-            extensions: ['png'],
-          },
-        ],
-      })
-
-      if (!path) {
-        announceStatus('Export cancelled.')
-        return
-      }
-
-      const preflight = buildExportPreflightSummary({
+    await runDiscPngExport({
+      ...createDiscPngExportInput({
         selectedDiscTemplateId,
         selectedDiscTemplate,
         backgroundImageUrl: effectiveBackgroundImageUrl,
@@ -1728,63 +1311,30 @@ function App() {
         projectPlatformMarks,
         projectTechnicalMarks,
         exportGuides,
-      })
-      const shouldExport = await confirm(preflight.message, {
-        title: 'Export PNG preflight',
-        kind: preflight.hasWarnings ? 'warning' : 'info',
-        okLabel: 'Export PNG',
-        cancelLabel: 'Cancel',
-      })
-
-      if (!shouldExport) {
-        announceStatus('Export cancelled after preflight.')
-        return
-      }
-
-      const previewSize =
-        discPreviewRef.current?.getBoundingClientRect().width ??
-        discExportPreviewFallbackSize
-      const result = await exportDiscLabelPngBytes({
-        selectedDiscTemplate,
-        backgroundImageUrl: effectiveBackgroundImageUrl,
-        backgroundImageSize: effectiveBackgroundImageSize,
+        resolvedDiscTextTitle,
         backgroundScale,
         backgroundOffset,
-        previewSize,
-        steamLogoPlacement,
         steamBannerColors,
-        steamBannerLockupImageUrl,
         steamBannerLockupImageSize,
         steamBannerLockupLayout,
-        steamBannerUseTextFallback,
-        steamBannerFallbackText,
-        projectLogoAssets,
-        projectTitleArtwork,
         projectDiscNumberArtwork,
         projectAdditionalArtwork,
-        projectMetadata,
-        projectRatingBadge,
-        projectMediaMark,
-        projectPlatformMarks,
-        projectTechnicalMarks,
-        discTextSettings,
         discTextValues,
         discTextValueSources,
         discTextHtmlSources,
         discTextStyles,
         discTextLayout,
-        manualGameTitle: resolvedDiscTextTitle,
-        exportGuides,
-      })
-
-      await writeBinaryFile(path, result.bytes)
-
-      announceStatus(
-        `Exported ${result.width} × ${result.height}px PNG at ${EXPORT_DPI} DPI.`,
-      )
-    } catch (error) {
-      announceStatus(`Export failed: ${String(error)}`)
-    }
+      }),
+      getPreviewSize: () =>
+        discPreviewRef.current?.getBoundingClientRect().width ??
+        discExportPreviewFallbackSize,
+      saveDialog: save,
+      confirmDialog: confirm,
+      writeBinaryFileCommand: writeBinaryFile,
+      buildPreflightSummary: buildExportPreflightSummary,
+      exportPngBytes: exportDiscLabelPngBytes,
+      announceStatus,
+    })
   }
 
   const gamePanelProps: GamePanelProps = {

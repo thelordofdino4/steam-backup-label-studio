@@ -8,6 +8,7 @@ import {
   PREVIEW_VIEWPORT_MAX_RAIL_BUTTON_SIZE,
   PREVIEW_VIEWPORT_MIN_RAIL_BUTTON_SIZE,
   choosePreviewViewportRailButtonSize,
+  clampPreviewViewportPointToSize,
   clampPreviewViewportState,
   getPreviewViewportRailHeight,
   getPreviewViewportRailWidth,
@@ -73,6 +74,23 @@ test('preview viewport zooms around the cursor in top-aligned preview space', ()
     panX: -100,
     panY: -120,
   })
+})
+
+test('preview viewport point clamping stays inside the stage size', () => {
+  assert.deepEqual(
+    clampPreviewViewportPointToSize(
+      { x: -12, y: 188 },
+      { width: 320, height: 180 },
+    ),
+    { x: 0, y: 180 },
+  )
+  assert.deepEqual(
+    clampPreviewViewportPointToSize(
+      { x: 120, y: 90 },
+      { width: 320, height: 180 },
+    ),
+    { x: 120, y: 90 },
+  )
 })
 
 test('preview viewport chooses a continuous rail size without reducing fit scale', () => {

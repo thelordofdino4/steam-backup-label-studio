@@ -5,8 +5,74 @@ export type InlinePreviewHtmlSourceDraftStatus = {
   message: string | null
 }
 
+export type InlinePreviewHtmlSourceDraft = {
+  identity: string
+  initialized: boolean
+  value: string
+}
+
 const UNSUPPORTED_HTML_SOURCE_PATTERN =
   /<\s*(?:script|style|iframe|object|embed|form|img|a)\b|(?:\son[a-z]+\s*=)|(?:\s(?:class|id)\s*=)|url\s*\(/i
+
+export function getInlinePreviewHtmlSourceDraftIdentity(targetKey: string) {
+  return `${targetKey}:html-source`
+}
+
+export function getInlinePreviewHtmlSourceDraftFallback({
+  sourceValue,
+  value,
+}: {
+  sourceValue?: string
+  value: string
+}) {
+  return sourceValue ?? value
+}
+
+export function createInlinePreviewHtmlSourceDraft({
+  fallbackValue,
+  initialized,
+  identity,
+}: {
+  fallbackValue: string
+  initialized: boolean
+  identity: string
+}): InlinePreviewHtmlSourceDraft {
+  return {
+    identity,
+    initialized,
+    value: fallbackValue,
+  }
+}
+
+export function resolveInlinePreviewHtmlSourceDraft({
+  draft,
+  fallbackValue,
+  initialized,
+  identity,
+}: {
+  draft: InlinePreviewHtmlSourceDraft
+  fallbackValue: string
+  initialized: boolean
+  identity: string
+}): InlinePreviewHtmlSourceDraft {
+  return draft.identity === identity
+    ? draft
+    : createInlinePreviewHtmlSourceDraft({
+        fallbackValue,
+        initialized,
+        identity,
+      })
+}
+
+export function getInlinePreviewHtmlSourceDraftValue({
+  draft,
+  fallbackValue,
+}: {
+  draft: InlinePreviewHtmlSourceDraft
+  fallbackValue: string
+}) {
+  return draft.initialized ? draft.value : fallbackValue
+}
 
 export function getInlinePreviewHtmlSourceDraftStatus(
   source: string,

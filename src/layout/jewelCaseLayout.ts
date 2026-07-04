@@ -4,6 +4,10 @@ import {
 } from '../editor/editorTypes.ts'
 import type { BackgroundImageSize } from '../project/projectTypes.ts'
 import {
+  clampLayoutNumber,
+  getPositiveFiniteLayoutNumber,
+} from './layoutRangeMath.ts'
+import {
   getImageContentBounds,
   getImageContentSize,
   isEmptyImageContentBounds,
@@ -159,22 +163,12 @@ const safeRegionByRegionId: Record<JewelCaseRegionId, JewelCaseRegionId> = {
   rightSpineSafe: 'rightSpineSafe',
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function normalizePositiveNumber(value: number | undefined, fallback: number) {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0
-    ? value
-    : fallback
-}
-
 function getTemplateId(templateId?: SupportedCaseInsertTemplateType) {
   return templateId ?? DEFAULT_CASE_INSERT_TEMPLATE_TYPE
 }
 
 function getDpi(dpi?: number) {
-  return normalizePositiveNumber(dpi, DEFAULT_TEMPLATE_EXPORT_DPI)
+  return getPositiveFiniteLayoutNumber(dpi, DEFAULT_TEMPLATE_EXPORT_DPI)
 }
 
 function toRegionPixelBounds(
@@ -388,10 +382,14 @@ export function clampPixelRectToBounds(
 ): JewelCasePixelRect {
   const x = rect.width > bounds.width
     ? bounds.x + (bounds.width - rect.width) / 2
-    : clampNumber(rect.x, bounds.x, getPixelRectRight(bounds) - rect.width)
+    : clampLayoutNumber(rect.x, bounds.x, getPixelRectRight(bounds) - rect.width)
   const y = rect.height > bounds.height
     ? bounds.y + (bounds.height - rect.height) / 2
-    : clampNumber(rect.y, bounds.y, getPixelRectBottom(bounds) - rect.height)
+    : clampLayoutNumber(
+        rect.y,
+        bounds.y,
+        getPixelRectBottom(bounds) - rect.height,
+      )
 
   return {
     ...rect,
@@ -450,8 +448,8 @@ function hasPositiveSize<T extends JewelCasePixelSize>(
 
 function normalizeCropOffset(offset?: Partial<JewelCaseCropOffset>) {
   return {
-    x: clampNumber(offset?.x ?? 0, -1, 1),
-    y: clampNumber(offset?.y ?? 0, -1, 1),
+    x: clampLayoutNumber(offset?.x ?? 0, -1, 1),
+    y: clampLayoutNumber(offset?.y ?? 0, -1, 1),
   }
 }
 
@@ -520,7 +518,7 @@ export function fitImageToJewelCaseRegion({
   const baseScale = fit === 'cover' || fit === 'crop'
     ? coverScale
     : containScale
-  const manualScale = normalizePositiveNumber(scale, 1)
+  const manualScale = getPositiveFiniteLayoutNumber(scale, 1)
   const fittedScale = baseScale * manualScale
   const width = sourceSize.width * fittedScale
   const height = sourceSize.height * fittedScale
@@ -542,12 +540,28 @@ export function fitImageToJewelCaseRegion({
   const sourceRect = {
     x:
       sourceOrigin.x +
-      clampNumber((visibleRect.x - imageRect.x) / fittedScale, 0, sourceSize.width),
+      clampLayoutNumber(
+        (visibleRect.x - imageRect.x) / fittedScale,
+        0,
+        sourceSize.width,
+      ),
     y:
       sourceOrigin.y +
-      clampNumber((visibleRect.y - imageRect.y) / fittedScale, 0, sourceSize.height),
-    width: clampNumber(visibleRect.width / fittedScale, 0, sourceSize.width),
-    height: clampNumber(visibleRect.height / fittedScale, 0, sourceSize.height),
+      clampLayoutNumber(
+        (visibleRect.y - imageRect.y) / fittedScale,
+        0,
+        sourceSize.height,
+      ),
+    width: clampLayoutNumber(
+      visibleRect.width / fittedScale,
+      0,
+      sourceSize.width,
+    ),
+    height: clampLayoutNumber(
+      visibleRect.height / fittedScale,
+      0,
+      sourceSize.height,
+    ),
   }
 
   return {
@@ -643,7 +657,7 @@ export function getJewelCaseSpineTextLayout(
     minReadableFontSizePx,
     Math.floor(bounds.width * SPINE_TEXT_WIDTH_FILL_RATIO),
   )
-  const recommendedFontSizePx = clampNumber(
+  const recommendedFontSizePx = clampLayoutNumber(
     Math.round(SPINE_TEXT_TARGET_FONT_PX_AT_300_DPI * dpiScale),
     minReadableFontSizePx,
     maxFontSizePx,
@@ -671,7 +685,7 @@ export function estimateJewelCaseRegionMinimumImageResolution(
   } = {},
 ): JewelCaseMinimumImageResolution | null {
   const dpi = getDpi(options.dpi)
-  const qualityScale = normalizePositiveNumber(options.qualityScale, 1)
+  const qualityScale = getPositiveFiniteLayoutNumber(options.qualityScale, 1)
   const bounds = getJewelCaseRegionExportBounds(regionId, {
     templateId: options.templateId,
     dpi,

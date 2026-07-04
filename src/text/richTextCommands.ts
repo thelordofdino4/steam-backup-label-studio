@@ -10,11 +10,34 @@ import {
 import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
 } from './richTextWeights.ts'
+import {
+  applyEnterInsideBulletedLine,
+  applySoftBreakInsideBulletedLine,
+  getRichTextDocumentForListKeyboard,
+  isEmptyBulletedLine,
+  setRichTextLineBulleted,
+  unsetRichTextLineBulleted,
+  type RichTextListKeyboardCommand,
+} from './richTextListKeyboard.ts'
+import {
+  createRichTextRun,
+  getRichTextStyleAtLineOffset,
+  normalizeRichTextLine,
+  splitRichTextLineAtOffset,
+} from './richTextRunRanges.ts'
+import {
+  adjustSelectionForPrefixChanges,
+  getRichTextLineRangeAtOffset,
+  getRichTextLineRanges,
+  getSelectedRichTextLineIndexes,
+  normalizeSelection,
+  type NormalizedSelectionRange,
+  type PlainTextSelectionRange,
+  type RichTextLinePrefixChange,
+} from './richTextSelectionRanges.ts'
 
-export type PlainTextSelectionRange = {
-  end: number
-  start: number
-}
+export type { RichTextListKeyboardCommand } from './richTextListKeyboard.ts'
+export type { PlainTextSelectionRange } from './richTextSelectionRanges.ts'
 
 export type RichTextInlineToggleCommand = 'bold' | 'italic' | 'underline'
 export type RichTextInlineCommand =
@@ -23,7 +46,6 @@ export type RichTextInlineCommand =
   | 'fontFamily'
   | 'fontSizePt'
 export type RichTextListCommand = 'bulletedList'
-export type RichTextListKeyboardCommand = 'enter' | 'shiftEnter' | 'backspace'
 export type RichTextSelectionStyleState = 'active' | 'inactive' | 'mixed'
 
 export type RichTextCommandResult = {
@@ -58,357 +80,16 @@ export type RichTextAmbientInlineStyle = {
   underline?: boolean
 }
 
-type NormalizedSelectionRange = PlainTextSelectionRange & {
-  isCollapsed: boolean
-}
-
 type RichTextSourceInput = {
   ambientStyle?: RichTextAmbientInlineStyle
   fallbackText: string
   htmlSource?: string | null
 }
 
-type RichTextLineRange = {
-  end: number
-  index: number
-  start: number
-}
-
-type RichTextLinePrefixChange = {
-  lineStart: number
-  newPrefixLength: number
-  oldPrefixLength: number
-}
-
-type RichTextRunStyle = Omit<RichTextRun, 'text'>
-
-const BULLETED_LIST_PREFIX = '• '
-
-function normalizeSelection(
-  selection: PlainTextSelectionRange | undefined,
-  plainTextLength: number,
-): NormalizedSelectionRange {
-  const rawStart = selection?.start ?? plainTextLength
-  const rawEnd = selection?.end ?? rawStart
-  const start = Math.max(0, Math.min(Math.min(rawStart, rawEnd), plainTextLength))
-  const end = Math.max(0, Math.min(Math.max(rawStart, rawEnd), plainTextLength))
-
-  return {
-    end,
-    isCollapsed: start === end,
-    start,
-  }
-}
-
 function getRichTextDocument({ fallbackText, htmlSource }: RichTextSourceInput) {
   return typeof htmlSource === 'string'
     ? parseHtmlText(htmlSource)
     : plainTextToRichTextDocument(fallbackText)
-}
-
-function plainBulletTextToRichTextDocument(text: string): RichTextDocument {
-  const baseDocument = plainTextToRichTextDocument(text)
-  const lines = baseDocument.lines.map((line) => {
-    if (!line.text.startsWith(BULLETED_LIST_PREFIX)) {
-      return line
-    }
-
-    return {
-      ...line,
-      list: {
-        prefix: BULLETED_LIST_PREFIX,
-        type: 'ul' as const,
-      },
-    }
-  })
-  const plainText = lines.map((line) => line.text).join('\n')
-
-  return {
-    lines,
-    plainText,
-    source: richTextDocumentToHtmlSource({
-      lines,
-      plainText,
-      source: text,
-    }),
-  }
-}
-
-function getRichTextDocumentForListKeyboard({
-  fallbackText,
-  htmlSource,
-}: RichTextSourceInput) {
-  if (typeof htmlSource === 'string') {
-    return parseHtmlText(htmlSource)
-  }
-
-  return fallbackText
-    .split('\n')
-    .some((line) => line.startsWith(BULLETED_LIST_PREFIX))
-    ? plainBulletTextToRichTextDocument(fallbackText)
-    : plainTextToRichTextDocument(fallbackText)
-}
-
-function getRichTextLineRanges(
-  lines: readonly RichTextLine[],
-): RichTextLineRange[] {
-  let lineStart = 0
-
-  return lines.map((line, index) => {
-    const lineEnd = lineStart + line.text.length
-    const range = {
-      end: lineEnd,
-      index,
-      start: lineStart,
-    }
-
-    lineStart = lineEnd + (index < lines.length - 1 ? 1 : 0)
-    return range
-  })
-}
-
-function getSelectedRichTextLineIndexes(
-  document: RichTextDocument,
-  selection: NormalizedSelectionRange,
-) {
-  const ranges = getRichTextLineRanges(document.lines)
-
-  if (ranges.length === 0) return []
-
-  if (selection.isCollapsed) {
-    return [
-      ranges.find((range) =>
-        selection.start >= range.start && selection.start <= range.end,
-      )?.index ?? ranges[ranges.length - 1].index,
-    ]
-  }
-
-  const selectedIndexes = ranges
-    .filter((range) =>
-      selection.start <= range.end && selection.end >= range.start,
-    )
-    .map((range) => range.index)
-
-  return selectedIndexes.length > 0
-    ? selectedIndexes
-    : [ranges[ranges.length - 1].index]
-}
-
-function removeRichTextLinePrefix(
-  line: RichTextLine,
-  prefix: string | undefined,
-) {
-  if (!prefix) {
-    return {
-      runs: mergeAdjacentRichTextRuns(line.runs),
-      text: line.text,
-    }
-  }
-
-  const runs = (
-    line.runs.length > 0
-      ? line.runs
-      : line.text
-        ? [{ text: line.text }]
-        : []
-  ).map((run) => ({ ...run }))
-  let prefixRemaining = prefix.length
-
-  while (prefixRemaining > 0 && runs.length > 0) {
-    const firstRun = runs[0]
-
-    if (firstRun.text.length <= prefixRemaining) {
-      prefixRemaining -= firstRun.text.length
-      runs.shift()
-      continue
-    }
-
-    firstRun.text = firstRun.text.slice(prefixRemaining)
-    prefixRemaining = 0
-  }
-
-  const nextRuns = mergeAdjacentRichTextRuns(runs)
-
-  return {
-    runs: nextRuns,
-    text: nextRuns.map((run) => run.text).join(''),
-  }
-}
-
-function setRichTextLineBulleted(line: RichTextLine): RichTextLine {
-  const content = removeRichTextLinePrefix(line, line.list?.prefix)
-  const runs = mergeAdjacentRichTextRuns([
-    { text: BULLETED_LIST_PREFIX },
-    ...content.runs,
-  ])
-
-  return {
-    ...line,
-    list: {
-      prefix: BULLETED_LIST_PREFIX,
-      type: 'ul',
-    },
-    runs,
-    text: runs.map((run) => run.text).join(''),
-  }
-}
-
-function unsetRichTextLineBulleted(line: RichTextLine): RichTextLine {
-  if (line.list?.type !== 'ul') {
-    return line
-  }
-
-  const content = removeRichTextLinePrefix(line, line.list.prefix)
-
-  return {
-    runs: content.runs,
-    text: content.text,
-  }
-}
-
-function getRichTextRunStyle(run: RichTextRun | undefined): RichTextRunStyle {
-  if (!run) return {}
-
-  return Object.fromEntries(
-    Object.entries(run).filter(
-      ([key, value]) => key !== 'text' && value !== undefined,
-    ),
-  ) as RichTextRunStyle
-}
-
-function createRichTextRun(text: string, style: RichTextRunStyle = {}) {
-  return {
-    ...style,
-    text,
-  } satisfies RichTextRun
-}
-
-function normalizeRichTextLine(
-  line: RichTextLine,
-  runs: RichTextRun[],
-): RichTextLine {
-  const mergedRuns = mergeAdjacentRichTextRuns(runs)
-  const text = mergedRuns.map((run) => run.text).join('')
-
-  return {
-    ...line,
-    runs: mergedRuns,
-    text,
-  }
-}
-
-function splitRichTextRunsAtOffset(
-  runs: readonly RichTextRun[],
-  offset: number,
-) {
-  const beforeRuns: RichTextRun[] = []
-  const afterRuns: RichTextRun[] = []
-  let runStart = 0
-
-  for (const run of runs) {
-    const runEnd = runStart + run.text.length
-
-    if (runEnd <= offset) {
-      beforeRuns.push({ ...run })
-    } else if (runStart >= offset) {
-      afterRuns.push({ ...run })
-    } else {
-      const splitOffset = offset - runStart
-      beforeRuns.push({ ...run, text: run.text.slice(0, splitOffset) })
-      afterRuns.push({ ...run, text: run.text.slice(splitOffset) })
-    }
-
-    runStart = runEnd
-  }
-
-  return {
-    afterRuns: mergeAdjacentRichTextRuns(afterRuns),
-    beforeRuns: mergeAdjacentRichTextRuns(beforeRuns),
-  }
-}
-
-function splitRichTextLineAtOffset(line: RichTextLine, offset: number) {
-  return splitRichTextRunsAtOffset(
-    line.runs.length > 0
-      ? line.runs
-      : line.text
-        ? [{ text: line.text }]
-        : [],
-    Math.max(0, Math.min(offset, line.text.length)),
-  )
-}
-
-function getRichTextLineRangeAtOffset(
-  ranges: readonly RichTextLineRange[],
-  offset: number,
-) {
-  if (ranges.length === 0) return null
-
-  return ranges.find((range) => offset >= range.start && offset <= range.end) ??
-    ranges[ranges.length - 1]
-}
-
-function getRichTextLineContentOffset(line: RichTextLine) {
-  return line.list?.prefix.length ?? 0
-}
-
-function getRichTextStyleAtLineOffset(line: RichTextLine, offset: number) {
-  let runStart = 0
-  let previousRun: RichTextRun | undefined
-
-  for (const run of line.runs) {
-    const runEnd = runStart + run.text.length
-
-    if (offset > runStart && offset <= runEnd) {
-      return getRichTextRunStyle(run)
-    }
-
-    if (offset <= runStart) {
-      return getRichTextRunStyle(previousRun ?? run)
-    }
-
-    previousRun = run
-    runStart = runEnd
-  }
-
-  return getRichTextRunStyle(previousRun)
-}
-
-function adjustOffsetForPrefixChanges(
-  offset: number,
-  changes: readonly RichTextLinePrefixChange[],
-) {
-  return changes.reduce((nextOffset, change) => {
-    const delta = change.newPrefixLength - change.oldPrefixLength
-
-    if (delta > 0 && offset >= change.lineStart) {
-      return nextOffset + delta
-    }
-
-    if (delta < 0) {
-      const removedPrefixEnd = change.lineStart + change.oldPrefixLength
-
-      if (offset > removedPrefixEnd) {
-        return nextOffset + delta
-      }
-
-      if (offset > change.lineStart) {
-        return nextOffset - (offset - change.lineStart)
-      }
-    }
-
-    return nextOffset
-  }, offset)
-}
-
-function adjustSelectionForPrefixChanges(
-  selection: PlainTextSelectionRange,
-  changes: readonly RichTextLinePrefixChange[],
-): PlainTextSelectionRange {
-  return {
-    end: adjustOffsetForPrefixChanges(selection.end, changes),
-    start: adjustOffsetForPrefixChanges(selection.start, changes),
-  }
 }
 
 function styleRun(
@@ -725,147 +406,6 @@ export function applyRichTextPlainTextMutation({
   return createCommandResult(nextDocument, selection)
 }
 
-function createBulletedListLineFromRuns(runs: RichTextRun[]): RichTextLine {
-  return normalizeRichTextLine(
-    {
-      list: {
-        prefix: BULLETED_LIST_PREFIX,
-        type: 'ul',
-      },
-      runs: [],
-      text: '',
-    },
-    [
-      { text: BULLETED_LIST_PREFIX },
-      ...runs,
-    ],
-  )
-}
-
-function createListContinuationLineFromRuns(runs: RichTextRun[]): RichTextLine {
-  return normalizeRichTextLine(
-    {
-      list: {
-        continuation: true,
-        prefix: '',
-        type: 'ul',
-      },
-      runs: [],
-      text: '',
-    },
-    runs,
-  )
-}
-
-function isEmptyBulletedLine(line: RichTextLine) {
-  if (line.list?.type !== 'ul') return false
-
-  const content = removeRichTextLinePrefix(line, line.list.prefix)
-  return content.text.trim().length === 0
-}
-
-function applyEnterInsideBulletedLine({
-  document,
-  line,
-  lineIndex,
-  lineOffset,
-  lineStart,
-}: {
-  document: RichTextDocument
-  line: RichTextLine
-  lineIndex: number
-  lineOffset: number
-  lineStart: number
-}) {
-  const contentOffset = getRichTextLineContentOffset(line)
-
-  if (isEmptyBulletedLine(line)) {
-    const nextLine = normalizeRichTextLine(
-      {
-        runs: [],
-        text: '',
-      },
-      [],
-    )
-
-    return createCommandResult(
-      {
-        ...document,
-        lines: document.lines.map((candidate, index) =>
-          index === lineIndex ? nextLine : candidate),
-      },
-      {
-        end: lineStart,
-        start: lineStart,
-      },
-    )
-  }
-
-  const splitOffset = Math.max(contentOffset, lineOffset)
-  const { afterRuns, beforeRuns } = splitRichTextLineAtOffset(line, splitOffset)
-  const currentLine = normalizeRichTextLine(line, beforeRuns)
-  const contentAfterRuns = removeRichTextLinePrefix(
-    normalizeRichTextLine(line, afterRuns),
-    '',
-  ).runs
-  const nextLine = createBulletedListLineFromRuns(contentAfterRuns)
-  const nextSelectionStart =
-    lineStart + currentLine.text.length + 1 + BULLETED_LIST_PREFIX.length
-
-  return createCommandResult(
-    {
-      ...document,
-      lines: [
-        ...document.lines.slice(0, lineIndex),
-        currentLine,
-        nextLine,
-        ...document.lines.slice(lineIndex + 1),
-      ],
-    },
-    {
-      end: nextSelectionStart,
-      start: nextSelectionStart,
-    },
-  )
-}
-
-function applySoftBreakInsideBulletedLine({
-  document,
-  line,
-  lineIndex,
-  lineOffset,
-  lineStart,
-}: {
-  document: RichTextDocument
-  line: RichTextLine
-  lineIndex: number
-  lineOffset: number
-  lineStart: number
-}) {
-  const contentOffset = getRichTextLineContentOffset(line)
-  const splitOffset = Math.max(contentOffset, lineOffset)
-  const { afterRuns, beforeRuns } = splitRichTextLineAtOffset(line, splitOffset)
-  const currentLine = normalizeRichTextLine(line, beforeRuns)
-  const nextLine = createListContinuationLineFromRuns(afterRuns)
-  const nextSelectionStart = lineStart + currentLine.text.length + 1
-
-  return createCommandResult(
-    {
-      ...document,
-      lines: [
-        ...document.lines.slice(0, lineIndex),
-        currentLine,
-        nextLine,
-        ...document.lines.slice(lineIndex + 1),
-      ],
-    },
-    {
-      end: nextSelectionStart,
-      start: nextSelectionStart,
-    },
-  )
-}
-
 export function applyRichTextListKeyboardCommand({
   command,
   fallbackText,
@@ -904,26 +444,30 @@ export function applyRichTextListKeyboardCommand({
   const lineOffset = normalizedSelection.start - lineRange.start
 
   if (command === 'shiftEnter') {
-    return applySoftBreakInsideBulletedLine({
+    const mutation = applySoftBreakInsideBulletedLine({
       document,
       line,
       lineIndex: lineRange.index,
       lineOffset,
       lineStart: lineRange.start,
     })
+
+    return createCommandResult(mutation.document, mutation.selection)
   }
 
   if (command === 'backspace' && !isEmptyBulletedLine(line)) {
     return null
   }
 
-  return applyEnterInsideBulletedLine({
+  const mutation = applyEnterInsideBulletedLine({
     document,
     line,
     lineIndex: lineRange.index,
     lineOffset,
     lineStart: lineRange.start,
   })
+
+  return createCommandResult(mutation.document, mutation.selection)
 }
 
 function getRunsInSelection(

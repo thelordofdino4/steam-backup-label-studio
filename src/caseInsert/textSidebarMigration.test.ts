@@ -49,7 +49,7 @@ function getFunctionSource(
 
 test('cover and tray text block sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
-    'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+    'src/components/caseInsert/CaseInsertTemplateTextControls.tsx',
   )
   const textBlockControls = getFunctionSource(
     source,
@@ -100,12 +100,12 @@ test('cover and tray text block contextual editor keeps layout preset ownership'
 
 test('cover and tray text list sidebars keep setup and item-management controls only', () => {
   const source = readRepoFile(
-    'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+    'src/components/caseInsert/CaseInsertTemplateTextControls.tsx',
   )
   const textListControls = getFunctionSource(
     source,
     'TextListControls',
-    'CaseInsertTemplateArtworkControls',
+    'CaseInsertTemplateTextControls',
   )
 
   assert.match(textListControls, /handleTextListEnabledChange/)
@@ -194,7 +194,7 @@ test('case insert sidebar policy omits contextual equivalents', () => {
 
 test('left and right spine title sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
-    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+    'src/components/caseInsert/CaseInsertSpineTextControls.tsx',
   )
   const titleControls = getFunctionSource(
     source,
@@ -236,12 +236,12 @@ test('left and right spine title sidebars keep setup and edit-entry controls onl
 
 test('left and right spine text block sidebars keep setup and edit-entry controls only', () => {
   const source = readRepoFile(
-    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+    'src/components/caseInsert/CaseInsertSpineTextControls.tsx',
   )
   const textBlockControls = getFunctionSource(
     source,
     'SpineTextBlockControls',
-    'SpineImageSlotControls',
+    'CaseInsertSpineTextControls',
   )
 
   assert.match(textBlockControls, /handleSpineTextBlockEnabledChange/)
@@ -348,7 +348,7 @@ test('cover and tray text list item management remains behaviorally intact', () 
 })
 
 test('case insert export continues reading migrated text block state', () => {
-  const source = readRepoFile('src/export/exportCaseInsertPng.ts')
+  const source = readRepoFile('src/export/caseInsertTemplateExportLayers.ts')
   const drawTemplateTextBlock = getFunctionSource(
     source,
     'drawTemplateTextBlock',

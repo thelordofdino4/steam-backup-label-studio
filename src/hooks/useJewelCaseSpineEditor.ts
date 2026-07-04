@@ -12,26 +12,9 @@ import {
   type JewelCaseSpineImageSlotKey,
 } from '../caseInsert/jewelCaseTransitions'
 import {
-  createDefaultCaseInsertImageSlot,
-  createDefaultJewelCaseSpineArtworkSlot,
-  createDefaultJewelCaseSpineMarkSlot,
-} from '../caseInsert/defaults'
-import {
-  CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
-} from '../caseInsert/defaultImportLayouts'
-import {
-  addCaseInsertAdditionalLogoSlot,
   clearCaseInsertAdditionalLogoSlotImage,
-  clearCaseInsertPrimaryLogoSlotImage,
-  getCaseInsertPrimaryLogoLabel,
-  resetCaseInsertPrimaryLogoSlotLayout,
-  setCaseInsertPrimaryLogoSlotEnabled,
-  setCaseInsertPrimaryLogoSlotImage,
-  updateCaseInsertPrimaryLogoSlotLayoutField,
-  withCaseInsertAdditionalLogoImageSource,
 } from '../caseInsert/brandingLogoSlots'
 import {
-  fitCaseInsertImageSlotToRegionHeight,
   resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
@@ -40,49 +23,19 @@ import {
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
 import {
-  restoreCaseInsertTitleArtworkDefaultSteamLogo,
   setCustomCaseInsertTitleArtworkImage,
 } from '../caseInsert/titleArtwork'
 import {
-  getNextRepeatedArtworkSlotNumber,
-} from '../editor/repeatedArtwork'
-import {
-  resetCaseInsertSteamBannerColors,
-  resetCaseInsertSteamBannerLockupImage,
-  resetCaseInsertSteamBannerLockupLayout,
-  setCaseInsertSteamBannerEnabled,
-  setCaseInsertSteamBannerUseTextFallback,
-  setCustomCaseInsertSteamBannerLockupImage,
-  updateCaseInsertSteamBannerColor,
-  updateCaseInsertSteamBannerFallbackText,
-  updateCaseInsertSteamBannerLockupLayoutField,
-  type CaseInsertSteamBannerColorField,
-  type CaseInsertSteamBannerLayoutField,
-} from '../caseInsert/steamBanner'
-import { createCaseInsertPngExportLayout } from '../caseInsert/exportLayout'
-import {
-  getJewelCaseSteamBannerOpenArtworkRegion,
-} from '../layout/jewelCaseSteamBannerLayout'
-import {
-  createLogoCandidateCaseInsertImageSlotImage,
-  createLocalSteamScreenshotCaseInsertImageSlotImage,
-  createSteamArtworkCaseInsertImageSlotImage,
-  createUploadedCaseInsertImageSlotImage,
-  createWebArtworkCaseInsertImageSlotImage,
+  getCaseInsertImageSlotUploadFile,
+  loadLocalSteamScreenshotCaseInsertImageSlotImage,
+  loadSteamArtworkCaseInsertImageSlotImage,
+  loadUploadedCaseInsertImageSlotImage,
+  loadWebArtworkCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotSourceImport'
-import type {
-  CaseInsertImageSlotImageInput,
-} from '../caseInsert/types'
 import {
-  applyCaseInsertTextBlockPresetLayout,
-  applyCaseInsertTextBlockStylePreset,
-  resetCaseInsertTextBlockStyle,
-  setCaseInsertTextBlockAvoidVisualElements,
-  setCaseInsertTextBlockEnabled,
-  updateCaseInsertTextBlockStyleField,
-  updateCaseInsertTextBlockLayoutField,
-  updateCaseInsertTextBlockValue,
-} from '../caseInsert/textTransitions'
+  applyLoadedCaseInsertImageSlotSource,
+  type LoadedCaseInsertImageSlotSource,
+} from '../caseInsert/imageSlotSourceApply'
 import type {
   CaseInsertTextStyleField,
   CaseInsertTextStyleValue,
@@ -96,259 +49,59 @@ import type {
   ProjectCaseInsertImageFit,
   ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
-  ProjectCaseInsertSteamBanner,
   ProjectCaseInsertTextAlign,
-  ProjectCaseInsertTextBlock,
   ProjectCaseInsertTextSource,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
-import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
-import { isImageFile } from '../utils/importedImageAsset'
 import {
-  getCaseInsertMarkLayerKind,
-} from '../caseInsert/brandingSlotSources'
+  applyJewelCaseSpineTextBlockLayoutPreset,
+  applyJewelCaseSpineTextBlockStylePreset,
+  applyJewelCaseSpineTitleLayoutPreset,
+  applyJewelCaseSpineTitleStylePreset,
+  resetJewelCaseSpineTextBlockDefaultLayout,
+  resetJewelCaseSpineTextBlockDefaultStyle,
+  resetJewelCaseSpineTitleDefaultLayout,
+  resetJewelCaseSpineTitleDefaultStyle,
+  setJewelCaseSpineTextBlockAlignValue,
+  setJewelCaseSpineTextBlockAvoidVisualElements,
+  setJewelCaseSpineTextBlockEnabled,
+  setJewelCaseSpineTitleAlign,
+  setJewelCaseSpineTitleAvoidVisualElements,
+  setJewelCaseSpineTitleEnabled,
+  updateJewelCaseSpineTextBlockLayoutValue,
+  updateJewelCaseSpineTextBlockStyleValue,
+  updateJewelCaseSpineTextBlockValue,
+  updateJewelCaseSpineTitleLayoutValue,
+  updateJewelCaseSpineTitleStyleValue,
+  updateJewelCaseSpineTitleValue,
+} from '../caseInsert/jewelCaseSpineTextActions'
 import {
-  getJewelCaseSpineMarkDefaultLayout,
-} from '../caseInsert/defaultBrandingLayouts'
+  clearJewelCaseSpineImageSlotImage,
+  createDefaultJewelCaseSpineGroupedImageSlot,
+  fitJewelCaseSpineImageSlotToRegionHeight,
+  getSpineGroupedImageSlotResetLayout,
+  preserveSpineGroupedSlotSource,
+  resetJewelCaseSpineImageSlotDefaultLayout,
+  restoreJewelCaseSpineTitleArtworkDefault,
+  setJewelCaseSpineImageSlotEnabled,
+  updateJewelCaseSpineImageSlotFit,
+  updateJewelCaseSpineImageSlotLayoutValue,
+} from '../caseInsert/jewelCaseSpineImageSlotActions'
 import {
-  DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
-} from '../caseInsert/textSizing'
+  useJewelCaseSpineSteamBannerEditor,
+} from './useJewelCaseSpineSteamBannerEditor'
+import {
+  useJewelCaseSpineLogoEditor,
+} from './useJewelCaseSpineLogoEditor'
+import {
+  normalizeCaseInsertLabel,
+} from '../caseInsert/labelText'
 
 type UseJewelCaseSpineEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
   announceStatus: (message: string) => void
-}
-
-const defaultSpineTitleLayouts: Record<JewelCaseSpineSide, ProjectCaseInsertLayout> = {
-  left: {
-    scale: 1,
-    fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
-    width: 90,
-    x: 50,
-    y: 50,
-    rotation: -90,
-  },
-  right: {
-    scale: 1,
-    fontSizePt: DEFAULT_SPINE_TITLE_FONT_SIZE_PT,
-    width: 90,
-    x: 50,
-    y: 50,
-    rotation: 90,
-  },
-}
-
-const defaultSpineTextBlockLayouts: Record<
-  JewelCaseSpineSide,
-  Record<string, ProjectCaseInsertLayout>
-> = {
-  left: {
-    'subtitle-text': { scale: 0.78, width: 74, x: 50, y: 42, rotation: -90 },
-    'disc-number': { scale: 0.7, width: 46, x: 50, y: 60, rotation: -90 },
-    'backup-date': { scale: 0.68, width: 48, x: 50, y: 68, rotation: -90 },
-    'steam-app-id': { scale: 0.66, width: 48, x: 50, y: 76, rotation: -90 },
-    'developer-text': { scale: 0.68, width: 48, x: 50, y: 84, rotation: -90 },
-    'publisher-text': { scale: 0.68, width: 48, x: 50, y: 88, rotation: -90 },
-    'install-notes': { scale: 0.66, width: 58, x: 50, y: 72, rotation: -90 },
-    'custom-note': { scale: 0.72, width: 58, x: 50, y: 78, rotation: -90 },
-    'copyright-text': { scale: 0.62, width: 68, x: 50, y: 92, rotation: -90 },
-  },
-  right: {
-    'subtitle-text': { scale: 0.78, width: 74, x: 50, y: 42, rotation: 90 },
-    'disc-number': { scale: 0.7, width: 46, x: 50, y: 60, rotation: 90 },
-    'backup-date': { scale: 0.68, width: 48, x: 50, y: 68, rotation: 90 },
-    'steam-app-id': { scale: 0.66, width: 48, x: 50, y: 76, rotation: 90 },
-    'developer-text': { scale: 0.68, width: 48, x: 50, y: 84, rotation: 90 },
-    'publisher-text': { scale: 0.68, width: 48, x: 50, y: 88, rotation: 90 },
-    'install-notes': { scale: 0.66, width: 58, x: 50, y: 72, rotation: 90 },
-    'custom-note': { scale: 0.72, width: 58, x: 50, y: 78, rotation: 90 },
-    'copyright-text': { scale: 0.62, width: 68, x: 50, y: 92, rotation: 90 },
-  },
-}
-
-const defaultSpineImageSlotLayouts: Record<
-  JewelCaseSpineSide,
-  Record<JewelCaseSpineImageSlotKey, ProjectCaseInsertLayout>
-> = {
-  left: {
-    background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
-  },
-  right: {
-    background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: CASE_INSERT_DEFAULT_IMPORTED_SPINE_TITLE_ARTWORK_LAYOUT,
-  },
-}
-
-const defaultSpineGroupedImageSlotLayouts: Record<
-  JewelCaseSpineSide,
-  Record<JewelCaseSpineImageSlotGroupKey, ProjectCaseInsertLayout>
-> = {
-  left: {
-    artworkSlots: { scale: 1, x: 50, y: 72, rotation: 0 },
-    logoSlots: { scale: 1, x: 50, y: 84, rotation: 0 },
-    markSlots: { scale: 1, x: 50, y: 82, rotation: 0 },
-  },
-  right: {
-    artworkSlots: { scale: 1, x: 50, y: 72, rotation: 0 },
-    logoSlots: { scale: 1, x: 50, y: 84, rotation: 0 },
-    markSlots: { scale: 1, x: 50, y: 82, rotation: 0 },
-  },
-}
-
-function normalizeLabel(label: string) {
-  return label.trim().toLocaleLowerCase()
-}
-
-function getSpineLogoSlotIdPrefix(side: JewelCaseSpineSide) {
-  return `${side}-spine-logo`
-}
-
-function getSpineBackgroundFitRegion(
-  caseInsert: ProjectJewelCaseState,
-  side: JewelCaseSpineSide,
-) {
-  const layout = createCaseInsertPngExportLayout(caseInsert, 'tray')
-
-  return getJewelCaseSteamBannerOpenArtworkRegion(
-    caseInsert.spine[side].steamBanner,
-    { kind: 'spine', side },
-    layout,
-  )
-}
-
-function getDefaultSpineTextBlockLayout(
-  side: JewelCaseSpineSide,
-  textBlockId: string,
-) {
-  const prefix = `${side}-spine-`
-  const suffix = textBlockId.startsWith(prefix)
-    ? textBlockId.slice(prefix.length)
-    : textBlockId
-
-  return defaultSpineTextBlockLayouts[side][suffix]
-}
-
-function getNextSpineArtworkSlotIndex(
-  side: JewelCaseSpineSide,
-  slots: ProjectCaseInsertImageSlot[],
-) {
-  return getNextRepeatedArtworkSlotNumber(
-    slots,
-    `${side}-spine-artwork`,
-  )
-}
-
-function getNextSpineMarkSlotIndex(
-  side: JewelCaseSpineSide,
-  slots: ProjectCaseInsertImageSlot[],
-) {
-  const idPrefix = `${side}-spine-mark`
-  let index = slots.length + 1
-
-  while (slots.some(({ id }) => id === `${idPrefix}-${index}`)) {
-    index += 1
-  }
-
-  return index
-}
-
-function getNextSpineLogoSlotIndex(
-  side: JewelCaseSpineSide,
-  slots: ProjectCaseInsertImageSlot[],
-) {
-  const idPrefix = getSpineLogoSlotIdPrefix(side)
-  let index = slots.length + 1
-
-  while (slots.some(({ id }) => id === `${idPrefix}-${index}`)) {
-    index += 1
-  }
-
-  return index
-}
-
-function createDefaultJewelCaseSpineLogoSlot(
-  side: JewelCaseSpineSide,
-  index: number,
-) {
-  return createDefaultCaseInsertImageSlot(
-    `${getSpineLogoSlotIdPrefix(side)}-${index}`,
-    `Logo ${index}`,
-    {
-      fit: 'contain',
-      layout: defaultSpineGroupedImageSlotLayouts[side].logoSlots,
-    },
-  )
-}
-
-function createDefaultJewelCaseSpineGroupedImageSlot(
-  side: JewelCaseSpineSide,
-  slotKey: JewelCaseSpineImageSlotGroupKey,
-  slots: ProjectCaseInsertImageSlot[],
-) {
-  if (slotKey === 'artworkSlots') {
-    return createDefaultJewelCaseSpineArtworkSlot(
-      side,
-      getNextSpineArtworkSlotIndex(side, slots),
-    )
-  }
-
-  if (slotKey === 'logoSlots') {
-    return createDefaultJewelCaseSpineLogoSlot(
-      side,
-      getNextSpineLogoSlotIndex(side, slots),
-    )
-  }
-
-  return createDefaultJewelCaseSpineMarkSlot(
-    side,
-    getNextSpineMarkSlotIndex(side, slots),
-  )
-}
-
-function getSpineGroupedImageSlotResetLayout(
-  side: JewelCaseSpineSide,
-  slotKey: JewelCaseSpineImageSlotGroupKey,
-  slot: ProjectCaseInsertImageSlot,
-) {
-  const sourceId = slot.imageSource?.sourceId
-
-  return slotKey === 'markSlots' && sourceId?.startsWith('case-')
-    ? getJewelCaseSpineMarkDefaultLayout(getCaseInsertMarkLayerKind(sourceId))
-    : defaultSpineGroupedImageSlotLayouts[side][slotKey]
-}
-
-function preserveSpineMarkSource(
-  slotKey: JewelCaseSpineImageSlotGroupKey,
-  slot: Pick<ProjectCaseInsertImageSlot, 'imageSource'>,
-  image: CaseInsertImageSlotImageInput,
-): CaseInsertImageSlotImageInput {
-  if (slotKey !== 'markSlots' || !slot.imageSource?.sourceId?.startsWith('case-')) {
-    return image
-  }
-
-  return {
-    ...image,
-    imageSource: {
-      ...image.imageSource,
-      sourceId: slot.imageSource.sourceId,
-      sourceLabel: image.imageSource?.sourceLabel ?? slot.imageSource.sourceLabel,
-    },
-  }
-}
-
-function preserveSpineGroupedSlotSource(
-  slotKey: JewelCaseSpineImageSlotGroupKey,
-  slot: ProjectCaseInsertImageSlot,
-  image: CaseInsertImageSlotImageInput,
-): CaseInsertImageSlotImageInput {
-  if (slotKey === 'logoSlots') {
-    return withCaseInsertAdditionalLogoImageSource(slot, image)
-  }
-
-  return preserveSpineMarkSource(slotKey, slot, image)
 }
 
 export function useJewelCaseSpineEditor({
@@ -366,42 +119,6 @@ export function useJewelCaseSpineEditor({
       updateProjectJewelCaseSpineSides(currentCaseInsert, side, updater),
     )
   }, [setProjectJewelCase])
-
-  const updateSpineTitle = useCallback((
-    side: JewelCaseSpineSide,
-    updater: (
-      title: ProjectCaseInsertTextBlock,
-      side: JewelCaseSpineSide,
-    ) => ProjectCaseInsertTextBlock,
-  ) => {
-    updateSpineSides(side, (spineSide, targetSide) => ({
-      ...spineSide,
-      title: updater(spineSide.title, targetSide),
-    }))
-  }, [updateSpineSides])
-
-  const updateSpineTextBlock = useCallback((
-    side: JewelCaseSpineSide,
-    textBlockId: string,
-    updater: (
-      textBlock: ProjectCaseInsertTextBlock,
-    ) => ProjectCaseInsertTextBlock,
-  ) => {
-    updateSpineSides(side, (spineSide, targetSide) => {
-      const targetTextBlockId = getJewelCaseSpineSideScopedId(
-        targetSide,
-        textBlockId,
-      )
-
-      return {
-        ...spineSide,
-        textBlocks: spineSide.textBlocks.map((textBlock) =>
-          textBlock.id === targetTextBlockId
-            ? updater(textBlock)
-            : textBlock),
-      }
-    })
-  }, [updateSpineSides])
 
   const updateSpineImageSlot = useCallback((
     side: JewelCaseSpineSide,
@@ -438,17 +155,90 @@ export function useJewelCaseSpineEditor({
     })
   }, [updateSpineSides])
 
-  const updateSpineSteamBanner = useCallback((
-    side: JewelCaseSpineSide,
-    updater: (
-      banner: ProjectCaseInsertSteamBanner,
-    ) => ProjectCaseInsertSteamBanner,
+  const applySpineTextAction = useCallback(<TArgs extends unknown[]>(
+    action: (
+      state: ProjectJewelCaseState,
+      ...args: TArgs
+    ) => ProjectJewelCaseState,
+    ...args: TArgs
   ) => {
-    updateSpineSides(side, (spineSide) => ({
-      ...spineSide,
-      steamBanner: updater(spineSide.steamBanner),
-    }))
-  }, [updateSpineSides])
+    setProjectJewelCase((state) => action(state, ...args))
+  }, [setProjectJewelCase])
+
+  const applySpineImageSlotAction = useCallback(<TArgs extends unknown[]>(
+    action: (
+      state: ProjectJewelCaseState,
+      ...args: TArgs
+    ) => ProjectJewelCaseState,
+    ...args: TArgs
+  ) => {
+    setProjectJewelCase((state) => action(state, ...args))
+  }, [setProjectJewelCase])
+
+  const {
+    handleSpineSteamBannerEnabledChange,
+    handleSpineSteamBannerLockupUpload,
+    handleClearSpineSteamBannerLockup,
+    handleSpineSteamBannerLockupLayoutChange,
+    handleResetSpineSteamBannerLockupLayout,
+    handleSpineSteamBannerUseTextFallbackChange,
+    handleSpineSteamBannerFallbackTextChange,
+    handleSpineSteamBannerColorChange,
+    handleResetSpineSteamBannerColors,
+  } = useJewelCaseSpineSteamBannerEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
+
+  const {
+    handleAddSpineAdditionalLogoSlot,
+    handleSpinePrimaryLogoSlotEnabledChange,
+    handleSpinePrimaryLogoSlotUpload,
+    handleSpinePrimaryLogoSlotLayoutChange,
+    handleResetSpinePrimaryLogoSlotLayout,
+    handleClearSpinePrimaryLogoSlot,
+    handleUseSpineLogoCandidate,
+  } = useJewelCaseSpineLogoEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
+
+  async function applySpineImageSlotSource(
+    side: JewelCaseSpineSide,
+    slotKey: JewelCaseSpineImageSlotKey,
+    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+  ) {
+    await applyLoadedCaseInsertImageSlotSource({
+      announceStatus,
+      importedImagePromise,
+      applyImage: (image) =>
+        updateSpineImageSlot(side, slotKey, (slot) =>
+          setCaseInsertImageSlotImage(slot, image),
+        ),
+    })
+  }
+
+  async function applySpineGroupedImageSlotSource(
+    side: JewelCaseSpineSide,
+    slotKey: JewelCaseSpineImageSlotGroupKey,
+    slotId: string,
+    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+  ) {
+    await applyLoadedCaseInsertImageSlotSource({
+      announceStatus,
+      importedImagePromise,
+      applyImage: (image) =>
+        updateSpineGroupedImageSlot(
+          side,
+          slotKey,
+          slotId,
+          (slot) => setCaseInsertImageSlotImage(slot, image),
+          {
+            enableAdditionalArtwork: slotKey === 'artworkSlots',
+          },
+        ),
+    })
+  }
 
   function handleSpineMirroredChange(mirrored: boolean) {
     setProjectJewelCase((currentCaseInsert) =>
@@ -465,7 +255,7 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     enabled: boolean,
   ) {
-    updateSpineTitle(side, (title) => setCaseInsertTextBlockEnabled(title, enabled))
+    applySpineTextAction(setJewelCaseSpineTitleEnabled, side, enabled)
   }
 
   function handleSpineTitleValueChange(
@@ -473,29 +263,21 @@ export function useJewelCaseSpineEditor({
     value: string,
     source?: ProjectCaseInsertTextSource,
   ) {
-    updateSpineTitle(side, (title) =>
-      updateCaseInsertTextBlockValue(title, value, source))
+    applySpineTextAction(updateJewelCaseSpineTitleValue, side, value, source)
   }
 
   function handleSpineTitleAlignChange(
     side: JewelCaseSpineSide,
     align: ProjectCaseInsertTextAlign,
   ) {
-    updateSpineTitle(side, (title) => ({
-      ...title,
-      align,
-    }))
+    applySpineTextAction(setJewelCaseSpineTitleAlign, side, align)
   }
 
   function handleSpineTitleAvoidVisualElementsChange(
     side: JewelCaseSpineSide,
     avoidVisualElements: boolean,
   ) {
-    updateSpineTitle(side, (title) =>
-      setCaseInsertTextBlockAvoidVisualElements(
-        title,
-        avoidVisualElements,
-      ))
+    applySpineTextAction(setJewelCaseSpineTitleAvoidVisualElements, side, avoidVisualElements)
   }
 
   function handleSpineTitleLayoutChange(
@@ -503,18 +285,14 @@ export function useJewelCaseSpineEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    updateSpineTitle(side, (title) =>
-      updateCaseInsertTextBlockLayoutField(title, field, value),
-    )
+    applySpineTextAction(updateJewelCaseSpineTitleLayoutValue, side, field, value)
   }
 
   function handleApplySpineTitleLayoutPreset(
     side: JewelCaseSpineSide,
     presetId: string,
   ) {
-    updateSpineTitle(side, (title) =>
-      applyCaseInsertTextBlockPresetLayout('spine', title, presetId),
-    )
+    applySpineTextAction(applyJewelCaseSpineTitleLayoutPreset, side, presetId)
   }
 
   function handleSpineTitleOrientationChange(
@@ -525,10 +303,7 @@ export function useJewelCaseSpineEditor({
   }
 
   function handleResetSpineTitleLayout(side: JewelCaseSpineSide) {
-    updateSpineTitle(side, (title, targetSide) => ({
-      ...title,
-      layout: defaultSpineTitleLayouts[targetSide],
-    }))
+    applySpineTextAction(resetJewelCaseSpineTitleDefaultLayout, side)
   }
 
   function handleSpineTextBlockEnabledChange(
@@ -536,11 +311,7 @@ export function useJewelCaseSpineEditor({
     textBlockId: string,
     enabled: boolean,
   ) {
-    updateSpineTextBlock(
-      side,
-      textBlockId,
-      (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
-    )
+    applySpineTextAction(setJewelCaseSpineTextBlockEnabled, side, textBlockId, enabled)
   }
 
   function handleSpineTextBlockValueChange(
@@ -549,8 +320,7 @@ export function useJewelCaseSpineEditor({
     value: string,
     source?: ProjectCaseInsertTextSource,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      updateCaseInsertTextBlockValue(textBlock, value, source))
+    applySpineTextAction(updateJewelCaseSpineTextBlockValue, side, textBlockId, value, source)
   }
 
   function handleSpineTextBlockAlignChange(
@@ -558,10 +328,7 @@ export function useJewelCaseSpineEditor({
     textBlockId: string,
     align: ProjectCaseInsertTextAlign,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) => ({
-      ...textBlock,
-      align,
-    }))
+    applySpineTextAction(setJewelCaseSpineTextBlockAlignValue, side, textBlockId, align)
   }
 
   function handleSpineTextBlockAvoidVisualElementsChange(
@@ -569,11 +336,7 @@ export function useJewelCaseSpineEditor({
     textBlockId: string,
     avoidVisualElements: boolean,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      setCaseInsertTextBlockAvoidVisualElements(
-        textBlock,
-        avoidVisualElements,
-      ))
+    applySpineTextAction(setJewelCaseSpineTextBlockAvoidVisualElements, side, textBlockId, avoidVisualElements)
   }
 
   function handleSpineTextBlockLayoutChange(
@@ -582,8 +345,7 @@ export function useJewelCaseSpineEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      updateCaseInsertTextBlockLayoutField(textBlock, field, value))
+    applySpineTextAction(updateJewelCaseSpineTextBlockLayoutValue, side, textBlockId, field, value)
   }
 
   function handleApplySpineTextBlockLayoutPreset(
@@ -591,8 +353,7 @@ export function useJewelCaseSpineEditor({
     textBlockId: string,
     presetId: string,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      applyCaseInsertTextBlockPresetLayout('spine', textBlock, presetId))
+    applySpineTextAction(applyJewelCaseSpineTextBlockLayoutPreset, side, textBlockId, presetId)
   }
 
   function handleSpineTextBlockOrientationChange(
@@ -607,28 +368,7 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) {
-    updateSpineSides(side, (spineSide, targetSide) => {
-      const targetTextBlockId = getJewelCaseSpineSideScopedId(
-        targetSide,
-        textBlockId,
-      )
-      const layout = getDefaultSpineTextBlockLayout(
-        targetSide,
-        targetTextBlockId,
-      )
-
-      if (!layout) {
-        return spineSide
-      }
-
-      return {
-        ...spineSide,
-        textBlocks: spineSide.textBlocks.map((textBlock) =>
-          textBlock.id === targetTextBlockId
-            ? { ...textBlock, layout }
-            : textBlock),
-      }
-    })
+    applySpineTextAction(resetJewelCaseSpineTextBlockDefaultLayout, side, textBlockId)
   }
 
   function handleSpineTitleStyleChange(
@@ -636,22 +376,18 @@ export function useJewelCaseSpineEditor({
     field: CaseInsertTextStyleField,
     value: CaseInsertTextStyleValue,
   ) {
-    updateSpineTitle(side, (title) =>
-      updateCaseInsertTextBlockStyleField(title, field, value),
-    )
+    applySpineTextAction(updateJewelCaseSpineTitleStyleValue, side, field, value)
   }
 
   function handleApplySpineTitleStylePreset(
     side: JewelCaseSpineSide,
     presetId: string,
   ) {
-    updateSpineTitle(side, (title) =>
-      applyCaseInsertTextBlockStylePreset(title, presetId),
-    )
+    applySpineTextAction(applyJewelCaseSpineTitleStylePreset, side, presetId)
   }
 
   function handleResetSpineTitleStyle(side: JewelCaseSpineSide) {
-    updateSpineTitle(side, resetCaseInsertTextBlockStyle)
+    applySpineTextAction(resetJewelCaseSpineTitleDefaultStyle, side)
   }
 
   function handleSpineTextBlockStyleChange(
@@ -660,8 +396,7 @@ export function useJewelCaseSpineEditor({
     field: CaseInsertTextStyleField,
     value: CaseInsertTextStyleValue,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      updateCaseInsertTextBlockStyleField(textBlock, field, value))
+    applySpineTextAction(updateJewelCaseSpineTextBlockStyleValue, side, textBlockId, field, value)
   }
 
   function handleApplySpineTextBlockStylePreset(
@@ -669,15 +404,14 @@ export function useJewelCaseSpineEditor({
     textBlockId: string,
     presetId: string,
   ) {
-    updateSpineTextBlock(side, textBlockId, (textBlock) =>
-      applyCaseInsertTextBlockStylePreset(textBlock, presetId))
+    applySpineTextAction(applyJewelCaseSpineTextBlockStylePreset, side, textBlockId, presetId)
   }
 
   function handleResetSpineTextBlockStyle(
     side: JewelCaseSpineSide,
     textBlockId: string,
   ) {
-    updateSpineTextBlock(side, textBlockId, resetCaseInsertTextBlockStyle)
+    applySpineTextAction(resetJewelCaseSpineTextBlockDefaultStyle, side, textBlockId)
   }
 
   async function handleSpineImageSlotUpload(
@@ -686,35 +420,31 @@ export function useJewelCaseSpineEditor({
     label: string,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+    const uploadFile = getCaseInsertImageSlotUploadFile({
+      announceStatus,
+      event,
+      label,
+    })
 
-    if (!file) {
+    if (!uploadFile) {
       return
     }
 
-    const statusLabel = normalizeLabel(label)
+    const image = await loadUploadedCaseInsertImageSlotImage({
+      announceStatus,
+      uploadFile,
+    })
 
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
+    if (!image) {
       return
     }
 
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        statusLabel,
-      )
-
-      updateSpineImageSlot(side, slotKey, (slot) =>
-        slotKey === 'titleArtwork'
-          ? setCustomCaseInsertTitleArtworkImage(slot, image)
-          : setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Selected ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
+    updateSpineImageSlot(side, slotKey, (slot) =>
+      slotKey === 'titleArtwork'
+        ? setCustomCaseInsertTitleArtworkImage(slot, image)
+        : setCaseInsertImageSlotImage(slot, image),
+    )
+    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
   }
 
   async function handleUseSpineImageSlotSteamArtwork(
@@ -723,19 +453,11 @@ export function useJewelCaseSpineEditor({
     label: string,
     asset: SteamArtworkAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
-
-      updateSpineImageSlot(side, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Steam artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineImageSlotSource(
+      side,
+      slotKey,
+      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseSpineImageSlotLocalSteamScreenshot(
@@ -744,19 +466,11 @@ export function useJewelCaseSpineEditor({
     label: string,
     asset: LocalSteamScreenshotAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Loading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
-
-      updateSpineImageSlot(side, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineImageSlotSource(
+      side,
+      slotKey,
+      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseSpineImageSlotWebArtwork(
@@ -765,19 +479,11 @@ export function useJewelCaseSpineEditor({
     label: string,
     candidate: RemoteLogoCandidate,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
-
-      updateSpineImageSlot(side, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineImageSlotSource(
+      side,
+      slotKey,
+      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+    )
   }
 
   function handleSpineImageSlotEnabledChange(
@@ -785,8 +491,11 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotKey,
     enabled: boolean,
   ) {
-    updateSpineImageSlot(side, slotKey, (slot) =>
-      setCaseInsertImageSlotEnabled(slot, enabled),
+    applySpineImageSlotAction(
+      setJewelCaseSpineImageSlotEnabled,
+      side,
+      slotKey,
+      enabled,
     )
   }
 
@@ -795,8 +504,11 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotKey,
     fit: ProjectCaseInsertImageFit,
   ) {
-    updateSpineImageSlot(side, slotKey, (slot) =>
-      updateCaseInsertImageSlotFit(slot, fit),
+    applySpineImageSlotAction(
+      updateJewelCaseSpineImageSlotFit,
+      side,
+      slotKey,
+      fit,
     )
   }
 
@@ -806,8 +518,12 @@ export function useJewelCaseSpineEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    updateSpineImageSlot(side, slotKey, (slot) =>
-      updateCaseInsertImageSlotLayoutField(slot, field, value),
+    applySpineImageSlotAction(
+      updateJewelCaseSpineImageSlotLayoutValue,
+      side,
+      slotKey,
+      field,
+      value,
     )
   }
 
@@ -815,18 +531,17 @@ export function useJewelCaseSpineEditor({
     side: JewelCaseSpineSide,
     slotKey: JewelCaseSpineImageSlotKey,
   ) {
-    updateSpineSides(side, (spineSide, targetSide) => ({
-      ...spineSide,
-      [slotKey]: {
-        ...spineSide[slotKey],
-        layout: defaultSpineImageSlotLayouts[targetSide][slotKey],
-      },
-    }))
+    applySpineImageSlotAction(
+      resetJewelCaseSpineImageSlotDefaultLayout,
+      side,
+      slotKey,
+    )
   }
 
   function handleRestoreSpineTitleArtworkDefault(side: JewelCaseSpineSide) {
-    updateSpineImageSlot(side, 'titleArtwork', (slot) =>
-      restoreCaseInsertTitleArtworkDefaultSteamLogo(slot),
+    applySpineImageSlotAction(
+      restoreJewelCaseSpineTitleArtworkDefault,
+      side,
     )
     announceStatus('Restored game logo to the Steam default logo.')
   }
@@ -840,29 +555,12 @@ export function useJewelCaseSpineEditor({
       return
     }
 
-    setProjectJewelCase((currentCaseInsert) => {
-      return updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) => {
-          const region = getSpineBackgroundFitRegion(
-            currentCaseInsert,
-            targetSide,
-          )
-
-          return region
-            ? {
-                ...spineSide,
-                [slotKey]: fitCaseInsertImageSlotToRegionHeight(
-                  spineSide[slotKey],
-                  region,
-                ),
-              }
-            : spineSide
-        },
-      )
-    })
-    announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
+    applySpineImageSlotAction(
+      fitJewelCaseSpineImageSlotToRegionHeight,
+      side,
+      slotKey,
+    )
+    announceStatus(`Fit ${normalizeCaseInsertLabel(label)} top to bottom.`)
   }
 
   function handleClearSpineImageSlot(
@@ -870,115 +568,12 @@ export function useJewelCaseSpineEditor({
     slotKey: JewelCaseSpineImageSlotKey,
     label: string,
   ) {
-    updateSpineImageSlot(side, slotKey, (slot) => ({
-      ...slot,
-      imageDataUrl: null,
-      imageSize: null,
-      imageSource: null,
-    }))
-    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
-  }
-
-  function handleSpineSteamBannerEnabledChange(
-    side: JewelCaseSpineSide,
-    enabled: boolean,
-  ) {
-    updateSpineSteamBanner(side, (banner) =>
-      setCaseInsertSteamBannerEnabled(banner, enabled),
+    applySpineImageSlotAction(
+      clearJewelCaseSpineImageSlotImage,
+      side,
+      slotKey,
     )
-  }
-
-  async function handleSpineSteamBannerLockupUpload(
-    side: JewelCaseSpineSide,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the Steam spine banner icon.')
-      return
-    }
-
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        'Steam spine banner icon',
-      )
-
-      updateSpineSteamBanner(side, (banner) =>
-        setCustomCaseInsertSteamBannerLockupImage(banner, image, 'spine'),
-      )
-      announceStatus(`Using ${file.name} as the ${side} spine Steam banner icon.`)
-    } catch {
-      announceStatus('The Steam spine banner icon could not be read.')
-    }
-  }
-
-  function handleClearSpineSteamBannerLockup(side: JewelCaseSpineSide) {
-    updateSpineSteamBanner(side, (banner) =>
-      resetCaseInsertSteamBannerLockupImage(banner, 'spine'),
-    )
-    announceStatus(`Reset ${side} spine Steam banner icon to the default asset.`)
-  }
-
-  function handleSpineSteamBannerLockupLayoutChange(
-    side: JewelCaseSpineSide,
-    field: CaseInsertSteamBannerLayoutField,
-    value: number,
-  ) {
-    updateSpineSteamBanner(side, (banner) =>
-      updateCaseInsertSteamBannerLockupLayoutField(banner, field, value),
-    )
-  }
-
-  function handleResetSpineSteamBannerLockupLayout(side: JewelCaseSpineSide) {
-    updateSpineSteamBanner(side, (banner) =>
-      resetCaseInsertSteamBannerLockupLayout(banner, 'spine'),
-    )
-    announceStatus(`Reset ${side} spine Steam banner icon layout.`)
-  }
-
-  function handleSpineSteamBannerUseTextFallbackChange(
-    side: JewelCaseSpineSide,
-    useTextFallback: boolean,
-  ) {
-    updateSpineSteamBanner(side, (banner) =>
-      setCaseInsertSteamBannerUseTextFallback(banner, useTextFallback),
-    )
-    announceStatus(
-      useTextFallback
-        ? `Using saved text for the ${side} spine Steam banner.`
-        : `Using the ${side} spine Steam banner icon.`,
-    )
-  }
-
-  function handleSpineSteamBannerFallbackTextChange(
-    side: JewelCaseSpineSide,
-    fallbackText: string,
-  ) {
-    updateSpineSteamBanner(side, (banner) =>
-      updateCaseInsertSteamBannerFallbackText(banner, fallbackText),
-    )
-  }
-
-  function handleSpineSteamBannerColorChange(
-    side: JewelCaseSpineSide,
-    field: CaseInsertSteamBannerColorField,
-    value: string,
-  ) {
-    updateSpineSteamBanner(side, (banner) =>
-      updateCaseInsertSteamBannerColor(banner, field, value),
-    )
-  }
-
-  function handleResetSpineSteamBannerColors(side: JewelCaseSpineSide) {
-    updateSpineSteamBanner(side, resetCaseInsertSteamBannerColors)
-    announceStatus(`Reset ${side} spine Steam banner colors.`)
+    announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
 
   function handleAddSpineGroupedImageSlot(
@@ -1013,26 +608,6 @@ export function useJewelCaseSpineEditor({
           ? `Added ${side} spine logo slot.`
           : `Added ${side} spine mark slot.`,
     )
-  }
-
-  function handleAddSpineAdditionalLogoSlot(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) =>
-          addCaseInsertAdditionalLogoSlot(
-            spineSide,
-            'spine',
-            logoKey,
-            getSpineLogoSlotIdPrefix(targetSide),
-          ),
-      ),
-    )
-    announceStatus(`Added ${side} spine additional ${logoKey} logo.`)
   }
 
   function handleSpineAdditionalArtworkEnabledChange(
@@ -1127,42 +702,38 @@ export function useJewelCaseSpineEditor({
     label: string,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+    const uploadFile = getCaseInsertImageSlotUploadFile({
+      announceStatus,
+      event,
+      label,
+    })
 
-    if (!file) {
+    if (!uploadFile) {
       return
     }
 
-    const statusLabel = normalizeLabel(label)
+    const image = await loadUploadedCaseInsertImageSlotImage({
+      announceStatus,
+      uploadFile,
+    })
 
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
+    if (!image) {
       return
     }
 
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        statusLabel,
-      )
-
-      updateSpineGroupedImageSlot(
-        side,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(
-          slot,
-          preserveSpineGroupedSlotSource(slotKey, slot, image),
-        ),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Selected ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
+    updateSpineGroupedImageSlot(
+      side,
+      slotKey,
+      slotId,
+      (slot) => setCaseInsertImageSlotImage(
+        slot,
+        preserveSpineGroupedSlotSource(slotKey, slot, image),
+      ),
+      {
+        enableAdditionalArtwork: slotKey === 'artworkSlots',
+      },
+    )
+    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
   }
 
   async function handleUseSpineGroupedImageSlotSteamArtwork(
@@ -1172,25 +743,12 @@ export function useJewelCaseSpineEditor({
     label: string,
     asset: SteamArtworkAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
-
-      updateSpineGroupedImageSlot(
-        side,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Steam artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineGroupedImageSlotSource(
+      side,
+      slotKey,
+      slotId,
+      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseSpineGroupedImageSlotLocalSteamScreenshot(
@@ -1200,25 +758,12 @@ export function useJewelCaseSpineEditor({
     label: string,
     asset: LocalSteamScreenshotAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Loading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
-
-      updateSpineGroupedImageSlot(
-        side,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineGroupedImageSlotSource(
+      side,
+      slotKey,
+      slotId,
+      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseSpineGroupedImageSlotWebArtwork(
@@ -1228,25 +773,12 @@ export function useJewelCaseSpineEditor({
     label: string,
     candidate: RemoteLogoCandidate,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
-
-      updateSpineGroupedImageSlot(
-        side,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applySpineGroupedImageSlotSource(
+      side,
+      slotKey,
+      slotId,
+      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+    )
   }
 
   function handleSpineGroupedImageSlotFitChange(
@@ -1341,169 +873,7 @@ export function useJewelCaseSpineEditor({
             imageSource: null,
           },
     )
-    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
-  }
-
-  function handleSpinePrimaryLogoSlotEnabledChange(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-    enabled: boolean,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) =>
-          setCaseInsertPrimaryLogoSlotEnabled(
-            spineSide,
-            'spine',
-            logoKey,
-            enabled,
-            getSpineLogoSlotIdPrefix(targetSide),
-          ),
-      ),
-    )
-  }
-
-  async function handleSpinePrimaryLogoSlotUpload(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    const label = getCaseInsertPrimaryLogoLabel(logoKey)
-    const statusLabel = normalizeLabel(label)
-
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
-      return
-    }
-
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        statusLabel,
-      )
-
-      setProjectJewelCase((currentCaseInsert) =>
-        updateProjectJewelCaseSpineSides(
-          currentCaseInsert,
-          side,
-          (spineSide, targetSide) =>
-            setCaseInsertPrimaryLogoSlotImage(
-              spineSide,
-              'spine',
-              logoKey,
-              image,
-              getSpineLogoSlotIdPrefix(targetSide),
-            ),
-        ),
-      )
-      announceStatus(`Selected ${side} spine ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
-  }
-
-  function handleSpinePrimaryLogoSlotLayoutChange(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) =>
-          updateCaseInsertPrimaryLogoSlotLayoutField(
-            spineSide,
-            'spine',
-            logoKey,
-            field,
-            value,
-            getSpineLogoSlotIdPrefix(targetSide),
-          ),
-      ),
-    )
-  }
-
-  function handleResetSpinePrimaryLogoSlotLayout(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) =>
-          resetCaseInsertPrimaryLogoSlotLayout(
-            spineSide,
-            'spine',
-            logoKey,
-            getSpineLogoSlotIdPrefix(targetSide),
-          ),
-      ),
-    )
-  }
-
-  function handleClearSpinePrimaryLogoSlot(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectJewelCaseSpineSides(
-        currentCaseInsert,
-        side,
-        (spineSide, targetSide) =>
-          clearCaseInsertPrimaryLogoSlotImage(
-            spineSide,
-            'spine',
-            logoKey,
-            getSpineLogoSlotIdPrefix(targetSide),
-          ),
-      ),
-    )
-    announceStatus(
-      `Cleared ${side} spine ${normalizeLabel(getCaseInsertPrimaryLogoLabel(logoKey))} image.`,
-    )
-  }
-
-  async function handleUseSpineLogoCandidate(
-    side: JewelCaseSpineSide,
-    logoKey: LogoAssetKey,
-    candidate: RemoteLogoCandidate,
-  ) {
-    const label = getCaseInsertPrimaryLogoLabel(logoKey)
-    announceStatus(`Adding ${candidate.label} to the ${side} spine...`)
-
-    try {
-      const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
-
-      setProjectJewelCase((currentCaseInsert) =>
-        updateProjectJewelCaseSpineSides(
-          currentCaseInsert,
-          side,
-          (spineSide, targetSide) =>
-            setCaseInsertPrimaryLogoSlotImage(
-              spineSide,
-              'spine',
-              logoKey,
-              image,
-              getSpineLogoSlotIdPrefix(targetSide),
-            ),
-        ),
-      )
-      announceStatus(`Added ${candidate.label} as the ${side} spine ${normalizeLabel(label)}.`)
-    } catch (error) {
-      announceStatus(`Logo candidate import failed for ${side} spine ${normalizeLabel(label)}: ${String(error)}`)
-    }
+    announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
 
   return {

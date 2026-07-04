@@ -1,0 +1,5365 @@
+# Refactor Audit Working Log
+
+> Temporary working note for the bounded audit -> refactor -> test loop.
+> Keep only if this becomes useful project documentation; otherwise discard before finalizing.
+
+## Pass 1 - Continuation Audit
+
+- Candidate found: `src/app/App.tsx` remains the largest file at 1747 lines.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/app/App.tsx`
+  - `src/project/projectCaseInsert.test.ts`
+  - `package.json`
+- Decision: deferred `App.tsx` for this batch.
+- Reason: the visible clusters in `App.tsx` are stateful app orchestration with many live closures. Extracting them now would be higher risk than the available test-suite decomposition.
+
+- Candidate found: `src/project/projectCaseInsert.test.ts` contained a distinct branding/logo/mark source contract group.
+- Evidence/files inspected:
+  - Test names and imports in `src/project/projectCaseInsert.test.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the branding source/slot tests were cohesive, behavior-only, and could be moved into a focused test file without changing production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertBrandingSources.test.ts`
+  - `package.json`
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsert.test.ts src/project/projectCaseInsertBrandingSources.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Targeted split tests passed, 28 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+
+## Pass 2 - Project Case Insert Artwork Test Split
+
+- Candidate found: `src/project/projectCaseInsert.test.ts` still contained a cohesive artwork/image-slot contract group after the branding source split.
+- Evidence/files inspected:
+  - Test names and import ownership in `src/project/projectCaseInsert.test.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests cover case insert image fit normalization, artwork source provenance, additional artwork visibility, frame defaults, slot save/load behavior, and height fitting. They share one project/artwork-slot ownership area and can be split without changing production behavior.
+
+- Files changed:
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsert.test.ts`: 914 lines, 31,293 bytes.
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`: 583 lines, 18,222 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsert.test.ts src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Focused split tests passed, 23 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - `src/project/projectCaseInsert.test.ts` still has a few broad save/restore and text-adjacent tests, but the next split needs a fresh audit before moving more.
+
+## Pass 3 - Contextual Ribbon Visual-Control Test Split
+
+- Candidate found: `src/components/preview/contextualTextRibbonModel.test.ts` still mixed model/layout coverage with a large static visual-control contract for the contextual text ribbon.
+- Evidence/files inspected:
+  - Test names and source/CSS assertion groups in `src/components/preview/contextualTextRibbonModel.test.ts`
+  - Existing focused ribbon split files:
+    - `src/components/preview/contextualTextRibbonLayout.test.ts`
+    - `src/components/preview/contextualTextRibbonTabs.test.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the Artistic/Text visual-control assertions and color-input draft-path assertion form a focused source/CSS contract. Moving them into a dedicated visual-controls test file reduces the broad model test without changing production code or weakening coverage.
+
+- Files changed:
+  - `src/components/preview/contextualTextRibbonModel.test.ts`
+  - `src/components/preview/contextualTextRibbonVisualControls.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/contextualTextRibbonModel.test.ts`: 641 lines, 20,355 bytes.
+  - `src/components/preview/contextualTextRibbonVisualControls.test.ts`: 537 lines, 22,838 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/contextualTextRibbonModel.test.ts src/components/preview/contextualTextRibbonVisualControls.test.ts src/components/preview/contextualTextRibbonLayout.test.ts src/components/preview/contextualTextRibbonTabs.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Focused contextual ribbon tests passed, 18 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further ribbon test helper deduplication is possible, but should wait for a fresh audit so fixture helpers do not become a vague test utility dumping ground.
+
+## Pass 4 - Disc Inner No-Print Test Split
+
+- Candidate found: `src/layout/discElementSafeZone.test.ts` mixed outer safe-zone slider/contour coverage with a distinct inner no-print exclusion contract suite.
+- Evidence/files inspected:
+  - Test names and helper ownership in `src/layout/discElementSafeZone.test.ts`
+  - Existing layout test ownership around `src/layout/discSafeZoneRangeMath.test.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the inner no-print tests cover hub exclusion, larger no-print hubs, custom inner-hole boundaries, additional logo clamping, and straight-text hub avoidance. They are cohesive geometry guardrail coverage and can move into a focused test file without touching production code or changing assertions.
+
+- Files changed:
+  - `src/layout/discElementSafeZone.test.ts`
+  - `src/layout/discElementInnerNoPrint.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/discElementSafeZone.test.ts`: 605 lines, 17,402 bytes.
+  - `src/layout/discElementInnerNoPrint.test.ts`: 382 lines, 11,517 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/discElementSafeZone.test.ts src/layout/discElementInnerNoPrint.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Focused layout split tests passed, 24 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Production layout modules remain large enough to audit, but geometry behavior is parity-sensitive; further production extraction should require a fresh owner-level audit and focused tests.
+
+## Pass 5 - Jewel Case Spine Layout Test Split
+
+- Candidate found: `src/layout/jewelCaseLayout.test.ts` still mixed broad jewel-case surface/fit/resolution geometry with spine-specific preview, text wrapping, avoidance, and rotated image slider coverage.
+- Evidence/files inspected:
+  - Test names and helper ownership in `src/layout/jewelCaseLayout.test.ts`
+  - Existing production owner `src/layout/jewelCaseSpineLayout.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests are all spine layout contracts and belong beside the spine layout owner. Splitting them reduces the broad layout test without touching production code or changing assertions.
+
+- Files changed:
+  - `src/layout/jewelCaseLayout.test.ts`
+  - `src/layout/jewelCaseSpineLayout.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseLayout.test.ts`: 350 lines, 10,495 bytes.
+  - `src/layout/jewelCaseSpineLayout.test.ts`: 563 lines, 16,254 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseLayout.test.ts src/layout/jewelCaseSpineLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Focused jewel-case layout split tests passed, 17 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - `src/discText/svgLayer.test.ts` still has a plausible straight/curved renderer split, but it is a larger mechanical move and should be audited separately before touching.
+
+## Pass 6 - Case Insert Supplemental USK Test Split
+
+- Candidate found: `src/caseInsert/brandingVisibility.test.ts` still mixed general case-insert mark visibility/default layout coverage with a focused supplemental USK rating-badge sync contract.
+- Evidence/files inspected:
+  - Test names and helper ownership in `src/caseInsert/brandingVisibility.test.ts`
+  - Existing rating badge and case insert mark-family ownership in `src/project/projectRatingBadge.ts` and `src/caseInsert/brandingMarkSlots.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests all cover the supplemental USK companion-badge behavior: separate slot creation, target-slot visibility, default offset from the primary rating badge, and legacy overlapping-layout migration. This is a cohesive mark-family contract and can move into a focused test file without changing production code or weakening assertions.
+
+- Files changed:
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingSupplementalUsk.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingVisibility.test.ts`: 666 lines, 20,146 bytes.
+  - `src/caseInsert/brandingSupplementalUsk.test.ts`: 285 lines, 8,927 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingVisibility.test.ts src/caseInsert/brandingSupplementalUsk.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Focused branding split tests passed, 18 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Broader case-insert branding sync production code remains parity-sensitive; further extraction should be based on focused source-owner audits rather than test movement alone.
+
+## Pass 7 - Disc SVG Curved Renderer Test Split
+
+- Candidate found: `src/discText/svgLayer.test.ts` still mixed straight SVG text contracts with curved SVG textPath, underline, paint-box, and collision-box contracts.
+- Evidence/files inspected:
+  - Test names and imports in `src/discText/svgLayer.test.ts`
+  - Disc text ownership map in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the curved renderer tests form a cohesive disc-text SVG contract. Moving them into `src/discText/svgLayerCurved.test.ts` makes straight and curved renderer failures easier to diagnose without touching production renderer behavior or weakening assertions.
+
+- Files changed:
+  - `src/discText/svgLayer.test.ts`
+  - `src/discText/svgLayerCurved.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/discText/svgLayer.test.ts`: 191 lines, 5,976 bytes.
+  - `src/discText/svgLayerCurved.test.ts`: 679 lines, 22,193 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/discText/svgLayer.test.ts src/discText/svgLayerCurved.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused SVG split tests passed, 20 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - `src/discText/svgLayer.ts` remains a renderer-sensitive production file; further extraction should be based on a fresh renderer-owner audit with behavior-preserving tests.
+
+## Pass 8 - Project Case Insert Text Normalization Test Split
+
+- Candidate found: `src/project/projectCaseInsert.test.ts` still mixed broad case-insert project defaults, routing, snapshot, and restore coverage with a focused text normalization/layout contract group.
+- Evidence/files inspected:
+  - Test names and imports in `src/project/projectCaseInsert.test.ts`
+  - Existing text-focused coverage in `src/project/projectCaseInsertText.test.ts`
+  - Save/load ownership in `docs/PROJECT_FILE_SPEC.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests all cover case insert text save/load normalization, sparse text defaults, layout preset behavior, and spine title point-size normalization. Splitting them into `src/project/projectCaseInsertTextNormalization.test.ts` keeps the broad project test focused without touching production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertTextNormalization.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsert.test.ts`: 629 lines, 23,506 bytes.
+  - `src/project/projectCaseInsertTextNormalization.test.ts`: 287 lines, 8,803 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsert.test.ts src/project/projectCaseInsertText.test.ts src/project/projectCaseInsertTextNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project split tests passed, 28 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Remaining top-size files are mostly production orchestration/editor/export code; further passes need fresh ownership audits before editing.
+
+## Pass 9 - Project Disc Text Restore Test Split
+
+- Candidate found: `src/project/restoreProjectState.test.ts` still mixed broad disc project restore coverage with focused disc-text restore contracts for visual avoidance, metadata/manual source restoration, HTML/Markdown source migration, and style backfill.
+- Evidence/files inspected:
+  - Test names and imports in `src/project/restoreProjectState.test.ts`
+  - Save/load ownership in `docs/PROJECT_FILE_SPEC.md`
+  - SDD save/load and text parity sections in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests all cover disc-text project restoration behavior and share disc text style/source dependencies. Splitting them into `src/project/restoreProjectDiscText.test.ts` keeps the broad restore suite focused while preserving assertions and avoiding production-code changes.
+
+- Files changed:
+  - `src/project/restoreProjectState.test.ts`
+  - `src/project/restoreProjectDiscText.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/restoreProjectState.test.ts`: 582 lines, 20,174 bytes.
+  - `src/project/restoreProjectDiscText.test.ts`: 226 lines, 7,190 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/restoreProjectState.test.ts src/project/restoreProjectDiscText.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project restore split tests passed, 20 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further restore-project splitting should stop if it starts duplicating fixtures more than it clarifies project restore ownership.
+
+## Pass 10 - Curved Disc Text Test Responsibility Split
+
+- Candidate found: `src/discText/curvedTextLayout.test.ts` mixed pure curved arc layout tests with curved inline editor bounds, caret/hit-testing, selection path, rendered SVG boundary, and UTF-16/grapheme mapping contracts.
+- Evidence/files inspected:
+  - Test names and imports in `src/discText/curvedTextLayout.test.ts`
+  - Existing owners `src/discText/curvedInlineEditorGeometry.ts` and `src/discText/curvedRenderedTextBoundaries.ts`
+  - Text editor contract curved-disc SVG/textPath guardrails in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests map directly to focused curved text owners. Keeping pure arc layout tests in `curvedTextLayout.test.ts`, inline editor geometry tests in `curvedInlineEditorGeometry.test.ts`, and rendered SVG boundary tests in `curvedRenderedTextBoundaries.test.ts` makes failures easier to diagnose without touching renderer/editor production code or weakening assertions.
+
+- Files changed:
+  - `src/discText/curvedTextLayout.test.ts`
+  - `src/discText/curvedInlineEditorGeometry.test.ts`
+  - `src/discText/curvedRenderedTextBoundaries.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/discText/curvedTextLayout.test.ts`: 160 lines, 5,473 bytes.
+  - `src/discText/curvedInlineEditorGeometry.test.ts`: 535 lines, 14,377 bytes.
+  - `src/discText/curvedRenderedTextBoundaries.test.ts`: 207 lines, 5,730 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/discText/curvedTextLayout.test.ts src/discText/curvedInlineEditorGeometry.test.ts src/discText/curvedRenderedTextBoundaries.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused curved text split tests passed, 25 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Curved disc text production code remains WYSIWYG-sensitive; future production extraction should preserve SVG/textPath ownership and require manual Tauri verification if user-visible behavior is touched.
+
+## Pass 11 - Project Parity Harness Fixture Split
+
+- Candidate found: `src/diagnostics/projectParityHarness.test.ts` mixed parity harness diagnostic coverage with representative disc and case-insert fixture contracts.
+- Evidence/files inspected:
+  - Test names and imports in `src/diagnostics/projectParityHarness.test.ts`
+  - Project save/load and parity ownership in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: harness field-drift diagnostics, disc parity fixture coverage, and case-insert parity fixture coverage are separate contracts. Splitting the fixtures keeps failures tied to the affected project surface without touching production harness logic or weakening assertions.
+
+- Files changed:
+  - `src/diagnostics/projectParityHarness.test.ts`
+  - `src/diagnostics/projectParityHarnessDisc.test.ts`
+  - `src/diagnostics/projectParityHarnessCaseInsert.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/diagnostics/projectParityHarness.test.ts`: 41 lines, 924 bytes.
+  - `src/diagnostics/projectParityHarnessDisc.test.ts`: 333 lines, 11,345 bytes.
+  - `src/diagnostics/projectParityHarnessCaseInsert.test.ts`: 370 lines, 10,409 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/diagnostics/projectParityHarness.test.ts src/diagnostics/projectParityHarnessDisc.test.ts src/diagnostics/projectParityHarnessCaseInsert.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused parity harness split tests passed, 3 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further parity harness splitting should stop if it starts duplicating fixture setup more than it clarifies disc/case ownership.
+
+## Pass 12 - Case Insert Inline Control Test Split
+
+- Candidate found: `src/components/preview/caseInsertInlineTextEditorControls.test.ts` covered base text-block controls, metadata source state, rich-text selection command routing, text-list target controls, and spine target controls in one file.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+  - Text editor contract guardrails in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests already represented separate contracts. Rich-text command routing belongs in its own inline-control test file, while text-list/spine target-surface controls are clearer together as non-base target coverage. The split preserved assertions and did not touch production code.
+
+- Files changed:
+  - `src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+  - `src/components/preview/caseInsertInlineTextEditorRichTextControls.test.ts`
+  - `src/components/preview/caseInsertInlineTextEditorTargetControls.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/caseInsertInlineTextEditorControls.test.ts`: 299 lines, 10,154 bytes.
+  - `src/components/preview/caseInsertInlineTextEditorRichTextControls.test.ts`: 139 lines, 4,273 bytes.
+  - `src/components/preview/caseInsertInlineTextEditorTargetControls.test.ts`: 329 lines, 11,503 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/caseInsertInlineTextEditorControls.test.ts src/components/preview/caseInsertInlineTextEditorRichTextControls.test.ts src/components/preview/caseInsertInlineTextEditorTargetControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case-insert inline-control split tests passed, 7 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further inline-control test splitting should stop if it starts fragmenting a single contextual control contract or duplicating setup more than it clarifies ownership.
+
+## Pass 13 - Curved SVG Renderer Test Split
+
+- Candidate found: `src/discText/svgLayerCurved.test.ts` mixed curved SVG/textPath markup assertions, curved underline rendering assertions, and curved paint/collision-box geometry contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/discText/svgLayerCurved.test.ts`
+  - Curved disc SVG/textPath contract in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Renderer parity and validation rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests represent separate renderer contracts. Keeping textPath/arc markup in the original file while moving underline rendering and paint/collision-box geometry into focused files makes failures easier to route without touching production renderer code or weakening SVG assertions.
+
+- Files changed:
+  - `src/discText/svgLayerCurved.test.ts`
+  - `src/discText/svgLayerCurvedUnderline.test.ts`
+  - `src/discText/svgLayerCurvedPaintBoxes.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/discText/svgLayerCurved.test.ts`: 337 lines, 10,106 bytes.
+  - `src/discText/svgLayerCurvedUnderline.test.ts`: 279 lines, 8,739 bytes.
+  - `src/discText/svgLayerCurvedPaintBoxes.test.ts`: 132 lines, 3,920 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/discText/svgLayerCurved.test.ts src/discText/svgLayerCurvedUnderline.test.ts src/discText/svgLayerCurvedPaintBoxes.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused curved SVG renderer split tests passed, 14 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future curved SVG renderer production refactors remain WYSIWYG-sensitive and should preserve SVG/textPath ownership, markup order, paint geometry, and preview/export parity.
+
+## Pass 14 - Case Insert Preview Layout Test Split
+
+- Candidate found: `src/layout/caseInsertPreviewLayout.test.ts` mixed template surface geometry, guide/export geometry, layer-label coverage, pane availability, and cover-surface artwork/text layout behavior in one suite.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/layout/caseInsertPreviewLayout.test.ts`
+  - Renderer/preview/export parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: template/guide/export geometry is a separate contract from cover-surface artwork/text preview layout. Splitting those tests makes failures easier to route while preserving all assertions and avoiding production layout changes.
+
+- Files changed:
+  - `src/layout/caseInsertPreviewLayout.test.ts`
+  - `src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/caseInsertPreviewLayout.test.ts`: 365 lines, 11,395 bytes.
+  - `src/layout/caseInsertPreviewGuideLayout.test.ts`: 347 lines, 12,713 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert preview layout split tests passed, 18 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future preview/export layout production refactors should preserve template guide geometry, active export-surface geometry, cover text avoidance, and preview/export parity.
+
+## Pass 15 - Jewel Case Back Layout Test Split
+
+- Candidate found: `src/layout/jewelCaseBackLayout.test.ts` mixed tray background/artwork/screenshot geometry with tray text/readability/avoidance layout contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names, helpers, and imports in `src/layout/jewelCaseBackLayout.test.ts`
+  - Renderer/preview/export parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: tray text/readability/avoidance has distinct ownership from background/artwork/screenshot layout. Splitting the tests keeps assertions intact, improves failure routing, and avoids production layout changes.
+
+- Files changed:
+  - `src/layout/jewelCaseBackLayout.test.ts`
+  - `src/layout/jewelCaseBackTextLayout.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseBackLayout.test.ts`: 211 lines, 6,129 bytes.
+  - `src/layout/jewelCaseBackTextLayout.test.ts`: 510 lines, 15,991 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseBackLayout.test.ts src/layout/jewelCaseBackTextLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused jewel case back layout split tests passed, 12 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future production layout refactors should preserve tray text readability/avoidance, screenshot/artwork range geometry, and preview/export parity.
+
+## Pass 16 - Jewel Case Spine Layout Test Split
+
+- Candidate found: `src/layout/jewelCaseSpineLayout.test.ts` mixed spine text layout/readability/avoidance contracts with mixed preview layout smoke coverage and image slider geometry.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names, helpers, and imports in `src/layout/jewelCaseSpineLayout.test.ts`
+  - Renderer/preview/export parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: spine text layout, text avoidance, and text slider range checks are a distinct contract from spine image slider geometry and mixed preview composition. Splitting them improves failure routing without touching production layout code.
+
+- Files changed:
+  - `src/layout/jewelCaseSpineLayout.test.ts`
+  - `src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseSpineLayout.test.ts`: 151 lines, 4,215 bytes.
+  - `src/layout/jewelCaseSpineTextLayout.test.ts`: 431 lines, 12,581 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused jewel case spine layout split tests passed, 9 tests.
+  - First lint run caught one stale import in the trimmed original test; removing it made lint pass.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future spine layout production refactors should preserve mirrored left/right text semantics, text avoidance, adjusted visible safe-guide bounds, image slider geometry, and preview/export parity.
+
+## Pass 17 - Project Case Insert Text Persistence Test Split
+
+- Candidate found: `src/project/projectCaseInsertText.test.ts` mixed preview text draft/control behavior with save/restore and legacy HTML/Markdown persistence coverage.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsertText.test.ts`
+  - Project save/load and renderer parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved tests are persistence and migration contracts, distinct from preview editing and target-control state transitions. Splitting them preserves assertions and makes save/load failures easier to route without changing project code.
+
+- Files changed:
+  - `src/project/projectCaseInsertText.test.ts`
+  - `src/project/projectCaseInsertTextPersistence.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsertText.test.ts`: 448 lines, 13,281 bytes.
+  - `src/project/projectCaseInsertTextPersistence.test.ts`: 242 lines, 7,516 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsertText.test.ts src/project/projectCaseInsertTextPersistence.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project case-insert text split tests passed, 15 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future project text changes should preserve preview draft semantics, HTML source preservation, legacy Markdown migration, save/load shape, and mirrored spine side behavior.
+
+## Pass 18 - Case Insert Template Action Test Ownership Move
+
+- Candidate found: `src/caseInsert/brandingVisibility.test.ts` still contained template-surface action default/source tests that belonged to the focused template image and text action suites.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/caseInsert/brandingVisibility.test.ts`
+  - Existing owner suites `src/caseInsert/templateSurfaceImageSlotActions.test.ts` and `src/caseInsert/templateSurfaceTextActions.test.ts`
+  - Case insert state and parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+- Decision: implemented.
+- Reason: moving the misplaced tests restores clearer test ownership without adding new files, changing package metadata, or touching production behavior.
+
+- Files changed:
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingVisibility.test.ts`: 566 lines, 16,870 bytes.
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`: 286 lines, 8,773 bytes.
+  - `src/caseInsert/templateSurfaceTextActions.test.ts`: 202 lines, 5,546 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingVisibility.test.ts src/caseInsert/templateSurfaceImageSlotActions.test.ts src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert ownership-move tests passed, 24 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future branding visibility changes should keep mark visibility/placement tests separate from template-surface image and text action defaults.
+
+## Pass 19 - Contextual Text Ribbon Sizing Test Split
+
+- Candidate found: `src/components/preview/contextualTextRibbonModel.test.ts` still mixed tab registry/control descriptor tests with app-shell reserved-height, active-width, column packing, and preset-card sizing contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/components/preview/contextualTextRibbonModel.test.ts`
+  - Existing sibling ribbon test ownership in `src/components/preview/contextualTextRibbonLayout.test.ts`, `contextualTextRibbonTabs.test.ts`, and `contextualTextRibbonVisualControls.test.ts`
+  - Text editor contextual ribbon contract in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: the moved assertions are cohesive sizing/layout contracts for the contextual ribbon model and CSS-adjacent preset-card behavior. Splitting them keeps registry and descriptor fixture tests separate from layout math without changing production code or weakening assertions.
+
+- Files changed:
+  - `src/components/preview/contextualTextRibbonModel.test.ts`
+  - `src/components/preview/contextualTextRibbonSizing.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/contextualTextRibbonModel.test.ts`: 310 lines, 8,849 bytes.
+  - `src/components/preview/contextualTextRibbonSizing.test.ts`: 323 lines, 12,096 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/contextualTextRibbonModel.test.ts src/components/preview/contextualTextRibbonSizing.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused contextual ribbon split tests passed, 13 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future contextual ribbon changes should keep app-shell sizing, semantic-card packing, CSS layout, tab registry, and control-descriptor fixture contracts in their focused suites.
+
+## Pass 20 - Disc Contour Safe-Zone Test Split
+
+- Candidate found: `src/layout/discElementSafeZone.test.ts` still mixed straight text and rectangular placeholder slider/clamp tests with alpha-contour, bundled contour metadata, safety-outset, and legacy-contour fallback tests.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/layout/discElementSafeZone.test.ts`
+  - Existing nearby owners `src/layout/discElementInnerNoPrint.test.ts` and `src/layout/discSafeZoneRangeMath.test.ts`
+  - Disc renderer/layout parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: contour-aware safe-zone behavior is a distinct geometry contract from rectangular/text slider range behavior. Splitting it preserves the assertions, gives contour regressions a clearer failure owner, and avoids touching production safe-zone code.
+
+- Files changed:
+  - `src/layout/discElementSafeZone.test.ts`
+  - `src/layout/discElementContourSafeZone.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/discElementSafeZone.test.ts`: 318 lines, 9,529 bytes.
+  - `src/layout/discElementContourSafeZone.test.ts`: 280 lines, 8,408 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/discElementSafeZone.test.ts src/layout/discElementContourSafeZone.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused disc safe-zone split tests passed, 14 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future disc safe-zone production refactors should keep straight text, rectangular image ranges, contour-aware image clamps, inner no-print behavior, and neutral range math in their focused suites.
+
+## Pass 21 - Case Insert Legacy Project Test Split
+
+- Candidate found: `src/project/projectCaseInsert.test.ts` still mixed current blank/snapshot/helper coverage with sparse legacy case-insert normalization and legacy jewel-case shell routing contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsert.test.ts`
+  - Case insert save/load compatibility rules in `docs/PROJECT_FILE_SPEC.md`
+  - Project data and save/load sections in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project save/load ownership in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: legacy active-pane fallback, sparse jewel-case restoration, and legacy `template.type: 'jewelCase'` normalization form a cohesive compatibility contract. Splitting them improves failure routing without changing production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertLegacy.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsert.test.ts`: 416 lines, 16,288 bytes.
+  - `src/project/projectCaseInsertLegacy.test.ts`: 231 lines, 7,497 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsert.test.ts src/project/projectCaseInsertLegacy.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case-insert project split tests passed, 10 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further project case-insert test splitting should stop if it starts separating current snapshot defaults from the helper contracts that document them.
+
+## Pass 22 - Disc Inline Text Curved-Control Test Split
+
+- Candidate found: `src/components/preview/discInlineTextEditorControls.test.ts` mixed straight-disc contextual control assertions with curved-disc SVG/textPath control assertions.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and helper ownership in `src/components/preview/discInlineTextEditorControls.test.ts`
+  - Disc straight/curved contextual adapter rules in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: curved disc text has its own textPath-safe contextual control contract. Splitting those assertions from straight/shared disc control coverage makes failures easier to route without touching production text-editor behavior.
+
+- Files changed:
+  - `src/components/preview/discInlineTextEditorControls.test.ts`
+  - `src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/discInlineTextEditorControls.test.ts`: 322 lines, 11,974 bytes.
+  - `src/components/preview/discInlineTextEditorCurvedControls.test.ts`: 293 lines, 10,193 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/discInlineTextEditorControls.test.ts src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused disc inline control split tests passed, 11 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Future disc inline control test splitting should stop if it would separate shared straight-control setup from the assertions that document it.
+
+## Pass 23 - Project Steam Banner Restore Test Split
+
+- Candidate found: `src/project/restoreProjectState.test.ts` still mixed broad disc restore coverage with focused Steam banner lockup and text-fallback restore contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/project/restoreProjectState.test.ts`
+  - Save/load schema rules in `docs/PROJECT_FILE_SPEC.md`
+  - Project data and save/load sections in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project save/load ownership in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: built-in Steam banner lockup replacement, custom lockup text fallback restoration, and blank fallback normalization are one cohesive Steam banner restore contract. Splitting them improves failure routing without changing production project restore behavior or weakening assertions.
+
+- Files changed:
+  - `src/project/restoreProjectState.test.ts`
+  - `src/project/restoreProjectSteamBanner.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/restoreProjectState.test.ts`: 496 lines, 18,207 bytes.
+  - `src/project/restoreProjectSteamBanner.test.ts`: 88 lines, 2,848 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/restoreProjectState.test.ts src/project/restoreProjectSteamBanner.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project restore split tests passed, 16 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further restore-project splitting should stop if it starts duplicating the shared project fixture more than it clarifies feature restore ownership.
+
+## Pass 24 - Case Insert Artwork Normalization Test Split
+
+- Candidate found: `src/project/projectCaseInsertArtworkSlots.test.ts` still mixed current artwork slot helper/visibility/frame behavior with sparse and legacy saved-project normalization contracts.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - Case insert save/load compatibility rules in `docs/PROJECT_FILE_SPEC.md`
+  - Project data and save/load sections in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project save/load and case insert image-slot ownership in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: legacy additional-artwork visibility inference and sparse saved image field normalization are a cohesive compatibility contract. Splitting them improves failure routing without changing production project restore behavior or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`: 440 lines, 15,150 bytes.
+  - `src/project/projectCaseInsertArtworkNormalization.test.ts`: 105 lines, 3,220 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case-insert artwork split tests passed, 10 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` reported only existing CRLF normalization warnings.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further case-insert artwork test splitting should stop if it starts separating current slot helper behavior from the assertions that document save/load-visible slot state.
+
+## Pass 25 - Inline Preview Text Renderer Contract Test Split
+
+- Candidate found: `src/components/preview/inlinePreviewTextEditorContract.test.ts` still mixed shared adapter capability/invariant coverage with source-level renderer ownership and curved-disc SVG/textPath guardrails.
+- Evidence/files inspected:
+  - Current large-file audit ranking by line count.
+  - Test names and fixture ownership in `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - Renderer and curved-disc adapter rules in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Preview/edit/export renderer contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Text editor ownership inventory in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: curved-disc rectangular-adapter exclusion and fake-visible-renderer source guards are a cohesive renderer-ownership contract. Splitting them from fixture-heavy shared adapter tests improves failure routing without changing production text-editor behavior or weakening assertions.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`: 516 lines, 14,704 bytes.
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`: 88 lines, 3,085 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorContract.test.ts src/components/preview/inlinePreviewTextEditorRendererContract.test.ts package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused inline preview text contract split tests passed, 8 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further text-editor contract test splitting should stop if it would separate shared adapter fixture setup from the invariant assertions that depend on it.
+
+## Pass 26 - Case Insert Technical Custom-Image Sync Test Split
+
+- Candidate found: `src/caseInsert/brandingCustomImageSync.test.ts` still mixed rating/media/platform custom image sync contracts with technical-mark primary/additional asset identity contracts.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and helper ownership in `src/caseInsert/brandingCustomImageSync.test.ts`
+  - Case insert branding sync, custom image, and preview/export parity rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Branding and technical mark ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: technical marks have primary and added-asset identity rules that are distinct from rating/media/platform replacement and restore behavior. Splitting them improves failure routing without changing production branding sync behavior or weakening assertions.
+
+- Files changed:
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingCustomImageSync.test.ts`: 413 lines, 14,100 bytes.
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`: 155 lines, 5,726 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/brandingCustomImageSync.test.ts src/caseInsert/brandingTechnicalCustomImageSync.test.ts package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert branding custom-image split tests passed, 7 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further branding custom-image test splitting should stop if it would duplicate target/slot fixtures more than it clarifies mark-family ownership.
+
+## Pass 27 - Case Insert Target Mark Slot Test Split
+
+- Candidate found: `src/caseInsert/brandingVisibility.test.ts` still mixed mark visibility predicates and placement lookup coverage with target-slot creation, mirrored-spine propagation, generated layout defaults, and disable/re-enable preservation coverage.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and helper ownership in `src/caseInsert/brandingVisibility.test.ts`
+  - Case insert branding slots, visibility, and disabled-state preservation rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Case insert branding ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: target mark slot creation and preservation are a distinct contract from visibility predicates. Splitting the target-slot behavior into a focused test file improves failure routing while preserving the same assertions and production behavior.
+
+- Files changed:
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingTargetMarkSlots.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingVisibility.test.ts`: 296 lines, 9,051 bytes.
+  - `src/caseInsert/brandingTargetMarkSlots.test.ts`: 277 lines, 9,226 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingVisibility.test.ts src/caseInsert/brandingTargetMarkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/brandingVisibility.test.ts src/caseInsert/brandingTargetMarkSlots.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert branding visibility/target-slot split tests passed, 10 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings for `package.json` and `src/caseInsert/brandingVisibility.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further branding visibility splitting should stop if it would duplicate target/slot fixture setup more than it clarifies ownership.
+
+## Pass 28 - Curved Inline Editor Selection Geometry Test Split
+
+- Candidate found: `src/discText/curvedInlineEditorGeometry.test.ts` still mixed curved editor bounds, pointer hit testing, caret geometry, and selection-path boundary coverage.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and helper ownership in `src/discText/curvedInlineEditorGeometry.test.ts`
+  - Curved SVG/textPath ownership and text selection/caret rules in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Curved disc text SVG/textPath invariants in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Text-system ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: selection path and rendered boundary assertions are a cohesive contract separate from editor bounds, pointer offset mapping, and caret frame geometry. Splitting them improves failure routing without touching production curved text code or changing assertions.
+
+- Files changed:
+  - `src/discText/curvedInlineEditorGeometry.test.ts`
+  - `src/discText/curvedInlineEditorSelectionGeometry.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/discText/curvedInlineEditorGeometry.test.ts`: 252 lines, 7,232 bytes.
+  - `src/discText/curvedInlineEditorSelectionGeometry.test.ts`: 295 lines, 8,397 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/discText/curvedInlineEditorGeometry.test.ts src/discText/curvedInlineEditorSelectionGeometry.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/discText/curvedInlineEditorGeometry.test.ts src/discText/curvedInlineEditorSelectionGeometry.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused curved inline editor geometry split tests passed, 13 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further curved inline editor geometry test splitting should stop if it would duplicate geometry fixtures more than it clarifies caret, hit-test, or selection ownership.
+
+## Pass 29 - Disc Project Visual Restore Test Split
+
+- Candidate found: `src/project/restoreProjectState.test.ts` still mixed core disc project restore smoke and checked-in fixture coverage with visual-asset restoration contracts for ratings, provenance, title artwork, logo/artwork layouts, platform/technical marks, background state, and image-size handling.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and import ownership in `src/project/restoreProjectState.test.ts`
+  - Save/load schema and asset embedding rules in `docs/PROJECT_FILE_SPEC.md`
+  - Save/load invariants and visual-state preservation rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project save/load and visual element ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Existing split restore coverage in `src/project/restoreProjectDiscText.test.ts` and `src/project/restoreProjectSteamBanner.test.ts`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: visual-asset restore behavior is a distinct save/load contract from the broad project restore smoke and checked-in fixture smoke. Splitting it improves failure routing while preserving every assertion and avoiding production-code changes.
+
+- Files changed:
+  - `src/project/restoreProjectState.test.ts`
+  - `src/project/restoreProjectVisualAssets.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/restoreProjectState.test.ts`: 79 lines, 3,326 bytes.
+  - `src/project/restoreProjectVisualAssets.test.ts`: 452 lines, 15,268 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/restoreProjectState.test.ts src/project/restoreProjectVisualAssets.test.ts src/project/restoreProjectDiscText.test.ts src/project/restoreProjectSteamBanner.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/restoreProjectState.test.ts src/project/restoreProjectVisualAssets.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project restore split tests passed, 20 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings for `package.json` and `src/project/restoreProjectState.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further project restore test splitting should stop if it would separate visual restore assertions from the focused save/load fixture data that explains them.
+
+## Pass 30 - Disc Additional Artwork Normalization Test Split
+
+- Candidate found: `src/project/projectAdditionalArtwork.test.ts` still mixed additional artwork state/render behavior with saved-input normalization coverage for missing state, saved source metadata, web artwork sources, and invalid saved image fields.
+- Evidence/files inspected:
+  - Current largest-file and largest-test audit ranking by line count.
+  - Test names and helper ownership in `src/project/projectAdditionalArtwork.test.ts`
+  - Save/load schema notes for additional artwork elements in `docs/PROJECT_FILE_SPEC.md`
+  - Image/artwork source-of-truth ownership in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project and artwork ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: additional artwork normalization is a distinct saved-project compatibility contract from live element visibility, frame, label, and render-item behavior. Splitting it improves failure routing without touching production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectAdditionalArtwork.test.ts`
+  - `src/project/projectAdditionalArtworkNormalization.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectAdditionalArtwork.test.ts`: 362 lines, 12,180 bytes.
+  - `src/project/projectAdditionalArtworkNormalization.test.ts`: 116 lines, 3,919 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectAdditionalArtwork.test.ts src/project/projectAdditionalArtworkNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/projectAdditionalArtwork.test.ts src/project/projectAdditionalArtworkNormalization.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused project additional artwork split tests passed, 11 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings for `package.json` and `src/project/projectAdditionalArtwork.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further additional artwork test splitting should stop if it would duplicate imported-image fixtures more than it clarifies live state, render item, or saved normalization ownership.
+
+## Pass 31 - Jewel Case Back Text Avoidance Test Split
+
+- Candidate found: `src/layout/jewelCaseBackTextLayout.test.ts` still mixed tray text sizing, bounds, alignment, and wrap-width coverage with avoidance-region behavior for occupied visuals and other visible text lists.
+- Evidence/files inspected:
+  - Current largest-file and largest-test audit ranking by line count.
+  - Test names and helper ownership in `src/layout/jewelCaseBackTextLayout.test.ts`
+  - Case insert text wrapping and ink-safe bounds rules in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Text-system ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Existing pass notes for prior jewel case back layout splitting in `docs/refactor-audit-working-log.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: tray text avoidance is a distinct layout contract from baseline readable text sizing, paint-safe bounds, alignment, and wrap-width behavior. Splitting the avoidance assertions into a sibling test file improves failure routing without touching layout production code or weakening assertions.
+
+- Files changed:
+  - `src/layout/jewelCaseBackTextLayout.test.ts`
+  - `src/layout/jewelCaseBackTextAvoidanceLayout.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseBackTextLayout.test.ts`: 283 lines, 9,859 bytes.
+  - `src/layout/jewelCaseBackTextAvoidanceLayout.test.ts`: 208 lines, 6,885 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseBackTextLayout.test.ts src/layout/jewelCaseBackTextAvoidanceLayout.test.ts src/layout/jewelCaseBackLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/jewelCaseBackTextLayout.test.ts src/layout/jewelCaseBackTextAvoidanceLayout.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused jewel case back layout split tests passed, 12 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further jewel case back text layout test splitting should stop if it would separate text sizing, bounds, or avoidance assertions from the focused fixtures that make those contracts readable.
+
+## Pass 32 - Platform Mark Project Test Split
+
+- Candidate found: `src/project/projectMediaMark.test.ts` still mixed media mark coverage with a larger platform mark suite for SteamOS wording compatibility, built-in styles, asset materialization, disabled layout preservation, custom uploads, and legacy inference normalization.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and imports in `src/project/projectMediaMark.test.ts`
+  - Media mark and platform mark state ownership notes in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Visual element/project test ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Saved-project media/platform mark schema notes in `docs/PROJECT_FILE_SPEC.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: platform marks are a distinct persisted visual-element family from media marks, and the original filename no longer matched most of the file. Splitting the platform tests improves ownership and failure routing without touching production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectMediaMark.test.ts`
+  - `src/project/projectPlatformMarks.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectMediaMark.test.ts`: 89 lines, 2,878 bytes.
+  - `src/project/projectPlatformMarks.test.ts`: 329 lines, 11,607 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectMediaMark.test.ts src/project/projectPlatformMarks.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/projectMediaMark.test.ts src/project/projectPlatformMarks.test.ts docs/refactor-audit-working-log.md package.json`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused media/platform mark split tests passed, 13 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings for `package.json` and `src/project/projectMediaMark.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further platform mark test splitting should stop if it would separate theme option assertions from the concrete built-in asset paths that make those contracts meaningful.
+
+## Pass 33 - Case Insert Additional Artwork Slot Test Split
+
+- Candidate found: `src/project/projectCaseInsertArtworkSlots.test.ts` still mixed generic case image-slot source, fit, placement, and export helper coverage with additional-artwork slot frame, visibility, label, spine, and save/load contracts.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - Existing normalization split in `src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - Image/artwork and case insert state ownership in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project/artwork ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Case insert saved artwork slot notes in `docs/PROJECT_FILE_SPEC.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: additional-artwork slot/frame/save-load behavior is a distinct case-insert artwork contract from generic image-slot source, fit, placement, and export helper behavior. Splitting it improves failure routing without touching production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`: 174 lines, 6,530 bytes.
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`: 275 lines, 8,428 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts src/project/projectCaseInsertAdditionalArtworkSlots.test.ts src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/projectCaseInsertArtworkSlots.test.ts src/project/projectCaseInsertAdditionalArtworkSlots.test.ts package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert artwork split tests passed, 10 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further case insert artwork slot test splitting should stop if it would separate shared fixture setup from the slot, frame, and save/load assertions that make those contracts readable.
+
+## Pass 34 - Restore Project Mark Asset Test Split
+
+- Candidate found: `src/project/restoreProjectVisualAssets.test.ts` still mixed broad restored visual asset coverage with technical/platform mark restore contracts.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and imports in `src/project/restoreProjectVisualAssets.test.ts`
+  - Existing restore-suite fixture patterns in `src/project/restoreProjectDiscText.test.ts`, `src/project/restoreProjectSteamBanner.test.ts`, and `src/project/restoreProjectState.test.ts`
+  - Visual element and project restore ownership notes in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Feature-specific project test ownership notes in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Saved-project visual element notes in `docs/PROJECT_FILE_SPEC.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: technical and platform mark restore behavior is a distinct persisted mark-assets contract from rating/logo/additional-artwork/background restore behavior. Splitting those assertions improves failure routing while following the existing local `baseProject` fixture pattern used by other restore test suites.
+
+- Files changed:
+  - `src/project/restoreProjectVisualAssets.test.ts`
+  - `src/project/restoreProjectMarkAssets.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/restoreProjectVisualAssets.test.ts`: 365 lines, 12,047 bytes.
+  - `src/project/restoreProjectMarkAssets.test.ts`: 123 lines, 3,560 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/restoreProjectVisualAssets.test.ts src/project/restoreProjectMarkAssets.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/restoreProjectVisualAssets.test.ts src/project/restoreProjectMarkAssets.test.ts package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused restore-project visual/mark asset split tests passed, 11 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further restore visual asset test splitting should stop if it would duplicate the base restore fixture more than it clarifies distinct visual-family restore ownership.
+
+## Pass 35 - Case Insert Preview Text Test Split
+
+- Candidate found: `src/project/projectCaseInsertText.test.ts` mixed preview text draft/edit-value behavior with preview text target-control updates and mirrored spine propagation.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsertText.test.ts`
+  - Existing focused text persistence and normalization suites in `src/project/projectCaseInsertTextPersistence.test.ts` and `src/project/projectCaseInsertTextNormalization.test.ts`
+  - Text editor save/load and source-editing contracts in `docs/TEXT_EDITOR_CONTRACT.md`
+  - Case insert text ownership in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Project save/load text rules in `docs/PROJECT_FILE_SPEC.md`
+  - Text-system ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: preview draft/edit-value behavior and target-control/mirrored-spine behavior are distinct case insert text contracts. Splitting the mixed suite into explicitly named files improves ownership and failure routing without changing production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsertText.test.ts`
+  - `src/project/projectCaseInsertPreviewTextEditing.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - Removed mixed `src/project/projectCaseInsertText.test.ts` from the explicit test list.
+  - `src/project/projectCaseInsertPreviewTextEditing.test.ts`: 307 lines, 9,213 bytes.
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`: 118 lines, 3,856 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsertPreviewTextEditing.test.ts src/project/projectCaseInsertPreviewTextControls.test.ts src/project/projectCaseInsertTextPersistence.test.ts src/project/projectCaseInsertTextNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/projectCaseInsertText.test.ts src/project/projectCaseInsertPreviewTextEditing.test.ts src/project/projectCaseInsertPreviewTextControls.test.ts package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert text split tests passed, 18 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further case insert preview text test splitting should stop if it would separate metadata/default restoration from the draft/edit-value assertions that make the editing contract readable.
+
+## Pass 36 - Case Insert Project State Helper Test Split
+
+- Candidate found: `src/project/projectCaseInsert.test.ts` still mixed baseline saved-project creation/snapshot/restore-routing coverage with editor-state helper behavior for active panes, spine mirroring, optional-state preservation, and feature bullet edits.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and imports in `src/project/projectCaseInsert.test.ts`
+  - Existing legacy and branding-focused case insert project suites.
+  - Case insert save/load ownership in `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - Jewel case saved state notes in `docs/PROJECT_FILE_SPEC.md`
+  - Project save/load and case insert ownership entries in `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - Explicit `npm run test` file list in `package.json`
+- Decision: implemented.
+- Reason: editor-state helper behavior is a distinct project-domain contract from baseline saved-project shape and routing. Splitting it makes case insert project failures easier to route without touching production code or weakening assertions.
+
+- Files changed:
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertStateHelpers.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/project/projectCaseInsert.test.ts`: 254 lines, 9,286 bytes.
+  - `src/project/projectCaseInsertStateHelpers.test.ts`: 167 lines, 6,291 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/project/projectCaseInsert.test.ts src/project/projectCaseInsertStateHelpers.test.ts src/project/projectCaseInsertLegacy.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/project/projectCaseInsert.test.ts src/project/projectCaseInsertStateHelpers.test.ts package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case insert project split tests passed, 10 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only CRLF normalization warnings for `package.json` and `src/project/projectCaseInsert.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further case insert project test splitting should stop if it would separate the baseline saved-project shape assertions from the constants that make those defaults readable.
+
+## Pass 37 - Case Insert Branding Custom Image Restore Test Split
+
+- Candidate found: `src/caseInsert/brandingCustomImageSync.test.ts` mixed first-time custom-image replacement coverage with restore/preservation behavior after custom images are cleared or shared mark identity changes.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and helper/import usage in `src/caseInsert/brandingCustomImageSync.test.ts`.
+  - Existing neighboring technical custom-image suite in `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`.
+  - Target-source projection ownership in `src/caseInsert/brandingMarkTargetSources.test.ts`.
+  - Optional visual preservation and save/load parity contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+  - Case insert saved-state preservation notes in `docs/PROJECT_FILE_SPEC.md`.
+  - Explicit `npm run test` file list in `package.json`.
+- Decision: implemented.
+- Reason: custom upload replacement and later restore/preservation behavior are distinct branding sync contracts. Splitting them makes failures easier to route while preserving all existing assertions and keeping helper duplication local to the focused test files.
+
+- Files changed:
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingCustomImageSync.test.ts`: 207 lines, 7,334 bytes.
+  - `src/caseInsert/brandingCustomImageRestore.test.ts`: 264 lines, 8,272 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts src/caseInsert/brandingCustomImageRestore.test.ts src/caseInsert/brandingTechnicalCustomImageSync.test.ts src/caseInsert/brandingMarkTargetSources.test.ts src/caseInsert/brandingVisibility.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/brandingCustomImageSync.test.ts src/caseInsert/brandingCustomImageRestore.test.ts package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused branding custom-image/target-source tests passed, 23 tests.
+  - Full validation passed: cycle check, lint, 894 tests, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `package.json`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests.
+  - Further branding test splitting should stop if the remaining helper setup would be duplicated more than it clarifies mark-family ownership.
+
+## Pass 38 - Contextual Ribbon Text Control Test Split And Test Runner Stabilization
+
+- Candidate found: `src/components/preview/contextualTextRibbonVisualControls.test.ts` had one large Artistic-tab test that also contained Text-tab typography, point-size, paragraph, and list control assertions.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Test names and assertion groups in `src/components/preview/contextualTextRibbonVisualControls.test.ts`.
+  - Neighboring contextual ribbon suites: `contextualTextRibbonModel.test.ts`, `contextualTextRibbonSizing.test.ts`, `contextualTextRibbonTabs.test.ts`, and `contextualTextRibbonLayout.test.ts`.
+  - Text editor contextual-ribbon contracts in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `package.json`.
+- Decision: implemented.
+- Reason: Text-tab typography/point-size/list assertions are a distinct contextual-ribbon contract from Artistic paint/background/border assertions. Splitting them improves failure routing and made the old one-line package test command hit the Windows command-length ceiling, so the explicit test list was moved into a small batched runner without dropping files.
+
+- Files changed:
+  - `src/components/preview/contextualTextRibbonVisualControls.test.ts`
+  - `src/components/preview/contextualTextRibbonTextControls.test.ts`
+  - `scripts/run-tests.mjs`
+  - `scripts/test-file-list.mjs`
+  - `package.json`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/contextualTextRibbonVisualControls.test.ts`: 276 lines, 9,946 bytes.
+  - `src/components/preview/contextualTextRibbonTextControls.test.ts`: 281 lines, 13,516 bytes.
+  - `scripts/run-tests.mjs`: 21 lines, 490 bytes.
+  - `scripts/test-file-list.mjs`: 184 lines, 8,899 bytes, with 182 explicit test files.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/contextualTextRibbonVisualControls.test.ts src/components/preview/contextualTextRibbonTextControls.test.ts src/components/preview/contextualTextRibbonModel.test.ts src/components/preview/contextualTextRibbonSizing.test.ts src/components/preview/contextualTextRibbonTabs.test.ts src/components/preview/contextualTextRibbonLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/contextualTextRibbonVisualControls.test.ts src/components/preview/contextualTextRibbonTextControls.test.ts scripts/run-tests.mjs scripts/test-file-list.mjs package.json docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused contextual-ribbon tests passed, 19 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - The first post-split `npm run test` attempt failed with Windows `The command line is too long.` before the batched runner was introduced. The rerun through `node scripts/run-tests.mjs` passed.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` passed with no warnings.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved tests and adjusted test execution.
+  - The batched runner intentionally changes test process grouping, so Node now reports per-batch totals rather than one aggregate total. Failure exit behavior is preserved for npm validation.
+
+## Pass 39 - Inline Preview Text Editor Contract Fixture Extraction
+
+- Candidate found: `src/components/preview/inlinePreviewTextEditorContract.test.ts` was large mostly because it owned reusable case/disc adapter fixture construction before the protected contract assertions.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Fixture and assertion structure in `src/components/preview/inlinePreviewTextEditorContract.test.ts`.
+  - Neighboring renderer/source/selection contract suites.
+  - Text editor adapter and WYSIWYG contracts in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Global text-editor visual-source-of-truth contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+- Decision: implemented.
+- Reason: extracting the fixture builders into a focused test fixture module reduces the main contract suite without splitting or weakening the protected assertions. The new helper remains preview/text-editor-owned and does not change production behavior.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContractFixtures.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`: 248 lines, 6,723 bytes.
+  - `src/components/preview/inlinePreviewTextEditorContractFixtures.ts`: 285 lines, 7,472 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts src/components/preview/inlinePreviewTextEditorRendererContract.test.ts src/components/preview/inlinePreviewTextEditorSelection.test.ts src/components/preview/inlinePreviewTextEditorSource.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorContract.test.ts src/components/preview/inlinePreviewTextEditorContractFixtures.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused inline editor contract/source/selection tests passed, 18 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `src/components/preview/inlinePreviewTextEditorContract.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved test fixture code.
+  - Further splitting of the inline preview text editor contract suite should stop if it would separate assertions that collectively define the protected adapter contract.
+
+## Pass 40 - Artwork Frame Test Geometry Helper Extraction
+
+- Candidate found: `src/render/artworkFrame.test.ts` was the largest remaining render test suite and mixed artwork-frame assertions with local SVG/path geometry inspection helpers.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Helper/assertion structure in `src/render/artworkFrame.test.ts`.
+  - Artwork frame material restart guardrails in `docs/ARTWORK_FRAME_MATERIAL_CONTRACT.md`.
+  - Renderer parity and visual-source-of-truth contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+  - Existing render test family in `src/render/`.
+- Decision: implemented.
+- Reason: the artwork-frame assertions are cohesive and should stay together, but path parsing, bounds, turn, and intersection helpers are neutral test geometry helpers. Extracting them improves readability without changing production rendering behavior or weakening tests.
+
+- Files changed:
+  - `src/render/artworkFrame.test.ts`
+  - `src/render/artworkFrameTestGeometry.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/render/artworkFrame.test.ts`: 272 lines, 9,582 characters.
+  - `src/render/artworkFrameTestGeometry.ts`: 126 lines, 3,825 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/render/artworkFrame.test.ts src/render/imageRenderArtifact.test.ts src/render/platformMarkRenderModel.test.ts src/render/technicalMarkRenderModel.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/render/artworkFrame.test.ts src/render/artworkFrameTestGeometry.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused render/artwork-frame tests passed, 16 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Targeted `git diff --check` reported only the CRLF normalization warning for `src/render/artworkFrame.test.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved test helper code.
+  - Future artwork-frame material work still requires native Tauri verification before claiming visual acceptance.
+
+## Pass 41 - Jewel Case Spine Text Layout Test Geometry Helper Extraction
+
+- Candidate found: `src/layout/jewelCaseSpineTextLayout.test.ts` was one of the largest remaining layout test suites and mixed spine text layout assertions with local rotated-rectangle geometry helpers.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Helper/assertion structure in `src/layout/jewelCaseSpineTextLayout.test.ts`.
+  - Neighboring layout test helper duplication in `src/layout/`.
+  - Renderer parity and visual-source-of-truth contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+- Decision: implemented.
+- Reason: the spine text layout assertions are cohesive and should stay together, but approximate-rect assertions, overlap checks, and rotated line-rect reconstruction are test inspection helpers. Extracting them into a focused layout test helper reduces the suite size without changing production layout behavior or weakening assertions.
+
+- Files changed:
+  - `src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `src/layout/jewelCaseSpineTextLayoutTestGeometry.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseSpineTextLayout.test.ts`: 336 lines, 10,190 characters.
+  - `src/layout/jewelCaseSpineTextLayoutTestGeometry.ts`: 71 lines, 2,308 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseSpineTextLayout.test.ts src/layout/jewelCaseSpineLayout.test.ts src/layout/jewelCaseBackTextLayout.test.ts src/layout/jewelCaseBackTextAvoidanceLayout.test.ts src/layout/caseInsertPreviewLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/jewelCaseSpineTextLayout.test.ts src/layout/jewelCaseSpineTextLayoutTestGeometry.ts docs/refactor-audit-working-log.md`
+  - `Select-String -Path src/layout/jewelCaseSpineTextLayout.test.ts,src/layout/jewelCaseSpineTextLayoutTestGeometry.ts,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused layout tests passed, 23 tests.
+  - First build attempt caught the new helper importing Node `assert` from a non-test `.ts` file; the helper now throws plain errors so it remains build-safe.
+  - Full validation passed after the helper fix: cycle check, lint, batched `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` had no tracked diff to inspect because these files are currently untracked in the working series; explicit trailing-whitespace scan passed.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved test helper code.
+  - Further splitting of the spine text layout suite should stop if it would separate assertions that collectively define safe-region, avoidance, and clamping behavior.
+
+## Pass 42 - Jewel Case Spine Editor Action Test Fixture Extraction
+
+- Candidate found: `src/caseInsert/jewelCaseSpineEditorActions.test.ts` was the largest remaining test suite and mixed spine action assertions with reusable local fixture builders.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Helper/assertion structure in `src/caseInsert/jewelCaseSpineEditorActions.test.ts`.
+  - Case insert and spine ownership notes in `docs/REPO_ARCHITECTURE_INVENTORY.md`.
+  - Explicit test script/list coverage for `jewelCaseSpineEditorActions.test.ts`.
+- Decision: implemented.
+- Reason: the spine action tests remain cohesive, but shared builders for text blocks, image inputs, source-preserved slots, the Steam logo fixture, and side-scoped text block lookup are fixture concerns. Extracting them into a focused spine-action fixture module reduces the suite size without changing the action contracts.
+
+- Files changed:
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActionsFixtures.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`: 340 lines, 11,105 characters.
+  - `src/caseInsert/jewelCaseSpineEditorActionsFixtures.ts`: 74 lines, 1,703 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts src/caseInsert/jewelCaseSpineImageSlotActions.ts src/caseInsert/jewelCaseSpineTextActions.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/jewelCaseSpineEditorActions.test.ts src/caseInsert/jewelCaseSpineEditorActionsFixtures.ts docs/refactor-audit-working-log.md`
+  - `Select-String -Path src/caseInsert/jewelCaseSpineEditorActions.test.ts,src/caseInsert/jewelCaseSpineEditorActionsFixtures.ts,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Focused spine action tests passed, 17 runner entries including the two action modules imported as smoke inputs.
+  - First build attempt caught type issues that had previously been hidden inside a strip-types-only test: extra `width`/`height` fields on the Steam asset fixture and an incomplete text style object. The helper now uses production-shaped fixture values.
+  - Full validation passed after the fixture fixes: cycle check, lint, batched `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` had no tracked diff to inspect because these files are currently untracked in the working series; explicit trailing-whitespace scan passed.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved test fixture code.
+  - Further splitting of the spine action suite should stop if it would separate mirrored-state, text, and image-slot assertions that are meant to prove the same action contract.
+
+## Pass 43 - Case Insert Branding Mark Target Source Test Fixture Extraction
+
+- Candidate found: `src/caseInsert/brandingMarkTargetSources.test.ts` was the largest remaining test suite and mixed target-source assertions with reusable local branding source, mark slot, and technical asset fixtures.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Helper/assertion structure in `src/caseInsert/brandingMarkTargetSources.test.ts`.
+  - Case insert branding/mark ownership notes in `docs/REPO_ARCHITECTURE_INVENTORY.md`.
+  - Preview/export/save/load parity contracts in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+- Decision: implemented.
+- Reason: the tests form a cohesive target-source/projection contract and should stay together, but the default source catalog, case mark slot, selected disc template, and additional technical asset builders are fixture concerns. Extracting them into a focused fixture module reduces the suite size without changing target-source behavior or weakening mark-family assertions.
+
+- Files changed:
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingMarkTargetSourcesFixtures.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`: 330 lines, 10,768 characters.
+  - `src/caseInsert/brandingMarkTargetSourcesFixtures.ts`: 80 lines, 2,324 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts src/caseInsert/brandingVisibility.test.ts src/caseInsert/brandingTargetMarkSlots.test.ts src/caseInsert/brandingTechnicalCustomImageSync.test.ts src/caseInsert/brandingSupplementalUsk.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/brandingMarkTargetSources.test.ts src/caseInsert/brandingMarkTargetSourcesFixtures.ts docs/refactor-audit-working-log.md`
+  - `Select-String -Path src/caseInsert/brandingMarkTargetSources.test.ts,src/caseInsert/brandingMarkTargetSourcesFixtures.ts,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused case-insert branding target-source tests passed, 26 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` had no tracked diff to inspect because these files are currently untracked in the working series; explicit trailing-whitespace scan passed.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved test fixture code.
+  - Further splitting of this suite should stop if it would separate rating/media/platform/technical source projection assertions that together prove the target branding source contract.
+
+## Pass 44 - Contextual Text Ribbon HTML Tab Test Split
+
+- Candidate found: `src/components/preview/contextualTextRibbonTabs.test.ts` was the largest remaining test suite and contained two distinct contextual-ribbon tab contracts: Utilities tab semantic/native card behavior and HTML tab source-panel behavior.
+- Evidence/files inspected:
+  - Current largest-test audit ranking by line count.
+  - Assertion structure in `src/components/preview/contextualTextRibbonTabs.test.ts`.
+  - Contextual ribbon behavior and source-tab contracts in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: the HTML tab assertions are a distinct source-panel contract from the Utilities tab layout/card assertions. Splitting them improves failure routing while preserving all assertions and adding the new file to the explicit test list.
+
+- Files changed:
+  - `src/components/preview/contextualTextRibbonTabs.test.ts`
+  - `src/components/preview/contextualTextRibbonHtmlTab.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/contextualTextRibbonTabs.test.ts`: 295 lines, 13,449 characters.
+  - `src/components/preview/contextualTextRibbonHtmlTab.test.ts`: 101 lines, 3,722 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/contextualTextRibbonTabs.test.ts src/components/preview/contextualTextRibbonHtmlTab.test.ts src/components/preview/contextualTextRibbonModel.test.ts src/components/preview/contextualTextRibbonSizing.test.ts src/components/preview/contextualTextRibbonLayout.test.ts src/components/preview/contextualTextRibbonVisualControls.test.ts src/components/preview/contextualTextRibbonTextControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/contextualTextRibbonTabs.test.ts src/components/preview/contextualTextRibbonHtmlTab.test.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+  - `Select-String -Path src/components/preview/contextualTextRibbonTabs.test.ts,src/components/preview/contextualTextRibbonHtmlTab.test.ts,scripts/test-file-list.mjs,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused contextual ribbon tests passed, 19 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included `html ribbon tab uses a dedicated source panel instead of a semantic card`, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` had no tracked diff to inspect because these files are currently untracked in the working series; explicit trailing-whitespace scan passed.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only split test files.
+  - Future contextual-ribbon splitting should stop if it would scatter assertions that define one tab's protected geometry contract.
+
+## Pass 45 - App Project Save Orchestration Extraction
+
+- Candidate found: `src/app/App.tsx` was the largest remaining file in the current audit ranking and still owned project-save dialog, snapshot route selection, JSON serialization, write command, and status reporting inline.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Save/load/export handler structure in `src/app/App.tsx`.
+  - Existing app-owned helper pattern in `src/app/appProjectRestore.ts`, `src/app/appPngExport.ts`, `src/app/appPngExportInputs.ts`, and `src/app/appSteamImportPlan.ts`.
+  - Save/load and orchestration guardrails in `AGENTS.md`, `docs/SOFTWARE_DESIGN_DOCUMENT.md`, and `docs/REPO_ARCHITECTURE_INVENTORY.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: restore and PNG export orchestration were already extracted into app-owned helpers, while save still mixed dialog flow and snapshot selection inside `App.tsx`. Moving the save flow into `src/app/appProjectSave.ts` clarifies the app orchestration boundary, keeps Tauri dependencies injected, and preserves existing save defaults, serialization, status copy, and workspace routing.
+
+- Files changed:
+  - `src/app/App.tsx`
+  - `src/app/appProjectSave.ts`
+  - `src/app/appProjectSave.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/app/App.tsx`: 1,835 lines, 66,681 bytes.
+  - `src/app/appProjectSave.ts`: 95 lines, 2,347 bytes.
+  - `src/app/appProjectSave.test.ts`: 98 lines, 2,969 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/app/appProjectSave.test.ts src/app/appProjectRestore.test.ts src/app/appPngExport.test.ts src/app/appPngExportInputs.test.ts src/app/appSteamImportPlan.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/app/appProjectSave.ts,src/app/appProjectSave.test.ts -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused app orchestration tests passed, 13 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included the new project-save tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the new app save files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved app save orchestration and added focused tests; actual native save dialogs remain for manual runtime verification when user-visible save behavior is being accepted.
+  - Further `App.tsx` extraction should stop unless the next cluster has a similarly clear app-owned boundary; much of the remaining size is hook composition and prop plumbing.
+
+## Pass 46 - Text Editor Smoke Inline Movement Extraction
+
+- Candidate found: `scripts/text-editor-smoke.mjs` was the second-largest remaining file and still owned a cohesive inline movement helper family alongside route bodies.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Function list and helper groupings in `scripts/text-editor-smoke.mjs`.
+  - Existing smoke helper modules for config, reporting, runtime, interactions, PNG, inline controls, curved text, and ribbon geometry.
+  - Browser/native boundary guardrails in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` and text behavior guardrails in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: move-handle dragging, edge-handle dragging, no-op handle clicking, rect deltas, overlap checks, and edge start-point calculation form a focused script-local movement helper family. Extracting them keeps route bodies readable, preserves failure wording, and adds pure geometry tests without changing browser-only smoke semantics.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-inline-movement.mjs`
+  - `scripts/text-editor-smoke-inline-movement.test.mjs`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke.mjs`: 1,218 lines, 45,764 bytes.
+  - `scripts/text-editor-smoke-inline-movement.mjs`: 238 lines, 7,505 bytes.
+  - `scripts/text-editor-smoke-inline-movement.test.mjs`: 60 lines, 1,916 bytes.
+- Validation run:
+  - `node --test scripts/text-editor-smoke-inline-movement.test.mjs scripts/text-editor-smoke-interactions.test.mjs scripts/text-editor-smoke-runtime.test.mjs scripts/text-editor-smoke-png.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath scripts/text-editor-smoke.mjs,scripts/text-editor-smoke-inline-movement.mjs,scripts/text-editor-smoke-inline-movement.test.mjs,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused smoke helper tests passed, 13 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included the new movement geometry tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 46 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved browser diagnostic helper code and added pure helper tests.
+  - Further text-editor smoke extraction should stop unless another route-neutral helper family is obvious; route bodies themselves should remain readable and keep route/failure semantics stable.
+
+## Pass 47 - Text Editor Smoke Attached Ribbon Layout Extraction
+
+- Candidate found: `scripts/text-editor-smoke-ribbon-geometry.mjs` had grown into two helper responsibilities: contextual ribbon semantic/tab geometry and attached app-shell ribbon layout across Tauri-sized viewports.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Helper groupings in `scripts/text-editor-smoke-ribbon-geometry.mjs`.
+  - Browser/native boundary guardrails in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` and text behavior guardrails in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Existing smoke helper module pattern in `scripts/text-editor-smoke-*.mjs`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: attached ribbon layout checks have distinct ownership from contextual tab geometry and screenshot capture. Extracting them into `scripts/text-editor-smoke-attached-ribbon.mjs` keeps the app-shell viewport assertions together, preserves screenshot artifact names and failure wording, and makes the ribbon geometry helper focused on semantic/tab internals.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-ribbon-geometry.mjs`
+  - `scripts/text-editor-smoke-attached-ribbon.mjs`
+  - `scripts/text-editor-smoke-attached-ribbon.test.mjs`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke-ribbon-geometry.mjs`: 723 lines, 26,490 bytes.
+  - `scripts/text-editor-smoke-attached-ribbon.mjs`: 303 lines, 12,258 bytes.
+  - `scripts/text-editor-smoke-attached-ribbon.test.mjs`: 125 lines, 3,833 bytes.
+  - `scripts/text-editor-smoke.mjs`: 1,226 lines, 45,977 bytes.
+- Validation run:
+  - `node --check scripts/text-editor-smoke.mjs`
+  - `node --check scripts/text-editor-smoke-ribbon-geometry.mjs`
+  - `node --check scripts/text-editor-smoke-attached-ribbon.mjs`
+  - `node --test scripts/text-editor-smoke-attached-ribbon.test.mjs scripts/text-editor-smoke-inline-movement.test.mjs scripts/text-editor-smoke-interactions.test.mjs scripts/text-editor-smoke-runtime.test.mjs scripts/text-editor-smoke-png.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath scripts/text-editor-smoke.mjs,scripts/text-editor-smoke-ribbon-geometry.mjs,scripts/text-editor-smoke-attached-ribbon.mjs,scripts/text-editor-smoke-attached-ribbon.test.mjs,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Syntax checks passed.
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused smoke helper tests passed, 14 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included `attached ribbon smoke helper preserves viewport and presets-tab orchestration`, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 47 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved browser diagnostic helper code. The extracted helper still supports the browser diagnostic route and does not establish native visual acceptance.
+  - Further ribbon smoke extraction should stop if it would split a single diagnostic route's meaning or make artifact/failure ownership harder to follow.
+
+## Pass 48 - Contextual Text Ribbon Scroll Reveal Extraction
+
+- Candidate found: `src/components/preview/InlinePreviewTextEditor.tsx` remained one of the largest source files and still owned a small DOM scroll-reveal helper family alongside editor lifecycle, source mode, selection, and commit wiring.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Scroll helper constants, DOM lookup helpers, and `revealRibbonScrollItem` callback in `src/components/preview/InlinePreviewTextEditor.tsx`.
+  - Existing pure overflow helper in `src/components/preview/contextualTextRibbonOverflow.ts`.
+  - Existing contextual ribbon contract assertions in `src/components/preview/contextualTextRibbonModel.test.ts`.
+  - Text editor guardrails in `docs/TEXT_EDITOR_CONTRACT.md` and architecture guardrails in `docs/SOFTWARE_DESIGN_DOCUMENT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: contextual ribbon scroll reveal is editor-owned, but it does not need React state, refs, source-mode decisions, or target-specific text behavior. Extracting it keeps `InlinePreviewTextEditor.tsx` focused on wiring while preserving the manual scroll policy and avoiding browser-native `scrollIntoView`, `scrollTo`, or `scrollBy` behavior.
+
+- Files changed:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/contextualTextRibbonScrollReveal.ts`
+  - `src/components/preview/contextualTextRibbonScrollReveal.test.ts`
+  - `src/components/preview/contextualTextRibbonModel.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`: 1,233 lines, 38,447 characters.
+  - `src/components/preview/contextualTextRibbonScrollReveal.ts`: 56 lines, 1,694 characters.
+  - `src/components/preview/contextualTextRibbonScrollReveal.test.ts`: 43 lines, 966 characters.
+- Validation run:
+  - `node --test --experimental-strip-types src/components/preview/contextualTextRibbonScrollReveal.test.ts src/components/preview/contextualTextRibbonModel.test.ts src/components/preview/inlinePreviewTextEditorContract.test.ts src/components/preview/inlinePreviewTextEditorInteraction.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/components/preview/InlinePreviewTextEditor.tsx,src/components/preview/contextualTextRibbonScrollReveal.ts,src/components/preview/contextualTextRibbonScrollReveal.test.ts,src/components/preview/contextualTextRibbonModel.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation exposed and then verified the fixed `.ts` import path.
+  - Focused preview/text editor tests passed, 14 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included `contextual text ribbon reveal waits until a control is fully hidden`, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 48 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved contextual ribbon scroll helper code and added focused tests. User-visible ribbon behavior still requires manual native verification if accepting runtime UI behavior.
+  - Further `InlinePreviewTextEditor.tsx` extraction should stop unless another helper family is clearly free of React lifecycle, refs, target-specific decisions, source editing semantics, and selection/caret behavior.
+
+## Pass 49 - Text Editor Smoke Route Setup Extraction
+
+- Candidate found: `scripts/text-editor-smoke.mjs` remained a large diagnostic script and still owned route setup helpers next to the actual case/disc assertion routes.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Helper list in `scripts/text-editor-smoke.mjs`, especially setup/opening functions for case title, tray title, spine title, straight disc title, curved copyright, and basic metadata fields.
+  - Existing script-local helper modules for config, selectors, reporting, interactions, inline controls, inline movement, attached ribbon, curved text, PNG, ribbon geometry, and runtime.
+  - Browser/native boundary guardrails in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` and text behavior guardrails in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: route setup/opening helpers are script-local browser diagnostic orchestration, but they do not need to live beside each route body's assertions. Extracting them into `scripts/text-editor-smoke-route-setup.mjs` keeps route bodies focused on what they prove, preserves selector use and setup ordering, and avoids moving browser diagnostics toward native-smoke acceptance.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-route-setup.mjs`
+  - `scripts/text-editor-smoke-route-setup.test.mjs`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke.mjs`: 1,072 lines, 40,404 characters.
+  - `scripts/text-editor-smoke-route-setup.mjs`: 131 lines, 4,833 characters.
+  - `scripts/text-editor-smoke-route-setup.test.mjs`: 127 lines, 4,703 characters.
+- Validation run:
+  - `node --check scripts/text-editor-smoke.mjs`
+  - `node --check scripts/text-editor-smoke-route-setup.mjs`
+  - `node --test scripts/text-editor-smoke-route-setup.test.mjs scripts/text-editor-smoke-attached-ribbon.test.mjs scripts/text-editor-smoke-inline-movement.test.mjs scripts/text-editor-smoke-interactions.test.mjs scripts/text-editor-smoke-runtime.test.mjs scripts/text-editor-smoke-png.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath scripts/text-editor-smoke.mjs,scripts/text-editor-smoke-route-setup.mjs,scripts/text-editor-smoke-route-setup.test.mjs,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Syntax checks passed.
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed.
+  - Focused smoke helper tests passed, 17 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included the new route setup tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 49 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved browser diagnostic route setup helpers and added fake-page helper tests.
+  - Further `scripts/text-editor-smoke.mjs` extraction should stop unless another route-neutral helper family is clearly separate from a route body's diagnostic meaning and failure wording.
+
+## Pass 50 - Text Editor Smoke Selection Helper Extraction
+
+- Candidate found: `scripts/text-editor-smoke.mjs` still owned route-neutral text selection helpers and text/source assertion helpers beside route bodies.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Remaining helper family in `scripts/text-editor-smoke.mjs`: visible drag selection, prefix selection, rotated spine selection, text inclusion, and HTML source inclusion.
+  - Existing script-local helper module pattern in `scripts/text-editor-smoke-*.mjs`.
+  - Browser/native boundary guardrails in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` and text behavior guardrails in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: these helpers are pure browser diagnostic primitives with clear dependencies on `getRect`, text/source readers, input state, and `fail`. Extracting them into `scripts/text-editor-smoke-selection.mjs` keeps route bodies focused on policy checks while preserving drag coordinates and failure wording.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-selection.mjs`
+  - `scripts/text-editor-smoke-selection.test.mjs`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke.mjs`: 1,020 lines, 38,027 characters.
+  - `scripts/text-editor-smoke-selection.mjs`: 79 lines, 3,051 characters.
+  - `scripts/text-editor-smoke-selection.test.mjs`: 108 lines, 3,488 characters.
+- Validation run:
+  - `node --check scripts/text-editor-smoke.mjs`
+  - `node --check scripts/text-editor-smoke-selection.mjs`
+  - `node --test scripts/text-editor-smoke-selection.test.mjs scripts/text-editor-smoke-route-setup.test.mjs scripts/text-editor-smoke-attached-ribbon.test.mjs scripts/text-editor-smoke-inline-movement.test.mjs scripts/text-editor-smoke-interactions.test.mjs scripts/text-editor-smoke-runtime.test.mjs scripts/text-editor-smoke-png.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath scripts/text-editor-smoke.mjs,scripts/text-editor-smoke-selection.mjs,scripts/text-editor-smoke-selection.test.mjs,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Syntax checks passed.
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation exposed a bad non-edge rotated-selection fixture, then passed after the fixture was corrected.
+  - Focused smoke helper tests passed, 22 tests.
+  - Full validation passed: cycle check, lint, batched `npm run test`, and build.
+  - `npm run test` output included the new selection helper tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 50 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved browser diagnostic helper code and added fake-page helper tests.
+  - Further `scripts/text-editor-smoke.mjs` extraction should stop if remaining code is primarily route bodies or if splitting would obscure what each smoke route proves.
+
+## Pass 51 - Text Editor Smoke Geometry Helper Extraction
+
+- Candidate found: `scripts/text-editor-smoke.mjs` still owned route-neutral geometry and screenshot paint-edge helpers beside route bodies.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - Remaining helper family in `scripts/text-editor-smoke.mjs`: `getRect`, `waitForStableRect`, and `assertScreenshotPaintDoesNotTouchHorizontalEdges`.
+  - Existing script-local helper module pattern in `scripts/text-editor-smoke-*.mjs`.
+  - Browser/native boundary guardrails in `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md` and text behavior guardrails in `docs/TEXT_EDITOR_CONTRACT.md`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: geometry capture, stable-rect polling, and screenshot paint-edge checks are browser diagnostic primitives with clear injected dependencies. Extracting them into `scripts/text-editor-smoke-geometry.mjs` keeps route bodies focused while preserving selector behavior, screenshot artifact naming, and failure wording.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-geometry.mjs`
+  - `scripts/text-editor-smoke-geometry.test.mjs`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke.mjs`: 981 lines, 36,581 characters.
+  - `scripts/text-editor-smoke-geometry.mjs`: 73 lines, 2,174 characters.
+  - `scripts/text-editor-smoke-geometry.test.mjs`: 117 lines, 3,583 characters.
+- Validation run:
+  - `node --check scripts/text-editor-smoke.mjs`
+  - `node --check scripts/text-editor-smoke-geometry.mjs`
+  - `node --test scripts/text-editor-smoke-geometry.test.mjs scripts/text-editor-smoke-selection.test.mjs scripts/text-editor-smoke-route-setup.test.mjs scripts/text-editor-smoke-attached-ribbon.test.mjs scripts/text-editor-smoke-inline-movement.test.mjs scripts/text-editor-smoke-interactions.test.mjs scripts/text-editor-smoke-runtime.test.mjs scripts/text-editor-smoke-png.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath scripts/text-editor-smoke.mjs,scripts/text-editor-smoke-geometry.mjs,scripts/text-editor-smoke-geometry.test.mjs,scripts/test-file-list.mjs,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Syntax checks passed.
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 25 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Sandboxed `npm run test` also hit Node test-runner `spawn EPERM`; rerun with scoped `npm run test` escalation passed.
+  - `npm run test` output included the new geometry helper tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 51 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved browser diagnostic helper code and added fake-page helper tests.
+  - Further `scripts/text-editor-smoke.mjs` extraction should stop if remaining code is primarily route bodies or if splitting would obscure diagnostic meaning, route coverage, artifact names, or failure wording.
+
+## Pass 52 - Case Insert Template Steam Banner Action Extraction
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` still owned the cover/tray Steam banner handler family alongside unrelated image-slot, logo-slot, grouped artwork, and text-list handlers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/hooks/useCaseInsertTemplateEditor.ts` Steam banner handlers for enablement, upload, reset, lockup layout, fallback text, and colors.
+  - Existing case-insert action-module pattern in `src/caseInsert/templateSurfaceImageSlotActions.ts` and `src/caseInsert/templateSurfaceTextActions.ts`.
+  - Existing Steam banner domain helpers in `src/caseInsert/steamBanner.ts`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: cover/tray Steam banner transitions are a cohesive case-insert template-surface responsibility. Extracting pure state transitions into `src/caseInsert/templateSurfaceSteamBannerActions.ts` and composing the event/status handlers through `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts` keeps the main template editor hook focused on orchestration while preserving the hook return shape and existing cover-style template banner defaults.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`
+  - `src/caseInsert/templateSurfaceSteamBannerActions.ts`
+  - `src/caseInsert/templateSurfaceSteamBannerActions.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,128 lines, 34,761 bytes.
+  - `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`: 155 lines, 5,074 bytes.
+  - `src/caseInsert/templateSurfaceSteamBannerActions.ts`: 105 lines, 3,660 bytes.
+  - `src/caseInsert/templateSurfaceSteamBannerActions.test.ts`: 109 lines, 4,010 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/templateSurfaceSteamBannerActions.test.ts src/caseInsert/steamBanner.test.ts src/caseInsert/templateSurfaceImageSlotActions.test.ts src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/hooks/useCaseInsertTemplateEditor.ts,src/hooks/useCaseInsertTemplateSteamBannerEditor.ts,src/caseInsert/templateSurfaceSteamBannerActions.ts,src/caseInsert/templateSurfaceSteamBannerActions.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 20 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new template Steam banner action tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 52 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved case-insert Steam banner state/action wiring and added focused state-transition tests.
+  - Further `useCaseInsertTemplateEditor.ts` extraction should stop if the next candidate would move target-specific upload semantics, save/load-sensitive slot identity, or sidebar flow decisions without clearer ownership.
+
+## Pass 53 - Jewel Case Spine Steam Banner Action Extraction
+
+- Candidate found: `src/hooks/useJewelCaseSpineEditor.ts` still owned the left/right spine Steam banner handler family beside title, text, image slot, logo, artwork, and mark handlers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/hooks/useJewelCaseSpineEditor.ts` Steam banner handlers and the local `updateSpineSteamBanner` mirrored-side wrapper.
+  - Existing spine action-module pattern in `src/caseInsert/jewelCaseSpineImageSlotActions.ts` and `src/caseInsert/jewelCaseSpineTextActions.ts`.
+  - Existing cover/tray Steam banner extraction from pass 52.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: spine Steam banner transitions are a cohesive spine-owned responsibility with mirrored side semantics. Extracting pure transitions into `src/caseInsert/jewelCaseSpineSteamBannerActions.ts` and composing event/status handlers through `src/hooks/useJewelCaseSpineSteamBannerEditor.ts` keeps the main spine editor hook focused while preserving mirrored behavior, one-sided behavior when mirroring is off, spine icon defaults, and the hook return shape.
+
+- Files changed:
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
+  - `src/caseInsert/jewelCaseSpineSteamBannerActions.ts`
+  - `src/caseInsert/jewelCaseSpineSteamBannerActions.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 1,064 lines, 34,229 bytes.
+  - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`: 148 lines, 4,728 bytes.
+  - `src/caseInsert/jewelCaseSpineSteamBannerActions.ts`: 120 lines, 3,924 bytes.
+  - `src/caseInsert/jewelCaseSpineSteamBannerActions.test.ts`: 123 lines, 4,416 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/jewelCaseSpineSteamBannerActions.test.ts src/caseInsert/jewelCaseSpineEditorActions.test.ts src/caseInsert/steamBanner.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/hooks/useJewelCaseSpineEditor.ts,src/hooks/useJewelCaseSpineSteamBannerEditor.ts,src/caseInsert/jewelCaseSpineSteamBannerActions.ts,src/caseInsert/jewelCaseSpineSteamBannerActions.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 22 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new spine Steam banner action tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 53 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved spine Steam banner state/action wiring and added focused transition tests.
+  - Further `useJewelCaseSpineEditor.ts` extraction should stop if a candidate would blur mirrored-spine identity, slot state, or preview/export/save-load ownership.
+
+## Pass 54 - Case Insert Template Logo Action Extraction
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` still owned cover/tray primary logo handler plumbing beside grouped artwork, mark, Steam banner, and text handlers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/hooks/useCaseInsertTemplateEditor.ts` primary logo enabled/upload/layout/reset/clear, additional logo creation, and logo-candidate handlers.
+  - Existing logo-slot domain owner `src/caseInsert/brandingLogoSlots.ts` and tests.
+  - Existing template action-module pattern from `src/caseInsert/templateSurfaceImageSlotActions.ts`, `src/caseInsert/templateSurfaceTextActions.ts`, and the pass 52 Steam banner extraction.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: cover/tray primary logo state transitions are template-surface state plumbing over existing branding-logo domain helpers. Extracting pure project-level actions into `src/caseInsert/templateSurfaceLogoActions.ts` and event/status handlers into `src/hooks/useCaseInsertTemplateLogoEditor.ts` keeps `useCaseInsertTemplateEditor.ts` focused while preserving primary/additional logo identities, candidate import status copy, and hook return shape.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/caseInsert/templateSurfaceLogoActions.ts`
+  - `src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,074 lines, 30,356 bytes.
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`: 193 lines, 5,249 bytes.
+  - `src/caseInsert/templateSurfaceLogoActions.ts`: 99 lines, 2,917 bytes.
+  - `src/caseInsert/templateSurfaceLogoActions.test.ts`: 140 lines, 4,225 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/templateSurfaceLogoActions.test.ts src/caseInsert/brandingLogoSlots.test.ts src/caseInsert/templateSurfaceImageSlotActions.test.ts src/caseInsert/templateSurfaceSteamBannerActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/hooks/useCaseInsertTemplateEditor.ts,src/hooks/useCaseInsertTemplateLogoEditor.ts,src/caseInsert/templateSurfaceLogoActions.ts,src/caseInsert/templateSurfaceLogoActions.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 23 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new template logo action tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 54 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved cover/tray primary logo state/action wiring and added focused state-transition tests.
+  - Further `useCaseInsertTemplateEditor.ts` extraction should stop if candidates would blur grouped artwork/logo/mark slot ownership or upload source semantics without clearer boundaries.
+
+## Pass 55 - Jewel Case Spine Logo Action Extraction
+
+- Candidate found: `src/hooks/useJewelCaseSpineEditor.ts` still owned spine primary/additional logo handler plumbing beside grouped artwork, mark, Steam banner, and text handlers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/hooks/useJewelCaseSpineEditor.ts` additional logo, primary logo enable/upload/layout/reset/clear, and logo-candidate handlers.
+  - Existing mirrored spine transition owner `src/caseInsert/jewelCaseTransitions.ts`.
+  - Existing spine action-module pattern from `src/caseInsert/jewelCaseSpineImageSlotActions.ts`, `src/caseInsert/jewelCaseSpineTextActions.ts`, and the pass 53 Steam banner extraction.
+  - Existing logo-slot domain owner `src/caseInsert/brandingLogoSlots.ts` and tests.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: spine primary/additional logo transitions are a cohesive spine-owned responsibility over existing branding-logo helpers, with mirrored side identity as the important local contract. Extracting pure project-level actions into `src/caseInsert/jewelCaseSpineLogoActions.ts` and event/status handlers into `src/hooks/useJewelCaseSpineLogoEditor.ts` keeps `useJewelCaseSpineEditor.ts` focused while preserving mirrored updates, one-sided edits when mirroring is off, candidate import status copy, and hook return shape.
+
+- Files changed:
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `src/caseInsert/jewelCaseSpineLogoActions.ts`
+  - `src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 987 lines, 29,222 bytes.
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`: 194 lines, 5,149 bytes.
+  - `src/caseInsert/jewelCaseSpineLogoActions.ts`: 123 lines, 3,265 bytes.
+  - `src/caseInsert/jewelCaseSpineLogoActions.test.ts`: 157 lines, 4,475 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/jewelCaseSpineLogoActions.test.ts src/caseInsert/brandingLogoSlots.test.ts src/caseInsert/jewelCaseSpineSteamBannerActions.test.ts src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/hooks/useJewelCaseSpineEditor.ts,src/hooks/useJewelCaseSpineLogoEditor.ts,src/caseInsert/jewelCaseSpineLogoActions.ts,src/caseInsert/jewelCaseSpineLogoActions.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 32 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new spine logo action tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 55 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved spine primary/additional logo state/action wiring and added focused transition tests.
+  - Further `useJewelCaseSpineEditor.ts` extraction should stop if candidates would blur mirrored-spine identity, grouped slot state, upload source semantics, or preview/export/save-load ownership.
+
+## Pass 56 - Disc Safe-Zone Image Sizing Extraction
+
+- Candidate found: `src/layout/discElementSafeZone.ts` still combined disc safe-zone clamp/range orchestration with image-size resolution for rating badges, media marks, platform marks, technical marks, and content-shape footprints.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/layout/discElementSafeZone.ts` local `get*SafeImageSize` helpers and `getSafeImageShapeFootprint`.
+  - Existing extracted disc range owner `src/layout/discSafeZoneRangeMath.ts`.
+  - Existing safe-zone and contour tests in `src/layout/discElementSafeZone.test.ts`, `src/layout/discElementContourSafeZone.test.ts`, and `src/layout/discSafeZoneRangeMath.test.ts`.
+- Decision: implemented.
+- Reason: image-size and shape-footprint resolution is a cohesive, pure disc safe-zone helper family. Extracting it into `src/layout/discElementSafeZoneImageSizing.ts` keeps the main safe-zone file focused on public range/clamp orchestration while preserving built-in/custom image selection, placeholder fallback behavior, and alpha-contour safe-zone semantics.
+
+- Files changed:
+  - `src/layout/discElementSafeZone.ts`
+  - `src/layout/discElementSafeZoneImageSizing.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/discElementSafeZone.ts`: 899 lines, 25,458 bytes.
+  - `src/layout/discElementSafeZoneImageSizing.ts`: 118 lines, 2,997 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/discElementSafeZone.test.ts src/layout/discElementContourSafeZone.test.ts src/layout/discSafeZoneRangeMath.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/layout/discElementSafeZone.ts,src/layout/discElementSafeZoneImageSizing.ts -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 17 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 56 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure disc safe-zone sizing helpers and preserved public clamp/range behavior through focused tests.
+  - Further `discElementSafeZone.ts` extraction should stop if candidates would blur text measurement, disc-specific safe-zone geometry, or public clamp/range ownership.
+
+## Pass 57 - Case Insert Plain Text Wrapping Extraction
+
+- Candidate found: `src/layout/caseInsertTextVisualLayout.ts` still owned pure plain-text wrapping helpers beside visual bounds, ink measurement, rich-text avoidance, and final layout orchestration.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/layout/caseInsertTextVisualLayout.ts` local token splitting, long-token wrapping, and line-segment wrapping helpers.
+  - Existing layout helper owners `src/layout/caseInsertTextMeasurement.ts`, `src/layout/caseInsertTextRichWrapping.ts`, and `src/layout/caseInsertTextSegments.ts`.
+  - Existing visual layout tests covering whitespace preservation, measured wrapping, rich text layout, avoidance, ink bounds, and clamping.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: plain text wrapping is a cohesive, pure layout helper family that does not own visual bounds, ink measurement, preview/export rendering, or persisted state. Extracting it into `src/layout/caseInsertTextWrapping.ts` keeps `getCaseInsertTextVisualLayout` focused on visual layout orchestration while preserving the existing public `wrapCaseInsertTextLines` export from `caseInsertTextVisualLayout.ts`.
+
+- Files changed:
+  - `src/layout/caseInsertTextVisualLayout.ts`
+  - `src/layout/caseInsertTextWrapping.ts`
+  - `src/layout/caseInsertTextVisualLayout.test.ts`
+  - `src/layout/caseInsertTextWrapping.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/caseInsertTextVisualLayout.ts`: 783 lines, 21,422 bytes.
+  - `src/layout/caseInsertTextWrapping.ts`: 221 lines, 5,530 bytes.
+  - `src/layout/caseInsertTextVisualLayout.test.ts`: 359 lines, 10,730 bytes.
+  - `src/layout/caseInsertTextWrapping.test.ts`: 41 lines, 945 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/caseInsertTextWrapping.test.ts src/layout/caseInsertTextVisualLayout.test.ts src/layout/caseInsertTextRichWrapping.test.ts src/layout/caseInsertTextSegments.test.ts src/layout/caseInsertTextMeasurement.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/layout/caseInsertTextVisualLayout.ts,src/layout/caseInsertTextWrapping.ts,src/layout/caseInsertTextVisualLayout.test.ts,src/layout/caseInsertTextWrapping.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 21 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new wrapping tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 57 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure case-insert text wrapping helpers and preserved visual layout behavior through focused tests.
+  - Further `caseInsertTextVisualLayout.ts` extraction should stop if candidates would blur visual bounds ownership, rich-text avoidance behavior, ink bounds calculation, or preview/export text layout parity.
+
+## Pass 58 - Case Insert Preflight Visibility Extraction
+
+- Candidate found: `src/export/caseInsertExportPreflight.ts` still combined warning assembly and summary message construction with pure render-presence predicates and visible-element status formatting.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/export/caseInsertExportPreflight.ts` local `slotWillRender`, mark/logo/banner visibility predicates, surface/spine content checks, and summary status formatting.
+  - Existing image-warning extraction in `src/export/caseInsertPreflightImageWarnings.ts`.
+  - Existing preflight summary/design-check tests in `src/export/caseInsertExportPreflight.test.ts`, `src/export/caseInsertPreflightImageWarnings.test.ts`, and `src/export/caseInsertDesignCheck.test.ts`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: render-presence and visible-element summary predicates are pure export preflight helpers with a clear responsibility separate from warning wording/order. Extracting them into `src/export/caseInsertPreflightVisibility.ts` keeps `caseInsertExportPreflight.ts` focused on warning assembly and message composition while preserving built-in/default asset handling and shared/target mark visibility semantics.
+
+- Files changed:
+  - `src/export/caseInsertExportPreflight.ts`
+  - `src/export/caseInsertPreflightVisibility.ts`
+  - `src/export/caseInsertPreflightVisibility.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/export/caseInsertExportPreflight.ts`: 784 lines, 21,460 bytes.
+  - `src/export/caseInsertPreflightVisibility.ts`: 182 lines, 5,737 bytes.
+  - `src/export/caseInsertPreflightVisibility.test.ts`: 133 lines, 4,095 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/export/caseInsertPreflightVisibility.test.ts src/export/caseInsertExportPreflight.test.ts src/export/caseInsertPreflightImageWarnings.test.ts src/export/caseInsertDesignCheck.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/export/caseInsertExportPreflight.ts,src/export/caseInsertPreflightVisibility.ts,src/export/caseInsertPreflightVisibility.test.ts,scripts/test-file-list.mjs,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation initially exposed an over-broad empty-surface fixture assumption, then passed after the fixture was made explicit, 17 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new preflight visibility tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 58 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure export preflight visibility predicates and preserved warning/message behavior through focused tests.
+  - Further `caseInsertExportPreflight.ts` extraction should stop if candidates would change warning ordering, warning copy, guide warning behavior, or preview/export visibility semantics.
+
+## Pass 59 - Jewel Case Spine Transform Geometry Extraction
+
+- Candidate found: `src/layout/jewelCaseSpineLayout.ts` still combined spine text/image layout orchestration with low-level transformed-box geometry helpers for rotation, local/global bounds, visual boxes, and safe-bound clamping.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/layout/jewelCaseSpineLayout.ts` transform helper family: rotated bounding size, transformed box layout, offset/clamp helpers, local visual box projection, and avoidance-region local transforms.
+  - Existing spine layout and text layout tests in `src/layout/jewelCaseSpineLayout.test.ts`, `src/layout/jewelCaseSpineTextLayout.test.ts`, and related Steam banner layout tests.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: transformed-box geometry is a cohesive, pure spine-layout helper family that does not own text measurement, image sizing, preview rendering, export behavior, or persisted state. Extracting it into `src/layout/jewelCaseSpineTransform.ts` keeps `jewelCaseSpineLayout.ts` focused on spine-specific layout orchestration while preserving the existing `JewelCaseSpineBoxLayout` type export from the original module.
+
+- Files changed:
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `src/layout/jewelCaseSpineTransform.ts`
+  - `src/layout/jewelCaseSpineTransform.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseSpineLayout.ts`: 594 lines, 16,348 bytes.
+  - `src/layout/jewelCaseSpineTransform.ts`: 237 lines, 5,757 bytes.
+  - `src/layout/jewelCaseSpineTransform.test.ts`: 96 lines, 2,254 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/layout/jewelCaseSpineTransform.test.ts src/layout/jewelCaseSpineLayout.test.ts src/layout/jewelCaseSpineTextLayout.test.ts src/layout/jewelCaseSteamBannerLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/layout/jewelCaseSpineLayout.ts,src/layout/jewelCaseSpineTransform.ts,src/layout/jewelCaseSpineTransform.test.ts,scripts/test-file-list.mjs,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 20 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new spine transform tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 59 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure spine transform geometry and preserved public layout behavior through focused tests.
+  - Further `jewelCaseSpineLayout.ts` extraction should stop if candidates would blur text measurement, spine image sizing, safe-guide ownership, or preview/export geometry semantics.
+
+## Pass 60 - Disc Asset Bounds Extraction
+
+- Candidate found: `src/disc/geometry.ts` still combined safe-annulus clamp/template geometry with pure disc asset-bound sizing helpers for logos, title artwork, additional artwork, marks, placeholders, and straight disc text.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/disc/geometry.ts` asset-bound helper family at the module boundary.
+  - Existing disc safe-zone, inner no-print, contour, guardrail, and template-default tests.
+  - Existing callers that import disc asset-bound helpers through `src/disc/geometry.ts`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: asset-bound sizing is a cohesive pure disc helper family separate from annulus/clamp and custom template geometry. Extracting it into `src/disc/assetBounds.ts` keeps the old `src/disc/geometry.ts` import surface stable via re-exports while making the remaining geometry owner more focused.
+
+- Files changed:
+  - `src/disc/geometry.ts`
+  - `src/disc/assetBounds.ts`
+  - `src/disc/geometryTypes.ts`
+  - `src/disc/assetBounds.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/disc/geometry.ts`: 775 lines, 22,306 bytes.
+  - `src/disc/assetBounds.ts`: 168 lines, 5,030 bytes.
+  - `src/disc/geometryTypes.ts`: 20 lines, 357 bytes.
+  - `src/disc/assetBounds.test.ts`: 81 lines, 1,810 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/disc/assetBounds.test.ts src/layout/discElementSafeZone.test.ts src/layout/discElementInnerNoPrint.test.ts src/layout/discElementContourSafeZone.test.ts src/layout/discSafeZoneRangeMath.test.ts src/layout/discTemplateGeometryGuardrail.test.ts src/layout/discTemplateLayoutDefaults.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/disc/geometry.ts,src/disc/assetBounds.ts,src/disc/geometryTypes.ts,src/disc/assetBounds.test.ts,scripts/test-file-list.mjs,docs/refactor-audit-working-log.md -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 41 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new asset-bound tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 60 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure disc asset-bound helper logic and preserved behavior through focused tests.
+  - Further `src/disc/geometry.ts` extraction should stop if candidates would blur annulus clamp, contour footprint, or custom template geometry ownership.
+
+## Pass 61 - Text HTML Entity Helper Extraction
+
+- Candidate found: `src/text/htmlText.ts` still owned low-level HTML text escaping, attribute escaping, and entity decoding alongside rich-text parsing, style normalization, list handling, canonical serialization, Markdown migration, and public text helpers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/text/htmlText.ts` internal `escapeHtmlText`, `escapeHtmlAttribute`, and `decodeHtmlEntities` helpers and their parser/serializer call sites.
+  - Existing rich-text parser and command tests in `src/text/htmlText.test.ts`, `src/text/richTextCommands.test.ts`, `src/text/richTextListKeyboard.test.ts`, and `src/text/richTextRunRanges.test.ts`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: entity escaping/decoding is a cohesive, pure text-owned helper family that can be tested directly without changing canonical HTML parsing or serialization behavior. Extracting it into `src/text/htmlEntities.ts` keeps `htmlText.ts` focused on rich-text document parsing and serialization while preserving all call semantics.
+
+- Files changed:
+  - `src/text/htmlText.ts`
+  - `src/text/htmlEntities.ts`
+  - `src/text/htmlEntities.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/text/htmlText.ts`: 900 lines, 24,638 bytes.
+  - `src/text/htmlEntities.ts`: 44 lines, 1,336 bytes.
+  - `src/text/htmlEntities.test.ts`: 29 lines, 865 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/text/htmlEntities.test.ts src/text/htmlText.test.ts src/text/richTextCommands.test.ts src/text/richTextListKeyboard.test.ts src/text/richTextRunRanges.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/text/htmlText.ts,src/text/htmlEntities.ts,src/text/htmlEntities.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused test command hit sandbox `spawn EPERM`; rerun with scoped `node --test` escalation passed, 43 tests.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new HTML entity tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 61 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure HTML entity helpers and preserved rich-text behavior through focused and full tests.
+  - Further `src/text/htmlText.ts` extraction should stop if candidates would blur parser state, canonical source preservation, list semantics, or Markdown migration behavior.
+
+## Pass 62 - Text HTML Inline Style Helper Extraction
+
+- Candidate found: `src/text/htmlText.ts` still combined rich-text parser/serializer orchestration with low-level safe inline CSS parsing, style normalization, and style declaration serialization.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/text/htmlText.ts` inline style helper family: color, font family, font size, font weight, font style, text decoration, `parseSafeInlineStyle`, and `getSafeStyleDeclarations`.
+  - Existing parser/serializer and rich-text command tests in `src/text/htmlText.test.ts`, `src/text/richTextCommands.test.ts`, `src/text/richTextListKeyboard.test.ts`, and `src/text/richTextRunRanges.test.ts`.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: safe inline style parsing and declaration serialization are cohesive pure text helpers that can be tested directly without changing canonical HTML output. Extracting them into `src/text/htmlInlineStyles.ts` keeps `htmlText.ts` focused on document parsing, list handling, source normalization, and serialization flow.
+
+- Files changed:
+  - `src/text/htmlText.ts`
+  - `src/text/htmlInlineStyles.ts`
+  - `src/text/htmlInlineStyles.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/text/htmlText.ts`: 723 lines, 19,173 bytes.
+  - `src/text/htmlInlineStyles.ts`: 198 lines, 5,770 bytes.
+  - `src/text/htmlInlineStyles.test.ts`: 64 lines, 1,664 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/text/htmlInlineStyles.test.ts src/text/htmlEntities.test.ts src/text/htmlText.test.ts src/text/richTextCommands.test.ts src/text/richTextListKeyboard.test.ts src/text/richTextRunRanges.test.ts`
+  - `node --experimental-strip-types src/text/htmlInlineStyles.test.ts`
+  - `node --experimental-strip-types src/text/htmlEntities.test.ts`
+  - `node --experimental-strip-types src/text/htmlText.test.ts`
+  - `node --experimental-strip-types src/text/richTextCommands.test.ts`
+  - `node --experimental-strip-types src/text/richTextListKeyboard.test.ts`
+  - `node --experimental-strip-types src/text/richTextRunRanges.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/text/htmlText.ts,src/text/htmlInlineStyles.ts,src/text/htmlInlineStyles.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial focused `node --test` command hit sandbox `spawn EPERM`; the scoped escalation request for that exact command was rejected by the environment reviewer.
+  - Safer in-process focused test runs passed across the affected text files, 46 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new inline-style tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 62 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure HTML style normalization helpers and preserved rich-text behavior through focused and full tests.
+  - Further `src/text/htmlText.ts` extraction should stop if candidates would split parser state, list state, canonical HTML serialization order, or Markdown migration behavior.
+
+## Pass 63 - Text HTML Tag Helper Extraction
+
+- Candidate found: `src/text/htmlText.ts` still combined document parser/list-state logic with low-level tag-name, closing-tag, and attribute parsing helpers.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/text/htmlText.ts` local `parseTagName`, `isClosingTag`, and `parseTagAttributes` helpers and their call sites in tag handling and span style parsing.
+  - Existing HTML parser, rich-text command, list keyboard, and run-range tests.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: tag parsing is a cohesive pure HTML helper family that can be tested independently while leaving parser state, allowed-tag policy, stripped-content policy, list handling, and serialization order in `htmlText.ts`.
+
+- Files changed:
+  - `src/text/htmlText.ts`
+  - `src/text/htmlTags.ts`
+  - `src/text/htmlTags.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/text/htmlText.ts`: 702 lines, 18,483 bytes.
+  - `src/text/htmlTags.ts`: 29 lines, 829 bytes.
+  - `src/text/htmlTags.test.ts`: 34 lines, 1,093 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/text/htmlTags.test.ts`
+  - `node --experimental-strip-types src/text/htmlText.test.ts`
+  - `node --experimental-strip-types src/text/htmlInlineStyles.test.ts`
+  - `node --experimental-strip-types src/text/htmlEntities.test.ts`
+  - `node --experimental-strip-types src/text/richTextCommands.test.ts`
+  - `node --experimental-strip-types src/text/richTextListKeyboard.test.ts`
+  - `node --experimental-strip-types src/text/richTextRunRanges.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/text/htmlText.ts,src/text/htmlTags.ts,src/text/htmlTags.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Focused in-process text tests passed, 49 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new HTML tag tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 63 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure HTML tag parsing helpers and preserved rich-text behavior through focused and full tests.
+  - Further `src/text/htmlText.ts` extraction should stop if candidates would split parser control flow, list state, stripped-content handling, canonical HTML serialization order, or Markdown migration behavior.
+
+## Pass 64 - Rich Text Selection Range Helper Extraction
+
+- Candidate found: `src/text/richTextCommands.ts` still owned pure plain-text selection normalization, rich-text line range lookup, selected-line resolution, and bullet-prefix selection adjustment alongside command application.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/text/richTextCommands.ts` local `normalizeSelection`, `getRichTextLineRanges`, `getSelectedRichTextLineIndexes`, `getRichTextLineRangeAtOffset`, and prefix-adjustment helpers.
+  - Existing rich text helper ownership in `src/text/richTextRunRanges.ts` and `src/text/richTextListKeyboard.ts`.
+  - Existing rich text command, run-range, and list-keyboard tests.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: the moved helpers are cohesive pure text-range utilities with no command-specific side effects. Extracting them into `src/text/richTextSelectionRanges.ts` keeps `richTextCommands.ts` focused on command orchestration while preserving the public `PlainTextSelectionRange` re-export and all command result behavior.
+
+- Files changed:
+  - `src/text/richTextCommands.ts`
+  - `src/text/richTextSelectionRanges.ts`
+  - `src/text/richTextSelectionRanges.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/text/richTextCommands.ts`: 753 lines, 22,514 bytes.
+  - `src/text/richTextSelectionRanges.ts`: 110 lines, 3,193 bytes.
+  - `src/text/richTextSelectionRanges.test.ts`: 64 lines, 2,085 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/text/richTextSelectionRanges.test.ts`
+  - `node --experimental-strip-types src/text/richTextCommands.test.ts`
+  - `node --experimental-strip-types src/text/richTextRunRanges.test.ts`
+  - `node --experimental-strip-types src/text/richTextListKeyboard.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/text/richTextCommands.ts,src/text/richTextSelectionRanges.ts,src/text/richTextSelectionRanges.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Focused in-process rich text tests passed, 34 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new rich-text selection range tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 64 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure rich-text selection and line-range helpers and preserved command behavior through focused and full tests.
+  - Further `src/text/richTextCommands.ts` extraction should stop if candidates would split command-state semantics, canonical HTML output, selection-scoped formatting, list toggling, or keyboard mutation behavior.
+
+## Pass 65 - Steam Logo Candidate Signal Helper Extraction
+
+- Candidate found: `src/steam/steamLogoCandidates.ts` still owned low-level HTML/signal parsing helpers used by Steam and official-site logo candidate discovery.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/steam/steamLogoCandidates.ts` local `decodeHtml`, `stripTags`, `getTagAttributes`, `normalizeForMatch`, `compactForMatch`, `uniqueStrings`, `getNumericDimension`, `includesAny`, `includesStandaloneTerm`, `hasEntityMatch`, and `getUrlSignalText` helpers.
+  - Existing Steam candidate URL, routing, official-site HTML, and official-site CSS helper modules.
+  - Existing Steam logo candidate, candidate routing, official-site HTML, and official-site CSS tests.
+  - Explicit `npm run test` file list in `scripts/test-file-list.mjs`.
+- Decision: implemented.
+- Reason: the moved helpers are cohesive pure Steam candidate signal helpers with no network behavior, scoring order, source-label ownership, or candidate filtering side effects. Extracting them into `src/steam/steamLogoCandidateSignals.ts` keeps the main discovery module focused on source orchestration, scoring, candidate assembly, and download behavior.
+
+- Files changed:
+  - `src/steam/steamLogoCandidates.ts`
+  - `src/steam/steamLogoCandidateSignals.ts`
+  - `src/steam/steamLogoCandidateSignals.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/steam/steamLogoCandidates.ts`: 877 lines, 29,803 bytes.
+  - `src/steam/steamLogoCandidateSignals.ts`: 62 lines, 2,417 bytes.
+  - `src/steam/steamLogoCandidateSignals.test.ts`: 59 lines, 1,966 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/steam/steamLogoCandidateSignals.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidates.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidateRouting.test.ts`
+  - `node --experimental-strip-types src/steam/steamOfficialSiteHtml.test.ts`
+  - `node --experimental-strip-types src/steam/steamOfficialSiteCss.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/steam/steamLogoCandidates.ts,src/steam/steamLogoCandidateSignals.ts,src/steam/steamLogoCandidateSignals.test.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Initial helper test fixture overstated entity matching for `Valve & Gearbox`; corrected the test to preserve the existing normalized `and` matching behavior.
+  - Focused in-process Steam tests passed, 31 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` output included the new Steam logo candidate signal tests, confirming the new file is covered by the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 65 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure candidate signal helpers and preserved Steam candidate behavior through focused and full tests.
+  - Further `src/steam/steamLogoCandidates.ts` extraction should stop if candidates would change source safety semantics, candidate ordering, routing, source labels, network behavior, or official-site/Steam-source boundaries.
+
+## Pass 66 - Steam Official-Site Signal Helper Reuse
+
+- Candidate found: the official-site Steam logo helper modules duplicated pure helpers already extracted into `src/steam/steamLogoCandidateSignals.ts`.
+- Evidence/files inspected:
+  - Current largest-file audit ranking by line count.
+  - `src/steam/steamOfficialSiteHtml.ts` local `decodeHtml`, `uniqueStrings`, and `getNumericDimension` helpers.
+  - `src/steam/steamOfficialSiteCss.ts` local `uniqueStrings` helper.
+  - `src/steam/steamLogoCandidateSignals.ts` exported equivalent helpers from pass 65.
+  - Existing Steam official-site HTML, official-site CSS, signal, and candidate tests.
+- Decision: implemented.
+- Reason: the reused helpers are exact duplicate pure parsing utilities. The subtly different official-site `normalizeForMatch` helper stayed local because it preserves `+` characters, so this pass removed duplication without changing matching behavior, source routing, candidate ordering, source labels, or network behavior.
+
+- Files changed:
+  - `src/steam/steamOfficialSiteHtml.ts`
+  - `src/steam/steamOfficialSiteCss.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/steam/steamOfficialSiteHtml.ts`: 236 lines, 7,850 bytes.
+  - `src/steam/steamOfficialSiteCss.ts`: 59 lines, 1,857 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/steam/steamOfficialSiteHtml.test.ts`
+  - `node --experimental-strip-types src/steam/steamOfficialSiteCss.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidateSignals.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidates.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/steam/steamOfficialSiteHtml.ts,src/steam/steamOfficialSiteCss.ts,src/steam/steamLogoCandidateSignals.ts,scripts/test-file-list.mjs -Pattern '[ \t]+$'`
+- Result:
+  - Focused in-process Steam tests passed, 27 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 66 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused pure Steam candidate helper functions and preserved behavior through focused and full tests.
+  - Further official-site helper cleanup should stop if candidates would merge the intentionally different `normalizeForMatch` behavior or alter CSS/srcset URL order.
+
+## Pass 67 - Steam Official-Site Attribute Parser Reuse
+
+- Candidate found: `src/steam/steamOfficialSiteHtml.ts` still duplicated the same HTML tag-attribute parser now exported by `src/steam/steamLogoCandidateSignals.ts`.
+- Evidence/files inspected:
+  - `src/steam/steamOfficialSiteHtml.ts` exported `getOfficialHtmlTagAttributes` implementation.
+  - `src/steam/steamLogoCandidateSignals.ts` exported `getTagAttributes` helper.
+  - Existing official-site HTML, Steam signal, and Steam logo candidate tests.
+- Decision: implemented.
+- Reason: the public official-site helper name remains intact, but its implementation now delegates to the shared Steam candidate signal parser. This removes a parallel regex parser without changing call sites, parsing behavior, source ordering, candidate routing, or official-site matching.
+
+- Files changed:
+  - `src/steam/steamOfficialSiteHtml.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/steam/steamOfficialSiteHtml.ts`: 228 lines, 7,512 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/steam/steamOfficialSiteHtml.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidateSignals.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidates.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `Select-String -LiteralPath src/steam/steamOfficialSiteHtml.ts,src/steam/steamLogoCandidateSignals.ts -Pattern '[ \t]+$'`
+- Result:
+  - Initial full validation caught an unused `decodeHtml` import after the wrapper change; removed the import and reran validation.
+  - Focused in-process Steam tests passed, 24 tests total.
+  - Full validation passed after the import cleanup: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 67 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only removed a duplicate pure parser implementation and preserved behavior through focused and full tests.
+  - Further official-site helper cleanup should stop if candidates would alter the intentionally local matching semantics or source extraction order.
+
+## Pass 68 - Steam Logo Candidate Scoring Extraction
+
+- Candidate found: `src/steam/steamLogoCandidates.ts` still owned pure scoring constants and scoring helpers alongside network/source discovery, official-site extraction, dedupe, and download behavior.
+- Evidence/files inspected:
+  - `src/steam/steamLogoCandidates.ts` scoring constants, rejection guards, Valve/Steam/rating/icon filters, and `scoreCandidate` implementation.
+  - `src/steam/steamLogoCandidateRouting.ts` routing helpers already extracted by earlier passes.
+  - `src/steam/steamLogoCandidateSignals.ts` shared signal/matching helpers.
+  - Existing Steam candidate, routing, signal, official-site HTML, and official-site CSS tests.
+- Decision: implemented.
+- Reason: scoring is pure and independently owned by Steam candidate discovery. Moving it into a Steam-owned scoring module reduces the main discovery file without changing URL normalization, network behavior, candidate routing, candidate ordering, source labels, or source safety semantics.
+
+- Files changed:
+  - `src/steam/steamLogoCandidates.ts`
+  - `src/steam/steamLogoCandidateScoring.ts`
+  - `src/steam/steamLogoCandidateTypes.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/steam/steamLogoCandidates.ts`: 523 lines, 20,056 bytes.
+  - `src/steam/steamLogoCandidateScoring.ts`: 343 lines, 9,509 bytes.
+  - `src/steam/steamLogoCandidateTypes.ts`: 38 lines, 918 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/steam/steamLogoCandidates.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidateRouting.test.ts`
+  - `node --experimental-strip-types src/steam/steamLogoCandidateSignals.test.ts`
+  - `node --experimental-strip-types src/steam/steamOfficialSiteHtml.test.ts`
+  - `node --experimental-strip-types src/steam/steamOfficialSiteCss.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `rg -n "[ \t]+$" src/steam/steamLogoCandidates.ts src/steam/steamLogoCandidateScoring.ts src/steam/steamLogoCandidateTypes.ts`
+- Result:
+  - Focused in-process Steam tests passed, 31 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 68 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure Steam candidate scoring and preserved behavior through focused and full tests.
+  - Further Steam candidate cleanup should stop if it would alter candidate ordering, source safety, routing semantics, URL normalization, network/source behavior, or source label wording.
+
+## Pass 69 - App Steam Metadata Auto-Apply Planning Helpers
+
+- Candidate found: `src/app/App.tsx` still constructed pure Steam metadata auto-apply fields and status wording inside the top-level orchestration component.
+- Evidence/files inspected:
+  - `src/app/App.tsx` rating/legal auto-apply helpers, status-message construction, and metadata-field object creation.
+  - Existing `src/app/appSteamImportPlan.ts` Steam import planning owner.
+  - Existing `src/app/appSteamImportPlan.test.ts` focused import-plan coverage.
+- Decision: implemented.
+- Reason: the extracted code is pure app-owned Steam import planning logic. The React side effects, setter ordering, disc visual defaults, case-insert sync scheduling, and status announcement call sites stayed in `App.tsx`, so this reduces orchestration bulk without changing state ownership.
+
+- Files changed:
+  - `src/app/App.tsx`
+  - `src/app/appSteamImportPlan.ts`
+  - `src/app/appSteamImportPlan.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/app/App.tsx`: 1,703 lines, 65,669 bytes.
+  - `src/app/appSteamImportPlan.ts`: 168 lines, 5,318 bytes.
+  - `src/app/appSteamImportPlan.test.ts`: 217 lines, 7,655 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/app/appSteamImportPlan.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `rg -n "[ \t]+$" src/app/App.tsx src/app/appSteamImportPlan.ts src/app/appSteamImportPlan.test.ts`
+- Result:
+  - Focused app Steam import plan tests passed, 6 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 69 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure planning/status helpers and preserved behavior through focused and full tests.
+  - Further `App.tsx` extraction should stop if it would alter project restore order, import/export callback sequencing, selected-target state, status toast timing, or create a second source of truth.
+
+## Pass 70 - Disc Inline Text Editor Control Helper Extraction
+
+- Candidate found: `src/components/preview/discInlineTextEditorControls.ts` duplicated layout-preset matching/application helpers across straight and curved disc inline control factories.
+- Evidence/files inspected:
+  - Straight and curved control factory bodies in `src/components/preview/discInlineTextEditorControls.ts`.
+  - Existing straight control tests in `src/components/preview/discInlineTextEditorControls.test.ts`.
+  - Existing curved control tests in `src/components/preview/discInlineTextEditorCurvedControls.test.ts`.
+- Decision: implemented.
+- Reason: the extracted helpers are pure preview-owned control helpers shared by both factories. The exported factory functions, control shapes, labels, handler wiring, straight/curved distinction, and adapter callbacks stayed unchanged.
+
+- Files changed:
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/components/preview/discInlineTextEditorControlHelpers.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/discInlineTextEditorControls.ts`: 807 lines, 27,414 bytes.
+  - `src/components/preview/discInlineTextEditorControlHelpers.ts`: 89 lines, 2,589 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorControls.test.ts`
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `rg -n "[ \t]+$" src/components/preview/discInlineTextEditorControls.ts src/components/preview/discInlineTextEditorControlHelpers.ts`
+- Result:
+  - Focused straight and curved disc inline control tests passed, 11 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 70 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure control helper logic and preserved behavior through focused and full tests.
+  - Further control extraction should stop if it would blur straight versus curved ownership, alter contextual ribbon control ordering, or change adapter callback semantics.
+
+## Pass 71 - Shared Preflight Millimeter Formatting
+
+- Candidate found: disc and case-insert export preflight summaries both had identical private millimeter formatting helpers.
+- Evidence/files inspected:
+  - `src/export/exportPreflight.ts` private `formatMm`.
+  - `src/export/caseInsertExportPreflight.ts` private `formatMm`.
+  - Existing shared preflight helper module `src/export/preflightWarnings.ts`.
+  - Existing disc/case-insert preflight summary tests and shared preflight warning tests.
+- Decision: implemented.
+- Reason: millimeter value formatting is shared preflight wording, not disc- or case-insert-specific behavior. Moving the formatter into `preflightWarnings.ts` removes duplicate code while preserving preflight message text.
+
+- Files changed:
+  - `src/export/preflightWarnings.ts`
+  - `src/export/preflightWarnings.test.ts`
+  - `src/export/exportPreflight.ts`
+  - `src/export/caseInsertExportPreflight.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/export/preflightWarnings.ts`: 117 lines, 4,005 bytes.
+  - `src/export/preflightWarnings.test.ts`: 70 lines, 2,490 bytes.
+  - `src/export/exportPreflight.ts`: 290 lines, 10,902 bytes.
+  - `src/export/caseInsertExportPreflight.ts`: 718 lines, 21,393 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/export/preflightWarnings.test.ts`
+  - `node --experimental-strip-types src/export/exportPreflight.test.ts`
+  - `node --experimental-strip-types src/export/caseInsertExportPreflight.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `rg -n "[ \t]+$" src/export/preflightWarnings.ts src/export/preflightWarnings.test.ts src/export/exportPreflight.ts src/export/caseInsertExportPreflight.ts`
+- Result:
+  - Focused shared, disc, and case-insert preflight tests passed, 15 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Initial `git diff --check` found one new blank line at EOF in `src/export/exportPreflight.ts`; removed it and reran `git diff --check`.
+  - Final `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 71 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure preflight formatting and preserved message wording through focused and full tests.
+  - Further preflight extraction should stop if it would change warning order, warning wording, severity/count behavior, guide handling, or export confirmation copy.
+
+## Pass 72 - Shared Case Insert Label Normalization
+
+- Candidate found: four case-insert editor hooks and the case-insert logo-slot domain module duplicated the same label normalization helper for status copy and logo-label matching.
+- Evidence/files inspected:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `src/caseInsert/brandingLogoSlots.ts`
+  - Existing logo slot and logo action tests.
+- Decision: implemented.
+- Reason: label trimming/lowercasing is neutral case-insert text handling used for both status labels and primary/additional logo matching. Extracting it into a focused case-insert label helper removes repeated implementations without changing message wording, slot identity, save/load behavior, preview/export behavior, or editor state ownership.
+
+- Files changed:
+  - `src/caseInsert/labelText.ts`
+  - `src/caseInsert/labelText.test.ts`
+  - `src/caseInsert/brandingLogoSlots.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/labelText.ts`: 3 lines, 102 bytes.
+  - `src/caseInsert/labelText.test.ts`: 9 lines, 383 bytes.
+  - `src/caseInsert/brandingLogoSlots.ts`: 544 lines, 15,956 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 993 lines, 30,457 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 901 lines, 29,305 bytes.
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`: 176 lines, 5,293 bytes.
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`: 177 lines, 5,173 bytes.
+  - `scripts/test-file-list.mjs`: 206 lines, 10,168 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/labelText.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingLogoSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check`
+  - `rg -n "[ \t]+$" src/caseInsert/labelText.ts src/caseInsert/labelText.test.ts src/caseInsert/brandingLogoSlots.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts src/hooks/useCaseInsertTemplateLogoEditor.ts src/hooks/useJewelCaseSpineLogoEditor.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused label, branding-logo, and logo-action tests passed, 18 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new `src/caseInsert/labelText.test.ts` entry from the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 72 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure label normalization and preserved behavior through focused and full tests.
+  - Further case-insert hook cleanup should stop if it would change status wording, upload/import behavior, slot identity, mirrored spine behavior, save/load behavior, or preview/export state wiring.
+
+## Pass 73 - Shared Case Insert Slot Percent Clamp
+
+- Candidate found: case-insert branding logo slots and branding mark slots duplicated the same local percentage clamp helper for slot layout offsets.
+- Evidence/files inspected:
+  - `src/caseInsert/brandingLogoSlots.ts`
+  - `src/caseInsert/brandingMarkSlots.ts`
+  - Existing case-insert branding logo, target mark, and supplemental USK tests.
+  - `src/discText/avoidance.ts` was checked and kept separate because its clamp helper belongs to disc-text geometry.
+- Decision: implemented.
+- Reason: case-insert slot layout percentage bounds are neutral within case-insert branding/mark slot layout, and the duplicated helper can move to a focused case-insert math module without changing slot identity, supplemental USK offsets, preview/export visibility, or save/load behavior.
+
+- Files changed:
+  - `src/caseInsert/slotLayoutMath.ts`
+  - `src/caseInsert/slotLayoutMath.test.ts`
+  - `src/caseInsert/brandingLogoSlots.ts`
+  - `src/caseInsert/brandingMarkSlots.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/slotLayoutMath.ts`: 3 lines, 105 bytes.
+  - `src/caseInsert/slotLayoutMath.test.ts`: 10 lines, 388 bytes.
+  - `src/caseInsert/brandingLogoSlots.ts`: 544 lines, 15,959 bytes.
+  - `src/caseInsert/brandingMarkSlots.ts`: 644 lines, 19,222 bytes.
+  - `scripts/test-file-list.mjs`: 207 lines, 10,211 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/slotLayoutMath.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingLogoSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTargetMarkSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingSupplementalUsk.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/slotLayoutMath.ts src/caseInsert/slotLayoutMath.test.ts src/caseInsert/brandingLogoSlots.ts src/caseInsert/brandingMarkSlots.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/caseInsert/slotLayoutMath.ts src/caseInsert/slotLayoutMath.test.ts src/caseInsert/brandingLogoSlots.ts src/caseInsert/brandingMarkSlots.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused slot layout, branding-logo, target-mark, and supplemental USK tests passed, 18 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new `src/caseInsert/slotLayoutMath.test.ts` entry from the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 73 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure case-insert percentage clamp logic and preserved behavior through focused and full tests.
+  - Further case-insert branding cleanup should stop if it would change source or slot identity, supplemental USK layout, disabled-state preservation, save/load behavior, or preview/export visibility.
+
+## Pass 74 - Shared Case Insert Text Clamp Reuse
+
+- Candidate found: case-insert text layout, text sizing, and text avoidance each carried the same private min/max clamp helper even though `src/layout/layoutRangeMath.ts` already owns that primitive.
+- Evidence/files inspected:
+  - `src/caseInsert/textLayout.ts`
+  - `src/caseInsert/textSizing.ts`
+  - `src/layout/caseInsertTextAvoidance.ts`
+  - `src/layout/layoutRangeMath.ts`
+  - Existing text sizing, preview layout, back/spine avoidance, visual layout, and layout range tests.
+- Decision: implemented.
+- Reason: the extracted behavior is not a case-insert policy decision; it is the existing shared layout numeric clamp. Reusing it removes duplicate private helpers while preserving text width normalization, font-size normalization, disc-to-case preset mapping, text avoidance segment clamping, save/load behavior, and preview/export layout behavior.
+
+- Files changed:
+  - `src/caseInsert/textLayout.ts`
+  - `src/caseInsert/textSizing.ts`
+  - `src/caseInsert/textSizing.test.ts`
+  - `src/layout/caseInsertTextAvoidance.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/textLayout.ts`: 275 lines, 8,101 bytes.
+  - `src/caseInsert/textSizing.ts`: 179 lines, 5,051 bytes.
+  - `src/caseInsert/textSizing.test.ts`: 140 lines, 4,056 bytes.
+  - `src/layout/caseInsertTextAvoidance.ts`: 207 lines, 6,161 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/textSizing.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseBackTextAvoidanceLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextVisualLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/textLayout.ts src/caseInsert/textSizing.ts src/caseInsert/textSizing.test.ts src/layout/caseInsertTextAvoidance.ts`
+  - `rg -n "[ \t]+$" src/caseInsert/textLayout.ts src/caseInsert/textSizing.ts src/caseInsert/textSizing.test.ts src/layout/caseInsertTextAvoidance.ts`
+- Result:
+  - Focused text sizing, avoidance, preview layout, spine layout, range math, and text visual layout tests passed, 39 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 74 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused a pure numeric layout helper and preserved behavior through focused and full tests.
+  - Further case-insert text layout cleanup should stop if it would change measured text bounds, width normalization, font-size migration, avoidance behavior, save/load shape, or preview/export parity.
+
+## Pass 75 - Shared Jewel Case Pixel Rect Overlap Reuse
+
+- Candidate found: case-insert text segment and text avoidance geometry duplicated positive-area rectangle overlap math while `src/layout/jewelCaseLayout.ts` already owns pixel-rect right, bottom, and intersection helpers.
+- Evidence/files inspected:
+  - `src/layout/caseInsertTextSegments.ts`
+  - `src/layout/caseInsertTextAvoidance.ts`
+  - `src/layout/jewelCaseLayout.ts`
+  - Existing case-insert text segment, jewel case layout, avoidance, preview, visual layout, spine layout, and wrapping tests.
+- Decision: implemented.
+- Reason: pixel-rect edge and overlap math belongs with jewel-case pixel geometry. The existing `rectsOverlap` export remains available for text segment consumers, but now delegates to `intersectPixelRects`, preserving the positive-area overlap contract where touching edges are not considered overlapping.
+
+- Files changed:
+  - `src/layout/caseInsertTextSegments.ts`
+  - `src/layout/caseInsertTextSegments.test.ts`
+  - `src/layout/caseInsertTextAvoidance.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/caseInsertTextSegments.ts`: 174 lines, 5,057 bytes.
+  - `src/layout/caseInsertTextSegments.test.ts`: 92 lines, 2,474 bytes.
+  - `src/layout/caseInsertTextAvoidance.ts`: 204 lines, 5,971 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/caseInsertTextSegments.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseBackTextAvoidanceLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextVisualLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextWrapping.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/caseInsertTextSegments.ts src/layout/caseInsertTextSegments.test.ts src/layout/caseInsertTextAvoidance.ts`
+  - `rg -n "[ \t]+$" src/layout/caseInsertTextSegments.ts src/layout/caseInsertTextSegments.test.ts src/layout/caseInsertTextAvoidance.ts`
+- Result:
+  - Focused segment, jewel-case layout, avoidance, preview layout, visual layout, spine layout, and wrapping tests passed, 40 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 75 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused pure pixel-geometry helpers and preserved behavior through focused and full tests.
+  - Further text geometry cleanup should stop if it would change line wrapping, avoidance collision semantics, measured visual bounds, spine transform behavior, or preview/export parity.
+
+## Pass 76 - Jewel Case Layout Clamp Reuse
+
+- Candidate found: `src/layout/jewelCaseLayout.ts` retained a private min/max clamp helper while adjacent layout files already reuse `clampLayoutNumber` from `src/layout/layoutRangeMath.ts`.
+- Evidence/files inspected:
+  - `src/layout/jewelCaseLayout.ts`
+  - `src/layout/layoutRangeMath.ts`
+  - Existing jewel-case layout, back layout, spine layout, preview guide, preview layout, and layout range tests.
+- Decision: implemented.
+- Reason: jewel-case pixel geometry uses the same numeric min/max clamp primitive as the rest of layout math. Reusing the shared helper removes another duplicate implementation without changing image fitting, crop-offset normalization, safe-region clamping, source-rect clipping, or spine text sizing.
+
+- Files changed:
+  - `src/layout/jewelCaseLayout.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseLayout.ts`: 633 lines, 20,096 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/jewelCaseLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseBackLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts`
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/jewelCaseLayout.ts`
+  - `rg -n "[ \t]+$" src/layout/jewelCaseLayout.ts`
+- Result:
+  - Focused jewel-case layout, case-insert preview, and range math tests passed, 38 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 76 file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused a pure numeric layout helper and preserved behavior through focused and full tests.
+  - Further jewel-case layout cleanup should stop if it would change template geometry, image fitting/cropping, spine safe-zone math, guide generation, save/load shape, or preview/export parity.
+
+## Pass 77 - Front Back Spine Layout Clamp Reuse
+
+- Candidate found: front cover, back tray, and spine layout modules each retained a private min/max clamp helper used only by percent normalization.
+- Evidence/files inspected:
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `src/layout/layoutRangeMath.ts`
+  - Existing front/back/spine coverage through back layout, spine layout, case-insert preview layout, preview guide layout, text visual layout, and layout range tests.
+- Decision: implemented.
+- Reason: these modules clamp finite percentage layout values to `0..100`, which is the same shared layout numeric primitive already used by surrounding layout code. Reusing `clampLayoutNumber` removes duplicate private helpers without changing fallback behavior, layout positioning, image sizing, text visual bounds, or preview/export parity.
+
+- Files changed:
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseBackLayout.ts`: 494 lines, 16,030 bytes.
+  - `src/layout/jewelCaseFrontLayout.ts`: 348 lines, 11,154 bytes.
+  - `src/layout/jewelCaseSpineLayout.ts`: 535 lines, 16,286 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/jewelCaseBackLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextVisualLayout.test.ts`
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+  - `rg -n "[ \t]+$" src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+- Result:
+  - Focused back layout, spine layout, preview layout, preview guide, text visual layout, and range math tests passed, 41 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 77 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused a pure numeric layout helper and preserved behavior through focused and full tests.
+  - Further front/back/spine layout cleanup should stop if it would change percent defaults, safe-region positioning, text visual measurement, image fit behavior, spine transform behavior, or preview/export parity.
+
+## Pass 78 - Shared Percent Layout Normalization
+
+- Candidate found: front cover, back tray, and spine layout modules still duplicated the same `normalizePercent(value, fallback)` behavior after the clamp helper was shared.
+- Evidence/files inspected:
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `src/layout/layoutRangeMath.ts`
+  - Existing front/back/spine coverage through back layout, spine layout, case-insert preview layout, preview guide layout, text visual layout, spine text layout, and layout range tests.
+- Decision: implemented.
+- Reason: finite percent normalization with fallback preservation is shared layout math, not a front/back/spine policy decision. The new `normalizePercentLayoutValue` preserves the exact prior behavior: finite values clamp to `0..100`, and non-finite values return the caller-provided fallback.
+
+- Files changed:
+  - `src/layout/layoutRangeMath.ts`
+  - `src/layout/layoutRangeMath.test.ts`
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/layoutRangeMath.ts`: 65 lines, 1,985 bytes.
+  - `src/layout/layoutRangeMath.test.ts`: 71 lines, 2,464 bytes.
+  - `src/layout/jewelCaseBackLayout.ts`: 497 lines, 15,994 bytes.
+  - `src/layout/jewelCaseFrontLayout.ts`: 345 lines, 11,060 bytes.
+  - `src/layout/jewelCaseSpineLayout.ts`: 532 lines, 16,192 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseBackLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextVisualLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineTextLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/layoutRangeMath.ts src/layout/layoutRangeMath.test.ts src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+  - `rg -n "[ \t]+$" src/layout/layoutRangeMath.ts src/layout/layoutRangeMath.test.ts src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+- Result:
+  - Focused range math, back layout, spine layout, preview layout, preview guide, text visual layout, and spine text layout tests passed, 49 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new percent-normalizer assertion; the main grouped test count rose to 225.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 78 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure percent normalization and preserved behavior through focused and full tests.
+  - Further layout normalization cleanup should stop if it would change fallback defaults, invalid-value handling, persisted layout interpretation, image/text placement, spine transforms, or preview/export parity.
+
+## Pass 79 - Preview Viewport Stage Point Clamp Helper
+
+- Candidate found: `PreviewViewport.tsx` owned local numeric clamping for pointer coordinates even though `previewViewportModel.ts` already owns viewport bounds, zoom, pan, and rail sizing calculations.
+- Evidence/files inspected:
+  - `src/components/preview/PreviewViewport.tsx`
+  - `src/components/preview/previewViewportModel.ts`
+  - `src/components/preview/previewViewportModel.test.ts`
+  - Existing preview viewport model tests.
+- Decision: implemented.
+- Reason: clamping a stage-local pointer point to the stage size is pure preview viewport geometry. Moving it into the model keeps DOM/event reading in the component while consolidating viewport coordinate math in the existing owner.
+
+- Files changed:
+  - `src/components/preview/PreviewViewport.tsx`
+  - `src/components/preview/previewViewportModel.ts`
+  - `src/components/preview/previewViewportModel.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/PreviewViewport.tsx`: 574 lines, 20,257 bytes.
+  - `src/components/preview/previewViewportModel.ts`: 244 lines, 7,498 bytes.
+  - `src/components/preview/previewViewportModel.test.ts`: 286 lines, 11,980 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/previewViewportModel.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/PreviewViewport.tsx src/components/preview/previewViewportModel.ts src/components/preview/previewViewportModel.test.ts`
+  - `rg -n "[ \t]+$" src/components/preview/PreviewViewport.tsx src/components/preview/previewViewportModel.ts src/components/preview/previewViewportModel.test.ts`
+- Result:
+  - Focused preview viewport model tests passed, 6 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new viewport point-clamp assertion; the first grouped test count rose to 138.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 79 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure preview viewport point clamping and preserved behavior through focused and full tests.
+  - Further preview viewport cleanup should stop if it would change zoom/pan semantics, pointer event handling, rail layout, accessibility labels, preview surface framing, or editor interaction behavior.
+
+## Pass 80 - Shared Positive Layout Number Normalization
+
+- Candidate found: jewel-case layout modules duplicated "use this value only when it is a positive finite number, otherwise use the fallback" checks for DPI, quality scale, manual scale, and image-slot scale.
+- Evidence/files inspected:
+  - `src/layout/layoutRangeMath.ts`
+  - `src/layout/layoutRangeMath.test.ts`
+  - `src/layout/jewelCaseLayout.ts`
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - Existing layout coverage through jewel-case layout, back layout, spine layout, case-insert preview layout, preview guide layout, and text visual layout tests.
+- Decision: implemented.
+- Reason: positive finite number fallback handling is neutral layout math. The new `getPositiveFiniteLayoutNumber` preserves the exact prior behavior: positive finite values are used, and zero, negative, non-finite, or missing values return the caller-provided fallback.
+
+- Files changed:
+  - `src/layout/layoutRangeMath.ts`
+  - `src/layout/layoutRangeMath.test.ts`
+  - `src/layout/jewelCaseLayout.ts`
+  - `src/layout/jewelCaseBackLayout.ts`
+  - `src/layout/jewelCaseFrontLayout.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/layoutRangeMath.ts`: 73 lines, 2,185 bytes.
+  - `src/layout/layoutRangeMath.test.ts`: 79 lines, 2,885 bytes.
+  - `src/layout/jewelCaseLayout.ts`: 629 lines, 19,949 bytes.
+  - `src/layout/jewelCaseBackLayout.ts`: 495 lines, 15,897 bytes.
+  - `src/layout/jewelCaseFrontLayout.ts`: 343 lines, 10,963 bytes.
+  - `src/layout/jewelCaseSpineLayout.ts`: 530 lines, 16,095 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseBackLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertPreviewGuideLayout.test.ts`
+  - `node --experimental-strip-types src/layout/caseInsertTextVisualLayout.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/layoutRangeMath.ts src/layout/layoutRangeMath.test.ts src/layout/jewelCaseLayout.ts src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+  - `rg -n "[ \t]+$" src/layout/layoutRangeMath.ts src/layout/layoutRangeMath.test.ts src/layout/jewelCaseLayout.ts src/layout/jewelCaseBackLayout.ts src/layout/jewelCaseFrontLayout.ts src/layout/jewelCaseSpineLayout.ts`
+- Result:
+  - Focused layout range, jewel-case layout, back layout, spine layout, preview layout, preview guide, and text visual layout tests passed, 51 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new positive-layout-number assertion; the main grouped test count rose to 226.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 80 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only moved pure layout numeric fallback logic and preserved behavior through focused and full tests.
+  - Further layout cleanup should stop if it would change DPI, quality scale, image scale, fallback semantics, image fitting, safe-region geometry, front/back/spine placement, save/load, or preview/export parity.
+
+## Pass 81 - Steam Banner Layout Number Normalization Reuse
+
+- Candidate found: Steam-banner lockup layout and spine overlay rotation still hand-rolled finite/positive numeric fallback checks that now belong to `layoutRangeMath`.
+- Evidence/files inspected:
+  - `src/layout/jewelCaseSteamBannerLayout.ts`
+  - `src/layout/jewelCaseSteamBannerLayout.test.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `src/layout/layoutRangeMath.ts`
+  - Existing Steam-banner layout, spine layout, and spine transform tests.
+- Decision: implemented.
+- Reason: Steam-banner scale and offset fallback handling is the same neutral layout math as the shared helpers introduced in the prior passes. Reusing those helpers removes duplicated numeric fallback semantics while preserving the existing scale, x/y offset, and rotation behavior.
+
+- Files changed:
+  - `src/layout/jewelCaseSteamBannerLayout.ts`
+  - `src/layout/jewelCaseSteamBannerLayout.test.ts`
+  - `src/layout/jewelCaseSpineLayout.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/jewelCaseSteamBannerLayout.ts`: 218 lines, 5,881 bytes.
+  - `src/layout/jewelCaseSteamBannerLayout.test.ts`: 250 lines, 7,127 bytes.
+  - `src/layout/jewelCaseSpineLayout.ts`: 531 lines, 16,115 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/layoutRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSteamBannerLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineLayout.test.ts`
+  - `node --experimental-strip-types src/layout/jewelCaseSpineTransform.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/jewelCaseSteamBannerLayout.ts src/layout/jewelCaseSteamBannerLayout.test.ts src/layout/jewelCaseSpineLayout.ts`
+  - `rg -n "[ \t]+$" src/layout/jewelCaseSteamBannerLayout.ts src/layout/jewelCaseSteamBannerLayout.test.ts src/layout/jewelCaseSpineLayout.ts`
+- Result:
+  - Focused layout range, Steam-banner layout, spine layout, and spine transform tests passed, 22 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new Steam-banner invalid numeric fallback assertion; grouped test counts remained 138, 226, and 29.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with existing line-ending warnings in the dirty working tree and no whitespace errors; explicit trailing-whitespace scan passed for the pass 81 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused pure layout numeric fallback helpers and preserved behavior through focused and full tests.
+  - Further Steam-banner layout cleanup should stop if it would change lockup positioning, cover/spine banner geometry, open artwork regions, disabled-state rendering, save/load, or preview/export parity.
+
+## Pass 82 - Disc Geometry Finite Point Sanitizer
+
+- Candidate found: `src/disc/geometry.ts` repeated the same non-finite layout-point axis fallback to the disc center across distance checks and safe-zone clamp helpers.
+- Evidence/files inspected:
+  - `src/disc/geometry.ts`
+  - `src/disc/geometryTypes.ts`
+  - `src/layout/discSafeZoneRangeMath.test.ts`
+  - `src/layout/discElementSafeZone.test.ts`
+  - `src/layout/discElementInnerNoPrint.test.ts`
+  - `scripts/test-file-list.mjs`
+- Decision: implemented.
+- Reason: replacing repeated `x`/`y` finite-axis guards with a private `getFiniteDiscLayoutPoint` keeps disc-specific geometry ownership in `src/disc/geometry.ts` while making the fallback rule explicit. The new direct test covers the existing non-finite axis behavior without changing public clamp semantics.
+
+- Files changed:
+  - `src/disc/geometry.ts`
+  - `src/disc/geometry.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/disc/geometry.ts`: 662 lines, 21,763 bytes.
+  - `src/disc/geometry.test.ts`: 32 lines, 739 bytes.
+  - `scripts/test-file-list.mjs`: 208 lines, 10,242 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/disc/geometry.test.ts`
+  - `node --experimental-strip-types src/layout/discSafeZoneRangeMath.test.ts`
+  - `node --experimental-strip-types src/layout/discElementSafeZone.test.ts`
+  - `node --experimental-strip-types src/layout/discElementInnerNoPrint.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/disc/geometry.ts src/disc/geometry.test.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/disc/geometry.ts src/disc/geometry.test.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused disc geometry, disc safe-zone range, disc element safe-zone, and inner no-print tests passed, 23 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` picked up the newly registered `src/disc/geometry.test.ts`; grouped test counts were 138, 228, and 36.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` completed with an existing line-ending warning for `src/disc/geometry.ts` and no whitespace errors; explicit trailing-whitespace scan passed for the pass 82 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure disc geometry fallback logic and preserved behavior through focused and full tests.
+  - Further disc geometry cleanup should stop if it would change center-hole avoidance, safe-zone clamp math, shape-footprint handling, slider ranges, drag behavior, or preview/export parity.
+
+## Pass 83 - Shared Rich Text Offset Clamp
+
+- Candidate found: rich-text selection normalization and line splitting both clamped offsets into a text-length range with duplicated `Math.max(0, Math.min(...))` expressions.
+- Evidence/files inspected:
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/text/richTextSelectionRanges.ts`
+  - `src/text/richTextSelectionRanges.test.ts`
+  - `src/text/richTextRunRanges.ts`
+  - `src/text/richTextRunRanges.test.ts`
+  - `src/text/richTextCommands.test.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+- Decision: implemented.
+- Reason: `clampPlainTextOffset` is a text-owned pure helper that preserves the exact existing offset-bound behavior while keeping selection normalization and rich-text run splitting aligned. Added focused tests cover negative, in-range, and past-end offsets for both selection and line splitting paths.
+
+- Files changed:
+  - `src/text/richTextSelectionRanges.ts`
+  - `src/text/richTextSelectionRanges.test.ts`
+  - `src/text/richTextRunRanges.ts`
+  - `src/text/richTextRunRanges.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/text/richTextSelectionRanges.ts`: 113 lines, 3,330 bytes.
+  - `src/text/richTextSelectionRanges.test.ts`: 70 lines, 2,326 bytes.
+  - `src/text/richTextRunRanges.ts`: 97 lines, 2,489 bytes.
+  - `src/text/richTextRunRanges.test.ts`: 87 lines, 2,547 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/text/richTextSelectionRanges.test.ts`
+  - `node --experimental-strip-types src/text/richTextRunRanges.test.ts`
+  - `node --experimental-strip-types src/text/richTextCommands.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/text/richTextSelectionRanges.ts src/text/richTextSelectionRanges.test.ts src/text/richTextRunRanges.ts src/text/richTextRunRanges.test.ts`
+  - `rg -n "[ \t]+$" src/text/richTextSelectionRanges.ts src/text/richTextSelectionRanges.test.ts src/text/richTextRunRanges.ts src/text/richTextRunRanges.test.ts`
+- Result:
+  - Focused rich-text selection, run-range, command, and text-editor contract tests passed, 41 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new offset-clamp assertions; grouped test counts remained 138, 228, and 36.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 83 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure rich-text offset clamping and preserved behavior through focused and full tests.
+  - Further rich-text cleanup should stop if it would change selected-range formatting, list keyboard behavior, HTML source preservation, run merging, saved rich-text shape, caret offsets, or preview/export text parity.
+
+## Pass 84 - Inline Preview Selection Offset Clamp Reuse
+
+- Candidate found: inline preview text selection helpers duplicated the same text-offset clamping rule now owned by `clampPlainTextOffset`.
+- Evidence/files inspected:
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/inlinePreviewTextEditorSelection.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/text/richTextSelectionRanges.ts`
+  - `src/text/richTextSelectionRanges.test.ts`
+  - `src/text/richTextRunRanges.test.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+- Decision: implemented.
+- Reason: inline preview selection state is still a text selection adapter, and preview modules already depend on text-owned helpers. Reusing `clampPlainTextOffset` removes duplicate clamp expressions while preserving the existing start/end/focus behavior.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorSelection.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorSelection.ts`: 96 lines, 2,617 bytes.
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`: 72 lines, 2,446 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/text/richTextSelectionRanges.test.ts`
+  - `node --experimental-strip-types src/text/richTextRunRanges.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorSelection.ts src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `rg -n "[ \t]+$" src/components/preview/inlinePreviewTextEditorSelection.ts src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+- Result:
+  - Focused inline preview selection, rich-text selection, rich-text run-range, and text-editor contract tests passed, 22 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new inline selection focus clamp assertion; grouped test counts remained 138, 228, and 36.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 84 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure inline text selection offset clamping and preserved behavior through focused and full tests.
+  - Further inline selection cleanup should stop if it would change caret placement, selected ranges, focus direction, source editing, adapter input mode, or preview/export text parity.
+
+## Pass 85 - Inline Text Geometry Offset Clamp Reuse
+
+- Candidate found: inline preview text geometry repeated text-offset clamping for range boundaries, text-node offsets, and computed line text offsets.
+- Evidence/files inspected:
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorTransform.test.ts`
+  - `src/text/richTextSelectionRanges.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+  - `scripts/test-file-list.mjs`
+- Decision: implemented.
+- Reason: the reused `clampPlainTextOffset` helper applies only to text-content offsets. DOM child-node index clamping and caret-ratio array clamping remain local because those are not plain-text offsets. The new explicit geometry test covers text-node offset bounds and empty text-content handling.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`: 520 lines, 14,899 bytes.
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`: 22 lines, 735 bytes.
+  - `scripts/test-file-list.mjs`: 209 lines, 10,314 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTransform.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorTextGeometry.ts src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/components/preview/inlinePreviewTextEditorTextGeometry.ts src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused inline text geometry, selection, transform, and text-editor contract tests passed, 21 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` picked up the new explicit inline text geometry test file; grouped test counts were 138, 226, and 41.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 85 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure text-offset clamping and preserved behavior through focused and full tests.
+  - Further inline text geometry cleanup should stop if it would change caret placement, pointer selection mapping, selected ranges, source editing, adapter input mode, curved text ownership, or preview/export text parity.
+
+## Pass 86 - Inline Text Geometry Caret Ratio Lookup Helper
+
+- Candidate found: inline preview text geometry repeated the same `caretXRatios` array clamp/fallback lookup in both selection-frame and caret-frame construction.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorTransform.test.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+- Decision: implemented.
+- Reason: this keeps caret-ratio index clamping inside the editor-owned geometry module, avoids incorrectly treating it as a plain-text offset, and gives selection and caret frame code one tested lookup rule with the same fallbacks as before.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`: 524 lines, 15,074 bytes.
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`: 57 lines, 1,498 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTransform.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorTextGeometry.ts src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `rg -n "[ \t]+$" src/components/preview/inlinePreviewTextEditorTextGeometry.ts src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+- Result:
+  - Focused inline text geometry, selection, transform, and text-editor contract tests passed, 23 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the caret-ratio helper assertions; grouped test counts were 138, 226, and 41.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 86 files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure caret-ratio lookup logic and preserved behavior through focused and full tests.
+  - Further inline text geometry cleanup should stop if it would change caret placement, pointer selection mapping, selected ranges, source editing, adapter input mode, curved text ownership, or preview/export text parity.
+
+## Pass 87 - Curved Disc Text Range Math Helper
+
+- Candidate found: curved disc text layout, inline editor geometry, and rendered SVG boundary mapping each carried local bounded-number or arc-degree clamp logic with the same behavior.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-curved-text.mjs`
+  - `src/discText/curvedTextLayout.ts`
+  - `src/discText/curvedInlineEditorGeometry.ts`
+  - `src/discText/curvedRenderedTextBoundaries.ts`
+  - `src/discText/curvedTextLayout.test.ts`
+  - `src/discText/curvedInlineEditorGeometry.test.ts`
+  - `src/discText/curvedRenderedTextBoundaries.test.ts`
+- Decision: implemented.
+- Reason: the remaining `scripts/text-editor-smoke.mjs` functions are route bodies after earlier helper extraction, so another smoke split would risk moving route semantics. The curved disc text clamp extraction has a clearer owner, keeps behavior in `discText`, and directly reduces duplicated range semantics used by layout, editor geometry, and rendered SVG boundary mapping.
+
+- Files changed:
+  - `src/discText/curvedTextRangeMath.ts`
+  - `src/discText/curvedTextRangeMath.test.ts`
+  - `src/discText/curvedTextLayout.ts`
+  - `src/discText/curvedInlineEditorGeometry.ts`
+  - `src/discText/curvedRenderedTextBoundaries.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/discText/curvedTextRangeMath.ts`: 12 lines, 338 bytes.
+  - `src/discText/curvedTextRangeMath.test.ts`: 20 lines, 870 bytes.
+  - `src/discText/curvedTextLayout.ts`: 118 lines, 4,187 bytes.
+  - `src/discText/curvedInlineEditorGeometry.ts`: 745 lines, 22,210 bytes.
+  - `src/discText/curvedRenderedTextBoundaries.ts`: 416 lines, 10,862 bytes.
+  - `scripts/test-file-list.mjs`: 210 lines, 10,360 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/discText/curvedTextRangeMath.test.ts`
+  - `node --experimental-strip-types src/discText/curvedTextLayout.test.ts`
+  - `node --experimental-strip-types src/discText/curvedInlineEditorGeometry.test.ts`
+  - `node --experimental-strip-types src/discText/curvedRenderedTextBoundaries.test.ts`
+  - `node --experimental-strip-types src/discText/svgLayerCurved.test.ts`
+  - `node --experimental-strip-types src/discText/svgLayer.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/discText/curvedTextRangeMath.ts src/discText/curvedTextRangeMath.test.ts src/discText/curvedTextLayout.ts src/discText/curvedInlineEditorGeometry.ts src/discText/curvedRenderedTextBoundaries.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/discText/curvedTextRangeMath.ts src/discText/curvedTextRangeMath.test.ts src/discText/curvedTextLayout.ts src/discText/curvedInlineEditorGeometry.ts src/discText/curvedRenderedTextBoundaries.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused curved text range math, layout, inline geometry, rendered boundary, SVG renderer, and text-editor contract tests passed, 44 tests total.
+  - First focused boundary test run caught one missed `clampNumber` reference in `curvedRenderedTextBoundaries.ts`; that was fixed before full validation.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new curved text range math test file; grouped test counts were 138, 228, and 46.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 87 files; `git diff --check` printed existing line-ending warnings for touched curved text files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure curved text range math and preserved behavior through focused and full tests.
+  - Further curved text cleanup should stop if it would change SVG/textPath geometry, caret mapping, rendered boundary selection, preview/export parity, source editing, or curved text ownership.
+
+## Pass 88 - Inline Preview Caret Offset Clamp Reuse
+
+- Candidate found: `inlinePreviewTextEditorCaret.ts` still used local generic clamps for plain-text caret and selection offsets after nearby selection and geometry helpers had been moved to the text-owned `clampPlainTextOffset`.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/inlinePreviewTextEditorCaret.ts`
+  - `src/components/preview/inlinePreviewTextEditorCaret.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/text/richTextSelectionRanges.ts`
+- Decision: implemented.
+- Reason: caret indexes, line offsets, and selection offsets are plain-text offsets and should share the same text-owned clamp as the adjacent preview selection and geometry adapters. Range-start/range-end clamps that use nonzero lower bounds remain local because they are line-range bounds, not plain text length clamps.
+
+- Files changed:
+  - `src/components/preview/inlinePreviewTextEditorCaret.ts`
+  - `src/components/preview/inlinePreviewTextEditorCaret.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/inlinePreviewTextEditorCaret.ts`: 162 lines, 4,466 bytes.
+  - `src/components/preview/inlinePreviewTextEditorCaret.test.ts`: 152 lines, 3,503 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorCaret.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `node --experimental-strip-types src/text/richTextSelectionRanges.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/inlinePreviewTextEditorCaret.ts src/components/preview/inlinePreviewTextEditorCaret.test.ts`
+  - `rg -n "[ \t]+$" src/components/preview/inlinePreviewTextEditorCaret.ts src/components/preview/inlinePreviewTextEditorCaret.test.ts`
+- Result:
+  - Focused inline caret, selection, geometry, rich-text selection range, and text-editor contract tests passed, 28 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new out-of-range inline selection bound assertion; grouped test counts were 138, 228, and 46.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 88 files; `git diff --check` printed existing line-ending warnings for the touched caret files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated pure caret/selection offset clamping and preserved behavior through focused and full tests.
+  - Further inline caret cleanup should stop if it would change wrapped-line mapping, whitespace skipping, caret placement, selected ranges, source editing, adapter input mode, or preview/export text parity.
+
+## Pass 89 - Disc Safe-Zone Clamp Point Application Helper
+
+- Candidate found: `discElementSafeZone.ts` still repeated the same pattern in several visual-family clamp functions: resolve family-specific bounds, call `clampLayoutPointToSafeZone`, then copy the clamped `x` and `y` values back into the original layout.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`
+  - `src/layout/discElementSafeZone.ts`
+  - `src/layout/discElementSafeZone.test.ts`
+  - `src/layout/discElementInnerNoPrint.test.ts`
+  - `src/layout/discElementContourSafeZone.test.ts`
+  - `src/layout/discSafeZoneRangeMath.ts`
+- Decision: implemented.
+- Reason: the extraction is a private helper inside the existing disc safe-zone owner, preserves each visual family's own image-size and bounds decisions, and removes repeated `x`/`y` point-application code without changing public exports or geometry semantics.
+
+- Files changed:
+  - `src/layout/discElementSafeZone.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/discElementSafeZone.ts`: 889 lines, 25,300 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/discElementSafeZone.test.ts`
+  - `node --experimental-strip-types src/layout/discElementInnerNoPrint.test.ts`
+  - `node --experimental-strip-types src/layout/discElementContourSafeZone.test.ts`
+  - `node --experimental-strip-types src/layout/discSafeZoneRangeMath.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/discElementSafeZone.ts`
+  - `rg -n "[ \t]+$" src/layout/discElementSafeZone.ts`
+- Result:
+  - Focused disc safe-zone, inner no-print, contour safe-zone, and disc range math tests passed, 27 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 228, and 46.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 89 file; `git diff --check` printed the existing line-ending warning for `src/layout/discElementSafeZone.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated private pure layout point application and preserved behavior through focused and full tests.
+  - Further disc safe-zone cleanup should stop if it would change drag bounds, slider/manual positioning, alpha-contour safety, inner no-print avoidance, template geometry, or preview/export parity.
+
+## Pass 90 - Case Insert Normalization Artwork Inference Helper
+
+- Candidate found: `caseInsert/normalization.ts` duplicated the same `additionalArtworkEnabled` inference for template surfaces and spine sides, and spine side normalization repeated the same background-id-derived prefix for artwork, logo, mark, and text collections.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/PROJECT_FILE_SPEC.md`
+  - `src/caseInsert/normalization.ts`
+  - `src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertLegacy.test.ts`
+  - `src/project/projectCaseInsert.test.ts`
+  - `src/project/projectCaseInsertStateHelpers.test.ts`
+- Decision: implemented.
+- Reason: the extraction stays private to the existing case-insert normalization owner, keeps all schema/default decisions unchanged, and gives cover/tray and spine normalization one shared rule for inferring additional-artwork visibility from saved artwork slots.
+
+- Files changed:
+  - `src/caseInsert/normalization.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/normalization.ts`: 899 lines, 25,968 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertLegacy.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsert.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertStateHelpers.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/normalization.ts`
+  - `rg -n "[ \t]+$" src/caseInsert/normalization.ts`
+- Result:
+  - Focused case-insert normalization, additional-artwork slot, legacy restore, snapshot/restore, and state-helper tests passed, 15 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 228, and 46.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for `src/caseInsert/normalization.ts`; `git diff --check` printed the existing line-ending warning for that file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated private normalization helpers and preserved save/load behavior through focused and full tests.
+  - Further case-insert normalization cleanup should stop if it would change sparse legacy restoration, saved project shape, optional-state preservation, asset provenance, or cover/tray/spine identity.
+
+## Pass 91 - Case Insert Upload Input Validation Helper
+
+- Candidate found: the cover/tray and spine editor hooks repeated the same upload-input handling for primary and grouped image slots: read the selected file, clear the input, normalize the status label, reject non-image files, and preserve the existing invalid-file status copy.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/PROJECT_FILE_SPEC.md`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+- Decision: implemented.
+- Reason: the new helper lives in the existing case-insert image-source owner and only validates the upload input plus status label. The hooks still own image creation, target-specific slot updates, source preservation, additional-artwork enablement, and success/failure status timing.
+
+- Files changed:
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/imageSlotSourceImport.ts`: 156 lines, 4,281 bytes.
+  - `src/caseInsert/imageSlotSourceImport.test.ts`: 63 lines, 1,893 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,068 lines, 30,227 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 978 lines, 29,049 bytes.
+  - `scripts/test-file-list.mjs`: 211 lines, 10,410 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused upload helper, project artwork slot, template image-slot action, spine editor action, and case-insert additional artwork slot tests passed, 33 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` included the new explicit upload helper test file; grouped test counts were 138, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 91 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only consolidated upload input validation and preserved target-specific update behavior through focused and full tests.
+  - Further hook upload cleanup should stop if it would merge cover/tray and spine ownership, change status timing or wording, alter source preservation, or blur primary versus grouped slot behavior.
+
+## Pass 92 - Case Insert Logo Upload Validation Reuse
+
+- Candidate found: the template and spine primary-logo editor hooks still repeated the upload-input validation that pass 91 moved into the case-insert image-source owner.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`
+  - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
+  - `src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+  - `src/project/projectCaseInsertBrandingSources.test.ts`
+  - `src/project/projectCaseInsertBrandingPersistence.test.ts`
+- Decision: implemented.
+- Reason: the logo hooks can safely share the existing case-insert upload helper because they use the same label normalization and invalid-file status semantics. The Steam banner hooks were intentionally left local because their status copy names banner-specific assets and folding them into the logo/image-slot helper would risk changing user-facing wording.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`: 188 lines, 5,189 bytes.
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`: 189 lines, 5,069 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertBrandingSources.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertBrandingPersistence.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertTemplateLogoEditor.ts src/hooks/useJewelCaseSpineLogoEditor.ts src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts scripts/test-file-list.mjs`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertTemplateLogoEditor.ts src/hooks/useJewelCaseSpineLogoEditor.ts src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts scripts/test-file-list.mjs`
+- Result:
+  - Focused upload helper, template logo action, spine logo action, branding source, and branding persistence tests passed, 18 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 92 files; `git diff --check` printed the existing line-ending warning for `src/caseInsert/imageSlotSourceImport.ts`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only reused upload input validation and preserved target-specific logo state transitions through focused and full tests.
+  - Further upload cleanup should stop if it would change banner-specific status wording, merge distinct primary/additional slot ownership, or blur cover/tray/spine target identity.
+
+## Pass 93 - Ribbon Capture Runtime Reuse
+
+- Candidate found: `scripts/capture-ribbon.mjs` still owned duplicate browser-diagnostic runtime plumbing for HTTP app probing, Vite startup, browser executable selection, Chromium launch, and spawned Vite cleanup after the text-editor smoke harness had already extracted those responsibilities into `scripts/text-editor-smoke-runtime.mjs`.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `scripts/capture-ribbon.mjs`
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-runtime.mjs`
+  - `scripts/text-editor-smoke-config.mjs`
+  - `scripts/text-editor-smoke-runtime.test.mjs`
+- Decision: implemented.
+- Reason: reusing the existing smoke runtime helper removes duplicate diagnostic startup/browser logic without moving capture route bodies, fixture setup, artifact naming, manifest construction, screenshot validation, or browser-only/native policy wording. Capture-specific port, artifact directory, env var priority, Chromium args, and browser candidates remain capture-owned.
+
+- Files changed:
+  - `scripts/capture-ribbon.mjs`
+  - `scripts/text-editor-smoke-runtime.mjs`
+  - `scripts/text-editor-smoke-runtime.test.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/capture-ribbon.mjs`: 672 lines, 23,031 bytes.
+  - `scripts/text-editor-smoke-runtime.mjs`: 153 lines, 3,522 bytes.
+  - `scripts/text-editor-smoke-runtime.test.mjs`: 120 lines, 3,419 bytes.
+- Validation run:
+  - `node scripts/text-editor-smoke-runtime.test.mjs`
+  - `node --check scripts/capture-ribbon.mjs`
+  - `node --check scripts/text-editor-smoke-runtime.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- scripts/capture-ribbon.mjs scripts/text-editor-smoke-runtime.mjs scripts/text-editor-smoke-runtime.test.mjs docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" scripts/capture-ribbon.mjs scripts/text-editor-smoke-runtime.mjs scripts/text-editor-smoke-runtime.test.mjs docs/refactor-audit-working-log.md`
+  - Attempted `npm run capture:ribbon:browser`
+- Result:
+  - Focused runtime tests passed, 5 tests total, including the new explicit default/custom Chromium args coverage.
+  - Syntax checks passed for the edited capture and runtime modules.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 139, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 93 files; `git diff --check` printed the existing line-ending warning for `scripts/capture-ribbon.mjs`.
+  - `npm run capture:ribbon:browser` was attempted as browser-diagnostic validation, but sandboxed execution failed with `spawn EPERM` while starting Vite; escalation was rejected by policy, so the capture route was not run.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changed browser-diagnostic tooling only and native acceptance remains outside repository-owned npm scripts.
+  - The actual browser screenshot capture route still needs an authorized environment to prove end-to-end artifact generation after this cleanup.
+  - Further diagnostic runtime reuse should stop if it would change artifact names, manifest fields, capture-specific browser env priority, screenshot dimensions, failure wording, or the browser-diagnostic versus native-smoke policy boundary.
+
+## Pass 94 - Case Insert Image Source Loader Status Helpers
+
+- Candidate found: the cover/tray and spine editor hooks repeated the same local Steam screenshot and web artwork source-loading flow for primary and grouped image slots: normalize the status label, announce loading/downloading, create an image-slot source image, preserve the exact failure copy, then apply the target-specific slot update before announcing success.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `src/project/projectVisualAssetImport.test.ts`
+- Decision: implemented.
+- Reason: the helper lives in the existing case-insert image-source owner and only owns source loading plus status-copy preparation. The hooks still own cover/tray/spine target updates, grouped-slot enablement, source preservation, and the timing of the final success announcement after state is updated.
+
+- Files changed:
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/imageSlotSourceImport.ts`: 215 lines, 6,043 bytes.
+  - `src/caseInsert/imageSlotSourceImport.test.ts`: 176 lines, 5,253 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,072 lines, 29,453 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 982 lines, 28,275 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/project/projectVisualAssetImport.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused image-source, template image-slot action, spine editor action, case-insert artwork slot, additional artwork slot, and visual asset import tests passed, 44 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 139, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 94 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only centralizes source-loading status/error handling and preserves target-specific image-slot updates through focused and full tests.
+  - Further image-source cleanup should stop if it would move target ownership, change success/failure status wording, alter additional-artwork enablement, or blur primary versus grouped slot behavior.
+
+## Pass 95 - Case Insert Steam Artwork Source Loader Status Helper
+
+- Candidate found: after pass 94, the same cover/tray and spine hooks still repeated the Steam artwork source-loading flow for primary and grouped image slots: normalize the status label, announce download, create a Steam artwork image-slot source image, preserve the exact failure copy, then apply the target-specific slot update before announcing success.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `src/project/projectVisualAssetImport.test.ts`
+- Decision: implemented.
+- Reason: the helper is a sibling of the local screenshot and web artwork source loaders in the existing case-insert image-source owner. It centralizes only Steam artwork loading and status-copy preparation; hooks still own slot identity, cover/tray/spine state updates, grouped-slot enablement, and final success timing.
+
+- Files changed:
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/imageSlotSourceImport.ts`: 242 lines, 6,840 bytes.
+  - `src/caseInsert/imageSlotSourceImport.test.ts`: 224 lines, 6,695 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,074 lines, 29,071 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 984 lines, 27,893 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/project/projectVisualAssetImport.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused image-source, template image-slot action, spine editor action, case-insert artwork slot, additional artwork slot, and visual asset import tests passed, 46 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 139, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 95 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only centralizes Steam artwork source-loading status/error handling and preserves target-specific image-slot updates through focused and full tests.
+  - Further source-loading cleanup should stop if it would merge Steam, local, web, uploaded, and logo-candidate provenance semantics into a vague generic importer or alter status wording.
+
+## Pass 96 - Case Insert Uploaded Image Decode Helper
+
+- Candidate found: ordinary cover/tray and spine image/logo upload handlers repeated the same uploaded-image decode/read try/catch after shared file validation, while preserving target-specific success status, grouped-slot updates, and title-artwork custom-image behavior locally.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`
+  - `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+- Decision: implemented.
+- Reason: the helper lives beside the other case-insert image-source loaders and owns only uploaded-file decode/read failure handling. Hooks still own target slot identity, state updates, grouped-slot source preservation, additional artwork enablement, title-artwork custom-image replacement, and final success status. Steam banner upload handlers intentionally remain local because their status labels and copy are banner-specific.
+
+- Files changed:
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/imageSlotSourceImport.ts`: 262 lines, 7,437 bytes.
+  - `src/caseInsert/imageSlotSourceImport.test.ts`: 265 lines, 7,948 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 1,074 lines, 28,843 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 984 lines, 27,661 bytes.
+  - `src/hooks/useCaseInsertTemplateLogoEditor.ts`: 188 lines, 5,077 bytes.
+  - `src/hooks/useJewelCaseSpineLogoEditor.ts`: 189 lines, 4,957 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceLogoActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineLogoActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts src/hooks/useCaseInsertTemplateLogoEditor.ts src/hooks/useJewelCaseSpineLogoEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/imageSlotSourceImport.ts src/caseInsert/imageSlotSourceImport.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts src/hooks/useCaseInsertTemplateLogoEditor.ts src/hooks/useJewelCaseSpineLogoEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused image-source, template image-slot action, spine editor action, template logo action, and spine logo action tests passed, 41 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 139, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 96 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only centralizes nonvisual uploaded-image decode failure handling and preserves target-specific upload updates through focused and full tests.
+  - Further upload cleanup should stop if it would change Steam banner wording, target-specific success wording, source preservation, or state update ownership.
+
+## Pass 97 - Rating Badge Placeholder Asset Resolver
+
+- Candidate found: `src/assets/assetManifest.ts` duplicated rating-system/value normalization across `getRatingBadgePlaceholderImageUrl`, `getRatingBadgePlaceholderImageSize`, and `getRatingBadgePlaceholderRenderModel`, creating three places that had to preserve the same ESRB/PEGI/USK/custom/none fallback behavior.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `src/project/projectRatingBadge.test.ts`
+  - `src/project/projectCaseInsertBrandingSources.test.ts`
+- Decision: implemented.
+- Reason: the new private resolver stays in the existing built-in asset manifest owner and centralizes only the already-shared rating badge placeholder asset, size, overlay-label, and alt-label selection. Public functions, asset IDs, URLs, sizes, text colors, and render model shape remain unchanged.
+
+- Files changed:
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/assets/assetManifest.ts`: 945 lines, 29,654 bytes.
+  - `src/assets/assetManifest.test.ts`: 97 lines, 2,987 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/assets/assetManifest.test.ts`
+  - `node --experimental-strip-types src/project/projectRatingBadge.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertBrandingSources.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingSlotSources.test.ts` (invalid target; file does not exist)
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused asset manifest, project rating badge, and case-insert branding source tests passed, 27 tests total.
+  - One attempted focused command targeted a non-existent `src/caseInsert/brandingSlotSources.test.ts`; it was replaced with the existing `src/project/projectCaseInsertBrandingSources.test.ts` coverage.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 97 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes only pure built-in rating badge placeholder resolution and is covered by focused and full tests.
+  - Further asset manifest extraction should stop if it would split generated/import URL declarations away from size metadata, alter built-in asset IDs, or make saved-project placeholder compatibility harder to audit.
+
+## Pass 98 - Rating Badge Built-In Manifest Loop Helper
+
+- Candidate found: after pass 97, `getEditorBuiltInImageAssets` still repeated the same built-in asset loop for ESRB, PEGI, and USK rating badge URL/size maps.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `src/project/projectRatingBadge.test.ts`
+- Decision: implemented.
+- Reason: the new private manifest helper only pushes rating badge built-in assets from already-paired URL and size maps. It preserves the public manifest function, asset ID format, URL values, size metadata, and rating-system ownership. Representative ID assertions pin the saved/diagnostic identifier shape.
+
+- Files changed:
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/assets/assetManifest.ts`: 953 lines, 29,646 bytes.
+  - `src/assets/assetManifest.test.ts`: 101 lines, 3,124 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/assets/assetManifest.test.ts`
+  - `node --experimental-strip-types src/project/projectRatingBadge.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused asset manifest and project rating badge tests passed, 22 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 98 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only changes pure built-in asset manifest assembly and is covered by focused and full tests.
+  - Further asset manifest extraction should stop if it would make URL-to-size pairing less local, alter asset ID order, or split compatibility comments away from the declarations they describe.
+
+## Pass 99 - Mapped Built-In Asset Manifest Helper
+
+- Candidate found: `getEditorBuiltInImageAssets` still repeated identical ID-prefix, URL-map, and size-map loops for logo placeholders, technical marks, disc-number badges, toast icons, and artwork-frame textures after the rating badge loop cleanup.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `src/project/projectRatingBadge.test.ts`
+- Decision: implemented.
+- Reason: a private `pushMappedBuiltInImageAssets` helper stays inside the asset manifest owner and handles only simple one-to-one URL/size maps. Themed media/platform assets intentionally keep their themed helper, and custom rating assets remain explicit to preserve compatibility wording and asset order.
+
+- Files changed:
+  - `src/assets/assetManifest.ts`
+  - `src/assets/assetManifest.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/assets/assetManifest.ts`: 938 lines, 28,847 bytes.
+  - `src/assets/assetManifest.test.ts`: 101 lines, 3,124 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/assets/assetManifest.test.ts`
+  - `node --experimental-strip-types src/project/projectRatingBadge.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/assets/assetManifest.ts src/assets/assetManifest.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused asset manifest and project rating badge tests passed, 22 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 99 files; `git diff --check` printed existing line-ending warnings for touched source files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only changes pure built-in asset manifest assembly and is covered by focused and full tests.
+  - Further asset manifest cleanup should stop if it would blur themed asset semantics, custom rating compatibility, or the local pairing of imported URL declarations with size metadata.
+
+## Pass 100 - Case Insert Target Branding Sync Scheduler Wrapper
+
+- Candidate found: `getCaseInsertBrandingControlsForTarget` in `src/hooks/useCaseInsertBrandingMarkSync.ts` repeated the same target-source merge before scheduling a target branding/mark slot sync across rating, media, platform, and technical handlers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+- Decision: implemented.
+- Reason: the new helper is local to the existing target controls factory and only centralizes the repeated `targetBrandingSources` merge before scheduling. Rating/media/platform/technical state transitions, shared-value promotion, target source-prefix enablement, upload projection, and handler ordering remain in their existing mark-family handlers.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 1,127 lines, 35,987 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingVisibility.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused case-insert branding target-source, visibility, custom-image sync, and technical custom-image sync tests passed, 21 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 100 files; `git diff --check` printed an existing line-ending warning for the touched hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only changes local target-sync scheduling structure and preserves mark-family state transitions through focused and full tests.
+  - Further `useCaseInsertBrandingMarkSync.ts` cleanup should stop if it would move target-specific parity decisions out of the hook, blur shared versus target state ownership, or change upload/sync ordering.
+
+## Pass 101 - Case Insert Technical Target Layout Sync Branch Collapse
+
+- Candidate found: `handleTargetTechnicalMarkLayoutChange` in `src/hooks/useCaseInsertBrandingMarkSync.ts` had separate enabled branches for primary and additional technical marks even though `getCaseInsertTargetTechnicalMarkLayoutSyncRequest` already owns the primary/additional source-prefix and shared-layout distinction through its optional `assetId` argument.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingMarkTargetSources.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+- Decision: implemented narrowly.
+- Reason: collapsing the two branches keeps technical primary/additional identity in the tested sync-request helper and removes duplicate hook routing without changing handler order, target state, shared state promotion, source prefixes, or preview/export/save/load ownership.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 1,115 lines, 35,663 bytes.
+- Validation run:
+  - `node --test --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts src/caseInsert/brandingVisibility.test.ts src/caseInsert/brandingTechnicalCustomImageSync.test.ts` attempted in sandbox and blocked by `spawn EPERM`.
+  - Unsandboxed raw `node --test` rerun was rejected by the approval reviewer, so no alternate raw focused-test workaround was attempted.
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50, including the case-insert branding target-source and technical custom-image coverage through the explicit test list.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 101 files; `git diff --check` printed the existing line-ending warning for the touched hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch only changes target-sync branch structure in a hook and is covered by source-level validation.
+  - Further cleanup in `useCaseInsertBrandingMarkSync.ts` should stop unless it preserves the explicit shared-versus-target mark-family identities and does not change upload/sync scheduling order.
+
+## Pass 102 - Disc Inline Rich-Text Selection State Helpers
+
+- Candidate found: `src/components/preview/discInlineTextEditorControls.ts` duplicated the same rich-text selection state normalization across straight and curved disc contextual controls for font family, point size, bold, italic, underline, and color.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/components/preview/discInlineTextEditorControls.test.ts`
+  - `src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContract.ts`
+- Decision: implemented.
+- Reason: the new helpers stay inside the existing disc inline control owner and only normalize existing rich-text command-state return shapes. Straight and curved control ownership, renderer ownership, source mode, layout controls, and the special collapsed-selection bulleted-list behavior remain unchanged.
+
+- Files changed:
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/discInlineTextEditorControls.ts`: 877 lines, 27,509 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorControls.test.ts`
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/discInlineTextEditorControls.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/discInlineTextEditorControls.ts docs/refactor-audit-working-log.md`
+- Result:
+  - First focused straight-control run caught the intentional bulleted-list collapsed-selection exception; the helper was adjusted so bulleted-list state still routes for collapsed selections.
+  - Final focused straight and curved disc inline control tests passed, 11 tests total.
+  - Full validation passed: cycle check, lint, escalated `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 102 files; `git diff --check` printed the existing line-ending warning for the touched control file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes pure contextual control view-model construction and is covered by focused and full source-level tests.
+  - Further `discInlineTextEditorControls.ts` cleanup should stop if it would move target-specific disc control handlers out of the adapter, blur straight versus curved SVG/textPath ownership, or alter selection-scoped rich-text command behavior.
+
+## Pass 103 - Disc Mark Safe-Zone Bounds Helper
+
+- Candidate found: `src/layout/discElementSafeZone.ts` repeated the same safe-image, placeholder-bounds, shape-footprint, slider-range, and clamp flow for rating badges, media marks, platform marks, and technical marks.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/layout/discElementSafeZone.ts`
+  - `src/layout/discElementSafeZoneImageSizing.ts`
+  - `src/layout/discElementSafeZone.test.ts`
+  - `src/layout/discElementInnerNoPrint.test.ts`
+  - `src/layout/discElementContourSafeZone.test.ts`
+- Decision: implemented.
+- Reason: the helper remains private to the disc safe-zone owner and keeps each exported mark-family function as the public contract. It only centralizes the shared bounds/shape-footprint/clamp orchestration while leaving mark-specific image-size lookup, placeholder bounds, exported names, and project clamp callers unchanged.
+
+- Files changed:
+  - `src/layout/discElementSafeZone.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/layout/discElementSafeZone.ts`: 846 lines, 25,728 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/layout/discElementSafeZone.test.ts`
+  - `node --experimental-strip-types src/layout/discElementInnerNoPrint.test.ts`
+  - `node --experimental-strip-types src/layout/discElementContourSafeZone.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/layout/discElementSafeZone.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/layout/discElementSafeZone.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused disc safe-zone, inner no-print, and contour safe-zone tests passed, 24 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 103 files; `git diff --check` printed the existing line-ending warning for the touched safe-zone file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes pure disc geometry helper structure and preserves exported safe-zone functions through focused and full tests.
+  - Further `discElementSafeZone.ts` cleanup should stop unless it clearly preserves drag, slider/manual positioning, template geometry, image contour behavior, and inner no-print clamp semantics without turning disc geometry into a generic utility dumping ground.
+
+## Pass 104 - Cover/Tray Imported Image Slot Source Appliers
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` repeated the same imported-source flow for primary and grouped cover/tray image slots across Steam artwork, local Steam screenshots, and web artwork: await loader, return on failure, update the target slot image, then announce the loader success status.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+- Decision: implemented narrowly.
+- Reason: the new appliers stay inside the cover/tray template editor hook and only centralize the already-identical imported-image apply/status sequence. Primary versus grouped slot routing, additional-artwork enablement, title-artwork custom upload handling, grouped source preservation on uploads, and spine ownership remain separate.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 979 lines, 28,685 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused template surface image-slot action tests passed, 7 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 104 files; `git diff --check` printed the existing line-ending warning for the touched hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook orchestration structure only and preserves source loader/apply/status order through source-level validation.
+  - A similar spine cleanup may be possible later, but it should be done as a separate spine-owned pass so mirrored-spine behavior, side-scoped slot ids, and spine-specific status wording remain explicit.
+
+## Pass 105 - Spine Imported Image Slot Source Appliers
+
+- Candidate found: `src/hooks/useJewelCaseSpineEditor.ts` repeated the same imported-source flow for primary and grouped spine image slots across Steam artwork, local Steam screenshots, and web artwork: await loader, return on failure, update the target slot image, then announce the loader success status.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+- Decision: implemented.
+- Reason: the new appliers stay inside the spine editor hook and keep all side and mirror behavior flowing through `updateSpineImageSlot` and `updateSpineGroupedImageSlot`. Upload handling, title-artwork custom source handling, grouped source preservation, side-scoped ids, and spine-specific add/remove/status behavior remain unchanged.
+
+- Files changed:
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 886 lines, 27,439 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineImageSlotActions.test.ts` attempted, but that focused test file does not exist.
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused spine editor-action tests passed, 15 tests total, including mirrored primary image-slot behavior, side-scoped grouped slots, and grouped source preservation.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 105 files; `git diff --check` printed the existing line-ending warning for the touched hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes spine hook orchestration structure only and preserves source loader/apply/status order through focused and full source-level tests.
+  - Further `useJewelCaseSpineEditor.ts` cleanup should stop if it would obscure mirrored-spine fanout, side-scoped slot identity, or the split between primary image slots, grouped artwork, grouped logos, and grouped marks.
+
+## Pass 106 - Preview Text Block Target Updater
+
+- Candidate found: `src/caseInsert/previewTextControls.ts` repeated the same text-block target update branches for template text blocks, spine title, and spine text blocks across enablement, metadata restoration, style fields, content mode, style/layout presets, layout fields, alignment, and visual-avoidance updates.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/previewTextControls.ts`
+  - `src/caseInsert/previewTextRichText.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+- Decision: implemented.
+- Reason: the new private `updateCaseInsertPreviewTextBlockTarget` helper only centralizes the shared text-block target update path. Text lists keep explicit branches because their rich-text, content mode, and layout behavior differs from text blocks. Spine title and spine text blocks still route through the existing spine-side updater paths, preserving mirrored side behavior and side-scoped ids.
+
+- Files changed:
+  - `src/caseInsert/previewTextControls.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/previewTextControls.ts`: 622 lines, 18,136 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/previewTextRichText.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/previewTextControls.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/previewTextControls.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused preview rich-text and project preview text-control tests passed, 5 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 106 files; `git diff --check` printed the existing line-ending warning for the touched preview text control file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes pure preview text state-transition routing and preserves behavior through focused and full source-level tests.
+  - Further `previewTextControls.ts` cleanup should stop if it would hide selected target identity, merge list/text-block behavior, or change metadata/default restoration semantics.
+
+## Pass 107 - Preview Text Rich-Text Target Routing
+
+- Candidate found: after Pass 106, `src/caseInsert/previewTextControls.ts` still repeated text-block target routing in rich-text command, keyboard command, and command-state paths for template text blocks, spine title, and spine text blocks.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/caseInsert/previewTextControls.ts`
+  - `src/caseInsert/previewTextRichText.ts`
+  - `src/caseInsert/previewTextRichText.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+- Decision: implemented.
+- Reason: the private text-block target updater and getter now handle the shared text-block rich-text routes while text-list behavior remains explicit. Selection capture stays local to each public command function, and spine title/text-block updates still flow through the existing side-aware spine updater paths.
+
+- Files changed:
+  - `src/caseInsert/previewTextControls.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/previewTextControls.ts`: 543 lines, 15,963 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/previewTextRichText.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/previewTextControls.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/previewTextControls.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused preview rich-text and project preview text-control tests passed, 5 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 107 files; `git diff --check` printed the existing line-ending warning for the touched preview text control file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes pure preview text rich-text routing and preserves behavior through focused and full source-level tests.
+  - Further `previewTextControls.ts` cleanup should stop if it would hide selected target identity, merge list/text-block behavior, alter selection capture, or change metadata/default restoration semantics.
+
+## Pass 108 - Case Insert Branding Sync Wrapper Helper
+
+- Candidate found: `src/hooks/useCaseInsertBrandingMarkSync.ts` still repeated the same top-level case-insert wrapper flow for shared branding and mark handlers: call the shared disc-side handler, then schedule a case-insert slot sync with any explicit projected source override.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+- Decision: implemented.
+- Reason: the new private `syncAfter` helper stays inside the hook and only preserves the existing call-then-schedule ordering for top-level shared handler wrappers. Target-specific source projection, shared-versus-target slot decisions, technical primary/additional identities, upload handling, and target sync requests remain explicit.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 994 lines, 35,150 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/brandingVisibility.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused branding visibility and target-source projection tests passed, 16 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 108 files; `git diff --check` printed the existing line-ending warning for the touched branding sync hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local wrapper ordering only and preserves behavior through focused and full source-level tests.
+  - Further `useCaseInsertBrandingMarkSync.ts` cleanup should stop if it would move target-specific parity decisions out of the hook, blur shared versus target state ownership, alter upload/sync scheduling order, or merge technical primary/additional mark identity.
+
+## Pass 109 - Cover/Tray Text Block Updater Shell
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` already had private updater shells for primary and grouped image slots, but cover/tray text-block handlers still repeated the same `setProjectJewelCase` plus `updateCaseInsertTemplateTextBlock` wrapper across enablement, value, alignment, visual avoidance, layout, style, preset, and reset handlers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+- Decision: implemented.
+- Reason: the new private `updateTextBlock` helper mirrors the hook's existing image-slot updater shells and only removes repeated React state wiring. Cover/tray text-block decisions, text-list behavior, upload/source behavior, status wording, and save/load-sensitive domain actions remain in their existing owners.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 957 lines, 27,807 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused template surface text and image-slot action tests passed, 14 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 109 files; `git diff --check` printed the existing line-ending warning for the touched template editor hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only and preserves behavior through focused and full source-level tests.
+  - Further `useCaseInsertTemplateEditor.ts` cleanup should stop if it would change cover/tray slot identity, text-list ownership, upload source semantics, status timing, preview/export wiring, or saved project shape.
+
+## Pass 110 - Spine Text Action Dispatcher
+
+- Candidate found: `src/hooks/useJewelCaseSpineEditor.ts` still repeated the same React state-update wrapper around spine title and spine text-block domain actions, while `src/caseInsert/jewelCaseSpineTextActions.ts` already owned side-scoped ids, mirrored-side fanout, default layouts, layout transitions, and style transitions.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/jewelCaseSpineTextActions.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+- Decision: implemented.
+- Reason: the new private `applySpineTextAction` dispatcher stays inside the spine editor hook and only removes repeated React state wiring for spine text domain actions. Mirrored-spine behavior, side-scoped text-block identity, image/upload/logo/banner behavior, status wording, and domain transition ownership remain unchanged.
+
+- Files changed:
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 858 lines, 27,122 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `npm run lint`
+  - `npm run check:cycles`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused spine editor-action and project preview text-control tests passed, 17 tests total.
+  - Full validation passed: lint, cycle check, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 110 files; `git diff --check` printed the existing line-ending warning for the touched spine editor hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only and preserves behavior through focused and full source-level tests.
+  - Further `useJewelCaseSpineEditor.ts` cleanup should stop if it would obscure mirrored-spine fanout, side-scoped target identity, upload/source semantics, grouped slot ownership, preview/export wiring, or saved project shape.
+
+## Pass 111 - Disc Text Input Update Commit Helper
+
+- Candidate found: `src/hooks/useDiscTextState.ts` still repeated the same state-commit sequence after disc text input, inline draft, rich-text command, and inline finalize transitions: update value sources when appropriate, set values, set title value, optionally persist HTML sources, and clamp layout against the rendered content.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/hooks/useDiscTextState.ts`
+  - `src/discText/textStateTransitions.ts`
+  - `src/discText/textStateTransitions.test.ts`
+  - `src/discText/metadataStateTransitions.test.ts`
+  - `src/project/restoreProjectDiscText.test.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+- Decision: implemented.
+- Reason: the new private `applyDiscTextInputUpdate` and `getDiscTextInputUpdateRenderedContent` helpers stay inside the hook and only centralize repeated React state wiring. HTML/source-mode branches, metadata-bound source decisions, rich-text source generation, value-source restoration semantics, and clamp ownership remain visible in the existing hook flow.
+
+- Files changed:
+  - `src/hooks/useDiscTextState.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useDiscTextState.ts`: 901 lines, 29,783 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/discText/textStateTransitions.test.ts`
+  - `node --experimental-strip-types src/discText/metadataStateTransitions.test.ts`
+  - `node --experimental-strip-types src/project/restoreProjectDiscText.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useDiscTextState.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useDiscTextState.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused disc text transition, metadata transition, project restore, and text-editor contract tests passed, 19 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 140, 226, and 50.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 111 files; `git diff --check` printed the existing line-ending warning for the touched disc text hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only.
+  - Further `useDiscTextState.ts` cleanup should stop if it would obscure metadata/manual value-source behavior, HTML/source-mode persistence, inline draft finalization semantics, straight/curved mode behavior, preview/export parity, or saved project shape.
+
+## Pass 112 - App Project Load Orchestration Helper
+
+- Candidate found: `src/app/App.tsx` had already delegated save, export, project restore application, and PNG export input assembly to app-owned helpers, but project loading still owned dialog selection, file read, route detection, case-insert restore, disc restore, and status copy inline.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/app/App.tsx`
+  - `src/app/appProjectSave.ts`
+  - `src/app/appProjectSave.test.ts`
+  - `src/app/appProjectRestore.ts`
+  - `src/app/appProjectRestore.test.ts`
+  - `src/project/projectRouting.ts`
+  - `src/project/projectSchema.test.ts`
+- Decision: implemented.
+- Reason: `runAppProjectLoad` is an app-owned orchestration helper that mirrors the existing save/export helper pattern. Project parsing, schema validation, case-insert restore, disc restore, and live setter ordering stay in their existing owners; `App.tsx` still passes explicit restore dependencies and setters.
+
+- Files changed:
+  - `src/app/App.tsx`
+  - `src/app/appProjectLoad.ts`
+  - `src/app/appProjectLoad.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/app/App.tsx`: 1,675 lines, 64,493 bytes.
+  - `src/app/appProjectLoad.ts`: 95 lines, 3,156 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/app/appProjectLoad.test.ts`
+  - `node --experimental-strip-types src/app/appProjectRestore.test.ts`
+  - `node --experimental-strip-types src/app/appProjectSave.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/app/App.tsx src/app/appProjectLoad.ts src/app/appProjectLoad.test.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/app/App.tsx src/app/appProjectLoad.ts src/app/appProjectLoad.test.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+- Result:
+  - Focused app load, restore, and save orchestration tests passed, 9 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 112 files; `git diff --check` printed the existing line-ending warning for the touched App file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes app-owned load orchestration only and preserves source-level project parsing/restore behavior.
+  - Further `App.tsx` cleanup should stop if it would hide restore setter ordering, duplicate project parse/restore ownership, change load/save/export status copy, alter route selection, or move feature-specific domain decisions into app helpers.
+
+## Pass 113 - Case Insert Target Upload Sync Helper
+
+- Candidate found: `src/hooks/useCaseInsertBrandingMarkSync.ts` still repeated the same target-specific shared upload wrapper for rating badge, media mark, and platform mark uploads: normalize sync/async upload result, schedule target mark-slot sync, and fall back to an empty override when the shared upload returned no projected state.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingMarkTargetSources.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+- Decision: implemented.
+- Reason: the new private `syncTargetAfterSharedUpload` helper stays inside the target-control closure and only removes repeated upload-result scheduling. Technical upload projection remains separate because primary/additional technical assets have distinct target merge behavior.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 993 lines, 35,125 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingVisibility.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused branding target-source, visibility, custom image sync/restore, and technical custom image sync tests passed, 23 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 113 files; `git diff --check` printed the existing line-ending warning for the touched branding sync hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local scheduling wrappers only.
+  - Further `useCaseInsertBrandingMarkSync.ts` cleanup should stop if it would obscure shared-versus-target source state, mark-family identity, primary/additional technical asset behavior, preview/export visibility, save/load preservation, or upload timing.
+
+## Pass 114 - Disc Inline Text Command Handler Helper
+
+- Candidate found: `src/components/preview/discInlineTextEditorControls.ts` repeated the same selected-range routing for BIU toggles, font family, point size, and color in both straight and curved disc text control builders.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/components/preview/discInlineTextEditorControlHelpers.ts`
+  - `src/components/preview/discInlineTextEditorControls.test.ts`
+  - `src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+  - `src/diagnostics/textEditorContract.test.ts`
+- Decision: implemented.
+- Reason: the new `createDiscInlineTextChangeHandlers` helper lives in the existing disc inline text helper module and only centralizes rich-text command routing. Straight and curved control model construction remains separate so curved-specific omissions, arc controls, and unsupported straight-only controls stay explicit.
+
+- Files changed:
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/components/preview/discInlineTextEditorControlHelpers.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/discInlineTextEditorControls.ts`: 774 lines, 24,852 bytes.
+  - `src/components/preview/discInlineTextEditorControlHelpers.ts`: 199 lines, 5,764 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorControls.test.ts`
+  - `node --experimental-strip-types src/components/preview/discInlineTextEditorCurvedControls.test.ts`
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/discInlineTextEditorControls.ts src/components/preview/discInlineTextEditorControlHelpers.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/discInlineTextEditorControls.ts src/components/preview/discInlineTextEditorControlHelpers.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused straight/curved disc text control, text-editor contract, and case-insert inline control tests passed, 23 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 114 files; `git diff --check` printed the existing line-ending warning for the touched disc inline text controls file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes control-model helper routing only; visible text-editor runtime behavior still requires manual Tauri verification before any runtime acceptance claim.
+  - Further `discInlineTextEditorControls.ts` cleanup should stop if it would merge straight and curved control ownership, expose unsupported curved controls, alter rich-text selected-range command routing, change contextual ribbon model semantics, or blur source-editing behavior.
+
+## Pass 115 - Case Insert Steam Import Defaults Projection
+
+- Candidate found: `src/app/App.tsx` still assembled the pure case-insert Steam import defaults inline: tray back-cover Steam copy, optional title-artwork seed application, and cover rating branding defaults.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/app/App.tsx`
+  - `src/app/appSteamImportPlan.ts`
+  - `src/app/appSteamImportPlan.test.ts`
+  - `src/caseInsert/steamBackCoverImport.ts`
+  - `src/caseInsert/steamImportBrandingDefaults.ts`
+  - `src/caseInsert/titleArtwork.ts`
+  - `src/caseInsert/steamBackCoverImport.test.ts`
+- Decision: implemented.
+- Reason: the new `applySteamImportDefaultsToCaseInsert` helper is case-insert-owned and pure. It keeps the same projection order while leaving async title-art seed creation, app setters, import status announcements, and broader Steam import orchestration in `App.tsx`.
+
+- Files changed:
+  - `src/app/App.tsx`
+  - `src/caseInsert/steamImportDefaults.ts`
+  - `src/caseInsert/steamBackCoverImport.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/app/App.tsx`: 1,665 lines, 64,053 bytes.
+  - `src/caseInsert/steamImportDefaults.ts`: 60 lines, 1,716 bytes.
+  - `src/caseInsert/steamBackCoverImport.test.ts`: 426 lines, 14,943 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/steamBackCoverImport.test.ts`
+  - `node --experimental-strip-types src/caseInsert/titleArtwork.test.ts`
+  - `node --experimental-strip-types src/app/appSteamImportPlan.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/app/App.tsx src/caseInsert/steamImportDefaults.ts src/caseInsert/steamBackCoverImport.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/app/App.tsx src/caseInsert/steamImportDefaults.ts src/caseInsert/steamBackCoverImport.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused case-insert Steam back-cover/defaults, title-artwork, and app Steam import planning tests passed, 21 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 115 files; `git diff --check` printed the existing line-ending warning for the touched App and Steam back-cover test files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes a pure case-insert projection and its app callsite only.
+  - Further Steam import cleanup should stop if it would hide setter ordering, status announcement ordering, async artwork download timing, selected-game replacement semantics, disc visual defaults, case-insert back-cover defaults, preview/export visibility, or saved project shape.
+
+## Pass 116 - Case Insert Template Text List Dispatcher
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` still repeated the same React state wrapper around pure cover/tray text-list transition helpers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/caseInsert/templateSurfaceTextActions.ts`
+  - `src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `src/project/projectCaseInsertTextPersistence.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+- Decision: implemented.
+- Reason: the new private `applyTemplateTextListAction` dispatcher stays inside the cover/tray template editor hook and only removes repeated state-commit wiring. The public hook return shape, text-list domain actions, preview/export ownership, save/load shape, and cover/tray target identity remain unchanged.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 944 lines, 27,450 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceTextActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertTextPersistence.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `node --experimental-strip-types src/components/preview/caseInsertInlineTextEditorControls.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused template text action, project text persistence/preview controls, and case-insert inline control tests passed, 15 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 116 files; `git diff --check` printed the existing line-ending warning for the touched template editor hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only.
+  - Further `useCaseInsertTemplateEditor.ts` cleanup should stop if it would obscure cover/tray target identity, text-list item ordering, preview rendering, export rendering, saved project shape, source semantics, or domain action ownership.
+
+## Pass 117 - Jewel Case Spine Primary Image Slot Dispatcher
+
+- Candidate found: `src/hooks/useJewelCaseSpineEditor.ts` still repeated the same React state wrapper around pure primary spine image-slot action helpers for enablement, fit, layout, reset, restore, fit-to-region, and clear.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/jewelCaseSpineImageSlotActions.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+- Decision: implemented.
+- Reason: the new private `applySpineImageSlotAction` dispatcher stays inside the spine editor hook and only centralizes state-commit wiring for existing spine-owned image-slot actions. Mirrored-spine fanout, side identity, grouped slot behavior, source/upload handling, status wording, preview/export state, and saved project shape remain unchanged.
+
+- Files changed:
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 878 lines, 27,388 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertPreviewTextControls.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useJewelCaseSpineEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused spine editor action, case-insert preview text-control, and additional artwork slot tests passed, 20 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 117 files; `git diff --check` printed the existing line-ending warning for the touched spine editor hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only.
+  - Further `useJewelCaseSpineEditor.ts` cleanup should stop if it would obscure mirrored-spine fanout, side-scoped slot identity, source/upload semantics, grouped slot ownership, preview/export wiring, saved project shape, or status message ordering.
+
+## Pass 118 - Case Insert Template Primary Image Slot Dispatcher
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` still repeated the same React state wrapper around pure cover/tray primary image-slot action helpers for enablement, fit, layout, reset, restore, fit-to-region, and clear.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `src/project/projectCaseInsertArtworkNormalization.test.ts`
+- Decision: implemented.
+- Reason: the new private `applyPrimaryImageSlotAction` dispatcher stays inside the cover/tray template editor hook and only centralizes state-commit wiring for existing case-insert template image-slot actions. Cover/tray target identity, source/upload handling, status wording, grouped slot behavior, preview/export state, and saved project shape remain unchanged.
+
+- Files changed:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 942 lines, 27,383 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+  - `node --experimental-strip-types src/project/projectCaseInsertArtworkNormalization.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertTemplateEditor.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused template image-slot action and case-insert project artwork slot/normalization tests passed, 17 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 118 files; `git diff --check` printed the existing line-ending warning for the touched template editor hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only.
+  - Further `useCaseInsertTemplateEditor.ts` cleanup should stop if it would obscure cover/tray target identity, source/upload semantics, grouped slot ownership, preview/export wiring, saved project shape, or status message ordering.
+
+## Pass 119 - Case Insert Branding Mark Target Sync Helper
+
+- Candidate found: `src/hooks/useCaseInsertBrandingMarkSync.ts` still repeated the same target-scoped sequence in many handlers: call the shared handler, then schedule a target slot sync with the computed target source override.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingMarkTargetSources.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `src/caseInsert/brandingTargetMarkSlots.test.ts`
+- Decision: implemented.
+- Reason: the new private `syncTargetAfter` helper stays inside `getCaseInsertBrandingControlsForTarget` and only centralizes the existing target handler ordering. Shared checkbox behavior, target-slot identity, mark-family source prefixes, upload handling, preview/export visibility, and saved project shape remain owned by the existing sync helpers and mark-slot functions.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 1008 lines, 35,209 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingVisibility.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTargetMarkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused branding mark target-source, visibility, custom image sync/restore, technical custom image sync, and target mark slot tests passed, 27 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 119 files; `git diff --check` printed the existing line-ending warning for the touched branding sync hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local state wiring only.
+  - This local helper reduced duplicated ordering but did not reduce measured file size; further work in `useCaseInsertBrandingMarkSync.ts` should prefer a clearer target-control module boundary or stop if that would obscure shared-versus-target state semantics.
+  - Further cleanup should stop if it would obscure shared branding state, target-slot state, mark-family identity, primary/additional technical asset behavior, preview/export visibility, or save/load preservation.
+
+## Pass 120 - Inline Preview Text Editor Canvas Overlay Component
+
+- Candidate found: `src/components/preview/InlinePreviewTextEditor.tsx` still owned the presentational SVG/span markup for selection overlays and caret overlays even though the geometry and frame calculations had already been extracted into editor-owned helpers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorSelection.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+- Decision: implemented.
+- Reason: the new `InlinePreviewTextEditorCanvasOverlays` component is presentational and receives already-computed `caretFrame` and `selectionFrames`. It does not own selection math, source mode, adapter input behavior, ribbon ownership, target identity, or commit behavior. Existing smoke IDs and CSS classes remain unchanged.
+
+- Files changed:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`: 1166 lines, 38,526 bytes.
+  - `src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx`: 100 lines, 3,286 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx docs/refactor-audit-working-log.md`
+- Result:
+  - Focused inline selection, renderer contract, editor contract, and text-geometry tests passed, 16 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 597 TypeScript/TSX files after adding the overlay component.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 120 files; `git diff --check` printed the existing line-ending warning for the touched inline editor file.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes text-editor rendering structure but preserves markup semantics; manual Tauri verification is still required before claiming user-visible runtime acceptance.
+  - Further inline editor cleanup should stop if it would affect caret placement, selected ranges, adapter input mode, source editing, ribbon ownership, target-specific behavior, or curved text's SVG/textPath exception.
+
+## Pass 121 - Inline Preview Text Editor Move Ring Component
+
+- Candidate found: `src/components/preview/InlinePreviewTextEditor.tsx` still owned the presentational Move button and edge-hit-ring JSX after the pointer state machine, edge hit detection, and drag activation rules were already isolated in the editor component and interaction helpers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`
+  - `src/interaction/textMoveHandleDrag.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+- Decision: implemented.
+- Reason: the new `InlinePreviewTextEditorMoveRing` component is presentational and keeps the existing smoke IDs, CSS classes, edge names, click suppression, refs, and release handler wiring. The editor still owns the pointer state machine, edge hit detection, active pointer ids, source mode, selection state, and drag callbacks.
+
+- Files changed:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`
+  - `src/interaction/textMoveHandleDrag.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`: 1124 lines, 37,399 bytes.
+  - `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`: 68 lines, 1,809 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`
+  - `node --experimental-strip-types src/interaction/textMoveHandleDrag.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorMoveRing.tsx src/interaction/textMoveHandleDrag.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorMoveRing.tsx src/interaction/textMoveHandleDrag.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused inline editor and move-handle tests passed, 25 tests total.
+  - The first full `npm run test` attempt exposed a contract assertion still coupled to the old file location of the move-ring markup. The test was updated to verify the new component for markup/classes while keeping pointer-state assertions against `InlinePreviewTextEditor.tsx`.
+  - Final full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 598 TypeScript/TSX files after adding the move-ring component.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 121 files; `git diff --check` printed the existing line-ending warning for the touched inline editor and movement test files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes text-editor presentation structure only; manual Tauri verification is still required before claiming user-visible move-handle/runtime acceptance.
+  - Further inline editor cleanup should stop if it would affect move-handle activation, edge-hit semantics, caret placement, selected ranges, adapter input mode, source editing, ribbon ownership, or target-specific behavior.
+
+## Pass 122 - Inline Preview Text Editor Native Textarea Component
+
+- Candidate found: `src/components/preview/InlinePreviewTextEditor.tsx` still owned native textarea presentation markup even though source-mode guards, selection capture, keyboard handling, pointer behavior, adapter input mode, and commit behavior were already editor-owned responsibilities.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorTextarea.tsx`
+  - `src/diagnostics/textEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+- Decision: implemented.
+- Reason: the new `InlinePreviewTextEditorTextarea` component is presentational and keeps the native input element, smoke id, CSS classes, ref, style, accessibility label, and event prop wiring together. `InlinePreviewTextEditor.tsx` still owns the source-mode guard, selection-state updates, key handling, pointer selection behavior, adapter mode, lifecycle, contextual ribbon registration, and commit behavior.
+
+- Files changed:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorTextarea.tsx`
+  - `src/diagnostics/textEditorContract.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`: 1252 lines, 37,440 bytes.
+  - `src/components/preview/inlinePreviewTextEditorTextarea.tsx`: 73 lines, 1,883 bytes.
+  - `src/diagnostics/textEditorContract.test.ts`: 369 lines, 17,954 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorTextarea.tsx src/diagnostics/textEditorContract.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorTextarea.tsx src/diagnostics/textEditorContract.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused text-editor contract, inline editor contract, renderer contract, and selection tests passed, 21 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 599 TypeScript/TSX files after adding the textarea component.
+  - `npm run test` grouped test counts were 138, 231, and 53.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 122 files; `git diff --check` printed the existing line-ending warning for the touched inline editor and diagnostics test files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes text-editor presentation structure only; manual Tauri verification is still required before claiming user-visible native textarea/runtime acceptance.
+  - Further inline editor cleanup should stop if it would affect native textarea input, source-mode behavior, selection/caret placement, pointer selection mapping, adapter input mode, move-handle behavior, ribbon ownership, target-specific behavior, or curved text's SVG/textPath exception.
+
+## Pass 123 - App Steam Disc Visual Import Helper
+
+- Candidate found: `src/app/App.tsx` still owned a cohesive Steam-import substep that prepared disc visual defaults: metadata-bound disc text resolution, disc title artwork import status, and platform mark import status. The surrounding handler still needs to own state application, status announcements, case-insert defaults, and workspace-level import routing.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/app/App.tsx`
+  - `src/app/appSteamImportPlan.ts`
+  - `src/app/appSteamImportPlan.test.ts`
+  - `src/hooks/useDiscTextState.ts`
+  - `src/hooks/useTitleArtwork.ts`
+  - `src/steam/steamPlatformMarks.ts`
+  - `src/steam/steamTitleArtworkImport.ts`
+  - `scripts/test-file-list.mjs`
+- Decision: implemented.
+- Reason: the new `runSteamDiscVisualDefaultImport` helper is app-owned and dependency-injected. It preserves the existing import sequence and returns the same result bundle while leaving React state mutation, app routing, case-insert updates, candidate announcements, and status toasts in `App.tsx`.
+
+- Files changed:
+  - `src/app/App.tsx`
+  - `src/app/appSteamDiscVisualImport.ts`
+  - `src/app/appSteamDiscVisualImport.test.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/app/App.tsx`: 1746 lines, 63,419 bytes.
+  - `src/app/appSteamDiscVisualImport.ts`: 76 lines, 2,600 bytes.
+  - `src/app/appSteamDiscVisualImport.test.ts`: 132 lines, 4,958 bytes.
+  - `scripts/test-file-list.mjs`: 213 lines, 10,492 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/app/appSteamDiscVisualImport.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/app/App.tsx src/app/appSteamDiscVisualImport.ts src/app/appSteamDiscVisualImport.test.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/app/App.tsx src/app/appSteamDiscVisualImport.ts src/app/appSteamDiscVisualImport.test.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+- Result:
+  - Focused Steam disc visual import helper tests passed, 2 tests total.
+  - An initial `node --test --experimental-strip-types src/app/appSteamDiscVisualImport.test.ts` run hit a sandbox-level `spawn EPERM`; rerunning the project-local direct test invocation passed.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 601 TypeScript/TSX files after adding the app helper and test.
+  - `npm run test` grouped test counts were 137, 216, and 70.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 123 files; `git diff --check` printed the existing line-ending warning for `src/app/App.tsx`.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes app-owned import orchestration only; manual Tauri verification is still required before claiming user-visible Steam import acceptance.
+  - Further App cleanup should stop if it would obscure project restore order, workspace routing, selected target state, Steam import side effects, status toast timing, export confirmation behavior, or create a second source of truth for feature state.
+
+## Pass 124 - Inline Preview Text Editor Ribbon Component
+
+- Candidate found: `src/components/preview/InlinePreviewTextEditor.tsx` still owned contextual ribbon tabs, control host markup, Delete, and Done presentation even after the menu content, canvas overlays, move ring, and native textarea were already extracted. The editor still needed to retain source-draft state, command selection, tab switching, blur guards, ribbon registration, and commit behavior.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorRibbon.tsx`
+  - `src/components/preview/inlinePreviewTextEditorMenuContent.tsx`
+  - `src/components/preview/inlinePreviewTextRibbonControls.tsx`
+  - `src/diagnostics/textEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorInteraction.test.ts`
+  - `src/components/preview/inlinePreviewTextEditorSource.test.ts`
+- Decision: implemented.
+- Reason: the new `InlinePreviewTextEditorRibbon` component is presentational and owns the existing contextual ribbon tabs/actions markup, smoke IDs, classes, tab labels, menu-content placement, and Delete/Done button presentation. `InlinePreviewTextEditor.tsx` still owns active tab state, HTML source draft lifecycle, selection retention, command selection, ribbon registration, Done commit construction, and adapter behavior.
+
+- Files changed:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/components/preview/inlinePreviewTextEditorRibbon.tsx`
+  - `src/diagnostics/textEditorContract.test.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/components/preview/InlinePreviewTextEditor.tsx`: 1171 lines, 34,481 bytes.
+  - `src/components/preview/inlinePreviewTextEditorRibbon.tsx`: 159 lines, 5,213 bytes.
+  - `src/diagnostics/textEditorContract.test.ts`: 377 lines, 18,427 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/diagnostics/textEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSelection.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorInteraction.test.ts`
+  - `node --experimental-strip-types src/components/preview/inlinePreviewTextEditorSource.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorRibbon.tsx src/diagnostics/textEditorContract.test.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/components/preview/InlinePreviewTextEditor.tsx src/components/preview/inlinePreviewTextEditorRibbon.tsx src/diagnostics/textEditorContract.test.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused text-editor diagnostic, contract, renderer, selection, interaction, and HTML-source tests passed, 29 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 602 TypeScript/TSX files after adding the ribbon component.
+  - `npm run test` grouped test counts were 137, 216, and 70.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 124 files; `git diff --check` printed the existing line-ending warnings for the touched inline editor and diagnostics test files.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes text-editor presentation structure only; manual Tauri verification is still required before claiming user-visible contextual ribbon/runtime acceptance.
+  - Further inline editor cleanup should stop if it would affect active tab behavior, HTML source commit behavior, command selection retention, selection/caret placement, adapter input mode, move-handle behavior, contextual ribbon registration, target-specific behavior, or curved text's SVG/textPath exception.
+
+## Pass 125 - Case Insert Branding Sync Result Scheduling Helper
+
+- Candidate found: `src/hooks/useCaseInsertBrandingMarkSync.ts` repeated the same global upload/add/remove pattern six times: call a shared mark handler, then schedule case-insert slot sync with a source override only if the handler returned next shared state.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/caseInsert/brandingMarkTargetSources.ts`
+  - `src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `src/caseInsert/brandingVisibility.test.ts`
+  - `src/caseInsert/brandingCustomImageSync.test.ts`
+  - `src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `src/caseInsert/brandingTargetMarkSlots.test.ts`
+- Decision: implemented.
+- Reason: the new hook-local `scheduleCaseInsertBrandingMarkSlotSyncFromResult` helper keeps the existing shared-state result semantics in one place without moving target identities, target-source projection, mark-family behavior, or side-effect ownership out of the hook. The broad target-control factory remains in place because extracting it would require a large dependency object and would risk obscuring shared-versus-target state semantics.
+
+- Files changed:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`: 1124 lines, 35,377 bytes.
+  - Note: this pass intentionally reduced duplicated conditional scheduling branches rather than reducing raw line count.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/brandingMarkTargetSources.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingVisibility.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingCustomImageRestore.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
+  - `node --experimental-strip-types src/caseInsert/brandingTargetMarkSlots.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/hooks/useCaseInsertBrandingMarkSync.ts docs/refactor-audit-working-log.md`
+- Result:
+  - Focused case insert branding target-source, visibility, custom image sync/restore, technical custom image sync, and target mark slot tests passed, 27 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 602 TypeScript/TSX files.
+  - `npm run test` grouped test counts were 137, 216, and 70.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 125 files; `git diff --check` printed the existing line-ending warning for the touched branding sync hook.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local scheduling structure only.
+  - Further cleanup in `useCaseInsertBrandingMarkSync.ts` should stop if it would require a broad dependency object, obscure shared checkbox behavior, target-slot state, mark-family identity, preview/export visibility, or save/load preservation.
+
+## Pass 126 - Case Insert Loaded Image Slot Source Application Helper
+
+- Candidate found: `src/hooks/useCaseInsertTemplateEditor.ts` and `src/hooks/useJewelCaseSpineEditor.ts` repeated the same neutral source-application flow for loaded Steam/local/web image slot imports: await an imported image result, skip null results, apply the image through the surface-owned slot updater, then announce the success status.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/caseInsert/imageSlotSourceImport.ts`
+  - `src/caseInsert/imageSlotSourceImport.test.ts`
+  - `src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+- Decision: implemented.
+- Reason: the new `applyLoadedCaseInsertImageSlotSource` helper owns only the neutral loaded-result branch and status announcement. Cover/tray and spine hooks still own target identity, title-artwork special handling, grouped-slot source preservation, additional-artwork enablement, and mirrored-spine fan-out.
+
+- Files changed:
+  - `src/caseInsert/imageSlotSourceApply.ts`
+  - `src/caseInsert/imageSlotSourceApply.test.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `scripts/test-file-list.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `src/caseInsert/imageSlotSourceApply.ts`: 22 lines, 674 bytes.
+  - `src/caseInsert/imageSlotSourceApply.test.ts`: 40 lines, 1,542 bytes.
+  - `src/hooks/useCaseInsertTemplateEditor.ts`: 941 lines, 27,308 bytes.
+  - `src/hooks/useJewelCaseSpineEditor.ts`: 875 lines, 27,362 bytes.
+- Validation run:
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceApply.test.ts`
+  - `node --experimental-strip-types src/caseInsert/imageSlotSourceImport.test.ts`
+  - `node --experimental-strip-types src/caseInsert/templateSurfaceImageSlotActions.test.ts`
+  - `node --experimental-strip-types src/caseInsert/jewelCaseSpineEditorActions.test.ts`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- src/caseInsert/imageSlotSourceApply.ts src/caseInsert/imageSlotSourceApply.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" src/caseInsert/imageSlotSourceApply.ts src/caseInsert/imageSlotSourceApply.test.ts src/hooks/useCaseInsertTemplateEditor.ts src/hooks/useJewelCaseSpineEditor.ts scripts/test-file-list.mjs docs/refactor-audit-working-log.md`
+- Result:
+  - Focused image-slot helper, image-source import, template image-slot action, and spine editor action tests passed, 35 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 604 TypeScript/TSX files after adding the helper and test.
+  - `npm run test` grouped test counts were 137, 219, and 73.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 126 files; `git diff --check` printed the existing line-ending warnings for the two touched hooks.
+- Remaining risks:
+  - No native/Tauri runtime verification was run because this batch changes hook-local source application structure only.
+  - Further cover/tray and spine hook cleanup should stop if it would merge surface-specific target identity, title-artwork handling, grouped-slot source preservation, additional-artwork enablement, mirrored-spine behavior, save/load shape, preview rendering, or export rendering.
+
+## Pass 127 - Text Editor Smoke Curved Copyright Guardrail Ownership
+
+- Candidate found: `scripts/text-editor-smoke.mjs` still owned the full curved copyright SVG/textPath guardrail body even though `scripts/text-editor-smoke-curved-text.mjs` already owned the lower-level curved boundary, caret, selection, and point-size stability helpers.
+- Evidence/files inspected:
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/README.md`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-curved-text.mjs`
+  - `scripts/text-editor-smoke-route-setup.test.mjs`
+  - `scripts/text-editor-smoke-selection.test.mjs`
+- Decision: implemented.
+- Reason: the curved module now owns the cohesive curved copyright guardrail while the main smoke script keeps route orchestration. Failure wording, smoke IDs, selectors, route name, browser/native policy boundary, and artifact/reporting behavior were preserved.
+
+- Files changed:
+  - `scripts/text-editor-smoke.mjs`
+  - `scripts/text-editor-smoke-curved-text.mjs`
+  - `docs/refactor-audit-working-log.md`
+- Size result:
+  - `scripts/text-editor-smoke.mjs`: 886 lines, 33,727 bytes.
+  - `scripts/text-editor-smoke-curved-text.mjs`: 607 lines, 23,906 bytes.
+- Validation run:
+  - `node --check scripts/text-editor-smoke.mjs`
+  - `node --check scripts/text-editor-smoke-curved-text.mjs`
+  - `node scripts/text-editor-smoke-selection.test.mjs`
+  - `node scripts/text-editor-smoke-route-setup.test.mjs`
+  - `npm run check:cycles`
+  - `npm run lint`
+  - `npm run test`
+  - `npm run build`
+  - `git diff --check -- scripts/text-editor-smoke.mjs scripts/text-editor-smoke-curved-text.mjs docs/refactor-audit-working-log.md`
+  - `rg -n "[ \t]+$" scripts/text-editor-smoke.mjs scripts/text-editor-smoke-curved-text.mjs docs/refactor-audit-working-log.md`
+- Result:
+  - Focused script syntax, smoke selection, and smoke route setup checks passed, 8 tests total.
+  - Full validation passed: cycle check, lint, `npm run test`, and build.
+  - `npm run check:cycles` checked 604 TypeScript/TSX files.
+  - `npm run test` grouped test counts were 137, 219, and 73.
+  - Build retained the existing Vite large-chunk warning.
+  - Scoped `git diff --check` and explicit trailing-whitespace scan passed for the pass 127 files; `git diff --check` printed the existing line-ending warning for `scripts/text-editor-smoke.mjs`.
+- Remaining risks:
+  - No browser diagnostic route or native/Tauri runtime verification was run; this batch preserves diagnostic helper ownership only and does not claim visual/runtime acceptance.
+  - Further smoke-script cleanup should stop if it would alter route coverage, route names, failure wording, screenshot/artifact names, report structure, or the browser-diagnostic versus native-Tauri policy boundary.
+
+## Pass 128 - No-Edit Top-File Audit Sweep
+
+- Candidate found: no safe, worthwhile implementation batch was selected from the current top-file sweep.
+- Evidence/files inspected:
+  - `src/app/App.tsx`
+  - `src/components/preview/InlinePreviewTextEditor.tsx`
+  - `src/hooks/useCaseInsertBrandingMarkSync.ts`
+  - `src/hooks/useCaseInsertTemplateEditor.ts`
+  - `src/hooks/useDiscTextState.ts`
+  - `scripts/text-editor-smoke.mjs`
+  - `src/hooks/useJewelCaseSpineEditor.ts`
+  - `src/assets/assetManifest.ts`
+  - `src/layout/discElementSafeZone.ts`
+  - `src/caseInsert/normalization.ts`
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/export/caseInsertExportPreflight.ts`
+  - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
+  - `docs/REPO_ARCHITECTURE_INVENTORY.md`
+  - `docs/TEXT_EDITOR_CONTRACT.md`
+  - `docs/TEXT_EDITOR_SMOKE_AUTOMATION.md`
+  - `docs/PROJECT_FILE_SPEC.md`
+- Decision: skipped.
+- Reason:
+  - `App.tsx` remains large, but the next visible split is a disc editor shell/prop wiring extraction that would mostly relocate orchestration rather than reduce state ownership or coupling. Existing app-owned project save/load/export/import helpers already cover the clearer callback clusters.
+  - `InlinePreviewTextEditor.tsx` now mostly owns stateful caret/selection/source/move-edge effects after earlier extraction of text geometry, canvas overlays, move ring, textarea, menu content, and ribbon presentation. Further extraction risks changing selection/caret/source behavior.
+  - `useCaseInsertBrandingMarkSync.ts` still has a broad target-control factory, but extracting it would require a large dependency object and could obscure shared-versus-target state and mark-family identity.
+  - `caseInsert/normalization.ts` is cohesive save/load normalization. Splitting text/surface/spine normalization is possible but schema-sensitive and would not be a small behavior-preserving batch without stronger payoff.
+  - `assetManifest.ts` is mostly static built-in asset metadata after prior fallback/helper cleanup.
+  - `discElementSafeZone.ts`, `discInlineTextEditorControls.ts`, `richTextCommands.ts`, and related text/geometry files have already had the obvious shared helper seams extracted in earlier passes; remaining code is domain-sensitive.
+- Validation run:
+  - No code changes in this pass.
+  - Current full validation from pass 127 remains the latest code validation: `npm run check:cycles`, `npm run lint`, `npm run test`, and `npm run build` all passed.
+- Result:
+  - No implementation changes.
+- Remaining risks:
+  - The largest remaining files are not risk-free. They should be revisited only with narrower issue scope or when a concrete duplication/ownership seam appears from future work.
+
+## Pass 129 - Second Consecutive No-Edit Audit Sweep
+
+- Candidate found: no safe, worthwhile implementation batch was selected from the second current-state audit sweep.
+- Evidence/files inspected:
+  - `src/components/preview/CaseInsertSpinePreviewLayer.tsx`
+  - `src/interaction/useCaseInsertPreviewPointerDrag.ts`
+  - `src/render/artworkFrame.ts`
+  - `src/discText/svgLayer.ts`
+  - `src/export/caseInsertExportPreflight.ts`
+  - `src/components/preview/discInlineTextEditorControls.ts`
+  - `src/text/richTextCommands.ts`
+  - `src/layout/discElementSafeZone.ts`
+  - `docs/refactor-audit-working-log.md`
+- Decision: skipped.
+- Reason:
+  - `CaseInsertSpinePreviewLayer.tsx` already has internal presentation components for background, text blocks, overlay slots, side previews, and the exported layer. Extracting more would touch preview/edit/export parity and inline editing target identity without a small obvious boundary.
+  - `useCaseInsertPreviewPointerDrag.ts` owns drag target identity and state updates across template and spine surfaces. The remaining functions are tied to pointer activation, region lookup, and update routing; splitting them risks obscuring target identity and transition ordering.
+  - `artworkFrame.ts` owns procedural frame path generation. The math helpers are renderer-local and tested; extracting them would mostly move complexity without clarifying an external owner.
+  - `discText/svgLayer.ts` owns SVG renderer orchestration for straight/curved disc text. Earlier passes already extracted curved paint geometry, wrapping, range math, and SVG text markup. Remaining code is renderer-order and parity-sensitive.
+  - `caseInsertExportPreflight.ts` has already delegated image/visibility warning families. Remaining warning order and wording are export-confirmation behavior and should not be split without a narrower issue.
+  - `discInlineTextEditorControls.ts` and `richTextCommands.ts` already use extracted selection/range/list helpers. Remaining logic is command-family behavior with text-contract guardrails.
+- Validation run:
+  - No code changes in this pass.
+  - Current full validation from pass 127 remains the latest code validation: `npm run check:cycles`, `npm run lint`, `npm run test`, and `npm run build` all passed.
+- Result:
+  - No implementation changes.
+  - This is the second consecutive no-edit audit pass after pass 128.
+- Remaining risks:
+  - Future work may expose new safe seams, especially if a feature change naturally isolates a renderer phase, drag target family, or warning family. Those should be handled under a narrower issue with focused parity tests.

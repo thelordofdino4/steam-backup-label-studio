@@ -9,6 +9,10 @@ import type {
   JewelCasePixelRect,
   JewelCaseSpineSideId,
 } from './jewelCaseLayout.ts'
+import {
+  getFiniteLayoutNumber,
+  getPositiveFiniteLayoutNumber,
+} from './layoutRangeMath.ts'
 
 export type JewelCaseSteamBannerTarget =
   | { kind: 'cover' }
@@ -83,17 +87,17 @@ function applyLockupLayout(
   baseRect: JewelCasePixelRect,
   layout: ProjectCaseInsertLayout,
 ): JewelCasePixelRect {
-  const scale = Number.isFinite(layout.scale) && layout.scale > 0
-    ? layout.scale
-    : 1
+  const scale = getPositiveFiniteLayoutNumber(layout.scale, 1)
   const width = baseRect.width * scale
   const height = baseRect.height * scale
+  const offsetX = getFiniteLayoutNumber(layout.x, 0)
+  const offsetY = getFiniteLayoutNumber(layout.y, 0)
   const centerX = baseRect.x +
     baseRect.width / 2 +
-    baseRect.width * ((Number.isFinite(layout.x) ? layout.x : 0) / 100)
+    baseRect.width * (offsetX / 100)
   const centerY = baseRect.y +
     baseRect.height / 2 +
-    baseRect.height * ((Number.isFinite(layout.y) ? layout.y : 0) / 100)
+    baseRect.height * (offsetY / 100)
 
   return {
     x: centerX - width / 2,

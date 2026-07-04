@@ -353,6 +353,23 @@ function normalizeCaseInsertImageSlotArray(
   )
 }
 
+function normalizeCaseInsertAdditionalArtworkEnabled(
+  record: Record<string, unknown>,
+  rawArtworkSlots: unknown,
+  artworkSlots: ProjectCaseInsertImageSlot[],
+  fallback: boolean,
+) {
+  const savedArtworkSlots = asArray(rawArtworkSlots)
+  const inferredAdditionalArtworkEnabled = savedArtworkSlots
+    ? artworkSlots.length > 0
+    : fallback
+
+  return normalizeBoolean(
+    record.additionalArtworkEnabled ?? record.artworkEnabled,
+    inferredAdditionalArtworkEnabled,
+  )
+}
+
 function normalizeCaseInsertTextBlock(
   value: unknown,
   defaults: ProjectCaseInsertTextBlock,
@@ -573,10 +590,6 @@ function normalizeCaseInsertSurfaceState(
     'Artwork',
     defaults.artworkSlots,
   )
-  const savedArtworkSlots = asArray(rawArtworkSlots)
-  const inferredAdditionalArtworkEnabled = savedArtworkSlots
-    ? artworkSlots.length > 0
-    : defaults.additionalArtworkEnabled
 
   return {
     steamBanner: normalizeCaseInsertSteamBanner(
@@ -590,9 +603,11 @@ function normalizeCaseInsertSurfaceState(
       defaults.titleArtwork,
       { supportsSteamDefaultLogo: true },
     ),
-    additionalArtworkEnabled: normalizeBoolean(
-      record.additionalArtworkEnabled ?? record.artworkEnabled,
-      inferredAdditionalArtworkEnabled,
+    additionalArtworkEnabled: normalizeCaseInsertAdditionalArtworkEnabled(
+      record,
+      rawArtworkSlots,
+      artworkSlots,
+      defaults.additionalArtworkEnabled,
     ),
     artworkSlots,
     logoSlots: normalizeCaseInsertImageSlotArray(
@@ -718,6 +733,12 @@ Record<CaseInsertTemplatePaneId, ProjectCaseInsertSurfaceState> {
   }
 }
 
+function getJewelCaseSpineSideIdPrefix(
+  defaults: ProjectJewelCaseSpineSideState,
+) {
+  return defaults.background.id.replace('-background', '')
+}
+
 function normalizeJewelCaseSpineSideState(
   value: unknown,
   defaults: ProjectJewelCaseSpineSideState,
@@ -728,16 +749,13 @@ function normalizeJewelCaseSpineSideState(
     return defaults
   }
   const rawArtworkSlots = record.artworkSlots ?? record.artwork
+  const idPrefix = getJewelCaseSpineSideIdPrefix(defaults)
   const artworkSlots = normalizeCaseInsertImageSlotArray(
     rawArtworkSlots,
-    `${defaults.background.id.replace('-background', '')}-artwork`,
+    `${idPrefix}-artwork`,
     'Artwork',
     defaults.artworkSlots,
   )
-  const savedArtworkSlots = asArray(rawArtworkSlots)
-  const inferredAdditionalArtworkEnabled = savedArtworkSlots
-    ? artworkSlots.length > 0
-    : defaults.additionalArtworkEnabled
   const logoSlotsValue = record.logoSlots ??
     record.logos ??
     (record.logo ? [record.logo] : undefined)
@@ -754,27 +772,29 @@ function normalizeJewelCaseSpineSideState(
       defaults.titleArtwork,
       { supportsSteamDefaultLogo: true },
     ),
-    additionalArtworkEnabled: normalizeBoolean(
-      record.additionalArtworkEnabled ?? record.artworkEnabled,
-      inferredAdditionalArtworkEnabled,
+    additionalArtworkEnabled: normalizeCaseInsertAdditionalArtworkEnabled(
+      record,
+      rawArtworkSlots,
+      artworkSlots,
+      defaults.additionalArtworkEnabled,
     ),
     artworkSlots,
     logoSlots: normalizeCaseInsertImageSlotArray(
       logoSlotsValue,
-      `${defaults.background.id.replace('-background', '')}-logo`,
+      `${idPrefix}-logo`,
       'Logo',
       defaults.logoSlots,
     ),
     markSlots: normalizeCaseInsertImageSlotArray(
       record.markSlots ?? record.marks,
-      `${defaults.background.id.replace('-background', '')}-mark`,
+      `${idPrefix}-mark`,
       'Mark',
       defaults.markSlots,
     ),
     title: normalizeCaseInsertTextBlock(record.title ?? record.titleText, defaults.title),
     textBlocks: normalizeCaseInsertTextBlockArray(
       record.textBlocks ?? record.text,
-      `${defaults.background.id.replace('-background', '')}-text`,
+      `${idPrefix}-text`,
       'Spine text',
       defaults.textBlocks,
     ),

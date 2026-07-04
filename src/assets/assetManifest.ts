@@ -52,6 +52,13 @@ export type BuiltInImageAsset = {
   imageSize: BackgroundImageSize
 }
 
+type RatingBadgePlaceholderAsset = {
+  altLabel: string
+  imageSize: BackgroundImageSize
+  imageUrl: string
+  overlayLabel: string | null
+}
+
 function createImageSize(
   width: number,
   height: number,
@@ -111,6 +118,23 @@ function pushThemedBuiltInImageAssets<TTheme extends string>(
         createBuiltInImageAsset(`${idPrefix}:${theme}`, imageUrl, imageSize),
       )
     }
+  })
+}
+
+function pushMappedBuiltInImageAssets<TValue extends string>(
+  assets: BuiltInImageAsset[],
+  idPrefix: string,
+  imageUrls: Record<TValue, string>,
+  imageSizes: Record<TValue, BackgroundImageSize>,
+) {
+  ;(Object.keys(imageUrls) as TValue[]).forEach((value) => {
+    assets.push(
+      createBuiltInImageAsset(
+        `${idPrefix}:${value}`,
+        imageUrls[value],
+        imageSizes[value],
+      ),
+    )
   })
 }
 
@@ -618,60 +642,71 @@ const ARTWORK_FRAME_TEXTURE_IMAGE_SIZES: Record<ArtworkFrameTextureKind, Backgro
   rocky: createImageSize(1254, 1254),
 }
 
-export function getRatingBadgePlaceholderImageUrl(
+function getRatingBadgePlaceholderAsset(
   metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
-) {
+): RatingBadgePlaceholderAsset {
   if (metadata.ratingSystem === 'ESRB') {
     const ratingValue = normalizeEsrbRatingValue(metadata.ratingValue) ?? 'RP'
 
-    return ESRB_RATING_BADGE_IMAGE_URLS[ratingValue]
+    return {
+      altLabel: `ESRB ${ratingValue} rating badge`,
+      imageSize: ESRB_RATING_BADGE_IMAGE_SIZES[ratingValue],
+      imageUrl: ESRB_RATING_BADGE_IMAGE_URLS[ratingValue],
+      overlayLabel: null,
+    }
   }
 
   if (metadata.ratingSystem === 'PEGI') {
     const ratingValue = normalizePegiRatingValue(metadata.ratingValue) ?? '3'
 
-    return PEGI_RATING_BADGE_IMAGE_URLS[ratingValue]
+    return {
+      altLabel: `PEGI ${ratingValue} rating badge`,
+      imageSize: PEGI_RATING_BADGE_IMAGE_SIZES[ratingValue],
+      imageUrl: PEGI_RATING_BADGE_IMAGE_URLS[ratingValue],
+      overlayLabel: null,
+    }
   }
 
   if (metadata.ratingSystem === 'USK') {
     const ratingValue = normalizeUskRatingValue(metadata.ratingValue) ?? '0'
 
-    return USK_RATING_BADGE_IMAGE_URLS[ratingValue]
+    return {
+      altLabel: `USK ${ratingValue} rating badge`,
+      imageSize: USK_RATING_BADGE_IMAGE_SIZES[ratingValue],
+      imageUrl: USK_RATING_BADGE_IMAGE_URLS[ratingValue],
+      overlayLabel: null,
+    }
   }
+
+  const overlayLabel = getRatingBadgePlaceholderLabel(metadata)
 
   if (metadata.ratingSystem === 'custom') {
-    return RATING_BADGE_PLACEHOLDER_IMAGE_URLS.custom
+    return {
+      altLabel: overlayLabel ? `${overlayLabel} rating badge` : 'Rating badge',
+      imageSize: RATING_BADGE_PLACEHOLDER_IMAGE_SIZES.custom,
+      imageUrl: RATING_BADGE_PLACEHOLDER_IMAGE_URLS.custom,
+      overlayLabel,
+    }
   }
 
-  return ESRB_RATING_BADGE_IMAGE_URLS.RP
+  return {
+    altLabel: overlayLabel ? `${overlayLabel} rating badge` : 'Rating badge',
+    imageSize: ESRB_RATING_BADGE_IMAGE_SIZES.RP,
+    imageUrl: ESRB_RATING_BADGE_IMAGE_URLS.RP,
+    overlayLabel,
+  }
+}
+
+export function getRatingBadgePlaceholderImageUrl(
+  metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
+) {
+  return getRatingBadgePlaceholderAsset(metadata).imageUrl
 }
 
 export function getRatingBadgePlaceholderImageSize(
   metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
 ) {
-  if (metadata.ratingSystem === 'ESRB') {
-    const ratingValue = normalizeEsrbRatingValue(metadata.ratingValue) ?? 'RP'
-
-    return ESRB_RATING_BADGE_IMAGE_SIZES[ratingValue]
-  }
-
-  if (metadata.ratingSystem === 'PEGI') {
-    const ratingValue = normalizePegiRatingValue(metadata.ratingValue) ?? '3'
-
-    return PEGI_RATING_BADGE_IMAGE_SIZES[ratingValue]
-  }
-
-  if (metadata.ratingSystem === 'USK') {
-    const ratingValue = normalizeUskRatingValue(metadata.ratingValue) ?? '0'
-
-    return USK_RATING_BADGE_IMAGE_SIZES[ratingValue]
-  }
-
-  if (metadata.ratingSystem === 'custom') {
-    return RATING_BADGE_PLACEHOLDER_IMAGE_SIZES.custom
-  }
-
-  return ESRB_RATING_BADGE_IMAGE_SIZES.RP
+  return getRatingBadgePlaceholderAsset(metadata).imageSize
 }
 
 export function getRatingBadgePlaceholderTextColor(
@@ -693,35 +728,14 @@ function getRatingBadgePlaceholderLabel(
 export function getRatingBadgePlaceholderRenderModel(
   metadata: Pick<ProjectMetadata, 'ratingSystem' | 'ratingValue'>,
 ) {
-  const esrbRatingValue = metadata.ratingSystem === 'ESRB'
-    ? normalizeEsrbRatingValue(metadata.ratingValue) ?? 'RP'
-    : null
-  const pegiRatingValue = metadata.ratingSystem === 'PEGI'
-    ? normalizePegiRatingValue(metadata.ratingValue) ?? '3'
-    : null
-  const uskRatingValue = metadata.ratingSystem === 'USK'
-    ? normalizeUskRatingValue(metadata.ratingValue) ?? '0'
-    : null
-  const overlayLabel =
-    metadata.ratingSystem === 'ESRB' ||
-    metadata.ratingSystem === 'PEGI' ||
-    metadata.ratingSystem === 'USK'
-      ? null
-      : getRatingBadgePlaceholderLabel(metadata)
-  const label = metadata.ratingSystem === 'ESRB'
-    ? `ESRB ${esrbRatingValue}`
-    : metadata.ratingSystem === 'PEGI'
-      ? `PEGI ${pegiRatingValue}`
-      : metadata.ratingSystem === 'USK'
-        ? `USK ${uskRatingValue}`
-      : getRatingBadgePlaceholderLabel(metadata)
+  const asset = getRatingBadgePlaceholderAsset(metadata)
 
   return {
-    imageUrl: getRatingBadgePlaceholderImageUrl(metadata),
-    imageSize: getRatingBadgePlaceholderImageSize(metadata),
-    overlayLabel,
+    imageUrl: asset.imageUrl,
+    imageSize: asset.imageSize,
+    overlayLabel: asset.overlayLabel,
     textColor: getRatingBadgePlaceholderTextColor(metadata),
-    altLabel: label ? `${label} rating badge` : 'Rating badge',
+    altLabel: asset.altLabel,
   }
 }
 
@@ -848,42 +862,30 @@ export function getEditorBuiltInImageAssets(): BuiltInImageAsset[] {
     ),
   ]
 
-  ;(Object.keys(LOGO_PLACEHOLDER_IMAGE_URLS) as LogoPlaceholderKind[]).forEach((kind) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `logo:${kind}`,
-        LOGO_PLACEHOLDER_IMAGE_URLS[kind],
-        LOGO_PLACEHOLDER_IMAGE_SIZES[kind],
-      ),
-    )
-  })
-  ;(Object.keys(ESRB_RATING_BADGE_IMAGE_URLS) as EsrbRatingValue[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `rating:ESRB:${value}`,
-        ESRB_RATING_BADGE_IMAGE_URLS[value],
-        ESRB_RATING_BADGE_IMAGE_SIZES[value],
-      ),
-    )
-  })
-  ;(Object.keys(PEGI_RATING_BADGE_IMAGE_URLS) as PegiRatingValue[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `rating:PEGI:${value}`,
-        PEGI_RATING_BADGE_IMAGE_URLS[value],
-        PEGI_RATING_BADGE_IMAGE_SIZES[value],
-      ),
-    )
-  })
-  ;(Object.keys(USK_RATING_BADGE_IMAGE_URLS) as UskRatingValue[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `rating:USK:${value}`,
-        USK_RATING_BADGE_IMAGE_URLS[value],
-        USK_RATING_BADGE_IMAGE_SIZES[value],
-      ),
-    )
-  })
+  pushMappedBuiltInImageAssets(
+    assets,
+    'logo',
+    LOGO_PLACEHOLDER_IMAGE_URLS,
+    LOGO_PLACEHOLDER_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'rating:ESRB',
+    ESRB_RATING_BADGE_IMAGE_URLS,
+    ESRB_RATING_BADGE_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'rating:PEGI',
+    PEGI_RATING_BADGE_IMAGE_URLS,
+    PEGI_RATING_BADGE_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'rating:USK',
+    USK_RATING_BADGE_IMAGE_URLS,
+    USK_RATING_BADGE_IMAGE_SIZES,
+  )
   assets.push(
     createBuiltInImageAsset(
       'rating:custom',
@@ -907,42 +909,30 @@ export function getEditorBuiltInImageAssets(): BuiltInImageAsset[] {
       PLATFORM_MARK_PLACEHOLDER_IMAGE_SIZES[value],
     )
   })
-  ;(Object.keys(TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS) as TechnicalMarkValue[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `technical:${value}`,
-        TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS[value],
-        TECHNICAL_MARK_PLACEHOLDER_IMAGE_SIZES[value],
-      ),
-    )
-  })
-  ;(Object.keys(DISC_NUMBER_BADGE_IMAGE_URLS) as DiscNumberBadgeSet[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `disc-number:${value}`,
-        DISC_NUMBER_BADGE_IMAGE_URLS[value],
-        DISC_NUMBER_BADGE_IMAGE_SIZES[value],
-      ),
-    )
-  })
-  ;(Object.keys(STATUS_TOAST_ICON_URLS) as StatusToastIconKind[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `toast:${value}`,
-        STATUS_TOAST_ICON_URLS[value],
-        STATUS_TOAST_ICON_IMAGE_SIZES[value],
-      ),
-    )
-  })
-  ;(Object.keys(ARTWORK_FRAME_TEXTURE_URLS) as ArtworkFrameTextureKind[]).forEach((value) => {
-    assets.push(
-      createBuiltInImageAsset(
-        `artwork-frame:${value}`,
-        ARTWORK_FRAME_TEXTURE_URLS[value],
-        ARTWORK_FRAME_TEXTURE_IMAGE_SIZES[value],
-      ),
-    )
-  })
+  pushMappedBuiltInImageAssets(
+    assets,
+    'technical',
+    TECHNICAL_MARK_PLACEHOLDER_IMAGE_URLS,
+    TECHNICAL_MARK_PLACEHOLDER_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'disc-number',
+    DISC_NUMBER_BADGE_IMAGE_URLS,
+    DISC_NUMBER_BADGE_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'toast',
+    STATUS_TOAST_ICON_URLS,
+    STATUS_TOAST_ICON_IMAGE_SIZES,
+  )
+  pushMappedBuiltInImageAssets(
+    assets,
+    'artwork-frame',
+    ARTWORK_FRAME_TEXTURE_URLS,
+    ARTWORK_FRAME_TEXTURE_IMAGE_SIZES,
+  )
 
   return assets
 }

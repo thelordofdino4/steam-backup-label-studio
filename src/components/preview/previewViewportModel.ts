@@ -11,6 +11,11 @@ export type PreviewViewportBounds = {
   viewportWidth: number
 }
 
+export type PreviewViewportSize = {
+  height: number
+  width: number
+}
+
 export type PreviewViewportPoint = {
   x: number
   y: number
@@ -70,6 +75,16 @@ export function normalizePreviewViewportZoom(zoom: number) {
 
 export function getPreviewViewportZoomPercent(zoom: number) {
   return Math.round(clampPreviewViewportZoom(zoom) * 100)
+}
+
+export function clampPreviewViewportPointToSize(
+  point: PreviewViewportPoint,
+  size: PreviewViewportSize,
+): PreviewViewportPoint {
+  return {
+    x: clampNumber(point.x, 0, size.width),
+    y: clampNumber(point.y, 0, size.height),
+  }
 }
 
 export function getPreviewViewportRailWidth(buttonSize: number) {

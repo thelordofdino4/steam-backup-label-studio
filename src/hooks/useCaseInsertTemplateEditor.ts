@@ -13,23 +13,13 @@ import {
   updateCaseInsertTemplateImageSlot,
   updateCaseInsertTemplateImageSlotInGroup,
   updateCaseInsertTemplateTextBlock,
-  updateCaseInsertTemplateTextList,
   updateProjectCaseInsertTemplate,
   type CaseInsertPrimaryImageSlotKey,
 } from '../caseInsert/templateSurfaceTransitions'
 import {
-  addCaseInsertAdditionalLogoSlot,
   clearCaseInsertAdditionalLogoSlotImage,
-  clearCaseInsertPrimaryLogoSlotImage,
-  getCaseInsertPrimaryLogoLabel,
-  resetCaseInsertPrimaryLogoSlotLayout,
-  setCaseInsertPrimaryLogoSlotEnabled,
-  setCaseInsertPrimaryLogoSlotImage,
-  updateCaseInsertPrimaryLogoSlotLayoutField,
-  withCaseInsertAdditionalLogoImageSource,
 } from '../caseInsert/brandingLogoSlots'
 import {
-  fitCaseInsertImageSlotToRegionHeight,
   resetCaseInsertImageSlotFrame,
   setCaseInsertImageSlotEnabled,
   setCaseInsertImageSlotImage,
@@ -38,52 +28,28 @@ import {
   updateCaseInsertImageSlotLayoutField,
 } from '../caseInsert/imageSlotTransitions'
 import {
-  restoreCaseInsertTitleArtworkDefaultSteamLogo,
   setCustomCaseInsertTitleArtworkImage,
 } from '../caseInsert/titleArtwork'
 import {
-  resetCaseInsertSteamBannerColors,
-  resetCaseInsertSteamBannerLockupImage,
-  resetCaseInsertSteamBannerLockupLayout,
-  setCaseInsertSteamBannerEnabled,
-  setCaseInsertSteamBannerUseTextFallback,
-  setCustomCaseInsertSteamBannerLockupImage,
-  updateCaseInsertSteamBannerColor,
-  updateCaseInsertSteamBannerFallbackText,
-  updateCaseInsertSteamBannerLockupLayoutField,
-  updateCaseInsertTemplateSteamBanner,
-  type CaseInsertSteamBannerColorField,
-  type CaseInsertSteamBannerLayoutField,
-} from '../caseInsert/steamBanner'
-import { createCaseInsertPngExportLayout } from '../caseInsert/exportLayout'
-import {
-  getJewelCaseSteamBannerOpenArtworkRegion,
-} from '../layout/jewelCaseSteamBannerLayout'
-import {
-  createLogoCandidateCaseInsertImageSlotImage,
-  createLocalSteamScreenshotCaseInsertImageSlotImage,
-  createSteamArtworkCaseInsertImageSlotImage,
-  createUploadedCaseInsertImageSlotImage,
-  createWebArtworkCaseInsertImageSlotImage,
+  getCaseInsertImageSlotUploadFile,
+  loadLocalSteamScreenshotCaseInsertImageSlotImage,
+  loadSteamArtworkCaseInsertImageSlotImage,
+  loadUploadedCaseInsertImageSlotImage,
+  loadWebArtworkCaseInsertImageSlotImage,
 } from '../caseInsert/imageSlotSourceImport'
 import {
-  addCaseInsertTextListItem,
+  applyLoadedCaseInsertImageSlotSource,
+  type LoadedCaseInsertImageSlotSource,
+} from '../caseInsert/imageSlotSourceApply'
+import {
   applyCaseInsertTextBlockPresetLayout,
   applyCaseInsertTextBlockStylePreset,
-  applyCaseInsertTextListPresetLayout,
-  applyCaseInsertTextListStylePreset,
-  removeCaseInsertTextListItem,
   resetCaseInsertTextBlockStyle,
-  resetCaseInsertTextListStyle,
   setCaseInsertTextBlockAvoidVisualElements,
   setCaseInsertTextBlockEnabled,
-  setCaseInsertTextListAvoidVisualElements,
-  setCaseInsertTextListEnabled,
   updateCaseInsertTextBlockStyleField,
   updateCaseInsertTextBlockLayoutField,
   updateCaseInsertTextBlockValue,
-  updateCaseInsertTextListStyleField,
-  updateCaseInsertTextListItem,
 } from '../caseInsert/textTransitions'
 import type {
   CaseInsertTextStyleField,
@@ -99,173 +65,53 @@ import type {
 } from '../project/additionalArtworkFrame.ts'
 import type {
   ProjectCaseInsertImageFit,
-  ProjectCaseInsertImageSlot,
   ProjectCaseInsertLayout,
   ProjectCaseInsertTextAlign,
   ProjectCaseInsertTextSource,
   ProjectJewelCaseState,
 } from '../project/projectTypes'
-import type { CaseInsertImageSlotImageInput } from '../caseInsert/types'
-import {
-  getCanonicalCaseInsertTextBlockId,
-} from '../caseInsert/textContent'
-import {
-  CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS,
-  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS,
-  CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS,
-} from '../caseInsert/defaultImportLayouts'
-import type { LogoAssetKey } from '../project/projectLogoAssets'
 import type { SteamArtworkAsset } from '../steam/steamApi'
 import type { RemoteLogoCandidate } from '../steam/steamLogoCandidates'
-import { isImageFile } from '../utils/importedImageAsset'
 import {
-  getCaseInsertMarkLayerKind,
-} from '../caseInsert/brandingSlotSources'
+  clearCaseInsertTemplatePrimaryImageSlot,
+  fitCaseInsertTemplatePrimaryImageSlotToRegionHeight,
+  getCaseInsertTemplateGroupedImageSlotResetLayout,
+  preserveCaseInsertTemplateGroupedSlotSource,
+  resetCaseInsertTemplatePrimaryImageSlotDefaultLayout,
+  restoreCaseInsertTemplateTitleArtworkDefault,
+  setCaseInsertTemplatePrimaryImageSlotEnabled,
+  updateCaseInsertTemplatePrimaryImageSlotFit,
+  updateCaseInsertTemplatePrimaryImageSlotLayoutValue,
+} from '../caseInsert/templateSurfaceImageSlotActions'
 import {
-  getCaseInsertTemplateMarkDefaultLayout,
-} from '../caseInsert/defaultBrandingLayouts'
+  addCaseInsertTemplateTextListItem,
+  applyCaseInsertTemplateTextListLayoutPreset,
+  applyCaseInsertTemplateTextListStylePreset,
+  getDefaultCaseInsertTemplateTextBlockLayout,
+  resetCaseInsertTemplateTextBlockLayout,
+  removeCaseInsertTemplateTextListItem,
+  resetCaseInsertTemplateTextListDefaultLayout,
+  resetCaseInsertTemplateTextListDefaultStyle,
+  setCaseInsertTemplateTextBlockAlign,
+  setCaseInsertTemplateTextListAvoidVisualElements,
+  setCaseInsertTemplateTextListEnabled,
+  updateCaseInsertTemplateTextListItemValue,
+  updateCaseInsertTemplateTextListLayoutValue,
+  updateCaseInsertTemplateTextListStyleValue,
+} from '../caseInsert/templateSurfaceTextActions'
+import {
+  useCaseInsertTemplateSteamBannerEditor,
+} from './useCaseInsertTemplateSteamBannerEditor'
+import {
+  useCaseInsertTemplateLogoEditor,
+} from './useCaseInsertTemplateLogoEditor'
+import {
+  normalizeCaseInsertLabel,
+} from '../caseInsert/labelText'
 
 type UseCaseInsertTemplateEditorOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
   announceStatus: (message: string) => void
-}
-
-const defaultPrimarySlotLayouts: Record<
-  CaseInsertTemplatePaneId,
-  Record<CaseInsertPrimaryImageSlotKey, ProjectCaseInsertLayout>
-> = {
-  cover: {
-    background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: { scale: 1, x: 50, y: 24, rotation: 0 },
-  },
-  tray: {
-    background: { scale: 1, x: 0, y: 0, rotation: 0 },
-    titleArtwork: { scale: 1, x: 50, y: 24, rotation: 0 },
-  },
-}
-
-const defaultTextBlockLayouts: Record<string, ProjectCaseInsertLayout> = {
-  'cover-title-text': { scale: 1, width: 80, x: 50, y: 34, rotation: 0 },
-  'cover-subtitle-text': { scale: 1, width: 72, x: 50, y: 45, rotation: 0 },
-  'cover-disc-number': { scale: 0.9, width: 42, x: 18, y: 82, rotation: 0 },
-  'cover-backup-date': { scale: 0.86, width: 48, x: 50, y: 86, rotation: 0 },
-  'cover-steam-app-id': { scale: 0.82, width: 48, x: 82, y: 82, rotation: 0 },
-  'cover-developer-text': { scale: 0.84, width: 48, x: 22, y: 88, rotation: 0 },
-  'cover-publisher-text': { scale: 0.84, width: 48, x: 78, y: 88, rotation: 0 },
-  'cover-install-notes': { scale: 0.9, width: 58, x: 50, y: 74, rotation: 0 },
-  'cover-custom-note': { scale: 1, width: 74, x: 50, y: 82, rotation: 0 },
-  'cover-copyright-text': { scale: 1, width: 86, x: 50, y: 93, rotation: 0 },
-  'tray-title-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.title.layout,
-  'tray-subtitle-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.subtitle.layout,
-  'tray-disc-number': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.discNumber.layout,
-  'tray-backup-date': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.backupDate.layout,
-  'tray-steam-app-id': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.appId.layout,
-  'tray-developer-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.developer.layout,
-  'tray-publisher-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.publisher.layout,
-  'tray-install-notes': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.installNotes.layout,
-  'tray-custom-note': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.customNote.layout,
-  'tray-copyright-text': CASE_INSERT_TRAY_DEFAULT_DISC_TEXT_LAYOUTS.copyright.layout,
-  'tray-description':
-    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS['tray-description'].layout,
-  'tray-minimum-requirements':
-    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
-      'tray-minimum-requirements'
-    ].layout,
-  'tray-recommended-requirements':
-    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_BLOCK_LAYOUTS[
-      'tray-recommended-requirements'
-    ].layout,
-}
-
-const defaultTextListLayouts: Record<string, ProjectCaseInsertLayout> = {
-  'tray-feature-bullets':
-    CASE_INSERT_TRAY_DEFAULT_STEAM_TEXT_LIST_LAYOUTS['tray-feature-bullets'].layout,
-}
-
-function normalizeLabel(label: string) {
-  return label.trim().toLocaleLowerCase()
-}
-
-function getGroupDefaultLayout(
-  paneId: CaseInsertTemplatePaneId,
-  slotKey: CaseInsertImageSlotGroupKey,
-): ProjectCaseInsertLayout {
-  return {
-    scale: 1,
-    x: 0,
-    y: 0,
-    rotation: 0,
-    ...getCaseInsertImageSlotGroupConfig(paneId, slotKey).defaultLayout,
-  }
-}
-
-function getGroupedImageSlotResetLayout(
-  paneId: CaseInsertTemplatePaneId,
-  slotKey: CaseInsertImageSlotGroupKey,
-  slot: ProjectCaseInsertImageSlot,
-): ProjectCaseInsertLayout {
-  const sourceId = slot.imageSource?.sourceId
-
-  return slotKey === 'markSlots' && sourceId?.startsWith('case-')
-    ? getCaseInsertTemplateMarkDefaultLayout(
-        paneId,
-        getCaseInsertMarkLayerKind(sourceId),
-      )
-    : getGroupDefaultLayout(paneId, slotKey)
-}
-
-function getPrimaryImageSlotFitRegion(
-  caseInsert: ProjectJewelCaseState,
-  paneId: CaseInsertTemplatePaneId,
-  slotKey: CaseInsertPrimaryImageSlotKey,
-) {
-  if (slotKey !== 'background') {
-    return null
-  }
-
-  const layout = createCaseInsertPngExportLayout(caseInsert, paneId)
-
-  if (paneId === 'cover') {
-    return getJewelCaseSteamBannerOpenArtworkRegion(
-      caseInsert.templates.cover.steamBanner,
-      { kind: 'cover' },
-      layout,
-    )
-  }
-
-  return layout.regions.find(({ regionId }) => regionId === 'back')?.bounds ??
-    null
-}
-
-function preserveCaseInsertMarkSource(
-  slotKey: CaseInsertImageSlotGroupKey,
-  slot: Pick<ProjectCaseInsertImageSlot, 'imageSource'>,
-  image: CaseInsertImageSlotImageInput,
-): CaseInsertImageSlotImageInput {
-  if (slotKey !== 'markSlots' || !slot.imageSource?.sourceId?.startsWith('case-')) {
-    return image
-  }
-
-  return {
-    ...image,
-    imageSource: {
-      ...image.imageSource,
-      sourceId: slot.imageSource.sourceId,
-      sourceLabel: image.imageSource?.sourceLabel ?? slot.imageSource.sourceLabel,
-    },
-  }
-}
-
-function preserveCaseInsertGroupedSlotSource(
-  slotKey: CaseInsertImageSlotGroupKey,
-  slot: ProjectCaseInsertImageSlot,
-  image: CaseInsertImageSlotImageInput,
-): CaseInsertImageSlotImageInput {
-  if (slotKey === 'logoSlots') {
-    return withCaseInsertAdditionalLogoImageSource(slot, image)
-  }
-
-  return preserveCaseInsertMarkSource(slotKey, slot, image)
 }
 
 export function useCaseInsertTemplateEditor({
@@ -315,14 +161,104 @@ export function useCaseInsertTemplateEditor({
     })
   }, [setProjectJewelCase])
 
-  const updateSteamBanner = useCallback((
+  const updateTextBlock = useCallback((
     paneId: CaseInsertTemplatePaneId,
-    updater: Parameters<typeof updateCaseInsertTemplateSteamBanner>[2],
+    textBlockId: string,
+    updater: Parameters<typeof updateCaseInsertTemplateTextBlock>[3],
   ) => {
     setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateSteamBanner(currentCaseInsert, paneId, updater),
+      updateCaseInsertTemplateTextBlock(
+        currentCaseInsert,
+        paneId,
+        textBlockId,
+        updater,
+      ),
     )
   }, [setProjectJewelCase])
+
+  const applyTemplateTextListAction = useCallback(<TArgs extends unknown[]>(
+    action: (
+      state: ProjectJewelCaseState,
+      ...args: TArgs
+    ) => ProjectJewelCaseState,
+    ...args: TArgs
+  ) => {
+    setProjectJewelCase((state) => action(state, ...args))
+  }, [setProjectJewelCase])
+
+  const applyPrimaryImageSlotAction = useCallback(<TArgs extends unknown[]>(
+    action: (
+      state: ProjectJewelCaseState,
+      ...args: TArgs
+    ) => ProjectJewelCaseState,
+    ...args: TArgs
+  ) => {
+    setProjectJewelCase((state) => action(state, ...args))
+  }, [setProjectJewelCase])
+
+  const {
+    handleSteamBannerEnabledChange,
+    handleSteamBannerLockupUpload,
+    handleClearSteamBannerLockup,
+    handleSteamBannerLockupLayoutChange,
+    handleResetSteamBannerLockupLayout,
+    handleSteamBannerUseTextFallbackChange,
+    handleSteamBannerFallbackTextChange,
+    handleSteamBannerColorChange,
+    handleResetSteamBannerColors,
+  } = useCaseInsertTemplateSteamBannerEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
+  const {
+    handlePrimaryLogoSlotEnabledChange,
+    handlePrimaryLogoSlotUpload,
+    handlePrimaryLogoSlotLayoutChange,
+    handleResetPrimaryLogoSlotLayout,
+    handleClearPrimaryLogoSlot,
+    handleAddAdditionalLogoSlot,
+    handleUseLogoCandidate,
+  } = useCaseInsertTemplateLogoEditor({
+    setProjectJewelCase,
+    announceStatus,
+  })
+
+  async function applyPrimaryImageSlotSource(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertPrimaryImageSlotKey,
+    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+  ) {
+    await applyLoadedCaseInsertImageSlotSource({
+      announceStatus,
+      importedImagePromise,
+      applyImage: (image) =>
+        updatePrimaryImageSlot(paneId, slotKey, (slot) =>
+          setCaseInsertImageSlotImage(slot, image),
+        ),
+    })
+  }
+
+  async function applyGroupedImageSlotSource(
+    paneId: CaseInsertTemplatePaneId,
+    slotKey: CaseInsertImageSlotGroupKey,
+    slotId: string,
+    importedImagePromise: Promise<LoadedCaseInsertImageSlotSource | null>,
+  ) {
+    await applyLoadedCaseInsertImageSlotSource({
+      announceStatus,
+      importedImagePromise,
+      applyImage: (image) =>
+        updateGroupedImageSlot(
+          paneId,
+          slotKey,
+          slotId,
+          (slot) => setCaseInsertImageSlotImage(slot, image),
+          {
+            enableAdditionalArtwork: slotKey === 'artworkSlots',
+          },
+        ),
+    })
+  }
 
   async function handleImageSlotUpload(
     paneId: CaseInsertTemplatePaneId,
@@ -330,35 +266,31 @@ export function useCaseInsertTemplateEditor({
     label: string,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+    const uploadFile = getCaseInsertImageSlotUploadFile({
+      announceStatus,
+      event,
+      label,
+    })
 
-    if (!file) {
+    if (!uploadFile) {
       return
     }
 
-    const statusLabel = normalizeLabel(label)
+    const image = await loadUploadedCaseInsertImageSlotImage({
+      announceStatus,
+      uploadFile,
+    })
 
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
+    if (!image) {
       return
     }
 
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        statusLabel,
-      )
-
-      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-        slotKey === 'titleArtwork'
-          ? setCustomCaseInsertTitleArtworkImage(slot, image)
-          : setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Selected ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
+    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
+      slotKey === 'titleArtwork'
+        ? setCustomCaseInsertTitleArtworkImage(slot, image)
+        : setCaseInsertImageSlotImage(slot, image),
+    )
+    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
   }
 
   async function handleUseImageSlotSteamArtwork(
@@ -367,19 +299,11 @@ export function useCaseInsertTemplateEditor({
     label: string,
     asset: SteamArtworkAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
-
-      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Steam artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyPrimaryImageSlotSource(
+      paneId,
+      slotKey,
+      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseImageSlotLocalSteamScreenshot(
@@ -388,19 +312,11 @@ export function useCaseInsertTemplateEditor({
     label: string,
     asset: LocalSteamScreenshotAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Loading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
-
-      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyPrimaryImageSlotSource(
+      paneId,
+      slotKey,
+      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseImageSlotWebArtwork(
@@ -409,19 +325,11 @@ export function useCaseInsertTemplateEditor({
     label: string,
     candidate: RemoteLogoCandidate,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
-
-      updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-        setCaseInsertImageSlotImage(slot, image),
-      )
-      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyPrimaryImageSlotSource(
+      paneId,
+      slotKey,
+      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+    )
   }
 
   function handleImageSlotEnabledChange(
@@ -429,8 +337,11 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertPrimaryImageSlotKey,
     enabled: boolean,
   ) {
-    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-      setCaseInsertImageSlotEnabled(slot, enabled),
+    applyPrimaryImageSlotAction(
+      setCaseInsertTemplatePrimaryImageSlotEnabled,
+      paneId,
+      slotKey,
+      enabled,
     )
   }
 
@@ -439,8 +350,11 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertPrimaryImageSlotKey,
     fit: ProjectCaseInsertImageFit,
   ) {
-    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-      updateCaseInsertImageSlotFit(slot, fit),
+    applyPrimaryImageSlotAction(
+      updateCaseInsertTemplatePrimaryImageSlotFit,
+      paneId,
+      slotKey,
+      fit,
     )
   }
 
@@ -450,8 +364,12 @@ export function useCaseInsertTemplateEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    updatePrimaryImageSlot(paneId, slotKey, (slot) =>
-      updateCaseInsertImageSlotLayoutField(slot, field, value),
+    applyPrimaryImageSlotAction(
+      updateCaseInsertTemplatePrimaryImageSlotLayoutValue,
+      paneId,
+      slotKey,
+      field,
+      value,
     )
   }
 
@@ -459,15 +377,17 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertPrimaryImageSlotKey,
   ) {
-    updatePrimaryImageSlot(paneId, slotKey, (slot) => ({
-      ...slot,
-      layout: defaultPrimarySlotLayouts[paneId][slotKey],
-    }))
+    applyPrimaryImageSlotAction(
+      resetCaseInsertTemplatePrimaryImageSlotDefaultLayout,
+      paneId,
+      slotKey,
+    )
   }
 
   function handleRestoreTitleArtworkDefault(paneId: CaseInsertTemplatePaneId) {
-    updatePrimaryImageSlot(paneId, 'titleArtwork', (slot) =>
-      restoreCaseInsertTitleArtworkDefaultSteamLogo(slot),
+    applyPrimaryImageSlotAction(
+      restoreCaseInsertTemplateTitleArtworkDefault,
+      paneId,
     )
     announceStatus('Restored game logo to the Steam default logo.')
   }
@@ -481,23 +401,12 @@ export function useCaseInsertTemplateEditor({
       return
     }
 
-    setProjectJewelCase((currentCaseInsert) => {
-      const region = getPrimaryImageSlotFitRegion(
-        currentCaseInsert,
-        paneId,
-        slotKey,
-      )
-
-      return region
-        ? updateCaseInsertTemplateImageSlot(
-            currentCaseInsert,
-            paneId,
-            slotKey,
-            (slot) => fitCaseInsertImageSlotToRegionHeight(slot, region),
-          )
-        : currentCaseInsert
-    })
-    announceStatus(`Fit ${normalizeLabel(label)} top to bottom.`)
+    applyPrimaryImageSlotAction(
+      fitCaseInsertTemplatePrimaryImageSlotToRegionHeight,
+      paneId,
+      slotKey,
+    )
+    announceStatus(`Fit ${normalizeCaseInsertLabel(label)} top to bottom.`)
   }
 
   function handleClearImageSlot(
@@ -505,237 +414,19 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertPrimaryImageSlotKey,
     label: string,
   ) {
-    updatePrimaryImageSlot(paneId, slotKey, (slot) => ({
-      ...slot,
-      imageDataUrl: null,
-      imageSize: null,
-      imageSource: null,
-    }))
-    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
-  }
-
-  function handleSteamBannerEnabledChange(
-    paneId: CaseInsertTemplatePaneId,
-    enabled: boolean,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      setCaseInsertSteamBannerEnabled(banner, enabled),
+    applyPrimaryImageSlotAction(
+      clearCaseInsertTemplatePrimaryImageSlot,
+      paneId,
+      slotKey,
     )
-  }
-
-  async function handleSteamBannerLockupUpload(
-    paneId: CaseInsertTemplatePaneId,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    if (!isImageFile(file)) {
-      announceStatus('Choose an image file for the Steam banner lockup.')
-      return
-    }
-
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        'Steam banner lockup',
-      )
-
-      updateSteamBanner(paneId, (banner) =>
-        setCustomCaseInsertSteamBannerLockupImage(banner, image),
-      )
-      announceStatus(`Using ${file.name} as the Steam banner lockup.`)
-    } catch {
-      announceStatus('The Steam banner lockup image could not be read.')
-    }
-  }
-
-  function handleClearSteamBannerLockup(paneId: CaseInsertTemplatePaneId) {
-    updateSteamBanner(paneId, (banner) =>
-      resetCaseInsertSteamBannerLockupImage(banner, 'cover'),
-    )
-    announceStatus('Reset Steam banner lockup image to the default asset.')
-  }
-
-  function handleSteamBannerLockupLayoutChange(
-    paneId: CaseInsertTemplatePaneId,
-    field: CaseInsertSteamBannerLayoutField,
-    value: number,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      updateCaseInsertSteamBannerLockupLayoutField(banner, field, value),
-    )
-  }
-
-  function handleResetSteamBannerLockupLayout(
-    paneId: CaseInsertTemplatePaneId,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      resetCaseInsertSteamBannerLockupLayout(banner, 'cover'),
-    )
-    announceStatus('Reset Steam banner lockup layout to the default position.')
-  }
-
-  function handleSteamBannerUseTextFallbackChange(
-    paneId: CaseInsertTemplatePaneId,
-    useTextFallback: boolean,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      setCaseInsertSteamBannerUseTextFallback(banner, useTextFallback),
-    )
-    announceStatus(
-      useTextFallback
-        ? 'Using saved text for the Steam banner lockup.'
-        : 'Using the Steam banner lockup image.',
-    )
-  }
-
-  function handleSteamBannerFallbackTextChange(
-    paneId: CaseInsertTemplatePaneId,
-    fallbackText: string,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      updateCaseInsertSteamBannerFallbackText(banner, fallbackText),
-    )
-  }
-
-  function handleSteamBannerColorChange(
-    paneId: CaseInsertTemplatePaneId,
-    field: CaseInsertSteamBannerColorField,
-    value: string,
-  ) {
-    updateSteamBanner(paneId, (banner) =>
-      updateCaseInsertSteamBannerColor(banner, field, value),
-    )
-  }
-
-  function handleResetSteamBannerColors(paneId: CaseInsertTemplatePaneId) {
-    updateSteamBanner(paneId, resetCaseInsertSteamBannerColors)
-    announceStatus('Reset Steam banner colors to the default palette.')
-  }
-
-  function handlePrimaryLogoSlotEnabledChange(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-    enabled: boolean,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
-        setCaseInsertPrimaryLogoSlotEnabled(
-          templateState,
-          paneId,
-          logoKey,
-          enabled,
-        ),
-      ),
-    )
-  }
-
-  async function handlePrimaryLogoSlotUpload(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
-
-    if (!file) {
-      return
-    }
-
-    const label = getCaseInsertPrimaryLogoLabel(logoKey)
-    const statusLabel = normalizeLabel(label)
-
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
-      return
-    }
-
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(
-        file,
-        statusLabel,
-      )
-
-      setProjectJewelCase((currentCaseInsert) =>
-        updateProjectCaseInsertTemplate(
-          currentCaseInsert,
-          paneId,
-          (templateState) =>
-            setCaseInsertPrimaryLogoSlotImage(
-              templateState,
-              paneId,
-              logoKey,
-              image,
-            ),
-        ),
-      )
-      announceStatus(`Selected ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
-  }
-
-  function handlePrimaryLogoSlotLayoutChange(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-    field: keyof ProjectCaseInsertLayout,
-    value: number,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
-        updateCaseInsertPrimaryLogoSlotLayoutField(
-          templateState,
-          paneId,
-          logoKey,
-          field,
-          value,
-        ),
-      ),
-    )
-  }
-
-  function handleResetPrimaryLogoSlotLayout(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
-        resetCaseInsertPrimaryLogoSlotLayout(
-          templateState,
-          paneId,
-          logoKey,
-        ),
-      ),
-    )
-    announceStatus(`Reset ${normalizeLabel(getCaseInsertPrimaryLogoLabel(logoKey))} layout.`)
-  }
-
-  function handleClearPrimaryLogoSlot(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
-        clearCaseInsertPrimaryLogoSlotImage(
-          templateState,
-          paneId,
-          logoKey,
-        ),
-      ),
-    )
-    announceStatus(`Cleared ${normalizeLabel(getCaseInsertPrimaryLogoLabel(logoKey))} image.`)
+    announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
 
   function handleAddGroupedImageSlot(
     paneId: CaseInsertTemplatePaneId,
     slotKey: CaseInsertImageSlotGroupKey,
   ) {
-    const label = normalizeLabel(
+    const label = normalizeCaseInsertLabel(
       getCaseInsertImageSlotGroupConfig(paneId, slotKey).labelPrefix,
     )
 
@@ -743,18 +434,6 @@ export function useCaseInsertTemplateEditor({
       addCaseInsertTemplateImageSlot(currentCaseInsert, paneId, slotKey),
     )
     announceStatus(`Added ${label} slot.`)
-  }
-
-  function handleAddAdditionalLogoSlot(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-  ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateProjectCaseInsertTemplate(currentCaseInsert, paneId, (templateState) =>
-        addCaseInsertAdditionalLogoSlot(templateState, paneId, logoKey),
-      ),
-    )
-    announceStatus(`Added additional ${logoKey} logo.`)
   }
 
   function handleAdditionalArtworkEnabledChange(
@@ -775,7 +454,7 @@ export function useCaseInsertTemplateEditor({
     slotKey: CaseInsertImageSlotGroupKey,
     slotId: string,
   ) {
-    const label = normalizeLabel(
+    const label = normalizeCaseInsertLabel(
       getCaseInsertImageSlotGroupConfig(paneId, slotKey).labelPrefix,
     )
 
@@ -827,39 +506,38 @@ export function useCaseInsertTemplateEditor({
     label: string,
     event: ChangeEvent<HTMLInputElement>,
   ) {
-    const file = event.target.files?.[0]
-    event.target.value = ''
+    const uploadFile = getCaseInsertImageSlotUploadFile({
+      announceStatus,
+      event,
+      label,
+    })
 
-    if (!file) {
+    if (!uploadFile) {
       return
     }
 
-    const statusLabel = normalizeLabel(label)
+    const image = await loadUploadedCaseInsertImageSlotImage({
+      announceStatus,
+      uploadFile,
+    })
 
-    if (!isImageFile(file)) {
-      announceStatus(`Choose an image file for the ${statusLabel}.`)
+    if (!image) {
       return
     }
 
-    try {
-      const image = await createUploadedCaseInsertImageSlotImage(file, statusLabel)
-
-      updateGroupedImageSlot(
-        paneId,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(
-          slot,
-          preserveCaseInsertGroupedSlotSource(slotKey, slot, image),
-        ),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Selected ${statusLabel} image.`)
-    } catch {
-      announceStatus(`The ${statusLabel} image could not be read.`)
-    }
+    updateGroupedImageSlot(
+      paneId,
+      slotKey,
+      slotId,
+      (slot) => setCaseInsertImageSlotImage(
+        slot,
+        preserveCaseInsertTemplateGroupedSlotSource(slotKey, slot, image),
+      ),
+      {
+        enableAdditionalArtwork: slotKey === 'artworkSlots',
+      },
+    )
+    announceStatus(`Selected ${uploadFile.statusLabel} image.`)
   }
 
   async function handleUseGroupedImageSlotSteamArtwork(
@@ -869,25 +547,12 @@ export function useCaseInsertTemplateEditor({
     label: string,
     asset: SteamArtworkAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createSteamArtworkCaseInsertImageSlotImage(asset)
-
-      updateGroupedImageSlot(
-        paneId,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Steam artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyGroupedImageSlotSource(
+      paneId,
+      slotKey,
+      slotId,
+      loadSteamArtworkCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseGroupedImageSlotLocalSteamScreenshot(
@@ -897,25 +562,12 @@ export function useCaseInsertTemplateEditor({
     label: string,
     asset: LocalSteamScreenshotAsset,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Loading ${asset.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createLocalSteamScreenshotCaseInsertImageSlotImage(asset)
-
-      updateGroupedImageSlot(
-        paneId,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${asset.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Local screenshot import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyGroupedImageSlotSource(
+      paneId,
+      slotKey,
+      slotId,
+      loadLocalSteamScreenshotCaseInsertImageSlotImage({ announceStatus, asset, label }),
+    )
   }
 
   async function handleUseGroupedImageSlotWebArtwork(
@@ -925,25 +577,12 @@ export function useCaseInsertTemplateEditor({
     label: string,
     candidate: RemoteLogoCandidate,
   ) {
-    const statusLabel = normalizeLabel(label)
-    announceStatus(`Downloading ${candidate.label} for ${statusLabel}...`)
-
-    try {
-      const image = await createWebArtworkCaseInsertImageSlotImage(candidate)
-
-      updateGroupedImageSlot(
-        paneId,
-        slotKey,
-        slotId,
-        (slot) => setCaseInsertImageSlotImage(slot, image),
-        {
-          enableAdditionalArtwork: slotKey === 'artworkSlots',
-        },
-      )
-      announceStatus(`Using ${candidate.label} as the ${statusLabel}.`)
-    } catch (error) {
-      announceStatus(`Web artwork import failed for ${statusLabel}: ${String(error)}`)
-    }
+    await applyGroupedImageSlotSource(
+      paneId,
+      slotKey,
+      slotId,
+      loadWebArtworkCaseInsertImageSlotImage({ announceStatus, candidate, label }),
+    )
   }
 
   function handleGroupedImageSlotFitChange(
@@ -988,7 +627,11 @@ export function useCaseInsertTemplateEditor({
   ) {
     updateGroupedImageSlot(paneId, slotKey, slotId, (slot) => ({
       ...slot,
-      layout: getGroupedImageSlotResetLayout(paneId, slotKey, slot),
+      layout: getCaseInsertTemplateGroupedImageSlotResetLayout(
+        paneId,
+        slotKey,
+        slot,
+      ),
     }))
   }
 
@@ -1019,37 +662,7 @@ export function useCaseInsertTemplateEditor({
             imageSource: null,
           },
     )
-    announceStatus(`Cleared ${normalizeLabel(label)} image.`)
-  }
-
-  async function handleUseLogoCandidate(
-    paneId: CaseInsertTemplatePaneId,
-    logoKey: LogoAssetKey,
-    candidate: RemoteLogoCandidate,
-  ) {
-    const label = getCaseInsertPrimaryLogoLabel(logoKey)
-    announceStatus(`Adding ${candidate.label} to ${normalizeLabel(label)}...`)
-
-    try {
-      const image = await createLogoCandidateCaseInsertImageSlotImage(candidate)
-
-      setProjectJewelCase((currentCaseInsert) =>
-        updateProjectCaseInsertTemplate(
-          currentCaseInsert,
-          paneId,
-          (templateState) =>
-            setCaseInsertPrimaryLogoSlotImage(
-              templateState,
-              paneId,
-              logoKey,
-              image,
-            ),
-        ),
-      )
-      announceStatus(`Added ${candidate.label} as the ${normalizeLabel(label)}.`)
-    } catch (error) {
-      announceStatus(`Logo candidate import failed for ${normalizeLabel(label)}: ${String(error)}`)
-    }
+    announceStatus(`Cleared ${normalizeCaseInsertLabel(label)} image.`)
   }
 
   function handleTextBlockEnabledChange(
@@ -1057,13 +670,10 @@ export function useCaseInsertTemplateEditor({
     textBlockId: string,
     enabled: boolean,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => setCaseInsertTextBlockEnabled(textBlock, enabled),
     )
   }
 
@@ -1073,16 +683,13 @@ export function useCaseInsertTemplateEditor({
     value: string,
     source?: ProjectCaseInsertTextSource,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) => updateCaseInsertTextBlockValue(
-          textBlock,
-          value,
-          source,
-        ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => updateCaseInsertTextBlockValue(
+        textBlock,
+        value,
+        source,
       ),
     )
   }
@@ -1092,16 +699,10 @@ export function useCaseInsertTemplateEditor({
     textBlockId: string,
     align: ProjectCaseInsertTextAlign,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) => ({
-          ...textBlock,
-          align,
-        }),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => setCaseInsertTemplateTextBlockAlign(textBlock, align),
     )
   }
 
@@ -1110,15 +711,12 @@ export function useCaseInsertTemplateEditor({
     textBlockId: string,
     avoidVisualElements: boolean,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) => setCaseInsertTextBlockAvoidVisualElements(
-          textBlock,
-          avoidVisualElements,
-        ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => setCaseInsertTextBlockAvoidVisualElements(
+        textBlock,
+        avoidVisualElements,
       ),
     )
   }
@@ -1129,14 +727,11 @@ export function useCaseInsertTemplateEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) =>
-          updateCaseInsertTextBlockLayoutField(textBlock, field, value),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) =>
+        updateCaseInsertTextBlockLayoutField(textBlock, field, value),
     )
   }
 
@@ -1145,14 +740,11 @@ export function useCaseInsertTemplateEditor({
     textBlockId: string,
     presetId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) =>
-          applyCaseInsertTextBlockPresetLayout(paneId, textBlock, presetId),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) =>
+        applyCaseInsertTextBlockPresetLayout(paneId, textBlock, presetId),
     )
   }
 
@@ -1160,24 +752,16 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
   ) {
-    const layout = defaultTextBlockLayouts[
-      getCanonicalCaseInsertTextBlockId(textBlockId)
-    ]
+    const layout = getDefaultCaseInsertTemplateTextBlockLayout(textBlockId)
 
     if (!layout) {
       return
     }
 
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) => ({
-          ...textBlock,
-          layout,
-        }),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => resetCaseInsertTemplateTextBlockLayout(textBlock, layout),
     )
   }
 
@@ -1187,14 +771,11 @@ export function useCaseInsertTemplateEditor({
     field: CaseInsertTextStyleField,
     value: CaseInsertTextStyleValue,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) =>
-          updateCaseInsertTextBlockStyleField(textBlock, field, value),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) =>
+        updateCaseInsertTextBlockStyleField(textBlock, field, value),
     )
   }
 
@@ -1203,14 +784,10 @@ export function useCaseInsertTemplateEditor({
     textBlockId: string,
     presetId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        (textBlock) =>
-          applyCaseInsertTextBlockStylePreset(textBlock, presetId),
-      ),
+    updateTextBlock(
+      paneId,
+      textBlockId,
+      (textBlock) => applyCaseInsertTextBlockStylePreset(textBlock, presetId),
     )
   }
 
@@ -1218,14 +795,7 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textBlockId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextBlock(
-        currentCaseInsert,
-        paneId,
-        textBlockId,
-        resetCaseInsertTextBlockStyle,
-      ),
-    )
+    updateTextBlock(paneId, textBlockId, resetCaseInsertTextBlockStyle)
   }
 
   function handleTextListEnabledChange(
@@ -1233,13 +803,11 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     enabled: boolean,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => setCaseInsertTextListEnabled(textList, enabled),
-      ),
+    applyTemplateTextListAction(
+      setCaseInsertTemplateTextListEnabled,
+      paneId,
+      textListId,
+      enabled,
     )
   }
 
@@ -1247,13 +815,10 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        addCaseInsertTextListItem,
-      ),
+    applyTemplateTextListAction(
+      addCaseInsertTemplateTextListItem,
+      paneId,
+      textListId,
     )
   }
 
@@ -1263,13 +828,12 @@ export function useCaseInsertTemplateEditor({
     index: number,
     value: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => updateCaseInsertTextListItem(textList, index, value),
-      ),
+    applyTemplateTextListAction(
+      updateCaseInsertTemplateTextListItemValue,
+      paneId,
+      textListId,
+      index,
+      value,
     )
   }
 
@@ -1278,16 +842,11 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     avoidVisualElements: boolean,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => setCaseInsertTextListAvoidVisualElements(
-          textList,
-          avoidVisualElements,
-        ),
-      ),
+    applyTemplateTextListAction(
+      setCaseInsertTemplateTextListAvoidVisualElements,
+      paneId,
+      textListId,
+      avoidVisualElements,
     )
   }
 
@@ -1296,13 +855,11 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     index: number,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => removeCaseInsertTextListItem(textList, index),
-      ),
+    applyTemplateTextListAction(
+      removeCaseInsertTemplateTextListItem,
+      paneId,
+      textListId,
+      index,
     )
   }
 
@@ -1312,19 +869,12 @@ export function useCaseInsertTemplateEditor({
     field: keyof ProjectCaseInsertLayout,
     value: number,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => ({
-          ...textList,
-          layout: {
-            ...textList.layout,
-            [field]: value,
-          },
-        }),
-      ),
+    applyTemplateTextListAction(
+      updateCaseInsertTemplateTextListLayoutValue,
+      paneId,
+      textListId,
+      field,
+      value,
     )
   }
 
@@ -1333,14 +883,11 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     presetId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) =>
-          applyCaseInsertTextListPresetLayout(paneId, textList, presetId),
-      ),
+    applyTemplateTextListAction(
+      applyCaseInsertTemplateTextListLayoutPreset,
+      paneId,
+      textListId,
+      presetId,
     )
   }
 
@@ -1348,22 +895,10 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) {
-    const layout = defaultTextListLayouts[textListId]
-
-    if (!layout) {
-      return
-    }
-
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) => ({
-          ...textList,
-          layout,
-        }),
-      ),
+    applyTemplateTextListAction(
+      resetCaseInsertTemplateTextListDefaultLayout,
+      paneId,
+      textListId,
     )
   }
 
@@ -1373,14 +908,12 @@ export function useCaseInsertTemplateEditor({
     field: CaseInsertTextStyleField,
     value: CaseInsertTextStyleValue,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) =>
-          updateCaseInsertTextListStyleField(textList, field, value),
-      ),
+    applyTemplateTextListAction(
+      updateCaseInsertTemplateTextListStyleValue,
+      paneId,
+      textListId,
+      field,
+      value,
     )
   }
 
@@ -1389,14 +922,11 @@ export function useCaseInsertTemplateEditor({
     textListId: string,
     presetId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        (textList) =>
-          applyCaseInsertTextListStylePreset(textList, presetId),
-      ),
+    applyTemplateTextListAction(
+      applyCaseInsertTemplateTextListStylePreset,
+      paneId,
+      textListId,
+      presetId,
     )
   }
 
@@ -1404,13 +934,10 @@ export function useCaseInsertTemplateEditor({
     paneId: CaseInsertTemplatePaneId,
     textListId: string,
   ) {
-    setProjectJewelCase((currentCaseInsert) =>
-      updateCaseInsertTemplateTextList(
-        currentCaseInsert,
-        paneId,
-        textListId,
-        resetCaseInsertTextListStyle,
-      ),
+    applyTemplateTextListAction(
+      resetCaseInsertTemplateTextListDefaultStyle,
+      paneId,
+      textListId,
     )
   }
 

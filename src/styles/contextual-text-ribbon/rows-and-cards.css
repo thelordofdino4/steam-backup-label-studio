@@ -1,0 +1,224 @@
+.contextual-text-ribbon-controls {
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+
+.contextual-text-ribbon-control-row {
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: repeat(
+    var(--contextual-text-ribbon-control-row-count),
+    var(--contextual-text-ribbon-control-row-height)
+  );
+  align-content: start;
+  align-items: stretch;
+  column-gap: 4px;
+  row-gap: 3px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scroll-padding-inline: 0 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.72) rgba(15, 23, 42, 0.82);
+  overscroll-behavior-x: contain;
+}
+
+.contextual-text-ribbon-control-row--artistic {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
+.contextual-text-ribbon-control-row--text {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
+.contextual-text-ribbon-control-row--utilities {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  align-content: start;
+  align-items: stretch;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: var(--contextual-text-ribbon-bottom-row-gap);
+  scrollbar-width: thin;
+}
+
+.contextual-text-ribbon-control-row::-webkit-scrollbar {
+  width: 0;
+  height: var(--contextual-text-ribbon-horizontal-scrollbar-height);
+}
+
+.contextual-text-ribbon-control-row::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.82);
+  border-radius: 999px;
+}
+
+.contextual-text-ribbon-control-row::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.72);
+  border-radius: 999px;
+}
+
+.contextual-text-ribbon-control-row::-webkit-scrollbar-thumb:hover {
+  background: rgba(203, 213, 225, 0.88);
+}
+
+.contextual-text-ribbon-group {
+  --contextual-text-ribbon-group-max-width: max-content;
+  --contextual-text-ribbon-group-min-width: max-content;
+  --contextual-text-ribbon-group-preferred-width: max-content;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-self: stretch;
+  position: relative;
+  gap: 4px;
+  flex: 0 0 auto;
+  width: clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(--contextual-text-ribbon-group-max-width);
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 1px 5px;
+  border: 1px solid rgba(96, 165, 250, 0.42);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(31, 41, 55, 0.88), rgba(15, 17, 23, 0.82));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+.contextual-text-ribbon-group:focus-within {
+  z-index: 2;
+}
+
+.contextual-text-ribbon-group--span-rows {
+  grid-row: span 2;
+}
+
+.contextual-text-ribbon-group-header {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 5px;
+  min-width: 0;
+  padding-right: 5px;
+  border-right: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-group-header-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-group-label {
+  flex: 0 0 auto;
+  color: #f3f4f6;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-group-header-controls {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.contextual-text-ribbon-group-body {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--html {
+  grid-template-rows: repeat(2, var(--contextual-text-ribbon-control-row-height));
+  grid-auto-columns: minmax(0, 1fr);
+  overflow-x: hidden;
+  padding-bottom: 0;
+  scrollbar-width: none;
+}
+
+.contextual-text-ribbon-control-row--html::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.contextual-text-ribbon-html-panel {
+  box-sizing: border-box;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-row: span 2;
+  align-items: stretch;
+  justify-self: stretch;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  height: 100%;
+  max-height: 100%;
+  padding: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(59, 130, 246, 0.46);
+  border-radius: 7px;
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(15, 17, 23, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.contextual-text-ribbon-group .contextual-text-ribbon-control-label {
+  width: 0;
+  max-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+

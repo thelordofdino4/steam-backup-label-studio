@@ -1,0 +1,385 @@
+@container (max-width: 719px) {
+  .contextual-text-ribbon-group {
+    min-height: 28px;
+    padding: 1px 5px;
+  }
+
+  .contextual-text-ribbon-group--paint,
+  .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-group--contrast,
+  .contextual-text-ribbon-group--backplate,
+  .contextual-text-ribbon-group--border {
+    width: var(--contextual-text-ribbon-column-width, clamp(
+      var(--contextual-text-ribbon-group-min-width),
+      var(--contextual-text-ribbon-group-preferred-width),
+      var(--contextual-text-ribbon-group-max-width)
+    ));
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast {
+    width: var(--contextual-text-ribbon-column-width, clamp(
+      var(--contextual-text-ribbon-group-min-width),
+      18cqw,
+      var(--contextual-text-ribbon-group-max-width)
+    ));
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-max-width)
+    );
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast
+    .contextual-text-ribbon-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature {
+    width: var(--contextual-text-ribbon-column-width, clamp(
+      var(--contextual-text-ribbon-group-min-width),
+      24cqw,
+      var(--contextual-text-ribbon-group-max-width)
+    ));
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-control {
+    grid-template-columns:
+      minmax(38px, 0.8fr)
+      minmax(58px, 1fr)
+      minmax(42px, max-content)
+      max-content;
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control {
+    grid-template-columns:
+      minmax(38px, 0.8fr)
+      minmax(58px, 1fr)
+      minmax(42px, max-content)
+      max-content;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control input[type="range"] {
+    min-width: 58px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-value-input {
+    min-width: 42px;
+    width: 42px;
+    padding-inline: 1px;
+  }
+
+  .contextual-text-ribbon-group--font {
+    padding-inline: 3px;
+    width: var(--contextual-text-ribbon-column-width, max-content);
+  }
+
+  .contextual-text-ribbon-group--paragraph {
+    padding-inline: 3px;
+    width: var(--contextual-text-ribbon-column-width, max-content);
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-group-label {
+    max-width: 32px;
+    padding-right: 3px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-group-body {
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+    width: max-content;
+    max-width: 100%;
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-control select {
+    height: 24px;
+    min-height: 24px;
+    width: 100%;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-select-control {
+    min-width: 0;
+  }
+
+  .contextual-text-ribbon-group--paragraph .contextual-text-ribbon-select-control {
+    min-width: 0;
+  }
+
+  .contextual-text-ribbon-group--font .contextual-text-ribbon-point-size-control {
+    min-width: 0;
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control {
+    grid-template-columns:
+      max-content
+      minmax(58px, 96px)
+      minmax(var(--contextual-text-ribbon-utility-range-value-width), max-content)
+      max-content;
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control
+    input[type="range"] {
+    min-width: 58px;
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-range-control
+    input[type="number"] {
+    width: var(--contextual-text-ribbon-utility-range-value-width);
+    min-width: var(--contextual-text-ribbon-utility-range-value-width);
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-select-control {
+    grid-template-columns: minmax(36px, max-content) minmax(62px, 1fr);
+  }
+
+  .contextual-text-ribbon-control-row--utilities
+    .contextual-text-ribbon-toggle-check span {
+    display: inline-block;
+    max-width: none;
+    overflow: visible;
+    text-overflow: clip;
+    vertical-align: bottom;
+  }
+
+  .contextual-text-ribbon-shell {
+    padding: 2px 6px;
+  }
+
+  .contextual-text-ribbon-control,
+  .contextual-text-ribbon-source-field {
+    max-width: none;
+  }
+
+  .contextual-text-ribbon-control-label {
+    max-width: none;
+  }
+
+  .contextual-text-ribbon-source-control {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contextual-text-ribbon-actions {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .contextual-text-ribbon-action {
+    width: 58px;
+    min-height: 24px;
+    padding-inline: 5px;
+  }
+}
+
+@container (max-width: 519px) {
+  .contextual-text-ribbon-tabs {
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-tab {
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+
+  .contextual-text-ribbon-control-label {
+    max-width: 58px;
+    font-size: 9px;
+  }
+
+  .contextual-text-ribbon-control select {
+    width: 112px;
+  }
+
+  .contextual-text-ribbon-control input[type="range"] {
+    width: 78px;
+  }
+
+  .contextual-text-ribbon-actions {
+    gap: 3px;
+    padding-left: 4px;
+  }
+
+  .contextual-text-ribbon-action {
+    width: 54px;
+    min-width: 28px;
+    padding-inline: 5px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--text-color,
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast {
+    width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--contrast
+    .contextual-text-ribbon-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature {
+    width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
+    min-width: var(--contextual-text-ribbon-group-min-width);
+    max-width: var(
+      --contextual-text-ribbon-column-width,
+      var(--contextual-text-ribbon-group-min-width)
+    );
+    padding-inline: 4px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-control {
+    grid-template-columns:
+      minmax(38px, 0.8fr)
+      minmax(58px, 1fr)
+      minmax(42px, max-content)
+      max-content;
+    gap: 3px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control {
+    grid-template-columns:
+      minmax(38px, 0.8fr)
+      minmax(58px, 1fr)
+      minmax(42px, max-content)
+      max-content;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-control input[type="range"] {
+    min-width: 58px;
+  }
+
+  .contextual-text-ribbon-control-row--artistic
+    .contextual-text-ribbon-group--artistic-feature
+    .contextual-text-ribbon-range-value-input {
+    min-width: 42px;
+    width: 42px;
+    padding-inline: 1px;
+  }
+
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-control select,
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--paragraph
+    .contextual-text-ribbon-control select {
+    min-width: 34px;
+  }
+}
+
+@container (max-width: 319px) {
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-group-body {
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+  }
+
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--font
+    .contextual-text-ribbon-select-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
+  }
+}
+
+@container (max-width: 239px) {
+  .contextual-text-ribbon-control-row--text
+    .contextual-text-ribbon-group--paragraph
+    .contextual-text-ribbon-select-control select {
+    justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
+    padding-inline: 0 18px;
+    background-image: var(--contextual-text-ribbon-select-chevron);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+    color: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .contextual-text-ribbon-shell {
+    transition: none;
+  }
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-label {
+  max-width: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control-label {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}

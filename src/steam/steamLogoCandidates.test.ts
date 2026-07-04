@@ -10,6 +10,15 @@ import {
 import {
   createLogoCandidateAssetProvenance,
 } from './steamLogoCandidateImport.ts'
+import {
+  absolutizeUrl,
+  canonicalizeUrl,
+  getFileType,
+  getHostLabel,
+  isAllowedHost,
+  isHttpsUrl,
+  isLikelyNonImageUrl,
+} from './steamLogoCandidateUrls.ts'
 
 function createTestLogoCandidate(
   sourceKind: RemoteLogoCandidate['sourceKind'],
@@ -42,6 +51,41 @@ test('logo candidate provenance preserves branding-logo source routing', () => {
   assert.equal(steamProvenance.sourceId, 'steam-img-candidate')
   assert.equal(officialProvenance.source, 'official-logo-candidate')
   assert.equal(officialProvenance.sourceId, 'official-img-candidate')
+})
+
+test('normalizes remote logo candidate URLs without changing meaningful query strings', () => {
+  assert.equal(
+    absolutizeUrl('../assets/studio-logo.svg?version=2#brand', 'https://www.example.com/about/team/'),
+    'https://www.example.com/about/assets/studio-logo.svg?version=2#brand',
+  )
+  assert.equal(
+    absolutizeUrl('//cdn.example.com/logo.png', 'https://www.example.com/about/'),
+    'https://cdn.example.com/logo.png',
+  )
+  assert.equal(absolutizeUrl('data:image/png;base64,abc', 'https://www.example.com'), null)
+  assert.equal(absolutizeUrl('javascript:alert(1)', 'https://www.example.com'), null)
+  assert.equal(
+    canonicalizeUrl('https://www.example.com/assets/logo.svg?version=2#brand'),
+    'https://www.example.com/assets/logo.svg?version=2',
+  )
+})
+
+test('labels and filters remote logo candidate URL sources', () => {
+  assert.equal(getHostLabel('https://www.cdprojektred.com/en'), 'cdprojektred.com')
+  assert.equal(getHostLabel('not a url'), 'not a url')
+  assert.equal(isAllowedHost('https://cdn.steamstatic.com/logo.png', ['steamstatic.com']), true)
+  assert.equal(isAllowedHost('https://example.com/logo.png', ['steamstatic.com']), false)
+  assert.equal(isHttpsUrl('https://example.com/logo.png'), true)
+  assert.equal(isHttpsUrl('http://example.com/logo.png'), false)
+  assert.equal(isLikelyNonImageUrl('https://example.com/assets/site.css'), true)
+  assert.equal(isLikelyNonImageUrl('https://example.com/assets/logo.svg'), false)
+})
+
+test('detects remote logo candidate file types from paths', () => {
+  assert.equal(getFileType('https://example.com/assets/logo.svg?version=2'), 'svg')
+  assert.equal(getFileType('https://example.com/assets/logo.jpeg'), 'jpg')
+  assert.equal(getFileType('https://example.com/assets/logo.webp'), 'webp')
+  assert.equal(getFileType('https://example.com/assets/download'), 'unknown')
 })
 
 test('extracts Steam curator avatar candidates', () => {

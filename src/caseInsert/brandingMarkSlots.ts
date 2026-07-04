@@ -26,6 +26,9 @@ import {
   setCaseInsertImageSlotImage,
 } from './imageSlotTransitions.ts'
 import {
+  clampCaseInsertSlotPercent,
+} from './slotLayoutMath.ts'
+import {
   createCaseInsertBrandingSourceSections,
   getCaseInsertMarkLayerKind,
   type CaseInsertMarkLayerKind,
@@ -123,10 +126,6 @@ function isSupplementalUskRatingSource(sourceId: string | null | undefined) {
   )
 }
 
-function clampPercent(value: number) {
-  return Math.min(100, Math.max(0, value))
-}
-
 function layoutsMatch(
   left: ProjectCaseInsertImageSlot['layout'],
   right: Partial<ProjectCaseInsertImageSlot['layout']>,
@@ -145,10 +144,10 @@ function getSupplementalUskMarkLayout(
     ...layout,
     scale: layout.scale * SUPPLEMENTAL_USK_MARK_SCALE_MULTIPLIER,
     x: targetKind === 'template'
-      ? clampPercent(layout.x + SUPPLEMENTAL_USK_TEMPLATE_X_OFFSET)
+      ? clampCaseInsertSlotPercent(layout.x + SUPPLEMENTAL_USK_TEMPLATE_X_OFFSET)
       : layout.x,
     y: targetKind === 'spine'
-      ? clampPercent(layout.y + SUPPLEMENTAL_USK_SPINE_Y_OFFSET)
+      ? clampCaseInsertSlotPercent(layout.y + SUPPLEMENTAL_USK_SPINE_Y_OFFSET)
       : layout.y,
   }
 }

@@ -30,6 +30,12 @@ import {
 import {
   getCaseInsertImageSlotGroupConfig,
 } from './templateSurfaceTransitions.ts'
+import {
+  normalizeCaseInsertLabel,
+} from './labelText.ts'
+import {
+  clampCaseInsertSlotPercent,
+} from './slotLayoutMath.ts'
 import type { CaseInsertTemplatePaneId } from './templateSurfaces.ts'
 import type {
   CaseInsertImageSlotImageInput,
@@ -105,14 +111,6 @@ function getDefaultCaseInsertAdditionalLogoLabel(
   return createAdditionalLogoAssetLabel(logoKey, additionalLogoIndex)
 }
 
-function normalizeLabel(value: string) {
-  return value.trim().toLocaleLowerCase()
-}
-
-function clampPercent(value: number) {
-  return Math.max(0, Math.min(100, value))
-}
-
 export function getCaseInsertPrimaryLogoKey(
   slot: ProjectCaseInsertImageSlot,
 ): LogoAssetKey | null {
@@ -124,13 +122,13 @@ export function getCaseInsertPrimaryLogoKey(
     return 'publisher'
   }
 
-  const label = normalizeLabel(slot.label)
+  const label = normalizeCaseInsertLabel(slot.label)
 
-  if (label === normalizeLabel(getCaseInsertPrimaryLogoLabel('developer'))) {
+  if (label === normalizeCaseInsertLabel(getCaseInsertPrimaryLogoLabel('developer'))) {
     return 'developer'
   }
 
-  if (label === normalizeLabel(getCaseInsertPrimaryLogoLabel('publisher'))) {
+  if (label === normalizeCaseInsertLabel(getCaseInsertPrimaryLogoLabel('publisher'))) {
     return 'publisher'
   }
 
@@ -154,7 +152,7 @@ export function getCaseInsertAdditionalLogoKey(
     return 'publisher'
   }
 
-  const label = normalizeLabel(slot.label)
+  const label = normalizeCaseInsertLabel(slot.label)
 
   if (label.startsWith('additional developer')) {
     return 'developer'
@@ -245,13 +243,13 @@ function getDefaultCaseInsertAdditionalLogoLayout(
   if (surfaceId === 'spine') {
     return {
       ...primaryLayout,
-      y: clampPercent(primaryLayout.y + 8 * offset),
+      y: clampCaseInsertSlotPercent(primaryLayout.y + 8 * offset),
     }
   }
 
   return {
     ...primaryLayout,
-    x: clampPercent(
+    x: clampCaseInsertSlotPercent(
       primaryLayout.x + (logoKey === 'developer' ? 12 : -12) * offset,
     ),
   }

@@ -30,6 +30,10 @@ import {
   type CaseInsertLayoutSliderRanges,
 } from './caseInsertElementSafeZone.ts'
 import {
+  getPositiveFiniteLayoutNumber,
+  normalizePercentLayoutValue,
+} from './layoutRangeMath.ts'
+import {
   type CaseInsertTextAvoidanceRegion,
 } from './caseInsertTextAvoidance.ts'
 import {
@@ -143,18 +147,6 @@ const textBlockConfigByRole: Record<
   },
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function normalizePositiveNumber(value: number, fallback: number) {
-  return Number.isFinite(value) && value > 0 ? value : fallback
-}
-
-function normalizePercent(value: number, fallback: number) {
-  return Number.isFinite(value) ? clampNumber(value, 0, 100) : fallback
-}
-
 function getRegionBounds(
   layout: CaseInsertPreviewLayout,
   regionId: JewelCaseRegionId,
@@ -190,7 +182,7 @@ function getImageSlotPreviewSize(
     return null
   }
 
-  const scale = normalizePositiveNumber(slot.layout.scale, 1)
+  const scale = getPositiveFiniteLayoutNumber(slot.layout.scale, 1)
   const aspectRatio = contentSize.width / contentSize.height
   const maxWidth = safeBounds.width * imageSlotWidthRatioByRole[role] * scale
   const width = Math.min(maxWidth, safeBounds.width)
@@ -263,8 +255,8 @@ export function getJewelCaseFrontImageSlotPreviewRect(
 
   const fallbackCenter = imageSlotFallbackCenterByRole[role]
   const centerPercent = {
-    x: normalizePercent(slot.layout.x, fallbackCenter.x),
-    y: normalizePercent(slot.layout.y, fallbackCenter.y),
+    x: normalizePercentLayoutValue(slot.layout.x, fallbackCenter.x),
+    y: normalizePercentLayoutValue(slot.layout.y, fallbackCenter.y),
   }
   const fittedRect = getImageSlotPreviewSize(slot, safeBounds, role)
 
@@ -333,8 +325,8 @@ export function getJewelCaseFrontTextBlockPreviewLayout(
 
   const config = textBlockConfigByRole[getJewelCaseFrontTextBlockRole(textBlock)]
   const centerPercent = {
-    x: normalizePercent(textBlock.layout.x, config.defaultCenter.x),
-    y: normalizePercent(textBlock.layout.y, config.defaultCenter.y),
+    x: normalizePercentLayoutValue(textBlock.layout.x, config.defaultCenter.x),
+    y: normalizePercentLayoutValue(textBlock.layout.y, config.defaultCenter.y),
   }
   const width = safeBounds.width *
     getCaseInsertTextLayoutWidth(textBlock.layout, config.widthRatio * 100) /

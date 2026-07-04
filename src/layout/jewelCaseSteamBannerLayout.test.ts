@@ -61,6 +61,32 @@ test('cover sheet Steam banner uses the requested SGC pixel geometry', () => {
   })
 })
 
+test('Steam banner lockup layout falls back for invalid numeric values', () => {
+  const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
+  const layout = createJewelCasePreviewLayout('jewelCase', 'front')
+  const bannerLayout = getJewelCaseSteamBannerVisualLayout(
+    {
+      ...caseInsert.templates.cover.steamBanner,
+      lockupLayout: {
+        ...caseInsert.templates.cover.steamBanner.lockupLayout,
+        scale: Number.NaN,
+        x: Number.POSITIVE_INFINITY,
+        y: Number.NEGATIVE_INFINITY,
+      },
+    },
+    { kind: 'cover' },
+    layout,
+  )
+
+  assert.ok(bannerLayout)
+  assert.deepEqual(roundedRect(bannerLayout.lockupRect), {
+    x: 54,
+    y: 20,
+    width: 378,
+    height: 116,
+  })
+})
+
 test('tray-card spine Steam banners use independent left and right spine geometry', () => {
   const caseInsert = createDefaultProjectJewelCaseState('Portal 2')
   const layout = createJewelCasePreviewLayout('jewelCase', 'back')

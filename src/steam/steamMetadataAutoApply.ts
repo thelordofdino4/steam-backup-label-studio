@@ -1,11 +1,11 @@
-import type { ProjectMetadata } from '../project/projectTypes'
+import type { ProjectMetadata } from '../project/projectTypes.ts'
 import {
   getAutoApplyLegalTextCandidate,
   getAutoApplyRatingCandidate,
   type LegalTextCandidate,
   type RatingBoardCandidate,
   type SteamMetadataCandidateDiscoveryResult,
-} from './steamMetadataCandidates'
+} from './steamMetadataCandidates.ts'
 
 export function isRatingMetadataDefault(metadata: ProjectMetadata) {
   return metadata.ratingSystem === 'none' && metadata.ratingValue.trim() === ''

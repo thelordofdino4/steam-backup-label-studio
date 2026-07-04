@@ -8,8 +8,21 @@ export type HtmlTextFields = {
 }
 
 import {
+  decodeHtmlEntities,
+  escapeHtmlAttribute,
+  escapeHtmlText,
+} from './htmlEntities.ts'
+import {
+  getSafeStyleDeclarations,
+  parseSafeInlineStyle,
+} from './htmlInlineStyles.ts'
+import {
+  isClosingTag,
+  parseTagAttributes,
+  parseTagName,
+} from './htmlTags.ts'
+import {
   RICH_TEXT_BOLD_FONT_WEIGHT,
-  RICH_TEXT_NORMAL_FONT_WEIGHT,
 } from './richTextWeights.ts'
 
 export type RichTextRun = {
@@ -64,61 +77,8 @@ const BLOCK_TAGS = new Set(['p', 'li'])
 const STRIPPED_CONTENT_TAGS = new Set(['script', 'style'])
 const TOKEN_PATTERN = /<!--[\s\S]*?-->|<![^>]*>|<\/?[^>]+>/g
 const BULLET_LINE_PATTERN = /^(\s*)[-*]\s+(.+)$/
-const FONT_SIZE_MIN_PT = 1
-const FONT_SIZE_MAX_PT = 96
-const FONT_SIZE_MIN_PX = 6
-const FONT_SIZE_MAX_PX = 144
-const CSS_DECLARATION_SEPARATOR = /\s*;\s*/
-const CSS_PROPERTY_SEPARATOR = /\s*:\s*/
-
 function normalizeSourceText(source: string) {
   return source.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\0/g, '')
-}
-
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max)
-}
-
-function escapeHtmlText(text: string) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-}
-
-function escapeHtmlAttribute(text: string) {
-  return escapeHtmlText(text).replace(/"/g, '&quot;')
-}
-
-function decodeHtmlEntities(text: string) {
-  return text.replace(/&(#x[0-9a-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (_, entity: string) => {
-    const normalizedEntity = entity.toLowerCase()
-
-    if (normalizedEntity === 'amp') return '&'
-    if (normalizedEntity === 'lt') return '<'
-    if (normalizedEntity === 'gt') return '>'
-    if (normalizedEntity === 'quot') return '"'
-    if (normalizedEntity === 'apos') return "'"
-    if (normalizedEntity === 'nbsp') return ' '
-    if (normalizedEntity.startsWith('#x')) {
-      const codePoint = Number.parseInt(normalizedEntity.slice(2), 16)
-      try {
-        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : ''
-      } catch {
-        return ''
-      }
-    }
-    if (normalizedEntity.startsWith('#')) {
-      const codePoint = Number.parseInt(normalizedEntity.slice(1), 10)
-      try {
-        return Number.isFinite(codePoint) ? String.fromCodePoint(codePoint) : ''
-      } catch {
-        return ''
-      }
-    }
-
-    return ''
-  })
 }
 
 function richRunStylesMatch(first: RichTextRun, second: RichTextRun) {
@@ -296,182 +256,6 @@ function trimTrailingEmptyLines(lines: RichTextLine[]) {
   return lines
 }
 
-function parseTagName(rawTag: string) {
-  const match = rawTag.match(/^<\/?\s*([a-z0-9-]+)/i)
-  return match ? match[1].toLowerCase() : ''
-}
-
-function isClosingTag(rawTag: string) {
-  return /^<\s*\//.test(rawTag)
-}
-
-function parseTagAttributes(rawTag: string) {
-  const attributes: Record<string, string> = {}
-  const attributeSource = rawTag
-    .replace(/^<\/?\s*[a-z0-9-]+/i, '')
-    .replace(/\/?\s*>$/, '')
-  const attributePattern = /([a-zA-Z0-9:-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g
-  let match: RegExpExecArray | null
-
-  while ((match = attributePattern.exec(attributeSource)) !== null) {
-    attributes[match[1].toLowerCase()] = decodeHtmlEntities(
-      match[2] ?? match[3] ?? match[4] ?? '',
-    )
-  }
-
-  return attributes
-}
-
-function normalizeColor(value: string | undefined) {
-  if (!value) return undefined
-
-  const trimmedValue = value.trim().toLowerCase()
-
-  if (/^#[0-9a-f]{3}(?:[0-9a-f]{3})?(?:[0-9a-f]{2})?$/.test(trimmedValue)) {
-    return trimmedValue
-  }
-
-  if (
-    /^rgba?\(\s*(?:\d{1,3}%?\s*,\s*){2}\d{1,3}%?(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/.test(
-      trimmedValue,
-    )
-  ) {
-    return trimmedValue
-  }
-
-  if (/^[a-z]+$/.test(trimmedValue) && trimmedValue !== 'url') {
-    return trimmedValue
-  }
-
-  return undefined
-}
-
-function normalizeFontFamily(value: string | undefined) {
-  if (!value) return undefined
-
-  const families = value
-    .split(',')
-    .map((family) => family.trim().replace(/^['"]|['"]$/g, ''))
-    .filter((family) => /^[a-zA-Z0-9 _-]{1,48}$/.test(family))
-
-  return families.length > 0 ? families.join(', ') : undefined
-}
-
-function normalizeFontSize(value: string | undefined) {
-  if (!value) return undefined
-
-  const match = value.trim().match(/^(\d+(?:\.\d+)?)(pt|px)$/i)
-
-  if (!match) return undefined
-
-  const numericValue = Number.parseFloat(match[1])
-  const unit = match[2].toLowerCase()
-
-  if (unit === 'pt') {
-    return {
-      fontSizePt: clampNumber(
-        numericValue,
-        FONT_SIZE_MIN_PT,
-        FONT_SIZE_MAX_PT,
-      ),
-    }
-  }
-
-  return clampNumber(
-    numericValue,
-    FONT_SIZE_MIN_PX,
-    FONT_SIZE_MAX_PX,
-  )
-}
-
-function normalizeFontWeight(value: string | undefined) {
-  if (!value) return undefined
-
-  const trimmedValue = value.trim().toLowerCase()
-
-  if (trimmedValue === 'normal') return RICH_TEXT_NORMAL_FONT_WEIGHT
-  if (trimmedValue === 'bold') return RICH_TEXT_BOLD_FONT_WEIGHT
-
-  const numericValue = Number.parseInt(trimmedValue, 10)
-
-  if (!Number.isFinite(numericValue)) return undefined
-
-  return clampNumber(Math.round(numericValue / 100) * 100, 100, 900)
-}
-
-function normalizeFontStyle(value: string | undefined) {
-  const normalizedValue = value?.trim().toLowerCase()
-
-  if (normalizedValue === 'italic') return 'italic'
-  if (normalizedValue === 'normal') return 'normal'
-
-  return undefined
-}
-
-function normalizeTextDecoration(value: string | undefined) {
-  if (!value) return undefined
-
-  const normalizedValue = value.trim().toLowerCase()
-
-  if (normalizedValue === 'underline') return 'underline'
-  if (normalizedValue === 'none') return 'none'
-
-  return undefined
-}
-
-function parseSafeInlineStyle(style: string | undefined): RichTextRunStyle {
-  const runStyle: RichTextRunStyle = {}
-
-  if (!style) return runStyle
-
-  for (const declaration of style.split(CSS_DECLARATION_SEPARATOR)) {
-    if (!declaration.trim()) continue
-
-    const [rawProperty, rawValue] = declaration.split(CSS_PROPERTY_SEPARATOR, 2)
-    const property = rawProperty?.trim().toLowerCase()
-    const value = rawValue?.trim()
-
-    if (!property || !value || /url\s*\(/i.test(value)) continue
-
-    if (property === 'color') {
-      runStyle.color = normalizeColor(value)
-    } else if (property === 'background-color') {
-      runStyle.backgroundColor = normalizeColor(value)
-    } else if (property === 'font-family') {
-      runStyle.fontFamily = normalizeFontFamily(value)
-    } else if (property === 'font-size') {
-      const fontSize = normalizeFontSize(value)
-      if (typeof fontSize === 'number') {
-        runStyle.fontSizePx = fontSize
-      } else if (fontSize?.fontSizePt) {
-        runStyle.fontSizePt = fontSize.fontSizePt
-      }
-    } else if (property === 'font-weight') {
-      const fontWeight = normalizeFontWeight(value)
-      if (fontWeight) {
-        runStyle.fontWeight = fontWeight
-        runStyle.bold = fontWeight >= RICH_TEXT_BOLD_FONT_WEIGHT || undefined
-      }
-    } else if (property === 'font-style') {
-      const fontStyle = normalizeFontStyle(value)
-      if (fontStyle) {
-        runStyle.fontStyle = fontStyle
-        runStyle.italic = fontStyle === 'italic' || undefined
-      }
-    } else if (property === 'text-decoration') {
-      const textDecoration = normalizeTextDecoration(value)
-      if (textDecoration) {
-        runStyle.textDecoration = textDecoration
-        runStyle.underline = textDecoration === 'underline' || undefined
-      }
-    }
-  }
-
-  return Object.fromEntries(
-    Object.entries(runStyle).filter(([, value]) => value !== undefined),
-  ) as RichTextRunStyle
-}
-
 function getTagStyle(tagName: string, rawTag: string): RichTextRunStyle {
   if (tagName === 'strong' || tagName === 'b') {
     return { bold: true, fontWeight: RICH_TEXT_BOLD_FONT_WEIGHT }
@@ -483,25 +267,6 @@ function getTagStyle(tagName: string, rawTag: string): RichTextRunStyle {
   }
 
   return {}
-}
-
-function getSafeStyleDeclarations(run: RichTextRun) {
-  const declarations = [
-    run.color ? `color:${run.color}` : '',
-    run.backgroundColor ? `background-color:${run.backgroundColor}` : '',
-    run.fontFamily ? `font-family:${run.fontFamily}` : '',
-    run.fontSizePt ? `font-size:${run.fontSizePt}pt` : '',
-    run.fontSizePx ? `font-size:${run.fontSizePx}px` : '',
-    run.fontWeight && !run.bold ? `font-weight:${run.fontWeight}` : '',
-    run.fontStyle && !run.italic ? `font-style:${run.fontStyle}` : '',
-    run.textDecoration === 'underline' && !run.underline
-      ? 'text-decoration:underline'
-      : run.textDecoration === 'none' && !run.underline
-        ? 'text-decoration:none'
-      : '',
-  ].filter(Boolean)
-
-  return declarations
 }
 
 function serializeRun(run: RichTextRun) {

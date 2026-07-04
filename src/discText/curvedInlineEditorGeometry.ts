@@ -7,6 +7,10 @@ import {
 import {
   getResolvedDiscTextFontSizePercent,
 } from './pointSize.ts'
+import {
+  clampCurvedTextArcDegrees,
+  clampCurvedTextRangeValue as clampValue,
+} from './curvedTextRangeMath.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { CurvedDiscTextLineGeometry } from './svgLayer.ts'
 
@@ -77,19 +81,13 @@ function getArcPoint(radius: number, angleDegrees: number) {
 }
 
 function getSampledArcAngles(centerAngleDegrees: number, arcDegrees: number) {
-  const halfArc = Math.max(0, Math.min(360, arcDegrees)) / 2
+  const halfArc = clampCurvedTextArcDegrees(arcDegrees) / 2
   const start = centerAngleDegrees - halfArc
   const end = centerAngleDegrees + halfArc
   const sampleCount = 24
 
   return Array.from({ length: sampleCount + 1 }, (_, index) =>
     start + ((end - start) * index) / sampleCount)
-}
-
-function clampValue(value: number, min: number, max: number) {
-  if (max < min) return min
-
-  return Math.min(Math.max(value, min), max)
 }
 
 function normalizeAngleDegrees(angle: number) {

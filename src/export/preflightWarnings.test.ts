@@ -8,6 +8,7 @@ import {
   createCustomMarkMissingImageWarning,
   createMissingBackgroundWarning,
   createMissingImageWarning,
+  formatMillimeters,
 } from './preflightWarnings.ts'
 
 test('shared preflight builders create guide, background, and missing-image warnings', () => {
@@ -65,4 +66,9 @@ test('shared preflight builders create layout and resolution-risk warnings', () 
   ), [
     'Tray Card background is 100 x 100px, but exports around 300 x 240px; it may look soft in print.',
   ])
+})
+
+test('shared preflight formatter keeps compact millimeter values', () => {
+  assert.equal(formatMillimeters(120), '120')
+  assert.equal(formatMillimeters(120.5), '120.5')
 })

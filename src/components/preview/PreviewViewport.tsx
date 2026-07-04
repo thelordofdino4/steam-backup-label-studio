@@ -14,6 +14,7 @@ import {
   PREVIEW_VIEWPORT_DEFAULT_RAIL_BUTTON_SIZE,
   PREVIEW_VIEWPORT_DEFAULT_STATE,
   choosePreviewViewportRailButtonSize,
+  clampPreviewViewportPointToSize,
   clampPreviewViewportState,
   getPreviewViewportRailWidth,
   getPreviewViewportZoomPercent,
@@ -89,10 +90,6 @@ function isPreviewViewportControlTarget(target: EventTarget | null) {
     Boolean(target.closest('[data-preview-viewport-controls="true"]'))
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
 function readCssPixelVariable(
   element: HTMLElement,
   name: string,
@@ -112,18 +109,16 @@ function getPointInStageSlot(
 ): PreviewViewportPoint {
   const rect = viewportElement.getBoundingClientRect()
 
-  return {
-    x: clampNumber(
-      event.clientX - rect.left - stageElement.offsetLeft,
-      0,
-      stageElement.offsetWidth,
-    ),
-    y: clampNumber(
-      event.clientY - rect.top - stageElement.offsetTop,
-      0,
-      stageElement.offsetHeight,
-    ),
-  }
+  return clampPreviewViewportPointToSize(
+    {
+      x: event.clientX - rect.left - stageElement.offsetLeft,
+      y: event.clientY - rect.top - stageElement.offsetTop,
+    },
+    {
+      width: stageElement.offsetWidth,
+      height: stageElement.offsetHeight,
+    },
+  )
 }
 
 export function PreviewViewport({

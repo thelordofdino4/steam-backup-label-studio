@@ -1,0 +1,191 @@
+.contextual-text-ribbon-group--backplate,
+.contextual-text-ribbon-group--border {
+  width: var(--contextual-text-ribbon-column-width, max-content);
+}
+
+.contextual-text-ribbon-group--artistic-feature {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: stretch;
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    24cqw,
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  min-height: calc(
+    var(--contextual-text-ribbon-control-row-height) * 2 + 3px
+  );
+  overflow: hidden;
+  padding: 3px 5px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  column-gap: 5px;
+  min-height: 24px;
+  padding-right: 0;
+  padding-bottom: 2px;
+  border-right: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-label {
+  min-width: 0;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-header-controls {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-group-body {
+  display: flex;
+  flex-direction: column;
+  align-content: start;
+  align-items: stretch;
+  row-gap: 2px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control {
+  display: grid;
+  grid-template-columns: minmax(48px, 0.72fr) minmax(72px, 1fr) minmax(52px, max-content) max-content;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 24px;
+  max-width: none;
+  font-size: 10px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-control {
+  grid-template-columns:
+    minmax(48px, 0.72fr)
+    minmax(72px, 1fr)
+    minmax(48px, max-content)
+    max-content;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control-label {
+  width: auto;
+  max-width: none;
+  clip-path: none;
+  color: #cbd5e1;
+  font-size: 9px;
+  line-height: 1;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-feature-toggle input {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control input {
+  min-height: 24px;
+  height: 24px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-control input[type="color"] {
+  width: 30px;
+  height: 24px;
+  padding: 1px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-control input[type="range"] {
+  width: 100%;
+  min-width: 72px;
+  height: 24px;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-value-input {
+  display: inline-flex;
+  align-items: center;
+  min-width: 48px;
+  width: 48px;
+  max-width: 56px;
+  min-height: 24px;
+  padding: 0 4px;
+  border: 1px solid rgba(96, 165, 250, 0.32);
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.82);
+  color: #e5e7eb;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-group--artistic-feature
+  .contextual-text-ribbon-range-unit {
+  display: inline-flex;
+  align-items: center;
+  min-width: 22px;
+  color: #cbd5e1;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--paint
+  .contextual-text-ribbon-group-header {
+  min-width: 0;
+  padding-right: 4px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--paint
+  .contextual-text-ribbon-group-label {
+  font-size: 9px;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--paint
+  .contextual-text-ribbon-group-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--paint
+  .contextual-text-ribbon-control {
+  width: 100%;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-control-row--artistic
+  .contextual-text-ribbon-group--paint
+  .contextual-text-ribbon-control input[type="color"] {
+  flex: 0 0 auto;
+  width: 30px;
+  height: 24px;
+}
+

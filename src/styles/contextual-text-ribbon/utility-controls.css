@@ -1,0 +1,295 @@
+.contextual-text-ribbon-group--layout,
+.contextual-text-ribbon-group--position,
+.contextual-text-ribbon-group--metadata-source {
+  width: var(--contextual-text-ribbon-column-width, max-content);
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--position,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--layout,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--metadata-source {
+  container-type: inline-size;
+  align-items: stretch;
+  width: var(--contextual-text-ribbon-column-width, clamp(
+    var(--contextual-text-ribbon-group-min-width),
+    var(--contextual-text-ribbon-group-preferred-width),
+    var(--contextual-text-ribbon-group-max-width)
+  ));
+  min-width: var(--contextual-text-ribbon-group-min-width);
+  max-width: var(
+    --contextual-text-ribbon-column-width,
+    var(--contextual-text-ribbon-group-max-width)
+  );
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--position
+  .contextual-text-ribbon-group-body,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--layout
+  .contextual-text-ribbon-group-body,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-group--metadata-source
+  .contextual-text-ribbon-group-body {
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  width: 100%;
+}
+
+.contextual-text-ribbon-metadata-source {
+  display: grid;
+  grid-template-rows: repeat(2, max-content);
+  place-content: center;
+  justify-items: center;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+  text-align: center;
+}
+
+.contextual-text-ribbon-metadata-status {
+  color: #e5e7eb;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.contextual-text-ribbon-metadata-action {
+  justify-self: center;
+  width: max-content;
+  max-width: 100%;
+  min-height: 24px;
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-stack--utility-position,
+.contextual-text-ribbon-control-stack--utility-layout-ranges,
+.contextual-text-ribbon-control-stack--utility-layout-options {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+.contextual-text-ribbon-control-stack--utility-position,
+.contextual-text-ribbon-control-stack--utility-layout-ranges {
+  flex: 1 1 auto;
+}
+
+.contextual-text-ribbon-control-stack--utility-curved-layout-ranges {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.contextual-text-ribbon-control-stack--utility-layout-options {
+  flex: 0 0 min(154px, 38cqw);
+  padding-left: 5px;
+  border-left: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.contextual-text-ribbon-control-stack--utility-curved-layout-options {
+  flex: 0 0 160px;
+  align-items: stretch;
+  padding-left: 4px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control {
+  display: grid;
+  grid-template-columns:
+    max-content
+    minmax(72px, 96px)
+    minmax(var(--contextual-text-ribbon-utility-range-value-width), max-content)
+    max-content;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: visible;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: clip;
+  text-transform: uppercase;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  input[type="range"] {
+  width: 100%;
+  min-width: 72px;
+  max-width: 96px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-range-control
+  input[type="number"] {
+  width: var(--contextual-text-ribbon-utility-range-value-width);
+  min-width: var(--contextual-text-ribbon-utility-range-value-width);
+  padding-inline: 3px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control {
+  grid-template-columns:
+    var(--contextual-text-ribbon-curved-layout-label-width)
+    var(--contextual-text-ribbon-curved-layout-slider-width)
+    var(--contextual-text-ribbon-curved-layout-value-width);
+  justify-content: center;
+  width: max-content;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  .contextual-text-ribbon-control-label {
+  justify-content: center;
+  text-align: center;
+  width: var(--contextual-text-ribbon-curved-layout-label-width);
+  white-space: nowrap;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="range"] {
+  justify-self: center;
+  width: var(--contextual-text-ribbon-curved-layout-slider-width);
+  min-width: var(--contextual-text-ribbon-curved-layout-slider-width);
+  max-width: var(--contextual-text-ribbon-curved-layout-slider-width);
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: none;
+  justify-self: end;
+  width: var(--contextual-text-ribbon-curved-layout-value-width);
+  min-width: var(--contextual-text-ribbon-curved-layout-value-width);
+  max-width: var(--contextual-text-ribbon-curved-layout-value-width);
+  padding-inline: 4px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"]::-webkit-inner-spin-button,
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-ranges
+  .contextual-text-ribbon-range-control
+  input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control {
+  display: grid;
+  grid-template-columns: minmax(42px, max-content) minmax(74px, 1fr);
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control {
+  grid-template-columns: 54px minmax(96px, 1fr);
+  width: 100%;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  max-width: 54px;
+  text-overflow: clip;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-control-stack--utility-curved-layout-options
+  .contextual-text-ribbon-select-control
+  select {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control
+  .contextual-text-ribbon-control-label {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 58px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip-path: none;
+  color: #9ca3af;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-select-control
+  select {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  height: 24px;
+  min-height: 24px;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-toggle-check {
+  width: 100%;
+  max-width: 100%;
+  min-height: 24px;
+  overflow: hidden;
+}
+
+.contextual-text-ribbon-control-row--utilities
+  .contextual-text-ribbon-toggle-check
+  span {
+  flex: 0 0 auto;
+  min-width: 0;
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
+

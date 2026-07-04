@@ -73,6 +73,9 @@ test('shared text adapters route explicit move handles through immediate activat
   const inlineEditor = readRepoFile(
     'src/components/preview/InlinePreviewTextEditor.tsx',
   )
+  const inlineMoveRing = readRepoFile(
+    'src/components/preview/inlinePreviewTextEditorMoveRing.tsx',
+  )
   const discLayer = readRepoFile('src/components/preview/DiscTextLayer.tsx')
 
   assert.match(caseDragHook, /MOVE_HANDLE_DRAG_ACTIVATION_OPTIONS/)
@@ -91,12 +94,13 @@ test('shared text adapters route explicit move handles through immediate activat
     /onMoveHandlePointerDown=\{handleDiscTextMoveHandlePointerDown\}/,
   )
   assert.match(inlineEditor, /isPrimaryMoveHandlePointer/)
-  assert.match(inlineEditor, /inline-preview-text-edge-move-ring/)
-  assert.match(inlineEditor, /'top'/)
-  assert.match(inlineEditor, /'right'/)
-  assert.match(inlineEditor, /'bottom'/)
-  assert.match(inlineEditor, /'left'/)
-  assert.match(inlineEditor, /`inline-preview-text-edge-move-hit--\$\{edge\}`/)
+  assert.match(inlineEditor, /InlinePreviewTextEditorMoveRing/)
+  assert.match(inlineMoveRing, /inline-preview-text-edge-move-ring/)
+  assert.match(inlineMoveRing, /'top'/)
+  assert.match(inlineMoveRing, /'right'/)
+  assert.match(inlineMoveRing, /'bottom'/)
+  assert.match(inlineMoveRing, /'left'/)
+  assert.match(inlineMoveRing, /`inline-preview-text-edge-move-hit--\$\{edge\}`/)
   assert.match(inlineEditor, /edgeRing\.addEventListener\('pointerdown'/)
   assert.match(
     inlineEditor,

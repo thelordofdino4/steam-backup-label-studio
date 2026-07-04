@@ -12,10 +12,9 @@ import {
   finalizeDiscTextInlineDraftValue,
   getDiscTextKeysForProjectMetadataField,
   isMetadataBoundDiscTextKey,
-  resolveMetadataBoundDiscTextTitle,
-  resolveMetadataBoundDiscTextValues,
   updateDiscTextInlineDraftValue,
   updateDiscTextInputValue,
+  type DiscTextInputUpdate,
   type DiscTextValueSources,
   type MetadataBoundDiscTextKey,
 } from '../project/metadataDiscText'
@@ -49,7 +48,6 @@ import {
   type DiscTextAlignment,
   type DiscTextArcSide,
   type DiscTextKey,
-  type DiscTextLayout,
   type DiscTextLayoutNumericField,
   type DiscTextLayoutSettings,
   type DiscTextHtmlSources,
@@ -59,44 +57,40 @@ import {
   type SteamLogoPlacement,
 } from '../discText/index'
 import {
-  DISC_TEXT_RENDER_STYLES,
   createDefaultDiscTextStyles,
-  applyDiscTextStylePreset,
-  resetDiscTextStyle,
-  updateDiscTextStyleField,
   type DiscTextStyleField,
   type DiscTextStyleSettings,
   type DiscTextStyleValue,
 } from '../discText/styles'
 import {
+  applyDiscTextStylePresetTransition,
+  resetDiscTextStyleTransition,
+  updateDiscTextStyleFieldTransition,
+} from '../discText/styleStateTransitions'
+import {
   parseHtmlText,
   type TextContentMode,
 } from '../text/htmlText'
 import {
-  RICH_TEXT_BOLD_FONT_WEIGHT,
-} from '../text/richTextWeights'
-import {
-  applyRichTextBulletedListCommand,
-  applyRichTextInlineColorCommand,
-  applyRichTextInlineFontFamilyCommand,
-  applyRichTextInlineFontSizePtCommand,
-  applyRichTextInlineToggleCommand,
-  applyRichTextListKeyboardCommand,
   applyRichTextPlainTextMutation,
-  getRichTextBulletedListState,
-  getRichTextInlineToggleState,
-  getRichTextSelectionColorState,
-  getRichTextSelectionFontFamilyState,
-  getRichTextSelectionFontSizePtState,
   type PlainTextSelectionRange,
-  type RichTextAmbientInlineStyle,
-  type RichTextInlineToggleCommand,
   type RichTextListKeyboardCommand,
-  type RichTextSelectionColorState,
-  type RichTextSelectionNumberState,
-  type RichTextSelectionStringState,
-  type RichTextSelectionStyleState,
 } from '../text/richTextCommands'
+import {
+  applyDiscTextRichTextCommandToSource,
+  applyDiscTextRichTextKeyboardCommandToSource,
+  createDiscTextRichTextSource,
+  getDiscTextInlineStorageValue,
+  getDiscTextRichTextCommandStateFromSource,
+  type DiscTextRichTextCommand,
+  type DiscTextRichTextCommandState,
+} from '../discText/textStateTransitions'
+import {
+  resolveDiscTextMetadataState,
+  restoreDiscTextMetadataValueTransition,
+  type DiscTextMetadataResolution,
+  type DiscTextMetadataState,
+} from '../discText/metadataStateTransitions'
 
 type UseDiscTextStateOptions = {
   projectMetadata: ProjectMetadata
@@ -115,67 +109,11 @@ type DiscTextStateSnapshot = {
   discTextStyles: DiscTextStyleSettings
 }
 
-type DiscTextResolutionInput = {
-  discTextValues?: DiscTextValues
-  discTextValueSources?: DiscTextValueSources
-  discTextTitleValue?: string
-}
-
-type DiscTextResolution = {
-  discTextValues: DiscTextValues
-  discTextValueSources: DiscTextValueSources
-  discTextTitleValue: string
-  metadataBoundDiscTextValues: DiscTextValues
-  resolvedDiscTextTitle: string
-}
-
-type DiscTextRichTextCommand =
-  | RichTextInlineToggleCommand
-  | 'bulletedList'
-  | 'color'
-  | 'fontFamily'
-  | 'fontSizePt'
-type DiscTextRichTextCommandState =
-  | RichTextSelectionStyleState
-  | RichTextSelectionColorState
-  | RichTextSelectionNumberState
-  | RichTextSelectionStringState
+type DiscTextResolutionInput = Partial<DiscTextMetadataState>
 
 type DiscTextInlineDoneCommit = {
   sourceMode?: boolean
   value: string
-}
-
-const DISC_TEXT_INLINE_RENDERED_PREFIXES: Partial<Record<DiscTextKey, string>> = {
-  appId: 'Steam App ID ',
-  backupDate: 'Backed up ',
-  developer: 'Developer: ',
-  publisher: 'Publisher: ',
-}
-
-function getDiscTextInlineStorageValue(key: DiscTextKey, value: string) {
-  const prefix = DISC_TEXT_INLINE_RENDERED_PREFIXES[key]
-
-  return prefix && value.startsWith(prefix)
-    ? value.slice(prefix.length)
-    : value
-}
-
-function getDiscTextRichTextAmbientStyle(
-  key: DiscTextKey,
-  styles: DiscTextStyleSettings,
-  layout?: DiscTextLayout,
-): RichTextAmbientInlineStyle {
-  return {
-    bold: styles[key].bold,
-    boldFontWeight: RICH_TEXT_BOLD_FONT_WEIGHT,
-    color: styles[key].color,
-    fontFamily: styles[key].fontFamily,
-    fontSizePt: layout?.fontSizePt,
-    italic: styles[key].italic,
-    normalFontWeight: Math.min(DISC_TEXT_RENDER_STYLES[key].fontWeight, 400),
-    underline: styles[key].underline,
-  }
 }
 
 export function useDiscTextState({
@@ -210,26 +148,13 @@ export function useDiscTextState({
   function resolveDiscTextForMetadata(
     metadata: ProjectMetadata,
     input: DiscTextResolutionInput = {},
-  ): DiscTextResolution {
-    const values = input.discTextValues ?? discTextValues
-    const sources = input.discTextValueSources ?? discTextValueSources
-    const titleValue = input.discTextTitleValue ?? discTextTitleValue
-
-    return {
-      discTextValues: values,
-      discTextValueSources: sources,
-      discTextTitleValue: titleValue,
-      metadataBoundDiscTextValues: resolveMetadataBoundDiscTextValues(
-        values,
-        metadata,
-        sources,
-      ),
-      resolvedDiscTextTitle: resolveMetadataBoundDiscTextTitle(
-        titleValue,
-        metadata,
-        sources,
-      ),
-    }
+  ): DiscTextMetadataResolution {
+    return resolveDiscTextMetadataState(metadata, {
+      discTextValues: input.discTextValues ?? discTextValues,
+      discTextValueSources:
+        input.discTextValueSources ?? discTextValueSources,
+      discTextTitleValue: input.discTextTitleValue ?? discTextTitleValue,
+    })
   }
 
   const {
@@ -413,6 +338,50 @@ export function useDiscTextState({
     return nextResolution
   }
 
+  function getDiscTextInputUpdateRenderedContent(
+    key: DiscTextKey,
+    inputUpdate: DiscTextInputUpdate,
+  ) {
+    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
+      discTextValues: inputUpdate.values,
+      discTextValueSources: inputUpdate.sources,
+      discTextTitleValue: inputUpdate.titleValue,
+    })
+
+    return getDiscTextContent(
+      key,
+      nextResolution.metadataBoundDiscTextValues,
+      nextResolution.resolvedDiscTextTitle,
+    )
+  }
+
+  function applyDiscTextInputUpdate(
+    key: DiscTextKey,
+    inputUpdate: DiscTextInputUpdate,
+    renderedContent: string,
+    options: {
+      htmlSources?: DiscTextHtmlSources
+      valueSources?: 'always' | 'metadataBound'
+    } = {},
+  ) {
+    const valueSourcesMode = options.valueSources ?? 'metadataBound'
+    const shouldSetValueSources = valueSourcesMode === 'always' ||
+      (
+        valueSourcesMode === 'metadataBound' &&
+        isMetadataBoundDiscTextKey(key)
+      )
+
+    if (shouldSetValueSources) {
+      setDiscTextValueSources(inputUpdate.sources)
+    }
+    setDiscTextValues(inputUpdate.values)
+    setDiscTextTitleValue(inputUpdate.titleValue)
+    if (options.htmlSources) {
+      setDiscTextHtmlSources(options.htmlSources)
+    }
+    clampDiscTextLayoutForContent(key, renderedContent)
+  }
+
   function handleDiscTextContentChange(key: DiscTextKey, value: string) {
     const nextInputUpdate = updateDiscTextInputValue(
       discTextValues,
@@ -421,24 +390,11 @@ export function useDiscTextState({
       value,
       discTextTitleValue,
     )
-    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
-      discTextValues: nextInputUpdate.values,
-      discTextValueSources: nextInputUpdate.sources,
-      discTextTitleValue: nextInputUpdate.titleValue,
-    })
 
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(
+    applyDiscTextInputUpdate(
       key,
-      getDiscTextContent(
-        key,
-        nextResolution.metadataBoundDiscTextValues,
-        nextResolution.resolvedDiscTextTitle,
-      ),
+      nextInputUpdate,
+      getDiscTextInputUpdateRenderedContent(key, nextInputUpdate),
     )
   }
 
@@ -472,14 +428,9 @@ export function useDiscTextState({
       discTextTitleValue,
     )
 
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
     setDiscTextHtmlSources((currentSources) =>
       setDiscTextHtmlEnabled(currentSources, key, false, currentSource))
-    clampDiscTextLayoutForContent(key, renderedPlainText)
+    applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
   }
 
   function handleDiscTextInlineDraftChange(
@@ -499,12 +450,7 @@ export function useDiscTextState({
 
       setDiscTextHtmlSources((currentSources) =>
         setDiscTextHtmlSource(currentSources, key, value))
-      if (isMetadataBoundDiscTextKey(key)) {
-        setDiscTextValueSources(nextInputUpdate.sources)
-      }
-      setDiscTextValues(nextInputUpdate.values)
-      setDiscTextTitleValue(nextInputUpdate.titleValue)
-      clampDiscTextLayoutForContent(key, renderedPlainText)
+      applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
       return
     }
 
@@ -526,12 +472,7 @@ export function useDiscTextState({
 
       setDiscTextHtmlSources((currentSources) =>
         setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-      if (isMetadataBoundDiscTextKey(key)) {
-        setDiscTextValueSources(nextInputUpdate.sources)
-      }
-      setDiscTextValues(nextInputUpdate.values)
-      setDiscTextTitleValue(nextInputUpdate.titleValue)
-      clampDiscTextLayoutForContent(key, renderedPlainText)
+      applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
       return
     }
 
@@ -542,24 +483,11 @@ export function useDiscTextState({
       value,
       discTextTitleValue,
     )
-    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
-      discTextValues: nextInputUpdate.values,
-      discTextValueSources: nextInputUpdate.sources,
-      discTextTitleValue: nextInputUpdate.titleValue,
-    })
 
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(
+    applyDiscTextInputUpdate(
       key,
-      getDiscTextContent(
-        key,
-        nextResolution.metadataBoundDiscTextValues,
-        nextResolution.resolvedDiscTextTitle,
-      ),
+      nextInputUpdate,
+      getDiscTextInputUpdateRenderedContent(key, nextInputUpdate),
     )
   }
 
@@ -604,73 +532,51 @@ export function useDiscTextState({
 
     if (!finalizedDraft) {
       if (committedPlainText !== undefined) {
-        const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
-          discTextValues: draftDiscTextValues,
-          discTextValueSources: draftDiscTextValueSources,
-          discTextTitleValue: draftDiscTextTitleValue,
-        })
+        const draftInputUpdate = {
+          sources: draftDiscTextValueSources,
+          titleValue: draftDiscTextTitleValue,
+          values: draftDiscTextValues,
+        }
 
-        setDiscTextValueSources(draftDiscTextValueSources)
-        setDiscTextValues(draftDiscTextValues)
-        setDiscTextTitleValue(draftDiscTextTitleValue)
-        setDiscTextHtmlSources(draftDiscTextHtmlSources)
-        clampDiscTextLayoutForContent(
+        applyDiscTextInputUpdate(
           key,
-          getDiscTextContent(
-            key,
-            nextResolution.metadataBoundDiscTextValues,
-            nextResolution.resolvedDiscTextTitle,
-          ),
+          draftInputUpdate,
+          getDiscTextInputUpdateRenderedContent(key, draftInputUpdate),
+          {
+            htmlSources: draftDiscTextHtmlSources,
+            valueSources: 'always',
+          },
         )
       }
       return
     }
 
-    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
-      discTextValues: finalizedDraft.values,
-      discTextValueSources: finalizedDraft.sources,
-      discTextTitleValue: finalizedDraft.titleValue,
-    })
-
-    setDiscTextValueSources(finalizedDraft.sources)
-    setDiscTextValues(finalizedDraft.values)
-    setDiscTextTitleValue(finalizedDraft.titleValue)
-    setDiscTextHtmlSources(finalizedDraft.htmlSources)
-    clampDiscTextLayoutForContent(
+    applyDiscTextInputUpdate(
       key,
-      getDiscTextContent(
-        key,
-        nextResolution.metadataBoundDiscTextValues,
-        nextResolution.resolvedDiscTextTitle,
-      ),
+      finalizedDraft,
+      getDiscTextInputUpdateRenderedContent(key, finalizedDraft),
+      {
+        htmlSources: finalizedDraft.htmlSources,
+        valueSources: 'always',
+      },
     )
   }
 
   function handleUseMetadataDiscTextValue(key: MetadataBoundDiscTextKey) {
-    const nextInputUpdate = updateDiscTextInputValue(
-      discTextValues,
-      discTextValueSources,
+    const transition = restoreDiscTextMetadataValueTransition({
       key,
-      '',
-      discTextTitleValue,
-    )
-    const nextResolution = resolveDiscTextForMetadata(projectMetadata, {
-      discTextValues: nextInputUpdate.values,
-      discTextValueSources: nextInputUpdate.sources,
-      discTextTitleValue: nextInputUpdate.titleValue,
+      metadata: projectMetadata,
+      state: {
+        discTextValues,
+        discTextValueSources,
+        discTextTitleValue,
+      },
     })
 
-    setDiscTextValueSources(nextInputUpdate.sources)
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(
-      key,
-      getDiscTextContent(
-        key,
-        nextResolution.metadataBoundDiscTextValues,
-        nextResolution.resolvedDiscTextTitle,
-      ),
-    )
+    setDiscTextValueSources(transition.state.discTextValueSources)
+    setDiscTextValues(transition.state.discTextValues)
+    setDiscTextTitleValue(transition.state.discTextTitleValue)
+    clampDiscTextLayoutForContent(key, transition.renderedContent)
   }
 
   function handleDiscTextLayoutChange(
@@ -787,20 +693,27 @@ export function useDiscTextState({
     field: DiscTextStyleField,
     value: DiscTextStyleValue,
   ) {
-    const nextStyles = updateDiscTextStyleField(discTextStyles, key, field, value)
+    const transition = updateDiscTextStyleFieldTransition({
+      currentLayout: discTextLayout,
+      currentStyles: discTextStyles,
+      field,
+      key,
+      renderedContent: getCurrentDiscTextRenderedContent(key),
+      selectedDiscTemplate,
+      value,
+    })
 
-    setDiscTextStyles(nextStyles)
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: clampStraightDiscTextLayoutToSafeZone(
-              key,
-              currentLayout[key],
-              selectedDiscTemplate,
-              getCurrentDiscTextRenderedContent(key),
-              undefined,
-              nextStyles,
-            ),
-    }))
+    setDiscTextStyles(transition.styles)
+    setDiscTextLayout((currentLayout) =>
+      updateDiscTextStyleFieldTransition({
+        currentLayout,
+        currentStyles: discTextStyles,
+        field,
+        key,
+        renderedContent: getCurrentDiscTextRenderedContent(key),
+        selectedDiscTemplate,
+        value,
+      }).layout)
   }
 
   function handleDiscTextRichTextCommand(
@@ -817,47 +730,18 @@ export function useDiscTextState({
     }
 
     const currentText = getCurrentDiscTextContent(key)
-    const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(
+    const result = applyDiscTextRichTextCommandToSource({
+      command,
+      selection,
+      source: createDiscTextRichTextSource({
+        currentText,
+        htmlSources: discTextHtmlSources,
         key,
-        discTextStyles,
-        discTextLayout[key],
-      ),
-      fallbackText: currentText,
-      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
-        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
-        : undefined,
-    }
-    const result = command === 'color'
-      ? applyRichTextInlineColorCommand({
-          ...source,
-          color: String(value),
-          selection,
-        })
-      : command === 'fontFamily'
-        ? applyRichTextInlineFontFamilyCommand({
-            ...source,
-            fontFamily: String(value),
-            selection,
-          })
-      : command === 'fontSizePt'
-        ? applyRichTextInlineFontSizePtCommand({
-            ...source,
-            fontSizePt: Number(value),
-            selection,
-          })
-      : command === 'bulletedList'
-        ? applyRichTextBulletedListCommand({
-            ...source,
-            active: Boolean(value),
-            selection,
-          })
-        : applyRichTextInlineToggleCommand({
-            ...source,
-            active: Boolean(value),
-            command,
-            selection,
-          })
+        layout: discTextLayout[key],
+        styles: discTextStyles,
+      }),
+      value,
+    })
 
     if (!result) {
       return
@@ -873,12 +757,7 @@ export function useDiscTextState({
 
     setDiscTextHtmlSources((currentSources) =>
       setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(key, result.plainText)
+    applyDiscTextInputUpdate(key, nextInputUpdate, result.plainText)
     return result.selection
   }
 
@@ -892,21 +771,16 @@ export function useDiscTextState({
     }
 
     const currentText = getCurrentDiscTextContent(key)
-    const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(
-        key,
-        discTextStyles,
-        discTextLayout[key],
-      ),
-      fallbackText: currentText,
-      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
-        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
-        : undefined,
-    }
-    const result = applyRichTextListKeyboardCommand({
-      ...source,
+    const result = applyDiscTextRichTextKeyboardCommandToSource({
       command,
       selection,
+      source: createDiscTextRichTextSource({
+        currentText,
+        htmlSources: discTextHtmlSources,
+        key,
+        layout: discTextLayout[key],
+        styles: discTextStyles,
+      }),
     })
 
     if (!result) {
@@ -923,12 +797,7 @@ export function useDiscTextState({
 
     setDiscTextHtmlSources((currentSources) =>
       setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-    if (isMetadataBoundDiscTextKey(key)) {
-      setDiscTextValueSources(nextInputUpdate.sources)
-    }
-    setDiscTextValues(nextInputUpdate.values)
-    setDiscTextTitleValue(nextInputUpdate.titleValue)
-    clampDiscTextLayoutForContent(key, result.plainText)
+    applyDiscTextInputUpdate(key, nextInputUpdate, result.plainText)
     return result.selection
   }
 
@@ -938,61 +807,60 @@ export function useDiscTextState({
     selection: PlainTextSelectionRange | undefined,
   ): DiscTextRichTextCommandState {
     const currentText = getCurrentDiscTextContent(key)
-    const source = {
-      ambientStyle: getDiscTextRichTextAmbientStyle(
-        key,
-        discTextStyles,
-        discTextLayout[key],
-      ),
-      fallbackText: currentText,
-      htmlSource: isDiscTextHtmlEnabled(discTextHtmlSources, key)
-        ? getDiscTextHtmlSource(discTextHtmlSources, key, currentText)
-        : undefined,
-    }
 
-    return command === 'color'
-      ? getRichTextSelectionColorState({ ...source, selection })
-      : command === 'fontFamily'
-        ? getRichTextSelectionFontFamilyState({ ...source, selection })
-      : command === 'fontSizePt'
-        ? getRichTextSelectionFontSizePtState({ ...source, selection })
-      : command === 'bulletedList'
-        ? getRichTextBulletedListState({ ...source, selection })
-        : getRichTextInlineToggleState({ ...source, command, selection })
+    return getDiscTextRichTextCommandStateFromSource({
+      command,
+      selection,
+      source: createDiscTextRichTextSource({
+        currentText,
+        htmlSources: discTextHtmlSources,
+        key,
+        layout: discTextLayout[key],
+        styles: discTextStyles,
+      }),
+    })
   }
 
   function handleResetDiscTextStyle(key: DiscTextKey) {
-    const nextStyles = resetDiscTextStyle(discTextStyles, key)
+    const transition = resetDiscTextStyleTransition({
+      currentLayout: discTextLayout,
+      currentStyles: discTextStyles,
+      key,
+      renderedContent: getCurrentDiscTextRenderedContent(key),
+      selectedDiscTemplate,
+    })
 
-    setDiscTextStyles(nextStyles)
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: clampStraightDiscTextLayoutToSafeZone(
-              key,
-              currentLayout[key],
-              selectedDiscTemplate,
-              getCurrentDiscTextRenderedContent(key),
-              undefined,
-              nextStyles,
-            ),
-    }))
+    setDiscTextStyles(transition.styles)
+    setDiscTextLayout((currentLayout) =>
+      resetDiscTextStyleTransition({
+        currentLayout,
+        currentStyles: discTextStyles,
+        key,
+        renderedContent: getCurrentDiscTextRenderedContent(key),
+        selectedDiscTemplate,
+      }).layout)
   }
 
   function handleApplyDiscTextStylePreset(key: DiscTextKey, presetId: string) {
-    const nextStyles = applyDiscTextStylePreset(discTextStyles, key, presetId)
+    const transition = applyDiscTextStylePresetTransition({
+      currentLayout: discTextLayout,
+      currentStyles: discTextStyles,
+      key,
+      presetId,
+      renderedContent: getCurrentDiscTextRenderedContent(key),
+      selectedDiscTemplate,
+    })
 
-    setDiscTextStyles(nextStyles)
-    setDiscTextLayout((currentLayout) => ({
-      ...currentLayout,
-      [key]: clampStraightDiscTextLayoutToSafeZone(
-              key,
-              currentLayout[key],
-              selectedDiscTemplate,
-              getCurrentDiscTextRenderedContent(key),
-              undefined,
-              nextStyles,
-            ),
-    }))
+    setDiscTextStyles(transition.styles)
+    setDiscTextLayout((currentLayout) =>
+      applyDiscTextStylePresetTransition({
+        currentLayout,
+        currentStyles: discTextStyles,
+        key,
+        presetId,
+        renderedContent: getCurrentDiscTextRenderedContent(key),
+        selectedDiscTemplate,
+      }).layout)
   }
 
   function handleDiscNumberArtworkModeChange(mode: DiscNumberArtworkMode) {

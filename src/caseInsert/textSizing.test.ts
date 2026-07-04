@@ -7,9 +7,11 @@ import {
   getCaseInsertLayoutFontSizePt,
   getCaseInsertTextSizeRoleFromId,
   getLegacyCaseInsertScaleFontSizePt,
+  normalizeCaseInsertFontSizePt,
 } from './textSizing.ts'
 import {
   applyCaseInsertTextBlockLayoutPreset,
+  normalizeCaseInsertTextWidth,
 } from './textLayout.ts'
 import {
   createDefaultCaseInsertTextStyle,
@@ -20,6 +22,20 @@ test('case insert text point sizes convert through the template export dpi', () 
   assert.equal(caseInsertExportPxToFontSizePt(50), 12)
   assert.equal(caseInsertFontSizePtToExportPx(8), 100 / 3)
   assert.equal(caseInsertFontSizePtToExportPx(72), 300)
+})
+
+test('case insert text size normalization clamps finite values and fallbacks', () => {
+  assert.equal(normalizeCaseInsertFontSizePt(4), 6)
+  assert.equal(normalizeCaseInsertFontSizePt(42), 42)
+  assert.equal(normalizeCaseInsertFontSizePt(144), 96)
+  assert.equal(normalizeCaseInsertFontSizePt(Number.NaN, 144), 96)
+})
+
+test('case insert text width normalization clamps finite values and fallbacks', () => {
+  assert.equal(normalizeCaseInsertTextWidth(12), 20)
+  assert.equal(normalizeCaseInsertTextWidth(74), 74)
+  assert.equal(normalizeCaseInsertTextWidth(140), 100)
+  assert.equal(normalizeCaseInsertTextWidth(undefined, 12), 20)
 })
 
 test('case insert text size presets are explicit typographic point values', () => {

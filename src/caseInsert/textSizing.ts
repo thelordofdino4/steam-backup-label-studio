@@ -1,6 +1,9 @@
 import {
   DEFAULT_TEMPLATE_EXPORT_DPI,
 } from '../templates/templateModel.ts'
+import {
+  clampLayoutNumber,
+} from '../layout/layoutRangeMath.ts'
 import type {
   ProjectCaseInsertLayout,
 } from '../project/projectTypes.ts'
@@ -86,22 +89,18 @@ const LEGACY_SCALE_BASE_PT_BY_ROLE: Record<CaseInsertTextSizeRole, number> = {
   spineLegal: 7.7,
 }
 
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
 export function normalizeCaseInsertFontSizePt(
   value: unknown,
   fallback = DEFAULT_CASE_INSERT_TEXT_FONT_SIZE_PT,
 ) {
-  const normalizedFallback = clampNumber(
+  const normalizedFallback = clampLayoutNumber(
     fallback,
     CASE_INSERT_TEXT_FONT_SIZE_PT_MIN,
     CASE_INSERT_TEXT_FONT_SIZE_PT_MAX,
   )
 
   return typeof value === 'number' && Number.isFinite(value)
-    ? clampNumber(
+    ? clampLayoutNumber(
         value,
         CASE_INSERT_TEXT_FONT_SIZE_PT_MIN,
         CASE_INSERT_TEXT_FONT_SIZE_PT_MAX,

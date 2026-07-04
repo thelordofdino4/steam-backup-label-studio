@@ -48,12 +48,12 @@ test('additional artwork global and frame gates use the shared shell', () => {
       label: 'Show additional artwork',
     },
     {
-      path: 'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+      path: 'src/components/caseInsert/CaseInsertTemplateImageSlotControls.tsx',
       className: 'feature-control-body additional-artwork-control',
       label: 'Show additional artwork',
     },
     {
-      path: 'src/components/caseInsert/CaseInsertSpineControls.tsx',
+      path: 'src/components/caseInsert/CaseInsertSpineImageSlotControls.tsx',
       className: 'feature-control-body additional-artwork-control',
       label: 'Show additional artwork',
     },
@@ -87,10 +87,10 @@ test('additional artwork per-item cards remain feature-owned', () => {
     'src/components/sidebar/artwork/AdditionalArtworkControls.tsx',
   )
   const caseInsertTemplate = readRepoFile(
-    'src/components/caseInsert/CaseInsertTemplateControls.tsx',
+    'src/components/caseInsert/CaseInsertTemplateImageSlotControls.tsx',
   )
   const caseInsertSpine = readRepoFile(
-    'src/components/caseInsert/CaseInsertSpineControls.tsx',
+    'src/components/caseInsert/CaseInsertSpineImageSlotControls.tsx',
   )
 
   assert.match(discAdditionalArtwork, /RepeatedVisualElementCard/)

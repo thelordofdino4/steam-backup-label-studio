@@ -15,7 +15,6 @@ import {
 } from '../project/projectMediaMark.ts'
 import {
   clearPlatformMarkImage,
-  getProjectPlatformMarkAsset,
   updatePlatformMarkLayoutField,
   updatePlatformMarkSource,
   updatePlatformMarkTheme,
@@ -23,7 +22,6 @@ import {
 } from '../project/projectPlatformMarks.ts'
 import {
   addTechnicalMarkAsset,
-  getProjectTechnicalMarkAsset,
   removeTechnicalMarkAsset,
   updateTechnicalMarkLabel,
   updateTechnicalMarkLayoutField,
@@ -52,7 +50,6 @@ import type { PlatformMarkLayoutField } from '../project/projectPlatformMarks.ts
 import type { TechnicalMarkLayoutField } from '../project/projectTechnicalMarks.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import {
-  getCaseInsertBrandingMarkKindEnabledForTarget,
   setProjectJewelCaseBrandingMarkTargetKindEnabled,
   setProjectJewelCaseBrandingMarkTargetSourcePrefixEnabled,
   syncProjectJewelCaseBrandingMarkSlotsForTarget,
@@ -63,6 +60,13 @@ import {
 import type {
   CaseInsertBrandingSourceCatalog,
 } from '../caseInsert/brandingSlotSources.ts'
+import {
+  getCaseInsertTargetBrandingSources,
+  getCaseInsertTargetPlatformMarkSyncRequest,
+  getCaseInsertTargetTechnicalMarkLayoutSyncRequest,
+  getCaseInsertTargetTechnicalMarkToggleSyncRequest,
+  getTechnicalMarksAfterCaseInsertTargetUpload,
+} from '../caseInsert/brandingMarkTargetSources.ts'
 
 type UseCaseInsertBrandingMarkSyncOptions = {
   setProjectJewelCase: Dispatch<SetStateAction<ProjectJewelCaseState>>
@@ -197,6 +201,23 @@ export function useCaseInsertBrandingMarkSync({
     }, 0)
   }
 
+  function syncAfter(
+    update: () => void,
+    overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
+  ) {
+    update()
+    scheduleCaseInsertBrandingMarkSlotSync(overrides)
+  }
+
+  function scheduleCaseInsertBrandingMarkSlotSyncFromResult<T>(
+    nextState: T | null | void,
+    getOverrides: (nextState: T) => Partial<CaseInsertBrandingSourceCatalog>,
+  ) {
+    scheduleCaseInsertBrandingMarkSlotSync(
+      nextState ? getOverrides(nextState) : undefined,
+    )
+  }
+
   function syncCaseInsertBrandingMarkSlotsForTarget(
     target: CaseInsertBrandingMarkTarget,
     overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
@@ -258,209 +279,6 @@ export function useCaseInsertBrandingMarkSync({
     )
   }
 
-  function getTargetRatingBadge(
-    targetState: CaseInsertBrandingMarkTargetState,
-  ) {
-    const enabled = getCaseInsertBrandingMarkKindEnabledForTarget(
-      targetState,
-      'rating',
-      brandingSources,
-    )
-
-    return {
-      ...brandingSources.projectRatingBadge,
-      layout: {
-        ...brandingSources.projectRatingBadge.layout,
-        enabled,
-      },
-    }
-  }
-
-  function getTargetMediaMark(
-    targetState: CaseInsertBrandingMarkTargetState,
-  ) {
-    const enabled = getCaseInsertBrandingMarkKindEnabledForTarget(
-      targetState,
-      'media',
-      brandingSources,
-    )
-
-    return updateMediaMarkLayoutField(
-      brandingSources.projectMediaMark,
-      'enabled',
-      enabled,
-    )
-  }
-
-  function getTargetPlatformMarks(
-    targetState: CaseInsertBrandingMarkTargetState,
-  ): ProjectPlatformMarks {
-    const values = Array.from(new Set(
-      targetState.markSlots.flatMap((slot) => {
-        const sourceId = slot.imageSource?.sourceId
-
-        if (!sourceId?.startsWith('case-platform:')) {
-          return []
-        }
-
-        const value = sourceId.split(':')[1] as PlatformMarkValue | undefined
-        return value ? [value] : []
-      }),
-    ))
-    const assets = { ...brandingSources.projectPlatformMarks.assets }
-
-    values.forEach((value) => {
-      const asset = getProjectPlatformMarkAsset(
-        brandingSources.projectPlatformMarks,
-        value,
-        selectedDiscTemplate,
-      )
-      const enabled = targetState.markSlots.some((slot) => (
-        slot.enabled &&
-        slot.imageSource?.sourceId?.startsWith(`case-platform:${value}:`)
-      ))
-
-      assets[value] = {
-        ...asset,
-        layout: {
-          ...asset.layout,
-          enabled,
-        },
-      }
-    })
-
-    return {
-      ...brandingSources.projectPlatformMarks,
-      values,
-      assets,
-    }
-  }
-
-  function getTargetTechnicalMarks(
-    targetState: CaseInsertBrandingMarkTargetState,
-  ): ProjectTechnicalMarks {
-    const getTechnicalSlotParts = (sourceId: string | null | undefined) => {
-      if (!sourceId?.startsWith('case-technical:')) {
-        return null
-      }
-
-      const [, value, assetId = 'primary'] = sourceId.split(':')
-
-      return value
-        ? {
-            value: value as TechnicalMarkValue,
-            assetId: assetId || 'primary',
-          }
-        : null
-    }
-    const values = Array.from(new Set(
-      targetState.markSlots.flatMap((slot) => {
-        const parts = getTechnicalSlotParts(slot.imageSource?.sourceId)
-
-        return parts?.value ? [parts.value] : []
-      }),
-    ))
-    const assets = { ...brandingSources.projectTechnicalMarks.assets }
-    const additionalAssets = {
-      ...brandingSources.projectTechnicalMarks.additionalAssets,
-    }
-
-    values.forEach((value) => {
-      const asset = getProjectTechnicalMarkAsset(
-        brandingSources.projectTechnicalMarks,
-        value,
-        selectedDiscTemplate,
-      )
-      const enabled = targetState.markSlots.some((slot) => (
-        slot.enabled &&
-        (
-          slot.imageSource?.sourceId === `case-technical:${value}` ||
-          slot.imageSource?.sourceId === `case-technical:${value}:primary`
-        )
-      ))
-      const sharedAdditionalAssets =
-        brandingSources.projectTechnicalMarks.additionalAssets?.[value] ?? []
-
-      assets[value] = {
-        ...asset,
-        layout: {
-          ...asset.layout,
-          enabled,
-        },
-      }
-      additionalAssets[value] = sharedAdditionalAssets.map((additionalAsset) => ({
-        ...additionalAsset,
-        layout: {
-          ...additionalAsset.layout,
-          enabled: targetState.markSlots.some((slot) => (
-            slot.enabled &&
-            slot.imageSource?.sourceId ===
-              `case-technical:${value}:${additionalAsset.id ?? 'primary'}`
-          )),
-        },
-      }))
-    })
-
-    return {
-      ...brandingSources.projectTechnicalMarks,
-      values,
-      assets,
-      additionalAssets,
-    }
-  }
-
-  function getTechnicalMarksAfterTargetUpload(
-    targetProjectTechnicalMarks: ProjectTechnicalMarks,
-    uploadedProjectTechnicalMarks: ProjectTechnicalMarks | null | void,
-    value: TechnicalMarkValue,
-    assetId?: string | null,
-  ): ProjectTechnicalMarks {
-    if (!uploadedProjectTechnicalMarks) {
-      return targetProjectTechnicalMarks
-    }
-
-    const uploadedAsset = getProjectTechnicalMarkAsset(
-      uploadedProjectTechnicalMarks,
-      value,
-      selectedDiscTemplate,
-      assetId,
-    )
-
-    if (assetId) {
-      const additionalAssets =
-        targetProjectTechnicalMarks.additionalAssets?.[value] ?? []
-      const nextAdditionalAssets = additionalAssets.some((asset) =>
-        asset.id === assetId)
-        ? additionalAssets.map((asset) =>
-            asset.id === assetId ? uploadedAsset : asset)
-        : [...additionalAssets, uploadedAsset]
-
-      return {
-        ...targetProjectTechnicalMarks,
-        values: Array.from(new Set([
-          ...targetProjectTechnicalMarks.values,
-          value,
-        ])),
-        additionalAssets: {
-          ...targetProjectTechnicalMarks.additionalAssets,
-          [value]: nextAdditionalAssets,
-        },
-      }
-    }
-
-    return {
-      ...targetProjectTechnicalMarks,
-      values: Array.from(new Set([
-        ...targetProjectTechnicalMarks.values,
-        value,
-      ])),
-      assets: {
-        ...targetProjectTechnicalMarks.assets,
-        [value]: uploadedAsset,
-      },
-    }
-  }
-
   function handleCaseInsertProjectMetadataFieldsChange(
     fields: Partial<ProjectMetadata>,
   ) {
@@ -489,16 +307,14 @@ export function useCaseInsertBrandingMarkSync({
   ) {
     const nextProjectRatingBadge = await handleRatingBadgeUpload(event)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectRatingBadge
-        ? { projectRatingBadge: nextProjectRatingBadge }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectRatingBadge,
+      (projectRatingBadge) => ({ projectRatingBadge }),
     )
   }
 
   function handleCaseInsertRatingBadgeSourceChange(source: RatingBadgeSource) {
-    handleRatingBadgeSourceChange(source)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleRatingBadgeSourceChange(source))
   }
 
   function handleCaseInsertRatingBadgeEnabledChange(enabled: boolean) {
@@ -508,8 +324,7 @@ export function useCaseInsertBrandingMarkSync({
       enabled,
     )
 
-    handleRatingBadgeEnabledChange(enabled)
-    scheduleCaseInsertBrandingMarkSlotSync({
+    syncAfter(() => handleRatingBadgeEnabledChange(enabled), {
       projectMetadata: nextState.metadata,
       projectRatingBadge: clampProjectRatingBadgeToSafeZone(
         nextState.ratingBadge,
@@ -522,20 +337,17 @@ export function useCaseInsertBrandingMarkSync({
   function handleCaseInsertSupplementalUskRatingBadgeEnabledChange(
     enabled: boolean,
   ) {
-    handleSupplementalUskRatingBadgeEnabledChange(enabled)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleSupplementalUskRatingBadgeEnabledChange(enabled))
   }
 
   function handleCaseInsertSupplementalUskRatingBadgeValueChange(
     ratingValue: string,
   ) {
-    handleSupplementalUskRatingBadgeValueChange(ratingValue)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleSupplementalUskRatingBadgeValueChange(ratingValue))
   }
 
   function handleCaseInsertClearRatingBadgeImage() {
-    handleClearRatingBadgeImage()
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(handleClearRatingBadgeImage)
   }
 
   async function handleCaseInsertMediaMarkUpload(
@@ -543,39 +355,33 @@ export function useCaseInsertBrandingMarkSync({
   ) {
     const nextProjectMediaMark = await handleMediaMarkUpload(event)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectMediaMark
-        ? { projectMediaMark: nextProjectMediaMark }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectMediaMark,
+      (projectMediaMark) => ({ projectMediaMark }),
     )
   }
 
   function handleCaseInsertMediaMarkValueChange(value: MediaMarkValue) {
-    handleMediaMarkValueChange(value)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleMediaMarkValueChange(value))
   }
 
   function handleCaseInsertMediaMarkSourceChange(source: MediaMarkSource) {
-    handleMediaMarkSourceChange(source)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleMediaMarkSourceChange(source))
   }
 
   function handleCaseInsertMediaMarkThemeChange(theme: MediaMarkTheme) {
-    handleMediaMarkThemeChange(theme)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleMediaMarkThemeChange(theme))
   }
 
   function handleCaseInsertMediaMarkLayoutChange(
     field: MediaMarkLayoutField,
     value: boolean | number,
   ) {
-    handleMediaMarkLayoutChange(field, value)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleMediaMarkLayoutChange(field, value))
   }
 
   function handleCaseInsertClearMediaMarkImage() {
-    handleClearMediaMarkImage()
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(handleClearMediaMarkImage)
   }
 
   async function handleCaseInsertPlatformMarkUpload(
@@ -585,10 +391,9 @@ export function useCaseInsertBrandingMarkSync({
     const nextProjectPlatformMarks =
       await handlePlatformMarkUpload(value, event)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectPlatformMarks
-        ? { projectPlatformMarks: nextProjectPlatformMarks }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectPlatformMarks,
+      (projectPlatformMarks) => ({ projectPlatformMarks }),
     )
   }
 
@@ -596,24 +401,21 @@ export function useCaseInsertBrandingMarkSync({
     value: PlatformMarkValue,
     enabled: boolean,
   ) {
-    handlePlatformMarkToggle(value, enabled)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handlePlatformMarkToggle(value, enabled))
   }
 
   function handleCaseInsertPlatformMarkSourceChange(
     value: PlatformMarkValue,
     source: PlatformMarkSource,
   ) {
-    handlePlatformMarkSourceChange(value, source)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handlePlatformMarkSourceChange(value, source))
   }
 
   function handleCaseInsertPlatformMarkThemeChange(
     value: PlatformMarkValue,
     theme: PlatformMarkTheme,
   ) {
-    handlePlatformMarkThemeChange(value, theme)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handlePlatformMarkThemeChange(value, theme))
   }
 
   function handleCaseInsertPlatformMarkLayoutChange(
@@ -621,13 +423,11 @@ export function useCaseInsertBrandingMarkSync({
     field: PlatformMarkLayoutField,
     layoutValue: boolean | number,
   ) {
-    handlePlatformMarkLayoutChange(value, field, layoutValue)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handlePlatformMarkLayoutChange(value, field, layoutValue))
   }
 
   function handleCaseInsertClearPlatformMarkImage(value: PlatformMarkValue) {
-    handleClearPlatformMarkImage(value)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleClearPlatformMarkImage(value))
   }
 
   async function handleCaseInsertTechnicalMarkUpload(
@@ -638,10 +438,9 @@ export function useCaseInsertBrandingMarkSync({
     const nextProjectTechnicalMarks =
       await handleTechnicalMarkUpload(value, event, assetId)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectTechnicalMarks
-        ? { projectTechnicalMarks: nextProjectTechnicalMarks }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectTechnicalMarks,
+      (projectTechnicalMarks) => ({ projectTechnicalMarks }),
     )
   }
 
@@ -649,8 +448,7 @@ export function useCaseInsertBrandingMarkSync({
     value: TechnicalMarkValue,
     enabled: boolean,
   ) {
-    handleTechnicalMarkToggle(value, enabled)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleTechnicalMarkToggle(value, enabled))
   }
 
   function handleCaseInsertTechnicalMarkSourceChange(
@@ -658,8 +456,7 @@ export function useCaseInsertBrandingMarkSync({
     source: TechnicalMarkSource,
     assetId?: string | null,
   ) {
-    handleTechnicalMarkSourceChange(value, source, assetId)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleTechnicalMarkSourceChange(value, source, assetId))
   }
 
   function handleCaseInsertTechnicalMarkLayoutChange(
@@ -668,8 +465,9 @@ export function useCaseInsertBrandingMarkSync({
     layoutValue: boolean | number,
     assetId?: string | null,
   ) {
-    handleTechnicalMarkLayoutChange(value, field, layoutValue, assetId)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() =>
+      handleTechnicalMarkLayoutChange(value, field, layoutValue, assetId),
+    )
   }
 
   function handleCaseInsertTechnicalMarkLabelChange(
@@ -677,25 +475,22 @@ export function useCaseInsertBrandingMarkSync({
     label: string,
     assetId?: string | null,
   ) {
-    handleTechnicalMarkLabelChange(value, label, assetId)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleTechnicalMarkLabelChange(value, label, assetId))
   }
 
   function handleCaseInsertClearTechnicalMarkImage(
     value: TechnicalMarkValue,
     assetId?: string | null,
   ) {
-    handleClearTechnicalMarkImage(value, assetId)
-    scheduleCaseInsertBrandingMarkSlotSync()
+    syncAfter(() => handleClearTechnicalMarkImage(value, assetId))
   }
 
   function handleCaseInsertAddTechnicalMarkAsset(value: TechnicalMarkValue) {
     const nextProjectTechnicalMarks = handleAddTechnicalMarkAsset(value)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectTechnicalMarks
-        ? { projectTechnicalMarks: nextProjectTechnicalMarks }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectTechnicalMarks,
+      (projectTechnicalMarks) => ({ projectTechnicalMarks }),
     )
   }
 
@@ -706,10 +501,9 @@ export function useCaseInsertBrandingMarkSync({
     const nextProjectTechnicalMarks =
       handleRemoveTechnicalMarkAsset(value, assetId)
 
-    scheduleCaseInsertBrandingMarkSlotSync(
-      nextProjectTechnicalMarks
-        ? { projectTechnicalMarks: nextProjectTechnicalMarks }
-        : undefined,
+    scheduleCaseInsertBrandingMarkSlotSyncFromResult(
+      nextProjectTechnicalMarks,
+      (projectTechnicalMarks) => ({ projectTechnicalMarks }),
     )
   }
 
@@ -717,16 +511,89 @@ export function useCaseInsertBrandingMarkSync({
     target: CaseInsertBrandingMarkTarget,
     targetState: CaseInsertBrandingMarkTargetState,
   ) {
-    const targetProjectRatingBadge = getTargetRatingBadge(targetState)
-    const targetProjectMediaMark = getTargetMediaMark(targetState)
-    const targetProjectPlatformMarks = getTargetPlatformMarks(targetState)
-    const targetProjectTechnicalMarks = getTargetTechnicalMarks(targetState)
-    const targetBrandingSources: CaseInsertBrandingSourceCatalog = {
-      ...brandingSources,
-      projectRatingBadge: targetProjectRatingBadge,
+    const targetBrandingSources = getCaseInsertTargetBrandingSources(
+      targetState,
+      brandingSources,
+      selectedDiscTemplate,
+    )
+    const {
       projectMediaMark: targetProjectMediaMark,
       projectPlatformMarks: targetProjectPlatformMarks,
+      projectRatingBadge: targetProjectRatingBadge,
       projectTechnicalMarks: targetProjectTechnicalMarks,
+    } = targetBrandingSources
+
+    function syncTargetPlatform(
+      request: ReturnType<typeof getCaseInsertTargetPlatformMarkSyncRequest>,
+    ) {
+      if (request.shouldEnableSharedValue) {
+        handlePlatformMarkToggle(request.value, true)
+      }
+
+      setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
+        target,
+        request.sourcePrefix,
+        request.enabled,
+        {
+          ...targetBrandingSources,
+          projectPlatformMarks: request.projectPlatformMarks,
+        },
+      )
+    }
+
+    function syncTargetTechnical(
+      request:
+        | ReturnType<typeof getCaseInsertTargetTechnicalMarkToggleSyncRequest>
+        | ReturnType<typeof getCaseInsertTargetTechnicalMarkLayoutSyncRequest>,
+    ) {
+      if (request.shouldSyncSharedLayout) {
+        handleTechnicalMarkLayoutChange(
+          request.value,
+          'enabled',
+          request.enabled,
+          request.assetId,
+        )
+      } else if (request.shouldEnableSharedValue) {
+        handleTechnicalMarkToggle(request.value, true)
+      }
+
+      setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
+        target,
+        request.sourcePrefix,
+        request.enabled,
+        {
+          ...targetBrandingSources,
+          projectTechnicalMarks: request.projectTechnicalMarks,
+        },
+      )
+    }
+
+    function scheduleTargetBrandingMarkSlotSync(
+      overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
+    ) {
+      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
+        ...targetBrandingSources,
+        ...overrides,
+      })
+    }
+
+    function syncTargetAfter(
+      update: () => void,
+      overrides: Partial<CaseInsertBrandingSourceCatalog> = {},
+    ) {
+      update()
+      scheduleTargetBrandingMarkSlotSync(overrides)
+    }
+
+    function syncTargetAfterSharedUpload<T>(
+      upload: T | null | void | Promise<T | null | void>,
+      getOverrides: (nextState: T) => Partial<CaseInsertBrandingSourceCatalog>,
+    ) {
+      return Promise.resolve(upload).then((nextState) =>
+        scheduleTargetBrandingMarkSlotSync(
+          nextState ? getOverrides(nextState) : {},
+        ),
+      )
     }
 
     function handleTargetProjectMetadataFieldsChange(
@@ -737,9 +604,7 @@ export function useCaseInsertBrandingMarkSync({
         ...fields,
       }
 
-      handleProjectMetadataFieldsChange(fields)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleProjectMetadataFieldsChange(fields), {
         projectMetadata: nextProjectMetadata,
       })
     }
@@ -756,17 +621,10 @@ export function useCaseInsertBrandingMarkSync({
     function handleTargetRatingBadgeUpload(
       event: ChangeEvent<HTMLInputElement>,
     ) {
-      return Promise.resolve(handleRatingBadgeUpload(event)).then((nextProjectRatingBadge) => {
-        scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-          target,
-          {
-            ...targetBrandingSources,
-            ...(nextProjectRatingBadge
-              ? { projectRatingBadge: nextProjectRatingBadge }
-              : {}),
-          },
-        )
-      })
+      return syncTargetAfterSharedUpload(
+        handleRatingBadgeUpload(event),
+        (projectRatingBadge) => ({ projectRatingBadge }),
+      )
     }
 
     function handleTargetRatingBadgeSourceChange(source: RatingBadgeSource) {
@@ -775,9 +633,7 @@ export function useCaseInsertBrandingMarkSync({
         source,
       }
 
-      handleRatingBadgeSourceChange(source)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleRatingBadgeSourceChange(source), {
         projectRatingBadge: nextProjectRatingBadge,
       })
     }
@@ -816,11 +672,9 @@ export function useCaseInsertBrandingMarkSync({
         targetBrandingSources.projectMetadata,
       )
 
-      handleSupplementalUskRatingBadgeEnabledChange(enabled)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
+      syncTargetAfter(
+        () => handleSupplementalUskRatingBadgeEnabledChange(enabled),
         {
-          ...targetBrandingSources,
           projectRatingBadge: nextProjectRatingBadge,
         },
       )
@@ -834,11 +688,9 @@ export function useCaseInsertBrandingMarkSync({
         ratingValue,
       )
 
-      handleSupplementalUskRatingBadgeValueChange(ratingValue)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
+      syncTargetAfter(
+        () => handleSupplementalUskRatingBadgeValueChange(ratingValue),
         {
-          ...targetBrandingSources,
           projectRatingBadge: nextProjectRatingBadge,
         },
       )
@@ -851,28 +703,16 @@ export function useCaseInsertBrandingMarkSync({
         targetBrandingSources.projectMetadata,
       )
 
-      handleClearRatingBadgeImage()
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
-        {
-          ...targetBrandingSources,
-          projectRatingBadge: nextProjectRatingBadge,
-        },
-      )
+      syncTargetAfter(handleClearRatingBadgeImage, {
+        projectRatingBadge: nextProjectRatingBadge,
+      })
     }
 
     function handleTargetMediaMarkUpload(event: ChangeEvent<HTMLInputElement>) {
-      return Promise.resolve(handleMediaMarkUpload(event)).then((nextProjectMediaMark) => {
-        scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-          target,
-          {
-            ...targetBrandingSources,
-            ...(nextProjectMediaMark
-              ? { projectMediaMark: nextProjectMediaMark }
-              : {}),
-          },
-        )
-      })
+      return syncTargetAfterSharedUpload(
+        handleMediaMarkUpload(event),
+        (projectMediaMark) => ({ projectMediaMark }),
+      )
     }
 
     function handleTargetMediaMarkValueChange(value: MediaMarkValue) {
@@ -881,9 +721,7 @@ export function useCaseInsertBrandingMarkSync({
         value,
       )
 
-      handleMediaMarkValueChange(value)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleMediaMarkValueChange(value), {
         projectMediaMark: nextProjectMediaMark,
       })
     }
@@ -894,9 +732,7 @@ export function useCaseInsertBrandingMarkSync({
         source,
       )
 
-      handleMediaMarkSourceChange(source)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleMediaMarkSourceChange(source), {
         projectMediaMark: nextProjectMediaMark,
       })
     }
@@ -907,9 +743,7 @@ export function useCaseInsertBrandingMarkSync({
         theme,
       )
 
-      handleMediaMarkThemeChange(theme)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleMediaMarkThemeChange(theme), {
         projectMediaMark: nextProjectMediaMark,
       })
     }
@@ -937,9 +771,7 @@ export function useCaseInsertBrandingMarkSync({
         return
       }
 
-      handleMediaMarkLayoutChange(field, value)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handleMediaMarkLayoutChange(field, value), {
         projectMediaMark: nextProjectMediaMark,
       })
     }
@@ -947,57 +779,38 @@ export function useCaseInsertBrandingMarkSync({
     function handleTargetClearMediaMarkImage() {
       const nextProjectMediaMark = clearMediaMarkImage(targetProjectMediaMark)
 
-      handleClearMediaMarkImage()
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
-        {
-          ...targetBrandingSources,
-          projectMediaMark: nextProjectMediaMark,
-        },
-      )
+      syncTargetAfter(handleClearMediaMarkImage, {
+        projectMediaMark: nextProjectMediaMark,
+      })
     }
 
     function handleTargetPlatformMarkUpload(
       value: PlatformMarkValue,
       event: ChangeEvent<HTMLInputElement>,
     ) {
-      return Promise.resolve(handlePlatformMarkUpload(value, event)).then((nextProjectPlatformMarks) => {
-        scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-          target,
-          {
-            ...targetBrandingSources,
-            ...(nextProjectPlatformMarks
-              ? { projectPlatformMarks: nextProjectPlatformMarks }
-              : {}),
-          },
-        )
-      })
+      return syncTargetAfterSharedUpload(
+        handlePlatformMarkUpload(value, event),
+        (projectPlatformMarks) => ({ projectPlatformMarks }),
+      )
     }
 
     function handleTargetPlatformMarkToggle(
       value: PlatformMarkValue,
       enabled: boolean,
     ) {
-      const nextProjectPlatformMarks = updatePlatformMarkToggle(
-        targetProjectPlatformMarks,
+      const request = getCaseInsertTargetPlatformMarkSyncRequest(
+        updatePlatformMarkToggle(
+          targetProjectPlatformMarks,
+          value,
+          enabled,
+          selectedDiscTemplate,
+        ),
+        brandingSources.projectPlatformMarks,
         value,
         enabled,
-        selectedDiscTemplate,
       )
 
-      if (enabled && !brandingSources.projectPlatformMarks.values.includes(value)) {
-        handlePlatformMarkToggle(value, true)
-      }
-
-      setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
-        target,
-        `case-platform:${value}:`,
-        enabled,
-        {
-          ...targetBrandingSources,
-          projectPlatformMarks: nextProjectPlatformMarks,
-        },
-      )
+      syncTargetPlatform(request)
     }
 
     function handleTargetPlatformMarkSourceChange(
@@ -1010,9 +823,7 @@ export function useCaseInsertBrandingMarkSync({
         source,
       )
 
-      handlePlatformMarkSourceChange(value, source)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handlePlatformMarkSourceChange(value, source), {
         projectPlatformMarks: nextProjectPlatformMarks,
       })
     }
@@ -1028,9 +839,7 @@ export function useCaseInsertBrandingMarkSync({
         selectedDiscTemplate,
       )
 
-      handlePlatformMarkThemeChange(value, theme)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      syncTargetAfter(() => handlePlatformMarkThemeChange(value, theme), {
         projectPlatformMarks: nextProjectPlatformMarks,
       })
     }
@@ -1048,30 +857,23 @@ export function useCaseInsertBrandingMarkSync({
       )
 
       if (field === 'enabled') {
-        if (
-          Boolean(layoutValue) &&
-          !brandingSources.projectPlatformMarks.values.includes(value)
-        ) {
-          handlePlatformMarkToggle(value, true)
-        }
-
-        setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
-          target,
-          `case-platform:${value}:`,
+        const request = getCaseInsertTargetPlatformMarkSyncRequest(
+          nextProjectPlatformMarks,
+          brandingSources.projectPlatformMarks,
+          value,
           Boolean(layoutValue),
-          {
-            ...targetBrandingSources,
-            projectPlatformMarks: nextProjectPlatformMarks,
-          },
         )
+
+        syncTargetPlatform(request)
         return
       }
 
-      handlePlatformMarkLayoutChange(value, field, layoutValue)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
-        projectPlatformMarks: nextProjectPlatformMarks,
-      })
+      syncTargetAfter(
+        () => handlePlatformMarkLayoutChange(value, field, layoutValue),
+        {
+          projectPlatformMarks: nextProjectPlatformMarks,
+        },
+      )
     }
 
     function handleTargetClearPlatformMarkImage(value: PlatformMarkValue) {
@@ -1080,14 +882,9 @@ export function useCaseInsertBrandingMarkSync({
         value,
       )
 
-      handleClearPlatformMarkImage(value)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
-        {
-          ...targetBrandingSources,
-          projectPlatformMarks: nextProjectPlatformMarks,
-        },
-      )
+      syncTargetAfter(() => handleClearPlatformMarkImage(value), {
+        projectPlatformMarks: nextProjectPlatformMarks,
+      })
     }
 
     function handleTargetTechnicalMarkUpload(
@@ -1099,20 +896,17 @@ export function useCaseInsertBrandingMarkSync({
         handleTechnicalMarkUpload(value, event, assetId),
       ).then((nextProjectTechnicalMarks) => {
         const nextTargetProjectTechnicalMarks =
-          getTechnicalMarksAfterTargetUpload(
+          getTechnicalMarksAfterCaseInsertTargetUpload(
             targetProjectTechnicalMarks,
             nextProjectTechnicalMarks,
+            selectedDiscTemplate,
             value,
             assetId,
           )
 
-        scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-          target,
-          {
-            ...targetBrandingSources,
-            projectTechnicalMarks: nextTargetProjectTechnicalMarks,
-          },
-        )
+        scheduleTargetBrandingMarkSlotSync({
+          projectTechnicalMarks: nextTargetProjectTechnicalMarks,
+        })
       })
     }
 
@@ -1120,25 +914,18 @@ export function useCaseInsertBrandingMarkSync({
       value: TechnicalMarkValue,
       enabled: boolean,
     ) {
-      const nextProjectTechnicalMarks = updateTechnicalMarkToggle(
-        targetProjectTechnicalMarks,
-        value,
-        enabled,
-        selectedDiscTemplate,
-      )
-
-      if (enabled && !brandingSources.projectTechnicalMarks.values.includes(value)) {
-        handleTechnicalMarkToggle(value, true)
-      }
-
-      setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
-        target,
-        `case-technical:${value}`,
-        enabled,
-        {
-          ...targetBrandingSources,
-          projectTechnicalMarks: nextProjectTechnicalMarks,
-        },
+      syncTargetTechnical(
+        getCaseInsertTargetTechnicalMarkToggleSyncRequest(
+          updateTechnicalMarkToggle(
+            targetProjectTechnicalMarks,
+            value,
+            enabled,
+            selectedDiscTemplate,
+          ),
+          brandingSources.projectTechnicalMarks,
+          value,
+          enabled,
+        ),
       )
     }
 
@@ -1154,11 +941,12 @@ export function useCaseInsertBrandingMarkSync({
         assetId,
       )
 
-      handleTechnicalMarkSourceChange(value, source, assetId)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
-        projectTechnicalMarks: nextProjectTechnicalMarks,
-      })
+      syncTargetAfter(
+        () => handleTechnicalMarkSourceChange(value, source, assetId),
+        {
+          projectTechnicalMarks: nextProjectTechnicalMarks,
+        },
+      )
     }
 
     function handleTargetTechnicalMarkLayoutChange(
@@ -1175,45 +963,26 @@ export function useCaseInsertBrandingMarkSync({
         assetId,
       )
 
-      if (field === 'enabled' && assetId) {
-        handleTechnicalMarkLayoutChange(value, field, layoutValue, assetId)
-        setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
-          target,
-          `case-technical:${value}:${assetId}`,
-          Boolean(layoutValue),
-          {
-            ...targetBrandingSources,
-            projectTechnicalMarks: nextProjectTechnicalMarks,
-          },
-        )
-        return
-      }
-
       if (field === 'enabled') {
-        if (
-          Boolean(layoutValue) &&
-          !brandingSources.projectTechnicalMarks.values.includes(value)
-        ) {
-          handleTechnicalMarkToggle(value, true)
-        }
-
-        setCaseInsertBrandingMarkTargetSourcePrefixEnabled(
-          target,
-          `case-technical:${value}:primary`,
-          Boolean(layoutValue),
-          {
-            ...targetBrandingSources,
-            projectTechnicalMarks: nextProjectTechnicalMarks,
-          },
+        syncTargetTechnical(
+          getCaseInsertTargetTechnicalMarkLayoutSyncRequest(
+            nextProjectTechnicalMarks,
+            brandingSources.projectTechnicalMarks,
+            value,
+            Boolean(layoutValue),
+            assetId,
+          ),
         )
         return
       }
 
-      handleTechnicalMarkLayoutChange(value, field, layoutValue, assetId)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
-        projectTechnicalMarks: nextProjectTechnicalMarks,
-      })
+      syncTargetAfter(
+        () =>
+          handleTechnicalMarkLayoutChange(value, field, layoutValue, assetId),
+        {
+          projectTechnicalMarks: nextProjectTechnicalMarks,
+        },
+      )
     }
 
     function handleTargetTechnicalMarkLabelChange(
@@ -1228,22 +997,19 @@ export function useCaseInsertBrandingMarkSync({
         assetId,
       )
 
-      handleTechnicalMarkLabelChange(value, label, assetId)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
-        projectTechnicalMarks: nextProjectTechnicalMarks,
-      })
+      syncTargetAfter(
+        () => handleTechnicalMarkLabelChange(value, label, assetId),
+        {
+          projectTechnicalMarks: nextProjectTechnicalMarks,
+        },
+      )
     }
 
     function handleTargetClearTechnicalMarkImage(
       value: TechnicalMarkValue,
       assetId?: string | null,
     ) {
-      handleClearTechnicalMarkImage(value, assetId)
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(
-        target,
-        targetBrandingSources,
-      )
+      syncTargetAfter(() => handleClearTechnicalMarkImage(value, assetId))
     }
 
     function handleTargetAddTechnicalMarkAsset(value: TechnicalMarkValue) {
@@ -1256,8 +1022,7 @@ export function useCaseInsertBrandingMarkSync({
             selectedDiscTemplate,
           )
 
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      scheduleTargetBrandingMarkSlotSync({
         projectTechnicalMarks: nextTargetProjectTechnicalMarks,
       })
 
@@ -1278,8 +1043,7 @@ export function useCaseInsertBrandingMarkSync({
             assetId,
           )
 
-      scheduleCaseInsertBrandingMarkSlotSyncForTarget(target, {
-        ...targetBrandingSources,
+      scheduleTargetBrandingMarkSlotSync({
         projectTechnicalMarks: nextTargetProjectTechnicalMarks,
       })
 

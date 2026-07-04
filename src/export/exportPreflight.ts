@@ -40,6 +40,7 @@ import {
   createCustomMarkMissingImageWarning,
   createMissingBackgroundWarning,
   createMissingImageWarning,
+  formatMillimeters,
 } from './preflightWarnings.ts'
 
 const EXPORT_OUTLINE_WIDTH_PX = 3
@@ -106,7 +107,7 @@ export function buildExportPreflightSummary(params: {
 
   const summaryLines = [
     `Template: ${params.selectedDiscTemplate.name}`,
-    `Physical size: ${formatMm(params.selectedDiscTemplate.outerDiameterMm)} mm outer, ${formatMm(params.selectedDiscTemplate.printableDiameterMm)} mm printable, ${formatMm(params.selectedDiscTemplate.physicalCenterHoleDiameterMm)} mm center hole, ${formatMm(params.selectedDiscTemplate.safeDiameterMm)} mm safe zone`,
+    `Physical size: ${formatMillimeters(params.selectedDiscTemplate.outerDiameterMm)} mm outer, ${formatMillimeters(params.selectedDiscTemplate.printableDiameterMm)} mm printable, ${formatMillimeters(params.selectedDiscTemplate.physicalCenterHoleDiameterMm)} mm center hole, ${formatMillimeters(params.selectedDiscTemplate.safeDiameterMm)} mm safe zone`,
     `PNG output: ${exportSize} x ${exportSize} px at ${EXPORT_DPI} DPI`,
     'Center hole cutout: Yes',
     `${EXPORT_OUTLINE_WIDTH_PX} px outer outline: Included`,
@@ -334,8 +335,4 @@ function formatMetadataStatus(selectedSteamGame: SteamImportedGame | null, manua
   }
 
   return `Manual/blank project (${manualGameTitle || 'Untitled'})`
-}
-
-function formatMm(value: number) {
-  return Number.isInteger(value) ? String(value) : value.toFixed(1)
 }

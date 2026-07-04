@@ -1,3 +1,8 @@
+import {
+  clampCurvedTextArcDegrees,
+  clampCurvedTextRangeValue,
+} from './curvedTextRangeMath.ts'
+
 export type CurvedTextAlignment = 'left' | 'center' | 'right'
 export type CurvedTextSide = 'top' | 'bottom'
 
@@ -40,11 +45,6 @@ export function normalizeAngleDegrees(angle: number) {
   return ((angle % 360) + 360) % 360
 }
 
-function normalizeArcDegrees(arcDegrees: number) {
-  if (!Number.isFinite(arcDegrees)) return 0
-  return Math.min(Math.max(arcDegrees, 0), 360)
-}
-
 function getLineAngleWidthDegrees(line: CurvedTextLineInput) {
   if (line.radius <= 0 || line.measuredWidth <= 0) return 0
   return radiansToDegrees(line.measuredWidth / line.radius)
@@ -63,10 +63,10 @@ function getPathEndAngle(side: CurvedTextSide, centerAngleDegrees: number, windo
 }
 
 function getDerivedBlockWindowDegrees(input: CurvedTextLayoutInput) {
-  const rawArcDegrees = normalizeArcDegrees(input.arcDegrees)
+  const rawArcDegrees = clampCurvedTextArcDegrees(input.arcDegrees)
 
   if (typeof input.blockWindowDegrees === 'number' && Number.isFinite(input.blockWindowDegrees)) {
-    return Math.min(Math.max(input.blockWindowDegrees, 0), rawArcDegrees)
+    return clampCurvedTextRangeValue(input.blockWindowDegrees, 0, rawArcDegrees)
   }
 
   const firstLine = input.lines[0]

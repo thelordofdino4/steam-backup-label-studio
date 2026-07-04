@@ -1,3 +1,7 @@
+import {
+  clampPlainTextOffset,
+} from '../../text/richTextSelectionRanges.ts'
+
 export type InlinePreviewTextLine = {
   text: string
 }
@@ -47,7 +51,7 @@ function getInlinePreviewTextLineRanges({
     const range = {
       end: lineEnd,
       lineIndex,
-      start: clampNumber(lineStart, 0, caretValue.length),
+      start: clampPlainTextOffset(lineStart, caretValue.length),
       text: lineText,
     }
 
@@ -81,7 +85,7 @@ export function getInlinePreviewTextCaretLineOffset({
     }
   }
 
-  const normalizedCaretIndex = clampNumber(caretIndex, 0, caretValue.length)
+  const normalizedCaretIndex = clampPlainTextOffset(caretIndex, caretValue.length)
 
   for (let index = 0; index < ranges.length; index += 1) {
     const range = ranges[index]
@@ -90,9 +94,8 @@ export function getInlinePreviewTextCaretLineOffset({
     if (normalizedCaretIndex <= range.end) {
       return {
         lineIndex: range.lineIndex,
-        offset: clampNumber(
+        offset: clampPlainTextOffset(
           normalizedCaretIndex - range.start,
-          0,
           range.text.length,
         ),
       }
@@ -129,11 +132,11 @@ export function getInlinePreviewTextCaretIndexForLineOffset({
   const range = ranges.find((candidate) => candidate.lineIndex === lineIndex)
 
   if (!range) {
-    return clampNumber(caretValue.length, 0, caretValue.length)
+    return caretValue.length
   }
 
   return clampNumber(
-    range.start + clampNumber(offset, 0, range.text.length),
+    range.start + clampPlainTextOffset(offset, range.text.length),
     range.start,
     range.end,
   )
@@ -150,14 +153,12 @@ export function getInlinePreviewTextSelectionLineOffsets({
   selectionEnd: number
   selectionStart: number
 }): InlinePreviewTextSelectionLineOffset[] {
-  const normalizedStart = clampNumber(
+  const normalizedStart = clampPlainTextOffset(
     Math.min(selectionStart, selectionEnd),
-    0,
     caretValue.length,
   )
-  const normalizedEnd = clampNumber(
+  const normalizedEnd = clampPlainTextOffset(
     Math.max(selectionStart, selectionEnd),
-    0,
     caretValue.length,
   )
 
@@ -175,9 +176,9 @@ export function getInlinePreviewTextSelectionLineOffsets({
       }
 
       return {
-        endOffset: clampNumber(end - range.start, 0, range.text.length),
+        endOffset: clampPlainTextOffset(end - range.start, range.text.length),
         lineIndex: range.lineIndex,
-        startOffset: clampNumber(start - range.start, 0, range.text.length),
+        startOffset: clampPlainTextOffset(start - range.start, range.text.length),
       } satisfies InlinePreviewTextSelectionLineOffset
     })
     .filter((range): range is InlinePreviewTextSelectionLineOffset =>

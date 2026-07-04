@@ -1,12 +1,10 @@
 #!/usr/bin/env node
 
-import { spawn, spawnSync } from 'node:child_process'
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
-import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { chromium } from 'playwright'
 import {
   REQUIRED_RIBBON_CAPTURE_SIZES,
   createHtmlContactSheet,
@@ -16,6 +14,11 @@ import {
   validateClientSize,
   validatePngScreenshot,
 } from './ribbon-capture-utils.mjs'
+import {
+  ensureTextEditorSmokeViteRuntime,
+  launchTextEditorSmokeBrowser,
+  stopTextEditorSmokeViteRuntime,
+} from './text-editor-smoke-runtime.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
@@ -74,123 +77,16 @@ function smoke(page, smokeId) {
   return page.locator(smokeSelector(smokeId))
 }
 
-function requestText(url, timeoutMs = 2_000) {
-  return new Promise((resolve) => {
-    const request = http.get(url, (response) => {
-      let body = ''
-      response.setEncoding('utf8')
-      response.on('data', (chunk) => {
-        body += chunk
-      })
-      response.on('end', () => {
-        resolve({
-          body,
-          statusCode: response.statusCode ?? 0,
-        })
-      })
-    })
-
-    request.on('error', () => resolve(null))
-    request.setTimeout(timeoutMs, () => {
-      request.destroy()
-      resolve(null)
-    })
-  })
-}
-
-async function isAppServing() {
-  const response = await requestText(baseUrl)
-
-  return Boolean(
-    response?.statusCode &&
-      response.statusCode >= 200 &&
-      response.statusCode < 500 &&
-      response.body.includes('<div id="root">'),
-  )
-}
-
-async function waitForApp() {
-  const start = Date.now()
-
-  while (Date.now() - start < startupTimeoutMs) {
-    if (await isAppServing()) return
-    await new Promise((resolve) => setTimeout(resolve, 500))
-  }
-
-  fail(`Vite did not serve ${baseUrl} within ${startupTimeoutMs}ms.`)
-}
-
-async function ensureViteRuntime() {
-  if (await isAppServing()) {
-    log(`Reusing existing app runtime at ${baseUrl}`)
-    return
-  }
-
-  const viteBin = path.join(repoRoot, 'node_modules', 'vite', 'bin', 'vite.js')
-  if (!fs.existsSync(viteBin)) {
-    fail(`Cannot find local Vite binary at ${viteBin}. Run npm install first.`)
-  }
-
-  log(`Starting Vite at ${baseUrl}`)
-  viteProcess = spawn(
-    process.execPath,
-    [
-      viteBin,
-      '--host',
-      '127.0.0.1',
-      '--port',
-      String(port),
-      '--strictPort',
-    ],
-    {
-      cwd: repoRoot,
-      env: { ...process.env, BROWSER: 'none' },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    },
-  )
-
-  viteProcess.stdout.on('data', (chunk) => {
-    process.stdout.write(chunk)
-  })
-  viteProcess.stderr.on('data', (chunk) => {
-    process.stderr.write(chunk)
-  })
-
-  await waitForApp()
-}
-
-function findBrowserExecutable() {
-  const candidates = [
-    process.env.RIBBON_CAPTURE_BROWSER,
-    process.env.TEXT_EDITOR_SMOKE_BROWSER,
-    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+function getRibbonCaptureBrowserCandidates(env = process.env) {
+  return [
+    env.RIBBON_CAPTURE_BROWSER,
+    env.TEXT_EDITOR_SMOKE_BROWSER,
+    env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
     'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
     'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
     'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
   ].filter(Boolean)
-
-  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null
-}
-
-async function launchBrowser() {
-  const executablePath = findBrowserExecutable()
-  const options = {
-    args: [
-      '--disable-gpu',
-      '--force-device-scale-factor=1',
-      '--hide-scrollbars=false',
-    ],
-    headless: true,
-  }
-
-  if (executablePath) {
-    log(`Using browser executable ${executablePath}`)
-    return chromium.launch({ ...options, executablePath })
-  }
-
-  log('Using Playwright bundled Chromium')
-  return chromium.launch(options)
 }
 
 function readGitValue(args, fallback) {
@@ -669,8 +565,23 @@ function createNativeCaptureStatus() {
 async function run() {
   log('Browser diagnostic only; not Tauri visual verification.')
   fs.mkdirSync(artifactDir, { recursive: true })
-  await ensureViteRuntime()
-  browser = await launchBrowser()
+  viteProcess = await ensureTextEditorSmokeViteRuntime({
+    baseUrl,
+    fail,
+    log,
+    port,
+    repoRoot,
+    startupTimeoutMs,
+  })
+  browser = await launchTextEditorSmokeBrowser({
+    args: [
+      '--disable-gpu',
+      '--force-device-scale-factor=1',
+      '--hide-scrollbars=false',
+    ],
+    browserCandidates: getRibbonCaptureBrowserCandidates(),
+    log,
+  })
 
   const contextInfo = {
     branch: readGitValue(['branch', '--show-current'], 'unknown'),
@@ -757,7 +668,5 @@ run()
   })
   .finally(async () => {
     await browser?.close().catch(() => {})
-    if (viteProcess) {
-      viteProcess.kill()
-    }
+    stopTextEditorSmokeViteRuntime(viteProcess)
   })

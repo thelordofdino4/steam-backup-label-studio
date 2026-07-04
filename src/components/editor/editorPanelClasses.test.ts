@@ -12,6 +12,19 @@ function readRepoFile(path: string) {
   return readFileSync(join(repoRoot, path), 'utf8')
 }
 
+function readContextualTextRibbonCss() {
+  const manifestPath = 'src/styles/app-contextual-text-ribbon.css'
+  const manifest = readRepoFile(manifestPath)
+  const imports = [...manifest.matchAll(/@import\s+['"](.+)['"];/g)]
+
+  if (imports.length === 0) return manifest
+
+  const manifestDir = dirname(join(repoRoot, manifestPath))
+  return imports
+    .map(([, importPath]) => readFileSync(join(manifestDir, importPath), 'utf8'))
+    .join('\n')
+}
+
 test('workflow panel shell uses the top-level sidebar classes', () => {
   assert.equal(
     getEditorPanelClassName(),
@@ -42,7 +55,7 @@ test('shared editor styles preserve keyboard focus and target floors', () => {
   const editorCss = readRepoFile('src/styles/app-editor-controls.css')
   const metadataCss = readRepoFile('src/styles/app-metadata-controls.css')
   const previewCss = readRepoFile('src/styles/app-preview-shell.css')
-  const ribbonCss = readRepoFile('src/styles/app-contextual-text-ribbon.css')
+  const ribbonCss = readContextualTextRibbonCss()
 
   assert.match(
     baseCss,

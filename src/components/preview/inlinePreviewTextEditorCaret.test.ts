@@ -137,3 +137,26 @@ test('inline preview selection returns no visible frames for a collapsed caret',
     [],
   )
 })
+
+test('inline preview selection clamps out-of-range selection bounds', () => {
+  assert.deepEqual(
+    getInlinePreviewTextSelectionLineOffsets({
+      caretValue: 'hello world',
+      lines: [{ text: 'hello' }, { text: 'world' }],
+      selectionEnd: 200,
+      selectionStart: -20,
+    }),
+    [
+      {
+        endOffset: 5,
+        lineIndex: 0,
+        startOffset: 0,
+      },
+      {
+        endOffset: 5,
+        lineIndex: 1,
+        startOffset: 0,
+      },
+    ],
+  )
+})
