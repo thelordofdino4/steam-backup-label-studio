@@ -3,7 +3,7 @@
 > Purpose: Native Tauri text-editor smoke pilot plus diagnostic-only browser automation notes.
 > Read when: Before Any App/native smoke, browser diagnostics, or text-editor smoke/capture script updates.
 > Authoritative source: This document for automation process; TEXT_EDITOR_CONTRACT.md for behavior.
-> Last reviewed against commit: `f1dd4b9280b90d8b125e1ce1f404ad29c231c1f3`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
 This guide documents the required native Tauri smoke route and the remaining
@@ -190,8 +190,19 @@ Default runtime behavior:
   `%TEMP%\steam-backup-label-studio-text-editor-smoke`.
 - Uses `TEXT_EDITOR_SMOKE_ARTIFACT_DIR` to override the failure screenshot folder.
 
-Last verified source baseline when this guide was introduced:
-`563f0fde238bdbad100125ef61d3c9c607729460`.
+Implementation ownership:
+
+- `scripts/text-editor-smoke.mjs` owns route orchestration and top-level
+  diagnostic sequencing.
+- Focused script-local modules own config, selectors, runtime startup, report
+  formatting, PNG analysis, interaction primitives, route setup, selection
+  helpers, inline controls, inline movement, attached-ribbon checks,
+  contextual-ribbon geometry, and curved SVG/textPath diagnostics.
+- Extracted helpers must preserve route names, artifact names, failure wording,
+  report structure, and the browser-diagnostic versus native-Tauri boundary.
+
+Current documented browser-diagnostic source baseline:
+`6feb262bed2abd36b1371e5c0674013018132d16`.
 
 ## Diagnostic Ribbon Capture
 

@@ -3,7 +3,7 @@
 > Purpose: Safety, preservation, validation, parity, and workflow guardrails for agents.
 > Read when: Always, before agent work in this repository.
 > Authoritative source: Agent workflow and safety rules in this file; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
 Before implementing new features, refactors, bug fixes, or documentation changes in this repository:

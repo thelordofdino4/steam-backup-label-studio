@@ -3,7 +3,7 @@
 > Purpose: As-built architecture contracts for state, rendering, editing, save/load, export, and subsystem boundaries.
 > Read when: Architecture-sensitive work, renderer/editor/export changes, schema work, drag/selection, or parity-sensitive changes.
 > Authoritative source: This document for architecture; AGENTS.md for stricter agent workflow rules.
-> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
 This Software Design Document describes the as-built architecture of Steam Backup Label Studio. It is a contract document for preserving current behavior while future work continues. It is not a feature proposal and it does not claim that future planned behavior is implemented.
@@ -14,26 +14,30 @@ This Software Design Document describes the as-built architecture of Steam Backu
 
 This SDD is based on the repository inventory in `docs/REPO_ARCHITECTURE_INVENTORY.md`, current project documentation, source files, tests, and a live review of open GitHub issues. Because this SDD cites the inventory, `docs/REPO_ARCHITECTURE_INVENTORY.md` must be included with any main-branch commit that includes this SDD.
 
-Branch and commit at the time this SDD was drafted:
+Branch and commit described by this SDD refresh:
 
 - Branch: `main`
-- HEAD commit: `94fa3cf2c9936aa281d2da017f189e91b491edfc`
+- HEAD commit: `6feb262bed2abd36b1371e5c0674013018132d16`
+- Refactor impact comparison: `d23c1bafdce998041bc7c683ebd38f0401acdd39..6feb262bed2abd36b1371e5c0674013018132d16`.
+- `main` and `origin/main` were both at `6feb262bed2abd36b1371e5c0674013018132d16` when this refresh began, so the merge-base with `origin/main` was HEAD. The previous commit range above is used only to inventory the merged large-refactor pass.
 
-WYSIWYG text refresh note:
+Post-refactor documentation reconciliation note:
 
-- Text editor architecture notes were reviewed again after PR `#186` was
-  merged into `main` at `40fd7e4ca44648a4fa0061696bc1aa4583ff8d45`.
-- PR `#186` reported runtime verification for cover, tray, left/right spine,
-  straight disc inline editing, and the curved disc SVG/textPath exception.
-- This documentation refresh did not independently launch Tauri; runtime claims
-  beyond the PR `#186` report still require a new manual runtime pass.
+- A large behavior-preserving refactor pass was merged as
+  `6feb262bed2abd36b1371e5c0674013018132d16`. It split oversized files,
+  added focused helper modules, and expanded contract tests across app
+  orchestration, text editing, case insert, export, project save/load, Steam
+  candidate discovery, layout, and smoke diagnostics.
+- This SDD documents the as-built code after that merge. It does not claim
+  future architecture is implemented.
+- Manual app testing was reported before the merge with no regressions spotted,
+  but this documentation refresh did not independently launch Tauri.
 
 Current working-tree note:
 
-- The checkout had pre-existing working-tree noise before this SDD was created.
-- Some source paths appeared in `git status` even when `git diff` showed no content changes for those files. Status-only/no-diff paths are not treated as meaningful dirty source changes in this SDD.
-- Only paths with actual content diffs should be treated as uncommitted source changes for SDD evidence or release-readiness claims.
-- No source files, package metadata, runtime behavior, issues, commits, or pushes are changed by this document.
+- The checkout was clean at the start of this documentation refresh.
+- This refresh is documentation-only. It must not edit source, change behavior,
+  push, merge, close issues, or delete branches.
 
 Related current issue context:
 
@@ -45,6 +49,8 @@ Related current issue context:
 - `#149` structured tray/spine layouts for case inserts.
 - `#172`, `#174`, `#175`, `#176` preview editing and workflow improvements.
 - `#178`, `#181`, `#184` text system and preview-mounted text editing work.
+- `#266` was the large-file refactor tracking issue and is closed as completed
+  after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 ### 1.2 Scope Boundaries
 
@@ -141,7 +147,11 @@ Text editing is WYSIWYG-sensitive. Runtime validation is required before claimin
 
 Current implementation note:
 
-- Preview-mounted text editing is governed by this WYSIWYG contract. As of PR `#186`, cover, tray, left/right spine, and straight disc inline editing keep the final preview renderer visible during edit and use target-specific input/selection adapters instead of fake visible edit text.
+- Preview-mounted text editing is governed by this WYSIWYG contract. As of
+  merge commit `6feb262bed2abd36b1371e5c0674013018132d16`, cover, tray,
+  left/right spine, and straight disc inline editing keep the final preview
+  renderer visible during edit and use target-specific input/selection adapters
+  instead of fake visible edit text.
 - Treat preview-mounted text editing as a protected stabilization area. Future WYSIWYG changes still need parity tests and runtime validation, especially around save/load, export, rich text, caret behavior, selection behavior, wrapping, and curved disc text.
 - The accepted next UI direction for contextual text controls is a stable
   top-right app-shell ribbon above the preview, documented in
@@ -179,6 +189,47 @@ diagnostics, or shared-source assertions alone. The native Tauri preview and
 PNG export must be checked from the primary checkout before reporting
 user-visible material behavior as fixed.
 
+### 4.6 Contract Test Owners
+
+The architectural contracts above are enforced by source-level tests where the
+behavior is deterministic. These tests do not replace native runtime
+verification, but they are the named gates that should fail when a contract is
+violated:
+
+- Preview-mounted text renderer ownership and adapter boundaries:
+  `src/diagnostics/textEditorContract.test.ts`,
+  `src/components/preview/inlinePreviewTextEditorContract.test.ts`, and
+  `src/components/preview/inlinePreviewTextEditorRendererContract.test.ts`.
+- Text selection, caret, source editing, and geometry helpers:
+  `src/components/preview/inlinePreviewTextEditorSelection.test.ts`,
+  `src/components/preview/inlinePreviewTextEditorCaret.test.ts`,
+  `src/components/preview/inlinePreviewTextEditorSource.test.ts`, and
+  `src/components/preview/inlinePreviewTextEditorTextGeometry.test.ts`.
+- Contextual ribbon layout/control contracts:
+  `src/components/preview/contextualTextRibbon*.test.ts`.
+- Rich-text command and serialization contracts:
+  `src/text/richTextCommands.test.ts`,
+  `src/text/richTextRunRanges.test.ts`,
+  `src/text/richTextSelectionRanges.test.ts`,
+  `src/text/richTextListKeyboard.test.ts`, and
+  `src/text/htmlText.test.ts`.
+- Project save/load/export parity:
+  `src/diagnostics/projectParityHarness.test.ts`,
+  `src/diagnostics/projectParityHarnessDisc.test.ts`,
+  `src/diagnostics/projectParityHarnessCaseInsert.test.ts`, and the focused
+  `src/project/projectCaseInsert*.test.ts` and `src/project/restoreProject*.test.ts`
+  suites.
+- Case insert slot/source, branding, and disabled-state preservation:
+  `src/caseInsert/branding*.test.ts`,
+  `src/caseInsert/imageSlotSource*.test.ts`,
+  `src/caseInsert/templateSurface*.test.ts`, and
+  `src/caseInsert/jewelCaseSpine*.test.ts`.
+- Export warning and visibility contracts:
+  `src/export/caseInsertExportPreflight.test.ts`,
+  `src/export/caseInsertPreflightImageWarnings.test.ts`,
+  `src/export/caseInsertPreflightVisibility.test.ts`, and
+  `src/export/exportPreflight.test.ts`.
+
 ## 5. App Architecture Overview
 
 ### 5.1 Current Implementation Summary
@@ -198,6 +249,14 @@ The disc editor is the stable alpha-capable workspace. The case insert editor is
 - `index.html`
 - `src/main.tsx`
 - `src/app/App.tsx`
+- `src/app/appProjectLoad.ts`
+- `src/app/appProjectSave.ts`
+- `src/app/appProjectRestore.ts`
+- `src/app/appPngExport.ts`
+- `src/app/appPngExportInputs.ts`
+- `src/app/appSteamImportPlan.ts`
+- `src/app/appSteamDiscVisualImport.ts`
+- `src/app/appCaseInsertPreviewTextHandlers.ts`
 - `src/editor/editorTypes.ts`
 - `src-tauri/tauri.conf.json`
 - `src-tauri/src/main.rs`
@@ -211,7 +270,7 @@ The disc editor is the stable alpha-capable workspace. The case insert editor is
 
 ### 5.3 Source-Of-Truth State
 
-`src/app/App.tsx` owns workspace routing and much cross-feature orchestration. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
+`src/app/App.tsx` owns workspace routing and cross-feature orchestration. Focused app-owned helpers now own cohesive orchestration clusters for project save/load/restore, PNG export preflight/execution, Steam import planning, disc visual import defaults, and case-insert preview text handlers. Focused hooks own many feature-specific state slices, including disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badges, media marks, platform marks, technical marks, case insert editing, spine editing, and case insert branding sync.
 
 Native Rust commands do not own editor state. They return data or perform filesystem/platform operations on request.
 
@@ -252,6 +311,8 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 ### 6.2 Key Files
 
 - `package.json`
+- `scripts/run-tests.mjs`
+- `scripts/test-file-list.mjs`
 - `vite.config.ts`
 - `scripts/check-cycles.mjs`
 - `eslint.config.js`
@@ -270,13 +331,15 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 - `npm run diagnose:text-editor:browser`: browser-only text-editor diagnostic
   route.
 - `npm run capture:ribbon:browser`: browser-only ribbon capture diagnostics.
-- `npm run test`: Node test runner with an explicit test-file list.
+- `npm run test`: `scripts/run-tests.mjs`, which runs Node's built-in test runner in batches over the explicit list in `scripts/test-file-list.mjs`.
 - `npm run preview`: Vite preview.
 - `npm run tauri`: Tauri CLI.
 
 ### 6.4 Source-Of-Truth State
 
-- `package.json` is the source of truth for standard npm commands and the explicit Node test file list.
+- `package.json` is the source of truth for standard npm commands.
+- `scripts/test-file-list.mjs` is the source of truth for tests included in
+  `npm run test`; `scripts/run-tests.mjs` owns batching.
 - `scripts/check-cycles.mjs` owns relative import cycle detection.
 - Vite, ESLint, and TypeScript configuration live in their dedicated config files.
 
@@ -321,6 +384,8 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - `src/project/savedProjectNormalization.ts`
 - `src/project/projectCaseInsert.ts`
 - `src/diagnostics/projectParityHarness.ts`
+- `src/diagnostics/projectParityHarnessDisc.test.ts`
+- `src/diagnostics/projectParityHarnessCaseInsert.test.ts`
 - `docs/PROJECT_FILE_SPEC.md`
 - `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`
 
@@ -358,7 +423,11 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 - Project changes should update project/schema tests.
 - Save/load-affecting changes need manual load/save/export smoke on real projects or fixtures.
 - Runtime validation must distinguish disc and case insert project routing.
-- Shared parity fixtures in `src/diagnostics/projectParityHarness.test.ts` compare semantic runtime, saved, restored, and export-facing state for representative disc and case insert visual/text features without merging their schemas.
+- Shared parity fixtures in `src/diagnostics/projectParityHarness.test.ts`,
+  `src/diagnostics/projectParityHarnessDisc.test.ts`, and
+  `src/diagnostics/projectParityHarnessCaseInsert.test.ts` compare semantic
+  runtime, saved, restored, and export-facing state for representative disc
+  and case insert visual/text features without merging their schemas.
 
 ### 7.8 Known Risks
 
@@ -380,6 +449,9 @@ The app uses React/DOM/SVG preview layers for live editing and canvas-based PNG 
 - `src/components/preview/*`
 - `src/export/exportPng.ts`
 - `src/export/exportCaseInsertPng.ts`
+- `src/export/caseInsertTemplateExportLayers.ts`
+- `src/export/caseInsertPngImage.ts`
+- `src/export/caseInsertPngText.ts`
 - `src/export/draw*.ts`
 - `src/render/*.ts`
 
@@ -451,9 +523,17 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 
 - `src/discText/index.ts`
 - `src/discText/renderLayout.ts`
+- `src/discText/straightTextWrapping.ts`
 - `src/discText/svgLayer.ts`
+- `src/discText/svgTextMarkup.ts`
 - `src/discText/curvedTextLayout.ts`
+- `src/discText/curvedTextWrapping.ts`
+- `src/discText/curvedTextPaintGeometry.ts`
+- `src/discText/curvedTextRangeMath.ts`
 - `src/discText/styles.ts`
+- `src/discText/metadataStateTransitions.ts`
+- `src/discText/styleStateTransitions.ts`
+- `src/discText/textStateTransitions.ts`
 - `src/discText/discNumberArtwork.ts`
 - `src/discText/sidebarControlPolicy.ts`
 - `src/hooks/useDiscTextState.ts`
@@ -463,9 +543,20 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
 - `src/components/preview/inlinePreviewTextEditorContract.ts`
+- `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+- `src/components/preview/inlinePreviewTextEditorSelection.ts`
+- `src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx`
+- `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`
+- `src/components/preview/inlinePreviewTextEditorTextarea.tsx`
+- `src/components/preview/inlinePreviewTextEditorRibbon.tsx`
+- `src/components/preview/inlinePreviewTextEditorMenuContent.tsx`
+- `src/components/preview/inlinePreviewTextRibbonControls.tsx`
+- `src/components/preview/inlinePreviewTextPointColorControls.tsx`
 - `src/components/preview/caseInsertInlineTextEditorControls.ts`
+- `src/components/preview/discInlineTextEditorControlHelpers.ts`
 - `src/caseInsert/sidebarControlPolicy.ts`
 - `src/caseInsert/textTransitions.ts`
+- `src/caseInsert/previewTextRichText.ts`
 - `src/caseInsert/textLayout.ts`
 - `src/caseInsert/textStyles.ts`
 - `src/caseInsert/textRenderStyles.ts`
@@ -475,6 +566,12 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - `src/caseInsert/previewTextEditing.ts`
 - `src/text/contextualTextControlViewModel.ts`
 - `src/text/htmlText.ts`
+- `src/text/htmlEntities.ts`
+- `src/text/htmlInlineStyles.ts`
+- `src/text/htmlTags.ts`
+- `src/text/richTextRunRanges.ts`
+- `src/text/richTextSelectionRanges.ts`
+- `src/text/richTextListKeyboard.ts`
 - `src/text/richTextRunStyle.ts`
 - `src/layout/caseInsertTextVisualLayout.ts`
 - `src/export/drawDiscText.ts`
@@ -503,6 +600,11 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
   scale-only layouts to apparent-equivalent point sizes. Curved copyright text
   remains SVG/textPath based.
 - Inline editing uses `InlinePreviewTextEditor` plus target-specific adapters.
+  The component owns lifecycle, refs, active target state, source draft state,
+  contextual-ribbon registration, and commit/delete behavior. Editor-owned
+  helper modules own DOM text geometry, selection frame construction, canvas
+  overlays, move ring presentation, native textarea presentation, menu content,
+  ribbon presentation, and point/color controls.
 - `src/components/preview/inlinePreviewTextEditorContract.ts` owns the
   neutral preview-mounted adapter contract, capability flags, normalized
   edit-session shape, and conformance assertions. Surface adapters still own
@@ -529,6 +631,10 @@ Preview-mounted text editing is protected by `docs/TEXT_EDITOR_CONTRACT.md`.
 - HTML source editing stores canonical sanitized HTML, parses it into the shared
   rich-text run model, and renders those runs through the same preview/export
   renderers. Legacy Markdown fields are load-only migration inputs.
+- Rich-text command behavior is split into text-owned helpers for run-range
+  transforms, selection ranges, list-keyboard mutations, HTML entity/style/tag
+  handling, and command orchestration. These helpers are still text-contract
+  owned and must not become generic string utilities.
 - Case insert rich-text run style interpretation is shared through
   `src/text/richTextRunStyle.ts`; DOM preview layers, layout measurement, and
   canvas export remain separate adapters that consume the normalized run style.
@@ -829,13 +935,18 @@ Acceptance criteria:
 - Required text validation is broader than unit tests.
 - Deterministic coverage belongs in `src/discText/*.test.ts`, `src/components/preview/inlinePreviewTextEditor*.test.ts`, `src/diagnostics/textEditorContract.test.ts`, `src/caseInsert/textReadability.test.ts`, and layout tests.
 - Rich-text run style normalization coverage belongs in
-  `src/text/richTextRunStyle.test.ts`.
+  `src/text/richTextRunStyle.test.ts`; command-family coverage also lives in
+  `src/text/richTextRunRanges.test.ts`,
+  `src/text/richTextSelectionRanges.test.ts`,
+  `src/text/richTextListKeyboard.test.ts`, and
+  `src/text/richTextCommands.test.ts`.
 - Runtime validation must use the text editor stabilization checklist for cover, tray, left spine, right spine, straight disc text, and curved disc text where affected.
 
 ### 9.7 Known Risks
 
 - Browser caret measurement and wrapped text layout are fragile.
-- Right spine contextual-editor clipping was reported runtime-verified in PR `#186`; keep it in smoke coverage whenever contextual editor positioning changes.
+- Right spine contextual-editor clipping remains a high-priority runtime smoke
+  target whenever contextual editor positioning changes.
 - Open issues `#178`, `#181`, and `#184` track text expansion/redesign work.
 
 ## 10. Image And Artwork System Design
@@ -866,6 +977,8 @@ The image/artwork systems import, normalize, place, frame, render, save, and exp
 - `src/export/drawAdditionalArtwork.ts`
 - `src/export/drawArtworkFrame.ts`
 - `src/caseInsert/imageSlotTransitions.ts`
+- `src/caseInsert/imageSlotSourceImport.ts`
+- `src/caseInsert/imageSlotSourceApply.ts`
 
 ### 10.3 Source-Of-Truth State
 
@@ -927,6 +1040,7 @@ The app supports Steam banner branding, developer/publisher/additional logos, ra
 - `src/render/technicalMarkRenderModel.ts`
 - `src/caseInsert/brandingLogoSlots.ts`
 - `src/caseInsert/brandingMarkSlots.ts`
+- `src/caseInsert/brandingMarkTargetSources.ts`
 - `src/caseInsert/brandingVisibility.ts`
 - `src/caseInsert/brandingSlotSources.ts`
 - `src/caseInsert/brandingMarkPlacement.ts`
@@ -1028,9 +1142,8 @@ The disc editor is the first alpha-capable app surface.
 
 - Disc preview/export parity depends on separate DOM/SVG and canvas paths.
 - Straight text and curved text have different render/edit constraints.
-- This documentation refresh did not independently launch Tauri. PR `#186`
-  reported runtime validation for straight disc inline editing and the curved
-  SVG/textPath exception.
+- This documentation refresh did not independently launch Tauri. Manual app
+  testing before the large refactor merge reported no regressions spotted.
 
 ## 13. Case Insert Editor Design
 
@@ -1042,14 +1155,33 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
 - `src/components/caseInsert/CaseInsertTemplateControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateControls.types.ts`
+- `src/components/caseInsert/CaseInsertTemplateArtworkControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateBrandingControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateImageSlotControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateTextControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateControlPlacement.ts`
 - `src/components/caseInsert/CaseInsertSpineControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineControls.types.ts`
+- `src/components/caseInsert/CaseInsertSpineArtworkControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineBrandingControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineImageSlotControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineTextControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineControlPlacement.ts`
 - `src/components/preview/CaseInsertPreview.tsx`
 - `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`
+- `src/components/preview/CaseInsertTemplatePreviewLayerTypes.ts`
+- `src/components/preview/CaseInsertTemplateTextLayer.tsx`
+- `src/components/preview/caseInsertTemplatePreviewGeometry.ts`
 - `src/components/preview/CaseInsertSpinePreviewLayer.tsx`
 - `src/components/preview/CaseInsertSteamBannerPreviewLayer.tsx`
 - `src/components/preview/CaseInsertGuideOverlay.tsx`
 - `src/hooks/useCaseInsertTemplateEditor.ts`
+- `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+- `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`
 - `src/hooks/useJewelCaseSpineEditor.ts`
+- `src/hooks/useJewelCaseSpineLogoEditor.ts`
+- `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -1057,7 +1189,12 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `src/layout/layoutRangeMath.ts`
 - `src/templates/caseInsertTemplates.ts`
 - `src/export/exportCaseInsertPng.ts`
+- `src/export/caseInsertTemplateExportLayers.ts`
+- `src/export/caseInsertPngImage.ts`
+- `src/export/caseInsertPngText.ts`
 - `src/export/caseInsertExportPreflight.ts`
+- `src/export/caseInsertPreflightImageWarnings.ts`
+- `src/export/caseInsertPreflightVisibility.ts`
 - `src/export/caseInsertDesignCheck.ts`
 - `docs/CASE_INSERT_EDITOR_LAYER_ORDER.md`
 - Historical planning context, if needed: `docs/archive/CASE_INSERT_EDITOR_ARCHITECTURE.md`
@@ -1075,10 +1212,18 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 - `CaseInsertTemplatePreviewLayers` renders cover/tray template layers.
 - `CaseInsertSpinePreviewLayer` renders left/right spine content.
 - `useCaseInsertTemplateEditor` owns cover/tray editing actions.
+- Cover/tray image-slot, logo, Steam banner, and text-list action families are
+  delegated to focused case-insert action modules and small hook adapters while
+  the public hook return shape remains the editor contract.
 - `useJewelCaseSpineEditor` owns spine editing actions.
+- Spine image-slot, logo, Steam banner, and text action families are delegated
+  to focused spine-owned helpers while left/right target identity and mirror
+  fanout stay explicit.
 - `useCaseInsertPreviewPointerDrag` handles case preview dragging.
-- Export uses `exportCaseInsertPngBytes`.
-- Preflight/design check use case insert export helpers.
+- Export uses `exportCaseInsertPngBytes`, with template layer drawing,
+  image-slot drawing, and text drawing delegated to case-insert export helpers.
+- Preflight/design check use case insert export helpers, including focused
+  image-warning and visibility-warning builders.
 
 ### 13.5 Invariants And Future-Change Rules
 
@@ -1093,16 +1238,23 @@ The case insert editor is a separate rectangular editor environment. Jewel case 
 ### 13.6 Validation Expectations
 
 - Unit tests should cover case defaults, normalization, layout helpers, export guide options, preflight, design check, branding visibility, and title/text/artwork helpers.
+- Focused tests cover split cover/tray and spine action modules, branding mark
+  source projection, image-slot source import/application, project persistence,
+  and case insert text layout/wrapping helpers.
 - Manual validation should cover New Case Insert, loading case projects, cover/tray/spine controls, source switching, drag, save/load, clean export, guide export, and preview/export parity.
 
 ### 13.7 Known Risks
 
-- Case insert hooks and export are large and central.
+- Case insert hooks remain central, but the largest repeated action families
+  have been split into focused case/spine modules. Further extraction should
+  stop when it would obscure target identity, mirror behavior, save/load shape,
+  or preview/export ordering.
 - Structured tray/spine layouts remain open under `#149`.
 - Jewel case alpha remains open under `#126`.
 - Broad case insert runtime behavior remains source-reviewed in this document.
-  PR `#186` reported runtime validation for cover, tray, and spine inline text
-  editor parity only.
+  Manual app testing before the large refactor merge reported no regressions
+  spotted, but this documentation refresh did not independently validate case
+  insert runtime behavior in Tauri.
 
 ## 14. Interaction Model
 
@@ -1123,6 +1275,10 @@ Preview interactions use shared pointer-drag primitives plus editor-specific ada
 - `src/editor/previewElementOverlay.ts`
 - `src/components/preview/PreviewElementOverlay.tsx`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
+- `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+- `src/components/preview/inlinePreviewTextEditorSelection.ts`
+- `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`
+- `src/components/preview/inlinePreviewTextEditorTextarea.tsx`
 - `src/components/preview/DiscInlineTextEditorLayer.tsx`
 - `src/caseInsert/previewTextSelection.ts`
 - `src/caseInsert/previewTextEditing.ts`
@@ -1248,10 +1404,15 @@ Export renders PNG bytes through canvas helpers. Disc export is circular and 300
 
 - `src/export/exportPng.ts`
 - `src/export/exportCaseInsertPng.ts`
+- `src/export/caseInsertTemplateExportLayers.ts`
+- `src/export/caseInsertPngImage.ts`
+- `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
 - `src/export/caseInsertExportPreflight.ts`
+- `src/export/caseInsertPreflightImageWarnings.ts`
+- `src/export/caseInsertPreflightVisibility.ts`
 - `src/export/caseInsertDesignCheck.ts`
 - `src/export/preflightWarnings.ts`
 - `src/export/draw*.ts`
@@ -1282,6 +1443,8 @@ Export reads current runtime project state and template geometry. Layer order po
 ### 16.6 Validation Expectations
 
 - Unit tests cover preflight, design checks, canvas helpers, and draw helpers.
+- Case insert export tests also cover image-warning families, visibility
+  warnings, and text/image draw helper behavior where deterministic.
 - Visual/editor changes need manual preview/export comparison.
 - PNG pixel output was not validated for this SDD.
 
@@ -1392,6 +1555,10 @@ Current tests cover broad helper and contract areas:
 - Disc and jewel case layout helpers.
 - Project schema, routing, restoration, normalization, and feature-specific serialization.
 - Shared project parity diagnostics for runtime-to-snapshot-to-restore-to-export inputs across representative disc and case insert fixtures.
+- Focused split suites now cover project case insert artwork slots, branding
+  sources/persistence, legacy normalization, preview text editing/controls,
+  text persistence/normalization, platform marks, and restore slices instead of
+  relying only on the former monolithic project test files.
 
 ### 18.4 Known Validation Gaps
 
@@ -1400,7 +1567,9 @@ Current tests cover broad helper and contract areas:
   against localhost.
 - Manual Tauri behavior is not validated by tests alone.
 - Current fixture coverage does not fully cover every recently added visual system.
-- This SDD task did not run validation commands because it is docs-only and did not change source or package metadata.
+- No docs-specific validation command exists. Documentation-only changes should
+  still run the standard lightweight/full validation when practical:
+  `npm run check:cycles`, `npm run lint`, `npm run test`, and `npm run build`.
 
 ## 19. Known Fragile Areas And Gaps
 
@@ -1414,7 +1583,9 @@ Current tests cover broad helper and contract areas:
 - CSS can become hidden rendering/layout policy.
 - Optional visual disabled-state behavior is cross-cutting and regression-prone.
 - Case insert global-source branding sync is parity-sensitive.
-- The current working tree has status noise and may have uncommitted work; behavior should be verified before release claims. Status-only/no-diff files are not treated as meaningful source changes.
+- The documentation refresh starts from a clean `main` checkout at
+  `6feb262bed2abd36b1371e5c0674013018132d16`; any future dirty state should be
+  inspected before release claims.
 
 ### 19.2 Known Gaps
 
@@ -1549,7 +1720,10 @@ Consequences:
 
 - Hidden inputs, caret helpers, and measurement layers cannot become separate visual renderers.
 - Runtime text editor validation is mandatory for claims of correctness.
-- PR `#186` reported runtime evidence that cover, tray, spine, and straight disc inline editing now keep the final renderer visible during edit and use adapter input/selection paths. The previous blanket noncompliance caveat is stale for those surfaces, but this ADR remains the stabilization contract for future WYSIWYG work.
+- The current merged implementation keeps cover, tray, spine, and straight disc
+  inline editing on final-renderer-visible adapter input/selection paths. The
+  previous blanket noncompliance caveat is stale for those surfaces, but this
+  ADR remains the stabilization contract for future WYSIWYG work.
 
 ### ADR-008: Optional Visual Features Preserve Disabled State
 

@@ -3,22 +3,28 @@
 > Purpose: File ownership and implementation map for finding existing owners.
 > Read when: Before refactors, ownership changes, or architecture-sensitive edits.
 > Authoritative source: Current source for exact facts; SDD for architecture contracts.
-> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
-This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is evidence gathering for a future Software Design Document, not a roadmap.
+This inventory records how Steam Backup Label Studio is implemented in the repository at the time of review. It is an ownership map that supports the Software Design Document, not a roadmap and not a second source of architecture contracts.
 
 ## Basis
 
 - Branch: `main`
-- HEAD commit at original inventory draft: `94fa3cf2c9936aa281d2da017f189e91b491edfc`
-- WYSIWYG text sections were refreshed after PR `#186` was merged into `main`
-  at `40fd7e4ca44648a4fa0061696bc1aa4583ff8d45`.
-- Working tree note: the checkout had pre-existing working-tree noise before this file was created. Some source paths appeared in `git status` even when `git diff` showed no content changes for those files. Status-only/no-diff paths are not treated as meaningful dirty source changes in this inventory; only paths with actual content diffs should be treated as uncommitted source changes.
-- This file is based on repository files and live issue review. Unknowns are marked as unknown.
-- No runtime, browser, or Tauri manual verification was performed during this
-  inventory refresh. Runtime observations for WYSIWYG text come from the PR
-  `#186` merge report.
+- HEAD commit at this inventory refresh:
+  `6feb262bed2abd36b1371e5c0674013018132d16`.
+- Refactor impact comparison:
+  `d23c1bafdce998041bc7c683ebd38f0401acdd39..6feb262bed2abd36b1371e5c0674013018132d16`.
+- `main` and `origin/main` both pointed at
+  `6feb262bed2abd36b1371e5c0674013018132d16` when this refresh began, so the
+  merge-base with `origin/main` was HEAD. The previous-commit comparison above
+  is the evidence range for the merged refactor pass.
+- Working tree status was clean before this documentation refresh.
+- This file is based on repository files, tests, documentation, and the merged
+  refactor diff. Unknowns are marked as unknown.
+- No browser diagnostic or Tauri runtime verification was performed during this
+  documentation refresh. Manual app testing before the refactor merge was
+  reported with no regressions spotted.
 
 ## Open Issue Context
 
@@ -33,6 +39,8 @@ Open GitHub issues were reviewed during this task. Related open issues include:
 - `#172` Preview editing: add selection, snapping, and keyboard nudging.
 - `#174`, `#175`, `#176` Preview inspector/context-menu/sidebar workflow improvements.
 - `#178`, `#181`, `#184` Text-system improvements around fonts, copy fitting, and add-only preview editing.
+- `#266` Large-file refactor tracking issue; closed as completed after merge
+  commit `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 ## Package Scripts and Validation
 
@@ -41,6 +49,8 @@ Purpose: define local development, build, lint, test, and Tauri commands.
 Key files:
 
 - `package.json`
+- `scripts/run-tests.mjs`
+- `scripts/test-file-list.mjs`
 - `vite.config.ts`
 - `scripts/check-cycles.mjs`
 - `eslint.config.js`
@@ -55,13 +65,16 @@ Implemented scripts:
 - `npm run diagnose:text-editor:browser`: runs `node scripts/text-editor-smoke.mjs` as a browser diagnostic-only text-editor route.
 - `npm run lint`: runs `eslint .`.
 - `npm run smoke:text-editor`: runs `node scripts/native-tauri-smoke-required.mjs`, which documents the required native `npm run tauri dev` + Any App smoke route and exits nonzero so browser diagnostics cannot satisfy runtime acceptance.
-- `npm run test`: runs Node's built-in test runner with `--experimental-strip-types` over an explicit list of `.test.ts` files.
+- `npm run test`: runs `scripts/run-tests.mjs`, which batches Node's built-in
+  test runner with `--experimental-strip-types` over the explicit file list in
+  `scripts/test-file-list.mjs`.
 - `npm run preview`: starts `vite preview`.
 - `npm run tauri`: invokes the Tauri CLI.
 
 Validation model:
 
-- Tests are explicit file arguments in `package.json`; newly added tests must be added there to run under `npm run test`.
+- Tests are explicit file entries in `scripts/test-file-list.mjs`; newly added
+  tests must be added there to run under `npm run test`.
 - `scripts/check-cycles.mjs` scans relative imports in `src/**/*.ts(x)` and fails on import cycles.
 - No docs-only validation command is defined.
 - User-visible runtime smoke is not repository-owned automation. It is performed
@@ -123,6 +136,14 @@ Purpose: orchestrate workspace selection, editor feature hooks, save/load, Steam
 Key files:
 
 - `src/app/App.tsx`
+- `src/app/appProjectLoad.ts`
+- `src/app/appProjectSave.ts`
+- `src/app/appProjectRestore.ts`
+- `src/app/appPngExport.ts`
+- `src/app/appPngExportInputs.ts`
+- `src/app/appSteamImportPlan.ts`
+- `src/app/appSteamDiscVisualImport.ts`
+- `src/app/appCaseInsertPreviewTextHandlers.ts`
 - `src/editor/editorTypes.ts`
 - `src/hooks/useStatusToasts.ts`
 - `src/hooks/useDiscTemplateState.ts`
@@ -141,7 +162,11 @@ Key files:
 
 Source-of-truth state:
 
-- `App.tsx` owns workspace state, selected game, project metadata, selected case insert pane, selected text target, export guide settings, project jewel case state, local screenshot state, and many cross-feature callbacks.
+- `App.tsx` owns workspace state, selected game, project metadata, selected case insert pane, selected text target, export guide settings, project jewel case state, local screenshot state, and cross-feature callback orchestration.
+- App-owned helper modules own cohesive orchestration clusters for project
+  load/save/restore, PNG export preflight and export input construction, Steam
+  import planning, disc visual import defaults, and case-insert preview text
+  handler construction.
 - Focused hooks own feature-specific state slices for disc template, Steam banner, background artwork, disc text, title artwork, additional artwork, logos, rating badge, media mark, platform marks, technical marks, case insert template editing, spine editing, and case insert branding sync.
 
 Render path:
@@ -154,23 +179,29 @@ Edit/interaction path:
 
 - Sidebar controls call callbacks from `App.tsx` and feature hooks.
 - Preview drag callbacks are composed through `useDiscPreviewPointerDrag` and `useCaseInsertPreviewPointerDrag`.
-- Steam import callbacks in `App.tsx` call Steam/native helpers and then update disc or case-insert state slices.
+- Steam import callbacks in `App.tsx` call Steam/native helpers and app-owned
+  planning/import helpers, then update disc or case-insert state slices.
 
 Save/load path:
 
-- `App.tsx` calls disc and case insert project snapshot/restore helpers, then Tauri file commands.
+- `App.tsx` calls app project load/save helpers, which wrap disc and case
+  insert project snapshot/restore helpers plus Tauri file commands.
 
 Export path:
 
-- `App.tsx` calls disc or case-insert preflight helpers, confirms warnings, runs PNG export helpers, and writes bytes through Tauri.
+- `App.tsx` calls app PNG export helpers, which build preflight inputs, confirm
+  warnings, run disc or case-insert PNG export helpers, and write bytes through
+  Tauri.
 
 Tests:
 
-- Coverage is mostly in focused domain/helper tests, not full `App.tsx` integration tests.
+- App-owned orchestration helpers have focused tests under `src/app/*.test.ts`.
+  Full `App.tsx` integration coverage remains limited.
 
 Risks:
 
-- `src/app/App.tsx` is still large, around 2067 lines in this checkout, and remains a cross-feature orchestration point.
+- `src/app/App.tsx` is still large, around 1746 lines in this checkout, and
+  remains a cross-feature orchestration point.
 - Open issue `#44` tracks further state extraction.
 
 ## Project Save/Load Model
@@ -226,7 +257,20 @@ Tests:
 - `src/project/restoreProjectState.test.ts`
 - `src/project/savedProjectNormalization.test.ts`
 - `src/project/projectCaseInsert.test.ts`
+- `src/project/projectCaseInsertStateHelpers.test.ts`
+- `src/project/projectCaseInsertLegacy.test.ts`
+- `src/project/projectCaseInsertArtworkSlots.test.ts`
+- `src/project/projectCaseInsertAdditionalArtworkSlots.test.ts`
+- `src/project/projectCaseInsertArtworkNormalization.test.ts`
+- `src/project/projectCaseInsertBrandingSources.test.ts`
+- `src/project/projectCaseInsertBrandingPersistence.test.ts`
+- `src/project/projectCaseInsertPreviewTextEditing.test.ts`
+- `src/project/projectCaseInsertPreviewTextControls.test.ts`
+- `src/project/projectCaseInsertTextPersistence.test.ts`
+- `src/project/projectCaseInsertTextNormalization.test.ts`
 - `src/diagnostics/projectParityHarness.test.ts`
+- `src/diagnostics/projectParityHarnessDisc.test.ts`
+- `src/diagnostics/projectParityHarnessCaseInsert.test.ts`
 - Feature-specific project tests for title artwork, additional artwork, logos, media marks, rating badges, technical marks, visual asset import, and metadata-bound disc text.
 
 Risks:
@@ -353,14 +397,33 @@ Key files:
 
 - `src/components/caseInsert/CaseInsertEditorShell.tsx`
 - `src/components/caseInsert/CaseInsertTemplateControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateControls.types.ts`
+- `src/components/caseInsert/CaseInsertTemplateArtworkControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateBrandingControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateImageSlotControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateTextControls.tsx`
+- `src/components/caseInsert/CaseInsertTemplateControlPlacement.ts`
 - `src/components/caseInsert/CaseInsertSpineControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineControls.types.ts`
+- `src/components/caseInsert/CaseInsertSpineArtworkControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineBrandingControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineImageSlotControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineTextControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineControlPlacement.ts`
 - `src/components/preview/CaseInsertPreview.tsx`
 - `src/components/preview/CaseInsertTemplatePreviewLayers.tsx`
+- `src/components/preview/CaseInsertTemplatePreviewLayerTypes.ts`
+- `src/components/preview/CaseInsertTemplateTextLayer.tsx`
+- `src/components/preview/caseInsertTemplatePreviewGeometry.ts`
 - `src/components/preview/CaseInsertSpinePreviewLayer.tsx`
 - `src/components/preview/CaseInsertSteamBannerPreviewLayer.tsx`
 - `src/components/preview/CaseInsertGuideOverlay.tsx`
 - `src/hooks/useCaseInsertTemplateEditor.ts`
+- `src/hooks/useCaseInsertTemplateLogoEditor.ts`
+- `src/hooks/useCaseInsertTemplateSteamBannerEditor.ts`
 - `src/hooks/useJewelCaseSpineEditor.ts`
+- `src/hooks/useJewelCaseSpineLogoEditor.ts`
+- `src/hooks/useJewelCaseSpineSteamBannerEditor.ts`
 - `src/hooks/useCaseInsertBrandingMarkSync.ts`
 - `src/caseInsert/*.ts`
 - `src/layout/jewelCase*.ts`
@@ -377,6 +440,9 @@ Source-of-truth state:
 - Defaults and normalization live in `src/caseInsert/defaults.ts` and `src/caseInsert/normalization.ts`.
 - Cover/tray surface transitions live in `src/caseInsert/templateSurfaceTransitions.ts`.
 - Spine transitions live in `src/caseInsert/jewelCaseTransitions.ts`.
+- Focused cover/tray action modules own image-slot, logo, Steam banner, and
+  text-list transitions. Focused spine action modules own spine image-slot,
+  logo, Steam banner, and text transitions.
 
 Render path:
 
@@ -391,6 +457,9 @@ Edit/interaction path:
 - `useCaseInsertTemplateEditor` owns cover/tray actions.
 - `useJewelCaseSpineEditor` owns spine actions.
 - `useCaseInsertBrandingMarkSync` maps shared/global branding sources into case-insert slots.
+- Presentational template/spine control files render grouped sidebar sections
+  and call hook/domain callbacks. They do not own source-slot meaning, layout
+  math, save/load behavior, or export behavior.
 - Preview dragging flows through `useCaseInsertPreviewPointerDrag`.
 
 Save/load path:
@@ -404,6 +473,9 @@ Export path:
 - Preflight: `buildCaseInsertExportPreflightSummary` and `buildCaseInsertExportWarnings`.
 - Design check: `buildCaseInsertDesignCheckSummary`.
 - PNG: `exportCaseInsertPngBytes`, which draws surface base, backgrounds, artwork, Steam banner, slot groups, text, spine content, and export guides.
+  Template layer drawing, image-slot drawing, and text drawing are delegated to
+  `caseInsertTemplateExportLayers.ts`, `caseInsertPngImage.ts`, and
+  `caseInsertPngText.ts`.
 
 Tests:
 
@@ -412,15 +484,32 @@ Tests:
 - `src/export/caseInsertExportPreflight.test.ts`
 - `src/export/drawCaseInsertSteamBanner.test.ts`
 - `src/layout/caseInsertPreviewLayout.test.ts`
+- `src/layout/caseInsertPreviewGuideLayout.test.ts`
 - `src/layout/caseInsertTextVisualLayout.test.ts`
+- `src/layout/caseInsertTextBounds.test.ts`
+- `src/layout/caseInsertTextMeasurement.test.ts`
+- `src/layout/caseInsertTextSegments.test.ts`
+- `src/layout/caseInsertTextWrapping.test.ts`
+- `src/layout/caseInsertTextRichWrapping.test.ts`
 - `src/layout/jewelCaseBackLayout.test.ts`
+- `src/layout/jewelCaseBackTextLayout.test.ts`
+- `src/layout/jewelCaseBackTextAvoidanceLayout.test.ts`
 - `src/layout/jewelCaseLayout.test.ts`
+- `src/layout/jewelCaseSpineLayout.test.ts`
+- `src/layout/jewelCaseSpineTextLayout.test.ts`
+- `src/layout/jewelCaseSpineTransform.test.ts`
 - `src/layout/jewelCaseSteamBannerLayout.test.ts`
+- Focused action tests under `src/caseInsert/templateSurface*.test.ts` and
+  `src/caseInsert/jewelCaseSpine*.test.ts`.
 
 Risks:
 
-- `useCaseInsertTemplateEditor.ts`, `useJewelCaseSpineEditor.ts`, and `useCaseInsertBrandingMarkSync.ts` are each over 1300 lines in this checkout.
-- `exportCaseInsertPng.ts` is around 963 lines and mirrors many preview/layout concerns.
+- `useCaseInsertTemplateEditor.ts`, `useJewelCaseSpineEditor.ts`, and
+  `useCaseInsertBrandingMarkSync.ts` remain central, but the current measured
+  sizes are about 1013, 950, and 1124 lines respectively after helper
+  extraction.
+- `exportCaseInsertPng.ts` is around 332 lines after delegating template layer,
+  image, and text drawing helpers. It remains layer-order sensitive.
 - Open issues `#126` and `#149` indicate case insert parity and structured layout work is still active.
 
 ## Text Systems
@@ -431,9 +520,17 @@ Key files:
 
 - `src/discText/index.ts`
 - `src/discText/renderLayout.ts`
+- `src/discText/straightTextWrapping.ts`
 - `src/discText/svgLayer.ts`
+- `src/discText/svgTextMarkup.ts`
 - `src/discText/curvedTextLayout.ts`
+- `src/discText/curvedTextWrapping.ts`
+- `src/discText/curvedTextPaintGeometry.ts`
+- `src/discText/curvedTextRangeMath.ts`
 - `src/discText/styles.ts`
+- `src/discText/metadataStateTransitions.ts`
+- `src/discText/styleStateTransitions.ts`
+- `src/discText/textStateTransitions.ts`
 - `src/discText/discNumberArtwork.ts`
 - `src/discText/sidebarControlPolicy.ts`
 - `src/hooks/useDiscTextState.ts`
@@ -443,7 +540,17 @@ Key files:
 - `src/components/preview/discInlineTextEditorControls.ts`
 - `src/components/preview/InlinePreviewTextEditor.tsx`
 - `src/components/preview/inlinePreviewTextEditorContract.ts`
+- `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`
+- `src/components/preview/inlinePreviewTextEditorSelection.ts`
+- `src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx`
+- `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`
+- `src/components/preview/inlinePreviewTextEditorTextarea.tsx`
+- `src/components/preview/inlinePreviewTextEditorRibbon.tsx`
+- `src/components/preview/inlinePreviewTextEditorMenuContent.tsx`
+- `src/components/preview/inlinePreviewTextRibbonControls.tsx`
+- `src/components/preview/inlinePreviewTextPointColorControls.tsx`
 - `src/components/preview/caseInsertInlineTextEditorControls.ts`
+- `src/components/preview/discInlineTextEditorControlHelpers.ts`
 - `src/caseInsert/textTransitions.ts`
 - `src/caseInsert/sidebarControlPolicy.ts`
 - `src/caseInsert/textLayout.ts`
@@ -454,8 +561,15 @@ Key files:
 - `src/caseInsert/textContent.ts`
 - `src/caseInsert/previewTextSelection.ts`
 - `src/caseInsert/previewTextEditing.ts`
+- `src/caseInsert/previewTextRichText.ts`
 - `src/text/contextualTextControlViewModel.ts`
 - `src/text/htmlText.ts`
+- `src/text/htmlEntities.ts`
+- `src/text/htmlInlineStyles.ts`
+- `src/text/htmlTags.ts`
+- `src/text/richTextRunRanges.ts`
+- `src/text/richTextSelectionRanges.ts`
+- `src/text/richTextListKeyboard.ts`
 - `src/text/richTextRunStyle.ts`
 - `docs/TEXT_EDITOR_CONTRACT.md`
 
@@ -497,6 +611,13 @@ Render path:
 - Case insert inline editing uses the shared editor in adapter mode for cover,
   tray, left spine, and right spine text, keeping the existing template/spine
   preview renderers visible during editing.
+- `InlinePreviewTextEditor.tsx` remains the stateful editor shell. Extracted
+  preview-owned modules own text geometry, selection frames, canvas overlays,
+  move ring presentation, native textarea presentation, ribbon presentation,
+  menu content, and point/color control rendering.
+- `richTextCommands.ts` remains command orchestration. Text-owned helpers own
+  run-range transforms, selection ranges, list keyboard behavior, and HTML
+  entity/style/tag parsing. These helpers are not broad string utilities.
 
 Edit/interaction path:
 
@@ -587,9 +708,16 @@ Tests:
 
 - `src/discText/*.test.ts`
 - `src/components/preview/discInlineTextEditorControls.test.ts`
+- `src/components/preview/discInlineTextEditorCurvedControls.test.ts`
 - `src/components/preview/inlinePreviewTextEditor*.test.ts`
 - `src/text/contextualTextControlViewModel.test.ts`
 - `src/text/richTextRunStyle.test.ts`
+- `src/text/richTextRunRanges.test.ts`
+- `src/text/richTextSelectionRanges.test.ts`
+- `src/text/richTextListKeyboard.test.ts`
+- `src/text/htmlEntities.test.ts`
+- `src/text/htmlInlineStyles.test.ts`
+- `src/text/htmlTags.test.ts`
 - `src/diagnostics/textEditorContract.test.ts`
 - `src/caseInsert/textReadability.test.ts`
 - `src/layout/caseInsertTextVisualLayout.test.ts`
@@ -621,12 +749,23 @@ Key files:
 - `src/project/projectVisualAssetImport.ts`
 - `src/render/imageRenderArtifact.ts`
 - `src/render/artworkFrame.ts`
+- `src/render/artworkFrameTestGeometry.ts`
 - `src/components/preview/ContentBoundedImage.tsx`
 - `src/components/preview/ArtworkFrameOverlay.tsx`
 - `src/export/drawTitleArtwork.ts`
 - `src/export/drawAdditionalArtwork.ts`
 - `src/export/drawArtworkFrame.ts`
 - `src/caseInsert/imageSlotTransitions.ts`
+- `src/caseInsert/imageSlotSourceImport.ts`
+- `src/caseInsert/imageSlotSourceApply.ts`
+- `src/steam/steamLogoCandidates.ts`
+- `src/steam/steamLogoCandidateTypes.ts`
+- `src/steam/steamLogoCandidateUrls.ts`
+- `src/steam/steamLogoCandidateRouting.ts`
+- `src/steam/steamLogoCandidateSignals.ts`
+- `src/steam/steamLogoCandidateScoring.ts`
+- `src/steam/steamOfficialSiteCss.ts`
+- `src/steam/steamOfficialSiteHtml.ts`
 
 Source-of-truth state:
 
@@ -642,6 +781,9 @@ Render path:
 Edit/interaction path:
 
 - Upload, Steam artwork, local Steam screenshots, web artwork, reset, clear, fit, layout, and frame controls call hook or transition helpers.
+- Steam and official-site logo/artwork candidate discovery routes through
+  Steam-owned URL, routing, signal, scoring, CSS, and HTML helper modules while
+  `steamLogoCandidates.ts` remains the public orchestration entry.
 - Dragging updates percent or pixel layout depending on the element.
 
 Save/load path:
@@ -662,6 +804,10 @@ Tests:
 - `src/editor/repeatedArtwork.test.ts`
 - `src/caseInsert/titleArtwork.test.ts`
 - `src/steam/steamArtworkAssets.test.ts`
+- `src/steam/steamLogoCandidateRouting.test.ts`
+- `src/steam/steamLogoCandidateSignals.test.ts`
+- `src/steam/steamOfficialSiteCss.test.ts`
+- `src/steam/steamOfficialSiteHtml.test.ts`
 - `src/steam/steamTitleArtworkImport.test.ts`
 
 Risks:
@@ -697,6 +843,8 @@ Key files:
 - `src/render/technicalMarkRenderModel.ts`
 - `src/caseInsert/brandingLogoSlots.ts`
 - `src/caseInsert/brandingMarkSlots.ts`
+- `src/caseInsert/brandingMarkTargetSources.ts`
+- `src/caseInsert/brandingMarkTargetSourcesFixtures.ts`
 - `src/caseInsert/brandingVisibility.ts`
 - `src/caseInsert/brandingSlotSources.ts`
 - `src/caseInsert/brandingMarkPlacement.ts`
@@ -716,6 +864,9 @@ Edit/interaction path:
 
 - Sidebar branding controls mutate feature state.
 - Case insert branding sync maps shared mark/logo sources into case insert slots.
+- `brandingMarkTargetSources.ts` owns target-source projection helpers for
+  mark families. Primary/additional assets and mark-family identities remain
+  explicit rather than collapsed into one generic slot model.
 - Optional feature visibility uses shared optional-feature helpers where applicable.
 - `OptionalFeatureSection` provides only the neutral sidebar show/enable shell and dependent-control hiding; feature-specific controls keep ownership of values, handlers, source choices, reset/clear behavior, preview/export inclusion, and persistence.
 - Current `OptionalFeatureSection` callers include Steam banner controls, rating badge controls, media marks, case insert game-logo/title artwork, disc game title/logo artwork, disc primary developer/publisher logos, case insert primary developer/publisher logo slots, additional-artwork global gates, and additional-artwork frame gates. Background artwork, platform marks, technical marks, repeated visual element cards, and text sections remain outside this shared shell in the current inventory.
@@ -741,10 +892,17 @@ Tests:
 - `src/project/projectLogoAssets.test.ts`
 - `src/project/projectRatingBadge.test.ts`
 - `src/project/projectMediaMark.test.ts`
+- `src/project/projectPlatformMarks.test.ts`
 - `src/project/projectTechnicalMarks.test.ts`
 - `src/render/platformMarkRenderModel.test.ts`
 - `src/render/technicalMarkRenderModel.test.ts`
 - `src/caseInsert/brandingLogoSlots.test.ts`
+- `src/caseInsert/brandingMarkTargetSources.test.ts`
+- `src/caseInsert/brandingTargetMarkSlots.test.ts`
+- `src/caseInsert/brandingSupplementalUsk.test.ts`
+- `src/caseInsert/brandingCustomImageSync.test.ts`
+- `src/caseInsert/brandingCustomImageRestore.test.ts`
+- `src/caseInsert/brandingTechnicalCustomImageSync.test.ts`
 - `src/caseInsert/brandingVisibility.test.ts`
 
 Risks:
@@ -869,6 +1027,8 @@ Key files:
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
 - `src/export/caseInsertExportPreflight.ts`
+- `src/export/caseInsertPreflightImageWarnings.ts`
+- `src/export/caseInsertPreflightVisibility.ts`
 - `src/export/caseInsertDesignCheck.ts`
 - `src/export/preflightWarnings.ts`
 - `src/export/drawExportGuides.ts`
@@ -910,6 +1070,8 @@ Tests:
 - `src/export/discDesignCheck.test.ts`
 - `src/export/caseInsertDesignCheck.test.ts`
 - `src/export/caseInsertExportPreflight.test.ts`
+- `src/export/caseInsertPreflightImageWarnings.test.ts`
+- `src/export/caseInsertPreflightVisibility.test.ts`
 - `src/export/preflightWarnings.test.ts`
 - `src/caseInsert/exportGuideOptions.test.ts`
 
@@ -926,6 +1088,9 @@ Key files:
 
 - `src/export/exportPng.ts`
 - `src/export/exportCaseInsertPng.ts`
+- `src/export/caseInsertTemplateExportLayers.ts`
+- `src/export/caseInsertPngImage.ts`
+- `src/export/caseInsertPngText.ts`
 - `src/export/canvasImage.ts`
 - `src/export/draw*.ts`
 - `src/editor/layerOrder.ts`
@@ -943,6 +1108,8 @@ Render path:
 - Export renders to canvas, not DOM.
 - Disc export clips to the disc circle, cuts the physical center hole, and optionally draws export guides.
 - Case insert export draws rectangular template/spine content and selected guides.
+  Template surface layers, image drawing, and text drawing are delegated to
+  focused case-insert export helpers.
 
 Edit/interaction path:
 
@@ -960,11 +1127,14 @@ Tests:
 - `src/export/drawRatingBadge.test.ts`
 - `src/export/drawMarkImage.test.ts`
 - Preflight/design-check tests listed above.
+- `src/export/caseInsertPreflightImageWarnings.test.ts`
+- `src/export/caseInsertPreflightVisibility.test.ts`
 
 Risks:
 
 - DOM preview and canvas export are distinct renderers.
-- Case insert export is large and tightly coupled to text, slot, branding, and spine layout helpers.
+- Case insert export is smaller after helper extraction, but it remains tightly
+  coupled to text, slot, branding, and spine layer order.
 - Actual PNG visual output was not manually inspected in this task.
 
 ## Test Coverage Map
@@ -979,12 +1149,17 @@ Current `npm run test` covers these broad areas:
 - Editor helper contracts for image source menus, panel classes, range field models, optional visual features, preview overlay metadata, and repeated artwork.
 - Inline preview text caret/input/positioning and text-editor contract diagnostics.
 - Disc text layout, SVG rendering, curved text, style normalization, and disc-number artwork.
-- Case insert branding slots/visibility, export guide options, Steam back-cover import, text readability, title artwork, sidebar workflow, and back-cover copy fitting.
+- Case insert branding slots/visibility, target-source projection, custom image
+  sync/restore, export guide options, Steam back-cover import, image-slot
+  source import/application, text readability, title artwork, sidebar workflow,
+  action modules, and back-cover copy fitting.
 - Export preflight, design checks, canvas image helpers, Steam banner drawing, rating/mark drawing, and warning helpers.
 - Drag geometry.
 - Disc and jewel-case layout helpers.
 - Project schema, routing, restoration, normalization, and feature-specific serialization helpers.
-- Shared project parity harness diagnostics for representative disc and case insert runtime/saved/restored/export inputs.
+- Shared project parity harness diagnostics for representative disc and case
+  insert runtime/saved/restored/export inputs, including split disc and case
+  insert parity suites.
 - Render models for artwork frames, image render artifacts, platform marks, and technical marks.
 - Template models and case insert templates.
 
@@ -1004,8 +1179,16 @@ Unknowns:
 - CSS ownership remains a known risk, with open issue `#46`.
 - Optional visual feature behavior must preserve disabled state without rendering/exporting disabled features.
 - Built-in mark/logo/rating catalogs are centralized but incomplete by open issue.
-- Current working tree may contain status noise or real uncommitted work. Status-only/no-diff files are not treated as meaningful source changes, but any real content diffs should be reviewed before release claims.
+- Current documentation refresh began from a clean `main` checkout at
+  `6feb262bed2abd36b1371e5c0674013018132d16`; any later dirty worktree state
+  should be reviewed before release claims.
 
 ## Validation
 
-No validation command was run for this docs-only inventory. `package.json`, source files, tests, and behavior were not changed.
+No docs-specific validation command is defined. Documentation-only changes
+should still run the normal validation set when practical:
+
+- `npm run check:cycles`
+- `npm run lint`
+- `npm run test`
+- `npm run build`

@@ -3,7 +3,7 @@
 > Purpose: Product summary, current feature surface, and top-level repository orientation.
 > Read when: Always, before repository work.
 > Authoritative source: Product/scope details defer to docs/PRD.md; architecture details defer to docs/SOFTWARE_DESIGN_DOCUMENT.md.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
 A cross-platform desktop app for designing print-ready Steam backup disc labels and, later, case artwork for personal Steam backup media.
@@ -12,7 +12,7 @@ A cross-platform desktop app for designing print-ready Steam backup disc labels 
 
 Steam Backup Label Studio helps users create consistent, good-looking labels and case inserts for personal Steam game backup media.
 
-The current app is a Steam backup disc-label editor. It can import Steam metadata and artwork where available, combine that with local/user-provided assets, preserve real disc geometry, save projects, and export print-ready PNG files.
+The current app is a Steam backup disc-label editor with an active jewel case insert editor surface. It can import Steam metadata and artwork where available, combine that with local/user-provided assets, preserve real disc and case geometry, save projects, and export print-ready PNG files. The disc editor is alpha-capable; the jewel case editor remains active but not alpha-complete.
 
 ## Project Philosophy
 
@@ -28,9 +28,9 @@ Blank-project workflows must remain supported. A user should be able to upload o
 
 The **disc-label editor** is now past the indev finish line and is the first alpha-capable surface. A normal user can create, edit, save, reload, and export a print-ready disc label without needing another editor for ordinary backup-label work.
 
-The broader product is still early because jewel case, DVD/Amaray, and Blu-ray case editors are not implemented yet. The next major milestone is the **jewel case editor** tracked by #126.
+The broader product is still early because the jewel case editor is active but not alpha-complete, and DVD/Amaray and Blu-ray case editors are not implemented yet. The next major milestone remains the **jewel case editor** finish line tracked by #126.
 
-Issue #69 is closed as the disc-editor alpha finish-line tracker. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), schema/migration work (#48), project packaging decisions (#56), and architecture cleanup (#44, #46, #47).
+Issue #69 is closed as the disc-editor alpha finish-line tracker. The large-file refactor tracker (#266) is also closed after merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. Ongoing polish and future expansion remain tracked separately, including Guide Legend relocation (#124), historical mark catalog expansion (#125), schema/migration work (#48), project packaging decisions (#56), and architecture cleanup (#44, #46, #47).
 
 Do not treat historical "recent validation" notes in older docs as proof that native/Tauri manual smoke has happened for the current checkout. For this docs pass, no `npm run tauri dev` verification is claimed.
 

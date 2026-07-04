@@ -3,10 +3,10 @@
 > Purpose: Expected text editor behavior, renderer ownership, parity, and regression gates.
 > Read when: Text-editor behavior, formatting, selection, source editing, contextual controls, or smoke work.
 > Authoritative source: This document for text-editor behavior; SDD for global architecture.
-> Last reviewed against commit: `8393cb9a8d89f56e80af62df01cc32fb0a63015a`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
-Last refreshed: 2026-06-21.
+Last refreshed: 2026-07-04.
 
 This contract freezes the expected behavior of the preview-mounted text editor
 before more text editor feature work continues. It exists because recent text
@@ -465,11 +465,12 @@ Keep these responsibilities:
 
 ## Current Implementation Notes
 
-As of PR `#186`, cover sheet, tray card, left spine, right spine, and straight
-disc inline editing use adapter input/selection paths so the final preview
-renderer remains the visible glyph renderer during edit. The adapter may own
-keyboard input, caret placement, selection affordances, dotted boundaries, and
-menu positioning, but it must not become a second visible text renderer.
+As of merge commit `6feb262bed2abd36b1371e5c0674013018132d16`, cover sheet,
+tray card, left spine, right spine, and straight disc inline editing use
+adapter input/selection paths so the final preview renderer remains the visible
+glyph renderer during edit. The adapter may own keyboard input, caret
+placement, selection affordances, dotted boundaries, and ribbon registration,
+but it must not become a second visible text renderer.
 
 Curved disc copyright/legal text remains SVG/textPath based, but it now uses a
 curved-safe contextual adapter for direct text editing and whole-object menu
@@ -530,6 +531,18 @@ is required:
 
 - Shared preview-mounted editor UI:
   `src/components/preview/InlinePreviewTextEditor.tsx`.
+- Editor-owned geometry, selection, overlay, textarea, move-ring, ribbon, and
+  menu presentation helpers:
+  `src/components/preview/inlinePreviewTextEditorTextGeometry.ts`,
+  `src/components/preview/inlinePreviewTextEditorSelection.ts`,
+  `src/components/preview/inlinePreviewTextEditorCanvasOverlays.tsx`,
+  `src/components/preview/inlinePreviewTextEditorTextarea.tsx`,
+  `src/components/preview/inlinePreviewTextEditorMoveRing.tsx`,
+  `src/components/preview/inlinePreviewTextEditorRibbon.tsx`, and
+  `src/components/preview/inlinePreviewTextEditorMenuContent.tsx`.
+- Contextual ribbon control presentation:
+  `src/components/preview/inlinePreviewTextRibbonControls.tsx` and
+  `src/components/preview/inlinePreviewTextPointColorControls.tsx`.
 - Shared preview-mounted adapter contract and conformance assertions:
   `src/components/preview/inlinePreviewTextEditorContract.ts`.
 - Case insert target selection and draft/final transitions:
@@ -548,7 +561,13 @@ is required:
 - Disc straight and curved contextual adapters:
   `src/components/preview/DiscInlineTextEditorLayer.tsx`.
 - Editor affordance styling:
-  `src/styles/app-editor-controls.css`.
+  `src/styles/app-editor-controls.css`,
+  `src/styles/app-contextual-text-ribbon.css`, and
+  `src/styles/contextual-text-ribbon/*.css`.
+- Rich-text command/range/list helpers:
+  `src/text/richTextCommands.ts`, `src/text/richTextRunRanges.ts`,
+  `src/text/richTextSelectionRanges.ts`, and
+  `src/text/richTextListKeyboard.ts`.
 
 ## Validation Protocol
 

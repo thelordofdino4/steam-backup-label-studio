@@ -3,16 +3,16 @@
 > Purpose: Project JSON format, compatibility behavior, and future package notes.
 > Read when: Save/load, schema, migration, project-file, or package-format work.
 > Authoritative source: This document for saved-project schema; SDD for architecture boundaries.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 
-Last refreshed: 2026-06-12.
+Last refreshed: 2026-07-04.
 
 ## Purpose
 
 Project files let users save and reopen disc-label designs. The same JSON
-project format now also has groundwork for future case insert projects, starting
-with jewel case inserts.
+project format also stores active jewel case insert projects for the current
+case insert editor surface.
 
 A project file should store enough state to restore the current editor state
 without depending on the original local files after reload when assets have been
@@ -34,7 +34,8 @@ Disc snapshot creation lives in `src/project/createProjectSnapshot.ts`, and disc
 restoration/normalization lives in `src/project/restoreProjectState.ts` plus
 related project modules. Case insert saved-project adapters remain available
 through `src/project/projectCaseInsert.ts`, while case-owned defaults,
-normalization, and state transitions live under `src/caseInsert/`.
+normalization, state transitions, source helpers, and focused action modules
+live under `src/caseInsert/`.
 
 The future `.sbls` package/container format is not implemented yet. Documentation and UI should not imply that zipped/package `.sbls` support exists today. The package-format direction is recorded in `docs/PROJECT_PACKAGE_FORMAT_DECISION.md`.
 
@@ -135,12 +136,13 @@ type SavedDiscProject = {
 }
 ```
 
-## Case Insert Groundwork
+## Current Case Insert State
 
-Issues #131 and #132 add a normalized case insert branch and focused jewel case
-domain state to the same `0.1.0` JSON project family. This is background schema
-and state-management work for the future editor; it does not mean the full jewel
-case editor/export workflow is implemented.
+Jewel case projects are active current JSON projects in the same `0.1.0`
+project family. The case insert editor supports cover, tray, left spine, and
+right spine state, preview, save/load, guide settings, and PNG export paths.
+This does not mean jewel case alpha is complete; #126 and #149 still track the
+broader finish-line and structured layout work.
 
 Current case insert project files use `projectType: 'caseInsert'` and normalize
 to `template.type: 'caseInsert'` plus `template.variant: 'jewelCase'`. Older
@@ -157,6 +159,10 @@ The jewel case state stores:
   to Cover Sheet or Tray Card without changing saved design content
 - image asset data, image size, fit/layout settings, and provenance where present
 - update helpers that can disable optional visual/text elements without dropping their remembered values or uploaded assets
+- focused cover/tray/spine action state covered by
+  `src/project/projectCaseInsert*.test.ts`,
+  `src/project/restoreProject*.test.ts`, and
+  `src/diagnostics/projectParityHarness*.test.ts`
 
 The current descriptive shape is:
 
@@ -241,6 +247,6 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
   behavior, and layout clamping should remain in the existing project/domain
   normalizers.
 - Keep backward compatibility for current fixed systems during any future flexible visual-element migration.
-- Keep user-facing documentation clear that case insert project schema groundwork
-  exists, while full case editor coverage is still incomplete until focused
-  back-cover, spine, export, and preflight modules land.
+- Keep user-facing documentation clear that the active jewel case project path
+  exists, while jewel case alpha remains incomplete until #126/#149 finish-line
+  work is explicitly completed.

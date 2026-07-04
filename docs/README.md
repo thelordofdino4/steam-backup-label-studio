@@ -4,7 +4,7 @@
 > Purpose: Identify the active, conditional, historical, and merged documentation for this repository.
 > Read when: Always read this after the root `README.md` before repository work.
 > Authoritative source: This file is authoritative for documentation routing; domain documents listed below are authoritative for their own scopes.
-> Last reviewed against commit: `408bd68f2a13998a54e14c72930628993c5cdcfb`.
+> Last reviewed against commit: `6feb262bed2abd36b1371e5c0674013018132d16`.
 
 This map is the entry point for repository documentation. If two documents disagree, use the conflict rule listed here rather than treating older status reports, audits, or implementation plans as current truth.
 
@@ -40,6 +40,7 @@ This map is the entry point for repository documentation. If two documents disag
 | [`CSS_STYLE_OWNERSHIP.md`](CSS_STYLE_OWNERSHIP.md) | Conditional reference | CSS ownership map and style-boundary guidance. | CSS refactors, style-file moves, or design-system cleanup. | Style ownership conflicts defer to this file; component behavior conflicts defer to source and SDD. |
 | [`METADATA_DISC_TEXT_BINDING.md`](METADATA_DISC_TEXT_BINDING.md) | Conditional reference | Metadata-bound disc text behavior and fallback semantics. | Disc text metadata/default-source work. | Disc metadata text conflicts defer to this file unless superseded by text-editor contract changes. |
 | [`PROJECT_PACKAGE_FORMAT_DECISION.md`](PROJECT_PACKAGE_FORMAT_DECISION.md) | Conditional reference / ADR | Decision record for future `.sbls` package/container format. | Project packaging decisions or future container work. | Current JSON schema conflicts defer to `PROJECT_FILE_SPEC.md`. |
+| [`refactor-audit-working-log.md`](refactor-audit-working-log.md) | Conditional evidence log | Chronological notes from the large-file refactor/audit loop that ended at merge commit `6feb262bed2abd36b1371e5c0674013018132d16`. | Understanding why oversized files were split or why a refactor stopped. | It is historical evidence only; current behavior and contracts defer to source, tests, SDD, and subsystem contracts. |
 
 ## Local Asset And Fixture References
 
