@@ -7,10 +7,23 @@ import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone
 import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
+import { EditorNavigationRolePanel } from '../components/editor/EditorNavigationShell'
+import {
+  getEditorNavigationShellRoleSectionItems,
+} from '../components/editor/editorNavigationShellViewModel'
 import { HomeScreen } from '../components/home/HomeScreen'
 import type { EditorWorkspace } from '../editor/editorTypes'
+import {
+  getCaseInsertNavigationRoute,
+  getCaseInsertNavigationSurfaceForPane,
+  type CaseInsertNavigationSurfaceId,
+} from '../editor/editorNavigationShell'
 import { DiscPreview } from '../components/preview/DiscPreview'
-import { ArtworkPanel } from '../components/sidebar/ArtworkPanel'
+import {
+  ArtworkPanel,
+  type ArtworkPanelProps,
+} from '../components/sidebar/ArtworkPanel'
+import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
 import { BrandingPanel } from '../components/sidebar/BrandingPanel'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
@@ -174,12 +187,18 @@ function App() {
   )
   const [activeCaseInsertTemplatePane, setActiveCaseInsertTemplatePane] =
     useState<CaseInsertTemplatePaneId>('cover')
+  const [
+    activeCaseInsertNavigationSurface,
+    setActiveCaseInsertNavigationSurface,
+  ] = useState<CaseInsertNavigationSurfaceId>('front')
   const [selectedCaseInsertTextTarget, setSelectedCaseInsertTextTarget] =
     useState<CaseInsertPreviewTextTarget | null>(null)
   const caseInsertTemplateEditor = useCaseInsertTemplateEditor({
     setProjectJewelCase,
     announceStatus,
   })
+  const discRoleSectionItems =
+    getEditorNavigationShellRoleSectionItems('disc-label')
   const jewelCaseSpineEditor = useJewelCaseSpineEditor({
     setProjectJewelCase,
     announceStatus,
@@ -965,6 +984,25 @@ function App() {
     resetProjectTechnicalMarks()
     resetProjectAdditionalArtwork()
     setActiveCaseInsertTemplatePane('cover')
+    setActiveCaseInsertNavigationSurface('front')
+  }
+
+  function handleCaseInsertNavigationSurfaceChange(
+    surfaceId: CaseInsertNavigationSurfaceId,
+  ) {
+    const route = getCaseInsertNavigationRoute(surfaceId)
+
+    setActiveCaseInsertNavigationSurface(route.navigationSurfaceId)
+    setActiveCaseInsertTemplatePane(route.caseInsertPane)
+  }
+
+  function handleActiveCaseInsertTemplatePaneChange(
+    paneId: CaseInsertTemplatePaneId,
+  ) {
+    setActiveCaseInsertTemplatePane(paneId)
+    setActiveCaseInsertNavigationSurface(
+      getCaseInsertNavigationSurfaceForPane(paneId),
+    )
   }
 
   async function handleNewProject() {
@@ -995,6 +1033,7 @@ function App() {
 
   function handleOpenCaseInsertEditor() {
     resetCaseInsertProjectState()
+    setActiveCaseInsertNavigationSurface('front')
     setActiveWorkspace('caseInsert')
     setHomeStatusMessage(null)
     announceStatus('Started a new blank case insert project.')
@@ -1229,7 +1268,8 @@ function App() {
           setProjectMetadata,
           setSelectedSteamGame,
           setProjectJewelCase,
-          setActiveCaseInsertTemplatePane,
+          setActiveCaseInsertTemplatePane:
+            handleActiveCaseInsertTemplatePaneChange,
           setActiveWorkspace,
           setHomeStatusMessage,
           scheduleCaseInsertBrandingMarkSlotSync:
@@ -1380,6 +1420,59 @@ function App() {
     handleApplyRatingCandidate: handleApplyCaseInsertRatingCandidate,
     handleApplyLegalCandidate: handleApplyCaseInsertLegalCandidate,
   }
+  const artworkPanelProps: ArtworkPanelProps = {
+    selectedSteamGame,
+    selectedArtworkId,
+    isArtworkLoading,
+    handleUseSteamArtwork,
+    webArtworkDiscovery,
+    handleFindWebArtworkCandidates: findWebArtworkCandidates,
+    handleUseWebArtworkCandidate: applyWebArtworkCandidate,
+    localSteamScreenshots,
+    localSteamScreenshotThumbnails,
+    hasCheckedLocalSteamScreenshots,
+    isLocalSteamScreenshotsLoading,
+    handleFindLocalSteamScreenshots,
+    handleOpenLocalSteamScreenshotFolder,
+    handleUseLocalSteamScreenshot,
+    handleBackgroundUpload,
+    isBackgroundArtworkEnabled,
+    handleBackgroundArtworkEnabledChange,
+    backgroundScale,
+    backgroundOffset,
+    backgroundOffsetSliderRanges,
+    handleBackgroundScaleChange,
+    handleBackgroundOffsetChange,
+    backgroundImageUrl,
+    backgroundImageSource,
+    handleResetBackground,
+    canFitBackgroundToSteamBannerOpenArea: Boolean(backgroundImageUrl),
+    backgroundFitButtonLabel:
+      steamLogoPlacement === 'none'
+        ? 'Fit edge to edge'
+        : 'Fit between Steam banner and disc edge',
+    handleFitBackgroundToSteamBannerOpenArea,
+    projectTitleArtwork,
+    selectedDiscTemplate,
+    handleTitleArtworkLayoutChange,
+    handleResetTitleArtworkLayout,
+    handleRestoreTitleArtworkDefault,
+    handleTitleArtworkUpload,
+    projectAdditionalArtwork,
+    handleAdditionalArtworkEnabledChange,
+    handleAddAdditionalArtworkElement,
+    handleAdditionalArtworkUpload,
+    handleUseSteamArtworkAsAdditionalArtwork,
+    handleUseWebArtworkCandidateAsAdditionalArtwork,
+    handleUseLocalSteamScreenshotAsAdditionalArtwork,
+    handleAdditionalArtworkLayoutChange,
+    handleAdditionalArtworkLabelChange,
+    handleAdditionalArtworkFrameChange,
+    handleResetAdditionalArtworkElementLayout,
+    handleResetAdditionalArtworkElementFrame,
+    handleClearAdditionalArtworkElementImage,
+    handleRemoveAdditionalArtworkElement,
+  }
 
   if (activeWorkspace === 'home') {
     return (
@@ -1397,6 +1490,7 @@ function App() {
       <CaseInsertEditorShell
         caseInsert={projectJewelCase}
         activeTemplatePane={activeCaseInsertTemplatePane}
+        activeNavigationSurface={activeCaseInsertNavigationSurface}
         selectedTextTarget={selectedCaseInsertTextTarget}
         caseInsertPreviewRef={caseInsertPreviewRef}
         pointerHandlers={caseInsertPreviewPointerHandlers}
@@ -1436,7 +1530,8 @@ function App() {
         onLoadProject={handleLoadProject}
         onExportPng={handleExportPng}
         onExportGuideToggle={handleCaseInsertExportGuideToggle}
-        onActiveTemplatePaneChange={setActiveCaseInsertTemplatePane}
+        onNavigationSurfaceChange={handleCaseInsertNavigationSurfaceChange}
+        onActiveTemplatePaneChange={handleActiveCaseInsertTemplatePaneChange}
         onSelectedTextTargetChange={setSelectedCaseInsertTextTarget}
         onTextTargetValueChange={handleCaseInsertPreviewTextValueChange}
         onTextTargetEditComplete={handleCaseInsertPreviewTextEditComplete}
@@ -1484,6 +1579,18 @@ function App() {
           handleExportGuideToggle={handleExportGuideToggle}
         />
 
+        {discRoleSectionItems.map((section) => (
+          <EditorNavigationRolePanel
+            key={section.id}
+            label={section.label}
+            smokeId={section.smokeId}
+          >
+            {section.id === 'additional-artwork' ? (
+              <AdditionalArtworkControls {...artworkPanelProps} />
+            ) : null}
+          </EditorNavigationRolePanel>
+        ))}
+
         <GamePanel {...gamePanelProps} />
 
         <TemplatePanel
@@ -1497,74 +1604,7 @@ function App() {
           handleCustomDimensionChange={handleCustomDimensionChange}
         />
 
-        <ArtworkPanel
-          selectedSteamGame={selectedSteamGame}
-          selectedArtworkId={selectedArtworkId}
-          isArtworkLoading={isArtworkLoading}
-          handleUseSteamArtwork={handleUseSteamArtwork}
-          webArtworkDiscovery={webArtworkDiscovery}
-          handleFindWebArtworkCandidates={findWebArtworkCandidates}
-          handleUseWebArtworkCandidate={applyWebArtworkCandidate}
-          localSteamScreenshots={localSteamScreenshots}
-          localSteamScreenshotThumbnails={localSteamScreenshotThumbnails}
-          hasCheckedLocalSteamScreenshots={hasCheckedLocalSteamScreenshots}
-          isLocalSteamScreenshotsLoading={isLocalSteamScreenshotsLoading}
-          handleFindLocalSteamScreenshots={handleFindLocalSteamScreenshots}
-          handleOpenLocalSteamScreenshotFolder={handleOpenLocalSteamScreenshotFolder}
-          handleUseLocalSteamScreenshot={handleUseLocalSteamScreenshot}
-          handleBackgroundUpload={handleBackgroundUpload}
-          isBackgroundArtworkEnabled={isBackgroundArtworkEnabled}
-          handleBackgroundArtworkEnabledChange={handleBackgroundArtworkEnabledChange}
-          backgroundScale={backgroundScale}
-          backgroundOffset={backgroundOffset}
-          backgroundOffsetSliderRanges={backgroundOffsetSliderRanges}
-          handleBackgroundScaleChange={handleBackgroundScaleChange}
-          handleBackgroundOffsetChange={handleBackgroundOffsetChange}
-          backgroundImageUrl={backgroundImageUrl}
-          backgroundImageSource={backgroundImageSource}
-          handleResetBackground={handleResetBackground}
-          canFitBackgroundToSteamBannerOpenArea={
-            Boolean(backgroundImageUrl)
-          }
-          backgroundFitButtonLabel={
-            steamLogoPlacement === 'none'
-              ? 'Fit edge to edge'
-              : 'Fit between Steam banner and disc edge'
-          }
-          handleFitBackgroundToSteamBannerOpenArea={handleFitBackgroundToSteamBannerOpenArea}
-          projectTitleArtwork={projectTitleArtwork}
-          selectedDiscTemplate={selectedDiscTemplate}
-          handleTitleArtworkLayoutChange={handleTitleArtworkLayoutChange}
-          handleResetTitleArtworkLayout={handleResetTitleArtworkLayout}
-          handleRestoreTitleArtworkDefault={handleRestoreTitleArtworkDefault}
-          handleTitleArtworkUpload={handleTitleArtworkUpload}
-          projectAdditionalArtwork={projectAdditionalArtwork}
-          handleAdditionalArtworkEnabledChange={handleAdditionalArtworkEnabledChange}
-          handleAddAdditionalArtworkElement={handleAddAdditionalArtworkElement}
-          handleAdditionalArtworkUpload={handleAdditionalArtworkUpload}
-          handleUseSteamArtworkAsAdditionalArtwork={
-            handleUseSteamArtworkAsAdditionalArtwork
-          }
-          handleUseWebArtworkCandidateAsAdditionalArtwork={
-            handleUseWebArtworkCandidateAsAdditionalArtwork
-          }
-          handleUseLocalSteamScreenshotAsAdditionalArtwork={
-            handleUseLocalSteamScreenshotAsAdditionalArtwork
-          }
-          handleAdditionalArtworkLayoutChange={handleAdditionalArtworkLayoutChange}
-          handleAdditionalArtworkLabelChange={handleAdditionalArtworkLabelChange}
-          handleAdditionalArtworkFrameChange={handleAdditionalArtworkFrameChange}
-          handleResetAdditionalArtworkElementLayout={
-            handleResetAdditionalArtworkElementLayout
-          }
-          handleResetAdditionalArtworkElementFrame={
-            handleResetAdditionalArtworkElementFrame
-          }
-          handleClearAdditionalArtworkElementImage={
-            handleClearAdditionalArtworkElementImage
-          }
-          handleRemoveAdditionalArtworkElement={handleRemoveAdditionalArtworkElement}
-        />
+        <ArtworkPanel {...artworkPanelProps} />
 
         <BrandingPanel
           steamLogoPlacement={steamLogoPlacement}
