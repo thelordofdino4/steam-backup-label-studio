@@ -41,6 +41,13 @@ import {
 } from './CaseInsertSpineControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
+import {
+  EditorNavigationRolePanel,
+  CaseInsertSurfaceTabs,
+} from '../editor/EditorNavigationShell'
+import {
+  getEditorNavigationShellRoleSectionItems,
+} from '../editor/editorNavigationShellViewModel'
 import { GamePanel, type GamePanelProps } from '../sidebar/GamePanel'
 import { EditorPanel } from '../editor/EditorPanel'
 import { MirrorIcon } from '../sidebar/PanelIcons'
@@ -53,10 +60,14 @@ import type {
 import type {
   CaseInsertPreviewTextControlHandlers,
 } from '../preview/caseInsertInlineTextEditorControls'
+import type {
+  CaseInsertNavigationSurfaceId,
+} from '../../editor/editorNavigationShell'
 
 export type CaseInsertEditorShellProps = {
   caseInsert: ProjectJewelCaseState
   activeTemplatePane: CaseInsertTemplatePaneId
+  activeNavigationSurface: CaseInsertNavigationSurfaceId
   selectedTextTarget: CaseInsertPreviewTextTarget | null
   caseInsertPreviewRef: RefObject<HTMLDivElement | null>
   pointerHandlers: CaseInsertPreviewPointerHandlers
@@ -82,6 +93,9 @@ export type CaseInsertEditorShellProps = {
   onExportGuideToggle: (
     guideIds: readonly JewelCaseGuideId[],
     checked: boolean,
+  ) => void
+  onNavigationSurfaceChange: (
+    surfaceId: CaseInsertNavigationSurfaceId,
   ) => void
   onActiveTemplatePaneChange: (paneId: CaseInsertTemplatePaneId) => void
   onSelectedTextTargetChange: (
@@ -132,6 +146,7 @@ function CaseInsertProjectPanel({
   CaseInsertEditorShellProps,
   | 'caseInsert'
   | 'activeTemplatePane'
+  | 'activeNavigationSurface'
   | 'selectedTextTarget'
   | 'caseInsertPreviewRef'
   | 'pointerHandlers'
@@ -144,6 +159,7 @@ function CaseInsertProjectPanel({
   | 'handleFindLogoCandidates'
   | 'gamePanelProps'
   | 'statusToasts'
+  | 'onNavigationSurfaceChange'
   | 'onActiveTemplatePaneChange'
   | 'onSelectedTextTargetChange'
   | 'onTextTargetValueChange'
@@ -330,6 +346,7 @@ function CaseInsertTemplatePanel({
 export function CaseInsertEditorShell({
   caseInsert,
   activeTemplatePane,
+  activeNavigationSurface,
   selectedTextTarget,
   caseInsertPreviewRef,
   pointerHandlers,
@@ -350,6 +367,7 @@ export function CaseInsertEditorShell({
   onLoadProject,
   onExportPng,
   onExportGuideToggle,
+  onNavigationSurfaceChange,
   onActiveTemplatePaneChange,
   onSelectedTextTargetChange,
   onTextTargetValueChange,
@@ -358,6 +376,8 @@ export function CaseInsertEditorShell({
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
+  const roleSectionItems =
+    getEditorNavigationShellRoleSectionItems(activeNavigationSurface)
 
   function renderCaseInsertSidebarPanel(panel: CaseInsertSidebarPanel) {
     switch (panel.id) {
@@ -455,6 +475,19 @@ export function CaseInsertEditorShell({
       >
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">{getCaseInsertSidebarStatusLabel(activeTemplatePane)}</p>
+
+        <CaseInsertSurfaceTabs
+          activeSurfaceId={activeNavigationSurface}
+          onSurfaceChange={onNavigationSurfaceChange}
+        />
+
+        {roleSectionItems.map((section) => (
+          <EditorNavigationRolePanel
+            key={section.id}
+            label={section.label}
+            smokeId={section.smokeId}
+          />
+        ))}
 
         {sidebarWorkflow.map(renderCaseInsertSidebarPanel)}
       </aside>
