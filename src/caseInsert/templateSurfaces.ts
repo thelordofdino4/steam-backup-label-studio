@@ -5,6 +5,8 @@ import type {
 
 export type CaseInsertTemplatePaneId = 'cover' | 'tray'
 
+export type CaseInsertNavigationSurfaceId = JewelCaseSurfaceId | 'spine'
+
 export type CaseInsertImageSlotGroupKey =
   | 'artworkSlots'
   | 'logoSlots'
@@ -102,4 +104,32 @@ export function caseInsertTemplatePaneHasSpine(
   paneId: CaseInsertTemplatePaneId,
 ) {
   return getCaseInsertTemplatePaneConfig(paneId).hasSpine
+}
+
+export function getCaseInsertSupportedNavigationSurfacesForPane(
+  paneId: CaseInsertTemplatePaneId,
+): readonly CaseInsertNavigationSurfaceId[] {
+  const paneConfig = getCaseInsertTemplatePaneConfig(paneId)
+
+  return paneConfig.hasSpine
+    ? [paneConfig.surfaceId, 'spine']
+    : [paneConfig.surfaceId]
+}
+
+export function isCaseInsertNavigationSurfaceSupportedForPane(
+  paneId: CaseInsertTemplatePaneId,
+  surfaceId: CaseInsertNavigationSurfaceId,
+): boolean {
+  return getCaseInsertSupportedNavigationSurfacesForPane(paneId).includes(
+    surfaceId,
+  )
+}
+
+export function normalizeCaseInsertNavigationSurfaceForPane(
+  paneId: CaseInsertTemplatePaneId,
+  surfaceId: CaseInsertNavigationSurfaceId,
+): CaseInsertNavigationSurfaceId {
+  return isCaseInsertNavigationSurfaceSupportedForPane(paneId, surfaceId)
+    ? surfaceId
+    : getCaseInsertSupportedNavigationSurfacesForPane(paneId)[0]
 }

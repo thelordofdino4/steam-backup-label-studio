@@ -17,6 +17,28 @@ export type CaseInsertSidebarPanel = {
   openByDefault?: boolean
 }
 
+const CASE_INSERT_SETUP_PANEL_IDS = [
+  'projectFile',
+  'exportOptions',
+  'template',
+  'game',
+] as const
+
+const CASE_INSERT_LEGACY_PANEL_IDS = [
+  'surface',
+  'spine',
+] as const
+
+const CASE_INSERT_SETUP_PANEL_ID_SET: ReadonlySet<CaseInsertSidebarPanelId> =
+  new Set(CASE_INSERT_SETUP_PANEL_IDS)
+
+const CASE_INSERT_LEGACY_PANEL_ID_SET: ReadonlySet<CaseInsertSidebarPanelId> =
+  new Set(CASE_INSERT_LEGACY_PANEL_IDS)
+
+function createMigrationLabel(label: string) {
+  return `${label} — Migrating Soon`
+}
+
 export function getCaseInsertSidebarStatusLabel(
   paneId: CaseInsertTemplatePaneId,
 ) {
@@ -29,17 +51,33 @@ export function getCaseInsertSidebarWorkflow(
   paneId: CaseInsertTemplatePaneId,
 ): CaseInsertSidebarPanel[] {
   const paneConfig = getCaseInsertTemplatePaneConfig(paneId)
-  const panels: CaseInsertSidebarPanel[] = [
+  const setupPanels: CaseInsertSidebarPanel[] = [
     { id: 'projectFile', label: 'Project File' },
     { id: 'exportOptions', label: 'Export Options' },
-    { id: 'game', label: 'Game' },
     { id: 'template', label: 'Template' },
-    { id: 'surface', label: paneConfig.label },
+    { id: 'game', label: 'Game' },
+  ]
+  const legacyPanels: CaseInsertSidebarPanel[] = [
+    { id: 'surface', label: createMigrationLabel(paneConfig.label) },
   ]
 
   if (paneConfig.hasSpine) {
-    panels.push({ id: 'spine', label: 'Spine' })
+    legacyPanels.push({ id: 'spine', label: createMigrationLabel('Spine') })
   }
 
-  return panels
+  return [...setupPanels, ...legacyPanels]
+}
+
+export function getCaseInsertSidebarSetupPanels(
+  paneId: CaseInsertTemplatePaneId,
+): CaseInsertSidebarPanel[] {
+  return getCaseInsertSidebarWorkflow(paneId).filter((panel) =>
+    CASE_INSERT_SETUP_PANEL_ID_SET.has(panel.id))
+}
+
+export function getCaseInsertSidebarLegacyPanels(
+  paneId: CaseInsertTemplatePaneId,
+): CaseInsertSidebarPanel[] {
+  return getCaseInsertSidebarWorkflow(paneId).filter((panel) =>
+    CASE_INSERT_LEGACY_PANEL_ID_SET.has(panel.id))
 }

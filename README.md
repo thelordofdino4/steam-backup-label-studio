@@ -38,9 +38,9 @@ Do not treat historical "recent validation" notes in older docs as proof that na
 
 The intended main sidebar flow is:
 
-Project File → Export Options → Game → Template → Artwork → Branding → Text → Guide Legend
+Project File → Export Options → Template → Game → Steam Branding → Background Image → Game Title → Game Info Logos → Company Logos → Legal Text → Additional Artwork → Additional Text → Text — Migrating Soon
 
-The sidebar sections are currently implemented as independently collapsible panels. Do not reorder them during documentation or unrelated feature work.
+The sidebar sections are currently implemented as independently collapsible panels. The role panels are being introduced as top-level panel siblings during #272. Template and Steam Branding are setup panels above the packaging roles. Remaining legacy panels stay functional at the end of the stack while their controls migrate into role panels, and their visible panel headers should say "Migrating Soon". Do not reorder them during documentation or unrelated feature work.
 
 Guide Legend is still in the sidebar today. The likely future improvement is to move it into the live preview as a bottom-right, collapsible, open-by-default panel; that is tracked separately by #124 and should not be bundled into unrelated docs or feature work.
 
@@ -78,7 +78,7 @@ Preview/export parity is a project rule. User-visible visual layers should use t
 - Steam search, metadata import, Steam store artwork, Steam library capsule/hero artwork, Steam screenshots, and local Steam screenshot discovery where available.
 - Web artwork candidate discovery from Steam/official-site sources when useful metadata exists.
 - Local background upload, background show/hide, drag, scale, fit, reset, and save/load behavior.
-- Artwork panel ownership of imported artwork selection, local screenshots, web artwork candidates, game title/logo artwork, and additional artwork elements.
+- Role-panel ownership of imported artwork selection, local screenshots, web artwork candidates, game title/logo artwork, and additional artwork elements.
 - Steam title/logo artwork seeding from Steam logo assets when available, plus custom game-logo upload and restore-to-Steam-default behavior.
 - Additional artwork elements with labels, show/hide, local/Steam/local-screenshot sources, optional frames, drag, scale/position controls, reset/clear/delete, preview, export, and save/load behavior.
 - Steam-style banner lockup with top, bottom, hidden placement, color controls, custom/default lockup image, text fallback, scale, offsets, preview, export, and save/load behavior.

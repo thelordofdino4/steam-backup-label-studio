@@ -69,7 +69,12 @@ test('additional artwork global and frame gates use the shared shell', () => {
 
     assert.match(source, /OptionalFeatureSection/)
     assert.match(source, new RegExp(`className="${className}"`))
-    assert.match(source, new RegExp(`enableLabel="${label}"`))
+    if (path.endsWith('CaseInsertTemplateImageSlotControls.tsx')) {
+      assert.match(source, new RegExp(`enableLabel = '${label}'`))
+      assert.match(source, /enableLabel=\{enableLabel\}/)
+    } else {
+      assert.match(source, new RegExp(`enableLabel="${label}"`))
+    }
   })
 })
 

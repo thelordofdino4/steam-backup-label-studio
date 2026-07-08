@@ -7,7 +7,19 @@ import {
   getCaseInsertNavigationSurfaceTabSmokeId,
   getEditorNavigationShellRoleSectionItems,
   getEditorNavigationShellRoleSectionSmokeId,
+  type CaseInsertNavigationSurfaceTabItem,
 } from './editorNavigationShellViewModel.ts'
+
+function summarizeSurfaceItems(
+  surfaceItems: readonly CaseInsertNavigationSurfaceTabItem[],
+) {
+  return surfaceItems.map(({ id, label, active, smokeId }) => ({
+    id,
+    label,
+    active,
+    smokeId,
+  }))
+}
 
 test('editor navigation shell view model exposes stable smoke ids', () => {
   assert.deepEqual(EDITOR_NAVIGATION_SHELL_SMOKE_IDS, {
@@ -23,37 +35,92 @@ test('editor navigation shell view model exposes stable smoke ids', () => {
   )
 })
 
-test('case insert surface tab items mark only the active surface', () => {
-  const surfaceItems = getCaseInsertNavigationSurfaceTabItems('spine')
+test('case insert surface tab items can be filtered to front only', () => {
+  const surfaceItems = getCaseInsertNavigationSurfaceTabItems('front', [
+    'front',
+  ])
 
-  assert.deepEqual(
-    surfaceItems.map(({ id, label, active, smokeId }) => ({
-      id,
-      label,
-      active,
-      smokeId,
-    })),
-    [
-      {
-        id: 'front',
-        label: 'Front',
-        active: false,
-        smokeId: 'case-insert-surface-tab-front',
-      },
-      {
-        id: 'back',
-        label: 'Back',
-        active: false,
-        smokeId: 'case-insert-surface-tab-back',
-      },
-      {
-        id: 'spine',
-        label: 'Spine',
-        active: true,
-        smokeId: 'case-insert-surface-tab-spine',
-      },
-    ],
-  )
+  assert.deepEqual(summarizeSurfaceItems(surfaceItems), [
+    {
+      id: 'front',
+      label: 'Front',
+      active: true,
+      smokeId: 'case-insert-surface-tab-front',
+    },
+  ])
+})
+
+test('case insert surface tab items can be filtered to back and spine', () => {
+  const surfaceItems = getCaseInsertNavigationSurfaceTabItems('spine', [
+    'back',
+    'spine',
+  ])
+
+  assert.deepEqual(summarizeSurfaceItems(surfaceItems), [
+    {
+      id: 'back',
+      label: 'Back',
+      active: false,
+      smokeId: 'case-insert-surface-tab-back',
+    },
+    {
+      id: 'spine',
+      label: 'Spine',
+      active: true,
+      smokeId: 'case-insert-surface-tab-spine',
+    },
+  ])
+})
+
+test('case insert surface tab items include all supported surfaces in shell order', () => {
+  const surfaceItems = getCaseInsertNavigationSurfaceTabItems('back', [
+    'front',
+    'back',
+    'spine',
+  ])
+
+  assert.deepEqual(summarizeSurfaceItems(surfaceItems), [
+    {
+      id: 'front',
+      label: 'Front',
+      active: false,
+      smokeId: 'case-insert-surface-tab-front',
+    },
+    {
+      id: 'back',
+      label: 'Back',
+      active: true,
+      smokeId: 'case-insert-surface-tab-back',
+    },
+    {
+      id: 'spine',
+      label: 'Spine',
+      active: false,
+      smokeId: 'case-insert-surface-tab-spine',
+    },
+  ])
+})
+
+test('unsupported active surface does not create a visible active tab item', () => {
+  const surfaceItems = getCaseInsertNavigationSurfaceTabItems('front', [
+    'back',
+    'spine',
+  ])
+
+  assert.deepEqual(summarizeSurfaceItems(surfaceItems), [
+    {
+      id: 'back',
+      label: 'Back',
+      active: false,
+      smokeId: 'case-insert-surface-tab-back',
+    },
+    {
+      id: 'spine',
+      label: 'Spine',
+      active: false,
+      smokeId: 'case-insert-surface-tab-spine',
+    },
+  ])
 })
 
 test('editor navigation shell role section items follow the active surface', () => {
@@ -67,19 +134,14 @@ test('editor navigation shell role section items follow the active surface', () 
     ),
     [
       {
-        id: 'game-description-text',
-        label: 'Game Description Text',
-        smokeId: 'editor-role-section-back-game-description-text',
+        id: 'background-artwork',
+        label: 'Background Image',
+        smokeId: 'editor-role-section-back-background-artwork',
       },
       {
-        id: 'feature-bullets-callouts',
-        label: 'Feature Bullets / Callouts',
-        smokeId: 'editor-role-section-back-feature-bullets-callouts',
-      },
-      {
-        id: 'big-background-image',
-        label: 'Big Background Image',
-        smokeId: 'editor-role-section-back-big-background-image',
+        id: 'game-title',
+        label: 'Game Title',
+        smokeId: 'editor-role-section-back-game-title',
       },
       {
         id: 'screenshots',
@@ -95,6 +157,16 @@ test('editor navigation shell role section items follow the active surface', () 
         id: 'company-logos',
         label: 'Company Logos',
         smokeId: 'editor-role-section-back-company-logos',
+      },
+      {
+        id: 'game-description-text',
+        label: 'Game Description Text',
+        smokeId: 'editor-role-section-back-game-description-text',
+      },
+      {
+        id: 'feature-bullets-callouts',
+        label: 'Feature Bullets / Callouts',
+        smokeId: 'editor-role-section-back-feature-bullets-callouts',
       },
       {
         id: 'system-requirements',
@@ -117,6 +189,47 @@ test('editor navigation shell role section items follow the active surface', () 
         smokeId: 'editor-role-section-back-additional-text',
       },
     ],
+  )
+})
+
+test('editor navigation shell exposes Legal Info smoke ids on every legal surface', () => {
+  assert.deepEqual(
+    {
+      disc: getEditorNavigationShellRoleSectionItems('disc-label').find(
+        ({ id }) => id === 'legal-info',
+      ),
+      front: getEditorNavigationShellRoleSectionItems('front').find(
+        ({ id }) => id === 'legal-info',
+      ),
+      back: getEditorNavigationShellRoleSectionItems('back').find(
+        ({ id }) => id === 'legal-info',
+      ),
+      spine: getEditorNavigationShellRoleSectionItems('spine').find(
+        ({ id }) => id === 'legal-info',
+      ),
+    },
+    {
+      disc: {
+        id: 'legal-info',
+        label: 'Legal Text',
+        smokeId: 'editor-role-section-disc-label-legal-info',
+      },
+      front: {
+        id: 'legal-info',
+        label: 'Legal Info',
+        smokeId: 'editor-role-section-front-legal-info',
+      },
+      back: {
+        id: 'legal-info',
+        label: 'Legal Info',
+        smokeId: 'editor-role-section-back-legal-info',
+      },
+      spine: {
+        id: 'legal-info',
+        label: 'Legal Info',
+        smokeId: 'editor-role-section-spine-legal-info',
+      },
+    },
   )
 })
 

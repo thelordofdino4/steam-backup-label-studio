@@ -1,7 +1,10 @@
 import { confirm, open, save } from '@tauri-apps/plugin-dialog'
 import { useRef, useState } from 'react'
 import type { JewelCaseGuideId } from '../templates/caseInsertTemplates'
-import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces'
+import {
+  normalizeCaseInsertNavigationSurfaceForPane,
+  type CaseInsertTemplatePaneId,
+} from '../caseInsert/templateSurfaces'
 import type { DiscTemplate } from '../types/template'
 import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone'
 import '../styles/App.css'
@@ -15,21 +18,24 @@ import { HomeScreen } from '../components/home/HomeScreen'
 import type { EditorWorkspace } from '../editor/editorTypes'
 import {
   getCaseInsertNavigationRoute,
-  getCaseInsertNavigationSurfaceForPane,
   type CaseInsertNavigationSurfaceId,
 } from '../editor/editorNavigationShell'
 import { DiscPreview } from '../components/preview/DiscPreview'
-import {
-  ArtworkPanel,
-  type ArtworkPanelProps,
-} from '../components/sidebar/ArtworkPanel'
+import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
 import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
-import { BrandingPanel } from '../components/sidebar/BrandingPanel'
+import { BackgroundArtworkControls } from '../components/sidebar/artwork/BackgroundArtworkControls'
+import { TitleArtworkControls } from '../components/sidebar/artwork/TitleArtworkControls'
+import { CompanyLogoControls } from '../components/sidebar/branding/CompanyLogoControls'
+import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
+import { GameInfoLogoControls } from '../components/sidebar/branding/GameInfoLogoControls'
+import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
-import { TextPanel } from '../components/sidebar/TextPanel'
+import { TextPanel, type TextPanelProps } from '../components/sidebar/TextPanel'
+import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
+import { DiscLegalTextControls } from '../components/sidebar/text/DiscLegalTextControls'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
 import { useDiscExportGuides } from '../hooks/useDiscExportGuides'
 import { useDiscPreviewSize } from '../hooks/useDiscPreviewSize'
@@ -1001,7 +1007,10 @@ function App() {
   ) {
     setActiveCaseInsertTemplatePane(paneId)
     setActiveCaseInsertNavigationSurface(
-      getCaseInsertNavigationSurfaceForPane(paneId),
+      normalizeCaseInsertNavigationSurfaceForPane(
+        paneId,
+        activeCaseInsertNavigationSurface,
+      ),
     )
   }
 
@@ -1474,6 +1483,107 @@ function App() {
     handleRemoveAdditionalArtworkElement,
   }
 
+  const brandingPanelProps: BrandingPanelProps = {
+    steamLogoPlacement,
+    handleSteamLogoPlacementChange,
+    steamBannerLockupImageUrl,
+    steamBannerLockupImageSource,
+    steamBannerLockupImageSize,
+    steamBannerLockupLayout,
+    steamBannerUseTextFallback,
+    steamBannerFallbackText,
+    steamBannerColors,
+    projectLogoAssets,
+    projectMetadata,
+    projectRatingBadge,
+    projectMediaMark,
+    projectPlatformMarks,
+    projectTechnicalMarks,
+    selectedDiscTemplate,
+    handleProjectMetadataChange,
+    handleProjectMetadataFieldsChange,
+    handleSteamBannerLockupUpload,
+    handleClearSteamBannerLockup,
+    handleSteamBannerLockupLayoutChange,
+    handleResetSteamBannerLockupLayout,
+    handleSteamBannerUseTextFallbackChange,
+    handleSteamBannerFallbackTextChange,
+    handleSteamBannerColorChange,
+    handleResetSteamBannerColors,
+    handleLogoAssetUpload,
+    logoCandidateDiscovery,
+    handleFindLogoCandidates: findLogoCandidates,
+    handleApplyLogoCandidate: applyLogoCandidate,
+    handleLogoAssetLayoutChange,
+    handleClearLogoAsset,
+    handleResetLogoAssetLayout,
+    handleAddAdditionalLogoAsset,
+    handleAdditionalLogoAssetLabelChange,
+    handleRemoveAdditionalLogoAsset,
+    handleRatingBadgeUpload,
+    handleRatingBadgeSourceChange,
+    handleRatingBadgeEnabledChange,
+    handleRatingBadgeLayoutChange,
+    handleSupplementalUskRatingBadgeEnabledChange,
+    handleSupplementalUskRatingBadgeValueChange,
+    handleSupplementalUskRatingBadgeLayoutChange,
+    handleClearRatingBadgeImage,
+    handleResetRatingBadgeLayout,
+    handleResetSupplementalUskRatingBadgeLayout,
+    handleMediaMarkUpload,
+    handleMediaMarkValueChange,
+    handleMediaMarkSourceChange,
+    handleMediaMarkThemeChange,
+    handleMediaMarkLayoutChange,
+    handleClearMediaMarkImage,
+    handleResetMediaMarkLayout,
+    handlePlatformMarkToggle,
+    handlePlatformMarkUpload,
+    handlePlatformMarkSourceChange,
+    handlePlatformMarkThemeChange,
+    handlePlatformMarkLayoutChange,
+    handleClearPlatformMarkImage,
+    handleResetPlatformMarkLayout,
+    handleTechnicalMarkToggle,
+    handleTechnicalMarkUpload,
+    handleTechnicalMarkSourceChange,
+    handleTechnicalMarkLayoutChange,
+    handleTechnicalMarkLabelChange,
+    handleClearTechnicalMarkImage,
+    handleResetTechnicalMarkLayout,
+    handleAddTechnicalMarkAsset,
+    handleRemoveTechnicalMarkAsset,
+  }
+  const textPanelProps: TextPanelProps = {
+    discTextSettings,
+    discTextLayout,
+    discTextStyles,
+    projectDiscNumberArtwork,
+    discTextValues,
+    discTextValueSources,
+    metadataBoundDiscTextValues,
+    discTextTitleValue,
+    resolvedDiscTextTitle,
+    selectedDiscTemplate,
+    selectedDiscTextKey,
+    handleDiscTextToggle,
+    handleDiscTextPreviewEditStart,
+    handleDiscTextContentChange,
+    handleUseMetadataDiscTextValue,
+    handleDiscTextLayoutChange,
+    handleDiscTextAlignmentChange,
+    handleDiscTextModeChange,
+    handleDiscTextArcSideChange,
+    handleDiscTextVisualAvoidanceChange,
+    handleResetDiscTextLayout,
+    handleDiscTextStyleChange,
+    handleApplyDiscTextStylePreset,
+    handleDiscNumberArtworkModeChange,
+    handleDiscNumberArtworkBadgeSetChange,
+    handleResetDiscTextStyle,
+    steamLogoPlacement,
+  }
+
   if (activeWorkspace === 'home') {
     return (
       <HomeScreen
@@ -1579,20 +1689,6 @@ function App() {
           handleExportGuideToggle={handleExportGuideToggle}
         />
 
-        {discRoleSectionItems.map((section) => (
-          <EditorNavigationRolePanel
-            key={section.id}
-            label={section.label}
-            smokeId={section.smokeId}
-          >
-            {section.id === 'additional-artwork' ? (
-              <AdditionalArtworkControls {...artworkPanelProps} />
-            ) : null}
-          </EditorNavigationRolePanel>
-        ))}
-
-        <GamePanel {...gamePanelProps} />
-
         <TemplatePanel
           selectedDiscTemplateId={selectedDiscTemplateId}
           selectedDiscTemplate={selectedDiscTemplate}
@@ -1604,112 +1700,35 @@ function App() {
           handleCustomDimensionChange={handleCustomDimensionChange}
         />
 
-        <ArtworkPanel {...artworkPanelProps} />
+        <GamePanel {...gamePanelProps} />
 
-        <BrandingPanel
-          steamLogoPlacement={steamLogoPlacement}
-          handleSteamLogoPlacementChange={handleSteamLogoPlacementChange}
-          steamBannerLockupImageUrl={steamBannerLockupImageUrl}
-          steamBannerLockupImageSource={steamBannerLockupImageSource}
-          steamBannerLockupImageSize={steamBannerLockupImageSize}
-          steamBannerLockupLayout={steamBannerLockupLayout}
-          steamBannerUseTextFallback={steamBannerUseTextFallback}
-          steamBannerFallbackText={steamBannerFallbackText}
-          steamBannerColors={steamBannerColors}
-          projectLogoAssets={projectLogoAssets}
-          projectMetadata={projectMetadata}
-          projectRatingBadge={projectRatingBadge}
-          projectMediaMark={projectMediaMark}
-          projectPlatformMarks={projectPlatformMarks}
-          projectTechnicalMarks={projectTechnicalMarks}
-          selectedDiscTemplate={selectedDiscTemplate}
-          handleProjectMetadataChange={handleProjectMetadataChange}
-          handleProjectMetadataFieldsChange={handleProjectMetadataFieldsChange}
-          handleSteamBannerLockupUpload={handleSteamBannerLockupUpload}
-          handleClearSteamBannerLockup={handleClearSteamBannerLockup}
-          handleSteamBannerLockupLayoutChange={handleSteamBannerLockupLayoutChange}
-          handleResetSteamBannerLockupLayout={handleResetSteamBannerLockupLayout}
-          handleSteamBannerUseTextFallbackChange={
-            handleSteamBannerUseTextFallbackChange
-          }
-          handleSteamBannerFallbackTextChange={handleSteamBannerFallbackTextChange}
-          handleSteamBannerColorChange={handleSteamBannerColorChange}
-          handleResetSteamBannerColors={handleResetSteamBannerColors}
-          handleLogoAssetUpload={handleLogoAssetUpload}
-          logoCandidateDiscovery={logoCandidateDiscovery}
-          handleFindLogoCandidates={findLogoCandidates}
-          handleApplyLogoCandidate={applyLogoCandidate}
-          handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
-          handleClearLogoAsset={handleClearLogoAsset}
-          handleResetLogoAssetLayout={handleResetLogoAssetLayout}
-          handleAddAdditionalLogoAsset={handleAddAdditionalLogoAsset}
-          handleAdditionalLogoAssetLabelChange={handleAdditionalLogoAssetLabelChange}
-          handleRemoveAdditionalLogoAsset={handleRemoveAdditionalLogoAsset}
-          handleRatingBadgeUpload={handleRatingBadgeUpload}
-          handleRatingBadgeSourceChange={handleRatingBadgeSourceChange}
-          handleRatingBadgeEnabledChange={handleRatingBadgeEnabledChange}
-          handleRatingBadgeLayoutChange={handleRatingBadgeLayoutChange}
-          handleSupplementalUskRatingBadgeEnabledChange={handleSupplementalUskRatingBadgeEnabledChange}
-          handleSupplementalUskRatingBadgeValueChange={handleSupplementalUskRatingBadgeValueChange}
-          handleSupplementalUskRatingBadgeLayoutChange={handleSupplementalUskRatingBadgeLayoutChange}
-          handleClearRatingBadgeImage={handleClearRatingBadgeImage}
-          handleResetRatingBadgeLayout={handleResetRatingBadgeLayout}
-          handleResetSupplementalUskRatingBadgeLayout={handleResetSupplementalUskRatingBadgeLayout}
-          handleMediaMarkUpload={handleMediaMarkUpload}
-          handleMediaMarkValueChange={handleMediaMarkValueChange}
-          handleMediaMarkSourceChange={handleMediaMarkSourceChange}
-          handleMediaMarkThemeChange={handleMediaMarkThemeChange}
-          handleMediaMarkLayoutChange={handleMediaMarkLayoutChange}
-          handleClearMediaMarkImage={handleClearMediaMarkImage}
-          handleResetMediaMarkLayout={handleResetMediaMarkLayout}
-          handlePlatformMarkToggle={handlePlatformMarkToggle}
-          handlePlatformMarkUpload={handlePlatformMarkUpload}
-          handlePlatformMarkSourceChange={handlePlatformMarkSourceChange}
-          handlePlatformMarkThemeChange={handlePlatformMarkThemeChange}
-          handlePlatformMarkLayoutChange={handlePlatformMarkLayoutChange}
-          handleClearPlatformMarkImage={handleClearPlatformMarkImage}
-          handleResetPlatformMarkLayout={handleResetPlatformMarkLayout}
-          handleTechnicalMarkToggle={handleTechnicalMarkToggle}
-          handleTechnicalMarkUpload={handleTechnicalMarkUpload}
-          handleTechnicalMarkSourceChange={handleTechnicalMarkSourceChange}
-          handleTechnicalMarkLayoutChange={handleTechnicalMarkLayoutChange}
-          handleTechnicalMarkLabelChange={handleTechnicalMarkLabelChange}
-          handleClearTechnicalMarkImage={handleClearTechnicalMarkImage}
-          handleResetTechnicalMarkLayout={handleResetTechnicalMarkLayout}
-          handleAddTechnicalMarkAsset={handleAddTechnicalMarkAsset}
-          handleRemoveTechnicalMarkAsset={handleRemoveTechnicalMarkAsset}
-        />
+        <DiscSteamBrandingControls {...brandingPanelProps} />
 
+        {discRoleSectionItems.map((section) => (
+          <EditorNavigationRolePanel
+            key={section.id}
+            label={section.label}
+            smokeId={section.smokeId}
+          >
+            {section.id === 'background-artwork' ? (
+              <BackgroundArtworkControls {...artworkPanelProps} />
+            ) : section.id === 'game-title' ? (
+              <TitleArtworkControls {...artworkPanelProps} />
+            ) : section.id === 'game-info-logos' ? (
+              <GameInfoLogoControls {...brandingPanelProps} />
+            ) : section.id === 'company-logos' ? (
+              <CompanyLogoControls {...brandingPanelProps} />
+            ) : section.id === 'legal-info' ? (
+              <DiscLegalTextControls {...textPanelProps} />
+            ) : section.id === 'additional-artwork' ? (
+              <AdditionalArtworkControls {...artworkPanelProps} />
+            ) : section.id === 'additional-text' ? (
+              <DiscAdditionalTextControls {...textPanelProps} />
+            ) : null}
+          </EditorNavigationRolePanel>
+        ))}
 
-        <TextPanel
-          discTextSettings={discTextSettings}
-          discTextLayout={discTextLayout}
-          discTextStyles={discTextStyles}
-          projectDiscNumberArtwork={projectDiscNumberArtwork}
-          discTextValues={discTextValues}
-          discTextValueSources={discTextValueSources}
-          metadataBoundDiscTextValues={metadataBoundDiscTextValues}
-          discTextTitleValue={discTextTitleValue}
-          resolvedDiscTextTitle={resolvedDiscTextTitle}
-          selectedDiscTemplate={selectedDiscTemplate}
-          selectedDiscTextKey={selectedDiscTextKey}
-          handleDiscTextToggle={handleDiscTextToggle}
-          handleDiscTextPreviewEditStart={handleDiscTextPreviewEditStart}
-          handleDiscTextContentChange={handleDiscTextContentChange}
-          handleUseMetadataDiscTextValue={handleUseMetadataDiscTextValue}
-          handleDiscTextLayoutChange={handleDiscTextLayoutChange}
-          handleDiscTextAlignmentChange={handleDiscTextAlignmentChange}
-          handleDiscTextModeChange={handleDiscTextModeChange}
-          handleDiscTextArcSideChange={handleDiscTextArcSideChange}
-          handleDiscTextVisualAvoidanceChange={handleDiscTextVisualAvoidanceChange}
-          handleResetDiscTextLayout={handleResetDiscTextLayout}
-          handleDiscTextStyleChange={handleDiscTextStyleChange}
-          handleApplyDiscTextStylePreset={handleApplyDiscTextStylePreset}
-          handleDiscNumberArtworkModeChange={handleDiscNumberArtworkModeChange}
-          handleDiscNumberArtworkBadgeSetChange={handleDiscNumberArtworkBadgeSetChange}
-          handleResetDiscTextStyle={handleResetDiscTextStyle}
-          steamLogoPlacement={steamLogoPlacement}
-        />
+        <TextPanel {...textPanelProps} />
 
       </aside>
 

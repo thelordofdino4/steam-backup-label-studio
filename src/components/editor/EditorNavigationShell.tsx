@@ -17,13 +17,22 @@ export type EditorNavigationRolePanelProps = {
 export type CaseInsertSurfaceTabsProps = {
   activeSurfaceId: CaseInsertNavigationSurfaceId
   onSurfaceChange: (surfaceId: CaseInsertNavigationSurfaceId) => void
+  supportedSurfaceIds?: readonly CaseInsertNavigationSurfaceId[]
 }
 
 export function CaseInsertSurfaceTabs({
   activeSurfaceId,
   onSurfaceChange,
+  supportedSurfaceIds,
 }: CaseInsertSurfaceTabsProps) {
-  const surfaceItems = getCaseInsertNavigationSurfaceTabItems(activeSurfaceId)
+  const surfaceItems = getCaseInsertNavigationSurfaceTabItems(
+    activeSurfaceId,
+    supportedSurfaceIds,
+  )
+
+  if (surfaceItems.length <= 1) {
+    return null
+  }
 
   return (
     <div

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
+  getCaseInsertSidebarLegacyPanels,
+  getCaseInsertSidebarSetupPanels,
   getCaseInsertSidebarStatusLabel,
   getCaseInsertSidebarWorkflow,
 } from './sidebarWorkflow.ts'
@@ -18,9 +20,9 @@ test('cover sheet case sidebar mirrors the core editor flow', () => {
     [
       'Project File',
       'Export Options',
-      'Game',
       'Template',
-      'Cover Sheet',
+      'Game',
+      'Cover Sheet — Migrating Soon',
     ],
   )
 })
@@ -31,10 +33,29 @@ test('tray card case sidebar gives each editable surface a main panel', () => {
     [
       'Project File',
       'Export Options',
-      'Game',
       'Template',
-      'Tray Card',
-      'Spine',
+      'Game',
+      'Tray Card — Migrating Soon',
+      'Spine — Migrating Soon',
+    ],
+  )
+})
+
+test('case sidebar exposes setup panels separately from legacy migration panels', () => {
+  assert.deepEqual(
+    getCaseInsertSidebarSetupPanels('tray').map((panel) => panel.label),
+    [
+      'Project File',
+      'Export Options',
+      'Template',
+      'Game',
+    ],
+  )
+  assert.deepEqual(
+    getCaseInsertSidebarLegacyPanels('tray').map((panel) => panel.label),
+    [
+      'Tray Card — Migrating Soon',
+      'Spine — Migrating Soon',
     ],
   )
 })
@@ -61,18 +82,18 @@ test('case sidebar status label makes the active template clear', () => {
   )
 })
 
-test('case insert artwork panels mirror disc artwork section hierarchy', () => {
+test('case insert legacy artwork panels expose only unmigrated sections', () => {
   assert.deepEqual(
     getCaseInsertArtworkPanelSectionLabels('cover'),
-    ['Background', 'Game Logo', 'Additional Artwork'],
+    [],
   )
   assert.deepEqual(
     getCaseInsertArtworkPanelSectionLabels('tray'),
-    ['Background', 'Game Logo', 'Additional Artwork'],
+    [],
   )
   assert.deepEqual(
     getCaseInsertArtworkPanelSectionLabels('spine'),
-    ['Background', 'Game Logo', 'Additional Artwork'],
+    [],
   )
 })
 

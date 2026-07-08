@@ -4,6 +4,10 @@ import {
 } from '../../caseInsert/sidebarControlPolicy'
 import {
   getCaseInsertTextBlockPriority,
+  isCaseInsertAdditionalTextBlock,
+  isCaseInsertBackRoleTextBlock,
+  isCaseInsertFeatureBulletsTextList,
+  isCaseInsertLegalTextBlock,
 } from '../../caseInsert/textContent'
 import {
   getCaseInsertTextBlockLayoutPresets,
@@ -31,6 +35,12 @@ function sortTextBlocksForControls(textBlocks: ProjectCaseInsertTextBlock[]) {
     (left, right) =>
       getTextBlockControlPriority(left) - getTextBlockControlPriority(right),
   )
+}
+
+type CaseInsertTemplateTextControlsProps = CaseInsertTemplateControlsProps & {
+  includeTextLists?: boolean
+  textBlockFilter?: (textBlock: ProjectCaseInsertTextBlock) => boolean
+  textListFilter?: (textList: ProjectCaseInsertTextList) => boolean
 }
 
 function TextLayoutPresetControl({
@@ -247,8 +257,16 @@ export function CaseInsertTemplateTextControls({
   templateState,
   actions,
   onSelectedTextTargetChange,
-}: CaseInsertTemplateControlsProps) {
-  const textBlocks = sortTextBlocksForControls(templateState.textBlocks)
+  includeTextLists = true,
+  textBlockFilter = (textBlock) =>
+    !isCaseInsertLegalTextBlock(textBlock) &&
+    !isCaseInsertBackRoleTextBlock(textBlock) &&
+    !isCaseInsertAdditionalTextBlock(textBlock),
+  textListFilter = (textList) => !isCaseInsertFeatureBulletsTextList(textList),
+}: CaseInsertTemplateTextControlsProps) {
+  const textBlocks = sortTextBlocksForControls(
+    templateState.textBlocks.filter(textBlockFilter),
+  )
   const leadingTextBlocks = paneId === 'tray'
     ? textBlocks.filter((textBlock) =>
         getTextBlockControlPriority(textBlock) <= 90)
@@ -269,15 +287,17 @@ export function CaseInsertTemplateTextControls({
           onSelectedTextTargetChange={onSelectedTextTargetChange}
         />
       ))}
-      {templateState.textLists.map((textList) => (
-        <TextListControls
-          key={textList.id}
-          paneId={paneId}
-          textList={textList}
-          actions={actions}
-          onSelectedTextTargetChange={onSelectedTextTargetChange}
-        />
-      ))}
+      {includeTextLists
+        ? templateState.textLists.filter(textListFilter).map((textList) => (
+          <TextListControls
+            key={textList.id}
+            paneId={paneId}
+            textList={textList}
+            actions={actions}
+            onSelectedTextTargetChange={onSelectedTextTargetChange}
+          />
+        ))
+        : null}
       {trailingTextBlocks.map((textBlock) => (
         <TextBlockControls
           key={textBlock.id}

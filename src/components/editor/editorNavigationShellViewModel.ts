@@ -23,6 +23,9 @@ export type EditorNavigationShellRoleSectionItem = {
   smokeId: string
 }
 
+const DEFAULT_CASE_INSERT_NAVIGATION_SURFACE_IDS: readonly CaseInsertNavigationSurfaceId[] =
+  CASE_INSERT_NAVIGATION_SURFACES.map(({ id }) => id)
+
 export function getCaseInsertNavigationSurfaceTabSmokeId(
   surfaceId: CaseInsertNavigationSurfaceId,
 ) {
@@ -38,8 +41,14 @@ export function getEditorNavigationShellRoleSectionSmokeId(
 
 export function getCaseInsertNavigationSurfaceTabItems(
   activeSurfaceId: CaseInsertNavigationSurfaceId,
+  supportedSurfaceIds: readonly CaseInsertNavigationSurfaceId[] =
+    DEFAULT_CASE_INSERT_NAVIGATION_SURFACE_IDS,
 ): readonly CaseInsertNavigationSurfaceTabItem[] {
-  return CASE_INSERT_NAVIGATION_SURFACES.map((surface) => ({
+  const supportedSurfaceIdSet = new Set(supportedSurfaceIds)
+
+  return CASE_INSERT_NAVIGATION_SURFACES.filter((surface) =>
+    supportedSurfaceIdSet.has(surface.id),
+  ).map((surface) => ({
     id: surface.id,
     label: surface.label,
     active: surface.id === activeSurfaceId,

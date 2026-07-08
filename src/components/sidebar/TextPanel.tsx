@@ -9,7 +9,11 @@ export type { TextPanelProps } from './textPanelTypes'
 
 export function TextPanel(props: TextPanelProps) {
   return (
-    <EditorPanel title="Text">
+    <EditorPanel title="Text — Migrating Soon">
+        <p className="hint">
+          Controls in this panel are being
+          moved into role panels.
+        </p>
         <p className="hint">
           Enable disc text elements, then edit straight text style and placement
           on the preview.
@@ -19,13 +23,15 @@ export function TextPanel(props: TextPanelProps) {
         </p>
 
         <div className="editor-text-control-list">
-          {DISC_TEXT_KEYS.map((key) => (
-            <DiscTextControl
-              key={key}
-              textKey={key}
-              {...props}
-            />
-          ))}
+          {DISC_TEXT_KEYS
+            .filter((key) => key === 'title')
+            .map((key) => (
+              <DiscTextControl
+                key={key}
+                textKey={key}
+                {...props}
+              />
+            ))}
         </div>
     </EditorPanel>
   )

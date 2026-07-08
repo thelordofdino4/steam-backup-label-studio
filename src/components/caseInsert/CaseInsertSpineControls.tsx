@@ -1,8 +1,5 @@
 import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import {
-  CaseInsertSpineArtworkControls,
-} from './CaseInsertSpineArtworkControls'
-import {
   CaseInsertSpineBrandingControls,
 } from './CaseInsertSpineBrandingControls'
 import {
@@ -17,9 +14,6 @@ export type {
 } from './CaseInsertSpineControls.types'
 
 export {
-  CaseInsertSpineArtworkControls,
-} from './CaseInsertSpineArtworkControls'
-export {
   CaseInsertSpineBrandingControls,
 } from './CaseInsertSpineBrandingControls'
 export {
@@ -31,10 +25,11 @@ export function CaseInsertSpineWorkflowControls(
 ) {
   return (
     <>
-      <CaseInsertWorkflowSection title="Artwork" spacingTop={false}>
-        <CaseInsertSpineArtworkControls {...props} />
-      </CaseInsertWorkflowSection>
-      <CaseInsertWorkflowSection title="Branding" variant="branding">
+      <CaseInsertWorkflowSection
+        title="Branding"
+        spacingTop={false}
+        variant="branding"
+      >
         <CaseInsertSpineBrandingControls {...props} />
       </CaseInsertWorkflowSection>
       <CaseInsertWorkflowSection title="Text">

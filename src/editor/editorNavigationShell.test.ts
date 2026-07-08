@@ -9,6 +9,25 @@ import {
   getEditorNavigationShellRoleSections,
 } from './editorNavigationShell.ts'
 
+function assertSourceOrder(source: string, orderedSnippets: readonly string[]) {
+  const positions = orderedSnippets.map((snippet) => {
+    const index = source.indexOf(snippet)
+    assert.notEqual(index, -1, `Expected source to contain ${snippet}`)
+    return index
+  })
+
+  positions.forEach((position, index) => {
+    if (index === 0) {
+      return
+    }
+
+    assert.ok(
+      position > positions[index - 1],
+      `Expected ${orderedSnippets[index - 1]} before ${orderedSnippets[index]}`,
+    )
+  })
+}
+
 test('app-level workspace routing remains home disc and caseInsert', () => {
   const editorTypesSource = readFileSync(
     'src/editor/editorTypes.ts',
@@ -46,11 +65,11 @@ test('editor navigation shell defines disc role sections', () => {
   assert.deepEqual(
     roleSections.map(({ label }) => label),
     [
+      'Background Image',
       'Game Title',
-      'Big Background Image',
       'Game Info Logos',
       'Company Logos',
-      'Legal Info',
+      'Legal Text',
       'Additional Artwork',
       'Additional Text',
     ],
@@ -67,10 +86,11 @@ test('editor navigation shell defines case front role sections', () => {
       ({ label }) => label,
     ),
     [
+      'Background Image',
       'Game Title',
-      'Big Background Image',
       'Game Info Logos',
       'Company Logos',
+      'Legal Info',
       'Additional Artwork',
       'Additional Text',
     ],
@@ -81,12 +101,13 @@ test('editor navigation shell defines case back role sections', () => {
   assert.deepEqual(
     getEditorNavigationShellRoleSections('back').map(({ label }) => label),
     [
-      'Game Description Text',
-      'Feature Bullets / Callouts',
-      'Big Background Image',
+      'Background Image',
+      'Game Title',
       'Screenshots',
       'Game Info Logos',
       'Company Logos',
+      'Game Description Text',
+      'Feature Bullets / Callouts',
       'System Requirements',
       'Legal Info',
       'Additional Artwork',
@@ -99,12 +120,90 @@ test('editor navigation shell defines spine role sections', () => {
   assert.deepEqual(
     getEditorNavigationShellRoleSections('spine').map(({ label }) => label),
     [
-      'Steam Logo / Steam Backup Branding',
+      'Background Image',
       'Vertical Game Logo or Game Title',
+      'Steam Logo / Steam Backup Branding',
       'Company Logo',
       'Optional Media Format Type',
-      'Spine Background / Color / Artwork',
+      'Legal Info',
+      'Additional Artwork',
+      'Additional Text',
     ],
+  )
+})
+
+test('legal role is present on every surface with visible legal text controls', () => {
+  assert.deepEqual(
+    {
+      'disc-label': getEditorNavigationShellRoleSections('disc-label')
+        .filter(({ id }) => id === 'legal-info')
+        .map(({ label }) => label),
+      front: getEditorNavigationShellRoleSections('front')
+        .filter(({ id }) => id === 'legal-info')
+        .map(({ label }) => label),
+      back: getEditorNavigationShellRoleSections('back')
+        .filter(({ id }) => id === 'legal-info')
+        .map(({ label }) => label),
+      spine: getEditorNavigationShellRoleSections('spine')
+        .filter(({ id }) => id === 'legal-info')
+        .map(({ label }) => label),
+    },
+    {
+      'disc-label': ['Legal Text'],
+      front: ['Legal Info'],
+      back: ['Legal Info'],
+      spine: ['Legal Info'],
+    },
+  )
+})
+
+test('company logo role is present on every applicable editor surface', () => {
+  assert.deepEqual(
+    {
+      'disc-label': getEditorNavigationShellRoleSections('disc-label')
+        .filter(({ id }) => id === 'company-logos')
+        .map(({ id }) => id),
+      front: getEditorNavigationShellRoleSections('front')
+        .filter(({ id }) => id === 'company-logos')
+        .map(({ id }) => id),
+      back: getEditorNavigationShellRoleSections('back')
+        .filter(({ id }) => id === 'company-logos')
+        .map(({ id }) => id),
+      spine: getEditorNavigationShellRoleSections('spine')
+        .filter(({ id }) => id === 'company-logo')
+        .map(({ id }) => id),
+    },
+    {
+      'disc-label': ['company-logos'],
+      front: ['company-logos'],
+      back: ['company-logos'],
+      spine: ['company-logo'],
+    },
+  )
+})
+
+test('game info logo role is present on every applicable editor surface', () => {
+  assert.deepEqual(
+    {
+      'disc-label': getEditorNavigationShellRoleSections('disc-label')
+        .filter(({ id }) => id === 'game-info-logos')
+        .map(({ id }) => id),
+      front: getEditorNavigationShellRoleSections('front')
+        .filter(({ id }) => id === 'game-info-logos')
+        .map(({ id }) => id),
+      back: getEditorNavigationShellRoleSections('back')
+        .filter(({ id }) => id === 'game-info-logos')
+        .map(({ id }) => id),
+      spine: getEditorNavigationShellRoleSections('spine')
+        .filter(({ id }) => id === 'optional-media-format-type')
+        .map(({ id }) => id),
+    },
+    {
+      'disc-label': ['game-info-logos'],
+      front: ['game-info-logos'],
+      back: ['game-info-logos'],
+      spine: ['optional-media-format-type'],
+    },
   )
 })
 
@@ -138,9 +237,32 @@ test('spine routes through tray without creating a persisted spine pane', () => 
   )
 })
 
+test('case insert tab clicks route back and spine through tray behavior', () => {
+  assert.deepEqual(getCaseInsertNavigationRoute('back'), {
+    caseInsertPane: 'tray',
+    navigationSurfaceId: 'back',
+    roleSurfaceId: 'back',
+  })
+  assert.deepEqual(getCaseInsertNavigationRoute('spine'), {
+    caseInsertPane: 'tray',
+    navigationSurfaceId: 'spine',
+    roleSurfaceId: 'spine',
+  })
+})
+
 test('case insert pane changes map back to shell surfaces', () => {
   assert.equal(getCaseInsertNavigationSurfaceForPane('cover'), 'front')
   assert.equal(getCaseInsertNavigationSurfaceForPane('tray'), 'back')
+})
+
+test('case insert pane changes normalize shell surface support in App', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+
+  assert.match(appSource, /normalizeCaseInsertNavigationSurfaceForPane/)
+  assert.match(
+    appSource,
+    /setActiveCaseInsertNavigationSurface\(\s*normalizeCaseInsertNavigationSurfaceForPane\(\s*paneId,\s*activeCaseInsertNavigationSurface,\s*\),\s*\)/,
+  )
 })
 
 test('issue 271 shell keeps existing editor controls reachable', () => {
@@ -152,35 +274,100 @@ test('issue 271 shell keeps existing editor controls reachable', () => {
 
   assert.match(
     appSource,
-    /<ExportOptionsPanel[\s\S]*discRoleSectionItems\.map[\s\S]*<EditorNavigationRolePanel[\s\S]*<GamePanel/,
+    /<ProjectPanel[\s\S]*<ExportOptionsPanel[\s\S]*<TemplatePanel[\s\S]*<GamePanel \{\.\.\.gamePanelProps\} \/>[\s\S]*discRoleSectionItems\.map[\s\S]*<EditorNavigationRolePanel/,
   )
   assert.match(appSource, /<ExportOptionsPanel/)
   assert.match(appSource, /<GamePanel \{\.\.\.gamePanelProps\} \/>/)
   assert.match(appSource, /<TemplatePanel/)
-  assert.match(appSource, /<ArtworkPanel/)
-  assert.match(appSource, /<BrandingPanel/)
+  assert.match(appSource, /<DiscSteamBrandingControls/)
+  assert.doesNotMatch(appSource, /<BrandingPanel/)
+  assert.doesNotMatch(appSource, /<ArtworkPanel/)
   assert.match(appSource, /<TextPanel/)
   assert.match(caseInsertShellSource, /<CaseInsertSurfaceTabs/)
-  assert.match(
-    caseInsertShellSource,
-    /roleSectionItems\.map[\s\S]*<EditorNavigationRolePanel[\s\S]*sidebarWorkflow\.map\(renderCaseInsertSidebarPanel\)/,
-  )
+  assertSourceOrder(caseInsertShellSource, [
+    '<CaseInsertSurfaceTabs',
+    'setupSidebarPanels.map(renderCaseInsertSidebarPanel)',
+    'roleSectionItems.map',
+    'legacySidebarPanels.map(renderCaseInsertSidebarPanel)',
+  ])
   assert.doesNotMatch(appSource, /<EditorNavigationShell/)
   assert.doesNotMatch(caseInsertShellSource, /<EditorNavigationShell/)
   assert.doesNotMatch(appSource, /EditorNavigationRolePanels/)
   assert.doesNotMatch(caseInsertShellSource, /EditorNavigationRolePanels/)
 })
 
-test('issue 272 first disc role migration moves additional artwork controls only', () => {
+test('issue 272 disc sidebar order keeps setup controls, roles, then legacy panels', () => {
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
-  const artworkPanelSource = readFileSync(
-    'src/components/sidebar/ArtworkPanel.tsx',
+  const discRoleLabels = getEditorNavigationShellRoleSections(
+    'disc-label',
+  ).map(({ label }) => label)
+
+  assertSourceOrder(appSource, [
+    '<ProjectPanel',
+    '<ExportOptionsPanel',
+    '<TemplatePanel',
+    '<GamePanel {...gamePanelProps} />',
+    '<DiscSteamBrandingControls {...brandingPanelProps} />',
+    'discRoleSectionItems.map',
+    '<TextPanel',
+  ])
+  assert.deepEqual(discRoleLabels, [
+    'Background Image',
+    'Game Title',
+    'Game Info Logos',
+    'Company Logos',
+    'Legal Text',
+    'Additional Artwork',
+    'Additional Text',
+  ])
+})
+
+test('issue 272 remaining disc legacy panel headings are marked as migrating soon', () => {
+  const legacyPanelSources = [
+    'src/components/sidebar/TextPanel.tsx',
+  ].map((path) => readFileSync(path, 'utf8'))
+  const programPanelSources = [
+    'src/components/sidebar/ProjectPanel.tsx',
+    'src/components/sidebar/ExportOptionsPanel.tsx',
+    'src/components/sidebar/TemplatePanel.tsx',
+    'src/components/sidebar/GamePanel.tsx',
+    'src/components/sidebar/branding/DiscSteamBrandingControls.tsx',
+  ].map((path) => readFileSync(path, 'utf8'))
+
+  assert.match(
+    legacyPanelSources[0],
+    /<EditorPanel title="Text — Migrating Soon">/,
+  )
+  legacyPanelSources.forEach((source) => {
+    assert.match(
+      source,
+      /Controls in this panel are being\s+moved\s+into role panels\./,
+    )
+  })
+  programPanelSources.forEach((source) => {
+    assert.doesNotMatch(source, /Migrating Soon/)
+    assert.doesNotMatch(source, /moved\s+into role panels/)
+  })
+})
+
+test('issue 272 disc Game Title role owns visual title artwork controls', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const textPanelSource = readFileSync(
+    'src/components/sidebar/TextPanel.tsx',
     'utf8',
   )
 
   assert.match(
     appSource,
+    /import \{ BackgroundArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/BackgroundArtworkControls'/,
+  )
+  assert.match(
+    appSource,
     /import \{ AdditionalArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/AdditionalArtworkControls'/,
+  )
+  assert.match(
+    appSource,
+    /import \{ TitleArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/TitleArtworkControls'/,
   )
   assert.match(
     appSource,
@@ -188,14 +375,200 @@ test('issue 272 first disc role migration moves additional artwork controls only
   )
   assert.match(
     appSource,
+    /section\.id === 'background-artwork'[\s\S]*<BackgroundArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+  )
+  assert.match(
+    appSource,
+    /section\.id === 'game-title'[\s\S]*<TitleArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+  )
+  assert.match(
+    appSource,
     /section\.id === 'additional-artwork'[\s\S]*<AdditionalArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
   )
-  assert.match(appSource, /<ArtworkPanel \{\.\.\.artworkPanelProps\} \/>/)
-  assert.match(artworkPanelSource, /<BackgroundArtworkControls \{\.\.\.props\} \/>/)
-  assert.match(artworkPanelSource, /<TitleArtworkControls \{\.\.\.props\} \/>/)
-  assert.doesNotMatch(artworkPanelSource, /AdditionalArtworkControls/)
-  assert.doesNotMatch(
-    artworkPanelSource,
-    /<EditorFeaturePanel title="Additional Artwork">/,
+  assert.doesNotMatch(appSource, /<ArtworkPanel \{\.\.\.artworkPanelProps\} \/>/)
+  assert.match(textPanelSource, /DISC_TEXT_KEYS[\s\S]*\.filter/)
+  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
+  assert.match(textPanelSource, /<DiscTextControl/)
+})
+
+test('issue 272 Legal Text role owns disc copyright text controls only', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const textPanelSource = readFileSync(
+    'src/components/sidebar/TextPanel.tsx',
+    'utf8',
   )
+  const legalTextSource = readFileSync(
+    'src/components/sidebar/text/DiscLegalTextControls.tsx',
+    'utf8',
+  )
+  const gamePanelSource = readFileSync(
+    'src/components/sidebar/GamePanel.tsx',
+    'utf8',
+  )
+
+  assert.match(
+    appSource,
+    /import \{ DiscLegalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscLegalTextControls'/,
+  )
+  assert.match(
+    appSource,
+    /section\.id === 'legal-info'[\s\S]*<DiscLegalTextControls \{\.\.\.textPanelProps\} \/>/,
+  )
+  assert.match(legalTextSource, /textKey="copyright"/)
+  assert.match(legalTextSource, /<DiscTextControl/)
+  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
+  assert.match(textPanelSource, /<DiscTextControl/)
+  assert.match(gamePanelSource, /Copyright \/ legal text/)
+  assert.match(gamePanelSource, /projectMetadata\.copyrightText/)
+})
+
+test('issue 272 Additional Text role owns disc additional text controls only', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const textPanelSource = readFileSync(
+    'src/components/sidebar/TextPanel.tsx',
+    'utf8',
+  )
+  const additionalTextSource = readFileSync(
+    'src/components/sidebar/text/DiscAdditionalTextControls.tsx',
+    'utf8',
+  )
+  const gamePanelSource = readFileSync(
+    'src/components/sidebar/GamePanel.tsx',
+    'utf8',
+  )
+
+  assert.match(
+    appSource,
+    /import \{ DiscAdditionalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscAdditionalTextControls'/,
+  )
+  assert.match(
+    appSource,
+    /section\.id === 'additional-text'[\s\S]*<DiscAdditionalTextControls \{\.\.\.textPanelProps\} \/>/,
+  )
+
+  for (const textKey of [
+    'subtitle',
+    'discNumber',
+    'backupDate',
+    'appId',
+    'developer',
+    'publisher',
+    'installNotes',
+    'customNote',
+  ]) {
+    assert.match(
+      additionalTextSource,
+      new RegExp(`'${textKey}'`),
+      `${textKey} should be owned by DiscAdditionalTextControls`,
+    )
+  }
+
+  assert.doesNotMatch(additionalTextSource, /'title'/)
+  assert.doesNotMatch(additionalTextSource, /'copyright'/)
+  assert.match(additionalTextSource, /<DiscTextControl/)
+  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
+  assert.doesNotMatch(textPanelSource, /key !== 'copyright'/)
+
+  assert.match(gamePanelSource, /game-subtitle/)
+  assert.match(gamePanelSource, /game-metadata-app-id/)
+  assert.match(gamePanelSource, /game-metadata-install-notes/)
+})
+
+test('issue 272 Company Logos role owns developer and publisher logo controls', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const companyLogoControlsSource = readFileSync(
+    'src/components/sidebar/branding/CompanyLogoControls.tsx',
+    'utf8',
+  )
+
+  assert.match(
+    appSource,
+    /import \{ CompanyLogoControls \} from '\.\.\/components\/sidebar\/branding\/CompanyLogoControls'/,
+  )
+  assert.match(
+    appSource,
+    /const brandingPanelProps: BrandingPanelProps = \{[\s\S]*projectLogoAssets,[\s\S]*handleRemoveAdditionalLogoAsset,[\s\S]*\}/,
+  )
+  assert.match(
+    appSource,
+    /section\.id === 'company-logos'[\s\S]*<CompanyLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+  )
+  assert.doesNotMatch(appSource, /<LogoAssetControls/)
+  assert.doesNotMatch(appSource, /<BrandingPanel/)
+
+  assert.match(companyLogoControlsSource, /LogoAssetControls/)
+  assert.match(
+    companyLogoControlsSource,
+    /<EditorFeaturePanel title="Developer \/ publisher logos" variant="branding">/,
+  )
+  assert.match(companyLogoControlsSource, /logoKey="developer"/)
+  assert.match(companyLogoControlsSource, /label="Developer"/)
+  assert.match(companyLogoControlsSource, /logoKey="publisher"/)
+  assert.match(companyLogoControlsSource, /label="Publisher"/)
+})
+
+test('issue 272 Game Info Logos role owns disc mark controls', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const gameInfoLogoControlsSource = readFileSync(
+    'src/components/sidebar/branding/GameInfoLogoControls.tsx',
+    'utf8',
+  )
+
+  assert.match(
+    appSource,
+    /import \{ GameInfoLogoControls \} from '\.\.\/components\/sidebar\/branding\/GameInfoLogoControls'/,
+  )
+  assert.match(
+    appSource,
+    /section\.id === 'game-info-logos'[\s\S]*<GameInfoLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+  )
+  assert.doesNotMatch(appSource, /<BrandingPanel/)
+
+  assert.match(gameInfoLogoControlsSource, /RatingBadgeControls/)
+  assert.match(gameInfoLogoControlsSource, /MediaMarkControls/)
+  assert.match(gameInfoLogoControlsSource, /PlatformMarkControls/)
+  assert.match(gameInfoLogoControlsSource, /TechnicalMarkControls/)
+  assert.match(
+    gameInfoLogoControlsSource,
+    /<EditorFeaturePanel title="Rating badge" variant="branding">/,
+  )
+  assert.match(
+    gameInfoLogoControlsSource,
+    /<EditorFeaturePanel title="Media format mark" variant="branding">/,
+  )
+  assert.match(
+    gameInfoLogoControlsSource,
+    /<EditorFeaturePanel title="Operating system marks" variant="branding">/,
+  )
+  assert.match(
+    gameInfoLogoControlsSource,
+    /<EditorFeaturePanel title="Technical marks" variant="branding">/,
+  )
+})
+
+test('issue 272 Steam Branding setup panel owns disc Steam banner controls', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
+  const discSteamBrandingSource = readFileSync(
+    'src/components/sidebar/branding/DiscSteamBrandingControls.tsx',
+    'utf8',
+  )
+
+  assert.match(
+    appSource,
+    /import \{ DiscSteamBrandingControls \} from '\.\.\/components\/sidebar\/branding\/DiscSteamBrandingControls'/,
+  )
+  assertSourceOrder(appSource, [
+    '<TemplatePanel',
+    '<GamePanel {...gamePanelProps} />',
+    '<DiscSteamBrandingControls {...brandingPanelProps} />',
+    'discRoleSectionItems.map',
+  ])
+  assert.doesNotMatch(appSource, /<BrandingPanel/)
+
+  assert.match(
+    discSteamBrandingSource,
+    /<EditorPanel title="Steam Branding">/,
+  )
+  assert.match(discSteamBrandingSource, /<SteamBannerControls \{\.\.\.props\} \/>/)
+  assert.doesNotMatch(discSteamBrandingSource, /Migrating Soon/)
 })

@@ -202,12 +202,12 @@ export function BackgroundArtworkControls(props: ArtworkPanelProps) {
           onChange={(event) =>
             handleBackgroundArtworkEnabledChange(event.target.checked)}
         />
-        Show background art
+        Show background image
       </label>
 
       <p className="hint">
         Current background: {backgroundStatus.summary}. {backgroundStatus.availabilityLabel}
-        {!isBackgroundArtworkEnabled ? ' Background art is hidden from preview and export.' : ''}
+        {!isBackgroundArtworkEnabled ? ' Background image is hidden from preview and export.' : ''}
       </p>
       <SteamArtworkControls
         {...props}

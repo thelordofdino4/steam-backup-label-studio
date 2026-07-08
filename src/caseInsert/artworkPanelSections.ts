@@ -31,7 +31,23 @@ export function getCaseInsertArtworkPanelSectionLabels(
 ) {
   void surfaceId
 
-  return CASE_INSERT_ARTWORK_SECTION_IDS.map(
+  const sectionIds = CASE_INSERT_ARTWORK_SECTION_IDS.filter((sectionId) => {
+    if (sectionId === 'background') {
+      return false
+    }
+
+    if (sectionId === 'additionalArtwork') {
+      return false
+    }
+
+    if (sectionId === 'gameLogo') {
+      return false
+    }
+
+    return true
+  })
+
+  return sectionIds.map(
     (sectionId) => CASE_INSERT_ARTWORK_SECTION_LABELS[sectionId],
   )
 }
