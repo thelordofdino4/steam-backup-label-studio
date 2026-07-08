@@ -125,6 +125,7 @@ test('editor navigation shell defines spine role sections', () => {
       'Steam Logo / Steam Backup Branding',
       'Company Logo',
       'Optional Media Format Type',
+      'Game Info Logos',
       'Legal Info',
       'Additional Artwork',
       'Additional Text',
@@ -195,14 +196,14 @@ test('game info logo role is present on every applicable editor surface', () => 
         .filter(({ id }) => id === 'game-info-logos')
         .map(({ id }) => id),
       spine: getEditorNavigationShellRoleSections('spine')
-        .filter(({ id }) => id === 'optional-media-format-type')
+        .filter(({ id }) => id === 'game-info-logos')
         .map(({ id }) => id),
     },
     {
       'disc-label': ['game-info-logos'],
       front: ['game-info-logos'],
       back: ['game-info-logos'],
-      spine: ['optional-media-format-type'],
+      spine: ['game-info-logos'],
     },
   )
 })
@@ -288,7 +289,6 @@ test('issue 271 shell keeps existing editor controls reachable', () => {
     '<CaseInsertSurfaceTabs',
     'setupSidebarPanels.map(renderCaseInsertSidebarPanel)',
     'roleSectionItems.map',
-    'legacySidebarPanels.map(renderCaseInsertSidebarPanel)',
   ])
   assert.doesNotMatch(appSource, /<EditorNavigationShell/)
   assert.doesNotMatch(caseInsertShellSource, /<EditorNavigationShell/)

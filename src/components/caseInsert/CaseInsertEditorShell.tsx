@@ -1,4 +1,4 @@
-import type { MouseEvent, ReactNode, RefObject } from 'react'
+import type { MouseEvent, RefObject } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
   getCaseInsertTemplatePaneConfig,
@@ -6,7 +6,6 @@ import {
   type CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
 import {
-  getCaseInsertSidebarLegacyPanels,
   getCaseInsertSidebarSetupPanels,
   getCaseInsertSidebarStatusLabel,
   type CaseInsertSidebarPanel,
@@ -36,9 +35,6 @@ import type {
   CaseInsertBrandingSetupControlsProps,
 } from './CaseInsertBrandingSetupControls'
 import {
-  CaseInsertSpineWorkflowControls,
-} from './CaseInsertSpineControls'
-import {
   CaseInsertTemplateCompanyLogoControls,
 } from './CaseInsertTemplateCompanyLogoControls'
 import {
@@ -53,6 +49,9 @@ import {
 import {
   CaseInsertSpineGameTitleControls,
 } from './CaseInsertSpineGameTitleControls'
+import {
+  CaseInsertSpineGameInfoLogoControls,
+} from './CaseInsertSpineGameInfoLogoControls'
 import {
   CaseInsertTemplateAdditionalArtworkControls,
 } from './CaseInsertTemplateAdditionalArtworkControls'
@@ -302,24 +301,6 @@ function CaseInsertExportOptionsPanel({
   )
 }
 
-function CaseInsertWorkflowPanel({
-  title,
-  open = false,
-  headerActions,
-  children,
-}: {
-  title: string
-  open?: boolean
-  headerActions?: ReactNode
-  children: ReactNode
-}) {
-  return (
-    <EditorPanel title={title} open={open} headerActions={headerActions}>
-      {children}
-    </EditorPanel>
-  )
-}
-
 function CaseInsertSpineMirrorToggle({
   mirrored,
   onMirroredChange,
@@ -436,8 +417,6 @@ export function CaseInsertEditorShell({
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
   const setupSidebarPanels =
     getCaseInsertSidebarSetupPanels(activeTemplatePane)
-  const legacySidebarPanels =
-    getCaseInsertSidebarLegacyPanels(activeTemplatePane)
   const supportedNavigationSurfaces =
     getCaseInsertSupportedNavigationSurfacesForPane(activeTemplatePane)
   const roleSectionItems =
@@ -477,31 +456,6 @@ export function CaseInsertEditorShell({
             activeTemplatePane={activeTemplatePane}
             onActiveTemplatePaneChange={onActiveTemplatePaneChange}
           />
-        )
-      case 'spine':
-        return (
-          <CaseInsertWorkflowPanel
-            key={panel.id}
-            title={panel.label}
-            open={panel.openByDefault}
-            headerActions={(
-              <CaseInsertSpineMirrorToggle
-                mirrored={caseInsert.spine.mirrored}
-                onMirroredChange={spineEditor.handleSpineMirroredChange}
-              />
-            )}
-          >
-            <CaseInsertSpineWorkflowControls
-              spine={caseInsert.spine}
-              projectMetadata={brandingSources.projectMetadata}
-              actions={spineEditor}
-              imageSources={imageSources}
-              getBrandingControls={getBrandingControls}
-              logoCandidateDiscovery={logoCandidateDiscovery}
-              handleFindLogoCandidates={handleFindLogoCandidates}
-              onSelectedTextTargetChange={onSelectedTextTargetChange}
-            />
-          </CaseInsertWorkflowPanel>
         )
       default:
         return null
@@ -563,6 +517,14 @@ export function CaseInsertEditorShell({
           activeSurfaceId={activeNavigationSurface}
           onSurfaceChange={onNavigationSurfaceChange}
           supportedSurfaceIds={supportedNavigationSurfaces}
+          trailingAction={
+            activeNavigationSurface === 'spine' ? (
+              <CaseInsertSpineMirrorToggle
+                mirrored={caseInsert.spine.mirrored}
+                onMirroredChange={spineEditor.handleSpineMirroredChange}
+              />
+            ) : null
+          }
         />
 
         {setupSidebarPanels.map(renderCaseInsertSidebarPanel)}
@@ -612,6 +574,18 @@ export function CaseInsertEditorShell({
               />
             ) : section.id === 'vertical-game-logo-title' ? (
               <CaseInsertSpineGameTitleControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'game-info-logos' &&
+              activeNavigationSurface === 'spine' ? (
+              <CaseInsertSpineGameInfoLogoControls
                 spine={caseInsert.spine}
                 projectMetadata={brandingSources.projectMetadata}
                 actions={spineEditor}
@@ -791,8 +765,6 @@ export function CaseInsertEditorShell({
             ) : null}
           </EditorNavigationRolePanel>
         ))}
-
-        {legacySidebarPanels.map(renderCaseInsertSidebarPanel)}
       </aside>
 
       <CaseInsertPreview

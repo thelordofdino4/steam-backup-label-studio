@@ -57,6 +57,23 @@
   margin-bottom: 12px;
 }
 
+.case-insert-surface-tabs-shell {
+  align-items: stretch;
+  display: grid;
+  gap: 6px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  margin-bottom: 12px;
+}
+
+.case-insert-surface-tabs-shell .case-insert-surface-tabs {
+  margin-bottom: 0;
+}
+
+.case-insert-surface-tabs-action {
+  align-items: stretch;
+  display: flex;
+}
+
 .case-insert-surface-tab {
   align-items: center;
   background: rgba(15, 23, 42, 0.64);

@@ -98,7 +98,7 @@ Role sections:
 - Disc Label: Background Image, Game Title, Game Info Logos, Company Logos, Legal Text, Additional Artwork, Additional Text.
 - Front: Background Image, Game Title, Game Info Logos, Company Logos, Legal Info, Additional Artwork, Additional Text.
 - Back: Background Image, Game Title, Screenshots, Game Info Logos, Company Logos, Game Description Text, Feature Bullets / Callouts, System Requirements, Legal Info, Additional Artwork, Additional Text.
-- Spine: Background Image, Vertical Game Logo or Game Title, Steam Logo / Steam Backup Branding, Company Logo, Optional Media Format Type, Legal Info, Additional Artwork, Additional Text.
+- Spine: Background Image, Vertical Game Logo or Game Title, Steam Logo / Steam Backup Branding, Company Logo, Optional Media Format Type, Game Info Logos, Legal Info, Additional Artwork, Additional Text.
 
 This corrected pass does not include a Layout Preset placeholder. Preset model and preset application work remains outside #271.
 
@@ -123,11 +123,12 @@ state/action adapters, and must not change save/load schema, preview renderers,
 export renderers, or layout math.
 
 For Game Info Logos, coverage means Disc Label Game Info Logos, Case
-Front/Cover Game Info Logos, and Case Back/Tray Game Info Logos. The Spine
-equivalent is intentionally narrower for now: Optional Media Format Type owns
-only the existing spine media-format mark controls. Spine rating badges,
-operating-system marks, and technical marks remain in the Spine Branding legacy
-migration panel until a later role can receive them without broadening #272.
+Front/Cover Game Info Logos, Case Back/Tray Game Info Logos, and Spine Game
+Info Logos. Spine keeps media format separate: Optional Media Format Type owns
+only the existing spine media-format mark controls, while Spine Game Info Logos
+owns the existing spine rating badge, operating-system mark, and technical mark
+controls. This is UI organization only; it does not change schema, renderers,
+export, save/load, persisted pane routing, or the spine media-format role.
 
 Steam Branding is a setup/program panel, not part of the artwork role
 hierarchy. It should sit below Game and above the role panels only on surfaces
@@ -220,13 +221,21 @@ Game. Title text fallback belongs to Game Title, not Additional Text. This is
 UI organization only, not a schema, renderer, export, save/load,
 text-editor behavior, or persisted-surface change.
 
-After the title text fallback migration, the only remaining visible legacy
-migration panel is Spine Branding for the unresolved spine rating badge,
-operating-system marks, and technical marks. Spine media format, company logo,
-Steam branding, legal text, additional artwork, additional text, background,
-and title/logo controls already have role or setup panel homes. Do not add a
-Spine Game Info Logos role or move those remaining spine branding marks without
-a separate product decision.
+After the Spine Game Info Logos migration, the remaining visible legacy Spine
+migration panel no longer owns packaging-role content and is removed. The
+former Spine Branding rating badge, operating-system mark, and technical mark
+controls live in Spine Game Info Logos. Spine media format remains in Optional
+Media Format Type, company logo remains in Company Logo, Steam branding remains
+in Steam Branding, legal text remains in Legal Info, additional artwork remains
+in Additional Artwork, additional text remains in Additional Text, background
+remains in Background Image, and title/logo controls remain in Vertical Game
+Logo or Game Title.
+
+Spine mirror editing lives near the Case Insert Front / Back / Spine surface
+tabs, visible only when the active navigation surface is Spine. Mirroring is a
+spine-surface editing mode, not a packaging role or a new persisted pane. The
+toggle continues to use the existing `caseInsert.spine.mirrored` state and
+`spineEditor.handleSpineMirroredChange` action.
 
 ## Behavior Preservation
 

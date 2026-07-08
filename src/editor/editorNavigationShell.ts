@@ -108,6 +108,7 @@ const SPINE_ROLE_SECTIONS = [
   },
   { id: 'company-logo', label: 'Company Logo' },
   { id: 'optional-media-format-type', label: 'Optional Media Format Type' },
+  { id: 'game-info-logos', label: 'Game Info Logos' },
   { id: 'legal-info', label: 'Legal Info' },
   { id: 'additional-artwork', label: 'Additional Artwork' },
   { id: 'additional-text', label: 'Additional Text' },
