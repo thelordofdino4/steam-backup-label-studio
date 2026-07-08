@@ -22,7 +22,6 @@ test('cover sheet case sidebar mirrors the core editor flow', () => {
       'Export Options',
       'Template',
       'Game',
-      'Cover Sheet — Migrating Soon',
     ],
   )
 })
@@ -35,7 +34,6 @@ test('tray card case sidebar gives each editable surface a main panel', () => {
       'Export Options',
       'Template',
       'Game',
-      'Tray Card — Migrating Soon',
       'Spine — Migrating Soon',
     ],
   )
@@ -54,20 +52,23 @@ test('case sidebar exposes setup panels separately from legacy migration panels'
   assert.deepEqual(
     getCaseInsertSidebarLegacyPanels('tray').map((panel) => panel.label),
     [
-      'Tray Card — Migrating Soon',
       'Spine — Migrating Soon',
     ],
+  )
+  assert.deepEqual(
+    getCaseInsertSidebarLegacyPanels('cover').map((panel) => panel.label),
+    [],
   )
 })
 
 test('case sidebar panels start closed by default', () => {
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('cover').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined],
   )
   assert.deepEqual(
     getCaseInsertSidebarWorkflow('tray').map((panel) => panel.openByDefault),
-    [undefined, undefined, undefined, undefined, undefined, undefined],
+    [undefined, undefined, undefined, undefined, undefined],
   )
 })
 

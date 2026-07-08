@@ -33,9 +33,10 @@ import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
-import { TextPanel, type TextPanelProps } from '../components/sidebar/TextPanel'
 import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
+import { DiscGameTitleTextControls } from '../components/sidebar/text/DiscGameTitleTextControls'
 import { DiscLegalTextControls } from '../components/sidebar/text/DiscLegalTextControls'
+import type { TextPanelProps } from '../components/sidebar/textPanelTypes'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
 import { useDiscExportGuides } from '../hooks/useDiscExportGuides'
 import { useDiscPreviewSize } from '../hooks/useDiscPreviewSize'
@@ -1713,7 +1714,10 @@ function App() {
             {section.id === 'background-artwork' ? (
               <BackgroundArtworkControls {...artworkPanelProps} />
             ) : section.id === 'game-title' ? (
-              <TitleArtworkControls {...artworkPanelProps} />
+              <>
+                <TitleArtworkControls {...artworkPanelProps} />
+                <DiscGameTitleTextControls {...textPanelProps} />
+              </>
             ) : section.id === 'game-info-logos' ? (
               <GameInfoLogoControls {...brandingPanelProps} />
             ) : section.id === 'company-logos' ? (
@@ -1727,9 +1731,6 @@ function App() {
             ) : null}
           </EditorNavigationRolePanel>
         ))}
-
-        <TextPanel {...textPanelProps} />
-
       </aside>
 
       <DiscPreview

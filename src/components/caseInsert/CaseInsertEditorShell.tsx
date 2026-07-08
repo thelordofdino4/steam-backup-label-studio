@@ -36,9 +36,6 @@ import type {
   CaseInsertBrandingSetupControlsProps,
 } from './CaseInsertBrandingSetupControls'
 import {
-  CaseInsertTemplateWorkflowControls,
-} from './CaseInsertTemplateControls'
-import {
   CaseInsertSpineWorkflowControls,
 } from './CaseInsertSpineControls'
 import {
@@ -480,26 +477,6 @@ export function CaseInsertEditorShell({
             activeTemplatePane={activeTemplatePane}
             onActiveTemplatePaneChange={onActiveTemplatePaneChange}
           />
-        )
-      case 'surface':
-        return (
-          <CaseInsertWorkflowPanel
-            key={panel.id}
-            title={panel.label}
-            open={panel.openByDefault}
-          >
-            <CaseInsertTemplateWorkflowControls
-              paneId={activeTemplatePane}
-              templateState={activeTemplateState}
-              projectMetadata={brandingSources.projectMetadata}
-              actions={editor}
-              imageSources={imageSources}
-              getBrandingControls={getBrandingControls}
-              logoCandidateDiscovery={logoCandidateDiscovery}
-              handleFindLogoCandidates={handleFindLogoCandidates}
-              onSelectedTextTargetChange={onSelectedTextTargetChange}
-            />
-          </CaseInsertWorkflowPanel>
         )
       case 'spine':
         return (

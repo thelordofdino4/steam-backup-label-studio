@@ -105,7 +105,7 @@ export function TitleArtworkControls({
       ) : null}
 
       <p className="hint">
-        This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the best available Steam title/logo artwork; rendered title text stays independently available in the Text tab as the fallback.
+        This is the game title/logo artwork on the disc face, not the Steam banner lockup in Branding. Steam import can seed the best available Steam title/logo artwork; rendered title text fallback stays independently available in this Game Title panel.
       </p>
 
       <div

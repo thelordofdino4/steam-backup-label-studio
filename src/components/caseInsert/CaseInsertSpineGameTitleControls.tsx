@@ -7,6 +7,9 @@ import {
   CaseInsertSpineControlSections,
 } from './CaseInsertSpineControlSections'
 import {
+  CaseInsertSpineTitleTextControl,
+} from './CaseInsertSpineTextControls'
+import {
   getSpineImageSlotPlacementFields,
 } from './CaseInsertSpineControlPlacement'
 import type {
@@ -16,6 +19,7 @@ import type {
 export function CaseInsertSpineGameTitleControls({
   spine,
   actions,
+  onSelectedTextTargetChange,
 }: CaseInsertSpineControlsProps) {
   return (
     <CaseInsertSpineControlSections
@@ -24,42 +28,52 @@ export function CaseInsertSpineGameTitleControls({
         const state = spine[side]
 
         return (
-          <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
-            <CaseInsertTitleArtworkControls
-              slot={state.titleArtwork}
-              uploadId={`${side}-spine-title-artwork-upload`}
-              fields={getSpineImageSlotPlacementFields(
-                side,
-                state.titleArtwork,
-                'titleArtwork',
-              )}
-              helpText="This is the game title/logo artwork on the spine. Steam import can seed the best available Steam title/logo artwork; Game title text stays independently available in the Text tab."
-              onEnabledChange={(enabled) =>
-                actions.handleSpineImageSlotEnabledChange(
+          <>
+            <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
+              <CaseInsertTitleArtworkControls
+                slot={state.titleArtwork}
+                uploadId={`${side}-spine-title-artwork-upload`}
+                fields={getSpineImageSlotPlacementFields(
                   side,
+                  state.titleArtwork,
                   'titleArtwork',
-                  enabled,
                 )}
-              onUpload={(event) =>
-                actions.handleSpineImageSlotUpload(
-                  side,
-                  'titleArtwork',
-                  state.titleArtwork.label,
-                  event,
-                )}
-              onLayoutChange={(field, value) =>
-                actions.handleSpineImageSlotLayoutChange(
-                  side,
-                  'titleArtwork',
-                  field,
-                  value,
-                )}
-              onResetLayout={() =>
-                actions.handleResetSpineImageSlotLayout(side, 'titleArtwork')}
-              onRestoreDefault={() =>
-                actions.handleRestoreSpineTitleArtworkDefault(side)}
-            />
-          </EditorFeaturePanel>
+                helpText="This is the game title/logo artwork on the spine. Steam import can seed the best available Steam title/logo artwork; game title text fallback stays independently editable in this role panel."
+                onEnabledChange={(enabled) =>
+                  actions.handleSpineImageSlotEnabledChange(
+                    side,
+                    'titleArtwork',
+                    enabled,
+                  )}
+                onUpload={(event) =>
+                  actions.handleSpineImageSlotUpload(
+                    side,
+                    'titleArtwork',
+                    state.titleArtwork.label,
+                    event,
+                  )}
+                onLayoutChange={(field, value) =>
+                  actions.handleSpineImageSlotLayoutChange(
+                    side,
+                    'titleArtwork',
+                    field,
+                    value,
+                  )}
+                onResetLayout={() =>
+                  actions.handleResetSpineImageSlotLayout(side, 'titleArtwork')}
+                onRestoreDefault={() =>
+                  actions.handleRestoreSpineTitleArtworkDefault(side)}
+              />
+            </EditorFeaturePanel>
+            <EditorFeaturePanel title="Game title text">
+              <CaseInsertSpineTitleTextControl
+                side={side}
+                title={state.title}
+                actions={actions}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            </EditorFeaturePanel>
+          </>
         )
       }}
     />

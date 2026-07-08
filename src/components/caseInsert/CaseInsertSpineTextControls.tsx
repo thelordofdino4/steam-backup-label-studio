@@ -74,7 +74,7 @@ function SpineTextLayoutPresetControl({
   )
 }
 
-function SpineTitleControls({
+export function CaseInsertSpineTitleTextControl({
   side,
   title,
   actions,
@@ -292,7 +292,7 @@ export function CaseInsertSpineTextControls({
         return (
           <>
           {includeTitle ? (
-            <SpineTitleControls
+            <CaseInsertSpineTitleTextControl
               side={side}
               title={state.title}
               actions={actions}

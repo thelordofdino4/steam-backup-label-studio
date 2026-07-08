@@ -8,7 +8,6 @@ export type CaseInsertSidebarPanelId =
   | 'exportOptions'
   | 'game'
   | 'template'
-  | 'surface'
   | 'spine'
 
 export type CaseInsertSidebarPanel = {
@@ -25,7 +24,6 @@ const CASE_INSERT_SETUP_PANEL_IDS = [
 ] as const
 
 const CASE_INSERT_LEGACY_PANEL_IDS = [
-  'surface',
   'spine',
 ] as const
 
@@ -57,9 +55,7 @@ export function getCaseInsertSidebarWorkflow(
     { id: 'template', label: 'Template' },
     { id: 'game', label: 'Game' },
   ]
-  const legacyPanels: CaseInsertSidebarPanel[] = [
-    { id: 'surface', label: createMigrationLabel(paneConfig.label) },
-  ]
+  const legacyPanels: CaseInsertSidebarPanel[] = []
 
   if (paneConfig.hasSpine) {
     legacyPanels.push({ id: 'spine', label: createMigrationLabel('Spine') })

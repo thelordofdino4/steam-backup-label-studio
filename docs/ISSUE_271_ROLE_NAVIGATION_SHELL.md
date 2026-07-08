@@ -32,7 +32,7 @@ The Spine mapping is intentionally an adapter. Current jewel-case spine content 
 
 - Top-level workspace routing and cross-feature orchestration are owned by `src/app/App.tsx`.
 - Current workspace values are `home | disc | caseInsert`.
-- Disc sidebar/navigation is hardcoded in `App.tsx` and renders `ProjectPanel`, `ExportOptionsPanel`, `TemplatePanel`, `GamePanel`, setup/program panels such as `Steam Branding`, role panels, and remaining legacy panels such as `TextPanel`.
+- Disc sidebar/navigation is hardcoded in `App.tsx` and renders `ProjectPanel`, `ExportOptionsPanel`, `TemplatePanel`, `GamePanel`, setup/program panels such as `Steam Branding`, and migrated role panels. The old disc `TextPanel` was removed once its final title text fallback control moved into Game Title.
 - Case editor shell/sidebar composition is owned by `src/components/caseInsert/CaseInsertEditorShell.tsx`.
 - Case sidebar workflow modeling is owned by `src/caseInsert/sidebarWorkflow.ts`.
 - Case surface/pane modeling is owned by `src/caseInsert/templateSurfaces.ts`.
@@ -141,14 +141,16 @@ that already had visible Steam banner controls. Current coverage is:
 Hidden tray Steam banner state should not become user-visible without a
 separate product decision.
 
-For the Game Title / Game Logo artwork migration, coverage means Disc Label,
-Case Front/Cover, Case Back/Tray, and Spine. This pass moves only existing
-visual title/logo artwork controls into the Game Title role panels:
-Disc Label `projectTitleArtwork`, template `titleArtwork` for cover and tray,
-and spine left/right `titleArtwork`. Plain title text, metadata title fields,
-spine title text, and other title text fields remain in their existing
-Game/Text owners. This is UI organization only, not a schema, renderer, export,
-save/load, text-editor behavior, or persisted-surface change.
+For the Game Title / Game Logo artwork and title text fallback migration,
+coverage means Disc Label, Case Front/Cover, Case Back/Tray, and Spine. These
+passes move existing visual title/logo artwork controls and the remaining title
+text fallback controls into the Game Title role panels: Disc Label
+`projectTitleArtwork` plus disc `title` text, template `titleArtwork` plus
+`cover-title-text` and `tray-title-text`, and spine left/right `titleArtwork`
+plus left/right spine title text. Subtitle remains Additional Text,
+legal/copyright remains Legal Info, and plain metadata title fields remain in
+the Game setup panel. This is UI organization only, not a schema, renderer,
+export, save/load, text-editor behavior, or persisted-surface change.
 
 For the Legal Info / Legal Text migration, coverage means the existing visible
 copyright/legal text rows on Disc Label, Case Front/Cover, Case Back/Tray, and
@@ -211,12 +213,20 @@ for subtitle, disc number, backup date, Steam App ID, developer text, publisher
 text, install notes, and custom note into Additional Text role panels. Disc
 number badge/artwork mode moves with the disc number text control because it is
 rendered inside the existing `DiscTextControl` and shares its value and
-placement. Plain title text remains in legacy Text until a separate title-text
-migration, Legal Info remains separate, Back/Tray description/features/system
-requirements remain in their dedicated role panels, and GamePanel metadata
-source fields plus metadata assistance remain in Game. This is UI organization
-only, not a schema, renderer, export, save/load, text-editor behavior, or
-persisted-surface change.
+placement. Legal Info remains separate, Back/Tray
+description/features/system requirements remain in their dedicated role
+panels, and GamePanel metadata source fields plus metadata assistance remain in
+Game. Title text fallback belongs to Game Title, not Additional Text. This is
+UI organization only, not a schema, renderer, export, save/load,
+text-editor behavior, or persisted-surface change.
+
+After the title text fallback migration, the only remaining visible legacy
+migration panel is Spine Branding for the unresolved spine rating badge,
+operating-system marks, and technical marks. Spine media format, company logo,
+Steam branding, legal text, additional artwork, additional text, background,
+and title/logo controls already have role or setup panel homes. Do not add a
+Spine Game Info Logos role or move those remaining spine branding marks without
+a separate product decision.
 
 ## Behavior Preservation
 

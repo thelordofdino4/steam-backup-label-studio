@@ -35,6 +35,10 @@ const templateAdditionalArtworkSource = readFileSync(
 const templateGameTitlePath =
   'src/components/caseInsert/CaseInsertTemplateGameTitleControls.tsx'
 const templateGameTitleSource = readFileSync(templateGameTitlePath, 'utf8')
+const templateGameTitleTextSource = readFileSync(
+  'src/components/caseInsert/CaseInsertTemplateGameTitleTextControls.tsx',
+  'utf8',
+)
 const spineAdditionalArtworkSource = readFileSync(
   'src/components/caseInsert/CaseInsertSpineAdditionalArtworkControls.tsx',
   'utf8',
@@ -42,6 +46,10 @@ const spineAdditionalArtworkSource = readFileSync(
 const spineGameTitlePath =
   'src/components/caseInsert/CaseInsertSpineGameTitleControls.tsx'
 const spineGameTitleSource = readFileSync(spineGameTitlePath, 'utf8')
+const spineControlsSource = readFileSync(
+  'src/components/caseInsert/CaseInsertSpineControls.tsx',
+  'utf8',
+)
 const templateAdditionalTextSource = readFileSync(
   'src/components/caseInsert/CaseInsertTemplateAdditionalTextControls.tsx',
   'utf8',
@@ -395,7 +403,7 @@ test('case insert Game Info Logos and spine media format roles own mark controls
   assert.match(spineOptionalMediaFormatTypeSource, /CaseInsertSpineControlSections/)
 })
 
-test('case insert Game Title roles own template and spine visual title controls', () => {
+test('case insert Game Title roles own visual title and title text fallback controls', () => {
   assert.match(
     shellSource,
     /CaseInsertTemplateGameTitleControls/,
@@ -422,14 +430,23 @@ test('case insert Game Title roles own template and spine visual title controls'
   )
 
   assert.match(templateGameTitleSource, /CaseInsertTitleArtworkControls/)
+  assert.match(templateGameTitleSource, /CaseInsertTemplateGameTitleTextControls/)
   assert.match(templateGameTitleSource, /templateState\.titleArtwork/)
   assert.match(templateGameTitleSource, /handleRestoreTitleArtworkDefault/)
   assert.match(templateGameTitleSource, /getTemplatePrimaryImagePlacementFields/)
   assert.match(templateGameTitleSource, /CASE_INSERT_ARTWORK_SECTION_LABELS\.gameLogo/)
+  assert.match(templateGameTitleTextSource, /CaseInsertTemplateTextControls/)
+  assert.match(templateGameTitleTextSource, /includeTextLists=\{false\}/)
+  assert.match(
+    templateGameTitleTextSource,
+    /textBlock\.id === `\$\{paneId\}-title-text`/,
+  )
 
   assert.match(spineGameTitleSource, /CaseInsertSpineControlSections/)
   assert.match(spineGameTitleSource, /CaseInsertTitleArtworkControls/)
+  assert.match(spineGameTitleSource, /CaseInsertSpineTitleTextControl/)
   assert.match(spineGameTitleSource, /state\.titleArtwork/)
+  assert.match(spineGameTitleSource, /title=\{state\.title\}/)
   assert.match(spineGameTitleSource, /handleRestoreSpineTitleArtworkDefault/)
 
   assert.equal(
@@ -441,9 +458,8 @@ test('case insert Game Title roles own template and spine visual title controls'
     false,
   )
 
-  assert.match(templateTextSource, /templateState\.textBlocks/)
-  assert.match(templateTextSource, /templateState\.textLists/)
-  assert.match(spineTextSource, /<SpineTitleControls/)
+  assert.doesNotMatch(shellSource, /CaseInsertTemplateWorkflowControls/)
+  assert.doesNotMatch(spineControlsSource, /<CaseInsertSpineTextControls/)
 })
 
 test('case insert Legal Info roles own template and spine copyright text controls', () => {
@@ -496,7 +512,7 @@ test('case insert Legal Info roles own template and spine copyright text control
     /state\.textBlocks\.filter\(textBlockFilter\)/,
   )
   assert.match(spineTextSource, /includeTitle = true/)
-  assert.match(spineTextSource, /<SpineTitleControls/)
+  assert.match(spineTextSource, /<CaseInsertSpineTitleTextControl/)
 })
 
 test('case insert Additional Text roles own template and spine additional text rows', () => {
@@ -549,7 +565,7 @@ test('case insert Additional Text roles own template and spine additional text r
     /state\.textBlocks\.filter\(textBlockFilter\)/,
   )
   assert.match(spineTextSource, /includeTitle = true/)
-  assert.match(spineTextSource, /<SpineTitleControls/)
+  assert.match(spineTextSource, /<CaseInsertSpineTitleTextControl/)
 })
 
 test('case insert Back text roles own description feature and requirements rows', () => {
