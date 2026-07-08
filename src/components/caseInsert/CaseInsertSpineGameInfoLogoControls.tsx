@@ -39,7 +39,7 @@ import type {
   CaseInsertSpineControlsProps,
 } from './CaseInsertSpineControls.types'
 
-function SpineBrandingFeatureSection({
+function SpineGameInfoLogoFeatureSection({
   title,
   children,
 }: {
@@ -166,7 +166,7 @@ function SpineMarkPlacementControls({
   )
 }
 
-export function CaseInsertSpineBrandingControls({
+export function CaseInsertSpineGameInfoLogoControls({
   spine,
   actions,
   getBrandingControls,
@@ -187,7 +187,7 @@ export function CaseInsertSpineBrandingControls({
               (section) => section.markKind !== 'media',
             ).map((section) => {
               return (
-                <SpineBrandingFeatureSection
+                <SpineGameInfoLogoFeatureSection
                   key={section.markKind}
                   title={section.title}
                 >
@@ -267,7 +267,7 @@ export function CaseInsertSpineBrandingControls({
                       />
                     ) : null}
                   </SpineMarkSetupControls>
-                </SpineBrandingFeatureSection>
+                </SpineGameInfoLogoFeatureSection>
               )
             })}
           </>

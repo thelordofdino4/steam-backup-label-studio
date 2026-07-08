@@ -190,6 +190,25 @@ test('editor navigation shell role section items follow the active surface', () 
       },
     ],
   )
+
+  assert.deepEqual(
+    getEditorNavigationShellRoleSectionItems('spine')
+      .filter(({ id }) =>
+        id === 'optional-media-format-type' || id === 'game-info-logos')
+      .map(({ id, label, smokeId }) => ({ id, label, smokeId })),
+    [
+      {
+        id: 'optional-media-format-type',
+        label: 'Optional Media Format Type',
+        smokeId: 'editor-role-section-spine-optional-media-format-type',
+      },
+      {
+        id: 'game-info-logos',
+        label: 'Game Info Logos',
+        smokeId: 'editor-role-section-spine-game-info-logos',
+      },
+    ],
+  )
 })
 
 test('editor navigation shell exposes Legal Info smoke ids on every legal surface', () => {

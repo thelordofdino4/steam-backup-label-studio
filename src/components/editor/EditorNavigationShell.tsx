@@ -18,12 +18,14 @@ export type CaseInsertSurfaceTabsProps = {
   activeSurfaceId: CaseInsertNavigationSurfaceId
   onSurfaceChange: (surfaceId: CaseInsertNavigationSurfaceId) => void
   supportedSurfaceIds?: readonly CaseInsertNavigationSurfaceId[]
+  trailingAction?: ReactNode
 }
 
 export function CaseInsertSurfaceTabs({
   activeSurfaceId,
   onSurfaceChange,
   supportedSurfaceIds,
+  trailingAction,
 }: CaseInsertSurfaceTabsProps) {
   const surfaceItems = getCaseInsertNavigationSurfaceTabItems(
     activeSurfaceId,
@@ -34,7 +36,7 @@ export function CaseInsertSurfaceTabs({
     return null
   }
 
-  return (
+  const tabList = (
     <div
       className="case-insert-surface-tabs"
       role="tablist"
@@ -56,6 +58,19 @@ export function CaseInsertSurfaceTabs({
           {surface.label}
         </button>
       ))}
+    </div>
+  )
+
+  if (!trailingAction) {
+    return tabList
+  }
+
+  return (
+    <div className="case-insert-surface-tabs-shell">
+      {tabList}
+      <div className="case-insert-surface-tabs-action">
+        {trailingAction}
+      </div>
     </div>
   )
 }

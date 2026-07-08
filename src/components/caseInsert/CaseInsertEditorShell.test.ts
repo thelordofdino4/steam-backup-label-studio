@@ -12,8 +12,8 @@ const shellSource = readFileSync(
 )
 const templateBrandingPath =
   'src/components/caseInsert/CaseInsertTemplateBrandingControls.tsx'
-const spineBrandingSource = readFileSync(
-  'src/components/caseInsert/CaseInsertSpineBrandingControls.tsx',
+const spineGameInfoLogoSource = readFileSync(
+  'src/components/caseInsert/CaseInsertSpineGameInfoLogoControls.tsx',
   'utf8',
 )
 const templateCompanyLogoSource = readFileSync(
@@ -46,10 +46,6 @@ const spineAdditionalArtworkSource = readFileSync(
 const spineGameTitlePath =
   'src/components/caseInsert/CaseInsertSpineGameTitleControls.tsx'
 const spineGameTitleSource = readFileSync(spineGameTitlePath, 'utf8')
-const spineControlsSource = readFileSync(
-  'src/components/caseInsert/CaseInsertSpineControls.tsx',
-  'utf8',
-)
 const templateAdditionalTextSource = readFileSync(
   'src/components/caseInsert/CaseInsertTemplateAdditionalTextControls.tsx',
   'utf8',
@@ -184,23 +180,18 @@ test('case insert editor shell support model hides cover tabs and shows tray tab
   assert.equal(trayItems.some(({ id }) => id === 'front'), false)
 })
 
-test('case insert editor shell renders setup panels before roles and legacy panels', () => {
+test('case insert editor shell renders setup panels before roles', () => {
   assert.match(shellSource, /getCaseInsertSidebarSetupPanels/)
-  assert.match(shellSource, /getCaseInsertSidebarLegacyPanels/)
+  assert.doesNotMatch(shellSource, /getCaseInsertSidebarLegacyPanels/)
   assert.match(
     shellSource,
     /const setupSidebarPanels =\s*getCaseInsertSidebarSetupPanels\(activeTemplatePane\)/,
-  )
-  assert.match(
-    shellSource,
-    /const legacySidebarPanels =\s*getCaseInsertSidebarLegacyPanels\(activeTemplatePane\)/,
   )
   assertSourceOrder(shellSource, [
     '<CaseInsertSurfaceTabs',
     '{setupSidebarPanels.map(renderCaseInsertSidebarPanel)}',
     '{renderCaseInsertSteamBrandingPanel()}',
     '{roleSectionItems.map',
-    '{legacySidebarPanels.map(renderCaseInsertSidebarPanel)}',
   ])
 })
 
@@ -324,8 +315,12 @@ test('case insert Company Logos roles own template and spine logo controls', () 
   )
 
   assert.equal(existsSync(templateBrandingPath), false)
-  assert.doesNotMatch(spineBrandingSource, /CaseInsertLogoSlotControls/)
-  assert.doesNotMatch(spineBrandingSource, /Developer \/ publisher logos/)
+  assert.equal(
+    existsSync('src/components/caseInsert/CaseInsertSpineBrandingControls.tsx'),
+    false,
+  )
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertLogoSlotControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /Developer \/ publisher logos/)
 
   assert.match(templateCompanyLogoSource, /CaseInsertLogoSlotControls/)
   assert.match(templateCompanyLogoSource, /logoKey="developer"/)
@@ -358,7 +353,15 @@ test('case insert Game Info Logos and spine media format roles own mark controls
   )
   assert.match(
     shellSource,
+    /import \{\s*CaseInsertSpineGameInfoLogoControls,\s*\} from '\.\/CaseInsertSpineGameInfoLogoControls'/,
+  )
+  assert.match(
+    shellSource,
     /import \{\s*CaseInsertSpineOptionalMediaFormatTypeControls,\s*\} from '\.\/CaseInsertSpineOptionalMediaFormatTypeControls'/,
+  )
+  assert.match(
+    shellSource,
+    /section\.id === 'game-info-logos' &&\s*activeNavigationSurface === 'spine'[\s\S]*<CaseInsertSpineGameInfoLogoControls/,
   )
   assert.match(
     shellSource,
@@ -378,15 +381,19 @@ test('case insert Game Info Logos and spine media format roles own mark controls
   assert.match(templateGameInfoLogoSource, /CaseInsertTechnicalMarkSetupControls/)
   assert.match(templateGameInfoLogoSource, /title=\{section\.title\}/)
 
-  assert.doesNotMatch(spineBrandingSource, /CaseInsertMediaMarkSetupControls/)
+  assert.match(spineGameInfoLogoSource, /CASE_INSERT_MARK_BRANDING_SECTIONS/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertMediaMarkSetupControls/)
   assert.match(
-    spineBrandingSource,
+    spineGameInfoLogoSource,
     /section\) => section\.markKind !== 'media'/,
   )
-  assert.doesNotMatch(spineBrandingSource, /CaseInsertSteamBannerControls/)
-  assert.match(spineBrandingSource, /CaseInsertRatingBadgeSetupControls/)
-  assert.match(spineBrandingSource, /CaseInsertPlatformMarkSetupControls/)
-  assert.match(spineBrandingSource, /CaseInsertTechnicalMarkSetupControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertSteamBannerControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertLogoSlotControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertTitleArtworkControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertSpineTextControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertRatingBadgeSetupControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertPlatformMarkSetupControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertTechnicalMarkSetupControls/)
 
   assert.match(
     spineOptionalMediaFormatTypeSource,
@@ -459,7 +466,10 @@ test('case insert Game Title roles own visual title and title text fallback cont
   )
 
   assert.doesNotMatch(shellSource, /CaseInsertTemplateWorkflowControls/)
-  assert.doesNotMatch(spineControlsSource, /<CaseInsertSpineTextControls/)
+  assert.equal(
+    existsSync('src/components/caseInsert/CaseInsertSpineControls.tsx'),
+    false,
+  )
 })
 
 test('case insert Legal Info roles own template and spine copyright text controls', () => {
@@ -708,8 +718,33 @@ test('case insert Steam Branding setup owns visible cover and spine controls onl
   assert.match(spineSteamBrandingSource, /CaseInsertSpineControlSections/)
   assert.match(spineSteamBrandingSource, /CaseInsertSteamBannerControls/)
   assert.match(spineSteamBrandingSource, /targetKind="spine"/)
-  assert.doesNotMatch(spineBrandingSource, /CaseInsertSteamBannerControls/)
-  assert.match(spineBrandingSource, /CaseInsertRatingBadgeSetupControls/)
-  assert.match(spineBrandingSource, /CaseInsertPlatformMarkSetupControls/)
-  assert.match(spineBrandingSource, /CaseInsertTechnicalMarkSetupControls/)
+  assert.doesNotMatch(spineGameInfoLogoSource, /CaseInsertSteamBannerControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertRatingBadgeSetupControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertPlatformMarkSetupControls/)
+  assert.match(spineGameInfoLogoSource, /CaseInsertTechnicalMarkSetupControls/)
+})
+
+test('spine mirror toggle lives in the surface header only for Spine', () => {
+  assert.match(shellSource, /<CaseInsertSurfaceTabs/)
+  assert.match(shellSource, /trailingAction=\{/)
+  assert.match(
+    shellSource,
+    /activeNavigationSurface === 'spine' \? \(\s*<CaseInsertSpineMirrorToggle/,
+  )
+  assert.match(shellSource, /mirrored=\{caseInsert\.spine\.mirrored\}/)
+  assert.match(
+    shellSource,
+    /onMirroredChange=\{spineEditor\.handleSpineMirroredChange\}/,
+  )
+  assert.doesNotMatch(shellSource, /case 'spine'/)
+  assert.doesNotMatch(shellSource, /headerActions=\{\(/)
+  assert.equal(
+    existsSync('src/components/caseInsert/CaseInsertSpineControls.tsx'),
+    false,
+  )
+
+  const productionSourcesWithLegacySpineLabel = collectSourceFiles('src')
+    .filter((path) => readFileSync(path, 'utf8').includes('Spine — Migrating Soon'))
+
+  assert.deepEqual(productionSourcesWithLegacySpineLabel, [])
 })

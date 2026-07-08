@@ -405,10 +405,9 @@ Key files:
 - `src/components/caseInsert/CaseInsertTemplateImageSlotControls.tsx`
 - `src/components/caseInsert/CaseInsertTemplateTextControls.tsx`
 - `src/components/caseInsert/CaseInsertTemplateControlPlacement.ts`
-- `src/components/caseInsert/CaseInsertSpineControls.tsx`
 - `src/components/caseInsert/CaseInsertSpineControls.types.ts`
 - `src/components/caseInsert/CaseInsertSpineGameTitleControls.tsx`
-- `src/components/caseInsert/CaseInsertSpineBrandingControls.tsx`
+- `src/components/caseInsert/CaseInsertSpineGameInfoLogoControls.tsx`
 - `src/components/caseInsert/CaseInsertSpineSteamBrandingControls.tsx`
 - `src/components/caseInsert/CaseInsertSpineImageSlotControls.tsx`
 - `src/components/caseInsert/CaseInsertSpineTextControls.tsx`
