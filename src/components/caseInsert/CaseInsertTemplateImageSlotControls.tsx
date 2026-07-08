@@ -185,7 +185,7 @@ export function PrimaryImageSlotControls({
       {isBackground ? (
         <p className="hint">
           Current background: {imageStatus.summary}. {imageStatus.availabilityLabel}
-          {!slot.enabled ? ' Background art is hidden from preview and export.' : ''}
+          {!slot.enabled ? ' Background image is hidden from preview and export.' : ''}
         </p>
       ) : null}
 
@@ -457,11 +457,13 @@ export function GroupedImageSlotSection({
   title,
   featureEnabled,
   onFeatureEnabledChange,
+  enableLabel = 'Show additional artwork',
   ...slotListProps
 }: GroupedImageSlotListProps & {
   title: string
   featureEnabled?: boolean
   onFeatureEnabledChange?: (enabled: boolean) => void
+  enableLabel?: string
 }) {
   return (
     <EditorFeaturePanel title={title}>
@@ -469,7 +471,7 @@ export function GroupedImageSlotSection({
         <OptionalFeatureSection
           className="feature-control-body additional-artwork-control"
           enabled={Boolean(featureEnabled)}
-          enableLabel="Show additional artwork"
+          enableLabel={enableLabel}
           onEnabledChange={onFeatureEnabledChange}
         >
           <GroupedImageSlotList {...slotListProps} />

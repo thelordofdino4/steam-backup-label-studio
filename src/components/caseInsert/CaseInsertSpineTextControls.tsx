@@ -1,6 +1,8 @@
 import type { JewelCaseSpineSide } from '../../caseInsert/types'
 import {
   getCaseInsertTextBlockPriority,
+  isCaseInsertAdditionalTextBlock,
+  isCaseInsertLegalTextBlock,
 } from '../../caseInsert/textContent'
 import {
   getCaseInsertTextBlockLayoutPresets,
@@ -34,6 +36,11 @@ function sortSpineTextBlocksForControls(
     (left, right) =>
       getCaseInsertTextBlockPriority(left) - getCaseInsertTextBlockPriority(right),
   )
+}
+
+type CaseInsertSpineTextControlsProps = CaseInsertSpineControlsProps & {
+  includeTitle?: boolean
+  textBlockFilter?: (textBlock: ProjectCaseInsertTextBlock) => boolean
 }
 
 function SpineTextLayoutPresetControl({
@@ -271,7 +278,11 @@ export function CaseInsertSpineTextControls({
   spine,
   actions,
   onSelectedTextTargetChange,
-}: CaseInsertSpineControlsProps) {
+  includeTitle = true,
+  textBlockFilter = (textBlock) =>
+    !isCaseInsertLegalTextBlock(textBlock) &&
+    !isCaseInsertAdditionalTextBlock(textBlock),
+}: CaseInsertSpineTextControlsProps) {
   return (
     <CaseInsertSpineControlSections
       spine={spine}
@@ -280,13 +291,17 @@ export function CaseInsertSpineTextControls({
 
         return (
           <>
-          <SpineTitleControls
-            side={side}
-            title={state.title}
-            actions={actions}
-            onSelectedTextTargetChange={onSelectedTextTargetChange}
-          />
-          {sortSpineTextBlocksForControls(state.textBlocks).map((textBlock) => (
+          {includeTitle ? (
+            <SpineTitleControls
+              side={side}
+              title={state.title}
+              actions={actions}
+              onSelectedTextTargetChange={onSelectedTextTargetChange}
+            />
+          ) : null}
+          {sortSpineTextBlocksForControls(
+            state.textBlocks.filter(textBlockFilter),
+          ).map((textBlock) => (
             <SpineTextBlockControls
               key={textBlock.id}
               side={side}

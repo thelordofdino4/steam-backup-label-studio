@@ -2,11 +2,13 @@ import type { MouseEvent, ReactNode, RefObject } from 'react'
 import {
   CASE_INSERT_TEMPLATE_PANES,
   getCaseInsertTemplatePaneConfig,
+  getCaseInsertSupportedNavigationSurfacesForPane,
   type CaseInsertTemplatePaneId,
 } from '../../caseInsert/templateSurfaces'
 import {
+  getCaseInsertSidebarLegacyPanels,
+  getCaseInsertSidebarSetupPanels,
   getCaseInsertSidebarStatusLabel,
-  getCaseInsertSidebarWorkflow,
   type CaseInsertSidebarPanel,
 } from '../../caseInsert/sidebarWorkflow'
 import {
@@ -39,6 +41,66 @@ import {
 import {
   CaseInsertSpineWorkflowControls,
 } from './CaseInsertSpineControls'
+import {
+  CaseInsertTemplateCompanyLogoControls,
+} from './CaseInsertTemplateCompanyLogoControls'
+import {
+  CaseInsertTemplateBackgroundArtworkControls,
+} from './CaseInsertTemplateBackgroundArtworkControls'
+import {
+  CaseInsertTemplateGameTitleControls,
+} from './CaseInsertTemplateGameTitleControls'
+import {
+  CaseInsertSpineBackgroundArtworkControls,
+} from './CaseInsertSpineBackgroundArtworkControls'
+import {
+  CaseInsertSpineGameTitleControls,
+} from './CaseInsertSpineGameTitleControls'
+import {
+  CaseInsertTemplateAdditionalArtworkControls,
+} from './CaseInsertTemplateAdditionalArtworkControls'
+import {
+  CaseInsertTemplateAdditionalTextControls,
+} from './CaseInsertTemplateAdditionalTextControls'
+import {
+  CaseInsertSpineAdditionalArtworkControls,
+} from './CaseInsertSpineAdditionalArtworkControls'
+import {
+  CaseInsertSpineAdditionalTextControls,
+} from './CaseInsertSpineAdditionalTextControls'
+import {
+  CaseInsertSpineCompanyLogoControls,
+} from './CaseInsertSpineCompanyLogoControls'
+import {
+  CaseInsertSpineOptionalMediaFormatTypeControls,
+} from './CaseInsertSpineOptionalMediaFormatTypeControls'
+import {
+  CaseInsertSpineLegalInfoControls,
+} from './CaseInsertSpineLegalInfoControls'
+import {
+  CaseInsertSpineSteamBrandingControls,
+} from './CaseInsertSpineSteamBrandingControls'
+import {
+  CaseInsertTemplateGameInfoLogoControls,
+} from './CaseInsertTemplateGameInfoLogoControls'
+import {
+  CaseInsertTemplateLegalInfoControls,
+} from './CaseInsertTemplateLegalInfoControls'
+import {
+  CaseInsertTemplateGameDescriptionTextControls,
+} from './CaseInsertTemplateGameDescriptionTextControls'
+import {
+  CaseInsertTemplateFeatureBulletsControls,
+} from './CaseInsertTemplateFeatureBulletsControls'
+import {
+  CaseInsertTemplateSystemRequirementsControls,
+} from './CaseInsertTemplateSystemRequirementsControls'
+import {
+  CaseInsertTemplateScreenshotsControls,
+} from './CaseInsertTemplateScreenshotsControls'
+import {
+  CaseInsertTemplateSteamBrandingControls,
+} from './CaseInsertTemplateSteamBrandingControls'
 import type { CaseInsertImageSourceCatalog } from './CaseInsertImageSourceControls'
 import { CaseInsertPreview } from '../preview/CaseInsertPreview'
 import {
@@ -375,7 +437,12 @@ export function CaseInsertEditorShell({
   previewTextControlHandlers,
 }: CaseInsertEditorShellProps) {
   const activeTemplateState = caseInsert.templates[activeTemplatePane]
-  const sidebarWorkflow = getCaseInsertSidebarWorkflow(activeTemplatePane)
+  const setupSidebarPanels =
+    getCaseInsertSidebarSetupPanels(activeTemplatePane)
+  const legacySidebarPanels =
+    getCaseInsertSidebarLegacyPanels(activeTemplatePane)
+  const supportedNavigationSurfaces =
+    getCaseInsertSupportedNavigationSurfacesForPane(activeTemplatePane)
   const roleSectionItems =
     getEditorNavigationShellRoleSectionItems(activeNavigationSurface)
 
@@ -464,6 +531,45 @@ export function CaseInsertEditorShell({
     }
   }
 
+  function renderCaseInsertSteamBrandingPanel() {
+    if (activeNavigationSurface === 'front' && activeTemplatePane === 'cover') {
+      return (
+        <EditorPanel title="Steam Branding">
+          <CaseInsertTemplateSteamBrandingControls
+            paneId={activeTemplatePane}
+            templateState={activeTemplateState}
+            projectMetadata={brandingSources.projectMetadata}
+            actions={editor}
+            imageSources={imageSources}
+            getBrandingControls={getBrandingControls}
+            logoCandidateDiscovery={logoCandidateDiscovery}
+            handleFindLogoCandidates={handleFindLogoCandidates}
+            onSelectedTextTargetChange={onSelectedTextTargetChange}
+          />
+        </EditorPanel>
+      )
+    }
+
+    if (activeNavigationSurface === 'spine') {
+      return (
+        <EditorPanel title="Steam Branding">
+          <CaseInsertSpineSteamBrandingControls
+            spine={caseInsert.spine}
+            projectMetadata={brandingSources.projectMetadata}
+            actions={spineEditor}
+            imageSources={imageSources}
+            getBrandingControls={getBrandingControls}
+            logoCandidateDiscovery={logoCandidateDiscovery}
+            handleFindLogoCandidates={handleFindLogoCandidates}
+            onSelectedTextTargetChange={onSelectedTextTargetChange}
+          />
+        </EditorPanel>
+      )
+    }
+
+    return null
+  }
+
   return (
     <main
       className="app-shell case-insert-app-shell"
@@ -479,17 +585,237 @@ export function CaseInsertEditorShell({
         <CaseInsertSurfaceTabs
           activeSurfaceId={activeNavigationSurface}
           onSurfaceChange={onNavigationSurfaceChange}
+          supportedSurfaceIds={supportedNavigationSurfaces}
         />
+
+        {setupSidebarPanels.map(renderCaseInsertSidebarPanel)}
+
+        {renderCaseInsertSteamBrandingPanel()}
 
         {roleSectionItems.map((section) => (
           <EditorNavigationRolePanel
             key={section.id}
             label={section.label}
             smokeId={section.smokeId}
-          />
+          >
+            {section.id === 'background-artwork' ? (
+              <CaseInsertTemplateBackgroundArtworkControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'game-title' ? (
+              <CaseInsertTemplateGameTitleControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'spine-background-artwork' ? (
+              <CaseInsertSpineBackgroundArtworkControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'vertical-game-logo-title' ? (
+              <CaseInsertSpineGameTitleControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'additional-artwork' &&
+              activeNavigationSurface === 'front' ? (
+              <CaseInsertTemplateAdditionalArtworkControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'additional-artwork' &&
+              activeNavigationSurface === 'spine' ? (
+              <CaseInsertSpineAdditionalArtworkControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'additional-text' &&
+              activeNavigationSurface === 'spine' ? (
+              <CaseInsertSpineAdditionalTextControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'additional-text' ? (
+              <CaseInsertTemplateAdditionalTextControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'company-logos' ? (
+              <CaseInsertTemplateCompanyLogoControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'game-info-logos' ? (
+              <CaseInsertTemplateGameInfoLogoControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'screenshots' ? (
+              <CaseInsertTemplateScreenshotsControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'game-description-text' ? (
+              <CaseInsertTemplateGameDescriptionTextControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'feature-bullets-callouts' ? (
+              <CaseInsertTemplateFeatureBulletsControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'system-requirements' ? (
+              <CaseInsertTemplateSystemRequirementsControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'company-logo' ? (
+              <CaseInsertSpineCompanyLogoControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'optional-media-format-type' ? (
+              <CaseInsertSpineOptionalMediaFormatTypeControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'legal-info' &&
+              activeNavigationSurface === 'spine' ? (
+              <CaseInsertSpineLegalInfoControls
+                spine={caseInsert.spine}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={spineEditor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : section.id === 'legal-info' ? (
+              <CaseInsertTemplateLegalInfoControls
+                paneId={activeTemplatePane}
+                templateState={activeTemplateState}
+                projectMetadata={brandingSources.projectMetadata}
+                actions={editor}
+                imageSources={imageSources}
+                getBrandingControls={getBrandingControls}
+                logoCandidateDiscovery={logoCandidateDiscovery}
+                handleFindLogoCandidates={handleFindLogoCandidates}
+                onSelectedTextTargetChange={onSelectedTextTargetChange}
+              />
+            ) : null}
+          </EditorNavigationRolePanel>
         ))}
 
-        {sidebarWorkflow.map(renderCaseInsertSidebarPanel)}
+        {legacySidebarPanels.map(renderCaseInsertSidebarPanel)}
       </aside>
 
       <CaseInsertPreview

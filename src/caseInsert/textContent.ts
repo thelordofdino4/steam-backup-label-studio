@@ -9,6 +9,7 @@ import {
 } from '../project/metadataDiscText.ts'
 import type {
   ProjectCaseInsertTextBlock,
+  ProjectCaseInsertTextList,
   ProjectCaseInsertTextSource,
   ProjectMetadata,
 } from '../project/projectTypes.ts'
@@ -48,6 +49,17 @@ const LEGACY_TEXT_BLOCK_ID_ALIASES: Record<string, string> = {
   'cover-legal-text': 'cover-copyright-text',
   'tray-legal-text': 'tray-copyright-text',
 }
+
+const CASE_INSERT_ADDITIONAL_TEXT_KEYS = new Set<DiscTextKey>([
+  'subtitle',
+  'discNumber',
+  'backupDate',
+  'appId',
+  'developer',
+  'publisher',
+  'installNotes',
+  'customNote',
+])
 
 function normalizeText(value: string | undefined) {
   return value?.trim() ?? ''
@@ -100,6 +112,48 @@ export function getCaseInsertTextBlockDiscKey(
   if (canonicalId.includes('legal')) return 'copyright'
 
   return null
+}
+
+export function isCaseInsertLegalTextBlock(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+) {
+  return getCaseInsertTextBlockDiscKey(textBlock) === 'copyright'
+}
+
+export function isCaseInsertGameDescriptionTextBlock(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+) {
+  return getCanonicalCaseInsertTextBlockId(textBlock.id) === 'tray-description'
+}
+
+export function isCaseInsertSystemRequirementsTextBlock(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+) {
+  const canonicalId = getCanonicalCaseInsertTextBlockId(textBlock.id)
+
+  return canonicalId === 'tray-minimum-requirements' ||
+    canonicalId === 'tray-recommended-requirements'
+}
+
+export function isCaseInsertBackRoleTextBlock(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+) {
+  return isCaseInsertGameDescriptionTextBlock(textBlock) ||
+    isCaseInsertSystemRequirementsTextBlock(textBlock)
+}
+
+export function isCaseInsertFeatureBulletsTextList(
+  textList: Pick<ProjectCaseInsertTextList, 'id'>,
+) {
+  return textList.id === 'tray-feature-bullets'
+}
+
+export function isCaseInsertAdditionalTextBlock(
+  textBlock: Pick<ProjectCaseInsertTextBlock, 'id'>,
+) {
+  const discKey = getCaseInsertTextBlockDiscKey(textBlock)
+
+  return Boolean(discKey && CASE_INSERT_ADDITIONAL_TEXT_KEYS.has(discKey))
 }
 
 export function isCaseInsertMetadataTextBlock(

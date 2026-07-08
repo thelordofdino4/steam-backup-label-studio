@@ -126,7 +126,7 @@ export function SpineImageSlotControls({
       {isBackground ? (
         <p className="hint">
           Current background: {imageStatus.summary}. {imageStatus.availabilityLabel}
-          {!slot.enabled ? ' Background art is hidden from preview and export.' : ''}
+          {!slot.enabled ? ' Background image is hidden from preview and export.' : ''}
         </p>
       ) : null}
 

@@ -12,7 +12,7 @@ Correction after the first implementation pass: Disc Label, Case Insert, Front, 
 
 1. Workspace/editor level: Disc Label and Case Insert.
 2. Case Insert surface level: Front, Back, and Spine.
-3. Selected editor/surface role level: Game Title, Big Background Image, logos, legal info, screenshots, system requirements, additional artwork, and additional text where applicable.
+3. Selected editor/surface role level: Game Title, Background Image, logos, legal info, screenshots, system requirements, additional artwork, and additional text where applicable.
 
 Disc Label must not show Case Front, Case Back, or Spine as peer buttons inside the disc editor. Spine is part of the case-insert workflow.
 
@@ -32,7 +32,7 @@ The Spine mapping is intentionally an adapter. Current jewel-case spine content 
 
 - Top-level workspace routing and cross-feature orchestration are owned by `src/app/App.tsx`.
 - Current workspace values are `home | disc | caseInsert`.
-- Disc sidebar/navigation is hardcoded in `App.tsx` and renders `ProjectPanel`, `ExportOptionsPanel`, `GamePanel`, `TemplatePanel`, `ArtworkPanel`, `BrandingPanel`, and `TextPanel`.
+- Disc sidebar/navigation is hardcoded in `App.tsx` and renders `ProjectPanel`, `ExportOptionsPanel`, `TemplatePanel`, `GamePanel`, setup/program panels such as `Steam Branding`, role panels, and remaining legacy panels such as `TextPanel`.
 - Case editor shell/sidebar composition is owned by `src/components/caseInsert/CaseInsertEditorShell.tsx`.
 - Case sidebar workflow modeling is owned by `src/caseInsert/sidebarWorkflow.ts`.
 - Case surface/pane modeling is owned by `src/caseInsert/templateSurfaces.ts`.
@@ -87,16 +87,136 @@ The corrected implementation must not render role sections as a flat button list
 
 Role panels should be siblings of the current sidebar panels. They must not be placed inside one wrapper box whose only job is to contain role sections, and they must not use one-off panel classes or custom lookalike markup instead of the shared top-level panel component contract. The sidebar source should map role-section items directly into the sidebar stack as individual panel siblings rather than rendering one shared role-panel group component.
 
+Role panels are ordered by rough average visual size and importance on the
+printed surface. Background Image comes before title/logo identity, logo and
+info groups come after the major identity elements, text-heavy and optional
+elements come later, and legacy migration panels remain last while they still
+hold real controls.
+
 Role sections:
 
-- Disc Label: Game Title, Big Background Image, Game Info Logos, Company Logos, Legal Info, Additional Artwork, Additional Text.
-- Front: Game Title, Big Background Image, Game Info Logos, Company Logos, Additional Artwork, Additional Text.
-- Back: Game Description Text, Feature Bullets / Callouts, Big Background Image, Screenshots, Game Info Logos, Company Logos, System Requirements, Legal Info, Additional Artwork, Additional Text.
-- Spine: Steam Logo / Steam Backup Branding, Vertical Game Logo or Game Title, Company Logo, Optional Media Format Type, Spine Background / Color / Artwork.
+- Disc Label: Background Image, Game Title, Game Info Logos, Company Logos, Legal Text, Additional Artwork, Additional Text.
+- Front: Background Image, Game Title, Game Info Logos, Company Logos, Legal Info, Additional Artwork, Additional Text.
+- Back: Background Image, Game Title, Screenshots, Game Info Logos, Company Logos, Game Description Text, Feature Bullets / Callouts, System Requirements, Legal Info, Additional Artwork, Additional Text.
+- Spine: Background Image, Vertical Game Logo or Game Title, Steam Logo / Steam Backup Branding, Company Logo, Optional Media Format Type, Legal Info, Additional Artwork, Additional Text.
 
 This corrected pass does not include a Layout Preset placeholder. Preset model and preset application work remains outside #271.
 
 For #271, these sections can be passive top-level sidebar panel placeholders only where that is very small and clearly non-disruptive. They should be rendered through the same default `EditorPanel` workflow path as existing sidebar panels, with any placeholder copy using existing sidebar content styles such as `hint`. They should not contain migrated controls, fake action buttons, layout presets, custom panel styling, or a new control-routing model. The mature disc controls should remain reachable through their existing panels until #272 moves them deliberately, and case-insert control migration remains #274.
+
+During the #272 disc migration, the disc sidebar should order panels as top-level siblings in this sequence:
+
+1. Program/setup controls first: Project File, Export Options, Template, Game, and Steam Branding where visible.
+2. Primary packaging/artwork role panels next, sorted roughly by average visual size on the disc: Background Image, Game Title, Game Info Logos, Company Logos, and Legal Text.
+3. Flexible optional role panels after the primary hierarchy: Additional Artwork and Additional Text.
+4. Remaining legacy panels last: Text, plus any surface-specific legacy panel that still owns unmigrated controls.
+
+The remaining legacy panels should stay functional while their controls are still there, but their visible panel headers should say "Migrating Soon" so users understand those controls are temporary homes. Do not mark Project File, Export Options, Template, Game, or Steam Branding as legacy migration panels.
+
+Role migration coverage rule: once real controls for a packaging role are
+migrated, that role must be migrated across every applicable surface. A
+disc-only migration is incomplete unless the role only exists on Disc Label.
+For Company Logos, coverage means Disc Label Company Logos, Case Front/Cover
+Company Logos, Case Back/Tray Company Logos, and Spine Company Logo. The
+migration should continue to reuse each surface's existing control owners and
+state/action adapters, and must not change save/load schema, preview renderers,
+export renderers, or layout math.
+
+For Game Info Logos, coverage means Disc Label Game Info Logos, Case
+Front/Cover Game Info Logos, and Case Back/Tray Game Info Logos. The Spine
+equivalent is intentionally narrower for now: Optional Media Format Type owns
+only the existing spine media-format mark controls. Spine rating badges,
+operating-system marks, and technical marks remain in the Spine Branding legacy
+migration panel until a later role can receive them without broadening #272.
+
+Steam Branding is a setup/program panel, not part of the artwork role
+hierarchy. It should sit below Game and above the role panels only on surfaces
+that already had visible Steam banner controls. Current coverage is:
+
+- Disc Label: Steam Branding is visible and owns the disc Steam banner controls.
+- Case Front/Cover: Steam Branding is visible and owns the cover Steam banner controls.
+- Case Back/Tray: Steam Branding is not visible in this pass because tray Steam banner state existed but was not previously user-visible.
+- Spine: Steam Branding is visible and owns the existing spine Steam branding controls.
+
+Hidden tray Steam banner state should not become user-visible without a
+separate product decision.
+
+For the Game Title / Game Logo artwork migration, coverage means Disc Label,
+Case Front/Cover, Case Back/Tray, and Spine. This pass moves only existing
+visual title/logo artwork controls into the Game Title role panels:
+Disc Label `projectTitleArtwork`, template `titleArtwork` for cover and tray,
+and spine left/right `titleArtwork`. Plain title text, metadata title fields,
+spine title text, and other title text fields remain in their existing
+Game/Text owners. This is UI organization only, not a schema, renderer, export,
+save/load, text-editor behavior, or persisted-surface change.
+
+For the Legal Info / Legal Text migration, coverage means the existing visible
+copyright/legal text rows on Disc Label, Case Front/Cover, Case Back/Tray, and
+Spine. This pass moves only those existing rows into Legal role panels:
+Disc `copyright`, template `cover-copyright-text` and `tray-copyright-text`,
+and spine copyright text rows for the current mirrored or left/right spine
+mode. The Game panel's `Copyright / legal text` metadata textarea remains in
+the Game setup panel for a later metadata/source migration. Title text,
+subtitle text, game description, feature bullets or callouts, system
+requirements, install notes, custom note, disc number, backup date, App ID,
+developer/publisher text, and other non-legal text rows remain in their current
+legacy Text or setup owners until their own role migration passes.
+
+For the Back/Tray text role migration, coverage is intentionally Back/Tray-only
+because the current default case insert model exposes these rows only on the
+tray card. This pass moves `tray-description` into Game Description Text,
+`tray-feature-bullets` into Feature Bullets / Callouts, and
+`tray-minimum-requirements` plus `tray-recommended-requirements` into System
+Requirements. Disc Label, Case Front/Cover, and Spine do not currently have
+equivalent description, feature-list, or system-requirements controls to move.
+The remaining tray text rows, including title, subtitle, disc number, backup
+date, Steam App ID, developer/publisher text, install notes, and custom note,
+stay in the legacy Tray Card Text panel until later text-role migrations.
+
+For the Back/Tray Screenshots migration, coverage is intentionally
+Back/Tray-only because the current role exists only on the tray card. The
+Screenshots role maps to the existing `caseInsert.templates.tray.artworkSlots`
+array and `caseInsert.templates.tray.additionalArtworkEnabled` flag. No new
+`screenshotSlots` schema, persisted pane, renderer, export layer, or save/load
+path is introduced. Disc Label, Case Front/Cover, and Spine may use local Steam
+screenshots as generic image sources, but their non-screenshot artwork slot
+controls remain in their existing homes for this pass.
+
+For the case-side Background Image migration, coverage means the existing
+Case Front/Cover `background`, Case Back/Tray `background`, and Spine
+left/right `background` image-slot controls. Disc Label Background Image was
+already migrated. This pass only moves the existing sidebar controls into the
+role panels; it does not add a schema field, persisted spine pane, renderer,
+export path, or layout rule. Cover/Spine Additional Artwork / `artworkSlots`
+controls are handled by the later Additional Artwork migration below.
+
+The user-facing role name is Background Image. Existing implementation IDs,
+schema fields, and state keys may still use `background`, `background-artwork`,
+`spine-background-artwork`, or artwork terminology for compatibility. Renaming
+those internals is out of scope for this terminology cleanup and would be a
+separate schema or routing decision only if later proven necessary.
+
+For the Case Front/Cover and Spine Additional Artwork migration, coverage means
+the existing Case Front/Cover `additionalArtworkEnabled` plus `artworkSlots`
+controls, and the existing Spine left/right `additionalArtworkEnabled` plus
+`artworkSlots` controls. This pass only moves those sidebar controls into the
+Additional Artwork role panels. Back/Tray Additional Artwork remains
+intentionally absent because the existing tray `artworkSlots` controls are
+owned by the Screenshots role. This is UI organization only, not a schema,
+renderer, export, save/load, or persisted-surface change.
+
+For the Additional Text migration, coverage means Disc Label, Case Front/Cover,
+Case Back/Tray, and Spine. This pass moves only existing visual text controls
+for subtitle, disc number, backup date, Steam App ID, developer text, publisher
+text, install notes, and custom note into Additional Text role panels. Disc
+number badge/artwork mode moves with the disc number text control because it is
+rendered inside the existing `DiscTextControl` and shares its value and
+placement. Plain title text remains in legacy Text until a separate title-text
+migration, Legal Info remains separate, Back/Tray description/features/system
+requirements remain in their dedicated role panels, and GamePanel metadata
+source fields plus metadata assistance remain in Game. This is UI organization
+only, not a schema, renderer, export, save/load, text-editor behavior, or
+persisted-surface change.
 
 ## Behavior Preservation
 

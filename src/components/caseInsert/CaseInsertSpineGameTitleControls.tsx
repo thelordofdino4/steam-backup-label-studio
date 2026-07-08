@@ -12,35 +12,18 @@ import {
 import type {
   CaseInsertSpineControlsProps,
 } from './CaseInsertSpineControls.types'
-import {
-  SpineGroupedImageSlotSection,
-  SpineImageSlotControls,
-} from './CaseInsertSpineImageSlotControls'
 
-export function CaseInsertSpineArtworkControls({
+export function CaseInsertSpineGameTitleControls({
   spine,
   actions,
-  imageSources,
 }: CaseInsertSpineControlsProps) {
   return (
     <CaseInsertSpineControlSections
       spine={spine}
-      renderControls={({ side, label }) => {
+      renderControls={({ side }) => {
         const state = spine[side]
 
         return (
-          <>
-          <SpineImageSlotControls
-            side={side}
-            slotKey="background"
-            slot={state.background}
-            title={`${label} background`}
-            enableLabel="Show spine background artwork"
-            uploadId={`${side}-spine-background-upload`}
-            isBackground
-            imageSources={imageSources}
-            actions={actions}
-          />
           <EditorFeaturePanel title={CASE_INSERT_ARTWORK_SECTION_LABELS.gameLogo}>
             <CaseInsertTitleArtworkControls
               slot={state.titleArtwork}
@@ -77,14 +60,6 @@ export function CaseInsertSpineArtworkControls({
                 actions.handleRestoreSpineTitleArtworkDefault(side)}
             />
           </EditorFeaturePanel>
-          <SpineGroupedImageSlotSection
-            side={side}
-            featureEnabled={state.additionalArtworkEnabled}
-            slots={state.artworkSlots}
-            imageSources={imageSources}
-            actions={actions}
-          />
-          </>
         )
       }}
     />

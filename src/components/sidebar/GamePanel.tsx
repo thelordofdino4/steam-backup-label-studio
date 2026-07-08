@@ -138,7 +138,7 @@ export function GamePanel({
 
           {selectedSteamGame.artwork.length > 0 && (
             <p className="hint">
-              Imported Steam artwork is available in the Artwork panel.
+              Imported Steam artwork is available in the artwork role panels.
             </p>
           )}
 

@@ -15,6 +15,13 @@ import {
   getCaseInsertTextSidebarTargetCapability,
   shouldShowCaseInsertTextSidebarControl,
 } from './sidebarControlPolicy.ts'
+import {
+  isCaseInsertAdditionalTextBlock,
+  isCaseInsertBackRoleTextBlock,
+  isCaseInsertFeatureBulletsTextList,
+  isCaseInsertGameDescriptionTextBlock,
+  isCaseInsertSystemRequirementsTextBlock,
+} from './textContent.ts'
 
 const testDir = dirname(fileURLToPath(import.meta.url))
 const repoRoot = dirname(dirname(testDir))
@@ -345,6 +352,125 @@ test('cover and tray text list item management remains behaviorally intact', () 
     'Speedrun routes',
     'Portal puzzles',
   ])
+})
+
+test('Back Tray text role predicates target only migrated rows', () => {
+  assert.equal(
+    isCaseInsertGameDescriptionTextBlock({ id: 'tray-description' }),
+    true,
+  )
+  assert.equal(
+    isCaseInsertSystemRequirementsTextBlock({
+      id: 'tray-minimum-requirements',
+    }),
+    true,
+  )
+  assert.equal(
+    isCaseInsertSystemRequirementsTextBlock({
+      id: 'tray-recommended-requirements',
+    }),
+    true,
+  )
+  assert.equal(
+    isCaseInsertBackRoleTextBlock({ id: 'tray-description' }),
+    true,
+  )
+  assert.equal(
+    isCaseInsertFeatureBulletsTextList({ id: 'tray-feature-bullets' }),
+    true,
+  )
+
+  for (const id of [
+    'tray-title-text',
+    'tray-subtitle-text',
+    'tray-disc-number',
+    'tray-backup-date',
+    'tray-steam-app-id',
+    'tray-developer-text',
+    'tray-publisher-text',
+    'tray-install-notes',
+    'tray-custom-note',
+    'cover-custom-note',
+    'left-spine-subtitle-text',
+  ]) {
+    assert.equal(
+      isCaseInsertBackRoleTextBlock({ id }),
+      false,
+      `${id} should remain outside the Back text role block migration`,
+    )
+  }
+
+  for (const id of ['cover-feature-bullets', 'spine-feature-bullets']) {
+    assert.equal(
+      isCaseInsertFeatureBulletsTextList({ id }),
+      false,
+      `${id} should remain outside the Back feature bullets migration`,
+    )
+  }
+})
+
+test('Additional Text predicate targets only non-title non-legal metadata text rows', () => {
+  for (const id of [
+    'cover-subtitle-text',
+    'cover-disc-number',
+    'cover-backup-date',
+    'cover-steam-app-id',
+    'cover-developer-text',
+    'cover-publisher-text',
+    'cover-install-notes',
+    'cover-custom-note',
+    'tray-subtitle-text',
+    'tray-disc-number',
+    'tray-backup-date',
+    'tray-steam-app-id',
+    'tray-developer-text',
+    'tray-publisher-text',
+    'tray-install-notes',
+    'tray-custom-note',
+    'left-spine-subtitle-text',
+    'left-spine-disc-number',
+    'left-spine-backup-date',
+    'left-spine-steam-app-id',
+    'left-spine-developer-text',
+    'left-spine-publisher-text',
+    'left-spine-install-notes',
+    'left-spine-custom-note',
+    'right-spine-subtitle-text',
+    'right-spine-disc-number',
+    'right-spine-backup-date',
+    'right-spine-steam-app-id',
+    'right-spine-developer-text',
+    'right-spine-publisher-text',
+    'right-spine-install-notes',
+    'right-spine-custom-note',
+  ]) {
+    assert.equal(
+      isCaseInsertAdditionalTextBlock({ id }),
+      true,
+      `${id} should be owned by Additional Text`,
+    )
+  }
+
+  for (const id of [
+    'cover-title-text',
+    'tray-title-text',
+    'left-spine-title-text',
+    'right-spine-title-text',
+    'cover-copyright-text',
+    'tray-copyright-text',
+    'left-spine-copyright-text',
+    'right-spine-copyright-text',
+    'tray-description',
+    'tray-minimum-requirements',
+    'tray-recommended-requirements',
+    'tray-feature-bullets',
+  ]) {
+    assert.equal(
+      isCaseInsertAdditionalTextBlock({ id }),
+      false,
+      `${id} should remain outside Additional Text`,
+    )
+  }
 })
 
 test('case insert export continues reading migrated text block state', () => {

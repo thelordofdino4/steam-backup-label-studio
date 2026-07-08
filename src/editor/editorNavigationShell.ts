@@ -1,8 +1,13 @@
-import type { CaseInsertTemplatePaneId } from '../caseInsert/templateSurfaces.ts'
+import type {
+  CaseInsertNavigationSurfaceId,
+  CaseInsertTemplatePaneId,
+} from '../caseInsert/templateSurfaces.ts'
+
+export type {
+  CaseInsertNavigationSurfaceId,
+} from '../caseInsert/templateSurfaces.ts'
 
 export type EditorNavigationWorkspaceId = 'disc-label' | 'case-insert'
-
-export type CaseInsertNavigationSurfaceId = 'front' | 'back' | 'spine'
 
 export type EditorNavigationRoleSurfaceId =
   | 'disc-label'
@@ -10,7 +15,7 @@ export type EditorNavigationRoleSurfaceId =
 
 export type EditorNavigationShellRoleSectionId =
   | 'game-title'
-  | 'big-background-image'
+  | 'background-artwork'
   | 'game-info-logos'
   | 'company-logos'
   | 'legal-info'
@@ -55,8 +60,18 @@ export type CaseInsertNavigationRoute = {
 }
 
 const DISC_ROLE_SECTIONS = [
+  { id: 'background-artwork', label: 'Background Image' },
   { id: 'game-title', label: 'Game Title' },
-  { id: 'big-background-image', label: 'Big Background Image' },
+  { id: 'game-info-logos', label: 'Game Info Logos' },
+  { id: 'company-logos', label: 'Company Logos' },
+  { id: 'legal-info', label: 'Legal Text' },
+  { id: 'additional-artwork', label: 'Additional Artwork' },
+  { id: 'additional-text', label: 'Additional Text' },
+] as const satisfies readonly EditorNavigationShellRoleSection[]
+
+const CASE_FRONT_ROLE_SECTIONS = [
+  { id: 'background-artwork', label: 'Background Image' },
+  { id: 'game-title', label: 'Game Title' },
   { id: 'game-info-logos', label: 'Game Info Logos' },
   { id: 'company-logos', label: 'Company Logos' },
   { id: 'legal-info', label: 'Legal Info' },
@@ -64,22 +79,14 @@ const DISC_ROLE_SECTIONS = [
   { id: 'additional-text', label: 'Additional Text' },
 ] as const satisfies readonly EditorNavigationShellRoleSection[]
 
-const CASE_FRONT_ROLE_SECTIONS = [
-  { id: 'game-title', label: 'Game Title' },
-  { id: 'big-background-image', label: 'Big Background Image' },
-  { id: 'game-info-logos', label: 'Game Info Logos' },
-  { id: 'company-logos', label: 'Company Logos' },
-  { id: 'additional-artwork', label: 'Additional Artwork' },
-  { id: 'additional-text', label: 'Additional Text' },
-] as const satisfies readonly EditorNavigationShellRoleSection[]
-
 const CASE_BACK_ROLE_SECTIONS = [
-  { id: 'game-description-text', label: 'Game Description Text' },
-  { id: 'feature-bullets-callouts', label: 'Feature Bullets / Callouts' },
-  { id: 'big-background-image', label: 'Big Background Image' },
+  { id: 'background-artwork', label: 'Background Image' },
+  { id: 'game-title', label: 'Game Title' },
   { id: 'screenshots', label: 'Screenshots' },
   { id: 'game-info-logos', label: 'Game Info Logos' },
   { id: 'company-logos', label: 'Company Logos' },
+  { id: 'game-description-text', label: 'Game Description Text' },
+  { id: 'feature-bullets-callouts', label: 'Feature Bullets / Callouts' },
   { id: 'system-requirements', label: 'System Requirements' },
   { id: 'legal-info', label: 'Legal Info' },
   { id: 'additional-artwork', label: 'Additional Artwork' },
@@ -88,19 +95,22 @@ const CASE_BACK_ROLE_SECTIONS = [
 
 const SPINE_ROLE_SECTIONS = [
   {
-    id: 'steam-backup-branding',
-    label: 'Steam Logo / Steam Backup Branding',
+    id: 'spine-background-artwork',
+    label: 'Background Image',
   },
   {
     id: 'vertical-game-logo-title',
     label: 'Vertical Game Logo or Game Title',
   },
+  {
+    id: 'steam-backup-branding',
+    label: 'Steam Logo / Steam Backup Branding',
+  },
   { id: 'company-logo', label: 'Company Logo' },
   { id: 'optional-media-format-type', label: 'Optional Media Format Type' },
-  {
-    id: 'spine-background-artwork',
-    label: 'Spine Background / Color / Artwork',
-  },
+  { id: 'legal-info', label: 'Legal Info' },
+  { id: 'additional-artwork', label: 'Additional Artwork' },
+  { id: 'additional-text', label: 'Additional Text' },
 ] as const satisfies readonly EditorNavigationShellRoleSection[]
 
 export const EDITOR_NAVIGATION_WORKSPACES = [
