@@ -205,7 +205,7 @@ test('left and right spine title sidebars keep setup and edit-entry controls onl
   )
   const titleControls = getFunctionSource(
     source,
-    'SpineTitleControls',
+    'CaseInsertSpineTitleTextControl',
     'SpineTextBlockControls',
   )
 

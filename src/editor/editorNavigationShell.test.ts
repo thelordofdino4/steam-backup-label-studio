@@ -282,7 +282,7 @@ test('issue 271 shell keeps existing editor controls reachable', () => {
   assert.match(appSource, /<DiscSteamBrandingControls/)
   assert.doesNotMatch(appSource, /<BrandingPanel/)
   assert.doesNotMatch(appSource, /<ArtworkPanel/)
-  assert.match(appSource, /<TextPanel/)
+  assert.doesNotMatch(appSource, /<TextPanel/)
   assert.match(caseInsertShellSource, /<CaseInsertSurfaceTabs/)
   assertSourceOrder(caseInsertShellSource, [
     '<CaseInsertSurfaceTabs',
@@ -309,7 +309,6 @@ test('issue 272 disc sidebar order keeps setup controls, roles, then legacy pane
     '<GamePanel {...gamePanelProps} />',
     '<DiscSteamBrandingControls {...brandingPanelProps} />',
     'discRoleSectionItems.map',
-    '<TextPanel',
   ])
   assert.deepEqual(discRoleLabels, [
     'Background Image',
@@ -322,10 +321,8 @@ test('issue 272 disc sidebar order keeps setup controls, roles, then legacy pane
   ])
 })
 
-test('issue 272 remaining disc legacy panel headings are marked as migrating soon', () => {
-  const legacyPanelSources = [
-    'src/components/sidebar/TextPanel.tsx',
-  ].map((path) => readFileSync(path, 'utf8'))
+test('issue 272 disc legacy Text panel is removed after title text migration', () => {
+  const appSource = readFileSync('src/app/App.tsx', 'utf8')
   const programPanelSources = [
     'src/components/sidebar/ProjectPanel.tsx',
     'src/components/sidebar/ExportOptionsPanel.tsx',
@@ -334,26 +331,18 @@ test('issue 272 remaining disc legacy panel headings are marked as migrating soo
     'src/components/sidebar/branding/DiscSteamBrandingControls.tsx',
   ].map((path) => readFileSync(path, 'utf8'))
 
-  assert.match(
-    legacyPanelSources[0],
-    /<EditorPanel title="Text — Migrating Soon">/,
-  )
-  legacyPanelSources.forEach((source) => {
-    assert.match(
-      source,
-      /Controls in this panel are being\s+moved\s+into role panels\./,
-    )
-  })
+  assert.doesNotMatch(appSource, /<TextPanel/)
+  assert.doesNotMatch(appSource, /Text — Migrating Soon/)
   programPanelSources.forEach((source) => {
     assert.doesNotMatch(source, /Migrating Soon/)
     assert.doesNotMatch(source, /moved\s+into role panels/)
   })
 })
 
-test('issue 272 disc Game Title role owns visual title artwork controls', () => {
+test('issue 272 disc Game Title role owns visual title artwork and title text fallback', () => {
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
-  const textPanelSource = readFileSync(
-    'src/components/sidebar/TextPanel.tsx',
+  const gameTitleTextSource = readFileSync(
+    'src/components/sidebar/text/DiscGameTitleTextControls.tsx',
     'utf8',
   )
 
@@ -371,6 +360,10 @@ test('issue 272 disc Game Title role owns visual title artwork controls', () => 
   )
   assert.match(
     appSource,
+    /import \{ DiscGameTitleTextControls \} from '\.\.\/components\/sidebar\/text\/DiscGameTitleTextControls'/,
+  )
+  assert.match(
+    appSource,
     /const artworkPanelProps: ArtworkPanelProps = \{[\s\S]*projectAdditionalArtwork,[\s\S]*handleRemoveAdditionalArtworkElement,[\s\S]*\}/,
   )
   assert.match(
@@ -379,24 +372,19 @@ test('issue 272 disc Game Title role owns visual title artwork controls', () => 
   )
   assert.match(
     appSource,
-    /section\.id === 'game-title'[\s\S]*<TitleArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+    /section\.id === 'game-title'[\s\S]*<TitleArtworkControls \{\.\.\.artworkPanelProps\} \/>[\s\S]*<DiscGameTitleTextControls \{\.\.\.textPanelProps\} \/>/,
   )
   assert.match(
     appSource,
     /section\.id === 'additional-artwork'[\s\S]*<AdditionalArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
   )
   assert.doesNotMatch(appSource, /<ArtworkPanel \{\.\.\.artworkPanelProps\} \/>/)
-  assert.match(textPanelSource, /DISC_TEXT_KEYS[\s\S]*\.filter/)
-  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
-  assert.match(textPanelSource, /<DiscTextControl/)
+  assert.match(gameTitleTextSource, /textKey="title"/)
+  assert.match(gameTitleTextSource, /<DiscTextControl/)
 })
 
 test('issue 272 Legal Text role owns disc copyright text controls only', () => {
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
-  const textPanelSource = readFileSync(
-    'src/components/sidebar/TextPanel.tsx',
-    'utf8',
-  )
   const legalTextSource = readFileSync(
     'src/components/sidebar/text/DiscLegalTextControls.tsx',
     'utf8',
@@ -416,16 +404,15 @@ test('issue 272 Legal Text role owns disc copyright text controls only', () => {
   )
   assert.match(legalTextSource, /textKey="copyright"/)
   assert.match(legalTextSource, /<DiscTextControl/)
-  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
-  assert.match(textPanelSource, /<DiscTextControl/)
+  assert.doesNotMatch(appSource, /<TextPanel/)
   assert.match(gamePanelSource, /Copyright \/ legal text/)
   assert.match(gamePanelSource, /projectMetadata\.copyrightText/)
 })
 
 test('issue 272 Additional Text role owns disc additional text controls only', () => {
   const appSource = readFileSync('src/app/App.tsx', 'utf8')
-  const textPanelSource = readFileSync(
-    'src/components/sidebar/TextPanel.tsx',
+  const gameTitleTextSource = readFileSync(
+    'src/components/sidebar/text/DiscGameTitleTextControls.tsx',
     'utf8',
   )
   const additionalTextSource = readFileSync(
@@ -466,8 +453,8 @@ test('issue 272 Additional Text role owns disc additional text controls only', (
   assert.doesNotMatch(additionalTextSource, /'title'/)
   assert.doesNotMatch(additionalTextSource, /'copyright'/)
   assert.match(additionalTextSource, /<DiscTextControl/)
-  assert.match(textPanelSource, /\.filter\(\(key\) => key === 'title'\)/)
-  assert.doesNotMatch(textPanelSource, /key !== 'copyright'/)
+  assert.match(gameTitleTextSource, /textKey="title"/)
+  assert.doesNotMatch(gameTitleTextSource, /textKey="copyright"/)
 
   assert.match(gamePanelSource, /game-subtitle/)
   assert.match(gamePanelSource, /game-metadata-app-id/)

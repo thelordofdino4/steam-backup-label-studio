@@ -2,9 +2,6 @@ import { CaseInsertWorkflowSection } from './CaseInsertWorkflowSection'
 import {
   CaseInsertSpineBrandingControls,
 } from './CaseInsertSpineBrandingControls'
-import {
-  CaseInsertSpineTextControls,
-} from './CaseInsertSpineTextControls'
 import type {
   CaseInsertSpineControlsProps,
 } from './CaseInsertSpineControls.types'
@@ -31,9 +28,6 @@ export function CaseInsertSpineWorkflowControls(
         variant="branding"
       >
         <CaseInsertSpineBrandingControls {...props} />
-      </CaseInsertWorkflowSection>
-      <CaseInsertWorkflowSection title="Text">
-        <CaseInsertSpineTextControls {...props} />
       </CaseInsertWorkflowSection>
     </>
   )

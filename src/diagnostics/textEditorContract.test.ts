@@ -328,7 +328,12 @@ test('curved disc text is not routed through a visible rectangular editor layer'
 test('disc sidebar keeps setup controls while curved editing moves contextually', () => {
   const control = readRepoFile('src/components/sidebar/DiscTextControl.tsx')
   const policy = readRepoFile('src/discText/sidebarControlPolicy.ts')
-  const panel = readRepoFile('src/components/sidebar/TextPanel.tsx')
+  const titleTextControls = readRepoFile(
+    'src/components/sidebar/text/DiscGameTitleTextControls.tsx',
+  )
+  const legalTextControls = readRepoFile(
+    'src/components/sidebar/text/DiscLegalTextControls.tsx',
+  )
 
   assert.match(control, /sidebarTarget\.supportsContextualEditor/)
   assert.match(control, /disc-sidebar-mode/)
@@ -341,8 +346,10 @@ test('disc sidebar keeps setup controls while curved editing moves contextually'
   assert.match(policy, /supportsContextualEditor/)
   assert.match(policy, /hasContextualTextControlEquivalent/)
   assert.doesNotMatch(control, />\s*Text value\s*</)
-  assert.match(panel, /Straight and curved text are edited from the preview/)
-  assert.match(panel, /Curved copyright text remains SVG\/textPath based/)
+  assert.match(titleTextControls, /textKey="title"/)
+  assert.match(titleTextControls, /<DiscTextControl/)
+  assert.match(legalTextControls, /textKey="copyright"/)
+  assert.match(legalTextControls, /<DiscTextControl/)
 })
 
 test('straight disc inline editing keeps the SVG renderer visible', () => {

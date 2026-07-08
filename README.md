@@ -38,7 +38,7 @@ Do not treat historical "recent validation" notes in older docs as proof that na
 
 The intended main sidebar flow is:
 
-Project File → Export Options → Template → Game → Steam Branding → Background Image → Game Title → Game Info Logos → Company Logos → Legal Text → Additional Artwork → Additional Text → Text — Migrating Soon
+Project File → Export Options → Template → Game → Steam Branding → Background Image → Game Title → Game Info Logos → Company Logos → Legal Text → Additional Artwork → Additional Text
 
 The sidebar sections are currently implemented as independently collapsible panels. The role panels are being introduced as top-level panel siblings during #272. Template and Steam Branding are setup panels above the packaging roles. Remaining legacy panels stay functional at the end of the stack while their controls migrate into role panels, and their visible panel headers should say "Migrating Soon". Do not reorder them during documentation or unrelated feature work.
 
