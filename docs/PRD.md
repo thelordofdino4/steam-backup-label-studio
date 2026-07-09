@@ -50,6 +50,8 @@ Project File → Export Options → Game → Template → Artwork → Branding �
 
 The sections are currently independently collapsible sidebar panels. The flow should not be reordered during unrelated work.
 
+The semantic packaging role taxonomy behind the role panels is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). It distinguishes current UI role-panel homes from future preset/model work; #168, #269, and #270 remain the preset track.
+
 Guide Legend remains in the sidebar today. The likely future improvement is to move it into the live preview as a bottom-right, collapsible, open-by-default panel. That work is tracked by #124 and is not part of docs-only freshness work.
 
 ## Core User Workflow

@@ -1115,6 +1115,8 @@ The disc editor is the first alpha-capable app surface.
 - Persisted state is `SavedDiscProject`.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
+The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). That document is descriptive only: current role lists remain UI shell/navigation concepts, and no persisted packaging-role or object-role schema exists.
+
 ### 12.4 Render/Edit/Export Paths
 
 - `DiscPreview` composes preview layers according to disc layer order.
