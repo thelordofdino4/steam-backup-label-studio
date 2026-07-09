@@ -272,7 +272,8 @@ The shell can make active editor/surface state visually clearer, but it should n
 - #272 owns reorganizing mature disc editor controls into packaging role sections.
 - #273 owns reusable role-section control primitives once real duplication and usage are proven.
 - #274 owns applying the role hierarchy to case front, case back, and spine panels.
-- #269 owns the role-based preset data model and application contract.
+- #269 owns the role-based preset data model and application contract,
+  documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md).
 - #270 owns starter disc layout presets.
 - #267 remains the broader taxonomy/object-role design source, especially for anything that would become saved state. The docs-only taxonomy lives in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md) and distinguishes semantic packaging roles from current UI shell ids and future preset targets.
 - #268 remains the parent UI hierarchy direction.
