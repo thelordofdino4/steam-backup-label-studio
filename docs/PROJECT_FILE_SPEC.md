@@ -237,7 +237,7 @@ See `docs/PROJECT_PACKAGE_FORMAT_DECISION.md` for the #56 decision record.
 
 ## Future Schema Work
 
-- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). It does not add current saved-project fields; any future role or preset schema must go through explicit schema and migration work.
+- The semantic packaging role taxonomy is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md), and the role-based preset model is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). These documents do not add current saved-project fields; any future role, preset identity, or role-layout schema must go through explicit schema and migration work in this spec.
 - Register focused project schema migrations in `src/project/projectSchema.ts`
   before changing saved-project semantics.
 - Keep migrations one version step at a time and make each migration produce the

@@ -262,7 +262,8 @@ However, applying a preset will eventually need role-to-object targeting:
 
 #267 does not implement preset schema or behavior. #168 owns the broader role
 hierarchy and preset direction, #269 owns the role-based preset data model and
-application contract, and #270 owns starter disc layout presets.
+application contract documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md),
+and #270 owns starter disc layout presets.
 
 ## 13. Compatibility And Invariants
 
@@ -282,6 +283,7 @@ application contract, and #270 owns starter disc layout presets.
 Related documents:
 
 - `docs/ISSUE_271_ROLE_NAVIGATION_SHELL.md`
+- `docs/ROLE_BASED_PRESET_MODEL.md`
 - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
 - `docs/PRD.md`
 - `docs/PROJECT_FILE_SPEC.md`
@@ -291,7 +293,8 @@ Related issues and completed migration context:
 
 - #267: Role hierarchy and object-role model. This document is for that issue.
 - #168: Layout presets and role-based editor hierarchy parent direction.
-- #269: Role-based preset data model and application contract.
+- #269: Role-based preset data model and application contract, documented in
+  `docs/ROLE_BASED_PRESET_MODEL.md`.
 - #270: Starter disc layout presets.
 - #272/#274: Completed visible role-panel migration work, with implementation
   evidence in the current role shell and panel mappings.
