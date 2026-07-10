@@ -11,6 +11,9 @@ import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
 import {
+  DiscAdditionalTextRoleControls,
+} from '../components/editor/DiscAdditionalTextRoleControls'
+import {
   DiscBackgroundArtworkRoleControls,
 } from '../components/editor/DiscBackgroundArtworkRoleControls'
 import {
@@ -19,6 +22,9 @@ import {
 import {
   DiscGameTitleRoleControls,
 } from '../components/editor/DiscGameTitleRoleControls'
+import {
+  DiscLegalInfoRoleControls,
+} from '../components/editor/DiscLegalInfoRoleControls'
 import {
   EditorRoleFocusProvider,
 } from '../components/editor/EditorRoleFocusProvider'
@@ -43,8 +49,6 @@ import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { DiscLayoutPresetsPanel } from '../components/sidebar/DiscLayoutPresetsPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
-import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
-import { DiscLegalTextControls } from '../components/sidebar/text/DiscLegalTextControls'
 import type { TextPanelProps } from '../components/sidebar/textPanelTypes'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
 import { useDiscExportGuides } from '../hooks/useDiscExportGuides'
@@ -1799,11 +1803,11 @@ function App() {
             ) : section.id === 'company-logos' ? (
               <CompanyLogoControls {...brandingPanelProps} />
             ) : section.id === 'legal-info' ? (
-              <DiscLegalTextControls {...textPanelProps} />
+              <DiscLegalInfoRoleControls textControls={textPanelProps} />
             ) : section.id === 'additional-artwork' ? (
               <AdditionalArtworkControls {...artworkPanelProps} />
             ) : section.id === 'additional-text' ? (
-              <DiscAdditionalTextControls {...textPanelProps} />
+              <DiscAdditionalTextRoleControls textControls={textPanelProps} />
             ) : null}
           </DiscEditorNavigationRolePanel>
         ))}

@@ -392,11 +392,11 @@ test('issue 272 Legal Text role owns disc copyright text controls only', () => {
 
   assert.match(
     appSource,
-    /import \{ DiscLegalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscLegalTextControls'/,
+    /import \{\s*DiscLegalInfoRoleControls,\s*\} from '\.\.\/components\/editor\/DiscLegalInfoRoleControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'legal-info'[\s\S]*<DiscLegalTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'legal-info'[\s\S]*<DiscLegalInfoRoleControls textControls=\{textPanelProps\} \/>/,
   )
   assert.match(legalTextSource, /textKey="copyright"/)
   assert.match(legalTextSource, /<DiscTextControl/)
@@ -422,11 +422,11 @@ test('issue 272 Additional Text role owns disc additional text controls only', (
 
   assert.match(
     appSource,
-    /import \{ DiscAdditionalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscAdditionalTextControls'/,
+    /import \{\s*DiscAdditionalTextRoleControls,\s*\} from '\.\.\/components\/editor\/DiscAdditionalTextRoleControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'additional-text'[\s\S]*<DiscAdditionalTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'additional-text'[\s\S]*<DiscAdditionalTextRoleControls textControls=\{textPanelProps\} \/>/,
   )
 
   for (const textKey of [

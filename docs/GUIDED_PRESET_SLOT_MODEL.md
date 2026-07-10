@@ -29,15 +29,17 @@ Implemented role-focus infrastructure includes:
 - Background Image registration for the always-mounted enable checkbox and
   Local file upload input. Upload focus explicitly opens the nested Local file
   panel and remains available while Background Image is disabled. It does not
-  enable the feature or fall back to the enable checkbox.
+  enable the feature or fall back to the enable checkbox; and
+- Legal Info and Additional Text registration for the copyright and custom-note
+  row enable checkboxes. These fixed-row targets do not select preview text or
+  activate the contextual ribbon.
 
-Deferred work includes nested targets for Rating, checkbox targets for Legal
-Info and Additional Text, Company Logos enable-target vocabulary, Additional
-Artwork repeatable-object registration identity, guided preview request callers,
-guided persistence, and final native validation. The five Disc roles other than
-Game Title and Background Image therefore remain summary-fallback-only.
-Navigation state is non-persistent, and Case Front, Case Back, and Spine remain
-outside the Disc-only provider.
+Deferred work includes nested targets for Rating, Company Logos enable-target
+vocabulary, Additional Artwork repeatable-object registration identity, guided
+preview request callers, guided persistence, and final native validation. Rating,
+Company Logos, and Additional Artwork therefore remain summary-fallback-only.
+Navigation state is transient and non-persistent, and Case Front, Case Back, and
+Spine remain outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -435,10 +437,10 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:rating:source` | The rating source-mode selector, not the conditional custom-image upload input. It exists whenever Rating is enabled and must not change the source. Future disabled-body fallback is `disc:rating:enable`. |
 | `disc:company-logo:developer-upload` | The primary developer-logo file input. The input is conditional on developer-logo enablement. A semantic developer-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
 | `disc:company-logo:publisher-upload` | The primary publisher-logo file input. The input is conditional on publisher-logo enablement. A semantic publisher-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
-| `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. It does not mean selecting copyright text in the preview, opening the contextual ribbon, or focusing a nonexistent sidebar text editor. Wiring is deferred. |
+| `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
 | `disc:additional-artwork:add` | The Add artwork element command. It is available only while the global Additional Artwork feature body is mounted. A semantic global-enable fallback target does not yet exist. |
 | `disc:additional-artwork:upload` | A concrete repeated artwork element's upload control. Safe registration requires persisted `elementId` identity, but current controller lookup is keyed only by semantic target. Global-enable and per-item-enable targets are also missing, so model/controller correction is required before UI wiring. |
-| `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. It does not mean selecting custom-note text in the preview, activating the contextual ribbon, or focusing a nonexistent sidebar text field. Wiring is deferred. |
+| `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select custom-note text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text field. |
 
 Company Logos must not be wired by silently treating upload IDs as enable
 targets. Additional Artwork must not collapse repeated objects into one global
