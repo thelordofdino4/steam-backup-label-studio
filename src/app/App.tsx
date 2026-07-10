@@ -32,6 +32,7 @@ import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
+import { DiscLayoutPresetsPanel } from '../components/sidebar/DiscLayoutPresetsPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
 import { DiscGameTitleTextControls } from '../components/sidebar/text/DiscGameTitleTextControls'
@@ -139,6 +140,9 @@ import {
 import {
   runAppProjectLoad,
 } from './appProjectLoad'
+import {
+  applyDiscRolePresetToOwners,
+} from './appDiscRolePresetApplication'
 
 type SteamMetadataApplyOptions = {
   announce?: boolean
@@ -665,6 +669,64 @@ function App() {
       projectPlatformMarks,
       projectTechnicalMarks,
     }
+  }
+
+  function handleApplyDiscRolePreset(presetId: string) {
+    const result = applyDiscRolePresetToOwners({
+      presetId,
+      currentState: {
+        background: {
+          enabled: isBackgroundArtworkEnabled,
+          scale: backgroundScale,
+          offset: backgroundOffset,
+          imageDataUrl: backgroundImageUrl,
+          imageSource: backgroundImageSource,
+          imageSize: backgroundImageSize,
+        },
+        titleArtwork: projectTitleArtwork,
+        projectDiscNumberArtwork,
+        discTextSettings,
+        discTextValues,
+        discTextValueSources,
+        discTextTitleValue,
+        discTextHtmlSources,
+        discTextLayout,
+        discTextStyles,
+        logoAssets: projectLogoAssets,
+        ratingBadge: projectRatingBadge,
+        mediaMark: projectMediaMark,
+        platformMarks: projectPlatformMarks,
+        technicalMarks: projectTechnicalMarks,
+        additionalArtwork: projectAdditionalArtwork,
+        metadata: projectMetadata,
+      },
+      selectedDiscTemplate,
+      actions: {
+        restoreBackgroundImageState,
+        setProjectTitleArtwork,
+        clampProjectTitleArtworkToTemplate,
+        restoreDiscTextState,
+        clampDiscTextLayoutToTemplate,
+        setProjectLogoAssets,
+        clampProjectLogoAssetsToTemplate,
+        setProjectRatingBadge,
+        clampProjectRatingBadgeToTemplate,
+        setProjectMediaMark,
+        clampProjectMediaMarkToTemplate,
+        setProjectPlatformMarks,
+        clampProjectPlatformMarksToTemplate,
+        setProjectTechnicalMarks,
+        clampProjectTechnicalMarksToTemplate,
+      },
+    })
+
+    if (!result.applied) {
+      announceStatus('Layout preset is unavailable. Choose another preset.')
+      return false
+    }
+
+    announceStatus(`Applied ${result.preset.label} layout preset.`)
+    return true
   }
 
   function handleRatingBadgeEnabledChange(enabled: boolean) {
@@ -1704,6 +1766,8 @@ function App() {
         <GamePanel {...gamePanelProps} />
 
         <DiscSteamBrandingControls {...brandingPanelProps} />
+
+        <DiscLayoutPresetsPanel onApplyPreset={handleApplyDiscRolePreset} />
 
         {discRoleSectionItems.map((section) => (
           <EditorNavigationRolePanel
