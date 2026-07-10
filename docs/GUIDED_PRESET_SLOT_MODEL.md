@@ -42,10 +42,17 @@ Implemented role-focus infrastructure includes:
   controlled Developer / publisher logos panel. Developer upload falls back
   only to developer enable, and publisher upload falls back only to publisher
   enable. Navigation never enables, imports, or mutates either logo asset.
+- Additional Artwork semantic vocabulary for global enable, Add Artwork,
+  per-item enable, and per-item upload. Item destinations require the stable
+  persisted `elementId`; and
+- composite controller registration and fallback identity keyed by semantic
+  target plus exact element ID. Repeated items coexist without overwriting one
+  another, fallback chains are cycle-safe, and fixed targets retain their
+  existing behavior.
 
-Deferred work includes Additional Artwork repeatable-object registration
-identity, guided preview request callers, guided persistence, and final native
-validation. Additional Artwork remains summary-fallback-only. Game Title,
+Deferred work includes Additional Artwork UI refs and registrations, guided
+preview request callers, guided persistence, and final native validation.
+Additional Artwork remains summary-fallback-only in the UI. Game Title,
 Background Image, Rating, Legal Info, Additional Text, and primary Company Logos
 now have target registration. Navigation state is transient and non-persistent,
 and Case Front, Case Back, and Spine remain outside the Disc-only provider.
@@ -421,6 +428,25 @@ accordion behavior or close unrelated roles. Registered elements are reached
 through direct refs or stable getters. Ancestors are opened only through
 explicit callbacks, never DOM queries, synthetic clicks, timers, or retries.
 
+Controller registration uses typed semantic identity rather than DOM identity:
+
+```ts
+type EditorRoleFocusTargetIdentity =
+  | { focusTarget: DiscFixedRoleFocusTargetId }
+  | {
+      focusTarget:
+        | 'disc:additional-artwork:item-enable'
+        | 'disc:additional-artwork:upload'
+      elementId: string
+    }
+```
+
+Fixed callers may continue using their fixed semantic target string as a narrow
+compatibility input. Repeatable targets cannot use a target string alone: they
+must supply the composite identity. Internally, nested maps separate semantic
+target and element ID, so punctuation in persisted IDs cannot collide and no
+caller handles an encoded raw key.
+
 ### Behavior Semantics
 
 | Behavior | Contract |
@@ -449,8 +475,10 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
 | `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo file input. It is registered only while the publisher body is mounted and explicitly falls back only to `disc:company-logo:publisher-enable` when unavailable. |
 | `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
-| `disc:additional-artwork:add` | The Add artwork element command. It is available only while the global Additional Artwork feature body is mounted. A semantic global-enable fallback target does not yet exist. |
-| `disc:additional-artwork:upload` | A concrete repeated artwork element's upload control. Safe registration requires persisted `elementId` identity, but current controller lookup is keyed only by semantic target. Global-enable and per-item-enable targets are also missing, so model/controller correction is required before UI wiring. |
+| `disc:additional-artwork:enable` | The global Additional Artwork feature-enable control. It has no item identity. The semantic target and controller support are implemented; UI registration is deferred. |
+| `disc:additional-artwork:add` | The Add Artwork command. It has no item identity, and navigation will only focus it rather than activate it. The semantic target and controller support are implemented; UI registration is deferred. |
+| `disc:additional-artwork:item-enable` | One existing element's enable control. Its destination and registration identity require the same stable persisted `elementId`. UI registration is deferred. |
+| `disc:additional-artwork:upload` | One existing element's local upload control. Its destination and registration identity require the same stable persisted `elementId`. UI registration is deferred. |
 | `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select custom-note text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text field. |
 
 Company Logos developer and publisher identities remain distinct. Developer
@@ -458,9 +486,16 @@ upload resolves only to developer enable, and publisher upload resolves only to
 publisher enable; neither path may cross-fallback. These registrations cover
 only the fixed primary controls. They do not target repeatable additional logos,
 discover candidates, import assets, or mutate logo state. Repeatable additional
-logos remain outside this target vocabulary. Additional Artwork must not
-collapse repeated objects into one global upload registration or use array
-indexes.
+logos remain outside this target vocabulary.
+
+Additional Artwork controller capability supports the future exact fallback
+chain `upload(item) -> item-enable(item) -> add -> global enable`. Each item hop
+retains the same persisted `elementId`; cross-item fallback is rejected. Direct
+registration at any step wins, traversal detects cycles, and unresolved focus
+still uses the role-summary fallback. No Additional Artwork production
+registration is implemented yet. Array indexes, first-item selection, candidate
+bindings such as `first-renderable-existing`, DOM IDs, and encoded string keys
+are not valid navigation identity.
 
 No guided preview caller exists yet. Future placeholder components should emit
 typed navigation intent rather than query the DOM or duplicate role-panel

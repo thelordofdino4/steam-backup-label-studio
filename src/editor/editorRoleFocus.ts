@@ -20,6 +20,22 @@ export const DISC_COMPANY_LOGO_FOCUS_TARGET_IDS = [
 export type DiscCompanyLogoFocusTarget =
   (typeof DISC_COMPANY_LOGO_FOCUS_TARGET_IDS)[number]
 
+export const DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS = [
+  'disc:additional-artwork:enable',
+  'disc:additional-artwork:add',
+  'disc:additional-artwork:item-enable',
+  'disc:additional-artwork:upload',
+] as const
+
+export type DiscAdditionalArtworkFocusTarget =
+  (typeof DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS)[number]
+
+export type DiscAdditionalArtworkItemFocusTarget = Extract<
+  DiscAdditionalArtworkFocusTarget,
+  | 'disc:additional-artwork:item-enable'
+  | 'disc:additional-artwork:upload'
+>
+
 export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:background-image:enable',
   'disc:background-image:local-upload',
@@ -32,13 +48,30 @@ export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:rating:source',
   ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   'disc:legal-text:copyright',
-  'disc:additional-artwork:add',
-  'disc:additional-artwork:upload',
+  ...DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
   'disc:additional-text:custom-note',
 ] as const
 
 export type DiscRoleFocusTargetId =
   (typeof DISC_ROLE_FOCUS_TARGET_IDS)[number]
+
+export type DiscFixedRoleFocusTargetId = Exclude<
+  DiscRoleFocusTargetId,
+  DiscAdditionalArtworkItemFocusTarget
+>
+
+export type EditorRoleFocusTargetIdentity =
+  | {
+      focusTarget: DiscFixedRoleFocusTargetId
+    }
+  | {
+      focusTarget: DiscAdditionalArtworkItemFocusTarget
+      elementId: string
+    }
+
+export type EditorRoleFocusTargetIdentityInput =
+  | DiscFixedRoleFocusTargetId
+  | EditorRoleFocusTargetIdentity
 
 export type DiscRoleFocusDestination =
   | {
@@ -70,16 +103,23 @@ export type DiscRoleFocusDestination =
       roleId: Extract<DiscRolePresetRole, 'legal-info'>
       focusTarget: 'disc:legal-text:copyright'
     }
-  | {
-      roleId: Extract<DiscRolePresetRole, 'additional-artwork'>
-      focusTarget:
-        | 'disc:additional-artwork:add'
-        | 'disc:additional-artwork:upload'
-      elementId?: string
-    }
+  | DiscAdditionalArtworkRoleFocusDestination
   | {
       roleId: Extract<DiscRolePresetRole, 'additional-text'>
       focusTarget: 'disc:additional-text:custom-note'
+    }
+
+export type DiscAdditionalArtworkRoleFocusDestination =
+  | {
+      roleId: Extract<DiscRolePresetRole, 'additional-artwork'>
+      focusTarget:
+        | 'disc:additional-artwork:enable'
+        | 'disc:additional-artwork:add'
+    }
+  | {
+      roleId: Extract<DiscRolePresetRole, 'additional-artwork'>
+      focusTarget: DiscAdditionalArtworkItemFocusTarget
+      elementId: string
     }
 
 export type EditorRoleFocusOwnerTarget =
@@ -148,8 +188,7 @@ const FOCUS_TARGETS_BY_ROLE = {
   ],
   'legal-info': ['disc:legal-text:copyright'],
   'additional-artwork': [
-    'disc:additional-artwork:add',
-    'disc:additional-artwork:upload',
+    ...DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
   ],
   'additional-text': ['disc:additional-text:custom-note'],
 } as const satisfies Record<
@@ -192,6 +231,63 @@ function isDiscRoleFocusTargetId(
     (DISC_ROLE_FOCUS_TARGET_IDS as readonly string[]).includes(value)
 }
 
+function isDiscAdditionalArtworkItemFocusTarget(
+  value: DiscRoleFocusTargetId,
+): value is DiscAdditionalArtworkItemFocusTarget {
+  return value === 'disc:additional-artwork:item-enable' ||
+    value === 'disc:additional-artwork:upload'
+}
+
+function isNonblankElementId(value: unknown): value is string {
+  return typeof value === 'string' && Boolean(value.trim())
+}
+
+export function normalizeEditorRoleFocusTargetIdentity(
+  value: unknown,
+): EditorRoleFocusTargetIdentity | null {
+  if (typeof value === 'string') {
+    return isDiscRoleFocusTargetId(value) &&
+        !isDiscAdditionalArtworkItemFocusTarget(value)
+      ? { focusTarget: value }
+      : null
+  }
+
+  if (!isRecord(value) || !isDiscRoleFocusTargetId(value.focusTarget)) {
+    return null
+  }
+
+  if (isDiscAdditionalArtworkItemFocusTarget(value.focusTarget)) {
+    return hasOnlyKeys(value, ['focusTarget', 'elementId']) &&
+        isNonblankElementId(value.elementId)
+      ? {
+          focusTarget: value.focusTarget,
+          elementId: value.elementId,
+        }
+      : null
+  }
+
+  return hasOnlyKeys(value, ['focusTarget'])
+    ? { focusTarget: value.focusTarget }
+    : null
+}
+
+export function getEditorRoleFocusTargetIdentity(
+  destination: DiscRoleFocusDestination,
+): EditorRoleFocusTargetIdentity {
+  if (destination.roleId === 'additional-artwork' &&
+    (destination.focusTarget === 'disc:additional-artwork:item-enable' ||
+      destination.focusTarget === 'disc:additional-artwork:upload')) {
+    return {
+      focusTarget: destination.focusTarget,
+      elementId: destination.elementId,
+    }
+  }
+
+  return {
+    focusTarget: destination.focusTarget as DiscFixedRoleFocusTargetId,
+  }
+}
+
 function parseDestination(
   value: unknown,
 ): InternalParseResult<DiscRoleFocusDestination> {
@@ -212,38 +308,52 @@ function parseDestination(
     return { ok: false, error: 'invalid-role-target-combination' }
   }
 
-  const allowedKeys = value.roleId === 'additional-artwork'
-    ? ['roleId', 'focusTarget', 'elementId']
-    : ['roleId', 'focusTarget']
-
-  if (!hasOnlyKeys(value, allowedKeys)) {
-    return { ok: false, error: 'unexpected-field' }
-  }
-
   if (value.roleId === 'additional-artwork') {
-    if (value.focusTarget !== 'disc:additional-artwork:add' &&
-      value.focusTarget !== 'disc:additional-artwork:upload') {
+    if (!(DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS as readonly string[])
+      .includes(value.focusTarget)) {
       return { ok: false, error: 'invalid-role-target-combination' }
     }
 
-    if (hasOwn(value, 'elementId') &&
-      (typeof value.elementId !== 'string' || !value.elementId.trim())) {
-      return { ok: false, error: 'invalid-element-id' }
+    if (value.focusTarget === 'disc:additional-artwork:item-enable' ||
+      value.focusTarget === 'disc:additional-artwork:upload') {
+      if (!hasOnlyKeys(value, ['roleId', 'focusTarget', 'elementId'])) {
+        return { ok: false, error: 'unexpected-field' }
+      }
+
+      if (!isNonblankElementId(value.elementId)) {
+        return { ok: false, error: 'invalid-element-id' }
+      }
+
+      return {
+        ok: true,
+        value: {
+          roleId: value.roleId,
+          focusTarget: value.focusTarget,
+          elementId: value.elementId,
+        },
+      }
+    }
+
+    if (value.focusTarget !== 'disc:additional-artwork:enable' &&
+      value.focusTarget !== 'disc:additional-artwork:add') {
+      return { ok: false, error: 'invalid-role-target-combination' }
+    }
+
+    if (!hasOnlyKeys(value, ['roleId', 'focusTarget'])) {
+      return { ok: false, error: 'unexpected-field' }
     }
 
     return {
       ok: true,
-      value: hasOwn(value, 'elementId')
-        ? {
-            roleId: value.roleId,
-            focusTarget: value.focusTarget,
-            elementId: value.elementId as string,
-          }
-        : {
-            roleId: value.roleId,
-            focusTarget: value.focusTarget,
-          },
+      value: {
+        roleId: value.roleId,
+        focusTarget: value.focusTarget,
+      },
     }
+  }
+
+  if (!hasOnlyKeys(value, ['roleId', 'focusTarget'])) {
+    return { ok: false, error: 'unexpected-field' }
   }
 
   return {
@@ -325,6 +435,17 @@ function isOwnerTargetCompatibleWithDestination(
   destination: DiscRoleFocusDestination,
   ownerTarget: EditorRoleFocusOwnerTarget,
 ) {
+  if (destination.roleId === 'additional-artwork') {
+    if (destination.focusTarget !== 'disc:additional-artwork:item-enable' &&
+      destination.focusTarget !== 'disc:additional-artwork:upload') {
+      return false
+    }
+
+    return ownerTarget.owner === 'additionalArtwork' &&
+      'elementId' in ownerTarget &&
+      ownerTarget.elementId === destination.elementId
+  }
+
   if (destination.roleId !== 'company-logos') return true
   if (ownerTarget.owner !== 'logoAssets' || ownerTarget.scope !== 'primary') {
     return false

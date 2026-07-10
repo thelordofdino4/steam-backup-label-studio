@@ -4,9 +4,12 @@ import test from 'node:test'
 
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import {
+  DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
   DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   DISC_ROLE_FOCUS_TARGET_IDS,
   createInitialEditorRoleFocusState,
+  getEditorRoleFocusTargetIdentity,
+  normalizeEditorRoleFocusTargetIdentity,
   parseEditorRoleFocusRequest,
   reduceEditorRoleFocus,
   type DiscRoleFocusDestination,
@@ -75,11 +78,21 @@ const VALID_DESTINATIONS = [
   },
   {
     roleId: 'additional-artwork',
+    focusTarget: 'disc:additional-artwork:enable',
+  },
+  {
+    roleId: 'additional-artwork',
     focusTarget: 'disc:additional-artwork:add',
   },
   {
     roleId: 'additional-artwork',
+    focusTarget: 'disc:additional-artwork:item-enable',
+    elementId: 'persisted-artwork-id',
+  },
+  {
+    roleId: 'additional-artwork',
     focusTarget: 'disc:additional-artwork:upload',
+    elementId: 'persisted-artwork-id',
   },
   {
     roleId: 'additional-text',
@@ -355,80 +368,255 @@ test('validates Company Logo owner targets against matching primary identity', (
   })
 })
 
-test('validates Additional Artwork add and persisted-ID upload destinations', () => {
-  const addResult = parseEditorRoleFocusRequest(createRequest(1, {
-    roleId: 'additional-artwork',
-    focusTarget: 'disc:additional-artwork:add',
-  }))
-  const uploadResult = parseEditorRoleFocusRequest(createRequest(2, {
-    roleId: 'additional-artwork',
-    focusTarget: 'disc:additional-artwork:upload',
-    elementId: 'persisted-artwork-id',
-  }))
+test('validates the four discriminated Additional Artwork destinations', () => {
+  const validDestinations = [
+    {
+      roleId: 'additional-artwork',
+      focusTarget: 'disc:additional-artwork:enable',
+    },
+    {
+      roleId: 'additional-artwork',
+      focusTarget: 'disc:additional-artwork:add',
+    },
+    {
+      roleId: 'additional-artwork',
+      focusTarget: 'disc:additional-artwork:item-enable',
+      elementId: 'artwork:item/A|B',
+    },
+    {
+      roleId: 'additional-artwork',
+      focusTarget: 'disc:additional-artwork:upload',
+      elementId: 'artwork:item/A|B',
+    },
+  ] as const satisfies readonly DiscRoleFocusDestination[]
 
-  assert.equal(addResult.ok, true)
-  assert.equal(uploadResult.ok, true)
-  if (uploadResult.ok) {
-    assert.equal(
-      uploadResult.request.destination.roleId === 'additional-artwork'
-        ? uploadResult.request.destination.elementId
-        : null,
-      'persisted-artwork-id',
+  assert.deepEqual(
+    validDestinations.map((destination, index) =>
+      parseEditorRoleFocusRequest(createRequest(index + 1, destination)).ok),
+    [true, true, true, true],
+  )
+  assert.deepEqual(
+    DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
+    validDestinations.map((destination) => destination.focusTarget),
+  )
+
+  for (const focusTarget of [
+    'disc:additional-artwork:enable',
+    'disc:additional-artwork:add',
+  ] as const) {
+    assert.deepEqual(
+      parseEditorRoleFocusRequest({
+        ...createRequest(10),
+        destination: {
+          roleId: 'additional-artwork',
+          focusTarget,
+          elementId: 'unexpected-item-id',
+        },
+      }),
+      { ok: false, error: 'unexpected-field' },
     )
   }
 
-  for (const elementId of ['', '   ']) {
-    assert.deepEqual(
-      parseEditorRoleFocusRequest({
-        ...createRequest(3),
-        destination: {
-          roleId: 'additional-artwork',
-          focusTarget: 'disc:additional-artwork:upload',
-          elementId,
-        },
-      }),
-      { ok: false, error: 'invalid-element-id' },
-    )
+  for (const focusTarget of [
+    'disc:additional-artwork:item-enable',
+    'disc:additional-artwork:upload',
+  ] as const) {
+    for (const elementId of [undefined, '', '   ', 0, 1, null]) {
+      assert.deepEqual(
+        parseEditorRoleFocusRequest({
+          ...createRequest(11),
+          destination: {
+            roleId: 'additional-artwork',
+            focusTarget,
+            ...(elementId === undefined ? {} : { elementId }),
+          },
+        }),
+        { ok: false, error: 'invalid-element-id' },
+      )
+    }
+  }
+
+  assert.deepEqual(
+    parseEditorRoleFocusRequest({
+      ...createRequest(12),
+      destination: {
+        roleId: 'additional-artwork',
+        focusTarget: 'disc:additional-artwork:first-item',
+      },
+    }),
+    { ok: false, error: 'invalid-focus-target' },
+  )
+})
+
+test('rejects every Additional Artwork target with every other role', () => {
+  const otherRoles = [
+    'background-artwork',
+    'game-title',
+    'game-info-logos',
+    'company-logos',
+    'legal-info',
+    'additional-text',
+  ] as const
+
+  for (const focusTarget of DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS) {
+    for (const roleId of otherRoles) {
+      assert.deepEqual(
+        parseEditorRoleFocusRequest({
+          ...createRequest(1),
+          destination: {
+            roleId,
+            focusTarget,
+            ...(focusTarget === 'disc:additional-artwork:item-enable' ||
+                focusTarget === 'disc:additional-artwork:upload'
+              ? { elementId: 'persisted-artwork-id' }
+              : {}),
+          },
+        }),
+        { ok: false, error: 'invalid-role-target-combination' },
+        `${roleId}:${focusTarget}`,
+      )
+    }
   }
 })
 
-test('validates owner targets without accepting feature payload', () => {
-  const candidateResult = parseEditorRoleFocusRequest({
-    ...createRequest(1),
-    ownerTarget: {
-      owner: 'additionalArtwork',
-      selection: 'first-renderable-existing',
-    },
-  })
-  const resolvedResult = parseEditorRoleFocusRequest({
-    ...createRequest(2),
+test('requires matching resolved Additional Artwork owners for item targets', () => {
+  const destination = {
+    roleId: 'additional-artwork',
+    focusTarget: 'disc:additional-artwork:upload',
+    elementId: 'persisted-artwork-id',
+  } as const satisfies DiscRoleFocusDestination
+  const request = createRequest(1, destination)
+  const matching = parseEditorRoleFocusRequest({
+    ...request,
     ownerTarget: {
       owner: 'additionalArtwork',
       elementId: 'persisted-artwork-id',
     },
   })
 
-  assert.equal(candidateResult.ok, true)
-  assert.equal(resolvedResult.ok, true)
+  assert.equal(parseEditorRoleFocusRequest(request).ok, true)
+  assert.equal(matching.ok, true)
+  assert.equal(parseEditorRoleFocusRequest({
+    ...createRequest(2, {
+      roleId: 'additional-artwork',
+      focusTarget: 'disc:additional-artwork:item-enable',
+      elementId: 'persisted-artwork-id',
+    }),
+    ownerTarget: {
+      owner: 'additionalArtwork',
+      elementId: 'persisted-artwork-id',
+    },
+  }).ok, true)
   assert.deepEqual(
     parseEditorRoleFocusRequest({
-      ...createRequest(3),
+      ...request,
       ownerTarget: {
-        owner: 'backgroundImage',
-        imageDataUrl: 'data:image/png;base64,not-navigation-state',
+        owner: 'additionalArtwork',
+        elementId: 'different-artwork-id',
       },
     }),
     { ok: false, error: 'invalid-owner-target' },
   )
   assert.deepEqual(
     parseEditorRoleFocusRequest({
-      ...createRequest(4),
+      ...request,
       ownerTarget: {
         owner: 'additionalArtwork',
-        elementId: '   ',
+        selection: 'first-renderable-existing',
       },
     }),
     { ok: false, error: 'invalid-owner-target' },
+  )
+  assert.deepEqual(
+    parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: { owner: 'backgroundImage' },
+    }),
+    { ok: false, error: 'invalid-owner-target' },
+  )
+
+  for (const focusTarget of [
+    'disc:additional-artwork:enable',
+    'disc:additional-artwork:add',
+  ] as const) {
+    assert.deepEqual(
+      parseEditorRoleFocusRequest({
+        ...createRequest(2, {
+          roleId: 'additional-artwork',
+          focusTarget,
+        }),
+        ownerTarget: {
+          owner: 'additionalArtwork',
+          elementId: 'persisted-artwork-id',
+        },
+      }),
+      { ok: false, error: 'invalid-owner-target' },
+    )
+  }
+
+  assert.deepEqual(
+    parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: {
+        owner: 'additionalArtwork',
+        elementId: 'persisted-artwork-id',
+        imageDataUrl: 'data:image/png;base64,not-navigation-state',
+      },
+    }),
+    { ok: false, error: 'invalid-owner-target' },
+  )
+})
+
+test('normalizes fixed and repeatable registration identities deterministically', () => {
+  const fixed = { focusTarget: 'disc:rating:enable' } as const
+  const itemEnableA = {
+    focusTarget: 'disc:additional-artwork:item-enable',
+    elementId: 'artwork:A|B/C:D',
+  } as const
+  const itemEnableB = { ...itemEnableA, elementId: 'artwork:B|A/C:D' }
+  const uploadA = {
+    focusTarget: 'disc:additional-artwork:upload',
+    elementId: itemEnableA.elementId,
+  } as const
+
+  assert.deepEqual(normalizeEditorRoleFocusTargetIdentity(fixed), fixed)
+  assert.deepEqual(
+    normalizeEditorRoleFocusTargetIdentity('disc:rating:enable'),
+    fixed,
+  )
+  assert.deepEqual(
+    normalizeEditorRoleFocusTargetIdentity({ ...itemEnableA }),
+    itemEnableA,
+  )
+  assert.notDeepEqual(itemEnableA, itemEnableB)
+  assert.notDeepEqual(itemEnableA, uploadA)
+  assert.equal(
+    normalizeEditorRoleFocusTargetIdentity(
+      'disc:additional-artwork:upload',
+    ),
+    null,
+  )
+  assert.equal(normalizeEditorRoleFocusTargetIdentity({
+    focusTarget: 'disc:additional-artwork:item-enable',
+  }), null)
+  assert.equal(normalizeEditorRoleFocusTargetIdentity({
+    focusTarget: 'disc:rating:enable',
+    elementId: 'not-allowed',
+  }), null)
+
+  assert.deepEqual(
+    getEditorRoleFocusTargetIdentity({
+      roleId: 'additional-artwork',
+      ...uploadA,
+    }),
+    uploadA,
+  )
+  assert.deepEqual(
+    getEditorRoleFocusTargetIdentity({
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:rating:enable',
+    }),
+    fixed,
   )
 })
 

@@ -1,10 +1,14 @@
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import {
   createInitialEditorRoleFocusState,
+  getEditorRoleFocusTargetIdentity,
+  normalizeEditorRoleFocusTargetIdentity,
   reduceEditorRoleFocus,
   type DiscRoleFocusTargetId,
   type EditorRoleFocusRequest,
   type EditorRoleFocusState,
+  type EditorRoleFocusTargetIdentity,
+  type EditorRoleFocusTargetIdentityInput,
 } from './editorRoleFocus.ts'
 
 export type EditorRoleFocusRequestInput = Omit<
@@ -20,7 +24,6 @@ export type EditorRolePanelRegistration = {
 export type EditorRoleFocusTargetRegistration = {
   element: () => HTMLElement | null
   openAncestors?: readonly (() => void)[]
-  fallbackFocusTarget?: DiscRoleFocusTargetId
 }
 
 export type EditorRoleFocusProcessingOutcome =
@@ -42,12 +45,12 @@ export type EditorRoleFocusController = {
     registration: EditorRolePanelRegistration,
   ) => () => void
   registerFocusTarget: (
-    focusTarget: DiscRoleFocusTargetId,
+    identity: EditorRoleFocusTargetIdentityInput,
     registration: EditorRoleFocusTargetRegistration,
   ) => () => void
   registerFocusTargetFallback: (
-    focusTarget: DiscRoleFocusTargetId,
-    fallbackFocusTarget: DiscRoleFocusTargetId,
+    identity: EditorRoleFocusTargetIdentityInput,
+    fallbackIdentity: EditorRoleFocusTargetIdentityInput,
   ) => () => void
 }
 
@@ -65,6 +68,76 @@ export type EditorRoleFocusControllerStore =
 
 type RegistrationEntry<TRegistration> = {
   registration: TRegistration
+}
+
+type IdentityRegistrationMap<TRegistration> = Map<
+  DiscRoleFocusTargetId,
+  Map<string | null, RegistrationEntry<TRegistration>>
+>
+
+function getIdentityElementId(identity: EditorRoleFocusTargetIdentity) {
+  return 'elementId' in identity ? identity.elementId : null
+}
+
+function identitiesMatch(
+  first: EditorRoleFocusTargetIdentity,
+  second: EditorRoleFocusTargetIdentity,
+) {
+  return first.focusTarget === second.focusTarget &&
+    getIdentityElementId(first) === getIdentityElementId(second)
+}
+
+function getIdentityRegistration<TRegistration>(
+  registrations: IdentityRegistrationMap<TRegistration>,
+  identity: EditorRoleFocusTargetIdentity,
+) {
+  return registrations
+    .get(identity.focusTarget)
+    ?.get(getIdentityElementId(identity))
+}
+
+function setIdentityRegistration<TRegistration>(
+  registrations: IdentityRegistrationMap<TRegistration>,
+  identity: EditorRoleFocusTargetIdentity,
+  entry: RegistrationEntry<TRegistration>,
+) {
+  let targetRegistrations = registrations.get(identity.focusTarget)
+
+  if (!targetRegistrations) {
+    targetRegistrations = new Map()
+    registrations.set(identity.focusTarget, targetRegistrations)
+  }
+
+  targetRegistrations.set(getIdentityElementId(identity), entry)
+}
+
+function deleteIdentityRegistration<TRegistration>(
+  registrations: IdentityRegistrationMap<TRegistration>,
+  identity: EditorRoleFocusTargetIdentity,
+  entry: RegistrationEntry<TRegistration>,
+) {
+  const targetRegistrations = registrations.get(identity.focusTarget)
+  const elementId = getIdentityElementId(identity)
+
+  if (targetRegistrations?.get(elementId) !== entry) return
+
+  targetRegistrations.delete(elementId)
+
+  if (targetRegistrations.size === 0) {
+    registrations.delete(identity.focusTarget)
+  }
+}
+
+function requireTargetIdentity(
+  input: EditorRoleFocusTargetIdentityInput,
+) {
+  const identity = normalizeEditorRoleFocusTargetIdentity(input)
+
+  if (!identity) {
+    throw new TypeError('Invalid editor role-focus target identity.')
+  }
+
+  return identity
 }
 
 function resolveElement<TElement extends HTMLElement>(
@@ -111,14 +184,10 @@ export function createEditorRoleFocusControllerStore():
     DiscRolePresetRole,
     RegistrationEntry<EditorRolePanelRegistration>
   >()
-  const focusTargetRegistrations = new Map<
-    DiscRoleFocusTargetId,
-    RegistrationEntry<EditorRoleFocusTargetRegistration>
-  >()
-  const focusTargetFallbackRegistrations = new Map<
-    DiscRoleFocusTargetId,
-    RegistrationEntry<DiscRoleFocusTargetId>
-  >()
+  const focusTargetRegistrations:
+    IdentityRegistrationMap<EditorRoleFocusTargetRegistration> = new Map()
+  const focusTargetFallbackRegistrations:
+    IdentityRegistrationMap<EditorRoleFocusTargetIdentity> = new Map()
 
   function emitChange() {
     for (const listener of [...listeners]) {
@@ -190,30 +259,68 @@ export function createEditorRoleFocusControllerStore():
   }
 
   function registerFocusTarget(
-    focusTarget: DiscRoleFocusTargetId,
+    identityInput: EditorRoleFocusTargetIdentityInput,
     registration: EditorRoleFocusTargetRegistration,
   ) {
+    const identity = requireTargetIdentity(identityInput)
     const entry = { registration }
-    focusTargetRegistrations.set(focusTarget, entry)
+    setIdentityRegistration(focusTargetRegistrations, identity, entry)
 
     return () => {
-      if (focusTargetRegistrations.get(focusTarget) === entry) {
-        focusTargetRegistrations.delete(focusTarget)
-      }
+      deleteIdentityRegistration(focusTargetRegistrations, identity, entry)
     }
   }
 
   function registerFocusTargetFallback(
-    focusTarget: DiscRoleFocusTargetId,
-    fallbackFocusTarget: DiscRoleFocusTargetId,
+    identityInput: EditorRoleFocusTargetIdentityInput,
+    fallbackIdentityInput: EditorRoleFocusTargetIdentityInput,
   ) {
-    const entry = { registration: fallbackFocusTarget }
-    focusTargetFallbackRegistrations.set(focusTarget, entry)
+    const identity = requireTargetIdentity(identityInput)
+    const fallbackIdentity = requireTargetIdentity(fallbackIdentityInput)
+
+    if (identitiesMatch(identity, fallbackIdentity)) {
+      throw new TypeError('Editor role-focus fallback cannot target itself.')
+    }
+
+    if ('elementId' in fallbackIdentity &&
+      (!('elementId' in identity) ||
+        identity.elementId !== fallbackIdentity.elementId)) {
+      throw new TypeError(
+        'Editor role-focus fallback cannot cross repeatable identities.',
+      )
+    }
+
+    const visited: EditorRoleFocusTargetIdentity[] = []
+    let currentIdentity: EditorRoleFocusTargetIdentity | undefined =
+      fallbackIdentity
+
+    while (currentIdentity) {
+      if (identitiesMatch(currentIdentity, identity) ||
+        visited.some((visitedIdentity) =>
+          identitiesMatch(visitedIdentity, currentIdentity!))) {
+        throw new TypeError('Editor role-focus fallback cycle detected.')
+      }
+
+      visited.push(currentIdentity)
+      currentIdentity = getIdentityRegistration(
+        focusTargetFallbackRegistrations,
+        currentIdentity,
+      )?.registration
+    }
+
+    const entry = { registration: fallbackIdentity }
+    setIdentityRegistration(
+      focusTargetFallbackRegistrations,
+      identity,
+      entry,
+    )
 
     return () => {
-      if (focusTargetFallbackRegistrations.get(focusTarget) === entry) {
-        focusTargetFallbackRegistrations.delete(focusTarget)
-      }
+      deleteIdentityRegistration(
+        focusTargetFallbackRegistrations,
+        identity,
+        entry,
+      )
     }
   }
 
@@ -248,14 +355,17 @@ export function createEditorRoleFocusControllerStore():
     return true
   }
 
-  function resolveFocusTarget(startTarget: DiscRoleFocusTargetId) {
-    const visitedTargets = new Set<DiscRoleFocusTargetId>()
-    let focusTarget: DiscRoleFocusTargetId | undefined = startTarget
+  function resolveFocusTarget(startIdentity: EditorRoleFocusTargetIdentity) {
+    const visitedIdentities: EditorRoleFocusTargetIdentity[] = []
+    let identity: EditorRoleFocusTargetIdentity | undefined = startIdentity
 
-    while (focusTarget && !visitedTargets.has(focusTarget)) {
-      visitedTargets.add(focusTarget)
-      const registration: EditorRoleFocusTargetRegistration | undefined =
-        focusTargetRegistrations.get(focusTarget)?.registration
+    while (identity && !visitedIdentities.some((visitedIdentity) =>
+      identitiesMatch(visitedIdentity, identity!))) {
+      visitedIdentities.push(identity)
+      const registration = getIdentityRegistration(
+        focusTargetRegistrations,
+        identity,
+      )?.registration
 
       if (registration) {
         for (const openAncestor of registration.openAncestors ?? []) {
@@ -267,8 +377,10 @@ export function createEditorRoleFocusControllerStore():
         if (element) return element
       }
 
-      focusTarget = registration?.fallbackFocusTarget ??
-        focusTargetFallbackRegistrations.get(focusTarget)?.registration
+      identity = getIdentityRegistration(
+        focusTargetFallbackRegistrations,
+        identity,
+      )?.registration
     }
 
     return null
@@ -294,7 +406,9 @@ export function createEditorRoleFocusControllerStore():
         ? 'role-revealed'
         : 'unavailable'
     } else {
-      const focusTarget = resolveFocusTarget(request.destination.focusTarget)
+      const focusTarget = resolveFocusTarget(
+        getEditorRoleFocusTargetIdentity(request.destination),
+      )
 
       if (focusTarget) {
         focusElement(focusTarget)
