@@ -24,6 +24,7 @@ export const testFiles = [
   'src/image/imageContentShape.test.ts',
   'src/branding/steamBannerDefaults.test.ts',
   'src/components/editor/editorImageSourcePickerItems.test.ts',
+  'src/components/editor/DiscBackgroundArtworkRoleControls.test.ts',
   'src/components/editor/DiscGameTitleRoleControls.test.ts',
   'src/components/editor/DiscEditorNavigationRolePanel.test.ts',
   'src/components/editor/EditorNavigationShell.test.ts',

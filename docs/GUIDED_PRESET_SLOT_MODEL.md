@@ -25,16 +25,19 @@ Implemented role-focus infrastructure includes:
   manual multi-panel expansion and role-summary fallback; and
 - Game Title registration for artwork enable, artwork upload, and title-text
   fallback. The upload target falls back to artwork enable only while its real
-  upload control is unmounted. Navigation never enables or mutates artwork or
-  text.
+  upload control is unmounted; and
+- Background Image registration for the always-mounted enable checkbox and
+  Local file upload input. Upload focus explicitly opens the nested Local file
+  panel and remains available while Background Image is disabled. It does not
+  enable the feature or fall back to the enable checkbox.
 
-Deferred work includes nested targets for Background Artwork and Rating,
-checkbox targets for Legal Info and Additional Text, Company Logos enable-target
-vocabulary, Additional Artwork repeatable-object registration identity, guided
-preview request callers, guided persistence, and final native validation. The
-other six Disc roles therefore remain summary-fallback-only. Navigation state
-is non-persistent, and Case Front, Case Back, and Spine remain outside the
-Disc-only provider.
+Deferred work includes nested targets for Rating, checkbox targets for Legal
+Info and Additional Text, Company Logos enable-target vocabulary, Additional
+Artwork repeatable-object registration identity, guided preview request callers,
+guided persistence, and final native validation. The five Disc roles other than
+Game Title and Background Image therefore remain summary-fallback-only.
+Navigation state is non-persistent, and Case Front, Case Back, and Spine remain
+outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -421,8 +424,8 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 
 | Target ID | Meaning and current contract |
 | --- | --- |
-| `disc:background-image:enable` | The always-mounted Background Image feature enable control. Nested registration is deferred. |
-| `disc:background-image:local-upload` | The Local file upload control. It remains mounted while Background Image is disabled; focusing it does not enable the background, and disability alone does not make it fall back to the enable control. Nested registration and Local file panel opening are deferred. |
+| `disc:background-image:enable` | The always-mounted Background Image feature enable checkbox. Implemented through a direct ref. Focusing it does not change feature state. |
+| `disc:background-image:local-upload` | The real Local file input. Implemented through a direct ref with an explicit ancestor callback that opens the controlled Local file panel. It remains registered while Background Image is disabled, does not enable or otherwise mutate the feature, and has no enable-control fallback. |
 | `disc:game-title:artwork-enable` | The always-mounted title-artwork enable checkbox. Implemented through a direct ref. |
 | `disc:game-title:artwork-upload` | The real title-artwork file input. It is registered only while the optional artwork body is mounted and explicitly falls back to `disc:game-title:artwork-enable` while unavailable. Navigation does not enable title artwork. |
 | `disc:game-title:text-fallback` | The always-mounted Disc title-text row enable checkbox. It does not select preview text or activate the contextual ribbon. Implemented through a direct ref. |

@@ -11,6 +11,9 @@ import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
 import {
+  DiscBackgroundArtworkRoleControls,
+} from '../components/editor/DiscBackgroundArtworkRoleControls'
+import {
   DiscEditorNavigationRolePanel,
 } from '../components/editor/DiscEditorNavigationRolePanel'
 import {
@@ -31,7 +34,6 @@ import {
 import { DiscPreview } from '../components/preview/DiscPreview'
 import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
 import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
-import { BackgroundArtworkControls } from '../components/sidebar/artwork/BackgroundArtworkControls'
 import { CompanyLogoControls } from '../components/sidebar/branding/CompanyLogoControls'
 import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
 import { GameInfoLogoControls } from '../components/sidebar/branding/GameInfoLogoControls'
@@ -1784,7 +1786,9 @@ function App() {
             smokeId={section.smokeId}
           >
             {section.id === 'background-artwork' ? (
-              <BackgroundArtworkControls {...artworkPanelProps} />
+              <DiscBackgroundArtworkRoleControls
+                artworkControls={artworkPanelProps}
+              />
             ) : section.id === 'game-title' ? (
               <DiscGameTitleRoleControls
                 artworkControls={artworkPanelProps}

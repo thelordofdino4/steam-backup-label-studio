@@ -63,7 +63,7 @@ test('EditorFeaturePanel forwards the controlled and ref contract', () => {
   assert.match(source, /summaryRef=\{summaryRef\}/)
 })
 
-test('all non-navigation callers remain uncontrolled and require no new props', () => {
+test('only navigation-owned panels use the controlled contract', () => {
   const componentFiles = globSync('src/components/**/*.tsx', { cwd: repoRoot })
     .map((path) => path.replaceAll('\\', '/'))
   const callerFiles = componentFiles.filter((path) => {
@@ -91,6 +91,13 @@ test('all non-navigation callers remain uncontrolled and require no new props', 
         assert.match(panelTag, /onOpenChange=\{onOpenChange\}/)
         assert.match(panelTag, /detailsRef=\{detailsRef\}/)
         assert.match(panelTag, /summaryRef=\{summaryRef\}/)
+        continue
+      }
+
+      if (callerFile.endsWith('/LocalFileArtworkControls.tsx')) {
+        assert.match(panelTag, /open=\{open\}/)
+        assert.match(panelTag, /onOpenChange=\{onOpenChange\}/)
+        assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
         continue
       }
 
