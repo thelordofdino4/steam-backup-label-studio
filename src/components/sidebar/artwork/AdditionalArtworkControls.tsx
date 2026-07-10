@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { getAdditionalArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   ADDITIONAL_ARTWORK_SCALE_MAX,
@@ -18,9 +19,16 @@ import { ArtworkImageSourceControls } from './ArtworkImageSourceControls'
 import { formatAdditionalArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
-function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
+function AddAdditionalArtworkButton({
+  controlRef,
+  onClick,
+}: {
+  controlRef?: Ref<HTMLButtonElement>
+  onClick: () => void
+}) {
   return (
     <button
+      ref={controlRef}
       className="secondary-button icon-text-button"
       type="button"
       onClick={onClick}
@@ -56,8 +64,6 @@ function AdditionalArtworkElementControls({
   handleResetAdditionalArtworkElementFrame,
   handleClearAdditionalArtworkElementImage,
   handleRemoveAdditionalArtworkElement,
-  handleAddAdditionalArtworkElement,
-  showAddButton,
 }: Pick<
   ArtworkPanelProps,
   | 'selectedSteamGame'
@@ -82,11 +88,9 @@ function AdditionalArtworkElementControls({
   | 'handleResetAdditionalArtworkElementFrame'
   | 'handleClearAdditionalArtworkElementImage'
   | 'handleRemoveAdditionalArtworkElement'
-  | 'handleAddAdditionalArtworkElement'
 > & {
   element: ProjectAdditionalArtworkElement
   elementIndex: number
-  showAddButton: boolean
 }) {
   const hasImage = canUseAdditionalArtworkElement(element)
   const isRenderable = shouldRenderAdditionalArtworkElement(
@@ -254,9 +258,6 @@ function AdditionalArtworkElementControls({
           >
             Reset {title.toLowerCase()} layout
           </button>
-          {showAddButton ? (
-            <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
-          ) : null}
           {hasImage ? (
             <button
               className="secondary-button"
@@ -268,14 +269,20 @@ function AdditionalArtworkElementControls({
           ) : null}
         </>
       </RepeatedVisualElementCard>
-      {showAddButton && !element.layout.enabled ? (
-        <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
-      ) : null}
     </>
   )
 }
 
-export function AdditionalArtworkControls(props: ArtworkPanelProps) {
+export type AdditionalArtworkControlsProps = ArtworkPanelProps & {
+  addControlRef?: Ref<HTMLButtonElement>
+  enableControlRef?: Ref<HTMLInputElement>
+}
+
+export function AdditionalArtworkControls({
+  addControlRef,
+  enableControlRef,
+  ...props
+}: AdditionalArtworkControlsProps) {
   const {
     projectAdditionalArtwork,
     handleAdditionalArtworkEnabledChange,
@@ -288,17 +295,19 @@ export function AdditionalArtworkControls(props: ArtworkPanelProps) {
     <OptionalFeatureSection
       className="feature-control-body additional-artwork-control"
       enabled={isEnabled}
+      enableControlRef={enableControlRef}
       enableLabel="Show additional artwork"
       onEnabledChange={handleAdditionalArtworkEnabledChange}
     >
-      {!hasArtworkElements ? (
-        <>
-          <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+      <AddAdditionalArtworkButton
+        controlRef={addControlRef}
+        onClick={handleAddAdditionalArtworkElement}
+      />
 
-          <p className="hint">
-            Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
-          </p>
-        </>
+      {!hasArtworkElements ? (
+        <p className="hint">
+          Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
+        </p>
       ) : null}
 
       {projectAdditionalArtwork.elements.map((element, index) => (
@@ -307,7 +316,6 @@ export function AdditionalArtworkControls(props: ArtworkPanelProps) {
           {...props}
           element={element}
           elementIndex={index}
-          showAddButton={index === projectAdditionalArtwork.elements.length - 1}
         />
       ))}
     </OptionalFeatureSection>

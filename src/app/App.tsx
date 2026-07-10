@@ -14,6 +14,9 @@ import {
   DiscAdditionalTextRoleControls,
 } from '../components/editor/DiscAdditionalTextRoleControls'
 import {
+  DiscAdditionalArtworkRoleControls,
+} from '../components/editor/DiscAdditionalArtworkRoleControls'
+import {
   DiscBackgroundArtworkRoleControls,
 } from '../components/editor/DiscBackgroundArtworkRoleControls'
 import {
@@ -45,7 +48,6 @@ import {
 } from '../editor/editorNavigationShell'
 import { DiscPreview } from '../components/preview/DiscPreview'
 import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
-import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
 import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
 import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
@@ -1813,7 +1815,9 @@ function App() {
             ) : section.id === 'legal-info' ? (
               <DiscLegalInfoRoleControls textControls={textPanelProps} />
             ) : section.id === 'additional-artwork' ? (
-              <AdditionalArtworkControls {...artworkPanelProps} />
+              <DiscAdditionalArtworkRoleControls
+                artworkControls={artworkPanelProps}
+              />
             ) : section.id === 'additional-text' ? (
               <DiscAdditionalTextRoleControls textControls={textPanelProps} />
             ) : null}

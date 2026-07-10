@@ -48,14 +48,18 @@ Implemented role-focus infrastructure includes:
 - composite controller registration and fallback identity keyed by semantic
   target plus exact element ID. Repeated items coexist without overwriting one
   another, fallback chains are cycle-safe, and fixed targets retain their
-  existing behavior.
+  existing behavior; and
+- Additional Artwork global-enable and Add Artwork registration. Add Artwork is
+  a stable collection-level button outside every repeatable item card and falls
+  back to global enable while the feature body is unmounted. Navigation focuses
+  these controls without toggling the feature or creating an item.
 
-Deferred work includes Additional Artwork UI refs and registrations, guided
-preview request callers, guided persistence, and final native validation.
-Additional Artwork remains summary-fallback-only in the UI. Game Title,
-Background Image, Rating, Legal Info, Additional Text, and primary Company Logos
-now have target registration. Navigation state is transient and non-persistent,
-and Case Front, Case Back, and Spine remain outside the Disc-only provider.
+Deferred work includes Additional Artwork per-item enable/upload refs and
+registrations, guided preview request callers, guided persistence, and final
+native validation. Game Title, Background Image, Rating, Legal Info, Additional
+Text, primary Company Logos, and Additional Artwork global controls now have
+target registration. Navigation state is transient and non-persistent, and Case
+Front, Case Back, and Spine remain outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -475,8 +479,8 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
 | `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo file input. It is registered only while the publisher body is mounted and explicitly falls back only to `disc:company-logo:publisher-enable` when unavailable. |
 | `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
-| `disc:additional-artwork:enable` | The global Additional Artwork feature-enable control. It has no item identity. The semantic target and controller support are implemented; UI registration is deferred. |
-| `disc:additional-artwork:add` | The Add Artwork command. It has no item identity, and navigation will only focus it rather than activate it. The semantic target and controller support are implemented; UI registration is deferred. |
+| `disc:additional-artwork:enable` | The always-mounted global Additional Artwork feature-enable checkbox. It has no item identity and is registered through a direct ref. Focusing it does not toggle the feature. |
+| `disc:additional-artwork:add` | The enabled-only global Add Artwork button. It is a collection-level action rendered before and outside every repeatable item card, has no `elementId`, and falls back to `disc:additional-artwork:enable` while unavailable. Navigation focuses it without activating it or creating an item. |
 | `disc:additional-artwork:item-enable` | One existing element's enable control. Its destination and registration identity require the same stable persisted `elementId`. UI registration is deferred. |
 | `disc:additional-artwork:upload` | One existing element's local upload control. Its destination and registration identity require the same stable persisted `elementId`. UI registration is deferred. |
 | `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select custom-note text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text field. |
@@ -492,10 +496,11 @@ Additional Artwork controller capability supports the future exact fallback
 chain `upload(item) -> item-enable(item) -> add -> global enable`. Each item hop
 retains the same persisted `elementId`; cross-item fallback is rejected. Direct
 registration at any step wins, traversal detects cycles, and unresolved focus
-still uses the role-summary fallback. No Additional Artwork production
-registration is implemented yet. Array indexes, first-item selection, candidate
-bindings such as `first-renderable-existing`, DOM IDs, and encoded string keys
-are not valid navigation identity.
+still uses the role-summary fallback. Production registration currently covers
+only global enable and Add Artwork. Per-item enable/upload registration remains
+deferred even though the controller supports composite identity. Array indexes,
+first-item selection, candidate bindings such as `first-renderable-existing`,
+DOM IDs, and encoded string keys are not valid navigation identity.
 
 No guided preview caller exists yet. Future placeholder components should emit
 typed navigation intent rather than query the DOM or duplicate role-panel

@@ -507,7 +507,7 @@ test('production integration stays Rating-only and dependency-safe', () => {
   )
   assert.match(
     appSource,
-    /section\.id === 'additional-artwork'[\s\S]*<AdditionalArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+    /section\.id === 'additional-artwork'[\s\S]*<DiscAdditionalArtworkRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}/,
   )
   assert.doesNotMatch(caseInsertSource, /DiscGameInfoRatingControls/)
 
