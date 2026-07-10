@@ -73,6 +73,7 @@ export const testFiles = [
   'src/editor/imageCandidateRanking.test.ts',
   'src/editor/imageSourceContract.test.ts',
   'src/editor/editorNavigationShell.test.ts',
+  'src/editor/editorRoleFocus.test.ts',
   'src/editor/logoAsset.test.ts',
   'src/editor/markImageSource.test.ts',
   'src/editor/optionalVisualFeature.test.ts',
