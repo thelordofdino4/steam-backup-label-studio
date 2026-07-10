@@ -466,7 +466,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
 
   assert.match(
     appSource,
-    /import \{ CompanyLogoControls \} from '\.\.\/components\/sidebar\/branding\/CompanyLogoControls'/,
+    /import \{[\s\S]*DiscCompanyLogosRoleControls,[\s\S]*\} from '\.\.\/components\/editor\/DiscCompanyLogosRoleControls'/,
   )
   assert.match(
     appSource,
@@ -474,7 +474,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
   )
   assert.match(
     appSource,
-    /section\.id === 'company-logos'[\s\S]*<CompanyLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+    /section\.id === 'company-logos'[\s\S]*<DiscCompanyLogosRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.doesNotMatch(appSource, /<LogoAssetControls/)
   assert.doesNotMatch(appSource, /<BrandingPanel/)
@@ -482,7 +482,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
   assert.match(companyLogoControlsSource, /LogoAssetControls/)
   assert.match(
     companyLogoControlsSource,
-    /<EditorFeaturePanel title="Developer \/ publisher logos" variant="branding">/,
+    /<EditorFeaturePanel[\s\S]*title="Developer \/ publisher logos"[\s\S]*variant="branding"[\s\S]*open=\{panelOpen\}/,
   )
   assert.match(companyLogoControlsSource, /logoKey="developer"/)
   assert.match(companyLogoControlsSource, /label="Developer"/)

@@ -1,4 +1,4 @@
-import type { ChangeEvent, ReactNode } from 'react'
+import type { ChangeEvent, ReactNode, Ref } from 'react'
 import type {
   LogoAlignmentPreset,
   LogoAssetKind,
@@ -57,6 +57,7 @@ export function EditorLogoAssetControls({
   onResetLayout,
   onUpload,
   resetLabel = 'Reset logo layout',
+  uploadControlRef,
   uploadId,
 }: {
   alignmentPresets: readonly LogoAlignmentPreset[]
@@ -86,6 +87,7 @@ export function EditorLogoAssetControls({
   onResetLayout: () => void
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   resetLabel?: string
+  uploadControlRef?: Ref<HTMLInputElement>
   uploadId: string
 }) {
   const hasLogoImage = Boolean(imageDataUrl)
@@ -97,6 +99,7 @@ export function EditorLogoAssetControls({
         {getLogoAssetUploadActionLabel({ hasImage: hasLogoImage, label })}
       </label>
       <input
+        ref={uploadControlRef}
         id={uploadId}
         className="logo-file-input"
         type="file"

@@ -112,6 +112,14 @@ test('only navigation-owned panels use the controlled contract', () => {
         continue
       }
 
+      if (callerFile.endsWith('/CompanyLogoControls.tsx') &&
+        panelTag.includes('title="Developer / publisher logos"')) {
+        assert.match(panelTag, /open=\{panelOpen\}/)
+        assert.match(panelTag, /onOpenChange=\{onPanelOpenChange\}/)
+        assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
+        continue
+      }
+
       assert.doesNotMatch(
         panelTag,
         /\b(?:open|onOpenChange|detailsRef|summaryRef)=/,

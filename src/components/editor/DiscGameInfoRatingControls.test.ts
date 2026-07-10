@@ -503,7 +503,7 @@ test('production integration stays Rating-only and dependency-safe', () => {
   )
   assert.match(
     appSource,
-    /section\.id === 'company-logos'[\s\S]*<CompanyLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+    /section\.id === 'company-logos'[\s\S]*<DiscCompanyLogosRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.match(
     appSource,

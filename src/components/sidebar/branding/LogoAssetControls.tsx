@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { getLogoAssetLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import { getLogoAssetSource } from '../../../project/projectLogoAssets'
 import type {
@@ -39,6 +40,7 @@ function LogoAssetControlBody({
   imageSource,
   imageSize,
   layout,
+  uploadControlRef,
   uploadId,
   controlIdPrefix,
   additionalLogoId,
@@ -67,6 +69,7 @@ function LogoAssetControlBody({
   imageSource: ProjectImageAssetProvenance | null
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
+  uploadControlRef?: Ref<HTMLInputElement>
   uploadId: string
   controlIdPrefix: string
   additionalLogoId?: string
@@ -126,6 +129,7 @@ function LogoAssetControlBody({
         handleApplyLogoCandidate(logoKey, candidate, additionalLogoId)}
       onUpload={(event) =>
         handleLogoAssetUpload(logoKey, event, additionalLogoId)}
+      uploadControlRef={uploadControlRef}
       onApplyAlignmentPreset={(preset) => {
         updateLayout('x', preset.x)
         updateLayout('y', preset.y)
@@ -211,6 +215,8 @@ export function LogoAssetControls({
   imageDataUrl,
   imageSize,
   layout,
+  enableControlRef,
+  uploadControlRef,
   projectLogoAssets,
   handleLogoAssetLayoutChange,
   handleAddAdditionalLogoAsset,
@@ -235,6 +241,8 @@ export function LogoAssetControls({
   imageDataUrl: string | null
   imageSize: BackgroundImageSize | null
   layout: LogoAssetLayout
+  enableControlRef?: Ref<HTMLInputElement>
+  uploadControlRef?: Ref<HTMLInputElement>
 }) {
   const uploadId = `${logoKey}-logo-upload`
   const additionalLogos = logoKey === 'developer'
@@ -245,6 +253,7 @@ export function LogoAssetControls({
     <OptionalFeatureSection
       className="logo-asset-card"
       enabled={layout.enabled}
+      enableControlRef={enableControlRef}
       enableLabel={`Show ${label.toLowerCase()} logo`}
       onEnabledChange={(enabled) =>
         handleLogoAssetLayoutChange(logoKey, 'enabled', enabled)}
@@ -257,6 +266,7 @@ export function LogoAssetControls({
         imageSource={getLogoAssetSource(projectLogoAssets, logoKey)}
         imageSize={imageSize}
         layout={layout}
+        uploadControlRef={uploadControlRef}
         uploadId={uploadId}
         controlIdPrefix={`${logoKey}-logo`}
         handleLogoAssetLayoutChange={handleLogoAssetLayoutChange}
