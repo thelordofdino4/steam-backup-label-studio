@@ -4,6 +4,13 @@
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
 
+## Implementation Status
+
+Pure Disc slot definitions and lifecycle resolution are implemented in
+`src/guidedPresets/discGuidedSlots.ts`. Skip and suggestion inputs remain
+transient. Geometry, React UI, placeholder rendering, navigation, persistence,
+and auto-fill remain deferred.
+
 ## 1. Purpose And Scope
 
 Guided slots describe content that a guided preset expects at a particular
@@ -18,10 +25,10 @@ or enable a feature object merely because the slot exists.
 
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
-boundaries for #281. It does not implement source types, React UI, preview
-placeholders, role-focus navigation, persistence, or auto-fill. Case Front,
-Case Back, and Spine guided presets remain deferred until the Disc contract is
-proven.
+boundaries for #281. The pure source definitions and lifecycle resolver are now
+implemented; React UI, preview placeholders, role-focus navigation,
+persistence, and auto-fill remain deferred. Case Front, Case Back, and Spine
+guided presets remain deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
 
@@ -59,8 +66,8 @@ Initial Disc guided slot IDs:
 
 ## 3. Proposed Vocabulary
 
-The following snippets describe proposed contracts. They are not implemented
-source types in this issue.
+The following snippets introduced the vocabulary now implemented by the pure
+Disc guided-slot source model.
 
 ```ts
 type GuidedSlotLifecycle =
