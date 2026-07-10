@@ -11,10 +11,12 @@ Pure Disc slot definitions and lifecycle resolution are implemented in
 transient. Pure typed Disc role-focus requests, runtime validation, and reducer
 state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
 semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
-state is transient and is not serialized. Controlled panels, a React
-controller/provider, target registrations, scrolling, actual focus, preview
-interaction, geometry, placeholder rendering, persistence, and auto-fill remain
-deferred; visible focus navigation is not implemented yet.
+state is transient and is not serialized. `EditorPanel` now supports optional
+controlled open state and exposes direct details and summary refs; existing
+callers remain uncontrolled. A React controller/provider, role registration,
+nested-control registration, scrolling, actual focus, preview interaction,
+geometry, placeholder rendering, persistence, and auto-fill remain deferred;
+visible focus navigation is not implemented yet.
 
 ## 1. Purpose And Scope
 

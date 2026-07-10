@@ -26,6 +26,7 @@ export const testFiles = [
   'src/components/editor/editorImageSourcePickerItems.test.ts',
   'src/components/editor/EditorNavigationShell.test.ts',
   'src/components/editor/editorNavigationShellViewModel.test.ts',
+  'src/components/editor/EditorPanel.test.ts',
   'src/components/editor/editorPanelClasses.test.ts',
   'src/components/editor/editorRangeFieldModel.test.ts',
   'src/components/editor/optionalFeatureSectionModel.test.ts',
