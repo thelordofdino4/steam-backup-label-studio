@@ -101,6 +101,17 @@ test('only navigation-owned panels use the controlled contract', () => {
         continue
       }
 
+      if (callerFile.endsWith('/GameInfoLogoControls.tsx') &&
+        panelTag.includes('title="Rating badge"')) {
+        assert.match(panelTag, /open=\{ratingPanelOpen\}/)
+        assert.match(
+          panelTag,
+          /onOpenChange=\{onRatingPanelOpenChange\}/,
+        )
+        assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
+        continue
+      }
+
       assert.doesNotMatch(
         panelTag,
         /\b(?:open|onOpenChange|detailsRef|summaryRef)=/,

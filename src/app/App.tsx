@@ -23,6 +23,9 @@ import {
   DiscGameTitleRoleControls,
 } from '../components/editor/DiscGameTitleRoleControls'
 import {
+  DiscGameInfoRatingControls,
+} from '../components/editor/DiscGameInfoRatingControls'
+import {
   DiscLegalInfoRoleControls,
 } from '../components/editor/DiscLegalInfoRoleControls'
 import {
@@ -42,7 +45,6 @@ import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
 import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
 import { CompanyLogoControls } from '../components/sidebar/branding/CompanyLogoControls'
 import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
-import { GameInfoLogoControls } from '../components/sidebar/branding/GameInfoLogoControls'
 import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
@@ -1799,7 +1801,9 @@ function App() {
                 textControls={textPanelProps}
               />
             ) : section.id === 'game-info-logos' ? (
-              <GameInfoLogoControls {...brandingPanelProps} />
+              <DiscGameInfoRatingControls
+                brandingControls={brandingPanelProps}
+              />
             ) : section.id === 'company-logos' ? (
               <CompanyLogoControls {...brandingPanelProps} />
             ) : section.id === 'legal-info' ? (

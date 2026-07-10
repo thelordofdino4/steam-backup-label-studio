@@ -32,14 +32,18 @@ Implemented role-focus infrastructure includes:
   enable the feature or fall back to the enable checkbox; and
 - Legal Info and Additional Text registration for the copyright and custom-note
   row enable checkboxes. These fixed-row targets do not select preview text or
-  activate the contextual ribbon.
+  activate the contextual ribbon; and
+- Rating registration for the enable, system, current value, and source-mode
+  controls. System, value, and source use an explicit enable-control fallback
+  while Rating is disabled. Navigation opens the nested Rating panel but never
+  enables or mutates Rating.
 
-Deferred work includes nested targets for Rating, Company Logos enable-target
-vocabulary, Additional Artwork repeatable-object registration identity, guided
-preview request callers, guided persistence, and final native validation. Rating,
-Company Logos, and Additional Artwork therefore remain summary-fallback-only.
-Navigation state is transient and non-persistent, and Case Front, Case Back, and
-Spine remain outside the Disc-only provider.
+Deferred work includes Company Logos enable-target vocabulary, Additional
+Artwork repeatable-object registration identity, guided preview request callers,
+guided persistence, and final native validation. Company Logos and Additional
+Artwork therefore remain summary-fallback-only. Navigation state is transient
+and non-persistent, and Case Front, Case Back, and Spine remain outside the
+Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -431,10 +435,10 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:game-title:artwork-enable` | The always-mounted title-artwork enable checkbox. Implemented through a direct ref. |
 | `disc:game-title:artwork-upload` | The real title-artwork file input. It is registered only while the optional artwork body is mounted and explicitly falls back to `disc:game-title:artwork-enable` while unavailable. Navigation does not enable title artwork. |
 | `disc:game-title:text-fallback` | The always-mounted Disc title-text row enable checkbox. It does not select preview text or activate the contextual ribbon. Implemented through a direct ref. |
-| `disc:rating:enable` | The always-mounted primary rating-badge enable control inside the Rating badge panel. Nested registration is deferred. |
-| `disc:rating:system` | The rating-system selector. It exists whenever Rating is enabled and must not change the current system merely because navigation occurs. Future disabled-body fallback is `disc:rating:enable`. |
-| `disc:rating:value` | The current rating-value control, whether that control is rendered as a select or a text input. It exists whenever Rating is enabled and must not change the value. Future disabled-body fallback is `disc:rating:enable`. |
-| `disc:rating:source` | The rating source-mode selector, not the conditional custom-image upload input. It exists whenever Rating is enabled and must not change the source. Future disabled-body fallback is `disc:rating:enable`. |
+| `disc:rating:enable` | The always-mounted primary rating-badge enable checkbox inside the controlled Rating badge panel. Implemented through a direct ref with an explicit Rating-panel ancestor callback. Focusing it does not toggle Rating. |
+| `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
+| `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
+| `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
 | `disc:company-logo:developer-upload` | The primary developer-logo file input. The input is conditional on developer-logo enablement. A semantic developer-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
 | `disc:company-logo:publisher-upload` | The primary publisher-logo file input. The input is conditional on publisher-logo enablement. A semantic publisher-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
 | `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
