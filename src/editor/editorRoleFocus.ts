@@ -10,6 +10,16 @@ export type EditorRoleFocusBehavior = 'reveal' | 'focus'
 
 export type EditorRoleFocusRequestId = number
 
+export const DISC_COMPANY_LOGO_FOCUS_TARGET_IDS = [
+  'disc:company-logo:developer-enable',
+  'disc:company-logo:developer-upload',
+  'disc:company-logo:publisher-enable',
+  'disc:company-logo:publisher-upload',
+] as const
+
+export type DiscCompanyLogoFocusTarget =
+  (typeof DISC_COMPANY_LOGO_FOCUS_TARGET_IDS)[number]
+
 export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:background-image:enable',
   'disc:background-image:local-upload',
@@ -20,8 +30,7 @@ export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:rating:system',
   'disc:rating:value',
   'disc:rating:source',
-  'disc:company-logo:developer-upload',
-  'disc:company-logo:publisher-upload',
+  ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   'disc:legal-text:copyright',
   'disc:additional-artwork:add',
   'disc:additional-artwork:upload',
@@ -55,9 +64,7 @@ export type DiscRoleFocusDestination =
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'company-logos'>
-      focusTarget:
-        | 'disc:company-logo:developer-upload'
-        | 'disc:company-logo:publisher-upload'
+      focusTarget: DiscCompanyLogoFocusTarget
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'legal-info'>
@@ -137,8 +144,7 @@ const FOCUS_TARGETS_BY_ROLE = {
     'disc:rating:source',
   ],
   'company-logos': [
-    'disc:company-logo:developer-upload',
-    'disc:company-logo:publisher-upload',
+    ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   ],
   'legal-info': ['disc:legal-text:copyright'],
   'additional-artwork': [
@@ -315,6 +321,24 @@ function parseOwnerTarget(
   return { ok: false, error: 'invalid-owner-target' }
 }
 
+function isOwnerTargetCompatibleWithDestination(
+  destination: DiscRoleFocusDestination,
+  ownerTarget: EditorRoleFocusOwnerTarget,
+) {
+  if (destination.roleId !== 'company-logos') return true
+  if (ownerTarget.owner !== 'logoAssets' || ownerTarget.scope !== 'primary') {
+    return false
+  }
+
+  const expectedLogoKey =
+    destination.focusTarget === 'disc:company-logo:developer-enable' ||
+    destination.focusTarget === 'disc:company-logo:developer-upload'
+      ? 'developer'
+      : 'publisher'
+
+  return ownerTarget.logoKey === expectedLogoKey
+}
+
 function parseEditorRoleFocusRequestUnsafe(
   value: unknown,
 ): EditorRoleFocusRequestParseResult {
@@ -355,6 +379,13 @@ function parseEditorRoleFocusRequestUnsafe(
 
     if (!ownerTarget.ok) {
       return ownerTarget
+    }
+
+    if (!isOwnerTargetCompatibleWithDestination(
+      destination.value,
+      ownerTarget.value,
+    )) {
+      return { ok: false, error: 'invalid-owner-target' }
     }
 
     return {

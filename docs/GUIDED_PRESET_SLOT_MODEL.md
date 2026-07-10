@@ -36,14 +36,18 @@ Implemented role-focus infrastructure includes:
 - Rating registration for the enable, system, current value, and source-mode
   controls. System, value, and source use an explicit enable-control fallback
   while Rating is disabled. Navigation opens the nested Rating panel but never
-  enables or mutates Rating.
+  enables or mutates Rating; and
+- Company Logos semantic vocabulary and parser support for distinct primary
+  developer/publisher enable and upload targets. UI refs, nested panel control,
+  direct registrations, and upload fallbacks are not implemented yet.
 
-Deferred work includes Company Logos enable-target vocabulary, Additional
-Artwork repeatable-object registration identity, guided preview request callers,
-guided persistence, and final native validation. Company Logos and Additional
-Artwork therefore remain summary-fallback-only. Navigation state is transient
-and non-persistent, and Case Front, Case Back, and Spine remain outside the
-Disc-only provider.
+Deferred work includes Company Logos ref wiring, nested panel control, direct
+target and upload-to-enable fallback registration, Additional Artwork
+repeatable-object registration identity, guided preview request callers, guided
+persistence, and final native validation. Company Logos and Additional Artwork
+therefore remain summary-fallback-only. Navigation state is transient and
+non-persistent, and Case Front, Case Back, and Spine remain outside the Disc-only
+provider.
 
 ## 1. Purpose And Scope
 
@@ -439,17 +443,20 @@ create an undo entry, trigger autosave, or enter the saved-project schema.
 | `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
 | `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
 | `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
-| `disc:company-logo:developer-upload` | The primary developer-logo file input. The input is conditional on developer-logo enablement. A semantic developer-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
-| `disc:company-logo:publisher-upload` | The primary publisher-logo file input. The input is conditional on publisher-logo enablement. A semantic publisher-enable target does not yet exist, so precise disabled-state fallback and Company Logos UI wiring are deferred. |
+| `disc:company-logo:developer-enable` | The primary developer-logo enable control, expected to remain mounted while Company Logos exists. Vocabulary and strict parser support are implemented; UI registration is deferred. |
+| `disc:company-logo:developer-upload` | The enabled-only primary developer-logo local upload control. Future UI registration will fall back only to `disc:company-logo:developer-enable`; refs and registrations are deferred. |
+| `disc:company-logo:publisher-enable` | The primary publisher-logo enable control, expected to remain mounted while Company Logos exists. Vocabulary and strict parser support are implemented; UI registration is deferred. |
+| `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo local upload control. Future UI registration will fall back only to `disc:company-logo:publisher-enable`; refs and registrations are deferred. |
 | `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
 | `disc:additional-artwork:add` | The Add artwork element command. It is available only while the global Additional Artwork feature body is mounted. A semantic global-enable fallback target does not yet exist. |
 | `disc:additional-artwork:upload` | A concrete repeated artwork element's upload control. Safe registration requires persisted `elementId` identity, but current controller lookup is keyed only by semantic target. Global-enable and per-item-enable targets are also missing, so model/controller correction is required before UI wiring. |
 | `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select custom-note text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text field. |
 
-Company Logos must not be wired by silently treating upload IDs as enable
-targets. Additional Artwork must not collapse repeated objects into one global
-upload registration or use array indexes. Those vocabulary and identity gaps
-require focused pure-model/controller work before their UI integrations.
+Company Logos developer and publisher identities remain distinct. The future UI
+must register developer upload to developer enable and publisher upload to
+publisher enable; neither may cross-fallback. Repeatable additional logos remain
+outside this target vocabulary. Additional Artwork must not collapse repeated
+objects into one global upload registration or use array indexes.
 
 No guided preview caller exists yet. Future placeholder components should emit
 typed navigation intent rather than query the DOM or duplicate role-panel

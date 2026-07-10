@@ -4,11 +4,13 @@ import test from 'node:test'
 
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import {
+  DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   DISC_ROLE_FOCUS_TARGET_IDS,
   createInitialEditorRoleFocusState,
   parseEditorRoleFocusRequest,
   reduceEditorRoleFocus,
   type DiscRoleFocusDestination,
+  type DiscCompanyLogoFocusTarget,
   type EditorRoleFocusBehavior,
   type EditorRoleFocusRequest,
   type EditorRoleFocusState,
@@ -53,7 +55,15 @@ const VALID_DESTINATIONS = [
   },
   {
     roleId: 'company-logos',
+    focusTarget: 'disc:company-logo:developer-enable',
+  },
+  {
+    roleId: 'company-logos',
     focusTarget: 'disc:company-logo:developer-upload',
+  },
+  {
+    roleId: 'company-logos',
+    focusTarget: 'disc:company-logo:publisher-enable',
   },
   {
     roleId: 'company-logos',
@@ -184,6 +194,165 @@ test('rejects invalid roles, targets, and role-target combinations', () => {
     }),
     { ok: false, error: 'invalid-role-target-combination' },
   )
+})
+
+test('parses every Company Logo target for focus and reveal without coercion', () => {
+  for (const behavior of ['focus', 'reveal'] as const) {
+    DISC_COMPANY_LOGO_FOCUS_TARGET_IDS.forEach((focusTarget, index) => {
+      const destination = {
+        roleId: 'company-logos',
+        focusTarget,
+      } as const
+      const result = parseEditorRoleFocusRequest(
+        createRequest(index + 1, destination, behavior),
+      )
+
+      assert.equal(result.ok, true, `${behavior}:${focusTarget}`)
+      if (result.ok) {
+        assert.equal(result.request.behavior, behavior)
+        assert.deepEqual(result.request.destination, destination)
+      }
+    })
+  }
+})
+
+test('rejects every Company Logo target with every non-company role', () => {
+  const nonCompanyRoles = [
+    'background-artwork',
+    'game-title',
+    'game-info-logos',
+    'legal-info',
+    'additional-artwork',
+    'additional-text',
+  ] as const
+
+  for (const focusTarget of DISC_COMPANY_LOGO_FOCUS_TARGET_IDS) {
+    for (const roleId of nonCompanyRoles) {
+      assert.deepEqual(
+        parseEditorRoleFocusRequest({
+          ...createRequest(1),
+          destination: { roleId, focusTarget },
+        }),
+        { ok: false, error: 'invalid-role-target-combination' },
+        `${roleId}:${focusTarget}`,
+      )
+    }
+  }
+})
+
+test('rejects unknown or malformed Company Logo targets exactly', () => {
+  const invalidTargets = [
+    'disc:company-logo:enable',
+    'disc:company-logo:upload',
+    'disc:company-logo:developer-source',
+    'disc:company-logo:publisher-source',
+    'disc:company-logo:additional-logo-enable',
+    'disc:company-logo:additional-logo-upload',
+    'disc:company:developer-enable',
+    'disc:company-logo:developer-enabl',
+    'disc:company-logo:publisher-upload-extra',
+    '',
+    'unknown',
+  ]
+
+  for (const focusTarget of invalidTargets) {
+    assert.deepEqual(
+      parseEditorRoleFocusRequest({
+        ...createRequest(1),
+        destination: { roleId: 'company-logos', focusTarget },
+      }),
+      { ok: false, error: 'invalid-focus-target' },
+      focusTarget,
+    )
+  }
+})
+
+test('preserves distinct developer and publisher target identities', () => {
+  const parsedTargets = DISC_COMPANY_LOGO_FOCUS_TARGET_IDS.map(
+    (focusTarget, index) => parseEditorRoleFocusRequest(
+      createRequest(index + 1, {
+        roleId: 'company-logos',
+        focusTarget,
+      }),
+    ),
+  )
+
+  assert.equal(
+    new Set(DISC_COMPANY_LOGO_FOCUS_TARGET_IDS).size,
+    DISC_COMPANY_LOGO_FOCUS_TARGET_IDS.length,
+  )
+  assert.deepEqual(
+    parsedTargets.map((result) => result.ok
+      ? result.request.destination.focusTarget
+      : null),
+    DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
+  )
+})
+
+test('validates Company Logo owner targets against matching primary identity', () => {
+  const logoKeyByTarget: Record<DiscCompanyLogoFocusTarget, 'developer' | 'publisher'> = {
+    'disc:company-logo:developer-enable': 'developer',
+    'disc:company-logo:developer-upload': 'developer',
+    'disc:company-logo:publisher-enable': 'publisher',
+    'disc:company-logo:publisher-upload': 'publisher',
+  }
+
+  DISC_COMPANY_LOGO_FOCUS_TARGET_IDS.forEach((focusTarget, index) => {
+    const logoKey = logoKeyByTarget[focusTarget]
+    const oppositeLogoKey = logoKey === 'developer' ? 'publisher' : 'developer'
+    const request = createRequest(index + 1, {
+      roleId: 'company-logos',
+      focusTarget,
+    })
+    const matching = parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: { owner: 'logoAssets', logoKey, scope: 'primary' },
+    })
+    const mismatched = parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: {
+        owner: 'logoAssets',
+        logoKey: oppositeLogoKey,
+        scope: 'primary',
+      },
+    })
+    const unrelated = parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: { owner: 'ratingBadge', badgeKey: 'primary' },
+    })
+    const withFeaturePayload = parseEditorRoleFocusRequest({
+      ...request,
+      ownerTarget: {
+        owner: 'logoAssets',
+        logoKey,
+        scope: 'primary',
+        enabled: true,
+        imageDataUrl: 'data:image/png;base64,not-navigation-state',
+      },
+    })
+
+    assert.equal(parseEditorRoleFocusRequest(request).ok, true)
+    assert.equal(matching.ok, true, focusTarget)
+    if (matching.ok) {
+      assert.deepEqual(matching.request.ownerTarget, {
+        owner: 'logoAssets',
+        logoKey,
+        scope: 'primary',
+      })
+    }
+    assert.deepEqual(
+      mismatched,
+      { ok: false, error: 'invalid-owner-target' },
+    )
+    assert.deepEqual(
+      unrelated,
+      { ok: false, error: 'invalid-owner-target' },
+    )
+    assert.deepEqual(
+      withFeaturePayload,
+      { ok: false, error: 'invalid-owner-target' },
+    )
+  })
 })
 
 test('validates Additional Artwork add and persisted-ID upload destinations', () => {
@@ -361,6 +530,38 @@ test('distinct same-target requests work and the newer pending request replaces 
   assert.equal(second.outcome, 'accepted')
   assert.equal(second.state.pendingRequest?.requestId, 2)
   assert.deepEqual(second.state.pendingRequest?.destination, requestOne.destination)
+})
+
+test('new Company enable targets preserve request identity and consumption', () => {
+  for (const [index, focusTarget] of [
+    'disc:company-logo:developer-enable',
+    'disc:company-logo:publisher-enable',
+  ].entries()) {
+    const destination = {
+      roleId: 'company-logos',
+      focusTarget,
+    } as const
+    const initial = createInitialEditorRoleFocusState()
+    const first = reduceEditorRoleFocus(initial, {
+      type: 'request',
+      request: createRequest(index + 1, destination),
+    })
+    const consumed = reduceEditorRoleFocus(first.state, {
+      type: 'consume',
+      requestId: index + 1,
+    })
+    const second = reduceEditorRoleFocus(consumed.state, {
+      type: 'request',
+      request: createRequest(index + 10, destination),
+    })
+
+    assert.equal(first.outcome, 'accepted')
+    assert.deepEqual([...first.state.openRoleIds], ['company-logos'])
+    assert.equal(consumed.outcome, 'consumed')
+    assert.equal(second.outcome, 'accepted')
+    assert.equal(second.state.pendingRequest?.requestId, index + 10)
+    assert.deepEqual(second.state.pendingRequest?.destination, destination)
+  }
 })
 
 test('accepted requests open only the target role without accordion behavior', () => {
@@ -558,6 +759,9 @@ test('source has no React, component, preview, schema, renderer, export, or Case
     'render/',
     'export/',
     'caseInsert',
+    'steam/',
+    'tauri/',
+    'fetch(',
   ]
 
   for (const forbiddenDependency of forbiddenDependencies) {
