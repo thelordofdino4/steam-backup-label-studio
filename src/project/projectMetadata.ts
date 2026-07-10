@@ -6,6 +6,7 @@ export const PEGI_RATING_VALUES = ['3', '7', '12', '16', '18'] as const
 export const USK_RATING_VALUES = ['0', '6', '12', '16', '18'] as const
 const DEFAULT_ENABLED_RATING_SYSTEM: GameRatingSystem = 'ESRB'
 const DEFAULT_ENABLED_RATING_VALUE = 'E'
+export const DEFAULT_DISC_PROJECT_TITLE = 'Untitled Steam Backup Label'
 
 export type EsrbRatingValue = (typeof ESRB_RATING_VALUES)[number]
 export type PegiRatingValue = (typeof PEGI_RATING_VALUES)[number]
@@ -152,7 +153,7 @@ export function getRatingMetadataForBadgeEnabled(
 
 export function createDefaultProjectMetadata(): ProjectMetadata {
   return {
-    title: 'Untitled Steam Backup Label',
+    title: DEFAULT_DISC_PROJECT_TITLE,
     subtitle: '',
     steamAppId: '',
     developer: '',
