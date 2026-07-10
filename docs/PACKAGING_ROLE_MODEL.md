@@ -282,6 +282,7 @@ and #270 owns starter disc layout presets.
 
 Related documents:
 
+- `docs/GUIDED_PRESET_SLOT_MODEL.md`
 - `docs/ISSUE_271_ROLE_NAVIGATION_SHELL.md`
 - `docs/ROLE_BASED_PRESET_MODEL.md`
 - `docs/SOFTWARE_DESIGN_DOCUMENT.md`
@@ -296,5 +297,7 @@ Related issues and completed migration context:
 - #269: Role-based preset data model and application contract, documented in
   `docs/ROLE_BASED_PRESET_MODEL.md`.
 - #270: Starter disc layout presets.
+- #281/#283: Guided layout preset parent track and the Disc slot domain and
+  lifecycle contract documented in `docs/GUIDED_PRESET_SLOT_MODEL.md`.
 - #272/#274: Completed visible role-panel migration work, with implementation
   evidence in the current role shell and panel mappings.
