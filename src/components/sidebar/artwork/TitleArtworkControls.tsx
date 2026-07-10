@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { DISC_LAYOUT_CENTER_PERCENT } from '../../../disc/geometry'
 import { getTitleArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
@@ -14,14 +15,7 @@ import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { formatTitleArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
-export function TitleArtworkControls({
-  projectTitleArtwork,
-  selectedDiscTemplate,
-  handleTitleArtworkLayoutChange,
-  handleResetTitleArtworkLayout,
-  handleRestoreTitleArtworkDefault,
-  handleTitleArtworkUpload,
-}: Pick<
+type TitleArtworkControlsProps = Pick<
   ArtworkPanelProps,
   | 'projectTitleArtwork'
   | 'selectedDiscTemplate'
@@ -29,7 +23,21 @@ export function TitleArtworkControls({
   | 'handleResetTitleArtworkLayout'
   | 'handleRestoreTitleArtworkDefault'
   | 'handleTitleArtworkUpload'
->) {
+> & {
+  enableControlRef?: Ref<HTMLInputElement>
+  uploadControlRef?: Ref<HTMLInputElement>
+}
+
+export function TitleArtworkControls({
+  projectTitleArtwork,
+  selectedDiscTemplate,
+  handleTitleArtworkLayoutChange,
+  handleResetTitleArtworkLayout,
+  handleRestoreTitleArtworkDefault,
+  handleTitleArtworkUpload,
+  enableControlRef,
+  uploadControlRef,
+}: TitleArtworkControlsProps) {
   const hasTitleArtwork = canUseTitleArtwork(projectTitleArtwork)
   const isFeatureEnabled = projectTitleArtwork.layout.enabled
   const isRenderable = shouldRenderTitleArtwork(projectTitleArtwork)
@@ -50,6 +58,7 @@ export function TitleArtworkControls({
     <OptionalFeatureSection
       className="feature-control-body title-artwork-control"
       enabled={isFeatureEnabled}
+      enableControlRef={enableControlRef}
       enableLabel="Show game logo"
       onEnabledChange={(enabled) =>
         handleTitleArtworkLayoutChange('enabled', enabled)}
@@ -72,6 +81,7 @@ export function TitleArtworkControls({
         {hasTitleArtwork ? 'Replace game logo image' : 'Choose game logo image'}
       </label>
       <input
+        ref={uploadControlRef}
         id="title-artwork-upload"
         className="logo-file-input"
         type="file"

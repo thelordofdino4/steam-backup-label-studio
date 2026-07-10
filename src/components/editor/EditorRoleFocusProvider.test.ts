@@ -34,6 +34,10 @@ test('provider exposes controller actions without registration maps', () => {
   assert.match(providerSource, /isRoleOpen: store\.isRoleOpen/)
   assert.match(providerSource, /registerRolePanel: store\.registerRolePanel/)
   assert.match(providerSource, /registerFocusTarget: store\.registerFocusTarget/)
+  assert.match(
+    providerSource,
+    /registerFocusTargetFallback: store\.registerFocusTargetFallback/,
+  )
   assert.doesNotMatch(providerSource, /roleRegistrations|focusTargetRegistrations/)
 })
 

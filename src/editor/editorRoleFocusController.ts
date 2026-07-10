@@ -45,6 +45,10 @@ export type EditorRoleFocusController = {
     focusTarget: DiscRoleFocusTargetId,
     registration: EditorRoleFocusTargetRegistration,
   ) => () => void
+  registerFocusTargetFallback: (
+    focusTarget: DiscRoleFocusTargetId,
+    fallbackFocusTarget: DiscRoleFocusTargetId,
+  ) => () => void
 }
 
 type EditorRoleFocusControllerActions = Omit<
@@ -110,6 +114,10 @@ export function createEditorRoleFocusControllerStore():
   const focusTargetRegistrations = new Map<
     DiscRoleFocusTargetId,
     RegistrationEntry<EditorRoleFocusTargetRegistration>
+  >()
+  const focusTargetFallbackRegistrations = new Map<
+    DiscRoleFocusTargetId,
+    RegistrationEntry<DiscRoleFocusTargetId>
   >()
 
   function emitChange() {
@@ -195,6 +203,20 @@ export function createEditorRoleFocusControllerStore():
     }
   }
 
+  function registerFocusTargetFallback(
+    focusTarget: DiscRoleFocusTargetId,
+    fallbackFocusTarget: DiscRoleFocusTargetId,
+  ) {
+    const entry = { registration: fallbackFocusTarget }
+    focusTargetFallbackRegistrations.set(focusTarget, entry)
+
+    return () => {
+      if (focusTargetFallbackRegistrations.get(focusTarget) === entry) {
+        focusTargetFallbackRegistrations.delete(focusTarget)
+      }
+    }
+  }
+
   function revealRole(roleId: DiscRolePresetRole) {
     const registration = roleRegistrations.get(roleId)?.registration
 
@@ -235,16 +257,18 @@ export function createEditorRoleFocusControllerStore():
       const registration: EditorRoleFocusTargetRegistration | undefined =
         focusTargetRegistrations.get(focusTarget)?.registration
 
-      if (!registration) return null
+      if (registration) {
+        for (const openAncestor of registration.openAncestors ?? []) {
+          invokeWithoutThrow(openAncestor)
+        }
 
-      for (const openAncestor of registration.openAncestors ?? []) {
-        invokeWithoutThrow(openAncestor)
+        const element = resolveElement(registration.element)
+
+        if (element) return element
       }
 
-      const element = resolveElement(registration.element)
-
-      if (element) return element
-      focusTarget = registration.fallbackFocusTarget
+      focusTarget = registration?.fallbackFocusTarget ??
+        focusTargetFallbackRegistrations.get(focusTarget)?.registration
     }
 
     return null
@@ -298,6 +322,7 @@ export function createEditorRoleFocusControllerStore():
     isRoleOpen,
     registerRolePanel,
     registerFocusTarget,
+    registerFocusTargetFallback,
     processPendingRequest,
   }
 }

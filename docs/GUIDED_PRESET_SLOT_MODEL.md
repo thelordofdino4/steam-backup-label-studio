@@ -18,10 +18,15 @@ monotonic request generation plus typed role, target, explicit-ancestor, and
 fallback registrations. The provider is mounted for the Disc editor, where the
 seven top-level semantic role panels use controlled open state and register
 their summaries as reveal/focus fallbacks. Native manual multi-panel behavior
-is preserved. Nested feature-control and ancestor registrations remain deferred,
-and no guided preview interaction exists. Navigation state remains transient
-and non-persistent; Case Front, Case Back, and Spine remain outside this
-Disc-only integration.
+is preserved. Game Title is the first role with nested typed focus-target
+registration: its artwork enable checkbox, artwork upload input, and title-text
+fallback checkbox are registered through direct refs. Upload requests explicitly
+fall back to the always-mounted artwork enable checkbox while title artwork is
+disabled. Navigation opens the Game Title role but does not enable or mutate
+artwork or text. The other six Disc roles remain summary-fallback-only, and no
+guided preview caller exists. Navigation state remains transient and
+non-persistent; Case Front, Case Back, and Spine remain outside this Disc-only
+integration.
 
 ## 1. Purpose And Scope
 

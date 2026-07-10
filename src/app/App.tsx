@@ -14,6 +14,9 @@ import {
   DiscEditorNavigationRolePanel,
 } from '../components/editor/DiscEditorNavigationRolePanel'
 import {
+  DiscGameTitleRoleControls,
+} from '../components/editor/DiscGameTitleRoleControls'
+import {
   EditorRoleFocusProvider,
 } from '../components/editor/EditorRoleFocusProvider'
 import {
@@ -29,7 +32,6 @@ import { DiscPreview } from '../components/preview/DiscPreview'
 import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
 import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
 import { BackgroundArtworkControls } from '../components/sidebar/artwork/BackgroundArtworkControls'
-import { TitleArtworkControls } from '../components/sidebar/artwork/TitleArtworkControls'
 import { CompanyLogoControls } from '../components/sidebar/branding/CompanyLogoControls'
 import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
 import { GameInfoLogoControls } from '../components/sidebar/branding/GameInfoLogoControls'
@@ -40,7 +42,6 @@ import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { DiscLayoutPresetsPanel } from '../components/sidebar/DiscLayoutPresetsPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
 import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
-import { DiscGameTitleTextControls } from '../components/sidebar/text/DiscGameTitleTextControls'
 import { DiscLegalTextControls } from '../components/sidebar/text/DiscLegalTextControls'
 import type { TextPanelProps } from '../components/sidebar/textPanelTypes'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
@@ -1785,10 +1786,10 @@ function App() {
             {section.id === 'background-artwork' ? (
               <BackgroundArtworkControls {...artworkPanelProps} />
             ) : section.id === 'game-title' ? (
-              <>
-                <TitleArtworkControls {...artworkPanelProps} />
-                <DiscGameTitleTextControls {...textPanelProps} />
-              </>
+              <DiscGameTitleRoleControls
+                artworkControls={artworkPanelProps}
+                textControls={textPanelProps}
+              />
             ) : section.id === 'game-info-logos' ? (
               <GameInfoLogoControls {...brandingPanelProps} />
             ) : section.id === 'company-logos' ? (

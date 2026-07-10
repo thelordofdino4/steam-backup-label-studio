@@ -356,11 +356,7 @@ test('issue 272 disc Game Title role owns visual title artwork and title text fa
   )
   assert.match(
     appSource,
-    /import \{ TitleArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/TitleArtworkControls'/,
-  )
-  assert.match(
-    appSource,
-    /import \{ DiscGameTitleTextControls \} from '\.\.\/components\/sidebar\/text\/DiscGameTitleTextControls'/,
+    /import \{\s*DiscGameTitleRoleControls,\s*\} from '\.\.\/components\/editor\/DiscGameTitleRoleControls'/,
   )
   assert.match(
     appSource,
@@ -372,7 +368,7 @@ test('issue 272 disc Game Title role owns visual title artwork and title text fa
   )
   assert.match(
     appSource,
-    /section\.id === 'game-title'[\s\S]*<TitleArtworkControls \{\.\.\.artworkPanelProps\} \/>[\s\S]*<DiscGameTitleTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'game-title'[\s\S]*<DiscGameTitleRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}[\s\S]*textControls=\{textPanelProps\}/,
   )
   assert.match(
     appSource,
