@@ -13,10 +13,12 @@ state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
 semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
 state is transient and is not serialized. `EditorPanel` now supports optional
 controlled open state and exposes direct details and summary refs; existing
-callers remain uncontrolled. A React controller/provider, role registration,
-nested-control registration, scrolling, actual focus, preview interaction,
-geometry, placeholder rendering, persistence, and auto-fill remain deferred;
-visible focus navigation is not implemented yet.
+callers remain uncontrolled. A transient React controller/provider now supplies
+monotonic request generation plus typed role, target, explicit-ancestor, and
+fallback registrations. No production Disc role panels or controls are wired,
+and no preview-driven interaction exists. Production registration, visible
+navigation, geometry, placeholder rendering, persistence, and auto-fill remain
+deferred; controller state remains editor-session-only and is not serialized.
 
 ## 1. Purpose And Scope
 
