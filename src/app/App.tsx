@@ -10,7 +10,12 @@ import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone
 import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
-import { EditorNavigationRolePanel } from '../components/editor/EditorNavigationShell'
+import {
+  DiscEditorNavigationRolePanel,
+} from '../components/editor/DiscEditorNavigationRolePanel'
+import {
+  EditorRoleFocusProvider,
+} from '../components/editor/EditorRoleFocusProvider'
 import {
   getEditorNavigationShellRoleSectionItems,
 } from '../components/editor/editorNavigationShellViewModel'
@@ -1732,7 +1737,8 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <EditorRoleFocusProvider>
+      <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">Alpha disc label editor</p>
@@ -1770,9 +1776,10 @@ function App() {
         <DiscLayoutPresetsPanel onApplyPreset={handleApplyDiscRolePreset} />
 
         {discRoleSectionItems.map((section) => (
-          <EditorNavigationRolePanel
+          <DiscEditorNavigationRolePanel
             key={section.id}
             label={section.label}
+            roleId={section.id}
             smokeId={section.smokeId}
           >
             {section.id === 'background-artwork' ? (
@@ -1793,7 +1800,7 @@ function App() {
             ) : section.id === 'additional-text' ? (
               <DiscAdditionalTextControls {...textPanelProps} />
             ) : null}
-          </EditorNavigationRolePanel>
+          </DiscEditorNavigationRolePanel>
         ))}
       </aside>
 
@@ -1863,7 +1870,8 @@ function App() {
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}
       />
-    </main>
+      </main>
+    </EditorRoleFocusProvider>
   )
 }
 

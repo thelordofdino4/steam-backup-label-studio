@@ -15,10 +15,13 @@ state is transient and is not serialized. `EditorPanel` now supports optional
 controlled open state and exposes direct details and summary refs; existing
 callers remain uncontrolled. A transient React controller/provider now supplies
 monotonic request generation plus typed role, target, explicit-ancestor, and
-fallback registrations. No production Disc role panels or controls are wired,
-and no preview-driven interaction exists. Production registration, visible
-navigation, geometry, placeholder rendering, persistence, and auto-fill remain
-deferred; controller state remains editor-session-only and is not serialized.
+fallback registrations. The provider is mounted for the Disc editor, where the
+seven top-level semantic role panels use controlled open state and register
+their summaries as reveal/focus fallbacks. Native manual multi-panel behavior
+is preserved. Nested feature-control and ancestor registrations remain deferred,
+and no guided preview interaction exists. Navigation state remains transient
+and non-persistent; Case Front, Case Back, and Spine remain outside this
+Disc-only integration.
 
 ## 1. Purpose And Scope
 

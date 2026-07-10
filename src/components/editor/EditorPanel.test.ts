@@ -63,7 +63,7 @@ test('EditorFeaturePanel forwards the controlled and ref contract', () => {
   assert.match(source, /summaryRef=\{summaryRef\}/)
 })
 
-test('all current callers remain uncontrolled and require no new props', () => {
+test('all non-navigation callers remain uncontrolled and require no new props', () => {
   const componentFiles = globSync('src/components/**/*.tsx', { cwd: repoRoot })
     .map((path) => path.replaceAll('\\', '/'))
   const callerFiles = componentFiles.filter((path) => {
@@ -86,6 +86,14 @@ test('all current callers remain uncontrolled and require no new props', () => {
     assert.ok(panelTags.length > 0, callerFile)
 
     for (const panelTag of panelTags) {
+      if (callerFile.endsWith('/EditorNavigationShell.tsx')) {
+        assert.match(panelTag, /open=\{open\}/)
+        assert.match(panelTag, /onOpenChange=\{onOpenChange\}/)
+        assert.match(panelTag, /detailsRef=\{detailsRef\}/)
+        assert.match(panelTag, /summaryRef=\{summaryRef\}/)
+        continue
+      }
+
       assert.doesNotMatch(
         panelTag,
         /\b(?:open|onOpenChange|detailsRef|summaryRef)=/,

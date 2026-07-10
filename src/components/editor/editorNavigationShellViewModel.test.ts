@@ -258,10 +258,17 @@ test('editor navigation shell renders role sections as top-level panels', () => 
     'utf8',
   )
 
-  assert.match(shellSource, /import \{ EditorPanel \}/)
+  assert.match(
+    shellSource,
+    /import \{\s*EditorPanel,\s*type EditorPanelProps,\s*\}/,
+  )
   assert.match(shellSource, /children\?: ReactNode/)
   assert.match(shellSource, /export function EditorNavigationRolePanel/)
-  assert.match(shellSource, /<EditorPanel title=\{label\}>/)
+  assert.match(shellSource, /<EditorPanel[\s\S]*title=\{label\}/)
+  assert.match(shellSource, /open=\{open\}/)
+  assert.match(shellSource, /onOpenChange=\{onOpenChange\}/)
+  assert.match(shellSource, /detailsRef=\{detailsRef\}/)
+  assert.match(shellSource, /summaryRef=\{summaryRef\}/)
   assert.match(shellSource, /children \?\?/)
   assert.match(shellSource, /className="hint"/)
   assert.match(shellSource, /Controls move here in #272\/#274\./)

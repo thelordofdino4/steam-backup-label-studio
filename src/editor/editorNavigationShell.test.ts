@@ -275,7 +275,7 @@ test('issue 271 shell keeps existing editor controls reachable', () => {
 
   assert.match(
     appSource,
-    /<ProjectPanel[\s\S]*<ExportOptionsPanel[\s\S]*<TemplatePanel[\s\S]*<GamePanel \{\.\.\.gamePanelProps\} \/>[\s\S]*discRoleSectionItems\.map[\s\S]*<EditorNavigationRolePanel/,
+    /<ProjectPanel[\s\S]*<ExportOptionsPanel[\s\S]*<TemplatePanel[\s\S]*<GamePanel \{\.\.\.gamePanelProps\} \/>[\s\S]*discRoleSectionItems\.map[\s\S]*<DiscEditorNavigationRolePanel/,
   )
   assert.match(appSource, /<ExportOptionsPanel/)
   assert.match(appSource, /<GamePanel \{\.\.\.gamePanelProps\} \/>/)
