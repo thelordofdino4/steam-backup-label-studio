@@ -66,7 +66,6 @@ test('visual guidance is passive and has no editing or navigation behavior', () 
     'onKey',
     'tabIndex',
     '<button',
-    'cursor:',
     'drag',
     'resize',
     'PreviewEditable',
@@ -74,7 +73,7 @@ test('visual guidance is passive and has no editing or navigation behavior', () 
     'requestFocus',
   ]) {
     assert.equal(
-      `${overlaySource}\n${cssSource}`.includes(forbidden),
+      overlaySource.includes(forbidden),
       false,
       `unexpected behavior: ${forbidden}`,
     )

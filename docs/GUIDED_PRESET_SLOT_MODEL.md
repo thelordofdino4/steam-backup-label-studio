@@ -35,10 +35,22 @@ Background Image visual remains below foreground owners and uses its smaller
 action geometry only to position the label. Reduced-motion mode keeps static
 blue guidance while disabling the shared pulse animation.
 
-The visual guidance remains passive: it has no pointer, keyboard, drag, resize,
-setup-choice, or role-focus behavior. Those accessible actions, native
-validation, and export smoke remain later #289 chunks. Issue #289 remains open
-and is not ready for a PR.
+The masked SVG guidance remains visual-only and pointer-inert. A separate
+z-index `9` HTML action layer now renders one native button from each visible
+slot's action geometry. Game Title opens Image and Text setup choices; Company
+Logos opens Developer and Publisher choices. Background Image routes directly
+to its Local file input, Game Info Logos routes to primary Rating enable, and
+Legal Info routes to the copyright row. Choice popovers render at z-index `30`,
+support Escape dismissal with focus return, and close when their slot leaves
+the projected list. Buttons rely on native Enter and Space activation and do
+not drag, resize, select preview content, or activate the text ribbon.
+
+Every setup action sends a typed #287 `focus` request. It never enables a
+feature, mutates owner content, accepts a suggestion, reruns import, or stores
+completion state. Suggested placeholders retain the same setup route and an
+explicit suggested description. Skip, native full-workflow validation, and
+export smoke remain later #289 work. Issue #289 remains open and is not ready
+for a PR.
 
 Implemented role-focus infrastructure includes:
 
@@ -87,13 +99,13 @@ Implemented role-focus infrastructure includes:
   item card and, for an available upload, its Local file panel without mutating
   project state.
 
-All 19 declared #287 Disc role-focus targets now have production registration.
-No production UI currently dispatches role-focus requests. Semantic request
-smoke remains deferred until the real guided-preview caller exists; only manual
-panel behavior is directly observable in the native app at this stage. Guided
-persistence, auto-fill, and native end-to-end guided-navigation validation also
-remain future #281 work. Navigation state is transient and non-persistent, and
-Case Front, Case Back, and Spine remain outside the Disc-only provider.
+All 19 declared #287 Disc role-focus targets have production registration. The
+Classic Top Title guided action layer is the first production caller: it sends
+the five slot routes through the typed controller without direct DOM lookup or
+feature mutation. Native end-to-end request smoke remains pending. Guided
+persistence and auto-fill remain future #281 work. Navigation state is
+transient and non-persistent, and Case Front, Case Back, and Spine remain
+outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -111,11 +123,10 @@ This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
 implemented, along with the Disc role-focus foundation, complete pure Classic
-Top Title five-slot layout, and generalized placeholder projection. The first
-passive Game Title preview remains a temporary rendering foundation.
-Interactive placeholder controls, guided request dispatch, persistence, and
-auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
-remain deferred until the Disc contract is proven.
+Top Title five-slot layout, generalized placeholder projection, split visual
+layers, and accessible setup navigation. Persistence, Skip, suggestion
+acceptance, and auto-fill remain deferred. Case Front, Case Back, and Spine
+guided presets remain deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
 
@@ -386,9 +397,11 @@ through the existing owner instead of mutating duplicated slot content.
 | `filled` | unfilled, suggested, skipped | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
 | `skipped` | unfilled, suggested, filled | Placeholder hidden or subdued by a future UX decision | No | No output merely from skip state | Existing feature payload is preserved. |
 
-The pure projector implements this visibility contract. The current passive
-SVG does not yet render the complete projected set correctly; that visual work
-remains the next #289 chunk.
+The pure projector and current Disc affordance layers implement this visibility
+contract. Each projected unfilled or suggested slot produces one visual and one
+native action region. When owner state resolves the slot as filled, both leave
+the projection without a separate completion flag; clearing valid owner
+content allows the guidance to return.
 
 ## 7. Derived, Transient, And Persisted State
 
@@ -475,6 +488,15 @@ their own projected placeholder, while suggested slots stay visible with an
 explicit secondary label. Guided activation clears on new/replaced projects and
 workspace exit; activation and placeholder state never enter save/load, render,
 or export paths.
+
+The HTML interaction layer uses each slot's normalized action geometry and is
+separate from both visual SVGs and preview-editable registration. Native
+buttons preserve model order for tab navigation. Game Title and Company Logos
+use a focused guided setup popover; the other three slots dispatch directly.
+Popover state is transient, closes after selection or Escape, and becomes
+inactive immediately if its projected slot disappears. Setup navigation does
+not accept suggested content automatically; it routes the user to the existing
+owner control.
 
 The current preview overlay geometry helpers can inform a later implementation,
 but empty-slot geometry cannot depend on finding a real feature element in the
@@ -574,11 +596,20 @@ item. Array indexes, first-item selection, candidate bindings such as
 `first-renderable-existing`, DOM IDs, and encoded string keys are not valid
 navigation identity.
 
-The passive guided preview caller does not dispatch role-focus requests yet.
-Future interactive placeholders must emit typed navigation intent rather than
-query the DOM or duplicate role-panel state. Native focus validation remains
-pending. Case Front, Case Back, and Spine remain outside this Disc-only
-provider.
+The guided preview caller dispatches only these typed setup destinations:
+
+- Game Title Image -> `disc:game-title:artwork-upload`
+- Game Title Text -> `disc:game-title:text-fallback`
+- Background Image -> `disc:background-image:local-upload`
+- Game Info Logos -> `disc:rating:enable`
+- Company Logos Developer -> `disc:company-logo:developer-upload`
+- Company Logos Publisher -> `disc:company-logo:publisher-upload`
+- Legal Info -> `disc:legal-text:copyright`
+
+Existing target fallbacks remain authoritative. The caller does not query the
+DOM, duplicate role-panel state, enable features, or invoke controls. Native
+focus validation remains pending. Case Front, Case Back, and Spine remain
+outside this Disc-only provider.
 
 ## 12. Persistence Boundary
 
@@ -630,9 +661,9 @@ loading.
 2. Guided preset persistence/schema design.
 3. Completed: split background/foreground visual layers and restore blue pulse
    styling while preserving real-content visibility.
-4. Add accessible setup choices and connect interactive placeholders to typed
-   role-focus requests, and perform native end-to-end guided-navigation
-   validation.
+4. Completed in source: add accessible setup choices and connect interactive
+   placeholders to typed role-focus requests. Native end-to-end guided
+   navigation validation remains pending.
 5. Game Title image-first interaction and auto-fill.
 6. Safe rating/logo/legal suggestions.
 7. Filled-slot movement/export transition tests.

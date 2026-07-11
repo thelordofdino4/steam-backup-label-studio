@@ -20,6 +20,7 @@ import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
 import { DiscGuidedPlaceholderOverlay } from './DiscGuidedPlaceholderOverlay'
+import { DiscGuidedPlaceholderActions } from './DiscGuidedPlaceholderActions'
 import { PreviewHeader } from './PreviewHeader'
 import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
@@ -506,6 +507,11 @@ export function DiscPreview({
                 <DiscGuidedPlaceholderOverlay
                   placeholders={editorAffordances.guidedPlaceholders}
                   physicalCenterHolePercent={guideOverlay.physicalCenterHolePercent}
+                />
+              ) : null}
+              {editorAffordances ? (
+                <DiscGuidedPlaceholderActions
+                  placeholders={editorAffordances.guidedPlaceholders}
                 />
               ) : null}
               <PreviewElementOverlay previewRef={discPreviewRef} />

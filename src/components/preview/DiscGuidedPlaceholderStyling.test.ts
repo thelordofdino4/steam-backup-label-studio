@@ -79,7 +79,12 @@ test('superseded amber and opaque gray placeholder theme is absent', () => {
   assert.doesNotMatch(guidedCss, /background:\s*(?:rgb\([^)]*\)|#[0-9a-f]{3,8})\s*;/i)
 })
 
-test('guided styling exposes no handles, movement cursor, or pointer behavior', () => {
+test('visual guidance exposes no handles, movement cursor, or pointer behavior', () => {
+  const visualCss = guidedCss.slice(
+    0,
+    guidedCss.indexOf('.disc-guided-placeholder-action-layer'),
+  )
+
   for (const forbidden of [
     'cursor:',
     'grab',
@@ -88,6 +93,6 @@ test('guided styling exposes no handles, movement cursor, or pointer behavior', 
     'pointer-events: auto',
     'pointer-events: all',
   ]) {
-    assert.equal(guidedCss.includes(forbidden), false, `unexpected style: ${forbidden}`)
+    assert.equal(visualCss.includes(forbidden), false, `unexpected style: ${forbidden}`)
   }
 })

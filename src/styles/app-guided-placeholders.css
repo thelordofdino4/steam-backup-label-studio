@@ -51,6 +51,101 @@
   font-weight: 700;
 }
 
+.disc-guided-placeholder-action-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  pointer-events: none;
+}
+
+.disc-guided-placeholder-action {
+  position: absolute;
+  box-sizing: border-box;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  touch-action: manipulation;
+}
+
+.disc-guided-placeholder-action:hover {
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.disc-guided-placeholder-action:focus-visible {
+  outline: 3px solid rgba(191, 219, 254, 0.98);
+  outline-offset: 2px;
+  background: rgba(59, 130, 246, 0.16);
+  box-shadow: 0 0 18px rgba(37, 99, 235, 0.42);
+}
+
+.disc-guided-placeholder-accessible-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.disc-guided-placeholder-setup-popover {
+  position: absolute;
+  z-index: 30;
+  width: max-content;
+  max-width: 46%;
+  padding: 8px;
+  border: 1px solid rgba(147, 197, 253, 0.82);
+  border-radius: 6px;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.72),
+    0 8px 24px rgba(0, 0, 0, 0.42);
+  color: #eff6ff;
+}
+
+.disc-guided-placeholder-setup-popover p {
+  margin: 0 0 6px;
+  font-size: clamp(9px, 2.7cqw, 14px);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.disc-guided-placeholder-setup-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.disc-guided-placeholder-setup-actions button {
+  min-width: 0;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid rgba(147, 197, 253, 0.62);
+  border-radius: 4px;
+  background: rgba(30, 64, 175, 0.38);
+  color: #eff6ff;
+  font: inherit;
+  font-size: clamp(9px, 2.6cqw, 14px);
+  font-weight: 750;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.disc-guided-placeholder-setup-actions button:hover {
+  background: rgba(37, 99, 235, 0.58);
+}
+
+.disc-guided-placeholder-setup-actions button:focus-visible {
+  outline: 2px solid #bfdbfe;
+  outline-offset: 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .disc-guided-placeholder-shape {
     animation: none;
