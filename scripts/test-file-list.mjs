@@ -158,6 +158,7 @@ export const testFiles = [
   'src/export/drawSteamBanner.test.ts',
   'src/export/exportPreflight.test.ts',
   'src/export/preflightWarnings.test.ts',
+  'src/guidedPresets/discGuidedLayouts.test.ts',
   'src/guidedPresets/discGuidedSlots.test.ts',
   'src/interaction/dragGeometry.test.ts',
   'src/interaction/textMoveHandleDrag.test.ts',

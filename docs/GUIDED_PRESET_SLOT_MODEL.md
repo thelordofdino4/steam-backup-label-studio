@@ -13,6 +13,17 @@ state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
 semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
 state is transient and is not serialized.
 
+Pure guided-layout identity and placeholder geometry are implemented separately
+in `src/guidedPresets/discGuidedLayouts.ts`. The existing
+`classic-top-title` role preset maps to
+`disc:guided-layout:classic-top-title`, whose only current geometry is the
+normalized Disc-space rectangle for `disc:guided:game-title:primary`. Layout
+presets continue to place real feature-owner state; the guided-layout registry
+describes expected semantic-slot geometry without lifecycle, content, DOM,
+renderer, export, or persistence data. React overlay rendering and transient
+activation are not implemented yet. Click interaction, role-focus dispatch,
+suggestions, skip behavior, other slots, and other surfaces remain deferred.
+
 Implemented role-focus infrastructure includes:
 
 - optional controlled open state plus direct details and summary refs on
