@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { TrashIcon } from './PanelIcons'
 
 type RepeatedVisualElementCardProps = {
@@ -9,6 +9,10 @@ type RepeatedVisualElementCardProps = {
   enableLabel: string
   summary: string
   deleteLabel?: string
+  detailsRef?: Ref<HTMLDetailsElement>
+  enableControlRef?: Ref<HTMLInputElement>
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
   onEnabledChange: (enabled: boolean) => void
   onLabelChange: (label: string) => void
   onDelete?: () => void
@@ -23,6 +27,10 @@ export function RepeatedVisualElementCard({
   enableLabel,
   summary,
   deleteLabel,
+  detailsRef,
+  enableControlRef,
+  open,
+  onOpenChange,
   onEnabledChange,
   onLabelChange,
   onDelete,
@@ -31,7 +39,12 @@ export function RepeatedVisualElementCard({
   const displayLabel = label.trim() || title
 
   return (
-    <details className="repeated-visual-card editor-nested-panel collapsible-panel spacing-top" open>
+    <details
+      ref={detailsRef}
+      className="repeated-visual-card editor-nested-panel collapsible-panel spacing-top"
+      open={open ?? true}
+      onToggle={(event) => onOpenChange?.(event.currentTarget.open)}
+    >
       <summary className="panel-summary repeated-visual-card-summary">
         <span className="repeated-visual-card-title">{displayLabel}</span>
         <span className="repeated-visual-card-meta">{summary}</span>
@@ -40,6 +53,7 @@ export function RepeatedVisualElementCard({
         <div className="repeated-visual-card-toolbar">
           <label className="field-label">
             <input
+              ref={enableControlRef}
               type="checkbox"
               checked={enabled}
               onChange={(event) => onEnabledChange(event.target.checked)}

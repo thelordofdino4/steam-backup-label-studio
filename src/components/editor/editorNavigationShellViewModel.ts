@@ -5,6 +5,7 @@ import {
   type EditorNavigationShellRoleSectionId,
   type EditorNavigationRoleSurfaceId,
 } from '../../editor/editorNavigationShell.ts'
+import type { DiscRolePresetRole } from '../../layout/discRolePresets.ts'
 
 export const EDITOR_NAVIGATION_SHELL_SMOKE_IDS = {
   caseInsertSurfaceTabs: 'case-insert-surface-tabs',
@@ -21,6 +22,13 @@ export type EditorNavigationShellRoleSectionItem = {
   id: EditorNavigationShellRoleSectionId
   label: string
   smokeId: string
+}
+
+export type DiscEditorNavigationRoleSectionItem = Omit<
+  EditorNavigationShellRoleSectionItem,
+  'id'
+> & {
+  id: DiscRolePresetRole
 }
 
 const DEFAULT_CASE_INSERT_NAVIGATION_SURFACE_IDS: readonly CaseInsertNavigationSurfaceId[] =
@@ -56,6 +64,12 @@ export function getCaseInsertNavigationSurfaceTabItems(
   }))
 }
 
+export function getEditorNavigationShellRoleSectionItems(
+  activeSurfaceId: 'disc-label',
+): readonly DiscEditorNavigationRoleSectionItem[]
+export function getEditorNavigationShellRoleSectionItems(
+  activeSurfaceId: EditorNavigationRoleSurfaceId,
+): readonly EditorNavigationShellRoleSectionItem[]
 export function getEditorNavigationShellRoleSectionItems(
   activeSurfaceId: EditorNavigationRoleSurfaceId,
 ): readonly EditorNavigationShellRoleSectionItem[] {

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import {
   BACKGROUND_SCALE_MAX,
   BACKGROUND_SCALE_MIN,
@@ -17,6 +17,13 @@ import { LocalFileArtworkControls } from './LocalFileArtworkControls'
 import { LocalScreenshotControls } from './LocalScreenshotControls'
 import { SteamArtworkControls } from './SteamArtworkControls'
 import type { ArtworkPanelProps } from './types'
+
+type BackgroundArtworkControlsProps = ArtworkPanelProps & {
+  enableControlRef?: Ref<HTMLInputElement>
+  localFilePanelOpen?: boolean
+  localUploadControlRef?: Ref<HTMLInputElement>
+  onLocalFilePanelOpenChange?: (open: boolean) => void
+}
 import { WebArtworkCandidateControls } from './WebArtworkCandidateControls'
 
 const BACKGROUND_SOURCE_LABELS: Record<ActiveBackgroundArtworkSource, string> = {
@@ -155,7 +162,7 @@ function BackgroundArtworkFineTuneControls({
   )
 }
 
-export function BackgroundArtworkControls(props: ArtworkPanelProps) {
+export function BackgroundArtworkControls(props: BackgroundArtworkControlsProps) {
   const {
     isBackgroundArtworkEnabled,
     handleBackgroundArtworkEnabledChange,
@@ -165,6 +172,10 @@ export function BackgroundArtworkControls(props: ArtworkPanelProps) {
     selectedSteamGame,
     webArtworkDiscovery,
     localSteamScreenshots,
+    enableControlRef,
+    localFilePanelOpen,
+    localUploadControlRef,
+    onLocalFilePanelOpenChange,
   } = props
   const backgroundStatus = getProjectImageAssetStatus({
     imageDataUrl: backgroundImageUrl,
@@ -197,6 +208,7 @@ export function BackgroundArtworkControls(props: ArtworkPanelProps) {
     <div className="logo-asset-card artwork-feature-card">
       <label className="field-label">
         <input
+          ref={enableControlRef}
           type="checkbox"
           checked={isBackgroundArtworkEnabled}
           onChange={(event) =>
@@ -235,6 +247,9 @@ export function BackgroundArtworkControls(props: ArtworkPanelProps) {
       />
       <LocalFileArtworkControls
         {...props}
+        open={localFilePanelOpen}
+        onOpenChange={onLocalFilePanelOpenChange}
+        uploadControlRef={localUploadControlRef}
         fineTuneControls={renderFineTuneControls(
           'local-file',
           'local-file',

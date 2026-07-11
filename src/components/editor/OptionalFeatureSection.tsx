@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { useId } from 'react'
 import { getOptionalFeatureSectionModel } from './optionalFeatureSectionModel'
 
@@ -8,6 +8,7 @@ export type OptionalFeatureSectionProps = {
   className?: string
   contentClassName?: string
   enabled: boolean
+  enableControlRef?: Ref<HTMLInputElement>
   enableLabel: ReactNode
   onEnabledChange: (enabled: boolean) => void
   status?: ReactNode
@@ -19,6 +20,7 @@ export function OptionalFeatureSection({
   className,
   contentClassName,
   enabled,
+  enableControlRef,
   enableLabel,
   onEnabledChange,
   status,
@@ -35,6 +37,7 @@ export function OptionalFeatureSection({
     <div className={className}>
       <label className="field-label">
         <input
+          ref={enableControlRef}
           type="checkbox"
           checked={enabled}
           aria-controls={model.contentVisible ? contentId : undefined}

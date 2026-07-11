@@ -2,17 +2,26 @@ import type { ReactNode } from 'react'
 import type {
   CaseInsertNavigationSurfaceId,
 } from '../../editor/editorNavigationShell.ts'
-import { EditorPanel } from './EditorPanel.tsx'
+import {
+  EditorPanel,
+  type EditorPanelProps,
+} from './EditorPanel.tsx'
 import {
   EDITOR_NAVIGATION_SHELL_SMOKE_IDS,
   getCaseInsertNavigationSurfaceTabItems,
 } from './editorNavigationShellViewModel.ts'
 
-export type EditorNavigationRolePanelProps = {
-  children?: ReactNode
-  label: string
-  smokeId: string
-}
+type EditorNavigationRolePanelControlProps = Pick<
+  EditorPanelProps,
+  'open' | 'onOpenChange' | 'detailsRef' | 'summaryRef'
+>
+
+export type EditorNavigationRolePanelProps =
+  EditorNavigationRolePanelControlProps & {
+    children?: ReactNode
+    label: string
+    smokeId: string
+  }
 
 export type CaseInsertSurfaceTabsProps = {
   activeSurfaceId: CaseInsertNavigationSurfaceId
@@ -79,9 +88,19 @@ export function EditorNavigationRolePanel({
   children,
   label,
   smokeId,
+  open,
+  onOpenChange,
+  detailsRef,
+  summaryRef,
 }: EditorNavigationRolePanelProps) {
   return (
-    <EditorPanel title={label}>
+    <EditorPanel
+      title={label}
+      open={open}
+      onOpenChange={onOpenChange}
+      detailsRef={detailsRef}
+      summaryRef={summaryRef}
+    >
       {children ?? (
         <p className="hint" data-smoke-id={smokeId}>
           Controls move here in #272/#274.

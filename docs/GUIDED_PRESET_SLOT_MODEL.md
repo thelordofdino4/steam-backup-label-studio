@@ -8,8 +8,65 @@
 
 Pure Disc slot definitions and lifecycle resolution are implemented in
 `src/guidedPresets/discGuidedSlots.ts`. Skip and suggestion inputs remain
-transient. Geometry, React UI, placeholder rendering, navigation, persistence,
-and auto-fill remain deferred.
+transient. Pure typed Disc role-focus requests, runtime validation, and reducer
+state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
+semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
+state is transient and is not serialized.
+
+Implemented role-focus infrastructure includes:
+
+- optional controlled open state plus direct details and summary refs on
+  `EditorPanel`, while callers outside the controlled Disc role shell remain
+  backward-compatible;
+- a transient controller/provider with monotonic request generation, explicit
+  ancestor callbacks, direct target registration, semantic fallback chains,
+  and one-time request consumption;
+- provider-controlled top-level Disc semantic role panels with independent
+  manual multi-panel expansion and role-summary fallback; and
+- Game Title registration for artwork enable, artwork upload, and title-text
+  fallback. The upload target falls back to artwork enable only while its real
+  upload control is unmounted; and
+- Background Image registration for the always-mounted enable checkbox and
+  Local file upload input. Upload focus explicitly opens the nested Local file
+  panel and remains available while Background Image is disabled. It does not
+  enable the feature or fall back to the enable checkbox; and
+- Legal Info and Additional Text registration for the copyright and custom-note
+  row enable checkboxes. These fixed-row targets do not select preview text or
+  activate the contextual ribbon; and
+- Rating registration for the enable, system, current value, and source-mode
+  controls. System, value, and source use an explicit enable-control fallback
+  while Rating is disabled. Navigation opens the nested Rating panel but never
+  enables or mutates Rating; and
+- Company Logos registration for distinct primary developer and publisher
+  enable checkboxes and enabled-only upload inputs. Both paths open the shared
+  controlled Developer / publisher logos panel. Developer upload falls back
+  only to developer enable, and publisher upload falls back only to publisher
+  enable. Navigation never enables, imports, or mutates either logo asset.
+- Additional Artwork semantic vocabulary for global enable, Add Artwork,
+  per-item enable, and per-item upload. Item destinations require the stable
+  persisted `elementId`; and
+- composite controller registration and fallback identity keyed by semantic
+  target plus exact element ID. Repeated items coexist without overwriting one
+  another, fallback chains are cycle-safe, and fixed targets retain their
+  existing behavior; and
+- Additional Artwork global-enable and Add Artwork registration. Add Artwork is
+  a stable collection-level button outside every repeatable item card and falls
+  back to global enable while the feature body is unmounted. Navigation focuses
+  these controls without toggling the feature or creating an item; and
+- Additional Artwork per-item enable and Local file upload registration keyed
+  by each element's exact persisted `elementId`. Multiple items register
+  independently. Upload follows only the exact-item chain `upload(item) ->
+  item-enable(item) -> add -> global enable`, and navigation opens the exact
+  item card and, for an available upload, its Local file panel without mutating
+  project state.
+
+All 19 declared #287 Disc role-focus targets now have production registration.
+No production UI currently dispatches role-focus requests. Semantic request
+smoke remains deferred until the real guided-preview caller exists; only manual
+panel behavior is directly observable in the native app at this stage. Guided
+persistence, auto-fill, and native end-to-end guided-navigation validation also
+remain future #281 work. Navigation state is transient and non-persistent, and
+Case Front, Case Back, and Spine remain outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -26,9 +83,10 @@ or enable a feature object merely because the slot exists.
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
-implemented; React UI, preview placeholders, role-focus navigation,
-persistence, and auto-fill remain deferred. Case Front, Case Back, and Spine
-guided presets remain deferred until the Disc contract is proven.
+implemented, along with the Disc role-focus foundation. Preview placeholders,
+remaining role target integrations, guided request callers, persistence, and
+auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
+remain deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
 
@@ -360,22 +418,101 @@ layer and export-input path.
 
 ## 11. Role-Focus Navigation Contract
 
-The following is a future typed request concept, not implemented source:
+Typed role-focus requests, runtime validation, reducer state, and the transient
+controller/provider are implemented. The controller generates the monotonic
+request ID; callers provide the surface, behavior, semantic destination, and
+optional owner target:
 
 ```ts
 type EditorRoleFocusRequest = {
-  surfaceId: 'disc-label'
-  roleId: DiscRolePresetRole
-  target?: DiscGuidedOwnerBinding
   requestId: number
+  surfaceId: 'disc-label'
+  behavior: 'reveal' | 'focus'
+  destination: DiscRoleFocusDestination
+  ownerTarget?: EditorRoleFocusOwnerTarget
 }
 ```
 
-The navigation shell should own panel expansion and focus behavior. Guided
-placeholder components should emit intent rather than query the DOM, synthesize
-clicks, or duplicate role-panel state. Current role panels are uncontrolled
-`<details>` elements, so controlled expansion, target registration, and focus
-ownership require a focused follow-up design.
+The Disc provider controls the seven top-level semantic role panels. Manual
+opening and closing remains independent per panel; navigation does not impose
+accordion behavior or close unrelated roles. Registered elements are reached
+through direct refs or stable getters. Ancestors are opened only through
+explicit callbacks, never DOM queries, synthetic clicks, timers, or retries.
+
+Controller registration uses typed semantic identity rather than DOM identity:
+
+```ts
+type EditorRoleFocusTargetIdentity =
+  | { focusTarget: DiscFixedRoleFocusTargetId }
+  | {
+      focusTarget:
+        | 'disc:additional-artwork:item-enable'
+        | 'disc:additional-artwork:upload'
+      elementId: string
+    }
+```
+
+Fixed callers may continue using their fixed semantic target string as a narrow
+compatibility input. Repeatable targets cannot use a target string alone: they
+must supply the composite identity. Internally, nested maps separate semantic
+target and element ID, so punctuation in persisted IDs cannot collide and no
+caller handles an encoded raw key.
+
+### Behavior Semantics
+
+| Behavior | Contract |
+| --- | --- |
+| `reveal` | Opens the requested top-level role and reveals its registered summary or panel. It does not resolve a nested target, invoke nested ancestor callbacks, focus a nested element, or scroll a nested element. |
+| `focus` | Opens the requested top-level role, resolves the registered semantic target, invokes explicit ancestor callbacks in registration order, and focuses the target with scroll prevention before revealing it with nearest/automatic scrolling. If the target is unavailable, it follows explicit semantic fallbacks and then the role summary. The request is consumed once regardless of outcome and is never retried when controls later mount. |
+
+All role-focus state is editor-session-only. It does not dirty the project,
+create an undo entry, trigger autosave, or enter the saved-project schema.
+
+### Existing Target Semantics
+
+| Target ID | Meaning and current contract |
+| --- | --- |
+| `disc:background-image:enable` | The always-mounted Background Image feature enable checkbox. Implemented through a direct ref. Focusing it does not change feature state. |
+| `disc:background-image:local-upload` | The real Local file input. Implemented through a direct ref with an explicit ancestor callback that opens the controlled Local file panel. It remains registered while Background Image is disabled, does not enable or otherwise mutate the feature, and has no enable-control fallback. |
+| `disc:game-title:artwork-enable` | The always-mounted title-artwork enable checkbox. Implemented through a direct ref. |
+| `disc:game-title:artwork-upload` | The real title-artwork file input. It is registered only while the optional artwork body is mounted and explicitly falls back to `disc:game-title:artwork-enable` while unavailable. Navigation does not enable title artwork. |
+| `disc:game-title:text-fallback` | The always-mounted Disc title-text row enable checkbox. It does not select preview text or activate the contextual ribbon. Implemented through a direct ref. |
+| `disc:rating:enable` | The always-mounted primary rating-badge enable checkbox inside the controlled Rating badge panel. Implemented through a direct ref with an explicit Rating-panel ancestor callback. Focusing it does not toggle Rating. |
+| `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
+| `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
+| `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
+| `disc:company-logo:developer-enable` | The primary developer-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
+| `disc:company-logo:developer-upload` | The enabled-only primary developer-logo file input. It is registered only while the developer body is mounted and explicitly falls back only to `disc:company-logo:developer-enable` when unavailable. |
+| `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
+| `disc:company-logo:publisher-upload` | The enabled-only primary publisher-logo file input. It is registered only while the publisher body is mounted and explicitly falls back only to `disc:company-logo:publisher-enable` when unavailable. |
+| `disc:legal-text:copyright` | The copyright row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select copyright text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text editor. |
+| `disc:additional-artwork:enable` | The always-mounted global Additional Artwork feature-enable checkbox. It has no item identity and is registered through a direct ref. Focusing it does not toggle the feature. |
+| `disc:additional-artwork:add` | The enabled-only global Add Artwork button. It is a collection-level action rendered before and outside every repeatable item card, has no `elementId`, and falls back to `disc:additional-artwork:enable` while unavailable. Navigation focuses it without activating it or creating an item. |
+| `disc:additional-artwork:item-enable` | One existing element's enable checkbox. Its destination and registration identity require the same stable persisted `elementId`. Focusing it opens only that item's controlled card and does not toggle the item. When item controls are hidden globally, its exact-item fallback continues to Add Artwork and then global enable. |
+| `disc:additional-artwork:upload` | One existing element's Local file input. Its destination and registration identity require the same stable persisted `elementId`. While the item is enabled, focusing it opens only that item's card and Local file panel. While the item is disabled, it falls back once to that same item's enable checkbox and is not replayed after enablement. |
+| `disc:additional-text:custom-note` | The custom-note row's always-mounted enable checkbox. Implemented through a direct ref with no nested ancestor or semantic fallback. It does not select custom-note text in the preview, activate the contextual ribbon, or focus a nonexistent sidebar text field. |
+
+Company Logos developer and publisher identities remain distinct. Developer
+upload resolves only to developer enable, and publisher upload resolves only to
+publisher enable; neither path may cross-fallback. These registrations cover
+only the fixed primary controls. They do not target repeatable additional logos,
+discover candidates, import assets, or mutate logo state. Repeatable additional
+logos remain outside this target vocabulary.
+
+Additional Artwork implements the exact fallback chain `upload(item) ->
+item-enable(item) -> add -> global enable`. Each item hop retains the same
+persisted `elementId`; cross-item fallback is rejected. Direct registration at
+any step wins, traversal detects cycles, and unresolved focus uses the role
+summary fallback. Reordering items does not alter identity or routing. Deleting
+an item removes only that item's registrations and never substitutes another
+item. Array indexes, first-item selection, candidate bindings such as
+`first-renderable-existing`, DOM IDs, and encoded string keys are not valid
+navigation identity.
+
+No guided preview caller exists yet. Future placeholder components should emit
+typed navigation intent rather than query the DOM or duplicate role-panel
+state. Native focus validation remains pending. Case Front, Case Back, and Spine
+remain outside this Disc-only provider.
 
 ## 12. Persistence Boundary
 
@@ -417,7 +554,6 @@ loading.
 - Repeatable-slot append versus reuse behavior.
 - Guided preset and slot versioning.
 - Placeholder geometry coordinate format and safe-zone representation.
-- How role-panel expansion and focus become controlled.
 - Whether disabled but otherwise valid payload shows an unfilled placeholder or a distinct inactive state.
 - Whether `domain-mark` remains one content kind or splits into rating, media, platform, and technical kinds.
 - How a primary repeated slot preserves its binding when repeated objects are reordered or removed.
@@ -427,7 +563,9 @@ loading.
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.
 3. Edit-mode placeholder overlay.
-4. Typed preview-to-sidebar focus navigation.
+4. Add the production guided-preview caller, connect placeholders to typed
+   role-focus requests, and perform native end-to-end guided-navigation
+   validation.
 5. Game Title image-first interaction and auto-fill.
 6. Safe rating/logo/legal suggestions.
 7. Filled-slot movement/export transition tests.

@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import {
   getDiscTextLabel,
   type DiscTextKey,
@@ -16,10 +17,12 @@ import type { ContextualTextControlId } from '../../text/contextualTextControlVi
 import type { TextPanelProps } from './textPanelTypes'
 
 type DiscTextControlProps = TextPanelProps & {
+  enableControlRef?: Ref<HTMLInputElement>
   textKey: DiscTextKey
 }
 
 export function DiscTextControl({
+  enableControlRef,
   textKey: key,
   discTextSettings,
   discTextLayout,
@@ -45,6 +48,7 @@ export function DiscTextControl({
     <div className="editor-text-control" data-smoke-id={`disc-sidebar-text-${key}`}>
       <label className="checkbox-row editor-text-enable-row">
         <input
+          ref={enableControlRef}
           type="checkbox"
           checked={isTextEnabled}
           onChange={(event) => handleDiscTextToggle(key, event.target.checked)}

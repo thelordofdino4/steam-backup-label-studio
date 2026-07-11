@@ -275,7 +275,7 @@ test('issue 271 shell keeps existing editor controls reachable', () => {
 
   assert.match(
     appSource,
-    /<ProjectPanel[\s\S]*<ExportOptionsPanel[\s\S]*<TemplatePanel[\s\S]*<GamePanel \{\.\.\.gamePanelProps\} \/>[\s\S]*discRoleSectionItems\.map[\s\S]*<EditorNavigationRolePanel/,
+    /<ProjectPanel[\s\S]*<ExportOptionsPanel[\s\S]*<TemplatePanel[\s\S]*<GamePanel \{\.\.\.gamePanelProps\} \/>[\s\S]*discRoleSectionItems\.map[\s\S]*<DiscEditorNavigationRolePanel/,
   )
   assert.match(appSource, /<ExportOptionsPanel/)
   assert.match(appSource, /<GamePanel \{\.\.\.gamePanelProps\} \/>/)
@@ -348,19 +348,15 @@ test('issue 272 disc Game Title role owns visual title artwork and title text fa
 
   assert.match(
     appSource,
-    /import \{ BackgroundArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/BackgroundArtworkControls'/,
+    /import \{\s*DiscBackgroundArtworkRoleControls,\s*\} from '\.\.\/components\/editor\/DiscBackgroundArtworkRoleControls'/,
   )
   assert.match(
     appSource,
-    /import \{ AdditionalArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/AdditionalArtworkControls'/,
+    /import \{\s*DiscAdditionalArtworkRoleControls,\s*\} from '\.\.\/components\/editor\/DiscAdditionalArtworkRoleControls'/,
   )
   assert.match(
     appSource,
-    /import \{ TitleArtworkControls \} from '\.\.\/components\/sidebar\/artwork\/TitleArtworkControls'/,
-  )
-  assert.match(
-    appSource,
-    /import \{ DiscGameTitleTextControls \} from '\.\.\/components\/sidebar\/text\/DiscGameTitleTextControls'/,
+    /import \{\s*DiscGameTitleRoleControls,\s*\} from '\.\.\/components\/editor\/DiscGameTitleRoleControls'/,
   )
   assert.match(
     appSource,
@@ -368,15 +364,15 @@ test('issue 272 disc Game Title role owns visual title artwork and title text fa
   )
   assert.match(
     appSource,
-    /section\.id === 'background-artwork'[\s\S]*<BackgroundArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+    /section\.id === 'background-artwork'[\s\S]*<DiscBackgroundArtworkRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}/,
   )
   assert.match(
     appSource,
-    /section\.id === 'game-title'[\s\S]*<TitleArtworkControls \{\.\.\.artworkPanelProps\} \/>[\s\S]*<DiscGameTitleTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'game-title'[\s\S]*<DiscGameTitleRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}[\s\S]*textControls=\{textPanelProps\}/,
   )
   assert.match(
     appSource,
-    /section\.id === 'additional-artwork'[\s\S]*<AdditionalArtworkControls \{\.\.\.artworkPanelProps\} \/>/,
+    /section\.id === 'additional-artwork'[\s\S]*<DiscAdditionalArtworkRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}/,
   )
   assert.doesNotMatch(appSource, /<ArtworkPanel \{\.\.\.artworkPanelProps\} \/>/)
   assert.match(gameTitleTextSource, /textKey="title"/)
@@ -396,11 +392,11 @@ test('issue 272 Legal Text role owns disc copyright text controls only', () => {
 
   assert.match(
     appSource,
-    /import \{ DiscLegalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscLegalTextControls'/,
+    /import \{\s*DiscLegalInfoRoleControls,\s*\} from '\.\.\/components\/editor\/DiscLegalInfoRoleControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'legal-info'[\s\S]*<DiscLegalTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'legal-info'[\s\S]*<DiscLegalInfoRoleControls textControls=\{textPanelProps\} \/>/,
   )
   assert.match(legalTextSource, /textKey="copyright"/)
   assert.match(legalTextSource, /<DiscTextControl/)
@@ -426,11 +422,11 @@ test('issue 272 Additional Text role owns disc additional text controls only', (
 
   assert.match(
     appSource,
-    /import \{ DiscAdditionalTextControls \} from '\.\.\/components\/sidebar\/text\/DiscAdditionalTextControls'/,
+    /import \{\s*DiscAdditionalTextRoleControls,\s*\} from '\.\.\/components\/editor\/DiscAdditionalTextRoleControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'additional-text'[\s\S]*<DiscAdditionalTextControls \{\.\.\.textPanelProps\} \/>/,
+    /section\.id === 'additional-text'[\s\S]*<DiscAdditionalTextRoleControls textControls=\{textPanelProps\} \/>/,
   )
 
   for (const textKey of [
@@ -470,7 +466,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
 
   assert.match(
     appSource,
-    /import \{ CompanyLogoControls \} from '\.\.\/components\/sidebar\/branding\/CompanyLogoControls'/,
+    /import \{[\s\S]*DiscCompanyLogosRoleControls,[\s\S]*\} from '\.\.\/components\/editor\/DiscCompanyLogosRoleControls'/,
   )
   assert.match(
     appSource,
@@ -478,7 +474,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
   )
   assert.match(
     appSource,
-    /section\.id === 'company-logos'[\s\S]*<CompanyLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+    /section\.id === 'company-logos'[\s\S]*<DiscCompanyLogosRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.doesNotMatch(appSource, /<LogoAssetControls/)
   assert.doesNotMatch(appSource, /<BrandingPanel/)
@@ -486,7 +482,7 @@ test('issue 272 Company Logos role owns developer and publisher logo controls', 
   assert.match(companyLogoControlsSource, /LogoAssetControls/)
   assert.match(
     companyLogoControlsSource,
-    /<EditorFeaturePanel title="Developer \/ publisher logos" variant="branding">/,
+    /<EditorFeaturePanel[\s\S]*title="Developer \/ publisher logos"[\s\S]*variant="branding"[\s\S]*open=\{panelOpen\}/,
   )
   assert.match(companyLogoControlsSource, /logoKey="developer"/)
   assert.match(companyLogoControlsSource, /label="Developer"/)
@@ -503,11 +499,11 @@ test('issue 272 Game Info Logos role owns disc mark controls', () => {
 
   assert.match(
     appSource,
-    /import \{ GameInfoLogoControls \} from '\.\.\/components\/sidebar\/branding\/GameInfoLogoControls'/,
+    /import \{\s*DiscGameInfoRatingControls,\s*\} from '\.\.\/components\/editor\/DiscGameInfoRatingControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'game-info-logos'[\s\S]*<GameInfoLogoControls \{\.\.\.brandingPanelProps\} \/>/,
+    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoRatingControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.doesNotMatch(appSource, /<BrandingPanel/)
 
@@ -517,7 +513,7 @@ test('issue 272 Game Info Logos role owns disc mark controls', () => {
   assert.match(gameInfoLogoControlsSource, /TechnicalMarkControls/)
   assert.match(
     gameInfoLogoControlsSource,
-    /<EditorFeaturePanel title="Rating badge" variant="branding">/,
+    /<EditorFeaturePanel[\s\S]*title="Rating badge"[\s\S]*variant="branding"[\s\S]*open=\{ratingPanelOpen\}[\s\S]*onOpenChange=\{onRatingPanelOpenChange\}/,
   )
   assert.match(
     gameInfoLogoControlsSource,

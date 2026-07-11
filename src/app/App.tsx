@@ -10,7 +10,33 @@ import { clampProjectRatingBadgeToSafeZone } from '../layout/discElementSafeZone
 import '../styles/App.css'
 import '../styles/layoutFix.css'
 import { CaseInsertEditorShell } from '../components/caseInsert/CaseInsertEditorShell'
-import { EditorNavigationRolePanel } from '../components/editor/EditorNavigationShell'
+import {
+  DiscAdditionalTextRoleControls,
+} from '../components/editor/DiscAdditionalTextRoleControls'
+import {
+  DiscAdditionalArtworkRoleControls,
+} from '../components/editor/DiscAdditionalArtworkRoleControls'
+import {
+  DiscBackgroundArtworkRoleControls,
+} from '../components/editor/DiscBackgroundArtworkRoleControls'
+import {
+  DiscEditorNavigationRolePanel,
+} from '../components/editor/DiscEditorNavigationRolePanel'
+import {
+  DiscGameTitleRoleControls,
+} from '../components/editor/DiscGameTitleRoleControls'
+import {
+  DiscGameInfoRatingControls,
+} from '../components/editor/DiscGameInfoRatingControls'
+import {
+  DiscCompanyLogosRoleControls,
+} from '../components/editor/DiscCompanyLogosRoleControls'
+import {
+  DiscLegalInfoRoleControls,
+} from '../components/editor/DiscLegalInfoRoleControls'
+import {
+  EditorRoleFocusProvider,
+} from '../components/editor/EditorRoleFocusProvider'
 import {
   getEditorNavigationShellRoleSectionItems,
 } from '../components/editor/editorNavigationShellViewModel'
@@ -22,21 +48,13 @@ import {
 } from '../editor/editorNavigationShell'
 import { DiscPreview } from '../components/preview/DiscPreview'
 import type { ArtworkPanelProps } from '../components/sidebar/artwork/types'
-import { AdditionalArtworkControls } from '../components/sidebar/artwork/AdditionalArtworkControls'
-import { BackgroundArtworkControls } from '../components/sidebar/artwork/BackgroundArtworkControls'
-import { TitleArtworkControls } from '../components/sidebar/artwork/TitleArtworkControls'
-import { CompanyLogoControls } from '../components/sidebar/branding/CompanyLogoControls'
 import { DiscSteamBrandingControls } from '../components/sidebar/branding/DiscSteamBrandingControls'
-import { GameInfoLogoControls } from '../components/sidebar/branding/GameInfoLogoControls'
 import type { BrandingPanelProps } from '../components/sidebar/branding/types'
 import { ExportOptionsPanel } from '../components/sidebar/ExportOptionsPanel'
 import { GamePanel, type GamePanelProps } from '../components/sidebar/GamePanel'
 import { ProjectPanel } from '../components/sidebar/ProjectPanel'
 import { DiscLayoutPresetsPanel } from '../components/sidebar/DiscLayoutPresetsPanel'
 import { TemplatePanel } from '../components/sidebar/TemplatePanel'
-import { DiscAdditionalTextControls } from '../components/sidebar/text/DiscAdditionalTextControls'
-import { DiscGameTitleTextControls } from '../components/sidebar/text/DiscGameTitleTextControls'
-import { DiscLegalTextControls } from '../components/sidebar/text/DiscLegalTextControls'
 import type { TextPanelProps } from '../components/sidebar/textPanelTypes'
 import { useAdditionalArtwork } from '../hooks/useAdditionalArtwork'
 import { useDiscExportGuides } from '../hooks/useDiscExportGuides'
@@ -1732,7 +1750,8 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <EditorRoleFocusProvider>
+      <main className="app-shell">
       <aside className="sidebar">
         <h1>Steam Backup Label Studio</h1>
         <p className="muted">Alpha disc label editor</p>
@@ -1770,30 +1789,39 @@ function App() {
         <DiscLayoutPresetsPanel onApplyPreset={handleApplyDiscRolePreset} />
 
         {discRoleSectionItems.map((section) => (
-          <EditorNavigationRolePanel
+          <DiscEditorNavigationRolePanel
             key={section.id}
             label={section.label}
+            roleId={section.id}
             smokeId={section.smokeId}
           >
             {section.id === 'background-artwork' ? (
-              <BackgroundArtworkControls {...artworkPanelProps} />
+              <DiscBackgroundArtworkRoleControls
+                artworkControls={artworkPanelProps}
+              />
             ) : section.id === 'game-title' ? (
-              <>
-                <TitleArtworkControls {...artworkPanelProps} />
-                <DiscGameTitleTextControls {...textPanelProps} />
-              </>
+              <DiscGameTitleRoleControls
+                artworkControls={artworkPanelProps}
+                textControls={textPanelProps}
+              />
             ) : section.id === 'game-info-logos' ? (
-              <GameInfoLogoControls {...brandingPanelProps} />
+              <DiscGameInfoRatingControls
+                brandingControls={brandingPanelProps}
+              />
             ) : section.id === 'company-logos' ? (
-              <CompanyLogoControls {...brandingPanelProps} />
+              <DiscCompanyLogosRoleControls
+                brandingControls={brandingPanelProps}
+              />
             ) : section.id === 'legal-info' ? (
-              <DiscLegalTextControls {...textPanelProps} />
+              <DiscLegalInfoRoleControls textControls={textPanelProps} />
             ) : section.id === 'additional-artwork' ? (
-              <AdditionalArtworkControls {...artworkPanelProps} />
+              <DiscAdditionalArtworkRoleControls
+                artworkControls={artworkPanelProps}
+              />
             ) : section.id === 'additional-text' ? (
-              <DiscAdditionalTextControls {...textPanelProps} />
+              <DiscAdditionalTextRoleControls textControls={textPanelProps} />
             ) : null}
-          </EditorNavigationRolePanel>
+          </DiscEditorNavigationRolePanel>
         ))}
       </aside>
 
@@ -1863,7 +1891,8 @@ function App() {
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}
       />
-    </main>
+      </main>
+    </EditorRoleFocusProvider>
   )
 }
 

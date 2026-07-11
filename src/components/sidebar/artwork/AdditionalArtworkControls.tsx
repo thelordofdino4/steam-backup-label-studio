@@ -1,3 +1,4 @@
+import type { ComponentType, Ref } from 'react'
 import { getAdditionalArtworkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   ADDITIONAL_ARTWORK_SCALE_MAX,
@@ -18,9 +19,16 @@ import { ArtworkImageSourceControls } from './ArtworkImageSourceControls'
 import { formatAdditionalArtworkSize } from './helpers'
 import type { ArtworkPanelProps } from './types'
 
-function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
+function AddAdditionalArtworkButton({
+  controlRef,
+  onClick,
+}: {
+  controlRef?: Ref<HTMLButtonElement>
+  onClick: () => void
+}) {
   return (
     <button
+      ref={controlRef}
       className="secondary-button icon-text-button"
       type="button"
       onClick={onClick}
@@ -31,7 +39,43 @@ function AddAdditionalArtworkButton({ onClick }: { onClick: () => void }) {
   )
 }
 
-function AdditionalArtworkElementControls({
+export type AdditionalArtworkElementControlsProps = Pick<
+  ArtworkPanelProps,
+  | 'selectedSteamGame'
+  | 'webArtworkDiscovery'
+  | 'localSteamScreenshots'
+  | 'localSteamScreenshotThumbnails'
+  | 'hasCheckedLocalSteamScreenshots'
+  | 'isLocalSteamScreenshotsLoading'
+  | 'selectedDiscTemplate'
+  | 'projectAdditionalArtwork'
+  | 'handleFindWebArtworkCandidates'
+  | 'handleAdditionalArtworkUpload'
+  | 'handleUseSteamArtworkAsAdditionalArtwork'
+  | 'handleUseWebArtworkCandidateAsAdditionalArtwork'
+  | 'handleFindLocalSteamScreenshots'
+  | 'handleOpenLocalSteamScreenshotFolder'
+  | 'handleUseLocalSteamScreenshotAsAdditionalArtwork'
+  | 'handleAdditionalArtworkLayoutChange'
+  | 'handleAdditionalArtworkLabelChange'
+  | 'handleAdditionalArtworkFrameChange'
+  | 'handleResetAdditionalArtworkElementLayout'
+  | 'handleResetAdditionalArtworkElementFrame'
+  | 'handleClearAdditionalArtworkElementImage'
+  | 'handleRemoveAdditionalArtworkElement'
+> & {
+  element: ProjectAdditionalArtworkElement
+  elementIndex: number
+  itemCardDetailsRef?: Ref<HTMLDetailsElement>
+  itemCardOpen?: boolean
+  itemEnableControlRef?: Ref<HTMLInputElement>
+  localFilePanelOpen?: boolean
+  onItemCardOpenChange?: (open: boolean) => void
+  onLocalFilePanelOpenChange?: (open: boolean) => void
+  uploadControlRef?: Ref<HTMLInputElement>
+}
+
+export function AdditionalArtworkElementControls({
   element,
   elementIndex,
   selectedSteamGame,
@@ -56,38 +100,14 @@ function AdditionalArtworkElementControls({
   handleResetAdditionalArtworkElementFrame,
   handleClearAdditionalArtworkElementImage,
   handleRemoveAdditionalArtworkElement,
-  handleAddAdditionalArtworkElement,
-  showAddButton,
-}: Pick<
-  ArtworkPanelProps,
-  | 'selectedSteamGame'
-  | 'webArtworkDiscovery'
-  | 'localSteamScreenshots'
-  | 'localSteamScreenshotThumbnails'
-  | 'hasCheckedLocalSteamScreenshots'
-  | 'isLocalSteamScreenshotsLoading'
-  | 'selectedDiscTemplate'
-  | 'projectAdditionalArtwork'
-  | 'handleFindWebArtworkCandidates'
-  | 'handleAdditionalArtworkUpload'
-  | 'handleUseSteamArtworkAsAdditionalArtwork'
-  | 'handleUseWebArtworkCandidateAsAdditionalArtwork'
-  | 'handleFindLocalSteamScreenshots'
-  | 'handleOpenLocalSteamScreenshotFolder'
-  | 'handleUseLocalSteamScreenshotAsAdditionalArtwork'
-  | 'handleAdditionalArtworkLayoutChange'
-  | 'handleAdditionalArtworkLabelChange'
-  | 'handleAdditionalArtworkFrameChange'
-  | 'handleResetAdditionalArtworkElementLayout'
-  | 'handleResetAdditionalArtworkElementFrame'
-  | 'handleClearAdditionalArtworkElementImage'
-  | 'handleRemoveAdditionalArtworkElement'
-  | 'handleAddAdditionalArtworkElement'
-> & {
-  element: ProjectAdditionalArtworkElement
-  elementIndex: number
-  showAddButton: boolean
-}) {
+  itemCardDetailsRef,
+  itemCardOpen,
+  itemEnableControlRef,
+  localFilePanelOpen,
+  onItemCardOpenChange,
+  onLocalFilePanelOpenChange,
+  uploadControlRef,
+}: AdditionalArtworkElementControlsProps) {
   const hasImage = canUseAdditionalArtworkElement(element)
   const isRenderable = shouldRenderAdditionalArtworkElement(
     projectAdditionalArtwork,
@@ -120,6 +140,10 @@ function AdditionalArtworkElementControls({
         enableLabel={`Show ${title.toLowerCase()}`}
         summary={summary}
         deleteLabel={deleteLabel}
+        detailsRef={itemCardDetailsRef}
+        enableControlRef={itemEnableControlRef}
+        open={itemCardOpen}
+        onOpenChange={onItemCardOpenChange}
         onEnabledChange={(enabled) =>
           handleAdditionalArtworkLayoutChange(element.id, 'enabled', enabled)}
         onLabelChange={(nextLabel) =>
@@ -148,6 +172,9 @@ function AdditionalArtworkElementControls({
               hasImage ? 'Replace with local image' : 'Choose local image'
             }
             localFileHint="Choose a local image from this computer when Steam, web, or screenshot sources do not have the artwork you want."
+            localFilePanelOpen={localFilePanelOpen}
+            localFileUploadControlRef={uploadControlRef}
+            onLocalFilePanelOpenChange={onLocalFilePanelOpenChange}
             onUpload={(event) =>
               handleAdditionalArtworkUpload(element.id, event)}
             onUseSteamArtwork={(asset) =>
@@ -254,9 +281,6 @@ function AdditionalArtworkElementControls({
           >
             Reset {title.toLowerCase()} layout
           </button>
-          {showAddButton ? (
-            <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
-          ) : null}
           {hasImage ? (
             <button
               className="secondary-button"
@@ -268,14 +292,22 @@ function AdditionalArtworkElementControls({
           ) : null}
         </>
       </RepeatedVisualElementCard>
-      {showAddButton && !element.layout.enabled ? (
-        <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
-      ) : null}
     </>
   )
 }
 
-export function AdditionalArtworkControls(props: ArtworkPanelProps) {
+export type AdditionalArtworkControlsProps = ArtworkPanelProps & {
+  addControlRef?: Ref<HTMLButtonElement>
+  enableControlRef?: Ref<HTMLInputElement>
+  ElementControlsComponent?: ComponentType<AdditionalArtworkElementControlsProps>
+}
+
+export function AdditionalArtworkControls({
+  addControlRef,
+  enableControlRef,
+  ElementControlsComponent = AdditionalArtworkElementControls,
+  ...props
+}: AdditionalArtworkControlsProps) {
   const {
     projectAdditionalArtwork,
     handleAdditionalArtworkEnabledChange,
@@ -288,26 +320,27 @@ export function AdditionalArtworkControls(props: ArtworkPanelProps) {
     <OptionalFeatureSection
       className="feature-control-body additional-artwork-control"
       enabled={isEnabled}
+      enableControlRef={enableControlRef}
       enableLabel="Show additional artwork"
       onEnabledChange={handleAdditionalArtworkEnabledChange}
     >
-      {!hasArtworkElements ? (
-        <>
-          <AddAdditionalArtworkButton onClick={handleAddAdditionalArtworkElement} />
+      <AddAdditionalArtworkButton
+        controlRef={addControlRef}
+        onClick={handleAddAdditionalArtworkElement}
+      />
 
-          <p className="hint">
-            Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
-          </p>
-        </>
+      {!hasArtworkElements ? (
+        <p className="hint">
+          Add a disc-surface image for characters, screenshots, key art, or other extra artwork.
+        </p>
       ) : null}
 
       {projectAdditionalArtwork.elements.map((element, index) => (
-        <AdditionalArtworkElementControls
+        <ElementControlsComponent
           key={element.id}
           {...props}
           element={element}
           elementIndex={index}
-          showAddButton={index === projectAdditionalArtwork.elements.length - 1}
         />
       ))}
     </OptionalFeatureSection>

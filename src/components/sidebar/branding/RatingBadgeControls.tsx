@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref, RefCallback } from 'react'
 import { getRatingBadgeLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import { RATING_BADGE_LAYOUT_PRESETS } from '../../../layout/presets'
 import {
@@ -13,6 +13,13 @@ import { EditorMarkImageSourceControls } from '../../editor/EditorMarkImageSourc
 import { OptionalFeatureSection } from '../../editor/OptionalFeatureSection'
 import { formatLogoSize } from './helpers'
 import type { BrandingPanelProps } from './types'
+
+type RatingBadgeControlRefs = {
+  enableControlRef?: Ref<HTMLInputElement>
+  sourceControlRef?: Ref<HTMLSelectElement>
+  systemControlRef?: Ref<HTMLSelectElement>
+  valueControlRef?: RefCallback<HTMLInputElement | HTMLSelectElement>
+}
 
 type RatingBadgeSetupControlsProps = Pick<
   BrandingPanelProps,
@@ -30,7 +37,7 @@ type RatingBadgeSetupControlsProps = Pick<
   children?: ReactNode
   renderSupplementalUskLayoutControls?: () => ReactNode
   idPrefix?: string
-}
+} & RatingBadgeControlRefs
 
 export function RatingBadgeSetupControls({
   projectMetadata,
@@ -46,6 +53,10 @@ export function RatingBadgeSetupControls({
   children,
   renderSupplementalUskLayoutControls,
   idPrefix,
+  enableControlRef,
+  sourceControlRef,
+  systemControlRef,
+  valueControlRef,
 }: RatingBadgeSetupControlsProps) {
   const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
   const isBadgeEnabled = projectRatingBadge.layout.enabled
@@ -59,11 +70,12 @@ export function RatingBadgeSetupControls({
     <OptionalFeatureSection
       className="logo-asset-card"
       enabled={isBadgeEnabled}
+      enableControlRef={enableControlRef}
       enableLabel="Show rating badge"
       onEnabledChange={handleRatingBadgeEnabledChange}
     >
       <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-system')}>Rating system</label>
-      <select id={fieldId('branding-rating-system')} value={activeRatingSystem} onChange={(event) => {
+      <select ref={systemControlRef} id={fieldId('branding-rating-system')} value={activeRatingSystem} onChange={(event) => {
         const nextSystem = event.target.value as GameRatingSystem
         const nextMetadata = getRatingMetadataForSystemChange(projectMetadata, nextSystem)
         handleProjectMetadataFieldsChange(nextMetadata)
@@ -76,9 +88,9 @@ export function RatingBadgeSetupControls({
 
       <label className="field-label spacing-top" htmlFor={fieldId('branding-rating-value')}>Rating value</label>
       {activeRatingSystem === 'custom' ? (
-        <input id={fieldId('branding-rating-value')} type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
+        <input ref={valueControlRef} id={fieldId('branding-rating-value')} type="text" value={projectMetadata.ratingValue} placeholder="Custom rating label..." onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)} />
       ) : (
-        <select id={fieldId('branding-rating-value')} value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
+        <select ref={valueControlRef} id={fieldId('branding-rating-value')} value={projectMetadata.ratingValue} onChange={(event) => handleProjectMetadataChange('ratingValue', event.target.value)}>
           {getRatingValuesForSystem(activeRatingSystem).map((value) => (
             <option key={value} value={value}>
               {formatRatingValueForSystem(activeRatingSystem, value)}
@@ -120,6 +132,7 @@ export function RatingBadgeSetupControls({
 
       <EditorMarkImageSourceControls
         idPrefix={idPrefix}
+        sourceControlRef={sourceControlRef}
         source={projectRatingBadge.source}
         sourceLabel="Badge source"
         sourceSelectId="rating-badge-source"
@@ -170,7 +183,7 @@ export function RatingBadgeControls({
   | 'handleClearRatingBadgeImage'
   | 'handleResetRatingBadgeLayout'
   | 'handleResetSupplementalUskRatingBadgeLayout'
->) {
+> & RatingBadgeControlRefs) {
   const sliderRanges = getRatingBadgeLayoutSliderRanges(
     {
       ...projectRatingBadge,

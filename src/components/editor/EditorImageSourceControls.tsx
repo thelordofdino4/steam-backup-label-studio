@@ -1,4 +1,9 @@
-import { useCallback, type ChangeEvent, type ReactNode } from 'react'
+import {
+  useCallback,
+  type ChangeEvent,
+  type ReactNode,
+  type Ref,
+} from 'react'
 import type { WebArtworkDiscoveryState } from '../../hooks/useWebArtworkDiscovery'
 import type { LocalSteamScreenshotAsset } from '../../local/localArtwork'
 import type { ProjectImageAssetSource } from '../../project/projectTypes'
@@ -51,6 +56,9 @@ export type EditorImageSourceControlsProps = EditorImageSourceCatalog & {
   allowLocalSteamScreenshots?: boolean
   localFileActionLabel?: string
   localFileHint?: string
+  localFilePanelOpen?: boolean
+  localFileUploadControlRef?: Ref<HTMLInputElement>
+  onLocalFilePanelOpenChange?: (open: boolean) => void
   imageCandidateTarget?: ImageCandidateTarget
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void | Promise<void>
   onUseSteamArtwork: (asset: SteamArtworkAsset) => void | Promise<void>
@@ -112,6 +120,9 @@ export function EditorImageSourceControls({
   imageCandidateTarget,
   localFileActionLabel,
   localFileHint = 'Choose an image from this computer when Steam, web, or screenshot sources do not have the artwork you want.',
+  localFilePanelOpen,
+  localFileUploadControlRef,
+  onLocalFilePanelOpenChange,
   selectedSteamGame,
   localSteamScreenshots,
   localSteamScreenshotThumbnails,
@@ -323,13 +334,18 @@ export function EditorImageSourceControls({
         </EditorFeaturePanel>
       ) : null}
 
-      <EditorFeaturePanel title={EDITOR_IMAGE_SOURCE_PANEL_LABELS['local-file']}>
+      <EditorFeaturePanel
+        title={EDITOR_IMAGE_SOURCE_PANEL_LABELS['local-file']}
+        open={localFilePanelOpen}
+        onOpenChange={onLocalFilePanelOpenChange}
+      >
         <div className="artwork-import-section">
           <p className="hint">{localFileHint}</p>
           <label className="secondary-button logo-upload-button" htmlFor={uploadId}>
             {localFileActionLabel ?? getLocalFileActionLabel(target, hasImage)}
           </label>
           <input
+            ref={localFileUploadControlRef}
             id={uploadId}
             className="logo-file-input"
             type="file"

@@ -1,4 +1,4 @@
-import type { ChangeEvent, ReactNode } from 'react'
+import type { ChangeEvent, ReactNode, Ref } from 'react'
 import {
   getMarkImageSourceStatus,
   type MarkImageSize,
@@ -24,6 +24,7 @@ export type EditorMarkImageSourceControlsProps = {
     event: ChangeEvent<HTMLInputElement>,
   ) => unknown | Promise<unknown>
   source: MarkImageSource
+  sourceControlRef?: Ref<HTMLSelectElement>
   sourceDetails?: ReactNode
   sourceLabel: string
   sourceSelectId: string
@@ -48,6 +49,7 @@ export function EditorMarkImageSourceControls({
   onSourceChange,
   onUpload,
   source,
+  sourceControlRef,
   sourceDetails,
   sourceLabel,
   sourceSelectId,
@@ -70,6 +72,7 @@ export function EditorMarkImageSourceControls({
         {sourceLabel}
       </label>
       <select
+        ref={sourceControlRef}
         id={fieldId(sourceSelectId)}
         value={source}
         onChange={(event) =>
