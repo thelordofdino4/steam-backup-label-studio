@@ -680,7 +680,8 @@ The guided preview caller dispatches only these typed setup destinations:
 - Game Title Image -> `disc:game-title:artwork-upload`
 - Game Title Text -> `disc:game-title:text-fallback`
 - Background Image -> `disc:background-image:local-upload`
-- Rating Badge -> `disc:rating:enable`
+- Rating Badge -> `disc:rating:system` (falls back to
+  `disc:rating:enable` while Rating is disabled)
 - Developer Logo -> `disc:company-logo:developer-upload`
 - Publisher Logo -> `disc:company-logo:publisher-upload`
 - Copyright / Legal Text -> `disc:legal-text:copyright`
@@ -698,6 +699,14 @@ DOM, duplicate role-panel state, enable features, or invoke controls. Native
 focus validation remains pending. Case Front, Case Back, and Spine remain
 outside this Disc-only provider.
 
+Guided placeholders route to the most specific normal setup control. An enable
+control is a fallback for a specific control hidden by a disabled optional
+feature; it is not the direct route when that specific control is available.
+For Rating Badge, guidance therefore requests `disc:rating:system`. Enabled
+Rating focuses the system selector without changing system or value. Disabled
+Rating follows the existing one-shot `system -> enable` fallback without
+enabling the badge or replaying after later enablement.
+
 Media format's registered fallback contract is `format -> enable`. The direct
 format registration exists only while the selector is mounted; its persistent
 fallback remains independent, consumes once while disabled, and does not replay
@@ -712,6 +721,24 @@ enable accepts only `{ owner: 'platformMarks', selection: 'enabled-values' }`.
 Payload-bearing or cross-owner identities are rejected by the strict runtime
 parser. All eight Classic Top Title slots now have exact production setup
 routes; native eight-slot workflow validation remains required before PR.
+
+### #289 Native Eight-Slot Checklist
+
+1. Game Title opens its Image/Text chooser and routes each choice exactly.
+2. Background Image focuses its Local file control.
+3. Rating Badge focuses Rating system while enabled; while disabled it focuses
+   Rating enable through fallback, leaves Rating disabled, and does not replay.
+4. Media Format Mark focuses Format while enabled and Media enable through its
+   disabled fallback without changing the format.
+5. Operating System Marks focuses the grouped enable checkbox without enabling
+   or selecting a platform.
+6. Developer Logo focuses its exact primary upload or matching fallback.
+7. Publisher Logo focuses its exact primary upload or matching fallback.
+8. Copyright / Legal Text focuses its exact fixed-row control.
+
+For every item, verify click and native Enter/Space activation, owning-role
+`role-start` alignment, one-shot consumption, preserved unrelated panel state,
+and absence from exported PNG output.
 
 ## 12. Persistence Boundary
 

@@ -2,6 +2,13 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
+import {
+  createEditorRoleFocusControllerStore,
+} from '../editor/editorRoleFocusController.ts'
+import {
+  registerAlwaysMountedRatingFocusTargets,
+  registerEnabledRatingSelectFocusTargets,
+} from '../components/editor/discRatingRoleFocusRegistration.ts'
 import type { DiscGuidedPlaceholderViewModel } from './discGuidedPlaceholderViewModel.ts'
 import {
   createDiscGuidedPlaceholderActionViewModels,
@@ -14,6 +21,26 @@ const GEOMETRY = {
   centerYPercent: 50,
   widthPercent: 20,
   heightPercent: 10,
+}
+
+function createElement(label: string, calls: string[]) {
+  return {
+    focus(options?: FocusOptions) {
+      calls.push(`${label}:focus:${String(options?.preventScroll)}`)
+    },
+    scrollIntoView(options?: ScrollIntoViewOptions) {
+      calls.push(`${label}:scroll:${String(options?.block)}`)
+    },
+  } as unknown as HTMLElement
+}
+
+function getRatingSetupAction() {
+  const setup = getDiscGuidedPlaceholderSetup('rating-badge')
+  assert.equal(setup.kind, 'direct')
+  if (setup.kind !== 'direct') {
+    throw new Error('Rating Badge setup must remain direct.')
+  }
+  return setup.action
 }
 
 const PLACEHOLDERS = [
@@ -70,7 +97,7 @@ test('Game Title remains the only Image and Text chooser', () => {
 test('existing exact setup targets remain direct and independent', () => {
   const expectations = [
     ['background', { roleId: 'background-artwork', focusTarget: 'disc:background-image:local-upload' }],
-    ['rating-badge', { roleId: 'game-info-logos', focusTarget: 'disc:rating:enable' }],
+    ['rating-badge', { roleId: 'game-info-logos', focusTarget: 'disc:rating:system' }],
     ['developer-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:developer-upload' }],
     ['publisher-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:publisher-upload' }],
     ['legal-text', { roleId: 'legal-info', focusTarget: 'disc:legal-text:copyright' }],
@@ -83,6 +110,106 @@ test('existing exact setup targets remain direct and independent', () => {
     assert.deepEqual(setup.action.request.destination, destination)
     assert.equal(setup.action.request.scrollAlignment, 'role-start')
   }
+})
+
+test('Rating Badge routes to the specific system control with role-start alignment', () => {
+  const action = getRatingSetupAction()
+
+  assert.deepEqual(action.request, {
+    surfaceId: 'disc-label',
+    behavior: 'focus',
+    scrollAlignment: 'role-start',
+    destination: {
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:rating:system',
+    },
+  })
+  assert.notEqual(
+    action.request.destination.focusTarget,
+    'disc:rating:enable',
+  )
+})
+
+test('enabled Rating guidance focuses system without changing Rating state', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const ratingState = {
+    enabled: true,
+    system: 'PEGI',
+    value: '16',
+    source: 'custom',
+    customImageDataUrl: 'data:image/png;base64,keep',
+    dirty: false,
+  }
+  const initialState = structuredClone(ratingState)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => createElement('game-info-summary', calls),
+  })
+  registerAlwaysMountedRatingFocusTargets({
+    enableElement: () => createElement('rating-enable', calls),
+    openRatingPanel: () => calls.push('ancestor:rating'),
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+  registerEnabledRatingSelectFocusTargets({
+    openRatingPanel: () => calls.push('ancestor:rating'),
+    registerFocusTarget: store.registerFocusTarget,
+    sourceElement: () => createElement('rating-source', calls),
+    systemElement: () => createElement('rating-system', calls),
+  })
+
+  store.requestRoleFocus(getRatingSetupAction().request)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
+  assert.deepEqual(calls, [
+    'ancestor:rating',
+    'rating-system:focus:true',
+    'game-info-summary:scroll:start',
+  ])
+  assert.deepEqual(ratingState, initialState)
+})
+
+test('disabled Rating guidance falls back once to enable without mutation or replay', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const ratingState = {
+    enabled: false,
+    system: 'ESRB',
+    value: 'M',
+    source: 'placeholder',
+    dirty: false,
+  }
+  const initialState = structuredClone(ratingState)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => createElement('game-info-summary', calls),
+  })
+  registerAlwaysMountedRatingFocusTargets({
+    enableElement: () => createElement('rating-enable', calls),
+    openRatingPanel: () => calls.push('ancestor:rating'),
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+
+  store.requestRoleFocus(getRatingSetupAction().request)
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
+  assert.deepEqual(calls, [
+    'ancestor:rating',
+    'rating-enable:focus:true',
+    'game-info-summary:scroll:start',
+  ])
+  assert.deepEqual(ratingState, initialState)
+
+  ratingState.enabled = true
+  registerEnabledRatingSelectFocusTargets({
+    openRatingPanel: () => calls.push('ancestor:rating'),
+    registerFocusTarget: store.registerFocusTarget,
+    sourceElement: () => createElement('rating-source', calls),
+    systemElement: () => createElement('rating-system', calls),
+  })
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
 })
 
 test('Media and OS setup dispatch exact typed Game Info destinations', () => {

@@ -10,7 +10,7 @@ export type DiscGuidedSetupActionId =
   | 'game-title-image'
   | 'game-title-text'
   | 'background-local-upload'
-  | 'rating-enable'
+  | 'rating-system'
   | 'media-format'
   | 'operating-system-marks-enable'
   | 'developer-logo-upload'
@@ -110,7 +110,7 @@ const SETUP_BY_KIND = Object.freeze({
   'rating-badge': Object.freeze({
     kind: 'direct',
     action: createAction({
-      id: 'rating-enable',
+      id: 'rating-system',
       label: 'Set up Rating Badge',
       request: {
         surfaceId: 'disc-label',
@@ -118,7 +118,7 @@ const SETUP_BY_KIND = Object.freeze({
         scrollAlignment: 'role-start',
         destination: {
           roleId: 'game-info-logos',
-          focusTarget: 'disc:rating:enable',
+          focusTarget: 'disc:rating:system',
         },
       },
     }),
