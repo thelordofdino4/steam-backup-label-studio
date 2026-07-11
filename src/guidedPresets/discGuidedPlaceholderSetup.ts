@@ -11,6 +11,8 @@ export type DiscGuidedSetupActionId =
   | 'game-title-text'
   | 'background-local-upload'
   | 'rating-enable'
+  | 'media-format'
+  | 'operating-system-marks-enable'
   | 'developer-logo-upload'
   | 'publisher-logo-upload'
   | 'legal-copyright'
@@ -122,12 +124,36 @@ const SETUP_BY_KIND = Object.freeze({
     }),
   }),
   'media-format-mark': Object.freeze({
-    kind: 'unavailable',
-    label: 'Media Format Mark setup is not available yet',
+    kind: 'direct',
+    action: createAction({
+      id: 'media-format',
+      label: 'Set up Media Format Mark',
+      request: {
+        surfaceId: 'disc-label',
+        behavior: 'focus',
+        scrollAlignment: 'role-start',
+        destination: {
+          roleId: 'game-info-logos',
+          focusTarget: 'disc:media-format-mark:format',
+        },
+      },
+    }),
   }),
   'operating-system-marks': Object.freeze({
-    kind: 'unavailable',
-    label: 'Operating System Marks setup is not available yet',
+    kind: 'direct',
+    action: createAction({
+      id: 'operating-system-marks-enable',
+      label: 'Set up Operating System Marks',
+      request: {
+        surfaceId: 'disc-label',
+        behavior: 'focus',
+        scrollAlignment: 'role-start',
+        destination: {
+          roleId: 'game-info-logos',
+          focusTarget: 'disc:operating-system-marks:enable',
+        },
+      },
+    }),
   }),
   'developer-logo': Object.freeze({
     kind: 'direct',

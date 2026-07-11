@@ -85,18 +85,30 @@ test('existing exact setup targets remain direct and independent', () => {
   }
 })
 
-test('Media and OS setup are explicitly unavailable without broad fallback routing', () => {
-  for (const kind of ['media-format-mark', 'operating-system-marks'] as const) {
+test('Media and OS setup dispatch exact typed Game Info destinations', () => {
+  const expectations = [
+    ['media-format-mark', 'disc:media-format-mark:format'],
+    ['operating-system-marks', 'disc:operating-system-marks:enable'],
+  ] as const
+
+  for (const [kind, focusTarget] of expectations) {
     const setup = getDiscGuidedPlaceholderSetup(kind)
-    assert.equal(setup.kind, 'unavailable')
-    if (setup.kind === 'unavailable') {
-      assert.match(setup.label, /not available yet/)
-    }
+    assert.equal(setup.kind, 'direct')
+    if (setup.kind !== 'direct') continue
+    assert.deepEqual(setup.action.request, {
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'role-start',
+      destination: {
+        roleId: 'game-info-logos',
+        focusTarget,
+      },
+    })
   }
 
   const source = readFileSync(new URL('./discGuidedPlaceholderSetup.ts', import.meta.url), 'utf8')
-  assert.doesNotMatch(source, /disc:media-format|disc:operating-system/)
-  assert.doesNotMatch(source, /company-logo-choice|Set up Game Info Logos/)
+  assert.doesNotMatch(source, /game-info-logos:setup|company-logo-choice|Set up Game Info Logos/)
+  assert.doesNotMatch(source, /handleMedia|handlePlatform|setProject|toggleEnabled/)
 })
 
 test('suggested placeholders retain exact setup without accepting content', () => {
@@ -105,16 +117,30 @@ test('suggested placeholders retain exact setup without accepting content', () =
   )
   assert.ok(actions.every(({ lifecycle }) => lifecycle === 'suggested'))
   assert.deepEqual(actions.map(({ setup }) => setup.kind), [
-    'choice', 'direct', 'direct', 'unavailable', 'unavailable', 'direct', 'direct', 'direct',
+    'choice', 'direct', 'direct', 'direct', 'direct', 'direct', 'direct', 'direct',
   ])
 })
 
-test('preview renders unavailable exact slots without dispatch behavior', () => {
+test('setup definitions stay pure and outside owner mutation and application domains', () => {
   const source = readFileSync(
-    new URL('../components/preview/DiscGuidedPlaceholderActions.tsx', import.meta.url),
+    new URL('./discGuidedPlaceholderSetup.ts', import.meta.url),
     'utf8',
   )
-  assert.match(source, /setup\.kind === 'unavailable'/)
-  assert.match(source, /aria-disabled=\{isUnavailable \|\| undefined\}/)
-  assert.doesNotMatch(source, /querySelector|\.click\(\)/)
+  for (const forbidden of [
+    'App.tsx',
+    'components/',
+    'projectSchema',
+    'createProjectSnapshot',
+    'restoreProject',
+    'render/',
+    'export/',
+    'caseInsert',
+    'groupedPlatformMarkPlacement',
+    'fetch(',
+    'setProject',
+    'handleMedia',
+    'handlePlatform',
+  ]) {
+    assert.equal(source.includes(forbidden), false, forbidden)
+  }
 })

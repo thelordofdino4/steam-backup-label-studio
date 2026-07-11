@@ -6,6 +6,7 @@ import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import {
   DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
   DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
+  DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   DISC_ROLE_FOCUS_TARGET_IDS,
   createInitialEditorRoleFocusState,
   getEditorRoleFocusTargetIdentity,
@@ -14,6 +15,7 @@ import {
   reduceEditorRoleFocus,
   type DiscRoleFocusDestination,
   type DiscCompanyLogoFocusTarget,
+  type DiscGameInfoLogoFocusTarget,
   type EditorRoleFocusBehavior,
   type EditorRoleFocusRequest,
   type EditorRoleFocusScrollAlignment,
@@ -56,6 +58,18 @@ const VALID_DESTINATIONS = [
   {
     roleId: 'game-info-logos',
     focusTarget: 'disc:rating:source',
+  },
+  {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:enable',
+  },
+  {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:format',
+  },
+  {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:operating-system-marks:enable',
   },
   {
     roleId: 'company-logos',
@@ -267,8 +281,14 @@ test('accepts every fixed destination with omitted or exact owner identity', () 
     [VALID_DESTINATIONS[6], { owner: 'ratingBadge', badgeKey: 'primary' }],
     [VALID_DESTINATIONS[7], { owner: 'ratingBadge', badgeKey: 'primary' }],
     [VALID_DESTINATIONS[8], { owner: 'ratingBadge', badgeKey: 'primary' }],
-    [VALID_DESTINATIONS[13], { owner: 'discText', key: 'copyright' }],
-    [VALID_DESTINATIONS[18], { owner: 'discText', key: 'customNote' }],
+    [VALID_DESTINATIONS[9], { owner: 'mediaMark' }],
+    [VALID_DESTINATIONS[10], { owner: 'mediaMark' }],
+    [VALID_DESTINATIONS[11], {
+      owner: 'platformMarks',
+      selection: 'enabled-values',
+    }],
+    [VALID_DESTINATIONS[16], { owner: 'discText', key: 'copyright' }],
+    [VALID_DESTINATIONS[21], { owner: 'discText', key: 'customNote' }],
   ] as const
 
   cases.forEach(([destination, ownerTarget], index) => {
@@ -287,6 +307,165 @@ test('accepts every fixed destination with omitted or exact owner identity', () 
       true,
       `matching:${destination.focusTarget}`,
     )
+  })
+})
+
+test('defines the exact Rating Media and OS Game Info target vocabulary', () => {
+  assert.deepEqual(DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS, [
+    'disc:rating:enable',
+    'disc:rating:system',
+    'disc:rating:value',
+    'disc:rating:source',
+    'disc:media-format-mark:enable',
+    'disc:media-format-mark:format',
+    'disc:operating-system-marks:enable',
+  ])
+  assert.doesNotMatch(DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS.join(' '),
+    /game-info-logos:setup|platform-mark:primary|technical/)
+})
+
+test('new Media and OS targets parse with focus role-start and optional exact owners', () => {
+  const cases = [
+    {
+      focusTarget: 'disc:media-format-mark:enable',
+      ownerTarget: { owner: 'mediaMark' },
+    },
+    {
+      focusTarget: 'disc:media-format-mark:format',
+      ownerTarget: { owner: 'mediaMark' },
+    },
+    {
+      focusTarget: 'disc:operating-system-marks:enable',
+      ownerTarget: { owner: 'platformMarks', selection: 'enabled-values' },
+    },
+  ] as const satisfies readonly {
+    focusTarget: DiscGameInfoLogoFocusTarget
+    ownerTarget: NonNullable<EditorRoleFocusRequest['ownerTarget']>
+  }[]
+
+  cases.forEach(({ focusTarget, ownerTarget }, index) => {
+    const destination = { roleId: 'game-info-logos', focusTarget } as const
+    const omitted = parseEditorRoleFocusRequest(
+      createRequest(index * 2 + 1, destination, 'focus', 'role-start'),
+    )
+    const matching = parseEditorRoleFocusRequest({
+      ...createRequest(index * 2 + 2, destination, 'focus', 'role-start'),
+      ownerTarget,
+    })
+
+    assert.equal(omitted.ok, true, `omitted:${focusTarget}`)
+    assert.equal(matching.ok, true, `matching:${focusTarget}`)
+    if (!omitted.ok || !matching.ok) return
+    assert.equal(omitted.request.behavior, 'focus')
+    assert.equal(omitted.request.scrollAlignment, 'role-start')
+    assert.deepEqual(omitted.request.destination, destination)
+    assert.deepEqual(matching.request.ownerTarget, ownerTarget)
+  })
+})
+
+test('new Media and OS targets reject every non-Game-Info role', () => {
+  const targets = [
+    'disc:media-format-mark:enable',
+    'disc:media-format-mark:format',
+    'disc:operating-system-marks:enable',
+  ] as const
+  const roles = [
+    'background-artwork',
+    'game-title',
+    'company-logos',
+    'legal-info',
+    'additional-artwork',
+    'additional-text',
+  ] as const
+
+  for (const focusTarget of targets) {
+    for (const roleId of roles) {
+      assert.deepEqual(
+        parseEditorRoleFocusRequest({
+          ...createRequest(1),
+          destination: { roleId, focusTarget },
+        }),
+        { ok: false, error: 'invalid-role-target-combination' },
+        `${roleId}:${focusTarget}`,
+      )
+    }
+  }
+})
+
+test('new Media and OS owner identities remain strict and payload-free', () => {
+  const mediaDestination = {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:format',
+  } as const
+  const osDestination = {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:operating-system-marks:enable',
+  } as const
+  const invalidMediaOwners = [
+    { owner: 'platformMarks', selection: 'enabled-values' },
+    { owner: 'ratingBadge', badgeKey: 'primary' },
+    { owner: 'backgroundImage' },
+    { owner: 'titleArtwork' },
+    { owner: 'discText', key: 'copyright' },
+    { owner: 'logoAssets', logoKey: 'developer', scope: 'primary' },
+    { owner: 'additionalArtwork', elementId: 'artwork-id' },
+    { owner: 'mediaMark', value: 'dvdRom' },
+    { owner: 'mediaMark', enabled: true },
+  ]
+  const invalidOsOwners = [
+    { owner: 'mediaMark' },
+    { owner: 'ratingBadge', badgeKey: 'primary' },
+    { owner: 'backgroundImage' },
+    { owner: 'titleArtwork' },
+    { owner: 'discText', key: 'copyright' },
+    { owner: 'logoAssets', logoKey: 'publisher', scope: 'primary' },
+    { owner: 'additionalArtwork', elementId: 'artwork-id' },
+    { owner: 'platformMarks', selection: 'windows' },
+    { owner: 'platformMarks', selection: 'enabled-values', values: ['windows'] },
+    { owner: 'platformMarks', selection: 'enabled-values', enabled: true },
+  ]
+
+  for (const ownerTarget of invalidMediaOwners) {
+    assert.deepEqual(
+      parseEditorRoleFocusRequest({
+        ...createRequest(1, mediaDestination),
+        ownerTarget,
+      }),
+      { ok: false, error: 'invalid-owner-target' },
+    )
+  }
+  for (const ownerTarget of invalidOsOwners) {
+    assert.deepEqual(
+      parseEditorRoleFocusRequest({
+        ...createRequest(1, osDestination),
+        ownerTarget,
+      }),
+      { ok: false, error: 'invalid-owner-target' },
+    )
+  }
+})
+
+test('reducer retains new destinations and opens only Game Info Logos', () => {
+  const destinations = [
+    { roleId: 'game-info-logos', focusTarget: 'disc:media-format-mark:enable' },
+    { roleId: 'game-info-logos', focusTarget: 'disc:media-format-mark:format' },
+    { roleId: 'game-info-logos', focusTarget: 'disc:operating-system-marks:enable' },
+  ] as const satisfies readonly DiscRoleFocusDestination[]
+  let state = createInitialEditorRoleFocusState()
+
+  destinations.forEach((destination, index) => {
+    const result = reduceEditorRoleFocus(state, {
+      type: 'request',
+      request: createRequest(index + 1, destination, 'focus', 'role-start'),
+    })
+    assert.equal(result.outcome, 'accepted')
+    assert.deepEqual(result.state.pendingRequest?.destination, destination)
+    assert.equal(result.state.pendingRequest?.scrollAlignment, 'role-start')
+    assert.deepEqual([...result.state.openRoleIds], ['game-info-logos'])
+    state = reduceEditorRoleFocus(result.state, {
+      type: 'consume',
+      requestId: index + 1,
+    }).state
   })
 })
 
@@ -315,7 +494,7 @@ test('owner identities cannot leak across fixed or repeatable target groups', ()
     },
     {
       label: 'developer-logo',
-      destination: VALID_DESTINATIONS[9],
+      destination: VALID_DESTINATIONS[12],
       ownerTarget: {
         owner: 'logoAssets',
         logoKey: 'developer',
@@ -324,7 +503,7 @@ test('owner identities cannot leak across fixed or repeatable target groups', ()
     },
     {
       label: 'publisher-logo',
-      destination: VALID_DESTINATIONS[11],
+      destination: VALID_DESTINATIONS[14],
       ownerTarget: {
         owner: 'logoAssets',
         logoKey: 'publisher',
@@ -333,7 +512,7 @@ test('owner identities cannot leak across fixed or repeatable target groups', ()
     },
     {
       label: 'legal',
-      destination: VALID_DESTINATIONS[13],
+      destination: VALID_DESTINATIONS[16],
       ownerTarget: { owner: 'discText', key: 'copyright' },
     },
     {
@@ -347,7 +526,7 @@ test('owner identities cannot leak across fixed or repeatable target groups', ()
     },
     {
       label: 'additional-text',
-      destination: VALID_DESTINATIONS[18],
+      destination: VALID_DESTINATIONS[21],
       ownerTarget: { owner: 'discText', key: 'customNote' },
     },
   ] as const
@@ -1162,6 +1341,7 @@ test('source has no React, component, preview, schema, renderer, export, or Case
     'steam/',
     'tauri/',
     'fetch(',
+    'groupedPlatformMarkPlacement',
   ]
 
   for (const forbiddenDependency of forbiddenDependencies) {

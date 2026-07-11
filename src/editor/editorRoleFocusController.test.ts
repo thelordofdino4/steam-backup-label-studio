@@ -39,6 +39,26 @@ const RATING_FOCUS_REQUEST = {
   },
 } as const satisfies EditorRoleFocusRequestInput
 
+const MEDIA_FORMAT_FOCUS_REQUEST = {
+  surfaceId: 'disc-label',
+  behavior: 'focus',
+  scrollAlignment: 'role-start',
+  destination: {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:format',
+  },
+} as const satisfies EditorRoleFocusRequestInput
+
+const OPERATING_SYSTEM_MARKS_FOCUS_REQUEST = {
+  surfaceId: 'disc-label',
+  behavior: 'focus',
+  scrollAlignment: 'role-start',
+  destination: {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:operating-system-marks:enable',
+  },
+} as const satisfies EditorRoleFocusRequestInput
+
 function createElement(label: string, calls: string[]) {
   return {
     focus(options?: FocusOptions) {
@@ -75,6 +95,26 @@ test('generated requests preserve explicit alignment and omit the default', () =
 
   assert.equal(Object.hasOwn(omitted, 'scrollAlignment'), false)
   assert.equal(roleStart.scrollAlignment, 'role-start')
+})
+
+test('new Media and OS requests receive distinct IDs and open Game Info Logos', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const media = store.requestRoleFocus(MEDIA_FORMAT_FOCUS_REQUEST)
+  const operatingSystems = store.requestRoleFocus(
+    OPERATING_SYSTEM_MARKS_FOCUS_REQUEST,
+  )
+
+  assert.equal(media.requestId, 1)
+  assert.equal(operatingSystems.requestId, 2)
+  assert.deepEqual(media.destination, MEDIA_FORMAT_FOCUS_REQUEST.destination)
+  assert.deepEqual(
+    operatingSystems.destination,
+    OPERATING_SYSTEM_MARKS_FOCUS_REQUEST.destination,
+  )
+  assert.equal(media.scrollAlignment, 'role-start')
+  assert.equal(operatingSystems.scrollAlignment, 'role-start')
+  assert.equal(store.isRoleOpen('game-info-logos'), true)
+  assert.equal(store.getSnapshot().pendingRequest?.requestId, 2)
 })
 
 test('integrates reducer role state without accordion behavior', () => {

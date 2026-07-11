@@ -38,16 +38,26 @@ export type DiscAdditionalArtworkItemFocusTarget = Extract<
   | 'disc:additional-artwork:upload'
 >
 
+export const DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS = [
+  'disc:rating:enable',
+  'disc:rating:system',
+  'disc:rating:value',
+  'disc:rating:source',
+  'disc:media-format-mark:enable',
+  'disc:media-format-mark:format',
+  'disc:operating-system-marks:enable',
+] as const
+
+export type DiscGameInfoLogoFocusTarget =
+  (typeof DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS)[number]
+
 export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:background-image:enable',
   'disc:background-image:local-upload',
   'disc:game-title:artwork-enable',
   'disc:game-title:artwork-upload',
   'disc:game-title:text-fallback',
-  'disc:rating:enable',
-  'disc:rating:system',
-  'disc:rating:value',
-  'disc:rating:source',
+  ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   'disc:legal-text:copyright',
   ...DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
@@ -91,11 +101,7 @@ export type DiscRoleFocusDestination =
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'game-info-logos'>
-      focusTarget:
-        | 'disc:rating:enable'
-        | 'disc:rating:system'
-        | 'disc:rating:value'
-        | 'disc:rating:source'
+      focusTarget: DiscGameInfoLogoFocusTarget
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'company-logos'>
@@ -182,10 +188,7 @@ const FOCUS_TARGETS_BY_ROLE = {
     'disc:game-title:text-fallback',
   ],
   'game-info-logos': [
-    'disc:rating:enable',
-    'disc:rating:system',
-    'disc:rating:value',
-    'disc:rating:source',
+    ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ],
   'company-logos': [
     ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
@@ -405,6 +408,19 @@ function parseOwnerTarget(
         }
       }
       break
+    case 'mediaMark':
+      return hasOnlyKeys(value, ['owner'])
+        ? { ok: true, value: { owner: value.owner } }
+        : { ok: false, error: 'invalid-owner-target' }
+    case 'platformMarks':
+      if (hasOnlyKeys(value, ['owner', 'selection']) &&
+        value.selection === 'enabled-values') {
+        return {
+          ok: true,
+          value: { owner: value.owner, selection: value.selection },
+        }
+      }
+      break
     case 'logoAssets':
       if (hasOnlyKeys(value, ['owner', 'logoKey', 'scope']) &&
         (value.logoKey === 'developer' || value.logoKey === 'publisher') &&
@@ -453,8 +469,22 @@ function isOwnerTargetCompatibleWithDestination(
         ? ownerTarget.owner === 'discText' && ownerTarget.key === 'title'
         : ownerTarget.owner === 'titleArtwork'
     case 'game-info-logos':
-      return ownerTarget.owner === 'ratingBadge' &&
-        ownerTarget.badgeKey === 'primary'
+      switch (destination.focusTarget) {
+        case 'disc:rating:enable':
+        case 'disc:rating:system':
+        case 'disc:rating:value':
+        case 'disc:rating:source':
+          return ownerTarget.owner === 'ratingBadge' &&
+            ownerTarget.badgeKey === 'primary'
+        case 'disc:media-format-mark:enable':
+        case 'disc:media-format-mark:format':
+          return ownerTarget.owner === 'mediaMark'
+        case 'disc:operating-system-marks:enable':
+          return ownerTarget.owner === 'platformMarks' &&
+            ownerTarget.selection === 'enabled-values'
+      }
+
+      return false
     case 'company-logos': {
       if (ownerTarget.owner !== 'logoAssets' ||
         ownerTarget.scope !== 'primary') {

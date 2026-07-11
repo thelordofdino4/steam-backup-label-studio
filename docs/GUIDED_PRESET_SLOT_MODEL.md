@@ -41,9 +41,10 @@ The masked SVG guidance remains visual-only and pointer-inert. A separate
 z-index `9` HTML action layer now renders one native button from each visible
 slot's action geometry. Game Title is the only Image/Text chooser. Background,
 Rating, Developer Logo, Publisher Logo, and Copyright / Legal Text route to
-their existing exact controls. Media Format Mark and Operating System Marks are
-explicitly unavailable until their typed focus destinations are added; they do
-not fall back to a broad role summary. Choice popovers render at z-index `30`,
+their existing exact controls. Media Format Mark now requests its exact format
+selector target, and Operating System Marks requests its grouped feature-enable
+target. Neither uses a broad role summary target. Their production control
+registrations remain the next chunk. Choice popovers render at z-index `30`,
 support Escape dismissal with focus return, and close when their slot leaves
 the projected list. Buttons rely on native Enter and Space activation and do
 not drag, resize, select preview content, or activate the text ribbon.
@@ -104,9 +105,11 @@ Implemented role-focus infrastructure includes:
   item card and, for an available upload, its Local file panel without mutating
   project state.
 
-All 19 declared #287 Disc role-focus targets have production registration. The
+The original 19 #287 Disc role-focus targets have production registration. The
+three exact Media/OS targets added for #289 are typed and parser-valid but do
+not have production control registration yet. The
 Classic Top Title guided action layer is the first production caller: it sends
-the six currently available exact setup routes through the typed controller
+the nine exact setup actions for eight slots through the typed controller
 without direct DOM lookup or feature mutation. Native eight-slot workflow and
 exported PNG smoke remain pending. Guided
 persistence and auto-fill remain future #281 work. Navigation state is
@@ -557,9 +560,10 @@ The HTML interaction layer uses each slot's normalized action geometry and is
 separate from both visual SVGs and preview-editable registration. Native
 buttons preserve model order for tab navigation. Game Title alone uses the
 focused Image/Text setup popover. Background, Rating, Developer, Publisher,
-and Copyright dispatch exact typed destinations directly. Media and OS actions
-are explicitly unavailable until their exact typed destinations exist; they
-never route to a broad role summary. Popover state is transient, closes after
+and Copyright dispatch exact typed destinations directly. Media and OS now
+dispatch their exact typed destinations and never route to a broad role
+summary. Production registration remains intentionally deferred. Popover state
+is transient, closes after
 selection or Escape, and becomes
 inactive immediately if its projected slot disappears. Setup navigation does
 not accept suggested content automatically; it routes the user to the existing
@@ -641,6 +645,9 @@ pixel arithmetic.
 | `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
 | `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
 | `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
+| `disc:media-format-mark:enable` | Semantic identity for the always-mounted Media Format Mark enable checkbox. It does not choose a format or enable the owner. Production registration is pending. |
+| `disc:media-format-mark:format` | Semantic identity for the actual media-format selector. Its future production fallback is `disc:media-format-mark:enable` while the feature body is unavailable. Navigation never changes the selected format. Production registration and fallback wiring are pending. |
+| `disc:operating-system-marks:enable` | Semantic identity for the always-mounted Show operating system marks checkbox. It does not select, enable, import, or identify any individual platform mark. Production registration is pending. |
 | `disc:company-logo:developer-enable` | The primary developer-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
 | `disc:company-logo:developer-upload` | The enabled-only primary developer-logo file input. It is registered only while the developer body is mounted and explicitly falls back only to `disc:company-logo:developer-enable` when unavailable. |
 | `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
@@ -678,10 +685,10 @@ The guided preview caller dispatches only these typed setup destinations:
 - Developer Logo -> `disc:company-logo:developer-upload`
 - Publisher Logo -> `disc:company-logo:publisher-upload`
 - Copyright / Legal Text -> `disc:legal-text:copyright`
-- Media Format Mark -> explicitly unavailable pending an exact typed target
-- Operating System Marks -> explicitly unavailable pending an exact typed target
+- Media Format Mark -> `disc:media-format-mark:format`
+- Operating System Marks -> `disc:operating-system-marks:enable`
 
-All six available requests use `role-start`; nearest remains the backward-compatible
+All nine setup actions use `role-start`; nearest remains the backward-compatible
 default for omitted alignment and for existing non-guided navigation. Alignment
 always uses the original destination role even when upload targets fall back to
 their matching enable controls. Target focus remains intact because the
@@ -691,6 +698,13 @@ Existing target fallbacks remain authoritative. The caller does not query the
 DOM, duplicate role-panel state, enable features, or invoke controls. Native
 focus validation remains pending. Case Front, Case Back, and Spine remain
 outside this Disc-only provider.
+
+Media format's typed fallback contract is `format -> enable`; it is documented
+but not registered in this pure-vocabulary chunk. Media enable and OS enable
+need no semantic fallback. Owner identity is optional. When supplied, both
+Media targets accept only `{ owner: 'mediaMark' }`, while OS enable accepts only
+`{ owner: 'platformMarks', selection: 'enabled-values' }`. Payload-bearing or
+cross-owner identities are rejected by the strict runtime parser.
 
 ## 12. Persistence Boundary
 
