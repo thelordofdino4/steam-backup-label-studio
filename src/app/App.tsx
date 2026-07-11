@@ -78,6 +78,7 @@ import { useSteamImport } from '../hooks/useSteamImport'
 import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
 import { useTitleArtwork } from '../hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
+import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -661,6 +662,24 @@ function App() {
     resetTemplateTextBlockLayout:
       caseInsertTemplateEditor.handleResetTextBlockLayout,
   })
+  const discGuidedPlaceholderPreview = useDiscGuidedPlaceholderPreview({
+    background: {
+      enabled: isBackgroundArtworkEnabled,
+      imageDataUrl: backgroundImageUrl,
+    },
+    titleArtwork: projectTitleArtwork,
+    metadata: projectMetadata,
+    ratingBadge: projectRatingBadge,
+    logoAssets: projectLogoAssets,
+    additionalArtwork: projectAdditionalArtwork,
+    discText: {
+      settings: discTextSettings,
+      values: discTextValues,
+      valueSources: discTextValueSources,
+      titleValue: discTextTitleValue,
+      htmlSources: discTextHtmlSources,
+    },
+  })
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
@@ -739,10 +758,15 @@ function App() {
     })
 
     if (!result.applied) {
+      discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
+    discGuidedPlaceholderPreview.recordPresetApplication(
+      result.preset.id,
+      true,
+    )
     announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
@@ -1032,6 +1056,7 @@ function App() {
   function resetDiscProjectState() {
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
+    discGuidedPlaceholderPreview.clearActiveLayout()
 
     resetDiscTemplateState()
     setSteamLogoPlacement('top')
@@ -1054,6 +1079,7 @@ function App() {
 
   function resetCaseInsertProjectState() {
     cancelCaseInsertPreviewPointerDrag()
+    discGuidedPlaceholderPreview.clearActiveLayout()
 
     setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
     setProjectMetadata({
@@ -1144,6 +1170,7 @@ function App() {
 
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
+    discGuidedPlaceholderPreview.clearActiveLayout()
     setActiveWorkspace('home')
     setHomeStatusMessage(null)
   }
@@ -1343,6 +1370,11 @@ function App() {
   }
 
   async function handleLoadProject() {
+    const setLoadedActiveWorkspace = (workspace: 'disc' | 'caseInsert') => {
+      discGuidedPlaceholderPreview.clearActiveLayout()
+      setActiveWorkspace(workspace)
+    }
+
     await runAppProjectLoad({
       openDialog: open,
       readProjectFileCommand: readProjectFile,
@@ -1360,7 +1392,7 @@ function App() {
           setProjectJewelCase,
           setActiveCaseInsertTemplatePane:
             handleActiveCaseInsertTemplatePaneChange,
-          setActiveWorkspace,
+          setActiveWorkspace: setLoadedActiveWorkspace,
           setHomeStatusMessage,
           scheduleCaseInsertBrandingMarkSlotSync:
             caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync,
@@ -1390,7 +1422,7 @@ function App() {
         restoreExportGuides,
         restoreDiscTextState,
         restoreBackgroundImageState,
-        setActiveWorkspace,
+        setActiveWorkspace: setLoadedActiveWorkspace,
         setHomeStatusMessage,
       },
       announceStatus,
@@ -1890,6 +1922,9 @@ function App() {
         }}
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}
+        editorAffordances={{
+          guidedPlaceholders: discGuidedPlaceholderPreview.placeholders,
+        }}
       />
       </main>
     </EditorRoleFocusProvider>

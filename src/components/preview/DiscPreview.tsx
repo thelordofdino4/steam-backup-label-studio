@@ -19,6 +19,7 @@ import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import { DiscGuidedPlaceholderOverlay } from './DiscGuidedPlaceholderOverlay'
 import { PreviewHeader } from './PreviewHeader'
 import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
@@ -31,6 +32,7 @@ import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
+import type { DiscGuidedPlaceholderViewModel } from '../../guidedPresets/discGuidedPlaceholderViewModel'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -222,6 +224,9 @@ export type DiscPreviewProps = {
     safeInsetPercent: number
     physicalCenterHolePercent: number
   }
+  editorAffordances?: {
+    guidedPlaceholders: readonly DiscGuidedPlaceholderViewModel[]
+  }
 }
 
 type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
@@ -238,6 +243,7 @@ export function DiscPreview({
   discText,
   pointerHandlers,
   guideOverlay,
+  editorAffordances,
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
@@ -496,6 +502,12 @@ export function DiscPreview({
               {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
                 <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
               ))}
+              {editorAffordances ? (
+                <DiscGuidedPlaceholderOverlay
+                  placeholders={editorAffordances.guidedPlaceholders}
+                  physicalCenterHolePercent={guideOverlay.physicalCenterHolePercent}
+                />
+              ) : null}
               <PreviewElementOverlay previewRef={discPreviewRef} />
             </div>
           </PreviewViewport>

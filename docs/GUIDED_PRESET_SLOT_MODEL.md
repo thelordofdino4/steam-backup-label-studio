@@ -20,9 +20,13 @@ in `src/guidedPresets/discGuidedLayouts.ts`. The existing
 normalized Disc-space rectangle for `disc:guided:game-title:primary`. Layout
 presets continue to place real feature-owner state; the guided-layout registry
 describes expected semantic-slot geometry without lifecycle, content, DOM,
-renderer, export, or persistence data. React overlay rendering and transient
-activation are not implemented yet. Click interaction, role-focus dispatch,
-suggestions, skip behavior, other slots, and other surfaces remain deferred.
+renderer, export, or persistence data. A successful `classic-top-title` layout
+preset application now activates that guided layout as transient editor state.
+While its Game Title slot resolves to `unfilled`, the Disc edit preview renders
+a passive placeholder using the normalized registry geometry. Valid title
+artwork or meaningful title text suppresses it through the existing lifecycle
+resolver. Click interaction, role-focus dispatch, suggestions, skip behavior,
+other slots, and other surfaces remain deferred.
 
 Implemented role-focus infrastructure includes:
 
@@ -94,10 +98,11 @@ or enable a feature object merely because the slot exists.
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
-implemented, along with the Disc role-focus foundation. Preview placeholders,
-remaining role target integrations, guided request callers, persistence, and
-auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
-remain deferred until the Disc contract is proven.
+implemented, along with the Disc role-focus foundation and the first passive
+Game Title preview placeholder. Interactive placeholder controls, guided
+request callers, persistence, and auto-fill remain deferred. Case Front, Case
+Back, and Spine guided presets remain deferred until the Disc contract is
+proven.
 
 ## 2. Identity Namespaces
 
@@ -422,6 +427,16 @@ auto-fill implementation remains outside this issue.
 - It is non-draggable and non-resizable until filled.
 - Filling suppresses the placeholder and continues through the existing feature renderer.
 
+The first implementation is limited to Classic Top Title and Game Title. Its
+SVG uses the registry's normalized `0..100` Disc coordinates, is pointer-inert,
+has no drag or resize behavior, and is masked to the outer Disc circle minus the
+canonical physical center hole. It mounts only through the Disc editor's
+explicit `editorAffordances` input, after normal Disc layers and before the
+existing selection overlay. Guided activation clears on new/replaced projects
+and workspace exit, and neither activation nor placeholder state enters project
+save/load, render, or export paths. Native validation remains pending explicit
+authorization.
+
 The current preview overlay geometry helpers can inform a later implementation,
 but empty-slot geometry cannot depend on finding a real feature element in the
 DOM. Source guards should keep the future guided overlay outside every export
@@ -573,8 +588,8 @@ loading.
 
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.
-3. Edit-mode placeholder overlay.
-4. Add the production guided-preview caller, connect placeholders to typed
+3. Extend the edit-mode placeholder overlay beyond passive Game Title guidance.
+4. Connect interactive placeholders to typed
    role-focus requests, and perform native end-to-end guided-navigation
    validation.
 5. Game Title image-first interaction and auto-fill.
