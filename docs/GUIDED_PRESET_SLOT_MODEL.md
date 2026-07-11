@@ -26,11 +26,19 @@ to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
 
 A successful `classic-top-title` layout preset application activates the
-guided layout as transient editor state. The existing passive Game Title SVG is
-foundation work, not the corrected #289 acceptance target. Rendering all five
-slots, background/foreground visual separation, blue pulse styling, click and
-keyboard interaction, setup choices, and role-focus dispatch remain later
-chunks. #289 is not ready for a PR.
+guided layout as transient editor state. The Disc editor now renders all five
+projected slots with the existing blue dashed pulse/glow language. Background
+guidance uses a dedicated z-index `0` annulus-masked layer, while Game Title,
+Game Info Logos, Company Logos, and Legal Info use a z-index `6` masked layer.
+The foreground layer remains below real Disc text at z-index `7`; the broad
+Background Image visual remains below foreground owners and uses its smaller
+action geometry only to position the label. Reduced-motion mode keeps static
+blue guidance while disabling the shared pulse animation.
+
+The visual guidance remains passive: it has no pointer, keyboard, drag, resize,
+setup-choice, or role-focus behavior. Those accessible actions, native
+validation, and export smoke remain later #289 chunks. Issue #289 remains open
+and is not ready for a PR.
 
 Implemented role-focus infrastructure includes:
 
@@ -455,16 +463,16 @@ auto-fill implementation remains outside this issue.
 - It is non-draggable and non-resizable until filled.
 - Filling suppresses the placeholder and continues through the existing feature renderer.
 
-The current SVG uses the registry's normalized `0..100` Disc coordinates, is
-pointer-inert, and is masked to the outer Disc circle minus the canonical
-physical center hole. It mounts only through the Disc editor's explicit
-`editorAffordances` input. It must be replaced by split background/foreground
-visual layers before acceptance. Foreground guidance must render behind real
-owner content: untouched default title copy may remain semantically incomplete
-while still rendering through the real Disc text owner, and guidance must never
-paint opaquely over it. Pure placeholder view models record this as
-`guidance-behind-real-content`. Guided activation clears on new/replaced
-projects and
+The current visual layers use the registry's normalized `0..100` Disc
+coordinates, are pointer-inert, and share an outer-Disc/canonical-center-hole
+annulus mask. They mount only through the Disc editor's explicit
+`editorAffordances` input. Foreground guidance renders behind real owner
+content: untouched default title copy may remain semantically incomplete while
+still rendering through the real Disc text owner, and the translucent blue
+guidance cannot paint opaquely over it. Pure placeholder view models record
+this as `guidance-behind-real-content`. Filled and skipped slots suppress only
+their own projected placeholder, while suggested slots stay visible with an
+explicit secondary label. Guided activation clears on new/replaced projects and
 workspace exit; activation and placeholder state never enter save/load, render,
 or export paths.
 
@@ -620,7 +628,8 @@ loading.
 
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.
-3. Split background/foreground visual layers and restore blue pulse styling.
+3. Completed: split background/foreground visual layers and restore blue pulse
+   styling while preserving real-content visibility.
 4. Add accessible setup choices and connect interactive placeholders to typed
    role-focus requests, and perform native end-to-end guided-navigation
    validation.

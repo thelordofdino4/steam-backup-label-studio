@@ -34,6 +34,7 @@ export const testFiles = [
   'src/components/editor/DiscEditorNavigationRolePanel.test.ts',
   'src/components/editor/EditorNavigationShell.test.ts',
   'src/components/preview/DiscGuidedPlaceholderOverlay.test.ts',
+  'src/components/preview/DiscGuidedPlaceholderStyling.test.ts',
   'src/components/editor/editorNavigationShellViewModel.test.ts',
   'src/components/editor/EditorPanel.test.ts',
   'src/components/editor/EditorRoleFocusProvider.test.ts',

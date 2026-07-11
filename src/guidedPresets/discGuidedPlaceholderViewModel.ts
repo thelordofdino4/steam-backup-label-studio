@@ -23,8 +23,6 @@ export type DiscGuidedPlaceholderViewModel = Readonly<{
   lifecycle: 'unfilled' | 'suggested'
   setupKind: DiscGuidedSetupKind
   ownerContentLayering: 'guidance-behind-real-content'
-  // Temporary compatibility for the passive overlay until the visual-layer chunk.
-  geometry: DiscGuidedRectGeometry
 }>
 
 const NO_PLACEHOLDERS = Object.freeze([]) as readonly DiscGuidedPlaceholderViewModel[]
@@ -49,7 +47,6 @@ export function projectDiscGuidedPlaceholderViewModel({
     lifecycle,
     setupKind: layoutSlot.setupKind,
     ownerContentLayering: 'guidance-behind-real-content',
-    geometry: layoutSlot.visualGeometry,
   })
 }
 

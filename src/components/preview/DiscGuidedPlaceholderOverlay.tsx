@@ -8,11 +8,27 @@ type DiscGuidedPlaceholderOverlayProps = {
   physicalCenterHolePercent: number
 }
 
-export function DiscGuidedPlaceholderOverlay({
+type DiscGuidedPlaceholderVisualLayerProps = {
+  layer: DiscGuidedPlaceholderViewModel['visualLayer']
+  placeholders: readonly DiscGuidedPlaceholderViewModel[]
+  physicalCenterHolePercent: number
+}
+
+function getGeometryBounds(
+  geometry: DiscGuidedPlaceholderViewModel['visualGeometry'],
+) {
+  return {
+    x: geometry.centerXPercent - geometry.widthPercent / 2,
+    y: geometry.centerYPercent - geometry.heightPercent / 2,
+  }
+}
+
+export function DiscGuidedPlaceholderVisualLayer({
+  layer,
   placeholders,
   physicalCenterHolePercent,
-}: DiscGuidedPlaceholderOverlayProps) {
-  const maskId = `disc-guided-placeholder-mask-${useId().replaceAll(':', '')}`
+}: DiscGuidedPlaceholderVisualLayerProps) {
+  const maskId = `disc-guided-placeholder-${layer}-mask-${useId().replaceAll(':', '')}`
 
   if (placeholders.length === 0) {
     return null
@@ -21,7 +37,7 @@ export function DiscGuidedPlaceholderOverlay({
   return (
     <svg
       aria-hidden="true"
-      className="disc-guided-placeholder-overlay"
+      className={`disc-guided-placeholder-overlay disc-guided-placeholder-overlay--${layer}`}
       focusable="false"
       viewBox="0 0 100 100"
     >
@@ -46,34 +62,92 @@ export function DiscGuidedPlaceholderOverlay({
       </defs>
 
       <g mask={`url(#${maskId})`}>
-        {placeholders.map(({ slotId, label, geometry }) => {
-          const x = geometry.centerXPercent - geometry.widthPercent / 2
-          const y = geometry.centerYPercent - geometry.heightPercent / 2
-          const rotation = geometry.rotationDegrees ?? 0
+        {placeholders.map(({
+          actionGeometry,
+          label,
+          lifecycle,
+          slotId,
+          visualGeometry,
+        }) => {
+          const visualBounds = getGeometryBounds(visualGeometry)
+          const visualRotation = visualGeometry.rotationDegrees ?? 0
+          const labelRotation = actionGeometry.rotationDegrees ?? 0
 
           return (
-            <g
-              key={slotId}
-              transform={`rotate(${rotation} ${geometry.centerXPercent} ${geometry.centerYPercent})`}
-            >
-              <rect
-                className="disc-guided-placeholder-shape"
-                x={x}
-                y={y}
-                width={geometry.widthPercent}
-                height={geometry.heightPercent}
-              />
+            <g key={slotId} data-guided-slot-id={slotId}>
+              <foreignObject
+                x={visualBounds.x}
+                y={visualBounds.y}
+                width={visualGeometry.widthPercent}
+                height={visualGeometry.heightPercent}
+                transform={`rotate(${visualRotation} ${visualGeometry.centerXPercent} ${visualGeometry.centerYPercent})`}
+              >
+                <div
+                  className={[
+                    'disc-guided-placeholder-shape',
+                    lifecycle === 'suggested'
+                      ? 'disc-guided-placeholder-shape--suggested'
+                      : '',
+                  ].filter(Boolean).join(' ')}
+                />
+              </foreignObject>
               <text
                 className="disc-guided-placeholder-label"
-                x={geometry.centerXPercent}
-                y={geometry.centerYPercent}
+                x={actionGeometry.centerXPercent}
+                y={actionGeometry.centerYPercent}
+                transform={`rotate(${labelRotation} ${actionGeometry.centerXPercent} ${actionGeometry.centerYPercent})`}
               >
-                {label}
+                <tspan
+                  x={actionGeometry.centerXPercent}
+                  dy={lifecycle === 'suggested' ? '-1.5' : '0'}
+                >
+                  {label}
+                </tspan>
+                {lifecycle === 'suggested' ? (
+                  <tspan
+                    className="disc-guided-placeholder-suggested-label"
+                    x={actionGeometry.centerXPercent}
+                    dy="4"
+                  >
+                    Suggested
+                  </tspan>
+                ) : null}
               </text>
             </g>
           )
         })}
       </g>
     </svg>
+  )
+}
+
+export function DiscGuidedPlaceholderOverlay({
+  placeholders,
+  physicalCenterHolePercent,
+}: DiscGuidedPlaceholderOverlayProps) {
+  if (placeholders.length === 0) {
+    return null
+  }
+
+  const backgroundPlaceholders = placeholders.filter(
+    ({ visualLayer }) => visualLayer === 'background',
+  )
+  const foregroundPlaceholders = placeholders.filter(
+    ({ visualLayer }) => visualLayer === 'foreground',
+  )
+
+  return (
+    <>
+      <DiscGuidedPlaceholderVisualLayer
+        layer="background"
+        placeholders={backgroundPlaceholders}
+        physicalCenterHolePercent={physicalCenterHolePercent}
+      />
+      <DiscGuidedPlaceholderVisualLayer
+        layer="foreground"
+        placeholders={foregroundPlaceholders}
+        physicalCenterHolePercent={physicalCenterHolePercent}
+      />
+    </>
   )
 }

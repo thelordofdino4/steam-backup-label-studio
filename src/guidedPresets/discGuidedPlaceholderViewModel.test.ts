@@ -115,7 +115,6 @@ test('view models use exact visual/action registry geometry', () => {
     assert.ok(layoutSlot)
     assert.equal(placeholder.visualGeometry, layoutSlot.visualGeometry)
     assert.equal(placeholder.actionGeometry, layoutSlot.actionGeometry)
-    assert.equal(placeholder.geometry, layoutSlot.visualGeometry)
   }
 
   const background = createPlaceholders()[0]

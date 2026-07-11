@@ -16,21 +16,45 @@ const previewCssSource = readFileSync(
   'utf8',
 )
 
-test('overlay uses normalized SVG geometry and canonical annulus masking', () => {
+test('visual layers share normalized annulus-masked rendering', () => {
+  assert.match(overlaySource, /function DiscGuidedPlaceholderVisualLayer/)
   assert.match(overlaySource, /viewBox="0 0 100 100"/)
   assert.match(overlaySource, /<circle cx="50" cy="50" r="50" fill="white"/)
   assert.match(overlaySource, /r=\{physicalCenterHolePercent \/ 2\}/)
   assert.match(overlaySource, /<g mask=\{`url\(#\$\{maskId\}\)`\}>/)
   assert.match(
     overlaySource,
-    /rotate\(\$\{rotation\} \$\{geometry\.centerXPercent\} \$\{geometry\.centerYPercent\}\)/,
+    /layer="background"[\s\S]*?placeholders=\{backgroundPlaceholders\}/,
   )
-  assert.match(overlaySource, /\{label\}/)
-  assert.equal(overlaySource.includes('Game Title'), false)
+  assert.match(
+    overlaySource,
+    /layer="foreground"[\s\S]*?placeholders=\{foregroundPlaceholders\}/,
+  )
   assert.doesNotMatch(overlaySource, /getBoundingClientRect|offsetWidth|offsetHeight/)
 })
 
-test('overlay is passive and has no editing or navigation behavior', () => {
+test('visual geometry paints the shape while action geometry anchors its label', () => {
+  assert.match(overlaySource, /getGeometryBounds\(visualGeometry\)/)
+  assert.match(overlaySource, /width=\{visualGeometry\.widthPercent\}/)
+  assert.match(overlaySource, /height=\{visualGeometry\.heightPercent\}/)
+  assert.match(overlaySource, /x=\{actionGeometry\.centerXPercent\}/)
+  assert.match(overlaySource, /y=\{actionGeometry\.centerYPercent\}/)
+  assert.match(overlaySource, /\{label\}/)
+  assert.equal(overlaySource.includes('Game Title'), false)
+})
+
+test('suggested lifecycle remains visible with an explicit secondary label', () => {
+  assert.match(
+    overlaySource,
+    /lifecycle === 'suggested'[\s\S]*?disc-guided-placeholder-shape--suggested/,
+  )
+  assert.match(
+    overlaySource,
+    /disc-guided-placeholder-suggested-label[\s\S]*?Suggested/,
+  )
+})
+
+test('visual guidance is passive and has no editing or navigation behavior', () => {
   assert.match(
     cssSource,
     /\.disc-guided-placeholder-overlay\s*\{[\s\S]*pointer-events:\s*none/,
@@ -57,17 +81,13 @@ test('overlay is passive and has no editing or navigation behavior', () => {
   }
 })
 
-test('overlay mounts after normal layers and below selection feedback', () => {
+test('guidance mounts below the existing selection overlay', () => {
   const layersIndex = previewSource.indexOf('DISC_EDITOR_PREVIEW_LAYER_ORDER.map')
   const guidedIndex = previewSource.indexOf('<DiscGuidedPlaceholderOverlay')
   const selectionIndex = previewSource.indexOf('<PreviewElementOverlay')
 
   assert.ok(layersIndex >= 0 && layersIndex < guidedIndex)
   assert.ok(guidedIndex < selectionIndex)
-  assert.match(
-    cssSource,
-    /\.disc-guided-placeholder-overlay\s*\{[\s\S]*z-index:\s*8/,
-  )
   assert.match(
     previewCssSource,
     /\.preview-element-overlay-layer\s*\{[\s\S]*z-index:\s*24/,
@@ -82,7 +102,7 @@ test('editor affordance is explicit and absent from clean DiscPreview compositio
   )
 })
 
-test('guided placeholder stays isolated from export, render, persistence, Case Insert, and role focus', () => {
+test('guided visuals stay isolated from export, render, persistence, Case Insert, and role focus', () => {
   for (const forbidden of [
     '../../export',
     '../../render',
@@ -90,7 +110,6 @@ test('guided placeholder stays isolated from export, render, persistence, Case I
     'caseInsert',
     'roleFocus',
     'autoFill',
-    'skipped',
   ]) {
     assert.equal(overlaySource.includes(forbidden), false, `unexpected source: ${forbidden}`)
   }
@@ -105,12 +124,4 @@ test('guided placeholder stays isolated from export, render, persistence, Case I
     assert.equal(source.includes('DiscGuidedPlaceholderOverlay'), false)
     assert.equal(source.includes('useDiscGuidedPlaceholderPreview'), false)
   }
-})
-
-test('styling is static, high-contrast, and distinct from selection blue', () => {
-  assert.match(cssSource, /stroke:\s*#fbbf24/)
-  assert.match(cssSource, /fill:\s*rgba\(17, 24, 39, 0\.62\)/)
-  assert.match(cssSource, /stroke-dasharray:/)
-  assert.match(cssSource, /text-anchor:\s*middle/)
-  assert.doesNotMatch(cssSource, /animation|@keyframes/)
 })
