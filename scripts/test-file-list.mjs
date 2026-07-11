@@ -174,6 +174,7 @@ export const testFiles = [
   'src/layout/discElementInnerNoPrint.test.ts',
   'src/layout/discElementSafeZone.test.ts',
   'src/layout/discElementContourSafeZone.test.ts',
+  'src/layout/groupedPlatformMarkPlacement.test.ts',
   'src/layout/discSafeZoneRangeMath.test.ts',
   'src/layout/discTextOccupiedRegions.test.ts',
   'src/layout/discTemplateGeometryGuardrail.test.ts',

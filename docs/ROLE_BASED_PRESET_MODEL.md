@@ -382,7 +382,34 @@ If preset identity is added later, it should be informational and useful for
 explicit reapply or UI display. The saved feature-owned project state remains
 the source of truth for preview, editing, export, and compatibility.
 
-## 15. Disc-First Implementation Guidance For #270
+## 15. Grouped Platform-Mark Placement
+
+Disc layout code exposes a pure grouped platform-mark placement capability for
+presets that need to arrange existing operating-system marks inside one
+normalized region. The helper uses `PlatformMarkValue` as stable identity and
+the canonical platform-mark option order. Selected assets are materialized
+through the existing project accessor, and built-in fallback artwork counts as
+renderable only where the normal platform-mark owner also treats it as valid.
+
+The helper positions only marks that are already selected, enabled, and
+renderable. It never selects, enables, disables, imports, or substitutes a
+mark. Returned immutable updates contain only identity, `x`, `y`, and `scale`,
+so source, theme, custom images, inference metadata, and every unrelated field
+remain owner state.
+
+Placement uses normalized Disc coordinates, a stable gap, one centered row
+when practical, and balanced rows when they preserve a larger common scale.
+It reuses platform bounds and safe-zone clamping, keeps final bounds inside the
+requested region, rejects pairwise overlap, and avoids the physical center
+hole. A centered hub conflict tries the nearest downward placement before the
+equivalent upward placement. Impossible regions return a typed no-op failure
+instead of overlapping, moving outside the region, or mutating owner state.
+
+This capability is inert until a preset explicitly adopts it. Issue #290 adds
+the layout-domain prerequisite only; existing Disc preset behavior remains
+unchanged.
+
+## 16. Disc-First Implementation Guidance For #270
 
 #270 should start with explicit named Disc Label presets.
 
@@ -422,7 +449,7 @@ changes are persisted through existing project fields, preview/export parity
 tests where practical, and manual Tauri verification for user-visible editor
 behavior when UI is added.
 
-## 16. Deferred Case/Spine Work
+## 17. Deferred Case/Spine Work
 
 Case Front, Case Back, and Spine should wait for later work because their
 object-role boundaries are still less settled than the Disc Label surface.
@@ -442,7 +469,7 @@ Deferred areas:
   role but also a setup/branding output; future work should decide whether it
   is a preset target.
 
-## 17. Non-Goals And Invariants
+## 18. Non-Goals And Invariants
 
 Non-goals:
 
@@ -468,7 +495,7 @@ Invariants:
   metadata import, and surface editing modes remain outside packaging role
   presets unless a future issue explicitly changes that boundary.
 
-## 18. Unknowns And Decisions Needed
+## 19. Unknowns And Decisions Needed
 
 Open decisions before or during #270:
 
@@ -489,7 +516,7 @@ Open decisions before or during #270:
 - How spine mirroring should interact with preset application if spine presets
   are added later.
 
-## 19. Related Issues And Docs
+## 20. Related Issues And Docs
 
 Related issues:
 
