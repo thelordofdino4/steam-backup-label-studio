@@ -101,6 +101,7 @@ test('Background, primary Rating, and Legal use exact direct typed destinations'
     assert.deepEqual(setup.action.request, {
       surfaceId: 'disc-label',
       behavior: 'focus',
+      scrollAlignment: 'role-start',
       destination,
     })
   }
@@ -179,8 +180,26 @@ test('every setup request is accepted by the typed role-focus controller', () =>
     const request = store.requestRoleFocus(action.request)
     assert.equal(request.surfaceId, 'disc-label')
     assert.equal(request.behavior, 'focus')
+    assert.equal(request.scrollAlignment, 'role-start')
     store.processPendingRequest()
   }
+})
+
+test('all seven guided setup actions request role-start alignment', () => {
+  const actions = createDiscGuidedPlaceholderActionViewModels(createPlaceholders())
+    .flatMap(({ setup }) => setup.kind === 'direct'
+      ? [setup.action]
+      : [...setup.actions])
+
+  assert.equal(actions.length, 7)
+  assert.deepEqual(
+    actions.map(({ request }) => request.scrollAlignment),
+    Array(7).fill('role-start'),
+  )
+  assert.equal(
+    new Set(actions.map(({ request }) => request.destination.roleId)).size,
+    5,
+  )
 })
 
 test('setup model has no mutation, persistence, renderer, export, Case Insert, or Steam dependencies', () => {

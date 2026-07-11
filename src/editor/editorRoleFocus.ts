@@ -8,6 +8,8 @@ export type EditorRoleFocusSurfaceId = 'disc-label'
 
 export type EditorRoleFocusBehavior = 'reveal' | 'focus'
 
+export type EditorRoleFocusScrollAlignment = 'nearest' | 'role-start'
+
 export type EditorRoleFocusRequestId = number
 
 export const DISC_COMPANY_LOGO_FOCUS_TARGET_IDS = [
@@ -131,6 +133,7 @@ export type EditorRoleFocusRequest = {
   surfaceId: EditorRoleFocusSurfaceId
   behavior: EditorRoleFocusBehavior
   destination: DiscRoleFocusDestination
+  scrollAlignment?: EditorRoleFocusScrollAlignment
   ownerTarget?: EditorRoleFocusOwnerTarget
 }
 
@@ -140,6 +143,7 @@ export type EditorRoleFocusRequestParseError =
   | 'invalid-request-id'
   | 'invalid-surface'
   | 'invalid-behavior'
+  | 'invalid-scroll-alignment'
   | 'invalid-destination'
   | 'invalid-role'
   | 'invalid-focus-target'
@@ -217,6 +221,12 @@ function hasOnlyKeys(
 
 function isPositiveSafeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && typeof value === 'number' && value > 0
+}
+
+function isEditorRoleFocusScrollAlignment(
+  value: unknown,
+): value is EditorRoleFocusScrollAlignment {
+  return value === 'nearest' || value === 'role-start'
 }
 
 function isDiscRolePresetRole(value: unknown): value is DiscRolePresetRole {
@@ -492,6 +502,7 @@ function parseEditorRoleFocusRequestUnsafe(
     'surfaceId',
     'behavior',
     'destination',
+    'scrollAlignment',
     'ownerTarget',
   ])) {
     return { ok: false, error: 'unexpected-field' }
@@ -507,6 +518,16 @@ function parseEditorRoleFocusRequestUnsafe(
 
   if (value.behavior !== 'reveal' && value.behavior !== 'focus') {
     return { ok: false, error: 'invalid-behavior' }
+  }
+
+  const hasScrollAlignment = hasOwn(value, 'scrollAlignment')
+  const scrollAlignment = hasScrollAlignment
+    ? value.scrollAlignment
+    : undefined
+
+  if (hasScrollAlignment &&
+    !isEditorRoleFocusScrollAlignment(scrollAlignment)) {
+    return { ok: false, error: 'invalid-scroll-alignment' }
   }
 
   const destination = parseDestination(value.destination)
@@ -536,6 +557,7 @@ function parseEditorRoleFocusRequestUnsafe(
         surfaceId: value.surfaceId,
         behavior: value.behavior,
         destination: destination.value,
+        ...(scrollAlignment ? { scrollAlignment } : {}),
         ownerTarget: ownerTarget.value,
       },
     }
@@ -548,6 +570,7 @@ function parseEditorRoleFocusRequestUnsafe(
       surfaceId: value.surfaceId,
       behavior: value.behavior,
       destination: destination.value,
+      ...(scrollAlignment ? { scrollAlignment } : {}),
     },
   }
 }

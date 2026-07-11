@@ -88,6 +88,7 @@ export const testFiles = [
   'src/editor/editorNavigationShell.test.ts',
   'src/editor/editorRoleFocus.test.ts',
   'src/editor/editorRoleFocusController.test.ts',
+  'src/editor/editorRoleFocusScrollAlignment.test.ts',
   'src/editor/logoAsset.test.ts',
   'src/editor/markImageSource.test.ts',
   'src/editor/optionalVisualFeature.test.ts',

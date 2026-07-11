@@ -63,6 +63,7 @@ const SETUP_BY_KIND = Object.freeze({
         request: {
           surfaceId: 'disc-label',
           behavior: 'focus',
+          scrollAlignment: 'role-start',
           destination: {
             roleId: 'game-title',
             focusTarget: 'disc:game-title:artwork-upload',
@@ -75,6 +76,7 @@ const SETUP_BY_KIND = Object.freeze({
         request: {
           surfaceId: 'disc-label',
           behavior: 'focus',
+          scrollAlignment: 'role-start',
           destination: {
             roleId: 'game-title',
             focusTarget: 'disc:game-title:text-fallback',
@@ -91,6 +93,7 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
+        scrollAlignment: 'role-start',
         destination: {
           roleId: 'background-artwork',
           focusTarget: 'disc:background-image:local-upload',
@@ -106,6 +109,7 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
+        scrollAlignment: 'role-start',
         destination: {
           roleId: 'game-info-logos',
           focusTarget: 'disc:rating:enable',
@@ -123,6 +127,7 @@ const SETUP_BY_KIND = Object.freeze({
         request: {
           surfaceId: 'disc-label',
           behavior: 'focus',
+          scrollAlignment: 'role-start',
           destination: {
             roleId: 'company-logos',
             focusTarget: 'disc:company-logo:developer-upload',
@@ -135,6 +140,7 @@ const SETUP_BY_KIND = Object.freeze({
         request: {
           surfaceId: 'disc-label',
           behavior: 'focus',
+          scrollAlignment: 'role-start',
           destination: {
             roleId: 'company-logos',
             focusTarget: 'disc:company-logo:publisher-upload',
@@ -151,6 +157,7 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
+        scrollAlignment: 'role-start',
         destination: {
           roleId: 'legal-info',
           focusTarget: 'disc:legal-text:copyright',

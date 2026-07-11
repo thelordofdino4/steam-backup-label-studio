@@ -279,6 +279,44 @@ test('disabled body targets use persistent enable fallback without replay', () =
   unregisterSelects()
 })
 
+test('guided disabled Rating fallbacks retain focus and top-align Game Info Logos', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('game-info-summary', calls)
+  const enable = createElement('enable', calls)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerAlways({ calls, enable, store })
+
+  for (const focusTarget of [
+    'disc:rating:system',
+    'disc:rating:value',
+    'disc:rating:source',
+  ] as const) {
+    store.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'role-start',
+      destination: { roleId: 'game-info-logos', focusTarget },
+    })
+    assert.equal(store.processPendingRequest(), 'target-focused')
+  }
+
+  assert.deepEqual(calls, [
+    'ancestor:rating',
+    'enable:focus:true',
+    'game-info-summary:scroll:start:auto',
+    'ancestor:rating',
+    'enable:focus:true',
+    'game-info-summary:scroll:start:auto',
+    'ancestor:rating',
+    'enable:focus:true',
+    'game-info-summary:scroll:start:auto',
+  ])
+})
+
 test('value target follows select and input variants with safe replacement', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []

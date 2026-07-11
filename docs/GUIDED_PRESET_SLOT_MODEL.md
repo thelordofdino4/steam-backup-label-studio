@@ -45,12 +45,14 @@ support Escape dismissal with focus return, and close when their slot leaves
 the projected list. Buttons rely on native Enter and Space activation and do
 not drag, resize, select preview content, or activate the text ribbon.
 
-Every setup action sends a typed #287 `focus` request. It never enables a
-feature, mutates owner content, accepts a suggestion, reruns import, or stores
-completion state. Suggested placeholders retain the same setup route and an
-explicit suggested description. Skip, native full-workflow validation, and
-export smoke remain later #289 work. Issue #289 remains open and is not ready
-for a PR.
+Every setup action sends a typed #287 `focus` request with `role-start` scroll
+alignment. The resolved direct or fallback target receives focus first with
+native scrolling prevented; the registered owning role summary is then the
+final start-aligned scroll anchor. It never enables a feature, mutates owner
+content, accepts a suggestion, reruns import, or stores completion state.
+Suggested placeholders retain the same setup route and an explicit suggested
+description. Skip, native full-workflow validation, and export smoke remain
+later #289 work. Issue #289 remains open and is not ready for a PR.
 
 Implemented role-focus infrastructure includes:
 
@@ -516,6 +518,7 @@ type EditorRoleFocusRequest = {
   surfaceId: 'disc-label'
   behavior: 'reveal' | 'focus'
   destination: DiscRoleFocusDestination
+  scrollAlignment?: 'nearest' | 'role-start'
   ownerTarget?: EditorRoleFocusOwnerTarget
 }
 ```
@@ -549,11 +552,16 @@ caller handles an encoded raw key.
 
 | Behavior | Contract |
 | --- | --- |
-| `reveal` | Opens the requested top-level role and reveals its registered summary or panel. It does not resolve a nested target, invoke nested ancestor callbacks, focus a nested element, or scroll a nested element. |
-| `focus` | Opens the requested top-level role, resolves the registered semantic target, invokes explicit ancestor callbacks in registration order, and focuses the target with scroll prevention before revealing it with nearest/automatic scrolling. If the target is unavailable, it follows explicit semantic fallbacks and then the role summary. The request is consumed once regardless of outcome and is never retried when controls later mount. |
+| `reveal` | Opens the requested top-level role and reveals its registered summary or panel. It does not resolve a nested target, invoke nested ancestor callbacks, or focus a nested element. Omitted/`nearest` keeps nearest/automatic reveal; `role-start` uses start/automatic role alignment. |
+| `focus` | Opens the requested top-level role, resolves the registered semantic target, invokes explicit ancestor callbacks in registration order, and focuses the target with scroll prevention. Omitted/`nearest` preserves target nearest/automatic scrolling. `role-start` skips target scrolling and finally start-aligns the original owning role summary, or its registered details fallback. If the target is unavailable, it follows explicit semantic fallbacks and then the role summary. The request is consumed once regardless of outcome and is never retried when controls later mount. |
 
 All role-focus state is editor-session-only. It does not dirty the project,
 create an undo entry, trigger autosave, or enter the saved-project schema.
+Scroll alignment is part of the same transient request and is never serialized.
+The role summary uses CSS `scroll-margin-block-start` backed by the shared 24px
+sidebar content-inset token, so `scrollIntoView({ block: 'start' })` works with
+the desktop sidebar scroll owner and narrow document scrolling without runtime
+pixel arithmetic.
 
 ### Existing Target Semantics
 
@@ -605,6 +613,12 @@ The guided preview caller dispatches only these typed setup destinations:
 - Company Logos Developer -> `disc:company-logo:developer-upload`
 - Company Logos Publisher -> `disc:company-logo:publisher-upload`
 - Legal Info -> `disc:legal-text:copyright`
+
+All seven requests use `role-start`; nearest remains the backward-compatible
+default for omitted alignment and for existing non-guided navigation. Alignment
+always uses the original destination role even when upload targets fall back to
+their matching enable controls. Target focus remains intact because the
+controller does not focus the summary merely to align it.
 
 Existing target fallbacks remain authoritative. The caller does not query the
 DOM, duplicate role-panel state, enable features, or invoke controls. Native

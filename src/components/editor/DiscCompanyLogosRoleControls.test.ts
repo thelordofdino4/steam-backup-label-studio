@@ -295,6 +295,46 @@ test('disabled uploads fall back only to matching enables without replay', () =>
   ])
 })
 
+test('guided disabled uploads top-align Company Logos without cross-fallback', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('company-summary', calls)
+  const developerEnable = createElement('developer-enable', calls)
+  const publisherEnable = createElement('publisher-enable', calls)
+  store.registerRolePanel('company-logos', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerAlways({
+    calls,
+    developerEnable,
+    publisherEnable,
+    store,
+  })
+
+  for (const focusTarget of [
+    'disc:company-logo:developer-upload',
+    'disc:company-logo:publisher-upload',
+  ] as const) {
+    store.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'role-start',
+      destination: { roleId: 'company-logos', focusTarget },
+    })
+    assert.equal(store.processPendingRequest(), 'target-focused')
+  }
+
+  assert.deepEqual(calls, [
+    'ancestor:company-logo-panel',
+    'developer-enable:focus:true',
+    'company-summary:scroll:start:auto',
+    'ancestor:company-logo-panel',
+    'publisher-enable:focus:true',
+    'company-summary:scroll:start:auto',
+  ])
+})
+
 test('all enablement combinations resolve each primary upload independently', () => {
   for (const [developerEnabled, publisherEnabled] of [
     [false, false],
