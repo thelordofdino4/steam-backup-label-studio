@@ -1,5 +1,6 @@
 import {
   useLayoutEffect,
+  useMemo,
   useRef,
   type ComponentProps,
 } from 'react'
@@ -8,8 +9,10 @@ import {
 } from '../sidebar/artwork/AdditionalArtworkControls.tsx'
 import {
   registerAdditionalArtworkAddFocusTarget,
+  registerAdditionalArtworkItemFallbacks,
   registerAlwaysMountedAdditionalArtworkFocusTargets,
 } from './discAdditionalArtworkRoleFocusRegistration.ts'
+import { DiscAdditionalArtworkItemControls } from './DiscAdditionalArtworkItemControls.tsx'
 import { useEditorRoleFocus } from './editorRoleFocusContext.ts'
 
 export type DiscAdditionalArtworkRoleControlsProps = {
@@ -27,6 +30,10 @@ export function DiscAdditionalArtworkRoleControls({
   const addRef = useRef<HTMLButtonElement | null>(null)
   const additionalArtworkEnabled =
     artworkControls.projectAdditionalArtwork.enabled
+  const elementIds = useMemo(
+    () => artworkControls.projectAdditionalArtwork.elements.map(({ id }) => id),
+    [artworkControls.projectAdditionalArtwork.elements],
+  )
 
   useLayoutEffect(() => registerAlwaysMountedAdditionalArtworkFocusTargets({
     enableElement: () => enableRef.current,
@@ -43,9 +50,15 @@ export function DiscAdditionalArtworkRoleControls({
     })
   }, [additionalArtworkEnabled, registerFocusTarget])
 
+  useLayoutEffect(() => registerAdditionalArtworkItemFallbacks({
+    elementIds,
+    registerFocusTargetFallback,
+  }), [elementIds, registerFocusTargetFallback])
+
   return (
     <AdditionalArtworkControls
       {...artworkControls}
+      ElementControlsComponent={DiscAdditionalArtworkItemControls}
       addControlRef={addRef}
       enableControlRef={enableRef}
     />

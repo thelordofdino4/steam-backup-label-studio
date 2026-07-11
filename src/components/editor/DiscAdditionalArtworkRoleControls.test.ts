@@ -354,7 +354,7 @@ test('one global Add action remains stable for empty, single, and multiple items
   )
 })
 
-test('adapter uses only fixed global identities and ordinary direct refs', () => {
+test('role adapter composes global and persisted-item focus ownership', () => {
   assert.equal(
     (adapterSource.match(/useRef<[^>]+>\(null\)/g) ?? []).length,
     2,
@@ -373,11 +373,12 @@ test('adapter uses only fixed global identities and ordinary direct refs', () =>
   assert.deepEqual([...new Set(targetIds)].sort(), [
     'disc:additional-artwork:add',
     'disc:additional-artwork:enable',
+    'disc:additional-artwork:item-enable',
+    'disc:additional-artwork:upload',
   ])
-  assert.doesNotMatch(
-    `${adapterSource}\n${registrationSource}`,
-    /item-enable|additional-artwork:upload|elementId/,
-  )
+  assert.match(adapterSource, /ElementControlsComponent=\{DiscAdditionalArtworkItemControls\}/)
+  assert.match(adapterSource, /registerAdditionalArtworkItemFallbacks/)
+  assert.match(adapterSource, /projectAdditionalArtwork\.elements\.map\(\(\{ id \}\) => id\)/)
   assert.deepEqual(
     parseEditorRoleFocusRequest({
       requestId: 1,

@@ -120,6 +120,17 @@ test('only navigation-owned panels use the controlled contract', () => {
         continue
       }
 
+      if (callerFile.endsWith('/EditorImageSourceControls.tsx') &&
+        panelTag.includes("EDITOR_IMAGE_SOURCE_PANEL_LABELS['local-file']")) {
+        assert.match(panelTag, /open=\{localFilePanelOpen\}/)
+        assert.match(
+          panelTag,
+          /onOpenChange=\{onLocalFilePanelOpenChange\}/,
+        )
+        assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
+        continue
+      }
+
       assert.doesNotMatch(
         panelTag,
         /\b(?:open|onOpenChange|detailsRef|summaryRef)=/,
