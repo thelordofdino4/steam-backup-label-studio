@@ -7,11 +7,13 @@
 ## Implementation Status
 
 Pure Disc slot definitions and lifecycle resolution are implemented in
-`src/guidedPresets/discGuidedSlots.ts`. Skip and suggestion inputs remain
-transient. Pure typed Disc role-focus requests, runtime validation, and reducer
-state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
-semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
-state is transient and is not serialized.
+`src/guidedPresets/discGuidedSlots.ts`. The versioned layout registry and pure
+omission workflow are implemented in `discGuidedLayouts.ts` and
+`discGuidedWorkflow.ts`. Workflow and suggestion inputs remain domain-only and
+are not persisted yet. Pure typed Disc role-focus requests, runtime validation,
+and reducer state are implemented in `src/editor/editorRoleFocus.ts`.
+Focus-target IDs are semantic navigation identifiers, not DOM IDs or smoke-test
+IDs, and navigation state is transient and is not serialized.
 
 Implemented role-focus infrastructure includes:
 
@@ -71,9 +73,11 @@ Case Front, Case Back, and Spine remain outside the Disc-only provider.
 ## 1. Purpose And Scope
 
 Guided slots describe content that a guided preset expects at a particular
-place in a layout. A slot can ask for a Game Title, Background Image, Rating,
-Company Logo, Legal Text, Additional Artwork, or Additional Text without
-becoming a second copy of that content.
+place in a layout. The Classic Top Title contract asks for Game Title,
+Background Image, Rating Badge, Media Format Mark, Operating System Marks,
+Developer Logo, Publisher Logo, and Legal Text without becoming a second copy
+of that content. Additional Artwork and Additional Text remain defined for
+future guided layouts.
 
 A slot definition is domain guidance, not rendered project content. Existing
 feature owners remain the source of truth for images, text, marks, enablement,
@@ -116,8 +120,11 @@ Initial Disc guided slot IDs:
 
 - `disc:guided:game-title:primary`
 - `disc:guided:background-image:primary`
-- `disc:guided:rating:primary`
-- `disc:guided:company-logo:primary`
+- `disc:guided:rating-badge:primary`
+- `disc:guided:media-format-mark:primary`
+- `disc:guided:operating-system-marks:group`
+- `disc:guided:developer-logo:primary`
+- `disc:guided:publisher-logo:primary`
 - `disc:guided:legal-text:copyright`
 - `disc:guided:additional-artwork:primary`
 - `disc:guided:additional-text:custom-note`
@@ -132,7 +139,7 @@ type GuidedSlotLifecycle =
   | 'unfilled'
   | 'suggested'
   | 'filled'
-  | 'skipped'
+  | 'omitted'
 
 type GuidedContentKind =
   | 'image'
@@ -148,7 +155,7 @@ A conceptual slot definition contains:
 - accepted content kinds;
 - an optional preferred content kind;
 - ordered candidate feature-owner bindings;
-- optional and skippable status;
+- optional and omittable status;
 - auto-fill eligibility policy;
 - explicit placeholder geometry; and
 - a typed role-focus destination.
@@ -158,7 +165,7 @@ A conceptual slot resolution contains:
 - the derived lifecycle;
 - the concrete feature-owner target when filled;
 - a transient suggestion when one is available; and
-- explicit skip intent when that intent is supported.
+- explicit omission intent when that intent is supported.
 
 Definitions describe what a preset expects. Resolutions describe how the
 current editor state satisfies that expectation. Neither owns feature content.
@@ -174,7 +181,7 @@ current editor state satisfies that expectation. Neither owns feature content.
 | Accepted kinds | `image`, `text` |
 | Preferred kind | `image` |
 | Candidate bindings | Disc title artwork, then Disc title text |
-| Optional/skippable | Expected and skippable |
+| Optional/omittable | Expected and omittable |
 | Safe suggestion | Imported Steam title/logo artwork; meaningful imported title text as fallback |
 | Safe auto-fill | Imported Steam title/logo artwork when the existing import path has already accepted it |
 | Sidebar role | Game Title |
@@ -195,7 +202,7 @@ automatically enable both title artwork and title text.
 | Accepted kinds | `image` |
 | Preferred kind | `image` |
 | Candidate binding | Background image owner |
-| Optional/skippable | Expected and skippable |
+| Optional/omittable | Expected and omittable |
 | Safe suggestion | None by default |
 | Safe auto-fill | None by default |
 | Sidebar role | Background Image |
@@ -206,16 +213,16 @@ The background owner must be enabled and expose a real effective image. An
 enabled owner with no effective image remains unfilled. Default or invented
 artwork must not count as filled.
 
-### Rating
+### Rating Badge
 
 | Property | Contract |
 | --- | --- |
-| Slot ID | `disc:guided:rating:primary` |
+| Slot ID | `disc:guided:rating-badge:primary` |
 | Semantic role | `game-info-logos` |
 | Accepted kinds | `domain-mark`, `image` |
 | Preferred kind | `domain-mark` |
 | Candidate binding | Primary rating badge |
-| Optional/skippable | Optional and skippable |
+| Optional/omittable | Optional and omittable |
 | Safe suggestion | Accepted rating metadata or an already configured supported badge source |
 | Safe auto-fill | Existing accepted rating metadata under the current import policy |
 | Sidebar role | Game Info Logos |
@@ -227,26 +234,41 @@ Metadata-backed generated badges can be valid without a custom image.
 `ratingSystem: none` is not filled, and guided resolution must not invent
 missing rating content.
 
-### Company Logo
+### Media Format Mark
 
 | Property | Contract |
 | --- | --- |
-| Slot ID | `disc:guided:company-logo:primary` |
-| Semantic role | `company-logos` |
-| Accepted kinds | `image` |
-| Preferred kind | `image` |
-| Candidate bindings | Developer logo, then publisher logo, then future repeated company-logo object IDs |
-| Optional/skippable | Optional and skippable |
-| Safe suggestion | Existing developer or publisher assets; remote candidates before import |
-| Safe auto-fill | An existing enabled real asset; remote candidates require import first |
-| Sidebar role | Company Logos |
-| Export | Existing logo export predicate after binding |
-| Movement | Existing logo drag/layout behavior after binding only |
+| Slot ID | `disc:guided:media-format-mark:primary` |
+| Semantic role | `game-info-logos` |
+| Accepted kinds | `domain-mark`, `image` |
+| Preferred kind | `domain-mark` |
+| Candidate binding | Media format mark owner |
+| Optional/omittable | Optional and omittable |
+| Sidebar role | Game Info Logos |
+| Export | Existing media-mark export predicate after binding |
+| Movement | Existing media-mark drag/layout behavior after binding only |
 
-Initial resolution priority is developer logo, then publisher logo. A valid
-binding is enabled and has a real image asset. Empty or generic placeholders do
-not count. Whether developer and publisher should become separate guided slots
-is an open product decision.
+### Operating System Marks
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:operating-system-marks:group` |
+| Semantic role | `game-info-logos` |
+| Accepted kinds | `domain-mark`, `image` |
+| Preferred kind | `domain-mark` |
+| Candidate binding | Enabled platform-mark owner values as one grouped slot |
+| Optional/omittable | Optional and omittable |
+| Sidebar role | Game Info Logos |
+| Export | Existing per-mark export predicates after binding |
+| Movement | Existing grouped platform-mark layout behavior after binding only |
+
+### Developer And Publisher Logos
+
+The exact slots are `disc:guided:developer-logo:primary` and
+`disc:guided:publisher-logo:primary`. Each independently binds only to its
+matching enabled owner with a real image. Both are optional and omittable,
+target Company Logos, and retain the existing owner movement and export
+predicates. One logo cannot satisfy the other slot.
 
 ### Legal Text
 
@@ -257,7 +279,7 @@ is an open product decision.
 | Accepted kinds | `text` |
 | Preferred kind | `text` |
 | Candidate binding | Disc copyright text row |
-| Optional/skippable | Optional and skippable |
+| Optional/omittable | Optional and omittable |
 | Safe suggestion | Accepted or generated legal metadata marked for review where appropriate |
 | Safe auto-fill | Existing accepted legal metadata under the current import policy |
 | Sidebar role | Legal Text |
@@ -278,7 +300,7 @@ straight or curved rendering.
 | Accepted kinds | `image` |
 | Preferred kind | `image` |
 | Candidate binding | Concrete additional-artwork element ID |
-| Optional/skippable | Optional and skippable |
+| Optional/omittable | Optional and omittable |
 | Safe suggestion | None by default |
 | Safe auto-fill | None by default |
 | Sidebar role | Additional Artwork |
@@ -299,7 +321,7 @@ not create a missing artwork element.
 | Accepted kinds | `text` |
 | Preferred kind | `text` |
 | Candidate binding | Disc text `customNote` row |
-| Optional/skippable | Optional and skippable |
+| Optional/omittable | Optional and omittable |
 | Safe suggestion | None by default |
 | Safe auto-fill | None by default |
 | Sidebar role | Additional Text |
@@ -314,17 +336,17 @@ an arbitrary repeatable text-layer model.
 
 Resolution uses this precedence:
 
-1. Explicit skip intent, when supported, resolves to `skipped`.
+1. Explicit omission intent, when supported, resolves to `omitted`.
 2. Valid bound feature state resolves to `filled`.
 3. A valid available suggestion resolves to `suggested`.
 4. Otherwise the slot resolves to `unfilled`.
 
-Disabled is not automatically skipped. Existing feature owners deliberately
+Disabled is not automatically omitted. Existing feature owners deliberately
 preserve disabled payload, so a feature can contain saved data while its guided
 slot remains unfilled because the feature is disabled or cannot render.
 
 Clearing or disabling content can move a previously filled slot back to
-unfilled or suggested. Skip intent suppresses guidance without deleting the
+unfilled or suggested. Omission intent suppresses guidance without deleting the
 feature payload. Re-enabling a feature or accepting a suggestion must continue
 through the existing owner instead of mutating duplicated slot content.
 
@@ -332,10 +354,10 @@ through the existing owner instead of mutating duplicated slot content.
 
 | State | Allowed next states | Edit-mode behavior | Drag/resize | Export | Owner behavior |
 | --- | --- | --- | --- | --- | --- |
-| `unfilled` | suggested, filled, skipped | Placeholder visible | No | No | Definition names candidates; no owner object is created by the placeholder. |
-| `suggested` | unfilled, filled, skipped | Suggestion affordance visible | No | No | Candidate is transient and is not authoritative feature state. |
-| `filled` | unfilled, suggested, skipped | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
-| `skipped` | unfilled, suggested, filled | Placeholder hidden or subdued by a future UX decision | No | No output merely from skip state | Existing feature payload is preserved. |
+| `unfilled` | suggested, filled, omitted | Placeholder visible | No | No | Definition names candidates; no owner object is created by the placeholder. |
+| `suggested` | unfilled, filled, omitted | Suggestion affordance visible | No | No | Candidate is transient and is not authoritative feature state. |
+| `filled` | unfilled, suggested, omitted | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
+| `omitted` | unfilled, suggested, filled | Guidance is suppressed | No | No output merely from omission state | Existing feature payload is preserved and continues through normal rendering/export rules. |
 
 Placeholder visibility in this table is a contract for future implementation,
 not current UI behavior.
@@ -345,7 +367,7 @@ not current UI behavior.
 ### Static Definitions
 
 Preset/domain data contains slot ID, role, accepted and preferred kinds,
-candidate bindings, default geometry, and skippable status.
+candidate bindings, default geometry, and omittable status.
 
 ### Derived State
 
@@ -361,7 +383,7 @@ state.
 
 ### Future Persisted State
 
-Explicit skip intent, guided preset ID/version, repeatable-slot binding identity
+Explicit omission intent, guided preset ID/version, repeatable-slot binding identity
 that cannot be re-derived safely, and slot-specific overrides not represented
 by normal feature state may require project persistence.
 
@@ -514,24 +536,58 @@ typed navigation intent rather than query the DOM or duplicate role-panel
 state. Native focus validation remains pending. Case Front, Case Back, and Spine
 remain outside this Disc-only provider.
 
-## 12. Persistence Boundary
+## 12. Versioned Workflow Contract
+
+A guided workflow is identified by layout ID plus a positive safe-integer
+version. Classic Top Title starts at version `1`; version is explicit and is
+never inferred from coordinates, geometry, or slot count. Its exact ordered
+catalog contains the first eight IDs above. All eight are omittable.
+
+The pure domain state is:
+
+```ts
+{
+  activeLayout: { id, version } | null,
+  omittedSlotIds: readonly DiscGuidedSlotId[]
+}
+```
+
+Omitted IDs are deduplicated, restricted to the active version's slot catalog,
+filtered by `omittable`, and stored in canonical layout order. Applying a
+layout for the first time starts with no omissions. Reapplying the same ID and
+version preserves valid omissions. Changing layout ID clears omissions. Moving
+between supported versions of the same ID preserves IDs that still exist,
+discards removed IDs, and leaves newly added slots visible.
+
+Omit, restore one, restore all, and clear are pure transitions. Restore one and
+restore all do not enable owners, populate content, or reapply geometry.
+Unsupported layout IDs or versions are rejected during application and
+normalize to inactive guidance when reading unknown workflow-shaped data.
+Malformed and unknown fields never block restoration.
+
+## 13. Persistence Boundary
 
 Static guided definitions and lifecycle derived from current feature state need
 no schema change. Filled content remains ordinary project state under existing
 feature owners.
 
-An unfinished guided project cannot reliably restore explicit skip intent
+An unfinished guided project cannot reliably restore explicit omission intent
 without persistence. Repeatable slot binding identity can also require
 persistence when it cannot be derived safely from a concrete owner ID and the
 guided preset definition.
 
-Any persisted guided preset ID, version, skip intent, or binding metadata needs
+Any persisted guided preset ID, version, omission intent, or binding metadata needs
 a dedicated child issue, an explicit schema/version decision, normalization,
 migration coverage, and an update to `PROJECT_FILE_SPEC.md`. Unknown or deleted
 guided preset IDs must normalize safely and must never prevent a project from
 loading.
 
-## 13. Architecture Invariants
+The workflow is domain/editor state only in this chunk. React integration and
+project persistence remain deferred. The persistence child must update schema,
+normalization, migration coverage, and `PROJECT_FILE_SPEC.md`; this issue does
+not change schema `0.1.0`.
+
+## 14. Architecture Invariants
 
 - Existing feature owners remain the source of truth.
 - No parallel asset, text, mark, enablement, or layout state is introduced.
@@ -546,19 +602,17 @@ loading.
 - Preview, edit, save/load, and export parity remain intact for filled content.
 - Blank projects remain valid and are not forced through a guided checklist.
 
-## 14. Open Decisions
+## 15. Open Decisions
 
-- Whether developer and publisher become separate guided slots or remain one primary company-logo slot.
-- Exact skipped-state persistence design.
+- Exact omission-state persistence design for project schema `0.2.0`.
 - Whether each safe suggestion auto-binds or requires confirmation.
 - Repeatable-slot append versus reuse behavior.
-- Guided preset and slot versioning.
 - Placeholder geometry coordinate format and safe-zone representation.
 - Whether disabled but otherwise valid payload shows an unfilled placeholder or a distinct inactive state.
 - Whether `domain-mark` remains one content kind or splits into rating, media, platform, and technical kinds.
 - How a primary repeated slot preserves its binding when repeated objects are reordered or removed.
 
-## 15. Follow-Up Child Issues
+## 16. Follow-Up Child Issues
 
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.

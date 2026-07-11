@@ -330,6 +330,23 @@ type RoleBasedPreset = {
 
 This is illustrative only. #269 does not add this type to source.
 
+### Guided Layout Identity And Versioning
+
+Guided layouts add a workflow contract above the existing role-layout preset.
+Their stable identity is the pair of guided layout ID and positive safe-integer
+version. The version is declared by the guided definition and is not inferred
+from coordinates, slot order, or slot count. Classic Top Title begins at
+version `1` and references its existing Disc role preset as the base geometry
+application.
+
+Reapplying the same guided ID/version preserves valid omission intent. Changing
+guided layout ID clears omissions. Moving to another supported version of the
+same ID preserves omitted slot IDs that still exist and discards removed or
+unknown IDs; newly introduced slots remain visible. Unsupported IDs or
+versions fail safely. This workflow identity is domain-only until the planned
+project schema `0.2.0` persistence work; it does not alter the current save/load
+contract.
+
 ## 13. Manual Fine-Tuning And Reset Contract
 
 A preset is a starting point, not a lock. After applying a preset, users must be

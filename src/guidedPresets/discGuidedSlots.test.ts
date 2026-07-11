@@ -12,11 +12,16 @@ import {
   createDefaultProjectAdditionalArtwork,
 } from '../project/projectAdditionalArtwork.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import { createDefaultProjectMediaMark } from '../project/projectMediaMark.ts'
 import {
   DEFAULT_DISC_PROJECT_TITLE,
   createDefaultProjectMetadata,
 } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
+import {
+  createDefaultProjectPlatformMarks,
+  updatePlatformMarkToggle,
+} from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import type { ProjectAdditionalArtworkElement } from '../project/projectTypes.ts'
 import {
@@ -31,17 +36,20 @@ import {
   type GuidedContentKind,
 } from './discGuidedSlots.ts'
 
-const NO_SKIPPED_SLOTS = new Set<DiscGuidedSlotId>()
+const NO_OMITTED_SLOTS = new Set<DiscGuidedSlotId>()
 
 function createState(): DiscGuidedSlotState {
   return {
     background: {
       enabled: true,
       imageDataUrl: null,
+      imageSize: null,
     },
     titleArtwork: createDefaultProjectTitleArtwork(),
     metadata: createDefaultProjectMetadata(),
     ratingBadge: createDefaultProjectRatingBadge(),
+    mediaMark: createDefaultProjectMediaMark(),
+    platformMarks: createDefaultProjectPlatformMarks(),
     logoAssets: createDefaultProjectLogoAssets(),
     additionalArtwork: createDefaultProjectAdditionalArtwork(),
     discText: {
@@ -70,13 +78,13 @@ function resolve(
   slotId: DiscGuidedSlotId,
   state = createState(),
   suggestions: readonly DiscGuidedSlotSuggestion[] = [],
-  skippedSlotIds: ReadonlySet<DiscGuidedSlotId> = NO_SKIPPED_SLOTS,
+  omittedSlotIds: ReadonlySet<DiscGuidedSlotId> = NO_OMITTED_SLOTS,
 ) {
   return resolveDiscGuidedSlot({
     slotId,
     state,
     suggestions,
-    skippedSlotIds,
+    omittedSlotIds,
   })
 }
 
@@ -113,15 +121,15 @@ function deepFreeze<T>(value: T): T {
   return value
 }
 
-test('defines the seven documented Disc guided slots in stable order', () => {
-  assert.equal(DISC_GUIDED_SLOT_DEFINITIONS.length, 7)
+test('defines the exact Disc guided slots in stable order', () => {
+  assert.equal(DISC_GUIDED_SLOT_DEFINITIONS.length, 10)
   assert.deepEqual(
     DISC_GUIDED_SLOT_DEFINITIONS.map((definition) => definition.id),
     DISC_GUIDED_SLOT_IDS,
   )
   assert.equal(new Set(DISC_GUIDED_SLOT_IDS).size, DISC_GUIDED_SLOT_IDS.length)
   assert.ok(DISC_GUIDED_SLOT_DEFINITIONS.every(
-    (definition) => definition.surface === 'disc' && definition.skippable,
+    (definition) => definition.surface === 'disc' && definition.omittable,
   ))
   assert.deepEqual(
     DISC_GUIDED_SLOT_DEFINITIONS.map((definition) => ({
@@ -147,6 +155,24 @@ test('defines the seven documented Disc guided slots in stable order', () => {
         role: 'game-info-logos',
         accepted: ['domain-mark', 'image'],
         preferred: 'domain-mark',
+        requirement: 'optional',
+      },
+      {
+        role: 'game-info-logos',
+        accepted: ['domain-mark', 'image'],
+        preferred: 'domain-mark',
+        requirement: 'optional',
+      },
+      {
+        role: 'game-info-logos',
+        accepted: ['domain-mark', 'image'],
+        preferred: 'domain-mark',
+        requirement: 'optional',
+      },
+      {
+        role: 'company-logos',
+        accepted: ['image'],
+        preferred: 'image',
         requirement: 'optional',
       },
       {
@@ -188,7 +214,7 @@ test('definitions contain no presentation identifiers or populated geometry', ()
 
 test('looks up definitions by stable ID', () => {
   assert.equal(
-    getDiscGuidedSlotDefinition('disc:guided:rating:primary')?.role,
+    getDiscGuidedSlotDefinition('disc:guided:rating-badge:primary')?.role,
     'game-info-logos',
   )
   assert.equal(getDiscGuidedSlotDefinition('disc:guided:unknown'), undefined)
@@ -199,6 +225,7 @@ test('title artwork fills Game Title and wins over meaningful title text', () =>
   state.titleArtwork = {
     ...state.titleArtwork,
     imageDataUrl: 'data:image/png;base64,title-artwork',
+    imageSize: { width: 800, height: 300 },
     layout: { ...state.titleArtwork.layout, enabled: true },
   }
   state.discText.settings.title = true
@@ -286,6 +313,7 @@ test('Game Title resolves an accepted suggestion only without valid owner conten
 test('Background requires both enablement and a real effective image', () => {
   const state = createState()
   state.background.imageDataUrl = 'data:image/png;base64,background'
+  state.background.imageSize = { width: 1200, height: 1200 }
 
   assert.deepEqual(
     resolve('disc:guided:background-image:primary', state).binding,
@@ -318,22 +346,59 @@ test('Rating uses the existing badge validity predicate', () => {
     ratingValue: 'T',
   }
 
-  assert.deepEqual(resolve('disc:guided:rating:primary', state).binding, {
+  assert.deepEqual(resolve('disc:guided:rating-badge:primary', state).binding, {
     owner: 'ratingBadge',
     badgeKey: 'primary',
   })
 
   state.metadata.ratingSystem = 'none'
-  assert.equal(resolve('disc:guided:rating:primary', state).lifecycle, 'unfilled')
-
-  const suggestion = createSuggestion('disc:guided:rating:primary', 'domain-mark')
   assert.equal(
-    resolve('disc:guided:rating:primary', state, [suggestion]).lifecycle,
+    resolve('disc:guided:rating-badge:primary', state).lifecycle,
+    'unfilled',
+  )
+
+  const suggestion = createSuggestion(
+    'disc:guided:rating-badge:primary',
+    'domain-mark',
+  )
+  assert.equal(
+    resolve('disc:guided:rating-badge:primary', state, [suggestion]).lifecycle,
     'suggested',
   )
 })
 
-test('Company Logo prefers a real enabled developer image, then publisher', () => {
+test('Media and Operating System marks resolve independently', () => {
+  const mediaState = createState()
+  mediaState.mediaMark = {
+    ...mediaState.mediaMark,
+    layout: { ...mediaState.mediaMark.layout, enabled: true },
+  }
+  assert.deepEqual(
+    resolve('disc:guided:media-format-mark:primary', mediaState).binding,
+    { owner: 'mediaMark' },
+  )
+  assert.equal(
+    resolve('disc:guided:operating-system-marks:group', mediaState).lifecycle,
+    'unfilled',
+  )
+
+  const platformState = createState()
+  platformState.platformMarks = updatePlatformMarkToggle(
+    platformState.platformMarks,
+    'windows',
+    true,
+  )
+  assert.deepEqual(
+    resolve('disc:guided:operating-system-marks:group', platformState).binding,
+    { owner: 'platformMarks', selection: 'enabled-values' },
+  )
+  assert.equal(
+    resolve('disc:guided:media-format-mark:primary', platformState).lifecycle,
+    'unfilled',
+  )
+})
+
+test('Developer and Publisher Logo slots resolve independently', () => {
   const state = createState()
   state.logoAssets = {
     ...state.logoAssets,
@@ -349,34 +414,43 @@ test('Company Logo prefers a real enabled developer image, then publisher', () =
     },
   }
 
-  assert.deepEqual(resolve('disc:guided:company-logo:primary', state).binding, {
+  assert.deepEqual(resolve('disc:guided:developer-logo:primary', state).binding, {
     owner: 'logoAssets',
     logoKey: 'developer',
     scope: 'primary',
   })
 
-  state.logoAssets.developerLogoLayout.enabled = false
-  assert.deepEqual(resolve('disc:guided:company-logo:primary', state).binding, {
+  assert.deepEqual(resolve('disc:guided:publisher-logo:primary', state).binding, {
     owner: 'logoAssets',
     logoKey: 'publisher',
     scope: 'primary',
   })
+
+  state.logoAssets.developerLogoLayout.enabled = false
+  assert.equal(
+    resolve('disc:guided:developer-logo:primary', state).lifecycle,
+    'unfilled',
+  )
+  assert.equal(
+    resolve('disc:guided:publisher-logo:primary', state).lifecycle,
+    'filled',
+  )
 })
 
-test('Company Logo does not count missing images or generic renderer placeholders', () => {
+test('Company Logo slots do not count missing images or disabled owners', () => {
   const state = createState()
   state.logoAssets.developerLogoLayout.enabled = true
   state.logoAssets.publisherLogoLayout.enabled = true
 
   assert.equal(
-    resolve('disc:guided:company-logo:primary', state).lifecycle,
+    resolve('disc:guided:developer-logo:primary', state).lifecycle,
     'unfilled',
   )
 
   state.logoAssets.developerLogoDataUrl = 'data:image/png;base64,preserved'
   state.logoAssets.developerLogoLayout.enabled = false
   assert.equal(
-    resolve('disc:guided:company-logo:primary', state).lifecycle,
+    resolve('disc:guided:developer-logo:primary', state).lifecycle,
     'unfilled',
   )
 })
@@ -486,11 +560,12 @@ test('Additional Text requires enabled nonblank rendered custom-note content', (
   )
 })
 
-test('explicit skip overrides filled state without mutating the owner', () => {
+test('explicit omission overrides filled state without mutating the owner', () => {
   const state = createState()
   state.background.imageDataUrl = 'data:image/png;base64,background'
+  state.background.imageSize = { width: 1200, height: 1200 }
   const before = structuredClone(state)
-  const skippedSlotIds = new Set<DiscGuidedSlotId>([
+  const omittedSlotIds = new Set<DiscGuidedSlotId>([
     'disc:guided:background-image:primary',
   ])
 
@@ -498,10 +573,10 @@ test('explicit skip overrides filled state without mutating the owner', () => {
     'disc:guided:background-image:primary',
     state,
     [],
-    skippedSlotIds,
+    omittedSlotIds,
   )
 
-  assert.equal(result.lifecycle, 'skipped')
+  assert.equal(result.lifecycle, 'omitted')
   assert.deepEqual(state, before)
 })
 
@@ -527,7 +602,7 @@ test('batch resolution follows definition order', () => {
   const results = resolveDiscGuidedSlots({
     state: createState(),
     suggestions: [],
-    skippedSlotIds: NO_SKIPPED_SLOTS,
+    omittedSlotIds: NO_OMITTED_SLOTS,
   })
 
   assert.deepEqual(
@@ -539,17 +614,17 @@ test('batch resolution follows definition order', () => {
 test('resolution is pure for frozen state, suggestions, and skip input', () => {
   const state = deepFreeze(createState())
   const suggestions = deepFreeze([
-    createSuggestion('disc:guided:rating:primary', 'domain-mark'),
+    createSuggestion('disc:guided:rating-badge:primary', 'domain-mark'),
   ])
-  const skippedSlotIds = Object.freeze(new Set<DiscGuidedSlotId>())
+  const omittedSlotIds = Object.freeze(new Set<DiscGuidedSlotId>())
   const stateBefore = structuredClone(state)
   const suggestionsBefore = structuredClone(suggestions)
 
-  resolveDiscGuidedSlots({ state, suggestions, skippedSlotIds })
+  resolveDiscGuidedSlots({ state, suggestions, omittedSlotIds })
 
   assert.deepEqual(state, stateBefore)
   assert.deepEqual(suggestions, suggestionsBefore)
-  assert.equal(skippedSlotIds.size, 0)
+  assert.equal(omittedSlotIds.size, 0)
 })
 
 test('source has no forbidden UI, renderer, export, schema, or Case Insert dependencies', () => {

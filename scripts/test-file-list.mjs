@@ -159,6 +159,7 @@ export const testFiles = [
   'src/export/exportPreflight.test.ts',
   'src/export/preflightWarnings.test.ts',
   'src/guidedPresets/discGuidedSlots.test.ts',
+  'src/guidedPresets/discGuidedWorkflow.test.ts',
   'src/interaction/dragGeometry.test.ts',
   'src/interaction/textMoveHandleDrag.test.ts',
   'src/layout/backgroundArtworkFit.test.ts',
