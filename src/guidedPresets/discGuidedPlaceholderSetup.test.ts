@@ -87,14 +87,23 @@ test('existing exact setup targets remain direct and independent', () => {
 
 test('Media and OS setup dispatch exact typed Game Info destinations', () => {
   const expectations = [
-    ['media-format-mark', 'disc:media-format-mark:format'],
-    ['operating-system-marks', 'disc:operating-system-marks:enable'],
+    [
+      'media-format-mark',
+      'Set up Media Format Mark',
+      'disc:media-format-mark:format',
+    ],
+    [
+      'operating-system-marks',
+      'Set up Operating System Marks',
+      'disc:operating-system-marks:enable',
+    ],
   ] as const
 
-  for (const [kind, focusTarget] of expectations) {
+  for (const [kind, label, focusTarget] of expectations) {
     const setup = getDiscGuidedPlaceholderSetup(kind)
     assert.equal(setup.kind, 'direct')
     if (setup.kind !== 'direct') continue
+    assert.equal(setup.action.label, label)
     assert.deepEqual(setup.action.request, {
       surfaceId: 'disc-label',
       behavior: 'focus',
@@ -108,6 +117,10 @@ test('Media and OS setup dispatch exact typed Game Info destinations', () => {
 
   const source = readFileSync(new URL('./discGuidedPlaceholderSetup.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(source, /game-info-logos:setup|company-logo-choice|Set up Game Info Logos/)
+  assert.doesNotMatch(
+    source,
+    /'media-format-mark':[\s\S]*?kind: 'unavailable'|'operating-system-marks':[\s\S]*?kind: 'unavailable'/,
+  )
   assert.doesNotMatch(source, /handleMedia|handlePlatform|setProject|toggleEnabled/)
 })
 

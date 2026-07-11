@@ -420,7 +420,7 @@ test('production integration stays fixed-row-only and dependency-safe', () => {
   )
   assert.match(
     appSource,
-    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoRatingControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
+    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoLogoRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.match(
     appSource,

@@ -105,9 +105,8 @@ Implemented role-focus infrastructure includes:
   item card and, for an available upload, its Local file panel without mutating
   project state.
 
-The original 19 #287 Disc role-focus targets have production registration. The
-three exact Media/OS targets added for #289 are typed and parser-valid but do
-not have production control registration yet. The
+The original 19 #287 Disc role-focus targets and the three exact Media/OS
+targets added for #289 have production registration. The
 Classic Top Title guided action layer is the first production caller: it sends
 the nine exact setup actions for eight slots through the typed controller
 without direct DOM lookup or feature mutation. Native eight-slot workflow and
@@ -645,9 +644,9 @@ pixel arithmetic.
 | `disc:rating:system` | The enabled-only rating-system selector. Implemented through a direct ref and persistent semantic fallback to `disc:rating:enable` while disabled or unexpectedly unavailable. Navigation does not change the system. |
 | `disc:rating:value` | The enabled-only current rating-value control. The semantic registration tracks the rendered select or custom-rating text input and refreshes safely when the concrete kind changes. It falls back to `disc:rating:enable` while unavailable and does not change the value. |
 | `disc:rating:source` | The enabled-only rating source-mode selector, not the conditional custom-image upload input. Implemented through a direct ref with persistent fallback to `disc:rating:enable`; navigation does not change source or import an image. |
-| `disc:media-format-mark:enable` | Semantic identity for the always-mounted Media Format Mark enable checkbox. It does not choose a format or enable the owner. Production registration is pending. |
-| `disc:media-format-mark:format` | Semantic identity for the actual media-format selector. Its future production fallback is `disc:media-format-mark:enable` while the feature body is unavailable. Navigation never changes the selected format. Production registration and fallback wiring are pending. |
-| `disc:operating-system-marks:enable` | Semantic identity for the always-mounted Show operating system marks checkbox. It does not select, enable, import, or identify any individual platform mark. Production registration is pending. |
+| `disc:media-format-mark:enable` | The always-mounted Media Format Mark enable checkbox inside the controlled Media format mark panel. Implemented through a direct ref with an explicit Media-panel ancestor callback. It does not choose a format or enable the owner. |
+| `disc:media-format-mark:format` | The enabled-only actual media-format selector, not the source or upload controls. Implemented through a direct ref and persistent semantic fallback to `disc:media-format-mark:enable` while the feature body is unavailable. Navigation never changes the selected format. |
+| `disc:operating-system-marks:enable` | The always-mounted grouped Show operating system marks checkbox inside the controlled Operating system marks panel. Implemented through a direct ref with an explicit panel ancestor callback. It does not select, enable, import, or identify any individual platform mark and does not invoke grouped placement. |
 | `disc:company-logo:developer-enable` | The primary developer-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
 | `disc:company-logo:developer-upload` | The enabled-only primary developer-logo file input. It is registered only while the developer body is mounted and explicitly falls back only to `disc:company-logo:developer-enable` when unavailable. |
 | `disc:company-logo:publisher-enable` | The primary publisher-logo enable checkbox. It remains registered while Company Logos is mounted, opens the shared Developer / publisher logos panel, and does not toggle or mutate the logo. |
@@ -699,12 +698,20 @@ DOM, duplicate role-panel state, enable features, or invoke controls. Native
 focus validation remains pending. Case Front, Case Back, and Spine remain
 outside this Disc-only provider.
 
-Media format's typed fallback contract is `format -> enable`; it is documented
-but not registered in this pure-vocabulary chunk. Media enable and OS enable
-need no semantic fallback. Owner identity is optional. When supplied, both
-Media targets accept only `{ owner: 'mediaMark' }`, while OS enable accepts only
-`{ owner: 'platformMarks', selection: 'enabled-values' }`. Payload-bearing or
-cross-owner identities are rejected by the strict runtime parser.
+Media format's registered fallback contract is `format -> enable`. The direct
+format registration exists only while the selector is mounted; its persistent
+fallback remains independent, consumes once while disabled, and does not replay
+after enablement. Media enable and OS enable need no semantic fallback. Rating,
+Media, and OS registrations are independent and clean up without removing one
+another. Focus requests open only the required controlled nested panel, retain
+the exact control's focus, and top-align Game Info Logos through `role-start`.
+They never enable Media, select a format, enable or select an operating system,
+or mutate project and selection state. Owner identity is optional. When
+supplied, both Media targets accept only `{ owner: 'mediaMark' }`, while OS
+enable accepts only `{ owner: 'platformMarks', selection: 'enabled-values' }`.
+Payload-bearing or cross-owner identities are rejected by the strict runtime
+parser. All eight Classic Top Title slots now have exact production setup
+routes; native eight-slot workflow validation remains required before PR.
 
 ## 12. Persistence Boundary
 

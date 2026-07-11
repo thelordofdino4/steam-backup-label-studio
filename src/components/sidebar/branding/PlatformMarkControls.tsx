@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { useState } from 'react'
 import { getPlatformMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
@@ -33,6 +33,7 @@ type PlatformMarkSetupControlsProps = Pick<
   | 'handlePlatformMarkLayoutChange'
   | 'handleClearPlatformMarkImage'
 > & {
+  enableControlRef?: Ref<HTMLInputElement>
   renderLayoutControls?: (
     value: PlatformMarkValue,
     label: string,
@@ -49,6 +50,7 @@ export function PlatformMarkSetupControls({
   handlePlatformMarkThemeChange,
   handlePlatformMarkLayoutChange,
   handleClearPlatformMarkImage,
+  enableControlRef,
   renderLayoutControls,
   idPrefix,
 }: PlatformMarkSetupControlsProps) {
@@ -74,7 +76,7 @@ export function PlatformMarkSetupControls({
 
   return (
     <div>
-      <label className="field-label"><input type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
+      <label className="field-label"><input ref={enableControlRef} type="checkbox" checked={isEnabled} onChange={(event) => toggleEnabled(event.target.checked)} /> Show operating system marks</label>
       {shouldShowInferenceHint ? <p className="hint">{inference.message}</p> : null}
       {!isEnabled ? null : (
         <>
@@ -161,7 +163,7 @@ export function PlatformMarkControls({
   | 'handlePlatformMarkLayoutChange'
   | 'handleClearPlatformMarkImage'
   | 'handleResetPlatformMarkLayout'
->) {
+> & Pick<PlatformMarkSetupControlsProps, 'enableControlRef'>) {
   return (
     <PlatformMarkSetupControls
       {...props}

@@ -10,6 +10,13 @@ import {
   type EditorRoleFocusControllerStore,
 } from '../../editor/editorRoleFocusController.ts'
 import {
+  registerAlwaysMountedMediaFocusTargets,
+  registerAlwaysMountedOperatingSystemFocusTarget,
+  registerEnabledMediaFormatFocusTarget,
+  shouldOpenMediaPanelForRequest,
+  shouldOpenOperatingSystemPanelForRequest,
+} from './discGameInfoRoleFocusRegistration.ts'
+import {
   registerAlwaysMountedRatingFocusTargets,
   registerEnabledRatingSelectFocusTargets,
   registerRatingValueFocusTarget,
@@ -17,7 +24,11 @@ import {
 } from './discRatingRoleFocusRegistration.ts'
 
 const adapterSource = readFileSync(
-  new URL('./DiscGameInfoRatingControls.tsx', import.meta.url),
+  new URL('./DiscGameInfoLogoRoleControls.tsx', import.meta.url),
+  'utf8',
+)
+const gameInfoRegistrationSource = readFileSync(
+  new URL('./discGameInfoRoleFocusRegistration.ts', import.meta.url),
   'utf8',
 )
 const registrationSource = readFileSync(
@@ -30,6 +41,14 @@ const gameInfoSource = readFileSync(
 )
 const ratingSource = readFileSync(
   new URL('../sidebar/branding/RatingBadgeControls.tsx', import.meta.url),
+  'utf8',
+)
+const mediaSource = readFileSync(
+  new URL('../sidebar/branding/MediaMarkControls.tsx', import.meta.url),
+  'utf8',
+)
+const platformSource = readFileSync(
+  new URL('../sidebar/branding/PlatformMarkControls.tsx', import.meta.url),
   'utf8',
 )
 const markSource = readFileSync(
@@ -68,6 +87,26 @@ function requestRatingTarget(
   return store.requestRoleFocus({
     surfaceId: 'disc-label',
     behavior,
+    destination: {
+      roleId: 'game-info-logos',
+      focusTarget,
+    },
+  })
+}
+
+function requestGameInfoTarget(
+  store: EditorRoleFocusControllerStore,
+  focusTarget: Extract<
+    DiscRoleFocusTargetId,
+    `disc:media-format-mark:${string}` |
+      'disc:operating-system-marks:enable'
+  >,
+  behavior: EditorRoleFocusBehavior = 'focus',
+) {
+  return store.requestRoleFocus({
+    surfaceId: 'disc-label',
+    behavior,
+    scrollAlignment: 'role-start',
     destination: {
       roleId: 'game-info-logos',
       focusTarget,
@@ -492,33 +531,267 @@ test('missing enabled controls safely use enable fallback once', () => {
   )
 })
 
-test('Rating adapter owns panel state, refs, and conditional registrations', () => {
+test('Media enable and enabled format focus exact controls without mutation', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const state = {
+    enabled: true,
+    value: 'dvd-rom',
+    source: 'custom',
+    theme: 'light',
+    customImageDataUrl: 'data:image/png;base64,keep',
+    layout: { x: 78, y: 74, scale: 1.2 },
+    dirty: false,
+    undoEntries: 2,
+    previewSelection: 'background',
+    selectedDiscTextKey: 'title',
+  }
+  const initialState = structuredClone(state)
+  const summary = createElement('game-info-summary', calls)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerAlwaysMountedMediaFocusTargets({
+    enableElement: () => createElement('media-enable', calls),
+    openMediaPanel: () => calls.push('ancestor:media'),
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+  registerEnabledMediaFormatFocusTarget({
+    formatElement: () => createElement('media-format', calls),
+    openMediaPanel: () => calls.push('ancestor:media'),
+    registerFocusTarget: store.registerFocusTarget,
+  })
+
+  requestGameInfoTarget(store, 'disc:media-format-mark:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
+  requestGameInfoTarget(store, 'disc:media-format-mark:format')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+
+  assert.deepEqual(calls, [
+    'ancestor:media',
+    'media-enable:focus:true',
+    'game-info-summary:scroll:start:auto',
+    'ancestor:media',
+    'media-format:focus:true',
+    'game-info-summary:scroll:start:auto',
+  ])
+  assert.deepEqual(state, initialState)
+})
+
+test('disabled Media format falls back once and a new request reaches the selector', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const mediaState = { enabled: false, value: 'blu-ray' }
+  const ratingEnable = createElement('rating-enable', calls)
+  const mediaEnable = createElement('media-enable', calls)
+  registerAlways({ calls, enable: ratingEnable, store })
+  registerAlwaysMountedMediaFocusTargets({
+    enableElement: () => mediaEnable,
+    openMediaPanel: () => calls.push('ancestor:media'),
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+
+  requestGameInfoTarget(store, 'disc:media-format-mark:format')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
+  assert.equal(mediaState.enabled, false)
+  assert.equal(calls.includes('rating-enable:focus:true'), false)
+  assert.equal(calls.includes('media-enable:focus:true'), true)
+
+  mediaState.enabled = true
+  registerEnabledMediaFormatFocusTarget({
+    formatElement: () => createElement('media-format', calls),
+    openMediaPanel: () => calls.push('ancestor:media'),
+    registerFocusTarget: store.registerFocusTarget,
+  })
+  assert.equal(store.processPendingRequest(), 'no-pending-request')
+
+  requestGameInfoTarget(store, 'disc:media-format-mark:format')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(calls.at(-1), 'media-format:focus:true')
+  assert.deepEqual(mediaState, { enabled: true, value: 'blu-ray' })
+})
+
+test('Operating System enable focuses repeatedly without selecting marks', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const platformState = {
+    values: ['windows', 'linux'],
+    enabledValues: [],
+    source: 'placeholder',
+    theme: 'light',
+    customAssets: {},
+    groupedPlacementCalls: 0,
+    dirty: false,
+    undoEntries: 0,
+    previewSelection: null,
+  }
+  const initialState = structuredClone(platformState)
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => createElement('game-info-summary', calls),
+  })
+  registerAlwaysMountedOperatingSystemFocusTarget({
+    enableElement: () => createElement('os-enable', calls),
+    openOperatingSystemPanel: () => calls.push('ancestor:os'),
+    registerFocusTarget: store.registerFocusTarget,
+  })
+
+  const first = requestGameInfoTarget(
+    store,
+    'disc:operating-system-marks:enable',
+  )
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  const second = requestGameInfoTarget(
+    store,
+    'disc:operating-system-marks:enable',
+  )
+  assert.equal(store.processPendingRequest(), 'target-focused')
+
+  assert.equal(second.requestId, first.requestId + 1)
+  assert.equal(
+    calls.filter((call) => call === 'os-enable:focus:true').length,
+    2,
+  )
+  assert.equal(
+    calls.filter((call) =>
+      call === 'game-info-summary:scroll:start:auto').length,
+    2,
+  )
+  assert.deepEqual(platformState, initialState)
+})
+
+test('Rating, Media, and OS registrations coexist and clean up independently', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const unregisterRating = registerAlways({
+    calls,
+    enable: createElement('rating-enable', calls),
+    store,
+  })
+  const unregisterMedia = registerAlwaysMountedMediaFocusTargets({
+    enableElement: () => createElement('media-enable', calls),
+    openMediaPanel: () => calls.push('ancestor:media'),
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+  const unregisterOs = registerAlwaysMountedOperatingSystemFocusTarget({
+    enableElement: () => createElement('os-enable', calls),
+    openOperatingSystemPanel: () => calls.push('ancestor:os'),
+    registerFocusTarget: store.registerFocusTarget,
+  })
+
+  requestRatingTarget(store, 'disc:rating:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  requestGameInfoTarget(store, 'disc:media-format-mark:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  requestGameInfoTarget(store, 'disc:operating-system-marks:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(
+    calls.filter((call) => call.includes(':focus:true')),
+    [
+      'rating-enable:focus:true',
+      'media-enable:focus:true',
+      'os-enable:focus:true',
+    ],
+  )
+
+  unregisterMedia()
+  requestRatingTarget(store, 'disc:rating:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  requestGameInfoTarget(store, 'disc:operating-system-marks:enable')
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.equal(calls.at(-1), 'os-enable:focus:true')
+  unregisterOs()
+  unregisterRating()
+})
+
+test('reveal stays at Game Info summary for Media and OS destinations', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  let mediaPanelOpen = false
+  let operatingSystemPanelOpen = false
+  registerAlwaysMountedMediaFocusTargets({
+    enableElement: () => createElement('media-enable', calls),
+    openMediaPanel: () => { mediaPanelOpen = true },
+    registerFocusTarget: store.registerFocusTarget,
+    registerFocusTargetFallback: store.registerFocusTargetFallback,
+  })
+  registerAlwaysMountedOperatingSystemFocusTarget({
+    enableElement: () => createElement('os-enable', calls),
+    openOperatingSystemPanel: () => { operatingSystemPanelOpen = true },
+    registerFocusTarget: store.registerFocusTarget,
+  })
+  store.registerRolePanel('game-info-logos', {
+    detailsElement: () => null,
+    summaryElement: () => createElement('summary', calls),
+  })
+
+  const mediaReveal = requestGameInfoTarget(
+    store,
+    'disc:media-format-mark:format',
+    'reveal',
+  )
+  assert.equal(shouldOpenMediaPanelForRequest(mediaReveal), false)
+  assert.equal(store.processPendingRequest(), 'role-revealed')
+  const osReveal = requestGameInfoTarget(
+    store,
+    'disc:operating-system-marks:enable',
+    'reveal',
+  )
+  assert.equal(shouldOpenOperatingSystemPanelForRequest(osReveal), false)
+  assert.equal(store.processPendingRequest(), 'role-revealed')
+
+  assert.equal(mediaPanelOpen, false)
+  assert.equal(operatingSystemPanelOpen, false)
+  assert.deepEqual(calls, [
+    'summary:scroll:start:auto',
+    'summary:scroll:start:auto',
+  ])
+})
+
+test('Game Info role adapter owns independent panel state and registrations', () => {
   assert.match(adapterSource, /useState\(false\)/)
   assert.match(adapterSource, /useRef<HTMLInputElement \| null>\(null\)/)
   assert.match(adapterSource, /useRef<HTMLSelectElement \| null>\(null\)/)
   assert.match(
     adapterSource,
-    /useRef<HTMLInputElement \| HTMLSelectElement \| null>\(null\)/,
+    /useRef<[\s\S]*?HTMLInputElement \| HTMLSelectElement \| null[\s\S]*?>\(null\)/,
   )
   assert.match(adapterSource, /registerAlwaysMountedRatingFocusTargets/)
   assert.match(adapterSource, /registerEnabledRatingSelectFocusTargets/)
   assert.match(adapterSource, /registerRatingValueFocusTarget/)
+  assert.match(adapterSource, /registerAlwaysMountedMediaFocusTargets/)
+  assert.match(adapterSource, /registerEnabledMediaFormatFocusTarget/)
+  assert.match(
+    adapterSource,
+    /registerAlwaysMountedOperatingSystemFocusTarget/,
+  )
   assert.match(adapterSource, /if \(!ratingEnabled\) return undefined/g)
+  assert.match(adapterSource, /if \(!mediaEnabled\) return undefined/)
   assert.match(adapterSource, /ratingValueControlKind/)
   assert.match(
     adapterSource,
-    /shouldOpenRatingPanelForRequest\(\s*state\.pendingRequest/,
+    /shouldOpenRatingPanelForRequest\(pendingRequest\)/,
   )
   assert.match(
     adapterSource,
-    /ratingPanelOpen=\{ratingPanelOpen \|\| ratingPanelFocusPending\}/,
+    /mediaPanelOpen=\{mediaPanelOpen \|\|[\s\S]*shouldOpenMediaPanelForRequest\(pendingRequest\)\}/,
+  )
+  assert.match(
+    adapterSource,
+    /operatingSystemPanelOpen=\{operatingSystemPanelOpen \|\|[\s\S]*shouldOpenOperatingSystemPanelForRequest\(pendingRequest\)\}/,
   )
   assert.match(registrationSource, /'disc:rating:system',[\s\S]*'disc:rating:enable'/)
   assert.match(registrationSource, /'disc:rating:value',[\s\S]*'disc:rating:enable'/)
   assert.match(registrationSource, /'disc:rating:source',[\s\S]*'disc:rating:enable'/)
 })
 
-test('generic controls forward refs to actual Rating form elements', () => {
+test('generic controls forward refs to exact Rating, Media, and OS elements', () => {
   assert.match(gameInfoSource, /open=\{ratingPanelOpen\}/)
   assert.match(gameInfoSource, /onOpenChange=\{onRatingPanelOpenChange\}/)
   assert.match(ratingSource, /enableControlRef=\{enableControlRef\}/)
@@ -527,6 +800,16 @@ test('generic controls forward refs to actual Rating form elements', () => {
   assert.match(ratingSource, /<select ref=\{valueControlRef\}/)
   assert.match(ratingSource, /sourceControlRef=\{sourceControlRef\}/)
   assert.match(markSource, /<select\s+ref=\{sourceControlRef\}/)
+  assert.match(gameInfoSource, /open=\{mediaPanelOpen\}/)
+  assert.match(gameInfoSource, /onOpenChange=\{onMediaPanelOpenChange\}/)
+  assert.match(gameInfoSource, /open=\{operatingSystemPanelOpen\}/)
+  assert.match(
+    gameInfoSource,
+    /onOpenChange=\{onOperatingSystemPanelOpenChange\}/,
+  )
+  assert.match(mediaSource, /enableControlRef=\{enableControlRef\}/)
+  assert.match(mediaSource, /<select ref=\{formatControlRef\}/)
+  assert.match(platformSource, /<input ref=\{enableControlRef\}/)
   const uploadInputTag = markSource.match(
     /<input\s+[\s\S]*?type="file"[\s\S]*?\/>/,
   )?.[0]
@@ -534,10 +817,10 @@ test('generic controls forward refs to actual Rating form elements', () => {
   assert.doesNotMatch(uploadInputTag, /ref=\{sourceControlRef\}/)
 })
 
-test('production integration stays Rating-only and dependency-safe', () => {
+test('production integration is role-owned and dependency-safe', () => {
   assert.match(
     appSource,
-    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoRatingControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
+    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoLogoRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.match(
     appSource,
@@ -547,9 +830,9 @@ test('production integration stays Rating-only and dependency-safe', () => {
     appSource,
     /section\.id === 'additional-artwork'[\s\S]*<DiscAdditionalArtworkRoleControls[\s\S]*artworkControls=\{artworkPanelProps\}/,
   )
-  assert.doesNotMatch(caseInsertSource, /DiscGameInfoRatingControls/)
+  assert.doesNotMatch(caseInsertSource, /DiscGameInfoLogoRoleControls/)
 
-  const combinedSource = `${adapterSource}\n${registrationSource}`
+  const combinedSource = `${adapterSource}\n${registrationSource}\n${gameInfoRegistrationSource}`
   const forbiddenDependencies = [
     'document.',
     'querySelector',
@@ -561,6 +844,9 @@ test('production integration stays Rating-only and dependency-safe', () => {
     'setInterval',
     'MutationObserver',
     'requestAnimationFrame',
+    'groupedPlatformMarkPlacement',
+    'handlePlatformMarkToggle',
+    'handleMediaMarkLayoutChange',
     'projectSchema',
     'createProjectSnapshot',
     'restoreProject',

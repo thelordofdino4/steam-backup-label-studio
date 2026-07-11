@@ -102,11 +102,24 @@ test('only navigation-owned panels use the controlled contract', () => {
       }
 
       if (callerFile.endsWith('/GameInfoLogoControls.tsx') &&
-        panelTag.includes('title="Rating badge"')) {
-        assert.match(panelTag, /open=\{ratingPanelOpen\}/)
+        (panelTag.includes('title="Rating badge"') ||
+          panelTag.includes('title="Media format mark"') ||
+          panelTag.includes('title="Operating system marks"'))) {
+        const expectedState = panelTag.includes('title="Rating badge"')
+          ? 'ratingPanelOpen'
+          : panelTag.includes('title="Media format mark"')
+            ? 'mediaPanelOpen'
+            : 'operatingSystemPanelOpen'
+        const expectedHandler = panelTag.includes('title="Rating badge"')
+          ? 'onRatingPanelOpenChange'
+          : panelTag.includes('title="Media format mark"')
+            ? 'onMediaPanelOpenChange'
+            : 'onOperatingSystemPanelOpenChange'
+
+        assert.match(panelTag, new RegExp(`open=\\{${expectedState}\\}`))
         assert.match(
           panelTag,
-          /onOpenChange=\{onRatingPanelOpenChange\}/,
+          new RegExp(`onOpenChange=\\{${expectedHandler}\\}`),
         )
         assert.doesNotMatch(panelTag, /\b(?:detailsRef|summaryRef)=/)
         continue

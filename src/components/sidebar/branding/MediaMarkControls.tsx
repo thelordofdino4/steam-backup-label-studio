@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode, Ref } from 'react'
 import { getMediaMarkLayoutSliderRanges } from '../../../layout/discElementSafeZone'
 import {
   MEDIA_MARK_OPTIONS,
@@ -24,6 +24,8 @@ type MediaMarkSetupControlsProps = Pick<
   | 'handleClearMediaMarkImage'
 > & {
   children?: ReactNode
+  enableControlRef?: Ref<HTMLInputElement>
+  formatControlRef?: Ref<HTMLSelectElement>
   idPrefix?: string
 }
 
@@ -36,6 +38,8 @@ export function MediaMarkSetupControls({
   handleMediaMarkLayoutChange,
   handleClearMediaMarkImage,
   children,
+  enableControlRef,
+  formatControlRef,
   idPrefix,
 }: MediaMarkSetupControlsProps) {
   const fieldId = (id: string) => idPrefix ? `${idPrefix}-${id}` : id
@@ -48,12 +52,13 @@ export function MediaMarkSetupControls({
     <OptionalFeatureSection
       className="logo-asset-card"
       enabled={isEnabled}
+      enableControlRef={enableControlRef}
       enableLabel="Show media format mark"
       onEnabledChange={(enabled) =>
         handleMediaMarkLayoutChange('enabled', enabled)}
     >
       <label className="field-label spacing-top" htmlFor={fieldId('media-mark-value')}>Format</label>
-      <select id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
+      <select ref={formatControlRef} id={fieldId('media-mark-value')} value={projectMediaMark.value} onChange={(event) => handleMediaMarkValueChange(event.target.value as MediaMarkValue)}>
         {MEDIA_MARK_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
       <EditorMarkImageSourceControls
@@ -112,6 +117,9 @@ export function MediaMarkControls({
   | 'handleMediaMarkLayoutChange'
   | 'handleClearMediaMarkImage'
   | 'handleResetMediaMarkLayout'
+> & Pick<
+  MediaMarkSetupControlsProps,
+  'enableControlRef' | 'formatControlRef'
 >) {
   const sliderRanges = getMediaMarkLayoutSliderRanges(
     projectMediaMark,

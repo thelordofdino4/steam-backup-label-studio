@@ -26,8 +26,8 @@ import {
   DiscGameTitleRoleControls,
 } from '../components/editor/DiscGameTitleRoleControls'
 import {
-  DiscGameInfoRatingControls,
-} from '../components/editor/DiscGameInfoRatingControls'
+  DiscGameInfoLogoRoleControls,
+} from '../components/editor/DiscGameInfoLogoRoleControls'
 import {
   DiscCompanyLogosRoleControls,
 } from '../components/editor/DiscCompanyLogosRoleControls'
@@ -1840,7 +1840,7 @@ function App() {
                 textControls={textPanelProps}
               />
             ) : section.id === 'game-info-logos' ? (
-              <DiscGameInfoRatingControls
+              <DiscGameInfoLogoRoleControls
                 brandingControls={brandingPanelProps}
               />
             ) : section.id === 'company-logos' ? (
