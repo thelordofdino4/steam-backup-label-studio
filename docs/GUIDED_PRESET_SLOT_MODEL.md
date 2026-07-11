@@ -60,10 +60,13 @@ Implemented role-focus infrastructure includes:
   item card and, for an available upload, its Local file panel without mutating
   project state.
 
-All current Disc role-focus targets now have UI registration. Deferred work
-includes guided preview request callers, guided persistence, and final native
-validation. Navigation state is transient and non-persistent, and Case Front,
-Case Back, and Spine remain outside the Disc-only provider.
+All 19 declared #287 Disc role-focus targets now have production registration.
+No production UI currently dispatches role-focus requests. Semantic request
+smoke remains deferred until the real guided-preview caller exists; only manual
+panel behavior is directly observable in the native app at this stage. Guided
+persistence, auto-fill, and native end-to-end guided-navigation validation also
+remain future #281 work. Navigation state is transient and non-persistent, and
+Case Front, Case Back, and Spine remain outside the Disc-only provider.
 
 ## 1. Purpose And Scope
 
@@ -560,7 +563,9 @@ loading.
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.
 3. Edit-mode placeholder overlay.
-4. Complete remaining Disc role-focus targets and add a typed guided-preview caller.
+4. Add the production guided-preview caller, connect placeholders to typed
+   role-focus requests, and perform native end-to-end guided-navigation
+   validation.
 5. Game Title image-first interaction and auto-fill.
 6. Safe rating/logo/legal suggestions.
 7. Filled-slot movement/export transition tests.

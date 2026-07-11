@@ -434,30 +434,50 @@ function parseOwnerTarget(
 function isOwnerTargetCompatibleWithDestination(
   destination: DiscRoleFocusDestination,
   ownerTarget: EditorRoleFocusOwnerTarget,
-) {
-  if (destination.roleId === 'additional-artwork') {
-    if (destination.focusTarget !== 'disc:additional-artwork:item-enable' &&
-      destination.focusTarget !== 'disc:additional-artwork:upload') {
-      return false
+): boolean {
+  switch (destination.roleId) {
+    case 'background-artwork':
+      return ownerTarget.owner === 'backgroundImage'
+    case 'game-title':
+      return destination.focusTarget === 'disc:game-title:text-fallback'
+        ? ownerTarget.owner === 'discText' && ownerTarget.key === 'title'
+        : ownerTarget.owner === 'titleArtwork'
+    case 'game-info-logos':
+      return ownerTarget.owner === 'ratingBadge' &&
+        ownerTarget.badgeKey === 'primary'
+    case 'company-logos': {
+      if (ownerTarget.owner !== 'logoAssets' ||
+        ownerTarget.scope !== 'primary') {
+        return false
+      }
+
+      const expectedLogoKey =
+        destination.focusTarget === 'disc:company-logo:developer-enable' ||
+        destination.focusTarget === 'disc:company-logo:developer-upload'
+          ? 'developer'
+          : 'publisher'
+
+      return ownerTarget.logoKey === expectedLogoKey
     }
+    case 'legal-info':
+      return ownerTarget.owner === 'discText' &&
+        ownerTarget.key === 'copyright'
+    case 'additional-artwork':
+      if (destination.focusTarget !== 'disc:additional-artwork:item-enable' &&
+        destination.focusTarget !== 'disc:additional-artwork:upload') {
+        return false
+      }
 
-    return ownerTarget.owner === 'additionalArtwork' &&
-      'elementId' in ownerTarget &&
-      ownerTarget.elementId === destination.elementId
+      return ownerTarget.owner === 'additionalArtwork' &&
+        'elementId' in ownerTarget &&
+        ownerTarget.elementId === destination.elementId
+    case 'additional-text':
+      return ownerTarget.owner === 'discText' &&
+        ownerTarget.key === 'customNote'
   }
 
-  if (destination.roleId !== 'company-logos') return true
-  if (ownerTarget.owner !== 'logoAssets' || ownerTarget.scope !== 'primary') {
-    return false
-  }
-
-  const expectedLogoKey =
-    destination.focusTarget === 'disc:company-logo:developer-enable' ||
-    destination.focusTarget === 'disc:company-logo:developer-upload'
-      ? 'developer'
-      : 'publisher'
-
-  return ownerTarget.logoKey === expectedLogoKey
+  destination satisfies never
+  return false
 }
 
 function parseEditorRoleFocusRequestUnsafe(

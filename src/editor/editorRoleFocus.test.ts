@@ -209,6 +209,125 @@ test('rejects invalid roles, targets, and role-target combinations', () => {
   )
 })
 
+test('accepts every fixed destination with omitted or exact owner identity', () => {
+  const cases = [
+    [VALID_DESTINATIONS[0], { owner: 'backgroundImage' }],
+    [VALID_DESTINATIONS[1], { owner: 'backgroundImage' }],
+    [VALID_DESTINATIONS[2], { owner: 'titleArtwork' }],
+    [VALID_DESTINATIONS[3], { owner: 'titleArtwork' }],
+    [VALID_DESTINATIONS[4], { owner: 'discText', key: 'title' }],
+    [VALID_DESTINATIONS[5], { owner: 'ratingBadge', badgeKey: 'primary' }],
+    [VALID_DESTINATIONS[6], { owner: 'ratingBadge', badgeKey: 'primary' }],
+    [VALID_DESTINATIONS[7], { owner: 'ratingBadge', badgeKey: 'primary' }],
+    [VALID_DESTINATIONS[8], { owner: 'ratingBadge', badgeKey: 'primary' }],
+    [VALID_DESTINATIONS[13], { owner: 'discText', key: 'copyright' }],
+    [VALID_DESTINATIONS[18], { owner: 'discText', key: 'customNote' }],
+  ] as const
+
+  cases.forEach(([destination, ownerTarget], index) => {
+    assert.equal(
+      parseEditorRoleFocusRequest(
+        createRequest(index + 1, destination),
+      ).ok,
+      true,
+      `omitted:${destination.focusTarget}`,
+    )
+    assert.equal(
+      parseEditorRoleFocusRequest({
+        ...createRequest(index + 1, destination),
+        ownerTarget,
+      }).ok,
+      true,
+      `matching:${destination.focusTarget}`,
+    )
+  })
+})
+
+test('owner identities cannot leak across fixed or repeatable target groups', () => {
+  const artworkId = 'persisted-artwork-id'
+  const groups = [
+    {
+      label: 'background',
+      destination: VALID_DESTINATIONS[0],
+      ownerTarget: { owner: 'backgroundImage' },
+    },
+    {
+      label: 'title-artwork',
+      destination: VALID_DESTINATIONS[2],
+      ownerTarget: { owner: 'titleArtwork' },
+    },
+    {
+      label: 'title-text',
+      destination: VALID_DESTINATIONS[4],
+      ownerTarget: { owner: 'discText', key: 'title' },
+    },
+    {
+      label: 'rating',
+      destination: VALID_DESTINATIONS[5],
+      ownerTarget: { owner: 'ratingBadge', badgeKey: 'primary' },
+    },
+    {
+      label: 'developer-logo',
+      destination: VALID_DESTINATIONS[9],
+      ownerTarget: {
+        owner: 'logoAssets',
+        logoKey: 'developer',
+        scope: 'primary',
+      },
+    },
+    {
+      label: 'publisher-logo',
+      destination: VALID_DESTINATIONS[11],
+      ownerTarget: {
+        owner: 'logoAssets',
+        logoKey: 'publisher',
+        scope: 'primary',
+      },
+    },
+    {
+      label: 'legal',
+      destination: VALID_DESTINATIONS[13],
+      ownerTarget: { owner: 'discText', key: 'copyright' },
+    },
+    {
+      label: 'additional-artwork',
+      destination: {
+        roleId: 'additional-artwork',
+        focusTarget: 'disc:additional-artwork:item-enable',
+        elementId: artworkId,
+      },
+      ownerTarget: { owner: 'additionalArtwork', elementId: artworkId },
+    },
+    {
+      label: 'additional-text',
+      destination: VALID_DESTINATIONS[18],
+      ownerTarget: { owner: 'discText', key: 'customNote' },
+    },
+  ] as const
+
+  groups.forEach((destinationGroup, destinationIndex) => {
+    groups.forEach((ownerGroup, ownerIndex) => {
+      const result = parseEditorRoleFocusRequest({
+        ...createRequest(destinationIndex * groups.length + ownerIndex + 1),
+        destination: destinationGroup.destination,
+        ownerTarget: ownerGroup.ownerTarget,
+      })
+
+      assert.equal(
+        result.ok,
+        destinationIndex === ownerIndex,
+        `${destinationGroup.label}:${ownerGroup.label}`,
+      )
+      if (destinationIndex !== ownerIndex) {
+        assert.deepEqual(result, {
+          ok: false,
+          error: 'invalid-owner-target',
+        })
+      }
+    })
+  })
+})
+
 test('parses every Company Logo target for focus and reveal without coercion', () => {
   for (const behavior of ['focus', 'reveal'] as const) {
     DISC_COMPANY_LOGO_FOCUS_TARGET_IDS.forEach((focusTarget, index) => {
