@@ -13,13 +13,12 @@ import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import {
-  getDiscGuidedSlotGeometry,
+  getDiscGuidedLayoutSlotDefinition,
   type DiscGuidedRectGeometry,
 } from './discGuidedLayouts.ts'
 import {
   createDiscGuidedPlaceholderViewModels,
-  DISC_GAME_TITLE_GUIDED_SLOT_ID,
-  projectDiscGameTitleGuidedPlaceholder,
+  projectDiscGuidedPlaceholderViewModel,
 } from './discGuidedPlaceholderViewModel.ts'
 import type {
   DiscGuidedSlotId,
@@ -28,12 +27,24 @@ import type {
 } from './discGuidedSlots.ts'
 
 const CLASSIC_LAYOUT_ID = 'disc:guided-layout:classic-top-title'
+const TITLE_SLOT_ID = 'disc:guided:game-title:primary'
+const BACKGROUND_SLOT_ID = 'disc:guided:background-image:primary'
+const RATING_SLOT_ID = 'disc:guided:rating:primary'
+const COMPANY_SLOT_ID = 'disc:guided:company-logo:primary'
+const LEGAL_SLOT_ID = 'disc:guided:legal-text:copyright'
+const CLASSIC_SLOT_ORDER = [
+  BACKGROUND_SLOT_ID,
+  TITLE_SLOT_ID,
+  RATING_SLOT_ID,
+  COMPANY_SLOT_ID,
+  LEGAL_SLOT_ID,
+] as const
 const NO_SUGGESTIONS: readonly DiscGuidedSlotSuggestion[] = []
 const NO_SKIPPED_SLOTS = new Set<DiscGuidedSlotId>()
 
 function createState(): DiscGuidedSlotState {
   return {
-    background: { enabled: true, imageDataUrl: null },
+    background: { enabled: true, imageDataUrl: null, imageSize: null },
     titleArtwork: createDefaultProjectTitleArtwork(),
     metadata: createDefaultProjectMetadata(),
     ratingBadge: createDefaultProjectRatingBadge(),
@@ -62,89 +73,198 @@ function createPlaceholders(
   })
 }
 
-test('unfilled Game Title projects the immutable registry geometry', () => {
-  const placeholders = createPlaceholders()
-  const geometry = getDiscGuidedSlotGeometry(
-    CLASSIC_LAYOUT_ID,
-    DISC_GAME_TITLE_GUIDED_SLOT_ID,
-  )
+function getSlotIds(state = createState()) {
+  return createPlaceholders(state).map(({ slotId }) => slotId)
+}
 
-  assert.equal(placeholders.length, 1)
-  assert.deepEqual(placeholders[0], {
-    slotId: DISC_GAME_TITLE_GUIDED_SLOT_ID,
-    label: 'Game Title',
-    geometry,
-  })
-  assert.equal(placeholders[0]?.geometry, geometry)
+test('blank Classic Top Title projects all five slots in layout order', () => {
+  const placeholders = createPlaceholders()
+
+  assert.deepEqual(placeholders.map(({ slotId }) => slotId), CLASSIC_SLOT_ORDER)
+  assert.deepEqual(placeholders.map(({ label }) => label), [
+    'Background Image',
+    'Game Title',
+    'Game Info Logos',
+    'Company Logos',
+    'Legal Info',
+  ])
+  assert.deepEqual(placeholders.map(({ setupKind }) => setupKind), [
+    'background',
+    'game-title-choice',
+    'rating',
+    'company-logo-choice',
+    'legal',
+  ])
+  assert.equal(placeholders[0]?.visualLayer, 'background')
+  assert.ok(placeholders.slice(1).every(({ visualLayer }) =>
+    visualLayer === 'foreground'))
+  assert.ok(placeholders.every(({ lifecycle }) => lifecycle === 'unfilled'))
+  assert.ok(placeholders.every(({ ownerContentLayering }) =>
+    ownerContentLayering === 'guidance-behind-real-content'))
   assert.equal(Object.isFrozen(placeholders), true)
-  assert.equal(Object.isFrozen(placeholders[0]), true)
+  assert.ok(placeholders.every(Object.isFrozen))
 })
 
-test('valid title artwork and meaningful title text suppress the placeholder', () => {
+test('view models use exact visual/action registry geometry', () => {
+  for (const placeholder of createPlaceholders()) {
+    const layoutSlot = getDiscGuidedLayoutSlotDefinition(
+      CLASSIC_LAYOUT_ID,
+      placeholder.slotId,
+    )
+
+    assert.ok(layoutSlot)
+    assert.equal(placeholder.visualGeometry, layoutSlot.visualGeometry)
+    assert.equal(placeholder.actionGeometry, layoutSlot.actionGeometry)
+    assert.equal(placeholder.geometry, layoutSlot.visualGeometry)
+  }
+
+  const background = createPlaceholders()[0]
+  assert.notDeepEqual(background?.visualGeometry, background?.actionGeometry)
+})
+
+test('suggested slots remain visible and skipped slots remain absent', () => {
+  const suggestion: DiscGuidedSlotSuggestion = {
+    id: 'suggestion:title',
+    slotId: TITLE_SLOT_ID,
+    contentKind: 'image',
+    sourceKind: 'external',
+  }
+  const suggested = createPlaceholders(createState(), [suggestion])
+
+  assert.equal(suggested.length, 5)
+  assert.equal(
+    suggested.find(({ slotId }) => slotId === TITLE_SLOT_ID)?.lifecycle,
+    'suggested',
+  )
+  assert.deepEqual(
+    createPlaceholders(createState(), NO_SUGGESTIONS, new Set([TITLE_SLOT_ID]))
+      .map(({ slotId }) => slotId),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== TITLE_SLOT_ID),
+  )
+})
+
+test('untouched default title remains guided', () => {
+  const state = createState()
+  state.discText.settings.title = true
+
+  assert.ok(getSlotIds(state).includes(TITLE_SLOT_ID))
+})
+
+test('authored title and valid title artwork suppress only Game Title', () => {
+  const authoredState = createState()
+  authoredState.discText.settings.title = true
+  authoredState.discText.valueSources.title = 'manual'
+  authoredState.discText.titleValue = 'A Real Game'
+  assert.deepEqual(
+    getSlotIds(authoredState),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== TITLE_SLOT_ID),
+  )
+
   const artworkState = createState()
   artworkState.titleArtwork = {
     ...artworkState.titleArtwork,
     imageDataUrl: 'data:image/png;base64,title',
     layout: { ...artworkState.titleArtwork.layout, enabled: true },
   }
-  assert.deepEqual(createPlaceholders(artworkState), [])
-
-  const textState = createState()
-  textState.discText.settings.title = true
-  textState.discText.valueSources.title = 'manual'
-  textState.discText.titleValue = 'A Real Game'
-  assert.deepEqual(createPlaceholders(textState), [])
-})
-
-test('untouched default title stays visible but authored or imported Untitled counts', () => {
-  const untouchedState = createState()
-  untouchedState.discText.settings.title = true
-  assert.equal(createPlaceholders(untouchedState).length, 1)
-
-  const authoredState = createState()
-  authoredState.discText.settings.title = true
-  authoredState.discText.valueSources.title = 'manual'
-  authoredState.discText.titleValue = 'Untitled'
-  assert.deepEqual(createPlaceholders(authoredState), [])
-
-  const importedState = createState()
-  importedState.discText.settings.title = true
-  importedState.metadata = {
-    ...importedState.metadata,
-    title: 'Untitled',
-    steamAppId: '123',
-  }
-  assert.deepEqual(createPlaceholders(importedState), [])
-})
-
-test('suggested and skipped lifecycle states stay hidden', () => {
-  const suggestion: DiscGuidedSlotSuggestion = {
-    id: 'suggestion:title',
-    slotId: DISC_GAME_TITLE_GUIDED_SLOT_ID,
-    contentKind: 'image',
-    sourceKind: 'external',
-  }
-
-  assert.deepEqual(createPlaceholders(createState(), [suggestion]), [])
   assert.deepEqual(
-    createPlaceholders(createState(), NO_SUGGESTIONS, new Set([
-      DISC_GAME_TITLE_GUIDED_SLOT_ID,
-    ])),
-    [],
+    getSlotIds(artworkState),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== TITLE_SLOT_ID),
   )
 })
 
-test('no active layout and missing geometry project no placeholder', () => {
+test('Background requires active image readiness before it suppresses guidance', () => {
+  const state = createState()
+  state.background.imageDataUrl = 'data:image/png;base64,background'
+  assert.ok(getSlotIds(state).includes(BACKGROUND_SLOT_ID))
+
+  state.background.imageSize = { width: 1200, height: 1200 }
+  assert.deepEqual(
+    getSlotIds(state),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== BACKGROUND_SLOT_ID),
+  )
+})
+
+test('valid primary Rating suppresses only Game Info Logos', () => {
+  const state = createState()
+  state.ratingBadge = {
+    ...state.ratingBadge,
+    layout: { ...state.ratingBadge.layout, enabled: true },
+  }
+  state.metadata = {
+    ...state.metadata,
+    ratingSystem: 'ESRB',
+    ratingValue: 'T',
+  }
+
+  assert.deepEqual(
+    getSlotIds(state),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== RATING_SLOT_ID),
+  )
+})
+
+test('enabled developer or publisher assets suppress only Company Logos', () => {
+  for (const logoKey of ['developer', 'publisher'] as const) {
+    const state = createState()
+
+    if (logoKey === 'developer') {
+      state.logoAssets.developerLogoDataUrl = 'data:image/png;base64,developer'
+      state.logoAssets.developerLogoLayout.enabled = true
+    } else {
+      state.logoAssets.publisherLogoDataUrl = 'data:image/png;base64,publisher'
+      state.logoAssets.publisherLogoLayout.enabled = true
+    }
+
+    assert.deepEqual(
+      getSlotIds(state),
+      CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== COMPANY_SLOT_ID),
+    )
+  }
+})
+
+test('meaningful enabled copyright suppresses only Legal Info', () => {
+  const state = createState()
+  state.discText.settings.copyright = true
+  state.discText.valueSources.copyright = 'manual'
+  state.discText.values.copyright = 'Copyright 2026'
+
+  assert.deepEqual(
+    getSlotIds(state),
+    CLASSIC_SLOT_ORDER.filter((slotId) => slotId !== LEGAL_SLOT_ID),
+  )
+})
+
+test('no active layout and missing slot layout produce no view model', () => {
   assert.deepEqual(createDiscGuidedPlaceholderViewModels({
     activeLayoutId: null,
     state: createState(),
     suggestions: NO_SUGGESTIONS,
     skippedSlotIds: NO_SKIPPED_SLOTS,
   }), [])
-  assert.deepEqual(projectDiscGameTitleGuidedPlaceholder({
-    geometry: null,
+  assert.equal(projectDiscGuidedPlaceholderViewModel({
+    layoutSlot: null,
     lifecycle: 'unfilled',
-  }), [])
+  }), null)
+})
+
+test('filled and skipped lifecycle never project while suggested remains explicit', () => {
+  const layoutSlot = getDiscGuidedLayoutSlotDefinition(
+    CLASSIC_LAYOUT_ID,
+    TITLE_SLOT_ID,
+  )
+  assert.ok(layoutSlot)
+
+  assert.equal(projectDiscGuidedPlaceholderViewModel({
+    layoutSlot,
+    lifecycle: 'filled',
+  }), null)
+  assert.equal(projectDiscGuidedPlaceholderViewModel({
+    layoutSlot,
+    lifecycle: 'skipped',
+  }), null)
+  assert.equal(projectDiscGuidedPlaceholderViewModel({
+    layoutSlot,
+    lifecycle: 'suggested',
+  })?.lifecycle, 'suggested')
 })
 
 test('normalized geometry is deterministic and contains no viewport pixels', () => {
@@ -156,21 +276,30 @@ test('normalized geometry is deterministic and contains no viewport pixels', () 
     heightPercent: 12,
     rotationDegrees: 7,
   }
-  const first = projectDiscGameTitleGuidedPlaceholder({
-    geometry,
+  const layoutSlot = {
+    slotId: TITLE_SLOT_ID,
+    label: 'Game Title',
+    visualGeometry: geometry,
+    actionGeometry: geometry,
+    visualLayer: 'foreground' as const,
+    setupKind: 'game-title-choice' as const,
+    populationSource: 'existing-steam-import' as const,
+  }
+  const first = projectDiscGuidedPlaceholderViewModel({
+    layoutSlot,
     lifecycle: 'unfilled',
   })
-  const second = projectDiscGameTitleGuidedPlaceholder({
-    geometry,
+  const second = projectDiscGuidedPlaceholderViewModel({
+    layoutSlot,
     lifecycle: 'unfilled',
   })
 
   assert.deepEqual(first, second)
-  assert.equal(first[0]?.geometry, geometry)
+  assert.equal(first?.visualGeometry, geometry)
   assert.equal(JSON.stringify(first).includes('px'), false)
 })
 
-test('view-model source contains no UI, persistence, export, or navigation behavior', () => {
+test('view-model source contains no UI, persistence, export, renderer, Case Insert, or navigation behavior', () => {
   const source = readFileSync(
     new URL('./discGuidedPlaceholderViewModel.ts', import.meta.url),
     'utf8',

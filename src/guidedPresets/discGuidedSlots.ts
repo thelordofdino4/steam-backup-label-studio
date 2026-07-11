@@ -8,6 +8,7 @@ import {
 } from '../discText/index.ts'
 import { resolveDiscTextMetadataState } from '../discText/metadataStateTransitions.ts'
 import { isOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
+import { hasActiveImageContent } from '../image/imageContentBounds.ts'
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import type { DiscTextValueSources } from '../project/metadataDiscText.ts'
 import { shouldRenderAdditionalArtworkElement } from '../project/projectAdditionalArtwork.ts'
@@ -15,6 +16,7 @@ import { DEFAULT_DISC_PROJECT_TITLE } from '../project/projectMetadata.ts'
 import { shouldRenderRatingBadge } from '../project/projectRatingBadge.ts'
 import { shouldRenderTitleArtwork } from '../project/projectTitleArtwork.ts'
 import type {
+  BackgroundImageSize,
   ProjectAdditionalArtwork,
   ProjectLogoAssets,
   ProjectMetadata,
@@ -114,6 +116,7 @@ export type DiscGuidedSlotState = {
   background: {
     enabled: boolean
     imageDataUrl: string | null
+    imageSize: BackgroundImageSize | null
   }
   titleArtwork: ProjectTitleArtwork
   metadata: ProjectMetadata
@@ -336,7 +339,14 @@ function resolveBindingCandidate(
 ): DiscGuidedResolvedBinding | null {
   switch (candidate.owner) {
     case 'backgroundImage':
-      return state.background.enabled && Boolean(state.background.imageDataUrl)
+      return state.background.enabled &&
+          Boolean(state.background.imageDataUrl) &&
+          Boolean(
+            state.background.imageSize &&
+            state.background.imageSize.width > 0 &&
+            state.background.imageSize.height > 0,
+          ) &&
+          hasActiveImageContent(state.background.imageSize)
         ? candidate
         : null
     case 'titleArtwork':

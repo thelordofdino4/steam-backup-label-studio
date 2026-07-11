@@ -666,6 +666,7 @@ function App() {
     background: {
       enabled: isBackgroundArtworkEnabled,
       imageDataUrl: backgroundImageUrl,
+      imageSize: backgroundImageSize,
     },
     titleArtwork: projectTitleArtwork,
     metadata: projectMetadata,

@@ -1,7 +1,11 @@
 import {
-  getDiscGuidedSlotGeometry,
+  getDiscGuidedLayoutDefinition,
+  getDiscGuidedLayoutSlotDefinition,
   type DiscGuidedLayoutId,
+  type DiscGuidedLayoutSlotDefinition,
+  type DiscGuidedPlaceholderLayer,
   type DiscGuidedRectGeometry,
+  type DiscGuidedSetupKind,
 } from './discGuidedLayouts.ts'
 import {
   resolveDiscGuidedSlot,
@@ -10,35 +14,43 @@ import {
   type DiscGuidedSlotSuggestion,
 } from './discGuidedSlots.ts'
 
-export const DISC_GAME_TITLE_GUIDED_SLOT_ID =
-  'disc:guided:game-title:primary' as const
-
 export type DiscGuidedPlaceholderViewModel = Readonly<{
-  slotId: typeof DISC_GAME_TITLE_GUIDED_SLOT_ID
-  label: 'Game Title'
+  slotId: DiscGuidedSlotId
+  label: string
+  visualGeometry: DiscGuidedRectGeometry
+  actionGeometry: DiscGuidedRectGeometry
+  visualLayer: DiscGuidedPlaceholderLayer
+  lifecycle: 'unfilled' | 'suggested'
+  setupKind: DiscGuidedSetupKind
+  ownerContentLayering: 'guidance-behind-real-content'
+  // Temporary compatibility for the passive overlay until the visual-layer chunk.
   geometry: DiscGuidedRectGeometry
 }>
 
 const NO_PLACEHOLDERS = Object.freeze([]) as readonly DiscGuidedPlaceholderViewModel[]
 
-export function projectDiscGameTitleGuidedPlaceholder({
-  geometry,
+export function projectDiscGuidedPlaceholderViewModel({
+  layoutSlot,
   lifecycle,
 }: {
-  geometry: DiscGuidedRectGeometry | null
+  layoutSlot: DiscGuidedLayoutSlotDefinition | null
   lifecycle: 'unfilled' | 'suggested' | 'filled' | 'skipped'
-}): readonly DiscGuidedPlaceholderViewModel[] {
-  if (!geometry || lifecycle !== 'unfilled') {
-    return NO_PLACEHOLDERS
+}): DiscGuidedPlaceholderViewModel | null {
+  if (!layoutSlot || (lifecycle !== 'unfilled' && lifecycle !== 'suggested')) {
+    return null
   }
 
-  return Object.freeze([
-    Object.freeze({
-      slotId: DISC_GAME_TITLE_GUIDED_SLOT_ID,
-      label: 'Game Title',
-      geometry,
-    }),
-  ])
+  return Object.freeze({
+    slotId: layoutSlot.slotId,
+    label: layoutSlot.label,
+    visualGeometry: layoutSlot.visualGeometry,
+    actionGeometry: layoutSlot.actionGeometry,
+    visualLayer: layoutSlot.visualLayer,
+    lifecycle,
+    setupKind: layoutSlot.setupKind,
+    ownerContentLayering: 'guidance-behind-real-content',
+    geometry: layoutSlot.visualGeometry,
+  })
 }
 
 export function createDiscGuidedPlaceholderViewModels({
@@ -56,19 +68,28 @@ export function createDiscGuidedPlaceholderViewModels({
     return NO_PLACEHOLDERS
   }
 
-  const geometry = getDiscGuidedSlotGeometry(
-    activeLayoutId,
-    DISC_GAME_TITLE_GUIDED_SLOT_ID,
-  )
-  const resolution = resolveDiscGuidedSlot({
-    slotId: DISC_GAME_TITLE_GUIDED_SLOT_ID,
-    state,
-    suggestions,
-    skippedSlotIds,
-  })
+  const layout = getDiscGuidedLayoutDefinition(activeLayoutId)
 
-  return projectDiscGameTitleGuidedPlaceholder({
-    geometry,
-    lifecycle: resolution.lifecycle,
-  })
+  if (!layout) {
+    return NO_PLACEHOLDERS
+  }
+
+  return Object.freeze(layout.slotOrder.flatMap((slotId) => {
+    const layoutSlot = getDiscGuidedLayoutSlotDefinition(activeLayoutId, slotId)
+
+    if (!layoutSlot) return []
+
+    const resolution = resolveDiscGuidedSlot({
+      slotId,
+      state,
+      suggestions,
+      skippedSlotIds,
+    })
+    const viewModel = projectDiscGuidedPlaceholderViewModel({
+      layoutSlot,
+      lifecycle: resolution.lifecycle,
+    })
+
+    return viewModel ? [viewModel] : []
+  }))
 }

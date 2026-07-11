@@ -1,5 +1,5 @@
 # Guided Preset Slot Model
-> Status: Design contract for GitHub issue #283.
+> Status: Design contract for #283 and implementation contract for #289.
 > Purpose: Define the Disc guided preset slot identity, lifecycle, binding, and architecture boundaries for parent issue #281.
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
@@ -16,17 +16,21 @@ state is transient and is not serialized.
 Pure guided-layout identity and placeholder geometry are implemented separately
 in `src/guidedPresets/discGuidedLayouts.ts`. The existing
 `classic-top-title` role preset maps to
-`disc:guided-layout:classic-top-title`, whose only current geometry is the
-normalized Disc-space rectangle for `disc:guided:game-title:primary`. Layout
-presets continue to place real feature-owner state; the guided-layout registry
-describes expected semantic-slot geometry without lifecycle, content, DOM,
-renderer, export, or persistence data. A successful `classic-top-title` layout
-preset application now activates that guided layout as transient editor state.
-While its Game Title slot resolves to `unfilled`, the Disc edit preview renders
-a passive placeholder using the normalized registry geometry. Valid title
-artwork or meaningful title text suppresses it through the existing lifecycle
-resolver. Click interaction, role-focus dispatch, suggestions, skip behavior,
-other slots, and other surfaces remain deferred.
+`disc:guided-layout:classic-top-title`. Its ordered pure layout now defines
+Background Image, Game Title, primary Rating as Game Info Logos, Company Logos,
+and Legal Info. Every slot declares normalized visual and action geometry, a
+background/foreground layer, semantic setup kind, and safe population
+capability. The pure projector returns `unfilled` and `suggested` slots and
+suppresses `filled` and `skipped` slots independently. Layout presets continue
+to place real feature-owner state; guided definitions contain no content, DOM,
+renderer, export, persistence, or role-focus request data.
+
+A successful `classic-top-title` layout preset application activates the
+guided layout as transient editor state. The existing passive Game Title SVG is
+foundation work, not the corrected #289 acceptance target. Rendering all five
+slots, background/foreground visual separation, blue pulse styling, click and
+keyboard interaction, setup choices, and role-focus dispatch remain later
+chunks. #289 is not ready for a PR.
 
 Implemented role-focus infrastructure includes:
 
@@ -98,11 +102,12 @@ or enable a feature object merely because the slot exists.
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
-implemented, along with the Disc role-focus foundation and the first passive
-Game Title preview placeholder. Interactive placeholder controls, guided
-request callers, persistence, and auto-fill remain deferred. Case Front, Case
-Back, and Spine guided presets remain deferred until the Disc contract is
-proven.
+implemented, along with the Disc role-focus foundation, complete pure Classic
+Top Title five-slot layout, and generalized placeholder projection. The first
+passive Game Title preview remains a temporary rendering foundation.
+Interactive placeholder controls, guided request dispatch, persistence, and
+auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
+remain deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
 
@@ -218,9 +223,10 @@ automatically enable both title artwork and title text.
 | Export | Existing enabled effective-background export path after binding |
 | Movement | Existing background drag and scale behavior after binding only |
 
-The background owner must be enabled and expose a real effective image. An
-enabled owner with no effective image remains unfilled. Default or invented
-artwork must not count as filled.
+The background owner must be enabled, contain a nonempty image URL, have loaded
+positive image dimensions, and pass the canonical active-image-content check.
+URL-only, unloaded, empty, default, or invented artwork remains unfilled. This
+readiness is transient resolver input and adds no project schema field.
 
 ### Rating
 
@@ -326,6 +332,25 @@ The fixed `customNote` row must be enabled and its resolved content must be
 nonblank. This first contract uses an existing fixed row; it does not introduce
 an arbitrary repeatable text-layer model.
 
+### Classic Top Title Layout
+
+Classic Top Title requires these five workflow slots. Rating is the only Game
+Info Logos owner in #289; media, platform, and technical marks need separate
+future semantic slots.
+
+| Slot | Label | Visual geometry `(cx, cy, w, h)` | Action geometry | Layer | Setup kind | Population capability |
+| --- | --- | --- | --- | --- | --- | --- |
+| `disc:guided:background-image:primary` | Background Image | `50, 50, 92, 92` | `50, 36, 34, 10` | background | `background` | none |
+| `disc:guided:game-title:primary` | Game Title | `50, 19.5, 62, 16` | same | foreground | `game-title-choice` | existing Steam import |
+| `disc:guided:rating:primary` | Game Info Logos | `78, 68, 20, 18` | same | foreground | `rating` | accepted metadata |
+| `disc:guided:company-logo:primary` | Company Logos | `22, 69, 28, 22` | same | foreground | `company-logo-choice` | existing configured owner only |
+| `disc:guided:legal-text:copyright` | Legal Info | `50, 88, 64, 12` | same | foreground | `legal` | accepted metadata |
+
+The broad Background visual rectangle intentionally contains all foreground
+regions, while its smaller action anchor avoids overloading the whole Disc as
+an interaction target. Foreground rectangles do not overlap. Geometry is
+normalized Disc space and contains no viewport pixels.
+
 ## 5. Lifecycle Derivation And Precedence
 
 Resolution uses this precedence:
@@ -353,8 +378,9 @@ through the existing owner instead of mutating duplicated slot content.
 | `filled` | unfilled, suggested, skipped | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
 | `skipped` | unfilled, suggested, filled | Placeholder hidden or subdued by a future UX decision | No | No output merely from skip state | Existing feature payload is preserved. |
 
-Placeholder visibility in this table is a contract for future implementation,
-not current UI behavior.
+The pure projector implements this visibility contract. The current passive
+SVG does not yet render the complete projected set correctly; that visual work
+remains the next #289 chunk.
 
 ## 7. Derived, Transient, And Persisted State
 
@@ -419,23 +445,28 @@ auto-fill implementation remains outside this issue.
 
 - A placeholder is edit-mode-only guidance.
 - It is a separate affordance layer, not a renderer replacement.
-- It appears after normal Disc editor preview layers.
+- Background guidance belongs behind foreground slots and real owner content.
+- Foreground guidance must remain behind any real owner content that still
+  renders while the semantic slot is incomplete.
 - It never enters export layer lists, export inputs, or PNG drawing helpers.
 - It uses explicit preset geometry because an empty slot has no rendered DOM owner to measure.
-- It may reuse the selected-element outline and pulse visual language.
+- It must reuse the blue dashed selected-element pulse/glow language for #289.
 - Animated treatment must respect reduced-motion preferences.
 - It is non-draggable and non-resizable until filled.
 - Filling suppresses the placeholder and continues through the existing feature renderer.
 
-The first implementation is limited to Classic Top Title and Game Title. Its
-SVG uses the registry's normalized `0..100` Disc coordinates, is pointer-inert,
-has no drag or resize behavior, and is masked to the outer Disc circle minus the
-canonical physical center hole. It mounts only through the Disc editor's
-explicit `editorAffordances` input, after normal Disc layers and before the
-existing selection overlay. Guided activation clears on new/replaced projects
-and workspace exit, and neither activation nor placeholder state enters project
-save/load, render, or export paths. Native validation remains pending explicit
-authorization.
+The current SVG uses the registry's normalized `0..100` Disc coordinates, is
+pointer-inert, and is masked to the outer Disc circle minus the canonical
+physical center hole. It mounts only through the Disc editor's explicit
+`editorAffordances` input. It must be replaced by split background/foreground
+visual layers before acceptance. Foreground guidance must render behind real
+owner content: untouched default title copy may remain semantically incomplete
+while still rendering through the real Disc text owner, and guidance must never
+paint opaquely over it. Pure placeholder view models record this as
+`guidance-behind-real-content`. Guided activation clears on new/replaced
+projects and
+workspace exit; activation and placeholder state never enter save/load, render,
+or export paths.
 
 The current preview overlay geometry helpers can inform a later implementation,
 but empty-slot geometry cannot depend on finding a real feature element in the
@@ -535,10 +566,11 @@ item. Array indexes, first-item selection, candidate bindings such as
 `first-renderable-existing`, DOM IDs, and encoded string keys are not valid
 navigation identity.
 
-No guided preview caller exists yet. Future placeholder components should emit
-typed navigation intent rather than query the DOM or duplicate role-panel
-state. Native focus validation remains pending. Case Front, Case Back, and Spine
-remain outside this Disc-only provider.
+The passive guided preview caller does not dispatch role-focus requests yet.
+Future interactive placeholders must emit typed navigation intent rather than
+query the DOM or duplicate role-panel state. Native focus validation remains
+pending. Case Front, Case Back, and Spine remain outside this Disc-only
+provider.
 
 ## 12. Persistence Boundary
 
@@ -579,7 +611,7 @@ loading.
 - Whether each safe suggestion auto-binds or requires confirmation.
 - Repeatable-slot append versus reuse behavior.
 - Guided preset and slot versioning.
-- Placeholder geometry coordinate format and safe-zone representation.
+- Future non-rectangular placeholder geometry and safe-zone representation.
 - Whether disabled but otherwise valid payload shows an unfilled placeholder or a distinct inactive state.
 - Whether `domain-mark` remains one content kind or splits into rating, media, platform, and technical kinds.
 - How a primary repeated slot preserves its binding when repeated objects are reordered or removed.
@@ -588,8 +620,8 @@ loading.
 
 1. Pure Disc slot definitions and resolution predicates.
 2. Guided preset persistence/schema design.
-3. Extend the edit-mode placeholder overlay beyond passive Game Title guidance.
-4. Connect interactive placeholders to typed
+3. Split background/foreground visual layers and restore blue pulse styling.
+4. Add accessible setup choices and connect interactive placeholders to typed
    role-focus requests, and perform native end-to-end guided-navigation
    validation.
 5. Game Title image-first interaction and auto-fill.

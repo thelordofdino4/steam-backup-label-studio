@@ -38,6 +38,7 @@ function createState(): DiscGuidedSlotState {
     background: {
       enabled: true,
       imageDataUrl: null,
+      imageSize: null,
     },
     titleArtwork: createDefaultProjectTitleArtwork(),
     metadata: createDefaultProjectMetadata(),
@@ -283,9 +284,26 @@ test('Game Title resolves an accepted suggestion only without valid owner conten
   assert.equal(resolve(slotId, state, [suggestion]).lifecycle, 'filled')
 })
 
-test('Background requires both enablement and a real effective image', () => {
+test('Background requires enablement, an image URL, and active image readiness', () => {
   const state = createState()
   state.background.imageDataUrl = 'data:image/png;base64,background'
+
+  assert.equal(
+    resolve('disc:guided:background-image:primary', state).lifecycle,
+    'unfilled',
+  )
+
+  state.background.imageSize = {
+    width: 1200,
+    height: 1200,
+    contentBounds: { x: 0, y: 0, width: 0, height: 0 },
+  }
+  assert.equal(
+    resolve('disc:guided:background-image:primary', state).lifecycle,
+    'unfilled',
+  )
+
+  state.background.imageSize = { width: 1200, height: 1200 }
 
   assert.deepEqual(
     resolve('disc:guided:background-image:primary', state).binding,
@@ -489,6 +507,7 @@ test('Additional Text requires enabled nonblank rendered custom-note content', (
 test('explicit skip overrides filled state without mutating the owner', () => {
   const state = createState()
   state.background.imageDataUrl = 'data:image/png;base64,background'
+  state.background.imageSize = { width: 1200, height: 1200 }
   const before = structuredClone(state)
   const skippedSlotIds = new Set<DiscGuidedSlotId>([
     'disc:guided:background-image:primary',
