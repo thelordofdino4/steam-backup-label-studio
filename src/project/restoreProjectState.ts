@@ -58,6 +58,8 @@ import { normalizeProjectMetadata } from './projectMetadata.ts'
 import { normalizeProjectRatingBadge } from './projectRatingBadge.ts'
 import { normalizeProjectTechnicalMarks } from './projectTechnicalMarks.ts'
 import { normalizeProjectTitleArtwork } from './projectTitleArtwork.ts'
+import { restoreSavedDiscGuidedWorkflow } from './projectGuidedWorkflow.ts'
+import type { DiscGuidedWorkflowState } from '../guidedPresets/discGuidedWorkflow.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -85,6 +87,7 @@ export type RestoredProjectTemplateState = {
 }
 
 export type RestoredProjectState = {
+  discGuidedWorkflow: DiscGuidedWorkflowState
   manualGameTitle: string
   projectMetadata: ProjectMetadata
   projectLogoAssets: ProjectLogoAssets
@@ -334,6 +337,7 @@ export async function restoreSavedProjectState(
   const discTextTitleValue = project.discText?.titleValue ?? ''
 
   return {
+    discGuidedWorkflow: restoreSavedDiscGuidedWorkflow(project.editor),
     manualGameTitle,
     projectMetadata,
     projectLogoAssets,

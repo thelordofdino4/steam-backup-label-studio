@@ -6,6 +6,9 @@ import {
 } from '../branding/steamBannerDefaults.ts'
 import { createDefaultProjectDiscNumberArtwork } from '../discText/discNumberArtwork.ts'
 import {
+  INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+} from '../guidedPresets/discGuidedWorkflow.ts'
+import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
   createDefaultDiscTextValues,
@@ -162,6 +165,7 @@ async function createDiscParityFields(): Promise<ProjectParityField[]> {
     additionalArtwork,
   }
   const saved = createProjectSnapshot({
+    discGuidedWorkflow: INITIAL_DISC_GUIDED_WORKFLOW_STATE,
     manualGameTitle: 'Parity Disc',
     selectedSteamGame: null,
     projectMetadata: createDefaultProjectMetadata(),

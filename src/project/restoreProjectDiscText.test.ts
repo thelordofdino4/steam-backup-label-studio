@@ -9,7 +9,7 @@ import { restoreSavedProjectState } from './restoreProjectState.ts'
 import type { SavedDiscProject } from './projectTypes.ts'
 
 const baseProject: SavedDiscProject = {
-  schemaVersion: '0.1.0',
+  schemaVersion: '0.2.0',
   title: 'Saved Title',
   savedAt: '2026-01-01T00:00:00.000Z',
   game: {

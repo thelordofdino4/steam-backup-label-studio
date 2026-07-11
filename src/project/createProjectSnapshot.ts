@@ -10,7 +10,9 @@ import type { ExportGuideSelection } from '../export/exportGuides.ts'
 import type { SteamImportedGame } from '../steam/steamApi.ts'
 import type { DiscTemplate } from '../types/template.ts'
 import type { DiscTextValueSources } from './metadataDiscTextTypes.ts'
+import type { DiscGuidedWorkflowState } from '../guidedPresets/discGuidedWorkflow.ts'
 import { normalizeSteamBannerFallbackText } from '../branding/steamBannerDefaults.ts'
+import { createSavedDiscGuidedLayout } from './projectGuidedWorkflow.ts'
 import { CURRENT_PROJECT_SCHEMA_VERSION } from './projectSchema.ts'
 import type {
   BackgroundImageSize,
@@ -32,6 +34,7 @@ import type {
 } from './projectTypes.ts'
 
 export type CreateProjectSnapshotParams = {
+  discGuidedWorkflow: DiscGuidedWorkflowState
   manualGameTitle: string
   selectedSteamGame: SteamImportedGame | null
   projectMetadata: ProjectMetadata
@@ -77,6 +80,7 @@ function shouldPersistSteamBannerLockupImage(
 }
 
 export function createProjectSnapshot({
+  discGuidedWorkflow,
   manualGameTitle,
   selectedSteamGame,
   projectMetadata,
@@ -113,6 +117,7 @@ export function createProjectSnapshot({
   discTextLayout,
   discTextStyles,
 }: CreateProjectSnapshotParams): SavedDiscProject {
+  const guidedLayout = createSavedDiscGuidedLayout(discGuidedWorkflow)
   const shouldPersistLockupImage = shouldPersistSteamBannerLockupImage(
     steamBannerLockupImageUrl,
     steamBannerLockupImageSource,
@@ -121,6 +126,7 @@ export function createProjectSnapshot({
   return {
     schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
     projectType: 'disc',
+    ...(guidedLayout ? { editor: { guidedLayout } } : {}),
     title: manualGameTitle,
     savedAt: new Date().toISOString(),
     game: {

@@ -212,6 +212,7 @@ Key files:
 
 - `src/project/projectTypes.ts`
 - `src/project/projectSchema.ts`
+- `src/project/projectGuidedWorkflow.ts`
 - `src/project/createProjectSnapshot.ts`
 - `src/project/restoreProjectState.ts`
 - `src/project/caseInsertProjectAdapters.ts`
@@ -225,8 +226,9 @@ Key files:
 Source-of-truth state:
 
 - `SavedProjectBase`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case-insert project types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.1.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` is currently empty.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` contains the explicit `0.1.0 -> 0.2.0` compatibility step.
+- `projectGuidedWorkflow.ts` owns the compact Disc workflow snapshot adapter and tolerant restoration through the pure guided normalizer.
 
 Render path:
 

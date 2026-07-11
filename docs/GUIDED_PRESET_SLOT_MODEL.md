@@ -9,9 +9,10 @@
 Pure Disc slot definitions and lifecycle resolution are implemented in
 `src/guidedPresets/discGuidedSlots.ts`. The versioned layout registry and pure
 omission workflow are implemented in `discGuidedLayouts.ts` and
-`discGuidedWorkflow.ts`. Workflow and suggestion inputs remain domain-only and
-are not persisted yet. Pure typed Disc role-focus requests, runtime validation,
-and reducer state are implemented in `src/editor/editorRoleFocus.ts`.
+`discGuidedWorkflow.ts`. Schema `0.2.0` persists active layout identity/version
+and canonical omitted slot IDs through `src/project/projectGuidedWorkflow.ts`.
+Suggestions remain transient. Pure typed Disc role-focus requests, runtime
+validation, and reducer state are implemented in `src/editor/editorRoleFocus.ts`.
 Focus-target IDs are semantic navigation identifiers, not DOM IDs or smoke-test
 IDs, and navigation state is transient and is not serialized.
 
@@ -66,8 +67,8 @@ All 19 declared #287 Disc role-focus targets now have production registration.
 No production UI currently dispatches role-focus requests. Semantic request
 smoke remains deferred until the real guided-preview caller exists; only manual
 panel behavior is directly observable in the native app at this stage. Guided
-persistence, auto-fill, and native end-to-end guided-navigation validation also
-remain future #281 work. Navigation state is transient and non-persistent, and
+menus, auto-fill, and native end-to-end guided-navigation validation remain
+future #281 work. Navigation state is transient and non-persistent, and
 Case Front, Case Back, and Spine remain outside the Disc-only provider.
 
 ## 1. Purpose And Scope
@@ -88,7 +89,7 @@ This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
 implemented, along with the Disc role-focus foundation. Preview placeholders,
-remaining role target integrations, guided request callers, persistence, and
+remaining role target integrations, guided request callers, setup menus, and
 auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
 remain deferred until the Disc contract is proven.
 
@@ -381,13 +382,14 @@ The current suggestion, selected placeholder, open image/text chooser,
 role-focus request, and hover/focus animation state can remain editor-session
 state.
 
-### Future Persisted State
+### Persisted Workflow State
 
-Explicit omission intent, guided preset ID/version, repeatable-slot binding identity
-that cannot be re-derived safely, and slot-specific overrides not represented
-by normal feature state may require project persistence.
+Schema `0.2.0` persists active guided layout ID/version and explicit omission
+intent as canonical stable slot IDs. The project adapter does not persist
+derived lifecycle, owner content, labels, geometry, indexes, or UI state.
 
-None of these fields are added to schema `0.1.0` by this issue.
+Repeatable-slot binding identity that cannot be re-derived safely and future
+slot-specific overrides remain separate schema decisions.
 
 ## 8. Binding Contract
 
@@ -567,25 +569,17 @@ Malformed and unknown fields never block restoration.
 
 ## 13. Persistence Boundary
 
-Static guided definitions and lifecycle derived from current feature state need
-no schema change. Filled content remains ordinary project state under existing
-feature owners.
+Schema `0.2.0` stores the active workflow under optional
+`editor.guidedLayout` as layout ID, version, and canonical omitted slot IDs.
+Inactive guidance omits this structure. The project adapter uses the pure
+workflow normalizer, so malformed metadata, unknown IDs, and unsupported future
+versions deactivate guidance without blocking owner-state restoration.
 
-An unfinished guided project cannot reliably restore explicit omission intent
-without persistence. Repeatable slot binding identity can also require
-persistence when it cannot be derived safely from a concrete owner ID and the
-guided preset definition.
-
-Any persisted guided preset ID, version, omission intent, or binding metadata needs
-a dedicated child issue, an explicit schema/version decision, normalization,
-migration coverage, and an update to `PROJECT_FILE_SPEC.md`. Unknown or deleted
-guided preset IDs must normalize safely and must never prevent a project from
-loading.
-
-The workflow is domain/editor state only in this chunk. React integration and
-project persistence remain deferred. The persistence child must update schema,
-normalization, migration coverage, and `PROJECT_FILE_SPEC.md`; this issue does
-not change schema `0.1.0`.
+Filled content remains ordinary project state under existing feature owners.
+Omission changes guidance only: owner enablement, content, geometry, preview,
+render, and export remain independent. Setup-menu state, focus/navigation,
+selection, panel expansion, hover/animation, labels, and geometry are transient
+or definition-owned and are not serialized.
 
 ## 14. Architecture Invariants
 
@@ -596,7 +590,7 @@ not change schema `0.1.0`.
 - Unfilled and suggested placeholders never drag or resize.
 - Guided domain logic must not become an `App.tsx` dumping ground.
 - No Case Insert behavior changes in the Disc-first track.
-- No schema changes in this child issue.
+- Guided persistence is limited to the schema `0.2.0` workflow metadata.
 - No auto-fill implementation in this child issue.
 - No arbitrary layer model is introduced.
 - Preview, edit, save/load, and export parity remain intact for filled content.
@@ -604,7 +598,6 @@ not change schema `0.1.0`.
 
 ## 15. Open Decisions
 
-- Exact omission-state persistence design for project schema `0.2.0`.
 - Whether each safe suggestion auto-binds or requires confirmation.
 - Repeatable-slot append versus reuse behavior.
 - Placeholder geometry coordinate format and safe-zone representation.
@@ -615,7 +608,7 @@ not change schema `0.1.0`.
 ## 16. Follow-Up Child Issues
 
 1. Pure Disc slot definitions and resolution predicates.
-2. Guided preset persistence/schema design.
+2. Accessible omission menus and the Layout Presets restore surface.
 3. Edit-mode placeholder overlay.
 4. Add the production guided-preview caller, connect placeholders to typed
    role-focus requests, and perform native end-to-end guided-navigation

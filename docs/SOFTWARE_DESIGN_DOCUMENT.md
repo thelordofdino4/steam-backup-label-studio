@@ -369,7 +369,7 @@ Package scripts define dev, build, lint, test, cycle checking, Vite preview, and
 
 ### 7.1 Current Implementation Summary
 
-Projects are saved as plain JSON files, commonly named `.sbls.json`. The current saved-project type is a union of disc and case insert project shapes under schema version `0.1.0`.
+Projects are saved as plain JSON files, commonly named `.sbls.json`. The current saved-project type is a union of disc and case insert project shapes under schema version `0.2.0`.
 
 The future ZIP-compatible `.sbls` package format is documented but not implemented.
 
@@ -377,6 +377,7 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 
 - `src/project/projectTypes.ts`
 - `src/project/projectSchema.ts`
+- `src/project/projectGuidedWorkflow.ts`
 - `src/project/createProjectSnapshot.ts`
 - `src/project/restoreProjectState.ts`
 - `src/project/caseInsertProjectAdapters.ts`
@@ -392,8 +393,9 @@ The future ZIP-compatible `.sbls` package format is documented but not implement
 ### 7.3 Source-Of-Truth State
 
 - `SavedProject`, `SavedDiscProject`, `SavedCaseInsertProject`, `ProjectMetadata`, and case insert project state types live in `src/project/projectTypes.ts`.
-- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.1.0` in `src/project/projectSchema.ts`.
-- `PROJECT_SCHEMA_MIGRATIONS` exists but is empty.
+- `CURRENT_PROJECT_SCHEMA_VERSION` is `0.2.0` in `src/project/projectSchema.ts`.
+- `PROJECT_SCHEMA_MIGRATIONS` registers the compatibility step from `0.1.0`.
+- Disc guided workflow persistence stores only active layout ID/version and canonical omitted slot IDs; owner state and export composition remain independent.
 
 ### 7.4 Render/Edit/Export Paths
 
@@ -1652,7 +1654,8 @@ Status: Accepted, current.
 
 Decision:
 
-- Current projects are plain `.sbls.json` JSON files using schema version `0.1.0`.
+- Current projects are plain `.sbls.json` JSON files using schema version `0.2.0`.
+- Schema `0.1.0` projects migrate explicitly to `0.2.0` without inferred guidance or owner changes.
 - Images needed for reload are embedded as data URLs where supported.
 - Future `.sbls` packages are documented but not implemented.
 

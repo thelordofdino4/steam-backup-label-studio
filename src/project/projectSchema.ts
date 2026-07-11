@@ -6,7 +6,8 @@ import {
   type EditorProjectType,
 } from '../editor/editorTypes.ts'
 
-export const CURRENT_PROJECT_SCHEMA_VERSION = '0.1.0' as const
+export const PREVIOUS_PROJECT_SCHEMA_VERSION = '0.1.0' as const
+export const CURRENT_PROJECT_SCHEMA_VERSION = '0.2.0' as const
 
 export type CurrentProjectSchemaVersion = typeof CURRENT_PROJECT_SCHEMA_VERSION
 
@@ -22,7 +23,16 @@ export type ProjectSchemaMigration = {
   migrate: (project: JsonRecord) => unknown
 }
 
-const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = []
+const PROJECT_SCHEMA_MIGRATIONS: readonly ProjectSchemaMigration[] = [
+  {
+    from: PREVIOUS_PROJECT_SCHEMA_VERSION,
+    to: CURRENT_PROJECT_SCHEMA_VERSION,
+    migrate: (project) => ({
+      ...project,
+      schemaVersion: CURRENT_PROJECT_SCHEMA_VERSION,
+    }),
+  },
+]
 
 const CASE_INSERT_TEMPLATE_TYPES: readonly CaseInsertTemplateType[] = [
   DEFAULT_CASE_INSERT_TEMPLATE_TYPE,
@@ -313,7 +323,6 @@ function validateOptionalEditorRecord(
   const editorRecord = asRecord(record.editor)
 
   if (!editorRecord) {
-    issues.push('editor must be an object when present.')
     return null
   }
 

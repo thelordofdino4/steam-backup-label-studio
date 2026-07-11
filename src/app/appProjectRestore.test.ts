@@ -67,6 +67,13 @@ test('case insert project restore applies app shell state in the load order', ()
 test('disc project restore groups restored disc text and background state', () => {
   const calls: CallRecord[] = []
   const restoredProject = {
+    discGuidedWorkflow: {
+      activeLayout: {
+        id: 'disc:guided-layout:classic-top-title',
+        version: 1,
+      },
+      omittedSlotIds: ['disc:guided:publisher-logo:primary'],
+    },
     manualGameTitle: 'Disc title',
     projectMetadata: { title: 'Disc title' },
     projectLogoAssets: { kind: 'logos' },
@@ -105,6 +112,8 @@ test('disc project restore groups restored disc text and background state', () =
 
   applyRestoredDiscProjectState({
     restoredProject,
+    restoreDiscGuidedWorkflow:
+      recordValueCall(calls, 'restoreDiscGuidedWorkflow'),
     setManualGameTitle: recordValueCall(calls, 'setManualGameTitle'),
     setProjectMetadata: recordValueCall(calls, 'setProjectMetadata'),
     setProjectLogoAssets: recordValueCall(calls, 'setProjectLogoAssets'),
@@ -145,6 +154,7 @@ test('disc project restore groups restored disc text and background state', () =
   assert.deepEqual(
     calls.map((call) => call.name),
     [
+      'restoreDiscGuidedWorkflow',
       'setManualGameTitle',
       'setProjectMetadata',
       'setProjectLogoAssets',
@@ -173,7 +183,7 @@ test('disc project restore groups restored disc text and background state', () =
       'setHomeStatusMessage',
     ],
   )
-  assert.deepEqual(calls[22].value, {
+  assert.deepEqual(calls[23].value, {
     projectDiscNumberArtwork: restoredProject.projectDiscNumberArtwork,
     discTextSettings: restoredProject.discTextSettings,
     discTextValues: restoredProject.discTextValues,
@@ -183,7 +193,7 @@ test('disc project restore groups restored disc text and background state', () =
     discTextLayout: restoredProject.discTextLayout,
     discTextStyles: restoredProject.discTextStyles,
   })
-  assert.deepEqual(calls[23].value, {
+  assert.deepEqual(calls[24].value, {
     backgroundScale: restoredProject.backgroundScale,
     backgroundOffset: restoredProject.backgroundOffset,
     backgroundImageUrl: restoredProject.backgroundImageUrl,
@@ -191,6 +201,7 @@ test('disc project restore groups restored disc text and background state', () =
     backgroundImageSize: restoredProject.backgroundImageSize,
     isBackgroundArtworkEnabled: restoredProject.isBackgroundArtworkEnabled,
   })
-  assert.equal(calls[24].value, 'disc')
-  assert.equal(calls[25].value, null)
+  assert.deepEqual(calls[0].value, restoredProject.discGuidedWorkflow)
+  assert.equal(calls[25].value, 'disc')
+  assert.equal(calls[26].value, null)
 })

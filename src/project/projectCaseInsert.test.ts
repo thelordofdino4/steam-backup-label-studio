@@ -68,7 +68,7 @@ test('creates blank jewel case saved project data with generic template panes', 
   const cover = project.caseInsert.templates.cover
   const tray = project.caseInsert.templates.tray
 
-  assert.equal(project.schemaVersion, '0.1.0')
+  assert.equal(project.schemaVersion, '0.2.0')
   assert.equal(project.projectType, 'caseInsert')
   assert.equal(project.title, 'Archive Case')
   assert.equal(project.game.manualTitle, 'Archive Case')

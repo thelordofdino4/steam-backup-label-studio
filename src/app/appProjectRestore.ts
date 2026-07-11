@@ -67,6 +67,8 @@ export function applyRestoredCaseInsertProjectState({
 
 export type ApplyRestoredDiscProjectStateParams = {
   restoredProject: RestoredProjectState
+  restoreDiscGuidedWorkflow:
+    ValueSetter<RestoredProjectState['discGuidedWorkflow']>
   setManualGameTitle: ValueSetter<RestoredProjectState['manualGameTitle']>
   setProjectMetadata: ValueSetter<RestoredProjectState['projectMetadata']>
   setProjectLogoAssets: ValueSetter<RestoredProjectState['projectLogoAssets']>
@@ -105,6 +107,7 @@ export type ApplyRestoredDiscProjectStateParams = {
 
 export function applyRestoredDiscProjectState({
   restoredProject,
+  restoreDiscGuidedWorkflow,
   setManualGameTitle,
   setProjectMetadata,
   setProjectLogoAssets,
@@ -132,6 +135,7 @@ export function applyRestoredDiscProjectState({
   setActiveWorkspace,
   setHomeStatusMessage,
 }: ApplyRestoredDiscProjectStateParams) {
+  restoreDiscGuidedWorkflow(restoredProject.discGuidedWorkflow)
   setManualGameTitle(restoredProject.manualGameTitle)
   setProjectMetadata(restoredProject.projectMetadata)
   setProjectLogoAssets(restoredProject.projectLogoAssets)

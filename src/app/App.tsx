@@ -78,6 +78,10 @@ import { useSteamImport } from '../hooks/useSteamImport'
 import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
 import { useTitleArtwork } from '../hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
+import {
+  INITIAL_DISC_GUIDED_WORKFLOW_STATE,
+  type DiscGuidedWorkflowState,
+} from '../guidedPresets/discGuidedWorkflow'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -176,6 +180,8 @@ type SteamImportOptions = {
 function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<EditorWorkspace>('home')
   const [homeStatusMessage, setHomeStatusMessage] = useState<string | null>(null)
+  const [discGuidedWorkflow, setDiscGuidedWorkflow] =
+    useState<DiscGuidedWorkflowState>(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
   const { projectStatus, statusToasts, announceStatus } = useStatusToasts()
   const discPreviewRef = useRef<HTMLDivElement | null>(null)
   const caseInsertPreviewRef = useRef<HTMLDivElement | null>(null)
@@ -1034,6 +1040,7 @@ function App() {
     cancelCaseInsertPreviewPointerDrag()
 
     resetDiscTemplateState()
+    setDiscGuidedWorkflow(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
     setSteamLogoPlacement('top')
     resetSteamBannerState()
     resetExportGuides()
@@ -1300,6 +1307,7 @@ function App() {
         activeCaseInsertTemplatePane,
       },
       discProject: {
+        discGuidedWorkflow,
         manualGameTitle,
         selectedSteamGame,
         projectMetadata,
@@ -1366,6 +1374,7 @@ function App() {
             caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync,
       },
       discRestore: {
+        restoreDiscGuidedWorkflow: setDiscGuidedWorkflow,
         setManualGameTitle,
         setProjectMetadata,
         setProjectLogoAssets,

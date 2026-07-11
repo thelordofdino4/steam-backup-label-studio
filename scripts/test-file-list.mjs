@@ -205,6 +205,7 @@ export const testFiles = [
   'src/project/projectCaseInsertPreviewTextControls.test.ts',
   'src/project/projectCaseInsertTextPersistence.test.ts',
   'src/project/projectCaseInsertTextNormalization.test.ts',
+  'src/project/projectGuidedWorkflow.test.ts',
   'src/project/projectLogoAssets.test.ts',
   'src/project/projectMediaMark.test.ts',
   'src/project/projectPlatformMarks.test.ts',
