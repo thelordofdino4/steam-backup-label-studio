@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Disc guided navigation integration harness</title>
+    <style>
+      [aria-label="Guided preview actions"] {
+        position: relative;
+        width: 500px;
+        height: 500px;
+      }
+
+      .disc-guided-placeholder-action-layer {
+        position: absolute;
+        inset: 0;
+      }
+
+      .disc-guided-placeholder-action {
+        position: absolute;
+      }
+
+      .disc-guided-placeholder-setup-popover {
+        position: fixed;
+        top: 100px !important;
+        left: 600px !important;
+        transform: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.__guidedNavigationEvents = []
+
+      const describeElement = (element) => ({
+        id: element.id || null,
+        roleId: element.closest('[data-role-id]')?.dataset.roleId || null,
+        isSummary: element.tagName === 'SUMMARY',
+      })
+      const nativeFocus = HTMLElement.prototype.focus
+
+      HTMLElement.prototype.focus = function focus(options) {
+        window.__guidedNavigationEvents.push({
+          type: 'focus',
+          ...describeElement(this),
+          preventScroll: options?.preventScroll === true,
+        })
+        return nativeFocus.call(this, options)
+      }
+
+      Element.prototype.scrollIntoView = function scrollIntoView(options) {
+        window.__guidedNavigationEvents.push({
+          type: 'scroll',
+          ...describeElement(this),
+          block: options?.block || null,
+          behavior: options?.behavior || null,
+        })
+      }
+    </script>
+    <script type="module">
+      import React from 'react'
+      import { createRoot } from 'react-dom/client'
+      import { DiscGuidedNavigationIntegrationHarness } from './DiscGuidedNavigationIntegrationHarness.tsx'
+
+      createRoot(document.getElementById('root')).render(
+        React.createElement(DiscGuidedNavigationIntegrationHarness),
+      )
+    </script>
+  </body>
+</html>

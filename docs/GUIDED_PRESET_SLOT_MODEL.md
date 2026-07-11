@@ -695,9 +695,11 @@ their matching enable controls. Target focus remains intact because the
 controller does not focus the summary merely to align it.
 
 Existing target fallbacks remain authoritative. The caller does not query the
-DOM, duplicate role-panel state, enable features, or invoke controls. Native
-focus validation remains pending. Case Front, Case Back, and Spine remain
-outside this Disc-only provider.
+DOM, duplicate role-panel state, enable features, or invoke controls. Mounted
+integration coverage now validates the production provider, controlled panels,
+real refs, exact focus targets and fallbacks, and role-start alignment. Native
+Tauri end-to-end validation remains pending. Case Front, Case Back, and Spine
+remain outside this Disc-only provider.
 
 Guided placeholders route to the most specific normal setup control. An enable
 control is a fallback for a specific control hidden by a disabled optional
@@ -739,6 +741,15 @@ routes; native eight-slot workflow validation remains required before PR.
 For every item, verify click and native Enter/Space activation, owning-role
 `role-start` alignment, one-shot consumption, preserved unrelated panel state,
 and absence from exported PNG output.
+
+All eight routes now have mounted integration coverage through a focused React
+composition of the production role-focus provider, controlled top-level and
+nested panels, registration helpers, real focusable controls, and guided action
+component. The suite covers disabled fallbacks, enabled direct targets,
+`document.activeElement`, target-focus-before-summary-scroll ordering, repeated
+requests, non-accordion panel state, and feature-state isolation. No production
+route change was needed. Native Tauri workflow and export validation are still
+required before #289 can close.
 
 ## 12. Persistence Boundary
 

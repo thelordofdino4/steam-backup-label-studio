@@ -66,6 +66,7 @@ test('EditorFeaturePanel forwards the controlled and ref contract', () => {
 test('only navigation-owned panels use the controlled contract', () => {
   const componentFiles = globSync('src/components/**/*.tsx', { cwd: repoRoot })
     .map((path) => path.replaceAll('\\', '/'))
+    .filter((path) => !path.includes('/testing/'))
   const callerFiles = componentFiles.filter((path) => {
     if (path === componentPath) return false
 
