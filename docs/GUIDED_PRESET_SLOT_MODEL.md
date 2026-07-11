@@ -17,8 +17,10 @@ Pure guided-layout identity and placeholder geometry are implemented separately
 in `src/guidedPresets/discGuidedLayouts.ts`. The existing
 `classic-top-title` role preset maps to
 `disc:guided-layout:classic-top-title`. Its ordered pure layout now defines
-Background Image, Game Title, primary Rating as Game Info Logos, Company Logos,
-and Legal Info. Every slot declares normalized visual and action geometry, a
+Game Title, Background Image, Rating Badge, Media Format Mark, Operating System
+Marks, Developer Logo, Publisher Logo, and Copyright / Legal Text. Sidebar
+roles remain organizational groupings and are not guided slots. Every slot
+declares normalized visual and action geometry, a
 background/foreground layer, semantic setup kind, and safe population
 capability. The pure projector returns `unfilled` and `suggested` slots and
 suppresses `filled` and `skipped` slots independently. Layout presets continue
@@ -26,10 +28,10 @@ to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
 
 A successful `classic-top-title` layout preset application activates the
-guided layout as transient editor state. The Disc editor now renders all five
+guided layout as transient editor state. The Disc editor now renders all eight
 projected slots with the existing blue dashed pulse/glow language. Background
-guidance uses a dedicated z-index `0` annulus-masked layer, while Game Title,
-Game Info Logos, Company Logos, and Legal Info use a z-index `6` masked layer.
+guidance uses a dedicated z-index `0` annulus-masked layer, while the seven
+exact foreground slots use a z-index `6` masked layer.
 The foreground layer remains below real Disc text at z-index `7`; the broad
 Background Image visual remains below foreground owners and uses its smaller
 action geometry only to position the label. Reduced-motion mode keeps static
@@ -37,10 +39,11 @@ blue guidance while disabling the shared pulse animation.
 
 The masked SVG guidance remains visual-only and pointer-inert. A separate
 z-index `9` HTML action layer now renders one native button from each visible
-slot's action geometry. Game Title opens Image and Text setup choices; Company
-Logos opens Developer and Publisher choices. Background Image routes directly
-to its Local file input, Game Info Logos routes to primary Rating enable, and
-Legal Info routes to the copyright row. Choice popovers render at z-index `30`,
+slot's action geometry. Game Title is the only Image/Text chooser. Background,
+Rating, Developer Logo, Publisher Logo, and Copyright / Legal Text route to
+their existing exact controls. Media Format Mark and Operating System Marks are
+explicitly unavailable until their typed focus destinations are added; they do
+not fall back to a broad role summary. Choice popovers render at z-index `30`,
 support Escape dismissal with focus return, and close when their slot leaves
 the projected list. Buttons rely on native Enter and Space activation and do
 not drag, resize, select preview content, or activate the text ribbon.
@@ -103,8 +106,9 @@ Implemented role-focus infrastructure includes:
 
 All 19 declared #287 Disc role-focus targets have production registration. The
 Classic Top Title guided action layer is the first production caller: it sends
-the five slot routes through the typed controller without direct DOM lookup or
-feature mutation. Native end-to-end request smoke remains pending. Guided
+the six currently available exact setup routes through the typed controller
+without direct DOM lookup or feature mutation. Native eight-slot workflow and
+exported PNG smoke remain pending. Guided
 persistence and auto-fill remain future #281 work. Navigation state is
 transient and non-persistent, and Case Front, Case Back, and Spine remain
 outside the Disc-only provider.
@@ -112,8 +116,9 @@ outside the Disc-only provider.
 ## 1. Purpose And Scope
 
 Guided slots describe content that a guided preset expects at a particular
-place in a layout. A slot can ask for a Game Title, Background Image, Rating,
-Company Logo, Legal Text, Additional Artwork, or Additional Text without
+place in a layout. A slot can ask for a Game Title, Background Image, Rating
+Badge, Media Format Mark, Operating System Marks, Developer Logo, Publisher
+Logo, Legal Text, Additional Artwork, or Additional Text without
 becoming a second copy of that content.
 
 A slot definition is domain guidance, not rendered project content. Existing
@@ -125,7 +130,7 @@ This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. The pure source definitions and lifecycle resolver are now
 implemented, along with the Disc role-focus foundation, complete pure Classic
-Top Title five-slot layout, generalized placeholder projection, split visual
+Top Title eight-slot layout, generalized placeholder projection, split visual
 layers, and accessible setup navigation. Persistence, Skip, suggestion
 acceptance, and auto-fill remain deferred. Case Front, Case Back, and Spine
 guided presets remain deferred until the Disc contract is proven.
@@ -158,8 +163,11 @@ Initial Disc guided slot IDs:
 
 - `disc:guided:game-title:primary`
 - `disc:guided:background-image:primary`
-- `disc:guided:rating:primary`
-- `disc:guided:company-logo:primary`
+- `disc:guided:rating-badge:primary`
+- `disc:guided:media-format-mark:primary`
+- `disc:guided:operating-system-marks:group`
+- `disc:guided:developer-logo:primary`
+- `disc:guided:publisher-logo:primary`
 - `disc:guided:legal-text:copyright`
 - `disc:guided:additional-artwork:primary`
 - `disc:guided:additional-text:custom-note`
@@ -249,11 +257,11 @@ positive image dimensions, and pass the canonical active-image-content check.
 URL-only, unloaded, empty, default, or invented artwork remains unfilled. This
 readiness is transient resolver input and adds no project schema field.
 
-### Rating
+### Rating Badge
 
 | Property | Contract |
 | --- | --- |
-| Slot ID | `disc:guided:rating:primary` |
+| Slot ID | `disc:guided:rating-badge:primary` |
 | Semantic role | `game-info-logos` |
 | Accepted kinds | `domain-mark`, `image` |
 | Preferred kind | `domain-mark` |
@@ -270,26 +278,70 @@ Metadata-backed generated badges can be valid without a custom image.
 `ratingSystem: none` is not filled, and guided resolution must not invent
 missing rating content.
 
-### Company Logo
+### Media Format Mark
 
 | Property | Contract |
 | --- | --- |
-| Slot ID | `disc:guided:company-logo:primary` |
-| Semantic role | `company-logos` |
-| Accepted kinds | `image` |
-| Preferred kind | `image` |
-| Candidate bindings | Developer logo, then publisher logo, then future repeated company-logo object IDs |
+| Slot ID | `disc:guided:media-format-mark:primary` |
+| Semantic role | `game-info-logos` |
+| Accepted kinds | `domain-mark`, `image` |
+| Preferred kind | `domain-mark` |
+| Candidate bindings | Canonical media-mark owner |
 | Optional/skippable | Optional and skippable |
-| Safe suggestion | Existing developer or publisher assets; remote candidates before import |
-| Safe auto-fill | An existing enabled real asset; remote candidates require import first |
-| Sidebar role | Company Logos |
-| Export | Existing logo export predicate after binding |
-| Movement | Existing logo drag/layout behavior after binding only |
+| Safe suggestion | Existing configured media-mark state |
+| Safe auto-fill | None; the preset never chooses a format |
+| Sidebar role | Game Info Logos |
+| Export | Existing media-mark export predicate after binding |
+| Movement | Existing media-mark drag/layout behavior after binding only |
 
-Initial resolution priority is developer logo, then publisher logo. A valid
-binding is enabled and has a real image asset. Empty or generic placeholders do
-not count. Whether developer and publisher should become separate guided slots
-is an open product decision.
+Media Format Mark is independent from Rating Badge and Operating System Marks.
+It is filled only when the canonical enabled/renderable owner predicate passes.
+
+### Operating System Marks
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:operating-system-marks:group` |
+| Semantic role | `game-info-logos` |
+| Accepted kinds | `domain-mark`, `image` |
+| Preferred kind | `domain-mark` |
+| Candidate binding | Selected enabled values from the platform-mark owner |
+| Optional/skippable | Optional and skippable |
+| Safe suggestion | Existing configured operating-system marks |
+| Safe auto-fill | None; the preset never selects or enables marks |
+| Sidebar role | Game Info Logos |
+| Export | Existing platform-mark export predicates after binding |
+| Movement | Deterministic grouped placement after binding |
+
+PC, Windows, Linux, SteamOS, and macOS remain simultaneous peer values. There
+is no invented primary OS mark. At least one selected, enabled, renderable mark
+fills this exact slot.
+
+### Developer Logo
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:developer-logo:primary` |
+| Semantic role | `company-logos` |
+| Accepted/preferred kind | `image` |
+| Candidate binding | Primary developer logo only |
+| Optional/skippable | Optional and skippable |
+| Sidebar role | Company Logos |
+
+Publisher state never fills Developer Logo.
+
+### Publisher Logo
+
+| Property | Contract |
+| --- | --- |
+| Slot ID | `disc:guided:publisher-logo:primary` |
+| Semantic role | `company-logos` |
+| Accepted/preferred kind | `image` |
+| Candidate binding | Primary publisher logo only |
+| Optional/skippable | Optional and skippable |
+| Sidebar role | Company Logos |
+
+Developer state never fills Publisher Logo.
 
 ### Legal Text
 
@@ -355,22 +407,31 @@ an arbitrary repeatable text-layer model.
 
 ### Classic Top Title Layout
 
-Classic Top Title requires these five workflow slots. Rating is the only Game
-Info Logos owner in #289; media, platform, and technical marks need separate
-future semantic slots.
+Classic Top Title requires eight exact expected-content slots. Game Info Logos
+and Company Logos remain sidebar role groupings only.
 
 | Slot | Label | Visual geometry `(cx, cy, w, h)` | Action geometry | Layer | Setup kind | Population capability |
 | --- | --- | --- | --- | --- | --- | --- |
-| `disc:guided:background-image:primary` | Background Image | `50, 50, 92, 92` | `50, 36, 34, 10` | background | `background` | none |
 | `disc:guided:game-title:primary` | Game Title | `50, 19.5, 62, 16` | same | foreground | `game-title-choice` | existing Steam import |
-| `disc:guided:rating:primary` | Game Info Logos | `78, 68, 20, 18` | same | foreground | `rating` | accepted metadata |
-| `disc:guided:company-logo:primary` | Company Logos | `22, 69, 28, 22` | same | foreground | `company-logo-choice` | existing configured owner only |
-| `disc:guided:legal-text:copyright` | Legal Info | `50, 88, 64, 12` | same | foreground | `legal` | accepted metadata |
+| `disc:guided:background-image:primary` | Background Image | `50, 50, 92, 92` | `50, 34, 34, 8` | background | `background` | none |
+| `disc:guided:rating-badge:primary` | Rating Badge | `79, 62, 20, 14` | same | foreground | `rating-badge` | accepted metadata |
+| `disc:guided:media-format-mark:primary` | Media Format Mark | `80, 76, 22, 9` | same | foreground | `media-format-mark` | existing owner only |
+| `disc:guided:operating-system-marks:group` | Operating System Marks | `50, 73, 28, 10` | same | foreground | `operating-system-marks` | existing owner only |
+| `disc:guided:developer-logo:primary` | Developer Logo | `21, 62, 26, 9` | same | foreground | `developer-logo` | existing owner only |
+| `disc:guided:publisher-logo:primary` | Publisher Logo | `21, 74, 26, 9` | same | foreground | `publisher-logo` | existing owner only |
+| `disc:guided:legal-text:copyright` | Copyright / Legal Text | `50, 89, 64, 8` | same | foreground | `legal-text` | accepted metadata |
 
 The broad Background visual rectangle intentionally contains all foreground
 regions, while its smaller action anchor avoids overloading the whole Disc as
 an interaction target. Foreground rectangles do not overlap. Geometry is
 normalized Disc space and contains no viewport pixels.
+
+Applying the Classic layout no longer auto-enables Media Format Mark. Rating,
+Media, OS marks, Developer Logo, Publisher Logo, and Copyright remain disabled
+when disabled. Existing enabled/renderable owners are repositioned without
+changing content, source, theme, selected values, custom assets, or inference.
+Operating-system marks use deterministic grouped placement inside their exact
+region and receive only returned `x`, `y`, and `scale` updates.
 
 ## 5. Lifecycle Derivation And Precedence
 
@@ -444,9 +505,10 @@ None of these fields are added to schema `0.1.0` by this issue.
 - A slot definition does not create an owner object merely by existing.
 
 The title slot is the first ordered multi-owner binding: title artwork is
-preferred, with Disc title text as fallback. The company-logo slot similarly
-uses an explicit developer-then-publisher priority until product decisions
-split those slots or introduce repeated guided company-logo positions.
+preferred, with Disc title text as fallback. Developer Logo and Publisher Logo
+are separate single-owner slots; neither may be satisfied by the other owner.
+Rating Badge, Media Format Mark, and Operating System Marks are likewise three
+independent slots despite sharing the Game Info Logos sidebar role.
 
 ## 9. Auto-Fill And Suggestion Boundaries
 
@@ -493,9 +555,12 @@ or export paths.
 
 The HTML interaction layer uses each slot's normalized action geometry and is
 separate from both visual SVGs and preview-editable registration. Native
-buttons preserve model order for tab navigation. Game Title and Company Logos
-use a focused guided setup popover; the other three slots dispatch directly.
-Popover state is transient, closes after selection or Escape, and becomes
+buttons preserve model order for tab navigation. Game Title alone uses the
+focused Image/Text setup popover. Background, Rating, Developer, Publisher,
+and Copyright dispatch exact typed destinations directly. Media and OS actions
+are explicitly unavailable until their exact typed destinations exist; they
+never route to a broad role summary. Popover state is transient, closes after
+selection or Escape, and becomes
 inactive immediately if its projected slot disappears. Setup navigation does
 not accept suggested content automatically; it routes the user to the existing
 owner control.
@@ -609,12 +674,14 @@ The guided preview caller dispatches only these typed setup destinations:
 - Game Title Image -> `disc:game-title:artwork-upload`
 - Game Title Text -> `disc:game-title:text-fallback`
 - Background Image -> `disc:background-image:local-upload`
-- Game Info Logos -> `disc:rating:enable`
-- Company Logos Developer -> `disc:company-logo:developer-upload`
-- Company Logos Publisher -> `disc:company-logo:publisher-upload`
-- Legal Info -> `disc:legal-text:copyright`
+- Rating Badge -> `disc:rating:enable`
+- Developer Logo -> `disc:company-logo:developer-upload`
+- Publisher Logo -> `disc:company-logo:publisher-upload`
+- Copyright / Legal Text -> `disc:legal-text:copyright`
+- Media Format Mark -> explicitly unavailable pending an exact typed target
+- Operating System Marks -> explicitly unavailable pending an exact typed target
 
-All seven requests use `role-start`; nearest remains the backward-compatible
+All six available requests use `role-start`; nearest remains the backward-compatible
 default for omitted alignment and for existing non-guided navigation. Alignment
 always uses the original destination role even when upload targets fall back to
 their matching enable controls. Target focus remains intact because the
@@ -659,7 +726,6 @@ loading.
 
 ## 14. Open Decisions
 
-- Whether developer and publisher become separate guided slots or remain one primary company-logo slot.
 - Exact skipped-state persistence design.
 - Whether each safe suggestion auto-binds or requires confirmation.
 - Repeatable-slot append versus reuse behavior.

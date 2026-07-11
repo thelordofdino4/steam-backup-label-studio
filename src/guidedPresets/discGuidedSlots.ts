@@ -1,4 +1,13 @@
 import {
+  getMediaMarkPlaceholderImageSize,
+  getMediaMarkPlaceholderImageUrl,
+  getPlatformMarkPlaceholderImageSize,
+  getPlatformMarkPlaceholderImageUrl,
+} from '../assets/assetManifest.ts'
+import {
+  resolveMarkImageSource,
+} from '../editor/markImageSource.ts'
+import {
   getDiscTextContent,
   getDiscTextHtmlSource,
   isDiscTextHtmlEnabled,
@@ -7,19 +16,26 @@ import {
   type DiscTextValues,
 } from '../discText/index.ts'
 import { resolveDiscTextMetadataState } from '../discText/metadataStateTransitions.ts'
-import { isOptionalVisualFeatureEnabled } from '../editor/optionalVisualFeature.ts'
+import {
+  isOptionalVisualFeatureEnabled,
+  shouldRenderOptionalLayoutFeature,
+  shouldRenderOptionalVisualFeature,
+} from '../editor/optionalVisualFeature.ts'
 import { hasActiveImageContent } from '../image/imageContentBounds.ts'
 import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import type { DiscTextValueSources } from '../project/metadataDiscText.ts'
 import { shouldRenderAdditionalArtworkElement } from '../project/projectAdditionalArtwork.ts'
 import { DEFAULT_DISC_PROJECT_TITLE } from '../project/projectMetadata.ts'
 import { shouldRenderRatingBadge } from '../project/projectRatingBadge.ts'
+import { getProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
 import { shouldRenderTitleArtwork } from '../project/projectTitleArtwork.ts'
 import type {
   BackgroundImageSize,
   ProjectAdditionalArtwork,
   ProjectLogoAssets,
+  ProjectMediaMark,
   ProjectMetadata,
+  ProjectPlatformMarks,
   ProjectRatingBadge,
   ProjectTitleArtwork,
 } from '../project/projectTypes.ts'
@@ -28,8 +44,11 @@ import { parseHtmlText } from '../text/htmlText.ts'
 export const DISC_GUIDED_SLOT_IDS = [
   'disc:guided:game-title:primary',
   'disc:guided:background-image:primary',
-  'disc:guided:rating:primary',
-  'disc:guided:company-logo:primary',
+  'disc:guided:rating-badge:primary',
+  'disc:guided:media-format-mark:primary',
+  'disc:guided:operating-system-marks:group',
+  'disc:guided:developer-logo:primary',
+  'disc:guided:publisher-logo:primary',
   'disc:guided:legal-text:copyright',
   'disc:guided:additional-artwork:primary',
   'disc:guided:additional-text:custom-note',
@@ -57,6 +76,11 @@ export type DiscGuidedBindingCandidate =
   | {
       owner: 'ratingBadge'
       badgeKey: 'primary'
+    }
+  | { owner: 'mediaMark' }
+  | {
+      owner: 'platformMarks'
+      selection: 'enabled-values'
     }
   | {
       owner: 'logoAssets'
@@ -121,6 +145,8 @@ export type DiscGuidedSlotState = {
   titleArtwork: ProjectTitleArtwork
   metadata: ProjectMetadata
   ratingBadge: ProjectRatingBadge
+  mediaMark: ProjectMediaMark
+  platformMarks: ProjectPlatformMarks
   logoAssets: Pick<
     ProjectLogoAssets,
     | 'developerLogoDataUrl'
@@ -187,7 +213,7 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
     autoFillEligibility: 'none',
   },
   {
-    id: 'disc:guided:rating:primary',
+    id: 'disc:guided:rating-badge:primary',
     surface: 'disc',
     role: 'game-info-logos',
     acceptedContentKinds: ['domain-mark', 'image'],
@@ -199,13 +225,52 @@ export const DISC_GUIDED_SLOT_DEFINITIONS = [
     autoFillEligibility: 'accepted-metadata',
   },
   {
-    id: 'disc:guided:company-logo:primary',
+    id: 'disc:guided:media-format-mark:primary',
+    surface: 'disc',
+    role: 'game-info-logos',
+    acceptedContentKinds: ['domain-mark', 'image'],
+    preferredContentKind: 'domain-mark',
+    candidateBindings: [{ owner: 'mediaMark' }],
+    requirement: 'optional',
+    skippable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'none',
+  },
+  {
+    id: 'disc:guided:operating-system-marks:group',
+    surface: 'disc',
+    role: 'game-info-logos',
+    acceptedContentKinds: ['domain-mark', 'image'],
+    preferredContentKind: 'domain-mark',
+    candidateBindings: [
+      { owner: 'platformMarks', selection: 'enabled-values' },
+    ],
+    requirement: 'optional',
+    skippable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'none',
+  },
+  {
+    id: 'disc:guided:developer-logo:primary',
     surface: 'disc',
     role: 'company-logos',
     acceptedContentKinds: ['image'],
     preferredContentKind: 'image',
     candidateBindings: [
       { owner: 'logoAssets', logoKey: 'developer', scope: 'primary' },
+    ],
+    requirement: 'optional',
+    skippable: true,
+    suggestionSourceKinds: ['configured-owner', 'external'],
+    autoFillEligibility: 'accepted-import-result',
+  },
+  {
+    id: 'disc:guided:publisher-logo:primary',
+    surface: 'disc',
+    role: 'company-logos',
+    acceptedContentKinds: ['image'],
+    preferredContentKind: 'image',
+    candidateBindings: [
       { owner: 'logoAssets', logoKey: 'publisher', scope: 'primary' },
     ],
     requirement: 'optional',
@@ -333,20 +398,88 @@ function resolveLogoBinding(
     : null
 }
 
+function hasRenderableImageSource({
+  source,
+  customImageDataUrl,
+  customImageSize,
+  builtInImageDataUrl,
+  builtInImageSize,
+}: Parameters<typeof resolveMarkImageSource>[0]) {
+  const resolvedImage = resolveMarkImageSource({
+    source,
+    customImageDataUrl,
+    customImageSize,
+    builtInImageDataUrl,
+    builtInImageSize,
+  })
+
+  return Boolean(
+    resolvedImage.imageDataUrl &&
+    resolvedImage.imageSize &&
+    resolvedImage.imageSize.width > 0 &&
+    resolvedImage.imageSize.height > 0 &&
+    hasActiveImageContent(resolvedImage.imageSize),
+  )
+}
+
+function shouldRenderMediaMark(mediaMark: ProjectMediaMark) {
+  return shouldRenderOptionalLayoutFeature(
+    mediaMark,
+    hasRenderableImageSource({
+      source: mediaMark.source,
+      customImageDataUrl: mediaMark.customImageDataUrl,
+      customImageSize: mediaMark.customImageSize,
+      builtInImageDataUrl: getMediaMarkPlaceholderImageUrl(
+        mediaMark.value,
+        mediaMark.theme,
+      ),
+      builtInImageSize: getMediaMarkPlaceholderImageSize(
+        mediaMark.value,
+        mediaMark.theme,
+      ),
+    }),
+  )
+}
+
+function hasRenderablePlatformMark(platformMarks: ProjectPlatformMarks) {
+  return platformMarks.values.some((value) => {
+    const asset = getProjectPlatformMarkAsset(platformMarks, value)
+
+    return shouldRenderOptionalLayoutFeature(
+      asset,
+      hasRenderableImageSource({
+        source: asset.source,
+        customImageDataUrl: asset.customImageDataUrl,
+        customImageSize: asset.customImageSize,
+        builtInImageDataUrl: getPlatformMarkPlaceholderImageUrl(
+          value,
+          asset.theme,
+        ),
+        builtInImageSize: getPlatformMarkPlaceholderImageSize(
+          value,
+          asset.theme,
+        ),
+      }),
+    )
+  })
+}
+
 function resolveBindingCandidate(
   state: DiscGuidedSlotState,
   candidate: DiscGuidedBindingCandidate,
 ): DiscGuidedResolvedBinding | null {
   switch (candidate.owner) {
     case 'backgroundImage':
-      return state.background.enabled &&
-          Boolean(state.background.imageDataUrl) &&
+      return shouldRenderOptionalVisualFeature(
+        state.background,
+        Boolean(state.background.imageDataUrl) &&
           Boolean(
             state.background.imageSize &&
             state.background.imageSize.width > 0 &&
             state.background.imageSize.height > 0,
           ) &&
-          hasActiveImageContent(state.background.imageSize)
+          hasActiveImageContent(state.background.imageSize),
+      )
         ? candidate
         : null
     case 'titleArtwork':
@@ -357,6 +490,10 @@ function resolveBindingCandidate(
       return shouldRenderRatingBadge(state.metadata, state.ratingBadge)
         ? candidate
         : null
+    case 'mediaMark':
+      return shouldRenderMediaMark(state.mediaMark) ? candidate : null
+    case 'platformMarks':
+      return hasRenderablePlatformMark(state.platformMarks) ? candidate : null
     case 'logoAssets':
       return resolveLogoBinding(state, candidate)
     case 'additionalArtwork': {

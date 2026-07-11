@@ -11,8 +11,8 @@ export type DiscGuidedSetupActionId =
   | 'game-title-text'
   | 'background-local-upload'
   | 'rating-enable'
-  | 'company-logo-developer'
-  | 'company-logo-publisher'
+  | 'developer-logo-upload'
+  | 'publisher-logo-upload'
   | 'legal-copyright'
 
 export type DiscGuidedSetupAction = Readonly<{
@@ -30,6 +30,10 @@ export type DiscGuidedPlaceholderSetup =
       kind: 'choice'
       label: string
       actions: readonly DiscGuidedSetupAction[]
+    }>
+  | Readonly<{
+      kind: 'unavailable'
+      label: string
     }>
 
 export type DiscGuidedPlaceholderActionViewModel = Readonly<{
@@ -101,11 +105,11 @@ const SETUP_BY_KIND = Object.freeze({
       },
     }),
   }),
-  rating: Object.freeze({
+  'rating-badge': Object.freeze({
     kind: 'direct',
     action: createAction({
       id: 'rating-enable',
-      label: 'Set up Game Info Logos',
+      label: 'Set up Rating Badge',
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
@@ -117,43 +121,51 @@ const SETUP_BY_KIND = Object.freeze({
       },
     }),
   }),
-  'company-logo-choice': Object.freeze({
-    kind: 'choice',
-    label: 'Choose Company Logo setup',
-    actions: Object.freeze([
-      createAction({
-        id: 'company-logo-developer',
-        label: 'Developer',
-        request: {
-          surfaceId: 'disc-label',
-          behavior: 'focus',
-          scrollAlignment: 'role-start',
-          destination: {
-            roleId: 'company-logos',
-            focusTarget: 'disc:company-logo:developer-upload',
-          },
-        },
-      }),
-      createAction({
-        id: 'company-logo-publisher',
-        label: 'Publisher',
-        request: {
-          surfaceId: 'disc-label',
-          behavior: 'focus',
-          scrollAlignment: 'role-start',
-          destination: {
-            roleId: 'company-logos',
-            focusTarget: 'disc:company-logo:publisher-upload',
-          },
-        },
-      }),
-    ]),
+  'media-format-mark': Object.freeze({
+    kind: 'unavailable',
+    label: 'Media Format Mark setup is not available yet',
   }),
-  legal: Object.freeze({
+  'operating-system-marks': Object.freeze({
+    kind: 'unavailable',
+    label: 'Operating System Marks setup is not available yet',
+  }),
+  'developer-logo': Object.freeze({
+    kind: 'direct',
+    action: createAction({
+      id: 'developer-logo-upload',
+      label: 'Set up Developer Logo',
+      request: {
+        surfaceId: 'disc-label',
+        behavior: 'focus',
+        scrollAlignment: 'role-start',
+        destination: {
+          roleId: 'company-logos',
+          focusTarget: 'disc:company-logo:developer-upload',
+        },
+      },
+    }),
+  }),
+  'publisher-logo': Object.freeze({
+    kind: 'direct',
+    action: createAction({
+      id: 'publisher-logo-upload',
+      label: 'Set up Publisher Logo',
+      request: {
+        surfaceId: 'disc-label',
+        behavior: 'focus',
+        scrollAlignment: 'role-start',
+        destination: {
+          roleId: 'company-logos',
+          focusTarget: 'disc:company-logo:publisher-upload',
+        },
+      },
+    }),
+  }),
+  'legal-text': Object.freeze({
     kind: 'direct',
     action: createAction({
       id: 'legal-copyright',
-      label: 'Set up Legal Info',
+      label: 'Set up Copyright / Legal Text',
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',

@@ -9,6 +9,15 @@ import type {
 import type { DiscTextStyleSettings } from '../discText/styles'
 import type { DiscTextValueSources } from '../project/metadataDiscTextTypes'
 import { shouldRenderRatingBadge } from '../project/projectRatingBadge.ts'
+import {
+  isOptionalLayoutFeatureEnabled,
+  isOptionalVisualFeatureEnabled,
+} from '../editor/optionalVisualFeature.ts'
+import { getProjectPlatformMarkAsset } from '../project/projectPlatformMarks.ts'
+import {
+  placeGroupedPlatformMarks,
+  type DiscNormalizedRegion,
+} from './groupedPlatformMarkPlacement.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -22,6 +31,7 @@ import type {
   ProjectTechnicalMarks,
   ProjectTitleArtwork,
 } from '../project/projectTypes'
+import type { DiscTemplate } from '../types/template.ts'
 
 export const DISC_ROLE_PRESET_IDS = [
   'classic-top-title',
@@ -106,6 +116,8 @@ export type DiscRolePresetEnablementBehavior =
 
 export type DiscRolePresetCondition =
   | 'always'
+  | 'when-enabled'
+  | 'when-existing-owner-is-renderable'
   | 'when-title-artwork-is-not-renderable'
   | 'for-existing-configured-values'
   | 'for-existing-repeatable-objects'
@@ -116,6 +128,10 @@ export type DiscRolePresetUpdate = {
   condition: DiscRolePresetCondition
   enablement: DiscRolePresetEnablementBehavior
   fields: readonly DiscRolePresetFieldUpdate[]
+  placement?: {
+    kind: 'grouped-platform-marks'
+    region: DiscNormalizedRegion
+  }
   notes?: readonly string[]
 }
 
@@ -185,11 +201,10 @@ export const DISC_ROLE_PRESETS = [
       'game-info-logos',
       'company-logos',
       'legal-info',
-      'additional-text',
     ],
-    intentionallyUntouchedRoles: ['additional-artwork'],
+    intentionallyUntouchedRoles: ['additional-artwork', 'additional-text'],
     enablementBehavior:
-      'Enable intended visible layout slots without changing sources, selected values, text content, or user-created repeatable objects.',
+      'Place existing content without enabling optional roles or changing sources, selected values, text content, or user-created repeatable objects.',
     updatePlan: [
       {
         owner: 'backgroundImage',
@@ -246,30 +261,13 @@ export const DISC_ROLE_PRESETS = [
           {
             role: 'legal-info',
             slot: 'copyrightText',
-            condition: 'always',
+            condition: 'when-enabled',
             enablement: 'enable-intended-slot',
             fields: [
-              { field: 'textSetting.enabled', value: true },
               { field: 'textLayout.x', value: 0 },
-              { field: 'textLayout.y', value: 8 },
-              { field: 'textLayout.scale', value: 1 },
-              { field: 'textLayout.align', value: 'center' },
-              { field: 'textLayout.mode', value: 'curved' },
-              { field: 'textLayout.arcDegrees', value: 210 },
-              { field: 'textLayout.arcSide', value: 'bottom' },
-            ],
-          },
-          {
-            role: 'additional-text',
-            slot: 'appIdText',
-            condition: 'always',
-            enablement: 'enable-intended-slot',
-            fields: [
-              { field: 'textSetting.enabled', value: true },
-              { field: 'textLayout.x', value: 0 },
-              { field: 'textLayout.y', value: 72 },
-              { field: 'textLayout.width', value: 44 },
-              { field: 'textLayout.scale', value: 0.82 },
+              { field: 'textLayout.y', value: 89 },
+              { field: 'textLayout.width', value: 64 },
+              { field: 'textLayout.scale', value: 0.84 },
               { field: 'textLayout.align', value: 'center' },
               { field: 'textLayout.mode', value: 'straight' },
             ],
@@ -282,13 +280,12 @@ export const DISC_ROLE_PRESETS = [
           {
             role: 'game-info-logos',
             slot: 'ratingBadge',
-            condition: 'always',
+            condition: 'when-existing-owner-is-renderable',
             enablement: 'enable-if-renderable',
             fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 78 },
-              { field: 'layout.y', value: 68 },
-              { field: 'layout.scale', value: 0.9 },
+              { field: 'layout.x', value: 79 },
+              { field: 'layout.y', value: 62 },
+              { field: 'layout.scale', value: 0.75 },
             ],
           },
         ],
@@ -299,14 +296,34 @@ export const DISC_ROLE_PRESETS = [
           {
             role: 'game-info-logos',
             slot: 'mediaMark',
-            condition: 'always',
+            condition: 'when-existing-owner-is-renderable',
             enablement: 'enable-if-renderable',
             fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 74 },
-              { field: 'layout.y', value: 78 },
-              { field: 'layout.scale', value: 0.85 },
+              { field: 'layout.x', value: 80 },
+              { field: 'layout.y', value: 76 },
+              { field: 'layout.scale', value: 0.7 },
             ],
+          },
+        ],
+      },
+      {
+        owner: 'platformMarks',
+        updates: [
+          {
+            role: 'game-info-logos',
+            slot: 'selectedPlatformMarks',
+            condition: 'for-existing-configured-values',
+            enablement: 'leave-unchanged',
+            fields: [],
+            placement: {
+              kind: 'grouped-platform-marks',
+              region: {
+                centerXPercent: 50,
+                centerYPercent: 73,
+                widthPercent: 28,
+                heightPercent: 10,
+              },
+            },
           },
         ],
       },
@@ -316,25 +333,23 @@ export const DISC_ROLE_PRESETS = [
           {
             role: 'company-logos',
             slot: 'developerLogo',
-            condition: 'always',
+            condition: 'when-existing-owner-is-renderable',
             enablement: 'enable-if-renderable',
             fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 22 },
-              { field: 'layout.y', value: 64 },
-              { field: 'layout.scale', value: 0.82 },
+              { field: 'layout.x', value: 21 },
+              { field: 'layout.y', value: 62 },
+              { field: 'layout.scale', value: 0.7 },
             ],
           },
           {
             role: 'company-logos',
             slot: 'publisherLogo',
-            condition: 'always',
+            condition: 'when-existing-owner-is-renderable',
             enablement: 'enable-if-renderable',
             fields: [
-              { field: 'layout.enabled', value: true },
-              { field: 'layout.x', value: 22 },
+              { field: 'layout.x', value: 21 },
               { field: 'layout.y', value: 74 },
-              { field: 'layout.scale', value: 0.82 },
+              { field: 'layout.scale', value: 0.7 },
             ],
           },
         ],
@@ -342,7 +357,7 @@ export const DISC_ROLE_PRESETS = [
     ],
     notes: [
       'Additional artwork is deliberately untouched so the MVP does not create, delete, or rearrange user-created artwork elements.',
-      'Platform and technical marks are left for manual follow-up unless integration adds existing-value slot handling.',
+      'Selected enabled operating-system marks use deterministic grouped placement without changing selection or enablement.',
     ],
   },
   {
@@ -720,6 +735,7 @@ export function getDiscRolePresetUpdatePlan(
 export function applyDiscRolePresetToState(
   state: DiscRolePresetApplicationState,
   presetId: string,
+  selectedDiscTemplate?: DiscTemplate,
 ): DiscRolePresetApplicationResult {
   const preset = getDiscRolePreset(presetId)
 
@@ -732,7 +748,11 @@ export function applyDiscRolePresetToState(
   }
 
   const nextState = preset.updatePlan.reduce(
-    applyOwnerUpdatePlan,
+    (nextState, ownerPlan) => applyOwnerUpdatePlan(
+      nextState,
+      ownerPlan,
+      selectedDiscTemplate,
+    ),
     state,
   )
 
@@ -746,6 +766,7 @@ export function applyDiscRolePresetToState(
 function applyOwnerUpdatePlan(
   state: DiscRolePresetApplicationState,
   ownerPlan: DiscRolePresetOwnerUpdatePlan,
+  selectedDiscTemplate?: DiscTemplate,
 ): DiscRolePresetApplicationState {
   switch (ownerPlan.owner) {
     case 'backgroundImage':
@@ -786,7 +807,12 @@ function applyOwnerUpdatePlan(
           ...state.ratingBadge,
           layout: ownerPlan.updates.reduce(
             (layout, update) =>
-              update.slot === 'ratingBadge'
+              update.slot === 'ratingBadge' &&
+                  (update.condition !== 'when-existing-owner-is-renderable' ||
+                    shouldRenderRatingBadge(
+                      state.metadata ?? { ratingSystem: 'none' },
+                      state.ratingBadge,
+                    ))
                 ? applyVisualLayoutUpdate(
                     layout,
                     update,
@@ -804,7 +830,9 @@ function applyOwnerUpdatePlan(
           ...state.mediaMark,
           layout: ownerPlan.updates.reduce(
             (layout, update) =>
-              update.slot === 'mediaMark'
+              update.slot === 'mediaMark' &&
+                  (update.condition !== 'when-existing-owner-is-renderable' ||
+                    isOptionalLayoutFeatureEnabled(state.mediaMark))
                 ? applyVisualLayoutUpdate(layout, update, true)
                 : layout,
             state.mediaMark.layout,
@@ -815,7 +843,11 @@ function applyOwnerUpdatePlan(
       return {
         ...state,
         platformMarks: ownerPlan.updates.reduce(
-          applyPlatformMarksUpdate,
+          (platformMarks, update) => applyPlatformMarksUpdate(
+            platformMarks,
+            update,
+            selectedDiscTemplate,
+          ),
           state.platformMarks,
         ),
       }
@@ -923,6 +955,11 @@ function shouldApplyDiscTextUpdate(
   state: DiscRolePresetApplicationState,
   update: DiscRolePresetUpdate,
 ) {
+  if (update.condition === 'when-enabled') {
+    const textKey = getDiscTextKeyForPresetSlot(update.slot)
+    return Boolean(textKey && state.discTextSettings[textKey])
+  }
+
   if (update.condition !== 'when-title-artwork-is-not-renderable') {
     return true
   }
@@ -1001,9 +1038,47 @@ function applyDiscTextLayoutUpdate(
 function applyPlatformMarksUpdate(
   platformMarks: ProjectPlatformMarks,
   update: DiscRolePresetUpdate,
+  selectedDiscTemplate?: DiscTemplate,
 ): ProjectPlatformMarks {
   if (update.slot !== 'selectedPlatformMarks') {
     return platformMarks
+  }
+
+  if (update.placement?.kind === 'grouped-platform-marks') {
+    if (!selectedDiscTemplate) return platformMarks
+
+    const placement = placeGroupedPlatformMarks({
+      platformMarks,
+      region: update.placement.region,
+      template: selectedDiscTemplate,
+    })
+
+    if (placement.status !== 'placed') return platformMarks
+
+    const nextAssets = { ...platformMarks.assets }
+
+    for (const layoutUpdate of placement.updates) {
+      const asset = getProjectPlatformMarkAsset(
+        platformMarks,
+        layoutUpdate.value,
+        selectedDiscTemplate,
+      )
+
+      nextAssets[layoutUpdate.value] = {
+        ...asset,
+        layout: {
+          ...asset.layout,
+          x: layoutUpdate.x,
+          y: layoutUpdate.y,
+          scale: layoutUpdate.scale,
+        },
+      }
+    }
+
+    return {
+      ...platformMarks,
+      assets: nextAssets,
+    }
   }
 
   const nextAssets = { ...platformMarks.assets }
@@ -1062,6 +1137,13 @@ function applyLogoAssetUpdate(
 ): ProjectLogoAssets {
   switch (update.slot) {
     case 'developerLogo':
+      if (
+        update.condition === 'when-existing-owner-is-renderable' &&
+        (!isOptionalVisualFeatureEnabled(logoAssets.developerLogoLayout) ||
+          !logoAssets.developerLogoDataUrl)
+      ) {
+        return logoAssets
+      }
       return {
         ...logoAssets,
         developerLogoLayout: applyVisualLayoutUpdate(
@@ -1071,6 +1153,13 @@ function applyLogoAssetUpdate(
         ),
       }
     case 'publisherLogo':
+      if (
+        update.condition === 'when-existing-owner-is-renderable' &&
+        (!isOptionalVisualFeatureEnabled(logoAssets.publisherLogoLayout) ||
+          !logoAssets.publisherLogoDataUrl)
+      ) {
+        return logoAssets
+      }
       return {
         ...logoAssets,
         publisherLogoLayout: applyVisualLayoutUpdate(

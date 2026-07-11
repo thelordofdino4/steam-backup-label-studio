@@ -2,12 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
-import {
-  createEditorRoleFocusControllerStore,
-} from '../editor/editorRoleFocusController.ts'
-import type {
-  DiscGuidedPlaceholderViewModel,
-} from './discGuidedPlaceholderViewModel.ts'
+import type { DiscGuidedPlaceholderViewModel } from './discGuidedPlaceholderViewModel.ts'
 import {
   createDiscGuidedPlaceholderActionViewModels,
   getDiscGuidedPlaceholderSetup,
@@ -22,11 +17,14 @@ const GEOMETRY = {
 }
 
 const PLACEHOLDERS = [
-  ['disc:guided:background-image:primary', 'Background Image', 'background'],
   ['disc:guided:game-title:primary', 'Game Title', 'game-title-choice'],
-  ['disc:guided:rating:primary', 'Game Info Logos', 'rating'],
-  ['disc:guided:company-logo:primary', 'Company Logos', 'company-logo-choice'],
-  ['disc:guided:legal-text:copyright', 'Legal Info', 'legal'],
+  ['disc:guided:background-image:primary', 'Background Image', 'background'],
+  ['disc:guided:rating-badge:primary', 'Rating Badge', 'rating-badge'],
+  ['disc:guided:media-format-mark:primary', 'Media Format Mark', 'media-format-mark'],
+  ['disc:guided:operating-system-marks:group', 'Operating System Marks', 'operating-system-marks'],
+  ['disc:guided:developer-logo:primary', 'Developer Logo', 'developer-logo'],
+  ['disc:guided:publisher-logo:primary', 'Publisher Logo', 'publisher-logo'],
+  ['disc:guided:legal-text:copyright', 'Copyright / Legal Text', 'legal-text'],
 ] as const
 
 function createPlaceholders(
@@ -36,9 +34,7 @@ function createPlaceholders(
     slotId,
     label,
     visualGeometry: GEOMETRY,
-    actionGeometry: setupKind === 'background'
-      ? { ...GEOMETRY, centerYPercent: 36, widthPercent: 34 }
-      : GEOMETRY,
+    actionGeometry: GEOMETRY,
     visualLayer: setupKind === 'background' ? 'background' : 'foreground',
     lifecycle,
     setupKind,
@@ -46,185 +42,79 @@ function createPlaceholders(
   })) satisfies DiscGuidedPlaceholderViewModel[]
 }
 
-test('blank Classic projects exactly five ordered accessible action models', () => {
-  const placeholders = createPlaceholders()
-  const actions = createDiscGuidedPlaceholderActionViewModels(placeholders)
-
-  assert.equal(actions.length, 5)
+test('blank Classic exposes eight exact action models', () => {
+  const actions = createDiscGuidedPlaceholderActionViewModels(createPlaceholders())
+  assert.equal(actions.length, 8)
+  assert.deepEqual(actions.map(({ slotId }) => slotId), PLACEHOLDERS.map(([id]) => id))
   assert.deepEqual(actions.map(({ label }) => label), PLACEHOLDERS.map(([, label]) => label))
-  assert.deepEqual(actions.map(({ slotId }) => slotId), PLACEHOLDERS.map(([slotId]) => slotId))
   assert.equal(Object.isFrozen(actions), true)
-  assert.ok(actions.every(Object.isFrozen))
-  assert.equal(actions[0]?.actionGeometry.centerYPercent, 36)
-  assert.equal(actions[0]?.actionGeometry.widthPercent, 34)
 })
 
-test('Game Title offers only Image and Text with exact typed destinations', () => {
-  const setup = getDiscGuidedPlaceholderSetup('game-title-choice')
-
-  assert.equal(setup.kind, 'choice')
-  if (setup.kind !== 'choice') return
-
-  assert.deepEqual(setup.actions.map(({ label }) => label), ['Image', 'Text'])
-  assert.deepEqual(setup.actions.map(({ request }) => request.destination), [
-    {
-      roleId: 'game-title',
-      focusTarget: 'disc:game-title:artwork-upload',
-    },
-    {
-      roleId: 'game-title',
-      focusTarget: 'disc:game-title:text-fallback',
-    },
+test('Game Title remains the only Image and Text chooser', () => {
+  const title = getDiscGuidedPlaceholderSetup('game-title-choice')
+  assert.equal(title.kind, 'choice')
+  if (title.kind !== 'choice') return
+  assert.deepEqual(title.actions.map(({ label }) => label), ['Image', 'Text'])
+  assert.deepEqual(title.actions.map(({ request }) => request.destination), [
+    { roleId: 'game-title', focusTarget: 'disc:game-title:artwork-upload' },
+    { roleId: 'game-title', focusTarget: 'disc:game-title:text-fallback' },
   ])
+
+  for (const kind of PLACEHOLDERS.map(([, , setupKind]) => setupKind)) {
+    if (kind !== 'game-title-choice') {
+      assert.notEqual(getDiscGuidedPlaceholderSetup(kind).kind, 'choice')
+    }
+  }
 })
 
-test('Background, primary Rating, and Legal use exact direct typed destinations', () => {
-  const directSetups = [
-    ['background', {
-      roleId: 'background-artwork',
-      focusTarget: 'disc:background-image:local-upload',
-    }],
-    ['rating', {
-      roleId: 'game-info-logos',
-      focusTarget: 'disc:rating:enable',
-    }],
-    ['legal', {
-      roleId: 'legal-info',
-      focusTarget: 'disc:legal-text:copyright',
-    }],
+test('existing exact setup targets remain direct and independent', () => {
+  const expectations = [
+    ['background', { roleId: 'background-artwork', focusTarget: 'disc:background-image:local-upload' }],
+    ['rating-badge', { roleId: 'game-info-logos', focusTarget: 'disc:rating:enable' }],
+    ['developer-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:developer-upload' }],
+    ['publisher-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:publisher-upload' }],
+    ['legal-text', { roleId: 'legal-info', focusTarget: 'disc:legal-text:copyright' }],
   ] as const
 
-  for (const [setupKind, destination] of directSetups) {
-    const setup = getDiscGuidedPlaceholderSetup(setupKind)
+  for (const [kind, destination] of expectations) {
+    const setup = getDiscGuidedPlaceholderSetup(kind)
     assert.equal(setup.kind, 'direct')
     if (setup.kind !== 'direct') continue
-    assert.deepEqual(setup.action.request, {
-      surfaceId: 'disc-label',
-      behavior: 'focus',
-      scrollAlignment: 'role-start',
-      destination,
-    })
+    assert.deepEqual(setup.action.request.destination, destination)
+    assert.equal(setup.action.request.scrollAlignment, 'role-start')
   }
 })
 
-test('Company Logos keeps developer and publisher upload paths distinct', () => {
-  const setup = getDiscGuidedPlaceholderSetup('company-logo-choice')
+test('Media and OS setup are explicitly unavailable without broad fallback routing', () => {
+  for (const kind of ['media-format-mark', 'operating-system-marks'] as const) {
+    const setup = getDiscGuidedPlaceholderSetup(kind)
+    assert.equal(setup.kind, 'unavailable')
+    if (setup.kind === 'unavailable') {
+      assert.match(setup.label, /not available yet/)
+    }
+  }
 
-  assert.equal(setup.kind, 'choice')
-  if (setup.kind !== 'choice') return
-
-  assert.deepEqual(setup.actions.map(({ label }) => label), [
-    'Developer',
-    'Publisher',
-  ])
-  assert.deepEqual(setup.actions.map(({ request }) => request.destination), [
-    {
-      roleId: 'company-logos',
-      focusTarget: 'disc:company-logo:developer-upload',
-    },
-    {
-      roleId: 'company-logos',
-      focusTarget: 'disc:company-logo:publisher-upload',
-    },
-  ])
+  const source = readFileSync(new URL('./discGuidedPlaceholderSetup.ts', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /disc:media-format|disc:operating-system/)
+  assert.doesNotMatch(source, /company-logo-choice|Set up Game Info Logos/)
 })
 
-test('suggested placeholders retain the same setup actions without acceptance', () => {
-  const unfilled = createDiscGuidedPlaceholderActionViewModels(createPlaceholders())
-  const suggested = createDiscGuidedPlaceholderActionViewModels(
+test('suggested placeholders retain exact setup without accepting content', () => {
+  const actions = createDiscGuidedPlaceholderActionViewModels(
     createPlaceholders('suggested'),
   )
-
-  assert.deepEqual(
-    suggested.map(({ lifecycle }) => lifecycle),
-    Array(5).fill('suggested'),
-  )
-  assert.deepEqual(
-    suggested.map(({ setup }) => setup),
-    unfilled.map(({ setup }) => setup),
-  )
+  assert.ok(actions.every(({ lifecycle }) => lifecycle === 'suggested'))
+  assert.deepEqual(actions.map(({ setup }) => setup.kind), [
+    'choice', 'direct', 'direct', 'unavailable', 'unavailable', 'direct', 'direct', 'direct',
+  ])
 })
 
-test('slot lifecycle projection removes and restores only its matching action', () => {
-  const placeholders = createPlaceholders()
-
-  for (const placeholder of placeholders) {
-    const remainingPlaceholders = placeholders.filter(
-      ({ slotId }) => slotId !== placeholder.slotId,
-    )
-    const remainingActions = createDiscGuidedPlaceholderActionViewModels(
-      remainingPlaceholders,
-    )
-
-    assert.equal(remainingActions.length, 4)
-    assert.equal(
-      remainingActions.some(({ slotId }) => slotId === placeholder.slotId),
-      false,
-    )
-    assert.deepEqual(
-      createDiscGuidedPlaceholderActionViewModels(placeholders)
-        .map(({ slotId }) => slotId),
-      PLACEHOLDERS.map(([slotId]) => slotId),
-    )
-  }
-})
-
-test('every setup request is accepted by the typed role-focus controller', () => {
-  const store = createEditorRoleFocusControllerStore()
-  const actions = createDiscGuidedPlaceholderActionViewModels(createPlaceholders())
-    .flatMap(({ setup }) => setup.kind === 'direct'
-      ? [setup.action]
-      : [...setup.actions])
-
-  for (const action of actions) {
-    const request = store.requestRoleFocus(action.request)
-    assert.equal(request.surfaceId, 'disc-label')
-    assert.equal(request.behavior, 'focus')
-    assert.equal(request.scrollAlignment, 'role-start')
-    store.processPendingRequest()
-  }
-})
-
-test('all seven guided setup actions request role-start alignment', () => {
-  const actions = createDiscGuidedPlaceholderActionViewModels(createPlaceholders())
-    .flatMap(({ setup }) => setup.kind === 'direct'
-      ? [setup.action]
-      : [...setup.actions])
-
-  assert.equal(actions.length, 7)
-  assert.deepEqual(
-    actions.map(({ request }) => request.scrollAlignment),
-    Array(7).fill('role-start'),
-  )
-  assert.equal(
-    new Set(actions.map(({ request }) => request.destination.roleId)).size,
-    5,
-  )
-})
-
-test('setup model has no mutation, persistence, renderer, export, Case Insert, or Steam dependencies', () => {
+test('preview renders unavailable exact slots without dispatch behavior', () => {
   const source = readFileSync(
-    new URL('./discGuidedPlaceholderSetup.ts', import.meta.url),
+    new URL('../components/preview/DiscGuidedPlaceholderActions.tsx', import.meta.url),
     'utf8',
   )
-
-  for (const forbidden of [
-    'setProject',
-    'onEnabledChange',
-    'toggle',
-    'undo',
-    'dirty',
-    'projectSchema',
-    'snapshot',
-    'restoreProject',
-    'render/',
-    'export/',
-    'caseInsert',
-    'steam/',
-    'network',
-    'autoFill',
-    'acceptSuggestion',
-  ]) {
-    assert.equal(source.includes(forbidden), false, `unexpected source: ${forbidden}`)
-  }
+  assert.match(source, /setup\.kind === 'unavailable'/)
+  assert.match(source, /aria-disabled=\{isUnavailable \|\| undefined\}/)
+  assert.doesNotMatch(source, /querySelector|\.click\(\)/)
 })

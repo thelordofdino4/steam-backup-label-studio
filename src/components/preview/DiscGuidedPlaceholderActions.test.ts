@@ -40,7 +40,8 @@ test('action regions use normalized action geometry rather than visual geometry'
 })
 
 test('native buttons provide click, Enter, and Space activation without synthetic key handling', () => {
-  assert.match(actionsSource, /onClick=\{\(\) => activatePlaceholder\(actionViewModel\)\}/)
+  assert.match(actionsSource, /: \(\) => activatePlaceholder\(actionViewModel\)/)
+  assert.match(actionsSource, /isUnavailable[\s\S]*?\? undefined/)
   assert.doesNotMatch(actionsSource, /event\.key === 'Enter'|event\.key === ' '|\.click\(\)/)
   assert.doesNotMatch(actionsSource, /onPointer|onMouseDown|onDrag|onResize/)
 })

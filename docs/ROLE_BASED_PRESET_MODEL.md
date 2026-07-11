@@ -405,9 +405,25 @@ hole. A centered hub conflict tries the nearest downward placement before the
 equivalent upward placement. Impossible regions return a typed no-op failure
 instead of overlapping, moving outside the region, or mutating owner state.
 
-This capability is inert until a preset explicitly adopts it. Issue #290 adds
-the layout-domain prerequisite only; existing Disc preset behavior remains
-unchanged.
+Classic Top Title now adopts this capability for its Operating System Marks
+slot at normalized region `50, 73, 28, 10`. The preset applies only returned
+`x`, `y`, and `scale` values to already selected, enabled, renderable marks.
+It never selects or enables marks. A typed no-op or impossible result preserves
+the complete owner state unchanged.
+
+## 15.1 Classic Top Title Exact Guided Contract
+
+Classic Top Title exposes eight expected-content slots: Game Title, Background
+Image, Rating Badge, Media Format Mark, Operating System Marks, Developer Logo,
+Publisher Logo, and Copyright / Legal Text. Game Info Logos and Company Logos
+remain sidebar groupings rather than guided slots.
+
+Rating, Media, and OS validity resolve independently. Developer and Publisher
+also resolve independently. The preset no longer auto-enables Media Format and
+does not enable Rating, OS marks, either primary logo, or Copyright. Existing
+enabled/renderable content is repositioned while text/assets, selected values,
+sources, themes, custom images, and disabled state remain feature-owner data.
+No preset identity, guided lifecycle, or slot completion state is persisted.
 
 ## 16. Disc-First Implementation Guidance For #270
 

@@ -414,7 +414,7 @@ test('invalid and impossible regions return typed no-op failures', () => {
   assert.deepEqual(impossible.updates, [])
 })
 
-test('source stays pure and no preset adopts the helper yet', () => {
+test('source stays pure and the Disc preset domain adopts the helper', () => {
   const source = readFileSync(
     new URL('./groupedPlatformMarkPlacement.ts', import.meta.url),
     'utf8',
@@ -447,5 +447,6 @@ test('source stays pure and no preset adopts the helper yet', () => {
     assert.equal(source.includes(forbidden), false, `unexpected source: ${forbidden}`)
   }
 
-  assert.equal(presetSource.includes('groupedPlatformMarkPlacement'), false)
+  assert.equal(presetSource.includes('groupedPlatformMarkPlacement'), true)
+  assert.equal(presetSource.includes('placeGroupedPlatformMarks'), true)
 })

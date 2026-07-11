@@ -671,6 +671,8 @@ function App() {
     titleArtwork: projectTitleArtwork,
     metadata: projectMetadata,
     ratingBadge: projectRatingBadge,
+    mediaMark: projectMediaMark,
+    platformMarks: projectPlatformMarks,
     logoAssets: projectLogoAssets,
     additionalArtwork: projectAdditionalArtwork,
     discText: {

@@ -98,6 +98,10 @@ export function DiscGuidedPlaceholderActions({
   function activatePlaceholder(
     actionViewModel: DiscGuidedPlaceholderActionViewModel,
   ) {
+    if (actionViewModel.setup.kind === 'unavailable') {
+      return
+    }
+
     if (actionViewModel.setup.kind === 'direct') {
       dispatchSetupAction(actionViewModel.setup.action)
       return
@@ -123,6 +127,7 @@ export function DiscGuidedPlaceholderActions({
       <div className="disc-guided-placeholder-action-layer">
         {actions.map((actionViewModel) => {
           const isChoice = actionViewModel.setup.kind === 'choice'
+          const isUnavailable = actionViewModel.setup.kind === 'unavailable'
           const isOpen = openChoice?.slotId === actionViewModel.slotId
           const suggestedDescriptionId =
             `disc-guided-placeholder-suggested-${actionViewModel.slotId}`
@@ -141,6 +146,8 @@ export function DiscGuidedPlaceholderActions({
               className="disc-guided-placeholder-action"
               style={getActionRegionStyle(actionViewModel.actionGeometry)}
               aria-label={actionViewModel.label}
+              aria-disabled={isUnavailable || undefined}
+              title={isUnavailable ? actionViewModel.setup.label : undefined}
               aria-describedby={
                 actionViewModel.lifecycle === 'suggested'
                   ? suggestedDescriptionId
@@ -152,7 +159,11 @@ export function DiscGuidedPlaceholderActions({
               data-guided-slot-id={actionViewModel.slotId}
               data-guided-lifecycle={actionViewModel.lifecycle}
               draggable={false}
-              onClick={() => activatePlaceholder(actionViewModel)}
+              onClick={
+                isUnavailable
+                  ? undefined
+                  : () => activatePlaceholder(actionViewModel)
+              }
             >
               {actionViewModel.lifecycle === 'suggested' ? (
                 <span

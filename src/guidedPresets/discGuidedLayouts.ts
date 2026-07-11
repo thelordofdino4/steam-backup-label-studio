@@ -25,9 +25,12 @@ export type DiscGuidedPlaceholderLayer = 'background' | 'foreground'
 export type DiscGuidedSetupKind =
   | 'game-title-choice'
   | 'background'
-  | 'rating'
-  | 'company-logo-choice'
-  | 'legal'
+  | 'rating-badge'
+  | 'media-format-mark'
+  | 'operating-system-marks'
+  | 'developer-logo'
+  | 'publisher-logo'
+  | 'legal-text'
 
 export type DiscGuidedPopulationSource =
   | 'existing-steam-import'
@@ -206,40 +209,67 @@ const CLASSIC_BACKGROUND_VISUAL_GEOMETRY = Object.freeze({
 const CLASSIC_BACKGROUND_ACTION_GEOMETRY = Object.freeze({
   kind: 'rect' as const,
   centerXPercent: 50,
-  centerYPercent: 36,
+  centerYPercent: 34,
   widthPercent: 34,
-  heightPercent: 10,
+  heightPercent: 8,
 }) satisfies DiscGuidedRectGeometry
 
 const CLASSIC_RATING_GEOMETRY = Object.freeze({
   kind: 'rect' as const,
-  centerXPercent: 78,
-  centerYPercent: 68,
+  centerXPercent: 79,
+  centerYPercent: 62,
   widthPercent: 20,
-  heightPercent: 18,
+  heightPercent: 14,
 }) satisfies DiscGuidedRectGeometry
 
-const CLASSIC_COMPANY_LOGO_GEOMETRY = Object.freeze({
+const CLASSIC_MEDIA_FORMAT_GEOMETRY = Object.freeze({
   kind: 'rect' as const,
-  centerXPercent: 22,
-  centerYPercent: 69,
+  centerXPercent: 80,
+  centerYPercent: 76,
+  widthPercent: 22,
+  heightPercent: 9,
+}) satisfies DiscGuidedRectGeometry
+
+const CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY = Object.freeze({
+  kind: 'rect' as const,
+  centerXPercent: 50,
+  centerYPercent: 73,
   widthPercent: 28,
-  heightPercent: 22,
+  heightPercent: 10,
+}) satisfies DiscGuidedRectGeometry
+
+const CLASSIC_DEVELOPER_LOGO_GEOMETRY = Object.freeze({
+  kind: 'rect' as const,
+  centerXPercent: 21,
+  centerYPercent: 62,
+  widthPercent: 26,
+  heightPercent: 9,
+}) satisfies DiscGuidedRectGeometry
+
+const CLASSIC_PUBLISHER_LOGO_GEOMETRY = Object.freeze({
+  kind: 'rect' as const,
+  centerXPercent: 21,
+  centerYPercent: 74,
+  widthPercent: 26,
+  heightPercent: 9,
 }) satisfies DiscGuidedRectGeometry
 
 const CLASSIC_LEGAL_GEOMETRY = Object.freeze({
   kind: 'rect' as const,
   centerXPercent: 50,
-  centerYPercent: 88,
+  centerYPercent: 89,
   widthPercent: 64,
-  heightPercent: 12,
+  heightPercent: 8,
 }) satisfies DiscGuidedRectGeometry
 
 const CLASSIC_TOP_TITLE_SLOT_ORDER = Object.freeze([
-  'disc:guided:background-image:primary',
   'disc:guided:game-title:primary',
-  'disc:guided:rating:primary',
-  'disc:guided:company-logo:primary',
+  'disc:guided:background-image:primary',
+  'disc:guided:rating-badge:primary',
+  'disc:guided:media-format-mark:primary',
+  'disc:guided:operating-system-marks:group',
+  'disc:guided:developer-logo:primary',
+  'disc:guided:publisher-logo:primary',
   'disc:guided:legal-text:copyright',
 ] as const satisfies readonly DiscGuidedSlotId[])
 
@@ -274,31 +304,58 @@ const CLASSIC_TOP_TITLE_GUIDED_LAYOUT = Object.freeze({
       setupKind: 'game-title-choice',
       populationSource: 'existing-steam-import',
     }),
-    'disc:guided:rating:primary': createLayoutSlot({
-      slotId: 'disc:guided:rating:primary',
-      label: 'Game Info Logos',
+    'disc:guided:rating-badge:primary': createLayoutSlot({
+      slotId: 'disc:guided:rating-badge:primary',
+      label: 'Rating Badge',
       visualGeometry: CLASSIC_RATING_GEOMETRY,
       actionGeometry: CLASSIC_RATING_GEOMETRY,
       visualLayer: 'foreground',
-      setupKind: 'rating',
+      setupKind: 'rating-badge',
       populationSource: 'accepted-metadata',
     }),
-    'disc:guided:company-logo:primary': createLayoutSlot({
-      slotId: 'disc:guided:company-logo:primary',
-      label: 'Company Logos',
-      visualGeometry: CLASSIC_COMPANY_LOGO_GEOMETRY,
-      actionGeometry: CLASSIC_COMPANY_LOGO_GEOMETRY,
+    'disc:guided:media-format-mark:primary': createLayoutSlot({
+      slotId: 'disc:guided:media-format-mark:primary',
+      label: 'Media Format Mark',
+      visualGeometry: CLASSIC_MEDIA_FORMAT_GEOMETRY,
+      actionGeometry: CLASSIC_MEDIA_FORMAT_GEOMETRY,
       visualLayer: 'foreground',
-      setupKind: 'company-logo-choice',
+      setupKind: 'media-format-mark',
+      populationSource: 'existing-owner-only',
+    }),
+    'disc:guided:operating-system-marks:group': createLayoutSlot({
+      slotId: 'disc:guided:operating-system-marks:group',
+      label: 'Operating System Marks',
+      visualGeometry: CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY,
+      actionGeometry: CLASSIC_OPERATING_SYSTEM_MARKS_GEOMETRY,
+      visualLayer: 'foreground',
+      setupKind: 'operating-system-marks',
+      populationSource: 'existing-owner-only',
+    }),
+    'disc:guided:developer-logo:primary': createLayoutSlot({
+      slotId: 'disc:guided:developer-logo:primary',
+      label: 'Developer Logo',
+      visualGeometry: CLASSIC_DEVELOPER_LOGO_GEOMETRY,
+      actionGeometry: CLASSIC_DEVELOPER_LOGO_GEOMETRY,
+      visualLayer: 'foreground',
+      setupKind: 'developer-logo',
+      populationSource: 'existing-owner-only',
+    }),
+    'disc:guided:publisher-logo:primary': createLayoutSlot({
+      slotId: 'disc:guided:publisher-logo:primary',
+      label: 'Publisher Logo',
+      visualGeometry: CLASSIC_PUBLISHER_LOGO_GEOMETRY,
+      actionGeometry: CLASSIC_PUBLISHER_LOGO_GEOMETRY,
+      visualLayer: 'foreground',
+      setupKind: 'publisher-logo',
       populationSource: 'existing-owner-only',
     }),
     'disc:guided:legal-text:copyright': createLayoutSlot({
       slotId: 'disc:guided:legal-text:copyright',
-      label: 'Legal Info',
+      label: 'Copyright / Legal Text',
       visualGeometry: CLASSIC_LEGAL_GEOMETRY,
       actionGeometry: CLASSIC_LEGAL_GEOMETRY,
       visualLayer: 'foreground',
-      setupKind: 'legal',
+      setupKind: 'legal-text',
       populationSource: 'accepted-metadata',
     }),
   }),
