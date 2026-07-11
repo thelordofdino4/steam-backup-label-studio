@@ -530,6 +530,11 @@ function parseEditorRoleFocusRequestUnsafe(
     return { ok: false, error: 'invalid-scroll-alignment' }
   }
 
+  const validatedScrollAlignment =
+    isEditorRoleFocusScrollAlignment(scrollAlignment)
+      ? scrollAlignment
+      : undefined
+
   const destination = parseDestination(value.destination)
 
   if (!destination.ok) {
@@ -557,7 +562,9 @@ function parseEditorRoleFocusRequestUnsafe(
         surfaceId: value.surfaceId,
         behavior: value.behavior,
         destination: destination.value,
-        ...(scrollAlignment ? { scrollAlignment } : {}),
+        ...(validatedScrollAlignment
+          ? { scrollAlignment: validatedScrollAlignment }
+          : {}),
         ownerTarget: ownerTarget.value,
       },
     }
@@ -570,7 +577,9 @@ function parseEditorRoleFocusRequestUnsafe(
       surfaceId: value.surfaceId,
       behavior: value.behavior,
       destination: destination.value,
-      ...(scrollAlignment ? { scrollAlignment } : {}),
+      ...(validatedScrollAlignment
+        ? { scrollAlignment: validatedScrollAlignment }
+        : {}),
     },
   }
 }
