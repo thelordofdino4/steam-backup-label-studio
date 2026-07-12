@@ -52,6 +52,7 @@ const expectedOwnersByPreset = {
     'discText',
     'ratingBadge',
     'mediaMark',
+    'platformMarks',
     'logoAssets',
   ],
   'centered-logo-archive': [
@@ -86,6 +87,8 @@ const expectedCallsByPreset = {
     'clampProjectRatingBadgeToTemplate',
     'setProjectMediaMark',
     'clampProjectMediaMarkToTemplate',
+    'setProjectPlatformMarks',
+    'clampProjectPlatformMarksToTemplate',
     'setProjectLogoAssets',
     'clampProjectLogoAssetsToTemplate',
   ],

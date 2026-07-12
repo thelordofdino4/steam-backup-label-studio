@@ -19,6 +19,8 @@ import { AdditionalArtworkLayer } from './AdditionalArtworkLayer'
 import { PreviewDesignCheckPanel } from './PreviewDesignCheckPanel'
 import { DiscGuideLegendPreviewPanel } from './PreviewGuideLegendPanel'
 import { PreviewElementOverlay } from './PreviewElementOverlay'
+import { DiscGuidedPlaceholderOverlay } from './DiscGuidedPlaceholderOverlay'
+import { DiscGuidedPlaceholderActions } from './DiscGuidedPlaceholderActions'
 import { PreviewHeader } from './PreviewHeader'
 import { PreviewViewport } from './PreviewViewport'
 import { ContextualTextRibbonProvider } from './ContextualTextRibbonBridge'
@@ -31,6 +33,9 @@ import type { RatingBadgeElementKey } from '../../project/projectRatingBadge'
 import { createDiscTextOccupiedRegions } from '../../layout/discTextOccupiedRegions'
 import { measureDiscTextWithBrowserCanvas } from '../../discText/svgLayer'
 import { buildDiscDesignCheckSummary } from '../../export/discDesignCheck'
+import type { DiscGuidedPlaceholderViewModel } from '../../guidedPresets/discGuidedPlaceholderViewModel'
+import type { DiscGuidedSlotId } from '../../guidedPresets/discGuidedSlots'
+import type { DiscGuidedWorkflowState } from '../../guidedPresets/discGuidedWorkflow'
 
 export type DiscPreviewProps = {
   discPreviewRef: RefObject<HTMLDivElement | null>
@@ -222,6 +227,11 @@ export type DiscPreviewProps = {
     safeInsetPercent: number
     physicalCenterHolePercent: number
   }
+  editorAffordances?: {
+    guidedPlaceholders: readonly DiscGuidedPlaceholderViewModel[]
+    guidedWorkflow: DiscGuidedWorkflowState
+    onOmitGuidedSlot: (slotId: DiscGuidedSlotId) => void
+  }
 }
 
 type PreviewLayerMap = Record<DiscEditorPreviewLayerId, ReactNode>
@@ -238,6 +248,7 @@ export function DiscPreview({
   discText,
   pointerHandlers,
   guideOverlay,
+  editorAffordances,
 }: DiscPreviewProps) {
   const [isDesignCheckOpen, setIsDesignCheckOpen] = useState(false)
   const [isGuideLegendOpen, setIsGuideLegendOpen] = useState(false)
@@ -492,10 +503,25 @@ export function DiscPreview({
               className="disc-preview"
               data-smoke-id="disc-preview"
               aria-label="Blank standard printable disc preview"
+              tabIndex={-1}
             >
               {DISC_EDITOR_PREVIEW_LAYER_ORDER.map((layerId) => (
                 <Fragment key={layerId}>{previewLayers[layerId]}</Fragment>
               ))}
+              {editorAffordances ? (
+                <DiscGuidedPlaceholderOverlay
+                  placeholders={editorAffordances.guidedPlaceholders}
+                  physicalCenterHolePercent={guideOverlay.physicalCenterHolePercent}
+                />
+              ) : null}
+              {editorAffordances ? (
+                <DiscGuidedPlaceholderActions
+                  placeholders={editorAffordances.guidedPlaceholders}
+                  workflowRevision={editorAffordances.guidedWorkflow}
+                  onOmitSlot={editorAffordances.onOmitGuidedSlot}
+                  fallbackFocusRef={discPreviewRef}
+                />
+              ) : null}
               <PreviewElementOverlay previewRef={discPreviewRef} />
             </div>
           </PreviewViewport>

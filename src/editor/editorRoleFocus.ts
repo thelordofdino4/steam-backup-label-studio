@@ -8,6 +8,8 @@ export type EditorRoleFocusSurfaceId = 'disc-label'
 
 export type EditorRoleFocusBehavior = 'reveal' | 'focus'
 
+export type EditorRoleFocusScrollAlignment = 'nearest' | 'role-start'
+
 export type EditorRoleFocusRequestId = number
 
 export const DISC_COMPANY_LOGO_FOCUS_TARGET_IDS = [
@@ -36,16 +38,26 @@ export type DiscAdditionalArtworkItemFocusTarget = Extract<
   | 'disc:additional-artwork:upload'
 >
 
+export const DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS = [
+  'disc:rating:enable',
+  'disc:rating:system',
+  'disc:rating:value',
+  'disc:rating:source',
+  'disc:media-format-mark:enable',
+  'disc:media-format-mark:format',
+  'disc:operating-system-marks:enable',
+] as const
+
+export type DiscGameInfoLogoFocusTarget =
+  (typeof DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS)[number]
+
 export const DISC_ROLE_FOCUS_TARGET_IDS = [
   'disc:background-image:enable',
   'disc:background-image:local-upload',
   'disc:game-title:artwork-enable',
   'disc:game-title:artwork-upload',
   'disc:game-title:text-fallback',
-  'disc:rating:enable',
-  'disc:rating:system',
-  'disc:rating:value',
-  'disc:rating:source',
+  ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
   'disc:legal-text:copyright',
   ...DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
@@ -89,11 +101,7 @@ export type DiscRoleFocusDestination =
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'game-info-logos'>
-      focusTarget:
-        | 'disc:rating:enable'
-        | 'disc:rating:system'
-        | 'disc:rating:value'
-        | 'disc:rating:source'
+      focusTarget: DiscGameInfoLogoFocusTarget
     }
   | {
       roleId: Extract<DiscRolePresetRole, 'company-logos'>
@@ -131,6 +139,7 @@ export type EditorRoleFocusRequest = {
   surfaceId: EditorRoleFocusSurfaceId
   behavior: EditorRoleFocusBehavior
   destination: DiscRoleFocusDestination
+  scrollAlignment?: EditorRoleFocusScrollAlignment
   ownerTarget?: EditorRoleFocusOwnerTarget
 }
 
@@ -140,6 +149,7 @@ export type EditorRoleFocusRequestParseError =
   | 'invalid-request-id'
   | 'invalid-surface'
   | 'invalid-behavior'
+  | 'invalid-scroll-alignment'
   | 'invalid-destination'
   | 'invalid-role'
   | 'invalid-focus-target'
@@ -178,10 +188,7 @@ const FOCUS_TARGETS_BY_ROLE = {
     'disc:game-title:text-fallback',
   ],
   'game-info-logos': [
-    'disc:rating:enable',
-    'disc:rating:system',
-    'disc:rating:value',
-    'disc:rating:source',
+    ...DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
   ],
   'company-logos': [
     ...DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
@@ -217,6 +224,12 @@ function hasOnlyKeys(
 
 function isPositiveSafeInteger(value: unknown): value is number {
   return Number.isSafeInteger(value) && typeof value === 'number' && value > 0
+}
+
+function isEditorRoleFocusScrollAlignment(
+  value: unknown,
+): value is EditorRoleFocusScrollAlignment {
+  return value === 'nearest' || value === 'role-start'
 }
 
 function isDiscRolePresetRole(value: unknown): value is DiscRolePresetRole {
@@ -395,6 +408,19 @@ function parseOwnerTarget(
         }
       }
       break
+    case 'mediaMark':
+      return hasOnlyKeys(value, ['owner'])
+        ? { ok: true, value: { owner: value.owner } }
+        : { ok: false, error: 'invalid-owner-target' }
+    case 'platformMarks':
+      if (hasOnlyKeys(value, ['owner', 'selection']) &&
+        value.selection === 'enabled-values') {
+        return {
+          ok: true,
+          value: { owner: value.owner, selection: value.selection },
+        }
+      }
+      break
     case 'logoAssets':
       if (hasOnlyKeys(value, ['owner', 'logoKey', 'scope']) &&
         (value.logoKey === 'developer' || value.logoKey === 'publisher') &&
@@ -443,8 +469,22 @@ function isOwnerTargetCompatibleWithDestination(
         ? ownerTarget.owner === 'discText' && ownerTarget.key === 'title'
         : ownerTarget.owner === 'titleArtwork'
     case 'game-info-logos':
-      return ownerTarget.owner === 'ratingBadge' &&
-        ownerTarget.badgeKey === 'primary'
+      switch (destination.focusTarget) {
+        case 'disc:rating:enable':
+        case 'disc:rating:system':
+        case 'disc:rating:value':
+        case 'disc:rating:source':
+          return ownerTarget.owner === 'ratingBadge' &&
+            ownerTarget.badgeKey === 'primary'
+        case 'disc:media-format-mark:enable':
+        case 'disc:media-format-mark:format':
+          return ownerTarget.owner === 'mediaMark'
+        case 'disc:operating-system-marks:enable':
+          return ownerTarget.owner === 'platformMarks' &&
+            ownerTarget.selection === 'enabled-values'
+      }
+
+      return false
     case 'company-logos': {
       if (ownerTarget.owner !== 'logoAssets' ||
         ownerTarget.scope !== 'primary') {
@@ -492,6 +532,7 @@ function parseEditorRoleFocusRequestUnsafe(
     'surfaceId',
     'behavior',
     'destination',
+    'scrollAlignment',
     'ownerTarget',
   ])) {
     return { ok: false, error: 'unexpected-field' }
@@ -508,6 +549,21 @@ function parseEditorRoleFocusRequestUnsafe(
   if (value.behavior !== 'reveal' && value.behavior !== 'focus') {
     return { ok: false, error: 'invalid-behavior' }
   }
+
+  const hasScrollAlignment = hasOwn(value, 'scrollAlignment')
+  const scrollAlignment = hasScrollAlignment
+    ? value.scrollAlignment
+    : undefined
+
+  if (hasScrollAlignment &&
+    !isEditorRoleFocusScrollAlignment(scrollAlignment)) {
+    return { ok: false, error: 'invalid-scroll-alignment' }
+  }
+
+  const validatedScrollAlignment =
+    isEditorRoleFocusScrollAlignment(scrollAlignment)
+      ? scrollAlignment
+      : undefined
 
   const destination = parseDestination(value.destination)
 
@@ -536,6 +592,9 @@ function parseEditorRoleFocusRequestUnsafe(
         surfaceId: value.surfaceId,
         behavior: value.behavior,
         destination: destination.value,
+        ...(validatedScrollAlignment
+          ? { scrollAlignment: validatedScrollAlignment }
+          : {}),
         ownerTarget: ownerTarget.value,
       },
     }
@@ -548,6 +607,9 @@ function parseEditorRoleFocusRequestUnsafe(
       surfaceId: value.surfaceId,
       behavior: value.behavior,
       destination: destination.value,
+      ...(validatedScrollAlignment
+        ? { scrollAlignment: validatedScrollAlignment }
+        : {}),
     },
   }
 }

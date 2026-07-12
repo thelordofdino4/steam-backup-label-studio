@@ -499,11 +499,11 @@ test('issue 272 Game Info Logos role owns disc mark controls', () => {
 
   assert.match(
     appSource,
-    /import \{\s*DiscGameInfoRatingControls,\s*\} from '\.\.\/components\/editor\/DiscGameInfoRatingControls'/,
+    /import \{\s*DiscGameInfoLogoRoleControls,\s*\} from '\.\.\/components\/editor\/DiscGameInfoLogoRoleControls'/,
   )
   assert.match(
     appSource,
-    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoRatingControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
+    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoLogoRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.doesNotMatch(appSource, /<BrandingPanel/)
 
@@ -517,11 +517,11 @@ test('issue 272 Game Info Logos role owns disc mark controls', () => {
   )
   assert.match(
     gameInfoLogoControlsSource,
-    /<EditorFeaturePanel title="Media format mark" variant="branding">/,
+    /<EditorFeaturePanel[\s\S]*?title="Media format mark"[\s\S]*?variant="branding"/,
   )
   assert.match(
     gameInfoLogoControlsSource,
-    /<EditorFeaturePanel title="Operating system marks" variant="branding">/,
+    /<EditorFeaturePanel[\s\S]*?title="Operating system marks"[\s\S]*?variant="branding"/,
   )
   assert.match(
     gameInfoLogoControlsSource,

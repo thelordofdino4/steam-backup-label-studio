@@ -102,7 +102,11 @@ export function applyDiscRolePresetToOwners({
   selectedDiscTemplate,
   actions,
 }: ApplyDiscRolePresetToOwnersParams): DiscRolePresetOwnerApplicationResult {
-  const result = applyDiscRolePresetToState(currentState, presetId)
+  const result = applyDiscRolePresetToState(
+    currentState,
+    presetId,
+    selectedDiscTemplate,
+  )
 
   if (!result.applied || !result.preset) {
     return {

@@ -1,5 +1,5 @@
 # Guided Preset Slot Model
-> Status: Design contract for GitHub issue #283.
+> Status: Implemented Disc domain, persistence, passive guidance, setup menus, and typed navigation contract for issues #283, #287, #289, and #292.
 > Purpose: Define the Disc guided preset slot identity, lifecycle, binding, and architecture boundaries for parent issue #281.
 > Read when: Working on guided Disc presets, slot resolution, edit-mode placeholders, role-focus navigation, guided persistence, or safe content suggestions.
 > Authoritative source: Current source for implemented behavior; `PACKAGING_ROLE_MODEL.md` for semantic roles; `ROLE_BASED_PRESET_MODEL.md` for layout presets; `PROJECT_FILE_SPEC.md` for saved-project schema; `SOFTWARE_DESIGN_DOCUMENT.md` for architecture contracts.
@@ -14,7 +14,11 @@ and canonical omitted slot IDs through `src/project/projectGuidedWorkflow.ts`.
 Suggestions remain transient. Pure typed Disc role-focus requests, runtime
 validation, and reducer state are implemented in `src/editor/editorRoleFocus.ts`.
 Focus-target IDs are semantic navigation identifiers, not DOM IDs or smoke-test
-IDs, and navigation state is transient and is not serialized.
+IDs, and navigation state is transient and is not serialized. Classic Top Title
+now projects eight passive edit-only placeholders. Every visible unfilled or
+suggested placeholder opens an accessible setup menu with exact typed setup
+destinations and `Remove from preset`; omission updates only the persisted
+guided workflow.
 
 Implemented role-focus infrastructure includes:
 
@@ -63,13 +67,13 @@ Implemented role-focus infrastructure includes:
   item card and, for an available upload, its Local file panel without mutating
   project state.
 
-All 19 declared #287 Disc role-focus targets now have production registration.
-No production UI currently dispatches role-focus requests. Semantic request
-smoke remains deferred until the real guided-preview caller exists; only manual
-panel behavior is directly observable in the native app at this stage. Guided
-menus, auto-fill, and native end-to-end guided-navigation validation remain
-future #281 work. Navigation state is transient and non-persistent, and
-Case Front, Case Back, and Spine remain outside the Disc-only provider.
+All 19 declared #287 Disc role-focus targets have production registration. The
+Disc guided-preview action layer dispatches the exact setup requests used by
+Classic Top Title, while mounted integration coverage validates every current
+route and disabled-owner fallback. Auto-fill and native Tauri acceptance remain
+future #281 work. Navigation and open-menu state are transient and
+non-persistent; Case Front, Case Back, and Spine remain outside the Disc-only
+provider.
 
 ## 1. Purpose And Scope
 
@@ -87,11 +91,11 @@ or enable a feature object merely because the slot exists.
 
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
-boundaries for #281. The pure source definitions and lifecycle resolver are now
-implemented, along with the Disc role-focus foundation. Preview placeholders,
-remaining role target integrations, guided request callers, setup menus, and
-auto-fill remain deferred. Case Front, Case Back, and Spine guided presets
-remain deferred until the Disc contract is proven.
+boundaries for #281. Pure definitions, lifecycle resolution, versioned
+workflow persistence, passive placeholders, exact setup menus, omission, and
+typed role-focus dispatch are implemented. Auto-fill and a restore surface
+remain deferred. Case Front, Case Back, and Spine guided presets remain
+deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
 
@@ -360,8 +364,7 @@ through the existing owner instead of mutating duplicated slot content.
 | `filled` | unfilled, suggested, omitted | Real feature suppresses the placeholder | Existing owner capabilities | Existing owner predicate | Manual edits remain normal project state. |
 | `omitted` | unfilled, suggested, filled | Guidance is suppressed | No | No output merely from omission state | Existing feature payload is preserved and continues through normal rendering/export rules. |
 
-Placeholder visibility in this table is a contract for future implementation,
-not current UI behavior.
+Placeholder visibility in this table is implemented for Classic Top Title.
 
 ## 7. Derived, Transient, And Persisted State
 
@@ -378,7 +381,7 @@ state should not be serialized merely for convenience.
 
 ### Transient State
 
-The current suggestion, selected placeholder, open image/text chooser,
+The current suggestion, selected placeholder, open setup menu,
 role-focus request, and hover/focus animation state can remain editor-session
 state.
 
@@ -434,6 +437,20 @@ auto-fill implementation remains outside this issue.
 - Animated treatment must respect reduced-motion preferences.
 - It is non-draggable and non-resizable until filled.
 - Filling suppresses the placeholder and continues through the existing feature renderer.
+- Every visible unfilled or suggested placeholder is one native button. Pointer,
+  Enter, and Space open its setup menu without immediately navigating or
+  accepting a suggestion.
+- Only one setup menu is open. Escape closes it and returns focus to its
+  placeholder when available.
+- Setup actions close the menu and dispatch one typed role-focus request with
+  `scrollAlignment: 'role-start'`.
+- `Remove from preset` calls the pure omission transition with that exact slot
+  ID. It does not disable, clear, or otherwise mutate the feature owner.
+- After omission, focus moves to the next visible slot in canonical order,
+  then the previous visible slot, then the stable preview fallback. This uses
+  registered refs and ordered view models rather than DOM queries.
+- Menu state closes on setup, omission, Escape, placeholder disappearance,
+  workflow revision, surface transition, load, clear, or unmount.
 
 The current preview overlay geometry helpers can inform a later implementation,
 but empty-slot geometry cannot depend on finding a real feature element in the
@@ -533,10 +550,12 @@ item. Array indexes, first-item selection, candidate bindings such as
 `first-renderable-existing`, DOM IDs, and encoded string keys are not valid
 navigation identity.
 
-No guided preview caller exists yet. Future placeholder components should emit
-typed navigation intent rather than query the DOM or duplicate role-panel
-state. Native focus validation remains pending. Case Front, Case Back, and Spine
-remain outside this Disc-only provider.
+The guided preview caller emits typed navigation intent and never queries the
+DOM or duplicates role-panel state. Mounted integration tests cover the eight
+Classic setup paths, pointer and keyboard menu activation, disabled-owner
+fallbacks, omission, and focus handoff. Native Tauri acceptance remains
+pending. Case Front, Case Back, and Spine remain outside this Disc-only
+provider.
 
 ## 12. Versioned Workflow Contract
 
@@ -607,21 +626,18 @@ or definition-owned and are not serialized.
 
 ## 16. Follow-Up Child Issues
 
-1. Pure Disc slot definitions and resolution predicates.
-2. Accessible omission menus and the Layout Presets restore surface.
-3. Edit-mode placeholder overlay.
-4. Add the production guided-preview caller, connect placeholders to typed
-   role-focus requests, and perform native end-to-end guided-navigation
-   validation.
-5. Game Title image-first interaction and auto-fill.
-6. Safe rating/logo/legal suggestions.
-7. Filled-slot movement/export transition tests.
-8. Native Tauri validation.
+1. Add a Layout Presets restore surface for omitted slots.
+2. Game Title image-first interaction and auto-fill.
+3. Safe rating/logo/legal suggestions.
+4. Filled-slot movement/export transition tests.
+5. Native Tauri validation.
 
 Related issues and contracts:
 
 - #281: guided layout preset parent track.
 - #283: this Disc slot domain and lifecycle contract.
+- #289: open Classic Top Title passive placeholder and guided setup track.
+- #292: open guided-slot omission workflow and restore-surface track.
 - #267: packaging role taxonomy and object-role model.
 - #269: role-based preset model and application contract.
 - #270: completed Disc layout preset MVP.

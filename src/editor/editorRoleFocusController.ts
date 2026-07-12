@@ -166,9 +166,12 @@ function focusElement(element: HTMLElement) {
   }
 }
 
-function revealElement(element: HTMLElement) {
+function revealElement(
+  element: HTMLElement,
+  block: ScrollLogicalPosition = 'nearest',
+) {
   try {
-    element.scrollIntoView({ block: 'nearest', behavior: 'auto' })
+    element.scrollIntoView({ block, behavior: 'auto' })
     return true
   } catch {
     return false
@@ -214,6 +217,9 @@ export function createEditorRoleFocusControllerStore():
       surfaceId: input.surfaceId,
       behavior: input.behavior,
       destination: input.destination,
+      ...(input.scrollAlignment
+        ? { scrollAlignment: input.scrollAlignment }
+        : {}),
       ...(input.ownerTarget ? { ownerTarget: input.ownerTarget } : {}),
     }
     nextRequestId += 1
@@ -324,21 +330,32 @@ export function createEditorRoleFocusControllerStore():
     }
   }
 
-  function revealRole(roleId: DiscRolePresetRole) {
+  function getRoleRevealTarget(roleId: DiscRolePresetRole) {
     const registration = roleRegistrations.get(roleId)?.registration
 
-    if (!registration) return false
+    if (!registration) return null
 
     const summary = resolveElement(registration.summaryElement)
     const details = summary
       ? null
       : resolveElement(registration.detailsElement)
-    const revealTarget = summary ?? details
 
-    return revealTarget ? revealElement(revealTarget) : false
+    return summary ?? details
   }
 
-  function focusRoleSummary(roleId: DiscRolePresetRole) {
+  function revealRole(
+    roleId: DiscRolePresetRole,
+    block: ScrollLogicalPosition = 'nearest',
+  ) {
+    const revealTarget = getRoleRevealTarget(roleId)
+
+    return revealTarget ? revealElement(revealTarget, block) : false
+  }
+
+  function focusRoleSummary(
+    roleId: DiscRolePresetRole,
+    block: ScrollLogicalPosition = 'nearest',
+  ) {
     const registration = roleRegistrations.get(roleId)?.registration
 
     if (!registration) return false
@@ -351,7 +368,7 @@ export function createEditorRoleFocusControllerStore():
 
     if (!revealTarget) return false
     if (summary) focusElement(summary)
-    revealElement(revealTarget)
+    revealElement(revealTarget, block)
     return true
   }
 
@@ -400,9 +417,13 @@ export function createEditorRoleFocusControllerStore():
     if (!request) return 'no-pending-request'
 
     let outcome: EditorRoleFocusProcessingOutcome
+    const roleStart = request.scrollAlignment === 'role-start'
 
     if (request.behavior === 'reveal') {
-      outcome = revealRole(request.destination.roleId)
+      outcome = revealRole(
+        request.destination.roleId,
+        roleStart ? 'start' : 'nearest',
+      )
         ? 'role-revealed'
         : 'unavailable'
     } else {
@@ -412,10 +433,17 @@ export function createEditorRoleFocusControllerStore():
 
       if (focusTarget) {
         focusElement(focusTarget)
-        revealElement(focusTarget)
+        if (roleStart) {
+          revealRole(request.destination.roleId, 'start')
+        } else {
+          revealElement(focusTarget)
+        }
         outcome = 'target-focused'
       } else {
-        outcome = focusRoleSummary(request.destination.roleId)
+        outcome = focusRoleSummary(
+          request.destination.roleId,
+          roleStart ? 'start' : 'nearest',
+        )
           ? 'role-summary-fallback'
           : 'unavailable'
       }

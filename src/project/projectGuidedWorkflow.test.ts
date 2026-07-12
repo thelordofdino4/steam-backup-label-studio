@@ -276,17 +276,25 @@ function listTypeScriptFiles(directory: string): string[] {
   })
 }
 
-test('guided workflow persistence stays isolated from renderer and export inputs', () => {
+test('guided workflow persistence stays isolated from renderers and export inputs', () => {
   const guardedFiles = [
     'src/app/appPngExportInputs.ts',
     ...listTypeScriptFiles('src/export'),
     ...listTypeScriptFiles('src/render'),
-    ...listTypeScriptFiles('src/components/preview'),
   ]
 
   for (const file of guardedFiles) {
     const source = readFileSync(file, 'utf8')
     assert.doesNotMatch(source, /guidedLayout|discGuidedWorkflow|omittedSlotIds/)
+  }
+
+  for (const file of listTypeScriptFiles('src/components/preview')) {
+    if (/\.test\.[cm]?tsx?$/.test(file)) continue
+    const source = readFileSync(file, 'utf8')
+    assert.doesNotMatch(
+      source,
+      /projectGuidedWorkflow|projectSchema|createProjectSnapshot|restoreProject/,
+    )
   }
 })
 

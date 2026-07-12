@@ -139,6 +139,37 @@ test('copyright focus opens Legal Info and preserves all text state', () => {
   assert.deepEqual(textState, initialState)
 })
 
+test('guided Legal Info retains copyright focus and top-aligns its role', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('legal-summary', calls)
+  const copyright = createElement('copyright', calls)
+  store.registerRolePanel('legal-info', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerTargets({
+    copyright,
+    customNote: createElement('custom-note', calls),
+    store,
+  })
+  store.requestRoleFocus({
+    surfaceId: 'disc-label',
+    behavior: 'focus',
+    scrollAlignment: 'role-start',
+    destination: {
+      roleId: 'legal-info',
+      focusTarget: 'disc:legal-text:copyright',
+    },
+  })
+
+  assert.equal(store.processPendingRequest(), 'target-focused')
+  assert.deepEqual(calls, [
+    'copyright:focus:true',
+    'legal-summary:scroll:start:auto',
+  ])
+})
+
 test('custom-note focus opens Additional Text and preserves all text state', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []
@@ -389,7 +420,7 @@ test('production integration stays fixed-row-only and dependency-safe', () => {
   )
   assert.match(
     appSource,
-    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoRatingControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
+    /section\.id === 'game-info-logos'[\s\S]*<DiscGameInfoLogoRoleControls[\s\S]*brandingControls=\{brandingPanelProps\}/,
   )
   assert.match(
     appSource,

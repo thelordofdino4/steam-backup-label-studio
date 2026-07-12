@@ -26,8 +26,8 @@ import {
   DiscGameTitleRoleControls,
 } from '../components/editor/DiscGameTitleRoleControls'
 import {
-  DiscGameInfoRatingControls,
-} from '../components/editor/DiscGameInfoRatingControls'
+  DiscGameInfoLogoRoleControls,
+} from '../components/editor/DiscGameInfoLogoRoleControls'
 import {
   DiscCompanyLogosRoleControls,
 } from '../components/editor/DiscCompanyLogosRoleControls'
@@ -82,6 +82,7 @@ import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
   type DiscGuidedWorkflowState,
 } from '../guidedPresets/discGuidedWorkflow'
+import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -667,6 +668,31 @@ function App() {
     resetTemplateTextBlockLayout:
       caseInsertTemplateEditor.handleResetTextBlockLayout,
   })
+  const discGuidedPlaceholderPreview = useDiscGuidedPlaceholderPreview({
+    state: {
+      background: {
+        enabled: isBackgroundArtworkEnabled,
+        imageDataUrl: backgroundImageUrl,
+        imageSize: backgroundImageSize,
+      },
+      titleArtwork: projectTitleArtwork,
+      metadata: projectMetadata,
+      ratingBadge: projectRatingBadge,
+      mediaMark: projectMediaMark,
+      platformMarks: projectPlatformMarks,
+      logoAssets: projectLogoAssets,
+      additionalArtwork: projectAdditionalArtwork,
+      discText: {
+        settings: discTextSettings,
+        values: discTextValues,
+        valueSources: discTextValueSources,
+        titleValue: discTextTitleValue,
+        htmlSources: discTextHtmlSources,
+      },
+    },
+    workflow: discGuidedWorkflow,
+    updateWorkflow: setDiscGuidedWorkflow,
+  })
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
@@ -745,10 +771,15 @@ function App() {
     })
 
     if (!result.applied) {
+      discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
+    discGuidedPlaceholderPreview.recordPresetApplication(
+      result.preset.id,
+      true,
+    )
     announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
@@ -1351,6 +1382,10 @@ function App() {
   }
 
   async function handleLoadProject() {
+    const setLoadedActiveWorkspace = (workspace: 'disc' | 'caseInsert') => {
+      setActiveWorkspace(workspace)
+    }
+
     await runAppProjectLoad({
       openDialog: open,
       readProjectFileCommand: readProjectFile,
@@ -1368,7 +1403,7 @@ function App() {
           setProjectJewelCase,
           setActiveCaseInsertTemplatePane:
             handleActiveCaseInsertTemplatePaneChange,
-          setActiveWorkspace,
+          setActiveWorkspace: setLoadedActiveWorkspace,
           setHomeStatusMessage,
           scheduleCaseInsertBrandingMarkSlotSync:
             caseInsertBrandingMarkSync.scheduleCaseInsertBrandingMarkSlotSync,
@@ -1399,7 +1434,7 @@ function App() {
         restoreExportGuides,
         restoreDiscTextState,
         restoreBackgroundImageState,
-        setActiveWorkspace,
+        setActiveWorkspace: setLoadedActiveWorkspace,
         setHomeStatusMessage,
       },
       announceStatus,
@@ -1814,7 +1849,7 @@ function App() {
                 textControls={textPanelProps}
               />
             ) : section.id === 'game-info-logos' ? (
-              <DiscGameInfoRatingControls
+              <DiscGameInfoLogoRoleControls
                 brandingControls={brandingPanelProps}
               />
             ) : section.id === 'company-logos' ? (
@@ -1899,6 +1934,11 @@ function App() {
         }}
         pointerHandlers={previewPointerHandlers}
         guideOverlay={guideOverlay}
+        editorAffordances={{
+          guidedPlaceholders: discGuidedPlaceholderPreview.placeholders,
+          guidedWorkflow: discGuidedWorkflow,
+          onOmitGuidedSlot: discGuidedPlaceholderPreview.omitSlot,
+        }}
       />
       </main>
     </EditorRoleFocusProvider>

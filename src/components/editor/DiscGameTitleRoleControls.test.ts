@@ -213,6 +213,46 @@ test('disabled artwork upload falls back once without enabling or replaying', ()
   ])
 })
 
+test('guided title Image and Text keep focus while top-aligning Game Title', () => {
+  const store = createEditorRoleFocusControllerStore()
+  const calls: string[] = []
+  const summary = createElement('game-title-summary', calls)
+  const enable = createElement('enable', calls)
+  const text = createElement('text', calls)
+  store.registerRolePanel('game-title', {
+    detailsElement: () => null,
+    summaryElement: () => summary,
+  })
+  registerAlwaysMountedTargets({
+    artworkEnable: enable,
+    calls,
+    store,
+    textFallback: text,
+  })
+
+  for (const focusTarget of [
+    'disc:game-title:artwork-upload',
+    'disc:game-title:text-fallback',
+  ] as const) {
+    store.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: 'role-start',
+      destination: { roleId: 'game-title', focusTarget },
+    })
+    assert.equal(store.processPendingRequest(), 'target-focused')
+  }
+
+  assert.deepEqual(calls, [
+    'ancestor:game-title',
+    'enable:focus:true',
+    'game-title-summary:scroll:start:auto',
+    'ancestor:game-title',
+    'text:focus:true',
+    'game-title-summary:scroll:start:auto',
+  ])
+})
+
 test('title text fallback focus preserves text and editor selection state', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []
