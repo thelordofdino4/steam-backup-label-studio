@@ -58,6 +58,10 @@ test('maps only Classic Top Title to one stable guided layout', () => {
   assert.deepEqual(DISC_GUIDED_LAYOUT_IDS, [LAYOUT_ID])
   assert.equal(DISC_GUIDED_LAYOUT_DEFINITIONS.length, 1)
   assert.equal(getDiscGuidedLayoutIdForRolePreset('classic-top-title'), LAYOUT_ID)
+  assert.equal(
+    getDiscGuidedLayoutDefinition(LAYOUT_ID)?.presetId,
+    'builtin:disc-preset:classic-top-title',
+  )
 
   for (const id of ['centered-logo-archive', 'clean-metadata-footer'] as const satisfies readonly DiscRolePresetId[]) {
     assert.equal(getDiscGuidedLayoutIdForRolePreset(id), null)
@@ -68,11 +72,7 @@ test('Classic defines exactly eight concrete slots in product order', () => {
   const layout = getDiscGuidedLayoutDefinition(LAYOUT_ID)
   assert.ok(layout)
   assert.deepEqual(layout.slotOrder, SLOT_ORDER)
-  assert.deepEqual(Object.keys(layout.slots), [
-    'disc:guided:background-image:primary',
-    'disc:guided:game-title:primary',
-    ...SLOT_ORDER.slice(2),
-  ])
+  assert.deepEqual(Object.keys(layout.slots), SLOT_ORDER)
   assert.equal(layout.slotOrder.length, 8)
   assert.doesNotMatch(layout.slotOrder.join(' '), /rating:primary|company-logo:primary/)
 })

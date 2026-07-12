@@ -13,19 +13,31 @@ state are implemented in `src/editor/editorRoleFocus.ts`. Focus-target IDs are
 semantic navigation identifiers, not DOM IDs or smoke-test IDs, and navigation
 state is transient and is not serialized.
 
-Pure guided-layout identity and placeholder geometry are implemented separately
-in `src/guidedPresets/discGuidedLayouts.ts`. The existing
-`classic-top-title` role preset maps to
-`disc:guided-layout:classic-top-title`. Its ordered pure layout now defines
+Pure guided-layout compatibility identity and placeholder projection remain in
+`src/guidedPresets/discGuidedLayouts.ts`, but Classic geometry now derives from
+the generic serializable definition in
+`src/presets/builtins/classicTopTitleDiscPreset.ts`. The existing
+`classic-top-title` role-preset ID and
+`disc:guided-layout:classic-top-title` guided ID resolve through centralized
+compatibility aliases to `builtin:disc-preset:classic-top-title`. The canonical
+definition's ordered slots define
 Game Title, Background Image, Rating Badge, Media Format Mark, Operating System
 Marks, Developer Logo, Publisher Logo, and Copyright / Legal Text. Sidebar
 roles remain organizational groupings and are not guided slots. Every slot
-declares normalized visual and action geometry, a
+supplies normalized content and action geometry plus a
 background/foreground layer, semantic setup kind, and safe population
 capability. The pure projector returns `unfilled` and `suggested` slots and
 suppresses `filled` and `skipped` slots independently. Layout presets continue
 to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
+
+The generic definition also carries allowlisted serializable placement intent,
+but the current `discRolePresets.ts` owner application has not migrated to that
+intent yet. That migration, dormant fixed-owner placement, late OS selection,
+and template-specific resolved geometry are the next #289 chunks. Guided
+omission state remains project-specific and must never be copied into a reusable
+preset definition. No custom preset library, Save as Preset workflow, or custom
+preset UI exists yet.
 
 A successful `classic-top-title` layout preset application activates the
 guided layout as transient editor state. The Disc editor now renders all eight

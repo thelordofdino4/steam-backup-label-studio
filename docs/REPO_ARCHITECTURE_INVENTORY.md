@@ -347,11 +347,20 @@ Key files:
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
 - `src/export/discDesignCheck.ts`
+- `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetRegistry.ts`
+- `src/presets/builtins/classicTopTitleDiscPreset.ts`
+- `src/guidedPresets/discGuidedLayouts.ts`
 
 Source-of-truth state:
 
 - Runtime state is split between `App.tsx` and disc feature hooks.
 - Persisted state is `SavedDiscProject` in `src/project/projectTypes.ts`.
+- Reusable Disc preset layout contracts are immutable, JSON-compatible
+  definitions under `src/presets/`; they contain no project content or enabled
+  state. Classic guided geometry projects from the canonical built-in
+  definition. Real owner placement still uses `src/layout/discRolePresets.ts`
+  pending the next #289 application-engine migration.
 
 Render path:
 

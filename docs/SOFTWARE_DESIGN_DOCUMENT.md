@@ -1104,6 +1104,10 @@ The disc editor is the first alpha-capable app surface.
 - `src/discText/*`
 - `src/layout/disc*.ts`
 - `src/layout/layoutRangeMath.ts`
+- `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetRegistry.ts`
+- `src/presets/builtins/classicTopTitleDiscPreset.ts`
+- `src/guidedPresets/discGuidedLayouts.ts`
 - `src/templates/discTemplates.ts`
 - `src/export/exportPng.ts`
 - `src/export/exportPreflight.ts`
@@ -1116,6 +1120,15 @@ The disc editor is the first alpha-capable app surface.
 - Disc layer order lives in `src/editor/layerOrder.ts`.
 
 The semantic packaging role taxonomy for current role panels and future role-based preset planning is documented in [`PACKAGING_ROLE_MODEL.md`](PACKAGING_ROLE_MODEL.md). The role-based preset model and application contract for #269 is documented in [`ROLE_BASED_PRESET_MODEL.md`](ROLE_BASED_PRESET_MODEL.md). The Disc guided slot identity, lifecycle, binding, and persistence boundaries for #281/#283 are documented in [`GUIDED_PRESET_SLOT_MODEL.md`](GUIDED_PRESET_SLOT_MODEL.md). Those documents are descriptive only: current role lists remain UI shell/navigation concepts, and no persisted packaging-role, object-role, preset, or guided-slot schema exists.
+
+Generic Disc preset definitions are pure JSON-compatible domain data. The
+definition parser reconstructs immutable allowlisted identity, compatibility,
+slot geometry, visual-layer, and placement-intent values from `unknown`; the
+registry provides storage-agnostic built-in/user-ready lookup. Classic Top
+Title guided geometry derives from its canonical built-in definition. Feature
+owners remain authoritative for actual layout, rendering, export, and project
+persistence, and the existing owner application engine remains in place until
+the focused #289 adapter migration.
 
 ### 12.4 Render/Edit/Export Paths
 

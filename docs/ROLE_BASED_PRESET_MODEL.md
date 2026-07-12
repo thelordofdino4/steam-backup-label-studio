@@ -60,6 +60,37 @@ upload, import, and drag behavior.
 
 ## 3. Current Implementation Baseline
 
+### Generic Disc Preset Definition Foundation
+
+Issue #289 introduces a generic, JSON-compatible Disc preset-definition domain
+under `src/presets/`. `discPresetDefinition.ts` owns the strict V1 contract,
+validation, normalization, semantic placement-target allowlists, and immutable
+trusted result. `discPresetRegistry.ts` owns pure built-in/user-ready lookup,
+summaries, ordering, revision selection, and compatibility aliases. Neither
+module reads files or browser storage, mutates project state, or depends on
+React, renderers, export, Case Insert, or project-schema code.
+
+Preset definitions use stable identities. Built-ins use
+`builtin:disc-preset:<slug>` and future user definitions reserve
+`user:disc-preset:<uuid>`. `formatVersion` versions the serialized V1 contract;
+`revision` versions one preset definition. These values are independent from
+project schema versions, application versions, and guided slot IDs.
+
+Classic Top Title is the first built-in definition at
+`src/presets/builtins/classicTopTitleDiscPreset.ts`. Its eight ordered semantic
+slots own content regions, optional action regions, visual layers, and
+serializable placement intents. The existing `classic-top-title` menu ID and
+`disc:guided-layout:classic-top-title` guided ID are compatibility aliases for
+the canonical `builtin:disc-preset:classic-top-title` identity. Alias lookup is
+centralized; aliases do not own geometry or independent slot catalogs.
+
+This foundation intentionally does not yet migrate real feature-owner
+placement. `discRolePresets.ts` remains the current application engine until the
+next #289 chunk adds typed owner adapters, dormant-owner seeding, late-created
+owner placement, and template-specific resolved geometry. Custom preset
+storage, Save as Preset, editing, import/export UI, and repeatable placement
+intents remain deferred.
+
 Current role/navigation definitions live in:
 
 - `src/editor/editorNavigationShell.ts`
@@ -329,6 +360,20 @@ type RoleBasedPreset = {
 ```
 
 This is illustrative only. #269 does not add this type to source.
+
+The implemented Disc V1 definition refines this earlier sketch. A definition
+contains only JSON-compatible identity, compatibility, ordered slots, normalized
+content/action regions, visual layers, and allowlisted placement intents. The
+runtime registry returns immutable definitions and small menu summaries. Project
+workflow state, project omissions, feature-owner content, and future storage
+library metadata remain separate domains.
+
+V1 placement intents support point-centered fixed owners, straight Disc text,
+background cover placement, and the enabled operating-system-mark group. V1
+does not serialize callbacks, owner property paths, DOM identifiers, project
+object IDs, curved text approximations, or unimplemented repeatable placement
+kinds. Repeatable screenshots, Additional Artwork, and additional logos require
+a later validated format/intent extension paired with real owner adapters.
 
 ## 13. Manual Fine-Tuning And Reset Contract
 
