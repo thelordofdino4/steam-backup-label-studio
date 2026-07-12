@@ -17,8 +17,8 @@ Focus-target IDs are semantic navigation identifiers, not DOM IDs or smoke-test
 IDs, and navigation state is transient and is not serialized. Classic Top Title
 now projects eight passive edit-only placeholders. Every visible unfilled or
 suggested placeholder opens an accessible setup menu with exact typed setup
-destinations and `Remove from preset`; omission updates only the persisted
-guided workflow. The Layout Presets panel exposes canonical `Removed preset
+destinations and `Remove from layout`; omission updates only the persisted
+guided workflow. The Layout Presets panel exposes canonical `Removed layout
 items` controls for restoring one omission or all omissions without touching
 feature-owner content.
 
@@ -446,8 +446,10 @@ auto-fill implementation remains outside this issue.
   placeholder when available.
 - Setup actions close the menu and dispatch one typed role-focus request with
   `scrollAlignment: 'role-start'`.
-- `Remove from preset` calls the pure omission transition with that exact slot
-  ID. It does not disable, clear, or otherwise mutate the feature owner.
+- `Remove from layout` calls the pure omission transition with that exact slot
+  ID. It customizes only the active guided layout instance; the underlying
+  preset definition remains unchanged. It does not disable, clear, or
+  otherwise mutate the feature owner.
 - After omission, focus moves to the next visible slot in canonical order,
   then the previous visible slot, then the stable preview fallback. This uses
   registered refs and ordered view models rather than DOM queries.
@@ -588,9 +590,9 @@ Unsupported layout IDs or versions are rejected during application and
 normalize to inactive guidance when reading unknown workflow-shaped data.
 Malformed and unknown fields never block restoration.
 
-### Removed Preset Items UI
+### Removed Layout Items UI
 
-The active Disc `Layout Presets` workflow panel shows `Removed preset items`
+The active Disc `Layout Presets` workflow panel shows `Removed layout items`
 only when a supported guided layout has at least one canonical omission. Rows
 use the slot definition's semantic label in layout order and expose a native
 `Restore` button. Raw IDs, role labels, indexes, and geometry are not shown.
@@ -610,8 +612,11 @@ omission is restored, leaving no hidden controls in the tab order.
 
 Reapplying the same guided layout ID/version preserves omissions. Applying a
 different layout clears cross-layout omission identity through the pure layout
-transition. `Restore all` is the explicit reset for the current layout's
-omitted catalog.
+transition. `Restore all` is the explicit reset for the active layout's default
+slot catalog. A project/workflow reset clears active guidance; applying a layout
+after that reset starts from its unchanged preset definition and default slot
+catalog. In every case, persisted `omittedSlotIds` record only active-layout
+customization and owner content remains untouched.
 
 ## 13. Persistence Boundary
 

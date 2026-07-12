@@ -109,9 +109,10 @@ export function DiscGuidedPlaceholderSetupMenu({
         <button
           type="button"
           role="menuitem"
+          aria-label={`Remove ${actionViewModel.label} from layout`}
           onClick={onOmit}
         >
-          Remove from preset
+          Remove from layout
         </button>
       </div>
     </div>

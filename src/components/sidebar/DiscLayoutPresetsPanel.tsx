@@ -110,7 +110,7 @@ export function DiscLayoutPresetsPanel({
           className="disc-guided-restore-section"
           aria-labelledby="disc-guided-restore-heading"
         >
-          <h3 id="disc-guided-restore-heading">Removed preset items</h3>
+          <h3 id="disc-guided-restore-heading">Removed layout items</h3>
           <div className="disc-guided-restore-list">
             {guidedRestoreItems.map((item) => (
               <div className="disc-guided-restore-row" key={item.slotId}>
@@ -125,7 +125,7 @@ export function DiscLayoutPresetsPanel({
                   }}
                   className="disc-guided-restore-button"
                   type="button"
-                  aria-label={`Restore ${item.label}`}
+                  aria-label={`Restore ${item.label} to layout`}
                   onClick={() => handleRestoreItem(item)}
                 >
                   Restore
@@ -137,6 +137,7 @@ export function DiscLayoutPresetsPanel({
             className="secondary-button"
             data-smoke-id="disc-guided-restore-all"
             type="button"
+            aria-label="Restore all layout items"
             onClick={handleRestoreAll}
           >
             Restore all

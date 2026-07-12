@@ -19,6 +19,14 @@ const routes = [
   slotId, label, setupLabel, roleId, destination, activeId,
 }))
 
+function removeMenuItemName(route) {
+  return `Remove ${route.label} from layout`
+}
+
+function restoreButtonName(route) {
+  return `Restore ${route.label} to layout`
+}
+
 let browser
 let page
 let server
@@ -146,7 +154,11 @@ test('all eight placeholders open one exact menu by pointer, Enter, and Space wi
       await menu.waitFor()
       assert.equal(await page.getByRole('menu').count(), 1)
       assert.equal(await menu.getByRole('menuitem', { name: route.setupLabel, exact: true }).count(), 1)
-      assert.equal(await menu.getByRole('menuitem', { name: 'Remove from preset', exact: true }).count(), 1)
+      assert.equal(await menu.getByText('Remove from layout', { exact: true }).count(), 1)
+      assert.equal(await menu.getByRole('menuitem', {
+        name: removeMenuItemName(route),
+        exact: true,
+      }).count(), 1)
       assert.equal((await requestLog()).length, 0)
       assert.deepEqual(await featureSnapshot(), before)
       assert.equal(await menu.getByRole('menuitem').first().evaluate((element) =>
@@ -192,12 +204,12 @@ test('opening another placeholder replaces the menu and Escape returns focus to 
     element === document.activeElement), true)
 })
 
-test('Remove from preset omits only the exact slot, preserves owner state, and focuses next then previous', async () => {
+test('Remove from layout omits only the exact slot, preserves owner state, and focuses next then previous', async () => {
   await openHarness()
   const before = await featureSnapshot()
   const rating = routes[2]
   const menu = await activateSlot(rating)
-  await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  await menu.getByRole('menuitem', { name: removeMenuItemName(rating) }).click()
   await slotButton(routes[3].slotId).waitFor()
   assert.equal(await slotButton(rating.slotId).count(), 0)
   assert.equal(await slotButton(routes[3].slotId).evaluate((element) =>
@@ -209,7 +221,7 @@ test('Remove from preset omits only the exact slot, preserves owner state, and f
   await openHarness()
   const legal = routes.at(-1)
   const legalMenu = await activateSlot(legal)
-  await legalMenu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  await legalMenu.getByRole('menuitem', { name: removeMenuItemName(legal) }).click()
   assert.equal(await slotButton(routes.at(-2).slotId).evaluate((element) =>
     element === document.activeElement), true)
 })
@@ -219,7 +231,7 @@ test('Title, Rating, OS, and Publisher omissions each preserve owner state indep
     await openHarness()
     const before = await featureSnapshot()
     const menu = await activateSlot(route)
-    await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+    await menu.getByRole('menuitem', { name: removeMenuItemName(route) }).click()
     assert.equal(await slotButton(route.slotId).count(), 0)
     assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [route.slotId])
     assert.deepEqual(await featureSnapshot(), before)
@@ -231,7 +243,7 @@ test('removing every slot uses canonical order and ends on the stable preview fa
   await openHarness()
   for (const route of routes) {
     const menu = await activateSlot(route)
-    await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+    await menu.getByRole('menuitem', { name: removeMenuItemName(route) }).click()
   }
   assert.equal(await page.locator('[data-guided-slot-id]').count(), 0)
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, routes.map(({ slotId }) => slotId))
@@ -253,57 +265,59 @@ test('suggested guidance keeps the same menu and can be omitted without acceptin
   assert.equal(await slotButton(publisher.slotId).getAttribute('data-guided-lifecycle'), 'suggested')
   assert.match(await slotButton(publisher.slotId).getAttribute('aria-describedby'), /suggested/)
   const menu = await activateSlot(publisher)
-  await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  await menu.getByRole('menuitem', { name: removeMenuItemName(publisher) }).click()
   assert.equal(await slotButton(publisher.slotId).count(), 0)
   assert.deepEqual(await featureSnapshot(), before)
   assert.equal((await requestLog()).length, 0)
 })
 
-test('Removed preset items is conditional and lists exact labels in canonical order', async () => {
+test('Removed layout items is conditional and lists exact labels in canonical order', async () => {
   await openHarness()
   await openLayoutPresetPanel()
-  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+  assert.equal(await page.getByRole('region', { name: 'Removed layout items' }).count(), 0)
 
   await omitSlots([routes[6].slotId, routes[0].slotId, routes[4].slotId])
-  const section = page.getByRole('region', { name: 'Removed preset items' })
+  const section = page.getByRole('region', { name: 'Removed layout items' })
   await section.waitFor()
   assert.deepEqual(
     await section.locator('.disc-guided-restore-row > span').allTextContents(),
     ['Game Title', 'Operating System Marks', 'Publisher Logo'],
   )
   assert.equal((await section.textContent()).includes('disc:guided:'), false)
-  assert.equal(await section.getByRole('button', { name: 'Restore Game Title' }).count(), 1)
+  assert.equal(await section.getByRole('button', {
+    name: restoreButtonName(routes[0]),
+  }).count(), 1)
 
   await page.evaluate(() =>
     window.__discGuidedNavigationHarness.resetGuidedWorkflow())
   await section.waitFor({ state: 'detached' })
-  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+  assert.equal(await page.getByRole('region', { name: 'Removed layout items' }).count(), 0)
 })
 
 test('Restore one preserves other omissions and focuses next, previous, then the preset control', async () => {
   await openHarness()
   const before = await featureSnapshot()
   await omitSlots([routes[2].slotId, routes[4].slotId, routes[6].slotId])
-  const section = page.getByRole('region', { name: 'Removed preset items' })
+  const section = page.getByRole('region', { name: 'Removed layout items' })
   await openLayoutPresetPanel()
 
-  await section.getByRole('button', { name: 'Restore Rating Badge' }).press('Enter')
+  await section.getByRole('button', { name: restoreButtonName(routes[2]) }).press('Enter')
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [
     routes[4].slotId,
     routes[6].slotId,
   ])
   assert.equal(await section.getByRole('button', {
-    name: 'Restore Operating System Marks',
+    name: restoreButtonName(routes[4]),
   }).evaluate((element) => element === document.activeElement), true)
   assert.equal(await slotButton(routes[2].slotId).count(), 1)
 
-  await section.getByRole('button', { name: 'Restore Publisher Logo' }).press('Space')
+  await section.getByRole('button', { name: restoreButtonName(routes[6]) }).press('Space')
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [routes[4].slotId])
   assert.equal(await section.getByRole('button', {
-    name: 'Restore Operating System Marks',
+    name: restoreButtonName(routes[4]),
   }).evaluate((element) => element === document.activeElement), true)
 
-  await section.getByRole('button', { name: 'Restore Operating System Marks' }).click()
+  await section.getByRole('button', { name: restoreButtonName(routes[4]) }).click()
   await section.waitFor({ state: 'detached' })
   assert.equal(await page.locator('#disc-layout-preset').evaluate((element) =>
     element === document.activeElement), true)
@@ -315,11 +329,11 @@ test('Restore all clears only omissions, preserves layout identity, and returns 
   await openHarness()
   const before = await featureSnapshot()
   await omitSlots([routes[0].slotId, routes[2].slotId, routes[7].slotId])
-  const section = page.getByRole('region', { name: 'Removed preset items' })
+  const section = page.getByRole('region', { name: 'Removed layout items' })
   await openLayoutPresetPanel()
   const activeLayout = (await workflowSnapshot()).activeLayout
 
-  await section.getByRole('button', { name: 'Restore all', exact: true }).press('Space')
+  await section.getByRole('button', { name: 'Restore all layout items' }).press('Space')
   await section.waitFor({ state: 'detached' })
   assert.deepEqual(await workflowSnapshot(), {
     activeLayout,
@@ -338,15 +352,15 @@ test('restored guidance follows unfilled, suggested, and filled lifecycle state'
   const publisher = routes[6]
   await setSuggestedSlotId(publisher.slotId)
   await omitSlots([publisher.slotId])
-  await page.getByRole('button', { name: 'Restore Publisher Logo' }).click()
+  await page.getByRole('button', { name: restoreButtonName(publisher) }).click()
   assert.equal(await slotButton(publisher.slotId).getAttribute('data-guided-lifecycle'), 'suggested')
 
   const rating = routes[2]
   await setFilledSlotId(rating.slotId)
   await omitSlots([rating.slotId])
-  await page.getByRole('button', { name: 'Restore Rating Badge' }).click()
+  await page.getByRole('button', { name: restoreButtonName(rating) }).click()
   assert.equal(await slotButton(rating.slotId).count(), 0)
-  assert.equal(await page.getByRole('button', { name: 'Restore Rating Badge' }).count(), 0)
+  assert.equal(await page.getByRole('button', { name: restoreButtonName(rating) }).count(), 0)
 })
 
 test('preview omission and sidebar restoration form a repeatable guidance-only loop', async () => {
@@ -354,17 +368,17 @@ test('preview omission and sidebar restoration form a repeatable guidance-only l
   const title = routes[0]
   const before = await featureSnapshot()
   const menu = await activateSlot(title)
-  await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  await menu.getByRole('menuitem', { name: removeMenuItemName(title) }).click()
 
   await openLayoutPresetPanel()
-  await page.getByRole('button', { name: 'Restore Game Title' }).click()
+  await page.getByRole('button', { name: restoreButtonName(title) }).click()
   assert.equal(await slotButton(title.slotId).count(), 1)
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [])
 
   const reopenedMenu = await activateSlot(title, 'Enter')
-  await reopenedMenu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  await reopenedMenu.getByRole('menuitem', { name: removeMenuItemName(title) }).click()
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [title.slotId])
-  assert.equal(await page.getByRole('button', { name: 'Restore Game Title' }).count(), 1)
+  assert.equal(await page.getByRole('button', { name: restoreButtonName(title) }).count(), 1)
   assert.deepEqual(await featureSnapshot(), before)
   assert.equal((await requestLog()).length, 0)
 })
@@ -377,17 +391,17 @@ test('saved omissions repopulate restore rows and restored metadata survives rel
   await page.evaluate(() =>
     window.__discGuidedNavigationHarness.resetGuidedWorkflow())
   await openLayoutPresetPanel()
-  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+  assert.equal(await page.getByRole('region', { name: 'Removed layout items' }).count(), 0)
 
   await page.evaluate((editor) =>
     window.__discGuidedNavigationHarness.loadSavedEditor(editor), saved)
-  const restoredSection = page.getByRole('region', { name: 'Removed preset items' })
+  const restoredSection = page.getByRole('region', { name: 'Removed layout items' })
   await restoredSection.waitFor()
   assert.deepEqual(
     await restoredSection.locator('.disc-guided-restore-row > span').allTextContents(),
     ['Rating Badge', 'Publisher Logo'],
   )
-  await page.getByRole('button', { name: 'Restore Rating Badge' }).click()
+  await page.getByRole('button', { name: restoreButtonName(routes[2]) }).click()
   assert.deepEqual((await savedEditor()).guidedLayout.omittedSlotIds, [routes[6].slotId])
 
   await page.evaluate((editor) =>
@@ -407,7 +421,9 @@ test('same preset reapplication preserves omissions while another preset clears 
   await select.selectOption('classic-top-title')
   await page.getByRole('button', { name: 'Apply preset' }).click()
   assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [routes[6].slotId])
-  assert.equal(await page.getByRole('button', { name: 'Restore Publisher Logo' }).count(), 1)
+  assert.equal(await page.getByRole('button', {
+    name: restoreButtonName(routes[6]),
+  }).count(), 1)
 
   await select.selectOption('centered-logo-archive')
   await page.getByRole('button', { name: 'Apply preset' }).click()
@@ -415,5 +431,5 @@ test('same preset reapplication preserves omissions while another preset clears 
     activeLayout: null,
     omittedSlotIds: [],
   })
-  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+  assert.equal(await page.getByRole('region', { name: 'Removed layout items' }).count(), 0)
 })
