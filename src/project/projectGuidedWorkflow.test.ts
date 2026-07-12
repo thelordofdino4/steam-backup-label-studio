@@ -289,7 +289,7 @@ test('guided workflow persistence stays isolated from renderers and export input
   }
 
   for (const file of listTypeScriptFiles('src/components/preview')) {
-    if (/\.test\.[cm]?tsx?$/.test(file)) continue
+    if (/\.test\.[cm]?tsx?$/.test(file) || file.includes('/testing/')) continue
     const source = readFileSync(file, 'utf8')
     assert.doesNotMatch(
       source,

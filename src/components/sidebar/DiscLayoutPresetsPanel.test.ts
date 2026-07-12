@@ -11,6 +11,7 @@ const caseInsertSource = readFileSync(
   'src/components/caseInsert/CaseInsertEditorShell.tsx',
   'utf8',
 )
+const panelStyles = readFileSync('src/styles/app-panels.css', 'utf8')
 
 function assertSourceOrder(source: string, snippets: readonly string[]) {
   const positions = snippets.map((snippet) => {
@@ -44,6 +45,27 @@ test('Disc Layout Presets uses the workflow panel shell and explicit apply', () 
   assert.doesNotMatch(panelSource, /linked preset/i)
 })
 
+test('Removed preset items render only from canonical restore view models', () => {
+  assert.match(panelSource, /guidedRestoreItems\.length > 0/)
+  assert.match(panelSource, />Removed preset items</)
+  assert.match(panelSource, /guidedRestoreItems\.map\(\(item\) =>/)
+  assert.match(panelSource, /<span>\{item\.label\}<\/span>/)
+  assert.match(panelSource, /aria-label=\{`Restore \$\{item\.label\}`\}/)
+  assert.match(panelSource, />\s*Restore\s*<\/button>/)
+  assert.match(panelSource, />\s*Restore all\s*<\/button>/)
+  assert.doesNotMatch(panelSource, /disc:guided:/)
+  assert.doesNotMatch(panelSource, /Game Info Logos|Company Logos/)
+})
+
+test('restore focus uses canonical item order and registered refs', () => {
+  assert.match(panelSource, /slice\(currentIndex \+ 1\)/)
+  assert.match(panelSource, /slice\(0, currentIndex\)[\s\S]*?\.reverse\(\)/)
+  assert.match(panelSource, /restoreButtonRefs\.current\.get\(slotId\)/)
+  assert.match(panelSource, /nextRestoreButton \?\? presetSelectRef\.current/)
+  assert.doesNotMatch(panelSource, /querySelector|\.click\(\)|setTimeout|MutationObserver/)
+  assert.match(panelStyles, /\.disc-guided-restore-button:focus-visible/)
+})
+
 test('Disc Layout Presets sits after setup controls and before semantic roles', () => {
   assertSourceOrder(appSource, [
     '<DiscSteamBrandingControls',
@@ -52,7 +74,7 @@ test('Disc Layout Presets sits after setup controls and before semantic roles', 
   ])
   assert.match(
     appSource,
-    /<DiscLayoutPresetsPanel onApplyPreset=\{handleApplyDiscRolePreset\} \/>/,
+    /<DiscLayoutPresetsPanel[\s\S]*?guidedRestoreItems=\{discGuidedPlaceholderPreview\.restoreItems\}[\s\S]*?onApplyPreset=\{handleApplyDiscRolePreset\}[\s\S]*?onRestoreAllGuidedSlots=\{discGuidedPlaceholderPreview\.restoreAllSlots\}[\s\S]*?onRestoreGuidedSlot=\{discGuidedPlaceholderPreview\.restoreSlot\}/,
   )
 })
 
@@ -66,4 +88,20 @@ test('App delegates preset decisions to the focused adapter', () => {
 test('Case Insert does not expose the Disc Layout Presets panel', () => {
   assert.doesNotMatch(caseInsertSource, /DiscLayoutPresetsPanel/)
   assert.doesNotMatch(caseInsertSource, /Layout Presets/)
+})
+
+test('restore UI stays isolated from workflow decisions, persistence, owners, and output', () => {
+  for (const forbidden of [
+    'restoreDiscGuidedSlot',
+    'restoreAllDiscGuidedSlots',
+    'projectSchema',
+    'restoreSavedDiscGuidedWorkflow',
+    'setProject',
+    'requestRoleFocus',
+    '../render',
+    '../export',
+    'caseInsert',
+  ]) {
+    assert.equal(panelSource.includes(forbidden), false, forbidden)
+  }
 })

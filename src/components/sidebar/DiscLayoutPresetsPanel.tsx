@@ -1,4 +1,8 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
+import type {
+  DiscGuidedRestoreItem,
+} from '../../guidedPresets/discGuidedRestoreItems'
+import type { DiscGuidedSlotId } from '../../guidedPresets/discGuidedSlots'
 import {
   DISC_ROLE_PRESETS,
   getDiscRolePreset,
@@ -6,14 +10,39 @@ import {
 import { EditorPanel } from '../editor/EditorPanel'
 
 export type DiscLayoutPresetsPanelProps = {
+  guidedRestoreItems: readonly DiscGuidedRestoreItem[]
   onApplyPreset: (presetId: string) => boolean
+  onRestoreAllGuidedSlots: () => void
+  onRestoreGuidedSlot: (slotId: DiscGuidedSlotId) => void
 }
 
 export function DiscLayoutPresetsPanel({
+  guidedRestoreItems,
   onApplyPreset,
+  onRestoreAllGuidedSlots,
+  onRestoreGuidedSlot,
 }: DiscLayoutPresetsPanelProps) {
   const [selectedPresetId, setSelectedPresetId] = useState('')
+  const presetSelectRef = useRef<HTMLSelectElement | null>(null)
+  const restoreButtonRefs = useRef(
+    new Map<DiscGuidedSlotId, HTMLButtonElement>(),
+  )
+  const pendingRestoreFocusRef = useRef<readonly DiscGuidedSlotId[] | null>(null)
   const selectedPreset = getDiscRolePreset(selectedPresetId)
+
+  useLayoutEffect(() => {
+    const pendingSlotIds = pendingRestoreFocusRef.current
+
+    if (!pendingSlotIds) return
+
+    pendingRestoreFocusRef.current = null
+    const nextRestoreButton = pendingSlotIds
+      .map((slotId) => restoreButtonRefs.current.get(slotId))
+      .find((button) => Boolean(button))
+
+    ;(nextRestoreButton ?? presetSelectRef.current)
+      ?.focus({ preventScroll: true })
+  }, [guidedRestoreItems])
 
   function handleApplyPreset() {
     if (!selectedPreset || !onApplyPreset(selectedPreset.id)) {
@@ -23,12 +52,34 @@ export function DiscLayoutPresetsPanel({
     setSelectedPresetId('')
   }
 
+  function handleRestoreItem(item: DiscGuidedRestoreItem) {
+    const currentIndex = guidedRestoreItems.findIndex(
+      ({ slotId }) => slotId === item.slotId,
+    )
+    const nextSlotIds = guidedRestoreItems
+      .slice(currentIndex + 1)
+      .map(({ slotId }) => slotId)
+    const previousSlotIds = guidedRestoreItems
+      .slice(0, currentIndex)
+      .reverse()
+      .map(({ slotId }) => slotId)
+
+    pendingRestoreFocusRef.current = [...nextSlotIds, ...previousSlotIds]
+    onRestoreGuidedSlot(item.slotId)
+  }
+
+  function handleRestoreAll() {
+    pendingRestoreFocusRef.current = []
+    onRestoreAllGuidedSlots()
+  }
+
   return (
     <EditorPanel title="Layout Presets">
       <label className="field-label" htmlFor="disc-layout-preset">
         Preset
       </label>
       <select
+        ref={presetSelectRef}
         id="disc-layout-preset"
         data-smoke-id="disc-layout-preset-select"
         value={selectedPresetId}
@@ -54,6 +105,44 @@ export function DiscLayoutPresetsPanel({
       >
         Apply preset
       </button>
+      {guidedRestoreItems.length > 0 ? (
+        <section
+          className="disc-guided-restore-section"
+          aria-labelledby="disc-guided-restore-heading"
+        >
+          <h3 id="disc-guided-restore-heading">Removed preset items</h3>
+          <div className="disc-guided-restore-list">
+            {guidedRestoreItems.map((item) => (
+              <div className="disc-guided-restore-row" key={item.slotId}>
+                <span>{item.label}</span>
+                <button
+                  ref={(element) => {
+                    if (element) {
+                      restoreButtonRefs.current.set(item.slotId, element)
+                    } else {
+                      restoreButtonRefs.current.delete(item.slotId)
+                    }
+                  }}
+                  className="disc-guided-restore-button"
+                  type="button"
+                  aria-label={`Restore ${item.label}`}
+                  onClick={() => handleRestoreItem(item)}
+                >
+                  Restore
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            className="secondary-button"
+            data-smoke-id="disc-guided-restore-all"
+            type="button"
+            onClick={handleRestoreAll}
+          >
+            Restore all
+          </button>
+        </section>
+      ) : null}
     </EditorPanel>
   )
 }

@@ -80,6 +80,44 @@ async function requestLog() {
   ))
 }
 
+function layoutPresetPanel() {
+  return page.locator('details').filter({
+    has: page.locator('#disc-layout-preset'),
+  })
+}
+
+async function openLayoutPresetPanel() {
+  const panel = layoutPresetPanel()
+  if (!await panel.evaluate((element) => element.open)) {
+    await panel.locator(':scope > summary').click()
+  }
+  return panel
+}
+
+async function omitSlots(slotIds) {
+  await page.evaluate((ids) =>
+    window.__discGuidedNavigationHarness.omitSlots(ids), slotIds)
+  await page.waitForFunction((ids) => ids.every((id) =>
+    window.__discGuidedNavigationHarness
+      .getWorkflowSnapshot().omittedSlotIds.includes(id)), slotIds)
+}
+
+async function setFilledSlotId(slotId) {
+  await page.evaluate((id) =>
+    window.__discGuidedNavigationHarness.setFilledSlotId(id), slotId)
+}
+
+async function setSuggestedSlotId(slotId) {
+  await page.evaluate((id) =>
+    window.__discGuidedNavigationHarness.setSuggestedSlotId(id), slotId)
+}
+
+async function savedEditor() {
+  return page.evaluate(() => structuredClone(
+    window.__discGuidedNavigationHarness.getSavedEditor(),
+  ))
+}
+
 async function assertRequest(route) {
   await page.waitForFunction((activeId) =>
     document.activeElement?.id === activeId &&
@@ -219,4 +257,163 @@ test('suggested guidance keeps the same menu and can be omitted without acceptin
   assert.equal(await slotButton(publisher.slotId).count(), 0)
   assert.deepEqual(await featureSnapshot(), before)
   assert.equal((await requestLog()).length, 0)
+})
+
+test('Removed preset items is conditional and lists exact labels in canonical order', async () => {
+  await openHarness()
+  await openLayoutPresetPanel()
+  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+
+  await omitSlots([routes[6].slotId, routes[0].slotId, routes[4].slotId])
+  const section = page.getByRole('region', { name: 'Removed preset items' })
+  await section.waitFor()
+  assert.deepEqual(
+    await section.locator('.disc-guided-restore-row > span').allTextContents(),
+    ['Game Title', 'Operating System Marks', 'Publisher Logo'],
+  )
+  assert.equal((await section.textContent()).includes('disc:guided:'), false)
+  assert.equal(await section.getByRole('button', { name: 'Restore Game Title' }).count(), 1)
+
+  await page.evaluate(() =>
+    window.__discGuidedNavigationHarness.resetGuidedWorkflow())
+  await section.waitFor({ state: 'detached' })
+  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+})
+
+test('Restore one preserves other omissions and focuses next, previous, then the preset control', async () => {
+  await openHarness()
+  const before = await featureSnapshot()
+  await omitSlots([routes[2].slotId, routes[4].slotId, routes[6].slotId])
+  const section = page.getByRole('region', { name: 'Removed preset items' })
+  await openLayoutPresetPanel()
+
+  await section.getByRole('button', { name: 'Restore Rating Badge' }).press('Enter')
+  assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [
+    routes[4].slotId,
+    routes[6].slotId,
+  ])
+  assert.equal(await section.getByRole('button', {
+    name: 'Restore Operating System Marks',
+  }).evaluate((element) => element === document.activeElement), true)
+  assert.equal(await slotButton(routes[2].slotId).count(), 1)
+
+  await section.getByRole('button', { name: 'Restore Publisher Logo' }).press('Space')
+  assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [routes[4].slotId])
+  assert.equal(await section.getByRole('button', {
+    name: 'Restore Operating System Marks',
+  }).evaluate((element) => element === document.activeElement), true)
+
+  await section.getByRole('button', { name: 'Restore Operating System Marks' }).click()
+  await section.waitFor({ state: 'detached' })
+  assert.equal(await page.locator('#disc-layout-preset').evaluate((element) =>
+    element === document.activeElement), true)
+  assert.deepEqual(await featureSnapshot(), before)
+  assert.equal((await requestLog()).length, 0)
+})
+
+test('Restore all clears only omissions, preserves layout identity, and returns focus to Preset', async () => {
+  await openHarness()
+  const before = await featureSnapshot()
+  await omitSlots([routes[0].slotId, routes[2].slotId, routes[7].slotId])
+  const section = page.getByRole('region', { name: 'Removed preset items' })
+  await openLayoutPresetPanel()
+  const activeLayout = (await workflowSnapshot()).activeLayout
+
+  await section.getByRole('button', { name: 'Restore all', exact: true }).press('Space')
+  await section.waitFor({ state: 'detached' })
+  assert.deepEqual(await workflowSnapshot(), {
+    activeLayout,
+    omittedSlotIds: [],
+  })
+  assert.equal(await page.locator('#disc-layout-preset').evaluate((element) =>
+    element === document.activeElement), true)
+  assert.deepEqual(await featureSnapshot(), before)
+  assert.equal((await requestLog()).length, 0)
+})
+
+test('restored guidance follows unfilled, suggested, and filled lifecycle state', async () => {
+  await openHarness()
+  await openLayoutPresetPanel()
+
+  const publisher = routes[6]
+  await setSuggestedSlotId(publisher.slotId)
+  await omitSlots([publisher.slotId])
+  await page.getByRole('button', { name: 'Restore Publisher Logo' }).click()
+  assert.equal(await slotButton(publisher.slotId).getAttribute('data-guided-lifecycle'), 'suggested')
+
+  const rating = routes[2]
+  await setFilledSlotId(rating.slotId)
+  await omitSlots([rating.slotId])
+  await page.getByRole('button', { name: 'Restore Rating Badge' }).click()
+  assert.equal(await slotButton(rating.slotId).count(), 0)
+  assert.equal(await page.getByRole('button', { name: 'Restore Rating Badge' }).count(), 0)
+})
+
+test('preview omission and sidebar restoration form a repeatable guidance-only loop', async () => {
+  await openHarness()
+  const title = routes[0]
+  const before = await featureSnapshot()
+  const menu = await activateSlot(title)
+  await menu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+
+  await openLayoutPresetPanel()
+  await page.getByRole('button', { name: 'Restore Game Title' }).click()
+  assert.equal(await slotButton(title.slotId).count(), 1)
+  assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [])
+
+  const reopenedMenu = await activateSlot(title, 'Enter')
+  await reopenedMenu.getByRole('menuitem', { name: 'Remove from preset' }).click()
+  assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [title.slotId])
+  assert.equal(await page.getByRole('button', { name: 'Restore Game Title' }).count(), 1)
+  assert.deepEqual(await featureSnapshot(), before)
+  assert.equal((await requestLog()).length, 0)
+})
+
+test('saved omissions repopulate restore rows and restored metadata survives reload safely', async () => {
+  await openHarness()
+  await omitSlots([routes[2].slotId, routes[6].slotId])
+  const saved = await savedEditor()
+
+  await page.evaluate(() =>
+    window.__discGuidedNavigationHarness.resetGuidedWorkflow())
+  await openLayoutPresetPanel()
+  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
+
+  await page.evaluate((editor) =>
+    window.__discGuidedNavigationHarness.loadSavedEditor(editor), saved)
+  const restoredSection = page.getByRole('region', { name: 'Removed preset items' })
+  await restoredSection.waitFor()
+  assert.deepEqual(
+    await restoredSection.locator('.disc-guided-restore-row > span').allTextContents(),
+    ['Rating Badge', 'Publisher Logo'],
+  )
+  await page.getByRole('button', { name: 'Restore Rating Badge' }).click()
+  assert.deepEqual((await savedEditor()).guidedLayout.omittedSlotIds, [routes[6].slotId])
+
+  await page.evaluate((editor) =>
+    window.__discGuidedNavigationHarness.loadSavedEditor(editor), {
+      guidedLayout: { id: 'unknown', version: 1, omittedSlotIds: [routes[0].slotId] },
+    })
+  await restoredSection.waitFor({ state: 'detached' })
+  assert.equal((await workflowSnapshot()).activeLayout, null)
+})
+
+test('same preset reapplication preserves omissions while another preset clears them', async () => {
+  await openHarness()
+  await omitSlots([routes[6].slotId])
+  await openLayoutPresetPanel()
+  const select = page.locator('#disc-layout-preset')
+
+  await select.selectOption('classic-top-title')
+  await page.getByRole('button', { name: 'Apply preset' }).click()
+  assert.deepEqual((await workflowSnapshot()).omittedSlotIds, [routes[6].slotId])
+  assert.equal(await page.getByRole('button', { name: 'Restore Publisher Logo' }).count(), 1)
+
+  await select.selectOption('centered-logo-archive')
+  await page.getByRole('button', { name: 'Apply preset' }).click()
+  assert.deepEqual(await workflowSnapshot(), {
+    activeLayout: null,
+    omittedSlotIds: [],
+  })
+  assert.equal(await page.getByRole('region', { name: 'Removed preset items' }).count(), 0)
 })

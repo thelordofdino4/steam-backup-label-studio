@@ -18,7 +18,9 @@ IDs, and navigation state is transient and is not serialized. Classic Top Title
 now projects eight passive edit-only placeholders. Every visible unfilled or
 suggested placeholder opens an accessible setup menu with exact typed setup
 destinations and `Remove from preset`; omission updates only the persisted
-guided workflow.
+guided workflow. The Layout Presets panel exposes canonical `Removed preset
+items` controls for restoring one omission or all omissions without touching
+feature-owner content.
 
 Implemented role-focus infrastructure includes:
 
@@ -92,9 +94,9 @@ or enable a feature object merely because the slot exists.
 This contract is Disc Label only. It defines identity, vocabulary, accepted
 content, binding and validity rules, lifecycle derivation, and architecture
 boundaries for #281. Pure definitions, lifecycle resolution, versioned
-workflow persistence, passive placeholders, exact setup menus, omission, and
-typed role-focus dispatch are implemented. Auto-fill and a restore surface
-remain deferred. Case Front, Case Back, and Spine guided presets remain
+workflow persistence, passive placeholders, exact setup menus, omission,
+restoration, and typed role-focus dispatch are implemented. Auto-fill remains
+deferred. Case Front, Case Back, and Spine guided presets remain
 deferred until the Disc contract is proven.
 
 ## 2. Identity Namespaces
@@ -586,6 +588,31 @@ Unsupported layout IDs or versions are rejected during application and
 normalize to inactive guidance when reading unknown workflow-shaped data.
 Malformed and unknown fields never block restoration.
 
+### Removed Preset Items UI
+
+The active Disc `Layout Presets` workflow panel shows `Removed preset items`
+only when a supported guided layout has at least one canonical omission. Rows
+use the slot definition's semantic label in layout order and expose a native
+`Restore` button. Raw IDs, role labels, indexes, and geometry are not shown.
+
+Restoring one item removes only that stable slot ID from omission metadata.
+Restoring all clears only the omission list and preserves active layout ID and
+version. Neither action reapplies preset geometry, dispatches role focus, opens
+a setup menu, or changes owner enablement, assets, text, marks, values, sources,
+layout, preview selection, renderer inputs, or export behavior. Lifecycle is
+derived again from current owner state: unfilled or suggested guidance returns,
+while a valid filled owner remains visible without a placeholder.
+
+After restoring one row, focus moves to the next canonical Restore button,
+then the previous button, then the stable Preset selector. Restore all also
+returns focus to the Preset selector. The section disappears after the final
+omission is restored, leaving no hidden controls in the tab order.
+
+Reapplying the same guided layout ID/version preserves omissions. Applying a
+different layout clears cross-layout omission identity through the pure layout
+transition. `Restore all` is the explicit reset for the current layout's
+omitted catalog.
+
 ## 13. Persistence Boundary
 
 Schema `0.2.0` stores the active workflow under optional
@@ -626,11 +653,11 @@ or definition-owned and are not serialized.
 
 ## 16. Follow-Up Child Issues
 
-1. Add a Layout Presets restore surface for omitted slots.
-2. Game Title image-first interaction and auto-fill.
-3. Safe rating/logo/legal suggestions.
-4. Filled-slot movement/export transition tests.
-5. Native Tauri validation.
+1. Game Title image-first interaction and auto-fill.
+2. Safe rating/logo/legal suggestions.
+3. Filled-slot movement/export transition tests.
+4. Native Tauri omit/save/load/restore/reset/export validation before #292
+   closeout.
 
 Related issues and contracts:
 

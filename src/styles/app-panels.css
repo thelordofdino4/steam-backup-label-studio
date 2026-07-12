@@ -71,6 +71,61 @@
   padding: 0 16px 16px;
 }
 
+.disc-guided-restore-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #374151;
+}
+
+.disc-guided-restore-section h3 {
+  margin: 0;
+  color: #f9fafb;
+  font-size: 14px;
+  letter-spacing: 0;
+}
+
+.disc-guided-restore-list {
+  display: grid;
+  gap: 6px;
+}
+
+.disc-guided-restore-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  color: #d1d5db;
+  font-size: 13px;
+}
+
+.disc-guided-restore-row span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.disc-guided-restore-button {
+  min-width: 76px;
+  min-height: 36px;
+  border: 1px solid #374151;
+  border-radius: 8px;
+  background: #111827;
+  color: #f9fafb;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+
+.disc-guided-restore-button:hover {
+  border-color: rgba(147, 197, 253, 0.82);
+  background: #1f2937;
+}
+
+.disc-guided-restore-button:focus-visible {
+  border-color: #93c5fd;
+}
+
 .collapsible-panel:not([open]) {
   background: #141720;
 }

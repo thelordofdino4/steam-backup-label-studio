@@ -64,7 +64,7 @@ test('failed or rejected application does not activate or clear guidance', () =>
   }), active)
 })
 
-test('activation is preset-result driven and omission remains in the focused hook', () => {
+test('activation and workflow transitions remain in the focused hook', () => {
   const hookSource = readFileSync(
     new URL('./useDiscGuidedPlaceholderPreview.ts', import.meta.url),
     'utf8',
@@ -74,7 +74,11 @@ test('activation is preset-result driven and omission remains in the focused hoo
   assert.match(appSource, /recordPresetApplication\(presetId, false\)/)
   assert.match(appSource, /recordPresetApplication\(\s*result\.preset\.id,\s*true/)
   assert.match(hookSource, /omitDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
+  assert.match(hookSource, /restoreDiscGuidedSlot\(currentWorkflow, slotId\)\.state/)
+  assert.match(hookSource, /restoreAllDiscGuidedSlots\(currentWorkflow\)\.state/)
+  assert.match(hookSource, /createDiscGuidedRestoreItems\(workflow\)/)
   assert.doesNotMatch(appSource, /omitDiscGuidedSlot/)
+  assert.doesNotMatch(appSource, /restoreAllDiscGuidedSlots/)
   assert.doesNotMatch(hookSource, /coordinate|offset|layout\.x|layout\.y/i)
 
   for (const forbidden of [
@@ -95,6 +99,9 @@ test('App owns one workflow value without implementing lifecycle transitions', (
   assert.match(source, /workflow: discGuidedWorkflow/)
   assert.match(source, /updateWorkflow: setDiscGuidedWorkflow/)
   assert.match(source, /onOmitGuidedSlot: discGuidedPlaceholderPreview\.omitSlot/)
+  assert.match(source, /guidedRestoreItems=\{discGuidedPlaceholderPreview\.restoreItems\}/)
+  assert.match(source, /onRestoreAllGuidedSlots=\{discGuidedPlaceholderPreview\.restoreAllSlots\}/)
+  assert.match(source, /onRestoreGuidedSlot=\{discGuidedPlaceholderPreview\.restoreSlot\}/)
   assert.doesNotMatch(source, /omitDiscGuidedSlot|restoreDiscGuidedSlot/)
   assert.doesNotMatch(source, /clearActiveLayout/)
 })

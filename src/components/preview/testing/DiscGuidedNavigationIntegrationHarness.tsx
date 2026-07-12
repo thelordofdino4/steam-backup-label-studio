@@ -9,6 +9,7 @@ import {
 import { EditorRoleFocusProvider } from '../../editor/EditorRoleFocusProvider.tsx'
 import { DiscEditorNavigationRolePanel } from '../../editor/DiscEditorNavigationRolePanel.tsx'
 import { EditorFeaturePanel } from '../../editor/EditorPanel.tsx'
+import { DiscLayoutPresetsPanel } from '../../sidebar/DiscLayoutPresetsPanel.tsx'
 import { useEditorRoleFocus } from '../../editor/editorRoleFocusContext.ts'
 import {
   registerBackgroundArtworkFocusTargets,
@@ -48,11 +49,23 @@ import {
 } from '../../../guidedPresets/discGuidedPlaceholderViewModel.ts'
 import type { DiscGuidedSlotId } from '../../../guidedPresets/discGuidedSlots.ts'
 import {
+  createDiscGuidedRestoreItems,
+} from '../../../guidedPresets/discGuidedRestoreItems.ts'
+import {
   INITIAL_DISC_GUIDED_WORKFLOW_STATE,
   applyDiscGuidedLayout,
   omitDiscGuidedSlot,
+  restoreAllDiscGuidedSlots,
+  restoreDiscGuidedSlot,
   type DiscGuidedWorkflowState,
 } from '../../../guidedPresets/discGuidedWorkflow.ts'
+import {
+  getNextDiscGuidedWorkflowForPresetApplication,
+} from '../../../hooks/useDiscGuidedPlaceholderPreview.ts'
+import {
+  createSavedDiscGuidedLayout,
+  restoreSavedDiscGuidedWorkflow,
+} from '../../../project/projectGuidedWorkflow.ts'
 import { DiscGuidedPlaceholderActions } from '../DiscGuidedPlaceholderActions.tsx'
 
 type ToggleableFeature =
@@ -90,11 +103,17 @@ type HarnessFeatureState = {
 }
 
 type GuidedNavigationHarnessApi = {
+  activateClassicLayout: () => void
+  getSavedEditor: () => unknown
   getFeatureSnapshot: () => HarnessFeatureState & { serializedProject: string }
   getWorkflowSnapshot: () => DiscGuidedWorkflowState
   getPendingRequest: () => EditorRoleFocusRequest | null
+  loadSavedEditor: (editor: unknown) => void
+  omitSlots: (slotIds: readonly DiscGuidedSlotId[]) => void
   requestLog: EditorRoleFocusRequest[]
+  resetGuidedWorkflow: () => void
   setFeatureEnabled: (feature: ToggleableFeature, enabled: boolean) => void
+  setFilledSlotId: (slotId: DiscGuidedSlotId | null) => void
   setSuggestedSlotId: (slotId: DiscGuidedSlotId | null) => void
 }
 
@@ -221,6 +240,7 @@ function GuidedNavigationHarnessContent() {
       version: guidedLayout.version,
     }).state)
   const [suggestedSlotId, setSuggestedSlotId] = useState<DiscGuidedSlotId | null>(null)
+  const [filledSlotId, setFilledSlotId] = useState<DiscGuidedSlotId | null>(null)
   const [backgroundPanelOpen, setBackgroundPanelOpen] = useState(false)
   const [ratingPanelOpen, setRatingPanelOpen] = useState(false)
   const [mediaPanelOpen, setMediaPanelOpen] = useState(false)
@@ -269,6 +289,24 @@ function GuidedNavigationHarnessContent() {
     },
     [],
   )
+  const activateClassicLayout = useCallback(() => {
+    setWorkflow((current) => applyDiscGuidedLayout(current, {
+      id: guidedLayout.id,
+      version: guidedLayout.version,
+    }).state)
+  }, [])
+  const resetGuidedWorkflow = useCallback(() => {
+    setWorkflow(INITIAL_DISC_GUIDED_WORKFLOW_STATE)
+  }, [])
+  const omitSlots = useCallback((slotIds: readonly DiscGuidedSlotId[]) => {
+    setWorkflow((current) => slotIds.reduce(
+      (next, slotId) => omitDiscGuidedSlot(next, slotId).state,
+      current,
+    ))
+  }, [])
+  const loadSavedEditor = useCallback((editor: unknown) => {
+    setWorkflow(restoreSavedDiscGuidedWorkflow(editor))
+  }, [])
 
   useLayoutEffect(() => {
     if (pendingRequest && pendingRequest.requestId !== lastLoggedRequestIdRef.current) {
@@ -277,18 +315,32 @@ function GuidedNavigationHarnessContent() {
     }
 
     window.__discGuidedNavigationHarness = {
+      activateClassicLayout,
+      getSavedEditor: () => {
+        const savedLayout = createSavedDiscGuidedLayout(workflow)
+        return savedLayout ? { guidedLayout: savedLayout } : undefined
+      },
       getFeatureSnapshot: () => cloneFeatureState(featureState),
       getWorkflowSnapshot: () => structuredClone(workflow),
       getPendingRequest: () => navigationState.pendingRequest,
+      loadSavedEditor,
+      omitSlots,
       requestLog: requestLogRef.current,
+      resetGuidedWorkflow,
       setFeatureEnabled,
+      setFilledSlotId,
       setSuggestedSlotId,
     }
   }, [
+    activateClassicLayout,
     featureState,
+    loadSavedEditor,
     navigationState.pendingRequest,
+    omitSlots,
     pendingRequest,
+    resetGuidedWorkflow,
     setFeatureEnabled,
+    setFilledSlotId,
     setSuggestedSlotId,
     workflow,
   ])
@@ -403,18 +455,44 @@ function GuidedNavigationHarnessContent() {
   const placeholders = useMemo(
     () => ALL_PLACEHOLDERS
       .filter(({ slotId }) => !workflow.omittedSlotIds.includes(slotId))
+      .filter(({ slotId }) => slotId !== filledSlotId)
       .map((placeholder) => placeholder.slotId === suggestedSlotId
         ? { ...placeholder, lifecycle: 'suggested' as const }
         : placeholder),
-    [suggestedSlotId, workflow.omittedSlotIds],
+    [filledSlotId, suggestedSlotId, workflow.omittedSlotIds],
+  )
+  const restoreItems = useMemo(
+    () => createDiscGuidedRestoreItems(workflow),
+    [workflow],
   )
   const omitSlot = useCallback((slotId: typeof placeholders[number]['slotId']) => {
     setWorkflow((current) => omitDiscGuidedSlot(current, slotId).state)
+  }, [])
+  const restoreSlot = useCallback((slotId: DiscGuidedSlotId) => {
+    setWorkflow((current) => restoreDiscGuidedSlot(current, slotId).state)
+  }, [])
+  const restoreAllSlots = useCallback(() => {
+    setWorkflow((current) => restoreAllDiscGuidedSlots(current).state)
+  }, [])
+  const applyPreset = useCallback((presetId: string) => {
+    setWorkflow((current) => getNextDiscGuidedWorkflowForPresetApplication({
+      currentWorkflow: current,
+      presetId,
+      applied: true,
+    }))
+    return true
   }, [])
 
   return (
     <main data-feature-snapshot={JSON.stringify(featureSnapshot)}>
       <aside>
+        <DiscLayoutPresetsPanel
+          guidedRestoreItems={restoreItems}
+          onApplyPreset={applyPreset}
+          onRestoreAllGuidedSlots={restoreAllSlots}
+          onRestoreGuidedSlot={restoreSlot}
+        />
+
         <RolePanel label="Background Artwork" roleId="background-artwork">
           <label><input ref={backgroundEnableRef} type="checkbox" /> Show background</label>
           <div data-nested-panel="background-local-file">

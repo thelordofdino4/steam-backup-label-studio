@@ -1830,7 +1830,12 @@ function App() {
 
         <DiscSteamBrandingControls {...brandingPanelProps} />
 
-        <DiscLayoutPresetsPanel onApplyPreset={handleApplyDiscRolePreset} />
+        <DiscLayoutPresetsPanel
+          guidedRestoreItems={discGuidedPlaceholderPreview.restoreItems}
+          onApplyPreset={handleApplyDiscRolePreset}
+          onRestoreAllGuidedSlots={discGuidedPlaceholderPreview.restoreAllSlots}
+          onRestoreGuidedSlot={discGuidedPlaceholderPreview.restoreSlot}
+        />
 
         {discRoleSectionItems.map((section) => (
           <DiscEditorNavigationRolePanel

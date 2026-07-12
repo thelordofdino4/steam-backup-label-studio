@@ -166,6 +166,7 @@ export const testFiles = [
   'src/guidedPresets/discGuidedLayouts.test.ts',
   'src/guidedPresets/discGuidedPlaceholderViewModel.test.ts',
   'src/guidedPresets/discGuidedPlaceholderSetup.test.ts',
+  'src/guidedPresets/discGuidedRestoreItems.test.ts',
   'src/guidedPresets/discGuidedSlots.test.ts',
   'src/guidedPresets/discGuidedWorkflow.test.ts',
   'src/hooks/useDiscGuidedPlaceholderPreview.test.ts',
