@@ -81,6 +81,36 @@ export type DiscPresetPlacementIntentV1 =
   | DiscBackgroundPlacementIntentV1
   | DiscGroupPlacementIntentV1
 
+export type DiscPresetPlacementTarget =
+  DiscPresetPlacementIntentV1['target']
+
+export const DISC_PRESET_PLACEMENT_TARGETS = Object.freeze([
+  'game-title.artwork',
+  'game-title.text',
+  'background.primary',
+  'rating.primary',
+  'media-format.primary',
+  'operating-system-marks.enabled',
+  'developer-logo.primary',
+  'publisher-logo.primary',
+  'legal.copyright',
+] as const satisfies readonly DiscPresetPlacementTarget[])
+
+export const DISC_PRESET_INTENT_KIND_BY_TARGET = Object.freeze({
+  'game-title.artwork': 'point',
+  'game-title.text': 'text',
+  'background.primary': 'background',
+  'rating.primary': 'point',
+  'media-format.primary': 'point',
+  'operating-system-marks.enabled': 'group',
+  'developer-logo.primary': 'point',
+  'publisher-logo.primary': 'point',
+  'legal.copyright': 'text',
+} as const satisfies Readonly<Record<
+  DiscPresetPlacementTarget,
+  DiscPresetPlacementIntentV1['kind']
+>>)
+
 export type DiscPresetSlotDefinitionV1 = Readonly<{
   id: DiscGuidedSlotId
   contentRegion: DiscNormalizedRegion
@@ -135,7 +165,6 @@ export type DiscPresetDefinitionParseResult =
     }>
 
 type UnknownRecord = Record<string, unknown>
-type DiscPresetPlacementTarget = DiscPresetPlacementIntentV1['target']
 
 const DEFINITION_FIELDS = new Set([
   'kind',
@@ -177,6 +206,8 @@ const GROUP_FIELDS = new Set(['kind', 'target', 'preferredScale'])
 const FIXED_SCALE_FIELDS = new Set(['mode', 'scale'])
 const FIT_REGION_FIELDS = new Set(['mode'])
 const SUPPORTED_SLOT_IDS = new Set<string>(DISC_GUIDED_SLOT_IDS)
+const SUPPORTED_PLACEMENT_TARGETS =
+  new Set<string>(DISC_PRESET_PLACEMENT_TARGETS)
 const BUILTIN_ID_PATTERN = /^builtin:disc-preset:[a-z0-9]+(?:-[a-z0-9]+)*$/
 const USER_ID_PATTERN = /^user:disc-preset:[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
@@ -426,19 +457,8 @@ function parseSlot(
     }
     const placement = parsePlacementIntent(rawPlacement)
     if (!placement) {
-      const knownTargets = [
-        'game-title.artwork',
-        'game-title.text',
-        'background.primary',
-        'rating.primary',
-        'media-format.primary',
-        'operating-system-marks.enabled',
-        'developer-logo.primary',
-        'publisher-logo.primary',
-        'legal.copyright',
-      ]
       const code = typeof rawPlacement.target === 'string' &&
-          !knownTargets.includes(rawPlacement.target)
+          !SUPPORTED_PLACEMENT_TARGETS.has(rawPlacement.target)
         ? 'unsupported-target'
         : 'invalid-placement'
       return failure(code, `${path}.placements[${placementIndex}]`)

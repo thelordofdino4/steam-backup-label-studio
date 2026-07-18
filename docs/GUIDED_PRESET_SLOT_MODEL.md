@@ -31,13 +31,20 @@ suppresses `filled` and `skipped` slots independently. Layout presets continue
 to place real feature-owner state; guided definitions contain no content, DOM,
 renderer, export, persistence, or role-focus request data.
 
-The generic definition also carries allowlisted serializable placement intent,
-but the current `discRolePresets.ts` owner application has not migrated to that
-intent yet. That migration, dormant fixed-owner placement, late OS selection,
-and template-specific resolved geometry are the next #289 chunks. Guided
-omission state remains project-specific and must never be copied into a reusable
-preset definition. No custom preset library, Save as Preset workflow, or custom
-preset UI exists yet.
+The generic definition also carries allowlisted serializable placement intent.
+Issue #293 now provides pure nominal-to-resolved template contracts, structured
+resolution/application warnings, a trusted semantic adapter registry, and an
+immutable application-plan builder. The engine is not connected to current
+feature owners: `discRolePresets.ts` still owns production placement, and guided
+geometry still projects directly from nominal Classic regions.
+
+Later #293 chunks must add concrete owner adapters and route Classic through the
+engine before guidance and real owners can consume the same resolved regions.
+Dormant fixed-owner placement, late OS selection, content-aware Legal fitting,
+and resolved guided projection also remain outstanding, so #289 stays open.
+Guided omission state remains project-specific and must never be copied into a
+reusable preset definition. No custom preset library, Save as Preset workflow,
+or custom preset UI exists yet.
 
 A successful `classic-top-title` layout preset application activates the
 guided layout as transient editor state. The Disc editor now renders all eight
@@ -486,6 +493,12 @@ content allows the guidance to return.
 
 Preset/domain data contains slot ID, role, accepted and preferred kinds,
 candidate bindings, default geometry, and skippable status.
+
+Serializable Disc layout presets remain nominal definitions. The pure
+template-resolution stage produces a transient resolved preset with both
+nominal and resolved content/action regions. Current guided projection still
+uses the nominal definition; the planned shared-source migration will pass the
+resolved regions to both guidance and concrete owner adapters.
 
 ### Derived State
 

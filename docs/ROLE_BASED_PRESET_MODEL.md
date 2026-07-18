@@ -84,12 +84,32 @@ serializable placement intents. The existing `classic-top-title` menu ID and
 the canonical `builtin:disc-preset:classic-top-title` identity. Alias lookup is
 centralized; aliases do not own geometry or independent slot catalogs.
 
+Issue #293 adds the first pure runtime application foundation without changing
+production owner behavior. `discPresetResolution.ts` distinguishes the
+validated nominal definition from one transient resolved definition for the
+active Disc template. Resolution retains nominal and resolved content/action
+regions, preserves slot order, checks template compatibility and safe-annulus
+intersection, and reports structured adjusted, unsupported, incompatible, or
+invalid-template warnings. It does not inspect owner content or guess image and
+text bounds.
+
+`discPresetPlacementAdapters.ts` owns the trusted semantic target registry
+contract. Adapters are application code, never parsed preset data. The immutable
+registry rejects duplicate targets, reports missing coverage, and returns
+adapters only by the allowlisted target vocabulary exported by
+`discPresetDefinition.ts`. `discPresetApplication.ts` walks resolved slots and
+placement intents in deterministic order, invokes compatible adapters, and
+returns an immutable `applied`, `partial`, or `rejected` plan with structured
+warnings. Semantic targets are not state paths, and the pure engine contains no
+React, DOM, schema, renderer, export, Case Insert, storage, or network behavior.
+
 This foundation intentionally does not yet migrate real feature-owner
-placement. `discRolePresets.ts` remains the current application engine until the
-next #289 chunk adds typed owner adapters, dormant-owner seeding, late-created
-owner placement, and template-specific resolved geometry. Custom preset
-storage, Save as Preset, editing, import/export UI, and repeatable placement
-intents remain deferred.
+placement. `discRolePresets.ts` remains the current production application
+engine until later #293 chunks add concrete point/text/Background adapters, the
+Classic compatibility route, dormant-owner seeding, late-created owner
+placement, Legal fitting, and shared resolved guidance. Custom preset storage,
+Save as Preset, editing, import/export UI, and repeatable placement intents
+remain deferred.
 
 Current role/navigation definitions live in:
 
@@ -374,6 +394,22 @@ does not serialize callbacks, owner property paths, DOM identifiers, project
 object IDs, curved text approximations, or unimplemented repeatable placement
 kinds. Repeatable screenshots, Additional Artwork, and additional logos require
 a later validated format/intent extension paired with real owner adapters.
+
+The nominal definition is reusable serialized data. A resolved Disc preset is
+transient template-specific data: it records the source preset ID/revision,
+active template ID, nominal and resolved regions, per-slot resolution status,
+placement intents, and structured warnings. Template-level resolution may clip
+a region to normalized Disc bounds or reject/mark a region that cannot intersect
+the safe annulus; owner-content-dependent fitting remains a later adapter stage.
+No resolved preset is saved to the project schema in this chunk.
+
+Application planning consumes a resolution result plus a trusted adapter
+registry and focused semantic owner-state slices. Unsupported slots are skipped.
+A missing adapter or intent mismatch produces a structured warning and a partial
+plan while other valid placements continue. A rejected resolution produces no
+updates. Updates remain immutable semantic placement records until concrete
+owner adapters extend the union; arbitrary object patches and dynamic property
+paths are forbidden.
 
 ## 13. Manual Fine-Tuning And Reset Contract
 

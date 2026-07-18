@@ -1105,6 +1105,9 @@ The disc editor is the first alpha-capable app surface.
 - `src/layout/disc*.ts`
 - `src/layout/layoutRangeMath.ts`
 - `src/presets/discPresetDefinition.ts`
+- `src/presets/discPresetResolution.ts`
+- `src/presets/discPresetPlacementAdapters.ts`
+- `src/presets/discPresetApplication.ts`
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
 - `src/guidedPresets/discGuidedLayouts.ts`
@@ -1125,10 +1128,21 @@ Generic Disc preset definitions are pure JSON-compatible domain data. The
 definition parser reconstructs immutable allowlisted identity, compatibility,
 slot geometry, visual-layer, and placement-intent values from `unknown`; the
 registry provides storage-agnostic built-in/user-ready lookup. Classic Top
-Title guided geometry derives from its canonical built-in definition. Feature
-owners remain authoritative for actual layout, rendering, export, and project
-persistence, and the existing owner application engine remains in place until
-the focused #289 adapter migration.
+Title guided geometry derives from its canonical built-in definition.
+
+The pure Disc preset application foundation separates a nominal validated
+definition from a transient template-resolved definition. Resolution preserves
+nominal/resolved content and action regions, deterministic slot order, and
+structured compatibility/annulus warnings. The trusted adapter registry maps
+only allowlisted semantic targets to application-code adapters; targets are not
+project state paths. The application-plan builder returns immutable ordered
+updates and structured partial/rejected outcomes without React, DOM, persistence,
+renderer, export, or Case Insert dependencies.
+
+Feature owners remain authoritative for actual layout, rendering, export, and
+project persistence. The new engine is not yet wired to production: the existing
+owner application engine remains in place until concrete adapters and the
+focused Classic compatibility route are completed under #293.
 
 ### 12.4 Render/Edit/Export Paths
 
@@ -1144,6 +1158,8 @@ the focused #289 adapter migration.
 - Preserve the current sidebar flow: Project File, Export Options, Game, Template, Artwork, Branding, Text, Guide Legend.
 - Keep circular disc geometry out of case insert modules.
 - Keep shared layout helpers limited to neutral numeric range math; disc annulus, center-hole, and safe-zone collision rules remain disc-owned.
+- Keep nominal preset parsing, template resolution, trusted owner adaptation, and App dispatch as separate dependency layers.
+- Do not interpret preset semantic targets as arbitrary object paths or allow serialized definitions to supply executable adapters.
 - Keep editor-only guides and UI chrome out of clean exports.
 - Preserve disc preview/export parity and fixed layer order.
 - Curved disc text remains SVG/textPath.
