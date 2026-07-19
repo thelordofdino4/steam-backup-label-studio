@@ -1108,6 +1108,7 @@ The disc editor is the first alpha-capable app surface.
 - `src/presets/discPresetResolution.ts`
 - `src/presets/discPresetPlacementAdapters.ts`
 - `src/presets/discPresetApplication.ts`
+- `src/presets/discPresetTargetedApplication.ts`
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
 - `src/guidedPresets/discGuidedLayouts.ts`
@@ -1157,6 +1158,13 @@ enablement, source/theme, custom assets, and inference metadata remain
 feature-owned. The trusted production registry now covers every Classic
 placement target exactly once.
 
+Exact late placement is owned by
+`src/presets/discPresetTargetedApplication.ts`. Given a transient canonical
+preset ID/revision, active template, one semantic target, focused owner state,
+and adapter registry, it resolves and invokes only the unambiguous matching
+slot/intent. Expected missing, unsupported, and ambiguous cases produce
+structured no-update results.
+
 Feature owners remain authoritative for actual layout, rendering, export, and
 project persistence. `src/app/appRegisteredDiscPresetApplication.ts` is the
 React-free Classic compatibility boundary. It resolves the legacy menu alias
@@ -1167,13 +1175,24 @@ and immutably translates each discriminated update into feature-owner state.
 once through existing setters. Disabled fixed owners receive dormant placement
 without enablement or content changes.
 
+`src/hooks/useActiveDiscPreset.ts` owns the single transient canonical active
+preset reference used by guidance and late placement; it is cleared with the
+existing new/reset/workspace-exit/project-load lifecycle and never enters a
+project snapshot. `src/app/appActiveDiscPresetPlatformMarks.ts` requests only
+the OS group target and merges only x/y/scale. `usePlatformMarksState.ts`
+composes selection, enablement, source/theme/custom-asset changes with that
+focused result before committing final platform-mark state. Direct layout
+x/y/scale changes do not call targeted placement, preventing effect or setter
+recursion.
+
 Classic applies adapter-safe output directly and does not run the legacy broad
 clamp sequence, so unrelated text rows, technical marks, repeated logos, and
 other untargeted state do not move. `discRolePresets.ts` retains only Classic
 menu metadata while the other two built-in presets continue using their legacy
 plans. Legal fitting keeps Classic application partial while allowing valid
-updates and transient guidance activation. Selecting an OS mark after preset
-application does not yet rerun generic group placement.
+updates and transient guidance activation. Later eligible OS changes now
+re-resolve only the active preset's OS target and deterministically regroup the
+eligible marks without reapplying or reclamping any unrelated owner.
 
 ### 12.4 Render/Edit/Export Paths
 

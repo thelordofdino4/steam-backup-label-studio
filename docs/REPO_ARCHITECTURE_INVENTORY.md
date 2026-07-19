@@ -352,6 +352,7 @@ Key files:
 - `src/presets/discPresetOwnerPlacement.ts`
 - `src/presets/discPresetPlacementAdapters.ts`
 - `src/presets/discPresetApplication.ts`
+- `src/presets/discPresetTargetedApplication.ts`
 - `src/presets/adapters/discPointPresetAdapters.ts`
 - `src/presets/adapters/discTextPresetAdapters.ts`
 - `src/presets/adapters/discBackgroundPresetAdapter.ts`
@@ -362,6 +363,8 @@ Key files:
 - `src/guidedPresets/discGuidedLayouts.ts`
 - `src/app/appRegisteredDiscPresetApplication.ts`
 - `src/app/appDiscRolePresetApplication.ts`
+- `src/app/appActiveDiscPresetPlatformMarks.ts`
+- `src/hooks/useActiveDiscPreset.ts`
 
 Source-of-truth state:
 
@@ -384,9 +387,15 @@ Source-of-truth state:
   snapshot, generic resolution/planning call, exhaustive typed update
   translation, and updated-owner list. `appDiscRolePresetApplication.ts`
   dispatches each touched owner family once without Classic's legacy broad
-  post-clamp behavior. `discRolePresets.ts` retains Classic menu metadata only;
-  Centered Logo Archive and Clean Metadata Footer remain on the transitional
-  legacy path. Legal measurement and late-selected OS placement remain open.
+  post-clamp behavior. `discPresetTargetedApplication.ts` owns exact
+  ID/revision and one-target resolution with structured fail-closed outcomes.
+  `useActiveDiscPreset.ts` owns the non-persisted canonical active reference.
+  `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
+  late OS eligibility/bounds changes with only the production OS adapter before
+  the final owner-state commit; layout x/y/scale updates do not recurse.
+  `discRolePresets.ts` retains Classic menu metadata only; Centered Logo Archive
+  and Clean Metadata Footer remain on the transitional legacy path. Legal
+  measurement remains open.
 
 Render path:
 

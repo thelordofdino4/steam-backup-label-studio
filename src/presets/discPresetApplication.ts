@@ -1,5 +1,6 @@
 import type { DiscGuidedSlotId } from '../guidedPresets/discGuidedSlots.ts'
 import type {
+  DiscPresetId,
   DiscPresetPlacementIntentV1,
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
@@ -36,6 +37,26 @@ export type DiscPresetApplicationWarning =
       slotId: DiscGuidedSlotId
       target: DiscPresetPlacementTarget
       intentKind: DiscPresetPlacementIntentV1['kind']
+    }>
+  | Readonly<{
+      kind: 'preset-not-found'
+      presetId: DiscPresetId
+    }>
+  | Readonly<{
+      kind: 'preset-revision-not-found'
+      presetId: DiscPresetId
+      revision: number
+    }>
+  | Readonly<{
+      kind: 'placement-target-absent'
+      presetId: DiscPresetId
+      target: DiscPresetPlacementTarget
+    }>
+  | Readonly<{
+      kind: 'ambiguous-placement-target'
+      presetId: DiscPresetId
+      target: DiscPresetPlacementTarget
+      slotIds: readonly DiscGuidedSlotId[]
     }>
 
 export type DiscPresetApplicationResult = Readonly<{

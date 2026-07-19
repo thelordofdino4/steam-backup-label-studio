@@ -308,7 +308,7 @@ export function getDiscGuidedLayoutDefinition(
 }
 
 export function getDiscGuidedLayoutIdForRolePreset(
-  presetId: DiscRolePresetId,
+  presetId: DiscRolePresetId | DiscPresetId,
 ): DiscGuidedLayoutId | null {
   return resolveDiscPresetCompatibilityId(presetId) ===
       CLASSIC_TOP_TITLE_DISC_PRESET.id

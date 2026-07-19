@@ -9,6 +9,9 @@ import type {
   DiscPresetApplicationStatus,
   DiscPresetApplicationWarning,
 } from '../presets/discPresetApplication.ts'
+import type {
+  ActiveDiscPresetRef,
+} from '../presets/discPresetTargetedApplication.ts'
 import type { ProjectDiscNumberArtwork } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import {
@@ -90,6 +93,7 @@ export type DiscRolePresetOwnerApplicationResult =
       applied: false
       status: 'rejected'
       canonicalPresetId: string | null
+      activePresetRef: null
       warnings: readonly DiscPresetApplicationWarning[]
       preset: null
       state: DiscRolePresetApplicationState
@@ -99,6 +103,7 @@ export type DiscRolePresetOwnerApplicationResult =
       applied: true
       status: Exclude<DiscPresetApplicationStatus, 'rejected'>
       canonicalPresetId: string | null
+      activePresetRef: ActiveDiscPresetRef | null
       warnings: readonly DiscPresetApplicationWarning[]
       preset: DiscRolePreset
       state: DiscRolePresetApplicationState
@@ -132,6 +137,7 @@ export function applyDiscRolePresetToOwners({
         applied: false,
         status: 'rejected',
         canonicalPresetId: registeredResult.canonicalPresetId,
+        activePresetRef: null,
         warnings: registeredResult.warnings,
         preset: null,
         state: registeredResult.state,
@@ -151,6 +157,7 @@ export function applyDiscRolePresetToOwners({
       applied: true,
       status: registeredResult.status,
       canonicalPresetId: registeredResult.canonicalPresetId,
+      activePresetRef: registeredResult.presetRef,
       warnings: registeredResult.warnings,
       preset,
       state: registeredResult.state,
@@ -169,6 +176,7 @@ export function applyDiscRolePresetToOwners({
       applied: false,
       status: 'rejected',
       canonicalPresetId: null,
+      activePresetRef: null,
       warnings: [],
       preset: null,
       state: result.state,
@@ -196,6 +204,7 @@ export function applyDiscRolePresetToOwners({
     applied: true,
     status: 'applied',
     canonicalPresetId: null,
+    activePresetRef: null,
     warnings: [],
     preset: result.preset,
     state: result.state,

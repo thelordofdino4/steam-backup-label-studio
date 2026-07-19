@@ -3,52 +3,68 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import {
-  getNextActiveDiscGuidedLayoutId,
-} from './useDiscGuidedPlaceholderPreview.ts'
+  getDiscGuidedLayoutIdForRolePreset,
+} from '../guidedPresets/discGuidedLayouts.ts'
+import {
+  CLASSIC_TOP_TITLE_DISC_PRESET_ID,
+} from '../presets/builtins/classicTopTitleDiscPreset.ts'
+import {
+  getNextActiveDiscPresetRef,
+} from './useActiveDiscPreset.ts'
 
 const CLASSIC_LAYOUT_ID = 'disc:guided-layout:classic-top-title'
-
-test('successful Classic Top Title application activates its guided layout', () => {
-  assert.equal(getNextActiveDiscGuidedLayoutId({
-    currentLayoutId: null,
-    presetId: 'classic-top-title',
-    applied: true,
-  }), CLASSIC_LAYOUT_ID)
+const CLASSIC_PRESET_REF = Object.freeze({
+  id: CLASSIC_TOP_TITLE_DISC_PRESET_ID,
+  revision: 1,
 })
 
-test('successful unmapped preset clears the guided layout', () => {
-  assert.equal(getNextActiveDiscGuidedLayoutId({
-    currentLayoutId: CLASSIC_LAYOUT_ID,
-    presetId: 'centered-logo-archive',
+test('successful Classic application records the canonical ref used by guidance', () => {
+  const activePresetRef = getNextActiveDiscPresetRef({
+    currentPresetRef: null,
+    appliedPresetRef: CLASSIC_PRESET_REF,
+    applied: true,
+  })
+
+  assert.deepEqual(activePresetRef, CLASSIC_PRESET_REF)
+  assert.equal(
+    getDiscGuidedLayoutIdForRolePreset(activePresetRef!.id),
+    CLASSIC_LAYOUT_ID,
+  )
+})
+
+test('successful legacy preset replaces the active canonical ref with null', () => {
+  assert.equal(getNextActiveDiscPresetRef({
+    currentPresetRef: CLASSIC_PRESET_REF,
+    appliedPresetRef: null,
     applied: true,
   }), null)
 })
 
-test('failed or rejected application does not activate or clear guidance', () => {
-  assert.equal(getNextActiveDiscGuidedLayoutId({
-    currentLayoutId: null,
-    presetId: 'classic-top-title',
+test('failed or rejected application preserves the current active preset', () => {
+  assert.equal(getNextActiveDiscPresetRef({
+    currentPresetRef: null,
+    appliedPresetRef: CLASSIC_PRESET_REF,
     applied: false,
   }), null)
-  assert.equal(getNextActiveDiscGuidedLayoutId({
-    currentLayoutId: CLASSIC_LAYOUT_ID,
-    presetId: 'missing-preset',
+  assert.deepEqual(getNextActiveDiscPresetRef({
+    currentPresetRef: CLASSIC_PRESET_REF,
+    appliedPresetRef: null,
     applied: false,
-  }), CLASSIC_LAYOUT_ID)
+  }), CLASSIC_PRESET_REF)
 })
 
 test('App clears transient activation on resets, workspace exit, and successful restore', () => {
   const source = readFileSync(new URL('../app/App.tsx', import.meta.url), 'utf8')
 
-  assert.match(source, /function resetDiscProjectState\(\)[\s\S]*?clearActiveLayout\(\)/)
-  assert.match(source, /function resetCaseInsertProjectState\(\)[\s\S]*?clearActiveLayout\(\)/)
+  assert.match(source, /function resetDiscProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
+  assert.match(source, /function resetCaseInsertProjectState\(\)[\s\S]*?clearActivePreset\(\)/)
   assert.match(
     source,
-    /function handleReturnToHome\(\)[\s\S]*?clearActiveLayout\(\)[\s\S]*?setActiveWorkspace\('home'\)/,
+    /function handleReturnToHome\(\)[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\('home'\)/,
   )
   assert.match(
     source,
-    /const setLoadedActiveWorkspace[\s\S]*?clearActiveLayout\(\)[\s\S]*?setActiveWorkspace\(workspace\)/,
+    /const setLoadedActiveWorkspace[\s\S]*?clearActivePreset\(\)[\s\S]*?setActiveWorkspace\(workspace\)/,
   )
   assert.equal(
     (source.match(/setActiveWorkspace: setLoadedActiveWorkspace/g) ?? []).length,
@@ -56,16 +72,27 @@ test('App clears transient activation on resets, workspace exit, and successful 
   )
 })
 
-test('activation is preset-result driven and produces no persistence identity', () => {
-  const hookSource = readFileSync(
+test('one transient canonical ref drives guidance and late placement without persistence', () => {
+  const activeHookSource = readFileSync(
+    new URL('./useActiveDiscPreset.ts', import.meta.url),
+    'utf8',
+  )
+  const previewHookSource = readFileSync(
     new URL('./useDiscGuidedPlaceholderPreview.ts', import.meta.url),
     'utf8',
   )
   const appSource = readFileSync(new URL('../app/App.tsx', import.meta.url), 'utf8')
 
-  assert.match(appSource, /recordPresetApplication\(presetId, false\)/)
-  assert.match(appSource, /recordPresetApplication\(\s*result\.preset\.id,\s*true/)
-  assert.doesNotMatch(hookSource, /coordinate|offset|layout\.x|layout\.y/i)
+  assert.match(
+    appSource,
+    /recordPresetApplication\(\s*result\.activePresetRef,\s*true/,
+  )
+  assert.match(
+    appSource,
+    /presetRef:\s*activeDiscPreset\.getActivePresetRef\(\)/,
+  )
+  assert.doesNotMatch(previewHookSource, /useState|recordPresetApplication/)
+  assert.doesNotMatch(activeHookSource, /coordinate|offset|layout\.x|layout\.y/i)
 
   for (const forbidden of [
     'projectSchema',
@@ -75,6 +102,10 @@ test('activation is preset-result driven and produces no persistence identity', 
     'localStorage',
     'sessionStorage',
   ]) {
-    assert.equal(hookSource.includes(forbidden), false, `unexpected source: ${forbidden}`)
+    assert.equal(
+      activeHookSource.includes(forbidden),
+      false,
+      `unexpected source: ${forbidden}`,
+    )
   }
 })

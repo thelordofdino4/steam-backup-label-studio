@@ -79,6 +79,10 @@ import { useTechnicalMarks } from '../hooks/useTechnicalMarks'
 import { useTitleArtwork } from '../hooks/useTitleArtwork'
 import { useWebArtworkDiscovery } from '../hooks/useWebArtworkDiscovery'
 import { useDiscGuidedPlaceholderPreview } from '../hooks/useDiscGuidedPlaceholderPreview'
+import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
+import {
+  applyActiveDiscPresetToPlatformMarkState,
+} from './appActiveDiscPresetPlatformMarks'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -428,6 +432,7 @@ function App() {
     selectedDiscTemplate,
     announceStatus,
   })
+  const activeDiscPreset = useActiveDiscPreset()
   const {
     projectPlatformMarks,
     setProjectPlatformMarks,
@@ -440,10 +445,17 @@ function App() {
     handlePlatformMarkLayoutChange,
     handleClearPlatformMarkImage,
     handleResetPlatformMarkLayout,
+    applyProjectPlatformMarksEligibilityChange,
   } = usePlatformMarksState({
     selectedDiscTemplate,
     selectedSteamGame,
     announceStatus,
+    applyActivePresetPlacement: (platformMarks) =>
+      applyActiveDiscPresetToPlatformMarkState({
+        presetRef: activeDiscPreset.getActivePresetRef(),
+        selectedDiscTemplate,
+        platformMarks,
+      }).platformMarks,
   })
   const {
     projectTechnicalMarks,
@@ -662,27 +674,30 @@ function App() {
     resetTemplateTextBlockLayout:
       caseInsertTemplateEditor.handleResetTextBlockLayout,
   })
-  const discGuidedPlaceholderPreview = useDiscGuidedPlaceholderPreview({
-    background: {
-      enabled: isBackgroundArtworkEnabled,
-      imageDataUrl: backgroundImageUrl,
-      imageSize: backgroundImageSize,
+  const discGuidedPlaceholderPreview = useDiscGuidedPlaceholderPreview(
+    {
+      background: {
+        enabled: isBackgroundArtworkEnabled,
+        imageDataUrl: backgroundImageUrl,
+        imageSize: backgroundImageSize,
+      },
+      titleArtwork: projectTitleArtwork,
+      metadata: projectMetadata,
+      ratingBadge: projectRatingBadge,
+      mediaMark: projectMediaMark,
+      platformMarks: projectPlatformMarks,
+      logoAssets: projectLogoAssets,
+      additionalArtwork: projectAdditionalArtwork,
+      discText: {
+        settings: discTextSettings,
+        values: discTextValues,
+        valueSources: discTextValueSources,
+        titleValue: discTextTitleValue,
+        htmlSources: discTextHtmlSources,
+      },
     },
-    titleArtwork: projectTitleArtwork,
-    metadata: projectMetadata,
-    ratingBadge: projectRatingBadge,
-    mediaMark: projectMediaMark,
-    platformMarks: projectPlatformMarks,
-    logoAssets: projectLogoAssets,
-    additionalArtwork: projectAdditionalArtwork,
-    discText: {
-      settings: discTextSettings,
-      values: discTextValues,
-      valueSources: discTextValueSources,
-      titleValue: discTextTitleValue,
-      htmlSources: discTextHtmlSources,
-    },
-  })
+    activeDiscPreset.activePresetRef,
+  )
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
     clampProjectLogoAssetsToTemplate(template)
@@ -762,13 +777,13 @@ function App() {
     })
 
     if (!result.applied) {
-      discGuidedPlaceholderPreview.recordPresetApplication(presetId, false)
+      activeDiscPreset.recordPresetApplication(null, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
-    discGuidedPlaceholderPreview.recordPresetApplication(
-      result.preset.id,
+    activeDiscPreset.recordPresetApplication(
+      result.activePresetRef,
       true,
     )
     announceStatus(`Applied ${result.preset.label} layout preset.`)
@@ -1060,7 +1075,7 @@ function App() {
   function resetDiscProjectState() {
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
-    discGuidedPlaceholderPreview.clearActiveLayout()
+    activeDiscPreset.clearActivePreset()
 
     resetDiscTemplateState()
     setSteamLogoPlacement('top')
@@ -1083,7 +1098,7 @@ function App() {
 
   function resetCaseInsertProjectState() {
     cancelCaseInsertPreviewPointerDrag()
-    discGuidedPlaceholderPreview.clearActiveLayout()
+    activeDiscPreset.clearActivePreset()
 
     setManualGameTitle(DEFAULT_CASE_INSERT_PROJECT_TITLE)
     setProjectMetadata({
@@ -1174,7 +1189,7 @@ function App() {
 
     cancelPreviewPointerDrag()
     cancelCaseInsertPreviewPointerDrag()
-    discGuidedPlaceholderPreview.clearActiveLayout()
+    activeDiscPreset.clearActivePreset()
     setActiveWorkspace('home')
     setHomeStatusMessage(null)
   }
@@ -1290,7 +1305,9 @@ function App() {
       }
 
       if (discVisualImport) {
-        setProjectPlatformMarks(discVisualImport.platformMarks)
+        applyProjectPlatformMarksEligibilityChange(
+          discVisualImport.platformMarks,
+        )
         if (autoLegalCandidate) {
           enableCurvedCopyrightDiscText()
         } else if (shouldResetGameScopedLegal) {
@@ -1375,7 +1392,7 @@ function App() {
 
   async function handleLoadProject() {
     const setLoadedActiveWorkspace = (workspace: 'disc' | 'caseInsert') => {
-      discGuidedPlaceholderPreview.clearActiveLayout()
+      activeDiscPreset.clearActivePreset()
       setActiveWorkspace(workspace)
     }
 

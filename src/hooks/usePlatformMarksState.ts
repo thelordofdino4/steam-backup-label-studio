@@ -29,12 +29,16 @@ type UsePlatformMarksStateOptions = {
   selectedDiscTemplate: DiscTemplate
   selectedSteamGame: SteamImportedGame | null
   announceStatus: (message: string) => void
+  applyActivePresetPlacement?: (
+    platformMarks: ProjectPlatformMarks,
+  ) => ProjectPlatformMarks
 }
 
 export function usePlatformMarksState({
   selectedDiscTemplate,
   selectedSteamGame,
   announceStatus,
+  applyActivePresetPlacement = (platformMarks) => platformMarks,
 }: UsePlatformMarksStateOptions) {
   const [projectPlatformMarks, setProjectPlatformMarks] =
     useState<ProjectPlatformMarks>(() => createDefaultProjectPlatformMarks())
@@ -46,6 +50,12 @@ export function usePlatformMarksState({
 
   function markCurrentProjectPlatformMarksManual(marks: ProjectPlatformMarks) {
     return markProjectPlatformMarksManual(marks, selectedSteamGame?.appId ?? null)
+  }
+
+  function finalizeEligibilityChange(nextMarks: ProjectPlatformMarks) {
+    const finalMarks = applyActivePresetPlacement(nextMarks)
+    projectPlatformMarksRef.current = finalMarks
+    return finalMarks
   }
 
   function clampProjectPlatformMarksToTemplate(template: DiscTemplate) {
@@ -70,7 +80,9 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      return finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(nextMarks),
+      )
     })
   }
 
@@ -92,12 +104,14 @@ export function usePlatformMarksState({
 
     try {
       const importedImage = await readImportedImageAssetFromFile(file)
-      const nextMarks = markCurrentProjectPlatformMarksManual(
-        applyImportedPlatformMark(
-          projectPlatformMarksRef.current,
-          value,
-          importedImage,
-          selectedDiscTemplate,
+      const nextMarks = finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(
+          applyImportedPlatformMark(
+            projectPlatformMarksRef.current,
+            value,
+            importedImage,
+            selectedDiscTemplate,
+          ),
         ),
       )
 
@@ -118,7 +132,9 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      return finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(nextMarks),
+      )
     })
   }
 
@@ -131,7 +147,9 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      return finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(nextMarks),
+      )
     })
   }
 
@@ -146,7 +164,10 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      const manualMarks = markCurrentProjectPlatformMarksManual(nextMarks)
+      return field === 'enabled'
+        ? finalizeEligibilityChange(manualMarks)
+        : manualMarks
     })
   }
 
@@ -157,7 +178,9 @@ export function usePlatformMarksState({
         selectedDiscTemplate,
       )
 
-      return markCurrentProjectPlatformMarksManual(nextMarks)
+      return finalizeEligibilityChange(
+        markCurrentProjectPlatformMarksManual(nextMarks),
+      )
     })
 
     announceStatus('Cleared custom platform mark image.')
@@ -176,6 +199,14 @@ export function usePlatformMarksState({
     announceStatus('Reset platform mark layout.')
   }
 
+  function applyProjectPlatformMarksEligibilityChange(
+    nextMarks: ProjectPlatformMarks,
+  ) {
+    const finalMarks = finalizeEligibilityChange(nextMarks)
+    setProjectPlatformMarks(finalMarks)
+    return finalMarks
+  }
+
   return {
     projectPlatformMarks,
     setProjectPlatformMarks,
@@ -188,5 +219,6 @@ export function usePlatformMarksState({
     handlePlatformMarkLayoutChange,
     handleClearPlatformMarkImage,
     handleResetPlatformMarkLayout,
+    applyProjectPlatformMarksEligibilityChange,
   }
 }

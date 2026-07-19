@@ -132,8 +132,14 @@ non-overlap to `placeGroupedPlatformMarks`. It emits one typed
 identified by stable `PlatformMarkValue`, and preserves selections, enablement,
 sources, themes, custom assets, and inference metadata. Missing/unrenderable
 assets, invalid layouts, invalid regions, and impossible placement use
-structured warnings. Marks selected after application are not repositioned
-automatically; late-selection wiring remains a later application concern.
+structured warnings.
+
+`discPresetTargetedApplication.ts` adds exact-target application for an active
+canonical `{ id, revision }` reference. It performs exact registry lookup,
+template resolution, unambiguous target-slot lookup, and one adapter invocation.
+Missing presets/revisions, absent or ambiguous targets, unsupported slots,
+missing adapters, and intent mismatches return structured no-update results.
+Warnings and updates from unrelated slots are not processed.
 
 `discPresetProductionAdapterRegistry.ts` is exhaustive for all nine Classic
 placement targets. `appRegisteredDiscPresetApplication.ts` now provides the
@@ -149,11 +155,19 @@ remain on their existing legacy update plans.
 
 Classic application is currently `partial` because copyright region fitting
 still reports `content-measurement-required`; all valid updates are applied and
-guided workflow activation remains allowed. OS marks selected after application
-are still not repositioned automatically. Final Legal fitting, late OS
-selection, and shared resolved guidance remain deferred. Custom preset storage,
-Save as Preset, editing, import/export UI, and repeatable placement intents
-remain deferred.
+guided workflow activation remains allowed. A successful or accepted partial
+application records one transient canonical preset ID and exact revision in
+`useActiveDiscPreset`; failed application preserves the previous reference,
+legacy preset application replaces it with `null`, and the existing reset,
+workspace-exit, and project-load lifecycle clears it. The reference contains no
+geometry or owner state and is not persisted.
+
+Late Operating System Mark eligibility changes now use that active reference to
+re-resolve and apply only `operating-system-marks.enabled`. The platform-mark
+owner composes the user-requested next state, targeted grouped placement, and
+the final owner state before one state commit. Final Legal fitting and shared
+resolved guidance remain deferred. Custom preset storage, Save as Preset,
+editing, import/export UI, and repeatable placement intents remain deferred.
 
 Current role/navigation definitions live in:
 
@@ -476,6 +490,13 @@ Manual edits after preset application should:
 - not be overwritten unless the user explicitly reapplies a preset or chooses a
   reset action.
 
+Operating System Marks are the deliberate grouped-slot exception. Selecting,
+deselecting, enabling, or disabling a mark, or changing an asset/source/theme
+in a way that can affect renderability or bounds, reflows every currently
+eligible OS mark inside the active preset's resolved group region. This may
+replace manual OS positions. It never moves another preset target, and ordinary
+unrelated project edits do not trigger regrouping.
+
 Reset behavior should remain feature-owned for #270. Existing actions such as
 reset title artwork layout, reset rating badge layout, reset logo layout, reset
 additional artwork element layout, and reset disc text layout should continue
@@ -542,6 +563,14 @@ slot at normalized region `50, 73, 28, 10`. The preset applies only returned
 `x`, `y`, and `scale` values to already selected, enabled, renderable marks.
 It never selects or enables marks. A typed no-op or impossible result preserves
 the complete owner state unchanged.
+
+The same grouping runs after later selection, per-mark enablement, custom asset
+upload/removal, and source/theme changes while the exact compatible preset
+revision remains active. It receives the already-computed next platform state,
+uses the resolved region rather than copied Classic coordinates, and merges
+only `x`, `y`, and `scale`. Direct x/y/scale edits and layout reset do not invoke
+targeted placement, which prevents placement-update recursion. Explicit preset
+reapplication still runs the full application engine.
 
 ## 15.1 Classic Top Title Exact Guided Contract
 

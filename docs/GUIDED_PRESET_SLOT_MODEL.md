@@ -60,8 +60,11 @@ directly instead of broadly reclamping unrelated text, technical marks, or
 repeated logos. Copyright currently makes application `partial` with
 `content-measurement-required`, but valid owner updates still apply and guidance
 activates. The OS adapter positions only marks already selected, enabled, and
-renderable at application time; late-created OS selection does not automatically
-rerun placement. Late-selection wiring, final content-aware Legal fitting, and
+renderable. After application, one transient canonical preset ID/revision
+remains shared by guidance and targeted placement. Selection, per-mark
+enablement, custom asset availability, and source/theme changes re-resolve only
+the OS target and reflow the complete eligible group inside its active preset
+region. No other slot is reapplied. Final content-aware Legal fitting and
 resolved guided projection remain outstanding, so #289 stays open.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
@@ -358,6 +361,15 @@ It is filled only when the canonical enabled/renderable owner predicate passes.
 PC, Windows, Linux, SteamOS, and macOS remain simultaneous peer values. There
 is no invented primary OS mark. At least one selected, enabled, renderable mark
 fills this exact slot.
+
+When the first eligible mark is selected after preset application,
+authoritative owner state becomes filled, targeted placement puts the real
+group in the resolved preset region, and guidance disappears through normal
+lifecycle derivation. Removing or disabling all eligible marks returns the
+slot to unfilled guidance. Omission remains independent: an omitted OS slot
+stays omitted while owner state changes, and omission never suppresses owner
+rendering. Changing group membership may replace manual OS positions;
+unrelated owner edits never do.
 
 ### Developer Logo
 

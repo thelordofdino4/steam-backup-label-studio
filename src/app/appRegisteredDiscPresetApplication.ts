@@ -11,6 +11,9 @@ import {
   type DiscPresetApplicationWarning,
 } from '../presets/discPresetApplication.ts'
 import type {
+  ActiveDiscPresetRef,
+} from '../presets/discPresetTargetedApplication.ts'
+import type {
   DiscPresetOwnerStateCatalog,
   DiscPresetOwnerUpdate,
 } from '../presets/discPresetPlacementAdapters.ts'
@@ -59,6 +62,7 @@ export type RegisteredDiscPresetApplicationResult<
 > = Readonly<{
   status: DiscPresetApplicationStatus
   canonicalPresetId: string
+  presetRef: ActiveDiscPresetRef
   resolvedPreset: ResolvedDiscPresetDefinition | null
   state: TState
   updates: readonly DiscPresetOwnerUpdate[]
@@ -324,6 +328,10 @@ export function applyRegisteredDiscPresetToState<
   return Object.freeze({
     status: application.status,
     canonicalPresetId: definition.id,
+    presetRef: Object.freeze({
+      id: definition.id,
+      revision: definition.revision,
+    }),
     resolvedPreset: application.resolvedPreset,
     state: nextState,
     updates: application.updates,
