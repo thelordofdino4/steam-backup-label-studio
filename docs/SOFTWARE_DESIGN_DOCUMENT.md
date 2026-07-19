@@ -1145,14 +1145,24 @@ primary Media Format Mark, primary Developer/Publisher Logos, and copyright
 text. Their focused owner-state slices support dormant disabled layouts without
 changing enablement or payload. Disc text uses the existing center-relative X
 contract. Legal region fitting reports a measurement-required partial result,
-and Background V1 supports only centered cover with zero pixel offset. The
-trusted production registry is intentionally partial; OS group placement is the
-one missing target.
+and Background V1 supports only centered cover with zero pixel offset.
+
+Operating System Marks use a focused platform-mark/template owner slice and
+delegate resolved-region grouping to `placeGroupedPlatformMarks`. The helper
+remains authoritative for canonical mark order, implicit built-in asset
+materialization, preferred-scale reduction, row balancing, safe-zone and
+physical-center-hole geometry, and non-overlap. The adapter emits only typed
+`x`, `y`, and `scale` updates keyed by `PlatformMarkValue`; selected values,
+enablement, source/theme, custom assets, and inference metadata remain
+feature-owned. The trusted production registry now covers every Classic
+placement target exactly once.
 
 Feature owners remain authoritative for actual layout, rendering, export, and
 project persistence. The new adapters are not yet wired to production:
-`src/layout/discRolePresets.ts` remains the owner application engine until the OS
-adapter and focused Classic compatibility route are completed under #293.
+`src/layout/discRolePresets.ts` remains the owner application engine until the
+focused Classic compatibility route and dormant-owner dispatch are completed
+under #293. Selecting an OS mark after preset application does not yet rerun
+generic group placement.
 
 ### 12.4 Render/Edit/Export Paths
 

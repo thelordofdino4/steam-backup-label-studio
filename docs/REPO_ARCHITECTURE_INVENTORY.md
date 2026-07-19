@@ -355,6 +355,7 @@ Key files:
 - `src/presets/adapters/discPointPresetAdapters.ts`
 - `src/presets/adapters/discTextPresetAdapters.ts`
 - `src/presets/adapters/discBackgroundPresetAdapter.ts`
+- `src/presets/adapters/discPlatformMarksPresetAdapter.ts`
 - `src/presets/discPresetProductionAdapterRegistry.ts`
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
@@ -371,11 +372,14 @@ Source-of-truth state:
   application-plan builder provide deterministic partial/rejected planning
   without dynamic state paths or runtime side effects. Focused concrete adapters
   emit placement-only typed updates for point, straight-text, and centered
-  Background targets while preserving owner enablement and payload. Their
-  production registry intentionally omits OS group placement. Classic guided
-  geometry still projects from the nominal canonical built-in definition, and
-  real owner placement still uses `src/layout/discRolePresets.ts` pending the OS
-  adapter and compatibility routing.
+  Background targets while preserving owner enablement and payload. The OS group
+  adapter delegates resolved-region geometry to
+  `src/layout/groupedPlatformMarkPlacement.ts` and emits stable
+  platform-mark-identity layout updates without replacing owner state. The
+  production registry covers all Classic targets. Classic guided geometry still
+  projects from the nominal canonical built-in definition, and real owner
+  placement still uses `src/layout/discRolePresets.ts` pending compatibility
+  routing and dormant-owner dispatch.
 
 Render path:
 

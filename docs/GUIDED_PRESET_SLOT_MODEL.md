@@ -36,19 +36,24 @@ Issue #293 now provides pure nominal-to-resolved template contracts, structured
 resolution/application warnings, a trusted semantic adapter registry, and an
 immutable application-plan builder. Concrete planning adapters now cover title
 artwork/text, Background, Rating, Media Format Mark, primary Developer and
-Publisher Logos, and copyright text. They consume focused owner-layout slices,
-emit placement-only updates, and can seed dormant disabled owners without
-enabling or populating them. Copyright region fitting remains explicitly
-partial pending content measurement, and Background V1 supports centered cover
-only.
+Publisher Logos, Operating System Marks, and copyright text. Every Classic
+placement target therefore has a concrete generic adapter. They consume focused
+owner-layout slices, emit placement-only updates, and can seed dormant disabled
+fixed owners without enabling or populating them. The OS adapter consumes the
+resolved region and reuses `placeGroupedPlatformMarks` for canonical ordering,
+implicit built-in materialization, safe centered grouping, and preferred-scale
+reduction. It preserves mark selection, enablement, source, theme, custom
+assets, and inference metadata.
 
 The concrete registry is not connected to current production application:
 `discRolePresets.ts` still owns Classic placement, guided geometry still
 projects directly from nominal Classic regions, and no visible behavior changed.
-Later #293 chunks must add the OS group adapter and route Classic through the
-focused compatibility wrapper before guidance and real owners consume the same
-resolved regions. Late-created OS selection, final content-aware Legal fitting,
-and resolved guided projection also remain outstanding, so #289 stays open.
+The next #293 chunk must route Classic through the focused compatibility wrapper
+and dispatch dormant fixed-owner updates before guidance and real owners consume
+the same resolved regions. The OS adapter positions only marks already selected,
+enabled, and renderable at application time; late-created OS selection does not
+automatically rerun placement. Late-selection wiring, final content-aware Legal
+fitting, and resolved guided projection remain outstanding, so #289 stays open.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
 or custom preset UI exists yet.

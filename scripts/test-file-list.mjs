@@ -235,6 +235,7 @@ export const testFiles = [
   'src/presets/adapters/discPointPresetAdapters.test.ts',
   'src/presets/adapters/discTextPresetAdapters.test.ts',
   'src/presets/adapters/discBackgroundPresetAdapter.test.ts',
+  'src/presets/adapters/discPlatformMarksPresetAdapter.test.ts',
   'src/presets/discPresetProductionAdapterRegistry.test.ts',
   'src/presets/discPresetRegistry.test.ts',
   'src/presets/builtins/classicTopTitleDiscPreset.test.ts',

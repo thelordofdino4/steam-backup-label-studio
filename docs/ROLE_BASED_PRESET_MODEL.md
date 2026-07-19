@@ -103,7 +103,7 @@ returns an immutable `applied`, `partial`, or `rejected` plan with structured
 warnings. Semantic targets are not state paths, and the pure engine contains no
 React, DOM, schema, renderer, export, Case Insert, storage, or network behavior.
 
-The next #293 chunk adds concrete immutable placement adapters for title
+Issue #293 adds concrete immutable placement adapters for title
 artwork, title text, Background, primary Rating, primary Media Format Mark,
 primary Developer and Publisher Logos, and copyright text. Focused read-only
 owner slices expose only the existing layout and identity fields an adapter
@@ -123,15 +123,25 @@ sets the declared scale and canonical zero pixel offset while preserving the
 image and source. Non-centered Background regions are unsupported rather than
 being treated as arbitrary crop instructions.
 
-`discPresetProductionAdapterRegistry.ts` is a trusted, intentionally partial
-registry for those eight targets. `operating-system-marks.enabled` remains
-absent with structured missing-adapter behavior. This registry is not yet
-imported by the production application route: `discRolePresets.ts` remains the
-current production engine until later #293 chunks add the OS group adapter and
-the focused Classic compatibility route. Late-created owner placement, final
-Legal fitting, and shared resolved guidance also remain deferred. Custom preset
-storage, Save as Preset, editing, import/export UI, and repeatable placement
-intents remain deferred.
+The Operating System Marks adapter consumes the resolved slot content region,
+a focused platform-mark state slice, and the active canonical Disc template.
+It delegates ordering, implicit built-in materialization, preferred-scale
+reduction, row balancing, safe-zone containment, center-hole avoidance, and
+non-overlap to `placeGroupedPlatformMarks`. It emits one typed
+`platform-mark-layout` update per eligible selected, enabled, renderable mark,
+identified by stable `PlatformMarkValue`, and preserves selections, enablement,
+sources, themes, custom assets, and inference metadata. Missing/unrenderable
+assets, invalid layouts, invalid regions, and impossible placement use
+structured warnings. Marks selected after application are not repositioned
+automatically; late-selection wiring remains a later application concern.
+
+`discPresetProductionAdapterRegistry.ts` is now exhaustive for all nine Classic
+placement targets. This registry is not yet imported by the production
+application route: `discRolePresets.ts` remains the current production engine
+until a later #293 chunk adds the focused Classic compatibility route and
+dormant-owner dispatch. Final Legal fitting and shared resolved guidance also
+remain deferred. Custom preset storage, Save as Preset, editing, import/export
+UI, and repeatable placement intents remain deferred.
 
 Current role/navigation definitions live in:
 

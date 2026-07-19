@@ -12,6 +12,9 @@ import {
   DISC_GAME_TITLE_TEXT_PRESET_ADAPTER,
   DISC_LEGAL_TEXT_PRESET_ADAPTER,
 } from './adapters/discTextPresetAdapters.ts'
+import {
+  DISC_PLATFORM_MARKS_PRESET_ADAPTER,
+} from './adapters/discPlatformMarksPresetAdapter.ts'
 import type {
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
@@ -19,10 +22,8 @@ import {
   createDiscPresetPlacementAdapterRegistry,
 } from './discPresetPlacementAdapters.ts'
 
-export type ImplementedDiscPresetPlacementTarget = Exclude<
-  DiscPresetPlacementTarget,
-  'operating-system-marks.enabled'
->
+export type ImplementedDiscPresetPlacementTarget =
+  DiscPresetPlacementTarget
 
 export const IMPLEMENTED_DISC_PRESET_PLACEMENT_TARGETS = Object.freeze([
   'game-title.artwork',
@@ -30,6 +31,7 @@ export const IMPLEMENTED_DISC_PRESET_PLACEMENT_TARGETS = Object.freeze([
   'background.primary',
   'rating.primary',
   'media-format.primary',
+  'operating-system-marks.enabled',
   'developer-logo.primary',
   'publisher-logo.primary',
   'legal.copyright',
@@ -41,6 +43,7 @@ export const IMPLEMENTED_DISC_PRESET_TARGET_COVERAGE = Object.freeze({
   'background.primary': true,
   'rating.primary': true,
   'media-format.primary': true,
+  'operating-system-marks.enabled': true,
   'developer-logo.primary': true,
   'publisher-logo.primary': true,
   'legal.copyright': true,
@@ -55,6 +58,7 @@ export const DISC_PRESET_PRODUCTION_ADAPTERS = Object.freeze([
   DISC_BACKGROUND_PRESET_ADAPTER,
   DISC_RATING_PRESET_ADAPTER,
   DISC_MEDIA_MARK_PRESET_ADAPTER,
+  DISC_PLATFORM_MARKS_PRESET_ADAPTER,
   DISC_DEVELOPER_LOGO_PRESET_ADAPTER,
   DISC_PUBLISHER_LOGO_PRESET_ADAPTER,
   DISC_LEGAL_TEXT_PRESET_ADAPTER,

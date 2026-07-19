@@ -7,10 +7,14 @@ import type {
   BackgroundOffset,
   LogoAssetLayout,
   MediaMarkLayout,
+  PlatformMarkLayout,
+  PlatformMarkValue,
   ProjectImageAssetProvenance,
+  ProjectPlatformMarks,
   RatingBadgeLayout,
   TitleArtworkLayout,
 } from '../project/projectTypes.ts'
+import type { DiscTemplate } from '../types/template.ts'
 import type {
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
@@ -52,13 +56,18 @@ export type DiscBackgroundPresetOwnerState = Readonly<{
   offset: Readonly<BackgroundOffset>
 }>
 
+export type DiscPlatformMarksPresetOwnerState = Readonly<{
+  platformMarks: Readonly<ProjectPlatformMarks>
+  template: Readonly<DiscTemplate>
+}>
+
 export type DiscPresetFocusedOwnerStateByTarget = Readonly<{
   'game-title.artwork': DiscTitleArtworkPresetOwnerState
   'game-title.text': DiscTextPresetOwnerState<'title'>
   'background.primary': DiscBackgroundPresetOwnerState
   'rating.primary': DiscRatingPresetOwnerState
   'media-format.primary': DiscMediaMarkPresetOwnerState
-  'operating-system-marks.enabled': never
+  'operating-system-marks.enabled': DiscPlatformMarksPresetOwnerState
   'developer-logo.primary': DiscPrimaryLogoPresetOwnerState<'developer'>
   'publisher-logo.primary': DiscPrimaryLogoPresetOwnerState<'publisher'>
   'legal.copyright': DiscTextPresetOwnerState<'copyright'>
@@ -98,6 +107,10 @@ export type DiscBackgroundLayoutPresetUpdate = Readonly<{
   scale: number
   offset: Readonly<BackgroundOffset>
 }>
+
+export type DiscPlatformMarkLayoutPresetUpdate = Readonly<
+  Pick<PlatformMarkLayout, 'x' | 'y' | 'scale'>
+>
 
 export type DiscPresetOwnerUpdate =
   | Readonly<{
@@ -144,4 +157,11 @@ export type DiscPresetOwnerUpdate =
       slotId: import('../guidedPresets/discGuidedSlots.ts').DiscGuidedSlotId
       target: 'background.primary'
       layout: DiscBackgroundLayoutPresetUpdate
+    }>
+  | Readonly<{
+      kind: 'platform-mark-layout'
+      slotId: 'disc:guided:operating-system-marks:group'
+      target: 'operating-system-marks.enabled'
+      markId: PlatformMarkValue
+      layout: DiscPlatformMarkLayoutPresetUpdate
     }>

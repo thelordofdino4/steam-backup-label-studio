@@ -17,6 +17,7 @@ import type {
   DiscPresetTemplateResolutionInput,
   ResolvedDiscPresetSlot,
 } from './discPresetResolution.ts'
+import type { PlatformMarkValue } from '../project/projectTypes.ts'
 
 export type DiscPresetOwnerFamily =
   | 'title-artwork'
@@ -67,6 +68,29 @@ export type DiscPresetAdapterWarning =
       kind: 'content-measurement-required'
       slotId: 'disc:guided:legal-text:copyright'
       target: 'legal.copyright'
+    }>
+  | Readonly<{
+      kind: 'grouped-placement-impossible'
+      slotId: 'disc:guided:operating-system-marks:group'
+      target: 'operating-system-marks.enabled'
+    }>
+  | Readonly<{
+      kind: 'invalid-group-region'
+      slotId: 'disc:guided:operating-system-marks:group'
+      target: 'operating-system-marks.enabled'
+    }>
+  | Readonly<{
+      kind: 'platform-mark-asset-missing'
+      slotId: 'disc:guided:operating-system-marks:group'
+      target: 'operating-system-marks.enabled'
+      markId: PlatformMarkValue
+    }>
+  | Readonly<{
+      kind: 'platform-mark-ignored'
+      slotId: 'disc:guided:operating-system-marks:group'
+      target: 'operating-system-marks.enabled'
+      markId: PlatformMarkValue
+      reason: 'invalid-layout'
     }>
 
 type DiscPresetPlacementIntentForTarget<
