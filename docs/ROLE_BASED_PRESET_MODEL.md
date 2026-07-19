@@ -103,13 +103,35 @@ returns an immutable `applied`, `partial`, or `rejected` plan with structured
 warnings. Semantic targets are not state paths, and the pure engine contains no
 React, DOM, schema, renderer, export, Case Insert, storage, or network behavior.
 
-This foundation intentionally does not yet migrate real feature-owner
-placement. `discRolePresets.ts` remains the current production application
-engine until later #293 chunks add concrete point/text/Background adapters, the
-Classic compatibility route, dormant-owner seeding, late-created owner
-placement, Legal fitting, and shared resolved guidance. Custom preset storage,
-Save as Preset, editing, import/export UI, and repeatable placement intents
-remain deferred.
+The next #293 chunk adds concrete immutable placement adapters for title
+artwork, title text, Background, primary Rating, primary Media Format Mark,
+primary Developer and Publisher Logos, and copyright text. Focused read-only
+owner slices expose only the existing layout and identity fields an adapter
+needs. Typed updates contain only preset-owned layout fields, so dormant
+disabled owners receive placement without enabling them or copying content,
+source, theme, selected values, provenance, metadata, or repeated assets.
+
+Point adapters map the resolved content-region center to owner `x`/`y` and
+currently support deterministic positive fixed scale only. Disc text adapters
+convert center-based preset X to the current center-relative text contract with
+`text x = resolved center X - 50`; they seed straight mode, width, alignment,
+and an explicitly owned point size. Copyright `fit: region` produces the
+content-independent geometry plus a structured
+`content-measurement-required` partial warning because final Legal fitting is
+not implemented. Background V1 supports only centered `cover` placement: it
+sets the declared scale and canonical zero pixel offset while preserving the
+image and source. Non-centered Background regions are unsupported rather than
+being treated as arbitrary crop instructions.
+
+`discPresetProductionAdapterRegistry.ts` is a trusted, intentionally partial
+registry for those eight targets. `operating-system-marks.enabled` remains
+absent with structured missing-adapter behavior. This registry is not yet
+imported by the production application route: `discRolePresets.ts` remains the
+current production engine until later #293 chunks add the OS group adapter and
+the focused Classic compatibility route. Late-created owner placement, final
+Legal fitting, and shared resolved guidance also remain deferred. Custom preset
+storage, Save as Preset, editing, import/export UI, and repeatable placement
+intents remain deferred.
 
 Current role/navigation definitions live in:
 
@@ -407,9 +429,12 @@ Application planning consumes a resolution result plus a trusted adapter
 registry and focused semantic owner-state slices. Unsupported slots are skipped.
 A missing adapter or intent mismatch produces a structured warning and a partial
 plan while other valid placements continue. A rejected resolution produces no
-updates. Updates remain immutable semantic placement records until concrete
-owner adapters extend the union; arbitrary object patches and dynamic property
-paths are forbidden.
+updates. Concrete adapters now emit immutable discriminated layout updates for
+title artwork, Rating, Media Format Mark, primary logos, Disc text, and
+Background. Each variant contains only placement-owned fields; arbitrary object
+patches, enablement changes, payload copies, and dynamic property paths are
+forbidden. The partial production registry remains planning-only until the
+Classic compatibility route is migrated.
 
 ## 13. Manual Fine-Tuning And Reset Contract
 

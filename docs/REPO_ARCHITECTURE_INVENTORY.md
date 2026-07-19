@@ -349,8 +349,13 @@ Key files:
 - `src/export/discDesignCheck.ts`
 - `src/presets/discPresetDefinition.ts`
 - `src/presets/discPresetResolution.ts`
+- `src/presets/discPresetOwnerPlacement.ts`
 - `src/presets/discPresetPlacementAdapters.ts`
 - `src/presets/discPresetApplication.ts`
+- `src/presets/adapters/discPointPresetAdapters.ts`
+- `src/presets/adapters/discTextPresetAdapters.ts`
+- `src/presets/adapters/discBackgroundPresetAdapter.ts`
+- `src/presets/discPresetProductionAdapterRegistry.ts`
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
 - `src/guidedPresets/discGuidedLayouts.ts`
@@ -364,10 +369,13 @@ Source-of-truth state:
   state. Template resolution produces transient nominal/resolved slot geometry
   with structured warnings. A trusted semantic adapter registry and pure
   application-plan builder provide deterministic partial/rejected planning
-  without dynamic state paths or runtime side effects. Classic guided geometry
-  still projects from the nominal canonical built-in definition, and real owner
-  placement still uses `src/layout/discRolePresets.ts` pending concrete #293
-  adapters and compatibility routing.
+  without dynamic state paths or runtime side effects. Focused concrete adapters
+  emit placement-only typed updates for point, straight-text, and centered
+  Background targets while preserving owner enablement and payload. Their
+  production registry intentionally omits OS group placement. Classic guided
+  geometry still projects from the nominal canonical built-in definition, and
+  real owner placement still uses `src/layout/discRolePresets.ts` pending the OS
+  adapter and compatibility routing.
 
 Render path:
 

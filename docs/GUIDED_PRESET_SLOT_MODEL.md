@@ -34,13 +34,20 @@ renderer, export, persistence, or role-focus request data.
 The generic definition also carries allowlisted serializable placement intent.
 Issue #293 now provides pure nominal-to-resolved template contracts, structured
 resolution/application warnings, a trusted semantic adapter registry, and an
-immutable application-plan builder. The engine is not connected to current
-feature owners: `discRolePresets.ts` still owns production placement, and guided
-geometry still projects directly from nominal Classic regions.
+immutable application-plan builder. Concrete planning adapters now cover title
+artwork/text, Background, Rating, Media Format Mark, primary Developer and
+Publisher Logos, and copyright text. They consume focused owner-layout slices,
+emit placement-only updates, and can seed dormant disabled owners without
+enabling or populating them. Copyright region fitting remains explicitly
+partial pending content measurement, and Background V1 supports centered cover
+only.
 
-Later #293 chunks must add concrete owner adapters and route Classic through the
-engine before guidance and real owners can consume the same resolved regions.
-Dormant fixed-owner placement, late OS selection, content-aware Legal fitting,
+The concrete registry is not connected to current production application:
+`discRolePresets.ts` still owns Classic placement, guided geometry still
+projects directly from nominal Classic regions, and no visible behavior changed.
+Later #293 chunks must add the OS group adapter and route Classic through the
+focused compatibility wrapper before guidance and real owners consume the same
+resolved regions. Late-created OS selection, final content-aware Legal fitting,
 and resolved guided projection also remain outstanding, so #289 stays open.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
@@ -496,9 +503,11 @@ candidate bindings, default geometry, and skippable status.
 
 Serializable Disc layout presets remain nominal definitions. The pure
 template-resolution stage produces a transient resolved preset with both
-nominal and resolved content/action regions. Current guided projection still
-uses the nominal definition; the planned shared-source migration will pass the
-resolved regions to both guidance and concrete owner adapters.
+nominal and resolved content/action regions. Concrete owner adapters consume
+resolved content regions during pure application planning, while current guided
+projection still uses the nominal definition. The planned shared-source
+migration will pass the same resolved regions through the production
+compatibility route and guidance.
 
 ### Derived State
 

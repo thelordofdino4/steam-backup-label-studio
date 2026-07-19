@@ -132,7 +132,9 @@ export function buildDiscPresetApplicationPlan({
       warnings.push(...result.warnings.map((warning) =>
         Object.freeze({ ...warning })))
 
-      if (result.status === 'unsupported') partial = true
+      if (result.status === 'partial' || result.status === 'unsupported') {
+        partial = true
+      }
     }
   }
 

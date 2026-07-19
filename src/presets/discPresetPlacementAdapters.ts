@@ -1,9 +1,18 @@
-import type { DiscGuidedSlotId } from '../guidedPresets/discGuidedSlots.ts'
 import {
   DISC_PRESET_PLACEMENT_TARGETS,
+  type DiscBackgroundPlacementIntentV1,
+  type DiscGroupPlacementIntentV1,
+  type DiscPointPlacementIntentV1,
+  type DiscPointPresetTarget,
   type DiscPresetPlacementIntentV1,
   type DiscPresetPlacementTarget,
+  type DiscTextPlacementIntentV1,
+  type DiscTextPresetTarget,
 } from './discPresetDefinition.ts'
+import type {
+  DiscPresetFocusedOwnerState,
+  DiscPresetOwnerUpdate,
+} from './discPresetOwnerPlacement.ts'
 import type {
   DiscPresetTemplateResolutionInput,
   ResolvedDiscPresetSlot,
@@ -32,36 +41,52 @@ export const DISC_PRESET_OWNER_FAMILY_BY_TARGET = Object.freeze({
   Record<DiscPresetPlacementTarget, DiscPresetOwnerFamily>
 >)
 
-export type DiscPresetOwnerStateCatalog = Readonly<
-  Partial<Record<DiscPresetPlacementTarget, unknown>>
->
-
-export type DiscPresetOwnerUpdate = Readonly<{
-  kind: 'semantic-placement'
-  owner: DiscPresetOwnerFamily
-  slotId: DiscGuidedSlotId
-  target: DiscPresetPlacementTarget
-}>
+export type {
+  DiscPresetOwnerStateCatalog,
+  DiscPresetOwnerUpdate,
+} from './discPresetOwnerPlacement.ts'
 
 export type DiscPresetAdapterWarningReason =
   | 'owner-state-unavailable'
   | 'placement-not-applicable'
   | 'placement-impossible'
   | 'owner-state-unsupported'
+  | 'invalid-scale'
+  | 'unsupported-size-policy'
+  | 'unsupported-text-mode'
+  | 'non-centered-background-region'
 
-export type DiscPresetAdapterWarning = Readonly<{
-  kind: 'placement-skipped' | 'placement-unsupported'
-  slotId: DiscGuidedSlotId
-  target: DiscPresetPlacementTarget
-  reason: DiscPresetAdapterWarningReason
-}>
+export type DiscPresetAdapterWarning =
+  | Readonly<{
+      kind: 'placement-skipped' | 'placement-unsupported'
+      slotId: import('../guidedPresets/discGuidedSlots.ts').DiscGuidedSlotId
+      target: DiscPresetPlacementTarget
+      reason: DiscPresetAdapterWarningReason
+    }>
+  | Readonly<{
+      kind: 'content-measurement-required'
+      slotId: 'disc:guided:legal-text:copyright'
+      target: 'legal.copyright'
+    }>
+
+type DiscPresetPlacementIntentForTarget<
+  TTarget extends DiscPresetPlacementTarget,
+> = TTarget extends DiscPointPresetTarget
+  ? DiscPointPlacementIntentV1 & Readonly<{ target: TTarget }>
+  : TTarget extends DiscTextPresetTarget
+    ? DiscTextPlacementIntentV1 & Readonly<{ target: TTarget }>
+    : TTarget extends 'background.primary'
+      ? DiscBackgroundPlacementIntentV1
+      : TTarget extends 'operating-system-marks.enabled'
+        ? DiscGroupPlacementIntentV1
+        : never
 
 export type DiscPresetOwnerPlacementContext<
   TTarget extends DiscPresetPlacementTarget = DiscPresetPlacementTarget,
 > = Readonly<{
   slot: ResolvedDiscPresetSlot
-  placement: Extract<DiscPresetPlacementIntentV1, { target: TTarget }>
-  ownerState: unknown
+  placement: DiscPresetPlacementIntentForTarget<TTarget>
+  ownerState: DiscPresetFocusedOwnerState<TTarget> | undefined
   template: DiscPresetTemplateResolutionInput
 }>
 
@@ -72,7 +97,7 @@ type NonEmptyAdapterWarnings = readonly [
 
 export type DiscPresetOwnerPlacementResult =
   | Readonly<{
-      status: 'applied'
+      status: 'applied' | 'partial'
       updates: readonly DiscPresetOwnerUpdate[]
       warnings: readonly DiscPresetAdapterWarning[]
     }>
@@ -92,8 +117,15 @@ export type DiscPresetPlacementAdapter<
   ) => DiscPresetOwnerPlacementResult
 }>
 
+export type AnyDiscPresetPlacementAdapter = {
+  [TTarget in DiscPresetPlacementTarget]:
+    DiscPresetPlacementAdapter<TTarget>
+}[DiscPresetPlacementTarget]
+
 export interface DiscPresetPlacementAdapterRegistry {
-  get(target: DiscPresetPlacementTarget): DiscPresetPlacementAdapter | null
+  get<TTarget extends DiscPresetPlacementTarget>(
+    target: TTarget,
+  ): DiscPresetPlacementAdapter<TTarget> | null
   has(target: DiscPresetPlacementTarget): boolean
   listTargets(): readonly DiscPresetPlacementTarget[]
   listMissingTargets(): readonly DiscPresetPlacementTarget[]
@@ -113,12 +145,12 @@ export type DiscPresetPlacementAdapterRegistryCreateResult =
     }>
 
 export function createDiscPresetPlacementAdapterRegistry(
-  adapters: readonly DiscPresetPlacementAdapter[],
+  adapters: readonly AnyDiscPresetPlacementAdapter[],
 ): DiscPresetPlacementAdapterRegistryCreateResult {
-  const registrations: DiscPresetPlacementAdapter[] = []
+  const registrations: AnyDiscPresetPlacementAdapter[] = []
   const adaptersByTarget = new Map<
     DiscPresetPlacementTarget,
-    DiscPresetPlacementAdapter
+    AnyDiscPresetPlacementAdapter
   >()
 
   for (const adapter of adapters) {
@@ -147,8 +179,9 @@ export function createDiscPresetPlacementAdapterRegistry(
     ),
   )
   const registry: DiscPresetPlacementAdapterRegistry = Object.freeze({
-    get(target: DiscPresetPlacementTarget) {
-      return adaptersByTarget.get(target) ?? null
+    get<TTarget extends DiscPresetPlacementTarget>(target: TTarget) {
+      return (adaptersByTarget.get(target) as
+        DiscPresetPlacementAdapter<TTarget> | undefined) ?? null
     },
     has(target: DiscPresetPlacementTarget) {
       return adaptersByTarget.has(target)

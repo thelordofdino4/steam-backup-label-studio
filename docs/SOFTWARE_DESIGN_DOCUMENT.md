@@ -1139,10 +1139,20 @@ project state paths. The application-plan builder returns immutable ordered
 updates and structured partial/rejected outcomes without React, DOM, persistence,
 renderer, export, or Case Insert dependencies.
 
+Concrete pure adapters now translate resolved centers and V1 size intents into
+placement-only typed updates for title artwork/text, Background, primary Rating,
+primary Media Format Mark, primary Developer/Publisher Logos, and copyright
+text. Their focused owner-state slices support dormant disabled layouts without
+changing enablement or payload. Disc text uses the existing center-relative X
+contract. Legal region fitting reports a measurement-required partial result,
+and Background V1 supports only centered cover with zero pixel offset. The
+trusted production registry is intentionally partial; OS group placement is the
+one missing target.
+
 Feature owners remain authoritative for actual layout, rendering, export, and
-project persistence. The new engine is not yet wired to production: the existing
-owner application engine remains in place until concrete adapters and the
-focused Classic compatibility route are completed under #293.
+project persistence. The new adapters are not yet wired to production:
+`src/layout/discRolePresets.ts` remains the owner application engine until the OS
+adapter and focused Classic compatibility route are completed under #293.
 
 ### 12.4 Render/Edit/Export Paths
 
