@@ -419,8 +419,15 @@ test('source stays pure and the Disc preset domain adopts the helper', () => {
     new URL('./groupedPlatformMarkPlacement.ts', import.meta.url),
     'utf8',
   )
-  const presetSource = readFileSync(
+  const legacyPresetSource = readFileSync(
     new URL('./discRolePresets.ts', import.meta.url),
+    'utf8',
+  )
+  const platformAdapterSource = readFileSync(
+    new URL(
+      '../presets/adapters/discPlatformMarksPresetAdapter.ts',
+      import.meta.url,
+    ),
     'utf8',
   )
 
@@ -447,6 +454,20 @@ test('source stays pure and the Disc preset domain adopts the helper', () => {
     assert.equal(source.includes(forbidden), false, `unexpected source: ${forbidden}`)
   }
 
-  assert.equal(presetSource.includes('groupedPlatformMarkPlacement'), true)
-  assert.equal(presetSource.includes('placeGroupedPlatformMarks'), true)
+  assert.equal(
+    platformAdapterSource.includes('groupedPlatformMarkPlacement'),
+    true,
+  )
+  assert.equal(
+    platformAdapterSource.includes('placeGroupedPlatformMarks'),
+    true,
+  )
+  assert.equal(
+    legacyPresetSource.includes('groupedPlatformMarkPlacement'),
+    false,
+  )
+  assert.equal(
+    legacyPresetSource.includes('placeGroupedPlatformMarks'),
+    false,
+  )
 })

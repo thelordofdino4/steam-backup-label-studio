@@ -135,13 +135,25 @@ assets, invalid layouts, invalid regions, and impossible placement use
 structured warnings. Marks selected after application are not repositioned
 automatically; late-selection wiring remains a later application concern.
 
-`discPresetProductionAdapterRegistry.ts` is now exhaustive for all nine Classic
-placement targets. This registry is not yet imported by the production
-application route: `discRolePresets.ts` remains the current production engine
-until a later #293 chunk adds the focused Classic compatibility route and
-dormant-owner dispatch. Final Legal fitting and shared resolved guidance also
-remain deferred. Custom preset storage, Save as Preset, editing, import/export
-UI, and repeatable placement intents remain deferred.
+`discPresetProductionAdapterRegistry.ts` is exhaustive for all nine Classic
+placement targets. `appRegisteredDiscPresetApplication.ts` now provides the
+React-free production compatibility boundary: the legacy
+`classic-top-title` menu ID resolves through the central alias registry, the
+canonical definition resolves for the active Disc template, and the generic
+application planner emits typed updates from a focused immutable owner-state
+snapshot. The wrapper translates those updates into normal feature-owner state
+without changing enablement or content. `appDiscRolePresetApplication.ts`
+dispatches each touched owner family once and does not run the legacy broad
+post-application clamp path for Classic. The other two built-in Disc presets
+remain on their existing legacy update plans.
+
+Classic application is currently `partial` because copyright region fitting
+still reports `content-measurement-required`; all valid updates are applied and
+guided workflow activation remains allowed. OS marks selected after application
+are still not repositioned automatically. Final Legal fitting, late OS
+selection, and shared resolved guidance remain deferred. Custom preset storage,
+Save as Preset, editing, import/export UI, and repeatable placement intents
+remain deferred.
 
 Current role/navigation definitions live in:
 
@@ -443,8 +455,12 @@ updates. Concrete adapters now emit immutable discriminated layout updates for
 title artwork, Rating, Media Format Mark, primary logos, Disc text, and
 Background. Each variant contains only placement-owned fields; arbitrary object
 patches, enablement changes, payload copies, and dynamic property paths are
-forbidden. The partial production registry remains planning-only until the
-Classic compatibility route is migrated.
+forbidden. Classic now consumes this plan through the focused app-domain
+compatibility wrapper. Disabled title artwork/text, Rating, Media, primary
+Developer/Publisher Logos, and copyright receive dormant layout while remaining
+disabled. Background content and enablement are likewise preserved. Only
+already selected, enabled, renderable OS marks receive grouped layout updates.
+The two non-Classic built-ins remain transitional legacy callers.
 
 ## 13. Manual Fine-Tuning And Reset Contract
 

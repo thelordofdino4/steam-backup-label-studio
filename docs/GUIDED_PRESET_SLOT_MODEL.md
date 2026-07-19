@@ -45,15 +45,24 @@ implicit built-in materialization, safe centered grouping, and preferred-scale
 reduction. It preserves mark selection, enablement, source, theme, custom
 assets, and inference metadata.
 
-The concrete registry is not connected to current production application:
-`discRolePresets.ts` still owns Classic placement, guided geometry still
-projects directly from nominal Classic regions, and no visible behavior changed.
-The next #293 chunk must route Classic through the focused compatibility wrapper
-and dispatch dormant fixed-owner updates before guidance and real owners consume
-the same resolved regions. The OS adapter positions only marks already selected,
-enabled, and renderable at application time; late-created OS selection does not
-automatically rerun placement. Late-selection wiring, final content-aware Legal
-fitting, and resolved guided projection remain outstanding, so #289 stays open.
+Classic production application now routes through
+`appRegisteredDiscPresetApplication.ts`. The legacy menu ID resolves to the
+canonical built-in definition, template resolution and the complete production
+adapter registry build one immutable typed update plan, and the existing owner
+application boundary dispatches each touched family once. Classic coordinates
+no longer live in `discRolePresets.ts`; the other two built-in presets retain
+their legacy plans.
+
+Guidance geometry and real Classic owner placement therefore derive from the
+same canonical definition. Disabled fixed owners receive dormant layout without
+being enabled, and the Classic path applies adapter-safe resolved placement
+directly instead of broadly reclamping unrelated text, technical marks, or
+repeated logos. Copyright currently makes application `partial` with
+`content-measurement-required`, but valid owner updates still apply and guidance
+activates. The OS adapter positions only marks already selected, enabled, and
+renderable at application time; late-created OS selection does not automatically
+rerun placement. Late-selection wiring, final content-aware Legal fitting, and
+resolved guided projection remain outstanding, so #289 stays open.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
 or custom preset UI exists yet.

@@ -10,6 +10,7 @@ export const testFiles = [
   'scripts/text-editor-smoke-runtime.test.mjs',
   'src/app/appProjectRestore.test.ts',
   'src/app/appDiscRolePresetApplication.test.ts',
+  'src/app/appRegisteredDiscPresetApplication.test.ts',
   'src/app/appProjectLoad.test.ts',
   'src/app/appPngExport.test.ts',
   'src/app/appPngExportInputs.test.ts',

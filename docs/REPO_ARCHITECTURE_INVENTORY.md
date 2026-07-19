@@ -360,6 +360,8 @@ Key files:
 - `src/presets/discPresetRegistry.ts`
 - `src/presets/builtins/classicTopTitleDiscPreset.ts`
 - `src/guidedPresets/discGuidedLayouts.ts`
+- `src/app/appRegisteredDiscPresetApplication.ts`
+- `src/app/appDiscRolePresetApplication.ts`
 
 Source-of-truth state:
 
@@ -376,10 +378,15 @@ Source-of-truth state:
   adapter delegates resolved-region geometry to
   `src/layout/groupedPlatformMarkPlacement.ts` and emits stable
   platform-mark-identity layout updates without replacing owner state. The
-  production registry covers all Classic targets. Classic guided geometry still
-  projects from the nominal canonical built-in definition, and real owner
-  placement still uses `src/layout/discRolePresets.ts` pending compatibility
-  routing and dormant-owner dispatch.
+  production registry covers all Classic targets. Classic guided geometry and
+  real owner placement now derive from the same canonical built-in definition.
+  `appRegisteredDiscPresetApplication.ts` owns the focused immutable owner
+  snapshot, generic resolution/planning call, exhaustive typed update
+  translation, and updated-owner list. `appDiscRolePresetApplication.ts`
+  dispatches each touched owner family once without Classic's legacy broad
+  post-clamp behavior. `discRolePresets.ts` retains Classic menu metadata only;
+  Centered Logo Archive and Clean Metadata Footer remain on the transitional
+  legacy path. Legal measurement and late-selected OS placement remain open.
 
 Render path:
 

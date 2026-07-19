@@ -47,9 +47,9 @@ const adapterSource = readFileSync(
 
 const expectedOwnersByPreset = {
   'classic-top-title': [
-    'backgroundImage',
     'titleArtwork',
     'discText',
+    'backgroundImage',
     'ratingBadge',
     'mediaMark',
     'platformMarks',
@@ -78,19 +78,13 @@ const expectedOwnersByPreset = {
 
 const expectedCallsByPreset = {
   'classic-top-title': [
-    'restoreBackgroundImageState',
     'setProjectTitleArtwork',
-    'clampProjectTitleArtworkToTemplate',
-    'restoreDiscTextState',
-    'clampDiscTextLayoutToTemplate',
+    'setDiscTextLayout',
+    'restoreBackgroundImageState',
     'setProjectRatingBadge',
-    'clampProjectRatingBadgeToTemplate',
     'setProjectMediaMark',
-    'clampProjectMediaMarkToTemplate',
     'setProjectPlatformMarks',
-    'clampProjectPlatformMarksToTemplate',
     'setProjectLogoAssets',
-    'clampProjectLogoAssetsToTemplate',
   ],
   'centered-logo-archive': [
     'restoreBackgroundImageState',
@@ -304,6 +298,7 @@ function createActions(calls: CallRecord[]): DiscRolePresetOwnerActions {
     clampProjectTitleArtworkToTemplate:
       recordValueCall(calls, 'clampProjectTitleArtworkToTemplate'),
     restoreDiscTextState: recordValueCall(calls, 'restoreDiscTextState'),
+    setDiscTextLayout: recordValueCall(calls, 'setDiscTextLayout'),
     clampDiscTextLayoutToTemplate:
       recordValueCall(calls, 'clampDiscTextLayoutToTemplate'),
     setProjectLogoAssets: recordValueCall(calls, 'setProjectLogoAssets'),
@@ -348,20 +343,35 @@ test('known disc role presets dispatch only their owner plans in deterministic o
       result.dispatchedOwners,
       expectedOwnersByPreset[presetId],
     )
-    assert.deepEqual(
-      result.dispatchedOwners,
-      getDiscRolePresetUpdatePlan(presetId).map(({ owner }) => owner),
-    )
+    if (presetId !== 'classic-top-title') {
+      assert.deepEqual(
+        result.dispatchedOwners,
+        getDiscRolePresetUpdatePlan(presetId).map(({ owner }) => owner),
+      )
+    }
     assert.deepEqual(
       calls.map(({ name }) => name),
       expectedCallsByPreset[presetId],
     )
     assert.deepEqual(Object.keys(result).sort(), [
       'applied',
+      'canonicalPresetId',
       'dispatchedOwners',
       'preset',
       'state',
+      'status',
+      'warnings',
     ])
+    assert.equal(
+      result.status,
+      presetId === 'classic-top-title' ? 'partial' : 'applied',
+    )
+    assert.equal(
+      result.canonicalPresetId,
+      presetId === 'classic-top-title'
+        ? 'builtin:disc-preset:classic-top-title'
+        : null,
+    )
   }
 })
 
@@ -377,11 +387,40 @@ test('unknown disc role preset ids return failure before owner dispatch', () => 
 
   assert.deepEqual(result, {
     applied: false,
+    status: 'rejected',
+    canonicalPresetId: null,
+    warnings: [],
     preset: null,
     state: currentState,
     dispatchedOwners: [],
   })
   assert.deepEqual(calls, [])
+})
+
+test('rejected registered Classic application dispatches no owners', () => {
+  const calls: CallRecord[] = []
+  const currentState = createCurrentState()
+  const result = applyDiscRolePresetToOwners({
+    presetId: 'classic-top-title',
+    currentState,
+    selectedDiscTemplate: {
+      ...discTemplates.standardPrintableDisc,
+      safeDiameterMm: 0,
+    },
+    actions: createActions(calls),
+  })
+
+  assert.equal(result.applied, false)
+  assert.equal(result.status, 'rejected')
+  assert.equal(
+    result.canonicalPresetId,
+    'builtin:disc-preset:classic-top-title',
+  )
+  assert.equal(result.state, currentState)
+  assert.deepEqual(result.dispatchedOwners, [])
+  assert.deepEqual(calls, [])
+  assert.ok(result.warnings.some((warning) =>
+    warning.kind === 'invalid-template-geometry'))
 })
 
 test('adapter preserves background title text logo rating and media payloads', () => {
@@ -403,7 +442,7 @@ test('adapter preserves background title text logo rating and media payloads', (
       backgroundImageUrl: currentState.background.imageDataUrl,
       backgroundImageSource: currentState.background.imageSource,
       backgroundImageSize: currentState.background.imageSize,
-      isBackgroundArtworkEnabled: true,
+      isBackgroundArtworkEnabled: false,
     },
   )
 
@@ -414,19 +453,30 @@ test('adapter preserves background title text logo rating and media payloads', (
   assert.equal(titleArtwork.source, currentState.titleArtwork.source)
   assert.equal(titleArtwork.sourceLabel, currentState.titleArtwork.sourceLabel)
 
-  const discText = getCallValue<Record<string, unknown>>(
+  const discTextLayout = getCallValue<
+    DiscRolePresetCurrentState['discTextLayout']
+  >(
     calls,
-    'restoreDiscTextState',
+    'setDiscTextLayout',
   )
   assert.equal(
-    discText.projectDiscNumberArtwork,
-    currentState.projectDiscNumberArtwork,
+    discTextLayout.customNote,
+    currentState.discTextLayout.customNote,
   )
-  assert.equal(discText.discTextValues, currentState.discTextValues)
-  assert.equal(discText.discTextValueSources, currentState.discTextValueSources)
-  assert.equal(discText.discTextTitleValue, currentState.discTextTitleValue)
-  assert.equal(discText.discTextHtmlSources, currentState.discTextHtmlSources)
-  assert.equal(discText.discTextStyles, currentState.discTextStyles)
+  assert.equal(result.state.discTextValues, currentState.discTextValues)
+  assert.equal(
+    result.state.discTextValueSources,
+    currentState.discTextValueSources,
+  )
+  assert.equal(
+    result.state.discTextTitleValue,
+    currentState.discTextTitleValue,
+  )
+  assert.equal(
+    result.state.discTextHtmlSources,
+    currentState.discTextHtmlSources,
+  )
+  assert.equal(result.state.discTextStyles, currentState.discTextStyles)
 
   const logoAssets = getCallValue<DiscRolePresetCurrentState['logoAssets']>(
     calls,

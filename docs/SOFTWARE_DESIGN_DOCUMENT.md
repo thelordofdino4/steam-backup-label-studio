@@ -1158,11 +1158,22 @@ feature-owned. The trusted production registry now covers every Classic
 placement target exactly once.
 
 Feature owners remain authoritative for actual layout, rendering, export, and
-project persistence. The new adapters are not yet wired to production:
-`src/layout/discRolePresets.ts` remains the owner application engine until the
-focused Classic compatibility route and dormant-owner dispatch are completed
-under #293. Selecting an OS mark after preset application does not yet rerun
-generic group placement.
+project persistence. `src/app/appRegisteredDiscPresetApplication.ts` is the
+React-free Classic compatibility boundary. It resolves the legacy menu alias
+through the canonical registry, resolves the definition for the active Disc
+template, snapshots only the required owner slices, builds the generic plan,
+and immutably translates each discriminated update into feature-owner state.
+`src/app/appDiscRolePresetApplication.ts` dispatches each touched owner family
+once through existing setters. Disabled fixed owners receive dormant placement
+without enablement or content changes.
+
+Classic applies adapter-safe output directly and does not run the legacy broad
+clamp sequence, so unrelated text rows, technical marks, repeated logos, and
+other untargeted state do not move. `discRolePresets.ts` retains only Classic
+menu metadata while the other two built-in presets continue using their legacy
+plans. Legal fitting keeps Classic application partial while allowing valid
+updates and transient guidance activation. Selecting an OS mark after preset
+application does not yet rerun generic group placement.
 
 ### 12.4 Render/Edit/Export Paths
 
@@ -1179,6 +1190,7 @@ generic group placement.
 - Keep circular disc geometry out of case insert modules.
 - Keep shared layout helpers limited to neutral numeric range math; disc annulus, center-hole, and safe-zone collision rules remain disc-owned.
 - Keep nominal preset parsing, template resolution, trusted owner adaptation, and App dispatch as separate dependency layers.
+- Keep Classic compatibility translation in the focused app-domain wrapper; `App.tsx` supplies current owner state and setters but contains no slot, target, or coordinate policy.
 - Do not interpret preset semantic targets as arbitrary object paths or allow serialized definitions to supply executable adapters.
 - Keep editor-only guides and UI chrome out of clean exports.
 - Preserve disc preview/export parity and fixed layer order.

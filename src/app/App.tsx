@@ -746,6 +746,7 @@ function App() {
         setProjectTitleArtwork,
         clampProjectTitleArtworkToTemplate,
         restoreDiscTextState,
+        setDiscTextLayout,
         clampDiscTextLayoutToTemplate,
         setProjectLogoAssets,
         clampProjectLogoAssetsToTemplate,
