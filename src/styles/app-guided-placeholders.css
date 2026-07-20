@@ -37,7 +37,7 @@
   stroke: rgba(15, 23, 42, 0.92);
   stroke-width: 0.7;
   paint-order: stroke fill;
-  font-size: 4.2px;
+  font-size: 3.1px;
   font-weight: 800;
   letter-spacing: 0;
   text-anchor: middle;
@@ -47,7 +47,7 @@
 
 .disc-guided-placeholder-suggested-label {
   fill: #bfdbfe;
-  font-size: 2.7px;
+  font-size: 2.2px;
   font-weight: 700;
 }
 

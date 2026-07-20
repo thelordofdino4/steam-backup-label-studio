@@ -84,8 +84,13 @@ import {
   applyActiveDiscPresetToPlatformMarkState,
 } from './appActiveDiscPresetPlatformMarks'
 import {
+  ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
+  isActiveDiscPresetLegalFitImpossible,
 } from './appActiveDiscPresetLegalText'
+import type {
+  ActiveDiscPresetRef,
+} from '../presets/discPresetTargetedApplication'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -333,6 +338,8 @@ function App() {
     announceStatus,
   })
   const activeDiscPreset = useActiveDiscPreset()
+  const lastAnnouncedImpossibleLegalPresetRef =
+    useRef<ActiveDiscPresetRef | null>(null)
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -391,6 +398,21 @@ function App() {
           ...input,
         },
       })
+      const activePresetRef = activeDiscPreset.getActivePresetRef()
+      const fitIsImpossible =
+        isActiveDiscPresetLegalFitImpossible(result.application)
+
+      if (
+        fitIsImpossible &&
+        activePresetRef &&
+        lastAnnouncedImpossibleLegalPresetRef.current !== activePresetRef
+      ) {
+        lastAnnouncedImpossibleLegalPresetRef.current = activePresetRef
+        announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+      } else if (!fitIsImpossible) {
+        lastAnnouncedImpossibleLegalPresetRef.current = null
+      }
+
       activeDiscPreset.recordTargetedPresetApplication(result.application)
       return result.legalText.layout
     },

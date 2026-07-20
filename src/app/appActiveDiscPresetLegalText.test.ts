@@ -17,7 +17,9 @@ import type {
 import { createDefaultProjectPlatformMarks } from '../project/projectPlatformMarks.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import {
+  ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
+  isActiveDiscPresetLegalFitImpossible,
 } from './appActiveDiscPresetLegalText.ts'
 import {
   applyActiveDiscPresetToPlatformMarkState,
@@ -127,6 +129,14 @@ test('impossible late Legal content preserves owner layout and hides its resolve
       : null,
     'unsupported',
   )
+  assert.equal(
+    isActiveDiscPresetLegalFitImpossible(result.application),
+    true,
+  )
+  assert.match(
+    ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
+    /Could not fit copyright text/,
+  )
 })
 
 test('Legal resolution recovers when previously impossible content becomes fit-able', () => {
@@ -159,6 +169,10 @@ test('Legal resolution recovers when previously impossible content becomes fit-a
   })
 
   assert.equal(recoveredResult.application?.status, 'applied')
+  assert.equal(
+    isActiveDiscPresetLegalFitImpossible(recoveredResult.application),
+    false,
+  )
   assert.equal(recoveredResult.legalText.layout.y, 85)
   assert.equal(recoveredResult.legalText.layout.width, 46)
   assert.notEqual(recoveredResult.legalText.layout, defaultLayout)

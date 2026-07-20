@@ -32,6 +32,17 @@ export type ActiveDiscPresetLegalTextResult = Readonly<{
   application: DiscPresetTargetedApplicationResult | null
 }>
 
+export const ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE =
+  'Could not fit copyright text inside the active layout. Shorten the text or reduce rich-text sizing; the content remains editable.'
+
+export function isActiveDiscPresetLegalFitImpossible(
+  application: DiscPresetTargetedApplicationResult | null,
+) {
+  return application?.warnings.some(
+    ({ kind }) => kind === 'text-fit-impossible',
+  ) ?? false
+}
+
 export function applyActiveDiscPresetToLegalTextState({
   presetState,
   selectedDiscTemplate,

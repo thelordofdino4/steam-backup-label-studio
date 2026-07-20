@@ -2,6 +2,10 @@ import { useId } from 'react'
 import type {
   DiscGuidedPlaceholderViewModel,
 } from '../../guidedPresets/discGuidedPlaceholderViewModel'
+import {
+  DISC_GUIDED_PLACEHOLDER_LABEL_LINE_HEIGHT,
+  getDiscGuidedPlaceholderLabelLines,
+} from './discGuidedPlaceholderLabels.ts'
 
 type DiscGuidedPlaceholderOverlayProps = {
   placeholders: readonly DiscGuidedPlaceholderViewModel[]
@@ -72,6 +76,12 @@ export function DiscGuidedPlaceholderVisualLayer({
           const visualBounds = getGeometryBounds(visualGeometry)
           const visualRotation = visualGeometry.rotationDegrees ?? 0
           const labelRotation = actionGeometry.rotationDegrees ?? 0
+          const labelLines = getDiscGuidedPlaceholderLabelLines(label)
+          const labelRowCount = labelLines.length +
+            (lifecycle === 'suggested' ? 1 : 0)
+          const firstLabelRowOffset =
+            -((labelRowCount - 1) *
+              DISC_GUIDED_PLACEHOLDER_LABEL_LINE_HEIGHT) / 2
 
           return (
             <g key={slotId} data-guided-slot-id={slotId}>
@@ -97,17 +107,22 @@ export function DiscGuidedPlaceholderVisualLayer({
                 y={actionGeometry.centerYPercent}
                 transform={`rotate(${labelRotation} ${actionGeometry.centerXPercent} ${actionGeometry.centerYPercent})`}
               >
-                <tspan
-                  x={actionGeometry.centerXPercent}
-                  dy={lifecycle === 'suggested' ? '-1.5' : '0'}
-                >
-                  {label}
-                </tspan>
+                {labelLines.map((line, index) => (
+                  <tspan
+                    key={line}
+                    x={actionGeometry.centerXPercent}
+                    dy={index === 0
+                      ? firstLabelRowOffset
+                      : DISC_GUIDED_PLACEHOLDER_LABEL_LINE_HEIGHT}
+                  >
+                    {line}
+                  </tspan>
+                ))}
                 {lifecycle === 'suggested' ? (
                   <tspan
                     className="disc-guided-placeholder-suggested-label"
                     x={actionGeometry.centerXPercent}
-                    dy="4"
+                    dy={DISC_GUIDED_PLACEHOLDER_LABEL_LINE_HEIGHT}
                   >
                     Suggested
                   </tspan>
