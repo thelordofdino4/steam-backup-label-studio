@@ -15,8 +15,17 @@ import { createDefaultProjectPlatformMarks } from '../project/projectPlatformMar
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import {
+  CLASSIC_TOP_TITLE_DISC_PRESET,
+} from '../presets/builtins/classicTopTitleDiscPreset.ts'
+import {
+  applyDiscPresetResolvedSlotPatches,
+  createDiscPresetTemplateResolutionInput,
+  resolveDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
+import {
   getDiscGuidedLayoutSlotDefinition,
 } from './discGuidedLayouts.ts'
+import { discTemplates } from '../templates/discTemplates.ts'
 import {
   createDiscGuidedPlaceholderViewModels,
   projectDiscGuidedPlaceholderViewModel,
@@ -38,6 +47,14 @@ const SLOT_ORDER = [
   'disc:guided:publisher-logo:primary',
   'disc:guided:legal-text:copyright',
 ] as const satisfies readonly DiscGuidedSlotId[]
+const RESOLUTION = resolveDiscPresetDefinition({
+  definition: CLASSIC_TOP_TITLE_DISC_PRESET,
+  template: createDiscPresetTemplateResolutionInput(
+    discTemplates.standardPrintableDisc,
+  ),
+})
+assert.notEqual(RESOLUTION.status, 'rejected')
+const RESOLVED_PRESET = RESOLUTION.preset!
 
 function createState(): DiscGuidedSlotState {
   const ratingBadge = createDefaultProjectRatingBadge()
@@ -64,9 +81,10 @@ function createState(): DiscGuidedSlotState {
 function project(
   state = createState(),
   suggestions: readonly DiscGuidedSlotSuggestion[] = [],
+  resolvedPreset = RESOLVED_PRESET,
 ) {
   return createDiscGuidedPlaceholderViewModels({
-    activeLayoutId: LAYOUT_ID,
+    resolvedPreset,
     state,
     suggestions,
     skippedSlotIds: new Set(),
@@ -104,8 +122,8 @@ test('view models use exact registry visual and action geometry', () => {
   for (const placeholder of project()) {
     const slot = getDiscGuidedLayoutSlotDefinition(LAYOUT_ID, placeholder.slotId)
     assert.ok(slot)
-    assert.equal(placeholder.visualGeometry, slot.visualGeometry)
-    assert.equal(placeholder.actionGeometry, slot.actionGeometry)
+    assert.deepEqual(placeholder.visualGeometry, slot.visualGeometry)
+    assert.deepEqual(placeholder.actionGeometry, slot.actionGeometry)
   }
 })
 
@@ -136,6 +154,67 @@ test('filled and skipped slots never project editor guidance', () => {
   assert.ok(layoutSlot)
   assert.equal(projectDiscGuidedPlaceholderViewModel({ layoutSlot, lifecycle: 'filled' }), null)
   assert.equal(projectDiscGuidedPlaceholderViewModel({ layoutSlot, lifecycle: 'skipped' }), null)
+})
+
+test('unfilled Legal guidance uses final resolved geometry and filled Legal hides it', () => {
+  const refinedRegion = {
+    centerXPercent: 50,
+    centerYPercent: 84,
+    widthPercent: 44,
+    heightPercent: 7,
+  }
+  const refinedPreset = applyDiscPresetResolvedSlotPatches(
+    RESOLVED_PRESET,
+    [{
+      slotId: 'disc:guided:legal-text:copyright',
+      resolvedContentRegion: refinedRegion,
+      resolvedActionRegion: refinedRegion,
+      status: 'adjusted',
+    }],
+  )
+  const unfilled = project(createState(), [], refinedPreset).find(
+    ({ slotId }) => slotId === 'disc:guided:legal-text:copyright',
+  )
+  assert.deepEqual(unfilled?.visualGeometry, {
+    kind: 'rect',
+    ...refinedRegion,
+  })
+  assert.equal(unfilled?.resolutionStatus, 'adjusted')
+
+  const filledState = createState()
+  filledState.discText.settings.copyright = true
+  filledState.discText.values.copyright = 'Copyright content'
+  assert.equal(
+    project(filledState, [], refinedPreset).some(
+      ({ slotId }) => slotId === 'disc:guided:legal-text:copyright',
+    ),
+    false,
+  )
+
+  filledState.discText.values.copyright = ''
+  assert.equal(
+    project(filledState, [], refinedPreset).some(
+      ({ slotId }) => slotId === 'disc:guided:legal-text:copyright',
+    ),
+    true,
+  )
+})
+
+test('unsupported Legal resolution never promises an invalid destination', () => {
+  const unsupportedPreset = applyDiscPresetResolvedSlotPatches(
+    RESOLVED_PRESET,
+    [{
+      slotId: 'disc:guided:legal-text:copyright',
+      status: 'unsupported',
+    }],
+  )
+
+  assert.equal(
+    project(createState(), [], unsupportedPreset).some(
+      ({ slotId }) => slotId === 'disc:guided:legal-text:copyright',
+    ),
+    false,
+  )
 })
 
 test('projection keeps broad role setup vocabulary out of the model', () => {

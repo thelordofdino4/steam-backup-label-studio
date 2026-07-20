@@ -1,5 +1,6 @@
 import {
   resolveDiscPresetPlacementForTarget,
+  type ActiveDiscPresetState,
   type ActiveDiscPresetRef,
   type DiscPresetTargetedApplicationResult,
 } from '../presets/discPresetTargetedApplication.ts'
@@ -37,7 +38,8 @@ export type ActiveDiscPresetPlatformMarksResult = Readonly<{
 }>
 
 type ApplyActiveDiscPresetToPlatformMarkStateInput = Readonly<{
-  presetRef: ActiveDiscPresetRef | null
+  presetState?: ActiveDiscPresetState | null
+  presetRef?: ActiveDiscPresetRef | null
   selectedDiscTemplate: DiscTemplate
   platformMarks: ProjectPlatformMarks
   registry?: DiscPresetRegistry
@@ -76,13 +78,16 @@ function applyPlatformMarkLayoutUpdates(
 }
 
 export function applyActiveDiscPresetToPlatformMarkState({
+  presetState,
   presetRef,
   selectedDiscTemplate,
   platformMarks,
   registry = DISC_PRESET_REGISTRY,
 }: ApplyActiveDiscPresetToPlatformMarkStateInput):
   ActiveDiscPresetPlatformMarksResult {
-  if (!presetRef) {
+  const resolvedPresetRef = presetState?.ref ?? presetRef ?? null
+
+  if (!resolvedPresetRef) {
     return Object.freeze({ platformMarks, application: null })
   }
 
@@ -90,7 +95,8 @@ export function applyActiveDiscPresetToPlatformMarkState({
     selectedDiscTemplate,
   )
   const application = resolveDiscPresetPlacementForTarget({
-    presetRef,
+    presetRef: resolvedPresetRef,
+    resolvedPreset: presetState?.resolvedDefinition,
     registry,
     template,
     target: 'operating-system-marks.enabled',

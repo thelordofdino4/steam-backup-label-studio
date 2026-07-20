@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import type { DiscTextLayout } from '../../discText/types.ts'
+import { createDefaultDiscTextStyles } from '../../discText/styles.ts'
 import { discTemplates } from '../../templates/discTemplates.ts'
 import { CLASSIC_TOP_TITLE_DISC_PRESET } from '../builtins/classicTopTitleDiscPreset.ts'
 import type {
@@ -41,10 +42,15 @@ const baseLayout: DiscTextLayout = {
   arcSide: 'top',
   avoidVisualElements: true,
 }
+const legalStyle = createDefaultDiscTextStyles().copyright
+const measureText = (text: string, font: string) => {
+  const fontSize = Number(font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1)
+  return Array.from(text).length * fontSize * 0.55
+}
 
 function getContext<TTarget extends 'game-title.text' | 'legal.copyright'>(
   target: TTarget,
-  key: TTarget extends 'game-title.text' ? 'title' : 'copyright',
+  _key: TTarget extends 'game-title.text' ? 'title' : 'copyright',
   enabled = false,
 ): DiscPresetOwnerPlacementContext<TTarget> {
   const slot = resolution.preset.slots.find((candidate) =>
@@ -54,11 +60,29 @@ function getContext<TTarget extends 'game-title.text' | 'legal.copyright'>(
   )
   if (!slot || !placement) throw new Error(`Missing ${target} fixture.`)
 
+  const ownerState = target === 'legal.copyright'
+    ? {
+        key: 'copyright' as const,
+        enabled,
+        content: Object.freeze({ plainText: 'Copyright content' }),
+        layout: baseLayout,
+        style: legalStyle,
+        template: discTemplates.standardPrintableDisc,
+      }
+    : {
+        key: 'title' as const,
+        enabled,
+        layout: baseLayout,
+      }
+
   return {
     slot,
     placement: placement as DiscPresetOwnerPlacementContext<TTarget>['placement'],
-    ownerState: { key, enabled, layout: baseLayout } as
+    ownerState: ownerState as
       DiscPresetOwnerPlacementContext<TTarget>['ownerState'],
+    services: {
+      textMeasurement: { measureText },
+    },
     template,
   }
 }
@@ -124,7 +148,7 @@ test('applies straight title geometry without enabling or fitting content', () =
   assert.equal(JSON.stringify(owner), before)
 })
 
-test('seeds legal geometry and reports deferred measured fitting', () => {
+test('disabled Legal content receives dormant measured placement', () => {
   const owner = {
     key: 'copyright',
     enabled: false,
@@ -140,11 +164,14 @@ test('seeds legal geometry and reports deferred measured fitting', () => {
     ownerState: {
       key: 'copyright',
       enabled: owner.enabled,
+      content: { plainText: owner.value },
       layout: owner.layout,
+      style: legalStyle,
+      template: discTemplates.standardPrintableDisc,
     },
   })
 
-  assert.equal(result.status, 'partial')
+  assert.equal(result.status, 'applied')
   assert.deepEqual(result.updates[0], {
     kind: 'disc-text-layout',
     slotId: 'disc:guided:legal-text:copyright',
@@ -152,18 +179,64 @@ test('seeds legal geometry and reports deferred measured fitting', () => {
     key: 'copyright',
     layout: {
       x: 0,
-      y: 89,
-      width: 64,
+      y: 85,
+      width: 46,
+      fontSizePt: 7,
       align: 'center',
       mode: 'straight',
+      avoidVisualElements: false,
     },
   })
+  assert.deepEqual(result.resolvedSlotPatch, {
+    slotId: 'disc:guided:legal-text:copyright',
+    resolvedContentRegion: {
+      centerXPercent: 50,
+      centerYPercent: 85,
+      widthPercent: 46,
+      heightPercent: 8,
+    },
+    resolvedActionRegion: {
+      centerXPercent: 50,
+      centerYPercent: 85,
+      widthPercent: 46,
+      heightPercent: 8,
+    },
+    status: 'resolved',
+  })
+  assert.deepEqual(result.warnings, [])
+  assert.equal(JSON.stringify(owner), before)
+})
+
+test('impossible enabled Legal content produces no false owner update', () => {
+  const context = getContext('legal.copyright', 'copyright', true)
+  const result = DISC_LEGAL_TEXT_PRESET_ADAPTER.buildUpdate({
+    ...context,
+    ownerState: {
+      key: 'copyright',
+      enabled: true,
+      content: {
+        plainText: Array.from(
+          { length: 24 },
+          (_, index) => `Legal line ${index + 1}`,
+        ).join('\n'),
+      },
+      layout: baseLayout,
+      style: legalStyle,
+      template: discTemplates.standardPrintableDisc,
+    },
+  })
+
+  assert.equal(result.status, 'partial')
+  assert.deepEqual(result.updates, [])
+  assert.deepEqual(result.resolvedSlotPatch, {
+    slotId: 'disc:guided:legal-text:copyright',
+    status: 'unsupported',
+  })
   assert.deepEqual(result.warnings, [{
-    kind: 'content-measurement-required',
+    kind: 'text-fit-impossible',
     slotId: 'disc:guided:legal-text:copyright',
     target: 'legal.copyright',
   }])
-  assert.equal(JSON.stringify(owner), before)
 })
 
 test('honors explicit font size and rejects curved or mismatched owners', () => {

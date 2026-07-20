@@ -72,6 +72,10 @@ import {
   type TextContentMode,
 } from '../text/htmlText'
 import {
+  getDiscTextRenderableContent,
+  type DiscTextRenderableContent,
+} from '../discText/renderableContent.ts'
+import {
   applyRichTextPlainTextMutation,
   type PlainTextSelectionRange,
   type RichTextListKeyboardCommand,
@@ -96,7 +100,18 @@ type UseDiscTextStateOptions = {
   projectMetadata: ProjectMetadata
   selectedDiscTemplate: DiscTemplate
   steamLogoPlacement: SteamLogoPlacement
+  applyActivePresetLegalPlacement?: (
+    input: DiscLegalPresetPlacementInput,
+  ) => DiscTextLayoutSettings['copyright']
 }
+
+export type DiscLegalPresetPlacementInput = Readonly<{
+  enabled: boolean
+  content: DiscTextRenderableContent
+  layout: DiscTextLayoutSettings['copyright']
+  style: DiscTextStyleSettings['copyright']
+  template: DiscTemplate
+}>
 
 type DiscTextStateSnapshot = {
   projectDiscNumberArtwork: ProjectDiscNumberArtwork
@@ -120,6 +135,7 @@ export function useDiscTextState({
   projectMetadata,
   selectedDiscTemplate,
   steamLogoPlacement,
+  applyActivePresetLegalPlacement = ({ layout }) => layout,
 }: UseDiscTextStateOptions) {
   const [discTextSettings, setDiscTextSettings] = useState<DiscTextSettings>(
     DEFAULT_DISC_TEXT_SETTINGS,
@@ -167,13 +183,55 @@ export function useDiscTextState({
   }
 
   function getCurrentDiscTextRenderedContent(key: DiscTextKey) {
-    const text = getCurrentDiscTextContent(key)
+    return getCurrentDiscTextRenderableContent(key).plainText
+  }
 
-    return isDiscTextHtmlEnabled(discTextHtmlSources, key)
-      ? parseHtmlText(
-          getDiscTextHtmlSource(discTextHtmlSources, key, text),
-        ).plainText
-      : text
+  function getCurrentDiscTextRenderableContent(
+    key: DiscTextKey,
+    fallbackText = getCurrentDiscTextContent(key),
+    htmlSources = discTextHtmlSources,
+  ) {
+    return getDiscTextRenderableContent({
+      fallbackText,
+      htmlSources,
+      key,
+    })
+  }
+
+  function applyActivePresetCopyrightLayout({
+    content,
+    enabled = discTextSettings.copyright,
+    layout,
+    styles = discTextStyles,
+  }: {
+    content: DiscTextRenderableContent
+    enabled?: boolean
+    layout: DiscTextLayoutSettings['copyright']
+    styles?: DiscTextStyleSettings
+  }) {
+    return applyActivePresetLegalPlacement({
+      enabled,
+      content,
+      layout,
+      style: styles.copyright,
+      template: selectedDiscTemplate,
+    })
+  }
+
+  function renderableContentEqual(
+    first: DiscTextRenderableContent,
+    second: DiscTextRenderableContent,
+  ) {
+    return first.plainText === second.plainText &&
+      first.richText?.source === second.richText?.source
+  }
+
+  function isDiscTextMeasurementStyleField(
+    field: DiscTextStyleField,
+  ) {
+    return field === 'fontFamily' ||
+      field === 'bold' ||
+      field === 'italic'
   }
 
   function clampDiscTextLayoutSettingsForCurrentContent(
@@ -265,9 +323,27 @@ export function useDiscTextState({
   }
 
   function handleDiscTextToggle(key: DiscTextKey, checked: boolean) {
-    setDiscTextSettings((currentSettings) =>
-      updateDiscTextSetting(currentSettings, key, checked),
+    const nextSettings = updateDiscTextSetting(
+      discTextSettings,
+      key,
+      checked,
     )
+    setDiscTextSettings(nextSettings)
+
+    if (key === 'copyright') {
+      const nextCopyrightLayout = applyActivePresetCopyrightLayout({
+        content: getCurrentDiscTextRenderableContent('copyright'),
+        enabled: checked,
+        layout: discTextLayout.copyright,
+      })
+
+      if (nextCopyrightLayout !== discTextLayout.copyright) {
+        setDiscTextLayout({
+          ...discTextLayout,
+          copyright: nextCopyrightLayout,
+        })
+      }
+    }
   }
 
   function handleDiscTextPreviewEditStart(key: DiscTextKey) {
@@ -278,25 +354,48 @@ export function useDiscTextState({
     setSelectedDiscTextKey(key)
   }
 
-  function clampDiscTextLayoutForContent(key: DiscTextKey, renderedText: string) {
-    setDiscTextLayout((currentLayout) => {
-      const currentTextLayout = currentLayout[key]
+  function clampDiscTextLayoutForContent(
+    key: DiscTextKey,
+    renderedText: string,
+    htmlSources = discTextHtmlSources,
+  ) {
+    const currentTextLayout = discTextLayout[key]
 
-      if (isCurvedCopyrightDiscTextLayout(key, currentTextLayout)) {
-        return currentLayout
-      }
+    if (isCurvedCopyrightDiscTextLayout(key, currentTextLayout) &&
+        key !== 'copyright') {
+      return
+    }
 
-      return {
-        ...currentLayout,
-        [key]: clampStraightDiscTextLayoutToSafeZone(
+    const clampedLayout = isCurvedCopyrightDiscTextLayout(
+      key,
+      currentTextLayout,
+    )
+      ? currentTextLayout
+      : clampStraightDiscTextLayoutToSafeZone(
           key,
           currentTextLayout,
           selectedDiscTemplate,
           renderedText,
           undefined,
           discTextStyles,
-        ),
-      }
+        )
+    const currentContent = getCurrentDiscTextRenderableContent(key)
+    const nextContent = getCurrentDiscTextRenderableContent(
+      key,
+      renderedText,
+      htmlSources,
+    )
+    const finalLayout = key === 'copyright' &&
+        !renderableContentEqual(currentContent, nextContent)
+      ? applyActivePresetCopyrightLayout({
+          content: nextContent,
+          layout: clampedLayout,
+        })
+      : clampedLayout
+
+    setDiscTextLayout({
+      ...discTextLayout,
+      [key]: finalLayout,
     })
   }
 
@@ -306,15 +405,49 @@ export function useDiscTextState({
     title: string,
     sources: DiscTextValueSources = discTextValueSources,
   ) {
+    let nextLayout = discTextLayout
+
     for (const key of keys) {
       if (sources[key] === 'manual') {
         continue
       }
 
-      clampDiscTextLayoutForContent(
+      const renderedText = getDiscTextContent(key, values, title)
+      const currentTextLayout = nextLayout[key]
+      const clampedLayout = isCurvedCopyrightDiscTextLayout(
         key,
-        getDiscTextContent(key, values, title),
+        currentTextLayout,
       )
+        ? currentTextLayout
+        : clampStraightDiscTextLayoutToSafeZone(
+            key,
+            currentTextLayout,
+            selectedDiscTemplate,
+            renderedText,
+            undefined,
+            discTextStyles,
+          )
+      const currentContent = getCurrentDiscTextRenderableContent(key)
+      const nextContent = getCurrentDiscTextRenderableContent(
+        key,
+        renderedText,
+      )
+      const finalLayout = key === 'copyright' &&
+          !renderableContentEqual(currentContent, nextContent)
+        ? applyActivePresetCopyrightLayout({
+            content: nextContent,
+            layout: clampedLayout,
+          })
+        : clampedLayout
+
+      nextLayout = {
+        ...nextLayout,
+        [key]: finalLayout,
+      }
+    }
+
+    if (nextLayout !== discTextLayout) {
+      setDiscTextLayout(nextLayout)
     }
   }
 
@@ -379,7 +512,11 @@ export function useDiscTextState({
     if (options.htmlSources) {
       setDiscTextHtmlSources(options.htmlSources)
     }
-    clampDiscTextLayoutForContent(key, renderedContent)
+    clampDiscTextLayoutForContent(
+      key,
+      renderedContent,
+      options.htmlSources ?? discTextHtmlSources,
+    )
   }
 
   function handleDiscTextContentChange(key: DiscTextKey, value: string) {
@@ -410,11 +547,17 @@ export function useDiscTextState({
     )
 
     if (contentMode === 'html') {
-      setDiscTextHtmlSources((currentSources) =>
-        setDiscTextHtmlEnabled(currentSources, key, true, currentSource))
+      const nextHtmlSources = setDiscTextHtmlEnabled(
+        discTextHtmlSources,
+        key,
+        true,
+        currentSource,
+      )
+      setDiscTextHtmlSources(nextHtmlSources)
       clampDiscTextLayoutForContent(
         key,
         parseHtmlText(currentSource).plainText,
+        nextHtmlSources,
       )
       return
     }
@@ -428,9 +571,19 @@ export function useDiscTextState({
       discTextTitleValue,
     )
 
-    setDiscTextHtmlSources((currentSources) =>
-      setDiscTextHtmlEnabled(currentSources, key, false, currentSource))
-    applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
+    const nextHtmlSources = setDiscTextHtmlEnabled(
+      discTextHtmlSources,
+      key,
+      false,
+      currentSource,
+    )
+    setDiscTextHtmlSources(nextHtmlSources)
+    applyDiscTextInputUpdate(
+      key,
+      nextInputUpdate,
+      renderedPlainText,
+      { htmlSources: nextHtmlSources },
+    )
   }
 
   function handleDiscTextInlineDraftChange(
@@ -448,9 +601,18 @@ export function useDiscTextState({
         discTextTitleValue,
       )
 
-      setDiscTextHtmlSources((currentSources) =>
-        setDiscTextHtmlSource(currentSources, key, value))
-      applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
+      const nextHtmlSources = setDiscTextHtmlSource(
+        discTextHtmlSources,
+        key,
+        value,
+      )
+      setDiscTextHtmlSources(nextHtmlSources)
+      applyDiscTextInputUpdate(
+        key,
+        nextInputUpdate,
+        renderedPlainText,
+        { htmlSources: nextHtmlSources },
+      )
       return
     }
 
@@ -470,9 +632,18 @@ export function useDiscTextState({
         discTextTitleValue,
       )
 
-      setDiscTextHtmlSources((currentSources) =>
-        setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-      applyDiscTextInputUpdate(key, nextInputUpdate, renderedPlainText)
+      const nextHtmlSources = setDiscTextHtmlSource(
+        discTextHtmlSources,
+        key,
+        result.htmlSource,
+      )
+      setDiscTextHtmlSources(nextHtmlSources)
+      applyDiscTextInputUpdate(
+        key,
+        nextInputUpdate,
+        renderedPlainText,
+        { htmlSources: nextHtmlSources },
+      )
       return
     }
 
@@ -703,17 +874,20 @@ export function useDiscTextState({
       value,
     })
 
+    const nextLayout = key === 'copyright' &&
+        isDiscTextMeasurementStyleField(field)
+      ? {
+          ...transition.layout,
+          copyright: applyActivePresetCopyrightLayout({
+            content: getCurrentDiscTextRenderableContent('copyright'),
+            layout: transition.layout.copyright,
+            styles: transition.styles,
+          }),
+        }
+      : transition.layout
+
     setDiscTextStyles(transition.styles)
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextStyleFieldTransition({
-        currentLayout,
-        currentStyles: discTextStyles,
-        field,
-        key,
-        renderedContent: getCurrentDiscTextRenderedContent(key),
-        selectedDiscTemplate,
-        value,
-      }).layout)
+    setDiscTextLayout(nextLayout)
   }
 
   function handleDiscTextRichTextCommand(
@@ -755,9 +929,18 @@ export function useDiscTextState({
       discTextTitleValue,
     )
 
-    setDiscTextHtmlSources((currentSources) =>
-      setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-    applyDiscTextInputUpdate(key, nextInputUpdate, result.plainText)
+    const nextHtmlSources = setDiscTextHtmlSource(
+      discTextHtmlSources,
+      key,
+      result.htmlSource,
+    )
+    setDiscTextHtmlSources(nextHtmlSources)
+    applyDiscTextInputUpdate(
+      key,
+      nextInputUpdate,
+      result.plainText,
+      { htmlSources: nextHtmlSources },
+    )
     return result.selection
   }
 
@@ -795,9 +978,18 @@ export function useDiscTextState({
       discTextTitleValue,
     )
 
-    setDiscTextHtmlSources((currentSources) =>
-      setDiscTextHtmlSource(currentSources, key, result.htmlSource))
-    applyDiscTextInputUpdate(key, nextInputUpdate, result.plainText)
+    const nextHtmlSources = setDiscTextHtmlSource(
+      discTextHtmlSources,
+      key,
+      result.htmlSource,
+    )
+    setDiscTextHtmlSources(nextHtmlSources)
+    applyDiscTextInputUpdate(
+      key,
+      nextInputUpdate,
+      result.plainText,
+      { htmlSources: nextHtmlSources },
+    )
     return result.selection
   }
 
@@ -830,15 +1022,19 @@ export function useDiscTextState({
       selectedDiscTemplate,
     })
 
+    const nextLayout = key === 'copyright'
+      ? {
+          ...transition.layout,
+          copyright: applyActivePresetCopyrightLayout({
+            content: getCurrentDiscTextRenderableContent('copyright'),
+            layout: transition.layout.copyright,
+            styles: transition.styles,
+          }),
+        }
+      : transition.layout
+
     setDiscTextStyles(transition.styles)
-    setDiscTextLayout((currentLayout) =>
-      resetDiscTextStyleTransition({
-        currentLayout,
-        currentStyles: discTextStyles,
-        key,
-        renderedContent: getCurrentDiscTextRenderedContent(key),
-        selectedDiscTemplate,
-      }).layout)
+    setDiscTextLayout(nextLayout)
   }
 
   function handleApplyDiscTextStylePreset(key: DiscTextKey, presetId: string) {
@@ -851,16 +1047,19 @@ export function useDiscTextState({
       selectedDiscTemplate,
     })
 
+    const nextLayout = key === 'copyright'
+      ? {
+          ...transition.layout,
+          copyright: applyActivePresetCopyrightLayout({
+            content: getCurrentDiscTextRenderableContent('copyright'),
+            layout: transition.layout.copyright,
+            styles: transition.styles,
+          }),
+        }
+      : transition.layout
+
     setDiscTextStyles(transition.styles)
-    setDiscTextLayout((currentLayout) =>
-      applyDiscTextStylePresetTransition({
-        currentLayout,
-        currentStyles: discTextStyles,
-        key,
-        presetId,
-        renderedContent: getCurrentDiscTextRenderedContent(key),
-        selectedDiscTemplate,
-      }).layout)
+    setDiscTextLayout(nextLayout)
   }
 
   function handleDiscNumberArtworkModeChange(mode: DiscNumberArtworkMode) {
@@ -875,7 +1074,23 @@ export function useDiscTextState({
     )
   }
 
-  function enableCurvedCopyrightDiscText() {
+  function enableCurvedCopyrightDiscText(copyrightText?: string) {
+    const curvedLayout = updateDiscTextMode(
+      discTextLayout,
+      'copyright',
+      'curved',
+      steamLogoPlacement,
+      selectedDiscTemplate,
+    )
+    const finalCopyrightLayout = applyActivePresetCopyrightLayout({
+      enabled: true,
+      content: getCurrentDiscTextRenderableContent(
+        'copyright',
+        copyrightText ?? getCurrentDiscTextContent('copyright'),
+      ),
+      layout: curvedLayout.copyright,
+    })
+
     setDiscTextValueSources((currentSources) => ({
       ...currentSources,
       copyright: 'metadata',
@@ -883,21 +1098,14 @@ export function useDiscTextState({
     setDiscTextSettings((currentSettings) =>
       updateDiscTextSetting(currentSettings, 'copyright', true),
     )
-    setDiscTextLayout((currentLayout) =>
-      updateDiscTextMode(
-        currentLayout,
-        'copyright',
-        'curved',
-        steamLogoPlacement,
-        selectedDiscTemplate,
-      ),
-    )
+    setDiscTextLayout((currentLayout) => ({
+      ...currentLayout,
+      copyright: finalCopyrightLayout,
+    }))
   }
 
   function setCopyrightDiscTextEnabled(enabled: boolean) {
-    setDiscTextSettings((currentSettings) =>
-      updateDiscTextSetting(currentSettings, 'copyright', enabled),
-    )
+    handleDiscTextToggle('copyright', enabled)
   }
 
   function applySteamImportedDiscTextValues(

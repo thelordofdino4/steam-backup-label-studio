@@ -25,6 +25,7 @@ import {
 import {
   createDiscPresetTemplateResolutionInput,
   resolveDiscPresetDefinition,
+  type DiscPresetResolvedSlotPatch,
   type DiscPresetResolutionResult,
 } from './discPresetResolution.ts'
 
@@ -43,7 +44,8 @@ function createAdapter(
   calls: AdapterCall[],
   options: Readonly<{
     supportedIntentKinds?: readonly DiscPresetPlacementIntentV1['kind'][]
-    resultStatus?: 'applied' | 'skipped' | 'unsupported'
+    resultStatus?: 'applied' | 'partial' | 'skipped' | 'unsupported'
+    resolvedSlotPatch?: DiscPresetResolvedSlotPatch
     warning?: DiscPresetAdapterWarning
   }> = {},
 ): DiscPresetPlacementAdapter {
@@ -64,7 +66,10 @@ function createAdapter(
         ownerState: context.ownerState,
       })
 
-      if (options.resultStatus && options.resultStatus !== 'applied') {
+      if (
+        options.resultStatus === 'skipped' ||
+        options.resultStatus === 'unsupported'
+      ) {
         return {
           status: options.resultStatus,
           updates: [],
@@ -82,13 +87,14 @@ function createAdapter(
       }
 
       return {
-        status: 'applied',
+        status: options.resultStatus ?? 'applied',
         updates: [{
           kind: 'semantic-placement',
           owner: DISC_PRESET_OWNER_FAMILY_BY_TARGET[target],
           slotId: context.slot.id,
           target,
         }],
+        resolvedSlotPatch: options.resolvedSlotPatch,
         warnings: options.warning ? [options.warning] : [],
       }
     },
@@ -335,6 +341,107 @@ test('supports a second arbitrary validated definition without alias lookup', ()
   assert.equal(result.status, 'applied')
   assert.equal(result.resolvedPreset?.sourcePresetId, definition.id)
   assert.deepEqual(result.updates.map(({ target }) => target), ['rating.primary'])
+})
+
+test('an adapter can refine only its exact resolved slot while retaining nominal geometry', () => {
+  const calls: AdapterCall[] = []
+  const patch: DiscPresetResolvedSlotPatch = {
+    slotId: 'disc:guided:rating-badge:primary',
+    resolvedContentRegion: {
+      centerXPercent: 78,
+      centerYPercent: 61,
+      widthPercent: 18,
+      heightPercent: 12,
+    },
+  }
+  const registryResult = createDiscPresetPlacementAdapterRegistry([
+    createAdapter('rating.primary', calls, {
+      supportedIntentKinds: ['point'],
+      resolvedSlotPatch: patch,
+    }),
+  ])
+  assert.equal(registryResult.ok, true)
+  if (!registryResult.ok) return
+  const result = buildDiscPresetApplicationPlan({
+    resolution: resolveDiscPresetDefinition({
+      definition: createSingleRatingDefinition(),
+      template: standardTemplate,
+    }),
+    adapterRegistry: registryResult.registry,
+    template: standardTemplate,
+  })
+  const slot = result.resolvedPreset?.slots[0]
+
+  assert.equal(result.status, 'applied')
+  assert.deepEqual(slot?.resolvedContentRegion, patch.resolvedContentRegion)
+  assert.deepEqual(slot?.nominalContentRegion, {
+    centerXPercent: 79,
+    centerYPercent: 62,
+    widthPercent: 20,
+    heightPercent: 14,
+  })
+})
+
+test('mismatched and multiple resolved-slot patches are rejected structurally', () => {
+  const calls: AdapterCall[] = []
+  const titleSlotId = 'disc:guided:game-title:primary' as const
+  const mismatchedRegistry = createDiscPresetPlacementAdapterRegistry([
+    createAdapter('rating.primary', calls, {
+      supportedIntentKinds: ['point'],
+      resolvedSlotPatch: {
+        slotId: titleSlotId,
+        status: 'adjusted',
+      },
+    }),
+  ])
+  assert.equal(mismatchedRegistry.ok, true)
+  if (!mismatchedRegistry.ok) return
+  const mismatchResult = buildDiscPresetApplicationPlan({
+    resolution: resolveDiscPresetDefinition({
+      definition: createSingleRatingDefinition(),
+      template: standardTemplate,
+    }),
+    adapterRegistry: mismatchedRegistry.registry,
+    template: standardTemplate,
+  })
+
+  assert.equal(mismatchResult.status, 'partial')
+  assert.ok(mismatchResult.warnings.some((warning) =>
+    warning.kind === 'resolved-slot-patch-rejected' &&
+    warning.reason === 'slot-id-mismatch'))
+
+  const multipleRegistry = createDiscPresetPlacementAdapterRegistry([
+    createAdapter('game-title.artwork', calls, {
+      supportedIntentKinds: ['point'],
+      resolvedSlotPatch: {
+        slotId: titleSlotId,
+        status: 'adjusted',
+      },
+    }),
+    createAdapter('game-title.text', calls, {
+      supportedIntentKinds: ['text'],
+      resolvedSlotPatch: {
+        slotId: titleSlotId,
+        status: 'adjusted',
+      },
+    }),
+  ])
+  assert.equal(multipleRegistry.ok, true)
+  if (!multipleRegistry.ok) return
+  const multipleResult = buildDiscPresetApplicationPlan({
+    resolution: resolveClassic(),
+    adapterRegistry: multipleRegistry.registry,
+    template: standardTemplate,
+  })
+  const titleSlot = multipleResult.resolvedPreset?.slots.find(
+    ({ id }) => id === titleSlotId,
+  )
+
+  assert.equal(multipleResult.status, 'partial')
+  assert.equal(titleSlot?.status, 'resolved')
+  assert.ok(multipleResult.warnings.some((warning) =>
+    warning.kind === 'resolved-slot-patch-rejected' &&
+    warning.reason === 'multiple-slot-patches'))
 })
 
 test('planning is deterministic immutable and does not mutate inputs', () => {

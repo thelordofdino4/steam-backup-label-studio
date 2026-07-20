@@ -1,7 +1,13 @@
 import type {
+  DiscTextRenderableContent,
+} from '../discText/renderableContent.ts'
+import type {
   DiscTextLayout,
   DiscTextKey,
 } from '../discText/types.ts'
+import type {
+  DiscTextStyle,
+} from '../discText/styles.ts'
 import type {
   BackgroundImageSize,
   BackgroundOffset,
@@ -47,6 +53,13 @@ export type DiscTextPresetOwnerState<
   layout: Readonly<DiscTextLayout>
 }>
 
+export type DiscLegalTextPresetOwnerState =
+  DiscTextPresetOwnerState<'copyright'> & Readonly<{
+    content: DiscTextRenderableContent
+    style: Readonly<DiscTextStyle>
+    template: Readonly<DiscTemplate>
+  }>
+
 export type DiscBackgroundPresetOwnerState = Readonly<{
   enabled: boolean
   imageDataUrl: string | null
@@ -70,7 +83,7 @@ export type DiscPresetFocusedOwnerStateByTarget = Readonly<{
   'operating-system-marks.enabled': DiscPlatformMarksPresetOwnerState
   'developer-logo.primary': DiscPrimaryLogoPresetOwnerState<'developer'>
   'publisher-logo.primary': DiscPrimaryLogoPresetOwnerState<'publisher'>
-  'legal.copyright': DiscTextPresetOwnerState<'copyright'>
+  'legal.copyright': DiscLegalTextPresetOwnerState
 }>
 
 export type DiscPresetFocusedOwnerState<
@@ -100,7 +113,7 @@ export type DiscPrimaryLogoLayoutPresetUpdate = Readonly<
 
 export type DiscTextLayoutPresetUpdate = Readonly<
   Pick<DiscTextLayout, 'x' | 'y' | 'width' | 'align' | 'mode'> &
-  Partial<Pick<DiscTextLayout, 'fontSizePt'>>
+  Partial<Pick<DiscTextLayout, 'fontSizePt' | 'avoidVisualElements'>>
 >
 
 export type DiscBackgroundLayoutPresetUpdate = Readonly<{

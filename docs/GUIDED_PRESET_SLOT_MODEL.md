@@ -57,15 +57,25 @@ Guidance geometry and real Classic owner placement therefore derive from the
 same canonical definition. Disabled fixed owners receive dormant layout without
 being enabled, and the Classic path applies adapter-safe resolved placement
 directly instead of broadly reclamping unrelated text, technical marks, or
-repeated logos. Copyright currently makes application `partial` with
-`content-measurement-required`, but valid owner updates still apply and guidance
-activates. The OS adapter positions only marks already selected, enabled, and
-renderable. After application, one transient canonical preset ID/revision
-remains shared by guidance and targeted placement. Selection, per-mark
-enablement, custom asset availability, and source/theme changes re-resolve only
-the OS target and reflow the complete eligible group inside its active preset
-region. No other slot is reapplied. Final content-aware Legal fitting and
-resolved guided projection remain outstanding, so #289 stays open.
+repeated logos. Copyright uses injected measurement plus canonical straight-text
+render geometry to fit the resolved region without truncation. Normal blank,
+disabled, short, and realistic Legal cases are fully applied; only a genuinely
+impossible fit remains partial and marks that slot unsupported. The OS adapter
+positions only marks already selected, enabled, and renderable. After
+application, one transient canonical preset ID/revision and latest resolved
+definition remain shared by guidance and targeted placement. OS eligibility
+changes re-resolve only the OS target. Legal enablement, canonical content, and
+measurement-relevant style changes re-resolve only the Legal target. The two
+slot refinements coexist, and no other slot is reapplied.
+
+Guidance projects the active resolved definition rather than independently
+looking up nominal geometry. Unfilled or suggested slots use its final resolved
+content/action regions in runtime slot order; unsupported slots are hidden.
+Consequently the Legal placeholder center matches the fitted owner center,
+filled Legal suppresses guidance, and clearing valid Legal content restores the
+placeholder at the active resolved region. Missing active resolved geometry
+fails closed instead of inventing a fallback. #289 remains open for authorized
+native eight-slot and PNG acceptance.
 Guided omission state remains project-specific and must never be copied into a
 reusable preset definition. No custom preset library, Save as Preset workflow,
 or custom preset UI exists yet.
@@ -473,7 +483,7 @@ and Company Logos remain sidebar role groupings only.
 | `disc:guided:operating-system-marks:group` | Operating System Marks | `50, 73, 28, 10` | same | foreground | `operating-system-marks` | existing owner only |
 | `disc:guided:developer-logo:primary` | Developer Logo | `21, 62, 26, 9` | same | foreground | `developer-logo` | existing owner only |
 | `disc:guided:publisher-logo:primary` | Publisher Logo | `21, 74, 26, 9` | same | foreground | `publisher-logo` | existing owner only |
-| `disc:guided:legal-text:copyright` | Copyright / Legal Text | `50, 89, 64, 8` | same | foreground | `legal-text` | accepted metadata |
+| `disc:guided:legal-text:copyright` | Copyright / Legal Text | `50, 85, 46, 8` | resolved fitted region | foreground | `legal-text` | accepted metadata |
 
 The broad Background visual rectangle intentionally contains all foreground
 regions, while its smaller action anchor avoids overloading the whole Disc as
@@ -486,6 +496,9 @@ when disabled. Existing enabled/renderable owners are repositioned without
 changing content, source, theme, selected values, custom assets, or inference.
 Operating-system marks use deterministic grouped placement inside their exact
 region and receive only returned `x`, `y`, and `scale` updates.
+Copyright uses measured straight-text fitting inside its exact region and
+receives only placement-owned layout fields. Guidance consumes the fitted
+slot-local region/status from the active resolved definition.
 
 ## 5. Lifecycle Derivation And Precedence
 
@@ -530,10 +543,11 @@ candidate bindings, default geometry, and skippable status.
 Serializable Disc layout presets remain nominal definitions. The pure
 template-resolution stage produces a transient resolved preset with both
 nominal and resolved content/action regions. Concrete owner adapters consume
-resolved content regions during pure application planning, while current guided
-projection still uses the nominal definition. The planned shared-source
-migration will pass the same resolved regions through the production
-compatibility route and guidance.
+resolved content regions during pure application planning and may refine only
+their own slot. The active transient preset owner retains the latest resolved
+definition after explicit or targeted application. Guided projection consumes
+that definition directly and never infers runtime geometry from owner
+coordinates.
 
 ### Derived State
 
@@ -808,8 +822,11 @@ nested panels, registration helpers, real focusable controls, and guided action
 component. The suite covers disabled fallbacks, enabled direct targets,
 `document.activeElement`, target-focus-before-summary-scroll ordering, repeated
 requests, non-accordion panel state, and feature-state isolation. No production
-route change was needed. Native Tauri workflow and export validation are still
-required before #289 can close.
+route change was needed. Automated source coverage now also verifies resolved
+Legal placeholder/owner parity, filled and cleared visibility, unsupported-slot
+suppression, and coexistence with targeted OS resolution. Native Tauri
+eight-slot workflow and PNG export validation are still required before #289
+can close.
 
 ## 12. Persistence Boundary
 

@@ -5,7 +5,7 @@ import {
   createDiscGuidedPlaceholderViewModels,
 } from '../guidedPresets/discGuidedPlaceholderViewModel.ts'
 import type {
-  ActiveDiscPresetRef,
+  ActiveDiscPresetState,
 } from '../presets/discPresetTargetedApplication.ts'
 import type {
   DiscGuidedSlotId,
@@ -18,14 +18,14 @@ const NO_SKIPPED_SLOT_IDS: ReadonlySet<DiscGuidedSlotId> = new Set()
 
 export function useDiscGuidedPlaceholderPreview(
   state: DiscGuidedSlotState,
-  activePresetRef: ActiveDiscPresetRef | null,
+  activePresetState: ActiveDiscPresetState | null,
 ) {
-  const activeLayoutId = activePresetRef
-    ? getDiscGuidedLayoutIdForRolePreset(activePresetRef.id)
+  const activeLayoutId = activePresetState
+    ? getDiscGuidedLayoutIdForRolePreset(activePresetState.ref.id)
     : null
 
   const placeholders = createDiscGuidedPlaceholderViewModels({
-    activeLayoutId,
+    resolvedPreset: activePresetState?.resolvedDefinition ?? null,
     state,
     suggestions: NO_SUGGESTIONS,
     skippedSlotIds: NO_SKIPPED_SLOT_IDS,

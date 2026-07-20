@@ -83,6 +83,9 @@ import { useActiveDiscPreset } from '../hooks/useActiveDiscPreset'
 import {
   applyActiveDiscPresetToPlatformMarkState,
 } from './appActiveDiscPresetPlatformMarks'
+import {
+  applyActiveDiscPresetToLegalTextState,
+} from './appActiveDiscPresetLegalText'
 import { restoreProjectStateFromContents } from '../project/restoreProjectState'
 import { createDefaultProjectMetadata } from '../project/projectMetadata'
 import {
@@ -329,6 +332,7 @@ function App() {
     setSelectedArtworkId,
     announceStatus,
   })
+  const activeDiscPreset = useActiveDiscPreset()
   const {
     projectDiscNumberArtwork,
     discTextSettings,
@@ -378,6 +382,18 @@ function App() {
     projectMetadata,
     selectedDiscTemplate,
     steamLogoPlacement,
+    applyActivePresetLegalPlacement: (input) => {
+      const result = applyActiveDiscPresetToLegalTextState({
+        presetState: activeDiscPreset.getActivePresetState(),
+        selectedDiscTemplate,
+        legalText: {
+          key: 'copyright',
+          ...input,
+        },
+      })
+      activeDiscPreset.recordTargetedPresetApplication(result.application)
+      return result.legalText.layout
+    },
   })
   const {
     projectLogoAssets,
@@ -432,7 +448,6 @@ function App() {
     selectedDiscTemplate,
     announceStatus,
   })
-  const activeDiscPreset = useActiveDiscPreset()
   const {
     projectPlatformMarks,
     setProjectPlatformMarks,
@@ -450,12 +465,15 @@ function App() {
     selectedDiscTemplate,
     selectedSteamGame,
     announceStatus,
-    applyActivePresetPlacement: (platformMarks) =>
-      applyActiveDiscPresetToPlatformMarkState({
-        presetRef: activeDiscPreset.getActivePresetRef(),
+    applyActivePresetPlacement: (platformMarks) => {
+      const result = applyActiveDiscPresetToPlatformMarkState({
+        presetState: activeDiscPreset.getActivePresetState(),
         selectedDiscTemplate,
         platformMarks,
-      }).platformMarks,
+      })
+      activeDiscPreset.recordTargetedPresetApplication(result.application)
+      return result.platformMarks
+    },
   })
   const {
     projectTechnicalMarks,
@@ -696,7 +714,7 @@ function App() {
         htmlSources: discTextHtmlSources,
       },
     },
-    activeDiscPreset.activePresetRef,
+    activeDiscPreset.activePresetState,
   )
 
   function clampForegroundElementLayoutsToTemplate(template: DiscTemplate) {
@@ -777,13 +795,14 @@ function App() {
     })
 
     if (!result.applied) {
-      activeDiscPreset.recordPresetApplication(null, false)
+      activeDiscPreset.recordPresetApplication(null, null, false)
       announceStatus('Layout preset is unavailable. Choose another preset.')
       return false
     }
 
     activeDiscPreset.recordPresetApplication(
       result.activePresetRef,
+      result.activeResolvedPreset,
       true,
     )
     announceStatus(`Applied ${result.preset.label} layout preset.`)
@@ -961,7 +980,7 @@ function App() {
       copyrightText: candidate.text,
     })
     if (applyDiscVisualDefaults) {
-      enableCurvedCopyrightDiscText()
+      enableCurvedCopyrightDiscText(candidate.text)
     }
 
     if (options.announce ?? true) {
@@ -1007,7 +1026,7 @@ function App() {
 
     if (applyDiscVisualDefaults) {
       if (ratingCandidate) setRatingBadgeEnabledForAppliedCandidate(ratingCandidate)
-      if (legalCandidate) enableCurvedCopyrightDiscText()
+      if (legalCandidate) enableCurvedCopyrightDiscText(legalCandidate.text)
     }
 
     announceAutoAppliedMetadataCandidates(ratingCandidate, legalCandidate, {
@@ -1309,7 +1328,7 @@ function App() {
           discVisualImport.platformMarks,
         )
         if (autoLegalCandidate) {
-          enableCurvedCopyrightDiscText()
+          enableCurvedCopyrightDiscText(autoLegalCandidate.text)
         } else if (shouldResetGameScopedLegal) {
           setCopyrightDiscTextEnabled(false)
         }

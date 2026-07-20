@@ -4,6 +4,9 @@ import type {
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
 import type {
+  DiscPresetApplicationServices,
+} from './discPresetApplicationServices.ts'
+import type {
   DiscPresetApplicationWarning,
 } from './discPresetApplication.ts'
 import type {
@@ -15,9 +18,11 @@ import type {
   DiscPresetRegistry,
 } from './discPresetRegistry.ts'
 import {
+  applyDiscPresetResolvedSlotPatches,
   resolveDiscPresetDefinition,
   type DiscPresetResolutionResult,
   type DiscPresetTemplateResolutionInput,
+  type ResolvedDiscPresetDefinition,
 } from './discPresetResolution.ts'
 
 export type ActiveDiscPresetRef = Readonly<{
@@ -25,10 +30,16 @@ export type ActiveDiscPresetRef = Readonly<{
   revision: number
 }>
 
+export type ActiveDiscPresetState = Readonly<{
+  ref: ActiveDiscPresetRef
+  resolvedDefinition: ResolvedDiscPresetDefinition
+}>
+
 export type DiscPresetTargetedApplicationResult =
   | Readonly<{
-      status: 'applied'
+      status: 'applied' | 'partial'
       presetRef: ActiveDiscPresetRef
+      resolvedPreset: ResolvedDiscPresetDefinition
       slotId: DiscGuidedSlotId
       target: DiscPresetPlacementTarget
       updates: readonly DiscPresetOwnerUpdate[]
@@ -50,6 +61,8 @@ type ResolveDiscPresetPlacementForTargetInput = Readonly<{
   target: DiscPresetPlacementTarget
   ownerState?: DiscPresetOwnerStateCatalog
   adapterRegistry: DiscPresetPlacementAdapterRegistry
+  services?: DiscPresetApplicationServices
+  resolvedPreset?: ResolvedDiscPresetDefinition
 }>
 
 function freezeWarnings(
@@ -76,6 +89,16 @@ function getTargetResolutionWarnings(
     !('slotId' in warning) || warning.slotId === slotId)
 }
 
+function isMatchingResolvedPreset(
+  preset: ResolvedDiscPresetDefinition | undefined,
+  presetRef: ActiveDiscPresetRef,
+  template: DiscPresetTemplateResolutionInput,
+): preset is ResolvedDiscPresetDefinition {
+  return preset?.sourcePresetId === presetRef.id &&
+    preset.sourceRevision === presetRef.revision &&
+    preset.templateId === template.templateId
+}
+
 function targetedWithoutUpdates(
   status: 'skipped' | 'unsupported' | 'rejected',
   presetRef: ActiveDiscPresetRef,
@@ -100,6 +123,8 @@ export function resolveDiscPresetPlacementForTarget({
   target,
   ownerState = {},
   adapterRegistry,
+  services = {},
+  resolvedPreset: activeResolvedPreset,
 }: ResolveDiscPresetPlacementForTargetInput):
   DiscPresetTargetedApplicationResult {
   const definition = registry.get(presetRef.id, presetRef.revision)
@@ -229,6 +254,7 @@ export function resolveDiscPresetPlacementForTarget({
     slot,
     placement,
     ownerState: ownerState[target],
+    services,
     template,
   })
   const warnings = freezeWarnings([
@@ -246,9 +272,37 @@ export function resolveDiscPresetPlacementForTarget({
     )
   }
 
-  return Object.freeze({
-    status: 'applied',
+  const baseResolvedPreset = isMatchingResolvedPreset(
+    activeResolvedPreset,
     presetRef,
+    template,
+  )
+    ? activeResolvedPreset
+    : resolution.preset
+  const patch = result.resolvedSlotPatch
+
+  if (patch && patch.slotId !== slot.id) {
+    return targetedWithoutUpdates(
+      'unsupported',
+      presetRef,
+      target,
+      [...warnings, {
+        kind: 'resolved-slot-patch-rejected',
+        slotId: slot.id,
+        target,
+        reason: 'slot-id-mismatch',
+      }],
+      slot.id,
+    )
+  }
+  const finalResolvedPreset = patch
+    ? applyDiscPresetResolvedSlotPatches(baseResolvedPreset, [patch])
+    : baseResolvedPreset
+
+  return Object.freeze({
+    status: result.status,
+    presetRef,
+    resolvedPreset: finalResolvedPreset,
     slotId: slot.id,
     target,
     updates: Object.freeze(result.updates.map((update) =>

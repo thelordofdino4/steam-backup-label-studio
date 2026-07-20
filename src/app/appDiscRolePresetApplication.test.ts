@@ -355,6 +355,7 @@ test('known disc role presets dispatch only their owner plans in deterministic o
     )
     assert.deepEqual(Object.keys(result).sort(), [
       'activePresetRef',
+      'activeResolvedPreset',
       'applied',
       'canonicalPresetId',
       'dispatchedOwners',
@@ -363,10 +364,7 @@ test('known disc role presets dispatch only their owner plans in deterministic o
       'status',
       'warnings',
     ])
-    assert.equal(
-      result.status,
-      presetId === 'classic-top-title' ? 'partial' : 'applied',
-    )
+    assert.equal(result.status, 'applied')
     assert.equal(
       result.canonicalPresetId,
       presetId === 'classic-top-title'
@@ -381,6 +379,10 @@ test('known disc role presets dispatch only their owner plans in deterministic o
             revision: 1,
           }
         : null,
+    )
+    assert.equal(
+      result.activeResolvedPreset !== null,
+      presetId === 'classic-top-title',
     )
   }
 })
@@ -400,6 +402,7 @@ test('unknown disc role preset ids return failure before owner dispatch', () => 
     status: 'rejected',
     canonicalPresetId: null,
     activePresetRef: null,
+    activeResolvedPreset: null,
     warnings: [],
     preset: null,
     state: currentState,

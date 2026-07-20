@@ -5,6 +5,9 @@ import type {
   DiscPresetPlacementTarget,
 } from './discPresetDefinition.ts'
 import type {
+  DiscPresetApplicationServices,
+} from './discPresetApplicationServices.ts'
+import type {
   DiscPresetAdapterWarning,
   DiscPresetOwnerStateCatalog,
   DiscPresetOwnerUpdate,
@@ -12,11 +15,15 @@ import type {
   DiscPresetPlacementAdapterRegistry,
 } from './discPresetPlacementAdapters.ts'
 import type {
+  DiscPresetResolvedSlotPatch,
   DiscPresetResolutionResult,
   DiscPresetResolutionWarning,
   DiscPresetTemplateResolutionInput,
   ResolvedDiscPresetDefinition,
   ResolvedDiscPresetSlot,
+} from './discPresetResolution.ts'
+import {
+  applyDiscPresetResolvedSlotPatches,
 } from './discPresetResolution.ts'
 
 export type DiscPresetApplicationStatus =
@@ -58,6 +65,12 @@ export type DiscPresetApplicationWarning =
       target: DiscPresetPlacementTarget
       slotIds: readonly DiscGuidedSlotId[]
     }>
+  | Readonly<{
+      kind: 'resolved-slot-patch-rejected'
+      slotId: DiscGuidedSlotId
+      target: DiscPresetPlacementTarget
+      reason: 'slot-id-mismatch' | 'multiple-slot-patches'
+    }>
 
 export type DiscPresetApplicationResult = Readonly<{
   status: DiscPresetApplicationStatus
@@ -70,6 +83,7 @@ type BuildDiscPresetApplicationPlanInput = Readonly<{
   resolution: DiscPresetResolutionResult
   adapterRegistry: DiscPresetPlacementAdapterRegistry
   ownerState?: DiscPresetOwnerStateCatalog
+  services?: DiscPresetApplicationServices
   template: DiscPresetTemplateResolutionInput
 }>
 
@@ -85,12 +99,14 @@ function invokeAdapter(
   slot: ResolvedDiscPresetSlot,
   placement: DiscPresetPlacementIntentV1,
   ownerState: DiscPresetOwnerStateCatalog,
+  services: DiscPresetApplicationServices,
   template: DiscPresetTemplateResolutionInput,
 ) {
   return adapter.buildUpdate({
     slot,
     placement,
     ownerState: ownerState[placement.target],
+    services,
     template,
   })
 }
@@ -99,6 +115,7 @@ export function buildDiscPresetApplicationPlan({
   resolution,
   adapterRegistry,
   ownerState = {},
+  services = {},
   template,
 }: BuildDiscPresetApplicationPlanInput): DiscPresetApplicationResult {
   if (resolution.status === 'rejected') {
@@ -112,6 +129,8 @@ export function buildDiscPresetApplicationPlan({
 
   const updates: DiscPresetOwnerUpdate[] = []
   const warnings: DiscPresetApplicationWarning[] = [...resolution.warnings]
+  const slotPatches = new Map<DiscGuidedSlotId, DiscPresetResolvedSlotPatch>()
+  const conflictedSlotIds = new Set<DiscGuidedSlotId>()
   let partial = resolution.status === 'partial'
 
   for (const slot of resolution.preset.slots) {
@@ -146,12 +165,42 @@ export function buildDiscPresetApplicationPlan({
         slot,
         placement,
         ownerState,
+        services,
         template,
       )
       updates.push(...result.updates.map((update) =>
         Object.freeze({ ...update })))
       warnings.push(...result.warnings.map((warning) =>
         Object.freeze({ ...warning })))
+
+      if (result.resolvedSlotPatch) {
+        const patch = result.resolvedSlotPatch
+
+        if (patch.slotId !== slot.id) {
+          warnings.push(Object.freeze({
+            kind: 'resolved-slot-patch-rejected',
+            slotId: slot.id,
+            target: placement.target,
+            reason: 'slot-id-mismatch',
+          }))
+          partial = true
+        } else if (
+          slotPatches.has(slot.id) ||
+          conflictedSlotIds.has(slot.id)
+        ) {
+          slotPatches.delete(slot.id)
+          conflictedSlotIds.add(slot.id)
+          warnings.push(Object.freeze({
+            kind: 'resolved-slot-patch-rejected',
+            slotId: slot.id,
+            target: placement.target,
+            reason: 'multiple-slot-patches',
+          }))
+          partial = true
+        } else {
+          slotPatches.set(slot.id, patch)
+        }
+      }
 
       if (result.status === 'partial' || result.status === 'unsupported') {
         partial = true
@@ -161,7 +210,10 @@ export function buildDiscPresetApplicationPlan({
 
   return Object.freeze({
     status: partial ? 'partial' : 'applied',
-    resolvedPreset: resolution.preset,
+    resolvedPreset: applyDiscPresetResolvedSlotPatches(
+      resolution.preset,
+      [...slotPatches.values()],
+    ),
     updates: Object.freeze(updates),
     warnings: Object.freeze(warnings),
   })

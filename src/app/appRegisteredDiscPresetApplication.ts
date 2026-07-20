@@ -1,6 +1,15 @@
 import type {
   DiscTextLayoutSettings,
 } from '../discText/types.ts'
+import {
+  getDiscTextContent,
+} from '../discText/index.ts'
+import {
+  getDiscTextRenderableContent,
+} from '../discText/renderableContent.ts'
+import {
+  resolveDiscTextMetadataState,
+} from '../discText/metadataStateTransitions.ts'
 import type {
   DiscRolePresetApplicationState,
   DiscRolePresetFeatureOwner,
@@ -10,6 +19,9 @@ import {
   type DiscPresetApplicationStatus,
   type DiscPresetApplicationWarning,
 } from '../presets/discPresetApplication.ts'
+import type {
+  DiscPresetApplicationServices,
+} from '../presets/discPresetApplicationServices.ts'
 import type {
   ActiveDiscPresetRef,
 } from '../presets/discPresetTargetedApplication.ts'
@@ -32,6 +44,9 @@ import {
   getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
 import type { DiscTemplate } from '../types/template.ts'
+import {
+  DISC_PRESET_PRODUCTION_APPLICATION_SERVICES,
+} from './appDiscPresetMeasurementService.ts'
 
 export type RegisteredDiscPresetFeatureOwner = Extract<
   DiscRolePresetFeatureOwner,
@@ -44,6 +59,14 @@ export type RegisteredDiscPresetFeatureOwner = Extract<
   | 'logoAssets'
 >
 
+type RegisteredDiscPresetRequiredTextStateKey =
+  | 'discTextValues'
+  | 'discTextValueSources'
+  | 'discTextTitleValue'
+  | 'discTextHtmlSources'
+  | 'discTextStyles'
+  | 'metadata'
+
 export type RegisteredDiscPresetApplicationState = Pick<
   DiscRolePresetApplicationState,
   | 'background'
@@ -54,7 +77,10 @@ export type RegisteredDiscPresetApplicationState = Pick<
   | 'ratingBadge'
   | 'mediaMark'
   | 'platformMarks'
->
+> & Required<Pick<
+  DiscRolePresetApplicationState,
+  RegisteredDiscPresetRequiredTextStateKey
+>>
 
 export type RegisteredDiscPresetApplicationResult<
   TState extends RegisteredDiscPresetApplicationState =
@@ -76,12 +102,24 @@ type ApplyRegisteredDiscPresetInput<
   presetId: string
   currentState: TState
   selectedDiscTemplate: DiscTemplate
+  services?: DiscPresetApplicationServices
 }>
 
 export function createRegisteredDiscPresetOwnerStateSnapshot(
   state: RegisteredDiscPresetApplicationState,
   selectedDiscTemplate: DiscTemplate,
 ): DiscPresetOwnerStateCatalog {
+  const textResolution = resolveDiscTextMetadataState(state.metadata, {
+    discTextValues: state.discTextValues,
+    discTextValueSources: state.discTextValueSources,
+    discTextTitleValue: state.discTextTitleValue,
+  })
+  const copyrightFallback = getDiscTextContent(
+    'copyright',
+    textResolution.metadataBoundDiscTextValues,
+    textResolution.resolvedDiscTextTitle,
+  )
+
   return Object.freeze({
     'game-title.artwork': Object.freeze({
       layout: Object.freeze({ ...state.titleArtwork.layout }),
@@ -120,7 +158,14 @@ export function createRegisteredDiscPresetOwnerStateSnapshot(
     'legal.copyright': Object.freeze({
       key: 'copyright',
       enabled: state.discTextSettings.copyright,
+      content: getDiscTextRenderableContent({
+        fallbackText: copyrightFallback,
+        htmlSources: state.discTextHtmlSources,
+        key: 'copyright',
+      }),
       layout: Object.freeze({ ...state.discTextLayout.copyright }),
+      style: Object.freeze({ ...state.discTextStyles.copyright }),
+      template: Object.freeze({ ...selectedDiscTemplate }),
     }),
   })
 }
@@ -293,6 +338,7 @@ export function applyRegisteredDiscPresetToState<
   presetId,
   currentState,
   selectedDiscTemplate,
+  services = DISC_PRESET_PRODUCTION_APPLICATION_SERVICES,
 }: ApplyRegisteredDiscPresetInput<TState>):
   RegisteredDiscPresetApplicationResult<TState> | null {
   const definition = DISC_PRESET_REGISTRY.get(presetId)
@@ -312,6 +358,7 @@ export function applyRegisteredDiscPresetToState<
       currentState,
       selectedDiscTemplate,
     ),
+    services,
     template,
   })
   const nextState = application.status === 'rejected'

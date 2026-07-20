@@ -50,7 +50,7 @@ test('Classic owns exact content action layer and placement data', () => {
     { id: SLOT_ORDER[4], content: [50, 73, 28, 10], action: [50, 73, 28, 10], layer: 'foreground', targets: ['operating-system-marks.enabled'] },
     { id: SLOT_ORDER[5], content: [21, 62, 26, 9], action: [21, 62, 26, 9], layer: 'foreground', targets: ['developer-logo.primary'] },
     { id: SLOT_ORDER[6], content: [21, 74, 26, 9], action: [21, 74, 26, 9], layer: 'foreground', targets: ['publisher-logo.primary'] },
-    { id: SLOT_ORDER[7], content: [50, 89, 64, 8], action: [50, 89, 64, 8], layer: 'foreground', targets: ['legal.copyright'] },
+    { id: SLOT_ORDER[7], content: [50, 85, 46, 8], action: [50, 85, 46, 8], layer: 'foreground', targets: ['legal.copyright'] },
   ])
 })
 

@@ -12,6 +12,9 @@ import type {
 import type {
   ActiveDiscPresetRef,
 } from '../presets/discPresetTargetedApplication.ts'
+import type {
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import type { ProjectDiscNumberArtwork } from '../project/projectTypes'
 import type { DiscTemplate } from '../types/template'
 import {
@@ -94,6 +97,7 @@ export type DiscRolePresetOwnerApplicationResult =
       status: 'rejected'
       canonicalPresetId: string | null
       activePresetRef: null
+      activeResolvedPreset: null
       warnings: readonly DiscPresetApplicationWarning[]
       preset: null
       state: DiscRolePresetApplicationState
@@ -104,6 +108,7 @@ export type DiscRolePresetOwnerApplicationResult =
       status: Exclude<DiscPresetApplicationStatus, 'rejected'>
       canonicalPresetId: string | null
       activePresetRef: ActiveDiscPresetRef | null
+      activeResolvedPreset: ResolvedDiscPresetDefinition | null
       warnings: readonly DiscPresetApplicationWarning[]
       preset: DiscRolePreset
       state: DiscRolePresetApplicationState
@@ -138,6 +143,7 @@ export function applyDiscRolePresetToOwners({
         status: 'rejected',
         canonicalPresetId: registeredResult.canonicalPresetId,
         activePresetRef: null,
+        activeResolvedPreset: null,
         warnings: registeredResult.warnings,
         preset: null,
         state: registeredResult.state,
@@ -158,6 +164,7 @@ export function applyDiscRolePresetToOwners({
       status: registeredResult.status,
       canonicalPresetId: registeredResult.canonicalPresetId,
       activePresetRef: registeredResult.presetRef,
+      activeResolvedPreset: registeredResult.resolvedPreset,
       warnings: registeredResult.warnings,
       preset,
       state: registeredResult.state,
@@ -177,6 +184,7 @@ export function applyDiscRolePresetToOwners({
       status: 'rejected',
       canonicalPresetId: null,
       activePresetRef: null,
+      activeResolvedPreset: null,
       warnings: [],
       preset: null,
       state: result.state,
@@ -205,6 +213,7 @@ export function applyDiscRolePresetToOwners({
     status: 'applied',
     canonicalPresetId: null,
     activePresetRef: null,
+    activeResolvedPreset: null,
     warnings: [],
     preset: result.preset,
     state: result.state,

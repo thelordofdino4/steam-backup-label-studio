@@ -33,7 +33,7 @@ const EXPECTED = [
   ['Operating System Marks', 'operating-system-marks', 'foreground', [50, 73, 28, 10], [50, 73, 28, 10]],
   ['Developer Logo', 'developer-logo', 'foreground', [21, 62, 26, 9], [21, 62, 26, 9]],
   ['Publisher Logo', 'publisher-logo', 'foreground', [21, 74, 26, 9], [21, 74, 26, 9]],
-  ['Copyright / Legal Text', 'legal-text', 'foreground', [50, 89, 64, 8], [50, 89, 64, 8]],
+  ['Copyright / Legal Text', 'legal-text', 'foreground', [50, 85, 46, 8], [50, 85, 46, 8]],
 ] as const
 
 function tuple(geometry: DiscGuidedRectGeometry) {

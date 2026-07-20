@@ -4,7 +4,9 @@ import test from 'node:test'
 import {
   DEFAULT_DISC_TEXT_SETTINGS,
   createDefaultDiscTextLayout,
+  createDefaultDiscTextValues,
 } from '../discText/index.ts'
+import { createDefaultDiscTextStyles } from '../discText/styles.ts'
 import {
   placeGroupedPlatformMarks,
 } from '../layout/groupedPlatformMarkPlacement.ts'
@@ -12,6 +14,9 @@ import {
   CLASSIC_TOP_TITLE_DISC_PRESET_ID,
 } from '../presets/builtins/classicTopTitleDiscPreset.ts'
 import { createDefaultProjectLogoAssets } from '../project/projectLogoAssets.ts'
+import {
+  createDefaultDiscTextValueSources,
+} from '../project/metadataDiscText.ts'
 import { createDefaultProjectMediaMark } from '../project/projectMediaMark.ts'
 import {
   createDefaultProjectPlatformMarkAsset,
@@ -19,6 +24,7 @@ import {
   getProjectPlatformMarkAsset,
 } from '../project/projectPlatformMarks.ts'
 import { createDefaultProjectRatingBadge } from '../project/projectRatingBadge.ts'
+import { createDefaultProjectMetadata } from '../project/projectMetadata.ts'
 import { createDefaultProjectTitleArtwork } from '../project/projectTitleArtwork.ts'
 import { discTemplates } from '../templates/discTemplates.ts'
 import type { DiscTemplate } from '../types/template.ts'
@@ -78,6 +84,10 @@ function createState(): TestState {
       title: false,
       copyright: false,
     },
+    discTextValues: createDefaultDiscTextValues(),
+    discTextValueSources: createDefaultDiscTextValueSources(),
+    discTextTitleValue: 'Preserve title.',
+    discTextHtmlSources: {},
     discTextLayout: {
       ...textLayout,
       title: {
@@ -107,6 +117,7 @@ function createState(): TestState {
         width: 37,
       },
     },
+    discTextStyles: createDefaultDiscTextStyles(),
     logoAssets: {
       ...logos,
       developerLogoDataUrl: 'data:image/png;base64,developer',
@@ -180,6 +191,7 @@ function createState(): TestState {
       layout: { enabled: false, x: 8, y: 8, scale: 1.7 },
     },
     platformMarks: createDefaultProjectPlatformMarks(),
+    metadata: createDefaultProjectMetadata(),
     unrelated: {
       technicalMarkLayout: {
         enabled: true,
@@ -206,7 +218,7 @@ test('legacy Classic alias resolves and plans every canonical target', () => {
   const result = applyClassic(createState())
 
   assert.equal(result.canonicalPresetId, CLASSIC_TOP_TITLE_DISC_PRESET_ID)
-  assert.equal(result.status, 'partial')
+  assert.equal(result.status, 'applied')
   assert.deepEqual(
     result.updates.map(({ target }) => target),
     [
@@ -228,8 +240,8 @@ test('legacy Classic alias resolves and plans every canonical target', () => {
     'mediaMark',
     'logoAssets',
   ])
-  assert.ok(result.warnings.some((warning) =>
-    warning.kind === 'content-measurement-required'))
+  assert.equal(result.warnings.some((warning) =>
+    warning.kind === 'text-fit-impossible'), false)
   assert.equal(result.warnings.some((warning) =>
     warning.kind === 'missing-placement-adapter'), false)
 })
@@ -254,6 +266,118 @@ test('focused owner snapshot contains only the nine Classic semantic targets', (
   assert.equal(Object.isFrozen(snapshot), true)
   assert.equal(Object.isFrozen(snapshot['game-title.artwork']!), true)
   assert.equal(Object.isFrozen(snapshot['game-title.artwork']!.layout), true)
+})
+
+test('Legal owner snapshot resolves manual metadata and HTML content canonically', () => {
+  const manualState = createState()
+  manualState.discTextValues.copyright = 'Manual copyright'
+  manualState.discTextValueSources.copyright = 'manual'
+  let legal = createRegisteredDiscPresetOwnerStateSnapshot(
+    manualState,
+    discTemplates.standardPrintableDisc,
+  )['legal.copyright']!
+  assert.equal(legal.content.plainText, 'Manual copyright')
+  assert.equal(legal.content.richText, undefined)
+
+  const metadataState = createState()
+  metadataState.metadata.copyrightText = 'Metadata copyright'
+  metadataState.discTextValueSources.copyright = 'metadata'
+  legal = createRegisteredDiscPresetOwnerStateSnapshot(
+    metadataState,
+    discTemplates.standardPrintableDisc,
+  )['legal.copyright']!
+  assert.equal(legal.content.plainText, 'Metadata copyright')
+
+  const htmlState = createState()
+  htmlState.discTextValues.copyright = 'Fallback copyright'
+  htmlState.discTextValueSources.copyright = 'manual'
+  htmlState.discTextHtmlSources.copyright =
+    '<strong>Rich</strong><br><em>copyright</em>'
+  legal = createRegisteredDiscPresetOwnerStateSnapshot(
+    htmlState,
+    discTemplates.standardPrintableDisc,
+  )['legal.copyright']!
+  assert.equal(legal.content.plainText, 'Rich\ncopyright')
+  assert.equal(
+    legal.content.richText?.source,
+    '<p><strong>Rich</strong></p><p><em>copyright</em></p>',
+  )
+})
+
+test('normal Legal content is applied while genuinely impossible content stays partial', () => {
+  const shortState = createState()
+  shortState.discTextSettings.copyright = true
+  shortState.discTextValues.copyright = 'Copyright 2026 Example Studios.'
+  shortState.discTextValueSources.copyright = 'manual'
+  const shortResult = applyClassic(shortState)
+
+  assert.equal(shortResult.status, 'applied')
+  assert.equal(shortResult.state.discTextLayout.copyright.fontSizePt, 7)
+  assert.equal(shortResult.warnings.some(
+    ({ kind }) => kind === 'text-fit-impossible',
+  ), false)
+
+  const adjustedState = createState()
+  adjustedState.discTextSettings.copyright = true
+  adjustedState.discTextValues.copyright = Array.from(
+    { length: 12 },
+    (_, index) => `Clause ${index + 1}: reserved legal terms`,
+  ).join(' ')
+  adjustedState.discTextValueSources.copyright = 'manual'
+  const adjustedResult = applyClassic(adjustedState)
+
+  assert.equal(adjustedResult.status, 'applied')
+  assert.ok(adjustedResult.warnings.some(
+    ({ kind }) => kind === 'text-fit-adjusted',
+  ))
+  assert.ok(adjustedResult.state.discTextLayout.copyright.fontSizePt < 7)
+
+  const impossibleState = createState()
+  impossibleState.discTextSettings.copyright = true
+  impossibleState.discTextValues.copyright = Array.from(
+    { length: 24 },
+    (_, index) => `Legal line ${index + 1}`,
+  ).join('\n')
+  impossibleState.discTextValueSources.copyright = 'manual'
+  const impossibleResult = applyClassic(impossibleState)
+
+  assert.equal(impossibleResult.status, 'partial')
+  assert.ok(impossibleResult.warnings.some(
+    ({ kind }) => kind === 'text-fit-impossible',
+  ))
+  assert.equal(
+    impossibleResult.resolvedPreset?.slots.find(
+      ({ id }) => id === 'disc:guided:legal-text:copyright',
+    )?.status,
+    'unsupported',
+  )
+})
+
+test('registered application injects its text measurement service', () => {
+  const state = createState()
+  state.discTextSettings.copyright = true
+  state.discTextValues.copyright = 'Copyright 2026 Example Studios.'
+  state.discTextValueSources.copyright = 'manual'
+  const measuredFonts: string[] = []
+  const result = applyRegisteredDiscPresetToState({
+    presetId: 'classic-top-title',
+    currentState: state,
+    selectedDiscTemplate: discTemplates.standardPrintableDisc,
+    services: {
+      textMeasurement: {
+        measureText(text, font) {
+          measuredFonts.push(font)
+          const fontSize = Number(
+            font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1,
+          )
+          return Array.from(text).length * fontSize * 0.55
+        },
+      },
+    },
+  })
+
+  assert.equal(result?.status, 'applied')
+  assert.ok(measuredFonts.length > 0)
 })
 
 test('Classic seeds every dormant fixed owner without changing enablement', () => {
@@ -304,12 +428,13 @@ test('Classic seeds every dormant fixed owner without changing enablement', () =
   })
   assert.equal(after.discTextSettings.copyright, false)
   assert.equal(after.discTextLayout.copyright.x, 0)
-  assert.equal(after.discTextLayout.copyright.y, 89)
-  assert.equal(after.discTextLayout.copyright.width, 64)
+  assert.equal(after.discTextLayout.copyright.y, 85)
+  assert.equal(after.discTextLayout.copyright.width, 46)
   assert.equal(after.discTextLayout.copyright.scale, 0.91)
   assert.equal(after.discTextLayout.copyright.fontSizePt, 7)
   assert.equal(after.discTextLayout.copyright.align, 'center')
   assert.equal(after.discTextLayout.copyright.mode, 'straight')
+  assert.equal(after.discTextLayout.copyright.avoidVisualElements, false)
 
   const enabledAfterward = {
     ...after,
@@ -591,4 +716,5 @@ test('Classic production routing has no legacy coordinates or App target switch'
   assert.doesNotMatch(wrapperSource, /from ['"]react['"]/)
   assert.doesNotMatch(appSource, /game-title\.artwork|legal\.copyright/)
   assert.doesNotMatch(appSource, /switch\s*\(\s*(?:slot|target)/)
+  assert.doesNotMatch(wrapperSource, /content-measurement-required/)
 })

@@ -10,10 +10,14 @@ import {
   type DiscTextPresetTarget,
 } from './discPresetDefinition.ts'
 import type {
+  DiscPresetApplicationServices,
+} from './discPresetApplicationServices.ts'
+import type {
   DiscPresetFocusedOwnerState,
   DiscPresetOwnerUpdate,
 } from './discPresetOwnerPlacement.ts'
 import type {
+  DiscPresetResolvedSlotPatch,
   DiscPresetTemplateResolutionInput,
   ResolvedDiscPresetSlot,
 } from './discPresetResolution.ts'
@@ -56,6 +60,7 @@ export type DiscPresetAdapterWarningReason =
   | 'unsupported-size-policy'
   | 'unsupported-text-mode'
   | 'non-centered-background-region'
+  | 'text-measurement-unavailable'
 
 export type DiscPresetAdapterWarning =
   | Readonly<{
@@ -65,7 +70,10 @@ export type DiscPresetAdapterWarning =
       reason: DiscPresetAdapterWarningReason
     }>
   | Readonly<{
-      kind: 'content-measurement-required'
+      kind:
+        | 'text-fit-adjusted'
+        | 'text-fit-minimum-reached'
+        | 'text-fit-impossible'
       slotId: 'disc:guided:legal-text:copyright'
       target: 'legal.copyright'
     }>
@@ -111,6 +119,7 @@ export type DiscPresetOwnerPlacementContext<
   slot: ResolvedDiscPresetSlot
   placement: DiscPresetPlacementIntentForTarget<TTarget>
   ownerState: DiscPresetFocusedOwnerState<TTarget> | undefined
+  services: DiscPresetApplicationServices
   template: DiscPresetTemplateResolutionInput
 }>
 
@@ -123,11 +132,13 @@ export type DiscPresetOwnerPlacementResult =
   | Readonly<{
       status: 'applied' | 'partial'
       updates: readonly DiscPresetOwnerUpdate[]
+      resolvedSlotPatch?: DiscPresetResolvedSlotPatch
       warnings: readonly DiscPresetAdapterWarning[]
     }>
   | Readonly<{
       status: 'skipped' | 'unsupported'
       updates: readonly []
+      resolvedSlotPatch?: never
       warnings: NonEmptyAdapterWarnings
     }>
 

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import type { DiscTextLayout } from '../discText/types.ts'
+import { createDefaultDiscTextStyles } from '../discText/styles.ts'
 import {
   createDefaultProjectPlatformMarkAsset,
   createDefaultProjectPlatformMarks,
@@ -44,6 +45,15 @@ const textLayout: DiscTextLayout = {
   arcDegrees: 90,
   arcSide: 'top',
   avoidVisualElements: true,
+}
+const legalStyle = createDefaultDiscTextStyles().copyright
+const services = {
+  textMeasurement: {
+    measureText(text: string, font: string) {
+      const fontSize = Number(font.match(/(\d+(?:\.\d+)?)px/)?.[1] ?? 1)
+      return Array.from(text).length * fontSize * 0.55
+    },
+  },
 }
 
 function createPlatformMarks(
@@ -104,7 +114,10 @@ const ownerState: DiscPresetOwnerStateCatalog = Object.freeze({
   'legal.copyright': {
     key: 'copyright',
     enabled: false,
+    content: { plainText: '' },
     layout: textLayout,
+    style: legalStyle,
+    template: discTemplate,
   },
 })
 
@@ -127,7 +140,7 @@ test('production registry covers every Classic placement target exactly once', (
   assert.ok(Object.isFrozen(IMPLEMENTED_DISC_PRESET_PLACEMENT_TARGETS))
 })
 
-test('Classic planning includes typed OS updates while only Legal stays partial', () => {
+test('Classic planning includes typed OS updates and measured dormant Legal placement', () => {
   const resolution = resolveDiscPresetDefinition({
     definition: CLASSIC_TOP_TITLE_DISC_PRESET,
     template,
@@ -137,10 +150,11 @@ test('Classic planning includes typed OS updates while only Legal stays partial'
     resolution,
     adapterRegistry: DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY,
     ownerState,
+    services,
     template,
   })
 
-  assert.equal(result.status, 'partial')
+  assert.equal(result.status, 'applied')
   assert.deepEqual(result.updates.map(({ target }) => target), [
     'game-title.artwork',
     'game-title.text',
@@ -167,9 +181,8 @@ test('Classic planning includes typed OS updates while only Legal stays partial'
   ])
   assert.equal(result.warnings.some((warning) =>
     warning.kind === 'missing-placement-adapter'), false)
-  assert.ok(result.warnings.some((warning) =>
-    warning.kind === 'content-measurement-required' &&
-    warning.target === 'legal.copyright'))
+  assert.equal(result.warnings.some((warning) =>
+    warning.kind === 'text-fit-impossible'), false)
   assert.equal(JSON.stringify(ownerState), before)
   assert.ok(result.updates.every(Object.isFrozen))
   assert.ok(result.updates.every(({ layout }) => Object.isFrozen(layout)))

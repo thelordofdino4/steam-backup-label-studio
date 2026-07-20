@@ -9,6 +9,10 @@ import {
 import {
   resolveDiscPresetCompatibilityId,
 } from '../presets/discPresetRegistry.ts'
+import type {
+  DiscPresetSlotResolutionStatus,
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import type { DiscGuidedSlotId } from './discGuidedSlots.ts'
 
 export const DISC_GUIDED_LAYOUT_IDS = Object.freeze([
@@ -56,6 +60,7 @@ export type DiscGuidedLayoutSlotDefinition = Readonly<{
   visualLayer: DiscGuidedPlaceholderLayer
   setupKind: DiscGuidedSetupKind
   populationSource: DiscGuidedPopulationSource
+  resolutionStatus: DiscPresetSlotResolutionStatus
 }>
 
 export type DiscGuidedRectGeometryParseError =
@@ -280,6 +285,7 @@ const CLASSIC_TOP_TITLE_GUIDED_SLOTS = Object.freeze(Object.fromEntries(
         visualLayer: slot.visualLayer,
         setupKind: presentation.setupKind,
         populationSource: presentation.populationSource,
+        resolutionStatus: 'resolved' as const,
       }),
     ]
   }),
@@ -314,6 +320,54 @@ export function getDiscGuidedLayoutIdForRolePreset(
       CLASSIC_TOP_TITLE_DISC_PRESET.id
     ? CLASSIC_TOP_TITLE_GUIDED_LAYOUT.id
     : null
+}
+
+export function createDiscGuidedLayoutDefinitionFromResolvedPreset(
+  preset: ResolvedDiscPresetDefinition,
+): DiscGuidedLayoutDefinition | null {
+  const layoutId = getDiscGuidedLayoutIdForRolePreset(preset.sourcePresetId)
+  const baseLayout = layoutId
+    ? getDiscGuidedLayoutDefinition(layoutId)
+    : null
+
+  if (
+    !baseLayout ||
+    baseLayout.presetId !== preset.sourcePresetId
+  ) {
+    return null
+  }
+
+  const slots = Object.freeze(Object.fromEntries(preset.slots.map((slot) => {
+    const presentation = CLASSIC_SLOT_PRESENTATION[slot.id]
+
+    if (!presentation) {
+      return [slot.id, undefined]
+    }
+
+    return [
+      slot.id,
+      Object.freeze({
+        slotId: slot.id,
+        label: presentation.label,
+        visualGeometry: toGuidedGeometry(slot.resolvedContentRegion),
+        actionGeometry: toGuidedGeometry(slot.resolvedActionRegion),
+        visualLayer: slot.visualLayer,
+        setupKind: presentation.setupKind,
+        populationSource: presentation.populationSource,
+        resolutionStatus: slot.status,
+      }),
+    ]
+  }))) as Readonly<
+    Partial<Record<DiscGuidedSlotId, DiscGuidedLayoutSlotDefinition>>
+  >
+
+  return Object.freeze({
+    id: baseLayout.id,
+    presetId: preset.sourcePresetId,
+    baseRolePresetId: baseLayout.baseRolePresetId,
+    slotOrder: Object.freeze(preset.slots.map(({ id }) => id)),
+    slots,
+  })
 }
 
 export function getDiscGuidedSlotGeometry(

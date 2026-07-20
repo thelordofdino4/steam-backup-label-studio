@@ -2,6 +2,9 @@ import type {
   DiscNormalizedRegion,
   DiscTextPresetTarget,
 } from '../discPresetDefinition.ts'
+import {
+  fitStraightDiscTextToRegion,
+} from '../../discText/fitStraightTextToRegion.ts'
 import type {
   DiscPresetOwnerUpdate,
   DiscTextLayoutPresetUpdate,
@@ -92,6 +95,104 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
           ? {}
           : { fontSizePt: context.placement.fontSizePt }),
       })
+
+      if (target === 'legal.copyright' && context.placement.fit === 'region') {
+        const legalOwnerState = context.ownerState as
+          import('../discPresetOwnerPlacement.ts').DiscLegalTextPresetOwnerState
+        const measureText = context.services.textMeasurement?.measureText
+
+        if (!measureText) {
+          const update: DiscPresetOwnerUpdate = Object.freeze({
+            kind: 'disc-text-layout',
+            slotId: context.slot.id,
+            target,
+            key,
+            layout: Object.freeze({
+              ...layout,
+              fontSizePt: 7,
+              avoidVisualElements: false,
+            }),
+          })
+
+          return Object.freeze({
+            status: 'partial',
+            updates: Object.freeze([update]),
+            warnings: Object.freeze([Object.freeze({
+              kind: 'placement-unsupported',
+              slotId: context.slot.id,
+              target,
+              reason: 'text-measurement-unavailable',
+            })]),
+          })
+        }
+
+        const fit = fitStraightDiscTextToRegion({
+          key: 'copyright',
+          content: legalOwnerState.enabled
+            ? legalOwnerState.content.plainText
+            : '',
+          currentLayout: legalOwnerState.layout,
+          measureText,
+          region: context.slot.resolvedContentRegion,
+          richText: legalOwnerState.enabled
+            ? legalOwnerState.content.richText
+            : undefined,
+          styles: { copyright: legalOwnerState.style },
+          template: legalOwnerState.template,
+        })
+
+        if (fit.status === 'impossible') {
+          return Object.freeze({
+            status: 'partial',
+            updates: Object.freeze([]),
+            resolvedSlotPatch: Object.freeze({
+              slotId: context.slot.id,
+              status: 'unsupported',
+            }),
+            warnings: Object.freeze([Object.freeze({
+              kind: 'text-fit-impossible',
+              slotId: 'disc:guided:legal-text:copyright',
+              target: 'legal.copyright',
+            })]),
+          })
+        }
+
+        const fittedUpdate: DiscPresetOwnerUpdate = Object.freeze({
+          kind: 'disc-text-layout',
+          slotId: context.slot.id,
+          target,
+          key,
+          layout: Object.freeze({
+            x: fit.layout.x,
+            y: fit.layout.y,
+            width: fit.layout.width,
+            fontSizePt: fit.layout.fontSizePt,
+            align: fit.layout.align,
+            mode: fit.layout.mode,
+            avoidVisualElements: fit.layout.avoidVisualElements,
+          }),
+        })
+        const fittedRegion = Object.freeze({ ...fit.resolvedRegion })
+
+        return Object.freeze({
+          status: 'applied',
+          updates: Object.freeze([fittedUpdate]),
+          resolvedSlotPatch: Object.freeze({
+            slotId: context.slot.id,
+            resolvedContentRegion: fittedRegion,
+            resolvedActionRegion: fittedRegion,
+            status: fit.warnings.length > 0
+              ? 'adjusted'
+              : context.slot.status,
+          }),
+          warnings: Object.freeze(fit.warnings.map((kind) => Object.freeze({
+            kind,
+            slotId: 'disc:guided:legal-text:copyright' as const,
+            target: 'legal.copyright' as const,
+          }))),
+        })
+      }
+
       const update: DiscPresetOwnerUpdate = Object.freeze({
         kind: 'disc-text-layout',
         slotId: context.slot.id,
@@ -99,18 +200,6 @@ function createDiscTextPresetAdapter<TTarget extends DiscTextPresetTarget>(
         key,
         layout,
       })
-
-      if (target === 'legal.copyright' && context.placement.fit === 'region') {
-        return Object.freeze({
-          status: 'partial',
-          updates: Object.freeze([update]),
-          warnings: Object.freeze([Object.freeze({
-            kind: 'content-measurement-required',
-            slotId: 'disc:guided:legal-text:copyright',
-            target: 'legal.copyright',
-          })]),
-        })
-      }
 
       return Object.freeze({
         status: 'applied',

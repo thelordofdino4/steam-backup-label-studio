@@ -1145,8 +1145,14 @@ placement-only typed updates for title artwork/text, Background, primary Rating,
 primary Media Format Mark, primary Developer/Publisher Logos, and copyright
 text. Their focused owner-state slices support dormant disabled layouts without
 changing enablement or payload. Disc text uses the existing center-relative X
-contract. Legal region fitting reports a measurement-required partial result,
-and Background V1 supports only centered cover with zero pixel offset.
+contract. Legal region fitting receives browser-canvas measurement through an
+app-boundary service, reuses canonical straight-text render layout/bounds,
+checks both the requested region and template safe annulus, and returns a
+slot-local resolved geometry/status patch. Blank or disabled Legal receives
+dormant 7pt placement; fitting steps from 7pt to a 3pt minimum without
+truncation. Impossible content emits no owner update and marks only that slot
+unsupported. The generic engine and fit helper remain browser-independent.
+Background V1 supports only centered cover with zero pixel offset.
 
 Operating System Marks use a focused platform-mark/template owner slice and
 delegate resolved-region grouping to `placeGroupedPlatformMarks`. The helper
@@ -1176,23 +1182,33 @@ once through existing setters. Disabled fixed owners receive dormant placement
 without enablement or content changes.
 
 `src/hooks/useActiveDiscPreset.ts` owns the single transient canonical active
-preset reference used by guidance and late placement; it is cleared with the
-existing new/reset/workspace-exit/project-load lifecycle and never enters a
-project snapshot. `src/app/appActiveDiscPresetPlatformMarks.ts` requests only
-the OS group target and merges only x/y/scale. `usePlatformMarksState.ts`
+preset state: exact ID/revision plus the latest resolved runtime definition. It
+is cleared with the existing new/reset/workspace-exit/project-load lifecycle and
+never enters a project snapshot. Explicit application stores the final resolved
+definition; targeted OS or Legal application replaces only its matching
+resolved slot. Guidance consumes this state directly and fails closed when
+resolved geometry is unavailable. `src/app/appActiveDiscPresetPlatformMarks.ts`
+requests only the OS group target and merges only x/y/scale.
+`usePlatformMarksState.ts`
 composes selection, enablement, source/theme/custom-asset changes with that
 focused result before committing final platform-mark state. Direct layout
 x/y/scale changes do not call targeted placement, preventing effect or setter
-recursion.
+recursion. `src/app/appActiveDiscPresetLegalText.ts` similarly requests only
+`legal.copyright`; `useDiscTextState.ts` invokes it for next-state Legal
+enablement, canonical manual/metadata/rich content, and
+measurement-relevant style changes. Direct Legal layout edits do not refit,
+while an explicit preset reapply restores preset fitting.
 
 Classic applies adapter-safe output directly and does not run the legacy broad
 clamp sequence, so unrelated text rows, technical marks, repeated logos, and
 other untargeted state do not move. `discRolePresets.ts` retains only Classic
 menu metadata while the other two built-in presets continue using their legacy
-plans. Legal fitting keeps Classic application partial while allowing valid
-updates and transient guidance activation. Later eligible OS changes now
-re-resolve only the active preset's OS target and deterministically regroup the
-eligible marks without reapplying or reclamping any unrelated owner.
+plans. Normal Classic application is fully applied; only genuinely impossible
+Legal fitting or another structured placement failure remains partial. Later
+eligible OS changes re-resolve only the active preset's OS target, and later
+Legal semantic changes re-resolve only its Legal target, without reapplying or
+reclamping any unrelated owner. Guided placeholders project the same final
+resolved regions/statuses and hide unsupported slots.
 
 ### 12.4 Render/Edit/Export Paths
 

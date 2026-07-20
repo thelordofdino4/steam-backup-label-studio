@@ -84,14 +84,15 @@ serializable placement intents. The existing `classic-top-title` menu ID and
 the canonical `builtin:disc-preset:classic-top-title` identity. Alias lookup is
 centralized; aliases do not own geometry or independent slot catalogs.
 
-Issue #293 adds the first pure runtime application foundation without changing
-production owner behavior. `discPresetResolution.ts` distinguishes the
+Issue #293 provides the pure runtime application foundation and its focused
+production compatibility route. `discPresetResolution.ts` distinguishes the
 validated nominal definition from one transient resolved definition for the
 active Disc template. Resolution retains nominal and resolved content/action
 regions, preserves slot order, checks template compatibility and safe-annulus
 intersection, and reports structured adjusted, unsupported, incompatible, or
-invalid-template warnings. It does not inspect owner content or guess image and
-text bounds.
+invalid-template warnings. Template resolution does not inspect owner content;
+content-aware adapters may subsequently refine only their matching resolved
+slot through a validated slot patch.
 
 `discPresetPlacementAdapters.ts` owns the trusted semantic target registry
 contract. Adapters are application code, never parsed preset data. The immutable
@@ -115,13 +116,22 @@ Point adapters map the resolved content-region center to owner `x`/`y` and
 currently support deterministic positive fixed scale only. Disc text adapters
 convert center-based preset X to the current center-relative text contract with
 `text x = resolved center X - 50`; they seed straight mode, width, alignment,
-and an explicitly owned point size. Copyright `fit: region` produces the
-content-independent geometry plus a structured
-`content-measurement-required` partial warning because final Legal fitting is
-not implemented. Background V1 supports only centered `cover` placement: it
-sets the declared scale and canonical zero pixel offset while preserving the
-image and source. Non-centered Background regions are unsupported rather than
-being treated as arbitrary crop instructions.
+and an explicitly owned point size. Copyright `fit: region` uses an injected
+text-measurement service plus the canonical straight-text render layout and
+visual-bounds helpers. It centers Legal content in the resolved region at a
+preferred 7pt, reduces in deterministic 0.25pt steps to a 3pt minimum, checks
+both the requested region and active template safe annulus, and never truncates
+content. Blank or disabled Legal receives a dormant 7pt layout. Successful
+fitting returns the exact owner geometry as a slot-local resolved content/action
+patch; adjusted and minimum-size outcomes report structured warnings. A
+genuinely impossible fit emits no false Legal owner update, marks only that
+resolved slot unsupported, and leaves the overall application partial.
+Production measurement is browser-canvas backed and injected at the app
+boundary; the generic application engine and fitting helper have no browser
+dependency. Background V1 supports only centered `cover` placement: it sets the
+declared scale and canonical zero pixel offset while preserving the image and
+source. Non-centered Background regions are unsupported rather than being
+treated as arbitrary crop instructions.
 
 The Operating System Marks adapter consumes the resolved slot content region,
 a focused platform-mark state slice, and the active canonical Disc template.
@@ -153,21 +163,28 @@ dispatches each touched owner family once and does not run the legacy broad
 post-application clamp path for Classic. The other two built-in Disc presets
 remain on their existing legacy update plans.
 
-Classic application is currently `partial` because copyright region fitting
-still reports `content-measurement-required`; all valid updates are applied and
+Normal Classic application is now `applied`, including blank/disabled Legal and
+short or realistic enabled Legal content. Only genuine fitting or other
+placement failures keep the result `partial`; valid updates still apply and
 guided workflow activation remains allowed. A successful or accepted partial
-application records one transient canonical preset ID and exact revision in
-`useActiveDiscPreset`; failed application preserves the previous reference,
-legacy preset application replaces it with `null`, and the existing reset,
-workspace-exit, and project-load lifecycle clears it. The reference contains no
-geometry or owner state and is not persisted.
+application records one transient canonical preset ID/revision together with
+its latest resolved runtime definition in `useActiveDiscPreset`. Failed
+application preserves the previous state, legacy preset application replaces it
+with `null`, and the existing reset, workspace-exit, and project-load lifecycle
+clears it. Neither the active identity nor resolved definition is persisted.
 
-Late Operating System Mark eligibility changes now use that active reference to
+Late Operating System Mark eligibility changes now use that active state to
 re-resolve and apply only `operating-system-marks.enabled`. The platform-mark
 owner composes the user-requested next state, targeted grouped placement, and
-the final owner state before one state commit. Final Legal fitting and shared
-resolved guidance remain deferred. Custom preset storage, Save as Preset,
-editing, import/export UI, and repeatable placement intents remain deferred.
+the final owner state before one state commit. Legal enablement, canonical
+manual/metadata/rich content, and measurement-relevant style changes similarly
+invoke only `legal.copyright` against the next authoritative Legal state. Each
+targeted result replaces only its matching slot in the active resolved
+definition, so OS grouping and Legal fitting refinements coexist. Guided
+placeholder projection consumes that same active resolved definition and hides
+unsupported slots instead of falling back to nominal geometry. Custom preset
+storage, Save as Preset, editing, import/export UI, and repeatable placement
+intents remain deferred.
 
 Current role/navigation definitions live in:
 
@@ -458,8 +475,10 @@ transient template-specific data: it records the source preset ID/revision,
 active template ID, nominal and resolved regions, per-slot resolution status,
 placement intents, and structured warnings. Template-level resolution may clip
 a region to normalized Disc bounds or reject/mark a region that cannot intersect
-the safe annulus; owner-content-dependent fitting remains a later adapter stage.
-No resolved preset is saved to the project schema in this chunk.
+the safe annulus. A content-aware adapter may return one exact slot patch after
+owner-specific fitting; the engine validates slot identity and merges at most
+one patch per invocation without changing nominal geometry or slot order. No
+resolved preset is saved to the project schema.
 
 Application planning consumes a resolution result plus a trusted adapter
 registry and focused semantic owner-state slices. Unsupported slots are skipped.
@@ -496,6 +515,15 @@ in a way that can affect renderability or bounds, reflows every currently
 eligible OS mark inside the active preset's resolved group region. This may
 replace manual OS positions. It never moves another preset target, and ordinary
 unrelated project edits do not trigger regrouping.
+
+Legal text is the focused content-fit exception. Direct Legal `x`, `y`, width,
+point-size, and other layout edits remain normal owner state and do not trigger
+an immediate refit. While a compatible preset remains active, changing Legal
+enablement, canonical resolved content, rich-text source, font family, bold, or
+italic refits only `legal.copyright` and may replace its manual placement.
+Style reset/preset actions also refit. Explicit full preset reapplication
+restores the preset Legal center and fit. No effect watches owner coordinates,
+and no unrelated text row is reapplied.
 
 Reset behavior should remain feature-owned for #270. Existing actions such as
 reset title artwork layout, reset rating badge layout, reset logo layout, reset
@@ -584,7 +612,10 @@ also resolve independently. The preset no longer auto-enables Media Format and
 does not enable Rating, OS marks, either primary logo, or Copyright. Existing
 enabled/renderable content is repositioned while text/assets, selected values,
 sources, themes, custom images, and disabled state remain feature-owner data.
-No preset identity, guided lifecycle, or slot completion state is persisted.
+Legal's nominal `50, 85, 46, 8` region is measured against its canonical
+manual, metadata, or rich content; the same final resolved region/status drives
+its guided placeholder. No preset identity, resolved runtime definition,
+guided lifecycle, or slot completion state is persisted.
 
 ## 16. Disc-First Implementation Guidance For #270
 

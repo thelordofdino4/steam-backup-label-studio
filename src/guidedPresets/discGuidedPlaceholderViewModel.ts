@@ -1,12 +1,13 @@
 import {
-  getDiscGuidedLayoutDefinition,
-  getDiscGuidedLayoutSlotDefinition,
-  type DiscGuidedLayoutId,
+  createDiscGuidedLayoutDefinitionFromResolvedPreset,
   type DiscGuidedLayoutSlotDefinition,
   type DiscGuidedPlaceholderLayer,
   type DiscGuidedRectGeometry,
   type DiscGuidedSetupKind,
 } from './discGuidedLayouts.ts'
+import type {
+  ResolvedDiscPresetDefinition,
+} from '../presets/discPresetResolution.ts'
 import {
   resolveDiscGuidedSlot,
   type DiscGuidedSlotId,
@@ -23,6 +24,7 @@ export type DiscGuidedPlaceholderViewModel = Readonly<{
   lifecycle: 'unfilled' | 'suggested'
   setupKind: DiscGuidedSetupKind
   ownerContentLayering: 'guidance-behind-real-content'
+  resolutionStatus: 'resolved' | 'adjusted'
 }>
 
 const NO_PLACEHOLDERS = Object.freeze([]) as readonly DiscGuidedPlaceholderViewModel[]
@@ -34,7 +36,11 @@ export function projectDiscGuidedPlaceholderViewModel({
   layoutSlot: DiscGuidedLayoutSlotDefinition | null
   lifecycle: 'unfilled' | 'suggested' | 'filled' | 'skipped'
 }): DiscGuidedPlaceholderViewModel | null {
-  if (!layoutSlot || (lifecycle !== 'unfilled' && lifecycle !== 'suggested')) {
+  if (
+    !layoutSlot ||
+    layoutSlot.resolutionStatus === 'unsupported' ||
+    (lifecycle !== 'unfilled' && lifecycle !== 'suggested')
+  ) {
     return null
   }
 
@@ -47,32 +53,35 @@ export function projectDiscGuidedPlaceholderViewModel({
     lifecycle,
     setupKind: layoutSlot.setupKind,
     ownerContentLayering: 'guidance-behind-real-content',
+    resolutionStatus: layoutSlot.resolutionStatus,
   })
 }
 
 export function createDiscGuidedPlaceholderViewModels({
-  activeLayoutId,
+  resolvedPreset,
   state,
   suggestions,
   skippedSlotIds,
 }: {
-  activeLayoutId: DiscGuidedLayoutId | null
+  resolvedPreset: ResolvedDiscPresetDefinition | null
   state: DiscGuidedSlotState
   suggestions: readonly DiscGuidedSlotSuggestion[]
   skippedSlotIds: ReadonlySet<DiscGuidedSlotId>
 }): readonly DiscGuidedPlaceholderViewModel[] {
-  if (!activeLayoutId) {
+  if (!resolvedPreset) {
     return NO_PLACEHOLDERS
   }
 
-  const layout = getDiscGuidedLayoutDefinition(activeLayoutId)
+  const layout = createDiscGuidedLayoutDefinitionFromResolvedPreset(
+    resolvedPreset,
+  )
 
   if (!layout) {
     return NO_PLACEHOLDERS
   }
 
   return Object.freeze(layout.slotOrder.flatMap((slotId) => {
-    const layoutSlot = getDiscGuidedLayoutSlotDefinition(activeLayoutId, slotId)
+    const layoutSlot = layout.slots[slotId] ?? null
 
     if (!layoutSlot) return []
 

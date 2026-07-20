@@ -389,13 +389,21 @@ Source-of-truth state:
   dispatches each touched owner family once without Classic's legacy broad
   post-clamp behavior. `discPresetTargetedApplication.ts` owns exact
   ID/revision and one-target resolution with structured fail-closed outcomes.
-  `useActiveDiscPreset.ts` owns the non-persisted canonical active reference.
+  Content-aware adapters may return one validated resolved-slot patch;
+  application merges it without changing nominal geometry or slot order.
+  Legal fitting uses app-injected browser-canvas measurement and canonical
+  straight-text render bounds while the pure engine remains browser-free.
+  `useActiveDiscPreset.ts` owns the non-persisted canonical active ID/revision
+  and latest resolved runtime definition. Guided projection consumes that
+  resolved definition and suppresses unsupported slots.
   `appActiveDiscPresetPlatformMarks.ts` and `usePlatformMarksState.ts` compose
   late OS eligibility/bounds changes with only the production OS adapter before
   the final owner-state commit; layout x/y/scale updates do not recurse.
+  `appActiveDiscPresetLegalText.ts` and `useDiscTextState.ts` do the same for
+  Legal enablement, canonical content, and measurement-relevant styles while
+  leaving direct Legal layout edits alone.
   `discRolePresets.ts` retains Classic menu metadata only; Centered Logo Archive
-  and Clean Metadata Footer remain on the transitional legacy path. Legal
-  measurement remains open.
+  and Clean Metadata Footer remain on the transitional legacy path.
 
 Render path:
 

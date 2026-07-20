@@ -53,6 +53,13 @@ export type ResolvedDiscPresetSlot = Readonly<{
   warnings: readonly DiscPresetResolutionWarning[]
 }>
 
+export type DiscPresetResolvedSlotPatch = Readonly<{
+  slotId: DiscGuidedSlotId
+  resolvedContentRegion?: DiscNormalizedRegion
+  resolvedActionRegion?: DiscNormalizedRegion
+  status?: DiscPresetSlotResolutionStatus
+}>
+
 export type ResolvedDiscPresetDefinition = Readonly<{
   sourcePresetId: DiscPresetId
   sourceRevision: number
@@ -100,6 +107,46 @@ function freezeWarning<T extends DiscPresetResolutionWarning>(warning: T): T {
 
 function freezeRegion(region: DiscNormalizedRegion): DiscNormalizedRegion {
   return Object.freeze({ ...region })
+}
+
+export function applyDiscPresetResolvedSlotPatches(
+  preset: ResolvedDiscPresetDefinition,
+  patches: readonly DiscPresetResolvedSlotPatch[],
+): ResolvedDiscPresetDefinition {
+  if (patches.length === 0) return preset
+
+  const patchesBySlotId = new Map(
+    patches.map((patch) => [patch.slotId, patch] as const),
+  )
+  const slots = Object.freeze(preset.slots.map((slot) => {
+    const patch = patchesBySlotId.get(slot.id)
+
+    if (!patch) return slot
+
+    return Object.freeze({
+      ...slot,
+      ...(patch.resolvedContentRegion
+        ? {
+            resolvedContentRegion: freezeRegion(
+              patch.resolvedContentRegion,
+            ),
+          }
+        : {}),
+      ...(patch.resolvedActionRegion
+        ? {
+            resolvedActionRegion: freezeRegion(
+              patch.resolvedActionRegion,
+            ),
+          }
+        : {}),
+      ...(patch.status ? { status: patch.status } : {}),
+    })
+  }))
+
+  return Object.freeze({
+    ...preset,
+    slots,
+  })
 }
 
 function getRegionBounds(region: DiscNormalizedRegion): RegionBounds {

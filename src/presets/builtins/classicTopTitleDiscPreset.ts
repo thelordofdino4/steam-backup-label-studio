@@ -156,8 +156,8 @@ const CLASSIC_TOP_TITLE_DISC_PRESET_SOURCE = {
       id: 'disc:guided:legal-text:copyright',
       contentRegion: {
         centerXPercent: 50,
-        centerYPercent: 89,
-        widthPercent: 64,
+        centerYPercent: 85,
+        widthPercent: 46,
         heightPercent: 8,
       },
       visualLayer: 'foreground',
