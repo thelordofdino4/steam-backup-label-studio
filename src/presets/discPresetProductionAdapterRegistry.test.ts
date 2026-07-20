@@ -355,18 +355,62 @@ test('an arbitrary validated preset uses the same rating adapter generically', (
   }])
 })
 
-test('production modules do not route through the concrete registry yet', () => {
-  const productionSources = [
-    '../app/App.tsx',
-    '../app/appDiscRolePresetApplication.ts',
-    '../layout/discRolePresets.ts',
-    '../guidedPresets/discGuidedLayouts.ts',
+test('focused app wrapper exclusively owns the production adapter registry', () => {
+  const registeredApplicationSource = readFileSync(
+    new URL(
+      '../app/appRegisteredDiscPresetApplication.ts',
+      import.meta.url,
+    ),
+    'utf8',
+  )
+  const appSource = readFileSync(
+    new URL('../app/App.tsx', import.meta.url),
+    'utf8',
+  )
+  const genericEngineSources = [
+    './discPresetApplication.ts',
+    './discPresetTargetedApplication.ts',
   ].map((path) =>
     readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n')
+  const legacyRolePresetSources = [
+    '../app/appDiscRolePresetApplication.ts',
+    '../layout/discRolePresets.ts',
+  ].map((path) =>
+    readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n')
+  const guidedSources = [
+    '../guidedPresets/discGuidedLayouts.ts',
+    '../guidedPresets/discGuidedPlaceholderViewModel.ts',
+  ].map((path) =>
+    readFileSync(new URL(path, import.meta.url), 'utf8')).join('\n')
+  const definitionSource = readFileSync(
+    new URL('./discPresetDefinition.ts', import.meta.url),
+    'utf8',
+  )
+  const concreteRegistryPattern =
+    /discPresetProductionAdapterRegistry|DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY/
+  const registryConstructionPattern =
+    /createDiscPresetPlacementAdapterRegistry|DISC_PRESET_PRODUCTION_ADAPTERS/
 
+  assert.match(registeredApplicationSource, concreteRegistryPattern)
+  assert.match(
+    registeredApplicationSource,
+    /adapterRegistry:\s*DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY/,
+  )
+  assert.match(
+    genericEngineSources,
+    /adapterRegistry:\s*DiscPresetPlacementAdapterRegistry/,
+  )
+  assert.match(genericEngineSources, /adapterRegistry\.get\(/)
+  assert.doesNotMatch(genericEngineSources, concreteRegistryPattern)
+  assert.doesNotMatch(appSource, concreteRegistryPattern)
+  assert.doesNotMatch(appSource, registryConstructionPattern)
+  assert.doesNotMatch(legacyRolePresetSources, concreteRegistryPattern)
+  assert.doesNotMatch(legacyRolePresetSources, registryConstructionPattern)
+  assert.doesNotMatch(guidedSources, concreteRegistryPattern)
+  assert.doesNotMatch(guidedSources, registryConstructionPattern)
   assert.doesNotMatch(
-    productionSources,
-    /discPresetProductionAdapterRegistry|DISC_PRESET_PRODUCTION_ADAPTER_REGISTRY/,
+    definitionSource,
+    /adapterRegistry|DiscPresetPlacementAdapter|buildUpdate|createDiscPresetPlacementAdapterRegistry/,
   )
 })
 

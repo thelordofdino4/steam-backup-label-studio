@@ -7,8 +7,14 @@ import {
   fitStraightDiscTextToRegion,
 } from './fitStraightTextToRegion.ts'
 import { createDefaultDiscTextLayout } from './index.ts'
+import {
+  getStraightDiscTextRenderLayout,
+  getStraightDiscTextVisualBounds,
+  type StraightDiscTextVisualBounds,
+} from './renderLayout.ts'
 import { createDefaultDiscTextStyles } from './styles.ts'
 
+const NORMALIZED_CENTER_TOLERANCE = 0.001
 const template = discTemplates.standardPrintableDisc
 const currentLayout = createDefaultDiscTextLayout(
   'top',
@@ -39,6 +45,73 @@ function fit(content: string, richText?: ReturnType<typeof parseHtmlText>) {
   })
 }
 
+function expectBoundsCenterToMatchRegion(
+  bounds: StraightDiscTextVisualBounds,
+) {
+  assert.ok(
+    Math.abs(bounds.centerX - region.centerXPercent) <=
+      NORMALIZED_CENTER_TOLERANCE,
+    `Expected visual center X ${bounds.centerX} to match ` +
+      `${region.centerXPercent} within ${NORMALIZED_CENTER_TOLERANCE}`,
+  )
+  assert.ok(
+    Math.abs(bounds.centerY - region.centerYPercent) <=
+      NORMALIZED_CENTER_TOLERANCE,
+    `Expected visual center Y ${bounds.centerY} to match ` +
+      `${region.centerYPercent} within ${NORMALIZED_CENTER_TOLERANCE}`,
+  )
+
+  const regionLeft = region.centerXPercent - region.widthPercent / 2
+  const regionRight = region.centerXPercent + region.widthPercent / 2
+  const regionTop = region.centerYPercent - region.heightPercent / 2
+  const regionBottom = region.centerYPercent + region.heightPercent / 2
+
+  assert.ok(
+    bounds.centerX - bounds.halfWidth >=
+      regionLeft - NORMALIZED_CENTER_TOLERANCE,
+  )
+  assert.ok(
+    bounds.centerX + bounds.halfWidth <=
+      regionRight + NORMALIZED_CENTER_TOLERANCE,
+  )
+  assert.ok(
+    bounds.centerY - bounds.halfHeight >=
+      regionTop - NORMALIZED_CENTER_TOLERANCE,
+  )
+  assert.ok(
+    bounds.centerY + bounds.halfHeight <=
+      regionBottom + NORMALIZED_CENTER_TOLERANCE,
+  )
+}
+
+function fitAndExpectVisualBoundsParity(
+  content: string,
+  richText?: ReturnType<typeof parseHtmlText>,
+) {
+  const result = fit(content, richText)
+
+  assert.equal(result.status, 'fitted')
+  if (result.status !== 'fitted') {
+    assert.fail('Expected Legal content to fit')
+  }
+
+  const renderLayout = getStraightDiscTextRenderLayout(
+    'copyright',
+    content,
+    result.layout,
+    measureText,
+    styles,
+    richText ? { richText, template } : { template },
+  )
+  const bounds = getStraightDiscTextVisualBounds(
+    renderLayout,
+    measureText,
+  )
+
+  expectBoundsCenterToMatchRegion(bounds)
+  return result
+}
+
 test('blank Legal content receives dormant centered 7pt placement', () => {
   const result = fit('')
 
@@ -55,36 +128,30 @@ test('blank Legal content receives dormant centered 7pt placement', () => {
 })
 
 test('short and realistic Legal content fit without truncation', () => {
-  const short = fit('Copyright 2026 Example Studios.')
-  const realistic = fit(
+  const short = fitAndExpectVisualBoundsParity(
+    'Copyright 2026 Example Studios.',
+  )
+  const realistic = fitAndExpectVisualBoundsParity(
     'Copyright 2026 Example Studios. Published by Example Publishing. ' +
     'Steam and the Steam logo are trademarks of Valve Corporation. ' +
     'All other trademarks are property of their respective owners.',
   )
 
-  assert.equal(short.status, 'fitted')
-  assert.equal(
-    short.status === 'fitted' ? short.layout.fontSizePt : null,
-    7,
-  )
-  assert.equal(realistic.status, 'fitted')
+  assert.equal(short.layout.fontSizePt, 7)
   assert.ok(
-    realistic.status === 'fitted' &&
-      realistic.layout.fontSizePt >= 3 &&
+    realistic.layout.fontSizePt >= 3 &&
       realistic.layout.fontSizePt <= 7,
   )
 })
 
 test('dense Legal content reports deterministic adjustment warnings', () => {
-  const result = fit(
+  const result = fitAndExpectVisualBoundsParity(
     Array.from(
       { length: 12 },
       (_, index) => `Clause ${index + 1}: reserved legal terms`,
     ).join(' '),
   )
 
-  assert.equal(result.status, 'fitted')
-  if (result.status !== 'fitted') return
   assert.ok(result.layout.fontSizePt < 7)
   assert.ok(result.warnings.includes('text-fit-adjusted'))
 })
@@ -95,10 +162,12 @@ test('line breaks and rich run measurement participate in fitting', () => {
     '<em>Published by Example Publishing.</em><br>' +
     '<span style="font-family: Georgia">All rights reserved.</span>',
   )
-  const result = fit(richText.plainText, richText)
+  const result = fitAndExpectVisualBoundsParity(
+    richText.plainText,
+    richText,
+  )
 
-  assert.equal(result.status, 'fitted')
-  assert.ok(result.status === 'fitted' && result.layout.fontSizePt <= 7)
+  assert.ok(result.layout.fontSizePt <= 7)
 })
 
 test('content that cannot fit at 3pt is reported without truncation', () => {
