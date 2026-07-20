@@ -19,6 +19,7 @@ import { discTemplates } from '../templates/discTemplates.ts'
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
+  hasDiscPresetLegalFitImpossibleWarning,
   isActiveDiscPresetLegalFitImpossible,
 } from './appActiveDiscPresetLegalText.ts'
 import {
@@ -132,6 +133,16 @@ test('impossible late Legal content preserves owner layout and hides its resolve
   assert.equal(
     isActiveDiscPresetLegalFitImpossible(result.application),
     true,
+  )
+  assert.equal(
+    hasDiscPresetLegalFitImpossibleWarning(
+      result.application?.warnings ?? [],
+    ),
+    true,
+  )
+  assert.equal(
+    hasDiscPresetLegalFitImpossibleWarning([]),
+    false,
   )
   assert.match(
     ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
@@ -267,5 +278,25 @@ test('late Legal integration uses targeted planning and no effects or broad pres
   assert.match(
     hookSource,
     /function enableCurvedCopyrightDiscText[\s\S]*?applyActivePresetCopyrightLayout/,
+  )
+
+  const appSource = readFileSync(
+    new URL('./App.tsx', import.meta.url),
+    'utf8',
+  )
+  const applyPresetHandler = appSource.slice(
+    appSource.indexOf('function handleApplyDiscRolePreset'),
+    appSource.indexOf('function handleRatingBadgeEnabledChange'),
+  )
+  assert.match(
+    applyPresetHandler,
+    /hasDiscPresetLegalFitImpossibleWarning\(result\.warnings\)/,
+  )
+  assert.ok(
+    applyPresetHandler.indexOf(
+      'hasDiscPresetLegalFitImpossibleWarning(result.warnings)',
+    ) < applyPresetHandler.indexOf(
+      'announceStatus(`Applied ${result.preset.label} layout preset.`)',
+    ),
   )
 })

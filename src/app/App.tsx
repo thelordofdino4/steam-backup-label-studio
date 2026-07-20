@@ -86,6 +86,7 @@ import {
 import {
   ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE,
   applyActiveDiscPresetToLegalTextState,
+  hasDiscPresetLegalFitImpossibleWarning,
   isActiveDiscPresetLegalFitImpossible,
 } from './appActiveDiscPresetLegalText'
 import type {
@@ -827,6 +828,14 @@ function App() {
       result.activeResolvedPreset,
       true,
     )
+
+    if (hasDiscPresetLegalFitImpossibleWarning(result.warnings)) {
+      lastAnnouncedImpossibleLegalPresetRef.current =
+        result.activePresetRef
+      announceStatus(ACTIVE_DISC_PRESET_LEGAL_FIT_IMPOSSIBLE_MESSAGE)
+      return true
+    }
+
     announceStatus(`Applied ${result.preset.label} layout preset.`)
     return true
   }
