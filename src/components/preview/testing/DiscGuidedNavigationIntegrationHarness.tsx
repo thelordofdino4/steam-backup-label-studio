@@ -40,6 +40,9 @@ import {
   shouldOpenRatingPanelForRequest,
 } from '../../editor/discRatingRoleFocusRegistration.ts'
 import type { EditorRoleFocusRequest } from '../../../editor/editorRoleFocus.ts'
+import type {
+  EditorRoleFocusRequestInput,
+} from '../../../editor/editorRoleFocusController.ts'
 import {
   getDiscGuidedLayoutDefinition,
 } from '../../../guidedPresets/discGuidedLayouts.ts'
@@ -86,6 +89,7 @@ type GuidedNavigationHarnessApi = {
   getFeatureSnapshot: () => HarnessFeatureState & { serializedProject: string }
   getPendingRequest: () => EditorRoleFocusRequest | null
   requestLog: EditorRoleFocusRequest[]
+  requestRoleFocus: (request: EditorRoleFocusRequestInput) => void
   setFeatureEnabled: (feature: ToggleableFeature, enabled: boolean) => void
 }
 
@@ -193,6 +197,8 @@ function GuidedNavigationHarnessContent() {
   const {
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+    requestRoleFocus,
     setRoleOpen,
     state: navigationState,
   } = useEditorRoleFocus()
@@ -214,10 +220,14 @@ function GuidedNavigationHarnessContent() {
   const ratingSystemRef = useRef<HTMLSelectElement | null>(null)
   const mediaEnableRef = useRef<HTMLInputElement | null>(null)
   const mediaFormatRef = useRef<HTMLSelectElement | null>(null)
+  const mediaSectionRef = useRef<HTMLDetailsElement | null>(null)
   const operatingSystemEnableRef = useRef<HTMLInputElement | null>(null)
+  const operatingSystemSectionRef = useRef<HTMLDetailsElement | null>(null)
   const developerEnableRef = useRef<HTMLInputElement | null>(null)
+  const developerSectionRef = useRef<HTMLDivElement | null>(null)
   const developerUploadRef = useRef<HTMLInputElement | null>(null)
   const publisherEnableRef = useRef<HTMLInputElement | null>(null)
+  const publisherSectionRef = useRef<HTMLDivElement | null>(null)
   const publisherUploadRef = useRef<HTMLInputElement | null>(null)
   const copyrightRef = useRef<HTMLInputElement | null>(null)
   const pendingRequest = navigationState.pendingRequest
@@ -256,9 +266,16 @@ function GuidedNavigationHarnessContent() {
       getFeatureSnapshot: () => cloneFeatureState(featureState),
       getPendingRequest: () => navigationState.pendingRequest,
       requestLog: requestLogRef.current,
+      requestRoleFocus,
       setFeatureEnabled,
     }
-  }, [featureState, navigationState.pendingRequest, pendingRequest, setFeatureEnabled])
+  }, [
+    featureState,
+    navigationState.pendingRequest,
+    pendingRequest,
+    requestRoleFocus,
+    setFeatureEnabled,
+  ])
 
   useLayoutEffect(() => registerAlwaysMountedGameTitleFocusTargets({
     artworkEnableElement: () => artworkEnableRef.current,
@@ -310,7 +327,14 @@ function GuidedNavigationHarnessContent() {
     openMediaPanel,
     registerFocusTarget,
     registerFocusTargetFallback,
-  }), [openMediaPanel, registerFocusTarget, registerFocusTargetFallback])
+    registerSectionAlignmentTarget,
+    sectionElement: () => mediaSectionRef.current,
+  }), [
+    openMediaPanel,
+    registerFocusTarget,
+    registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => {
     if (!featureState.enabled.media) return undefined
@@ -325,15 +349,29 @@ function GuidedNavigationHarnessContent() {
     enableElement: () => operatingSystemEnableRef.current,
     openOperatingSystemPanel,
     registerFocusTarget,
-  }), [openOperatingSystemPanel, registerFocusTarget])
+    registerSectionAlignmentTarget,
+    sectionElement: () => operatingSystemSectionRef.current,
+  }), [
+    openOperatingSystemPanel,
+    registerFocusTarget,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => registerAlwaysMountedCompanyLogoFocusTargets({
     developerEnableElement: () => developerEnableRef.current,
+    developerSectionElement: () => developerSectionRef.current,
     openCompanyLogoPanel: openCompanyPanel,
     publisherEnableElement: () => publisherEnableRef.current,
+    publisherSectionElement: () => publisherSectionRef.current,
     registerFocusTarget,
     registerFocusTargetFallback,
-  }), [openCompanyPanel, registerFocusTarget, registerFocusTargetFallback])
+    registerSectionAlignmentTarget,
+  }), [
+    openCompanyPanel,
+    registerFocusTarget,
+    registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
+  ])
 
   useLayoutEffect(() => {
     if (!featureState.enabled.developer) return undefined
@@ -451,6 +489,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="media">
             <EditorFeaturePanel
               title="Media format mark"
+              detailsRef={mediaSectionRef}
               open={mediaOpen}
               onOpenChange={setMediaPanelOpen}
             >
@@ -458,6 +497,7 @@ function GuidedNavigationHarnessContent() {
                 <input
                   ref={mediaEnableRef}
                   id="integration-media-enable"
+                  data-simulate-focus-scroll="nearest"
                   type="checkbox"
                   checked={featureState.enabled.media}
                   onChange={(event) => setFeatureEnabled('media', event.target.checked)}
@@ -468,6 +508,7 @@ function GuidedNavigationHarnessContent() {
                 <select
                   ref={mediaFormatRef}
                   id="integration-media-format"
+                  data-simulate-focus-scroll="nearest"
                   value={featureState.selectedValues.mediaFormat}
                   onChange={() => undefined}
                 >
@@ -481,6 +522,7 @@ function GuidedNavigationHarnessContent() {
           <div data-nested-panel="operating-system">
             <EditorFeaturePanel
               title="Operating system marks"
+              detailsRef={operatingSystemSectionRef}
               open={operatingSystemOpen}
               onOpenChange={setOperatingSystemPanelOpen}
             >
@@ -488,6 +530,7 @@ function GuidedNavigationHarnessContent() {
                 <input
                   ref={operatingSystemEnableRef}
                   id="integration-operating-system-enable"
+                  data-simulate-focus-scroll="nearest"
                   type="checkbox"
                 />
                 Show operating system marks
@@ -503,42 +546,58 @@ function GuidedNavigationHarnessContent() {
               open={companyOpen}
               onOpenChange={setCompanyPanelOpen}
             >
-              <label>
-                <input
-                  ref={developerEnableRef}
-                  id="integration-developer-enable"
-                  type="checkbox"
-                  checked={featureState.enabled.developer}
-                  onChange={(event) => setFeatureEnabled('developer', event.target.checked)}
-                />
-                Show developer logo
-              </label>
-              {featureState.enabled.developer ? (
-                <input
-                  ref={developerUploadRef}
-                  id="integration-developer-upload"
-                  className="logo-file-input"
-                  type="file"
-                />
-              ) : null}
-              <label>
-                <input
-                  ref={publisherEnableRef}
-                  id="integration-publisher-enable"
-                  type="checkbox"
-                  checked={featureState.enabled.publisher}
-                  onChange={(event) => setFeatureEnabled('publisher', event.target.checked)}
-                />
-                Show publisher logo
-              </label>
-              {featureState.enabled.publisher ? (
-                <input
-                  ref={publisherUploadRef}
-                  id="integration-publisher-upload"
-                  className="logo-file-input"
-                  type="file"
-                />
-              ) : null}
+              <div
+                ref={developerSectionRef}
+                className="logo-asset-card editor-nested-panel"
+                data-nested-panel="developer"
+              >
+                <label>
+                  <input
+                    ref={developerEnableRef}
+                    id="integration-developer-enable"
+                    data-simulate-focus-scroll="nearest"
+                    type="checkbox"
+                    checked={featureState.enabled.developer}
+                    onChange={(event) => setFeatureEnabled('developer', event.target.checked)}
+                  />
+                  Show developer logo
+                </label>
+                {featureState.enabled.developer ? (
+                  <input
+                    ref={developerUploadRef}
+                    id="integration-developer-upload"
+                    className="logo-file-input"
+                    data-simulate-focus-scroll="nearest"
+                    type="file"
+                  />
+                ) : null}
+              </div>
+              <div
+                ref={publisherSectionRef}
+                className="logo-asset-card editor-nested-panel"
+                data-nested-panel="publisher"
+              >
+                <label>
+                  <input
+                    ref={publisherEnableRef}
+                    id="integration-publisher-enable"
+                    data-simulate-focus-scroll="nearest"
+                    type="checkbox"
+                    checked={featureState.enabled.publisher}
+                    onChange={(event) => setFeatureEnabled('publisher', event.target.checked)}
+                  />
+                  Show publisher logo
+                </label>
+                {featureState.enabled.publisher ? (
+                  <input
+                    ref={publisherUploadRef}
+                    id="integration-publisher-upload"
+                    className="logo-file-input"
+                    data-simulate-focus-scroll="nearest"
+                    type="file"
+                  />
+                ) : null}
+              </div>
             </EditorFeaturePanel>
           </div>
         </RolePanel>

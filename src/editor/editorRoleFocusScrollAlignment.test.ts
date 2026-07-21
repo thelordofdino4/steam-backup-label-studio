@@ -23,11 +23,15 @@ const layoutFixCss = readFileSync(
   'utf8',
 )
 
-test('sidebar padding and role scroll margin share a named inset contract', () => {
+test('sidebar role and nested-section scroll margins use named inset contracts', () => {
   assert.match(baseCss, /--editor-sidebar-content-inset:\s*24px/)
   assert.match(
     baseCss,
     /--editor-role-scroll-inset:\s*var\(--editor-sidebar-content-inset\)/,
+  )
+  assert.match(
+    baseCss,
+    /--editor-section-scroll-inset:\s*var\(--editor-sidebar-content-inset\)/,
   )
   assert.match(
     baseCss,
@@ -36,6 +40,14 @@ test('sidebar padding and role scroll margin share a named inset contract', () =
   assert.match(
     panelCss,
     /\.sidebar > \.collapsible-panel > \.panel-summary\s*\{[\s\S]*scroll-margin-block-start:\s*var\(--editor-role-scroll-inset\)/,
+  )
+  assert.match(
+    panelCss,
+    /\.sidebar \.editor-nested-panel\s*\{[\s\S]*scroll-margin-block-start:\s*var\(--editor-section-scroll-inset\)/,
+  )
+  assert.match(
+    panelCss,
+    /\.sidebar \.logo-asset-card\s*\{[\s\S]*scroll-margin-block-start:\s*var\(--editor-section-scroll-inset\)/,
   )
 })
 
@@ -54,10 +66,33 @@ test('desktop sidebar and narrow document retain their existing scroll ownership
   )
 })
 
-test('alignment uses registered role refs and element scrolling without container arithmetic', () => {
+test('section alignment uses separate registered refs without container arithmetic', () => {
   assert.match(rolePanelSource, /detailsElement:\s*\(\) => detailsRef\.current/)
   assert.match(rolePanelSource, /summaryElement:\s*\(\) => summaryRef\.current/)
   assert.match(controllerSource, /element\.scrollIntoView\(\{ block, behavior: 'auto' \}\)/)
+  assert.match(controllerSource, /registerSectionAlignmentTarget/)
+  const sectionBranchStart = controllerSource.indexOf(
+    "if (request.scrollAlignment === 'section-start') {",
+  )
+  const sectionBranchEnd = controllerSource.indexOf(
+    '} else if (focusTarget) {',
+    sectionBranchStart,
+  )
+  assert.ok(sectionBranchStart >= 0)
+  assert.ok(sectionBranchEnd > sectionBranchStart)
+  const sectionBranch = controllerSource.slice(
+    sectionBranchStart,
+    sectionBranchEnd,
+  )
+  assert.match(
+    sectionBranch,
+    /revealElement\(sectionTarget, 'start'\)[\s\S]*focusElement\(focusTarget\)[\s\S]*revealElement\(sectionTarget, 'start'\)/,
+  )
+  assert.doesNotMatch(sectionBranch, /revealElement\(focusTarget/)
+  assert.match(
+    sectionBranch,
+    /section-alignment-target-unavailable[\s\S]*section-focus-target-unavailable[\s\S]*section-target-conflict/,
+  )
   assert.doesNotMatch(controllerSource, /24px|scrollTop|scrollTo\(|clientTop|offsetTop/)
 })
 

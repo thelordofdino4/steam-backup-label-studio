@@ -389,11 +389,8 @@ function resolveLogoBinding(
   const layout = candidate.logoKey === 'developer'
     ? state.logoAssets.developerLogoLayout
     : state.logoAssets.publisherLogoLayout
-  const imageDataUrl = candidate.logoKey === 'developer'
-    ? state.logoAssets.developerLogoDataUrl
-    : state.logoAssets.publisherLogoDataUrl
 
-  return isOptionalVisualFeatureEnabled(layout) && Boolean(imageDataUrl)
+  return isOptionalVisualFeatureEnabled(layout)
     ? candidate
     : null
 }

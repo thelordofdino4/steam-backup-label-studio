@@ -26,12 +26,15 @@ export function DiscCompanyLogosRoleControls({
   const {
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
     state,
   } = useEditorRoleFocus()
   const [companyLogoPanelOpen, setCompanyLogoPanelOpen] = useState(false)
   const developerEnableRef = useRef<HTMLInputElement | null>(null)
+  const developerSectionRef = useRef<HTMLDivElement | null>(null)
   const developerUploadRef = useRef<HTMLInputElement | null>(null)
   const publisherEnableRef = useRef<HTMLInputElement | null>(null)
+  const publisherSectionRef = useRef<HTMLDivElement | null>(null)
   const publisherUploadRef = useRef<HTMLInputElement | null>(null)
   const openCompanyLogoPanel = useCallback(
     () => setCompanyLogoPanelOpen(true),
@@ -46,14 +49,18 @@ export function DiscCompanyLogosRoleControls({
 
   useLayoutEffect(() => registerAlwaysMountedCompanyLogoFocusTargets({
     developerEnableElement: () => developerEnableRef.current,
+    developerSectionElement: () => developerSectionRef.current,
     openCompanyLogoPanel,
     publisherEnableElement: () => publisherEnableRef.current,
+    publisherSectionElement: () => publisherSectionRef.current,
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
   }), [
     openCompanyLogoPanel,
     registerFocusTarget,
     registerFocusTargetFallback,
+    registerSectionAlignmentTarget,
   ])
 
   useLayoutEffect(() => {
@@ -80,10 +87,12 @@ export function DiscCompanyLogosRoleControls({
     <CompanyLogoControls
       {...brandingControls}
       developerEnableControlRef={developerEnableRef}
+      developerSectionRef={developerSectionRef}
       developerUploadControlRef={developerUploadRef}
       onPanelOpenChange={setCompanyLogoPanelOpen}
       panelOpen={companyLogoPanelOpen || companyLogoPanelFocusPending}
       publisherEnableControlRef={publisherEnableRef}
+      publisherSectionRef={publisherSectionRef}
       publisherUploadControlRef={publisherUploadRef}
     />
   )

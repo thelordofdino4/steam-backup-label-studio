@@ -9,11 +9,13 @@ import type { BrandingPanelProps } from './types'
 type GameInfoLogoControlsProps = BrandingPanelProps & {
   mediaEnableControlRef?: Ref<HTMLInputElement>
   mediaFormatControlRef?: Ref<HTMLSelectElement>
+  mediaPanelDetailsRef?: Ref<HTMLDetailsElement>
   mediaPanelOpen?: boolean
   onMediaPanelOpenChange?: (open: boolean) => void
   onOperatingSystemPanelOpenChange?: (open: boolean) => void
   onRatingPanelOpenChange?: (open: boolean) => void
   operatingSystemEnableControlRef?: Ref<HTMLInputElement>
+  operatingSystemPanelDetailsRef?: Ref<HTMLDetailsElement>
   operatingSystemPanelOpen?: boolean
   ratingPanelOpen?: boolean
   ratingEnableControlRef?: Ref<HTMLInputElement>
@@ -25,11 +27,13 @@ type GameInfoLogoControlsProps = BrandingPanelProps & {
 export function GameInfoLogoControls({
   mediaEnableControlRef,
   mediaFormatControlRef,
+  mediaPanelDetailsRef,
   mediaPanelOpen,
   onMediaPanelOpenChange,
   onOperatingSystemPanelOpenChange,
   onRatingPanelOpenChange,
   operatingSystemEnableControlRef,
+  operatingSystemPanelDetailsRef,
   operatingSystemPanelOpen,
   ratingPanelOpen,
   ratingEnableControlRef,
@@ -58,6 +62,7 @@ export function GameInfoLogoControls({
       <EditorFeaturePanel
         title="Media format mark"
         variant="branding"
+        detailsRef={mediaPanelDetailsRef}
         open={mediaPanelOpen}
         onOpenChange={onMediaPanelOpenChange}
       >
@@ -71,6 +76,7 @@ export function GameInfoLogoControls({
       <EditorFeaturePanel
         title="Operating system marks"
         variant="branding"
+        detailsRef={operatingSystemPanelDetailsRef}
         open={operatingSystemPanelOpen}
         onOpenChange={onOperatingSystemPanelOpenChange}
       >

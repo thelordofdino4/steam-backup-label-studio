@@ -8,6 +8,7 @@
   --editor-focus-shadow: rgba(59, 130, 246, 0.24);
   --editor-sidebar-content-inset: 24px;
   --editor-role-scroll-inset: var(--editor-sidebar-content-inset);
+  --editor-section-scroll-inset: var(--editor-sidebar-content-inset);
 }
 
 html,

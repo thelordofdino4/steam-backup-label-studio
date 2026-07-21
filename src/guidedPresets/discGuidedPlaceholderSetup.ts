@@ -55,7 +55,7 @@ function createAction(
       ...action.request,
       destination: Object.freeze({ ...action.request.destination }),
     }),
-  })
+  }) as DiscGuidedSetupAction
 }
 
 const SETUP_BY_KIND = Object.freeze({
@@ -131,10 +131,11 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
-        scrollAlignment: 'role-start',
+        scrollAlignment: 'section-start',
         destination: {
           roleId: 'game-info-logos',
           focusTarget: 'disc:media-format-mark:format',
+          sectionAlignmentTarget: 'disc:media-format-mark:section',
         },
       },
     }),
@@ -147,10 +148,12 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
-        scrollAlignment: 'role-start',
+        scrollAlignment: 'section-start',
         destination: {
           roleId: 'game-info-logos',
           focusTarget: 'disc:operating-system-marks:enable',
+          sectionAlignmentTarget:
+            'disc:operating-system-marks:section',
         },
       },
     }),
@@ -163,10 +166,12 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
-        scrollAlignment: 'role-start',
+        scrollAlignment: 'section-start',
         destination: {
           roleId: 'company-logos',
           focusTarget: 'disc:company-logo:developer-upload',
+          sectionAlignmentTarget:
+            'disc:company-logo:developer-section',
         },
       },
     }),
@@ -179,10 +184,12 @@ const SETUP_BY_KIND = Object.freeze({
       request: {
         surfaceId: 'disc-label',
         behavior: 'focus',
-        scrollAlignment: 'role-start',
+        scrollAlignment: 'section-start',
         destination: {
           roleId: 'company-logos',
           focusTarget: 'disc:company-logo:publisher-upload',
+          sectionAlignmentTarget:
+            'disc:company-logo:publisher-section',
         },
       },
     }),

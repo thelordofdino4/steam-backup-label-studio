@@ -6,8 +6,12 @@ import type { DiscRolePresetRole } from '../layout/discRolePresets.ts'
 import {
   DISC_ADDITIONAL_ARTWORK_FOCUS_TARGET_IDS,
   DISC_COMPANY_LOGO_FOCUS_TARGET_IDS,
+  DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS,
   DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS,
+  DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS,
   DISC_ROLE_FOCUS_TARGET_IDS,
+  DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS,
+  DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET,
   createInitialEditorRoleFocusState,
   getEditorRoleFocusTargetIdentity,
   normalizeEditorRoleFocusTargetIdentity,
@@ -173,7 +177,7 @@ test('rejects invalid surface and behavior values', () => {
   )
 })
 
-test('accepts omitted, nearest, and role-start scroll alignment exactly', () => {
+test('accepts omitted and each declared scroll alignment exactly', () => {
   const omitted = parseEditorRoleFocusRequest(createRequest(1))
   const nearest = parseEditorRoleFocusRequest(
     createRequest(2, VALID_DESTINATIONS[0], 'focus', 'nearest'),
@@ -181,15 +185,29 @@ test('accepts omitted, nearest, and role-start scroll alignment exactly', () => 
   const roleStart = parseEditorRoleFocusRequest(
     createRequest(3, VALID_DESTINATIONS[0], 'focus', 'role-start'),
   )
+  const sectionStart = parseEditorRoleFocusRequest(createRequest(
+    4,
+    {
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:media-format-mark:format',
+      sectionAlignmentTarget: 'disc:media-format-mark:section',
+    },
+    'focus',
+    'section-start',
+  ))
 
   assert.equal(omitted.ok, true)
   assert.equal(nearest.ok, true)
   assert.equal(roleStart.ok, true)
-  if (!omitted.ok || !nearest.ok || !roleStart.ok) return
+  assert.equal(sectionStart.ok, true)
+  if (!omitted.ok || !nearest.ok || !roleStart.ok || !sectionStart.ok) {
+    return
+  }
 
   assert.equal(Object.hasOwn(omitted.request, 'scrollAlignment'), false)
   assert.equal(nearest.request.scrollAlignment, 'nearest')
   assert.equal(roleStart.request.scrollAlignment, 'role-start')
+  assert.equal(sectionStart.request.scrollAlignment, 'section-start')
 })
 
 test('rejects malformed scroll alignment without throwing', () => {
@@ -322,6 +340,141 @@ test('defines the exact Rating Media and OS Game Info target vocabulary', () => 
   ])
   assert.doesNotMatch(DISC_GAME_INFO_LOGO_FOCUS_TARGET_IDS.join(' '),
     /game-info-logos:setup|platform-mark:primary|technical/)
+  assert.deepEqual(DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS, [
+    'disc:media-format-mark:section',
+    'disc:operating-system-marks:section',
+  ])
+  assert.deepEqual(DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS, [
+    'disc:company-logo:developer-section',
+    'disc:company-logo:publisher-section',
+  ])
+  assert.deepEqual(DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS, [
+    ...DISC_GAME_INFO_SECTION_ALIGNMENT_TARGET_IDS,
+    ...DISC_COMPANY_LOGO_SECTION_ALIGNMENT_TARGET_IDS,
+  ])
+})
+
+test('section-start requires a matching nested section target', () => {
+  const mediaDestination = {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+  } as const
+  const osDestination = {
+    roleId: 'game-info-logos',
+    focusTarget: 'disc:operating-system-marks:enable',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
+  } as const
+  const developerDestination = {
+    roleId: 'company-logos',
+    focusTarget: 'disc:company-logo:developer-upload',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+  } as const
+  const publisherDestination = {
+    roleId: 'company-logos',
+    focusTarget: 'disc:company-logo:publisher-upload',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+  } as const
+
+  assert.equal(parseEditorRoleFocusRequest(
+    createRequest(1, mediaDestination, 'focus', 'section-start'),
+  ).ok, true)
+  assert.equal(parseEditorRoleFocusRequest(
+    createRequest(2, osDestination, 'focus', 'section-start'),
+  ).ok, true)
+  assert.equal(parseEditorRoleFocusRequest(
+    createRequest(8, developerDestination, 'focus', 'section-start'),
+  ).ok, true)
+  assert.equal(parseEditorRoleFocusRequest(
+    createRequest(9, publisherDestination, 'focus', 'section-start'),
+  ).ok, true)
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(3, VALID_DESTINATIONS[10], 'focus', 'section-start'),
+  }), { ok: false, error: 'invalid-section-alignment' })
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(4),
+    destination: mediaDestination,
+  }), { ok: false, error: 'invalid-section-alignment' })
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(5),
+    scrollAlignment: 'section-start',
+    destination: {
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:media-format-mark:format',
+      sectionAlignmentTarget: 'disc:operating-system-marks:section',
+    },
+  }), {
+    ok: false,
+    error: 'invalid-section-alignment-target-combination',
+  })
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(6),
+    scrollAlignment: 'section-start',
+    destination: {
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:rating:system',
+      sectionAlignmentTarget: 'disc:media-format-mark:section',
+    },
+  }), {
+    ok: false,
+    error: 'invalid-section-alignment-target-combination',
+  })
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(7),
+    scrollAlignment: 'section-start',
+    destination: {
+      roleId: 'game-info-logos',
+      focusTarget: 'disc:media-format-mark:format',
+      sectionAlignmentTarget: 'disc:unknown:section',
+    },
+  }), { ok: false, error: 'invalid-section-alignment-target' })
+  assert.deepEqual(parseEditorRoleFocusRequest(
+    createRequest(10, developerDestination, 'reveal', 'section-start'),
+  ), { ok: false, error: 'invalid-section-alignment' })
+  assert.deepEqual(parseEditorRoleFocusRequest({
+    ...createRequest(11),
+    scrollAlignment: 'section-start',
+    destination: {
+      ...developerDestination,
+      sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    },
+  }), {
+    ok: false,
+    error: 'invalid-section-alignment-target-combination',
+  })
+  assert.deepEqual(
+    DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET,
+    {
+      'disc:media-format-mark:enable': {
+        roleId: 'game-info-logos',
+        sectionAlignmentTarget: 'disc:media-format-mark:section',
+      },
+      'disc:media-format-mark:format': {
+        roleId: 'game-info-logos',
+        sectionAlignmentTarget: 'disc:media-format-mark:section',
+      },
+      'disc:operating-system-marks:enable': {
+        roleId: 'game-info-logos',
+        sectionAlignmentTarget: 'disc:operating-system-marks:section',
+      },
+      'disc:company-logo:developer-enable': {
+        roleId: 'company-logos',
+        sectionAlignmentTarget: 'disc:company-logo:developer-section',
+      },
+      'disc:company-logo:developer-upload': {
+        roleId: 'company-logos',
+        sectionAlignmentTarget: 'disc:company-logo:developer-section',
+      },
+      'disc:company-logo:publisher-enable': {
+        roleId: 'company-logos',
+        sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+      },
+      'disc:company-logo:publisher-upload': {
+        roleId: 'company-logos',
+        sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+      },
+    },
+  )
 })
 
 test('new Media and OS targets parse with focus role-start and optional exact owners', () => {

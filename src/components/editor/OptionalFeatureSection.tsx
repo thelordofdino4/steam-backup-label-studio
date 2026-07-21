@@ -11,6 +11,7 @@ export type OptionalFeatureSectionProps = {
   enableControlRef?: Ref<HTMLInputElement>
   enableLabel: ReactNode
   onEnabledChange: (enabled: boolean) => void
+  sectionRef?: Ref<HTMLDivElement>
   status?: ReactNode
 }
 
@@ -23,6 +24,7 @@ export function OptionalFeatureSection({
   enableControlRef,
   enableLabel,
   onEnabledChange,
+  sectionRef,
   status,
 }: OptionalFeatureSectionProps) {
   const contentId = useId()
@@ -34,7 +36,7 @@ export function OptionalFeatureSection({
   })
 
   return (
-    <div className={className}>
+    <div ref={sectionRef} className={className}>
       <label className="field-label">
         <input
           ref={enableControlRef}

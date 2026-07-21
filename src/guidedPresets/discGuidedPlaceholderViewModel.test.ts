@@ -135,6 +135,64 @@ test('filling one exact owner removes only its placeholder', () => {
     SLOT_ORDER.filter((slotId) => slotId !== 'disc:guided:media-format-mark:primary'))
 })
 
+test('claimed Rating Media Developer and Publisher owners unmount their guidance', () => {
+  const cases = [
+    {
+      slotId: 'disc:guided:rating-badge:primary',
+      claim(state: DiscGuidedSlotState) {
+        state.metadata = { ...state.metadata, ratingSystem: 'ESRB' }
+        state.ratingBadge = {
+          ...state.ratingBadge,
+          layout: { ...state.ratingBadge.layout, enabled: true },
+        }
+      },
+    },
+    {
+      slotId: 'disc:guided:media-format-mark:primary',
+      claim(state: DiscGuidedSlotState) {
+        state.mediaMark = {
+          ...state.mediaMark,
+          layout: { ...state.mediaMark.layout, enabled: true },
+        }
+      },
+    },
+    {
+      slotId: 'disc:guided:developer-logo:primary',
+      claim(state: DiscGuidedSlotState) {
+        state.logoAssets = {
+          ...state.logoAssets,
+          developerLogoLayout: {
+            ...state.logoAssets.developerLogoLayout,
+            enabled: true,
+          },
+        }
+      },
+    },
+    {
+      slotId: 'disc:guided:publisher-logo:primary',
+      claim(state: DiscGuidedSlotState) {
+        state.logoAssets = {
+          ...state.logoAssets,
+          publisherLogoLayout: {
+            ...state.logoAssets.publisherLogoLayout,
+            enabled: true,
+          },
+        }
+      },
+    },
+  ] as const
+
+  for (const { claim, slotId } of cases) {
+    const state = createState()
+    assert.equal(project(state).some((placeholder) =>
+      placeholder.slotId === slotId), true, `${slotId}: unclaimed`)
+
+    claim(state)
+    assert.equal(project(state).some((placeholder) =>
+      placeholder.slotId === slotId), false, `${slotId}: claimed`)
+  }
+})
+
 test('an exact suggestion changes only its own lifecycle', () => {
   const suggestion: DiscGuidedSlotSuggestion = {
     id: 'suggestion:publisher',

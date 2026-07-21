@@ -1210,6 +1210,18 @@ Legal semantic changes re-resolve only its Legal target, without reapplying or
 reclamping any unrelated owner. Guided placeholders project the same final
 resolved regions/statuses and hide unsupported slots.
 
+Guided navigation has two related but distinct contracts. A guided action route
+exists only while lifecycle resolution projects an unfilled or suggested
+placeholder; pointer, Enter, Space, and native guided-action acceptance apply
+only in that reachable state. Sidebar semantic focus targets have a broader
+lifetime and may remain registered after owner state fills a slot and removes
+its guide, so controller-level or future workflows can still focus the normal
+control. A registered target does not make an unmounted guide dispatchable.
+Mounted controller tests cover enabled Rating, Media, Developer, and Publisher
+targets that are unreachable through current filled-slot guidance. Lifecycle
+resolution remains authoritative, and presentation code must not duplicate its
+predicates or use runtime DOM queries to decide reachability.
+
 ### 12.4 Render/Edit/Export Paths
 
 - `DiscPreview` composes preview layers according to disc layer order.

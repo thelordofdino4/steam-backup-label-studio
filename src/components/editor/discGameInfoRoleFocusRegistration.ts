@@ -7,13 +7,16 @@ import type {
 
 type FocusRegistrationController = Pick<
   EditorRoleFocusController,
-  'registerFocusTarget' | 'registerFocusTargetFallback'
+  | 'registerFocusTarget'
+  | 'registerFocusTargetFallback'
+  | 'registerSectionAlignmentTarget'
 >
 
 type RegisterAlwaysMountedMediaFocusTargetsOptions =
   FocusRegistrationController & {
     enableElement: () => HTMLElement | null
     openMediaPanel: () => void
+    sectionElement: () => HTMLElement | null
   }
 
 type RegisterEnabledMediaFormatFocusTargetOptions = Pick<
@@ -26,10 +29,11 @@ type RegisterEnabledMediaFormatFocusTargetOptions = Pick<
 
 type RegisterAlwaysMountedOperatingSystemFocusTargetOptions = Pick<
   EditorRoleFocusController,
-  'registerFocusTarget'
+  'registerFocusTarget' | 'registerSectionAlignmentTarget'
 > & {
   enableElement: () => HTMLElement | null
   openOperatingSystemPanel: () => void
+  sectionElement: () => HTMLElement | null
 }
 
 export function shouldOpenMediaPanelForRequest(
@@ -55,7 +59,13 @@ export function registerAlwaysMountedMediaFocusTargets({
   openMediaPanel,
   registerFocusTarget,
   registerFocusTargetFallback,
+  registerSectionAlignmentTarget,
+  sectionElement,
 }: RegisterAlwaysMountedMediaFocusTargetsOptions) {
+  const unregisterSection = registerSectionAlignmentTarget(
+    'disc:media-format-mark:section',
+    { element: sectionElement },
+  )
   const unregisterEnable = registerFocusTarget(
     'disc:media-format-mark:enable',
     {
@@ -71,6 +81,7 @@ export function registerAlwaysMountedMediaFocusTargets({
   return () => {
     unregisterFormatFallback()
     unregisterEnable()
+    unregisterSection()
   }
 }
 
@@ -89,9 +100,23 @@ export function registerAlwaysMountedOperatingSystemFocusTarget({
   enableElement,
   openOperatingSystemPanel,
   registerFocusTarget,
+  registerSectionAlignmentTarget,
+  sectionElement,
 }: RegisterAlwaysMountedOperatingSystemFocusTargetOptions) {
-  return registerFocusTarget('disc:operating-system-marks:enable', {
-    element: enableElement,
-    openAncestors: [openOperatingSystemPanel],
-  })
+  const unregisterSection = registerSectionAlignmentTarget(
+    'disc:operating-system-marks:section',
+    { element: sectionElement },
+  )
+  const unregisterEnable = registerFocusTarget(
+    'disc:operating-system-marks:enable',
+    {
+      element: enableElement,
+      openAncestors: [openOperatingSystemPanel],
+    },
+  )
+
+  return () => {
+    unregisterEnable()
+    unregisterSection()
+  }
 }

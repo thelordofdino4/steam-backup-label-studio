@@ -35,6 +35,7 @@ export function EditorRoleFocusProvider({
     registerRolePanel: store.registerRolePanel,
     registerFocusTarget: store.registerFocusTarget,
     registerFocusTargetFallback: store.registerFocusTargetFallback,
+    registerSectionAlignmentTarget: store.registerSectionAlignmentTarget,
   }), [state, store])
 
   return (

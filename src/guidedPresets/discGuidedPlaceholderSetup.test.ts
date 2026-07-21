@@ -6,6 +6,11 @@ import {
   createEditorRoleFocusControllerStore,
 } from '../editor/editorRoleFocusController.ts'
 import {
+  DISC_ROLE_FOCUS_TARGET_IDS,
+  DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS,
+  DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET,
+} from '../editor/editorRoleFocus.ts'
+import {
   registerAlwaysMountedRatingFocusTargets,
   registerEnabledRatingSelectFocusTargets,
 } from '../components/editor/discRatingRoleFocusRegistration.ts'
@@ -54,6 +59,148 @@ const PLACEHOLDERS = [
   ['disc:guided:legal-text:copyright', 'Copyright / Legal Text', 'legal-text'],
 ] as const
 
+const GUIDED_ACTION_ROUTE_INVENTORY = [
+  {
+    label: 'Game Title - Image',
+    visibleWhen: 'Game Title is unfilled or suggested',
+    actionId: 'game-title-image',
+    alignment: 'role-start',
+    roleId: 'game-title',
+    sectionAlignmentTarget: null,
+    requestedFocusTarget: 'disc:game-title:artwork-upload',
+    registeredFallbackTarget: 'disc:game-title:artwork-enable',
+  },
+  {
+    label: 'Game Title - Text',
+    visibleWhen: 'Game Title is unfilled or suggested',
+    actionId: 'game-title-text',
+    alignment: 'role-start',
+    roleId: 'game-title',
+    sectionAlignmentTarget: null,
+    requestedFocusTarget: 'disc:game-title:text-fallback',
+    registeredFallbackTarget: 'disc:game-title:text-fallback',
+  },
+  {
+    label: 'Background Image',
+    visibleWhen: 'Background is unfilled or suggested',
+    actionId: 'background-local-upload',
+    alignment: 'role-start',
+    roleId: 'background-artwork',
+    sectionAlignmentTarget: null,
+    requestedFocusTarget: 'disc:background-image:local-upload',
+    registeredFallbackTarget: 'disc:background-image:local-upload',
+  },
+  {
+    label: 'Rating Badge',
+    visibleWhen: 'Rating is disabled or otherwise unclaimed',
+    actionId: 'rating-system',
+    alignment: 'role-start',
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: null,
+    requestedFocusTarget: 'disc:rating:system',
+    registeredFallbackTarget: 'disc:rating:enable',
+  },
+  {
+    label: 'Media Format Mark',
+    visibleWhen: 'Media is disabled or otherwise unclaimed',
+    actionId: 'media-format',
+    alignment: 'section-start',
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+    requestedFocusTarget: 'disc:media-format-mark:format',
+    registeredFallbackTarget: 'disc:media-format-mark:enable',
+  },
+  {
+    label: 'Operating System Marks',
+    visibleWhen: 'No selected enabled renderable operating-system mark exists',
+    actionId: 'operating-system-marks-enable',
+    alignment: 'section-start',
+    roleId: 'game-info-logos',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
+    requestedFocusTarget: 'disc:operating-system-marks:enable',
+    registeredFallbackTarget: 'disc:operating-system-marks:enable',
+  },
+  {
+    label: 'Developer Logo',
+    visibleWhen: 'The primary Developer feature is disabled',
+    actionId: 'developer-logo-upload',
+    alignment: 'section-start',
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    requestedFocusTarget: 'disc:company-logo:developer-upload',
+    registeredFallbackTarget: 'disc:company-logo:developer-enable',
+  },
+  {
+    label: 'Publisher Logo',
+    visibleWhen: 'The primary Publisher feature is disabled',
+    actionId: 'publisher-logo-upload',
+    alignment: 'section-start',
+    roleId: 'company-logos',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    requestedFocusTarget: 'disc:company-logo:publisher-upload',
+    registeredFallbackTarget: 'disc:company-logo:publisher-enable',
+  },
+  {
+    label: 'Copyright / Legal Text',
+    visibleWhen: 'Copyright text is unfilled or suggested',
+    actionId: 'legal-copyright',
+    alignment: 'role-start',
+    roleId: 'legal-info',
+    sectionAlignmentTarget: null,
+    requestedFocusTarget: 'disc:legal-text:copyright',
+    registeredFallbackTarget: 'disc:legal-text:copyright',
+  },
+] as const
+
+const REGISTERED_SEMANTIC_TARGET_INVENTORY = [
+  {
+    label: 'Enabled Rating system',
+    roleId: 'game-info-logos',
+    alignment: 'role-start',
+    sectionAlignmentTarget: null,
+    focusTarget: 'disc:rating:system',
+  },
+  {
+    label: 'Enabled Media format',
+    roleId: 'game-info-logos',
+    alignment: 'section-start',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+    focusTarget: 'disc:media-format-mark:format',
+  },
+  {
+    label: 'Enabled Developer upload',
+    roleId: 'company-logos',
+    alignment: 'section-start',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    focusTarget: 'disc:company-logo:developer-upload',
+  },
+  {
+    label: 'Enabled Publisher upload',
+    roleId: 'company-logos',
+    alignment: 'section-start',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    focusTarget: 'disc:company-logo:publisher-upload',
+  },
+] as const
+
+function getSetupActionById(
+  actionId: typeof GUIDED_ACTION_ROUTE_INVENTORY[number]['actionId'],
+) {
+  for (const [, , setupKind] of PLACEHOLDERS) {
+    const setup = getDiscGuidedPlaceholderSetup(setupKind)
+    const actions = setup.kind === 'choice'
+      ? setup.actions
+      : setup.kind === 'direct'
+        ? [setup.action]
+        : []
+    const action = actions.find(({ id }) => id === actionId)
+
+    if (action) return action
+  }
+
+  throw new Error(`Missing setup action: ${actionId}`)
+}
+
 function createPlaceholders(
   lifecycle: DiscGuidedPlaceholderViewModel['lifecycle'] = 'unfilled',
 ) {
@@ -98,8 +245,6 @@ test('existing exact setup targets remain direct and independent', () => {
   const expectations = [
     ['background', { roleId: 'background-artwork', focusTarget: 'disc:background-image:local-upload' }],
     ['rating-badge', { roleId: 'game-info-logos', focusTarget: 'disc:rating:system' }],
-    ['developer-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:developer-upload' }],
-    ['publisher-logo', { roleId: 'company-logos', focusTarget: 'disc:company-logo:publisher-upload' }],
     ['legal-text', { roleId: 'legal-info', focusTarget: 'disc:legal-text:copyright' }],
   ] as const
 
@@ -109,6 +254,110 @@ test('existing exact setup targets remain direct and independent', () => {
     if (setup.kind !== 'direct') continue
     assert.deepEqual(setup.action.request.destination, destination)
     assert.equal(setup.action.request.scrollAlignment, 'role-start')
+  }
+})
+
+test('every lifecycle-reachable guided action is explicitly classified and registered', () => {
+  assert.equal(GUIDED_ACTION_ROUTE_INVENTORY.length, 9)
+  assert.equal(
+    new Set(DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS).size,
+    DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS.length,
+  )
+
+  for (const {
+    label,
+    actionId,
+    alignment,
+    roleId,
+    sectionAlignmentTarget,
+    requestedFocusTarget,
+    registeredFallbackTarget,
+    visibleWhen,
+  } of GUIDED_ACTION_ROUTE_INVENTORY) {
+    const action = getSetupActionById(actionId)
+    const destination = action.request.destination
+
+    assert.ok(visibleWhen.length > 0, `${label}: lifecycle visibility`)
+    assert.equal(action.request.scrollAlignment, alignment, label)
+    assert.equal(destination.roleId, roleId, label)
+    assert.equal(destination.focusTarget, requestedFocusTarget, label)
+    assert.equal(
+      DISC_ROLE_FOCUS_TARGET_IDS.includes(requestedFocusTarget),
+      true,
+      `${label}: requested focus registration`,
+    )
+    assert.equal(
+      DISC_ROLE_FOCUS_TARGET_IDS.includes(registeredFallbackTarget),
+      true,
+      `${label}: fallback focus registration`,
+    )
+
+    if (alignment === 'section-start') {
+      assert.equal('sectionAlignmentTarget' in destination, true, label)
+      assert.equal(
+        'sectionAlignmentTarget' in destination
+          ? destination.sectionAlignmentTarget
+          : null,
+        sectionAlignmentTarget,
+        label,
+      )
+      assert.equal(
+        DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS.includes(
+          sectionAlignmentTarget,
+        ),
+        true,
+        `${label}: section registration`,
+      )
+      assert.deepEqual(
+        DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET[requestedFocusTarget],
+        { roleId, sectionAlignmentTarget },
+        label,
+      )
+    } else {
+      assert.equal(sectionAlignmentTarget, null, label)
+      assert.equal('sectionAlignmentTarget' in destination, false, label)
+    }
+  }
+
+  assert.equal(
+    GUIDED_ACTION_ROUTE_INVENTORY.some(({ alignment }) =>
+      alignment === ('control-visible' as typeof alignment)),
+    false,
+  )
+})
+
+test('registered semantic targets remain broader than lifecycle-reachable guide variants', () => {
+  assert.equal(REGISTERED_SEMANTIC_TARGET_INVENTORY.length, 4)
+
+  for (const {
+    alignment,
+    focusTarget,
+    label,
+    roleId,
+    sectionAlignmentTarget,
+  } of REGISTERED_SEMANTIC_TARGET_INVENTORY) {
+    assert.equal(
+      DISC_ROLE_FOCUS_TARGET_IDS.includes(focusTarget),
+      true,
+      label,
+    )
+
+    if (alignment === 'section-start') {
+      assert.equal(
+        DISC_ROLE_SECTION_ALIGNMENT_TARGET_IDS.includes(
+          sectionAlignmentTarget,
+        ),
+        true,
+        label,
+      )
+      assert.deepEqual(
+        DISC_SECTION_START_TARGETS_BY_FOCUS_TARGET[focusTarget],
+        { roleId, sectionAlignmentTarget },
+        label,
+      )
+    } else {
+      assert.equal(sectionAlignmentTarget, null, label)
+    }
   }
 })
 
@@ -130,7 +379,7 @@ test('Rating Badge routes to the specific system control with role-start alignme
   )
 })
 
-test('enabled Rating guidance focuses system without changing Rating state', () => {
+test('registered enabled Rating target focuses system without changing Rating state', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []
   const ratingState = {
@@ -170,7 +419,7 @@ test('enabled Rating guidance focuses system without changing Rating state', () 
   assert.deepEqual(ratingState, initialState)
 })
 
-test('disabled Rating guidance falls back once to enable without mutation or replay', () => {
+test('reachable disabled Rating action falls back once without mutation or replay', () => {
   const store = createEditorRoleFocusControllerStore()
   const calls: string[] = []
   const ratingState = {
@@ -212,21 +461,36 @@ test('disabled Rating guidance falls back once to enable without mutation or rep
   assert.equal(store.processPendingRequest(), 'no-pending-request')
 })
 
-test('Media and OS setup dispatch exact typed Game Info destinations', () => {
+test('every section-start setup dispatches its exact typed destination', () => {
   const expectations = [
     [
       'media-format-mark',
       'Set up Media Format Mark',
       'disc:media-format-mark:format',
+      'disc:media-format-mark:section',
     ],
     [
       'operating-system-marks',
       'Set up Operating System Marks',
       'disc:operating-system-marks:enable',
+      'disc:operating-system-marks:section',
+    ],
+    [
+      'developer-logo',
+      'Set up Developer Logo',
+      'disc:company-logo:developer-upload',
+      'disc:company-logo:developer-section',
+    ],
+    [
+      'publisher-logo',
+      'Set up Publisher Logo',
+      'disc:company-logo:publisher-upload',
+      'disc:company-logo:publisher-section',
     ],
   ] as const
 
-  for (const [kind, label, focusTarget] of expectations) {
+  for (const [kind, label, focusTarget, sectionAlignmentTarget] of
+    expectations) {
     const setup = getDiscGuidedPlaceholderSetup(kind)
     assert.equal(setup.kind, 'direct')
     if (setup.kind !== 'direct') continue
@@ -234,10 +498,13 @@ test('Media and OS setup dispatch exact typed Game Info destinations', () => {
     assert.deepEqual(setup.action.request, {
       surfaceId: 'disc-label',
       behavior: 'focus',
-      scrollAlignment: 'role-start',
+      scrollAlignment: 'section-start',
       destination: {
-        roleId: 'game-info-logos',
+        roleId: kind === 'developer-logo' || kind === 'publisher-logo'
+          ? 'company-logos'
+          : 'game-info-logos',
         focusTarget,
+        sectionAlignmentTarget,
       },
     })
   }

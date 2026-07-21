@@ -91,6 +91,32 @@ function filledIds(state: DiscGuidedSlotState) {
     .map(({ definition }) => definition.id)
 }
 
+function setDeveloperLogoEnabled(
+  state: DiscGuidedSlotState,
+  enabled: boolean,
+) {
+  state.logoAssets = {
+    ...state.logoAssets,
+    developerLogoLayout: {
+      ...state.logoAssets.developerLogoLayout,
+      enabled,
+    },
+  }
+}
+
+function setPublisherLogoEnabled(
+  state: DiscGuidedSlotState,
+  enabled: boolean,
+) {
+  state.logoAssets = {
+    ...state.logoAssets,
+    publisherLogoLayout: {
+      ...state.logoAssets.publisherLogoLayout,
+      enabled,
+    },
+  }
+}
+
 test('defines stable exact slots while retaining future flexible definitions', () => {
   assert.deepEqual(DISC_GUIDED_SLOT_IDS.slice(0, 8), CLASSIC_IDS)
   assert.deepEqual(DISC_GUIDED_SLOT_DEFINITIONS.slice(0, 8).map(({ id }) => id), CLASSIC_IDS)
@@ -184,16 +210,93 @@ test('rating media and operating-system marks resolve independently', () => {
   assert.deepEqual(filledIds(osState), [])
 })
 
-test('developer and publisher logos resolve independently', () => {
-  const developerState = createState()
-  developerState.logoAssets.developerLogoDataUrl = 'data:image/png;base64,developer'
-  developerState.logoAssets.developerLogoLayout.enabled = true
-  assert.deepEqual(filledIds(developerState), [IDS.developer])
+test('primary Developer lifecycle follows its feature-owned placeholder', () => {
+  const state = createState()
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'unfilled')
 
-  const publisherState = createState()
-  publisherState.logoAssets.publisherLogoDataUrl = 'data:image/png;base64,publisher'
-  publisherState.logoAssets.publisherLogoLayout.enabled = true
-  assert.deepEqual(filledIds(publisherState), [IDS.publisher])
+  setDeveloperLogoEnabled(state, true)
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'filled')
+  assert.equal(state.logoAssets.developerLogoDataUrl, null)
+
+  state.logoAssets.developerLogoDataUrl = 'data:image/png;base64,developer'
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'filled')
+
+  state.logoAssets.developerLogoDataUrl = null
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'filled')
+
+  setDeveloperLogoEnabled(state, false)
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'unfilled')
+})
+
+test('primary Publisher lifecycle follows its feature-owned placeholder', () => {
+  const state = createState()
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'unfilled')
+
+  setPublisherLogoEnabled(state, true)
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'filled')
+  assert.equal(state.logoAssets.publisherLogoDataUrl, null)
+
+  state.logoAssets.publisherLogoDataUrl = 'data:image/png;base64,publisher'
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'filled')
+
+  state.logoAssets.publisherLogoDataUrl = null
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'filled')
+
+  setPublisherLogoEnabled(state, false)
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'unfilled')
+})
+
+test('primary logo placeholder claims stay independent and immutable', () => {
+  const state = createState()
+  setDeveloperLogoEnabled(state, true)
+  const beforeDeveloperResolution = structuredClone(state)
+
+  assert.deepEqual(filledIds(state), [IDS.developer])
+  assert.deepEqual(state, beforeDeveloperResolution)
+
+  setPublisherLogoEnabled(state, true)
+  const beforePublisherResolution = structuredClone(state)
+  assert.deepEqual(filledIds(state), [IDS.developer, IDS.publisher])
+  assert.deepEqual(state, beforePublisherResolution)
+
+  setDeveloperLogoEnabled(state, false)
+  assert.deepEqual(filledIds(state), [IDS.publisher])
+  setPublisherLogoEnabled(state, false)
+  assert.deepEqual(filledIds(state), [])
+})
+
+test('omission overrides primary logo placeholder claims without owner mutation', () => {
+  const state = createState()
+  setDeveloperLogoEnabled(state, true)
+  setPublisherLogoEnabled(state, true)
+  const before = structuredClone(state)
+
+  for (const slotId of [IDS.developer, IDS.publisher]) {
+    const resolution = resolveDiscGuidedSlot({
+      slotId,
+      state,
+      suggestions: [],
+      skippedSlotIds: new Set([slotId]),
+    })
+    assert.equal(resolution.lifecycle, 'skipped')
+  }
+
+  assert.deepEqual(state, before)
+})
+
+test('repeatable logo data never claims either primary logo slot', () => {
+  const state = createState()
+  const runtimeLogoAssets = state.logoAssets as typeof state.logoAssets & {
+    additionalLogoElements: readonly unknown[]
+  }
+  runtimeLogoAssets.additionalLogoElements = [{
+    id: 'additional-logo',
+    enabled: true,
+    imageDataUrl: 'data:image/png;base64,additional',
+  }]
+
+  assert.equal(resolve(IDS.developer, state).lifecycle, 'unfilled')
+  assert.equal(resolve(IDS.publisher, state).lifecycle, 'unfilled')
 })
 
 test('copyright resolves plain metadata and HTML content only for Legal', () => {
@@ -237,4 +340,10 @@ test('guided slot domain stays transient and outside persistence renderers and i
   const source = readFileSync(new URL('./discGuidedSlots.ts', import.meta.url), 'utf8')
   assert.doesNotMatch(source, /savedProject|restoreProject|caseInsert|network|fetch\(/i)
   assert.doesNotMatch(source, /\/render\//)
+
+  const logoResolver = source.slice(
+    source.indexOf('function resolveLogoBinding'),
+    source.indexOf('function hasRenderableImageSource'),
+  )
+  assert.doesNotMatch(logoResolver, /LogoDataUrl|imageDataUrl|Boolean\(/)
 })

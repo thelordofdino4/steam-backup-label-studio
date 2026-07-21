@@ -6,7 +6,7 @@ import { createServer } from 'vite'
 const HARNESS_PATH =
   '/src/components/preview/testing/disc-guided-navigation-integration.html'
 
-const routes = [
+const reachableRoutes = [
   {
     slotId: 'disc:guided:background-image:primary',
     roleId: 'background-artwork',
@@ -26,6 +26,8 @@ const routes = [
     roleId: 'game-info-logos',
     nestedPanel: 'media',
     destination: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+    alignmentPanel: 'media',
     activeId: 'integration-media-enable',
   },
   {
@@ -33,6 +35,8 @@ const routes = [
     roleId: 'game-info-logos',
     nestedPanel: 'operating-system',
     destination: 'disc:operating-system-marks:enable',
+    sectionAlignmentTarget: 'disc:operating-system-marks:section',
+    alignmentPanel: 'operating-system',
     activeId: 'integration-operating-system-enable',
   },
   {
@@ -40,6 +44,8 @@ const routes = [
     roleId: 'company-logos',
     nestedPanel: 'company-logos',
     destination: 'disc:company-logo:developer-upload',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    alignmentPanel: 'developer',
     activeId: 'integration-developer-enable',
   },
   {
@@ -47,6 +53,8 @@ const routes = [
     roleId: 'company-logos',
     nestedPanel: 'company-logos',
     destination: 'disc:company-logo:publisher-upload',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    alignmentPanel: 'publisher',
     activeId: 'integration-publisher-enable',
   },
   {
@@ -58,10 +66,45 @@ const routes = [
   },
 ]
 
+const registeredDirectTargets = [
+  {
+    feature: 'rating',
+    activeId: 'integration-rating-system',
+    roleId: 'game-info-logos',
+    destination: 'disc:rating:system',
+  },
+  {
+    feature: 'media',
+    activeId: 'integration-media-format',
+    roleId: 'game-info-logos',
+    destination: 'disc:media-format-mark:format',
+    sectionAlignmentTarget: 'disc:media-format-mark:section',
+    alignmentPanel: 'media',
+  },
+  {
+    feature: 'developer',
+    activeId: 'integration-developer-upload',
+    roleId: 'company-logos',
+    destination: 'disc:company-logo:developer-upload',
+    sectionAlignmentTarget: 'disc:company-logo:developer-section',
+    alignmentPanel: 'developer',
+  },
+  {
+    feature: 'publisher',
+    activeId: 'integration-publisher-upload',
+    roleId: 'company-logos',
+    destination: 'disc:company-logo:publisher-upload',
+    sectionAlignmentTarget: 'disc:company-logo:publisher-section',
+    alignmentPanel: 'publisher',
+  },
+]
+
 let browser
 let page
 let server
 let harnessUrl
+
+const SECTION_ALIGNMENT_TOLERANCE_PX = 1
 
 test.before(async () => {
   server = await createServer({
@@ -153,7 +196,11 @@ async function assertNestedPanelOpen(panelId) {
   )
 }
 
-async function assertLatestRequest(roleId, focusTarget) {
+async function assertLatestRequest(
+  roleId,
+  focusTarget,
+  sectionAlignmentTarget = null,
+) {
   const requestLog = await page.evaluate(() => structuredClone(
     window.__discGuidedNavigationHarness.requestLog,
   ))
@@ -165,10 +212,63 @@ async function assertLatestRequest(roleId, focusTarget) {
     {
       surfaceId: 'disc-label',
       behavior: 'focus',
-      scrollAlignment: 'role-start',
-      destination: { roleId, focusTarget },
+      scrollAlignment: sectionAlignmentTarget
+        ? 'section-start'
+        : 'role-start',
+      destination: {
+        roleId,
+        focusTarget,
+        ...(sectionAlignmentTarget ? { sectionAlignmentTarget } : {}),
+      },
     },
   )
+}
+
+async function assertTargetFullyVisible(activeId) {
+  const geometry = await page.locator(`#${activeId}`).evaluate((target) => {
+    const sidebar = target.closest('main')?.querySelector(':scope > aside')
+
+    if (!sidebar) return null
+
+    const targetRect = target.getBoundingClientRect()
+    const sidebarRect = sidebar.getBoundingClientRect()
+    return {
+      targetTop: targetRect.top,
+      targetBottom: targetRect.bottom,
+      sidebarTop: sidebarRect.top,
+      sidebarBottom: sidebarRect.bottom,
+    }
+  })
+
+  assert.ok(geometry, `missing sidebar geometry for ${activeId}`)
+  assert.ok(
+    geometry.targetTop >= geometry.sidebarTop - 0.5,
+    `${activeId} starts above the sidebar viewport`,
+  )
+  assert.ok(
+    geometry.targetBottom <= geometry.sidebarBottom + 0.5,
+    `${activeId} ends below the sidebar viewport`,
+  )
+}
+
+async function requestRegisteredTarget(route) {
+  await clearEventLog()
+  await page.evaluate((route) => {
+    window.__discGuidedNavigationHarness.requestRoleFocus({
+      surfaceId: 'disc-label',
+      behavior: 'focus',
+      scrollAlignment: route.sectionAlignmentTarget
+        ? 'section-start'
+        : 'role-start',
+      destination: {
+        roleId: route.roleId,
+        focusTarget: route.destination,
+        ...(route.sectionAlignmentTarget
+          ? { sectionAlignmentTarget: route.sectionAlignmentTarget }
+          : {}),
+      },
+    })
+  }, route)
 }
 
 async function assertFocusAndRoleStart(activeId, roleId) {
@@ -182,12 +282,13 @@ async function assertFocusAndRoleStart(activeId, roleId) {
   assert.equal(events[focusIndex].preventScroll, true)
   assert.ok(
     summaryScrollIndex > focusIndex,
-    `role summary for ${roleId} must scroll after target focus`,
+    `role summary for ${roleId} must align after target focus`,
   )
   assert.equal(events[summaryScrollIndex].block, 'start')
   assert.equal(events[summaryScrollIndex].behavior, 'auto')
   assert.equal(
-    events.some((event) => event.type === 'scroll' && event.id === activeId),
+    events.some((event) =>
+      event.type === 'scroll' && event.id === activeId),
     false,
   )
   assert.equal(
@@ -208,6 +309,78 @@ async function assertFocusAndRoleStart(activeId, roleId) {
   }
 }
 
+async function getSectionGeometry(panelId) {
+  return page.locator(`[data-nested-panel="${panelId}"]`)
+    .evaluate((container) => {
+      const section = container.querySelector(':scope > details') ?? container
+      const sidebar = section.closest('main')?.querySelector(':scope > aside')
+
+      if (!sidebar) return null
+
+      const sectionRect = section.getBoundingClientRect()
+      const sidebarRect = sidebar.getBoundingClientRect()
+      return {
+        sectionTop: sectionRect.top,
+        sidebarTop: sidebarRect.top,
+        sidebarBottom: sidebarRect.bottom,
+        inset: Number.parseFloat(
+          getComputedStyle(section).scrollMarginBlockStart,
+        ) || 0,
+        scrollTop: sidebar.scrollTop,
+      }
+    })
+}
+
+async function assertSectionTopAligned(panelId) {
+  const geometry = await getSectionGeometry(panelId)
+  assert.ok(geometry, `missing section geometry for ${panelId}`)
+  const expectedTop = geometry.sidebarTop + geometry.inset
+  assert.ok(
+    Math.abs(geometry.sectionTop - expectedTop) <=
+      SECTION_ALIGNMENT_TOLERANCE_PX,
+    `${panelId} section top ${geometry.sectionTop} did not align to ${expectedTop}`,
+  )
+  assert.ok(
+    Math.abs(geometry.sectionTop - geometry.sidebarBottom) >
+      SECTION_ALIGNMENT_TOLERANCE_PX,
+    `${panelId} section remained bottom-aligned`,
+  )
+  return geometry
+}
+
+async function assertFocusAndSectionStart(activeId, panelId, roleId) {
+  const events = await getEventLog()
+  const focusIndex = events.findIndex((event) =>
+    event.type === 'focus' && event.id === activeId)
+  const sectionScrollIndexes = events
+    .map((event, index) => ({ event, index }))
+    .filter(({ event }) =>
+      event.type === 'scroll' &&
+      event.isSection &&
+      event.nestedPanel === panelId)
+
+  assert.ok(focusIndex >= 0, `missing focus event for ${activeId}`)
+  assert.equal(events[focusIndex].preventScroll, true)
+  assert.ok(
+    sectionScrollIndexes.length >= 2,
+    `missing two-pass section alignment for ${panelId}`,
+  )
+  assert.ok(sectionScrollIndexes[0].index < focusIndex)
+  assert.ok(sectionScrollIndexes.at(-1).index > focusIndex)
+  assert.ok(sectionScrollIndexes.every(({ event }) =>
+    event.block === 'start' && event.behavior === 'auto'))
+  assert.equal(
+    events.some((event) =>
+      event.type === 'scroll' &&
+      event.isSummary &&
+      event.roleId === roleId),
+    false,
+  )
+  assert.equal(await page.evaluate(() => document.activeElement?.id), activeId)
+  await assertSectionTopAligned(panelId)
+  await assertTargetFullyVisible(activeId)
+}
+
 async function assertRoute(route, mode = 'click') {
   const before = await getFeatureSnapshot()
 
@@ -215,8 +388,20 @@ async function assertRoute(route, mode = 'click') {
   await waitForNavigation(route.activeId)
   await assertRoleOpen(route.roleId)
   if (route.nestedPanel) await assertNestedPanelOpen(route.nestedPanel)
-  await assertLatestRequest(route.roleId, route.destination)
-  await assertFocusAndRoleStart(route.activeId, route.roleId)
+  await assertLatestRequest(
+    route.roleId,
+    route.destination,
+    route.sectionAlignmentTarget,
+  )
+  if (route.sectionAlignmentTarget) {
+    await assertFocusAndSectionStart(
+      route.activeId,
+      route.alignmentPanel,
+      route.roleId,
+    )
+  } else {
+    await assertFocusAndRoleStart(route.activeId, route.roleId)
+  }
   assert.deepEqual(await getFeatureSnapshot(), before)
 }
 
@@ -233,14 +418,14 @@ test('all eight mounted Classic Top Title actions open exact panels, focus exact
   await assertFocusAndRoleStart('integration-title-artwork-enable', 'game-title')
   assert.deepEqual(await getFeatureSnapshot(), titleBefore)
 
-  for (const route of routes) {
+  for (const route of reachableRoutes) {
     await openHarness()
     await assertRoute(route)
   }
 })
 
 test('every direct slot preserves native click, Enter, and Space activation semantics', async () => {
-  for (const route of routes) {
+  for (const route of reachableRoutes) {
     for (const mode of ['click', 'Enter', 'Space']) {
       await openHarness()
       await assertRoute(route, mode)
@@ -290,72 +475,153 @@ test('Game Title chooser and both actions preserve pointer and keyboard behavior
   assert.deepEqual(await getFeatureSnapshot(), textBefore)
 })
 
-test('enabled owners receive direct targets while disabled owners retain exact fallbacks', async () => {
-  const enabledCases = [
-    {
-      feature: 'titleArtwork',
-      slotId: 'disc:guided:game-title:primary',
-      choice: 'Image',
-      activeId: 'integration-title-artwork-upload',
-      roleId: 'game-title',
-      destination: 'disc:game-title:artwork-upload',
-    },
-    {
-      feature: 'rating',
-      slotId: 'disc:guided:rating-badge:primary',
-      activeId: 'integration-rating-system',
-      roleId: 'game-info-logos',
-      destination: 'disc:rating:system',
-    },
-    {
-      feature: 'media',
-      slotId: 'disc:guided:media-format-mark:primary',
-      activeId: 'integration-media-format',
-      roleId: 'game-info-logos',
-      destination: 'disc:media-format-mark:format',
-    },
-    {
-      feature: 'developer',
-      slotId: 'disc:guided:developer-logo:primary',
-      activeId: 'integration-developer-upload',
-      roleId: 'company-logos',
-      destination: 'disc:company-logo:developer-upload',
-    },
-    {
-      feature: 'publisher',
-      slotId: 'disc:guided:publisher-logo:primary',
-      activeId: 'integration-publisher-upload',
-      roleId: 'company-logos',
-      destination: 'disc:company-logo:publisher-upload',
-    },
-  ]
+test('Game Title Image reaches its direct upload while the title remains unfilled', async () => {
+  await openHarness()
+  await setFeatureEnabled('titleArtwork', true)
+  const before = await getFeatureSnapshot()
 
-  for (const route of enabledCases) {
+  await activateSlot('disc:guided:game-title:primary', 'click')
+  await clearEventLog()
+  await page.getByRole('button', { name: 'Image', exact: true }).click()
+  await waitForNavigation('integration-title-artwork-upload')
+  await assertLatestRequest('game-title', 'disc:game-title:artwork-upload')
+  await assertFocusAndRoleStart('integration-title-artwork-upload', 'game-title')
+  assert.deepEqual(await getFeatureSnapshot(), before)
+})
+
+test('enabled semantic targets focus through typed controller requests without guide dispatch', async () => {
+  for (const route of registeredDirectTargets) {
     await openHarness()
     await setFeatureEnabled(route.feature, true)
     const before = await getFeatureSnapshot()
-    await activateSlot(route.slotId, 'click')
-    if (route.choice) {
-      await clearEventLog()
-      await page.getByRole('button', { name: route.choice, exact: true }).click()
-    }
+
+    await requestRegisteredTarget(route)
     await waitForNavigation(route.activeId)
-    await assertLatestRequest(route.roleId, route.destination)
-    await assertFocusAndRoleStart(route.activeId, route.roleId)
+    await assertRoleOpen(route.roleId)
+    await assertLatestRequest(
+      route.roleId,
+      route.destination,
+      route.sectionAlignmentTarget,
+    )
+    if (route.sectionAlignmentTarget) {
+      await assertFocusAndSectionStart(
+        route.activeId,
+        route.alignmentPanel,
+        route.roleId,
+      )
+    } else {
+      await assertNestedPanelOpen('rating')
+      await assertFocusAndRoleStart(route.activeId, route.roleId)
+    }
     assert.deepEqual(await getFeatureSnapshot(), before)
   }
 })
 
+test('registered Media target reasserts section alignment after focus scrolling', async () => {
+  await openHarness()
+  const route = registeredDirectTargets.find(({ feature }) => feature === 'media')
+  await setFeatureEnabled('media', true)
+  const before = await getFeatureSnapshot()
+
+  await requestRegisteredTarget(route)
+  await waitForNavigation(route.activeId)
+  await assertNestedPanelOpen('media')
+  await assertFocusAndSectionStart(
+    route.activeId,
+    route.alignmentPanel,
+    route.roleId,
+  )
+  const events = await getEventLog()
+  const simulatedScroll = events.find((event) =>
+    event.type === 'simulated-focus-scroll' &&
+    event.id === 'integration-media-format')
+  const sectionScrolls = events.filter((event) =>
+    event.type === 'scroll' && event.nestedPanel === 'media')
+  assert.ok(simulatedScroll)
+  assert.notEqual(
+    simulatedScroll.scrollTopBefore,
+    simulatedScroll.scrollTopAfter,
+  )
+  assert.equal(
+    sectionScrolls.at(-1).scrollTopAfter,
+    sectionScrolls[0].scrollTopAfter,
+  )
+  assert.deepEqual(await getFeatureSnapshot(), before)
+})
+
+test('OS section-start wins when an expanded Media panel creates a scroll conflict', async () => {
+  for (const mode of ['click', 'Enter', 'Space']) {
+    await openHarness()
+    await setFeatureEnabled('media', true)
+    await requestRegisteredTarget(
+      registeredDirectTargets.find(({ feature }) => feature === 'media'),
+    )
+    await waitForNavigation('integration-media-format')
+    await clearEventLog()
+
+    await activateSlot('disc:guided:operating-system-marks:group', mode)
+    await waitForNavigation('integration-operating-system-enable')
+    await assertNestedPanelOpen('operating-system')
+    await assertFocusAndSectionStart(
+      'integration-operating-system-enable',
+      'operating-system',
+      'game-info-logos',
+    )
+
+    const events = await getEventLog()
+    const focusScroll = events.find((event) =>
+      event.type === 'simulated-focus-scroll' &&
+      event.id === 'integration-operating-system-enable')
+    const sectionScrolls = events.filter((event) =>
+      event.type === 'scroll' &&
+      event.nestedPanel === 'operating-system')
+    assert.ok(focusScroll)
+    assert.notEqual(focusScroll.scrollTopBefore, focusScroll.scrollTopAfter)
+    assert.equal(
+      sectionScrolls.at(-1).scrollTopAfter,
+      sectionScrolls[0].scrollTopAfter,
+    )
+  }
+})
+
+test('an already aligned Media section retains its scroll position', async () => {
+  await openHarness()
+  await assertRoute(reachableRoutes.find(({ slotId }) =>
+    slotId.includes('media-format-mark')))
+  await page.locator('#integration-media-enable')
+    .evaluate((element) => delete element.dataset.simulateFocusScroll)
+  const before = await getSectionGeometry('media')
+  await clearEventLog()
+
+  await activateSlot('disc:guided:media-format-mark:primary', 'click')
+  await waitForNavigation('integration-media-enable')
+  await assertFocusAndSectionStart(
+    'integration-media-enable',
+    'media',
+    'game-info-logos',
+  )
+
+  const sectionScrolls = (await getEventLog()).filter((event) =>
+    event.type === 'scroll' && event.nestedPanel === 'media')
+  const after = await getSectionGeometry('media')
+  assert.ok(sectionScrolls.length >= 2)
+  assert.ok(sectionScrolls.every((event) =>
+    event.scrollTopBefore === event.scrollTopAfter))
+  assert.equal(after.scrollTop, before.scrollTop)
+})
+
 test('company logo routes never cross-focus developer and publisher controls', async () => {
   await openHarness()
-  await assertRoute(routes.find(({ slotId }) => slotId.includes('developer-logo')))
+  await assertRoute(reachableRoutes.find(({ slotId }) =>
+    slotId.includes('developer-logo')))
   assert.notEqual(
     await page.evaluate(() => document.activeElement?.id),
     'integration-publisher-enable',
   )
 
   await openHarness()
-  await assertRoute(routes.find(({ slotId }) => slotId.includes('publisher-logo')))
+  await assertRoute(reachableRoutes.find(({ slotId }) =>
+    slotId.includes('publisher-logo')))
   assert.notEqual(
     await page.evaluate(() => document.activeElement?.id),
     'integration-developer-enable',
@@ -368,7 +634,8 @@ test('controlled roles are non-accordion and repeated requests realign after man
   await unrelatedDetails.locator(':scope > summary').click()
   assert.equal(await unrelatedDetails.evaluate((element) => element.open), true)
 
-  const background = routes.find(({ slotId }) => slotId.includes('background-image'))
+  const background = reachableRoutes.find(({ slotId }) =>
+    slotId.includes('background-image'))
   await assertRoute(background)
   assert.equal(await unrelatedDetails.evaluate((element) => element.open), true)
 
@@ -386,7 +653,8 @@ test('controlled roles are non-accordion and repeated requests realign after man
     2,
   )
 
-  const rating = routes.find(({ slotId }) => slotId.includes('rating-badge'))
+  const rating = reachableRoutes.find(({ slotId }) =>
+    slotId.includes('rating-badge'))
   await page.locator(`[data-guided-slot-id="${rating.slotId}"]`).last().click()
   await waitForNavigation(rating.activeId)
   await assertRoleOpen('background-artwork')
